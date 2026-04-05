@@ -111,6 +111,10 @@ export const propertyPhotos = pgTable("property_photos", {
   }>(),
   generationStyle: text("generation_style"),
   beforePhotoId: integer("before_photo_id"),
+  // Base64-encoded image binary stored in Neon PostgreSQL for true persistence.
+  // When present, the image is served directly from the DB at
+  // /api/property-photos/:id/image, independent of Replit Object Storage.
+  imageData: text("image_data"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("property_photos_property_id_idx").on(table.propertyId),
@@ -125,6 +129,7 @@ export const insertPropertyPhotoSchema = createInsertSchema(propertyPhotos).pick
   variants: true,
   generationStyle: true,
   beforePhotoId: true,
+  imageData: true,
 });
 
 export const updatePropertyPhotoSchema = z.object({

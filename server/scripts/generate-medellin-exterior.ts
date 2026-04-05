@@ -81,6 +81,7 @@ async function run() {
     sortOrder: nextSort,
     isHero: false,
     generationStyle: "architectural-exterior",
+    imageData: buffer.toString("base64"),
   });
 
   logger.info(`Saved exterior render id=${photo.id}`, "exterior-script");

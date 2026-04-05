@@ -125,8 +125,13 @@ export function registerImageRoutes(app: Express): void {
         throw new Error("Failed to upload generated image to object storage");
       }
 
+      // Include base64 so callers can persist the image binary in Neon PostgreSQL
+      // via the imageData field on property_photos (storage-independent persistence).
+      const imageDataBase64 = imageBuffer.toString("base64");
+
       res.json({
         objectPath,
+        imageData: imageDataBase64,
         isAiGenerated: true,
         style: usedFallback ? "standard" : (style || "standard"),
         usedFallback,

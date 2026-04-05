@@ -131,6 +131,7 @@ async function run() {
       isHero: false,
       generationStyle: "photo-to-render",
       beforePhotoId: sourcePhoto.id,
+      imageData: buffer.toString("base64"),
     });
 
     logger.info(`  Saved render id=${render.id} caption="${renderCaption}"`, "render-script");

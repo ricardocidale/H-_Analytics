@@ -344,6 +344,12 @@ async function runSchemaMigrations() {
     await seedExternalIntegrations();
     await markMigrationApplied("seed_external_integrations_001");
   }
+
+  if (!(await isMigrationApplied("photo_image_data_001"))) {
+    const { runPhotoImageData001 } = await import("./migrations/photo-image-data-001");
+    await runPhotoImageData001();
+    await markMigrationApplied("photo_image_data_001");
+  }
 }
 
 async function runSeeds() {

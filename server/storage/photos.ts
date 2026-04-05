@@ -23,6 +23,12 @@ export class PhotoStorage {
     return grouped;
   }
 
+  async getPhotoById(id: number): Promise<PropertyPhoto | undefined> {
+    const [photo] = await db.select().from(propertyPhotos)
+      .where(eq(propertyPhotos.id, id));
+    return photo || undefined;
+  }
+
   async getHeroPhoto(propertyId: number): Promise<PropertyPhoto | undefined> {
     const [photo] = await db.select().from(propertyPhotos)
       .where(and(eq(propertyPhotos.propertyId, propertyId), eq(propertyPhotos.isHero, true)));
@@ -35,6 +41,8 @@ export class PhotoStorage {
         .where(eq(propertyPhotos.propertyId, data.propertyId));
 
       const isFirst = existing.length === 0;
+
+      // Insert first so we get the auto-generated id
       const [photo] = await tx.insert(propertyPhotos)
         .values({
           ...data,
@@ -43,13 +51,23 @@ export class PhotoStorage {
         } as typeof propertyPhotos.$inferInsert)
         .returning();
 
+      // If image binary is stored in DB, rewrite imageUrl to the DB-served path
+      // so the image is portable and independent of Replit Object Storage.
+      let resolvedImageUrl = photo.imageUrl;
+      if (photo.imageData) {
+        resolvedImageUrl = `/api/property-photos/${photo.id}/image`;
+        await tx.update(propertyPhotos)
+          .set({ imageUrl: resolvedImageUrl })
+          .where(eq(propertyPhotos.id, photo.id));
+      }
+
       if (photo.isHero) {
         await tx.update(properties)
-          .set({ imageUrl: photo.imageUrl, updatedAt: new Date() })
+          .set({ imageUrl: resolvedImageUrl, updatedAt: new Date() })
           .where(eq(properties.id, data.propertyId));
       }
 
-      return photo;
+      return { ...photo, imageUrl: resolvedImageUrl };
     });
   }
 
@@ -99,8 +117,12 @@ export class PhotoStorage {
         .returning();
 
       if (hero) {
+        // Prefer the DB-served path when imageData is present
+        const heroImageUrl = hero.imageData
+          ? `/api/property-photos/${hero.id}/image`
+          : hero.imageUrl;
         await tx.update(properties)
-          .set({ imageUrl: hero.imageUrl, updatedAt: new Date() })
+          .set({ imageUrl: heroImageUrl, updatedAt: new Date() })
           .where(eq(properties.id, propertyId));
       }
     });
