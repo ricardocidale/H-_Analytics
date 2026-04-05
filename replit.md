@@ -122,8 +122,32 @@ npm run diff:summary   # Git status + diff stats (<1s)
 | Structured data | PostgreSQL | Properties, scenarios, users, market_research, market_rates, global_assumptions, logos, companies, integrations | Relational integrity, ACID transactions, joins, indexing |
 | Semantic retrieval | Pinecone `knowledge-base` | Document chunks from methodology, platform guide, checker manual, attached_assets | RAG for AI chat (Rebecca) and research prompts |
 | Prior knowledge | Pinecone `research-history` | Research result summaries (≤1,500 chars), key metrics, propertyId, location | Enables "what did we learn about similar properties?" context for N+1 orchestrator |
+| Guidance vectors | Pinecone `assumption-guidance` (PLANNED) | Vectorized assumption guidance records for Rebecca RAG | Enables Rebecca to answer questions about any research finding |
 
 **Design rule:** SQL is the system of record; Pinecone is the semantic index. Research results live in `market_research` (full content, JSONB) and are *additionally* indexed in Pinecone (summary only) for retrieval.
+
+## Research Intelligence Redesign (PLANNED — Task #287)
+
+Major architectural evolution of the research system. Full spec: `.claude/skills/research/research-intelligence-redesign.md` and `.local/tasks/research-intelligence-redesign.md`.
+
+### Key Innovations
+- **Star Rating System (1-5★)**: User-defined hotel classification (5★=Four Seasons, 3★=Holiday Inn). Primary driver for comparable matching. Auto-suggested from ADR + amenities + rooms. Star icon badges in UI.
+- **Hotel vs Resort Classification**: User-set property type (Hotel/Resort/Boutique Hotel/Business Hotel/Wellness Resort/Conference Hotel/Extended Stay). Different economics drive different comparable sets.
+- **Entity Context Packs**: Auto-assembly of 60+ property/company fields into research prompts (replaces thin 7-field context). Includes star rating, property type, full address, amenities (natural language), cost rates, capital structure, ICP alignment.
+- **3-Tier Intelligence**: Tier 0 (ambient macro data, no LLM), Tier 1 (entity-scoped N+1 pipeline), Tier 2 (single-field deep-dive, <5s)
+- **Progressive Relaxation (L0-L5)**: Finds comparable sets by gradually relaxing criteria. Star rating NEVER relaxes beyond ±1. Full provenance transparency.
+- **Rebecca as Conversational Intelligence Layer**: Replaces complex tooltips. Super Conversations (trademark Norfolk AI). Sends email summaries and Norfolk AI feedback reports. Special RAG with access to everything.
+- **Scenario-Scoped Guidance**: Research keyed to (scenario_id, entity_type, entity_id, assumption_key)
+- **ResearchBadge → Popover → Side-Sheet + Rebecca**: Badge click shows 3-option popover (Ask Rebecca / Apply Value / View Details)
+- **Complete Badge Coverage**: 40+ property fields, 30+ company fields
+- **Admin Console**: Coverage Analytics, QA Sandbox, Pipeline Policies, Model Routing per tier, Rebecca admin (6 sub-tabs), unified API Dashboard, Source Registry
+- **Navigation Redesign**: App sidebar: Home/Intelligence/Settings. Admin: Business/Intelligence/AI/Design/System
+
+### New Database Tables (PLANNED)
+assumption_guidance, research_runs, benchmark_snapshots, relaxation_traces, guidance_decisions, rebecca_conversations, rebecca_messages, rebecca_emails, rebecca_feedback, coverage_snapshots, source_registry, integration_key_rotations, pipeline_policies
+
+### New Property Fields (PLANNED)
+starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|resort|boutique_hotel|...)
 
 ## H+ Analytics Logo Variants
 

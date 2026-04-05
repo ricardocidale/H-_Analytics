@@ -24,7 +24,8 @@ export type ReplicateStyleKey =
   | "renovation-concept"
   | "photo-upscale"
   | "virtual-staging"
-  | "background-remove";
+  | "background-remove"
+  | "photo-to-render";
 
 interface ReplicatePrediction {
   id: string;

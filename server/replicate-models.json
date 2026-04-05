@@ -75,5 +75,17 @@
     "isImg2Img": true,
     "requiresSourceImage": true,
     "promptOptional": true
+  },
+  "photo-to-render": {
+    "model": "adirik/interior-design",
+    "promptPrefix": "Photorealistic luxury architectural visualization render, exact same furniture arrangement and spatial layout as the source photo, CGI-quality lighting and materials, Unreal Engine 5 realism",
+    "promptSuffix": "preserve all furniture positions and room composition, Architectural Digest editorial quality, ultra-sharp detail, premium render",
+    "params": {
+      "guidance_scale": 12,
+      "negative_prompt": "lowres, watermark, banner, text, deformed, blurry, out of focus, surreal, ugly, cheap, low quality, different layout, moved furniture",
+      "strength": 0.45
+    },
+    "isImg2Img": true,
+    "requiresSourceImage": true
   }
 }

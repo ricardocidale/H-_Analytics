@@ -23,6 +23,7 @@ const generatePropertyImageSchema = z.object({
     "photo-upscale",
     "virtual-staging",
     "background-remove",
+    "photo-to-render",
   ]).optional().default("standard"),
   beforeImageUrl: z.string().min(1).optional(),
 });
