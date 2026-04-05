@@ -67,6 +67,7 @@ export interface AddPropertyFormData {
   countryRiskPremium?: number;
   exitCapRate?: number;
   inflationRate?: number;
+  depreciationYears?: number;
 }
 
 interface AddPropertyDialogProps {

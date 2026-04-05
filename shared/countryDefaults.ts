@@ -5,12 +5,19 @@
  * these values auto-fill the financial assumptions in the Add Property dialog.
  *
  * Fields covered:
- *   taxRate          — corporate/income tax rate (decimal). For US, federal (21%) + state combined.
- *   costRateTaxes    — property/real-estate taxes as % of revenue (USALI category).
- *   countryRiskPremium — equity risk premium add-on. Source: Damodaran NYU Stern Jan 2026.
- *   exitCapRate      — exit capitalization rate (decimal).
- *   adrGrowthRate    — ADR growth rate per year (decimal).
- *   inflationRate    — cost escalation rate per year (decimal).
+ *   taxRate              — corporate/income tax rate (decimal). For US, federal (21%) + state combined.
+ *   costRateTaxes        — property/real-estate taxes as % of revenue (USALI category).
+ *   countryRiskPremium   — equity risk premium add-on. Source: Damodaran NYU Stern Jan 2026.
+ *   exitCapRate          — exit capitalization rate (decimal).
+ *   adrGrowthRate        — ADR growth rate per year (decimal).
+ *   inflationRate        — cost escalation rate per year (decimal).
+ *   depreciationYears    — straight-line useful life for buildings (years). Set by local tax authority.
+ *   depreciationAuthority — governing body/statute that mandates the depreciation period.
+ *
+ * Depreciation note:
+ *   The calculation METHOD always follows US GAAP (ASC 360, straight-line). Only the
+ *   useful life period varies by jurisdiction. Each country's tax authority determines
+ *   the allowable recovery period for commercial real property (hotels).
  *
  * Inflation note:
  *   For dollar-indexed / dollarized economies (Argentina, El Salvador, Panama),
@@ -29,6 +36,7 @@ export interface CountryDefaults {
   adrGrowthRate: number;
   inflationRate: number;
   depreciationYears: number;
+  depreciationAuthority: string;
 }
 
 export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
@@ -39,6 +47,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.065,
     adrGrowthRate: 0.03,
     inflationRate: 0.03,
+    depreciationYears: 39, // Nonresidential real property (hotels) — MACRS
+    depreciationAuthority: "IRS Publication 946, IRC §168(e)(2)(A)",
   },
   "Canada": {
     taxRate: 0.265,        // Federal 15% + avg provincial ~11.5%
@@ -47,6 +57,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.055,
     adrGrowthRate: 0.03,
     inflationRate: 0.03,
+    depreciationYears: 25, // CCA Class 1 non-residential buildings (4% declining → ~25yr SL equivalent)
+    depreciationAuthority: "CRA Income Tax Regulations, CCA Class 1",
   },
   "France": {
     taxRate: 0.25,
@@ -55,6 +67,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.05,
     adrGrowthRate: 0.035,
     inflationRate: 0.03,
+    depreciationYears: 25, // Commercial buildings — Plan Comptable Général
+    depreciationAuthority: "Code Général des Impôts, Art. 39-1-2°",
   },
   "Spain": {
     taxRate: 0.25,
@@ -63,6 +77,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.055,
     adrGrowthRate: 0.035,
     inflationRate: 0.03,
+    depreciationYears: 50, // Commercial buildings — max coeficiente 2%
+    depreciationAuthority: "Ley del Impuesto sobre Sociedades, Art. 12.1, Tabla de Amortización",
   },
   "Italy": {
     taxRate: 0.279,        // IRES 24% + IRAP 3.9%
@@ -71,6 +87,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.06,
     adrGrowthRate: 0.035,
     inflationRate: 0.03,
+    depreciationYears: 33, // Hotel buildings — coefficiente 3%
+    depreciationAuthority: "DM 31/12/1988, Gruppo XVII — Alberghi",
   },
   "Portugal": {
     taxRate: 0.21,         // NHR regime benefits; standard 21%
@@ -79,6 +97,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.055,
     adrGrowthRate: 0.04,
     inflationRate: 0.03,
+    depreciationYears: 50, // Commercial buildings — Decreto Regulamentar
+    depreciationAuthority: "Decreto Regulamentar n.º 25/2009, Tabela II",
   },
   "Mexico": {
     taxRate: 0.30,
@@ -87,6 +107,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.08,
     adrGrowthRate: 0.04,
     inflationRate: 0.04,
+    depreciationYears: 20, // Hotel buildings — 5% annual deduction
+    depreciationAuthority: "Ley del ISR, Art. 34 Fracción I-c (inmuebles para hospedaje)",
   },
   "Colombia": {
     taxRate: 0.35,
@@ -95,6 +117,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.08,
     adrGrowthRate: 0.04,
     inflationRate: 0.04,
+    depreciationYears: 20, // Commercial buildings — vida útil fiscal
+    depreciationAuthority: "Estatuto Tributario, Art. 137, Decreto 3019 de 1989",
   },
   "Brazil": {
     taxRate: 0.34,         // IRPJ 25% + CSLL 9%
@@ -103,6 +127,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     exitCapRate: 0.085,
     adrGrowthRate: 0.05,
     inflationRate: 0.05,
+    depreciationYears: 25, // Commercial buildings — 4% annual rate
+    depreciationAuthority: "RIR/2018, Art. 311 (Instrução Normativa SRF 162/1998)",
   },
   "Argentina": {
     taxRate: 0.35,
@@ -112,6 +138,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     adrGrowthRate: 0.04,
     // USD inflation — luxury hospitality is dollar-priced; local peso inflation irrelevant
     inflationRate: 0.03,
+    depreciationYears: 50, // Commercial buildings — 2% annual rate
+    depreciationAuthority: "Ley de Impuesto a las Ganancias, Art. 84, Decreto 862/2019",
   },
   "El Salvador": {
     taxRate: 0.30,
@@ -121,6 +149,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     adrGrowthRate: 0.04,
     // Officially dollarized — USD inflation applies
     inflationRate: 0.03,
+    depreciationYears: 20, // Commercial buildings — 5% annual rate
+    depreciationAuthority: "Ley del Impuesto sobre la Renta, Art. 30",
   },
   "Panama": {
     taxRate: 0.25,
@@ -130,6 +160,8 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     adrGrowthRate: 0.04,
     // Effectively dollarized (Balboa = USD) — USD inflation applies
     inflationRate: 0.03,
+    depreciationYears: 30, // Commercial buildings — Código Fiscal
+    depreciationAuthority: "Código Fiscal de Panamá, Art. 697, Decreto 170/1993",
   },
 };
 

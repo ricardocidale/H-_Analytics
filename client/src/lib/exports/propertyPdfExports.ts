@@ -2,7 +2,6 @@ import { type ExportRowMeta } from "@/lib/exports/exportStyles";
 import { drawLineChart } from "@/lib/exports/pdfChartDrawer";
 import { addFooters, buildFinancialTableConfig, drawTitle, drawSubtitle, drawSubtitleRow } from "@/lib/exports/pdfHelpers";
 import type { ExportVersion } from "@/components/ExportDialog";
-import { DEPRECIATION_YEARS } from "@shared/constants";
 import {
   type PropertyExportContext,
   getLoanCalcs,
@@ -10,6 +9,7 @@ import {
   computeCashFlowVectors,
   buildIncomeRows,
   buildCashFlowRows,
+  resolveExportDepreciationYears,
 } from "./propertyExportShared";
 
 export async function exportIncomeStatementPDF(ctx: PropertyExportContext, orientation: 'landscape' | 'portrait' = 'landscape', version: ExportVersion = 'extended', customFilename?: string) {
@@ -129,6 +129,7 @@ export async function exportUnifiedPDF(ctx: PropertyExportContext, orientation: 
   const brand = getBrand(ctx);
   const { property, global, yearlyDetails, cashFlowData, yearlyChartData, projectionYears, years, startYear } = ctx;
   const { loan, acqYear, totalPropertyCost } = getLoanCalcs(ctx);
+  const depYears = resolveExportDepreciationYears(ctx);
   const dims = orientation === "landscape"
     ? { w: PAGE_DIMS.LANDSCAPE_W, h: PAGE_DIMS.LANDSCAPE_H }
     : { w: PAGE_DIMS.PORTRAIT_W, h: PAGE_DIMS.PORTRAIT_H };
