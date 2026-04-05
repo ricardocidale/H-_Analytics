@@ -28,6 +28,7 @@ export interface CountryDefaults {
   exitCapRate: number;
   adrGrowthRate: number;
   inflationRate: number;
+  depreciationYears: number;
 }
 
 export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
