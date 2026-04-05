@@ -274,7 +274,7 @@ Old individual `server/migrations/*.ts` files have been superseded by this conso
 
 ## Governed Model Constants (DB-Backed)
 
-`DEPRECIATION_YEARS` (39) and `DAYS_PER_MONTH` (30.5) are now DB-backed with constant fallbacks. Cascade: `property.depreciationYears → global.depreciationYears → DEPRECIATION_YEARS constant (39)`. `daysPerMonth` is global-only: `global.daysPerMonth → DAYS_PER_MONTH constant (30.5)`. Editable in Company Assumptions under "Model Constants" with governed field wrappers. All engine files (`resolve-assumptions.ts`, `property-engine.ts`), server checker files, and client audit files use the cascade.
+`DEPRECIATION_YEARS` (39) and `DAYS_PER_MONTH` (30.5) are now DB-backed with constant fallbacks. Cascade: `property.depreciationYears → global.depreciationYears → DEPRECIATION_YEARS constant (39)`. `daysPerMonth` is global-only: `global.daysPerMonth → DAYS_PER_MONTH constant (30.5)`. Editable in Company Assumptions under "Model Constants" with governed field wrappers. All engine files (`resolve-assumptions.ts`, `property-engine.ts`), server checker files, and client audit files use the cascade. **DEPRECIATION_YEARS = 39 is the US fallback default, NOT immutable.** The useful life varies by country (see `shared/countryDefaults.ts` for per-country values and governing authority citations). The calculation METHOD always follows US GAAP (ASC 360, straight-line); only the period changes.
 
 ---
 

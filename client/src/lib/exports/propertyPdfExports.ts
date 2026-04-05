@@ -199,11 +199,11 @@ export async function exportUnifiedPDF(ctx: PropertyExportContext, orientation: 
   bsRows.push({ category: "ASSETS", values: yearlyDetails.map(() => 0), isHeader: true });
   bsRows.push({ category: "Cash & Equivalents", values: closeCash, indent: 1 });
   bsRows.push({ category: "Property (Net Book Value)", values: yearlyDetails.map((_, i) => {
-    const depPerYear = totalPropertyCost / DEPRECIATION_YEARS;
+    const depPerYear = totalPropertyCost / depYears;
     return Math.max(totalPropertyCost - depPerYear * (i + 1), 0);
   }), indent: 1 });
   bsRows.push({ category: "Total Assets", values: yearlyDetails.map((_, i) => {
-    const depPerYear = totalPropertyCost / DEPRECIATION_YEARS;
+    const depPerYear = totalPropertyCost / depYears;
     return closeCash[i] + Math.max(totalPropertyCost - depPerYear * (i + 1), 0);
   }), isBold: true });
   bsRows.push({ category: "LIABILITIES", values: yearlyDetails.map(() => 0), isHeader: true });
@@ -216,7 +216,7 @@ export async function exportUnifiedPDF(ctx: PropertyExportContext, orientation: 
   bsRows.push({ category: "Total Liabilities", values: loanBalances, isBold: true });
   bsRows.push({ category: "EQUITY", values: yearlyDetails.map(() => 0), isHeader: true });
   bsRows.push({ category: "Total Equity", values: yearlyDetails.map((_, i) => {
-    const depPerYear = totalPropertyCost / DEPRECIATION_YEARS;
+    const depPerYear = totalPropertyCost / depYears;
     const totalAssets = closeCash[i] + Math.max(totalPropertyCost - depPerYear * (i + 1), 0);
     return totalAssets - loanBalances[i];
   }), isBold: true });
@@ -230,7 +230,7 @@ export async function exportUnifiedPDF(ctx: PropertyExportContext, orientation: 
   if (yearlyChartData && yearlyChartData.length > 0) {
     doc.addPage();
     const totalAssets = yearlyDetails.map((_, i) => {
-      const depPerYear = totalPropertyCost / DEPRECIATION_YEARS;
+      const depPerYear = totalPropertyCost / depYears;
       return closeCash[i] + Math.max(totalPropertyCost - depPerYear * (i + 1), 0);
     });
     const totalEquity = yearlyDetails.map((_, i) => totalAssets[i] - loanBalances[i]);

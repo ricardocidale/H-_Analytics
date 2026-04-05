@@ -69,7 +69,7 @@ React 18 + TypeScript frontend, Express 5 + Drizzle ORM + PostgreSQL backend. Sh
 - **No raw hex in components** — use CSS variable tokens
 - **No mock data** in production paths
 - **Balance Sheet Identity**: A = L + E must hold within $1
-- **DEPRECIATION_YEARS = 39** — immutable
+- **DEPRECIATION_YEARS = 39** — US fallback default (varies by country; method is always GAAP straight-line)
 - **Button labels always "Save"** — never "Update"
 - **LLM dual-model config** — primary + fallback, 7 domains, no hardcoded models
 - **Doc Harmony Rule:** `replit.md` and `.claude/claude.md` must stay in sync

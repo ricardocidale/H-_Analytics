@@ -2,9 +2,13 @@ Depreciation, Taxes, and Cost Basis
 
 ## Depreciation Method
 
-Hotels are classified as nonresidential real property under IRC §168(e)(2)(A). The IRS-mandated depreciation period is 39 years using straight-line depreciation under the Modified Accelerated Cost Recovery System (MACRS). This is different from residential rental property (apartments, houses), which uses 27.5 years. Hotels are explicitly nonresidential because transient lodging (stays under 30 days) does not qualify as residential.
+The calculation method always follows US GAAP (ASC 360, straight-line). Only the useful life period varies by jurisdiction. Each country's tax authority determines the allowable recovery period for commercial real property (hotels).
 
-The authoritative sources are:
+For US properties, hotels are classified as nonresidential real property under IRC §168(e)(2)(A). The IRS-mandated depreciation period is 39 years using straight-line depreciation under the Modified Accelerated Cost Recovery System (MACRS). This is different from residential rental property (apartments, houses), which uses 27.5 years. Hotels are explicitly nonresidential because transient lodging (stays under 30 days) does not qualify as residential.
+
+For international properties, the depreciation period is set by the local tax authority (e.g., Colombia: 20 years per Estatuto Tributario Art. 137; Mexico: 20 years per Ley del ISR Art. 34; Brazil: 25 years per RIR/2018 Art. 311). See the country defaults table for the full list with governing authority citations.
+
+The authoritative sources for US properties are:
 - IRS Publication 946 (How to Depreciate Property)
 - IRC §168(e)(2)(A) — defines nonresidential real property
 - ASC 360-10 — GAAP property, plant, and equipment guidance
@@ -19,8 +23,10 @@ The land value percentage typically ranges from 15% to 40% depending on location
 
 ## Monthly and Annual Depreciation
 
-Monthly Depreciation = Depreciable Basis / 39 / 12
-Annual Depreciation = Depreciable Basis / 39
+Monthly Depreciation = Depreciable Basis / Depreciation Years / 12
+Annual Depreciation = Depreciable Basis / Depreciation Years
+
+Where Depreciation Years is resolved from: property override → global assumption → US default (39 years).
 
 Depreciation starts when the property is placed in service (the acquisition date). No depreciation occurs before that date.
 

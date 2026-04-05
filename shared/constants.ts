@@ -156,11 +156,12 @@ export const DEFAULT_COMMISSION_RATE = 0.05;
 // Source: IRS Publication 946
 export const DEFAULT_LAND_VALUE_PERCENT = 0.25;
 
-// Commercial real property depreciation period per IRS Publication 946
-// and ASC 360 (Property, Plant, and Equipment). Hotels providing transient
-// lodging (<30 days) are classified as nonresidential real property under
-// IRC §168(e)(2)(A), depreciated straight-line over 39 years (MACRS).
-// Individual properties can override via property.depreciationYears.
+// Default depreciation period — US nonresidential real property (hotels) per
+// IRS Publication 946, IRC §168(e)(2)(A), straight-line MACRS over 39 years.
+// This is the FALLBACK default when no country or property override is set.
+// The calculation METHOD always follows US GAAP (ASC 360, straight-line).
+// Only the useful life period varies by jurisdiction — see countryDefaults.ts.
+// Cascade: property.depreciationYears → global.depreciationYears → this constant.
 export const DEPRECIATION_YEARS = 39;
 
 // ──────────────────────────────────────────────────────────
@@ -192,10 +193,10 @@ export interface GovernedFieldMeta {
 export const GOVERNED_FIELDS: Record<string, GovernedFieldMeta> = {
   depreciationYears: {
     fieldName: "Depreciation Years",
-    authority: "IRS Publication 946",
-    value: "39 years",
+    authority: "Local tax authority (US default: IRS Publication 946)",
+    value: "Varies by country (US: 39 years)",
     helperText:
-      "39 years: nonresidential real property (hotels per IRC §168(e)(2)(A)). 27.5 years: residential rental property only. This model uses 39-year straight-line depreciation for hotel assets as classified under MACRS. Changing this deviates from standard tax depreciation schedules. Consult your tax advisor.",
+      "Straight-line depreciation period set by the property's local tax authority. US default: 39 years for nonresidential real property (hotels per IRC §168(e)(2)(A)). Other jurisdictions vary — see country defaults table. The calculation method always follows US GAAP (ASC 360, straight-line); only the useful life period changes. Consult your tax advisor before overriding.",
     referenceUrl: "https://www.irs.gov/publications/p946",
   },
   daysPerMonth: {

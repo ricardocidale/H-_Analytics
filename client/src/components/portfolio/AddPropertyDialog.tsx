@@ -107,6 +107,7 @@ export function AddPropertyDialog({
         exitCapRate: defaults.exitCapRate,
         adrGrowthRate: defaults.adrGrowthRate,
         inflationRate: defaults.inflationRate,
+        depreciationYears: defaults.depreciationYears,
       }));
     } else {
       setFormData(prev => ({ ...prev, country, stateProvince: "" }));
