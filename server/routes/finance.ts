@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import superjson from "superjson";
 import { computePortfolioProjection, computeSingleProperty, computeCompanyProjection } from "../finance/service";
+import { computeSensitivityAnalysis } from "../finance/sensitivity";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats } from "../finance/cache";
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../auth";
 import { logger } from "../logger";
@@ -235,11 +236,43 @@ export function registerFinanceRoutes(router: Router): void {
     return res.json({
       status: "ok",
       engineVersion: "1.0.0",
-      capabilities: ["portfolio-projection", "single-property", "identity-validation", "lru-cache"],
+      capabilities: ["portfolio-projection", "single-property", "identity-validation", "lru-cache", "sensitivity"],
       cache: {
         entries: cacheInfo.size,
         hitRate: cacheInfo.hitRate,
       },
     });
+  });
+
+  // ── Sensitivity Analysis ─────────────────────────────────────────────────────
+  // POST /api/finance/sensitivity
+  // Runs tornado (14 scenarios) + heatmap (25 scenarios) server-side.
+  // The client keeps only the 2 interactive slider runs (base + adjusted) local.
+  const sensitivityRequestSchema = z.object({
+    propertyId: z.union([z.literal("all"), z.number().int().positive()]).optional().default("all"),
+  });
+
+  router.post("/api/finance/sensitivity", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (isApiRateLimited(getAuthUser(req).id, "finance-sensitivity", 10)) {
+        return res.status(429).json({ error: "Rate limit exceeded. Please wait before running sensitivity analysis again." });
+      }
+
+      const parsed = sensitivityRequestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid input", details: parsed.error.issues });
+      }
+
+      const userId = getAuthUser(req).id;
+      const result = await computeSensitivityAnalysis(userId, parsed.data.propertyId ?? "all");
+      return res.json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Sensitivity computation failed";
+      logger.error(`Sensitivity compute error: ${message}`, "finance");
+      if (message.includes("No global assumptions") || message.includes("No matching properties")) {
+        return res.status(422).json({ error: message });
+      }
+      return res.status(500).json({ error: message });
+    }
   });
 }

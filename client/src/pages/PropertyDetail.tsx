@@ -90,24 +90,6 @@ export default function PropertyDetail() {
 
   const financials = USE_SERVER_COMPUTE ? (serverFinancials?.monthly ?? []) : clientFinancials;
 
-  const yearlyChartData = useMemo(() => {
-    const data = [];
-    for (let y = 0; y < projectionYears; y++) {
-      const yearData = financials.slice(y * MONTHS_PER_YEAR, (y + 1) * MONTHS_PER_YEAR);
-      if (yearData.length === 0) continue;
-      data.push({
-        year: String(getFiscalYear(y)),
-        Revenue: yearData.reduce((a, m) => a + m.revenueTotal, 0),
-        GOP: yearData.reduce((a, m) => a + m.gop, 0),
-        AGOP: yearData.reduce((a, m) => a + m.agop, 0),
-        NOI: yearData.reduce((a, m) => a + m.noi, 0),
-        ANOI: yearData.reduce((a, m) => a + m.anoi, 0),
-        CashFlow: yearData.reduce((a, m) => a + m.cashFlow, 0),
-      });
-    }
-    return data;
-  }, [financials, projectionYears]);
-
   const years = projectionYears;
   const startYear = getFiscalYear(0);
 
@@ -116,10 +98,24 @@ export default function PropertyDetail() {
     return aggregateCashFlowByYear(financials, property as LoanParams, global as GlobalLoanParams, years);
   }, [financials, property, global, years]);
 
+  // aggregatePropertyByYear is the single source of truth for yearly totals.
+  // yearlyChartData derives from it — no re-reducing of monthly arrays.
   const yearlyDetails = useMemo(
     () => aggregatePropertyByYear(financials, years),
     [financials, years]
   );
+
+  const yearlyChartData = useMemo(() =>
+    yearlyDetails.map((d, y) => ({
+      year:     String(getFiscalYear(y)),
+      Revenue:  d.revenueTotal,
+      GOP:      d.gop,
+      AGOP:     d.agop,
+      NOI:      d.noi,
+      ANOI:     d.anoi,
+      CashFlow: d.cashFlow,
+    })),
+  [yearlyDetails]);
 
   const balanceChartData = useMemo(() => {
     if (!property || !global || !yearlyChartData.length || !cashFlowDataMemo.length) return [];

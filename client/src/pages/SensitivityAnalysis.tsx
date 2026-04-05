@@ -1,9 +1,11 @@
 import { useState, useMemo, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { useProperties, useGlobalAssumptions } from "@/lib/api";
 import { generatePropertyProForma, formatMoney } from "@/lib/financialEngine";
 import { PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, DEFAULT_PROPERTY_INFLATION_RATE, DEFAULT_COST_RATE_INSURANCE, MONTHS_PER_YEAR } from "@/lib/constants";
 import { computeIRR } from "@analytics/returns/irr.js";
+import type { SensitivityResponse } from "@shared/sensitivity-types";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -128,94 +130,152 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
     [properties, global, selectedPropertyId, projectionMonths]
   );
 
+  // ── Interactive (2 client runs — must stay client-side for slider responsiveness) ──
   const baseResult = useMemo(() => runScenario({}), [runScenario]);
   const adjustedResult = useMemo(() => runScenario(adjustments), [runScenario, adjustments]);
 
-  const tornadoData: TornadoItem[] = useMemo(() => {
-    if (!baseResult || !variables.length) return [];
-    const items: TornadoItem[] = [];
-    for (const v of variables) {
-      const swingPct = v.id === "exitCapRate" ? 2 : v.id === "occupancy" ? 10 : v.id === "interestRate" ? 2 : 3;
-      const upResult = runScenario({ [v.id]: swingPct });
-      const downResult = runScenario({ [v.id]: -swingPct });
-      if (!upResult || !downResult) continue;
+  // ── Server-side static analysis (39 runs: 14 tornado + 25 heatmap) ────────────
+  // Runs once on page load. Client keeps only the 2 interactive slider runs above.
+  const propertyIdParam = selectedPropertyId === "all" ? "all" : Number(selectedPropertyId);
+  const { data: serverData, isLoading: serverLoading } = useQuery<SensitivityResponse>({
+    queryKey: ["sensitivity", propertyIdParam],
+    queryFn: async () => {
+      const res = await fetch("/api/finance/sensitivity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ propertyId: propertyIdParam }),
+      });
+      if (!res.ok) throw new Error(`Sensitivity compute failed: ${res.status}`);
+      return res.json();
+    },
+    enabled: !!(properties?.length) && !!global,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
+  // ── Tornado data — server-first, client fallback ───────────────────────────────
+  // Client fallback uses a shared tornadoScenarios base to avoid running each
+  // variable twice (was 28 runs, now 14 for the fallback path).
+  const tornadoScenarios = useMemo(() => {
+    if (serverData || !baseResult || !variables.length) return [];
+    return variables.map(v => {
+      const swingPct = v.id === "exitCapRate" ? 2 : v.id === "occupancy" ? 10 : v.id === "interestRate" ? 2 : 3;
+      return {
+        v,
+        swingPct,
+        upResult:   runScenario({ [v.id]: swingPct }),
+        downResult: runScenario({ [v.id]: -swingPct }),
+      };
+    }).filter(s => s.upResult && s.downResult);
+  }, [serverData, baseResult, variables, runScenario]);
+
+  const tornadoData: TornadoItem[] = useMemo(() => {
+    if (serverData) {
+      return serverData.tornado.map(t => ({
+        name:     t.name,
+        positive: tornadoMetric === "irr" ? t.irrPositive : t.noiPositive,
+        negative: tornadoMetric === "irr" ? t.irrNegative : t.noiNegative,
+        spread:   tornadoMetric === "irr" ? t.irrSpread   : t.noiSpread,
+        upLabel:   t.upLabel,
+        downLabel: t.downLabel,
+      }));
+    }
+    if (!baseResult || !tornadoScenarios.length) return [];
+    return tornadoScenarios.map(({ v, swingPct, upResult, downResult }) => {
+      const up = upResult!; const dn = downResult!;
       let upDelta: number, downDelta: number;
       if (tornadoMetric === "irr") {
-        upDelta = (upResult.irr - baseResult.irr) * 100;
-        downDelta = (downResult.irr - baseResult.irr) * 100;
+        upDelta   = (up.irr - baseResult.irr) * 100;
+        downDelta = (dn.irr - baseResult.irr) * 100;
       } else {
-        const baseNOI = baseResult.totalNOI;
-        upDelta = ((upResult.totalNOI - baseNOI) / Math.abs(baseNOI)) * 100;
-        downDelta = ((downResult.totalNOI - baseNOI) / Math.abs(baseNOI)) * 100;
+        const base = Math.abs(baseResult.totalNOI) || 1;
+        upDelta   = ((up.totalNOI - baseResult.totalNOI) / base) * 100;
+        downDelta = ((dn.totalNOI - baseResult.totalNOI) / base) * 100;
       }
-
-      items.push({
-        name: v.label,
+      return {
+        name:     v.label,
         positive: Math.max(upDelta, downDelta),
         negative: Math.min(upDelta, downDelta),
-        spread: Math.abs(upDelta - downDelta),
-        upLabel: `+${swingPct}${v.unit === "%" ? "pp" : ""}`,
+        spread:   Math.abs(upDelta - downDelta),
+        upLabel:   `+${swingPct}${v.unit === "%" ? "pp" : ""}`,
         downLabel: `-${swingPct}${v.unit === "%" ? "pp" : ""}`,
-      });
-    }
-    return items.sort((a, b) => b.spread - a.spread);
-  }, [baseResult, variables, runScenario, tornadoMetric]);
+      };
+    }).sort((a, b) => b.spread - a.spread);
+  }, [serverData, baseResult, tornadoScenarios, tornadoMetric]);
 
+  // ── Heatmap — server-first, client fallback ────────────────────────────────────
   const heatMapData = useMemo((): { cells: HeatMapCell[]; rowLabels: string[]; colLabels: string[] } => {
+    if (serverData) {
+      return {
+        rowLabels: serverData.heatmap.rowLabels,
+        colLabels: serverData.heatmap.colLabels,
+        cells: serverData.heatmap.cells.map(c => {
+          const value =
+            heatMapMetric === "irr"            ? c.irrValue :
+            heatMapMetric === "noi"            ? c.noiValue :
+            c.equityMultipleValue;
+          return {
+            row: c.row, col: c.col,
+            rowLabel: c.rowLabel, colLabel: c.colLabel,
+            value,
+            passes: heatMapMetric === "irr" ? value >= 0.15 : value > 0,
+          };
+        }),
+      };
+    }
     if (!baseResult || !properties?.length || !global) return { cells: [], rowLabels: [], colLabels: [] };
     const occupancyShocks = [-10, -5, 0, 5, 10];
-    const adrShocks = [-10, -5, 0, 5, 10];
+    const adrShocks       = [-10, -5, 0, 5, 10];
     const rowLabels = occupancyShocks.map(s => `${s >= 0 ? "+" : ""}${s}% Occ`);
     const colLabels = adrShocks.map(s => `${s >= 0 ? "+" : ""}${s}% ADR`);
     const cells: HeatMapCell[] = [];
-
     for (let ri = 0; ri < occupancyShocks.length; ri++) {
       for (let ci = 0; ci < adrShocks.length; ci++) {
-        const result = runScenario({
-          occupancy: occupancyShocks[ri],
-          adrGrowth: adrShocks[ci] / 2,
-        });
+        const result = runScenario({ occupancy: occupancyShocks[ri], adrGrowth: adrShocks[ci] / 2 });
         let value = 0;
         if (result) {
           if (heatMapMetric === "irr") value = result.irr;
           else if (heatMapMetric === "noi") value = result.totalNOI;
-          else value = result.exitValue > 0 && result.totalRevenue > 0 ? result.totalNOI / result.totalRevenue : 0;
+          else value = result.totalRevenue > 0 ? result.totalNOI / result.totalRevenue : 0;
         }
         cells.push({
-          row: ri,
-          col: ci,
-          rowLabel: rowLabels[ri],
-          colLabel: colLabels[ci],
+          row: ri, col: ci,
+          rowLabel: rowLabels[ri], colLabel: colLabels[ci],
           value,
           passes: heatMapMetric === "irr" ? value >= 0.15 : value > 0,
         });
       }
     }
     return { cells, rowLabels, colLabels };
-  }, [baseResult, properties, global, runScenario, heatMapMetric]);
+  }, [serverData, baseResult, properties, global, runScenario, heatMapMetric]);
 
+  // ── TornadoD3 — derived from server or shared tornadoScenarios (zero extra runs) ─
   const tornadoD3Data = useMemo((): { variables: TornadoVariable[]; baseValue: number } => {
-    if (!baseResult || !variables.length) return { variables: [], baseValue: 0 };
-    const result: TornadoVariable[] = [];
-    for (const v of variables) {
-      const swingPct = v.id === "exitCapRate" ? 2 : v.id === "occupancy" ? 10 : v.id === "interestRate" ? 2 : 3;
-      const upResult = runScenario({ [v.id]: swingPct });
-      const downResult = runScenario({ [v.id]: -swingPct });
-      if (!upResult || !downResult) continue;
-      result.push({
-        name: v.label,
-        upside: tornadoMetric === "irr" ? upResult.irr : upResult.totalNOI,
-        downside: tornadoMetric === "irr" ? downResult.irr : downResult.totalNOI,
-        upsideLabel: `+${swingPct}${v.unit === "%" ? "pp" : ""}`,
-        downsideLabel: `-${swingPct}${v.unit === "%" ? "pp" : ""}`,
-      });
+    if (serverData) {
+      return {
+        baseValue: tornadoMetric === "irr" ? serverData.base.irr : serverData.base.totalNOI,
+        variables: serverData.tornadoVariables.map(tv => ({
+          name:          tv.name,
+          upside:        tornadoMetric === "irr" ? tv.upsideIrr   : tv.upsideNoi,
+          downside:      tornadoMetric === "irr" ? tv.downsideIrr : tv.downsideNoi,
+          upsideLabel:   tv.upsideLabel,
+          downsideLabel: tv.downsideLabel,
+        })),
+      };
     }
+    if (!baseResult || !tornadoScenarios.length) return { variables: [], baseValue: 0 };
     return {
-      variables: result,
       baseValue: tornadoMetric === "irr" ? baseResult.irr : baseResult.totalNOI,
+      variables: tornadoScenarios.map(({ v, swingPct, upResult, downResult }) => ({
+        name:          v.label,
+        upside:        tornadoMetric === "irr" ? upResult!.irr        : upResult!.totalNOI,
+        downside:      tornadoMetric === "irr" ? downResult!.irr      : downResult!.totalNOI,
+        upsideLabel:   `+${swingPct}${v.unit === "%" ? "pp" : ""}`,
+        downsideLabel: `-${swingPct}${v.unit === "%" ? "pp" : ""}`,
+      })),
     };
-  }, [baseResult, variables, runScenario, tornadoMetric]);
+  }, [serverData, baseResult, tornadoScenarios, tornadoMetric]);
 
   const hasAdjustments = Object.values(adjustments).some((v) => v !== 0);
 
@@ -271,7 +331,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
       insights.push({
         text: `${topVar.name} has the largest impact on ${tornadoMetric === "irr" ? "IRR" : "NOI"} with a spread of ${topVar.spread.toFixed(1)}${tornadoMetric === "irr" ? "pp" : "%"}`,
         type: "warning",
-        metric: `±${(topVar.spread / 2).toFixed(1)}${tornadoMetric === "irr" ? "pp" : "%"}`,
+        metric: `±${(topVar.spread / 2).toFixed(1)}${tornadoMetric === "irr" ? "pp" : ""}`,
       });
     }
     if (baseResult.irr > 0.15) {
