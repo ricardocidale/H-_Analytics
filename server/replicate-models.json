@@ -22,13 +22,14 @@
     }
   },
   "renovation-concept": {
-    "model": "adirik/interior-design:76604baddc85b1b4616e1c6475eca080da339c8fae2a225e1d38b0fba9571adc",
+    "model": "adirik/interior-design:76604baddc85b1b4616e1c6475eca080da339c8875bd4996705440484a6eac38",
     "promptPrefix": "Luxury boutique hotel renovation, premium finishes, contemporary design",
     "promptSuffix": "professional interior design concept, high-end materials, architectural visualization quality",
     "params": {
       "guidance_scale": 15,
       "negative_prompt": "lowres, watermark, banner, text, deformed, blurry, out of focus, surreal, ugly, cheap, low quality",
-      "strength": 0.85
+      "prompt_strength": 0.85,
+      "num_inference_steps": 50
     },
     "isImg2Img": true,
     "requiresSourceImage": true
@@ -77,13 +78,14 @@
     "promptOptional": true
   },
   "photo-to-render": {
-    "model": "adirik/interior-design",
+    "model": "adirik/interior-design:76604baddc85b1b4616e1c6475eca080da339c8875bd4996705440484a6eac38",
     "promptPrefix": "Photorealistic luxury architectural visualization render, exact same furniture arrangement and spatial layout as the source photo, CGI-quality lighting and materials, Unreal Engine 5 realism",
     "promptSuffix": "preserve all furniture positions and room composition, Architectural Digest editorial quality, ultra-sharp detail, premium render",
     "params": {
       "guidance_scale": 12,
       "negative_prompt": "lowres, watermark, banner, text, deformed, blurry, out of focus, surreal, ugly, cheap, low quality, different layout, moved furniture",
-      "strength": 0.45
+      "prompt_strength": 0.45,
+      "num_inference_steps": 50
     },
     "isImg2Img": true,
     "requiresSourceImage": true
