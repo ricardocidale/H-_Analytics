@@ -20,6 +20,7 @@ import { buildPropertyContextPack } from "../ai/context-pack/property-pack";
 import { buildCompanyContextPack } from "../ai/context-pack/company-pack";
 import { assembleResearchPrompt } from "../ai/prompt/assemble-research-prompt";
 import { extractGuidance } from "../ai/guidance/extractor";
+import { flag } from "../feature-flags";
 import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 
 export function register(app: Express) {
@@ -208,48 +209,50 @@ export function register(app: Express) {
 
       let v2Prompt: string | undefined;
       let propertyContextPack: import("../ai/context-pack/types").PropertyContextPack | undefined;
-      try {
-        let ambientDataStr: string | undefined;
-        const benchmarks = await storage.getBenchmarkSnapshots();
-        if (benchmarks.length > 0) {
-          ambientDataStr = benchmarks.map(b =>
-            `${b.snapshotKey} (${b.category}): ${b.value}${b.source ? ` [${b.source}]` : ""}${b.staleness === "stale" ? " [STALE]" : ""}`
-          ).join("\n");
-        }
+      if (flag("RI_V2_WRITE")) {
+        try {
+          let ambientDataStr: string | undefined;
+          const benchmarks = await storage.getBenchmarkSnapshots();
+          if (benchmarks.length > 0) {
+            ambientDataStr = benchmarks.map(b =>
+              `${b.snapshotKey} (${b.category}): ${b.value}${b.source ? ` [${b.source}]` : ""}${b.staleness === "stale" ? " [STALE]" : ""}`
+            ).join("\n");
+          }
 
-        if (type === "property" && propertyId) {
-          const property = await storage.getProperty(propertyId);
-          if (property) {
-            const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
-            propertyContextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
-            v2Prompt = assembleResearchPrompt(propertyContextPack, {
+          if (type === "property" && propertyId) {
+            const property = await storage.getProperty(propertyId);
+            if (property) {
+              const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
+              propertyContextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
+              v2Prompt = assembleResearchPrompt(propertyContextPack, {
+                tier: 1,
+                entityType: "property",
+                ambientData: ambientDataStr,
+              });
+            }
+          } else if (type === "company" && ga) {
+            const properties = await storage.getAllProperties(getAuthUser(req).id);
+            const serviceTemplates = await storage.getAllServiceTemplates();
+            const companyPack = buildCompanyContextPack(
+              ga,
+              properties,
+              serviceTemplates.map(st => ({
+                name: st.name,
+                defaultRate: st.defaultRate ?? 0,
+                serviceModel: st.serviceModel ?? "percentage",
+                serviceMarkup: st.serviceMarkup ?? 0,
+                isActive: st.isActive !== false,
+              })),
+            );
+            v2Prompt = assembleResearchPrompt(companyPack, {
               tier: 1,
-              entityType: "property",
+              entityType: "company",
               ambientData: ambientDataStr,
             });
           }
-        } else if (type === "company" && ga) {
-          const properties = await storage.getAllProperties(getAuthUser(req).id);
-          const serviceTemplates = await storage.getAllServiceTemplates();
-          const companyPack = buildCompanyContextPack(
-            ga,
-            properties,
-            serviceTemplates.map(st => ({
-              name: st.name,
-              defaultRate: st.defaultRate ?? 0,
-              serviceModel: st.serviceModel ?? "percentage",
-              serviceMarkup: st.serviceMarkup ?? 0,
-              isActive: st.isActive !== false,
-            })),
-          );
-          v2Prompt = assembleResearchPrompt(companyPack, {
-            tier: 1,
-            entityType: "company",
-            ambientData: ambientDataStr,
-          });
+        } catch (err) {
+          logger.warn(`RI v2 prompt assembly failed, falling back to v1: ${err instanceof Error ? err.message : err}`, "research");
         }
-      } catch (err) {
-        logger.warn(`RI v2 prompt assembly failed, falling back to v1: ${err instanceof Error ? err.message : err}`, "research");
       }
 
       const useOrchestrator = type === "property" && isOrchestratorAvailable();
@@ -337,7 +340,7 @@ export function register(app: Express) {
           }
         }
 
-        if (type === "property" && propertyId && !parsed.rawResponse) {
+        if (flag("RI_V2_WRITE") && type === "property" && propertyId && !parsed.rawResponse) {
           try {
             const guidanceResult = extractGuidance(parsed as Record<string, unknown>, 1, "property");
             if (guidanceResult.records.length > 0) {
@@ -404,7 +407,7 @@ export function register(app: Express) {
         }
 
         const authCompanyId = (getAuthUser(req) as { companyId?: number | null }).companyId;
-        if (type === "company" && !parsed.rawResponse && ga && authCompanyId) {
+        if (flag("RI_V2_WRITE") && type === "company" && !parsed.rawResponse && ga && authCompanyId) {
           try {
             const guidanceResult = extractGuidance(parsed as Record<string, unknown>, 1, "company");
             if (guidanceResult.records.length > 0) {

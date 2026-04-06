@@ -28,7 +28,7 @@ This project is a business simulation portal for Hospitality Business Group, mod
 The application features a React 18 frontend with TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, and framer-motion. The backend is an Express 5 application utilizing Drizzle ORM and PostgreSQL.
 
 **Core Design Principles & Features:**
-- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (3,911 tests across 167 files), GAAP verification, and USALI 12th Edition compliance. The Balance Sheet Identity (A = L + E) must hold within $1. Precision is hardened using `decimal.js`-backed arithmetic to eliminate floating-point drift.
+- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (3,973 tests across 170 files), GAAP verification, and USALI 12th Edition compliance. The Balance Sheet Identity (A = L + E) must hold within $1. Precision is hardened using `decimal.js`-backed arithmetic to eliminate floating-point drift.
 - **Modular Skill-Based Architecture:** Domain knowledge and context are managed through a skill-based system in `.claude/skills/`.
 - **Theming & UI/UX:** A robust theme engine provides consistent UI with 5 presets. All UI components are theme-compliant, and specific UI patterns are enforced. Every financial line item includes an `InfoTooltip`.
 - **Shared Financial Engine (`engine/`):** Pure financial calculation logic is extracted into a shared `engine/` package for property, company, aggregation, debt, and funding calculations. Both client and server import from `@engine/*`.
@@ -57,7 +57,7 @@ React 18 + TypeScript frontend, Express 5 + Drizzle ORM + PostgreSQL backend. Sh
 | Context Loading | `.claude/skills/context-loading/SKILL.md` | Task-to-skill map, loading tiers |
 | Architecture | `.claude/skills/architecture/SKILL.md` | Tech stack, two-entity model, file organization |
 | Design System | `.claude/skills/design-system/SKILL.md` | Colors, typography, component catalog, CSS classes |
-| Proof System | `.claude/skills/proof-system/SKILL.md` | 3,911 tests across 167 files, verification commands |
+| Proof System | `.claude/skills/proof-system/SKILL.md` | 3,973 tests across 170 files, verification commands |
 | Admin (16 sections) | `.claude/skills/admin/SKILL.md` | 16-section shell pattern, extraction guide, API routes |
 | Finance (22 skills) | `.claude/skills/finance/` | Income statement, cash flow, balance sheet, IRR, DCF |
 | Research (23 skills) | `.claude/skills/research/` | Market, ADR, occupancy, cap rate, ICP profile |
@@ -88,7 +88,7 @@ React 18 + TypeScript frontend, Express 5 + Drizzle ORM + PostgreSQL backend. Sh
 ```bash
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify + doc harmony (~60s)
-npm run test:summary   # All 3,911 tests, 167 files (~35s)
+npm run test:summary   # All 3,973 tests, 170 files (~35s)
 npm run verify:summary # 8-phase financial verification (~20s)
 npm run lint:summary   # TypeScript check only (<10s)
 npm run stats          # File/line/test counts (<5s)
