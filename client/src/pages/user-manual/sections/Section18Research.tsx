@@ -56,10 +56,61 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
         </div>
 
         <div>
-          <h4 className="font-semibold text-foreground mb-2">Star Rating System</h4>
+          <h4 className="font-semibold text-foreground mb-2">Context Packs</h4>
+          <p className="mb-2">
+            Before any AI research runs, the system assembles a <span className="font-medium text-foreground">context pack</span> —
+            a structured bundle of everything the AI needs to produce accurate results. Context packs include:
+          </p>
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5">
+            <p className="text-xs"><span className="font-medium text-foreground">Property profile:</span> <span className="text-muted-foreground">Name, location, market, room count, property type, ADR, and classification</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Comparable set:</span> <span className="text-muted-foreground">Similar properties matched by location, size, and type for benchmarking</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Market data:</span> <span className="text-muted-foreground">Regional occupancy, rate trends, supply changes, and economic indicators</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Historical performance:</span> <span className="text-muted-foreground">Prior-year actuals and assumptions for trend analysis</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Business constraints:</span> <span className="text-muted-foreground">Admin-defined rules and bounds that guide the AI's recommendations</span></p>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            The richer the context pack, the more precise the AI's recommendations. Admins can review context packs
+            in the QA Sandbox before running research.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Progressive Relaxation</h4>
+          <p className="mb-2">
+            When the AI cannot find enough comparable data for a property, it uses <span className="font-medium text-foreground">progressive relaxation</span> —
+            a step-by-step widening of search criteria to ensure every property gets meaningful results:
+          </p>
+          <div className="space-y-1.5 ml-1">
+            <div className="flex items-start gap-2">
+              <span className="mt-1 w-4 h-4 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-[10px] font-bold shrink-0">1</span>
+              <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Exact match</span> — Search for properties with the same type, size, and market</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-1 w-4 h-4 rounded-full bg-blue-500/15 flex items-center justify-center text-blue-600 dark:text-blue-400 text-[10px] font-bold shrink-0">2</span>
+              <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Widen geography</span> — Expand to neighboring markets or the broader region</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-1 w-4 h-4 rounded-full bg-amber-500/15 flex items-center justify-center text-amber-600 dark:text-amber-400 text-[10px] font-bold shrink-0">3</span>
+              <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Relax property type</span> — Include similar property categories (e.g., boutique to full-service)</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-1 w-4 h-4 rounded-full bg-red-500/15 flex items-center justify-center text-red-600 dark:text-red-400 text-[10px] font-bold shrink-0">4</span>
+              <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Broaden size range</span> — Widen room-count tolerance to capture more comparables</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Each relaxation step is recorded in a <span className="font-medium text-foreground">relaxation trail</span>, visible
+            in the research transparency panel on each property's research page. The trail shows exactly how the
+            AI adapted its search, and the star rating reflects the quality of data found at each stage.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Confidence & Star Rating System</h4>
           <p className="mb-3">
-            Every research result receives a quality rating from 1 to 5 stars, indicating how much
-            high-quality evidence supported the AI's conclusions:
+            Every research result receives a quality rating from 1 to 5 stars. This <span className="font-medium text-foreground">confidence score</span> indicates
+            how much high-quality evidence supported the AI's conclusions. Higher stars mean more reliable data
+            and less estimation:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {[
@@ -78,6 +129,11 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
               </div>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            When progressive relaxation is used, star ratings tend to decrease because the data is less directly
+            comparable. A 3-star result with relaxation is still valuable — it means the AI found reasonable
+            proxies even when exact comparables were unavailable.
+          </p>
         </div>
 
         <div>
@@ -92,7 +148,27 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             <p className="text-xs"><span className="font-medium text-foreground">Compare properties:</span> <span className="text-muted-foreground">"How does occupancy compare between my downtown hotels?"</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Explain assumptions:</span> <span className="text-muted-foreground">"Why is the ADR for Property X set to $180?"</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Financial analysis:</span> <span className="text-muted-foreground">"Show me the NOI trend for the portfolio"</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Scenario comparison:</span> <span className="text-muted-foreground">"Compare revenue between Base Case and Upside for my coastal properties"</span></p>
           </div>
+          <div className="mt-3 space-y-2">
+            <h5 className="font-medium text-foreground text-xs">Additional Features</h5>
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5">
+              <p className="text-xs"><span className="font-medium text-foreground">Email summaries:</span> <span className="text-muted-foreground">Ask Rebecca to email you a summary of any analysis or research finding directly to your inbox</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Feedback loop:</span> <span className="text-muted-foreground">Rate Rebecca's responses with thumbs up/down to help improve future answers</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Conversation history:</span> <span className="text-muted-foreground">Rebecca remembers the context of your current session — ask follow-up questions naturally</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Research Transparency Panel</h4>
+          <p>
+            Every research result page includes a collapsible <span className="font-medium text-foreground">Methodology</span> panel
+            that shows exactly how the research was generated. This includes the AI model used, the date of the
+            last run, the star rating, the relaxation trail (if any search criteria were widened), and a list
+            of the data sources consulted. Open this panel anytime you want to understand or verify the basis
+            of an AI recommendation.
+          </p>
         </div>
 
         <div>
@@ -101,8 +177,11 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             {[
               { q: "How often should I refresh research?", a: "For active properties, monthly refreshes keep your assumptions current. Tier 2 refreshes are quick and cost-effective for routine updates." },
               { q: "Can research overwrite my manual edits?", a: "No. Research values appear as suggested badges on assumption fields. You always choose whether to accept them. Manual values are never overwritten automatically." },
-              { q: "What data sources does the AI use?", a: "The system considers property characteristics, location data, comparable hotel sets, industry benchmarks, STR data, and any custom sources your admin has configured." },
+              { q: "What data sources does the AI use?", a: "The system considers property characteristics, location data, comparable hotel sets, industry benchmarks, STR data, and any custom sources your admin has configured in the Source Registry." },
               { q: "Why do some assumptions show as 'stale'?", a: "Research becomes stale when it exceeds the configured freshness threshold (set by your admin in Pipeline Policies). A stale badge means the data may be outdated and should be refreshed." },
+              { q: "What does the relaxation trail mean?", a: "The relaxation trail shows how the AI widened its search when exact comparables weren't available. Each step records what criteria was relaxed (geography, property type, or size range) so you can judge how closely the data matches your property." },
+              { q: "Why is my property rated lower than others?", a: "Star ratings reflect data availability, not property quality. A property in a less-documented market may receive fewer stars because there are fewer comparable data points available, even though the research is still valuable." },
+              { q: "Can I see the raw AI prompt?", a: "Admins can preview the full prompt and context pack in the QA Sandbox (Admin > QA Sandbox) before running research. This helps verify that the AI receives the right information." },
             ].map((item, i) => (
               <div key={i} className="rounded-lg border border-border/40 bg-card/50 p-3">
                 <p className="font-medium text-xs text-foreground mb-1">{item.q}</p>
