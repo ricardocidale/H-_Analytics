@@ -253,8 +253,28 @@ export function register(app: Express) {
       }
 
       const useOrchestrator = type === "property" && isOrchestratorAvailable();
-      const relaxCtx = (useOrchestrator && propertyContextPack && propertyId)
-        ? { researchRunId: 0, userId: getAuthUser(req).id, contextPack: propertyContextPack }
+      let earlyRunId: number | undefined;
+      if (useOrchestrator && propertyContextPack && propertyId) {
+        const earlyRun = await storage.createResearchRun({
+          userId: getAuthUser(req).id,
+          entityType: "property",
+          entityId: propertyId,
+          scenarioId: null,
+          tier: 1,
+          status: "running",
+          completedAt: null,
+          durationMs: null,
+          modelPrimary: model,
+          modelSecondary: secondaryModel ?? null,
+          tokensUsed: null,
+          estimatedCost: null,
+          error: null,
+          metadata: null,
+        });
+        earlyRunId = earlyRun.id;
+      }
+      const relaxCtx = (useOrchestrator && propertyContextPack && propertyId && earlyRunId)
+        ? { researchRunId: earlyRunId, userId: getAuthUser(req).id, contextPack: propertyContextPack }
         : undefined;
       const stream = useOrchestrator
         ? orchestrateResearch(params, v2Prompt, relaxCtx)
@@ -279,6 +299,7 @@ export function register(app: Express) {
       }
 
       // ── Post-processing — runs after both orchestrator and fallback paths ──
+      let earlyRunFinalized = false;
       if (fullContent) {
         const parsed = parseResearchJSON(fullContent);
 
@@ -322,26 +343,40 @@ export function register(app: Express) {
             if (guidanceResult.records.length > 0) {
               const property = await storage.getProperty(propertyId);
               if (property) {
-                const runRecord = await storage.createResearchRun({
-                  userId: getAuthUser(req).id,
-                  entityType: "property",
-                  entityId: propertyId,
-                  scenarioId: null,
-                  tier: 1,
-                  status: "completed",
-                  completedAt: new Date(),
-                  durationMs: Date.now() - startTime,
-                  modelPrimary: model,
-                  modelSecondary: secondaryModel ?? null,
-                  tokensUsed: Math.round((JSON.stringify(params).length + fullContent.length) / 4),
-                  estimatedCost: null,
-                  error: null,
-                  metadata: { guidanceRecords: guidanceResult.records.length, errors: guidanceResult.errors },
-                });
+                let runId: number;
+                if (earlyRunId) {
+                  await storage.updateResearchRun(earlyRunId, {
+                    status: "completed",
+                    completedAt: new Date(),
+                    durationMs: Date.now() - startTime,
+                    tokensUsed: Math.round((JSON.stringify(params).length + fullContent.length) / 4),
+                    metadata: { guidanceRecords: guidanceResult.records.length, errors: guidanceResult.errors },
+                  });
+                  runId = earlyRunId;
+                  earlyRunFinalized = true;
+                } else {
+                  const runRecord = await storage.createResearchRun({
+                    userId: getAuthUser(req).id,
+                    entityType: "property",
+                    entityId: propertyId,
+                    scenarioId: null,
+                    tier: 1,
+                    status: "completed",
+                    completedAt: new Date(),
+                    durationMs: Date.now() - startTime,
+                    modelPrimary: model,
+                    modelSecondary: secondaryModel ?? null,
+                    tokensUsed: Math.round((JSON.stringify(params).length + fullContent.length) / 4),
+                    estimatedCost: null,
+                    error: null,
+                    metadata: { guidanceRecords: guidanceResult.records.length, errors: guidanceResult.errors },
+                  });
+                  runId = runRecord.id;
+                }
 
                 for (const rec of guidanceResult.records) {
                   await storage.upsertAssumptionGuidance({
-                    researchRunId: runRecord.id,
+                    researchRunId: runId,
                     entityType: "property",
                     entityId: propertyId,
                     scenarioId: null,
@@ -357,7 +392,7 @@ export function register(app: Express) {
                   });
                 }
 
-                logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for property ${propertyId} (run ${runRecord.id})`, "research");
+                logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for property ${propertyId} (run ${runId})`, "research");
               }
             }
             if (guidanceResult.errors.length > 0) {
@@ -458,6 +493,20 @@ export function register(app: Express) {
           message: `${type === "property" ? "Property" : type === "company" ? "Company" : "Global"} research generation complete`,
           link: propertyId ? `/property/${propertyId}/research` : undefined,
         })).catch((err) => logger.error(`Notification error: ${err?.message || err}`, "research"));
+      }
+
+      if (earlyRunId && !earlyRunFinalized) {
+        try {
+          await storage.updateResearchRun(earlyRunId, {
+            status: fullContent ? "completed" : "failed",
+            completedAt: new Date(),
+            durationMs: Date.now() - startTime,
+            tokensUsed: Math.round((JSON.stringify(params).length + (fullContent || "").length) / 4),
+            error: fullContent ? null : "No content generated",
+          });
+        } catch (e) {
+          logger.warn(`Failed to finalize early research run ${earlyRunId}: ${(e as Error).message}`, "research");
+        }
       }
 
       res.end();
