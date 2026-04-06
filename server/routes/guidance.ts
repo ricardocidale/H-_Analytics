@@ -252,6 +252,16 @@ export function register(app: Express) {
       const modelId = DEFAULT_RESEARCH_MODEL;
       const vendorKey = resolveVendorFromModel(modelId) as "openai" | "anthropic" | "google";
 
+      const startTime = Date.now();
+      const runRecord = await storage.createResearchRun({
+        userId: user.id,
+        entityType,
+        entityId,
+        tier: 2,
+        modelPrimary: modelId,
+        status: "running",
+      });
+
       const researchClient = createResearchClient(vendorKey, {
         anthropic: vendorKey === "anthropic" ? getAnthropicClient() : undefined,
         openai: vendorKey === "openai" ? getOpenAIClient() : undefined,
@@ -270,16 +280,6 @@ export function register(app: Express) {
       for await (const chunk of stream) {
         if (chunk.type === "content") fullContent += chunk.data;
       }
-
-      const startTime = Date.now();
-      const runRecord = await storage.createResearchRun({
-        userId: user.id,
-        entityType,
-        entityId,
-        tier: 2,
-        modelPrimary: modelId,
-        status: "running",
-      });
 
       const researchResult = parseResearchJSON(fullContent);
       if (!researchResult || researchResult.rawResponse) {
