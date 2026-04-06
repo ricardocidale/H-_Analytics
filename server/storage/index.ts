@@ -285,6 +285,8 @@ export class DatabaseStorage implements IStorage {
   createGuidanceDecision = this.intelligenceV2.createGuidanceDecision.bind(this.intelligenceV2);
   getGuidanceDecisions = this.intelligenceV2.getGuidanceDecisions.bind(this.intelligenceV2);
   createRebeccaConversation = this.intelligenceV2.createRebeccaConversation.bind(this.intelligenceV2);
+  getRebeccaConversation = this.intelligenceV2.getRebeccaConversation.bind(this.intelligenceV2);
+  getOrCreateConversation = this.intelligenceV2.getOrCreateConversation.bind(this.intelligenceV2);
   getRebeccaConversations = this.intelligenceV2.getRebeccaConversations.bind(this.intelligenceV2);
   addRebeccaMessage = this.intelligenceV2.addRebeccaMessage.bind(this.intelligenceV2);
   getRebeccaMessages = this.intelligenceV2.getRebeccaMessages.bind(this.intelligenceV2);

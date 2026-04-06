@@ -37,9 +37,9 @@ const chatRequestSchema = z.object({
   message: z.string().min(1).max(MAX_MESSAGE_LENGTH),
   history: z.array(chatMessageSchema).max(MAX_HISTORY_LENGTH).optional().default([]),
   fieldContext: fieldContextSchema,
+  conversationId: z.number().int().positive().optional(),
+  newConversation: z.boolean().optional(),
 });
-
-// Using centralized singleton from server/ai/clients.ts
 
 const DEFAULT_SYSTEM_PROMPT = `You are Rebecca, a property investment analyst for a boutique hotel management company. You answer questions about the portfolio's properties, financial metrics, and hospitality industry concepts.
 
@@ -49,15 +49,91 @@ Keep responses concise and professional. Use bullet points for lists. Format dol
 
 Do not make up data. Only reference what is provided in the context below.`;
 
+function generateFollowUpChips(
+  responseText: string,
+  messageCount: number,
+  fieldKey?: string,
+): string[] {
+  const chips: string[] = [];
+
+  if (messageCount <= 2) {
+    if (fieldKey) {
+      chips.push("Why this range?", "Show comparables", "Impact on NOI");
+    } else {
+      chips.push("What are the key metrics?", "Compare properties", "Show revenue trends");
+    }
+  } else if (messageCount <= 5) {
+    if (responseText.toLowerCase().includes("comparable") || responseText.toLowerCase().includes("similar")) {
+      chips.push("Go deeper on comparables", "Show the relaxation trail");
+    }
+    if (fieldKey) {
+      chips.push("Compare to company defaults", "Historical trends");
+    } else {
+      chips.push("What risks should I watch?", "Summarize key findings");
+    }
+  } else {
+    chips.push("Summarize our conversation", "Any other insights?");
+    if (fieldKey) {
+      chips.push("Apply recommendation");
+    }
+  }
+
+  return chips.slice(0, 3);
+}
+
+function deriveContextType(fieldCtx?: { entityType: string; fieldKey?: string }): string {
+  if (!fieldCtx) return "general";
+  if (fieldCtx.fieldKey) return "field";
+  return fieldCtx.entityType;
+}
+
+function deriveContextKey(fieldCtx?: { entityType: string; entityId: number; fieldKey?: string }): string | null {
+  if (!fieldCtx) return null;
+  if (fieldCtx.fieldKey) {
+    return `${fieldCtx.entityType}:${fieldCtx.entityId}:${fieldCtx.fieldKey}`;
+  }
+  return `${fieldCtx.entityType}:${fieldCtx.entityId}`;
+}
+
 export function register(app: Express) {
+  app.get("/api/chat/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const conversationId = parseInt(req.params.id as string, 10);
+      if (isNaN(conversationId) || conversationId < 1) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+
+      const userId = getAuthUser(req).id;
+      const conv = await storage.getRebeccaConversation(conversationId);
+      if (!conv || conv.userId !== userId) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      const messages = await storage.getRebeccaMessages(conversationId);
+      res.json({
+        conversationId: conv.id,
+        contextType: conv.contextType,
+        contextKey: conv.contextKey,
+        messages: messages.map(m => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          createdAt: m.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error(`Failed to load conversation: ${error?.message || error}`, "chat");
+      res.status(500).json({ error: "Failed to load conversation" });
+    }
+  });
+
   app.post("/api/chat", requireAuth, aiRateLimit(20), async (req: Request, res: Response) => {
     try {
-      // Validate input with Zod
       const parsed = chatRequestSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
-      const { message, history, fieldContext: fieldCtx } = parsed.data;
+      const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation } = parsed.data;
 
       const userId = getAuthUser(req).id;
 
@@ -103,7 +179,6 @@ export function register(app: Express) {
         ...fundingLines,
       ].join("\n");
 
-      // Retrieve relevant document content from Pinecone (non-blocking)
       let documentContextBlock = "";
       try {
         const docPropertyId = fieldCtx?.entityType === "property" ? fieldCtx.entityId : undefined;
@@ -153,15 +228,70 @@ export function register(app: Express) {
         }
       }
 
+      const contextType = deriveContextType(fieldCtx);
+      const contextKey = deriveContextKey(fieldCtx);
+      const propertyId = fieldCtx?.entityType === "property" ? fieldCtx.entityId : null;
+
+      let conversationId: number | null = null;
+
+      if (reqConvId && !newConversation) {
+        const existing = await storage.getRebeccaConversation(reqConvId);
+        if (existing && existing.userId === userId) {
+          const matchesContext = existing.contextType === contextType
+            && existing.contextKey === contextKey;
+          if (matchesContext) {
+            conversationId = existing.id;
+          }
+        }
+      }
+
+      if (!conversationId) {
+        if (newConversation) {
+          const conv = await storage.createRebeccaConversation({
+            userId,
+            contextType,
+            contextKey,
+            propertyId: propertyId ?? undefined,
+          });
+          conversationId = conv.id;
+        } else {
+          const conv = await storage.getOrCreateConversation(
+            userId,
+            contextType,
+            contextKey,
+            propertyId,
+          );
+          conversationId = conv.id;
+        }
+      }
+
+      let dbHistory: Array<{ role: string; content: string }> = [];
+      try {
+        const dbMessages = await storage.getRebeccaMessages(conversationId, MAX_HISTORY_LENGTH);
+        dbHistory = dbMessages.map(m => ({ role: m.role, content: m.content }));
+      } catch (err) {
+        logger.warn(`Failed to load conversation history: ${(err as Error).message}`, "chat");
+      }
+
+      const effectiveHistory = dbHistory.length > 0 ? dbHistory : history;
+
+      await storage.addRebeccaMessage({
+        conversationId,
+        role: "user",
+        content: message,
+      });
+
       const systemPrompt = (global as any)?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
       const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}${rebeccaFieldBlock}${documentContextBlock}`;
       const engine = ga?.rebeccaChatEngine ?? "gemini";
+
+      let responseText: string;
 
       if (engine === "perplexity") {
         const perplexity = getPerplexityClient();
         const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
           { role: "system", content: fullSystemPrompt },
-          ...history.map((msg) => ({
+          ...effectiveHistory.map((msg) => ({
             role: msg.role as "user" | "assistant",
             content: msg.content,
           })),
@@ -176,7 +306,7 @@ export function register(app: Express) {
         });
 
         const messageContent = completion.choices?.[0]?.message?.content;
-        let text = (typeof messageContent === "string" ? messageContent : "")
+        responseText = (typeof messageContent === "string" ? messageContent : "")
           || "I'm sorry, I couldn't generate a response. Please try again.";
 
         const citations = completion.citations ?? [];
@@ -184,19 +314,17 @@ export function register(app: Express) {
           const citationLines = citations.map((url: string, i: number) =>
             `[${i + 1}] ${url}`
           );
-          text += "\n\n**Sources:**\n" + citationLines.join("\n");
+          responseText += "\n\n**Sources:**\n" + citationLines.join("\n");
         }
 
         const inTok = completion.usage?.prompt_tokens ?? Math.round(message.length / 4);
-        const outTok = completion.usage?.completion_tokens ?? Math.round(text.length / 4);
+        const outTok = completion.usage?.completion_tokens ?? Math.round(responseText.length / 4);
         try { logApiCost({ timestamp: new Date().toISOString(), service: "perplexity", model: "sonar", operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("perplexity", "sonar", inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/chat" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
-
-        res.json({ response: text, ...(autoGreeting ? { autoGreeting } : {}) });
       } else {
         const rc = (ga?.researchConfig as ResearchConfig) ?? {};
         const resolved = resolveLlm(rc, "chatbotLlm");
         const gemini = getGeminiClient();
-        const chatHistory = history.map((msg) => ({
+        const chatHistory = effectiveHistory.map((msg) => ({
           role: msg.role === "user" ? "user" : ("model" as const),
           content: msg.content,
         }));
@@ -217,16 +345,30 @@ export function register(app: Express) {
           config: { maxOutputTokens: 1024 },
         });
 
-        const text = response.text
+        responseText = response.text
           || "I'm sorry, I couldn't generate a response. Please try again.";
 
         const svc = getVendorService(resolved.vendor);
         const inTok = response.usageMetadata?.promptTokenCount ?? Math.round(message.length / 4);
-        const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(text.length / 4);
+        const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(responseText.length / 4);
         try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/chat" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
-
-        res.json({ response: text, ...(autoGreeting ? { autoGreeting } : {}) });
       }
+
+      await storage.addRebeccaMessage({
+        conversationId,
+        role: "assistant",
+        content: responseText,
+      });
+
+      const totalMessages = dbHistory.length + 2;
+      const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey);
+
+      res.json({
+        response: responseText,
+        conversationId,
+        suggestedChips,
+        ...(autoGreeting ? { autoGreeting } : {}),
+      });
     } catch (error: any) {
       logger.error(`Chat error: ${error?.message || error}`, "chat");
       if (error?.message?.includes("API key not configured")) {

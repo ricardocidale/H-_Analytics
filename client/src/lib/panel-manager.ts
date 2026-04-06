@@ -21,6 +21,7 @@ interface RebeccaContext {
   entityId?: number;
   scenarioId?: number | null;
   fieldKey?: string;
+  conversationId?: number | null;
 }
 
 interface PanelManagerState {

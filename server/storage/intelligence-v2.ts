@@ -178,6 +178,49 @@ export class IntelligenceV2Storage {
     return conv;
   }
 
+  async getRebeccaConversation(conversationId: number): Promise<RebeccaConversation | undefined> {
+    const [conv] = await db.select().from(rebeccaConversations)
+      .where(eq(rebeccaConversations.id, conversationId))
+      .limit(1);
+    return conv;
+  }
+
+  async getOrCreateConversation(
+    userId: number,
+    contextType: string,
+    contextKey: string | null,
+    propertyId?: number | null,
+    model?: string | null,
+  ): Promise<RebeccaConversation> {
+    const conditions = [
+      eq(rebeccaConversations.userId, userId),
+      eq(rebeccaConversations.contextType, contextType),
+    ];
+    if (contextKey) {
+      conditions.push(eq(rebeccaConversations.contextKey, contextKey));
+    } else {
+      conditions.push(isNull(rebeccaConversations.contextKey));
+    }
+    if (propertyId) {
+      conditions.push(eq(rebeccaConversations.propertyId, propertyId));
+    }
+
+    const existing = await db.select().from(rebeccaConversations)
+      .where(and(...conditions))
+      .orderBy(desc(rebeccaConversations.lastMessageAt))
+      .limit(1);
+
+    if (existing.length > 0) return existing[0];
+
+    return this.createRebeccaConversation({
+      userId,
+      contextType,
+      contextKey,
+      propertyId: propertyId ?? undefined,
+      model: model ?? undefined,
+    });
+  }
+
   async getRebeccaConversations(userId: number): Promise<RebeccaConversation[]> {
     return db.select().from(rebeccaConversations)
       .where(eq(rebeccaConversations.userId, userId))
@@ -194,7 +237,14 @@ export class IntelligenceV2Storage {
     return msg;
   }
 
-  async getRebeccaMessages(conversationId: number): Promise<RebeccaMessage[]> {
+  async getRebeccaMessages(conversationId: number, limit?: number): Promise<RebeccaMessage[]> {
+    if (limit) {
+      const rows = await db.select().from(rebeccaMessages)
+        .where(eq(rebeccaMessages.conversationId, conversationId))
+        .orderBy(desc(rebeccaMessages.createdAt))
+        .limit(limit);
+      return rows.reverse();
+    }
     return db.select().from(rebeccaMessages)
       .where(eq(rebeccaMessages.conversationId, conversationId))
       .orderBy(rebeccaMessages.createdAt);

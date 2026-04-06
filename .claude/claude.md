@@ -118,6 +118,7 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 
 - **Rebecca Panel (T19)** (Task #287) — 520px right slide-over chat panel (`client/src/components/rebecca/RebeccaPanel.tsx`) with context card, message bubbles, markdown rendering, and follow-up chips. Mutually exclusive with Guidance Side-Sheet via `panel-manager.ts` Zustand store. Mobile-responsive (100vw on small screens).
 - **Rebecca Context Injection (T20)** (Task #287) — `server/ai/rebecca-context-builder.ts` assembles rich entity + field context server-side from IDs (never trusts client text). 40+ field label mappings with format awareness. `/api/chat` extended with optional `fieldContext` (entityType, entityId, fieldKey, scenarioId). IDOR prevention: validates property ownership via user portfolio, company ownership via `authUser.companyId`. Returns `autoGreeting` for field-contextual panel opens. `ResearchBadgePopover` passes `fieldKey + scenarioId` through panel manager.
+- **Rebecca Super Conversations (T21)** (Task #287) — POST `/api/chat` now creates/resumes conversations via `getOrCreateConversation`, persists user + assistant messages to `rebecca_messages`, loads DB history (most recent N, capped at MAX_HISTORY_LENGTH). Returns `conversationId` + `suggestedChips` (contextual follow-up chips that evolve by round count and field context). GET `/api/chat/conversations/:id/messages` loads full conversation with ownership check. Context consistency enforced server-side — `conversationId` rejected if context mismatch. `newConversation` flag creates fresh thread. Client tracks `conversationId` in panel state, resets on context switch, loads prior conversation on re-open.
 
 ## Recent Changes (April 4, 2026)
 
@@ -248,7 +249,9 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 - **T20 ✅** `server/ai/rebecca-context-builder.ts` — Server-side context assembly from entity IDs + field key. Calls context pack builders, fetches guidance records, generates auto-greeting. IDOR-safe (never trusts client context text).
 - **T20 ✅** `server/routes/chat.ts` — Extended with optional `fieldContext` Zod schema (entityType, entityId, fieldKey, scenarioId). Validates entity ownership before context build. Injects rich field+entity context into LLM system prompt.
 - **T20 ✅** `client/src/lib/panel-manager.ts` — RebeccaContext extended with `fieldKey` and `scenarioId`
-- T21-T24: NOT STARTED (Super Conversations, email/feedback, RAG expansion, admin tabs)
+- **T21 ✅** `server/routes/chat.ts` — Super Conversations: POST /api/chat creates/resumes conversations via `getOrCreateConversation`, persists user+assistant messages to `rebecca_messages`, loads DB history (most recent N), returns `conversationId` + `suggestedChips`. GET `/api/chat/conversations/:id/messages` loads conversation with ownership check. Context consistency enforced server-side. `newConversation` flag creates fresh thread.
+- **T21 ✅** `client/src/components/rebecca/RebeccaPanel.tsx` — Tracks `conversationId` state, resets on context change, loads prior conversation from API, uses server-provided `suggestedChips`, "New conversation" button sends `newConversation: true`.
+- T22-T24: NOT STARTED (email/feedback, RAG expansion, admin tabs)
 
 ---
 

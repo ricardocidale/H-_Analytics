@@ -40,6 +40,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [suggestedChips, setSuggestedChips] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -60,14 +62,51 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     };
   }, []);
 
+  const loadConversation = useCallback(async (convId: number) => {
+    try {
+      const res = await fetch(`/api/chat/conversations/${convId}/messages`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.messages?.length > 0) {
+        setMessages(
+          data.messages.map((m: { id: number; role: string; content: string }) => ({
+            id: `db-${m.id}`,
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          }))
+        );
+        setConversationId(convId);
+        return true;
+      }
+    } catch {
+      // ignore — will start fresh
+    }
+    return false;
+  }, []);
+
   const prevContextRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    const contextKey = rebeccaContext
+    const ctxKey = rebeccaContext
       ? `${rebeccaContext.entityType}-${rebeccaContext.entityId}-${rebeccaContext.fieldKey ?? ""}`
       : undefined;
-    if (isOpen && contextKey && contextKey !== prevContextRef.current && messages.length === 0) {
-      prevContextRef.current = contextKey;
-      sendAutoGreeting();
+
+    if (isOpen && ctxKey && ctxKey !== prevContextRef.current) {
+      prevContextRef.current = ctxKey;
+      setMessages([]);
+      setConversationId(null);
+      setSuggestedChips([]);
+
+      if (rebeccaContext?.conversationId) {
+        loadConversation(rebeccaContext.conversationId).then((loaded) => {
+          if (!loaded) {
+            sendAutoGreeting();
+          }
+        });
+      } else {
+        sendAutoGreeting();
+      }
     }
     if (!isOpen) {
       prevContextRef.current = undefined;
@@ -94,6 +133,9 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           scenarioId: rebeccaContext.scenarioId ?? null,
         },
       };
+      if (conversationId) {
+        body.conversationId = conversationId;
+      }
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -102,6 +144,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       });
       if (!res.ok) throw new Error("Failed to get response");
       const data = await res.json();
+      if (data.conversationId) setConversationId(data.conversationId);
+      if (data.suggestedChips?.length) setSuggestedChips(data.suggestedChips);
       const greeting = data.autoGreeting ?? data.response;
       setMessages([{
         id: nextMsgId("assistant"),
@@ -113,7 +157,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [rebeccaContext]);
+  }, [rebeccaContext, conversationId]);
 
   const sendMessage = useCallback(
     async (text?: string) => {
@@ -127,10 +171,6 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       };
 
       const currentMessages = [...messages, userMsg];
-      const historyForApi = currentMessages
-        .slice(-10)
-        .map(({ role, content }) => ({ role, content }));
-
       setMessages(currentMessages);
       setInput("");
       setLoading(true);
@@ -142,8 +182,15 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       try {
         const body: Record<string, unknown> = {
           message: trimmed,
-          history: historyForApi.slice(0, -1),
+          history: [],
         };
+
+        if (forceNewRef.current) {
+          body.newConversation = true;
+          forceNewRef.current = false;
+        } else if (conversationId) {
+          body.conversationId = conversationId;
+        }
 
         if (rebeccaContext?.entityType && rebeccaContext?.entityId) {
           body.fieldContext = {
@@ -163,6 +210,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
 
         if (!res.ok) throw new Error("Failed to get response");
         const data = await res.json();
+
+        if (data.conversationId) setConversationId(data.conversationId);
+        if (data.suggestedChips?.length) setSuggestedChips(data.suggestedChips);
+
         setMessages((prev) => [
           ...prev,
           {
@@ -186,7 +237,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         setLoading(false);
       }
     },
-    [input, loading, messages, rebeccaContext]
+    [input, loading, messages, rebeccaContext, conversationId]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -196,13 +247,18 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     }
   };
 
+  const forceNewRef = useRef(false);
   const handleClearChat = () => {
     setMessages([]);
     setInput("");
+    setConversationId(null);
+    setSuggestedChips([]);
+    forceNewRef.current = true;
   };
 
-  const chips =
-    rebeccaContext?.fieldName
+  const activeChips = suggestedChips.length > 0
+    ? suggestedChips
+    : rebeccaContext?.fieldName
       ? [
           `What does research suggest for ${rebeccaContext.fieldName}?`,
           "How was this value determined?",
@@ -239,7 +295,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                   size="icon"
                   className="h-7 w-7"
                   onClick={handleClearChat}
-                  title="Clear conversation"
+                  title="New conversation"
                   data-testid="button-rebecca-clear"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -264,7 +320,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
           data-testid="rebecca-chat-area"
         >
-          {messages.length === 0 && (
+          {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground gap-3 py-8">
               <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center">
                 <Sparkles className="w-6 h-6 opacity-30" />
@@ -280,7 +336,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-1.5 justify-center mt-1 max-w-[360px]">
-                {chips.map((q) => (
+                {activeChips.map((q) => (
                   <Button
                     key={q}
                     variant="outline"
@@ -332,7 +388,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         <div className="border-t border-border px-4 py-3 shrink-0">
           {messages.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {chips.slice(0, 2).map((q) => (
+              {activeChips.slice(0, 3).map((q) => (
                 <Button
                   key={q}
                   variant="outline"
