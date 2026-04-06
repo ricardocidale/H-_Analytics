@@ -237,7 +237,7 @@ export default function Dashboard() {
         equityMultiple: financials.equityMultiple,
         portfolioIRR: financials.portfolioIRR,
         cashOnCash: financials.cashOnCash,
-        totalProperties: properties!.length,
+        totalProperties: properties!.filter(p => p.isActive !== false).length,
         totalRooms: financials.totalRooms,
         totalProjectionRevenue: financials.totalProjectionRevenue,
         totalProjectionNOI: financials.totalProjectionNOI,
@@ -458,7 +458,7 @@ export default function Dashboard() {
             { label: "Portfolio IRR", value: `${(financials.portfolioIRR * 100).toFixed(1)}%` },
             { label: "Equity Multiple", value: `${financials.equityMultiple.toFixed(2)}x` },
             { label: "Cash-on-Cash Return", value: `${financials.cashOnCash.toFixed(1)}%` },
-            { label: "Total Properties", value: `${properties.length}` },
+            { label: "Total Properties", value: `${properties.filter(p => p.isActive !== false).length}` },
             { label: "Total Rooms", value: `${totalRooms}` },
           ];
 

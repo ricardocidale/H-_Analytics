@@ -56,7 +56,8 @@ export function register(app: Express) {
       if (!(global as any)?.rebeccaEnabled) {
         return res.status(403).json({ error: "Chat assistant is not enabled" });
       }
-      const properties = await storage.getAllProperties(userId);
+      const allProperties = await storage.getAllProperties(userId);
+      const properties = allProperties.filter(p => p.isActive !== false);
       const propertyContext = buildPropertyContext(properties);
 
       const ga = global as any;

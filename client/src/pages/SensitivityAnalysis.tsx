@@ -62,10 +62,11 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
   const runScenario = useCallback(
     (overrides: Record<string, number>): ScenarioResult | null => {
       if (!properties || !global) return null;
+      const activeProps = properties.filter(p => p.isActive !== false);
       const targetProps =
         selectedPropertyId === "all"
-          ? properties
-          : properties.filter((p) => String(p.id) === selectedPropertyId);
+          ? activeProps
+          : activeProps.filter((p) => String(p.id) === selectedPropertyId);
       if (!targetProps.length) return null;
 
       let totalRevenue = 0;
@@ -375,7 +376,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Properties</SelectItem>
-                      {properties.map((p) => (
+                      {properties.filter(p => p.isActive !== false).map((p) => (
                         <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                       ))}
                     </SelectContent>

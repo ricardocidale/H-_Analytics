@@ -123,7 +123,8 @@ export function buildOverviewExportData(
     totalRooms,
   } = financials;
 
-  const propertyItems: PropertyOverviewItem[] = properties.map((prop, idx) => {
+  const activeProperties = properties.filter(p => p.isActive !== false);
+  const propertyItems: PropertyOverviewItem[] = activeProperties.map((prop, idx) => {
     const cashFlows = Array.from(
       { length: projectionYears },
       (_, y) => allPropertyYearlyCF[idx]?.[y]?.netCashFlowToInvestors ?? 0,
@@ -141,12 +142,12 @@ export function buildOverviewExportData(
     };
   });
 
-  const marketCounts = properties.reduce<Record<string, number>>((acc, p) => {
+  const marketCounts = activeProperties.reduce<Record<string, number>>((acc, p) => {
     acc[p.market] = (acc[p.market] || 0) + 1;
     return acc;
   }, {});
 
-  const statusCounts = properties.reduce<Record<string, number>>((acc, p) => {
+  const statusCounts = activeProperties.reduce<Record<string, number>>((acc, p) => {
     acc[p.status] = (acc[p.status] || 0) + 1;
     return acc;
   }, {});
@@ -168,17 +169,17 @@ export function buildOverviewExportData(
     getFiscalYear,
   );
 
-  const totalProperties = properties.length;
-  const totalPurchasePrice = properties.reduce((sum, p) => sum + p.purchasePrice, 0);
+  const totalProperties = activeProperties.length;
+  const totalPurchasePrice = activeProperties.reduce((sum, p) => sum + p.purchasePrice, 0);
   const avgPurchasePrice = totalProperties > 0 ? totalPurchasePrice / totalProperties : 0;
   const avgExitCapRate =
     totalProperties > 0
-      ? properties.reduce((sum, p) => sum + (p.exitCapRate ?? DEFAULT_EXIT_CAP_RATE), 0) / totalProperties
+      ? activeProperties.reduce((sum, p) => sum + (p.exitCapRate ?? DEFAULT_EXIT_CAP_RATE), 0) / totalProperties
       : DEFAULT_EXIT_CAP_RATE;
   const avgRoomsPerProperty = totalProperties > 0 ? totalRooms / totalProperties : 0;
   const avgADR =
     totalRooms > 0
-      ? properties.reduce((sum, p) => sum + p.startAdr * p.roomCount, 0) / totalRooms
+      ? activeProperties.reduce((sum, p) => sum + p.startAdr * p.roomCount, 0) / totalRooms
       : 0;
   const anoiMargin =
     totalProjectionRevenue > 0 ? ((totalProjectionANOI ?? 0) / totalProjectionRevenue) * 100 : 0;

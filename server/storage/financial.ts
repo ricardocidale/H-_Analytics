@@ -38,11 +38,11 @@ async function stableLoadProperties(tx: DbOrTx, userId: number, savedProperties:
     if (stableKey && liveByStableKey.has(stableKey)) {
       const liveProp = liveByStableKey.get(stableKey)!;
       snapshotStableKeys.add(stableKey);
-      await tx.update(properties).set({ ...propData, userId, isActive: true, updatedAt: new Date() } as typeof properties.$inferInsert)
+      await tx.update(properties).set({ ...propData, userId, isActive: (prop.isActive as boolean) ?? true, updatedAt: new Date() } as typeof properties.$inferInsert)
         .where(eq(properties.id, liveProp.id));
       resolvedProperties.push({ id: liveProp.id, name: prop.name as string, stableKey });
     } else {
-      const insertData: typeof properties.$inferInsert = { ...propData, userId, isActive: true } as typeof properties.$inferInsert;
+      const insertData: typeof properties.$inferInsert = { ...propData, userId, isActive: (prop.isActive as boolean) ?? true } as typeof properties.$inferInsert;
       if (stableKey) {
         insertData.stableKey = stableKey;
         snapshotStableKeys.add(stableKey);
@@ -533,18 +533,18 @@ export class FinancialStorage {
     return cat;
   }
 
-  /** Update a fee category's name, rate, or sort order. Requires propertyId for ownership check. */
-  async updateFeeCategory(id: number, data: UpdateFeeCategory, propertyId?: number): Promise<FeeCategory | undefined> {
-    const condition = propertyId
-      ? and(eq(propertyFeeCategories.id, id), eq(propertyFeeCategories.propertyId, propertyId))
-      : eq(propertyFeeCategories.id, id);
-    const [cat] = await db.update(propertyFeeCategories).set(stripAutoFields(data as Record<string, unknown>)).where(condition).returning();
+  /** Update a fee category's name, rate, or sort order. propertyId is mandatory for ownership check. */
+  async updateFeeCategory(id: number, data: UpdateFeeCategory, propertyId: number): Promise<FeeCategory | undefined> {
+    const [cat] = await db.update(propertyFeeCategories)
+      .set(stripAutoFields(data as Record<string, unknown>))
+      .where(and(eq(propertyFeeCategories.id, id), eq(propertyFeeCategories.propertyId, propertyId)))
+      .returning();
     return cat || undefined;
   }
 
-  /** Remove a fee category. This will affect pro-forma results for the property. */
-  async deleteFeeCategory(id: number): Promise<void> {
-    await db.delete(propertyFeeCategories).where(eq(propertyFeeCategories.id, id));
+  /** Remove a fee category. propertyId is mandatory for ownership check. */
+  async deleteFeeCategory(id: number, propertyId: number): Promise<void> {
+    await db.delete(propertyFeeCategories).where(and(eq(propertyFeeCategories.id, id), eq(propertyFeeCategories.propertyId, propertyId)));
   }
 
   /**

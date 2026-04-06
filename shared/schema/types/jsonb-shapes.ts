@@ -88,6 +88,7 @@ export interface ScenarioPropertySnapshot {
   adrGrowthRate?: number;
   occupancyRate?: number;
   roomCount?: number;
+  isActive?: boolean;
   [key: string]: unknown;
 }
 
@@ -110,6 +111,7 @@ export interface ScenarioImagesSnapshot {
 }
 
 export interface ScenarioPropertyOverrideData {
+  isActive?: boolean;
   [key: string]: unknown;
 }
 

@@ -40,6 +40,7 @@ export default function MapView() {
 
   const geoProperties: GeoProperty[] = useMemo(() =>
     properties
+      .filter(p => p.isActive !== false)
       .map(p => {
         const coords = resolveCoords(p);
         return coords ? { property: p, coords } : null;

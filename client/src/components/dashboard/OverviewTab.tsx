@@ -70,21 +70,22 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
   const chartsRef = useRef<HTMLDivElement>(null);
   const { requestSave, SaveDialog } = useExportSave();
 
-  const totalProperties = properties.length;
+  const activeProperties = properties.filter(p => p.isActive !== false);
+  const totalProperties = activeProperties.length;
   const totalRooms = financials.totalRooms;
-  const totalPurchasePrice = properties.reduce((sum, p) => sum + p.purchasePrice, 0);
-  const avgPurchasePrice = totalPurchasePrice / totalProperties;
-  const avgRoomsPerProperty = totalRooms / totalProperties;
+  const totalPurchasePrice = activeProperties.reduce((sum, p) => sum + p.purchasePrice, 0);
+  const avgPurchasePrice = totalProperties > 0 ? totalPurchasePrice / totalProperties : 0;
+  const avgRoomsPerProperty = totalProperties > 0 ? totalRooms / totalProperties : 0;
   const avgADR = totalRooms > 0
-    ? properties.reduce((sum, p) => sum + p.startAdr * p.roomCount, 0) / totalRooms
+    ? activeProperties.reduce((sum, p) => sum + p.startAdr * p.roomCount, 0) / totalRooms
     : 0;
-  const avgExitCapRate = properties.reduce((sum, p) => sum + (p.exitCapRate ?? DEFAULT_EXIT_CAP_RATE), 0) / totalProperties;
+  const avgExitCapRate = totalProperties > 0 ? activeProperties.reduce((sum, p) => sum + (p.exitCapRate ?? DEFAULT_EXIT_CAP_RATE), 0) / totalProperties : DEFAULT_EXIT_CAP_RATE;
   const totalInvestment = totalPurchasePrice;
   const investmentHorizon = projectionYears;
 
   const [waterfallYear, setWaterfallYear] = useState<string>("0");
 
-  const marketCounts = properties.reduce((acc, p) => {
+  const marketCounts = activeProperties.reduce((acc, p) => {
     acc[p.market] = (acc[p.market] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -106,7 +107,7 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
     ),
   };
 
-  const statusCounts = properties.reduce<Record<string, number>>((acc, p) => {
+  const statusCounts = activeProperties.reduce<Record<string, number>>((acc, p) => {
     acc[p.status] = (acc[p.status] || 0) + 1;
     return acc;
   }, {});
