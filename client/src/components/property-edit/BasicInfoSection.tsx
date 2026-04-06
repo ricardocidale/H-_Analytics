@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
+import StarRatingInput from "@/components/research/StarRatingInput";
+import PropertyTypeSelector from "@/components/research/PropertyTypeSelector";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function BasicInfoSection({ draft, onChange, onNumberChange }: PropertyEditSectionProps) {
@@ -122,6 +124,21 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
           <div className="space-y-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Room Count<InfoTooltip text="Total number of rentable guest rooms. This is the primary revenue driver — all room revenue is calculated as Rooms × ADR × Occupancy × 30.5 days/month." /></Label>
             <Input type="number" value={draft.roomCount} onChange={(e) => onNumberChange("roomCount", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            <Label className="label-text text-foreground flex items-center gap-1.5">Star Rating<InfoTooltip text="Property star classification (1-5★). Drives research comparable matching — luxury (5★) properties are only compared to other luxury properties. Click to set, click same star to clear." /></Label>
+            <StarRatingInput
+              value={draft.starRating}
+              suggested={draft.starRatingSuggested}
+              onChange={(v) => onChange("starRating", v)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="label-text text-foreground flex items-center gap-1.5">Property Type<InfoTooltip text="Hospitality category that determines which expense benchmarks and revenue assumptions apply. Extended Stay properties use different occupancy and ADR patterns than traditional hotels." /></Label>
+            <PropertyTypeSelector
+              value={draft.hospitalityType || "hotel"}
+              onChange={(v) => onChange("hospitalityType", v)}
+            />
           </div>
         </div>
       </div>

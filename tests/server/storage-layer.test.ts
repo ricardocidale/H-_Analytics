@@ -207,7 +207,7 @@ describe("Storage Layer — PhotoStorage", () => {
   });
 
   it("addPropertyPhoto syncs hero URL to properties.imageUrl", () => {
-    expect(src).toContain("imageUrl: photo.imageUrl");
+    expect(src).toContain("imageUrl: resolvedImageUrl");
   });
 
   it("deletePropertyPhoto promotes next photo when hero is deleted", () => {

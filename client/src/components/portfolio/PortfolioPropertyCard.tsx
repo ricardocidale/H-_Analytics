@@ -25,6 +25,7 @@ import { AnimatedGridItem } from "@/components/graphics";
 import type { Property } from "@shared/schema";
 import { HeroImage } from "@/features/property-images";
 import { cn } from "@/lib/utils";
+import { PropertyTypeBadge } from "@/components/research/PropertyTypeSelector";
 
 interface PortfolioPropertyCardProps {
   property: Property;
@@ -94,7 +95,12 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
         </HeroImage>
 
         <div className="p-5">
-          <h3 className="font-display text-xl text-foreground">{property.name}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-display text-xl text-foreground">{property.name}</h3>
+            {(property.starRating || property.hospitalityType) && (
+              <PropertyTypeBadge type={property.hospitalityType || "hotel"} starRating={property.starRating} />
+            )}
+          </div>
           <div className="flex items-center text-foreground/60 text-sm mt-1 label-text">
             <IconMapPin className="w-3 h-3 mr-1" />
             {property.location}

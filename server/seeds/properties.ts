@@ -617,6 +617,7 @@ export async function seedMedellinDuplex() {
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
     depreciationYears: 20,
+    hospitalityType: "extended_stay",
     latitude: 6.2086,
     longitude: -75.5659,
     isActive: true,

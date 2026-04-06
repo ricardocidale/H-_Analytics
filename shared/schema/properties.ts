@@ -171,6 +171,11 @@ export const properties = pgTable("properties", {
 
   depreciationYears: real("depreciation_years"),
 
+  starRating: integer("star_rating"),
+  starRatingSource: text("star_rating_source").default("manual"),
+  starRatingSuggested: integer("star_rating_suggested"),
+  hospitalityType: text("hospitality_type").notNull().default("hotel"),
+
   description: text("description"),
 
   latitude: real("latitude"),
@@ -270,6 +275,10 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   costSeg7yrPct: true,
   costSeg15yrPct: true,
   depreciationYears: true,
+  starRating: true,
+  starRatingSource: true,
+  starRatingSuggested: true,
+  hospitalityType: true,
   description: true,
   latitude: true,
   longitude: true,
@@ -277,7 +286,17 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   isActive: true,
 });
 
-export const updatePropertySchema = insertPropertySchema.partial();
+export const HOSPITALITY_TYPES = ["hotel", "resort", "boutique_hotel", "business_hotel", "wellness_resort", "conference_hotel", "extended_stay"] as const;
+export type HospitalityType = typeof HOSPITALITY_TYPES[number];
+
+const starRatingRefinement = z.object({
+  starRating: z.number().int().min(1).max(5).nullable().optional(),
+  starRatingSuggested: z.number().int().min(1).max(5).nullable().optional(),
+  starRatingSource: z.enum(["manual", "suggested"]).nullable().optional(),
+  hospitalityType: z.enum(HOSPITALITY_TYPES).optional(),
+}).partial();
+
+export const updatePropertySchema = insertPropertySchema.partial().merge(starRatingRefinement);
 
 export const selectPropertySchema = createSelectSchema(properties);
 

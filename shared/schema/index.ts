@@ -8,6 +8,7 @@ export * from "./scenarios";
 export * from "./scenario-results";
 export * from "./audit";
 export * from "./intelligence";
+export * from "./intelligence-v2";
 export * from "./engagement";
 export * from "./notifications";
 export * from "./integrations";

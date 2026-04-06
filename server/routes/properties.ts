@@ -13,6 +13,7 @@ import { invalidateComputeCache } from "../finance/cache";
 import { buildPropertyDefaultsFromRegistry } from "@shared/field-registry";
 import { logger } from "../logger";
 import { WalkScoreService } from "../services/WalkScoreService";
+import { suggestStarRating } from "../ai/context-pack/star-rating";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -128,12 +129,16 @@ export function register(app: Express) {
         }
       }
 
-      const property = await storage.createProperty({
+      const createData = {
         ...validation.data,
         ...mergedData,
         userId: null,
         researchValues: (validation.data as any).researchValues ?? {},
-      });
+      };
+      const suggestion = suggestStarRating(createData as any);
+      (createData as any).starRatingSuggested = suggestion.rating;
+
+      const property = await storage.createProperty(createData);
 
       // Seed default fee categories for the new property
       await storage.seedDefaultFeeCategories(property.id);
@@ -177,7 +182,12 @@ export function register(app: Express) {
         return res.status(400).json({ error: error.message });
       }
       
-      const property = await storage.updateProperty(propertyId, validation.data);
+      const existingProp = await storage.getProperty(propertyId);
+      const merged = { ...existingProp, ...validation.data };
+      const suggestion = suggestStarRating(merged as any);
+      const updateData = { ...validation.data, starRatingSuggested: suggestion.rating };
+
+      const property = await storage.updateProperty(propertyId, updateData);
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
       }

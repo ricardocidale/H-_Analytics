@@ -5,7 +5,7 @@
  * database. All routes import `storage` (a DatabaseStorage instance) and call
  * methods on IStorage — they never import Drizzle ORM directly.
  *
- * Domain split: DatabaseStorage delegates to 11 focused sub-storage classes:
+ * Domain split: DatabaseStorage delegates to 12 focused sub-storage classes:
  *   UserStorage         — users, sessions, login logs
  *   PropertyStorage     — property CRUD, group property IDs
  *   FinancialStorage    — global assumptions, scenarios, fee categories
@@ -16,6 +16,7 @@
  *   DocumentStorage     — document extractions
  *   ServiceStorage      — company service templates, template-to-property sync
  *   NotificationStorage — alert rules, notification logs, preferences, settings
+ *   IntelligenceV2Storage — assumption guidance, research runs, benchmarks, Rebecca
  *
  * Each sub-class lives in its own file (./users, ./properties, etc.) and is
  * composed here via method binding. The binding pattern keeps every public
@@ -38,6 +39,7 @@ import { DocumentStorage } from "./documents";
 import { ServiceStorage } from "./services";
 import { NotificationStorage } from "./notifications";
 import { IntegrationStorage } from "./integrations";
+import { IntelligenceV2Storage } from "./intelligence-v2";
 
 export interface IStorage extends
   UserStorage,
@@ -50,7 +52,8 @@ export interface IStorage extends
   DocumentStorage,
   ServiceStorage,
   NotificationStorage,
-  IntegrationStorage {
+  IntegrationStorage,
+  IntelligenceV2Storage {
   deleteUser(id: number): Promise<void>;
 }
 
@@ -66,6 +69,7 @@ export class DatabaseStorage implements IStorage {
   private services = new ServiceStorage();
   private notifications = new NotificationStorage();
   private integrationStore = new IntegrationStorage();
+  private intelligenceV2 = new IntelligenceV2Storage();
 
   // Users
   getUserById = this.users.getUserById.bind(this.users);
@@ -266,6 +270,33 @@ export class DatabaseStorage implements IStorage {
   deleteExternalIntegration = this.integrationStore.deleteExternalIntegration.bind(this.integrationStore);
   toggleExternalIntegration = this.integrationStore.toggleExternalIntegration.bind(this.integrationStore);
   getIntegrationEnabledMap = this.integrationStore.getIntegrationEnabledMap.bind(this.integrationStore);
+
+  // Intelligence V2
+  getAssumptionGuidance = this.intelligenceV2.getAssumptionGuidance.bind(this.intelligenceV2);
+  upsertAssumptionGuidance = this.intelligenceV2.upsertAssumptionGuidance.bind(this.intelligenceV2);
+  createResearchRun = this.intelligenceV2.createResearchRun.bind(this.intelligenceV2);
+  updateResearchRun = this.intelligenceV2.updateResearchRun.bind(this.intelligenceV2);
+  getResearchRuns = this.intelligenceV2.getResearchRuns.bind(this.intelligenceV2);
+  getBenchmarkSnapshots = this.intelligenceV2.getBenchmarkSnapshots.bind(this.intelligenceV2);
+  upsertBenchmarkSnapshot = this.intelligenceV2.upsertBenchmarkSnapshot.bind(this.intelligenceV2);
+  createRelaxationTrace = this.intelligenceV2.createRelaxationTrace.bind(this.intelligenceV2);
+  getRelaxationTraces = this.intelligenceV2.getRelaxationTraces.bind(this.intelligenceV2);
+  createGuidanceDecision = this.intelligenceV2.createGuidanceDecision.bind(this.intelligenceV2);
+  getGuidanceDecisions = this.intelligenceV2.getGuidanceDecisions.bind(this.intelligenceV2);
+  createRebeccaConversation = this.intelligenceV2.createRebeccaConversation.bind(this.intelligenceV2);
+  getRebeccaConversations = this.intelligenceV2.getRebeccaConversations.bind(this.intelligenceV2);
+  addRebeccaMessage = this.intelligenceV2.addRebeccaMessage.bind(this.intelligenceV2);
+  getRebeccaMessages = this.intelligenceV2.getRebeccaMessages.bind(this.intelligenceV2);
+  createRebeccaEmail = this.intelligenceV2.createRebeccaEmail.bind(this.intelligenceV2);
+  createRebeccaFeedback = this.intelligenceV2.createRebeccaFeedback.bind(this.intelligenceV2);
+  getRebeccaFeedback = this.intelligenceV2.getRebeccaFeedback.bind(this.intelligenceV2);
+  createCoverageSnapshot = this.intelligenceV2.createCoverageSnapshot.bind(this.intelligenceV2);
+  getCoverageSnapshots = this.intelligenceV2.getCoverageSnapshots.bind(this.intelligenceV2);
+  getSourceRegistry = this.intelligenceV2.getSourceRegistry.bind(this.intelligenceV2);
+  upsertSourceRegistry = this.intelligenceV2.upsertSourceRegistry.bind(this.intelligenceV2);
+  createKeyRotation = this.intelligenceV2.createKeyRotation.bind(this.intelligenceV2);
+  getPipelinePolicies = this.intelligenceV2.getPipelinePolicies.bind(this.intelligenceV2);
+  upsertPipelinePolicy = this.intelligenceV2.upsertPipelinePolicy.bind(this.intelligenceV2);
 
   /**
    * Delete a user and ALL related data in a single transaction.
