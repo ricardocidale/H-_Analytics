@@ -300,10 +300,37 @@ Now synthesize the above into a single authoritative research report JSON.`;
 export async function* orchestrateResearch(
   params: ResearchParams,
   v2Prompt?: string,
+  relaxationContext?: { researchRunId: number; userId: number; contextPack: import("./context-pack/types").PropertyContextPack },
 ): AsyncGenerator<OrchestratorEvent> {
   const location    = params.propertyContext?.location ?? params.propertyContext?.market ?? "unknown";
   const propType    = params.propertyContext?.type ?? "boutique hotel";
   const mi          = params.marketIntelligence;
+
+  // ── Phase 0: Progressive relaxation (comparable set) ──
+
+  let compsBlock = "";
+  if (relaxationContext) {
+    yield { type: "phase", data: "Running progressive relaxation for comparable set…" };
+    try {
+      const { progressiveRelax, formatCompsForPrompt } = await import("./comparables/relaxation-engine");
+      const relaxResult = await progressiveRelax({
+        contextPack: relaxationContext.contextPack,
+        researchRunId: relaxationContext.researchRunId,
+        userId: relaxationContext.userId,
+      });
+      compsBlock = formatCompsForPrompt(relaxResult);
+      yield { type: "phase", data: `Relaxation complete — L${relaxResult.selectedLevel}, ${relaxResult.comps.length} comparables (evidence: ${relaxResult.evidenceScore.toFixed(2)})` };
+
+      if (v2Prompt) {
+        v2Prompt = v2Prompt.replace(
+          /## RESEARCH INSTRUCTIONS/,
+          `${compsBlock}\n\n## RESEARCH INSTRUCTIONS`
+        );
+      }
+    } catch (err) {
+      yield { type: "phase", data: `Relaxation skipped: ${err instanceof Error ? err.message : "unknown error"}` };
+    }
+  }
 
   // ── Phase 1: Parallel analyst panels ──
 

@@ -152,9 +152,10 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 ### Context Pack System (IMPLEMENTED)
 - `server/ai/context-pack/` — PropertyContextPack (10 categories), CompanyContextPack (8 categories), luxury classifier
 - `server/ai/prompt/` — Auto-prompt assembly engine (Tier 1 full entity, Tier 2 single assumption)
-- `server/ai/guidance/` — Guidance extractor with Zod validation, key normalization, dual extraction paths
-- `server/routes/guidance.ts` — Scenario-scoped guidance API (GET/POST with access control)
+- `server/ai/guidance/` — Guidance extractor with Zod validation, key normalization, dual extraction paths (property + company)
+- `server/routes/guidance.ts` — Scenario-scoped guidance API (GET/POST with access control) + Tier 2 deep-dive endpoint
 - `server/ai/ambient/` — Tier 0 benchmark scheduler (21 hospitality benchmarks, FRED macro rates, 6h refresh)
+- `server/ai/comparables/` — Progressive relaxation engine (L0-L5), ComparableQueryBuilder, integrated into orchestrator pre-phase. Star ±1 hard guard at all levels. Traces persisted to relaxation_traces table.
 
 ## H+ Analytics Logo Variants
 

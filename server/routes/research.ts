@@ -207,6 +207,7 @@ export function register(app: Express) {
       const startTime = Date.now();
 
       let v2Prompt: string | undefined;
+      let propertyContextPack: import("../ai/context-pack/types").PropertyContextPack | undefined;
       try {
         let ambientDataStr: string | undefined;
         const benchmarks = await storage.getBenchmarkSnapshots();
@@ -220,8 +221,8 @@ export function register(app: Express) {
           const property = await storage.getProperty(propertyId);
           if (property) {
             const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
-            const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
-            v2Prompt = assembleResearchPrompt(contextPack, {
+            propertyContextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
+            v2Prompt = assembleResearchPrompt(propertyContextPack, {
               tier: 1,
               entityType: "property",
               ambientData: ambientDataStr,
@@ -251,11 +252,12 @@ export function register(app: Express) {
         logger.warn(`RI v2 prompt assembly failed, falling back to v1: ${err instanceof Error ? err.message : err}`, "research");
       }
 
-      // N+1 orchestrator for property research when Anthropic (Opus) is available.
-      // Company/global research continues on the single-model path.
       const useOrchestrator = type === "property" && isOrchestratorAvailable();
+      const relaxCtx = (useOrchestrator && propertyContextPack && propertyId)
+        ? { researchRunId: 0, userId: getAuthUser(req).id, contextPack: propertyContextPack }
+        : undefined;
       const stream = useOrchestrator
-        ? orchestrateResearch(params, v2Prompt)
+        ? orchestrateResearch(params, v2Prompt, relaxCtx)
         : generateResearchWithToolsStream(params, researchClient, model, secondaryModel, v2Prompt);
 
       // ── Stream loop — accumulate content, forward events to client ──
