@@ -31,7 +31,7 @@ function AboutContent() {
       <Card className="border-primary/10 shadow-lg" data-testid="about-card">
         <CardContent className="p-6 sm:p-10 space-y-8">
           <div className="flex items-start gap-4">
-            <img src={defaultLogo} alt={APP_BRAND_NAME} className="w-14 h-14 object-contain rounded-xl" />
+            <img src={defaultLogo} alt={APP_BRAND_NAME} className="w-40 h-40 object-contain rounded-xl" />
             <div>
               <h1 className="text-2xl font-display font-bold text-foreground" data-testid="text-about-title">
                 {APP_BRAND_NAME} App
