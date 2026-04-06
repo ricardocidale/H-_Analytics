@@ -20,7 +20,7 @@ const EMBED_MODEL = "text-embedding-3-small";
 const EMBED_DIMS  = 1536;
 const EMBED_BATCH = 20;
 
-export type PineconeNamespace = "knowledge-base" | "research-history";
+export type PineconeNamespace = "knowledge-base" | "research-history" | "comparables" | "assumption-guidance" | "documents";
 
 export interface PineconeChunk {
   id: string;
@@ -224,4 +224,229 @@ export async function retrieveSimilarResearch(
 ): Promise<QueryMatch[]> {
   const query = `${location} ${propertyType} ${type} hospitality research market analysis ADR occupancy cap rate`;
   return queryChunks("research-history", query, topK);
+}
+
+// ── Assumption guidance ──────────────────────────────────────────────────────
+
+/**
+ * Index an assumption guidance record so it can be retrieved by
+ * similar market/property type in future research runs.
+ */
+export async function indexAssumptionGuidance(params: {
+  entityType: "property" | "company";
+  entityId: number;
+  location: string;
+  propertyType: string;
+  assumptionKey: string;
+  valueLow: number | null;
+  valueMid: number | null;
+  valueHigh: number | null;
+  confidence: number;
+  reasoning: string | null;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+
+  try {
+    const id = `guidance:${params.entityType}:${params.entityId}:${params.assumptionKey}`;
+    const text = `${params.location} ${params.propertyType} ${params.assumptionKey} hospitality assumption guidance`;
+
+    await upsertChunks("assumption-guidance", [{
+      id,
+      text,
+      metadata: {
+        entityType:    params.entityType,
+        entityId:      params.entityId,
+        location:      params.location,
+        propertyType:  params.propertyType,
+        assumptionKey: params.assumptionKey,
+        valueLow:      params.valueLow ?? 0,
+        valueMid:      params.valueMid ?? 0,
+        valueHigh:     params.valueHigh ?? 0,
+        confidence:    params.confidence,
+        reasoning:     (params.reasoning ?? "").slice(0, 2_000),
+      },
+    }]);
+
+    logger.info(`Indexed assumption guidance: ${params.assumptionKey} for ${params.location}`, "pinecone");
+  } catch (err) {
+    logger.warn(`Failed to index assumption guidance: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
+/**
+ * Retrieve assumption guidance records for similar markets/property types.
+ * Used to seed new research runs with prior knowledge.
+ */
+export async function retrieveSimilarGuidance(params: {
+  location: string;
+  propertyType: string;
+  assumptionKeys?: string[];
+  topK?: number;
+}): Promise<Array<{
+  assumptionKey: string;
+  valueLow: number | null;
+  valueMid: number | null;
+  valueHigh: number | null;
+  confidence: number;
+  location: string;
+  propertyType: string;
+  reasoning: string | null;
+  score: number;
+}>> {
+  if (!isPineconeAvailable()) return [];
+
+  try {
+    const keyPart = params.assumptionKeys?.length
+      ? params.assumptionKeys.join(" ")
+      : "ADR occupancy capRate costs fees";
+    const query = `${params.location} ${params.propertyType} ${keyPart} hospitality assumption guidance`;
+    const matches = await queryChunks("assumption-guidance", query, params.topK ?? 10);
+
+    return matches
+      .filter(m => m.score > 0.6)
+      .filter(m => !params.assumptionKeys?.length || params.assumptionKeys.includes(String(m.metadata.assumptionKey)))
+      .map(m => ({
+        assumptionKey: String(m.metadata.assumptionKey),
+        valueLow:      m.metadata.valueLow === 0 ? null : Number(m.metadata.valueLow),
+        valueMid:      m.metadata.valueMid === 0 ? null : Number(m.metadata.valueMid),
+        valueHigh:     m.metadata.valueHigh === 0 ? null : Number(m.metadata.valueHigh),
+        confidence:    Number(m.metadata.confidence),
+        location:      String(m.metadata.location),
+        propertyType:  String(m.metadata.propertyType),
+        reasoning:     m.metadata.reasoning ? String(m.metadata.reasoning) : null,
+        score:         m.score,
+      }));
+  } catch (err) {
+    logger.warn(`Failed to retrieve similar guidance: ${err instanceof Error ? err.message : err}`, "pinecone");
+    return [];
+  }
+}
+
+// ── Benchmark snapshots ──────────────────────────────────────────────────────
+
+/**
+ * Index a benchmark snapshot into the comparables namespace so the
+ * relaxation engine can retrieve it during comparable search.
+ */
+export async function indexBenchmarkSnapshot(params: {
+  market: string;
+  propertyType: string;
+  adr?: number | null;
+  occupancy?: number | null;
+  capRate?: number | null;
+  revpar?: number | null;
+  source: string;
+  snapshotDate: string;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+
+  try {
+    const id = `benchmark:${params.market.toLowerCase().replace(/\s+/g, "-")}:${params.propertyType}:${params.source}`;
+    const text = `${params.market} ${params.propertyType} hospitality benchmark ADR occupancy cap rate RevPAR market data`;
+
+    await upsertChunks("comparables", [{
+      id,
+      text,
+      metadata: {
+        market:       params.market,
+        propertyType: params.propertyType,
+        adr:          params.adr ?? 0,
+        occupancy:    params.occupancy ?? 0,
+        capRate:      params.capRate ?? 0,
+        revpar:       params.revpar ?? 0,
+        source:       params.source,
+        snapshotDate: params.snapshotDate,
+        isBenchmark:  true,
+      },
+    }]);
+
+    logger.info(`Indexed benchmark snapshot: ${params.market} (${params.source})`, "pinecone");
+  } catch (err) {
+    logger.warn(`Failed to index benchmark snapshot: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
+// ── Document intelligence ────────────────────────────────────────────────────
+
+/**
+ * Index extracted document content for semantic retrieval.
+ */
+export async function indexDocumentExtraction(params: {
+  extractionId: number;
+  propertyId: number;
+  propertyName: string;
+  documentType: string;
+  extractedText: string;
+  location: string;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+
+  try {
+    // Chunk the text into ~2000 char segments for Pinecone metadata limits
+    const maxChunkSize = 2_000;
+    const chunks: PineconeChunk[] = [];
+    const fullText = params.extractedText.slice(0, 20_000); // cap total
+
+    for (let i = 0; i < fullText.length; i += maxChunkSize) {
+      const chunkIdx = Math.floor(i / maxChunkSize);
+      const chunkText = fullText.slice(i, i + maxChunkSize);
+      chunks.push({
+        id: `doc:${params.extractionId}:chunk:${chunkIdx}`,
+        text: `${params.propertyName} ${params.location} ${params.documentType} document: ${chunkText.slice(0, 500)}`,
+        metadata: {
+          extractionId: params.extractionId,
+          propertyId:   params.propertyId,
+          propertyName: params.propertyName,
+          documentType: params.documentType,
+          location:     params.location,
+          content:      chunkText,
+          chunkIndex:   chunkIdx,
+        },
+      });
+    }
+
+    if (chunks.length > 0) {
+      await upsertChunks("documents", chunks);
+      logger.info(`Indexed document extraction ${params.extractionId}: ${chunks.length} chunks for ${params.propertyName}`, "pinecone");
+    }
+  } catch (err) {
+    logger.warn(`Failed to index document extraction: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
+/**
+ * Retrieve relevant document content for a property or similar properties.
+ */
+export async function retrieveDocumentContext(params: {
+  query: string;
+  propertyId?: number;
+  topK?: number;
+}): Promise<Array<{
+  extractionId: number;
+  propertyId: number;
+  propertyName: string;
+  documentType: string;
+  content: string;
+  score: number;
+}>> {
+  if (!isPineconeAvailable()) return [];
+
+  try {
+    const matches = await queryChunks("documents", params.query, params.topK ?? 5);
+
+    return matches
+      .filter(m => m.score > 0.5)
+      .filter(m => !params.propertyId || Number(m.metadata.propertyId) === params.propertyId)
+      .map(m => ({
+        extractionId: Number(m.metadata.extractionId),
+        propertyId:   Number(m.metadata.propertyId),
+        propertyName: String(m.metadata.propertyName),
+        documentType: String(m.metadata.documentType),
+        content:      String(m.metadata.content),
+        score:        m.score,
+      }));
+  } catch (err) {
+    logger.warn(`Failed to retrieve document context: ${err instanceof Error ? err.message : err}`, "pinecone");
+    return [];
+  }
 }

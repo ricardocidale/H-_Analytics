@@ -19,6 +19,8 @@ import {
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, isNull } from "drizzle-orm";
+import { indexBenchmarkSnapshot } from "../ai/pinecone-service";
+import { logger } from "../logger";
 
 export class IntelligenceV2Storage {
   async getAssumptionGuidance(scenarioId: number | null, entityType: string, entityId: number): Promise<AssumptionGuidance[]> {
@@ -94,11 +96,45 @@ export class IntelligenceV2Storage {
         .set({ ...data, fetchedAt: new Date() })
         .where(eq(benchmarkSnapshots.id, existing.id))
         .returning();
+
+      // Fire-and-forget: re-index to Pinecone comparables namespace
+      try {
+        indexBenchmarkSnapshot({
+          market: updated.snapshotKey,
+          propertyType: updated.category,
+          adr: updated.category === "adr" ? updated.value : null,
+          occupancy: updated.category === "occupancy" ? updated.value : null,
+          capRate: updated.category === "capRate" ? updated.value : null,
+          revpar: updated.category === "revpar" ? updated.value : null,
+          source: updated.source ?? "unknown",
+          snapshotDate: updated.fetchedAt.toISOString(),
+        }).catch(err => logger.warn(`Pinecone benchmark re-index failed: ${err}`, "intelligence-v2"));
+      } catch (err) {
+        logger.warn(`Pinecone benchmark re-index failed: ${err}`, "intelligence-v2");
+      }
+
       return updated;
     }
     const [inserted] = await db.insert(benchmarkSnapshots)
       .values(data as typeof benchmarkSnapshots.$inferInsert)
       .returning();
+
+    // Fire-and-forget: index to Pinecone comparables namespace
+    try {
+      indexBenchmarkSnapshot({
+        market: inserted.snapshotKey,
+        propertyType: inserted.category,
+        adr: inserted.category === "adr" ? inserted.value : null,
+        occupancy: inserted.category === "occupancy" ? inserted.value : null,
+        capRate: inserted.category === "capRate" ? inserted.value : null,
+        revpar: inserted.category === "revpar" ? inserted.value : null,
+        source: inserted.source ?? "unknown",
+        snapshotDate: inserted.fetchedAt.toISOString(),
+      }).catch(err => logger.warn(`Pinecone benchmark index failed: ${err}`, "intelligence-v2"));
+    } catch (err) {
+      logger.warn(`Pinecone benchmark index failed: ${err}`, "intelligence-v2");
+    }
+
     return inserted;
   }
 

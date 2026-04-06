@@ -28,7 +28,7 @@ This project is a business simulation portal for Hospitality Business Group, des
 The application features a React 18 frontend with TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, and framer-motion. The backend is an Express 5 application utilizing Drizzle ORM and PostgreSQL.
 
 **Core Design Principles & Features:**
-- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (3,973 tests across 170 files), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
+- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (3,973 tests across 175 files), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
 - **Modular Skill-Based Architecture:** Domain knowledge and context are managed through a skill-based system in `.claude/skills/`.
 - **Theming & UI/UX:** A robust theme engine provides consistent UI with 5 presets. All UI components are theme-compliant, and specific UI patterns are enforced.
 - **Shared Financial Engine (`engine/`):** Pure financial calculation logic is extracted into a shared `engine/` package. Both client and server import from `@engine/*`.
@@ -44,7 +44,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Code Quality & Audit:** ESLint, Husky pre-commit hooks, and GitHub CI workflows enforce coding standards and TypeScript. Deep audit tests cover data-flow integrity and system security.
 - **Observability:** Structured logging, client-side error boundaries (Sentry.ErrorBoundary, ErrorBoundary, FinancialErrorBoundary), activity logging, Sentry for error tracking, PostHog for analytics, Upstash Redis for caching, and circuit breakers. Health endpoints monitor system status.
 - **Image Processing:** Server-side Sharp pipeline for responsive WebP/AVIF image variants.
-- **Research Intelligence Redesign:** A major architectural evolution of the research system, introducing a Star Rating System, Hotel vs Resort Classification, Entity Context Packs, 3-Tier Intelligence (ambient, entity-scoped, deep-dive), Progressive Relaxation for comparable sets, and Rebecca as a conversational AI layer for guidance. New database tables `assumption_guidance`, `research_runs`, `benchmark_snapshots`, `relaxation_traces`, `guidance_decisions`, `rebecca_conversations`, `rebecca_messages`, `rebecca_emails`, `rebecca_feedback`, `coverage_snapshots`, `source_registry`, `integration_key_rotations`, `pipeline_policies` have been implemented. Phase 4 T19 (Rebecca 520px panel) and T20 (context injection) complete — `server/ai/rebecca-context-builder.ts` assembles rich entity + field context server-side from IDs, `/api/chat` accepts optional `fieldContext` with IDOR prevention, auto-greeting on panel open.
+- **Research Intelligence Redesign (Task #287):** A major architectural evolution of the research system, introducing a Star Rating System, Hotel vs Resort Classification, Entity Context Packs, 3-Tier Intelligence (ambient, entity-scoped, deep-dive), Progressive Relaxation for comparable sets, and Rebecca as a conversational AI layer for guidance. 13 new V2 database tables implemented. Phases 1-3 complete (T1-T18). Phase 4 in progress: T19 (Rebecca 520px panel with context card, mutual exclusion via panel-manager) and T20 (context injection — `server/ai/rebecca-context-builder.ts` assembles rich entity + field context server-side from IDs, `/api/chat` accepts optional `fieldContext` with IDOR prevention, auto-greeting on panel open) are complete. T21-T24 remaining (Super Conversations, email/feedback, RAG, admin tabs).
 
 ## External Dependencies
 
@@ -122,7 +122,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 ```bash
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify + doc harmony (~60s)
-npm run test:summary   # All 3,973 tests, 170 files (~35s)
+npm run test:summary   # All 3,973 tests, 175 files (~35s)
 npm run verify:summary # 8-phase financial verification (~20s)
 npm run lint:summary   # TypeScript check only (<10s)
 npm run stats          # File/line/test counts (<5s, no vitest)

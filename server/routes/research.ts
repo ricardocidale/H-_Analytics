@@ -22,6 +22,7 @@ import { assembleResearchPrompt } from "../ai/prompt/assemble-research-prompt";
 import { extractGuidance } from "../ai/guidance/extractor";
 import { flag } from "../feature-flags";
 import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
+import { indexAssumptionGuidance, retrieveSimilarGuidance, isPineconeAvailable } from "../ai/pinecone-service";
 
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -224,10 +225,32 @@ export function register(app: Express) {
             if (property) {
               const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
               propertyContextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
+
+              // Retrieve prior assumption guidance from similar properties (non-blocking)
+              let priorGuidanceStr: string | undefined;
+              try {
+                if (isPineconeAvailable()) {
+                  const priorGuidance = await retrieveSimilarGuidance({
+                    location: property.location ?? "",
+                    propertyType: (property as any).hospitalityType ?? "boutique hotel",
+                    topK: 15,
+                  });
+                  if (priorGuidance.length > 0) {
+                    const lines = priorGuidance.map(g =>
+                      `- **${g.assumptionKey}** (${g.location}, ${g.propertyType}): low=${g.valueLow ?? "—"}, mid=${g.valueMid ?? "—"}, high=${g.valueHigh ?? "—"} [confidence: ${g.confidence.toFixed(1)}, score: ${g.score.toFixed(2)}]${g.reasoning ? ` — ${g.reasoning.slice(0, 120)}` : ""}`
+                    );
+                    priorGuidanceStr = `## Prior Assumption Benchmarks (from similar properties)\n\n${lines.join("\n")}`;
+                  }
+                }
+              } catch (err) {
+                logger.warn(`Prior guidance retrieval failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
+              }
+
               v2Prompt = assembleResearchPrompt(propertyContextPack, {
                 tier: 1,
                 entityType: "property",
                 ambientData: ambientDataStr,
+                priorResearch: priorGuidanceStr,
               });
             }
           } else if (type === "company" && ga) {
@@ -377,6 +400,8 @@ export function register(app: Express) {
                   runId = runRecord.id;
                 }
 
+                const propLocation = property.location ?? "";
+                const propType = (property as any).hospitalityType ?? "boutique hotel";
                 for (const rec of guidanceResult.records) {
                   await storage.upsertAssumptionGuidance({
                     researchRunId: runId,
@@ -393,6 +418,20 @@ export function register(app: Express) {
                     reasoning: rec.reasoning ?? null,
                     comparableSet: (rec.comparableSet as Record<string, unknown>) ?? null,
                   });
+
+                  // Index to Pinecone for cross-property retrieval (fire-and-forget)
+                  indexAssumptionGuidance({
+                    entityType: "property",
+                    entityId: propertyId,
+                    location: propLocation,
+                    propertyType: propType,
+                    assumptionKey: rec.assumptionKey,
+                    valueLow: rec.valueLow ?? null,
+                    valueMid: rec.valueMid ?? null,
+                    valueHigh: rec.valueHigh ?? null,
+                    confidence: rec.confidence === "high" ? 0.9 : rec.confidence === "medium" ? 0.7 : 0.4,
+                    reasoning: rec.reasoning ?? null,
+                  }).catch(err => logger.warn(`Failed to index guidance to Pinecone: ${err}`, "research"));
                 }
 
                 logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for property ${propertyId} (run ${runId})`, "research");
@@ -445,6 +484,20 @@ export function register(app: Express) {
                   reasoning: rec.reasoning ?? null,
                   comparableSet: (rec.comparableSet as Record<string, unknown>) ?? null,
                 });
+
+                // Index to Pinecone for cross-entity retrieval (fire-and-forget)
+                indexAssumptionGuidance({
+                  entityType: "company",
+                  entityId: companyId,
+                  location: ga?.companyName ?? "Management Company",
+                  propertyType: "management company",
+                  assumptionKey: rec.assumptionKey,
+                  valueLow: rec.valueLow ?? null,
+                  valueMid: rec.valueMid ?? null,
+                  valueHigh: rec.valueHigh ?? null,
+                  confidence: rec.confidence === "high" ? 0.9 : rec.confidence === "medium" ? 0.7 : 0.4,
+                  reasoning: rec.reasoning ?? null,
+                }).catch(err => logger.warn(`Failed to index company guidance to Pinecone: ${err}`, "research"));
               }
 
               logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for company ${companyId} (run ${runRecord.id})`, "research");

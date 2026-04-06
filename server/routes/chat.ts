@@ -11,6 +11,7 @@ import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@shared/schema";
 import { buildRebeccaContext } from "../ai/rebecca-context-builder";
+import { retrieveDocumentContext } from "../ai/pinecone-service";
 
 /**
  * CONTRACT: This endpoint provides AI chat about portfolio properties.
@@ -102,6 +103,25 @@ export function register(app: Express) {
         ...fundingLines,
       ].join("\n");
 
+      // Retrieve relevant document content from Pinecone (non-blocking)
+      let documentContextBlock = "";
+      try {
+        const docPropertyId = fieldCtx?.entityType === "property" ? fieldCtx.entityId : undefined;
+        const docResults = await retrieveDocumentContext({
+          query: message,
+          propertyId: docPropertyId,
+          topK: 3,
+        });
+        if (docResults.length > 0) {
+          const docLines = docResults.map(d =>
+            `[${d.documentType}] ${d.propertyName} (score: ${d.score.toFixed(2)}):\n${d.content.slice(0, 800)}`
+          );
+          documentContextBlock = `\n\nRELEVANT DOCUMENTS:\n${docLines.join("\n\n")}`;
+        }
+      } catch (err) {
+        logger.warn(`Document context retrieval failed (non-blocking): ${(err as Error).message}`, "chat");
+      }
+
       let rebeccaFieldBlock = "";
       let autoGreeting: string | null = null;
       if (fieldCtx) {
@@ -134,7 +154,7 @@ export function register(app: Express) {
       }
 
       const systemPrompt = (global as any)?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-      const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}${rebeccaFieldBlock}`;
+      const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}${rebeccaFieldBlock}${documentContextBlock}`;
       const engine = ga?.rebeccaChatEngine ?? "gemini";
 
       if (engine === "perplexity") {

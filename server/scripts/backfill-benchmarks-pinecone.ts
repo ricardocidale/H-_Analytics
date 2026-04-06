@@ -1,0 +1,56 @@
+/**
+ * Backfill script: Index all existing benchmark snapshots into Pinecone's
+ * `comparables` namespace.
+ *
+ * Idempotent — Pinecone upsert by deterministic ID is safe to re-run.
+ *
+ * Usage:
+ *   npx tsx server/scripts/backfill-benchmarks-pinecone.ts
+ */
+
+import { storage } from "../storage";
+import { indexBenchmarkSnapshot, isPineconeAvailable } from "../ai/pinecone-service";
+
+async function main() {
+  if (!isPineconeAvailable()) {
+    console.error("[backfill] PINECONE_API_KEY not configured — aborting.");
+    process.exit(1);
+  }
+
+  console.log("[backfill] Fetching all benchmark snapshots from PostgreSQL…");
+  const snapshots = await storage.getBenchmarkSnapshots();
+  console.log(`[backfill] Found ${snapshots.length} snapshots to index.`);
+
+  let indexed = 0;
+  let failed = 0;
+
+  for (const snap of snapshots) {
+    try {
+      await indexBenchmarkSnapshot({
+        market: snap.snapshotKey,
+        propertyType: snap.category,
+        adr: snap.category === "adr" ? snap.value : null,
+        occupancy: snap.category === "occupancy" ? snap.value : null,
+        capRate: snap.category === "capRate" ? snap.value : null,
+        revpar: snap.category === "revpar" ? snap.value : null,
+        source: snap.source ?? "unknown",
+        snapshotDate: snap.fetchedAt.toISOString(),
+      });
+      indexed++;
+      if (indexed % 10 === 0) {
+        console.log(`[backfill] Progress: ${indexed}/${snapshots.length}`);
+      }
+    } catch (err) {
+      failed++;
+      console.warn(`[backfill] Failed to index ${snap.snapshotKey}: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  console.log(`[backfill] Complete. Indexed: ${indexed}, Failed: ${failed}, Total: ${snapshots.length}`);
+  process.exit(0);
+}
+
+main().catch((err) => {
+  console.error("[backfill] Fatal error:", err);
+  process.exit(1);
+});
