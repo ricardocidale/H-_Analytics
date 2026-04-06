@@ -22,10 +22,14 @@ const parsePct = (s: string | undefined): number | null => {
 
 const parseRange = (s: string | undefined): { low: number; high: number; mid: number } | null => {
   if (!s) return null;
+  const isPct = /%/.test(s);
   const nums = s.replace(/[^0-9.,\-–]/g, " ").split(/[\s–\-]+/).map(x => parseFloat(x.replace(/,/g, ""))).filter(n => !isNaN(n));
-  if (nums.length >= 2) return { low: nums[0], high: nums[1], mid: Math.round((nums[0] + nums[1]) / 2) };
-  if (nums.length === 1) return { low: nums[0], high: nums[0], mid: nums[0] };
-  return null;
+  if (nums.length === 0) return null;
+  let low = nums[0];
+  let high = nums.length >= 2 ? nums[1] : nums[0];
+  if (isPct) { low = low / 100; high = high / 100; }
+  const mid = (low + high) / 2;
+  return { low, high, mid };
 };
 
 const str = (v: unknown): string | null => typeof v === "string" ? v : null;

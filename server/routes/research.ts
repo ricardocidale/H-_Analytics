@@ -238,7 +238,7 @@ export function register(app: Express) {
       // Company/global research continues on the single-model path.
       const useOrchestrator = type === "property" && isOrchestratorAvailable();
       const stream = useOrchestrator
-        ? orchestrateResearch(params)
+        ? orchestrateResearch(params, v2Prompt)
         : generateResearchWithToolsStream(params, researchClient, model, secondaryModel, v2Prompt);
 
       // ── Stream loop — accumulate content, forward events to client ──

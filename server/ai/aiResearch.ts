@@ -71,11 +71,12 @@ export async function generateResearchWithTools(
   params: Parameters<typeof buildUserPrompt>[0],
   client: ResearchClient,
   model: string,
-  secondaryModel?: string
+  secondaryModel?: string,
+  v2Prompt?: string,
 ): Promise<Record<string, any>> {
   let fullText = "";
 
-  for await (const chunk of generateResearchWithToolsStream(params, client, model, secondaryModel)) {
+  for await (const chunk of generateResearchWithToolsStream(params, client, model, secondaryModel, v2Prompt)) {
     if (chunk.type === "content") {
       fullText += chunk.data;
     }

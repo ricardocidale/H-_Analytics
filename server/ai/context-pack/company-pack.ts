@@ -56,7 +56,7 @@ function buildPortfolioNarrative(
 function buildServiceNarrative(templates: Array<{ name: string; rate: number; serviceModel: string; markup: number }>): string {
   if (templates.length === 0) return "No service templates configured";
   const totalRate = templates.reduce((sum, t) => sum + t.rate, 0);
-  return `${templates.length} service categories totaling ${pct(totalRate / 100)} of revenue. Services: ${templates.map(t => `${t.name} (${pct(t.rate / 100)}, ${t.serviceModel}, ${pct(t.markup / 100)} markup)`).join("; ")}`;
+  return `${templates.length} service categories totaling ${pct(totalRate)} of revenue. Services: ${templates.map(t => `${t.name} (${pct(t.rate)}, ${t.serviceModel}, ${pct(t.markup)} markup)`).join("; ")}`;
 }
 
 function buildFeeNarrative(ga: GlobalAssumptions): string {

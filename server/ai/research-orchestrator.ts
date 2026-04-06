@@ -93,18 +93,24 @@ async function runAnalystPanel(
   params: ResearchParams,
   model: string,
   role: "quantitative" | "market-strategy",
+  v2Prompt?: string,
 ): Promise<AnalystPanel> {
   const start = Date.now();
   try {
     const vendor = model.startsWith("gemini") ? "google" : model.startsWith("gpt-") || model.startsWith("o") ? "openai" : "anthropic";
-    const client = createResearchClient(vendor as any, {
+    const client = createResearchClient(vendor as ("openai" | "anthropic" | "google"), {
       anthropic: vendor === "anthropic" ? getAnthropicClient() : undefined,
       openai:    vendor === "openai"    ? getOpenAIClient()    : undefined,
       gemini:    vendor === "google"    ? getGeminiClient()    : undefined,
     });
 
     const analystParams = makeAnalystParams(params, role);
-    const output = await generateResearchWithTools(analystParams, client, model);
+    const roleInstruction =
+      role === "quantitative"
+        ? "\n\n[ANALYST ROLE: You are a QUANTITATIVE analyst. Focus on numbers, data ranges, benchmarks, and statistical evidence.]"
+        : "\n\n[ANALYST ROLE: You are a MARKET STRATEGY analyst. Focus on positioning, competitive dynamics, risk factors, demand drivers.]";
+    const analystV2Prompt = v2Prompt ? v2Prompt + roleInstruction : undefined;
+    const output = await generateResearchWithTools(analystParams, client, model, undefined, analystV2Prompt);
 
     return { model, role, output, durationMs: Date.now() - start };
   } catch (err) {
@@ -292,6 +298,7 @@ Now synthesize the above into a single authoritative research report JSON.`;
 
 export async function* orchestrateResearch(
   params: ResearchParams,
+  v2Prompt?: string,
 ): AsyncGenerator<OrchestratorEvent> {
   const location    = params.propertyContext?.location ?? params.propertyContext?.market ?? "unknown";
   const propType    = params.propertyContext?.type ?? "boutique hotel";
@@ -304,8 +311,8 @@ export async function* orchestrateResearch(
   yield { type: "phase", data: `Analyst B (${ANALYST_B_MODEL}): market strategy analysis` };
 
   const [panelA, panelB, priorResearch] = await Promise.all([
-    runAnalystPanel(params, ANALYST_A_MODEL, "quantitative"),
-    runAnalystPanel(params, ANALYST_B_MODEL, "market-strategy"),
+    runAnalystPanel(params, ANALYST_A_MODEL, "quantitative", v2Prompt),
+    runAnalystPanel(params, ANALYST_B_MODEL, "market-strategy", v2Prompt),
     isPineconeAvailable()
       ? retrieveSimilarResearch(location, propType, params.type).catch(() => [])
       : Promise.resolve([]),
