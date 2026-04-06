@@ -383,26 +383,18 @@ export class IntelligenceV2Storage {
   }
 
   async upsertScheduledResearchWorkflow(data: InsertScheduledResearchWorkflow): Promise<ScheduledResearchWorkflow> {
-    return db.transaction(async (tx) => {
-      const [existing] = await tx.select().from(scheduledResearchWorkflows)
-        .where(eq(scheduledResearchWorkflows.workflowKey, data.workflowKey))
-        .limit(1);
-      if (existing) {
-        const [updated] = await tx.update(scheduledResearchWorkflows)
-          .set({ ...data, updatedAt: new Date() })
-          .where(eq(scheduledResearchWorkflows.id, existing.id))
-          .returning();
-        return updated;
-      }
-      const nextRun = new Date();
-      const [inserted] = await tx.insert(scheduledResearchWorkflows)
-        .values({
-          ...data,
-          nextRunAt: data.nextRunAt ?? nextRun,
-        } as typeof scheduledResearchWorkflows.$inferInsert)
-        .returning();
-      return inserted;
-    });
+    const nextRun = new Date();
+    const [result] = await db.insert(scheduledResearchWorkflows)
+      .values({
+        ...data,
+        nextRunAt: data.nextRunAt ?? nextRun,
+      } as typeof scheduledResearchWorkflows.$inferInsert)
+      .onConflictDoUpdate({
+        target: scheduledResearchWorkflows.workflowKey,
+        set: { ...data, updatedAt: new Date() },
+      })
+      .returning();
+    return result;
   }
 
   async updateScheduledWorkflowRun(id: number, update: {
