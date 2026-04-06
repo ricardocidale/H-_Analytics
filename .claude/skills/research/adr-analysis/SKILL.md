@@ -42,7 +42,7 @@ ADR recommendations should account for:
     "marketAverage": "$XXX",
     "boutiqueRange": "$XXX - $XXX",
     "recommendedRange": "$XXX - $XXX",
-    "confidence": "conservative | moderate | aggressive",
+    "confidence": "high | medium | low",
     "rationale": "Why this range is appropriate",
     "comparables": [
       { "name": "string", "adr": "$XXX", "type": "string" }

@@ -51,7 +51,7 @@ Always include an explanation of how income tax flows through the financial mode
 {
   "incomeTaxAnalysis": {
     "recommendedRate": "XX%",
-    "confidence": "conservative | moderate | aggressive",
+    "confidence": "high | medium | low",
     "rateBreakdown": {
       "federal": "XX%",
       "state": "XX%",

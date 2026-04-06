@@ -39,17 +39,17 @@ Recommendations must specify the correct base for each rate.
 {
   "operatingCostAnalysis": {
     "roomRevenueBased": {
-      "housekeeping": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" },
-      "fbCostOfSales": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" }
+      "housekeeping": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" },
+      "fbCostOfSales": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" }
     },
     "totalRevenueBased": {
-      "adminGeneral": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" },
-      "propertyOps": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" },
-      "utilities": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" },
-      "ffeReserve": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" },
-      "marketing": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" },
-      "it": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" },
-      "other": { "recommendedRate": "XX%", "confidence": "conservative | moderate | aggressive", "industryRange": "XX-XX%", "rationale": "string" }
+      "adminGeneral": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" },
+      "propertyOps": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" },
+      "utilities": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" },
+      "ffeReserve": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" },
+      "marketing": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" },
+      "it": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" },
+      "other": { "recommendedRate": "XX%", "confidence": "high | medium | low", "industryRange": "XX-XX%", "rationale": "string" }
     },
     "totalOperatingCostRatio": "XX%",
     "sources": ["USALI", "PKF Trends", "STR", "CBRE"]

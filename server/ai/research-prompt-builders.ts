@@ -259,7 +259,7 @@ ${formatAssetDefinition(bd, label)}
 
 Use the available tools to gather data on each analysis dimension, then synthesize your findings into the required JSON format. Call each tool to build your analysis, then provide the final synthesized research as a JSON object.
 
-IMPORTANT: For every recommended metric, include a "confidence" field with one of: "conservative" (below-market/cautious), "moderate" (market-aligned with strong comps), or "aggressive" (above-market/optimistic). This applies to adrAnalysis, occupancyAnalysis, capRateAnalysis, cateringAnalysis, landValueAllocation, incomeTaxAnalysis, and every cost category in operatingCostAnalysis, propertyValueCostAnalysis, and managementServiceFeeAnalysis.${buildEventConfigSuffix(ec)}`;
+IMPORTANT: For every recommended metric, include a "confidence" field with EXACTLY one of: "high" (multiple sources agree, strong comps), "medium" (single reliable source, moderate coverage), or "low" (sparse data, high uncertainty). Do NOT use "conservative", "moderate", or "aggressive" — those describe positioning, not evidence quality. This applies to adrAnalysis, occupancyAnalysis, capRateAnalysis, cateringAnalysis, landValueAllocation, incomeTaxAnalysis, and every cost category in operatingCostAnalysis, propertyValueCostAnalysis, and managementServiceFeeAnalysis.${buildEventConfigSuffix(ec)}`;
 
     prompt += buildMarketIntelligenceBlock(params.marketIntelligence);
     prompt += buildSourceRegistryBlock(ec?.customSources, params.researchVariables?.customSources);

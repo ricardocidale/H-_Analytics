@@ -203,7 +203,7 @@ interface ParsedResearch {
   adrAnalysis: {
     recommendedRange: string        // "$250–$350"
     mid: number                     // 300
-    confidence: "conservative" | "moderate" | "aggressive"
+    confidence: "high" | "medium" | "low"
     marketComparables: Array<{ name, adr, roomCount }>
     sourceName: string              // "CoStar STR"
     sourceDate: string              // "2025-04-06"
@@ -365,9 +365,9 @@ Every recommended metric includes a `confidence` field:
 
 | Value | Meaning | ConfidenceBadge Color |
 |-------|---------|----------------------|
-| `"conservative"` | Below-market / cautious — safer for underwriting | Blue |
-| `"moderate"` | Market-aligned with strong comparable data | Green |
-| `"aggressive"` | Above-market / optimistic — higher risk | Amber |
+| `"high"` | Below-market / cautious — safer for underwriting | Blue |
+| `"medium"` | Market-aligned with strong comparable data | Green |
+| `"low"` | Above-market / optimistic — higher risk | Amber |
 
 **Injected via**: `CONFIDENCE_PREAMBLE` in `server/ai/research-resources.ts`, loaded into every LLM system prompt. Defined once, not duplicated in skill files.
 

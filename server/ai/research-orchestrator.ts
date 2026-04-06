@@ -58,6 +58,7 @@ export interface MetricComparison {
   apiValue?: number;
   apiSource?: string;
   status: "agree" | "diverge" | "api-confirms" | "api-contradicts";
+  singleSided?: boolean;
   divergencePct?: number;
 }
 
@@ -130,6 +131,49 @@ function extractMid(obj: Record<string, any>, key: string): number | undefined {
   const v = obj?.[key];
   if (typeof v === "number") return v;
   if (typeof v?.mid === "number") return v.mid;
+  if (typeof v?.value === "number") return v.value;
+  if (typeof v?.recommendedRate === "string") {
+    const m = v.recommendedRate.match(/([\d.]+)/);
+    if (m) { const n = parseFloat(m[1]); return n > 1 ? n / 100 : n; }
+  }
+  if (typeof v?.recommendedRange === "string") {
+    const nums = v.recommendedRange.replace(/[^0-9.,\-–]/g, " ").split(/[\s–\-]+/).map((x: string) => parseFloat(x.replace(/,/g, ""))).filter((n: number) => !isNaN(n));
+    if (nums.length >= 2) return (nums[0] + nums[1]) / 2;
+    if (nums.length === 1) return nums[0];
+  }
+  return undefined;
+}
+
+function parseStringRate(s: string): number | undefined {
+  const bps = s.match(/([\d.]+)\s*(?:bps|basis\s*points?)/i);
+  if (bps) return parseFloat(bps[1]) / 10000;
+  const pct = s.match(/([\d.]+)\s*%/);
+  if (pct) {
+    const v = parseFloat(pct[1]);
+    return v > 1 ? v / 100 : v;
+  }
+  const rangeMatch = s.match(/([\d.]+)\s*[-–]\s*([\d.]+)\s*%/);
+  if (rangeMatch) {
+    const low = parseFloat(rangeMatch[1]);
+    const high = parseFloat(rangeMatch[2]);
+    const mid = (low + high) / 2;
+    return mid > 1 ? mid / 100 : mid;
+  }
+  const dollarMatch = s.match(/\$\s*([\d,.]+)/);
+  if (dollarMatch) return parseFloat(dollarMatch[1].replace(/,/g, ""));
+  const plain = parseFloat(s);
+  return isNaN(plain) ? undefined : plain;
+}
+
+function extractDeep(obj: Record<string, any>, dotPath: string): number | undefined {
+  let cur: any = obj;
+  for (const part of dotPath.split(".")) {
+    if (cur && typeof cur === "object") cur = cur[part];
+    else return undefined;
+  }
+  if (typeof cur === "number") return cur;
+  if (typeof cur === "string") return parseStringRate(cur);
+  if (cur && typeof cur === "object") return extractMid(cur, "mid") ?? extractMid(cur, "value");
   return undefined;
 }
 
@@ -146,21 +190,28 @@ function compareMetric(
   apiVal?: number,
   apiSource?: string,
 ): MetricComparison {
-  const hasBoth = aVal !== undefined && bVal !== undefined;
+  const hasA = aVal !== undefined;
+  const hasB = bVal !== undefined;
+  const hasBoth = hasA && hasB;
   const divPct  = hasBoth ? divergencePct(aVal!, bVal!) : undefined;
   const agree   = hasBoth && divPct !== undefined && divPct < 0.15;
 
-  let status: MetricComparison["status"] = hasBoth ? (agree ? "agree" : "diverge") : "agree";
+  let status: MetricComparison["status"] = hasBoth
+    ? (agree ? "agree" : "diverge")
+    : (hasA || hasB) ? "agree" : "agree";
 
-  if (apiVal !== undefined && aVal !== undefined) {
-    const vsA = divergencePct(aVal, apiVal);
-    const ref = bVal !== undefined ? (aVal + bVal) / 2 : aVal;
-    const vsRef = divergencePct(ref, apiVal);
-    if (vsRef < 0.10) status = "api-confirms";
-    else if (vsRef > 0.25) status = "api-contradicts";
+  const singleSided = (hasA || hasB) && !hasBoth;
+
+  if (apiVal !== undefined) {
+    const ref = hasBoth ? (aVal! + bVal!) / 2 : hasA ? aVal! : hasB ? bVal! : undefined;
+    if (ref !== undefined) {
+      const vsRef = divergencePct(ref, apiVal);
+      if (vsRef < 0.10) status = "api-confirms";
+      else if (vsRef > 0.25) status = "api-contradicts";
+    }
   }
 
-  return { metric: name, analystA: aVal, analystB: bVal, apiValue: apiVal, apiSource, status, divergencePct: divPct };
+  return { metric: name, analystA: aVal, analystB: bVal, apiValue: apiVal, apiSource, status, divergencePct: divPct, singleSided };
 }
 
 export function buildApiValidation(
@@ -169,47 +220,103 @@ export function buildApiValidation(
   mi?: MarketIntelligence,
 ): ApiValidationResult {
   const comparisons: MetricComparison[] = [];
+  const a = panelA.output;
+  const b = panelB.output;
 
-  // ADR
   comparisons.push(compareMetric(
     "adr",
-    extractMid(panelA.output, "adr"),
-    extractMid(panelB.output, "adr"),
-    mi?.xotelo?.adrBenchmark?.value ?? mi?.benchmarks?.adr?.value,
-    mi?.xotelo ? "Xotelo OTA" : mi?.benchmarks ? "CoStar/STR" : undefined,
+    extractMid(a, "adr") ?? extractDeep(a, "adrAnalysis.mid"),
+    extractMid(b, "adr") ?? extractDeep(b, "adrAnalysis.mid"),
+    mi?.xotelo?.adrBenchmark?.value ?? mi?.benchmarks?.adr?.value ?? mi?.costar?.adr?.value,
+    mi?.xotelo ? "Xotelo OTA" : mi?.costar ? "CoStar" : mi?.benchmarks ? "CoStar/STR" : undefined,
   ));
 
-  // Occupancy
   comparisons.push(compareMetric(
     "occupancy",
-    extractMid(panelA.output, "occupancy"),
-    extractMid(panelB.output, "occupancy"),
-    mi?.benchmarks?.occupancy?.value,
-    mi?.benchmarks ? "CoStar/STR" : undefined,
+    extractMid(a, "occupancy") ?? extractDeep(a, "occupancyAnalysis.mid"),
+    extractMid(b, "occupancy") ?? extractDeep(b, "occupancyAnalysis.mid"),
+    mi?.benchmarks?.occupancy?.value ?? mi?.costar?.occupancyRate?.value,
+    mi?.costar ? "CoStar" : mi?.benchmarks ? "CoStar/STR" : undefined,
   ));
 
-  // Cap rate
   comparisons.push(compareMetric(
     "capRate",
-    extractMid(panelA.output, "capRate"),
-    extractMid(panelB.output, "capRate"),
+    extractMid(a, "capRate") ?? extractDeep(a, "capRateAnalysis.mid"),
+    extractMid(b, "capRate") ?? extractDeep(b, "capRateAnalysis.mid"),
     mi?.benchmarks?.capRate?.value ?? mi?.costar?.submarketCapRate?.value,
     mi?.costar ? "CoStar" : mi?.benchmarks ? "STR/CoStar" : undefined,
   ));
 
-  // RevPAR
   comparisons.push(compareMetric(
     "revpar",
-    extractMid(panelA.output, "revpar"),
-    extractMid(panelB.output, "revpar"),
+    extractMid(a, "revpar") ?? extractDeep(a, "revparAnalysis.mid"),
+    extractMid(b, "revpar") ?? extractDeep(b, "revparAnalysis.mid"),
     mi?.benchmarks?.revpar?.value ?? mi?.costar?.revpar?.value,
     mi?.costar ? "CoStar" : mi?.benchmarks ? "CoStar/STR" : undefined,
   ));
 
-  const agreed = comparisons.filter(c => c.status === "agree" || c.status === "api-confirms").length;
-  const consensusRatio = comparisons.length > 0 ? agreed / comparisons.length : 1;
+  comparisons.push(compareMetric(
+    "adrGrowth",
+    extractDeep(a, "adrAnalysis.recommendedGrowthRate") ?? extractDeep(a, "adrAnalysis.annualGrowthRate"),
+    extractDeep(b, "adrAnalysis.recommendedGrowthRate") ?? extractDeep(b, "adrAnalysis.annualGrowthRate"),
+    mi?.costar?.rentGrowthYoY?.value ? mi.costar.rentGrowthYoY.value / 100 : undefined,
+    mi?.costar?.rentGrowthYoY ? "CoStar YoY" : undefined,
+  ));
 
-  return { comparisons, consensusRatio };
+  const fredInflation = mi?.rates?.cpi?.current?.value;
+  comparisons.push(compareMetric(
+    "inflationRate",
+    extractDeep(a, "localEconomics.inflationRate") ?? extractMid(a, "inflationRate"),
+    extractDeep(b, "localEconomics.inflationRate") ?? extractMid(b, "inflationRate"),
+    fredInflation ? fredInflation / 100 : undefined,
+    fredInflation ? "FRED CPI" : undefined,
+  ));
+
+  const fredSofr = mi?.rates?.sofr?.current?.value;
+  comparisons.push(compareMetric(
+    "interestRate",
+    extractDeep(a, "localEconomics.interestRate") ?? extractMid(a, "interestRate"),
+    extractDeep(b, "localEconomics.interestRate") ?? extractMid(b, "interestRate"),
+    fredSofr ? fredSofr / 100 : undefined,
+    fredSofr ? "FRED SOFR" : undefined,
+  ));
+
+  comparisons.push(compareMetric(
+    "costRooms",
+    extractDeep(a, "operatingCostAnalysis.roomRevenueBased.housekeeping.mid"),
+    extractDeep(b, "operatingCostAnalysis.roomRevenueBased.housekeeping.mid"),
+  ));
+
+  comparisons.push(compareMetric(
+    "costFB",
+    extractDeep(a, "operatingCostAnalysis.roomRevenueBased.fbCostOfSales.mid"),
+    extractDeep(b, "operatingCostAnalysis.roomRevenueBased.fbCostOfSales.mid"),
+  ));
+
+  comparisons.push(compareMetric(
+    "costAdmin",
+    extractDeep(a, "operatingCostAnalysis.totalRevenueBased.adminGeneral.mid"),
+    extractDeep(b, "operatingCostAnalysis.totalRevenueBased.adminGeneral.mid"),
+  ));
+
+  comparisons.push(compareMetric(
+    "costFFE",
+    extractDeep(a, "operatingCostAnalysis.totalRevenueBased.ffeReserve.mid"),
+    extractDeep(b, "operatingCostAnalysis.totalRevenueBased.ffeReserve.mid"),
+  ));
+
+  comparisons.push(compareMetric(
+    "baseMgmtFee",
+    extractDeep(a, "managementServiceFeeAnalysis.baseFee.mid") ?? extractDeep(a, "baseMgmtFee"),
+    extractDeep(b, "managementServiceFeeAnalysis.baseFee.mid") ?? extractDeep(b, "baseMgmtFee"),
+  ));
+
+  const withValues = comparisons.filter(c => c.analystA !== undefined || c.analystB !== undefined);
+  const dualSided = withValues.filter(c => !c.singleSided);
+  const agreed = dualSided.filter(c => c.status === "agree" || c.status === "api-confirms").length;
+  const consensusRatio = dualSided.length > 0 ? agreed / dualSided.length : 0;
+
+  return { comparisons: withValues, consensusRatio };
 }
 
 // ── Synthesis prompt ──────────────────────────────────────────────────────────
@@ -233,30 +340,75 @@ function formatValidationTable(v: ApiValidationResult): string {
   return rows.join("\n");
 }
 
+function temporalDecay(completedAt: string | undefined): number {
+  if (!completedAt) return 0.5;
+  const ageMs = Date.now() - new Date(completedAt).getTime();
+  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  if (ageDays <= 30) return 1.0;
+  if (ageDays <= 90) return 0.85;
+  if (ageDays <= 180) return 0.65;
+  if (ageDays <= 365) return 0.4;
+  return 0.2;
+}
+
 function formatPriorResearch(matches: Awaited<ReturnType<typeof retrieveSimilarResearch>>): string {
   if (!matches.length) return "No similar prior research found.";
-  return matches
-    .filter(m => m.score > 0.7)
-    .map(m => `[Score: ${m.score.toFixed(2)}] ${m.metadata.location} (${m.metadata.propertyType}, ${m.metadata.completedAt}):\n${String(m.metadata.summary ?? "").slice(0, 600)}`)
+  const scored = matches
+    .filter(m => m.score > 0.65)
+    .map(m => {
+      const decay = temporalDecay(m.metadata.completedAt as string | undefined);
+      const adjustedScore = m.score * decay;
+      return { ...m, adjustedScore };
+    })
+    .sort((a, b) => b.adjustedScore - a.adjustedScore)
+    .slice(0, 5);
+  if (!scored.length) return "No sufficiently relevant prior research found.";
+  return scored
+    .map(m => {
+      const age = m.metadata.completedAt ? `completed ${m.metadata.completedAt}` : "date unknown";
+      return `[Relevance: ${m.adjustedScore.toFixed(2)}, vector: ${m.score.toFixed(2)}, recency: ${temporalDecay(m.metadata.completedAt as string | undefined).toFixed(2)}] ${m.metadata.location} (${m.metadata.propertyType}, ${age}):\n${String(m.metadata.summary ?? "").slice(0, 600)}`;
+    })
     .join("\n\n");
 }
 
-function buildSynthesisSystemPrompt(params: ResearchParams): string {
+function buildSynthesisSystemPrompt(params: ResearchParams, singlePanelMode: boolean): string {
+  const panelGuidance = singlePanelMode
+    ? `You are synthesizing a SINGLE surviving analyst panel (the other panel failed). Since you have only one perspective:
+- Weight API validation data more heavily to compensate for missing cross-validation.
+- Default to MEDIUM confidence for metrics without API anchoring (you lack the second opinion).
+- Explicitly note the single-panel limitation in your reasoning for each metric.
+- Where API data is available, use it as your primary anchor and the panel as directional guidance.`
+    : `You are synthesizing TWO independent analyst panels into a single authoritative research report.
+
+Your synthesis must:
+1. Where analysts AGREE (< 15% divergence): use the consensus value — assign "high" confidence.
+2. Where analysts DIVERGE (≥ 15% divergence): widen the range to span both estimates — assign "low" or "medium" confidence and note the divergence explicitly.
+3. Where API data CONFIRMS a value: increase confidence one level, cite the live data source.
+4. Where API data CONTRADICTS analyst estimates: defer to API for real-time anchor metrics (ADR, occupancy rates, cap rates from CoStar/STR). Explain why estimates may have diverged from market data.
+5. Incorporate relevant findings from similar prior research as supporting evidence — weight recent research (< 90 days) higher than older research.`;
+
   return loadSkill(params.type) + `
 
 ## SYNTHESIS ROLE
 
-You are the Chief Research Officer synthesizing two independent analyst panels into a single authoritative research report.
+${panelGuidance}
 
-Your synthesis must:
-1. Where analysts AGREE (< 15% divergence): use the consensus value — assign HIGH confidence.
-2. Where analysts DIVERGE (≥ 15% divergence): widen the range to span both estimates — assign LOW/MEDIUM confidence and note the divergence explicitly.
-3. Where API data CONFIRMS a value: increase confidence, cite the live data source.
-4. Where API data CONTRADICTS analyst estimates: defer to API for real-time anchor metrics (ADR, occupancy rates, cap rates from CoStar/STR). Explain why estimates may have diverged from market data.
-5. Incorporate relevant findings from similar prior research as supporting evidence.
+## REASONING CHAIN (follow this order for EVERY metric)
+1. **Anchor**: State the API/benchmark value if available — this is ground truth.
+2. **Panel Evidence**: Summarize what each analyst estimated and why.
+3. **Divergence Assessment**: Quantify the gap between panels (or panel vs API).
+4. **Resolution**: State your synthesized value and which evidence you weighted most.
+5. **Confidence Assignment**: Assign "high", "medium", or "low" based on evidence quality.
 
+## CONFIDENCE DEFINITIONS (use these labels exactly)
+- **"high"**: Multiple sources agree (<15% divergence) OR API-confirmed with strong comps.
+- **"medium"**: Single reliable source, moderate comp coverage, or 15–25% divergence.
+- **"low"**: Sparse data, >25% divergence, no API anchor, or stale comparables (>6 months old).
+
+## OUTPUT FORMAT
 Output the EXACT same JSON format as a standard research report — your output IS the final research.
 Every numeric field must include a "display" range string, a "mid" point estimate, and a "confidence" field ("high" | "medium" | "low").
+The "reasoning" field for each section must show your chain-of-thought (anchor → evidence → resolution).
 Do not output any text outside the JSON code block.`;
 }
 
@@ -348,12 +500,18 @@ export async function* orchestrateResearch(
 
   const bothFailed = !!panelA.error && !!panelB.error;
   if (bothFailed) {
-    // Both panels failed — signal the route to fall back to single-model research
     yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both analyst panels failed — falling back to single-model research." };
     return;
   }
 
-  yield { type: "phase", data: `Panels complete — A: ${(panelA.durationMs / 1000).toFixed(1)}s | B: ${(panelB.durationMs / 1000).toFixed(1)}s` };
+  const singlePanelMode = !!panelA.error || !!panelB.error;
+  if (singlePanelMode) {
+    const surviving = panelA.error ? "B" : "A";
+    const failed = panelA.error ? "A" : "B";
+    yield { type: "phase", data: `Panel ${failed} failed (${panelA.error || panelB.error}) — proceeding with single-panel synthesis from Panel ${surviving}` };
+  }
+
+  yield { type: "phase", data: `Panels complete — A: ${panelA.error ? "FAILED" : `${(panelA.durationMs / 1000).toFixed(1)}s`} | B: ${panelB.error ? "FAILED" : `${(panelB.durationMs / 1000).toFixed(1)}s`}` };
 
   // ── Phase 2: API validation ──
 
@@ -374,7 +532,7 @@ export async function* orchestrateResearch(
 
   yield { type: "phase", data: `Synthesizing with ${SYNTHESIS_MODEL}…` };
 
-  const systemPrompt = buildSynthesisSystemPrompt(params);
+  const systemPrompt = buildSynthesisSystemPrompt(params, singlePanelMode);
   const userPrompt   = buildSynthesisUserPrompt(params, panelA, panelB, validation, priorResearch, v2Prompt);
 
   const anthropic = getAnthropicClient();
@@ -396,14 +554,20 @@ export async function* orchestrateResearch(
   }
 
   const knowledgeContributions = priorResearch
-    .filter(m => m.score > 0.7)
-    .map(m => ({
-      vectorId: m.id,
-      score: Math.round(m.score * 100) / 100,
-      source: (m.metadata?.type as string) || "unknown",
-      location: (m.metadata?.location as string) || "",
-      completedAt: (m.metadata?.completedAt as string) || "",
-    }));
+    .filter(m => m.score > 0.65)
+    .map(m => {
+      const decay = temporalDecay(m.metadata?.completedAt as string | undefined);
+      return {
+        vectorId: m.id,
+        score: Math.round(m.score * 100) / 100,
+        adjustedScore: Math.round(m.score * decay * 100) / 100,
+        recencyWeight: Math.round(decay * 100) / 100,
+        source: (m.metadata?.type as string) || "unknown",
+        location: (m.metadata?.location as string) || "",
+        completedAt: (m.metadata?.completedAt as string) || "",
+      };
+    })
+    .sort((a, b) => b.adjustedScore - a.adjustedScore);
 
   yield {
     type: "phase",
@@ -412,7 +576,10 @@ export async function* orchestrateResearch(
         analystA:       { model: ANALYST_A_MODEL, durationMs: panelA.durationMs, error: panelA.error },
         analystB:       { model: ANALYST_B_MODEL, durationMs: panelB.durationMs, error: panelB.error },
         synthesisModel: SYNTHESIS_MODEL,
+        singlePanelMode,
         consensusRatio: validation.consensusRatio,
+        metricsValidated: validation.comparisons.length,
+        apiContradictions: validation.comparisons.filter(c => c.status === "api-contradicts").length,
         apiValidation:  validation.comparisons,
         priorResearch:  priorResearch.length,
         knowledgeContributions,

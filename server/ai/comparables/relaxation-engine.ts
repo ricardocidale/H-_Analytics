@@ -147,6 +147,26 @@ function pineconeMatchToComparable(match: QueryMatch): ComparableProperty {
   };
 }
 
+function computeGeographicDiversity(comps: ComparableProperty[]): number {
+  if (comps.length <= 1) return 0;
+  const locations = comps.map(c => (c.city ?? c.state ?? c.country ?? "").toLowerCase().trim());
+  const unknownCount = locations.filter(l => l === "" || l === "unknown").length;
+  const known = locations.filter(l => l !== "" && l !== "unknown");
+  const unique = new Set(known).size;
+  if (known.length <= 1) return 0;
+  const unknownPenalty = unknownCount > 0 ? 0.8 : 1.0;
+  return Math.min((unique - 1) / (known.length - 1), 1) * unknownPenalty;
+}
+
+function computeTypeDiversity(comps: ComparableProperty[]): number {
+  if (comps.length <= 1) return 0;
+  const types = comps.map(c => (c.hospitalityType ?? "").toLowerCase().trim());
+  const known = types.filter(t => t !== "" && t !== "unknown");
+  const unique = new Set(known).size;
+  if (known.length <= 1) return 0;
+  return Math.min((unique - 1) / (known.length - 1), 1);
+}
+
 function computeEvidenceScore(
   comps: ComparableProperty[],
   level: RelaxLevel,
@@ -157,7 +177,15 @@ function computeEvidenceScore(
     ? comps.reduce((sum, c) => sum + c.score, 0) / comps.length
     : 0;
   const constraintStrength = 1 - (level * 0.15);
-  return 0.45 * countScore + 0.35 * avgSimilarity + 0.20 * Math.max(0, constraintStrength);
+  const geoDiversity = computeGeographicDiversity(comps);
+  const typeDiversity = computeTypeDiversity(comps);
+  const diversityBonus = (geoDiversity + typeDiversity) / 2;
+  return (
+    0.35 * countScore +
+    0.30 * avgSimilarity +
+    0.20 * Math.max(0, constraintStrength) +
+    0.15 * diversityBonus
+  );
 }
 
 function filterCompAgainstCriteria(

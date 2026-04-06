@@ -46,7 +46,7 @@ Determine the appropriate percentage of purchase price attributable to land vs. 
 {
   "landValueAllocation": {
     "recommendedPercent": "XX%",
-    "confidence": "conservative | moderate | aggressive",
+    "confidence": "high | medium | low",
     "marketRange": "XX% - XX%",
     "assessmentMethod": "string (e.g., 'County tax assessor ratio', 'Comparable sales analysis')",
     "rationale": "Why this land value percentage is appropriate for this property and market",

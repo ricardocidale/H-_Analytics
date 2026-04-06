@@ -7,9 +7,12 @@ import {
   COMPANY_ASSUMPTION_KEYS,
   normalizeAssumptionKey,
 } from "./schemas";
+import { logger } from "../../logger";
 
 const parsePct = (s: string | undefined): number | null => {
   if (!s) return null;
+  const bpsMatch = s.match(/([\d.]+)\s*(?:bps|basis\s*points?)/i);
+  if (bpsMatch) return parseFloat(bpsMatch[1]) / 10000;
   const m = s.match(/([\d.]+)\s*%/);
   if (m) return parseFloat(m[1]) / 100;
   const raw = s.match(/([\d.]+)/);
@@ -20,17 +23,125 @@ const parsePct = (s: string | undefined): number | null => {
   return null;
 };
 
+function applyMultiplier(n: number, s: string): number {
+  const lower = s.toLowerCase();
+  if (/\bm(?:illion)?s?\b/i.test(lower)) return n * 1_000_000;
+  if (/\bk\b/i.test(lower) || /\bthousand/i.test(lower)) return n * 1_000;
+  if (/\bb(?:illion)?s?\b/i.test(lower)) return n * 1_000_000_000;
+  return n;
+}
+
 const parseRange = (s: string | undefined): { low: number; high: number; mid: number } | null => {
   if (!s) return null;
   const isPct = /%/.test(s);
-  const nums = s.replace(/[^0-9.,\-–]/g, " ").split(/[\s–\-]+/).map(x => parseFloat(x.replace(/,/g, ""))).filter(n => !isNaN(n));
+  const isBps = /bps|basis\s*points?/i.test(s);
+  const cleaned = s.replace(/[$€£¥,]/g, "");
+  const nums = cleaned.replace(/[^0-9.,\-–KkMmBb]/g, " ")
+    .split(/[\s–\-]+/)
+    .map(x => {
+      const n = parseFloat(x.replace(/[KkMmBb]/g, ""));
+      if (isNaN(n)) return NaN;
+      return applyMultiplier(n, x);
+    })
+    .filter(n => !isNaN(n));
   if (nums.length === 0) return null;
   let low = nums[0];
   let high = nums.length >= 2 ? nums[1] : nums[0];
-  if (isPct) { low = low / 100; high = high / 100; }
+  if (isBps) { low = low / 10000; high = high / 10000; }
+  else if (isPct) { low = low / 100; high = high / 100; }
+  if (low > high) [low, high] = [high, low];
   const mid = (low + high) / 2;
   return { low, high, mid };
 };
+
+const SANITY_BOUNDS: Record<string, { min: number; max: number; label: string }> = {
+  adr:                { min: 30,     max: 5000,   label: "ADR ($)" },
+  adrGrowth:          { min: -0.15,  max: 0.25,   label: "ADR Growth (%)" },
+  maxOccupancy:       { min: 0.1,    max: 1.0,    label: "Max Occupancy (%)" },
+  startOccupancy:     { min: 0.05,   max: 1.0,    label: "Start Occupancy (%)" },
+  occupancyRampMonths:{ min: 0,      max: 60,     label: "Ramp Months" },
+  capRate:            { min: 0.02,   max: 0.20,   label: "Cap Rate (%)" },
+  interestRate:       { min: 0.005,  max: 0.20,   label: "Interest Rate (%)" },
+  inflationRate:      { min: -0.05,  max: 0.30,   label: "Inflation (%)" },
+  incomeTax:          { min: 0.0,    max: 0.55,   label: "Income Tax (%)" },
+  landValue:          { min: 0.05,   max: 0.60,   label: "Land Value (%)" },
+  costRooms:          { min: 0.05,   max: 0.50,   label: "Rooms Cost (%)" },
+  costFB:             { min: 0.15,   max: 0.70,   label: "F&B Cost (%)" },
+  costAdmin:          { min: 0.02,   max: 0.20,   label: "Admin Cost (%)" },
+  costMarketing:      { min: 0.01,   max: 0.15,   label: "Marketing Cost (%)" },
+  costPropertyOps:    { min: 0.02,   max: 0.20,   label: "Property Ops (%)" },
+  costUtilities:      { min: 0.01,   max: 0.12,   label: "Utilities (%)" },
+  costFFE:            { min: 0.01,   max: 0.10,   label: "FF&E Reserve (%)" },
+  costIT:             { min: 0.005,  max: 0.08,   label: "IT Cost (%)" },
+  dispositionCommission: { min: 0.01, max: 0.10,  label: "Disposition Commission (%)" },
+  baseMgmtFee:        { min: 0.01,   max: 0.10,   label: "Base Mgmt Fee (%)" },
+  incentiveMgmtFee:   { min: 0.0,    max: 0.15,   label: "Incentive Mgmt Fee (%)" },
+  baseManagementFee:  { min: 0.01,   max: 0.10,   label: "Base Mgmt Fee (%)" },
+  costOfEquity:       { min: 0.08,   max: 0.35,   label: "Cost of Equity (%)" },
+  companyTaxRate:      { min: 0.10,   max: 0.55,   label: "Company Tax Rate (%)" },
+};
+
+const CROSS_FIELD_RULES: Array<{
+  keys: [string, string];
+  check: (a: number, b: number) => boolean;
+  warning: string;
+}> = [
+  {
+    keys: ["capRate", "maxOccupancy"],
+    check: (cap, occ) => cap > 0.12 && occ > 0.85,
+    warning: "High cap rate (>12%) combined with high occupancy (>85%) is unusual — high cap rates typically signal risk which suppresses occupancy.",
+  },
+  {
+    keys: ["adr", "costRooms"],
+    check: (adr, cost) => adr > 500 && cost > 0.35,
+    warning: "High ADR ($500+) with high rooms cost (>35%) is atypical — luxury properties usually achieve lower cost-of-rooms as a percentage of revenue.",
+  },
+  {
+    keys: ["inflationRate", "adrGrowth"],
+    check: (inf, grow) => grow > 0 && inf > 0 && grow < inf * 0.5,
+    warning: "ADR growth significantly below inflation suggests real rate erosion — verify this is intentional.",
+  },
+];
+
+function validateSanity(record: GuidanceRecord, errors: string[]): boolean {
+  const bounds = SANITY_BOUNDS[record.assumptionKey];
+  if (!bounds) return true;
+  const mid = record.valueMid;
+  if (mid == null) return true;
+  if (mid < bounds.min || mid > bounds.max) {
+    errors.push(`Sanity warning: ${record.assumptionKey} mid=${mid} outside bounds [${bounds.min}, ${bounds.max}] for ${bounds.label}`);
+    logger.warn(`Guidance sanity: ${record.assumptionKey}=${mid} out of range [${bounds.min},${bounds.max}]`, "extractor");
+    return false;
+  }
+  return true;
+}
+
+function validateConfidenceRangeWidth(record: GuidanceRecord, errors: string[]): void {
+  if (record.valueLow == null || record.valueHigh == null || record.valueMid == null) return;
+  if (record.valueMid === 0) return;
+  const rangeWidth = Math.abs(record.valueHigh - record.valueLow) / Math.abs(record.valueMid);
+  if (record.confidence === "high" && rangeWidth > 0.30) {
+    errors.push(`Confidence/range mismatch: ${record.assumptionKey} has "high" confidence but ${(rangeWidth * 100).toFixed(0)}% range width — downgrading to "medium"`);
+    record.confidence = "medium";
+  }
+  if (record.confidence === "low" && rangeWidth < 0.05 && record.valueLow !== record.valueHigh) {
+    errors.push(`Confidence/range mismatch: ${record.assumptionKey} has "low" confidence but only ${(rangeWidth * 100).toFixed(0)}% range width — upgrading to "medium"`);
+    record.confidence = "medium";
+  }
+}
+
+function runCrossFieldChecks(records: GuidanceRecord[], errors: string[]): void {
+  const byKey = new Map(records.map(r => [r.assumptionKey, r]));
+  for (const rule of CROSS_FIELD_RULES) {
+    const a = byKey.get(rule.keys[0]);
+    const b = byKey.get(rule.keys[1]);
+    if (a?.valueMid != null && b?.valueMid != null) {
+      if (rule.check(a.valueMid, b.valueMid)) {
+        errors.push(`Cross-field: ${rule.warning}`);
+      }
+    }
+  }
+}
 
 const str = (v: unknown): string | null => typeof v === "string" ? v : null;
 const num = (v: unknown): number | null => typeof v === "number" ? v : v != null ? Number(v) : null;
@@ -293,11 +404,17 @@ export function extractGuidance(
   for (const raw of rawRecords) {
     const parsed = guidanceRecordSchema.safeParse(raw);
     if (parsed.success) {
-      validRecords.push(parsed.data);
+      const record = parsed.data;
+      if (validateSanity(record, errors)) {
+        validateConfidenceRangeWidth(record, errors);
+        validRecords.push(record);
+      }
     } else {
       errors.push(`Validation failed for key "${raw.assumptionKey}": ${parsed.error.message}`);
     }
   }
+
+  runCrossFieldChecks(validRecords, errors);
 
   return {
     records: validRecords,

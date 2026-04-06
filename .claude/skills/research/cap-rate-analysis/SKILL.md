@@ -41,7 +41,7 @@ Analyze capitalization rates for hotel investment transactions in a specific mar
     "marketRange": "X.X% - X.X%",
     "boutiqueRange": "X.X% - X.X%",
     "recommendedRange": "X.X% - X.X%",
-    "confidence": "conservative | moderate | aggressive",
+    "confidence": "high | medium | low",
     "rationale": "Why this range",
     "comparables": [
       { "name": "string", "capRate": "X.X%", "saleYear": "YYYY", "notes": "string" }

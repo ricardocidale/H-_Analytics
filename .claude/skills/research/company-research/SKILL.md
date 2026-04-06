@@ -100,7 +100,7 @@ Provide comprehensive research on hotel management company fee structures, GAAP 
   ],
   "companyIncomeTax": {
     "recommendedRate": "XX%",
-    "confidence": "conservative | moderate | aggressive",
+    "confidence": "high | medium | low",
     "effectiveRange": "XX-XX%",
     "entityNotes": "C-Corp vs pass-through considerations",
     "calculationMethodology": "Pre-Tax Income = Total Fee Revenue - Total Vendor Costs - Total Expenses. Tax = max(0, Pre-Tax Income) × Rate.",

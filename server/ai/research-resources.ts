@@ -32,10 +32,30 @@ export const skillCache = new Map<string, string>();
 export let toolCache: Anthropic.Tool[] | null = null;
 
 export const CONFIDENCE_PREAMBLE = `## Confidence Scoring (applies to all recommendations)
-Every recommended value must include a "confidence" field:
-- **conservative**: Below-market/cautious estimate (higher costs, lower revenues, higher cap rates)
-- **moderate**: Market-aligned estimate supported by strong comparable data
-- **aggressive**: Above-market/optimistic estimate (lower costs, higher revenues, lower cap rates)
+Every recommended value must include a "confidence" field using EXACTLY one of these labels:
+- **"high"**: Multiple independent sources agree (<15% divergence) OR API-confirmed with strong comparables. Use for well-established markets with abundant data.
+- **"medium"**: Single reliable source, moderate comparable coverage, or 15–25% divergence between sources. Use for secondary markets or when data is recent but limited.
+- **"low"**: Sparse data, >25% divergence, no API anchor, stale comparables (>6 months old), or emerging/niche markets. Use when significant uncertainty exists.
+
+IMPORTANT: Do NOT use "conservative", "moderate", or "aggressive" as confidence labels — those describe positioning, not evidence quality. Always use "high", "medium", or "low".
+
+## Chain-of-Thought Reasoning (follow for every metric)
+For each metric you analyze:
+1. **Anchor**: State the benchmark or API value if available — this is your starting point.
+2. **Evidence**: Cite comparable properties, market data, or industry benchmarks that support your recommendation.
+3. **Adjustments**: Explain any adjustments from the anchor (location, property type, market cycle, seasonality).
+4. **Range**: Provide a low-to-high range reflecting uncertainty, then a midpoint estimate.
+5. **Confidence**: Assign "high", "medium", or "low" based on evidence quality (not positioning).
+Include this reasoning in the "reasoning" or "rationale" field for each section.
+
+## Seasonality & Market Cycle Context
+Consider the current phase of the hospitality market cycle (expansion, peak, contraction, trough) and seasonal demand patterns for the property's location. Flag seasonal ADR/occupancy variations and how they affect annualized projections.
+
+## Per-Unit Metrics
+Where applicable, express costs and revenues on a per-available-room (PAR) or per-occupied-room (POR) basis alongside percentage-of-revenue figures. This enables cross-property comparison.
+
+## GAAP / USALI Compliance
+All property-level operating cost recommendations must align with the Uniform System of Accounts for the Lodging Industry (USALI) departmental structure. Revenue and expense categories should map to USALI departments (Rooms, F&B, Admin & General, Sales & Marketing, Property Operations, Utilities, IT, FF&E Reserve).
 
 ## Deterministic Tools
 For any arithmetic (RevPAR, room revenue, NOI, depreciation, debt capacity, cost dollar amounts, occupancy schedules, ADR projections, cap rate valuations), call the appropriate compute_* tool. Never compute financial math in prose.
