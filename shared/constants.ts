@@ -619,6 +619,7 @@ export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5";
 // ──────────────────────────────────────────────────────────
 
 export const APP_BRAND_NAME = "H+ Analytics";
+export const APP_FULL_BRAND = "H+ Analytics by Norfolk AI";
 export const BRAND_ACCENT_PREFIX = "H+";
 export const BRAND_ACCENT_HEX = "#00A9B8";
 

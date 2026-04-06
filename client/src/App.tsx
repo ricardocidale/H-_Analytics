@@ -89,6 +89,7 @@ const IcpStudio = lazy(() => import("@/pages/IcpStudio"));
 const Icp = lazy(() => import("@/pages/Icp"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
+const About = lazy(() => import("@/pages/About"));
 const GoogleDrive = lazy(() => import("@/pages/GoogleDrive"));
 
 const PageLoader = () => (
@@ -459,6 +460,7 @@ function Router() {
         <Route path="/login">{user ? <Redirect to="/" /> : <Suspense fallback={<PageLoader />}><Login /></Suspense>}</Route>
         <Route path="/privacy"><Suspense fallback={<PageLoader />}><PrivacyPolicy /></Suspense></Route>
         <Route path="/terms"><Suspense fallback={<PageLoader />}><TermsOfService /></Suspense></Route>
+        <Route path="/about"><Suspense fallback={<PageLoader />}><About /></Suspense></Route>
         <Route path="/">
           <FinancialErrorBoundary>
             <ProtectedRoute component={Dashboard} />
