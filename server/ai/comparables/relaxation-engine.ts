@@ -100,7 +100,8 @@ function matchesCriteria(prop: Property, criteria: ComparableCriteria, targetPac
 }
 
 function starGuard(comp: ComparableProperty, targetStar: number | null): boolean {
-  if (targetStar == null || comp.starRating == null) return true;
+  if (targetStar == null) return true;
+  if (comp.starRating == null) return false;
   return Math.abs(comp.starRating - targetStar) <= 1;
 }
 

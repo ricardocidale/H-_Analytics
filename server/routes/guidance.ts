@@ -51,6 +51,44 @@ async function checkEntityAccess(user: Express.User, entityType: EntityType, ent
 }
 
 export function register(app: Express) {
+  app.get("/api/guidance/coverage/:entityType/:entityId", requireAuth, async (req, res) => {
+    try {
+      const params = entityParamsSchema.safeParse(req.params);
+      if (!params.success) return res.status(400).json({ error: fromZodError(params.error).message });
+
+      const { entityType, entityId } = params.data;
+      if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const query = guidanceQuerySchema.safeParse(req.query);
+      if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
+
+      const scenarioId = query.data.scenarioId ?? null;
+      const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
+
+      const now = Date.now();
+      let freshCount = 0;
+      let staleCount = 0;
+
+      for (const g of guidance) {
+        const age = now - new Date(g.updatedAt).getTime();
+        const staleThresholdMs = 7 * 24 * 60 * 60 * 1000;
+        if (age < staleThresholdMs) freshCount++;
+        else staleCount++;
+      }
+
+      res.json({
+        totalFields: guidance.length,
+        freshCount,
+        staleCount,
+        coveragePct: guidance.length > 0 ? Math.round((freshCount / guidance.length) * 100) : 0,
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch coverage", error);
+    }
+  });
+
   app.get("/api/guidance/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
@@ -140,44 +178,6 @@ export function register(app: Express) {
       res.json(runs);
     } catch (error) {
       logAndSendError(res, "Failed to fetch research runs", error);
-    }
-  });
-
-  app.get("/api/guidance/coverage/:entityType/:entityId", requireAuth, async (req, res) => {
-    try {
-      const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(400).json({ error: fromZodError(params.error).message });
-
-      const { entityType, entityId } = params.data;
-      if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-
-      const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
-
-      const scenarioId = query.data.scenarioId ?? null;
-      const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
-
-      const now = Date.now();
-      let freshCount = 0;
-      let staleCount = 0;
-
-      for (const g of guidance) {
-        const age = now - new Date(g.updatedAt).getTime();
-        const staleThresholdMs = 7 * 24 * 60 * 60 * 1000;
-        if (age < staleThresholdMs) freshCount++;
-        else staleCount++;
-      }
-
-      res.json({
-        totalFields: guidance.length,
-        freshCount,
-        staleCount,
-        coveragePct: guidance.length > 0 ? Math.round((freshCount / guidance.length) * 100) : 0,
-      });
-    } catch (error) {
-      logAndSendError(res, "Failed to fetch coverage", error);
     }
   });
 
