@@ -208,6 +208,14 @@ export function register(app: Express) {
 
       let v2Prompt: string | undefined;
       try {
+        let ambientDataStr: string | undefined;
+        const benchmarks = await storage.getBenchmarkSnapshots();
+        if (benchmarks.length > 0) {
+          ambientDataStr = benchmarks.map(b =>
+            `${b.snapshotKey} (${b.category}): ${b.value}${b.source ? ` [${b.source}]` : ""}${b.staleness === "stale" ? " [STALE]" : ""}`
+          ).join("\n");
+        }
+
         if (type === "property" && propertyId) {
           const property = await storage.getProperty(propertyId);
           if (property) {
@@ -216,6 +224,7 @@ export function register(app: Express) {
             v2Prompt = assembleResearchPrompt(contextPack, {
               tier: 1,
               entityType: "property",
+              ambientData: ambientDataStr,
             });
           }
         } else if (type === "company" && ga) {
@@ -235,21 +244,8 @@ export function register(app: Express) {
           v2Prompt = assembleResearchPrompt(companyPack, {
             tier: 1,
             entityType: "company",
+            ambientData: ambientDataStr,
           });
-        }
-
-        const benchmarks = await storage.getBenchmarkSnapshots();
-        if (benchmarks.length > 0) {
-          const ambientLines = benchmarks.map(b =>
-            `${b.snapshotKey} (${b.category}): ${b.value}${b.source ? ` [${b.source}]` : ""}${b.staleness === "stale" ? " [STALE]" : ""}`
-          );
-          const ambientData = ambientLines.join("\n");
-          if (v2Prompt) {
-            v2Prompt = v2Prompt.replace(
-              /## RESEARCH INSTRUCTIONS/,
-              `## VERIFIED MARKET DATA (use as ground truth)\n${ambientData}\n\n## RESEARCH INSTRUCTIONS`
-            );
-          }
         }
       } catch (err) {
         logger.warn(`RI v2 prompt assembly failed, falling back to v1: ${err instanceof Error ? err.message : err}`, "research");
