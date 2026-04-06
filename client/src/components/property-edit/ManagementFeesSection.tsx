@@ -23,11 +23,14 @@ import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
-import { ResearchBadge } from "@/components/ui/research-badge";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE } from "@/lib/constants";
 import type { ManagementFeesSectionProps } from "./types";
 
 export default function ManagementFeesSection({ draft, onChange, researchValues, feeDraft, onFeeCategoryChange, totalServiceFeeRate }: ManagementFeesSectionProps) {
+  const eid = draft.id as number | undefined;
+  const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
+
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="relative p-6">
@@ -59,16 +62,24 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                 'Procurement': researchValues.svcFeeProcurement ?? null,
               };
               const rv = svcFeeMap[cat.name];
+              const svcKeyMap: Record<string, string> = {
+                'Marketing': 'svcFeeMarketing',
+                'Technology & Reservations': 'svcFeeTechRes',
+                'Accounting': 'svcFeeAccounting',
+                'Revenue Management': 'svcFeeRevMgmt',
+                'General Management': 'svcFeeGeneralMgmt',
+                'Procurement': 'svcFeeProcurement',
+              };
+              const assumptionKey = svcKeyMap[cat.name] ?? `svcFee${cat.name.replace(/\s+/g, '')}`;
               return (
               <div key={cat.id} className="space-y-2" data-testid={`fee-category-${cat.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div className="flex justify-between items-center">
-                  <div className="flex flex-col gap-0.5">
-                    <Label className={`flex items-center label-text gap-1.5 ${cat.isActive ? 'text-foreground' : 'text-muted-foreground line-through'}`}>
-                      {cat.name}
-                      <InfoTooltip text={`${cat.name} service fee = Total Revenue × ${(cat.rate * 100).toFixed(1)}%. Charged monthly as part of the management company's service fees.`} />
-                    </Label>
-                    <ResearchBadge value={rv?.display} onClick={() => rv && onFeeCategoryChange(idx, "rate", rv.mid / 100)} />
-                  </div>
+                  <ResearchContextFieldLabel
+                    label={<span className={cat.isActive ? '' : 'text-muted-foreground line-through'}>{cat.name} <InfoTooltip text={`${cat.name} service fee = Total Revenue × ${(cat.rate * 100).toFixed(1)}%. Charged monthly as part of the management company's service fees.`} /></span>}
+                    badgeProps={{ value: rv?.display }}
+                    onApplyValue={() => rv && onFeeCategoryChange(idx, "rate", rv.mid / 100)}
+                    guidanceContext={gc(assumptionKey, cat.name)}
+                  />
                   <div className="flex items-center gap-2">
                     <EditableValue
                       value={cat.rate * 100}
@@ -108,13 +119,12 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <div className="flex flex-col gap-0.5">
-                  <Label className="flex items-center label-text text-foreground gap-1.5">
-                    Incentive Fee (% of GOP)
-                    <InfoTooltip text="Incentive Management Fee = max(0, GOP) × this rate. Only charged when Gross Operating Profit is positive, rewarding the management company for strong performance. Industry standard: 10–20% of GOP." />
-                  </Label>
-                  <ResearchBadge entry={researchValues.incentiveFee} onClick={() => researchValues.incentiveFee && onChange("incentiveManagementFeeRate", researchValues.incentiveFee.mid / 100)} />
-                </div>
+                <ResearchContextFieldLabel
+                  label={<>Incentive Fee (% of GOP) <InfoTooltip text="Incentive Management Fee = max(0, GOP) × this rate. Only charged when Gross Operating Profit is positive, rewarding the management company for strong performance. Industry standard: 10–20% of GOP." /></>}
+                  badgeProps={{ entry: researchValues.incentiveFee }}
+                  onApplyValue={() => researchValues.incentiveFee && onChange("incentiveManagementFeeRate", researchValues.incentiveFee.mid / 100)}
+                  guidanceContext={gc("incentiveFee", "Incentive Fee")}
+                />
                 <EditableValue
                   value={(draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE) * 100}
                   onChange={(val) => onChange("incentiveManagementFeeRate", val / 100)}

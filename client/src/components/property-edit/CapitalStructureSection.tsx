@@ -29,7 +29,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ResearchBadge } from "@/components/ui/research-badge";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { GaapBadge } from "@/components/ui/gaap-badge";
 import { GovernedFieldWrapper } from "@/components/ui/governed-field";
 import { GOVERNED_FIELDS } from "@shared/constants";
@@ -48,6 +48,9 @@ import { DEFAULT_REFI_PERIOD_YEARS } from "@/lib/constants";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function CapitalStructureSection({ draft, onChange, onNumberChange, globalAssumptions, researchValues }: PropertyEditSectionProps) {
+  const eid = draft.id as number | undefined;
+  const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
+
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="relative p-6 space-y-5">
@@ -89,14 +92,12 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
             />
           </div>
           <div className="space-y-1.5">
-            <div className="flex flex-col gap-0.5">
-              <Label className="label-text text-foreground flex items-center gap-1.5">
-                Land Value (%)
-                <InfoTooltip text="Percentage of the purchase price allocated to land. Land does not depreciate under IRS rules (Publication 946). Only the building portion is depreciated over 39 years. Typical land allocation ranges from 15-40% depending on location and property type." />
-                <GaapBadge rule="IRS Publication 946: Land is NOT depreciable. Only the building portion (Purchase Price × (1 − Land %) + Improvements) is depreciated over 39 years using straight-line method. Higher land % = lower depreciation deduction." />
-              </Label>
-              <ResearchBadge entry={researchValues.landValue} onClick={() => researchValues.landValue && onChange("landValuePercent", researchValues.landValue.mid / 100)} />
-            </div>
+            <ResearchContextFieldLabel
+              label={<>Land Value (%) <InfoTooltip text="Percentage of the purchase price allocated to land. Land does not depreciate under IRS rules (Publication 946). Only the building portion is depreciated over 39 years. Typical land allocation ranges from 15-40% depending on location and property type." /> <GaapBadge rule="IRS Publication 946: Land is NOT depreciable. Only the building portion (Purchase Price × (1 − Land %) + Improvements) is depreciated over 39 years using straight-line method. Higher land % = lower depreciation deduction." /></>}
+              badgeProps={{ entry: researchValues.landValue }}
+              onApplyValue={() => researchValues.landValue && onChange("landValuePercent", researchValues.landValue.mid / 100)}
+              guidanceContext={gc("landValue", "Land Value")}
+            />
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-foreground" data-testid="text-land-value-percent">
@@ -185,7 +186,12 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">LTV<InfoTooltip text="Loan-to-Value ratio: the percentage of the purchase price financed by the lender. Higher LTV means less equity required but more debt service." /><GaapBadge rule="ASC 470: Debt must be separated into interest expense (Income Statement) and principal repayment (Balance Sheet/Financing Activity). Only interest reduces taxable income." /><ResearchBadge entry={researchValues.acqLtv} sourceType={researchValues.acqLtv?.source === "market" ? "market" : "seed"} sourceName={(researchValues.acqLtv as any)?.sourceName} onClick={() => researchValues.acqLtv && onChange("acquisitionLTV", researchValues.acqLtv.mid / 100)} /></Label>
+                  <ResearchContextFieldLabel
+                    label={<>LTV <InfoTooltip text="Loan-to-Value ratio: the percentage of the purchase price financed by the lender. Higher LTV means less equity required but more debt service." /> <GaapBadge rule="ASC 470: Debt must be separated into interest expense (Income Statement) and principal repayment (Balance Sheet/Financing Activity). Only interest reduces taxable income." /></>}
+                    badgeProps={{ entry: researchValues.acqLtv, sourceType: researchValues.acqLtv?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqLtv as any)?.sourceName }}
+                    onApplyValue={() => researchValues.acqLtv && onChange("acquisitionLTV", researchValues.acqLtv.mid / 100)}
+                    guidanceContext={gc("acqLtv", "Acquisition LTV")}
+                  />
                   <EditableValue
                     value={(draft.acquisitionLTV || DEFAULT_LTV) * 100}
                     onChange={(val) => onChange("acquisitionLTV", val / 100)}
@@ -205,7 +211,12 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">Interest Rate<InfoTooltip text="Annual interest rate on the acquisition loan. Determines monthly debt service payments." /><ResearchBadge entry={researchValues.acqRate} sourceType={researchValues.acqRate?.source === "market" ? "market" : "seed"} sourceName={(researchValues.acqRate as any)?.sourceName} onClick={() => researchValues.acqRate && onChange("acquisitionInterestRate", researchValues.acqRate.mid / 100)} /></Label>
+                  <ResearchContextFieldLabel
+                    label={<>Interest Rate <InfoTooltip text="Annual interest rate on the acquisition loan. Determines monthly debt service payments." /></>}
+                    badgeProps={{ entry: researchValues.acqRate, sourceType: researchValues.acqRate?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqRate as any)?.sourceName }}
+                    onApplyValue={() => researchValues.acqRate && onChange("acquisitionInterestRate", researchValues.acqRate.mid / 100)}
+                    guidanceContext={gc("acqRate", "Acquisition Interest Rate")}
+                  />
                   <EditableValue
                     value={(draft.acquisitionInterestRate || DEFAULT_INTEREST_RATE) * 100}
                     onChange={(val) => onChange("acquisitionInterestRate", val / 100)}
@@ -329,7 +340,12 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">LTV<InfoTooltip text="Loan-to-Value ratio for the refinance loan, based on the property's appraised value at the time of refinancing." /><ResearchBadge entry={researchValues.refiLtv} sourceType="seed" onClick={() => researchValues.refiLtv && onChange("refinanceLTV", researchValues.refiLtv.mid / 100)} /></Label>
+                        <ResearchContextFieldLabel
+                          label={<>LTV <InfoTooltip text="Loan-to-Value ratio for the refinance loan, based on the property's appraised value at the time of refinancing." /></>}
+                          badgeProps={{ entry: researchValues.refiLtv, sourceType: "seed" }}
+                          onApplyValue={() => researchValues.refiLtv && onChange("refinanceLTV", researchValues.refiLtv.mid / 100)}
+                          guidanceContext={gc("refiLtv", "Refinance LTV")}
+                        />
                         <EditableValue
                           value={(draft.refinanceLTV || DEFAULT_REFI_LTV) * 100}
                           onChange={(val) => onChange("refinanceLTV", val / 100)}

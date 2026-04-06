@@ -18,8 +18,8 @@ import { Label } from "@/components/ui/label";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
-import { ResearchBadge } from "@/components/ui/research-badge";
 import { GaapBadge } from "@/components/ui/gaap-badge";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { MarketRateBenchmark } from "@/components/property-research/MarketRateBenchmark";
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -33,6 +33,8 @@ import type { OtherAssumptionsSectionProps } from "./types";
 export default function OtherAssumptionsSection({ draft, onChange, researchValues, exitYear }: OtherAssumptionsSectionProps) {
   const [crpLoading, setCrpLoading] = useState(false);
   const [crpCountry, setCrpCountry] = useState<string | null>(null);
+  const eid = draft.id as number | undefined;
+  const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
 
   const fetchCRP = useCallback(async () => {
     const location = draft.location;
@@ -82,14 +84,12 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:items-end">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <div className="flex flex-col gap-0.5">
-                <Label className="flex items-center label-text text-foreground gap-1.5">
-                  Exit Cap Rate
-                  <InfoTooltip text={`The capitalization rate used to determine terminal (exit) value. Exit Value = Year ${exitYear} NOI ÷ Cap Rate. A lower cap rate implies higher property valuation.`} />
-                  <GaapBadge rule="ASC 360: The exit cap rate determines terminal value for impairment testing. Gain on sale = Sale Price − (Adjusted Basis − Accumulated Depreciation). Depreciation recapture taxed at up to 25% under IRC §1250." />
-                </Label>
-                <ResearchBadge entry={researchValues.capRate} onClick={() => researchValues.capRate && onChange("exitCapRate", researchValues.capRate.mid / 100)} />
-              </div>
+              <ResearchContextFieldLabel
+                label={<>Exit Cap Rate <InfoTooltip text={`The capitalization rate used to determine terminal (exit) value. Exit Value = Year ${exitYear} NOI ÷ Cap Rate. A lower cap rate implies higher property valuation.`} /> <GaapBadge rule="ASC 360: The exit cap rate determines terminal value for impairment testing. Gain on sale = Sale Price − (Adjusted Basis − Accumulated Depreciation). Depreciation recapture taxed at up to 25% under IRC §1250." /></>}
+                badgeProps={{ entry: researchValues.capRate }}
+                onApplyValue={() => researchValues.capRate && onChange("exitCapRate", researchValues.capRate.mid / 100)}
+                guidanceContext={gc("capRate", "Exit Cap Rate")}
+              />
               <EditableValue
                 value={(draft.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100}
                 onChange={(val) => onChange("exitCapRate", val / 100)}
@@ -112,14 +112,12 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <div className="flex flex-col gap-0.5">
-                <Label className="flex items-center label-text text-foreground gap-1.5">
-                  Income Tax Rate
-                  <InfoTooltip text="Income tax rate for this property's SPV entity, applied to taxable income (NOI minus interest and depreciation) to calculate after-tax cash flow. Set per property to reflect the jurisdiction where the property is located." />
-                  <GaapBadge rule="IRC §168: Taxable income = NOI − Interest − Depreciation. The 39-year straight-line depreciation on the building portion (nonresidential hotel) creates a non-cash deduction that shelters cash flow from taxes." />
-                </Label>
-                <ResearchBadge entry={researchValues.incomeTax} onClick={() => researchValues.incomeTax && onChange("taxRate", researchValues.incomeTax.mid / 100)} />
-              </div>
+              <ResearchContextFieldLabel
+                label={<>Income Tax Rate <InfoTooltip text="Income tax rate for this property's SPV entity, applied to taxable income (NOI minus interest and depreciation) to calculate after-tax cash flow. Set per property to reflect the jurisdiction where the property is located." /> <GaapBadge rule="IRC §168: Taxable income = NOI − Interest − Depreciation. The 39-year straight-line depreciation on the building portion (nonresidential hotel) creates a non-cash deduction that shelters cash flow from taxes." /></>}
+                badgeProps={{ entry: researchValues.incomeTax }}
+                onApplyValue={() => researchValues.incomeTax && onChange("taxRate", researchValues.incomeTax.mid / 100)}
+                guidanceContext={gc("incomeTax", "Income Tax Rate")}
+              />
               <EditableValue
                 value={(draft.taxRate ?? DEFAULT_PROPERTY_TAX_RATE) * 100}
                 onChange={(val) => onChange("taxRate", val / 100)}
@@ -142,13 +140,12 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <div className="flex flex-col gap-0.5">
-                <Label className="flex items-center label-text text-foreground gap-1.5">
-                  Inflation Rate
-                  <InfoTooltip text="Annual inflation rate for this property. Escalates fixed operating costs and serves as the floor for revenue growth. If left blank, the global system default is used." />
-                </Label>
-                <ResearchBadge entry={researchValues.inflationRate} onClick={() => researchValues.inflationRate && onChange("inflationRate", researchValues.inflationRate.mid / 100)} />
-              </div>
+              <ResearchContextFieldLabel
+                label={<>Inflation Rate <InfoTooltip text="Annual inflation rate for this property. Escalates fixed operating costs and serves as the floor for revenue growth. If left blank, the global system default is used." /></>}
+                badgeProps={{ entry: researchValues.inflationRate }}
+                onApplyValue={() => researchValues.inflationRate && onChange("inflationRate", researchValues.inflationRate.mid / 100)}
+                guidanceContext={gc("inflationRate", "Inflation Rate")}
+              />
               <EditableValue
                 value={draft.inflationRate != null ? draft.inflationRate * 100 : DEFAULT_PROPERTY_INFLATION_RATE * 100}
                 onChange={(val) => onChange("inflationRate", val / 100)}
@@ -168,13 +165,12 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <div className="flex flex-col gap-0.5">
-                <Label className="flex items-center label-text text-foreground gap-1.5">
-                  Sale Commission
-                  <InfoTooltip text="Broker commission percentage applied when this property is sold." />
-                </Label>
-                <ResearchBadge entry={researchValues.saleCommission} onClick={() => researchValues.saleCommission && onChange("dispositionCommission", researchValues.saleCommission.mid / 100)} />
-              </div>
+              <ResearchContextFieldLabel
+                label={<>Sale Commission <InfoTooltip text="Broker commission percentage applied when this property is sold." /></>}
+                badgeProps={{ entry: researchValues.saleCommission }}
+                onApplyValue={() => researchValues.saleCommission && onChange("dispositionCommission", researchValues.saleCommission.mid / 100)}
+                guidanceContext={gc("saleCommission", "Sale Commission")}
+              />
               <EditableValue
                 data-testid="editable-disposition-commission"
                 value={(draft.dispositionCommission ?? DEFAULT_COMMISSION_RATE) * 100}

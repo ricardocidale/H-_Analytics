@@ -8,7 +8,7 @@ import type { ResearchBadgeProps } from "@/components/ui/research-badge";
 type GuidanceState = "fresh" | "stale" | "pinned" | "none";
 
 interface ResearchContextFieldLabelProps {
-  label: string;
+  label: React.ReactNode;
   htmlFor?: string;
   guidanceContext?: GuidanceContext;
   badgeProps?: ResearchBadgeProps;

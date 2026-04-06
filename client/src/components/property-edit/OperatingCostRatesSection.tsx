@@ -24,12 +24,12 @@
  * Together these rates determine GOP (Gross Operating Profit) and NOI (Net
  * Operating Income), the two key profitability metrics.
  */
-import { Label } from "@/components/ui/label";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
-import { ResearchBadge } from "@/components/ui/research-badge";
 import { GaapBadge } from "@/components/ui/gaap-badge";
+import { Label } from "@/components/ui/label";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { Link } from "wouter";
 import {
   DEFAULT_COST_RATE_ROOMS,
@@ -48,6 +48,9 @@ import {
 import type { PropertyEditSectionProps } from "./types";
 
 export default function OperatingCostRatesSection({ draft, onChange, globalAssumptions, researchValues }: PropertyEditSectionProps) {
+  const eid = draft.id as number | undefined;
+  const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
+
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="relative p-6">
@@ -88,10 +91,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">Housekeeping<InfoTooltip text="USALI Rooms Department — variable cost covering cleaning labor, linens, guest supplies, and room maintenance. Scales directly with room revenue. Industry benchmark: 18–25% of room revenue for boutique/lifestyle hotels (USALI 12th Ed.)." /></Label>
-                        <ResearchBadge entry={researchValues.costHousekeeping} onClick={() => researchValues.costHousekeeping && onChange("costRateRooms", researchValues.costHousekeeping.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>Housekeeping <InfoTooltip text="USALI Rooms Department — variable cost covering cleaning labor, linens, guest supplies, and room maintenance. Scales directly with room revenue. Industry benchmark: 18–25% of room revenue for boutique/lifestyle hotels (USALI 12th Ed.)." /></>}
+                        badgeProps={{ entry: researchValues.costHousekeeping }}
+                        onApplyValue={() => researchValues.costHousekeeping && onChange("costRateRooms", researchValues.costHousekeeping.mid / 100)}
+                        guidanceContext={gc("costHousekeeping", "Housekeeping")}
+                      />
                       <EditableValue
                         value={(draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS) * 100}
                         onChange={(val) => onChange("costRateRooms", val / 100)}
@@ -111,10 +116,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">F&B<InfoTooltip text="USALI Food & Beverage Department — variable cost covering kitchen labor, food costs, beverages, and dining operations. Scales with room revenue for consistent cost modeling. Industry benchmark: 6–12% of total revenue for boutique hotels with on-site dining (USALI 12th Ed.)." /></Label>
-                        <ResearchBadge entry={researchValues.costFB} onClick={() => researchValues.costFB && onChange("costRateFB", researchValues.costFB.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>F&B <InfoTooltip text="USALI Food & Beverage Department — variable cost covering kitchen labor, food costs, beverages, and dining operations. Scales with room revenue for consistent cost modeling. Industry benchmark: 6–12% of total revenue for boutique hotels with on-site dining (USALI 12th Ed.)." /></>}
+                        badgeProps={{ entry: researchValues.costFB }}
+                        onApplyValue={() => researchValues.costFB && onChange("costRateFB", researchValues.costFB.mid / 100)}
+                        guidanceContext={gc("costFB", "F&B Cost")}
+                      />
                       <EditableValue
                         value={(draft.costRateFB ?? DEFAULT_COST_RATE_FB) * 100}
                         onChange={(val) => onChange("costRateFB", val / 100)}
@@ -140,10 +147,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">Admin & General<InfoTooltip text="USALI Administrative & General Department — fixed cost covering management salaries, accounting, legal, HR, and office operations. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 7–10% of total revenue (USALI 12th Ed.)." /></Label>
-                        <ResearchBadge entry={researchValues.costAdmin} onClick={() => researchValues.costAdmin && onChange("costRateAdmin", researchValues.costAdmin.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>Admin & General <InfoTooltip text="USALI Administrative & General Department — fixed cost covering management salaries, accounting, legal, HR, and office operations. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 7–10% of total revenue (USALI 12th Ed.)." /></>}
+                        badgeProps={{ entry: researchValues.costAdmin }}
+                        onApplyValue={() => researchValues.costAdmin && onChange("costRateAdmin", researchValues.costAdmin.mid / 100)}
+                        guidanceContext={gc("costAdmin", "Admin & General")}
+                      />
                       <EditableValue
                         value={(draft.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN) * 100}
                         onChange={(val) => onChange("costRateAdmin", val / 100)}
@@ -163,10 +172,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">Property Ops<InfoTooltip text="USALI Property Operations & Maintenance (POM) Department — fixed cost covering engineering, repairs, grounds maintenance, and facilities. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 3–6% of total revenue (USALI 12th Ed.)." /></Label>
-                        <ResearchBadge entry={researchValues.costPropertyOps} onClick={() => researchValues.costPropertyOps && onChange("costRatePropertyOps", researchValues.costPropertyOps.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>Property Ops <InfoTooltip text="USALI Property Operations & Maintenance (POM) Department — fixed cost covering engineering, repairs, grounds maintenance, and facilities. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 3–6% of total revenue (USALI 12th Ed.)." /></>}
+                        badgeProps={{ entry: researchValues.costPropertyOps }}
+                        onApplyValue={() => researchValues.costPropertyOps && onChange("costRatePropertyOps", researchValues.costPropertyOps.mid / 100)}
+                        guidanceContext={gc("costPropertyOps", "Property Ops")}
+                      />
                       <EditableValue
                         value={(draft.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS) * 100}
                         onChange={(val) => onChange("costRatePropertyOps", val / 100)}
@@ -186,10 +197,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">Utilities<InfoTooltip text="USALI Utilities — covers electricity, gas, water, sewer, and waste. Split between a variable portion (scales with occupancy) and a fixed portion (base load, escalates with inflation). Industry benchmark: 4–7% of total revenue (USALI 12th Ed.). The variable/fixed split defaults to 60/40 and is set in Company Assumptions." /></Label>
-                        <ResearchBadge entry={researchValues.costUtilities} onClick={() => researchValues.costUtilities && onChange("costRateUtilities", researchValues.costUtilities.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>Utilities <InfoTooltip text="USALI Utilities — covers electricity, gas, water, sewer, and waste. Split between a variable portion (scales with occupancy) and a fixed portion (base load, escalates with inflation). Industry benchmark: 4–7% of total revenue (USALI 12th Ed.). The variable/fixed split defaults to 60/40 and is set in Company Assumptions." /></>}
+                        badgeProps={{ entry: researchValues.costUtilities }}
+                        onApplyValue={() => researchValues.costUtilities && onChange("costRateUtilities", researchValues.costUtilities.mid / 100)}
+                        guidanceContext={gc("costUtilities", "Utilities")}
+                      />
                       <EditableValue
                         value={(draft.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES) * 100}
                         onChange={(val) => onChange("costRateUtilities", val / 100)}
@@ -228,10 +241,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">FF&E Reserve<InfoTooltip text="USALI FF&E Reserve — variable set-aside for future replacement of furniture, fixtures, and equipment. Scales with total revenue. Industry benchmark: 3–5% of total revenue per USALI 12th Ed. and lender covenant requirements. Deducted from NOI to arrive at ANOI." /><GaapBadge rule="USALI Standard: FF&E reserve is deducted from NOI (Net Operating Income) to arrive at ANOI (Adjusted Net Operating Income). Actual FF&E replacements are capitalized and depreciated over 5–7 years (IRS Class Life), not expensed. The reserve funds future CapEx." /></Label>
-                        <ResearchBadge entry={researchValues.costFFE} onClick={() => researchValues.costFFE && onChange("costRateFFE", researchValues.costFFE.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>FF&E Reserve <InfoTooltip text="USALI FF&E Reserve — variable set-aside for future replacement of furniture, fixtures, and equipment. Scales with total revenue. Industry benchmark: 3–5% of total revenue per USALI 12th Ed. and lender covenant requirements. Deducted from NOI to arrive at ANOI." /> <GaapBadge rule="USALI Standard: FF&E reserve is deducted from NOI (Net Operating Income) to arrive at ANOI (Adjusted Net Operating Income). Actual FF&E replacements are capitalized and depreciated over 5–7 years (IRS Class Life), not expensed. The reserve funds future CapEx." /></>}
+                        badgeProps={{ entry: researchValues.costFFE }}
+                        onApplyValue={() => researchValues.costFFE && onChange("costRateFFE", researchValues.costFFE.mid / 100)}
+                        guidanceContext={gc("costFFE", "FF&E Reserve")}
+                      />
                       <EditableValue
                         value={(draft.costRateFFE ?? DEFAULT_COST_RATE_FFE) * 100}
                         onChange={(val) => onChange("costRateFFE", val / 100)}
@@ -251,10 +266,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">Other<InfoTooltip text="USALI Other Expenses — fixed cost for miscellaneous operating expenses not categorized elsewhere (e.g., laundry, parking operations, telecommunications). Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 3–6% of total revenue." /></Label>
-                        <ResearchBadge entry={researchValues.costOther} onClick={() => researchValues.costOther && onChange("costRateOther", researchValues.costOther.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>Other <InfoTooltip text="USALI Other Expenses — fixed cost for miscellaneous operating expenses not categorized elsewhere (e.g., laundry, parking operations, telecommunications). Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 3–6% of total revenue." /></>}
+                        badgeProps={{ entry: researchValues.costOther }}
+                        onApplyValue={() => researchValues.costOther && onChange("costRateOther", researchValues.costOther.mid / 100)}
+                        guidanceContext={gc("costOther", "Other Costs")}
+                      />
                       <EditableValue
                         value={(draft.costRateOther ?? DEFAULT_COST_RATE_OTHER) * 100}
                         onChange={(val) => onChange("costRateOther", val / 100)}
@@ -274,10 +291,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">Marketing<InfoTooltip text="USALI Sales & Marketing Department — variable cost covering property-level advertising, OTA commissions, loyalty programs, and local promotions. Scales with total revenue. Industry benchmark: 1–4% of total revenue for boutique hotels; can be higher for resort/destination properties (USALI 12th Ed.)." /></Label>
-                        <ResearchBadge entry={researchValues.costMarketing} onClick={() => researchValues.costMarketing && onChange("costRateMarketing", researchValues.costMarketing.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>Marketing <InfoTooltip text="USALI Sales & Marketing Department — variable cost covering property-level advertising, OTA commissions, loyalty programs, and local promotions. Scales with total revenue. Industry benchmark: 1–4% of total revenue for boutique hotels; can be higher for resort/destination properties (USALI 12th Ed.)." /></>}
+                        badgeProps={{ entry: researchValues.costMarketing }}
+                        onApplyValue={() => researchValues.costMarketing && onChange("costRateMarketing", researchValues.costMarketing.mid / 100)}
+                        guidanceContext={gc("costMarketing", "Marketing")}
+                      />
                       <EditableValue
                         value={(draft.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING) * 100}
                         onChange={(val) => onChange("costRateMarketing", val / 100)}
@@ -297,10 +316,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">IT<InfoTooltip text="USALI Information Technology — fixed cost covering property-level IT needs including WiFi, in-room tech, PMS hardware, and basic support. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 0.3–1.0% of total revenue (USALI 12th Ed. / HFTP Technology Survey)." /></Label>
-                        <ResearchBadge entry={researchValues.costIT} onClick={() => researchValues.costIT && onChange("costRateIT", researchValues.costIT.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>IT <InfoTooltip text="USALI Information Technology — fixed cost covering property-level IT needs including WiFi, in-room tech, PMS hardware, and basic support. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 0.3–1.0% of total revenue (USALI 12th Ed. / HFTP Technology Survey)." /></>}
+                        badgeProps={{ entry: researchValues.costIT }}
+                        onApplyValue={() => researchValues.costIT && onChange("costRateIT", researchValues.costIT.mid / 100)}
+                        guidanceContext={gc("costIT", "IT")}
+                      />
                       <EditableValue
                         value={(draft.costRateIT ?? DEFAULT_COST_RATE_IT) * 100}
                         onChange={(val) => onChange("costRateIT", val / 100)}
@@ -327,10 +348,12 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">Property Taxes<InfoTooltip text="USALI Fixed Charges — based on total property value (Purchase Price + Building Improvements), not revenue. Covers real estate taxes and assessments. Escalates annually with inflation. Industry benchmark: 1.5–4% of assessed property value; fully deductible per IRC §164." /><GaapBadge rule="IRC §164: Property taxes are fully deductible as an operating expense for income tax purposes. Based on assessed value, not market value. Reassessment may occur upon sale or significant improvement." /></Label>
-                        <ResearchBadge entry={researchValues.costPropertyTaxes} onClick={() => researchValues.costPropertyTaxes && onChange("costRateTaxes", researchValues.costPropertyTaxes.mid / 100)} />
-                      </div>
+                      <ResearchContextFieldLabel
+                        label={<>Property Taxes <InfoTooltip text="USALI Fixed Charges — based on total property value (Purchase Price + Building Improvements), not revenue. Covers real estate taxes and assessments. Escalates annually with inflation. Industry benchmark: 1.5–4% of assessed property value; fully deductible per IRC §164." /> <GaapBadge rule="IRC §164: Property taxes are fully deductible as an operating expense for income tax purposes. Based on assessed value, not market value. Reassessment may occur upon sale or significant improvement." /></>}
+                        badgeProps={{ entry: researchValues.costPropertyTaxes }}
+                        onApplyValue={() => researchValues.costPropertyTaxes && onChange("costRateTaxes", researchValues.costPropertyTaxes.mid / 100)}
+                        guidanceContext={gc("costPropertyTaxes", "Property Taxes")}
+                      />
                       <EditableValue
                         value={(draft.costRateTaxes ?? DEFAULT_COST_RATE_TAXES) * 100}
                         onChange={(val) => onChange("costRateTaxes", val / 100)}

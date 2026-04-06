@@ -19,11 +19,13 @@
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { ResearchBadge } from "@/components/ui/research-badge";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import EditableValue from "./EditableValue";
 import type { VariableCostsSectionProps } from "./types";
 
 export default function VariableCostsSection({ formData, onChange, global, researchValues }: VariableCostsSectionProps) {
+  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
+
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
     <div className="relative">
@@ -34,11 +36,12 @@ export default function VariableCostsSection({ formData, onChange, global, resea
         </h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Travel Cost per Client
-              <InfoTooltip text="Annual budget for site visits, client meetings, and property inspections per managed property. Includes flights, hotel stays, and ground transportation. Industry benchmark: $8K–$18K per managed property per year (AHLA Lodging Survey)." formula="Monthly Travel = Cost × Active Properties ÷ 12" />
-              <ResearchBadge value={researchValues.travelPerClient?.display} onClick={() => researchValues.travelPerClient && onChange("travelCostPerClient", researchValues.travelPerClient.mid)} sourceType="industry" sourceName="AHLA Lodging Survey" data-testid="badge-travel-per-client" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Travel Cost per Client <InfoTooltip text="Annual budget for site visits, client meetings, and property inspections per managed property. Includes flights, hotel stays, and ground transportation. Industry benchmark: $8K–$18K per managed property per year (AHLA Lodging Survey)." formula="Monthly Travel = Cost × Active Properties ÷ 12" /></>}
+              badgeProps={{ value: researchValues.travelPerClient?.display, sourceType: "industry", sourceName: "AHLA Lodging Survey", "data-testid": "badge-travel-per-client" }}
+              onApplyValue={() => researchValues.travelPerClient && onChange("travelCostPerClient", researchValues.travelPerClient.mid)}
+              guidanceContext={gc("travelPerClient", "Travel Cost per Client")}
+            />
             <EditableValue
               value={formData.travelCostPerClient ?? global.travelCostPerClient}
               onChange={(v) => onChange("travelCostPerClient", v)}
@@ -59,11 +62,12 @@ export default function VariableCostsSection({ formData, onChange, global, resea
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              IT/Licensing per Client
-              <InfoTooltip text="Annual software and technology licensing cost per property — includes PMS (property management system), revenue management tools, channel manager, and accounting integrations. Industry benchmark: $2K–$5K per property per year (HFTP Technology Survey)." formula="Monthly IT = Cost × Active Properties ÷ 12" />
-              <ResearchBadge value={researchValues.itLicensePerClient?.display} onClick={() => researchValues.itLicensePerClient && onChange("itLicensePerClient", researchValues.itLicensePerClient.mid)} sourceType="industry" sourceName="HFTP Technology Survey" data-testid="badge-it-license" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>IT/Licensing per Client <InfoTooltip text="Annual software and technology licensing cost per property — includes PMS (property management system), revenue management tools, channel manager, and accounting integrations. Industry benchmark: $2K–$5K per property per year (HFTP Technology Survey)." formula="Monthly IT = Cost × Active Properties ÷ 12" /></>}
+              badgeProps={{ value: researchValues.itLicensePerClient?.display, sourceType: "industry", sourceName: "HFTP Technology Survey", "data-testid": "badge-it-license" }}
+              onApplyValue={() => researchValues.itLicensePerClient && onChange("itLicensePerClient", researchValues.itLicensePerClient.mid)}
+              guidanceContext={gc("itLicensePerClient", "IT/Licensing per Client")}
+            />
             <EditableValue
               value={formData.itLicensePerClient ?? global.itLicensePerClient}
               onChange={(v) => onChange("itLicensePerClient", v)}
@@ -84,11 +88,12 @@ export default function VariableCostsSection({ formData, onChange, global, resea
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Marketing
-              <InfoTooltip text="Corporate marketing spend as a percentage of total management fee revenue (base + incentive fees). Covers brand website, advertising, industry events, and business development. Industry benchmark: 3–7% of fee revenue for hotel management companies (AHLA industry benchmarks)." formula="Monthly Marketing = Total Fee Revenue × Rate ÷ 12" />
-              <ResearchBadge value={researchValues.marketingRate?.display} onClick={() => researchValues.marketingRate && onChange("marketingRate", researchValues.marketingRate.mid / 100)} sourceType="industry" sourceName="AHLA industry benchmarks" data-testid="badge-marketing-rate" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Marketing <InfoTooltip text="Corporate marketing spend as a percentage of total management fee revenue (base + incentive fees). Covers brand website, advertising, industry events, and business development. Industry benchmark: 3–7% of fee revenue for hotel management companies (AHLA industry benchmarks)." formula="Monthly Marketing = Total Fee Revenue × Rate ÷ 12" /></>}
+              badgeProps={{ value: researchValues.marketingRate?.display, sourceType: "industry", sourceName: "AHLA industry benchmarks", "data-testid": "badge-marketing-rate" }}
+              onApplyValue={() => researchValues.marketingRate && onChange("marketingRate", researchValues.marketingRate.mid / 100)}
+              guidanceContext={gc("marketingRate", "Marketing")}
+            />
             <EditableValue
               value={formData.marketingRate ?? global.marketingRate}
               onChange={(v) => onChange("marketingRate", v)}
@@ -109,11 +114,12 @@ export default function VariableCostsSection({ formData, onChange, global, resea
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Misc Operations
-              <InfoTooltip text="General operating costs not covered elsewhere — office supplies, postage, bank fees, and incidentals. Expressed as a percentage of total management fee revenue. Industry benchmark: 2–4% of fee revenue for hotel management companies." formula="Monthly Misc = Total Fee Revenue × Rate ÷ 12" />
-              <ResearchBadge value={researchValues.miscOpsRate?.display} onClick={() => researchValues.miscOpsRate && onChange("miscOpsRate", researchValues.miscOpsRate.mid / 100)} sourceType="industry" sourceName="AHLA industry benchmarks" data-testid="badge-misc-ops" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Misc Operations <InfoTooltip text="General operating costs not covered elsewhere — office supplies, postage, bank fees, and incidentals. Expressed as a percentage of total management fee revenue. Industry benchmark: 2–4% of fee revenue for hotel management companies." formula="Monthly Misc = Total Fee Revenue × Rate ÷ 12" /></>}
+              badgeProps={{ value: researchValues.miscOpsRate?.display, sourceType: "industry", sourceName: "AHLA industry benchmarks", "data-testid": "badge-misc-ops" }}
+              onApplyValue={() => researchValues.miscOpsRate && onChange("miscOpsRate", researchValues.miscOpsRate.mid / 100)}
+              guidanceContext={gc("miscOpsRate", "Misc Operations")}
+            />
             <EditableValue
               value={formData.miscOpsRate ?? global.miscOpsRate}
               onChange={(v) => onChange("miscOpsRate", v)}

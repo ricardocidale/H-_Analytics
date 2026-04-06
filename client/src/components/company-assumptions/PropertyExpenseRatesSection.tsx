@@ -16,10 +16,9 @@
  * type and market, giving users a sense of what's "normal" before they
  * customize individual properties.
  */
-import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { ResearchBadge } from "@/components/ui/research-badge";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import {
   DEFAULT_EVENT_EXPENSE_RATE,
   DEFAULT_OTHER_EXPENSE_RATE,
@@ -29,6 +28,8 @@ import EditableValue from "./EditableValue";
 import type { PropertyExpenseRatesSectionProps } from "./types";
 
 export default function PropertyExpenseRatesSection({ formData, onChange, global, researchValues }: PropertyExpenseRatesSectionProps) {
+  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
+
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
       <div className="relative">
@@ -40,11 +41,12 @@ export default function PropertyExpenseRatesSection({ formData, onChange, global
         
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Event Expense Rate
-              <InfoTooltip text="As a percentage of event revenue. Operating costs for events (labor, setup, coordination)." />
-              <ResearchBadge value={researchValues.eventExpense?.display} onClick={() => researchValues.eventExpense && onChange("eventExpenseRate", researchValues.eventExpense.mid / 100)} sourceType="industry" sourceName="USALI benchmarks" data-testid="badge-event-expense" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Event Expense Rate <InfoTooltip text="As a percentage of event revenue. Operating costs for events (labor, setup, coordination)." /></>}
+              badgeProps={{ value: researchValues.eventExpense?.display, sourceType: "industry", sourceName: "USALI benchmarks", "data-testid": "badge-event-expense" }}
+              onApplyValue={() => researchValues.eventExpense && onChange("eventExpenseRate", researchValues.eventExpense.mid / 100)}
+              guidanceContext={gc("eventExpense", "Event Expense Rate")}
+            />
             <EditableValue
               value={formData.eventExpenseRate ?? global.eventExpenseRate ?? DEFAULT_EVENT_EXPENSE_RATE}
               onChange={(v) => onChange("eventExpenseRate", v)}
@@ -65,11 +67,12 @@ export default function PropertyExpenseRatesSection({ formData, onChange, global
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Other Revenue Expense Rate
-              <InfoTooltip text="As a percentage of other revenue. Operating costs for ancillary departments (spa, parking, retail) as a percentage of that department's revenue." />
-              <ResearchBadge value={researchValues.otherExpenseRate?.display} onClick={() => researchValues.otherExpenseRate && onChange("otherExpenseRate", researchValues.otherExpenseRate.mid / 100)} sourceType="industry" sourceName="USALI benchmarks" data-testid="badge-other-expense" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Other Revenue Expense Rate <InfoTooltip text="As a percentage of other revenue. Operating costs for ancillary departments (spa, parking, retail) as a percentage of that department's revenue." /></>}
+              badgeProps={{ value: researchValues.otherExpenseRate?.display, sourceType: "industry", sourceName: "USALI benchmarks", "data-testid": "badge-other-expense" }}
+              onApplyValue={() => researchValues.otherExpenseRate && onChange("otherExpenseRate", researchValues.otherExpenseRate.mid / 100)}
+              guidanceContext={gc("otherExpenseRate", "Other Revenue Expense Rate")}
+            />
             <EditableValue
               value={formData.otherExpenseRate ?? global.otherExpenseRate ?? DEFAULT_OTHER_EXPENSE_RATE}
               onChange={(v) => onChange("otherExpenseRate", v)}
@@ -90,11 +93,12 @@ export default function PropertyExpenseRatesSection({ formData, onChange, global
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Utilities Variable Split (% Variable vs Fixed)
-              <InfoTooltip text="How much of the utilities expense rate scales with current property revenue (variable) vs stays anchored to Year 1 base revenue (fixed). Example: 60% means 60% of utilities cost varies with occupancy, 40% is fixed overhead." />
-              <ResearchBadge value={researchValues.utilitiesVariableSplit?.display} onClick={() => researchValues.utilitiesVariableSplit && onChange("utilitiesVariableSplit", researchValues.utilitiesVariableSplit.mid / 100)} sourceType="industry" sourceName="USALI benchmarks" data-testid="badge-utilities-split" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Utilities Variable Split (% Variable vs Fixed) <InfoTooltip text="How much of the utilities expense rate scales with current property revenue (variable) vs stays anchored to Year 1 base revenue (fixed). Example: 60% means 60% of utilities cost varies with occupancy, 40% is fixed overhead." /></>}
+              badgeProps={{ value: researchValues.utilitiesVariableSplit?.display, sourceType: "industry", sourceName: "USALI benchmarks", "data-testid": "badge-utilities-split" }}
+              onApplyValue={() => researchValues.utilitiesVariableSplit && onChange("utilitiesVariableSplit", researchValues.utilitiesVariableSplit.mid / 100)}
+              guidanceContext={gc("utilitiesVariableSplit", "Utilities Variable Split")}
+            />
             <EditableValue
               value={formData.utilitiesVariableSplit ?? global.utilitiesVariableSplit ?? DEFAULT_UTILITIES_VARIABLE_SPLIT}
               onChange={(v) => onChange("utilitiesVariableSplit", v)}

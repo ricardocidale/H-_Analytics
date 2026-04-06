@@ -18,11 +18,13 @@
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { ResearchBadge } from "@/components/ui/research-badge";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import EditableValue from "./EditableValue";
 import type { FixedOverheadSectionProps } from "./types";
 
 export default function FixedOverheadSection({ formData, onChange, global, modelStartYear, researchValues }: FixedOverheadSectionProps) {
+  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
+
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
     <div className="relative">
@@ -57,11 +59,12 @@ export default function FixedOverheadSection({ formData, onChange, global, model
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Office Lease
-              <InfoTooltip text="Annual cost for the management company's corporate office — rent, utilities, and common area charges. This is the Year 1 value; it escalates annually at the rate above. Typical range for early-stage hotel management companies: $24K–$48K/year (HFTP/AICPA benchmarks)." />
-              <ResearchBadge value={researchValues.officeLease?.display} onClick={() => researchValues.officeLease && onChange("officeLeaseStart", researchValues.officeLease.mid)} sourceType="industry" sourceName="HFTP/AICPA benchmarks" data-testid="badge-office-lease" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Office Lease <InfoTooltip text="Annual cost for the management company's corporate office — rent, utilities, and common area charges. This is the Year 1 value; it escalates annually at the rate above. Typical range for early-stage hotel management companies: $24K–$48K/year (HFTP/AICPA benchmarks)." /></>}
+              badgeProps={{ value: researchValues.officeLease?.display, sourceType: "industry", sourceName: "HFTP/AICPA benchmarks", "data-testid": "badge-office-lease" }}
+              onApplyValue={() => researchValues.officeLease && onChange("officeLeaseStart", researchValues.officeLease.mid)}
+              guidanceContext={gc("officeLease", "Office Lease")}
+            />
             <EditableValue
               value={formData.officeLeaseStart ?? global.officeLeaseStart}
               onChange={(v) => onChange("officeLeaseStart", v)}
@@ -82,11 +85,12 @@ export default function FixedOverheadSection({ formData, onChange, global, model
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Professional Services
-              <InfoTooltip text="Annual budget for external legal counsel, CPA/audit fees, and specialized consulting. Year 1 value, escalates annually. Typical range for early-stage hotel management companies: $18K–$36K/year (AICPA practice benchmarks)." />
-              <ResearchBadge value={researchValues.professionalServices?.display} onClick={() => researchValues.professionalServices && onChange("professionalServicesStart", researchValues.professionalServices.mid)} sourceType="industry" sourceName="AICPA practice benchmarks" data-testid="badge-professional-services" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Professional Services <InfoTooltip text="Annual budget for external legal counsel, CPA/audit fees, and specialized consulting. Year 1 value, escalates annually. Typical range for early-stage hotel management companies: $18K–$36K/year (AICPA practice benchmarks)." /></>}
+              badgeProps={{ value: researchValues.professionalServices?.display, sourceType: "industry", sourceName: "AICPA practice benchmarks", "data-testid": "badge-professional-services" }}
+              onApplyValue={() => researchValues.professionalServices && onChange("professionalServicesStart", researchValues.professionalServices.mid)}
+              guidanceContext={gc("professionalServices", "Professional Services")}
+            />
             <EditableValue
               value={formData.professionalServicesStart ?? global.professionalServicesStart}
               onChange={(v) => onChange("professionalServicesStart", v)}
@@ -107,11 +111,12 @@ export default function FixedOverheadSection({ formData, onChange, global, model
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Tech Infrastructure
-              <InfoTooltip text="Company-level technology costs — cloud hosting, corporate software subscriptions, cybersecurity, and IT support. Separate from per-property IT licenses (configured in Variable Costs). Typical range: $12K–$24K/year for early-stage hotel management companies (HFTP Technology Survey)." />
-              <ResearchBadge value={researchValues.techInfra?.display} onClick={() => researchValues.techInfra && onChange("techInfraStart", researchValues.techInfra.mid)} sourceType="industry" sourceName="HFTP Technology Survey" data-testid="badge-tech-infra" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Tech Infrastructure <InfoTooltip text="Company-level technology costs — cloud hosting, corporate software subscriptions, cybersecurity, and IT support. Separate from per-property IT licenses (configured in Variable Costs). Typical range: $12K–$24K/year for early-stage hotel management companies (HFTP Technology Survey)." /></>}
+              badgeProps={{ value: researchValues.techInfra?.display, sourceType: "industry", sourceName: "HFTP Technology Survey", "data-testid": "badge-tech-infra" }}
+              onApplyValue={() => researchValues.techInfra && onChange("techInfraStart", researchValues.techInfra.mid)}
+              guidanceContext={gc("techInfra", "Tech Infrastructure")}
+            />
             <EditableValue
               value={formData.techInfraStart ?? global.techInfraStart}
               onChange={(v) => onChange("techInfraStart", v)}

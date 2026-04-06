@@ -6,16 +6,17 @@
  *   • Exit cap rate — cap rate used for property exit valuation
  *   • Sales commission rate — broker commission on property sales
  */
-import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { ResearchBadge } from "@/components/ui/research-badge";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE } from "@/lib/constants";
 import { DEFAULT_COST_OF_EQUITY } from "@shared/constants";
 import EditableValue from "./EditableValue";
 import type { ExitAssumptionsSectionProps } from "./types";
 
 export default function ExitAssumptionsSection({ formData, onChange, global, researchValues }: ExitAssumptionsSectionProps) {
+  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
+
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
       <div className="relative">
@@ -27,11 +28,12 @@ export default function ExitAssumptionsSection({ formData, onChange, global, res
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Cost of Equity
-              <InfoTooltip text="The equity investor's required annual return, used as the Re component in WACC and DCF calculations. For private hospitality investments, this is the hurdle rate — the minimum return an investor needs to justify the risk. Typical range: 15–25%." formula="WACC = (E/V × Re) + (D/V × Rd × (1−T))" manualSection="investment-returns" />
-              <ResearchBadge value={researchValues.costOfEquity?.display} onClick={() => researchValues.costOfEquity && onChange("costOfEquity", researchValues.costOfEquity.mid / 100)} sourceType="industry" sourceName="Private RE equity benchmarks" data-testid="badge-cost-of-equity" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Cost of Equity <InfoTooltip text="The equity investor's required annual return, used as the Re component in WACC and DCF calculations. For private hospitality investments, this is the hurdle rate — the minimum return an investor needs to justify the risk. Typical range: 15–25%." formula="WACC = (E/V × Re) + (D/V × Rd × (1−T))" manualSection="investment-returns" /></>}
+              badgeProps={{ value: researchValues.costOfEquity?.display, sourceType: "industry", sourceName: "Private RE equity benchmarks", "data-testid": "badge-cost-of-equity" }}
+              onApplyValue={() => researchValues.costOfEquity && onChange("costOfEquity", researchValues.costOfEquity.mid / 100)}
+              guidanceContext={gc("costOfEquity", "Cost of Equity")}
+            />
             <EditableValue
               value={formData.costOfEquity ?? global.costOfEquity ?? DEFAULT_COST_OF_EQUITY}
               onChange={(v) => onChange("costOfEquity", v)}
@@ -52,11 +54,12 @@ export default function ExitAssumptionsSection({ formData, onChange, global, res
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Default Exit Cap Rate
-              <InfoTooltip text="Capitalization rate used for property valuation at exit. Higher cap rate = lower valuation." manualSection="investment-returns" />
-              <ResearchBadge value={researchValues.exitCapRate?.display} onClick={() => researchValues.exitCapRate && onChange("exitCapRate", researchValues.exitCapRate.mid / 100)} sourceType="industry" sourceName="CBRE Cap Rate Survey" data-testid="badge-exit-cap" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Default Exit Cap Rate <InfoTooltip text="Capitalization rate used for property valuation at exit. Higher cap rate = lower valuation." manualSection="investment-returns" /></>}
+              badgeProps={{ value: researchValues.exitCapRate?.display, sourceType: "industry", sourceName: "CBRE Cap Rate Survey", "data-testid": "badge-exit-cap" }}
+              onApplyValue={() => researchValues.exitCapRate && onChange("exitCapRate", researchValues.exitCapRate.mid / 100)}
+              guidanceContext={gc("exitCapRate", "Default Exit Cap Rate")}
+            />
             <EditableValue
               value={formData.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE}
               onChange={(v) => onChange("exitCapRate", v)}
@@ -77,11 +80,12 @@ export default function ExitAssumptionsSection({ formData, onChange, global, res
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Default Sales Commission Rate
-              <InfoTooltip text="As a percentage of gross sale price. Default broker commission for new properties. Each property can override this with its own disposition commission on its assumptions page." />
-              <ResearchBadge value={researchValues.salesCommission?.display} onClick={() => researchValues.salesCommission && onChange("salesCommissionRate", researchValues.salesCommission.mid / 100)} sourceType="industry" sourceName="NAR transaction data" data-testid="badge-sales-commission" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Default Sales Commission Rate <InfoTooltip text="As a percentage of gross sale price. Default broker commission for new properties. Each property can override this with its own disposition commission on its assumptions page." /></>}
+              badgeProps={{ value: researchValues.salesCommission?.display, sourceType: "industry", sourceName: "NAR transaction data", "data-testid": "badge-sales-commission" }}
+              onApplyValue={() => researchValues.salesCommission && onChange("salesCommissionRate", researchValues.salesCommission.mid / 100)}
+              guidanceContext={gc("salesCommission", "Sales Commission Rate")}
+            />
             <EditableValue
               value={formData.salesCommissionRate ?? global.salesCommissionRate ?? DEFAULT_COMMISSION_RATE}
               onChange={(v) => onChange("salesCommissionRate", v)}

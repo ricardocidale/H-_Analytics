@@ -22,11 +22,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { ResearchBadge } from "@/components/ui/research-badge";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import EditableValue from "./EditableValue";
 import type { CompensationSectionProps } from "./types";
 
 export default function CompensationSection({ formData, onChange, global, researchValues }: CompensationSectionProps) {
+  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
+
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
     <div className="relative">
@@ -40,11 +42,12 @@ export default function CompensationSection({ formData, onChange, global, resear
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Staff Salary
-              <InfoTooltip text="Average annual salary per full-time staff member. The total staff cost depends on how many FTEs your portfolio size requires (see tiers below). As you add properties, you may cross into a higher staffing tier. AHLA Lodging Industry Survey: $65K–$90K average salary for hospitality management roles." formula="Staff Cost = FTE Count × Salary ÷ 12" />
-              <ResearchBadge value={researchValues.staffSalary?.display} onClick={() => researchValues.staffSalary && onChange("staffSalary", researchValues.staffSalary.mid)} sourceType="industry" sourceName="AHLA Lodging Industry Survey" data-testid="badge-staff-salary" />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Staff Salary <InfoTooltip text="Average annual salary per full-time staff member. The total staff cost depends on how many FTEs your portfolio size requires (see tiers below). As you add properties, you may cross into a higher staffing tier. AHLA Lodging Industry Survey: $65K–$90K average salary for hospitality management roles." formula="Staff Cost = FTE Count × Salary ÷ 12" /></>}
+              badgeProps={{ value: researchValues.staffSalary?.display, sourceType: "industry", sourceName: "AHLA Lodging Industry Survey", "data-testid": "badge-staff-salary" }}
+              onApplyValue={() => researchValues.staffSalary && onChange("staffSalary", researchValues.staffSalary.mid)}
+              guidanceContext={gc("staffSalary", "Staff Salary")}
+            />
             <EditableValue
               value={formData.staffSalary ?? global.staffSalary}
               onChange={(v) => onChange("staffSalary", v)}
