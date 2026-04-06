@@ -21,10 +21,12 @@ import { db } from "../db";
 import { eq, and, desc, isNull } from "drizzle-orm";
 
 export class IntelligenceV2Storage {
-  async getAssumptionGuidance(scenarioId: number, entityType: string, entityId: number): Promise<AssumptionGuidance[]> {
+  async getAssumptionGuidance(scenarioId: number | null, entityType: string, entityId: number): Promise<AssumptionGuidance[]> {
     return db.select().from(assumptionGuidance)
       .where(and(
-        eq(assumptionGuidance.scenarioId, scenarioId),
+        scenarioId != null
+          ? eq(assumptionGuidance.scenarioId, scenarioId)
+          : isNull(assumptionGuidance.scenarioId),
         eq(assumptionGuidance.entityType, entityType),
         eq(assumptionGuidance.entityId, entityId),
       ))
@@ -111,6 +113,13 @@ export class IntelligenceV2Storage {
     return db.select().from(relaxationTraces)
       .where(eq(relaxationTraces.researchRunId, researchRunId))
       .orderBy(relaxationTraces.level);
+  }
+
+  async getAssumptionGuidanceById(id: number): Promise<AssumptionGuidance | undefined> {
+    const [row] = await db.select().from(assumptionGuidance)
+      .where(eq(assumptionGuidance.id, id))
+      .limit(1);
+    return row;
   }
 
   async createGuidanceDecision(data: InsertGuidanceDecision): Promise<GuidanceDecision> {

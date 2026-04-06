@@ -143,11 +143,18 @@ Major architectural evolution of the research system. Full spec: `.claude/skills
 - **Admin Console**: Coverage Analytics, QA Sandbox, Pipeline Policies, Model Routing per tier, Rebecca admin (6 sub-tabs), unified API Dashboard, Source Registry
 - **Navigation Redesign**: App sidebar: Home/Intelligence/Settings. Admin: Business/Intelligence/AI/Design/System
 
-### New Database Tables (PLANNED)
-assumption_guidance, research_runs, benchmark_snapshots, relaxation_traces, guidance_decisions, rebecca_conversations, rebecca_messages, rebecca_emails, rebecca_feedback, coverage_snapshots, source_registry, integration_key_rotations, pipeline_policies
+### New Database Tables (IMPLEMENTED)
+assumption_guidance, research_runs, benchmark_snapshots, relaxation_traces, guidance_decisions, rebecca_conversations, rebecca_messages, rebecca_emails, rebecca_feedback, coverage_snapshots, source_registry, integration_key_rotations, pipeline_policies — all in `shared/schema/intelligence-v2.ts`, migration `0009_intelligence_v2.sql`
 
-### New Property Fields (PLANNED)
-starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|resort|boutique_hotel|...)
+### New Property Fields (IMPLEMENTED)
+starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|resort|boutique_hotel|business_hotel|wellness_resort|conference_hotel|extended_stay) — with Zod validation
+
+### Context Pack System (IMPLEMENTED)
+- `server/ai/context-pack/` — PropertyContextPack (10 categories), CompanyContextPack (8 categories), luxury classifier
+- `server/ai/prompt/` — Auto-prompt assembly engine (Tier 1 full entity, Tier 2 single assumption)
+- `server/ai/guidance/` — Guidance extractor with Zod validation, key normalization, dual extraction paths
+- `server/routes/guidance.ts` — Scenario-scoped guidance API (GET/POST with access control)
+- `server/ai/ambient/` — Tier 0 benchmark scheduler (21 hospitality benchmarks, FRED macro rates, 6h refresh)
 
 ## H+ Analytics Logo Variants
 

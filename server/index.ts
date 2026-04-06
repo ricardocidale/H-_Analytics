@@ -208,6 +208,13 @@ app.use((req, res, next) => {
         serverLog(`Migrations/seeds failed after retries: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3: Ambient benchmark scheduler ────────
+      import("./ai/ambient/scheduler").then(({ startAmbientScheduler }) => {
+        startAmbientScheduler();
+      }).catch(err => {
+        serverLog(`[ambient-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       // Refresh stale market rates periodically
       setInterval(async () => {
         try {

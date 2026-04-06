@@ -273,6 +273,7 @@ export class DatabaseStorage implements IStorage {
 
   // Intelligence V2
   getAssumptionGuidance = this.intelligenceV2.getAssumptionGuidance.bind(this.intelligenceV2);
+  getAssumptionGuidanceById = this.intelligenceV2.getAssumptionGuidanceById.bind(this.intelligenceV2);
   upsertAssumptionGuidance = this.intelligenceV2.upsertAssumptionGuidance.bind(this.intelligenceV2);
   createResearchRun = this.intelligenceV2.createResearchRun.bind(this.intelligenceV2);
   updateResearchRun = this.intelligenceV2.updateResearchRun.bind(this.intelligenceV2);
