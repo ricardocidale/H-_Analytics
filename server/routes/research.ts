@@ -17,7 +17,10 @@ import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceA
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
 import { buildPropertyContextPack } from "../ai/context-pack/property-pack";
+import { buildCompanyContextPack } from "../ai/context-pack/company-pack";
+import { assembleResearchPrompt } from "../ai/prompt/assemble-research-prompt";
 import { extractGuidance } from "../ai/guidance/extractor";
+import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -203,12 +206,40 @@ export function register(app: Express) {
 
       const startTime = Date.now();
 
+      let v2Prompt: string | undefined;
+      try {
+        if (type === "property" && propertyId) {
+          const property = await storage.getProperty(propertyId);
+          if (property) {
+            const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
+            const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
+            v2Prompt = assembleResearchPrompt(contextPack, {
+              tier: 1,
+              entityType: "property",
+            });
+          }
+        } else if (type === "company" && ga) {
+          const properties = await storage.getAllProperties(getAuthUser(req).id);
+          const companyPack = buildCompanyContextPack(
+            ga,
+            properties,
+            [],
+          );
+          v2Prompt = assembleResearchPrompt(companyPack, {
+            tier: 1,
+            entityType: "company",
+          });
+        }
+      } catch (err) {
+        logger.warn(`RI v2 prompt assembly failed, falling back to v1: ${err instanceof Error ? err.message : err}`, "research");
+      }
+
       // N+1 orchestrator for property research when Anthropic (Opus) is available.
       // Company/global research continues on the single-model path.
       const useOrchestrator = type === "property" && isOrchestratorAvailable();
       const stream = useOrchestrator
         ? orchestrateResearch(params)
-        : generateResearchWithToolsStream(params, researchClient, model, secondaryModel);
+        : generateResearchWithToolsStream(params, researchClient, model, secondaryModel, v2Prompt);
 
       // ── Stream loop — accumulate content, forward events to client ──
       let fullContent = "";
@@ -217,7 +248,7 @@ export function register(app: Express) {
         // Orchestrator hard failure — fall back to single-model
         if (chunk.type === "error" && chunk.data.startsWith("ORCHESTRATOR_BOTH_FAILED")) {
           res.write(`data: ${JSON.stringify({ type: "phase", data: "Falling back to single-model research…" })}\n\n`);
-          const fallback = generateResearchWithToolsStream(params, researchClient, model, secondaryModel);
+          const fallback = generateResearchWithToolsStream(params, researchClient, model, secondaryModel, v2Prompt);
           for await (const fb of fallback) {
             res.write(`data: ${JSON.stringify(fb)}\n\n`);
             if (fb.type === "content") fullContent += fb.data;
@@ -315,6 +346,56 @@ export function register(app: Express) {
             }
           } catch (err) {
             logger.warn(`RI v2 guidance extraction failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
+          }
+        }
+
+        if (type === "company" && !parsed.rawResponse && ga) {
+          try {
+            const guidanceResult = extractGuidance(parsed as Record<string, unknown>, 1, "company");
+            if (guidanceResult.records.length > 0) {
+              const companyId = (getAuthUser(req) as { companyId?: number }).companyId ?? 0;
+              const runRecord = await storage.createResearchRun({
+                userId: getAuthUser(req).id,
+                entityType: "company",
+                entityId: companyId,
+                scenarioId: null,
+                tier: 1,
+                status: "completed",
+                completedAt: new Date(),
+                durationMs: Date.now() - startTime,
+                modelPrimary: model,
+                modelSecondary: secondaryModel ?? null,
+                tokensUsed: Math.round((JSON.stringify(params).length + fullContent.length) / 4),
+                estimatedCost: null,
+                error: null,
+                metadata: { guidanceRecords: guidanceResult.records.length, errors: guidanceResult.errors },
+              });
+
+              for (const rec of guidanceResult.records) {
+                await storage.upsertAssumptionGuidance({
+                  researchRunId: runRecord.id,
+                  entityType: "company",
+                  entityId: companyId,
+                  scenarioId: null,
+                  assumptionKey: rec.assumptionKey,
+                  valueLow: rec.valueLow ?? null,
+                  valueMid: rec.valueMid ?? null,
+                  valueHigh: rec.valueHigh ?? null,
+                  confidence: rec.confidence,
+                  sourceName: rec.sourceName ?? null,
+                  sourceDate: rec.sourceDate ?? null,
+                  reasoning: rec.reasoning ?? null,
+                  comparableSet: (rec.comparableSet as Record<string, unknown>) ?? null,
+                });
+              }
+
+              logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for company ${companyId} (run ${runRecord.id})`, "research");
+            }
+            if (guidanceResult.errors.length > 0) {
+              logger.warn(`RI v2 company extraction errors: ${guidanceResult.errors.join("; ")}`, "research");
+            }
+          } catch (err) {
+            logger.warn(`RI v2 company guidance extraction failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
           }
         }
 

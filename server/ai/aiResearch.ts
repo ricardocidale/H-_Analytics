@@ -12,7 +12,8 @@ export async function* generateResearchWithToolsStream(
   params: Parameters<typeof buildUserPrompt>[0],
   client: ResearchClient,
   model: string,
-  secondaryModel?: string
+  secondaryModel?: string,
+  v2Prompt?: string,
 ): AsyncGenerator<{ type: "content" | "done" | "error"; data: string }> {
   const systemPrompt = loadSkill(params.type);
   const allTools = loadToolDefinitions();
@@ -21,7 +22,7 @@ export async function* generateResearchWithToolsStream(
     ? allTools.filter((t) => enabledTools.includes(t.name))
     : allTools;
   const tools = filteredTools.length > 0 ? filteredTools : allTools;
-  const userPrompt = buildUserPrompt(params);
+  const userPrompt = v2Prompt ?? buildUserPrompt(params);
 
   let messages: unknown[] = [
     { role: "user", content: userPrompt }
