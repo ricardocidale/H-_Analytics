@@ -160,6 +160,39 @@ function computeEvidenceScore(
   return 0.45 * countScore + 0.35 * avgSimilarity + 0.20 * Math.max(0, constraintStrength);
 }
 
+function filterCompAgainstCriteria(
+  comp: ComparableProperty,
+  criteria: ComparableCriteria,
+  pack: PropertyContextPack,
+): boolean {
+  if (criteria.typeMode === "exact" || criteria.typeMode === "family") {
+    if (!criteria.allowedTypes.includes(comp.hospitalityType)) return false;
+  }
+
+  if (criteria.geoMode === "city" && criteria.geoValue) {
+    if ((comp.city ?? "").toLowerCase() !== criteria.geoValue.toLowerCase()) return false;
+  } else if (criteria.geoMode === "msa" && criteria.geoValue) {
+    const compLoc = `${comp.city ?? ""}, ${comp.state ?? ""}`.trim().toLowerCase();
+    if (!compLoc.includes(criteria.geoValue.toLowerCase().split(",")[0] ?? "")) return false;
+  } else if (criteria.geoMode === "state" && criteria.geoValue) {
+    if ((comp.state ?? "").toLowerCase() !== criteria.geoValue.toLowerCase()) return false;
+  } else if (criteria.geoMode === "country" && criteria.geoValue) {
+    if ((comp.country ?? "").toLowerCase() !== criteria.geoValue.toLowerCase()) return false;
+  }
+
+  if (criteria.sizeRange) {
+    if (comp.roomCount < criteria.sizeRange[0] || comp.roomCount > criteria.sizeRange[1]) return false;
+  }
+
+  if (criteria.adrRange) {
+    if (comp.adr < criteria.adrRange[0] || comp.adr > criteria.adrRange[1]) return false;
+  }
+
+  if (String(comp.id) === String(pack.identity.id)) return false;
+
+  return true;
+}
+
 async function queryPinecone(pack: PropertyContextPack, criteria: ComparableCriteria): Promise<ComparableProperty[]> {
   if (!isPineconeAvailable()) return [];
   try {
@@ -172,7 +205,8 @@ async function queryPinecone(pack: PropertyContextPack, criteria: ComparableCrit
     ].filter(Boolean).join(" ");
 
     const matches = await queryChunks("research-history", queryText, 15);
-    return matches.map(pineconeMatchToComparable);
+    const comps = matches.map(pineconeMatchToComparable);
+    return comps.filter(c => filterCompAgainstCriteria(c, criteria, pack));
   } catch (err) {
     logger.warn(`Pinecone comparable query failed at L${criteria.level}: ${err instanceof Error ? err.message : err}`, "relaxation");
     return [];
