@@ -11,7 +11,8 @@ import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@shared/schema";
 import { buildRebeccaContext } from "../ai/rebecca-context-builder";
-import { retrieveDocumentContext } from "../ai/pinecone-service";
+import { retrieveDocumentContext, multiNamespaceQuery } from "../ai/pinecone-service";
+import { retrieveRelevantChunks } from "../ai/knowledge-base";
 
 /**
  * CONTRACT: This endpoint provides AI chat about portfolio properties.
@@ -197,6 +198,54 @@ export function register(app: Express) {
         logger.warn(`Document context retrieval failed (non-blocking): ${(err as Error).message}`, "chat");
       }
 
+      let ragContextBlock = "";
+      try {
+        const [kbChunks, multiResults] = await Promise.all([
+          retrieveRelevantChunks(message, 4),
+          multiNamespaceQuery(message, ["research-history", "assumption-guidance"], 4),
+        ]);
+
+        const ragParts: string[] = [];
+        const MAX_RAG_CHARS = 3000;
+        let ragChars = 0;
+
+        for (const chunk of kbChunks) {
+          if (chunk.score < 0.3) continue;
+          const entry = `[${chunk.source}] ${chunk.title} (${chunk.score.toFixed(2)}):\n${chunk.content.slice(0, 600)}`;
+          if (ragChars + entry.length > MAX_RAG_CHARS) break;
+          ragParts.push(entry);
+          ragChars += entry.length;
+        }
+
+        for (const match of multiResults) {
+          if (match.score < 0.3) continue;
+          let body: string;
+          let title: string;
+          if (match.namespace === "research-history") {
+            body = String(match.metadata.summary ?? "");
+            title = `${match.metadata.location ?? ""} ${match.metadata.propertyType ?? ""} research`.trim();
+          } else {
+            const low = match.metadata.valueLow ?? "";
+            const mid = match.metadata.valueMid ?? "";
+            const high = match.metadata.valueHigh ?? "";
+            const reasoning = String(match.metadata.reasoning ?? "");
+            body = reasoning ? `Range: ${low}–${mid}–${high}. ${reasoning}` : `Range: ${low}–${mid}–${high}`;
+            title = `${match.metadata.assumptionKey ?? match.id} guidance (${match.metadata.location ?? ""})`;
+          }
+          if (!body) continue;
+          const entry = `[${match.namespace}] ${title} (${match.score.toFixed(2)}):\n${body.slice(0, 600)}`;
+          if (ragChars + entry.length > MAX_RAG_CHARS) break;
+          ragParts.push(entry);
+          ragChars += entry.length;
+        }
+
+        if (ragParts.length > 0) {
+          ragContextBlock = `\n\nKNOWLEDGE BASE & RESEARCH CONTEXT:\n${ragParts.join("\n\n")}`;
+        }
+      } catch (err) {
+        logger.warn(`RAG context retrieval failed (non-blocking): ${(err as Error).message}`, "chat");
+      }
+
       let rebeccaFieldBlock = "";
       let autoGreeting: string | null = null;
       if (fieldCtx) {
@@ -282,7 +331,7 @@ export function register(app: Express) {
       });
 
       const systemPrompt = (global as any)?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-      const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}${rebeccaFieldBlock}${documentContextBlock}`;
+      const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}${rebeccaFieldBlock}${ragContextBlock}${documentContextBlock}`;
       const engine = ga?.rebeccaChatEngine ?? "gemini";
 
       let responseText: string;

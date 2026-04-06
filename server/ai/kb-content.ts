@@ -526,5 +526,88 @@ All research reports are saved and available to Rebecca for context in future co
     category: "guide",
   });
 
+  chunks.push({
+    title: "GAAP Revenue Recognition for Hotels",
+    content: `Revenue recognition for hospitality properties follows ASC 606 principles:
+
+Room Revenue: Recognized nightly as the performance obligation is satisfied over the stay period. Advance deposits are recorded as deferred revenue (contract liability) until check-in. Cancellation fees are recognized when the cancellation occurs.
+
+Food & Beverage Revenue: Recognized at the point of sale. Banquet/event F&B with advance bookings follows the same deferred revenue pattern as rooms until the event date.
+
+Other Revenue: Parking, spa, retail, and ancillary services are recognized at point of delivery. Management fees are recognized monthly as earned per the management agreement.
+
+Key principle: Revenue is recorded gross (total charge to guest) when the hotel is the principal. Revenue is recorded net (commission only) when acting as agent (e.g., third-party tours sold on behalf of operators).`,
+    source: "GAAP Reference",
+    category: "methodology",
+  });
+
+  chunks.push({
+    title: "GAAP Expense Classification — USALI Standards",
+    content: `The Uniform System of Accounts for the Lodging Industry (USALI) provides standardized departmental expense classification:
+
+Departmental Expenses (Direct): Rooms Department — housekeeping labor, linens, amenities, reservation costs. F&B Department — kitchen labor, food cost, beverage cost, supplies. Other Operated Departments — spa, parking, retail direct costs.
+
+Undistributed Operating Expenses: Administrative & General — management salaries, legal, accounting, IT. Sales & Marketing — advertising, commissions, loyalty programs. Property Operations & Maintenance — repairs, grounds, utilities. Energy — electricity, gas, water (sometimes combined with POM).
+
+Fixed Charges: Property taxes, insurance, ground rent/lease. Management fees (base fee as % of total revenue, incentive fee as % of GOP). FF&E Reserve (typically 3-5% of total revenue).
+
+Below the Line: Interest expense, depreciation, amortization, income tax. Capital expenditures (CapEx) are not expensed but capitalized and depreciated.`,
+    source: "GAAP Reference",
+    category: "methodology",
+  });
+
+  chunks.push({
+    title: "Investment Analysis Metrics — IRR, Equity Multiple, Cap Rates",
+    content: `Key investment metrics used in property analysis:
+
+IRR (Internal Rate of Return): The discount rate that makes NPV of all cash flows equal zero. Includes: initial equity investment (negative), annual FCFE distributions, net sale proceeds at exit. Target IRR varies by risk profile: core (8-12%), value-add (12-18%), opportunistic (18%+).
+
+Equity Multiple: Total distributions divided by total equity invested. A 2.0x multiple means investors received double their investment. Formula: (Sum of all distributions + net sale proceeds) / total equity invested.
+
+Cap Rate (Capitalization Rate): NOI / Property Value. Used for valuation and exit pricing. Exit Cap Rate is typically 25-75 bps higher than entry cap rate to reflect aging. Terminal Value = Final Year NOI / Exit Cap Rate.
+
+Cash-on-Cash Return: Annual pre-tax cash flow / total equity invested. Measures current yield without considering appreciation or exit.
+
+Debt Yield: NOI / Total Loan Amount. Lender metric; minimum typically 8-10% for commercial real estate.
+
+DSCR (Debt Service Coverage Ratio): NOI / Annual Debt Service. Must exceed 1.25x for most commercial loans. Below 1.0x indicates the property cannot cover its debt obligations from operations.`,
+    source: "GAAP Reference",
+    category: "methodology",
+  });
+
+  chunks.push({
+    title: "ICP Definitions — Ideal Customer Profile for Hotel Assets",
+    content: `The platform uses Ideal Customer Profile (ICP) scoring to evaluate property acquisition targets:
+
+Location Score: Proximity to demand generators (airports, convention centers, business districts, tourist attractions). Transit accessibility. Market supply/demand dynamics. RevPAR growth trajectory of the submarket.
+
+Physical Asset Score: Age and condition of building. Recent renovation history. Room count and configuration. F&B and meeting space capacity. Brand affiliation or independent status.
+
+Financial Score: Historical NOI margins. Revenue per available room (RevPAR) relative to comp set. Trailing 12-month performance trends. Debt assumptions and refinancing potential.
+
+Market Position Score: Competitive set analysis (STR data). Market penetration indices (MPI, ARI, RGI). Seasonality patterns. Group vs transient mix. Rate positioning (luxury, upscale, upper-midscale, midscale).
+
+Composite ICP Score: Weighted combination of all four dimensions. Properties scoring above threshold are flagged as acquisition targets. Scoring weights are configurable per fund strategy.`,
+    source: "Platform Guide",
+    category: "guide",
+  });
+
+  chunks.push({
+    title: "Benchmark Data Sources and Market Rates",
+    content: `The platform maintains benchmark data from multiple sources:
+
+STR (Smith Travel Research): Industry standard for hotel performance benchmarking. Provides: ADR (Average Daily Rate), Occupancy %, RevPAR (Revenue Per Available Room). Segmented by chain scale, location type, and market.
+
+Cap Rate Benchmarks: Sourced from CBRE, JLL, and HVS market reports. Vary by market tier, property type, and risk profile. Urban full-service: 5.5-7.0%. Suburban select-service: 7.0-8.5%. Resort: 6.0-8.0%.
+
+Debt Market Rates: SOFR-based floating rates for commercial real estate. Fixed rates from CMBS, life companies, and agency lenders. Typical LTV: 55-70% for stabilized assets, 50-60% for transitional.
+
+Operating Expense Benchmarks: USALI-based per-available-room (PAR) metrics. Labor cost as % of revenue: 25-35% for full-service, 20-28% for select-service. F&B cost of goods: 28-35% of F&B revenue. Energy costs: $2,000-4,000 PAR annually depending on climate.
+
+All benchmark values are stored in benchmark_snapshots and refreshed periodically. Rebecca can cite these when discussing property assumptions.`,
+    source: "Platform Guide",
+    category: "guide",
+  });
+
   return chunks;
 }

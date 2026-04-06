@@ -120,6 +120,7 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 - **Rebecca Context Injection (T20)** (Task #287) — `server/ai/rebecca-context-builder.ts` assembles rich entity + field context server-side from IDs (never trusts client text). 40+ field label mappings with format awareness. `/api/chat` extended with optional `fieldContext` (entityType, entityId, fieldKey, scenarioId). IDOR prevention: validates property ownership via user portfolio, company ownership via `authUser.companyId`. Returns `autoGreeting` for field-contextual panel opens. `ResearchBadgePopover` passes `fieldKey + scenarioId` through panel manager.
 - **Rebecca Super Conversations (T21)** (Task #287) — POST `/api/chat` now creates/resumes conversations via `getOrCreateConversation`, persists user + assistant messages to `rebecca_messages`, loads DB history (most recent N, capped at MAX_HISTORY_LENGTH). Returns `conversationId` + `suggestedChips` (contextual follow-up chips that evolve by round count and field context). GET `/api/chat/conversations/:id/messages` loads full conversation with ownership check. Context consistency enforced server-side — `conversationId` rejected if context mismatch. `newConversation` flag creates fresh thread. Client tracks `conversationId` in panel state, resets on context switch, loads prior conversation on re-open.
 - **Rebecca Email + Feedback (T22)** (Task #287) — `server/routes/rebecca.ts`: POST `/api/rebecca/email` derives summary server-side from DB messages, sends via Resend, persists to `rebecca_emails`; POST `/api/rebecca/feedback` stores category + notes + context. Admin-only GET endpoints for conversations and feedback lists. `RebeccaEmailPreview.tsx` modal for recipient input + preview. `RebeccaFeedbackForm.tsx` modal for issue reporting. Panel header buttons: Mail (email summary) + Flag (report issue), visible when conversation active.
+- **Rebecca RAG Expansion (T23)** (Task #287) — `multiNamespaceQuery()` in pinecone-service.ts for parallel cross-namespace vector search. KB expanded with 5 new chunks (GAAP revenue/expenses, investment metrics, ICP definitions, benchmark sources). Chat route now does parallel KB + multi-namespace retrieval (research-history, assumption-guidance) with namespace-specific metadata mapping and 3000-char budget cap. RAG context injected as attributed source block in system prompt.
 
 ## Recent Changes (April 4, 2026)
 
@@ -256,7 +257,10 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 - **T22 ✅** `client/src/components/rebecca/RebeccaEmailPreview.tsx` — Email preview modal: recipient input, auto-generated subject preview, conversation summary preview, send button.
 - **T22 ✅** `client/src/components/rebecca/RebeccaFeedbackForm.tsx` — Feedback modal: category dropdown (incorrect/unhelpful/missing_data/other), notes textarea, auto-includes entity context.
 - **T22 ✅** `client/src/components/rebecca/RebeccaPanel.tsx` — Added Mail + Flag action buttons in header (visible when conversation has messages + conversationId). Opens email/feedback modals.
-- T23-T24: NOT STARTED (RAG expansion, admin tabs)
+- **T23 ✅** `server/ai/pinecone-service.ts` — Added `multiNamespaceQuery(query, namespaces[], topK)` for parallel cross-namespace vector search. Returns `MultiNamespaceMatch[]` with namespace attribution, sorted by score.
+- **T23 ✅** `server/ai/kb-content.ts` — Added 5 new KB chunks: GAAP revenue recognition (ASC 606), USALI expense classification, investment metrics (IRR/equity multiple/cap rates/DSCR), ICP scoring definitions, benchmark data sources.
+- **T23 ✅** `server/routes/chat.ts` — RAG context injection: parallel KB + multi-namespace retrieval (research-history, assumption-guidance), namespace-specific metadata mapping, 3000-char budget cap with source attribution. Injected as `KNOWLEDGE BASE & RESEARCH CONTEXT` block in system prompt.
+- T24: NOT STARTED (admin tabs)
 
 ---
 

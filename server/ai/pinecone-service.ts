@@ -155,6 +155,41 @@ export async function queryChunks(
   }));
 }
 
+export interface MultiNamespaceMatch extends QueryMatch {
+  namespace: PineconeNamespace;
+}
+
+export async function multiNamespaceQuery(
+  query: string,
+  namespaces: PineconeNamespace[],
+  topK = 5,
+): Promise<MultiNamespaceMatch[]> {
+  if (!isPineconeAvailable() || namespaces.length === 0) return [];
+  await ensureIndex();
+
+  const vector = await embed(query);
+  const index = getPC().index(INDEX_NAME);
+
+  const results = await Promise.all(
+    namespaces.map(async (ns) => {
+      try {
+        const res = await index.namespace(ns).query({ vector, topK, includeMetadata: true });
+        return (res.matches ?? []).map(m => ({
+          id: m.id,
+          score: m.score ?? 0,
+          metadata: (m.metadata ?? {}) as Record<string, string | number | boolean>,
+          namespace: ns,
+        }));
+      } catch (err) {
+        logger.warn(`Pinecone query failed for namespace ${ns}: ${err instanceof Error ? err.message : err}`, "pinecone");
+        return [];
+      }
+    }),
+  );
+
+  return results.flat().sort((a, b) => b.score - a.score).slice(0, topK * 2);
+}
+
 /**
  * Returns the vector count for a namespace — used to skip re-indexing.
  */
