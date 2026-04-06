@@ -16,6 +16,8 @@ import { DEFAULT_RESEARCH_EVENT_CONFIG, DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS, 
 import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceAggregator";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
+import { buildPropertyContextPack } from "../ai/context-pack/property-pack";
+import { extractGuidance } from "../ai/guidance/extractor";
 
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -261,6 +263,58 @@ export function register(app: Express) {
             } else {
               logger.warn(`Skipping researchValues storage for property ${propertyId} — property not found`, "research");
             }
+          }
+        }
+
+        if (type === "property" && propertyId && !parsed.rawResponse) {
+          try {
+            const guidanceResult = extractGuidance(parsed as Record<string, unknown>, 1, "property");
+            if (guidanceResult.records.length > 0) {
+              const property = await storage.getProperty(propertyId);
+              if (property) {
+                const runRecord = await storage.createResearchRun({
+                  userId: getAuthUser(req).id,
+                  entityType: "property",
+                  entityId: propertyId,
+                  scenarioId: null,
+                  tier: 1,
+                  status: "completed",
+                  completedAt: new Date(),
+                  durationMs: Date.now() - startTime,
+                  modelPrimary: model,
+                  modelSecondary: secondaryModel ?? null,
+                  tokensUsed: Math.round((JSON.stringify(params).length + fullContent.length) / 4),
+                  estimatedCost: null,
+                  error: null,
+                  metadata: { guidanceRecords: guidanceResult.records.length, errors: guidanceResult.errors },
+                });
+
+                for (const rec of guidanceResult.records) {
+                  await storage.upsertAssumptionGuidance({
+                    researchRunId: runRecord.id,
+                    entityType: "property",
+                    entityId: propertyId,
+                    scenarioId: null,
+                    assumptionKey: rec.assumptionKey,
+                    valueLow: rec.valueLow ?? null,
+                    valueMid: rec.valueMid ?? null,
+                    valueHigh: rec.valueHigh ?? null,
+                    confidence: rec.confidence,
+                    sourceName: rec.sourceName ?? null,
+                    sourceDate: rec.sourceDate ?? null,
+                    reasoning: rec.reasoning ?? null,
+                    comparableSet: (rec.comparableSet as Record<string, unknown>) ?? null,
+                  });
+                }
+
+                logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for property ${propertyId} (run ${runRecord.id})`, "research");
+              }
+            }
+            if (guidanceResult.errors.length > 0) {
+              logger.warn(`RI v2 extraction errors: ${guidanceResult.errors.join("; ")}`, "research");
+            }
+          } catch (err) {
+            logger.warn(`RI v2 guidance extraction failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
           }
         }
 

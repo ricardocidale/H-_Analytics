@@ -9,7 +9,7 @@ export const guidanceRecordSchema = z.object({
   sourceName: z.string().nullable().optional(),
   sourceDate: z.string().nullable().optional(),
   reasoning: z.string().nullable().optional(),
-  comparableSet: z.any().nullable().optional(),
+  comparableSet: z.unknown().nullable().optional(),
   display: z.string().nullable().optional(),
 });
 

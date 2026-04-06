@@ -158,9 +158,21 @@ function buildCurrentAssumptionsSummary(p: Property): string {
   return sections.length > 0 ? sections.join(". ") : "No assumptions configured";
 }
 
+function buildGlobalContext(ga: GlobalAssumptions | null): string {
+  if (!ga) return "";
+  const parts: string[] = [];
+  if (ga.projectionYears != null) parts.push(`${ga.projectionYears}-year projection horizon`);
+  if (ga.companyTaxRate != null) parts.push(`company tax rate ${pct(ga.companyTaxRate)}`);
+  if (ga.costOfEquity != null) parts.push(`cost of equity ${pct(ga.costOfEquity)}`);
+  if (ga.inflationRate != null) parts.push(`inflation ${pct(ga.inflationRate)}`);
+  if (ga.propertyLabel) parts.push(`property label: ${ga.propertyLabel}`);
+  if (ga.assetDescription) parts.push(`portfolio: "${ga.assetDescription}"`);
+  return parts.length > 0 ? `Portfolio context: ${parts.join(", ")}` : "";
+}
+
 export function buildPropertyContextPack(
   property: Property,
-  _globalAssumptions: GlobalAssumptions | null,
+  globalAssumptions: GlobalAssumptions | null,
   icpConfig: IcpConfig | null,
 ): PropertyContextPack {
   const p = property;
@@ -186,6 +198,7 @@ export function buildPropertyContextPack(
   const capitalNarrative = buildCapitalNarrative(p);
   const icpAlignment = computeIcpAlignment(p, icpConfig);
   const currentSummary = buildCurrentAssumptionsSummary(p);
+  const globalContext = buildGlobalContext(globalAssumptions);
 
   const comparable = buildComparableDescription({
     starRating: p.starRating,
@@ -200,7 +213,7 @@ export function buildPropertyContextPack(
     country: p.country,
   });
 
-  const fullNarrative = [
+  const narrativeParts = [
     `**${p.name}** is a ${compositeLabel} at ${locationDisplay}.`,
     amenityNarrative,
     `Revenue profile: ${revenueNarrative}.`,
@@ -209,7 +222,9 @@ export function buildPropertyContextPack(
     icpAlignment.narrative,
     `Current assumptions: ${currentSummary}.`,
     `Comparable benchmark set: ${comparable}.`,
-  ].join("\n");
+  ];
+  if (globalContext) narrativeParts.push(globalContext);
+  const fullNarrative = narrativeParts.join("\n");
 
   return {
     identity: {
