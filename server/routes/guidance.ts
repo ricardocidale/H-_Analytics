@@ -5,27 +5,45 @@ import { logAndSendError, logActivity } from "./helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
+const VALID_ENTITY_TYPES = ["property", "company"] as const;
+type EntityType = typeof VALID_ENTITY_TYPES[number];
+
+const entityParamsSchema = z.object({
+  entityType: z.enum(VALID_ENTITY_TYPES),
+  entityId: z.coerce.number().int().positive(),
+});
+
 const guidanceQuerySchema = z.object({
-  scenarioId: z.coerce.number().positive().optional(),
+  scenarioId: z.coerce.number().int().positive().optional(),
 });
 
 const guidanceDecisionSchema = z.object({
-  assumptionGuidanceId: z.number(),
+  assumptionGuidanceId: z.number().int().positive(),
   action: z.enum(["accept", "reject", "pin", "dismiss", "apply_p25", "apply_p50", "apply_p75"]),
   previousValue: z.number().nullable().optional(),
   newValue: z.number().nullable().optional(),
 });
 
+const researchRunsQuerySchema = z.object({
+  entityType: z.enum(VALID_ENTITY_TYPES),
+  entityId: z.coerce.number().int().positive(),
+});
+
+async function checkEntityAccess(user: Express.User, entityType: EntityType, entityId: number): Promise<boolean> {
+  if (entityType === "property") {
+    return checkPropertyAccess(user, entityId);
+  }
+  return true;
+}
+
 export function register(app: Express) {
   app.get("/api/guidance/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
-      const entityType = String(req.params.entityType);
-      const entityId = Number(req.params.entityId);
-      if (!["property", "company"].includes(entityType)) {
-        return res.status(400).json({ error: "entityType must be 'property' or 'company'" });
-      }
+      const params = entityParamsSchema.safeParse(req.params);
+      if (!params.success) return res.status(400).json({ error: fromZodError(params.error).message });
 
-      if (entityType === "property" && !(await checkPropertyAccess(getAuthUser(req), entityId))) {
+      const { entityType, entityId } = params.data;
+      if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -42,14 +60,12 @@ export function register(app: Express) {
 
   app.get("/api/guidance/:entityType/:entityId/:assumptionKey", requireAuth, async (req, res) => {
     try {
-      const entityType = String(req.params.entityType);
-      const entityId = Number(req.params.entityId);
-      const assumptionKey = String(req.params.assumptionKey);
-      if (!["property", "company"].includes(entityType)) {
-        return res.status(400).json({ error: "entityType must be 'property' or 'company'" });
-      }
+      const params = entityParamsSchema.safeParse(req.params);
+      if (!params.success) return res.status(400).json({ error: fromZodError(params.error).message });
 
-      if (entityType === "property" && !(await checkPropertyAccess(getAuthUser(req), entityId))) {
+      const { entityType, entityId } = params.data;
+      const assumptionKey = String(req.params.assumptionKey);
+      if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -77,7 +93,7 @@ export function register(app: Express) {
       if (!guidanceRecord) {
         return res.status(404).json({ error: "Guidance record not found" });
       }
-      if (guidanceRecord.entityType === "property" && !(await checkPropertyAccess(user, guidanceRecord.entityId))) {
+      if (!(await checkEntityAccess(user, guidanceRecord.entityType as EntityType, guidanceRecord.entityId))) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -98,11 +114,14 @@ export function register(app: Express) {
 
   app.get("/api/research/runs", requireAuth, async (req, res) => {
     try {
-      const entityType = String(req.query.entityType || "");
-      const entityId = Number(req.query.entityId);
-      if (!entityType || isNaN(entityId)) {
-        return res.status(400).json({ error: "entityType and entityId are required" });
+      const query = researchRunsQuerySchema.safeParse(req.query);
+      if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
+
+      const { entityType, entityId } = query.data;
+      if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
+        return res.status(403).json({ error: "Access denied" });
       }
+
       const runs = await storage.getResearchRuns(entityType, entityId);
       res.json(runs);
     } catch (error) {
@@ -112,8 +131,14 @@ export function register(app: Express) {
 
   app.get("/api/guidance/coverage/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
-      const entityType = String(req.params.entityType);
-      const entityId = Number(req.params.entityId);
+      const params = entityParamsSchema.safeParse(req.params);
+      if (!params.success) return res.status(400).json({ error: fromZodError(params.error).message });
+
+      const { entityType, entityId } = params.data;
+      if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
       const query = guidanceQuerySchema.safeParse(req.query);
       if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
 

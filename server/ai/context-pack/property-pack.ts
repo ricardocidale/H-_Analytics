@@ -1,4 +1,5 @@
-import type { Property } from "@shared/schema";
+import type { Property, GlobalAssumptions } from "@shared/schema";
+import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 import type { PropertyContextPack } from "./types";
 import { buildCompositeLabel, buildComparableDescription } from "./luxury-classifier";
 
@@ -98,7 +99,7 @@ function buildCapitalNarrative(p: Property): string {
   return parts.join("; ");
 }
 
-function computeIcpAlignment(p: Property, icpConfig: Record<string, any> | null): { matchScore: number; matchDetails: string[]; narrative: string } {
+function computeIcpAlignment(p: Property, icpConfig: IcpConfig | null): { matchScore: number; matchDetails: string[]; narrative: string } {
   if (!icpConfig || Object.keys(icpConfig).length === 0) {
     return { matchScore: 0, matchDetails: [], narrative: "No ICP configured" };
   }
@@ -107,6 +108,8 @@ function computeIcpAlignment(p: Property, icpConfig: Record<string, any> | null)
   const misses: string[] = [];
   let total = 0;
   let matched = 0;
+
+  const asNum = (v: unknown): number | undefined => typeof v === "number" ? v : undefined;
 
   const check = (label: string, value: number | null | undefined, min: number | undefined, max: number | undefined) => {
     if (min == null && max == null) return;
@@ -118,10 +121,10 @@ function computeIcpAlignment(p: Property, icpConfig: Record<string, any> | null)
     matches.push(`${label}: ✓`);
   };
 
-  check("Rooms", p.roomCount, icpConfig.roomsMin, icpConfig.roomsMax);
-  check("ADR", p.startAdr, icpConfig.adrMin, icpConfig.adrMax);
-  check("Occupancy", p.maxOccupancy != null ? p.maxOccupancy * 100 : null, icpConfig.occupancyMin, icpConfig.occupancyMax);
-  check("Purchase Price", p.purchasePrice, icpConfig.acquisitionMin, icpConfig.acquisitionMax);
+  check("Rooms", p.roomCount, asNum(icpConfig.roomsMin), asNum(icpConfig.roomsMax));
+  check("ADR", p.startAdr, asNum(icpConfig.adrMin), asNum(icpConfig.adrMax));
+  check("Occupancy", p.maxOccupancy != null ? p.maxOccupancy * 100 : null, asNum(icpConfig.occupancyMin), asNum(icpConfig.occupancyMax));
+  check("Purchase Price", p.purchasePrice, asNum(icpConfig.acquisitionMin), asNum(icpConfig.acquisitionMax));
 
   const score = total > 0 ? Math.round((matched / total) * 100) : 0;
   const narrative = total > 0
@@ -157,8 +160,8 @@ function buildCurrentAssumptionsSummary(p: Property): string {
 
 export function buildPropertyContextPack(
   property: Property,
-  globalAssumptions: Record<string, any> | null,
-  icpConfig: Record<string, any> | null,
+  _globalAssumptions: GlobalAssumptions | null,
+  icpConfig: IcpConfig | null,
 ): PropertyContextPack {
   const p = property;
   const amenities = detectAmenities(p);

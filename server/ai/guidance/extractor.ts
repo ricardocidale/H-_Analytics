@@ -22,7 +22,10 @@ const parseRange = (s: string | undefined): { low: number; high: number; mid: nu
   return null;
 };
 
-function extractRecordFromSection(key: string, section: any): GuidanceRecord | null {
+const str = (v: unknown): string | null => typeof v === "string" ? v : null;
+const num = (v: unknown): number | null => typeof v === "number" ? v : v != null ? Number(v) : null;
+
+function extractRecordFromSection(key: string, section: Record<string, unknown>): GuidanceRecord | null {
   if (!section || typeof section !== "object") return null;
 
   let valueLow: number | null = null;
@@ -31,26 +34,26 @@ function extractRecordFromSection(key: string, section: any): GuidanceRecord | n
   let display: string | null = null;
 
   if (section.valueLow != null && section.valueMid != null) {
-    valueLow = Number(section.valueLow);
-    valueMid = Number(section.valueMid);
-    valueHigh = section.valueHigh != null ? Number(section.valueHigh) : valueMid;
-    display = section.display || `${valueLow}–${valueHigh}`;
+    valueLow = num(section.valueLow);
+    valueMid = num(section.valueMid);
+    valueHigh = section.valueHigh != null ? num(section.valueHigh) : valueMid;
+    display = str(section.display) ?? `${valueLow}–${valueHigh}`;
   } else if (section.recommendedRange) {
-    const range = parseRange(section.recommendedRange);
-    if (range) { valueLow = range.low; valueMid = range.mid; valueHigh = range.high; display = section.recommendedRange; }
+    const range = parseRange(str(section.recommendedRange) ?? undefined);
+    if (range) { valueLow = range.low; valueMid = range.mid; valueHigh = range.high; display = str(section.recommendedRange); }
   } else if (section.recommendedRate) {
-    const pct = parsePct(section.recommendedRate);
-    if (pct != null) { valueMid = pct; valueLow = pct; valueHigh = pct; display = section.recommendedRate; }
+    const p = parsePct(str(section.recommendedRate) ?? undefined);
+    if (p != null) { valueMid = p; valueLow = p; valueHigh = p; display = str(section.recommendedRate); }
   } else if (section.recommendedPercent) {
-    const pct = parsePct(section.recommendedPercent);
-    if (pct != null) { valueMid = pct; valueLow = pct; valueHigh = pct; display = section.recommendedPercent; }
+    const p = parsePct(str(section.recommendedPercent) ?? undefined);
+    if (p != null) { valueMid = p; valueLow = p; valueHigh = p; display = str(section.recommendedPercent); }
   } else if (section.mid != null) {
-    valueMid = Number(section.mid);
-    valueLow = section.low != null ? Number(section.low) : valueMid;
-    valueHigh = section.high != null ? Number(section.high) : valueMid;
-    display = section.display || `${valueLow}–${valueHigh}`;
+    valueMid = num(section.mid);
+    valueLow = section.low != null ? num(section.low) : valueMid;
+    valueHigh = section.high != null ? num(section.high) : valueMid;
+    display = str(section.display) ?? `${valueLow}–${valueHigh}`;
   } else if (section.value != null) {
-    valueMid = Number(section.value);
+    valueMid = num(section.value);
     valueLow = valueMid;
     valueHigh = valueMid;
     display = String(valueMid);
@@ -64,15 +67,15 @@ function extractRecordFromSection(key: string, section: any): GuidanceRecord | n
     valueMid,
     valueHigh,
     confidence: (section.confidence === "high" || section.confidence === "medium" || section.confidence === "low") ? section.confidence : "medium",
-    sourceName: section.sourceName || section.source || null,
-    sourceDate: section.sourceDate || null,
-    reasoning: section.reasoning || section.rationale || null,
-    comparableSet: section.comparableSet || section.comparables || null,
+    sourceName: str(section.sourceName) ?? str(section.source),
+    sourceDate: str(section.sourceDate),
+    reasoning: str(section.reasoning) ?? str(section.rationale),
+    comparableSet: section.comparableSet ?? section.comparables ?? null,
     display,
   };
 }
 
-function extractFromPropertyResearch(parsed: Record<string, any>): GuidanceRecord[] {
+function extractFromPropertyResearch(parsed: Record<string, unknown>): GuidanceRecord[] {
   const records: GuidanceRecord[] = [];
 
   const directMappings: Array<[string, string[]]> = [
@@ -95,35 +98,46 @@ function extractFromPropertyResearch(parsed: Record<string, any>): GuidanceRecor
     ["costMarketing", ["marketingCosts.marketingCostRate"]],
   ];
 
+  const dig = (obj: unknown, path: string): unknown => {
+    let cur: unknown = obj;
+    for (const part of path.split(".")) {
+      if (cur && typeof cur === "object" && !Array.isArray(cur)) cur = (cur as Record<string, unknown>)[part];
+      else return undefined;
+    }
+    return cur;
+  };
+
+  const asSection = (v: unknown): Record<string, unknown> | null =>
+    v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : null;
+
   for (const [key, paths] of directMappings) {
     for (const path of paths) {
-      const parts = path.split(".");
-      let val: any = parsed;
-      for (const part of parts) {
-        if (val && typeof val === "object") val = val[part];
-        else { val = undefined; break; }
-      }
+      const val = dig(parsed, path);
       if (val != null) {
-        const record = extractRecordFromSection(key, typeof val === "object" ? val : { value: val, display: String(val) });
+        const section = asSection(val) ?? { value: val, display: String(val) };
+        const record = extractRecordFromSection(key, section);
         if (record) { records.push(record); break; }
       }
     }
   }
 
-  const oc = parsed.operatingCostAnalysis;
+  const oc = asSection(parsed.operatingCostAnalysis);
   if (oc) {
-    const costMappings: Array<[string, any]> = [
-      ["costRooms", oc.roomRevenueBased?.housekeeping],
-      ["costFB", oc.roomRevenueBased?.fbCostOfSales],
-      ["costAdmin", oc.totalRevenueBased?.adminGeneral],
-      ["costPropertyOps", oc.totalRevenueBased?.propertyOps],
-      ["costUtilities", oc.totalRevenueBased?.utilities],
-      ["costFFE", oc.totalRevenueBased?.ffeReserve],
-      ["costMarketing", oc.totalRevenueBased?.marketing],
-      ["costIT", oc.totalRevenueBased?.it],
-      ["costOther", oc.totalRevenueBased?.other],
+    const rrb = asSection(oc.roomRevenueBased);
+    const trb = asSection(oc.totalRevenueBased);
+    const costMappings: Array<[string, unknown]> = [
+      ["costRooms", rrb?.housekeeping],
+      ["costFB", rrb?.fbCostOfSales],
+      ["costAdmin", trb?.adminGeneral],
+      ["costPropertyOps", trb?.propertyOps],
+      ["costUtilities", trb?.utilities],
+      ["costFFE", trb?.ffeReserve],
+      ["costMarketing", trb?.marketing],
+      ["costIT", trb?.it],
+      ["costOther", trb?.other],
     ];
-    for (const [key, section] of costMappings) {
+    for (const [key, raw] of costMappings) {
+      const section = asSection(raw);
       if (section) {
         const record = extractRecordFromSection(key, section);
         if (record && !records.some(r => r.assumptionKey === record.assumptionKey)) records.push(record);
@@ -131,15 +145,19 @@ function extractFromPropertyResearch(parsed: Record<string, any>): GuidanceRecor
     }
   }
 
-  const pvc = parsed.propertyValueCostAnalysis;
-  if (pvc?.propertyTaxes) {
-    const record = extractRecordFromSection("costTaxes", pvc.propertyTaxes);
-    if (record) records.push(record);
+  const pvc = asSection(parsed.propertyValueCostAnalysis);
+  if (pvc) {
+    const ptSection = asSection(pvc.propertyTaxes);
+    if (ptSection) {
+      const record = extractRecordFromSection("costTaxes", ptSection);
+      if (record) records.push(record);
+    }
   }
 
-  const msf = parsed.managementServiceFeeAnalysis?.serviceFeeCategories;
+  const msfParent = asSection(parsed.managementServiceFeeAnalysis);
+  const msf = msfParent ? asSection(msfParent.serviceFeeCategories) : null;
   if (msf) {
-    const svcMappings: Array<[string, any]> = [
+    const svcMappings: Array<[string, unknown]> = [
       ["svcFeeMarketing", msf.marketing],
       ["svcFeeTechRes", msf.technologyReservations],
       ["svcFeeAccounting", msf.accounting],
@@ -147,7 +165,8 @@ function extractFromPropertyResearch(parsed: Record<string, any>): GuidanceRecor
       ["svcFeeGeneralMgmt", msf.generalManagement],
       ["svcFeeProcurement", msf.procurement],
     ];
-    for (const [key, section] of svcMappings) {
+    for (const [key, raw] of svcMappings) {
+      const section = asSection(raw);
       if (section) {
         const record = extractRecordFromSection(key, section);
         if (record) records.push(record);
@@ -155,7 +174,7 @@ function extractFromPropertyResearch(parsed: Record<string, any>): GuidanceRecor
     }
   }
 
-  const incFee = parsed.managementServiceFeeAnalysis?.incentiveFee;
+  const incFee = msfParent ? asSection(msfParent.incentiveFee) : null;
   if (incFee) {
     const record = extractRecordFromSection("incentiveMgmtFee", incFee);
     if (record) records.push(record);
@@ -164,14 +183,14 @@ function extractFromPropertyResearch(parsed: Record<string, any>): GuidanceRecor
   return records;
 }
 
-function extractFromGenericKeys(parsed: Record<string, any>, validKeys: Set<string>): GuidanceRecord[] {
+function extractFromGenericKeys(parsed: Record<string, unknown>, validKeys: Set<string>): GuidanceRecord[] {
   const records: GuidanceRecord[] = [];
 
   for (const [key, value] of Object.entries(parsed)) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const normalized = normalizeAssumptionKey(key);
       if (validKeys.has(normalized)) {
-        const record = extractRecordFromSection(normalized, value);
+        const record = extractRecordFromSection(normalized, value as Record<string, unknown>);
         if (record) records.push(record);
       }
     }
@@ -181,7 +200,7 @@ function extractFromGenericKeys(parsed: Record<string, any>, validKeys: Set<stri
 }
 
 export function extractGuidance(
-  aiResponse: Record<string, any>,
+  aiResponse: Record<string, unknown>,
   tier: 1 | 2,
   entityType: "property" | "company",
 ): GuidanceExtractionResult {

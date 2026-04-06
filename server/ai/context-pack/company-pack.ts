@@ -1,4 +1,4 @@
-import type { Property } from "@shared/schema";
+import type { Property, GlobalAssumptions } from "@shared/schema";
 import type { CompanyContextPack } from "./types";
 
 function pct(v: number | null | undefined): string {
@@ -59,7 +59,7 @@ function buildServiceNarrative(templates: Array<{ name: string; rate: number; se
   return `${templates.length} service categories totaling ${pct(totalRate / 100)} of revenue. Services: ${templates.map(t => `${t.name} (${pct(t.rate / 100)}, ${t.serviceModel}, ${pct(t.markup / 100)} markup)`).join("; ")}`;
 }
 
-function buildFeeNarrative(ga: Record<string, any>): string {
+function buildFeeNarrative(ga: GlobalAssumptions): string {
   const parts: string[] = [];
   if (ga.baseManagementFee != null) parts.push(`base management fee ${pct(ga.baseManagementFee)}`);
   if (ga.incentiveManagementFee != null) parts.push(`incentive fee ${pct(ga.incentiveManagementFee)} of GOP`);
@@ -68,16 +68,17 @@ function buildFeeNarrative(ga: Record<string, any>): string {
   return parts.length > 0 ? parts.join("; ") : "No fee rates configured";
 }
 
-function buildStaffingNarrative(ga: Record<string, any>): string {
+function buildStaffingNarrative(ga: GlobalAssumptions): string {
   const parts: string[] = [];
-  if (ga.staffSalaryBase != null) parts.push(`base salary ${usd(ga.staffSalaryBase)}`);
+  if (ga.staffSalary != null) parts.push(`base salary ${usd(ga.staffSalary)}`);
 
   const tiers: string[] = [];
-  for (let i = 1; i <= 5; i++) {
-    const maxProps = ga[`staffTier${i}MaxProperties`];
-    const fte = ga[`staffTier${i}Fte`];
-    if (maxProps != null && fte != null) tiers.push(`Tier ${i}: ≤${maxProps} properties = ${fte} FTE`);
-  }
+  if (ga.staffTier1MaxProperties != null && ga.staffTier1Fte != null)
+    tiers.push(`Tier 1: ≤${ga.staffTier1MaxProperties} properties = ${ga.staffTier1Fte} FTE`);
+  if (ga.staffTier2MaxProperties != null && ga.staffTier2Fte != null)
+    tiers.push(`Tier 2: ≤${ga.staffTier2MaxProperties} properties = ${ga.staffTier2Fte} FTE`);
+  if (ga.staffTier3Fte != null)
+    tiers.push(`Tier 3: ${ga.staffTier3Fte} FTE`);
   if (tiers.length > 0) parts.push(`staffing tiers: ${tiers.join(", ")}`);
 
   const overheadParts: string[] = [];
@@ -95,23 +96,24 @@ function buildStaffingNarrative(ga: Record<string, any>): string {
   if (varParts.length > 0) parts.push(`variable costs: ${varParts.join(", ")}`);
 
   const partnerComp: string[] = [];
-  for (let y = 1; y <= 3; y++) {
-    const comp = ga[`partnerCompYear${y}`];
-    if (comp != null) partnerComp.push(`Y${y}: ${usd(comp)}`);
-  }
+  if (ga.partnerCompYear1 != null) partnerComp.push(`Y1: ${usd(ga.partnerCompYear1)}`);
+  if (ga.partnerCompYear2 != null) partnerComp.push(`Y2: ${usd(ga.partnerCompYear2)}`);
+  if (ga.partnerCompYear3 != null) partnerComp.push(`Y3: ${usd(ga.partnerCompYear3)}`);
   if (partnerComp.length > 0) parts.push(`partner compensation: ${partnerComp.join(", ")}`);
 
   return parts.length > 0 ? parts.join(". ") : "No staffing/overhead configured";
 }
 
-function buildIcpNarrative(ga: Record<string, any>): string {
+function buildIcpNarrative(ga: GlobalAssumptions): string {
   const icp = ga.icpConfig;
   if (!icp || typeof icp !== "object") return "No ICP configuration defined";
+
+  const asNum = (v: unknown): number | null => typeof v === "number" ? v : null;
 
   const parts: string[] = [];
   if (icp.roomsMin != null || icp.roomsMax != null) parts.push(`${icp.roomsMin ?? "?"}–${icp.roomsMax ?? "?"} rooms`);
   if (icp.adrMin != null || icp.adrMax != null) parts.push(`$${icp.adrMin ?? "?"}–$${icp.adrMax ?? "?"} ADR`);
-  if (icp.acquisitionMin != null || icp.acquisitionMax != null) parts.push(`${usd(icp.acquisitionMin)}–${usd(icp.acquisitionMax)} acquisition`);
+  if (icp.acquisitionMin != null || icp.acquisitionMax != null) parts.push(`${usd(asNum(icp.acquisitionMin))}–${usd(asNum(icp.acquisitionMax))} acquisition`);
 
   const amenities: string[] = [];
   for (const a of ["pool", "spa", "gym", "tennis", "yogaStudio", "sauna", "coldPlunge"]) {
@@ -125,7 +127,7 @@ function buildIcpNarrative(ga: Record<string, any>): string {
   return parts.length > 0 ? `ICP targeting: ${parts.join("; ")}` : "ICP configured but no specific criteria set";
 }
 
-function buildFinancialScaleNarrative(ga: Record<string, any>, properties: Property[]): string {
+function buildFinancialScaleNarrative(ga: GlobalAssumptions, properties: Property[]): string {
   const parts: string[] = [];
 
   if (ga.companyTaxRate != null) parts.push(`company tax rate ${pct(ga.companyTaxRate)}`);
@@ -139,7 +141,7 @@ function buildFinancialScaleNarrative(ga: Record<string, any>, properties: Prope
 }
 
 export function buildCompanyContextPack(
-  globalAssumptions: Record<string, any>,
+  globalAssumptions: GlobalAssumptions,
   properties: Property[],
   serviceTemplates: Array<{ name: string; defaultRate: number; serviceModel: string; serviceMarkup: number; isActive: boolean }>,
 ): CompanyContextPack {
