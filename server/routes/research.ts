@@ -220,15 +220,36 @@ export function register(app: Express) {
           }
         } else if (type === "company" && ga) {
           const properties = await storage.getAllProperties(getAuthUser(req).id);
+          const serviceTemplates = await storage.getAllServiceTemplates();
           const companyPack = buildCompanyContextPack(
             ga,
             properties,
-            [],
+            serviceTemplates.map(st => ({
+              name: st.name,
+              defaultRate: st.defaultRate ?? 0,
+              serviceModel: st.serviceModel ?? "percentage",
+              serviceMarkup: st.serviceMarkup ?? 0,
+              isActive: st.isActive !== false,
+            })),
           );
           v2Prompt = assembleResearchPrompt(companyPack, {
             tier: 1,
             entityType: "company",
           });
+        }
+
+        const benchmarks = await storage.getBenchmarkSnapshots();
+        if (benchmarks.length > 0) {
+          const ambientLines = benchmarks.map(b =>
+            `${b.snapshotKey} (${b.category}): ${b.value}${b.source ? ` [${b.source}]` : ""}${b.staleness === "stale" ? " [STALE]" : ""}`
+          );
+          const ambientData = ambientLines.join("\n");
+          if (v2Prompt) {
+            v2Prompt = v2Prompt.replace(
+              /## RESEARCH INSTRUCTIONS/,
+              `## VERIFIED MARKET DATA (use as ground truth)\n${ambientData}\n\n## RESEARCH INSTRUCTIONS`
+            );
+          }
         }
       } catch (err) {
         logger.warn(`RI v2 prompt assembly failed, falling back to v1: ${err instanceof Error ? err.message : err}`, "research");
@@ -349,11 +370,12 @@ export function register(app: Express) {
           }
         }
 
-        if (type === "company" && !parsed.rawResponse && ga) {
+        const authCompanyId = (getAuthUser(req) as { companyId?: number | null }).companyId;
+        if (type === "company" && !parsed.rawResponse && ga && authCompanyId) {
           try {
             const guidanceResult = extractGuidance(parsed as Record<string, unknown>, 1, "company");
             if (guidanceResult.records.length > 0) {
-              const companyId = (getAuthUser(req) as { companyId?: number }).companyId ?? 0;
+              const companyId = authCompanyId;
               const runRecord = await storage.createResearchRun({
                 userId: getAuthUser(req).id,
                 entityType: "company",

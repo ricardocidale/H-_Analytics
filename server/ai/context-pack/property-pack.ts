@@ -90,10 +90,20 @@ function buildCapitalNarrative(p: Property): string {
   if (p.type) parts.push(`structure: ${p.type}`);
   if (p.acquisitionLTV != null) parts.push(`LTV ${pct(p.acquisitionLTV)}`);
   if (p.acquisitionInterestRate != null) parts.push(`rate ${pct(p.acquisitionInterestRate)}`);
+  if (p.acquisitionClosingCostRate != null) parts.push(`closing costs ${pct(p.acquisitionClosingCostRate)}`);
   if (p.exitCapRate != null) parts.push(`exit cap ${pct(p.exitCapRate)}`);
   if (p.taxRate != null) parts.push(`income tax ${pct(p.taxRate)}`);
   if (p.depreciationYears != null) parts.push(`depreciation ${p.depreciationYears} years`);
   if (p.costSegEnabled) parts.push("cost segregation enabled");
+  if (p.willRefinance && p.willRefinance !== "no") {
+    const refiParts: string[] = ["refinance planned"];
+    if (p.refinanceLTV != null) refiParts.push(`LTV ${pct(p.refinanceLTV)}`);
+    if (p.refinanceInterestRate != null) refiParts.push(`rate ${pct(p.refinanceInterestRate)}`);
+    if (p.refinanceTermYears != null) refiParts.push(`${p.refinanceTermYears}-yr term`);
+    if (p.refinanceClosingCostRate != null) refiParts.push(`closing ${pct(p.refinanceClosingCostRate)}`);
+    if (p.refinanceYearsAfterAcquisition != null) refiParts.push(`year ${p.refinanceYearsAfterAcquisition}`);
+    parts.push(refiParts.join(", "));
+  }
 
   if (parts.length === 0) return "No capital structure configured";
   return parts.join("; ");
