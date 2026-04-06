@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
-import { requireAdmin, getAuthUser } from "../../auth";
+import { requireAdmin, requireAuth, getAuthUser } from "../../auth";
 import { logAndSendError } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -13,6 +13,9 @@ import { createResearchClient } from "../../ai/research-client";
 import { getGeminiClient, getAnthropicClient, getOpenAIClient } from "../../ai/clients";
 import { isPineconeAvailable, isEmbeddingAvailable } from "../../ai/pinecone-service";
 import type { ResearchConfig } from "@shared/schema";
+import { insertScheduledResearchWorkflowSchema } from "@shared/schema";
+import { executeScheduledWorkflow } from "../../ai/ambient/research-scheduler";
+import { logger } from "../../logger";
 
 const scenarioQuerySchema = z.object({
   scenarioId: z.coerce.number().int().positive().optional(),
@@ -561,6 +564,183 @@ export function registerIntelligenceRoutes(app: Express) {
       });
     } catch (error) {
       logAndSendError(res, "Failed to check system intelligence status", error);
+    }
+  });
+
+  app.get("/api/admin/scheduled-research", requireAdmin, async (_req, res) => {
+    try {
+      const workflows = await storage.getScheduledResearchWorkflows();
+      res.json(workflows);
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch scheduled research workflows", error);
+    }
+  });
+
+  app.post("/api/admin/scheduled-research", requireAdmin, async (req, res) => {
+    try {
+      const validation = insertScheduledResearchWorkflowSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+      const workflow = await storage.upsertScheduledResearchWorkflow(validation.data);
+      res.json(workflow);
+    } catch (error) {
+      logAndSendError(res, "Failed to create scheduled research workflow", error);
+    }
+  });
+
+  app.put("/api/admin/scheduled-research/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
+
+      const existing = await storage.getScheduledResearchWorkflowById(id);
+      if (!existing) return res.status(404).json({ error: "Workflow not found" });
+
+      const validation = insertScheduledResearchWorkflowSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+
+      const data = { ...validation.data, workflowKey: existing.workflowKey };
+      if (validation.data.frequencyHours && validation.data.frequencyHours !== existing.frequencyHours) {
+        (data as any).nextRunAt = new Date(
+          Date.now() + (validation.data.frequencyHours * 60 * 60 * 1000),
+        );
+      }
+      const workflow = await storage.upsertScheduledResearchWorkflow(data as any);
+      res.json(workflow);
+    } catch (error) {
+      logAndSendError(res, "Failed to update scheduled research workflow", error);
+    }
+  });
+
+  app.delete("/api/admin/scheduled-research/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
+      await storage.deleteScheduledResearchWorkflow(id);
+      res.json({ success: true });
+    } catch (error) {
+      logAndSendError(res, "Failed to delete scheduled research workflow", error);
+    }
+  });
+
+  app.post("/api/admin/scheduled-research/:id/execute", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
+
+      const workflow = await storage.getScheduledResearchWorkflowById(id);
+      if (!workflow) return res.status(404).json({ error: "Workflow not found" });
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      const sendSSE = (type: string, data: any) => {
+        res.write(`data: ${JSON.stringify({ type, data })}\n\n`);
+      };
+
+      sendSSE("phase", { phase: "starting", message: `Starting: ${workflow.name}` });
+
+      await storage.updateScheduledWorkflowRun(workflow.id, {
+        lastRunAt: new Date(),
+        nextRunAt: new Date(Date.now() + workflow.frequencyHours * 60 * 60 * 1000),
+        lastRunStatus: "running",
+      });
+
+      const result = await executeScheduledWorkflow(workflow);
+
+      await storage.updateScheduledWorkflowRun(workflow.id, {
+        lastRunAt: new Date(),
+        nextRunAt: new Date(Date.now() + workflow.frequencyHours * 60 * 60 * 1000),
+        lastRunStatus: result.success ? "completed" : "failed",
+        lastRunDurationMs: result.durationMs,
+        lastRunError: result.error ?? null,
+      });
+
+      if (result.success) {
+        sendSSE("content", result.content.slice(0, 500));
+        sendSSE("done", {
+          success: true,
+          durationMs: result.durationMs,
+          workflowKey: workflow.workflowKey,
+        });
+      } else {
+        sendSSE("error", { message: result.error, durationMs: result.durationMs });
+      }
+
+      res.end();
+    } catch (error) {
+      logAndSendError(res, "Failed to execute scheduled research workflow", error);
+    }
+  });
+
+  app.get("/api/research/scheduled/check-stale", requireAuth, async (req, res) => {
+    try {
+      const staleWorkflows = await storage.getDueScheduledWorkflows();
+      res.json({
+        hasStale: staleWorkflows.length > 0,
+        workflows: staleWorkflows.map(w => ({
+          id: w.id,
+          workflowKey: w.workflowKey,
+          name: w.name,
+          description: w.description,
+          lastRunAt: w.lastRunAt?.toISOString() ?? null,
+          frequencyHours: w.frequencyHours,
+        })),
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to check stale scheduled workflows", error);
+    }
+  });
+
+  app.post("/api/research/scheduled/:id/execute", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string, 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
+
+      const workflow = await storage.getScheduledResearchWorkflowById(id);
+      if (!workflow) return res.status(404).json({ error: "Workflow not found" });
+      if (!workflow.isEnabled) return res.status(400).json({ error: "Workflow is disabled" });
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      const sendSSE = (type: string, data: any) => {
+        res.write(`data: ${JSON.stringify({ type, data })}\n\n`);
+      };
+
+      sendSSE("phase", { phase: "starting", message: `Starting: ${workflow.name}` });
+
+      await storage.updateScheduledWorkflowRun(workflow.id, {
+        lastRunAt: new Date(),
+        nextRunAt: new Date(Date.now() + workflow.frequencyHours * 60 * 60 * 1000),
+        lastRunStatus: "running",
+      });
+
+      const result = await executeScheduledWorkflow(workflow);
+
+      await storage.updateScheduledWorkflowRun(workflow.id, {
+        lastRunAt: new Date(),
+        nextRunAt: new Date(Date.now() + workflow.frequencyHours * 60 * 60 * 1000),
+        lastRunStatus: result.success ? "completed" : "failed",
+        lastRunDurationMs: result.durationMs,
+        lastRunError: result.error ?? null,
+      });
+
+      if (result.success) {
+        sendSSE("content", result.content.slice(0, 500));
+        sendSSE("done", { success: true, durationMs: result.durationMs, workflowKey: workflow.workflowKey });
+      } else {
+        sendSSE("error", { message: result.error, durationMs: result.durationMs });
+      }
+
+      res.end();
+    } catch (error) {
+      logAndSendError(res, "Failed to execute scheduled research workflow", error);
     }
   });
 }

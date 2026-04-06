@@ -31,6 +31,7 @@ import PipelinePoliciesForm from "@/components/admin/intelligence/PipelinePolici
 import QASandbox from "@/components/admin/intelligence/QASandbox";
 import SourceRegistryOverlay from "@/components/admin/intelligence/SourceRegistryOverlay";
 import SystemIntelligenceStatus from "@/components/admin/intelligence/SystemIntelligenceStatus";
+import ScheduledResearchPanel from "@/components/admin/intelligence/ScheduledResearchPanel";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary, SelfHealingBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -89,6 +90,7 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "pipeline-policies":  { title: "Pipeline Policies",  subtitle: "Configure staleness thresholds, token budgets, and refresh intervals" },
   "qa-sandbox":         { title: "QA Sandbox",          subtitle: "Preview context packs and prompts before running research" },
   "source-registry":    { title: "Source Registry",     subtitle: "Trust scores, health status, and cadence for all research sources" },
+  "scheduled-research": { title: "Scheduled Research", subtitle: "Automated research workflows that keep intelligence fresh on a cadence" },
   "system-intelligence": { title: "System Intelligence", subtitle: "LLM vendor status, knowledge base health, and missing API keys" },
 };
 
@@ -139,6 +141,8 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "qa-sandbox":         return <QASandbox />;
     case "source-registry":
       return <SourceRegistryOverlay />;
+    case "scheduled-research":
+      return <ScheduledResearchPanel />;
     case "system-intelligence":
       return <SystemIntelligenceStatus />;
     default:                 return null;

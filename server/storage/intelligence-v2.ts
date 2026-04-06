@@ -2,7 +2,7 @@ import {
   assumptionGuidance, researchRuns, benchmarkSnapshots, relaxationTraces,
   guidanceDecisions, rebeccaConversations, rebeccaMessages, rebeccaEmails,
   rebeccaFeedback, coverageSnapshots, sourceRegistry, integrationKeyRotations,
-  pipelinePolicies,
+  pipelinePolicies, scheduledResearchWorkflows,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type ResearchRun, type InsertResearchRun,
   type BenchmarkSnapshot, type InsertBenchmarkSnapshot,
@@ -16,9 +16,10 @@ import {
   type SourceRegistryEntry, type InsertSourceRegistryEntry,
   type IntegrationKeyRotation, type InsertIntegrationKeyRotation,
   type PipelinePolicy, type InsertPipelinePolicy,
+  type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
 } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { eq, and, desc, isNull, lte } from "drizzle-orm";
 import { indexBenchmarkSnapshot } from "../ai/pinecone-service";
 import { logger } from "../logger";
 
@@ -349,5 +350,73 @@ export class IntelligenceV2Storage {
       .values(data as typeof pipelinePolicies.$inferInsert)
       .returning();
     return inserted;
+  }
+
+  async getScheduledResearchWorkflows(): Promise<ScheduledResearchWorkflow[]> {
+    return db.select().from(scheduledResearchWorkflows).orderBy(scheduledResearchWorkflows.priority);
+  }
+
+  async getScheduledResearchWorkflowById(id: number): Promise<ScheduledResearchWorkflow | undefined> {
+    const [row] = await db.select().from(scheduledResearchWorkflows)
+      .where(eq(scheduledResearchWorkflows.id, id)).limit(1);
+    return row;
+  }
+
+  async getStaleScheduledWorkflows(): Promise<ScheduledResearchWorkflow[]> {
+    const now = new Date();
+    return db.select().from(scheduledResearchWorkflows)
+      .where(and(
+        eq(scheduledResearchWorkflows.isEnabled, true),
+        lte(scheduledResearchWorkflows.nextRunAt, now),
+      ))
+      .orderBy(scheduledResearchWorkflows.priority);
+  }
+
+  async getDueScheduledWorkflows(): Promise<ScheduledResearchWorkflow[]> {
+    const now = new Date();
+    const rows = await db.select().from(scheduledResearchWorkflows)
+      .where(eq(scheduledResearchWorkflows.isEnabled, true))
+      .orderBy(scheduledResearchWorkflows.priority);
+    return rows.filter(w => !w.nextRunAt || w.nextRunAt <= now);
+  }
+
+  async upsertScheduledResearchWorkflow(data: InsertScheduledResearchWorkflow): Promise<ScheduledResearchWorkflow> {
+    const [existing] = await db.select().from(scheduledResearchWorkflows)
+      .where(eq(scheduledResearchWorkflows.workflowKey, data.workflowKey))
+      .limit(1);
+    if (existing) {
+      const [updated] = await db.update(scheduledResearchWorkflows)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(scheduledResearchWorkflows.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const nextRun = new Date();
+    const [inserted] = await db.insert(scheduledResearchWorkflows)
+      .values({
+        ...data,
+        nextRunAt: data.nextRunAt ?? nextRun,
+      } as typeof scheduledResearchWorkflows.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  async updateScheduledWorkflowRun(id: number, update: {
+    lastRunAt: Date;
+    nextRunAt: Date;
+    lastRunStatus: string;
+    lastRunDurationMs?: number;
+    lastRunError?: string | null;
+  }): Promise<ScheduledResearchWorkflow> {
+    const [updated] = await db.update(scheduledResearchWorkflows)
+      .set({ ...update, updatedAt: new Date() })
+      .where(eq(scheduledResearchWorkflows.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteScheduledResearchWorkflow(id: number): Promise<void> {
+    await db.delete(scheduledResearchWorkflows)
+      .where(eq(scheduledResearchWorkflows.id, id));
   }
 }

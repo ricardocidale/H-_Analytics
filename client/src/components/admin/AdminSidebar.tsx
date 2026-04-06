@@ -7,7 +7,7 @@ import {
   IconUpload, IconPanelLeft, IconProperties, IconTrending, IconTarget,
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
   IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconMessageCircle, IconExport, IconScenarios, IconPalette,
-  IconBarChart3, IconLayers, IconShieldCheck, IconGlobe,
+  IconBarChart3, IconLayers, IconShieldCheck, IconGlobe, IconTimer,
 } from "@/components/icons";
 import { Link } from "wouter";
 import { useGlobalAssumptions } from "@/lib/api/admin";
@@ -22,7 +22,7 @@ export type AdminSection =
   | "research" | "navigation" | "notifications" | "verification" | "database"
   | "cache-services" | "integrations" | "api-dashboard"
   | "coverage-analytics" | "pipeline-policies" | "qa-sandbox" | "source-registry"
-  | "system-intelligence";
+  | "system-intelligence" | "scheduled-research";
 
 interface SectionItem {
   value: AdminSection;
@@ -44,6 +44,7 @@ function buildNavGroups(adminIntelV2: boolean): NavGroup[] {
     { value: "pipeline-policies", label: "Pipeline Policies", icon: IconLayers },
     { value: "qa-sandbox", label: "QA Sandbox", icon: IconShieldCheck },
     { value: "source-registry", label: "Source Registry", icon: IconGlobe },
+    { value: "scheduled-research", label: "Scheduled Research", icon: IconTimer },
     { value: "system-intelligence", label: "System Intelligence", icon: IconBrain },
   ] : [];
 

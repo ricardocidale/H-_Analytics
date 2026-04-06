@@ -57,6 +57,9 @@ const Login = lazy(() => import("@/pages/Login"));
 const ResearchRefreshOverlay = lazy(() =>
   import("@/components/ResearchRefreshOverlay").then(m => ({ default: m.ResearchRefreshOverlay }))
 );
+const ScheduledResearchOverlayLazy = lazy(() =>
+  import("@/components/research/ScheduledResearchOverlay").then(m => ({ default: m.ScheduledResearchOverlay }))
+);
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Company = lazy(() => import("@/pages/Company"));
 const CompanyAssumptions = lazy(() => import("@/pages/CompanyAssumptions"));
@@ -368,6 +371,51 @@ function LogoutProtectionDialog() {
   );
 }
 
+function ScheduledResearchGate() {
+  const { user } = useAuth();
+  const [staleWorkflows, setStaleWorkflows] = useState<any[]>([]);
+  const [show, setShow] = useState(false);
+  const checkedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || checkedRef.current) return;
+    checkedRef.current = true;
+
+    const sessionKey = `hbg_sched_research_${user.id}`;
+    const lastCheck = sessionStorage.getItem(sessionKey);
+    const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+    if (lastCheck && parseInt(lastCheck) > fiveMinAgo) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/research/scheduled/check-stale", { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.hasStale && data.workflows.length > 0) {
+          setStaleWorkflows(data.workflows);
+          setShow(true);
+        }
+        sessionStorage.setItem(sessionKey, String(Date.now()));
+      } catch { /* silent */ }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [user]);
+
+  if (!show || staleWorkflows.length === 0) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <ScheduledResearchOverlayLazy
+        workflows={staleWorkflows}
+        onDismiss={() => {
+          setShow(false);
+          sessionStorage.setItem(`hbg_sched_research_${user?.id}`, String(Date.now()));
+        }}
+      />
+    </Suspense>
+  );
+}
+
 /** Router — declares all client-side routes and handles the research refresh overlay. */
 function Router() {
   const { user, isLoading } = useAuth();
@@ -456,6 +504,7 @@ function Router() {
           <ResearchRefreshOverlay onComplete={handleResearchComplete} />
         </Suspense>
       )}
+      <ScheduledResearchGate />
       <Switch>
         <Route path="/login">{user ? <Redirect to="/" /> : <Suspense fallback={<PageLoader />}><Login /></Suspense>}</Route>
         <Route path="/privacy"><Suspense fallback={<PageLoader />}><PrivacyPolicy /></Suspense></Route>

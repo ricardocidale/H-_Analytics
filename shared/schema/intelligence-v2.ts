@@ -285,3 +285,34 @@ export const insertPipelinePolicySchema = createInsertSchema(pipelinePolicies).p
 });
 export type PipelinePolicy = typeof pipelinePolicies.$inferSelect;
 export type InsertPipelinePolicy = z.infer<typeof insertPipelinePolicySchema>;
+
+export const scheduledResearchWorkflows = pgTable("scheduled_research_workflows", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  workflowKey: text("workflow_key").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  researchType: text("research_type").notNull().default("global"),
+  frequencyHours: integer("frequency_hours").notNull().default(168),
+  promptInstructions: text("prompt_instructions"),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  lastRunAt: timestamp("last_run_at"),
+  nextRunAt: timestamp("next_run_at"),
+  lastRunStatus: text("last_run_status").default("pending"),
+  lastRunDurationMs: integer("last_run_duration_ms"),
+  lastRunError: text("last_run_error"),
+  priority: integer("priority").notNull().default(5),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("scheduled_research_workflows_enabled_idx").on(table.isEnabled),
+  index("scheduled_research_workflows_next_run_idx").on(table.nextRunAt),
+]);
+
+export const insertScheduledResearchWorkflowSchema = createInsertSchema(scheduledResearchWorkflows).pick({
+  workflowKey: true, name: true, description: true, researchType: true,
+  frequencyHours: true, promptInstructions: true, isEnabled: true,
+  lastRunAt: true, nextRunAt: true, lastRunStatus: true,
+  lastRunDurationMs: true, lastRunError: true, priority: true,
+});
+export type ScheduledResearchWorkflow = typeof scheduledResearchWorkflows.$inferSelect;
+export type InsertScheduledResearchWorkflow = z.infer<typeof insertScheduledResearchWorkflowSchema>;

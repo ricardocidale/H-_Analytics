@@ -225,6 +225,13 @@ app.use((req, res, next) => {
         serverLog(`[ambient-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3b: Scheduled research workflow runner ────────
+      import("./ai/ambient/research-scheduler").then(({ startResearchScheduler }) => {
+        startResearchScheduler();
+      }).catch(err => {
+        serverLog(`[research-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       // Refresh stale market rates periodically
       setInterval(async () => {
         try {

@@ -308,6 +308,13 @@ export class DatabaseStorage implements IStorage {
   getKeyRotationsByService = this.intelligenceV2.getKeyRotationsByService.bind(this.intelligenceV2);
   getPipelinePolicies = this.intelligenceV2.getPipelinePolicies.bind(this.intelligenceV2);
   upsertPipelinePolicy = this.intelligenceV2.upsertPipelinePolicy.bind(this.intelligenceV2);
+  getScheduledResearchWorkflows = this.intelligenceV2.getScheduledResearchWorkflows.bind(this.intelligenceV2);
+  getScheduledResearchWorkflowById = this.intelligenceV2.getScheduledResearchWorkflowById.bind(this.intelligenceV2);
+  getStaleScheduledWorkflows = this.intelligenceV2.getStaleScheduledWorkflows.bind(this.intelligenceV2);
+  getDueScheduledWorkflows = this.intelligenceV2.getDueScheduledWorkflows.bind(this.intelligenceV2);
+  upsertScheduledResearchWorkflow = this.intelligenceV2.upsertScheduledResearchWorkflow.bind(this.intelligenceV2);
+  updateScheduledWorkflowRun = this.intelligenceV2.updateScheduledWorkflowRun.bind(this.intelligenceV2);
+  deleteScheduledResearchWorkflow = this.intelligenceV2.deleteScheduledResearchWorkflow.bind(this.intelligenceV2);
 
   /**
    * Delete a user and ALL related data in a single transaction.
