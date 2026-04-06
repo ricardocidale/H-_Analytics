@@ -20,6 +20,8 @@ import LLMsTab from "@/components/admin/LLMsTab";
 import SourcesTab from "@/components/admin/SourcesTab";
 import IntegrationHealthTab from "@/components/admin/IntegrationHealthTab";
 import IntegrationsTab from "@/components/admin/IntegrationsTab";
+import ApiDashboardGrid from "@/components/admin/system/ApiDashboardGrid";
+import ModelRoutingPanel from "@/components/admin/ai/ModelRoutingPanel";
 import NotificationsTab from "@/components/admin/NotificationsTab";
 import ModelDefaultsTab from "@/components/admin/ModelDefaultsTab";
 import ExportsTab from "@/components/admin/ExportsTab";
@@ -79,6 +81,8 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   database:         { title: "Database",             subtitle: "Entity monitoring, seed data, and canonical sync" },
   "cache-services": { title: "Cache & Services",     subtitle: "Service health, circuit breakers, and cache management" },
   integrations:     { title: "Integrations",          subtitle: "External APIs and scrapers — toggle, configure, and monitor data sources" },
+  "api-dashboard":  { title: "API Dashboard",          subtitle: "Unified view of all integrations — health, latency, toggles, and key rotation" },
+  "model-routing":  { title: "Model Routing",          subtitle: "Per-tier model assignments for research, operations, and Rebecca" },
   "coverage-analytics": { title: "Coverage Analytics", subtitle: "Research coverage across properties and company entities" },
   "pipeline-policies":  { title: "Pipeline Policies",  subtitle: "Configure staleness thresholds, token budgets, and refresh intervals" },
   "qa-sandbox":         { title: "QA Sandbox",          subtitle: "Preview context packs and prompts before running research" },
@@ -125,6 +129,8 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "database":         return <DatabaseTab />;
     case "cache-services":   return <IntegrationHealthTab />;
     case "integrations":     return <IntegrationsTab />;
+    case "api-dashboard":    return <ApiDashboardGrid />;
+    case "model-routing":    return <ModelRoutingPanel onNavigate={onNavigate} />;
     case "coverage-analytics": return <CoverageAnalyticsDashboard />;
     case "pipeline-policies":  return <PipelinePoliciesForm />;
     case "qa-sandbox":         return <QASandbox />;

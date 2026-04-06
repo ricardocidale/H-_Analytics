@@ -18,9 +18,9 @@ export type AdminSection =
   | "icp"
   | "companies" | "groups" | "scenarios"
   | "logos" | "themes" | "icons" | "exports"
-  | "ai-agents" | "llms" | "sources"
+  | "ai-agents" | "llms" | "sources" | "model-routing"
   | "research" | "navigation" | "notifications" | "verification" | "database"
-  | "cache-services" | "integrations"
+  | "cache-services" | "integrations" | "api-dashboard"
   | "coverage-analytics" | "pipeline-policies" | "qa-sandbox" | "source-registry";
 
 interface SectionItem {
@@ -89,6 +89,7 @@ function buildNavGroups(adminIntelV2: boolean): NavGroup[] {
       sections: [
         { value: "ai-agents", label: "AI Agents", icon: IconBot },
         { value: "llms", label: "LLMs", icon: IconBrain },
+        { value: "model-routing", label: "Model Routing", icon: IconSliders },
         { value: "sources", label: "Sources", icon: IconBookOpen },
       ],
     },
@@ -103,6 +104,7 @@ function buildNavGroups(adminIntelV2: boolean): NavGroup[] {
         { value: "navigation", label: "Navigation", icon: IconPanelLeft },
         { value: "verification", label: "Verification", icon: IconFileCheck },
         { value: "database", label: "Database", icon: IconDatabase },
+        { value: "api-dashboard", label: "API Dashboard", icon: IconGlobe },
         { value: "cache-services", label: "Cache & Services", icon: IconActivity },
         { value: "integrations", label: "Integrations", icon: IconTrending },
       ],

@@ -340,4 +340,43 @@ export function registerIntelligenceRoutes(app: Express) {
       logAndSendError(res, "Failed to preview prompt", error);
     }
   });
+
+  const serviceKeySchema = z.string().min(1).max(100).regex(/^[a-z0-9_-]+$/i);
+
+  app.get("/api/admin/integrations/:serviceKey/rotations", requireAdmin, async (req, res) => {
+    try {
+      const parsed = serviceKeySchema.safeParse(req.params.serviceKey);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid serviceKey" });
+      const rotations = await storage.getKeyRotationsByService(parsed.data);
+      res.json(rotations);
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch key rotations", error);
+    }
+  });
+
+  app.post("/api/admin/integrations/:serviceKey/rotate-key", requireAdmin, async (req, res) => {
+    try {
+      const parsed = serviceKeySchema.safeParse(req.params.serviceKey);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid serviceKey" });
+      const bodySchema = z.object({
+        notes: z.string().max(500).optional(),
+      });
+      const body = bodySchema.safeParse(req.body);
+      if (!body.success) return res.status(400).json({ error: fromZodError(body.error).message });
+
+      const user = getAuthUser(req);
+      const crypto = await import("crypto");
+      const previousKeyHash = crypto.createHash("sha256").update(`${parsed.data}-${Date.now()}`).digest("hex").slice(0, 16);
+
+      const rotation = await storage.createKeyRotation({
+        serviceKey: parsed.data,
+        rotatedBy: user?.id ?? null,
+        previousKeyHash,
+        notes: body.data.notes ?? null,
+      });
+      res.json({ success: true, rotatedAt: rotation.rotatedAt, id: rotation.id });
+    } catch (error) {
+      logAndSendError(res, "Failed to rotate key", error);
+    }
+  });
 }

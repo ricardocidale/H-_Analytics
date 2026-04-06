@@ -323,6 +323,13 @@ export class IntelligenceV2Storage {
     return rotation;
   }
 
+  async getKeyRotationsByService(serviceKey: string): Promise<IntegrationKeyRotation[]> {
+    return db.select().from(integrationKeyRotations)
+      .where(eq(integrationKeyRotations.serviceKey, serviceKey))
+      .orderBy(desc(integrationKeyRotations.rotatedAt))
+      .limit(20);
+  }
+
   async getPipelinePolicies(): Promise<PipelinePolicy[]> {
     return db.select().from(pipelinePolicies);
   }

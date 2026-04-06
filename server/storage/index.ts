@@ -299,6 +299,7 @@ export class DatabaseStorage implements IStorage {
   getSourceRegistry = this.intelligenceV2.getSourceRegistry.bind(this.intelligenceV2);
   upsertSourceRegistry = this.intelligenceV2.upsertSourceRegistry.bind(this.intelligenceV2);
   createKeyRotation = this.intelligenceV2.createKeyRotation.bind(this.intelligenceV2);
+  getKeyRotationsByService = this.intelligenceV2.getKeyRotationsByService.bind(this.intelligenceV2);
   getPipelinePolicies = this.intelligenceV2.getPipelinePolicies.bind(this.intelligenceV2);
   upsertPipelinePolicy = this.intelligenceV2.upsertPipelinePolicy.bind(this.intelligenceV2);
 
