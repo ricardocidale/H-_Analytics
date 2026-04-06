@@ -197,19 +197,11 @@ export function register(app: Express) {
       const { entityType, entityId, assumptionKeys, scenarioId } = parsed.data;
       const user = getAuthUser(req);
 
-      if (entityType === "property") {
-        const props = await storage.getAllProperties(user.id);
-        if (!props.some(p => p.id === entityId)) {
-          return res.status(403).json({ error: "Property access denied" });
-        }
-      } else {
-        const authCompanyId = (user as { companyId?: number | null }).companyId;
-        if (!authCompanyId || authCompanyId !== entityId) {
-          return res.status(403).json({ error: "Company access denied" });
-        }
+      if (!(await checkEntityAccess(user, entityType, entityId))) {
+        return res.status(403).json({ error: `${entityType} access denied` });
       }
 
-      const ga = await storage.getGlobalAssumptions();
+      const ga = await storage.getGlobalAssumptions(user.id);
       let v2Prompt: string | undefined;
 
       let ambientDataStr: string | undefined;
@@ -279,41 +271,53 @@ export function register(app: Express) {
         if (chunk.type === "content") fullContent += chunk.data;
       }
 
+      const startTime = Date.now();
+      const runRecord = await storage.createResearchRun({
+        userId: user.id,
+        entityType,
+        entityId,
+        tier: 2,
+        modelPrimary: modelId,
+        status: "running",
+      });
+
       const researchResult = parseResearchJSON(fullContent);
       if (!researchResult || researchResult.rawResponse) {
+        await storage.updateResearchRun(runRecord.id, {
+          status: "failed",
+          completedAt: new Date(),
+          durationMs: Date.now() - startTime,
+          error: "AI research did not return valid JSON",
+        });
         return res.status(502).json({ error: "AI research did not return valid JSON" });
       }
 
       const guidanceResult = extractGuidance(researchResult as Record<string, unknown>, 2, entityType);
 
-      if (guidanceResult.records.length > 0) {
-        const runRecord = await storage.createResearchRun({
-          userId: user.id,
+      for (const rec of guidanceResult.records) {
+        await storage.upsertAssumptionGuidance({
+          scenarioId: scenarioId ?? null,
           entityType,
           entityId,
-          tier: 2,
-          modelPrimary: modelId,
+          assumptionKey: rec.assumptionKey,
+          valueLow: rec.valueLow,
+          valueMid: rec.valueMid,
+          valueHigh: rec.valueHigh,
+          confidence: rec.confidence,
+          sourceName: rec.sourceName ?? null,
+          sourceDate: rec.sourceDate ?? null,
+          reasoning: rec.reasoning ?? null,
+          comparableSet: (rec.comparableSet as Record<string, unknown> | null) ?? null,
+          relaxationLevel: null,
+          researchRunId: runRecord.id,
         });
-
-        for (const rec of guidanceResult.records) {
-          await storage.upsertAssumptionGuidance({
-            scenarioId: scenarioId ?? null,
-            entityType,
-            entityId,
-            assumptionKey: rec.assumptionKey,
-            valueLow: rec.valueLow,
-            valueMid: rec.valueMid,
-            valueHigh: rec.valueHigh,
-            confidence: rec.confidence,
-            sourceName: rec.sourceName ?? null,
-            sourceDate: rec.sourceDate ?? null,
-            reasoning: rec.reasoning ?? null,
-            comparableSet: (rec.comparableSet as Record<string, unknown> | null) ?? null,
-            relaxationLevel: null,
-            researchRunId: runRecord.id,
-          });
-        }
       }
+
+      await storage.updateResearchRun(runRecord.id, {
+        status: "completed",
+        completedAt: new Date(),
+        durationMs: Date.now() - startTime,
+      });
 
       logActivity(req, "guidance_deep_dive", entityType, entityId);
 
