@@ -60,6 +60,61 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     };
   }, []);
 
+  const prevContextRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const contextKey = rebeccaContext
+      ? `${rebeccaContext.entityType}-${rebeccaContext.entityId}-${rebeccaContext.fieldKey ?? ""}`
+      : undefined;
+    if (isOpen && contextKey && contextKey !== prevContextRef.current && messages.length === 0) {
+      prevContextRef.current = contextKey;
+      sendAutoGreeting();
+    }
+    if (!isOpen) {
+      prevContextRef.current = undefined;
+    }
+  }, [isOpen, rebeccaContext]);
+
+  const sendAutoGreeting = useCallback(async () => {
+    if (!rebeccaContext?.entityType || !rebeccaContext?.entityId) return;
+    setLoading(true);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const body: Record<string, unknown> = {
+        message: rebeccaContext.fieldKey
+          ? `What does research suggest for ${rebeccaContext.fieldName ?? rebeccaContext.fieldKey}?`
+          : `Tell me about this ${rebeccaContext.entityType}.`,
+        history: [],
+        fieldContext: {
+          entityType: rebeccaContext.entityType,
+          entityId: rebeccaContext.entityId,
+          fieldKey: rebeccaContext.fieldKey,
+          scenarioId: rebeccaContext.scenarioId ?? null,
+        },
+      };
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error("Failed to get response");
+      const data = await res.json();
+      const greeting = data.autoGreeting ?? data.response;
+      setMessages([{
+        id: nextMsgId("assistant"),
+        role: "assistant",
+        content: greeting,
+      }]);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+    } finally {
+      setLoading(false);
+    }
+  }, [rebeccaContext]);
+
   const sendMessage = useCallback(
     async (text?: string) => {
       const trimmed = (text ?? input).trim();
@@ -90,15 +145,12 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           history: historyForApi.slice(0, -1),
         };
 
-        if (rebeccaContext) {
+        if (rebeccaContext?.entityType && rebeccaContext?.entityId) {
           body.fieldContext = {
-            fieldName: rebeccaContext.fieldName,
-            currentValue: rebeccaContext.currentValue,
-            guidanceLow: rebeccaContext.guidanceLow,
-            guidanceMid: rebeccaContext.guidanceMid,
-            guidanceHigh: rebeccaContext.guidanceHigh,
             entityType: rebeccaContext.entityType,
             entityId: rebeccaContext.entityId,
+            fieldKey: rebeccaContext.fieldKey,
+            scenarioId: rebeccaContext.scenarioId ?? null,
           };
         }
 

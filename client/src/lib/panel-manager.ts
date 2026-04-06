@@ -19,6 +19,8 @@ interface RebeccaContext {
   guidanceHigh?: number | null;
   entityType?: "property" | "company";
   entityId?: number;
+  scenarioId?: number | null;
+  fieldKey?: string;
 }
 
 interface PanelManagerState {

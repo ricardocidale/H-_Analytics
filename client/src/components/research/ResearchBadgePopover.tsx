@@ -44,8 +44,11 @@ function ResearchBadgePopover({
     if (guidanceContext) {
       openRebecca({
         fieldName: guidanceContext.fieldLabel ?? guidanceContext.assumptionKey,
+        fieldKey: guidanceContext.assumptionKey,
         entityType: guidanceContext.entityType,
         entityId: guidanceContext.entityId,
+        currentValue: guidanceContext.currentValue,
+        scenarioId: guidanceContext.scenarioId,
       });
     } else {
       openRebecca();

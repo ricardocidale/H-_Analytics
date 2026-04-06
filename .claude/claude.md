@@ -237,6 +237,14 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 - `client/src/components/research/RelaxationTrailStepper.tsx` — L0-L5 vertical stepper with expandable detail
 - `client/src/components/research/ResearchContextFieldLabel.tsx` — Unified wrapper: label + badge + confidence + freshness + state
 
+### Phase 4 Rebecca Layer (IN PROGRESS — T19-T24)
+- **T19 ✅** `client/src/components/rebecca/RebeccaPanel.tsx` — 520px slide-over, auto-greeting, field context chips
+- **T19 ✅** `client/src/components/rebecca/RebeccaContextCard.tsx` — Collapsible field context card
+- **T20 ✅** `server/ai/rebecca-context-builder.ts` — Server-side context assembly from entity IDs + field key. Calls context pack builders, fetches guidance records, generates auto-greeting. IDOR-safe (never trusts client context text).
+- **T20 ✅** `server/routes/chat.ts` — Extended with optional `fieldContext` Zod schema (entityType, entityId, fieldKey, scenarioId). Validates entity ownership before context build. Injects rich field+entity context into LLM system prompt.
+- **T20 ✅** `client/src/lib/panel-manager.ts` — RebeccaContext extended with `fieldKey` and `scenarioId`
+- T21-T24: NOT STARTED (Super Conversations, email/feedback, RAG expansion, admin tabs)
+
 ---
 
 ## Key Rules

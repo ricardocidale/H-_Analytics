@@ -10,6 +10,7 @@ import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@shared/schema";
+import { buildRebeccaContext } from "../ai/rebecca-context-builder";
 
 /**
  * CONTRACT: This endpoint provides AI chat about portfolio properties.
@@ -19,6 +20,12 @@ import type { ResearchConfig } from "@shared/schema";
 
 import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH } from "../constants";
 
+const fieldContextSchema = z.object({
+  entityType: z.enum(["property", "company"]),
+  entityId: z.number().int().positive(),
+  fieldKey: z.string().max(100).optional(),
+  scenarioId: z.number().int().positive().nullable().optional(),
+}).optional();
 
 const chatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -28,6 +35,7 @@ const chatMessageSchema = z.object({
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(MAX_MESSAGE_LENGTH),
   history: z.array(chatMessageSchema).max(MAX_HISTORY_LENGTH).optional().default([]),
+  fieldContext: fieldContextSchema,
 });
 
 // Using centralized singleton from server/ai/clients.ts
@@ -48,7 +56,7 @@ export function register(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
-      const { message, history } = parsed.data;
+      const { message, history, fieldContext: fieldCtx } = parsed.data;
 
       const userId = getAuthUser(req).id;
 
@@ -94,8 +102,39 @@ export function register(app: Express) {
         ...fundingLines,
       ].join("\n");
 
+      let rebeccaFieldBlock = "";
+      let autoGreeting: string | null = null;
+      if (fieldCtx) {
+        try {
+          const authUser = getAuthUser(req);
+          if (fieldCtx.entityType === "property") {
+            const entity = properties.find(p => p.id === fieldCtx.entityId);
+            if (!entity) {
+              return res.status(403).json({ error: "Entity not found or access denied" });
+            }
+          } else if (fieldCtx.entityType === "company") {
+            if (authUser.companyId !== fieldCtx.entityId) {
+              return res.status(403).json({ error: "Entity not found or access denied" });
+            }
+          }
+          const ctxPayload = await buildRebeccaContext(userId, fieldCtx);
+          const fieldParts: string[] = [
+            "",
+            "FOCUSED ENTITY CONTEXT:",
+            ctxPayload.entitySummary,
+          ];
+          if (ctxPayload.fieldContext) {
+            fieldParts.push("", "FIELD-SPECIFIC RESEARCH:", ctxPayload.fieldContext);
+          }
+          rebeccaFieldBlock = fieldParts.join("\n");
+          autoGreeting = ctxPayload.autoGreeting;
+        } catch (err) {
+          logger.warn(`Failed to build Rebecca field context: ${(err as Error).message}`, "chat");
+        }
+      }
+
       const systemPrompt = (global as any)?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-      const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}`;
+      const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}${rebeccaFieldBlock}`;
       const engine = ga?.rebeccaChatEngine ?? "gemini";
 
       if (engine === "perplexity") {
@@ -132,7 +171,7 @@ export function register(app: Express) {
         const outTok = completion.usage?.completion_tokens ?? Math.round(text.length / 4);
         try { logApiCost({ timestamp: new Date().toISOString(), service: "perplexity", model: "sonar", operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("perplexity", "sonar", inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/chat" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
 
-        res.json({ response: text });
+        res.json({ response: text, ...(autoGreeting ? { autoGreeting } : {}) });
       } else {
         const rc = (ga?.researchConfig as ResearchConfig) ?? {};
         const resolved = resolveLlm(rc, "chatbotLlm");
@@ -166,7 +205,7 @@ export function register(app: Express) {
         const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(text.length / 4);
         try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/chat" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
 
-        res.json({ response: text });
+        res.json({ response: text, ...(autoGreeting ? { autoGreeting } : {}) });
       }
     } catch (error: any) {
       logger.error(`Chat error: ${error?.message || error}`, "chat");
