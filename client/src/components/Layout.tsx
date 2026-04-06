@@ -35,7 +35,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { IconSetProvider } from "@/components/icons/IconSetContext";
 import type { IconSetType } from "@/features/design-themes/types";
 import { useAdminSection } from "@/lib/admin-nav";
-import { navGroups as adminNavGroups } from "@/components/admin/AdminSidebar";
+import { buildNavGroups } from "@/components/admin/AdminSidebar";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
@@ -217,7 +217,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       ],
     },
     {
-      label: "Tools",
+      label: "Intelligence",
       items: [
         ...(showAnalysis && hasManagementAccess ? [{ href: "/analysis", label: "Simulation", icon: IconAnalysis }] : []),
         ...(sb("sidebarPropertyFinder") && hasManagementAccess ? [{ href: "/property-finder", label: "Property Finder", icon: IconPropertyFinder }] : []),
@@ -234,6 +234,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     },
   ].filter(g => g.items.length > 0), [hasManagementAccess, isAdmin, global]);
 
+  const adminNavGroups = buildNavGroups(!!global?.adminIntelV2);
   const adminSidebarGroups: NavGroupDef[] = useMemo(() => {
     const groups: NavGroupDef[] = [
       {
@@ -263,7 +264,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       }],
     });
     return groups;
-  }, []);
+  }, [adminNavGroups]);
 
   const navGroups = onAdminRoute ? adminSidebarGroups : homeNavGroups;
 

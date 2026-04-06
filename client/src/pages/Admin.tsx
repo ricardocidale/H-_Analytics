@@ -34,6 +34,26 @@ import type { AdminSaveState } from "@/components/admin/save-state";
 
 export type { AdminSaveState };
 
+function IntelV2Placeholder({ section }: { section: string }) {
+  const meta = {
+    "coverage-analytics": { icon: "📊", desc: "View research coverage across all properties and the management company. Track which entities have fresh, stale, or missing research data." },
+    "pipeline-policies": { icon: "⚙️", desc: "Configure staleness thresholds, token budgets, concurrent run limits, and auto-refresh intervals for each research tier." },
+    "qa-sandbox": { icon: "🧪", desc: "Preview context packs and assembled prompts for any entity before running live research. Inspect token counts and cost estimates." },
+    "source-registry": { icon: "🌐", desc: "Monitor trust scores, health status, and scrape cadence for all registered research sources." },
+  }[section] ?? { icon: "🔧", desc: "This section is under development." };
+
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-8 text-center" data-testid={`intel-v2-placeholder-${section}`}>
+      <span className="text-5xl mb-4">{meta.icon}</span>
+      <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
+      <p className="text-sm text-muted-foreground max-w-md">{meta.desc}</p>
+      <span className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+        Intelligence V2
+      </span>
+    </div>
+  );
+}
+
 const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "model-defaults": { title: "Model Defaults",      subtitle: "Financial defaults and seed values for new entities" },
   users:            { title: "Users",                subtitle: "Manage user accounts and assignments" },
@@ -56,6 +76,10 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   database:         { title: "Database",             subtitle: "Entity monitoring, seed data, and canonical sync" },
   "cache-services": { title: "Cache & Services",     subtitle: "Service health, circuit breakers, and cache management" },
   integrations:     { title: "Integrations",          subtitle: "External APIs and scrapers — toggle, configure, and monitor data sources" },
+  "coverage-analytics": { title: "Coverage Analytics", subtitle: "Research coverage across properties and company entities" },
+  "pipeline-policies":  { title: "Pipeline Policies",  subtitle: "Configure staleness thresholds, token budgets, and refresh intervals" },
+  "qa-sandbox":         { title: "QA Sandbox",          subtitle: "Preview context packs and prompts before running research" },
+  "source-registry":    { title: "Source Registry",     subtitle: "Trust scores, health status, and cadence for all research sources" },
 };
 
 function SectionContent({ section, onNavigate, onSaveStateChange }: { section: AdminSection; onNavigate: (s: AdminSection) => void; onSaveStateChange: (state: AdminSaveState | null) => void }) {
@@ -98,6 +122,11 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "database":         return <DatabaseTab />;
     case "cache-services":   return <IntegrationHealthTab />;
     case "integrations":     return <IntegrationsTab />;
+    case "coverage-analytics":
+    case "pipeline-policies":
+    case "qa-sandbox":
+    case "source-registry":
+      return <IntelV2Placeholder section={section} />;
     default:                 return null;
   }
 }

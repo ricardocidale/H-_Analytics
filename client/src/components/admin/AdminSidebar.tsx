@@ -7,8 +7,10 @@ import {
   IconUpload, IconPanelLeft, IconProperties, IconTrending, IconTarget,
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
   IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconMessageCircle, IconExport, IconScenarios, IconPalette,
+  IconBarChart3, IconLayers, IconShieldCheck, IconGlobe,
 } from "@/components/icons";
 import { Link } from "wouter";
+import { useGlobalAssumptions } from "@/lib/api/admin";
 
 export type AdminSection =
   | "model-defaults"
@@ -18,7 +20,8 @@ export type AdminSection =
   | "logos" | "themes" | "icons" | "exports"
   | "ai-agents" | "llms" | "sources"
   | "research" | "navigation" | "notifications" | "verification" | "database"
-  | "cache-services" | "integrations";
+  | "cache-services" | "integrations"
+  | "coverage-analytics" | "pipeline-policies" | "qa-sandbox" | "source-registry";
 
 interface SectionItem {
   value: AdminSection;
@@ -34,71 +37,81 @@ interface NavGroup {
   sections: SectionItem[];
 }
 
-const navGroups: NavGroup[] = [
-  {
-    id: "business",
-    label: "Business",
-    icon: IconBriefcase,
-    description: "Users, companies & groups",
-    sections: [
-      { value: "users", label: "Users", icon: IconPeople },
-      { value: "companies", label: "Companies", icon: IconProperties },
-      { value: "groups", label: "Groups", icon: IconUserCog },
-      { value: "scenarios", label: "Scenarios", icon: IconScenarios },
-    ],
-  },
-  {
-    id: "research-cat",
-    label: "Research",
-    icon: IconResearch,
-    description: "ICP Management Co & AI research tools",
-    sections: [
-      { value: "icp", label: "ICP Management Co", icon: IconTarget },
-      { value: "research", label: "Research Center", icon: IconResearch },
-    ],
-  },
-  {
-    id: "design",
-    label: "Design",
-    icon: IconSwatchBook,
-    description: "Logos, themes & exports",
-    sections: [
-      { value: "logos", label: "Logos", icon: IconImage },
-      { value: "themes", label: "Themes", icon: IconSwatchBook },
-      { value: "icons", label: "Icons", icon: IconPalette },
-      { value: "exports", label: "Exports", icon: IconExport },
-    ],
-  },
-  {
-    id: "ai",
-    label: "AI",
-    icon: IconBot,
-    description: "AI agents, LLM models, and research sources",
-    sections: [
-      { value: "ai-agents", label: "AI Agents", icon: IconBot },
-      { value: "llms", label: "LLMs", icon: IconBrain },
-      { value: "sources", label: "Sources", icon: IconBookOpen },
-    ],
-  },
-  {
-    id: "system",
-    label: "System",
-    icon: IconShield,
-    description: "Infrastructure & monitoring",
-    sections: [
-      { value: "model-defaults", label: "App Defaults", icon: IconSliders },
-      { value: "notifications", label: "Notifications", icon: IconPhone },
-      { value: "navigation", label: "Navigation", icon: IconPanelLeft },
-      { value: "verification", label: "Verification", icon: IconFileCheck },
-      { value: "database", label: "Database", icon: IconDatabase },
-      { value: "cache-services", label: "Cache & Services", icon: IconActivity },
-      { value: "integrations", label: "Integrations", icon: IconTrending },
-    ],
-  },
-];
+function buildNavGroups(adminIntelV2: boolean): NavGroup[] {
+  const intelV2Sections: SectionItem[] = adminIntelV2 ? [
+    { value: "coverage-analytics", label: "Coverage Analytics", icon: IconBarChart3 },
+    { value: "pipeline-policies", label: "Pipeline Policies", icon: IconLayers },
+    { value: "qa-sandbox", label: "QA Sandbox", icon: IconShieldCheck },
+    { value: "source-registry", label: "Source Registry", icon: IconGlobe },
+  ] : [];
 
-function getGroupForSection(section: AdminSection): string {
-  for (const group of navGroups) {
+  return [
+    {
+      id: "business",
+      label: "Business",
+      icon: IconBriefcase,
+      description: "Users, companies & groups",
+      sections: [
+        { value: "users", label: "Users", icon: IconPeople },
+        { value: "companies", label: "Companies", icon: IconProperties },
+        { value: "groups", label: "Groups", icon: IconUserCog },
+        { value: "scenarios", label: "Scenarios", icon: IconScenarios },
+      ],
+    },
+    {
+      id: "intelligence",
+      label: "Intelligence",
+      icon: IconResearch,
+      description: "ICP, research center & analytics",
+      sections: [
+        { value: "icp", label: "ICP Management Co", icon: IconTarget },
+        { value: "research", label: "Research Center", icon: IconResearch },
+        ...intelV2Sections,
+      ],
+    },
+    {
+      id: "design",
+      label: "Design",
+      icon: IconSwatchBook,
+      description: "Logos, themes & exports",
+      sections: [
+        { value: "logos", label: "Logos", icon: IconImage },
+        { value: "themes", label: "Themes", icon: IconSwatchBook },
+        { value: "icons", label: "Icons", icon: IconPalette },
+        { value: "exports", label: "Exports", icon: IconExport },
+      ],
+    },
+    {
+      id: "ai",
+      label: "AI",
+      icon: IconBot,
+      description: "AI agents, LLM models, and research sources",
+      sections: [
+        { value: "ai-agents", label: "AI Agents", icon: IconBot },
+        { value: "llms", label: "LLMs", icon: IconBrain },
+        { value: "sources", label: "Sources", icon: IconBookOpen },
+      ],
+    },
+    {
+      id: "system",
+      label: "System",
+      icon: IconShield,
+      description: "Infrastructure & monitoring",
+      sections: [
+        { value: "model-defaults", label: "App Defaults", icon: IconSliders },
+        { value: "notifications", label: "Notifications", icon: IconPhone },
+        { value: "navigation", label: "Navigation", icon: IconPanelLeft },
+        { value: "verification", label: "Verification", icon: IconFileCheck },
+        { value: "database", label: "Database", icon: IconDatabase },
+        { value: "cache-services", label: "Cache & Services", icon: IconActivity },
+        { value: "integrations", label: "Integrations", icon: IconTrending },
+      ],
+    },
+  ];
+}
+
+function getGroupForSection(section: AdminSection, groups: NavGroup[]): string {
+  for (const group of groups) {
     if (group.sections.some((s) => s.value === section)) return group.id;
   }
   return "business";
@@ -111,7 +124,9 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const activeGroup = getGroupForSection(activeSection);
+  const { data: global } = useGlobalAssumptions();
+  const navGroups = buildNavGroups(!!global?.adminIntelV2);
+  const activeGroup = getGroupForSection(activeSection, navGroups);
 
   const sidebarContent = (
     <nav className="flex flex-col gap-0.5 py-3 px-3">
@@ -277,5 +292,5 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
   );
 }
 
-export { navGroups, getGroupForSection };
+export { buildNavGroups, getGroupForSection };
 export type { NavGroup, SectionItem };
