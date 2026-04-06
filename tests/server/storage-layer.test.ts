@@ -68,10 +68,10 @@ describe("Storage Layer — FinancialStorage (Global Assumptions)", () => {
     expect(userCheck).toBeLessThan(sharedCheck);
   });
 
-  it("upsertGlobalAssumptions updates existing row (not insert duplicate)", () => {
-    expect(src).toContain("const existing = await this.getGlobalAssumptions(userId)");
+  it("upsertGlobalAssumptions updates user-scoped row (not shared fallback)", () => {
+    expect(src).toContain("eq(globalAssumptions.userId, userId)");
     expect(src).toContain(".update(globalAssumptions)");
-    expect(src).toContain(".where(eq(globalAssumptions.id, existing.id))");
+    expect(src).toContain(".where(eq(globalAssumptions.id, ownRow.id))");
   });
 });
 

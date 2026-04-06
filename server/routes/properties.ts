@@ -308,7 +308,7 @@ export function register(app: Express) {
               rate: cat.rate,
               isActive: cat.isActive,
               sortOrder: cat.sortOrder,
-            });
+            }, propertyId);
           } else {
             return storage.createFeeCategory({
               propertyId,

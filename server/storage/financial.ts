@@ -1,6 +1,6 @@
 import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, propertyFeeCategories, propertyPhotos, companyServiceTemplates, scenarioResults, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type ScenarioShare, type ScenarioResult, type InsertScenarioResult, type FeeCategory, type InsertFeeCategory, type UpdateFeeCategory, properties, users } from "@shared/schema";
 import { db } from "../db";
-import { eq, desc, isNull, inArray, or, sql, and } from "drizzle-orm";
+import { eq, desc, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
 import { computeFullDiff, reconstructScenarioProperties, type PropertyDiff } from "../scenarios/diff-engine";
 import { stableEquals } from "../scenarios/stable-json";
@@ -140,13 +140,19 @@ export class FinancialStorage {
    * first save or the hundredth.
    */
   async upsertGlobalAssumptions(data: InsertGlobalAssumptions, userId?: number): Promise<GlobalAssumptions> {
-    const existing = await this.getGlobalAssumptions(userId);
-    
-    if (existing) {
+    const userCondition = userId
+      ? eq(globalAssumptions.userId, userId)
+      : isNull(globalAssumptions.userId);
+
+    const [ownRow] = await db.select().from(globalAssumptions)
+      .where(userCondition)
+      .limit(1);
+
+    if (ownRow) {
       const [updated] = await db
         .update(globalAssumptions)
         .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
-        .where(eq(globalAssumptions.id, existing.id))
+        .where(eq(globalAssumptions.id, ownRow.id))
         .returning();
       return updated;
     } else {
@@ -265,24 +271,29 @@ export class FinancialStorage {
   }
 
   async getPropertyOverridesForField(userId: number, field: string): Promise<Array<{ scenarioId: number; scenarioName: string; propertyName: string; value: unknown }>> {
-    const userScenarios = await this.getScenariosByUser(userId);
-    const results: Array<{ scenarioId: number; scenarioName: string; propertyName: string; value: unknown }> = [];
+    const rows = await db
+      .select({
+        scenarioId: scenarios.id,
+        scenarioName: scenarios.name,
+        propertyName: scenarioPropertyOverrides.propertyName,
+        overrides: scenarioPropertyOverrides.overrides,
+      })
+      .from(scenarioPropertyOverrides)
+      .innerJoin(scenarios, eq(scenarioPropertyOverrides.scenarioId, scenarios.id))
+      .where(and(eq(scenarios.userId, userId), isNull(scenarios.deletedAt)));
 
-    for (const scenario of userScenarios) {
-      const overrides = await this.getPropertyOverrides(scenario.id);
-      for (const override of overrides) {
-        const ov = override.overrides as Record<string, unknown>;
-        if (field in ov) {
-          results.push({
-            scenarioId: scenario.id,
-            scenarioName: scenario.name,
-            propertyName: override.propertyName,
-            value: ov[field],
-          });
-        }
+    const results: Array<{ scenarioId: number; scenarioName: string; propertyName: string; value: unknown }> = [];
+    for (const row of rows) {
+      const ov = row.overrides as Record<string, unknown>;
+      if (ov && field in ov) {
+        results.push({
+          scenarioId: row.scenarioId,
+          scenarioName: row.scenarioName,
+          propertyName: row.propertyName,
+          value: ov[field],
+        });
       }
     }
-
     return results;
   }
 
@@ -522,9 +533,12 @@ export class FinancialStorage {
     return cat;
   }
 
-  /** Update a fee category's name, rate, or sort order. */
-  async updateFeeCategory(id: number, data: UpdateFeeCategory): Promise<FeeCategory | undefined> {
-    const [cat] = await db.update(propertyFeeCategories).set(stripAutoFields(data as Record<string, unknown>)).where(eq(propertyFeeCategories.id, id)).returning();
+  /** Update a fee category's name, rate, or sort order. Requires propertyId for ownership check. */
+  async updateFeeCategory(id: number, data: UpdateFeeCategory, propertyId?: number): Promise<FeeCategory | undefined> {
+    const condition = propertyId
+      ? and(eq(propertyFeeCategories.id, id), eq(propertyFeeCategories.propertyId, propertyId))
+      : eq(propertyFeeCategories.id, id);
+    const [cat] = await db.update(propertyFeeCategories).set(stripAutoFields(data as Record<string, unknown>)).where(condition).returning();
     return cat || undefined;
   }
 
@@ -731,18 +745,33 @@ export class FinancialStorage {
       conditions.push(and(eq(scenarioShares.targetType, "company"), eq(scenarioShares.targetId, user.companyId)));
     }
 
-    const shares = await db.select().from(scenarioShares).where(or(...conditions));
+    const granterAlias = aliasedTable(users, "granter");
+    const rows = await db
+      .select({
+        scenario: scenarios,
+        grantedBy: scenarioShares.grantedBy,
+        granterFirstName: granterAlias.firstName,
+        granterLastName: granterAlias.lastName,
+        granterEmail: granterAlias.email,
+      })
+      .from(scenarioShares)
+      .innerJoin(scenarios, and(
+        eq(scenarioShares.scenarioId, scenarios.id),
+        isNull(scenarios.deletedAt),
+        sql`${scenarios.userId} != ${userId}`,
+      ))
+      .leftJoin(granterAlias, eq(scenarioShares.grantedBy, granterAlias.id))
+      .where(or(...conditions));
+
     const seen = new Set<number>();
     const results: (Scenario & { accessType: string; sharedByUserId: number | null; sharedByName: string | null })[] = [];
-    for (const share of shares) {
-      if (seen.has(share.scenarioId)) continue;
-      seen.add(share.scenarioId);
-      const [scenario] = await db.select().from(scenarios).where(and(eq(scenarios.id, share.scenarioId), isNull(scenarios.deletedAt)));
-      if (!scenario) continue;
-      if (scenario.userId === userId) continue;
-      const [granter] = await db.select().from(users).where(eq(users.id, share.grantedBy));
-      const granterName = granter ? [granter.firstName, granter.lastName].filter(Boolean).join(" ") || granter.email : null;
-      results.push({ ...scenario, accessType: "shared", sharedByUserId: share.grantedBy, sharedByName: granterName });
+    for (const row of rows) {
+      if (seen.has(row.scenario.id)) continue;
+      seen.add(row.scenario.id);
+      const granterName = row.granterFirstName || row.granterLastName
+        ? [row.granterFirstName, row.granterLastName].filter(Boolean).join(" ")
+        : row.granterEmail ?? null;
+      results.push({ ...row.scenario, accessType: "shared", sharedByUserId: row.grantedBy, sharedByName: granterName });
     }
     return results;
   }
