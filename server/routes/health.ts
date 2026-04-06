@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { pool } from "../db";
+import { storage } from "../storage";
 import { getCacheStatus } from "../finance/cache";
 import { logger } from "../logger";
 
@@ -17,12 +17,8 @@ router.get("/api/health/live", (_req: Request, res: Response) => {
 
 router.get("/api/health/ready", async (_req: Request, res: Response) => {
   try {
-    await pool.query("SELECT 1");
-    const migrationResult = await pool.query(
-      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'properties') AS ready"
-    );
-    const migrationsReady = migrationResult.rows[0]?.ready === true;
-    if (!migrationsReady) {
+    const health = await storage.getDbHealth();
+    if (!health.migrationsReady) {
       res.status(503).json({ status: "not_ready", db: "connected", migrations: "pending" });
       return;
     }
@@ -37,15 +33,11 @@ router.get("/api/health/deep", async (_req: Request, res: Response) => {
   const checks: Record<string, HealthCheck> = {};
 
   try {
-    const result = await pool.query("SELECT NOW() AS server_time");
+    const health = await storage.getDbHealth();
     checks.database = {
       status: "ok",
-      serverTime: result.rows[0]?.server_time,
-      pool: {
-        total: pool.totalCount,
-        idle: pool.idleCount,
-        waiting: pool.waitingCount,
-      },
+      serverTime: health.serverTime,
+      pool: health.pool,
     };
   } catch (err) {
     checks.database = { status: "error", message: err instanceof Error ? err.message : String(err) };

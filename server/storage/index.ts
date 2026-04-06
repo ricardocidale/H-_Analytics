@@ -25,7 +25,7 @@
  * The singleton `storage` instance is exported from this file and imported
  * by every route file in server/routes/.
  */
-import { db } from "../db";
+import { db, pool } from "../db";
 import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, scenarioResults, notificationPreferences, documentExtractions, conversations, type User, type Session, type GlobalAssumptions, type Property, type Scenario, type ScenarioResult, type InsertScenarioResult, type Logo, type AssetDescription, type UserGroup, type Company, type FeeCategory, type ResearchQuestion, type DesignTheme } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { UserStorage } from "./users";
@@ -342,5 +342,17 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(verificationRuns).where(eq(verificationRuns.userId, id));
       await tx.delete(users).where(eq(users.id, id));
     });
+  }
+
+  async getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }> {
+    const result = await pool.query("SELECT NOW() AS server_time");
+    const migResult = await pool.query(
+      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'properties') AS ready"
+    );
+    return {
+      serverTime: result.rows[0]?.server_time,
+      pool: { total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount },
+      migrationsReady: migResult.rows[0]?.ready === true,
+    };
   }
 }

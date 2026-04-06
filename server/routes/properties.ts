@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireManagementAccess, checkPropertyAccess , getAuthUser } from "../auth";
+import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess , getAuthUser } from "../auth";
 import { insertPropertySchema, updatePropertySchema, updateFeeCategorySchema, type GlobalAssumptions } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
@@ -73,7 +73,7 @@ export function register(app: Express) {
     propertyIds: z.array(z.number().int()).default([]),
   });
 
-  app.put("/api/user-groups/:id/properties", requireManagementAccess, async (req, res) => {
+  app.put("/api/user-groups/:id/properties", requireAdmin, async (req, res) => {
     try {
       const parsed = groupPropertyIdsSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -341,6 +341,9 @@ export function register(app: Express) {
   app.get("/api/properties/:id/walk-score", requireAuth, async (req, res) => {
     try {
       const propertyId = parseInt(String(req.params.id));
+      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const property = await storage.getProperty(propertyId);
       if (!property) return res.status(404).json({ error: "Property not found" });
 

@@ -46,18 +46,20 @@ export class IntelligenceV2Storage {
         : isNull(assumptionGuidance.scenarioId),
     ];
 
-    const [existing] = await db.select().from(assumptionGuidance).where(and(...conditions)).limit(1);
+    return db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(assumptionGuidance).where(and(...conditions)).limit(1);
     if (existing) {
-      const [updated] = await db.update(assumptionGuidance)
+      const [updated] = await tx.update(assumptionGuidance)
         .set({ ...data, updatedAt: new Date() })
         .where(eq(assumptionGuidance.id, existing.id))
         .returning();
       return updated;
     }
-    const [inserted] = await db.insert(assumptionGuidance)
+    const [inserted] = await tx.insert(assumptionGuidance)
       .values(data as typeof assumptionGuidance.$inferInsert)
       .returning();
     return inserted;
+    });
   }
 
   async createResearchRun(data: InsertResearchRun): Promise<ResearchRun> {
@@ -381,24 +383,26 @@ export class IntelligenceV2Storage {
   }
 
   async upsertScheduledResearchWorkflow(data: InsertScheduledResearchWorkflow): Promise<ScheduledResearchWorkflow> {
-    const [existing] = await db.select().from(scheduledResearchWorkflows)
-      .where(eq(scheduledResearchWorkflows.workflowKey, data.workflowKey))
-      .limit(1);
-    if (existing) {
-      const [updated] = await db.update(scheduledResearchWorkflows)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(scheduledResearchWorkflows.id, existing.id))
+    return db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(scheduledResearchWorkflows)
+        .where(eq(scheduledResearchWorkflows.workflowKey, data.workflowKey))
+        .limit(1);
+      if (existing) {
+        const [updated] = await tx.update(scheduledResearchWorkflows)
+          .set({ ...data, updatedAt: new Date() })
+          .where(eq(scheduledResearchWorkflows.id, existing.id))
+          .returning();
+        return updated;
+      }
+      const nextRun = new Date();
+      const [inserted] = await tx.insert(scheduledResearchWorkflows)
+        .values({
+          ...data,
+          nextRunAt: data.nextRunAt ?? nextRun,
+        } as typeof scheduledResearchWorkflows.$inferInsert)
         .returning();
-      return updated;
-    }
-    const nextRun = new Date();
-    const [inserted] = await db.insert(scheduledResearchWorkflows)
-      .values({
-        ...data,
-        nextRunAt: data.nextRunAt ?? nextRun,
-      } as typeof scheduledResearchWorkflows.$inferInsert)
-      .returning();
-    return inserted;
+      return inserted;
+    });
   }
 
   async updateScheduledWorkflowRun(id: number, update: {
