@@ -19,6 +19,7 @@ import { useCompanyResearchStream } from "@/components/company-research";
 import { ResearchFreshnessBadge } from "@/components/research/ResearchFreshnessBadge";
 import { ResearchCriteriaTab } from "@/components/research/ResearchCriteriaTab";
 import { motion, AnimatePresence } from "framer-motion";
+import MethodologyTransparencyPanel from "@/components/research/MethodologyTransparencyPanel";
 import { downloadResearchPDF } from "@/lib/exports/researchPdfExport";
 import { useToast } from "@/hooks/use-toast";
 import { RevenueFees, CostStructure, VendorIntelligence, CompetitivePosition } from "@/components/company-research/sections/OperationsSections";
@@ -158,6 +159,18 @@ export default function CompanyResearch() {
 
           {!isGenerating && (
             <>
+              <MethodologyTransparencyPanel
+                entityType="company"
+                entityName={companyName}
+                research={{
+                  updatedAt: companyRes?.updatedAt,
+                  modelId: companyContent?.modelId,
+                  sources: companyContent?.sources,
+                  starRating: companyContent?.starRating,
+                  relaxationTrail: companyContent?.relaxationTrail,
+                  tierUsed: companyContent?.tierUsed,
+                }}
+              />
               <div className="flex items-center gap-1 bg-card/80 backdrop-blur-xl border border-border rounded-xl p-1.5 w-fit">
                 {GROUPS.map(g => {
                   const active = activeGroup === g.key;

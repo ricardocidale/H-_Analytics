@@ -1,12 +1,13 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
-import { requireAdmin } from "../../auth";
+import { requireAdmin, getAuthUser } from "../../auth";
 import { logAndSendError } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { db } from "../../db";
-import { properties, assumptionGuidance, researchRuns } from "@shared/schema";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { buildPropertyContextPack } from "../../ai/context-pack/property-pack";
+import { buildCompanyContextPack } from "../../ai/context-pack/company-pack";
+import { assembleResearchPrompt } from "../../ai/prompt/assemble-research-prompt";
+import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 
 const scenarioQuerySchema = z.object({
   scenarioId: z.coerce.number().int().positive().optional(),
@@ -21,9 +22,11 @@ export function registerIntelligenceRoutes(app: Express) {
       if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
 
       const scenarioId = query.data.scenarioId ?? null;
-      const allProps = await db.select({ id: properties.id, name: properties.name, starRating: properties.starRating })
-        .from(properties)
-        .orderBy(properties.name);
+      const user = getAuthUser(_req);
+      const allPropsRaw = await storage.getAllProperties(user.id);
+      const allProps = allPropsRaw
+        .map(p => ({ id: p.id, name: p.name, starRating: p.starRating }))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
       const now = Date.now();
       const entities: Array<{
@@ -210,6 +213,127 @@ export function registerIntelligenceRoutes(app: Express) {
       res.json(updated);
     } catch (error) {
       logAndSendError(res, "Failed to update pipeline policy", error);
+    }
+  });
+
+  const qaEntitySchema = z.object({
+    entityType: z.enum(["property", "company"]),
+    entityId: z.coerce.number().int().positive().optional(),
+    tier: z.number().int().min(1).max(2).optional().default(1),
+    assumptionKeys: z.array(z.string()).optional(),
+  });
+
+  app.post("/api/admin/qa/preview-context-pack", requireAdmin, async (req, res) => {
+    try {
+      const parsed = qaEntitySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+
+      const { entityType, entityId } = parsed.data;
+      const user = getAuthUser(req);
+      const ga = await storage.getGlobalAssumptions(user.id);
+
+      if (entityType === "property") {
+        if (!entityId) return res.status(400).json({ error: "entityId is required for property" });
+        const property = await storage.getProperty(entityId);
+        if (!property) return res.status(404).json({ error: "Property not found" });
+        const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
+        const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
+        res.json({ entityType, entityId, entityName: property.name, contextPack });
+      } else {
+        if (!ga) return res.status(404).json({ error: "Global assumptions not found" });
+        const allProps = await storage.getAllProperties(user.id);
+        const serviceTemplates = await storage.getAllServiceTemplates();
+        const contextPack = buildCompanyContextPack(
+          ga,
+          allProps,
+          serviceTemplates.map(st => ({
+            name: st.name,
+            defaultRate: st.defaultRate ?? 0,
+            serviceModel: st.serviceModel ?? "percentage",
+            serviceMarkup: st.serviceMarkup ?? 0,
+            isActive: st.isActive !== false,
+          })),
+        );
+        res.json({ entityType, entityName: ga.companyName ?? "Management Company", contextPack });
+      }
+    } catch (error) {
+      logAndSendError(res, "Failed to preview context pack", error);
+    }
+  });
+
+  app.post("/api/admin/qa/preview-prompt", requireAdmin, async (req, res) => {
+    try {
+      const parsed = qaEntitySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+
+      const { entityType, entityId, tier, assumptionKeys } = parsed.data;
+      const user = getAuthUser(req);
+      const ga = await storage.getGlobalAssumptions(user.id);
+
+      const benchmarks = await storage.getBenchmarkSnapshots();
+      let ambientDataStr: string | undefined;
+      if (benchmarks.length > 0) {
+        ambientDataStr = benchmarks.map(b =>
+          `${b.snapshotKey} (${b.category}): ${b.value}${b.source ? ` [${b.source}]` : ""}${b.staleness === "stale" ? " [STALE]" : ""}`
+        ).join("\n");
+      }
+
+      let prompt: string;
+      let entityName: string;
+
+      if (entityType === "property") {
+        if (!entityId) return res.status(400).json({ error: "entityId is required for property" });
+        const property = await storage.getProperty(entityId);
+        if (!property) return res.status(404).json({ error: "Property not found" });
+        entityName = property.name;
+        const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
+        const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
+        prompt = assembleResearchPrompt(contextPack, {
+          tier: tier as 1 | 2,
+          entityType: "property",
+          assumptionKeys,
+          ambientData: ambientDataStr,
+        });
+      } else {
+        if (!ga) return res.status(404).json({ error: "Global assumptions not found" });
+        entityName = ga.companyName ?? "Management Company";
+        const allProps = await storage.getAllProperties(user.id);
+        const serviceTemplates = await storage.getAllServiceTemplates();
+        const companyPack = buildCompanyContextPack(
+          ga,
+          allProps,
+          serviceTemplates.map(st => ({
+            name: st.name,
+            defaultRate: st.defaultRate ?? 0,
+            serviceModel: st.serviceModel ?? "percentage",
+            serviceMarkup: st.serviceMarkup ?? 0,
+            isActive: st.isActive !== false,
+          })),
+        );
+        prompt = assembleResearchPrompt(companyPack, {
+          tier: tier as 1 | 2,
+          entityType: "company",
+          assumptionKeys,
+          ambientData: ambientDataStr,
+        });
+      }
+
+      const tokenEstimate = Math.ceil(prompt.length / 4);
+      const costPerMillionTokens = 3.0;
+      const estimatedCost = (tokenEstimate / 1_000_000) * costPerMillionTokens;
+
+      res.json({
+        entityType,
+        entityId,
+        entityName,
+        tier,
+        prompt,
+        tokenEstimate,
+        estimatedCostUsd: Math.round(estimatedCost * 10000) / 10000,
+        promptLengthChars: prompt.length,
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to preview prompt", error);
     }
   });
 }

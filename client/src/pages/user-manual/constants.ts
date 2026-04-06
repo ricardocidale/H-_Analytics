@@ -1,4 +1,4 @@
-import { IconActivity, IconDashboard, IconProperties, IconBriefcase, IconSettings, IconScenarios, IconAnalysis, IconPropertyFinder, IconExport, IconBot, IconProfile, IconSwatchBook, IconShield, IconVerify, IconImage, IconInvestment, IconPanelLeft } from "@/components/icons";import type { ComponentType, SVGAttributes } from "react";
+import { IconActivity, IconDashboard, IconProperties, IconBriefcase, IconSettings, IconScenarios, IconAnalysis, IconPropertyFinder, IconExport, IconBot, IconProfile, IconSwatchBook, IconShield, IconVerify, IconImage, IconInvestment, IconPanelLeft, IconBookOpen } from "@/components/icons";import type { ComponentType, SVGAttributes } from "react";
 
 export type AccessLevel = "all" | "management" | "admin";
 
@@ -26,4 +26,5 @@ export const USER_MANUAL_SECTIONS: UserManualSection[] = [
   { id: "branding", title: "15. Branding & Themes", icon: IconSwatchBook, access: "admin" },
   { id: "admin", title: "16. Admin Settings", icon: IconShield, access: "admin" },
   { id: "business-constraints", title: "17. Business Rules & Constraints", icon: IconVerify, access: "all" },
+  { id: "research-intelligence", title: "18. Research & Intelligence", icon: IconBookOpen, access: "all" },
 ];

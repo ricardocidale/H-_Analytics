@@ -18,6 +18,7 @@ const sectionMap: Record<string, React.LazyExoticComponent<React.ComponentType<a
   "branding": lazy(() => import("./sections/Section15Branding")),
   "admin": lazy(() => import("./sections/Section16Admin")),
   "business-constraints": lazy(() => import("./sections/Section17BusinessRules")),
+  "research-intelligence": lazy(() => import("./sections/Section18Research")),
 };
 
 interface UserManualContentProps {

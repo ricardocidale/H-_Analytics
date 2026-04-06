@@ -20,6 +20,7 @@ import { useResearchStream } from "@/components/property-research/useResearchStr
 import { ResearchFreshnessBadge } from "@/components/research/ResearchFreshnessBadge";
 import { ResearchCriteriaTab } from "@/components/research/ResearchCriteriaTab";
 import { MarketRateBenchmark } from "@/components/property-research/MarketRateBenchmark";
+import MethodologyTransparencyPanel from "@/components/research/MethodologyTransparencyPanel";
 import { motion } from "framer-motion";
 import { MarketTab, RevenueTab, FinancialTab, OperatingTab, SourcesTab } from "@/components/research/MarketResearchTabs";
 import { card } from "@/components/research/research-chart-shared";
@@ -166,6 +167,20 @@ export default function PropertyMarketResearch() {
           )}
 
           {hasResearch && !isGenerating && (
+            <>
+            <MethodologyTransparencyPanel
+              entityType="property"
+              entityName={property.name}
+              research={{
+                updatedAt: research?.updatedAt,
+                modelId: content?.modelId,
+                sources: content?.sources,
+                comparableCount: content?.comparableProperties?.length ?? content?.compSetSize,
+                starRating: content?.starRating,
+                relaxationTrail: content?.relaxationTrail,
+                tierUsed: content?.tierUsed,
+              }}
+            />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsList className="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-primary/10 p-1 rounded-xl">
                 <TabsTrigger value="market" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
@@ -213,6 +228,7 @@ export default function PropertyMarketResearch() {
                 </motion.div>
               </TabsContent>
             </Tabs>
+            </>
           )}
         </div>
       </AnimatedPage>
