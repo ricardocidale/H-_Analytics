@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface ContextPackResponse {
   entityType: string;
@@ -20,6 +21,21 @@ interface PromptPreviewResponse {
   tokenEstimate: number;
   estimatedCostUsd: number;
   promptLengthChars: number;
+}
+
+interface LiveTestResponse {
+  entityType: string;
+  entityId: number;
+  entityName: string;
+  tier: number;
+  vendor: string;
+  model: string;
+  response: string;
+  promptLengthChars: number;
+  responseLengthChars: number;
+  tokenEstimate: number;
+  estimatedCostUsd: number;
+  durationMs: number;
 }
 
 interface PropertyOption { id: number; name: string }
@@ -76,10 +92,15 @@ function JsonTree({ data, depth = 0 }: { data: unknown; depth?: number }) {
 }
 
 export default function QASandbox() {
+  const { toast } = useToast();
   const [entityType, setEntityType] = useState<"property" | "company">("property");
   const [entityId, setEntityId] = useState<number>(0);
   const [tier, setTier] = useState<1 | 2>(1);
-  const [activeView, setActiveView] = useState<"context-pack" | "prompt" | null>(null);
+  const [activeView, setActiveView] = useState<"context-pack" | "prompt" | "live-test" | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmedSelection, setConfirmedSelection] = useState("");
+
+  const selectionKey = `${entityType}-${entityId}-${tier}`;
 
   const { data: propList } = useQuery<PropertyOption[]>({
     queryKey: ["admin-qa-properties"],
@@ -95,6 +116,11 @@ export default function QASandbox() {
       setEntityId(propList[0].id);
     }
   }, [propList, entityId]);
+
+  useEffect(() => {
+    setShowConfirm(false);
+    setConfirmedSelection("");
+  }, [entityType, entityId, tier]);
 
   const contextPackMutation = useMutation<ContextPackResponse, Error>({
     mutationFn: async () => {
@@ -132,10 +158,38 @@ export default function QASandbox() {
     onSuccess: () => setActiveView("prompt"),
   });
 
+  const liveTestMutation = useMutation<LiveTestResponse, Error>({
+    mutationFn: async () => {
+      const body: Record<string, unknown> = { entityType, tier };
+      if (entityType === "property") body.entityId = entityId;
+      const res = await fetch("/api/admin/qa/run-live-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to run live test");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setActiveView("live-test");
+      setShowConfirm(false);
+      toast({ title: "Live test complete" });
+    },
+    onError: (err) => {
+      setShowConfirm(false);
+      toast({ title: "Live test failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const estimatedCost = promptMutation.data?.estimatedCostUsd;
+
   return (
     <div className="space-y-6" data-testid="qa-sandbox">
       <p className="text-sm text-muted-foreground">
-        Preview the context pack and assembled prompt for any entity — without consuming LLM tokens. Inspect exactly what the AI sees before running research.
+        Preview the context pack and assembled prompt for any entity — without consuming LLM tokens. Or run a live test to see actual AI output.
       </p>
 
       <div className="rounded-xl border border-border/80 bg-card p-5 space-y-4">
@@ -211,9 +265,79 @@ export default function QASandbox() {
                 </span>
               ) : "Preview Prompt"}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-amber-500/50 text-amber-700 hover:bg-amber-500/10"
+              onClick={() => {
+                if (!promptMutation.data || confirmedSelection !== selectionKey) {
+                  promptMutation.mutate(undefined, {
+                    onSuccess: () => {
+                      setConfirmedSelection(selectionKey);
+                      setShowConfirm(true);
+                    },
+                  });
+                } else {
+                  setShowConfirm(true);
+                }
+              }}
+              disabled={liveTestMutation.isPending || promptMutation.isPending}
+              data-testid="button-run-live-test"
+            >
+              {liveTestMutation.isPending ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="animate-spin w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
+                  Running...
+                </span>
+              ) : "Run Live Test"}
+            </Button>
           </div>
         </div>
       </div>
+
+      {showConfirm && (
+        <div className="rounded-xl border-2 border-amber-500/40 bg-amber-500/5 p-5 space-y-3" data-testid="live-test-confirm">
+          <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-400">Confirm Live Test</h4>
+          <p className="text-xs text-muted-foreground">
+            This will send the assembled prompt to the configured LLM and consume tokens. This is a real API call with associated costs.
+          </p>
+          <div className="flex items-center gap-4 text-xs">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              ~{(promptMutation.data?.tokenEstimate ?? 0).toLocaleString()} input tokens
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              ~${(estimatedCost ?? 0).toFixed(4)} estimated cost
+            </span>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={() => liveTestMutation.mutate()}
+              disabled={liveTestMutation.isPending}
+              data-testid="button-confirm-live-test"
+            >
+              {liveTestMutation.isPending ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="animate-spin w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
+                  Executing...
+                </span>
+              ) : "Confirm & Execute"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConfirm(false)}
+              disabled={liveTestMutation.isPending}
+              data-testid="button-cancel-live-test"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {activeView === "context-pack" && contextPackMutation.data && (
         <div className="rounded-xl border border-border/80 bg-card overflow-hidden" data-testid="context-pack-result">
@@ -268,6 +392,47 @@ export default function QASandbox() {
         </div>
       )}
 
+      {activeView === "live-test" && liveTestMutation.data && (
+        <div className="rounded-xl border border-amber-500/30 bg-card overflow-hidden" data-testid="live-test-result">
+          <div className="px-5 py-3 border-b border-amber-500/20 bg-amber-500/5">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-foreground">
+                Live Test Result — {liveTestMutation.data.entityName}
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium">
+                  Tier {liveTestMutation.data.tier}
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                  {liveTestMutation.data.vendor}/{liveTestMutation.data.model}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                {liveTestMutation.data.tokenEstimate.toLocaleString()} tokens (est.)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                ${liveTestMutation.data.estimatedCostUsd.toFixed(4)} (est.)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                {(liveTestMutation.data.durationMs / 1000).toFixed(1)}s
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                {liveTestMutation.data.responseLengthChars.toLocaleString()} chars response
+              </span>
+            </div>
+          </div>
+          <div className="p-5 max-h-[600px] overflow-y-auto scrollbar-thin">
+            <pre className="text-xs font-mono text-foreground/85 whitespace-pre-wrap leading-relaxed">{liveTestMutation.data.response}</pre>
+          </div>
+        </div>
+      )}
+
       {contextPackMutation.isError && (
         <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-400" data-testid="qa-error">
           {contextPackMutation.error?.message || "Failed to build context pack."}
@@ -276,6 +441,11 @@ export default function QASandbox() {
       {promptMutation.isError && (
         <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-400" data-testid="qa-error">
           {promptMutation.error?.message || "Failed to assemble prompt."}
+        </div>
+      )}
+      {liveTestMutation.isError && !showConfirm && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-400" data-testid="qa-error">
+          {liveTestMutation.error?.message || "Failed to run live test."}
         </div>
       )}
     </div>

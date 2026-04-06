@@ -29,6 +29,7 @@ import ScenariosTab from "@/components/admin/ScenariosTab";
 import CoverageAnalyticsDashboard from "@/components/admin/intelligence/CoverageAnalyticsDashboard";
 import PipelinePoliciesForm from "@/components/admin/intelligence/PipelinePoliciesForm";
 import QASandbox from "@/components/admin/intelligence/QASandbox";
+import SourceRegistryOverlay from "@/components/admin/intelligence/SourceRegistryOverlay";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary, SelfHealingBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -135,7 +136,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "pipeline-policies":  return <PipelinePoliciesForm />;
     case "qa-sandbox":         return <QASandbox />;
     case "source-registry":
-      return <IntelV2Placeholder section={section} />;
+      return <SourceRegistryOverlay />;
     default:                 return null;
   }
 }

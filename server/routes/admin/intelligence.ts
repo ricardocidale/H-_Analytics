@@ -8,6 +8,10 @@ import { buildPropertyContextPack } from "../../ai/context-pack/property-pack";
 import { buildCompanyContextPack } from "../../ai/context-pack/company-pack";
 import { assembleResearchPrompt } from "../../ai/prompt/assemble-research-prompt";
 import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
+import { resolveLlm, getVendorService } from "../../ai/resolve-llm";
+import { createResearchClient } from "../../ai/research-client";
+import { getGeminiClient, getAnthropicClient, getOpenAIClient } from "../../ai/clients";
+import type { ResearchConfig } from "@shared/schema";
 
 const scenarioQuerySchema = z.object({
   scenarioId: z.coerce.number().int().positive().optional(),
@@ -377,6 +381,152 @@ export function registerIntelligenceRoutes(app: Express) {
       res.json({ success: true, rotatedAt: rotation.rotatedAt, id: rotation.id });
     } catch (error) {
       logAndSendError(res, "Failed to rotate key", error);
+    }
+  });
+
+  app.post("/api/admin/qa/run-live-test", requireAdmin, async (req, res) => {
+    try {
+      const parsed = qaEntitySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+
+      const { entityType, entityId, tier } = parsed.data;
+      const user = getAuthUser(req);
+      const ga = await storage.getGlobalAssumptions(user.id);
+
+      const benchmarks = await storage.getBenchmarkSnapshots();
+      let ambientDataStr: string | undefined;
+      if (benchmarks.length > 0) {
+        ambientDataStr = benchmarks.map(b =>
+          `${b.snapshotKey} (${b.category}): ${b.value}${b.source ? ` [${b.source}]` : ""}${b.staleness === "stale" ? " [STALE]" : ""}`
+        ).join("\n");
+      }
+
+      let prompt: string;
+      let entityName: string;
+      const domain = entityType === "property" ? "propertyLlm" : "companyLlm";
+
+      if (entityType === "property") {
+        if (!entityId) return res.status(400).json({ error: "entityId is required for property" });
+        const property = await storage.getProperty(entityId);
+        if (!property) return res.status(404).json({ error: "Property not found" });
+        entityName = property.name;
+        const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
+        const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
+        prompt = assembleResearchPrompt(contextPack, {
+          tier: tier as 1 | 2,
+          entityType: "property",
+          ambientData: ambientDataStr,
+        });
+      } else {
+        if (!ga) return res.status(404).json({ error: "Global assumptions not found" });
+        entityName = ga.companyName ?? "Management Company";
+        const allProps = await storage.getAllProperties(user.id);
+        const serviceTemplates = await storage.getAllServiceTemplates();
+        const companyPack = buildCompanyContextPack(
+          ga,
+          allProps,
+          serviceTemplates.map(st => ({
+            name: st.name,
+            defaultRate: st.defaultRate ?? 0,
+            serviceModel: st.serviceModel ?? "percentage",
+            serviceMarkup: st.serviceMarkup ?? 0,
+            isActive: st.isActive !== false,
+          })),
+        );
+        prompt = assembleResearchPrompt(companyPack, {
+          tier: tier as 1 | 2,
+          entityType: "company",
+          ambientData: ambientDataStr,
+        });
+      }
+
+      if (!prompt || prompt.length === 0) {
+        return res.status(422).json({ error: "Prompt assembly returned empty" });
+      }
+
+      const researchConfig = ga?.researchConfig as ResearchConfig | undefined;
+      const resolved = resolveLlm(researchConfig, domain as any);
+      const vendorKey = getVendorService(resolved.vendor);
+
+      const supportedVendor: "anthropic" | "openai" | "google" =
+        vendorKey === "gemini" ? "google" : vendorKey === "anthropic" ? "anthropic" : "openai";
+
+      const clients: Record<string, unknown> = {};
+      try {
+        if (supportedVendor === "google") clients.gemini = getGeminiClient();
+        else if (supportedVendor === "anthropic") clients.anthropic = getAnthropicClient();
+        else clients.openai = getOpenAIClient();
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Failed to initialize AI client";
+        return res.status(503).json({ error: msg });
+      }
+
+      const researchClient = createResearchClient(supportedVendor, clients as any);
+      const startTime = Date.now();
+
+      const response = await researchClient.createMessage({
+        model: resolved.model,
+        maxTokens: 4096,
+        system: "You are an expert hospitality financial analyst. Provide structured research analysis based on the provided context. Return your analysis as JSON when possible.",
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      const durationMs = Date.now() - startTime;
+      const responseText = response.textBlocks.join("\n");
+      const tokenEstimate = Math.ceil(prompt.length / 4) + Math.ceil(responseText.length / 4);
+      const costPerMillionTokens = 3.0;
+      const estimatedCost = (tokenEstimate / 1_000_000) * costPerMillionTokens;
+
+      res.json({
+        entityType,
+        entityId,
+        entityName,
+        tier,
+        vendor: resolved.vendor,
+        model: resolved.model,
+        response: responseText,
+        promptLengthChars: prompt.length,
+        responseLengthChars: responseText.length,
+        tokenEstimate,
+        estimatedCostUsd: Math.round(estimatedCost * 10000) / 10000,
+        durationMs,
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to run live test", error);
+    }
+  });
+
+  app.get("/api/admin/source-registry", requireAdmin, async (_req, res) => {
+    try {
+      const sources = await storage.getSourceRegistry();
+      res.json(sources);
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch source registry", error);
+    }
+  });
+
+  app.patch("/api/admin/source-registry/:serviceKey", requireAdmin, async (req, res) => {
+    try {
+      const serviceKey = req.params.serviceKey;
+      const bodySchema = z.object({
+        trustScore: z.enum(["verified", "estimated", "unverified"]).optional(),
+        isActive: z.boolean().optional(),
+        cadence: z.string().optional(),
+      });
+      const parsed = bodySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+
+      const existing = await storage.getSourceRegistry();
+      const entry = existing.find(s => s.serviceKey === serviceKey);
+      if (!entry) return res.status(404).json({ error: "Source not found" });
+
+      const updated = await storage.upsertSourceRegistry({
+        ...entry,
+        ...parsed.data,
+      });
+      res.json(updated);
+    } catch (error) {
+      logAndSendError(res, "Failed to update source registry entry", error);
     }
   });
 }
