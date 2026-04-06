@@ -221,10 +221,11 @@ export class IntelligenceV2Storage {
     });
   }
 
-  async getRebeccaConversations(userId: number): Promise<RebeccaConversation[]> {
-    return db.select().from(rebeccaConversations)
-      .where(eq(rebeccaConversations.userId, userId))
+  async getRebeccaConversations(userId?: number): Promise<RebeccaConversation[]> {
+    const q = db.select().from(rebeccaConversations)
       .orderBy(desc(rebeccaConversations.lastMessageAt));
+    if (userId) return q.where(eq(rebeccaConversations.userId, userId));
+    return q;
   }
 
   async addRebeccaMessage(data: InsertRebeccaMessage): Promise<RebeccaMessage> {

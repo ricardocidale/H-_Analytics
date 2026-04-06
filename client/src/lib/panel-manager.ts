@@ -13,6 +13,7 @@ interface GuidanceContext {
 
 interface RebeccaContext {
   fieldName?: string;
+  entityName?: string;
   currentValue?: number | null;
   guidanceLow?: number | null;
   guidanceMid?: number | null;

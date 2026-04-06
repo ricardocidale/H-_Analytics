@@ -10,7 +10,11 @@ import {
   Loader2,
   Sparkles,
   RotateCcw,
+  Mail,
+  Flag,
 } from "lucide-react";
+import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
+import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
 
 interface ChatMessage {
   id: string;
@@ -42,6 +46,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [suggestedChips, setSuggestedChips] = useState<string[]>([]);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -289,6 +295,30 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {messages.length > 0 && conversationId && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setEmailOpen(true)}
+                    title="Email summary"
+                    data-testid="button-rebecca-email"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setFeedbackOpen(true)}
+                    title="Report issue"
+                    data-testid="button-rebecca-feedback"
+                  >
+                    <Flag className="w-3.5 h-3.5" />
+                  </Button>
+                </>
+              )}
               {messages.length > 0 && (
                 <Button
                   variant="ghost"
@@ -431,6 +461,24 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           </div>
         </div>
       </SheetContent>
+
+      <RebeccaEmailPreview
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        conversationId={conversationId}
+        messages={messages}
+        entityName={rebeccaContext?.entityName}
+        fieldName={rebeccaContext?.fieldName}
+      />
+
+      <RebeccaFeedbackForm
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        conversationId={conversationId}
+        entityType={rebeccaContext?.entityType}
+        entityId={rebeccaContext?.entityId}
+        fieldKey={rebeccaContext?.fieldKey}
+      />
     </Sheet>
   );
 }
