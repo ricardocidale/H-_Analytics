@@ -199,7 +199,7 @@ Full reference: `.claude/skills/exports/SKILL.md`. SDD: `.claude/skills/exports/
 
 ---
 
-## Research Intelligence Redesign (PLANNED — Task #287)
+## Research Intelligence Redesign (IN PROGRESS — Task #287)
 
 Major architectural evolution of the research system. Full spec: `.claude/skills/research/research-intelligence-redesign.md` and `.local/tasks/research-intelligence-redesign.md`.
 
@@ -216,11 +216,26 @@ Major architectural evolution of the research system. Full spec: `.claude/skills
 - **Admin Console**: Coverage Analytics, QA Sandbox, Pipeline Policies, Model Routing per tier, Rebecca admin (6 sub-tabs), unified API Dashboard, Source Registry
 - **Navigation Redesign**: App sidebar: Home/Intelligence/Settings. Admin: Business/Intelligence/AI/Design/System
 
-### New Database Tables (PLANNED)
-assumption_guidance, research_runs, benchmark_snapshots, relaxation_traces, guidance_decisions, rebecca_conversations, rebecca_messages, rebecca_emails, rebecca_feedback, coverage_snapshots, source_registry, integration_key_rotations, pipeline_policies
+### New Database Tables (IMPLEMENTED)
+assumption_guidance, research_runs, benchmark_snapshots, relaxation_traces, guidance_decisions, rebecca_conversations, rebecca_messages, rebecca_emails, rebecca_feedback, coverage_snapshots, source_registry, integration_key_rotations, pipeline_policies — all in `shared/schema/intelligence-v2.ts`
 
-### New Property Fields (PLANNED)
-starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|resort|boutique_hotel|...)
+### New Property Fields (IMPLEMENTED)
+starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|resort|boutique_hotel|...) — with Zod validation
+
+### Context Pack System (IMPLEMENTED)
+- `server/ai/context-pack/` — PropertyContextPack (10 categories), CompanyContextPack (8 categories), luxury classifier
+- `server/ai/prompt/` — Auto-prompt assembly engine (Tier 1 full entity, Tier 2 single assumption)
+- `server/ai/guidance/` — Guidance extractor with Zod validation, key normalization, dual extraction paths
+- `server/routes/guidance.ts` — Scenario-scoped guidance API + Tier 2 deep-dive endpoint
+- `server/ai/ambient/` — Tier 0 benchmark scheduler (21 hospitality benchmarks, 6h refresh)
+- `server/ai/comparables/` — Progressive relaxation engine (L0-L5), Star ±1 hard guard
+
+### Phase 3 UX Components (IMPLEMENTED — T13/T14/T15)
+- `client/src/lib/panel-manager.ts` — Zustand store for mutual exclusion between GuidanceSideSheet and Rebecca panel
+- `client/src/components/research/ResearchBadgePopover.tsx` — 3-option popover (Apply Value, View Details, Ask Rebecca)
+- `client/src/components/research/GuidanceSideSheet.tsx` — 480px right slide-over with 4 tabs + sticky footer actions
+- `client/src/components/research/RelaxationTrailStepper.tsx` — L0-L5 vertical stepper with expandable detail
+- `client/src/components/research/ResearchContextFieldLabel.tsx` — Unified wrapper: label + badge + confidence + freshness + state
 
 ---
 

@@ -126,7 +126,7 @@ npm run diff:summary   # Git status + diff stats (<1s)
 
 **Design rule:** SQL is the system of record; Pinecone is the semantic index. Research results live in `market_research` (full content, JSONB) and are *additionally* indexed in Pinecone (summary only) for retrieval.
 
-## Research Intelligence Redesign (PLANNED — Task #287)
+## Research Intelligence Redesign (IN PROGRESS — Task #287)
 
 Major architectural evolution of the research system. Full spec: `.claude/skills/research/research-intelligence-redesign.md` and `.local/tasks/research-intelligence-redesign.md`.
 
@@ -156,6 +156,21 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 - `server/routes/guidance.ts` — Scenario-scoped guidance API (GET/POST with access control) + Tier 2 deep-dive endpoint
 - `server/ai/ambient/` — Tier 0 benchmark scheduler (21 hospitality benchmarks, FRED macro rates, 6h refresh)
 - `server/ai/comparables/` — Progressive relaxation engine (L0-L5), ComparableQueryBuilder, integrated into orchestrator pre-phase. Star ±1 hard guard at all levels. Traces persisted to relaxation_traces table.
+
+### Phase 3 UX Components (IMPLEMENTED — T13/T14/T15)
+- `client/src/lib/panel-manager.ts` — Zustand store for mutual exclusion between GuidanceSideSheet and Rebecca panel
+- `client/src/components/research/ResearchBadgePopover.tsx` — 3-option popover (Apply Value, View Details, Ask Rebecca) replaces direct auto-fill on badge click
+- `client/src/components/research/GuidanceSideSheet.tsx` — 480px right slide-over with 4 tabs (Recommendation range, Peer Comparisons, Provenance trail, Impact analysis), sticky footer with Apply P25/P50/P75, Pin, Dismiss, Refresh actions
+- `client/src/components/research/RelaxationTrailStepper.tsx` — L0-L5 vertical stepper showing progressive relaxation decisions with expandable detail per level
+- `client/src/components/research/ResearchContextFieldLabel.tsx` — Unified wrapper for researchable fields: label + badge + confidence dot + freshness indicator + state chips (Pinned/Stale/No research)
+
+### Feature Flags
+| Flag | Purpose | Default |
+|------|---------|---------|
+| `RI_V2_WRITE` | Dual-write to new tables alongside legacy researchValues | ON |
+| `RI_V2_READ` | Read from new guidance tables, fallback to legacy | OFF |
+| `REBECCA_V2` | Enable new Rebecca panel with context injection | OFF |
+| `ADMIN_INTEL_V2` | Enable new admin Intelligence + AI sections | OFF |
 
 ## H+ Analytics Logo Variants
 

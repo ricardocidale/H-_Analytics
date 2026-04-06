@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 
 import GuidedWalkthrough, { useWalkthroughStore } from "@/components/GuidedWalkthrough";
 import { RebeccaChatbot } from "@/components/RebeccaChatbot";
+import { GuidanceSideSheet } from "@/components/research/GuidanceSideSheet";
 
 import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } from "@/lib/theme";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
@@ -445,6 +446,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
 
       <CommandPalette />
       <GuidedWalkthrough />
+      <GuidanceSideSheet />
     </div>
     </IconSetProvider>
   );

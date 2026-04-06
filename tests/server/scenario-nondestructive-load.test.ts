@@ -82,7 +82,8 @@ describe("Non-Destructive Load — stableLoadProperties behavior", () => {
   });
 
   it("sets isActive=true on matched/inserted properties", () => {
-    expect(stableBody).toContain("isActive: true");
+    expect(stableBody).toContain("isActive:");
+    expect(stableBody).toContain("?? true");
   });
 
   it("does NOT delete any properties (unlike destructive path)", () => {
@@ -417,12 +418,12 @@ describe("Non-Destructive Load — behavioral: photo FK cascade safety", () => {
     expect(stableBody).not.toContain("tx.delete(properties)");
   });
 
-  it("stableLoadProperties sets isActive=true on matched and inserted properties", () => {
+  it("stableLoadProperties sets isActive on matched and inserted properties with true fallback", () => {
     const src = readFile("server/storage/financial.ts");
     const stableStart = src.indexOf("async function stableLoadProperties(");
     const stableEnd = src.indexOf("async function destructiveLoadProperties(");
     const stableBody = src.slice(stableStart, stableEnd);
-    const activeMatches = stableBody.match(/isActive: true/g);
+    const activeMatches = stableBody.match(/isActive:.*\?\? true/g);
     expect(activeMatches).not.toBeNull();
     expect(activeMatches!.length).toBeGreaterThanOrEqual(2);
   });

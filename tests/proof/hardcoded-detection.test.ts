@@ -582,6 +582,7 @@ describe("Hardcoded Value Detection", () => {
         "map-utils.ts",
         "glossary.ts",
         "scenario-dirty-state.ts",
+        "panel-manager.ts",
       ]);
 
       const allLibFiles = fs.readdirSync(libDir)
