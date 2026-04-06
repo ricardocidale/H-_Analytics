@@ -48,12 +48,19 @@ export async function checkScenarioAccess(scenarioId: number, userId: number, sc
   if (scenario.userId === userId) return true;
   const user = await storage.getUserById(userId);
   if (!user) return false;
+
+  // Check legacy scenarioShares table
   const shares = await storage.getScenarioSharesForScenario(scenarioId);
-  return shares.some(s =>
+  const hasLegacyAccess = shares.some(s =>
     (s.targetType === "user" && s.targetId === userId) ||
     (s.targetType === "group" && user.userGroupId != null && s.targetId === user.userGroupId) ||
     (s.targetType === "company" && user.companyId != null && s.targetId === user.companyId)
   );
+  if (hasLegacyAccess) return true;
+
+  // Check new scenarioAccess table (specific + all grants)
+  const sharedViaAccess = await storage.getScenariosSharedViaAccess(userId);
+  return sharedViaAccess.some(s => s.id === scenarioId);
 }
 
 export function extractScenarioComputeInputs(scenario: { globalAssumptions: unknown; properties: unknown }, projectionYearsOverride?: number) {

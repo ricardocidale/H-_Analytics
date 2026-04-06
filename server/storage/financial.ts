@@ -1,4 +1,4 @@
-import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, propertyFeeCategories, propertyPhotos, companyServiceTemplates, scenarioResults, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type ScenarioShare, type ScenarioResult, type InsertScenarioResult, type FeeCategory, type InsertFeeCategory, type UpdateFeeCategory, properties, users } from "@shared/schema";
+import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, scenarioAccess, propertyFeeCategories, propertyPhotos, companyServiceTemplates, scenarioResults, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type ScenarioShare, type ScenarioAccess, type ScenarioResult, type InsertScenarioResult, type FeeCategory, type InsertFeeCategory, type UpdateFeeCategory, properties, users } from "@shared/schema";
 import { db } from "../db";
 import { eq, desc, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
@@ -773,6 +773,15 @@ export class FinancialStorage {
         : row.granterEmail ?? null;
       results.push({ ...row.scenario, accessType: "shared", sharedByUserId: row.grantedBy, sharedByName: granterName });
     }
+
+    // Also include scenarios shared via the new scenario_access table
+    const accessResults = await this.getScenariosSharedViaAccess(userId);
+    for (const s of accessResults) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      results.push(s);
+    }
+
     return results;
   }
 
@@ -815,6 +824,140 @@ export class FinancialStorage {
         eq(scenarioShares.targetId, targetId),
       )
     );
+  }
+
+  // ─── Scenario Access (fine-grained grants) ─────────────────────────
+
+  async grantScenarioAccess(ownerId: number, granteeId: number, scenarioId: number | null): Promise<ScenarioAccess> {
+    const grantType = scenarioId != null ? "specific" : "all";
+    const [access] = await db.insert(scenarioAccess).values({
+      scenarioId: scenarioId ?? null,
+      ownerId,
+      granteeId,
+      grantType,
+    } as typeof scenarioAccess.$inferInsert)
+    .onConflictDoNothing()
+    .returning();
+    // If conflict (already exists), fetch the existing one
+    if (!access) {
+      const conditions = [
+        eq(scenarioAccess.ownerId, ownerId),
+        eq(scenarioAccess.granteeId, granteeId),
+        eq(scenarioAccess.grantType, grantType),
+      ];
+      if (scenarioId != null) {
+        conditions.push(eq(scenarioAccess.scenarioId, scenarioId));
+      } else {
+        conditions.push(isNull(scenarioAccess.scenarioId));
+      }
+      const [existing] = await db.select().from(scenarioAccess).where(and(...conditions));
+      return existing;
+    }
+    return access;
+  }
+
+  async revokeScenarioAccess(ownerId: number, granteeId: number, scenarioId: number | null): Promise<void> {
+    const grantType = scenarioId != null ? "specific" : "all";
+    const conditions = [
+      eq(scenarioAccess.ownerId, ownerId),
+      eq(scenarioAccess.granteeId, granteeId),
+      eq(scenarioAccess.grantType, grantType),
+    ];
+    if (scenarioId != null) {
+      conditions.push(eq(scenarioAccess.scenarioId, scenarioId));
+    } else {
+      conditions.push(isNull(scenarioAccess.scenarioId));
+    }
+    await db.delete(scenarioAccess).where(and(...conditions));
+  }
+
+  async getScenarioAccessByOwner(ownerId: number): Promise<(ScenarioAccess & { granteeName: string | null; granteeEmail: string })[]> {
+    const granteeAlias = aliasedTable(users, "grantee");
+    const rows = await db
+      .select({
+        access: scenarioAccess,
+        granteeFirstName: granteeAlias.firstName,
+        granteeLastName: granteeAlias.lastName,
+        granteeEmail: granteeAlias.email,
+      })
+      .from(scenarioAccess)
+      .innerJoin(granteeAlias, eq(scenarioAccess.granteeId, granteeAlias.id))
+      .where(eq(scenarioAccess.ownerId, ownerId))
+      .orderBy(scenarioAccess.createdAt);
+
+    return rows.map(row => {
+      const name = [row.granteeFirstName, row.granteeLastName].filter(Boolean).join(" ") || null;
+      return { ...row.access, granteeName: name, granteeEmail: row.granteeEmail };
+    });
+  }
+
+  async getScenariosSharedViaAccess(userId: number): Promise<(Scenario & { accessType: string; sharedByUserId: number; sharedByName: string | null })[]> {
+    const ownerAlias = aliasedTable(users, "owner");
+
+    // 1. Specific grants: scenarioId is set, granteeId = userId
+    const specificRows = await db
+      .select({
+        scenario: scenarios,
+        ownerId: scenarioAccess.ownerId,
+        ownerFirstName: ownerAlias.firstName,
+        ownerLastName: ownerAlias.lastName,
+        ownerEmail: ownerAlias.email,
+      })
+      .from(scenarioAccess)
+      .innerJoin(scenarios, and(
+        eq(scenarioAccess.scenarioId, scenarios.id),
+        isNull(scenarios.deletedAt),
+      ))
+      .leftJoin(ownerAlias, eq(scenarioAccess.ownerId, ownerAlias.id))
+      .where(and(
+        eq(scenarioAccess.granteeId, userId),
+        eq(scenarioAccess.grantType, "specific"),
+        sql`${scenarios.userId} != ${userId}`,
+      ));
+
+    // 2. "All" grants: scenarioId is NULL, granteeId = userId -> fetch all scenarios by that owner
+    const allGrantRows = await db
+      .select({
+        ownerId: scenarioAccess.ownerId,
+        ownerFirstName: ownerAlias.firstName,
+        ownerLastName: ownerAlias.lastName,
+        ownerEmail: ownerAlias.email,
+      })
+      .from(scenarioAccess)
+      .leftJoin(ownerAlias, eq(scenarioAccess.ownerId, ownerAlias.id))
+      .where(and(
+        eq(scenarioAccess.granteeId, userId),
+        eq(scenarioAccess.grantType, "all"),
+        isNull(scenarioAccess.scenarioId),
+      ));
+
+    const seen = new Set<number>();
+    const results: (Scenario & { accessType: string; sharedByUserId: number; sharedByName: string | null })[] = [];
+
+    for (const row of specificRows) {
+      if (seen.has(row.scenario.id)) continue;
+      seen.add(row.scenario.id);
+      const ownerName = row.ownerFirstName || row.ownerLastName
+        ? [row.ownerFirstName, row.ownerLastName].filter(Boolean).join(" ")
+        : row.ownerEmail ?? null;
+      results.push({ ...row.scenario, accessType: "shared", sharedByUserId: row.ownerId, sharedByName: ownerName });
+    }
+
+    // For each "all" grant, fetch owner's scenarios
+    for (const grant of allGrantRows) {
+      const ownerScenarios = await db.select().from(scenarios)
+        .where(and(eq(scenarios.userId, grant.ownerId), isNull(scenarios.deletedAt), eq(scenarios.kind, "manual")));
+      const ownerName = grant.ownerFirstName || grant.ownerLastName
+        ? [grant.ownerFirstName, grant.ownerLastName].filter(Boolean).join(" ")
+        : grant.ownerEmail ?? null;
+      for (const s of ownerScenarios) {
+        if (seen.has(s.id)) continue;
+        seen.add(s.id);
+        results.push({ ...s, accessType: "shared", sharedByUserId: grant.ownerId, sharedByName: ownerName });
+      }
+    }
+
+    return results;
   }
 
   async saveScenarioResult(data: InsertScenarioResult): Promise<ScenarioResult> {

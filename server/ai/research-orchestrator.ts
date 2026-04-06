@@ -395,7 +395,16 @@ export async function* orchestrateResearch(
     }
   }
 
-  // Attach synthesis metadata to the output for downstream use
+  const knowledgeContributions = priorResearch
+    .filter(m => m.score > 0.7)
+    .map(m => ({
+      vectorId: m.id,
+      score: Math.round(m.score * 100) / 100,
+      source: (m.metadata?.type as string) || "unknown",
+      location: (m.metadata?.location as string) || "",
+      completedAt: (m.metadata?.completedAt as string) || "",
+    }));
+
   yield {
     type: "phase",
     data: JSON.stringify({
@@ -406,6 +415,7 @@ export async function* orchestrateResearch(
         consensusRatio: validation.consensusRatio,
         apiValidation:  validation.comparisons,
         priorResearch:  priorResearch.length,
+        knowledgeContributions,
       }
     }),
   };

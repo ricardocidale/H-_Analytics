@@ -14,7 +14,69 @@ import { FinancialNewsService } from "./FinancialNewsService";
 import { AlphaVantageService } from "./AlphaVantageService";
 import { cache } from "../cache";
 import { storage } from "../storage";
-import type { MarketIntelligence, FREDRateData, HospitalityBenchmarks, GroundedSearchResult, MoodysRiskData, SPGlobalMarketData, CoStarMarketData, XoteloMarketData, ApifyMarketData, RapidApiCompSetData, WeatherData, FxRates, WorldBankCountryData, FinancialNewsData, AlphaVantageData } from "../../shared/market-intelligence";
+import type { MarketIntelligence, FREDRateData, HospitalityBenchmarks, GroundedSearchResult, MoodysRiskData, SPGlobalMarketData, CoStarMarketData, XoteloMarketData, ApifyMarketData, RapidApiCompSetData, WeatherData, FxRates, WorldBankCountryData, FinancialNewsData, AlphaVantageData, DataPoint, DataRecencyWarning } from "../../shared/market-intelligence";
+import { logger } from "../logger";
+
+const RECENCY_WARNING_DAYS = 90;
+const RECENCY_CRITICAL_DAYS = 365;
+
+function checkDataPointRecency(dp: DataPoint<any> | undefined, source: string, field: string): DataRecencyWarning | null {
+  if (!dp) return null;
+  const dateStr = dp.publishedAt || dp.fetchedAt;
+  if (!dateStr) return null;
+  try {
+    const ageMs = Date.now() - new Date(dateStr).getTime();
+    const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+    if (ageDays >= RECENCY_CRITICAL_DAYS) {
+      return { source, field, publishedAt: dateStr, ageInDays: ageDays, severity: "critical" };
+    }
+    if (ageDays >= RECENCY_WARNING_DAYS) {
+      return { source, field, publishedAt: dateStr, ageInDays: ageDays, severity: "warning" };
+    }
+  } catch {
+    // invalid date
+  }
+  return null;
+}
+
+function validateRecency(mi: MarketIntelligence): DataRecencyWarning[] {
+  const warnings: DataRecencyWarning[] = [];
+  const push = (w: DataRecencyWarning | null) => { if (w) warnings.push(w); };
+
+  for (const [key, rateData] of Object.entries(mi.rates)) {
+    if (rateData) push(checkDataPointRecency(rateData.current, "FRED", key));
+  }
+  if (mi.benchmarks) {
+    push(checkDataPointRecency(mi.benchmarks.adr, "Hospitality Benchmarks", "adr"));
+    push(checkDataPointRecency(mi.benchmarks.revpar, "Hospitality Benchmarks", "revpar"));
+    push(checkDataPointRecency(mi.benchmarks.occupancy, "Hospitality Benchmarks", "occupancy"));
+    push(checkDataPointRecency(mi.benchmarks.capRate, "Hospitality Benchmarks", "capRate"));
+  }
+  if (mi.costar) {
+    push(checkDataPointRecency(mi.costar.revpar, "CoStar", "revpar"));
+    push(checkDataPointRecency(mi.costar.adr, "CoStar", "adr"));
+    push(checkDataPointRecency(mi.costar.occupancyRate, "CoStar", "occupancyRate"));
+    push(checkDataPointRecency(mi.costar.submarketCapRate, "CoStar", "submarketCapRate"));
+  }
+  if (mi.moodys) {
+    push(checkDataPointRecency(mi.moodys.propertyRiskScore, "Moody's", "propertyRiskScore"));
+    push(checkDataPointRecency(mi.moodys.creditRating, "Moody's", "creditRating"));
+  }
+  if (mi.spGlobal) {
+    push(checkDataPointRecency(mi.spGlobal.caseShillerIndex, "S&P Global", "caseShillerIndex"));
+    push(checkDataPointRecency(mi.spGlobal.sectorOutlook, "S&P Global", "sectorOutlook"));
+  }
+
+  for (const w of warnings) {
+    const msg = `Data recency ${w.severity}: ${w.source} ${w.field} is ${w.ageInDays} days old (published ${w.publishedAt})`;
+    if (w.severity === "critical") {
+      logger.error(msg, "data-recency");
+    } else {
+      logger.warn(msg, "data-recency");
+    }
+  }
+  return warnings;
+}
 
 interface AggregatorQuery {
   location?: string;
@@ -256,7 +318,7 @@ export class MarketIntelligenceAggregator {
       errors.push(`Alpha Vantage: ${alphaVantageResult.reason?.message || "Unknown error"}`);
     }
 
-    return {
+    const result: MarketIntelligence = {
       rates: {
         sofr: rates.sofr,
         treasury2y: rates.treasury2y,
@@ -281,6 +343,9 @@ export class MarketIntelligenceAggregator {
       fetchedAt: new Date().toISOString(),
       errors,
     };
+
+    result.recencyWarnings = validateRecency(result);
+    return result;
   }
 
   async fetchRatesOnly(): Promise<Record<string, FREDRateData>> {

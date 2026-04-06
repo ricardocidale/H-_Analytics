@@ -21,7 +21,8 @@ export type AdminSection =
   | "ai-agents" | "llms" | "sources" | "model-routing"
   | "research" | "navigation" | "notifications" | "verification" | "database"
   | "cache-services" | "integrations" | "api-dashboard"
-  | "coverage-analytics" | "pipeline-policies" | "qa-sandbox" | "source-registry";
+  | "coverage-analytics" | "pipeline-policies" | "qa-sandbox" | "source-registry"
+  | "system-intelligence";
 
 interface SectionItem {
   value: AdminSection;
@@ -43,6 +44,7 @@ function buildNavGroups(adminIntelV2: boolean): NavGroup[] {
     { value: "pipeline-policies", label: "Pipeline Policies", icon: IconLayers },
     { value: "qa-sandbox", label: "QA Sandbox", icon: IconShieldCheck },
     { value: "source-registry", label: "Source Registry", icon: IconGlobe },
+    { value: "system-intelligence", label: "System Intelligence", icon: IconBrain },
   ] : [];
 
   return [

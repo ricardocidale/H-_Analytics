@@ -29,6 +29,31 @@ On consolidation, management fees paid by properties cancel against fee revenue 
 
 ---
 
+## Property Type Spectrum
+
+The portfolio spans a range of hospitality property types — not exclusively boutique hotels:
+
+| Type | Examples | Key Characteristics |
+|------|----------|-------------------|
+| **Boutique Hotel** | Independent lifestyle hotels, design hotels | Full service: front desk, F&B, events, staff-intensive |
+| **Boutique Resort** | Wellness retreats, destination resorts | High ADR, strong events/spa revenue, seasonal |
+| **Bed & Breakfast** | Inn-style properties | Owner-operated, fewer rooms, high personalization |
+| **Short-Term Rental (STR)** | Airbnb, VRBO-style properties | Platform-distributed, self-service, lower staffing |
+| **Hybrid / Serviced Apartment** | Extended stay with hotel-like services | Mix of STR flexibility and hotel amenity depth |
+
+**STR-specific model adjustments:**
+- Set F&B and Events ancillary rates near 0% — STR properties typically have no restaurant or event space
+- Platform distribution fees (Airbnb/VRBO, ~3–5% of room revenue) are modeled as Other Operating Expenses
+- Departmental labor is lower — no front desk or restaurant staff; housekeeping is contracted per-turn
+- Cleaning fee revenue offset by cleaning cost is captured in Other revenue/expenses
+- Dynamic pricing tools replace traditional RevPAR management — set higher ADR volatility assumptions
+- Regulatory/licensing costs (STR permits, short-term rental taxes) appear as fixed operating expenses
+- ManCo still earns management fees for platform management, cleaning coordination, guest communications, and revenue optimization
+
+All revenue calculations use the same formula regardless of property type. The property type determines which ancillary revenue percentage assumptions are meaningful vs. set to near-zero.
+
+---
+
 ## Hospitality Revenue Streams
 
 Revenue is modeled using industry-standard hospitality metrics:
@@ -43,11 +68,11 @@ Room Revenue = Room Count × DAYS_PER_MONTH (30.5) × ADR × Occupancy
 - **Available Room Nights**: `Room Count × 30.5 days/month`
 
 ### Ancillary Revenue Streams (as % of Room Revenue)
-| Stream | Default Share | Description |
-|--------|--------------|-------------|
-| Events & Functions | 30% | Weddings, retreats, corporate events — higher than typical hotels due to boutique wellness focus |
-| Food & Beverage | 18% × (1 + Catering Boost) | Restaurant, bar, room service. Catering Boost (default 22%) adds uplift from event catering |
-| Other/Ancillary | 5% | Spa, parking, gift shop, recreational activities |
+| Stream | Default Share | Description | STR Typical |
+|--------|--------------|-------------|------------|
+| Events & Functions | 30% | Weddings, retreats, corporate events | 0% |
+| Food & Beverage | 18% × (1 + Catering Boost) | Restaurant, bar, room service | 0–2% |
+| Other/Ancillary | 5% | Spa, parking, gift shop, cleaning fees | 3–8% |
 
 ### Total Revenue
 ```

@@ -4,9 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconShare, IconUsers } from "@/components/icons";
-import { useShareScenario } from "@/lib/api";
+import { IconShare, IconUsers, IconTrash } from "@/components/icons";
+import { useShareScenario, useScenarioAccess, useGrantScenarioAccess, useRevokeScenarioAccess } from "@/lib/api";
+import type { ScenarioAccessGrant } from "@/lib/api/scenarios";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ShareScenarioDialogProps {
   open: boolean;
@@ -29,7 +33,15 @@ export function ShareScenarioDialog({
   const [emailError, setEmailError] = useState<string | null>(null);
   const [recipientName, setRecipientName] = useState<string | null>(null);
   const shareScenario = useShareScenario();
+  const { data: grants, isLoading: grantsLoading } = useScenarioAccess();
+  const grantAccess = useGrantScenarioAccess();
+  const revokeAccess = useRevokeScenarioAccess();
   const { toast } = useToast();
+
+  // Filter grants relevant to this scenario
+  const relevantGrants = (grants ?? []).filter(
+    (g: ScenarioAccessGrant) => g.grantType === "all" || g.scenarioId === scenarioId
+  );
 
   const resetDialog = () => {
     setEmail("");
@@ -81,6 +93,18 @@ export function ShareScenarioDialog({
         toast({ title: "Error", description: msg, variant: "destructive" });
         setStep("enter");
       }
+    }
+  };
+
+  const handleRevoke = async (grant: ScenarioAccessGrant) => {
+    try {
+      await revokeAccess.mutateAsync({
+        granteeId: grant.granteeId,
+        scenarioId: grant.grantType === "specific" ? grant.scenarioId : null,
+      });
+      toast({ title: "Access revoked", description: `Removed access for ${grant.granteeName || grant.granteeEmail}` });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to revoke access", variant: "destructive" });
     }
   };
 
@@ -145,7 +169,7 @@ export function ShareScenarioDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display">Share Scenario</DialogTitle>
           <DialogDescription className="label-text">
@@ -191,6 +215,57 @@ export function ShareScenarioDialog({
               </Button>
             </div>
           </div>
+
+          {/* Current access grants */}
+          {relevantGrants.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <label className="label-text text-muted-foreground text-xs uppercase tracking-wider">Current access</label>
+                <AnimatePresence mode="popLayout">
+                  {relevantGrants.map((grant: ScenarioAccessGrant) => (
+                    <motion.div
+                      key={grant.id}
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="flex items-center justify-between p-2 rounded-lg bg-muted border border-border"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm text-foreground truncate">
+                          {grant.granteeName || grant.granteeEmail}
+                        </span>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {grant.grantType === "all" ? "All scenarios" : "This scenario"}
+                        </Badge>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRevoke(grant)}
+                        disabled={revokeAccess.isPending}
+                        className="text-destructive/80 hover:text-destructive/60 hover:bg-destructive/10 shrink-0"
+                        data-testid={`button-revoke-access-${grant.id}`}
+                      >
+                        {revokeAccess.isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <IconTrash className="w-3 h-3" />
+                        )}
+                      </Button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </>
+          )}
+
+          {grantsLoading && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Loading current access...
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} data-testid="button-share-cancel">

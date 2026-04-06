@@ -28,9 +28,26 @@ interface UseResearchStreamOptions {
   global: any;
 }
 
+export interface OrchestratorMeta {
+  analystA?: { model: string; durationMs: number; error?: string };
+  analystB?: { model: string; durationMs: number; error?: string };
+  synthesisModel?: string;
+  consensusRatio?: number;
+  priorResearch?: number;
+  knowledgeContributions?: Array<{
+    vectorId: string;
+    score: number;
+    source: string;
+    location: string;
+    completedAt: string;
+  }>;
+}
+
 export function useResearchStream({ property, propertyId, global }: UseResearchStreamOptions) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
+  const [phases, setPhases] = useState<string[]>([]);
+  const [orchestratorMeta, setOrchestratorMeta] = useState<OrchestratorMeta | null>(null);
   const queryClient = useQueryClient();
   const abortRef = useRef<AbortController | null>(null);
 
@@ -38,6 +55,8 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
     if (!property) return;
     setIsGenerating(true);
     setStreamedContent("");
+    setPhases([]);
+    setOrchestratorMeta(null);
     
     abortRef.current = new AbortController();
     
@@ -80,12 +99,26 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
           if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.content) {
+              if (data.type === "content" && data.data) {
+                accumulated += data.data;
+                setStreamedContent(accumulated);
+              } else if (data.content) {
                 accumulated += data.content;
-                // Update state on every token so the UI renders progressively
                 setStreamedContent(accumulated);
               }
-              if (data.done) {
+              if (data.type === "phase" && data.data) {
+                try {
+                  const parsed = JSON.parse(data.data);
+                  if (parsed._orchestrator) {
+                    setOrchestratorMeta(parsed._orchestrator);
+                  } else {
+                    setPhases(prev => [...prev, data.data]);
+                  }
+                } catch {
+                  setPhases(prev => [...prev, data.data]);
+                }
+              }
+              if (data.type === "done" || data.done) {
                 queryClient.invalidateQueries({ queryKey: ["research", "property", propertyId] });
                 fireResearchConfetti();
               }
@@ -102,5 +135,5 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
     }
   }, [property, global, propertyId, queryClient]);
 
-  return { isGenerating, streamedContent, generateResearch };
+  return { isGenerating, streamedContent, phases, orchestratorMeta, generateResearch };
 }

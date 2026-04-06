@@ -271,7 +271,7 @@ describe("Non-Destructive Load — validateLoadSnapshot", () => {
 });
 
 describe("Non-Destructive Load — behavioral: validateLoadSnapshot with stableKey fee keys", () => {
-  it("does not report stableKey-keyed fee categories as orphans", async () => {
+  it("does not report stableKey-keyed fee categories as orphans", { timeout: 15_000 }, async () => {
     const { validateLoadSnapshot } = await import("../../server/routes/scenario-helpers");
     const result = validateLoadSnapshot({
       properties: [

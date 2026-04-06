@@ -236,12 +236,13 @@ export const sourceRegistry = pgTable("source_registry", {
   category: text("category").notNull(),
   cadence: text("cadence"),
   lastHealthCheck: timestamp("last_health_check"),
+  lastDataDate: timestamp("last_data_date"),
   isActive: boolean("is_active").notNull().default(true),
 });
 
 export const insertSourceRegistrySchema = createInsertSchema(sourceRegistry).pick({
   serviceKey: true, name: true, sourceType: true, trustScore: true,
-  category: true, cadence: true, lastHealthCheck: true, isActive: true,
+  category: true, cadence: true, lastHealthCheck: true, lastDataDate: true, isActive: true,
 });
 export type SourceRegistryEntry = typeof sourceRegistry.$inferSelect;
 export type InsertSourceRegistryEntry = z.infer<typeof insertSourceRegistrySchema>;

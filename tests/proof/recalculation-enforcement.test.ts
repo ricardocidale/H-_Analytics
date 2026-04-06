@@ -114,6 +114,8 @@ const NON_FINANCIAL_MUTATIONS = [
   "useAutoSave",
   "useRestoreScenario",
   "usePurgeScenario",
+  "useGrantScenarioAccess",
+  "useRevokeScenarioAccess",
 ];
 
 describe("Recalculation Enforcement", () => {

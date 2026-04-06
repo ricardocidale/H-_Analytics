@@ -30,6 +30,7 @@ import CoverageAnalyticsDashboard from "@/components/admin/intelligence/Coverage
 import PipelinePoliciesForm from "@/components/admin/intelligence/PipelinePoliciesForm";
 import QASandbox from "@/components/admin/intelligence/QASandbox";
 import SourceRegistryOverlay from "@/components/admin/intelligence/SourceRegistryOverlay";
+import SystemIntelligenceStatus from "@/components/admin/intelligence/SystemIntelligenceStatus";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary, SelfHealingBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -88,6 +89,7 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "pipeline-policies":  { title: "Pipeline Policies",  subtitle: "Configure staleness thresholds, token budgets, and refresh intervals" },
   "qa-sandbox":         { title: "QA Sandbox",          subtitle: "Preview context packs and prompts before running research" },
   "source-registry":    { title: "Source Registry",     subtitle: "Trust scores, health status, and cadence for all research sources" },
+  "system-intelligence": { title: "System Intelligence", subtitle: "LLM vendor status, knowledge base health, and missing API keys" },
 };
 
 function SectionContent({ section, onNavigate, onSaveStateChange }: { section: AdminSection; onNavigate: (s: AdminSection) => void; onSaveStateChange: (state: AdminSaveState | null) => void }) {
@@ -137,6 +139,8 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "qa-sandbox":         return <QASandbox />;
     case "source-registry":
       return <SourceRegistryOverlay />;
+    case "system-intelligence":
+      return <SystemIntelligenceStatus />;
     default:                 return null;
   }
 }

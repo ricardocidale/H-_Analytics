@@ -17,16 +17,21 @@
 import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fireResearchConfetti } from "@/lib/confetti";
+import type { OrchestratorMeta } from "../property-research/useResearchStream";
 
 export function useCompanyResearchStream() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
+  const [phases, setPhases] = useState<string[]>([]);
+  const [orchestratorMeta, setOrchestratorMeta] = useState<OrchestratorMeta | null>(null);
   const queryClient = useQueryClient();
   const abortRef = useRef<AbortController | null>(null);
 
   const generateResearch = useCallback(async () => {
     setIsGenerating(true);
     setStreamedContent("");
+    setPhases([]);
+    setOrchestratorMeta(null);
     
     abortRef.current = new AbortController();
     
@@ -55,11 +60,26 @@ export function useCompanyResearchStream() {
           if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.content) {
+              if (data.type === "content" && data.data) {
+                accumulated += data.data;
+                setStreamedContent(accumulated);
+              } else if (data.content) {
                 accumulated += data.content;
                 setStreamedContent(accumulated);
               }
-              if (data.done) {
+              if (data.type === "phase" && data.data) {
+                try {
+                  const parsed = JSON.parse(data.data);
+                  if (parsed._orchestrator) {
+                    setOrchestratorMeta(parsed._orchestrator);
+                  } else {
+                    setPhases(prev => [...prev, data.data]);
+                  }
+                } catch {
+                  setPhases(prev => [...prev, data.data]);
+                }
+              }
+              if (data.type === "done" || data.done) {
                 queryClient.invalidateQueries({ queryKey: ["research", "company"] });
                 fireResearchConfetti();
               }
@@ -76,5 +96,5 @@ export function useCompanyResearchStream() {
     }
   }, [queryClient]);
 
-  return { isGenerating, streamedContent, generateResearch };
+  return { isGenerating, streamedContent, phases, orchestratorMeta, generateResearch };
 }

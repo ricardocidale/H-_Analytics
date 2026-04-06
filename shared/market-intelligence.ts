@@ -282,6 +282,14 @@ export interface ApifyMarketData {
   };
 }
 
+export interface DataRecencyWarning {
+  source: string;
+  field: string;
+  publishedAt: string;
+  ageInDays: number;
+  severity: "info" | "warning" | "critical";
+}
+
 export interface MarketIntelligence {
   rates: {
     sofr?: FREDRateData;
@@ -306,4 +314,5 @@ export interface MarketIntelligence {
   alphaVantage?: AlphaVantageData;
   fetchedAt: string;
   errors: string[];
+  recencyWarnings?: DataRecencyWarning[];
 }

@@ -12,13 +12,44 @@
  */
 
 import { Pinecone } from "@pinecone-database/pinecone";
+import OpenAI from "openai";
 import { logger } from "../logger";
-import { getOpenAIClient } from "./clients";
 
 const INDEX_NAME  = "lb-hospitality";
 const EMBED_MODEL = "text-embedding-3-small";
 const EMBED_DIMS  = 1536;
 const EMBED_BATCH = 20;
+
+let _embeddingClient: OpenAI | null = null;
+let _embeddingAvailable: boolean | null = null;
+
+function getEmbeddingClient(): OpenAI | null {
+  if (_embeddingAvailable === false) return null;
+  if (_embeddingClient) return _embeddingClient;
+
+  const directKey = process.env.OPENAI_EMBEDDING_KEY || process.env.OPENAI_API_KEY;
+  if (directKey) {
+    _embeddingClient = new OpenAI({ apiKey: directKey });
+    _embeddingAvailable = true;
+    return _embeddingClient;
+  }
+
+  const integrationKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  const integrationBase = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  if (integrationKey && !integrationBase) {
+    _embeddingClient = new OpenAI({ apiKey: integrationKey });
+    _embeddingAvailable = true;
+    return _embeddingClient;
+  }
+
+  _embeddingAvailable = false;
+  return null;
+}
+
+export function isEmbeddingAvailable(): boolean {
+  if (_embeddingAvailable !== null) return _embeddingAvailable;
+  return getEmbeddingClient() !== null;
+}
 
 export type PineconeNamespace = "knowledge-base" | "research-history" | "comparables" | "assumption-guidance" | "documents";
 
@@ -89,7 +120,9 @@ async function ensureIndex(): Promise<void> {
 // ── Embedding helpers ─────────────────────────────────────────────────────────
 
 async function embed(text: string): Promise<number[]> {
-  const res = await getOpenAIClient().embeddings.create({
+  const client = getEmbeddingClient();
+  if (!client) throw new Error("Embedding client not available");
+  const res = await client.embeddings.create({
     model: EMBED_MODEL,
     input: text.slice(0, 8_000),
   });
@@ -97,10 +130,12 @@ async function embed(text: string): Promise<number[]> {
 }
 
 async function embedBatch(texts: string[]): Promise<number[][]> {
+  const client = getEmbeddingClient();
+  if (!client) throw new Error("Embedding client not available");
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += EMBED_BATCH) {
     const batch = texts.slice(i, i + EMBED_BATCH).map(t => t.slice(0, 8_000));
-    const res = await getOpenAIClient().embeddings.create({ model: EMBED_MODEL, input: batch });
+    const res = await client.embeddings.create({ model: EMBED_MODEL, input: batch });
     out.push(...res.data.map((d: { embedding: number[] }) => d.embedding));
   }
   return out;
@@ -118,6 +153,7 @@ export async function upsertChunks(
   chunks: PineconeChunk[],
 ): Promise<void> {
   if (!isPineconeAvailable() || chunks.length === 0) return;
+  if (!isEmbeddingAvailable()) return;
   await ensureIndex();
 
   const embeddings = await embedBatch(chunks.map(c => c.text));
@@ -141,7 +177,7 @@ export async function queryChunks(
   query: string,
   topK = 8,
 ): Promise<QueryMatch[]> {
-  if (!isPineconeAvailable()) return [];
+  if (!isPineconeAvailable() || !isEmbeddingAvailable()) return [];
   await ensureIndex();
 
   const vector = await embed(query);
@@ -164,7 +200,7 @@ export async function multiNamespaceQuery(
   namespaces: PineconeNamespace[],
   topK = 5,
 ): Promise<MultiNamespaceMatch[]> {
-  if (!isPineconeAvailable() || namespaces.length === 0) return [];
+  if (!isPineconeAvailable() || !isEmbeddingAvailable() || namespaces.length === 0) return [];
   await ensureIndex();
 
   const vector = await embed(query);

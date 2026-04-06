@@ -19,6 +19,7 @@ interface SourceRegistryEntry {
   category: string;
   cadence: string | null;
   lastHealthCheck: string | null;
+  lastDataDate: string | null;
   isActive: boolean;
 }
 
@@ -209,6 +210,11 @@ export default function SourceRegistryOverlay() {
                           <IconActivity className="w-3 h-3" />
                           Last check: {formatTimestamp(source.lastHealthCheck)}
                         </span>
+                        {source.lastDataDate && (
+                          <span className="flex items-center gap-1" data-testid={`text-last-data-${source.serviceKey}`}>
+                            Last data: {formatTimestamp(source.lastDataDate)}
+                          </span>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

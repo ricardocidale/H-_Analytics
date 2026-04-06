@@ -70,3 +70,49 @@ export function getVendorService(vendor: LlmVendor): "gemini" | "anthropic" | "o
   if (vendor === "anthropic") return "anthropic";
   return "openai";
 }
+
+export interface LlmVendorStatus {
+  vendor: string;
+  available: boolean;
+  reason?: string;
+}
+
+export function checkVendorAvailability(): LlmVendorStatus[] {
+  const results: LlmVendorStatus[] = [];
+
+  try {
+    getGeminiClient();
+    results.push({ vendor: "google", available: true });
+  } catch (err) {
+    results.push({ vendor: "google", available: false, reason: err instanceof Error ? err.message : "Unknown error" });
+  }
+
+  try {
+    getAnthropicClient();
+    results.push({ vendor: "anthropic", available: true });
+  } catch (err) {
+    results.push({ vendor: "anthropic", available: false, reason: err instanceof Error ? err.message : "Unknown error" });
+  }
+
+  try {
+    getOpenAIClient();
+    results.push({ vendor: "openai", available: true });
+  } catch (err) {
+    results.push({ vendor: "openai", available: false, reason: err instanceof Error ? err.message : "Unknown error" });
+  }
+
+  return results;
+}
+
+export function getRecommendedDefaults(): { vendor: LlmVendor; model: string } {
+  const vendors = checkVendorAvailability();
+  const gemini = vendors.find(v => v.vendor === "google");
+  const anthropic = vendors.find(v => v.vendor === "anthropic");
+  const openai = vendors.find(v => v.vendor === "openai");
+
+  if (gemini?.available) return { vendor: "google", model: DEFAULT_GEMINI_MODEL };
+  if (anthropic?.available) return { vendor: "anthropic", model: DEFAULT_RESEARCH_MODEL };
+  if (openai?.available) return { vendor: "openai", model: DEFAULT_OPENAI_MODEL };
+
+  return DOMAIN_DEFAULTS.propertyLlm;
+}

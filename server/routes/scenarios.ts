@@ -10,6 +10,7 @@ import type {
 } from "@shared/schema";
 
 import { fromZodError } from "zod-validation-error";
+import { z } from "zod";
 import { logActivity, logAndSendError, createScenarioSchema, MAX_SCENARIOS_PER_USER, fullName } from "./helpers";
 import { computePortfolioProjection } from "../finance/service";
 import { stableHash } from "../scenarios/stable-json";
@@ -580,6 +581,93 @@ export function register(app: Express) {
       res.json(driftResponse);
     } catch (error) {
       logAndSendError(res, "Failed to check scenario drift", error);
+    }
+  });
+
+  // ─── Scenario Access Control Routes ──────────────────────────────────
+
+  const grantAccessSchema = z.object({
+    granteeId: z.number().int().positive(),
+    scenarioId: z.number().int().positive().nullable().optional(),
+  });
+
+  const revokeAccessSchema = z.object({
+    granteeId: z.number().int().positive(),
+    scenarioId: z.number().int().positive().nullable().optional(),
+  });
+
+  app.post("/api/scenarios/access", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthUser(req);
+      const validation = grantAccessSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+
+      const { granteeId, scenarioId } = validation.data;
+      const resolvedScenarioId = scenarioId ?? null;
+
+      if (granteeId === user.id) {
+        return res.status(400).json({ error: "You cannot grant access to yourself" });
+      }
+
+      // Verify grantee exists
+      const grantee = await storage.getUserById(granteeId);
+      if (!grantee) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // If granting specific scenario access, verify ownership
+      if (resolvedScenarioId != null) {
+        const scenario = await storage.getScenario(resolvedScenarioId);
+        if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+        if (scenario.userId !== user.id) return res.status(403).json({ error: "You can only grant access to your own scenarios" });
+      }
+
+      const access = await storage.grantScenarioAccess(user.id, granteeId, resolvedScenarioId);
+      logActivity(req, "grant_access", "scenario_access", access.id, `Grant ${resolvedScenarioId ? `scenario ${resolvedScenarioId}` : "all scenarios"} to user ${granteeId}`);
+      res.status(201).json(access);
+    } catch (error) {
+      logAndSendError(res, "Failed to grant scenario access", error);
+    }
+  });
+
+  app.delete("/api/scenarios/access", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthUser(req);
+      const validation = revokeAccessSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+
+      const { granteeId, scenarioId } = validation.data;
+      const resolvedScenarioId = scenarioId ?? null;
+
+      await storage.revokeScenarioAccess(user.id, granteeId, resolvedScenarioId);
+      logActivity(req, "revoke_access", "scenario_access", null, `Revoke ${resolvedScenarioId ? `scenario ${resolvedScenarioId}` : "all scenarios"} from user ${granteeId}`);
+      res.json({ success: true });
+    } catch (error) {
+      logAndSendError(res, "Failed to revoke scenario access", error);
+    }
+  });
+
+  app.get("/api/scenarios/access", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthUser(req);
+      const grants = await storage.getScenarioAccessByOwner(user.id);
+      res.json(grants);
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch scenario access grants", error);
+    }
+  });
+
+  app.get("/api/scenarios/shared-with-me", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthUser(req);
+      const sharedScenarios = await storage.getScenariosSharedWithUser(user.id);
+      res.json(sharedScenarios);
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch shared scenarios", error);
     }
   });
 }

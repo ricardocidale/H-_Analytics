@@ -96,6 +96,38 @@ export const scenarioShares = pgTable("scenario_shares", {
   unique("scenario_shares_unique_grant").on(table.scenarioId, table.targetType, table.targetId),
 ]);
 
+// --- SCENARIO ACCESS TABLE ---
+// Fine-grained access control for scenario sharing. Two grant types:
+//   - "specific": scenarioId is set — grants access to one scenario
+//   - "all": scenarioId is NULL — grants access to ALL scenarios owned by ownerId
+//
+// A row with scenarioId = NULL + grantType = "all" means the grantee can see
+// every scenario that ownerId owns (current and future). A row with a specific
+// scenarioId grants access to just that one scenario.
+export const scenarioAccess = pgTable("scenario_access", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  scenarioId: integer("scenario_id").references(() => scenarios.id, { onDelete: "cascade" }),
+  ownerId: integer("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  granteeId: integer("grantee_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  grantType: text("grant_type").notNull(), // "specific" | "all"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("scenario_access_owner_id_idx").on(table.ownerId),
+  index("scenario_access_grantee_id_idx").on(table.granteeId),
+  index("scenario_access_scenario_id_idx").on(table.scenarioId),
+  unique("scenario_access_unique_grant").on(table.scenarioId, table.ownerId, table.granteeId, table.grantType),
+]);
+
+export const insertScenarioAccessSchema = createInsertSchema(scenarioAccess).pick({
+  scenarioId: true,
+  ownerId: true,
+  granteeId: true,
+  grantType: true,
+});
+
+export type ScenarioAccess = typeof scenarioAccess.$inferSelect;
+export type InsertScenarioAccess = z.infer<typeof insertScenarioAccessSchema>;
+
 export const insertScenarioSchema = createInsertSchema(scenarios).pick({
   userId: true,
   name: true,

@@ -8,9 +8,10 @@ import { buildPropertyContextPack } from "../../ai/context-pack/property-pack";
 import { buildCompanyContextPack } from "../../ai/context-pack/company-pack";
 import { assembleResearchPrompt } from "../../ai/prompt/assemble-research-prompt";
 import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
-import { resolveLlm, getVendorService } from "../../ai/resolve-llm";
+import { resolveLlm, getVendorService, checkVendorAvailability, getRecommendedDefaults } from "../../ai/resolve-llm";
 import { createResearchClient } from "../../ai/research-client";
 import { getGeminiClient, getAnthropicClient, getOpenAIClient } from "../../ai/clients";
+import { isPineconeAvailable, isEmbeddingAvailable } from "../../ai/pinecone-service";
 import type { ResearchConfig } from "@shared/schema";
 
 const scenarioQuerySchema = z.object({
@@ -527,6 +528,39 @@ export function registerIntelligenceRoutes(app: Express) {
       res.json(updated);
     } catch (error) {
       logAndSendError(res, "Failed to update source registry entry", error);
+    }
+  });
+
+  app.get("/api/admin/system-intelligence-status", requireAdmin, async (_req, res) => {
+    try {
+      const vendors = checkVendorAvailability();
+      const recommended = getRecommendedDefaults();
+      const pinecone = isPineconeAvailable();
+      const embeddings = isEmbeddingAvailable();
+
+      const knowledgeLearning = pinecone && embeddings;
+
+      res.json({
+        llmVendors: vendors,
+        recommendedDefaults: recommended,
+        knowledgeBase: {
+          pinecone,
+          embeddings,
+          learningActive: knowledgeLearning,
+          message: knowledgeLearning
+            ? "Knowledge learning is active — research results are indexed for future retrieval"
+            : !pinecone
+              ? "Pinecone not configured (PINECONE_API_KEY) — knowledge learning disabled"
+              : "Embedding API not available — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.",
+        },
+        missingKeys: {
+          fredApiKey: !process.env.FRED_API_KEY,
+          pineconeApiKey: !pinecone,
+          embeddingKey: !embeddings,
+        },
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to check system intelligence status", error);
     }
   });
 }

@@ -26,7 +26,7 @@
  * by every route file in server/routes/.
  */
 import { db } from "../db";
-import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioResults, notificationPreferences, documentExtractions, conversations, type User, type Session, type GlobalAssumptions, type Property, type Scenario, type ScenarioResult, type InsertScenarioResult, type Logo, type AssetDescription, type UserGroup, type Company, type FeeCategory, type ResearchQuestion, type DesignTheme } from "@shared/schema";
+import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, scenarioResults, notificationPreferences, documentExtractions, conversations, type User, type Session, type GlobalAssumptions, type Property, type Scenario, type ScenarioResult, type InsertScenarioResult, type Logo, type AssetDescription, type UserGroup, type Company, type FeeCategory, type ResearchQuestion, type DesignTheme } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { UserStorage } from "./users";
 import { PropertyStorage } from "./properties";
@@ -141,6 +141,12 @@ export class DatabaseStorage implements IStorage {
   shareScenarioWithUser = this.financial.shareScenarioWithUser.bind(this.financial);
   shareAllScenariosWithUser = this.financial.shareAllScenariosWithUser.bind(this.financial);
   getSharesForScenario = this.financial.getSharesForScenario.bind(this.financial);
+
+  // Scenario Access (fine-grained grants)
+  grantScenarioAccess = this.financial.grantScenarioAccess.bind(this.financial);
+  revokeScenarioAccess = this.financial.revokeScenarioAccess.bind(this.financial);
+  getScenarioAccessByOwner = this.financial.getScenarioAccessByOwner.bind(this.financial);
+  getScenariosSharedViaAccess = this.financial.getScenariosSharedViaAccess.bind(this.financial);
 
   // Scenario Results
   saveScenarioResult = this.financial.saveScenarioResult.bind(this.financial);
@@ -313,6 +319,8 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(sessions).where(eq(sessions.userId, id));
       await tx.delete(scenarioShares).where(eq(scenarioShares.grantedBy, id));
       await tx.delete(scenarioShares).where(and(eq(scenarioShares.targetType, "user"), eq(scenarioShares.targetId, id)));
+      await tx.delete(scenarioAccess).where(eq(scenarioAccess.ownerId, id));
+      await tx.delete(scenarioAccess).where(eq(scenarioAccess.granteeId, id));
       await tx.delete(scenarios).where(eq(scenarios.userId, id));
       await tx.delete(marketResearch).where(eq(marketResearch.userId, id));
       await tx.delete(prospectiveProperties).where(eq(prospectiveProperties.userId, id));

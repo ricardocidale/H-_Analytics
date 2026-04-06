@@ -157,6 +157,16 @@ app.use((req, res, next) => {
     }
   }
 
+  const hasPinecone = !!process.env.PINECONE_API_KEY;
+  const hasEmbeddingKey = !!(process.env.OPENAI_EMBEDDING_KEY || process.env.OPENAI_API_KEY);
+  if (hasPinecone && hasEmbeddingKey) {
+    serverLog("Pinecone + embeddings: ready (knowledge learning active)", "startup", "info");
+  } else if (hasPinecone && !hasEmbeddingKey) {
+    serverLog("Pinecone: configured but embeddings unavailable — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.", "startup", "warn");
+  } else {
+    serverLog("Pinecone: not configured (PINECONE_API_KEY not set)", "startup", "warn");
+  }
+
   registerImageRoutes(app);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);
@@ -356,6 +366,12 @@ async function runSchemaMigrations() {
     const { runPhotoImageData001 } = await import("./migrations/photo-image-data-001");
     await runPhotoImageData001();
     await markMigrationApplied("photo_image_data_001");
+  }
+
+  if (!(await isMigrationApplied("scenario_access_001"))) {
+    const { runScenarioAccess001 } = await import("./migrations/scenario-access-001");
+    await runScenarioAccess001();
+    await markMigrationApplied("scenario_access_001");
   }
 }
 

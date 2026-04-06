@@ -48,6 +48,16 @@ const propertyCount = 5;
 
 **Seed scripts** may create a fixed number of initial properties, but log messages and tests must reference the actual array length, not a literal.
 
+## Scenario Privacy — Two-Layer Model
+
+**Layer 1 — Scenario records are user-private.**
+The `scenarios` table rows belong to the user who created them (`userId = creating user's id`). A user sees only their own scenarios in the Scenarios list. Other users cannot browse or load another user's scenario unless it has been explicitly shared with them (via in-app share or email).
+
+**Layer 2 — The active workspace is shared.**
+The currently loaded portfolio — properties and global assumptions — is a shared workspace (`userId = NULL`). All authenticated users see the same active state. Loading any scenario replaces this shared workspace for everyone.
+
+This means: loading a scenario is a consequential, global action. The UI must warn the user before loading.
+
 ## Scenario Load — Must Restore as Shared
 
 When loading a saved scenario, the `loadScenario()` method must:

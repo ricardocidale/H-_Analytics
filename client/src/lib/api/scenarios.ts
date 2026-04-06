@@ -94,6 +94,94 @@ export function useDeleteScenario() {
   });
 }
 
+// ─── Scenario Access Control ───────────────────────────────────────
+
+export interface ScenarioAccessGrant {
+  id: number;
+  scenarioId: number | null;
+  ownerId: number;
+  granteeId: number;
+  grantType: "specific" | "all";
+  createdAt: string;
+  granteeName: string | null;
+  granteeEmail: string;
+}
+
+async function fetchScenarioAccess(): Promise<ScenarioAccessGrant[]> {
+  const res = await fetch("/api/scenarios/access", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch access grants");
+  return res.json();
+}
+
+async function grantScenarioAccess(data: { granteeId: number; scenarioId?: number | null }): Promise<ScenarioAccessGrant> {
+  const res = await fetch("/api/scenarios/access", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || "Failed to grant access");
+  }
+  return res.json();
+}
+
+async function revokeScenarioAccess(data: { granteeId: number; scenarioId?: number | null }): Promise<void> {
+  const res = await fetch("/api/scenarios/access", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || "Failed to revoke access");
+  }
+}
+
+async function fetchSharedWithMe(): Promise<ScenarioResponse[]> {
+  const res = await fetch("/api/scenarios/shared-with-me", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch shared scenarios");
+  return res.json();
+}
+
+export function useScenarioAccess() {
+  return useQuery({
+    queryKey: ["scenarios", "access"],
+    queryFn: fetchScenarioAccess,
+  });
+}
+
+export function useGrantScenarioAccess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: grantScenarioAccess,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["scenarios", "access"] });
+      queryClient.invalidateQueries({ queryKey: ["scenarios"] });
+    },
+  });
+}
+
+export function useRevokeScenarioAccess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: revokeScenarioAccess,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["scenarios", "access"] });
+      queryClient.invalidateQueries({ queryKey: ["scenarios"] });
+    },
+  });
+}
+
+export function useSharedWithMe() {
+  return useQuery({
+    queryKey: ["scenarios", "shared-with-me"],
+    queryFn: fetchSharedWithMe,
+  });
+}
+
 async function shareScenario(data: { recipientEmail: string; mode: "single" | "all"; scenarioId?: number }): Promise<{ shares: any[]; recipientName: string }> {
   const res = await fetch("/api/scenarios/shares", {
     method: "POST",
