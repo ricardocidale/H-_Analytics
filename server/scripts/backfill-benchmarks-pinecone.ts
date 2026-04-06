@@ -10,16 +10,17 @@
 
 import { storage } from "../storage";
 import { indexBenchmarkSnapshot, isPineconeAvailable } from "../ai/pinecone-service";
+import { logger } from "../logger";
 
 async function main() {
   if (!isPineconeAvailable()) {
-    console.error("[backfill] PINECONE_API_KEY not configured — aborting.");
+    logger.error("[backfill] PINECONE_API_KEY not configured — aborting.");
     process.exit(1);
   }
 
-  console.log("[backfill] Fetching all benchmark snapshots from PostgreSQL…");
+  logger.info("[backfill] Fetching all benchmark snapshots from PostgreSQL…");
   const snapshots = await storage.getBenchmarkSnapshots();
-  console.log(`[backfill] Found ${snapshots.length} snapshots to index.`);
+  logger.info(`[backfill] Found ${snapshots.length} snapshots to index.`);
 
   let indexed = 0;
   let failed = 0;
@@ -38,15 +39,15 @@ async function main() {
       });
       indexed++;
       if (indexed % 10 === 0) {
-        console.log(`[backfill] Progress: ${indexed}/${snapshots.length}`);
+        logger.info(`[backfill] Progress: ${indexed}/${snapshots.length}`);
       }
     } catch (err) {
       failed++;
-      console.warn(`[backfill] Failed to index ${snap.snapshotKey}: ${err instanceof Error ? err.message : err}`);
+      logger.warn(`[backfill] Failed to index ${snap.snapshotKey}: ${err instanceof Error ? err.message : err}`);
     }
   }
 
-  console.log(`[backfill] Complete. Indexed: ${indexed}, Failed: ${failed}, Total: ${snapshots.length}`);
+  logger.info(`[backfill] Complete. Indexed: ${indexed}, Failed: ${failed}, Total: ${snapshots.length}`);
   process.exit(0);
 }
 
