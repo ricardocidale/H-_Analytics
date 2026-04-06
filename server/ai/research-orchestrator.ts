@@ -266,8 +266,9 @@ function buildSynthesisUserPrompt(
   panelB: AnalystPanel,
   validation: ApiValidationResult,
   priorResearch: Awaited<ReturnType<typeof retrieveSimilarResearch>>,
+  v2Prompt?: string,
 ): string {
-  const base = buildUserPrompt(params);
+  const base = v2Prompt ?? buildUserPrompt(params);
 
   return `${base}
 
@@ -347,7 +348,7 @@ export async function* orchestrateResearch(
   yield { type: "phase", data: `Synthesizing with ${SYNTHESIS_MODEL}…` };
 
   const systemPrompt = buildSynthesisSystemPrompt(params);
-  const userPrompt   = buildSynthesisUserPrompt(params, panelA, panelB, validation, priorResearch);
+  const userPrompt   = buildSynthesisUserPrompt(params, panelA, panelB, validation, priorResearch, v2Prompt);
 
   const anthropic = getAnthropicClient();
 

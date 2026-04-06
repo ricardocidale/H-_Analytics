@@ -209,6 +209,60 @@ function extractFromGenericKeys(parsed: Record<string, unknown>, validKeys: Set<
   return records;
 }
 
+function extractFromCompanyResearch(parsed: Record<string, unknown>): GuidanceRecord[] {
+  const records: GuidanceRecord[] = [];
+
+  const asSection = (v: unknown): Record<string, unknown> | null =>
+    v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : null;
+
+  const dig = (obj: unknown, path: string): unknown => {
+    let cur: unknown = obj;
+    for (const part of path.split(".")) {
+      if (cur && typeof cur === "object" && !Array.isArray(cur)) cur = (cur as Record<string, unknown>)[part];
+      else return undefined;
+    }
+    return cur;
+  };
+
+  const companyMappings: Array<[string, string[]]> = [
+    ["baseManagementFee", ["feeAnalysis.baseManagementFee", "managementFees.baseFee"]],
+    ["incentiveManagementFee", ["feeAnalysis.incentiveFee", "managementFees.incentiveFee"]],
+    ["acquisitionCommission", ["feeAnalysis.acquisitionCommission", "commissions.acquisition"]],
+    ["dispositionCommission", ["feeAnalysis.dispositionCommission", "commissions.disposition"]],
+    ["partnerComp", ["compensationAnalysis.partnerCompensation", "staffing.partnerComp"]],
+    ["staffSalary", ["compensationAnalysis.staffSalary", "staffing.baseSalary"]],
+    ["officeLease", ["overheadAnalysis.officeLease", "fixedCosts.officeLease"]],
+    ["professionalServices", ["overheadAnalysis.professionalServices", "fixedCosts.professionalServices"]],
+    ["techInfra", ["overheadAnalysis.technologyInfrastructure", "fixedCosts.techInfra"]],
+    ["businessInsurance", ["overheadAnalysis.businessInsurance", "fixedCosts.insurance"]],
+    ["travelCost", ["variableCosts.travelCostPerClient", "overheadAnalysis.travelCost"]],
+    ["itLicense", ["variableCosts.itLicensePerClient", "overheadAnalysis.itLicense"]],
+    ["marketingRate", ["variableCosts.marketingRate", "overheadAnalysis.marketing"]],
+    ["miscOps", ["variableCosts.miscOps", "overheadAnalysis.miscellaneous"]],
+    ["companyTaxRate", ["taxAnalysis.effectiveTaxRate", "taxAnalysis.companyTaxRate"]],
+    ["costOfEquity", ["valuationAnalysis.costOfEquity", "taxAnalysis.costOfEquity"]],
+    ["svcFeeMarketing", ["serviceCategories.marketing", "serviceFees.marketing"]],
+    ["svcFeeTechRes", ["serviceCategories.technologyReservations", "serviceFees.techReservations"]],
+    ["svcFeeAccounting", ["serviceCategories.accounting", "serviceFees.accounting"]],
+    ["svcFeeRevMgmt", ["serviceCategories.revenueManagement", "serviceFees.revenueManagement"]],
+    ["svcFeeGeneralMgmt", ["serviceCategories.generalManagement", "serviceFees.generalManagement"]],
+    ["svcFeeProcurement", ["serviceCategories.procurement", "serviceFees.procurement"]],
+  ];
+
+  for (const [key, paths] of companyMappings) {
+    for (const path of paths) {
+      const val = dig(parsed, path);
+      if (val != null) {
+        const section = asSection(val) ?? { value: val, display: String(val) };
+        const record = extractRecordFromSection(key, section);
+        if (record) { records.push(record); break; }
+      }
+    }
+  }
+
+  return records;
+}
+
 export function extractGuidance(
   aiResponse: Record<string, unknown>,
   tier: 1 | 2,
@@ -220,6 +274,8 @@ export function extractGuidance(
   try {
     if (entityType === "property") {
       rawRecords = extractFromPropertyResearch(aiResponse);
+    } else if (entityType === "company") {
+      rawRecords = extractFromCompanyResearch(aiResponse);
     }
 
     const validKeys = entityType === "property" ? PROPERTY_ASSUMPTION_KEYS : COMPANY_ASSUMPTION_KEYS;
