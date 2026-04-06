@@ -27,6 +27,11 @@ import {
   Check as PhosphorCheck,
   Warning as PhosphorAlert,
 } from "@phosphor-icons/react";
+import {
+  MdOutlineStarOutline as MaterialStar, MdOutlineNotifications as MaterialBell,
+  MdOutlineSearch as MaterialSearch, MdOutlineCheck as MaterialCheck,
+  MdOutlineWarningAmber as MaterialAlert,
+} from "react-icons/md";
 
 const barChartData = [
   { name: "Q1", value: 320, fill: "var(--color-q1)" },
@@ -109,7 +114,7 @@ export function ThemePreview({ themeName, iconSet = "lucide" }: ThemePreviewProp
       <CardContent className="space-y-6">
         <IconSetProvider value={iconSet}>
         <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Icon Set — {iconSet === "phosphor" ? "Phosphor" : "Lucide"}</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Icon Set — {iconSet === "material" ? "Material" : iconSet === "phosphor" ? "Phosphor" : "Lucide"}</p>
           <div className="flex gap-6" data-testid="preview-icon-set">
             <div className="space-y-2">
               <p className="text-[10px] font-medium text-muted-foreground uppercase">Lucide</p>
@@ -131,9 +136,19 @@ export function ThemePreview({ themeName, iconSet = "lucide" }: ThemePreviewProp
                 <PhosphorAlert className="w-5 h-5 text-foreground" size={20} />
               </div>
             </div>
+            <div className="space-y-2">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase">Material</p>
+              <div className="flex gap-2">
+                <MaterialStar className="w-5 h-5 text-foreground" />
+                <MaterialBell className="w-5 h-5 text-foreground" />
+                <MaterialSearch className="w-5 h-5 text-foreground" />
+                <MaterialCheck className="w-5 h-5 text-foreground" />
+                <MaterialAlert className="w-5 h-5 text-foreground" />
+              </div>
+            </div>
           </div>
           <div className="mt-2 px-2 py-1 rounded bg-muted inline-block">
-            <span className="text-xs font-medium text-foreground">Active: {iconSet === "phosphor" ? "Phosphor" : "Lucide"}</span>
+            <span className="text-xs font-medium text-foreground">Active: {iconSet === "material" ? "Material" : iconSet === "phosphor" ? "Phosphor" : "Lucide"}</span>
           </div>
         </div>
 

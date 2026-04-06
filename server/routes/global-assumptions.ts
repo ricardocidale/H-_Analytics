@@ -6,6 +6,7 @@ import { fromZodError } from "zod-validation-error";
 import { logActivity, logAndSendError, parseParamId } from "./helpers";
 import { z } from "zod";
 import { invalidateComputeCache } from "../finance/cache";
+import { flag } from "../feature-flags";
 
 const appearanceDefaultsSchema = z.object({
   defaultColorMode: z.enum(["light", "auto", "dark"]).nullable().optional(),
@@ -23,7 +24,7 @@ export function register(app: Express) {
   app.get("/api/global-assumptions", requireAuth, async (req, res) => {
     try {
       const assumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      res.json(assumptions);
+      res.json({ ...assumptions, rebeccaV2: flag("REBECCA_V2") });
     } catch (error) {
       logAndSendError(res, "Failed to fetch global assumptions", error);
     }

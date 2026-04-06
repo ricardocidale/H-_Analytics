@@ -160,7 +160,7 @@ export const insertDesignThemeSchema = z.object({
     hexCode: z.string(),
     description: z.string(),
   })),
-  iconSet: z.enum(["lucide", "phosphor"]).optional(),
+  iconSet: z.enum(["lucide", "phosphor", "material"]).optional(),
   isDefault: z.boolean().optional(),
 });
 

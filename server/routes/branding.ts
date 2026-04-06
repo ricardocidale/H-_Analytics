@@ -364,7 +364,7 @@ export function register(app: Express) {
       hexCode: z.string(),
       description: z.string(),
     })).optional(),
-    iconSet: z.enum(["lucide", "phosphor"]).optional(),
+    iconSet: z.enum(["lucide", "phosphor", "material"]).optional(),
     isDefault: z.boolean().optional(),
   });
 

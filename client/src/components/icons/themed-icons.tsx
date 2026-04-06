@@ -125,16 +125,81 @@ import {
   MagnifyingGlassMinus as PZoomOut,
 } from "@phosphor-icons/react";
 
+import {
+  MdOutlineWarningAmber as MAlertTriangle,
+  MdOutlineArrowDownward as MArrowDown,
+  MdOutlineArrowBack as MArrowLeft,
+  MdOutlineArrowForward as MArrowRight,
+  MdOutlineArrowUpward as MArrowUp,
+  MdOutlineSwapVert as MArrowUpDown,
+  MdOutlineNotifications as MBell,
+  MdOutlineApartment as MBuilding2,
+  MdOutlineCalculate as MCalculator,
+  MdOutlineCheck as MCheck,
+  MdOutlineCheckCircle as MCheckCircle,
+  MdOutlineExpandMore as MChevronDown,
+  MdOutlineChevronLeft as MChevronLeft,
+  MdOutlineChevronRight as MChevronRight,
+  MdOutlineUnfoldMore as MChevronsUpDown,
+  MdOutlineExpandLess as MChevronUp,
+  MdOutlineCircle as MCircle,
+  MdOutlineSchedule as MClock,
+  MdOutlineCrop as MCrop,
+  MdOutlineOpenInNew as MExternalLink,
+  MdOutlineScience as MFlaskConical,
+  MdOutlineGridView as MGalleryVerticalEnd,
+  MdOutlineCompareArrows as MGitCompare,
+  MdOutlineDragIndicator as MGripVertical,
+  MdOutlineImage as MImage,
+  MdOutlineAddPhotoAlternate as MImagePlus,
+  MdOutlineCollections as MImages,
+  MdOutlineInfo as MInfo,
+  MdOutlineAutorenew as MLoader2,
+  MdOutlineLock as MLock,
+  MdOutlineMail as MMail,
+  MdOutlineChatBubbleOutline as MMessageSquare,
+  MdOutlineRemove as MMinus,
+  MdOutlineMoreHoriz as MMoreHorizontal,
+  MdOutlineMoreVert as MMoreVertical,
+  MdOutlineViewSidebar as MPanelLeft,
+  MdOutlineAttachFile as MPaperclip,
+  MdOutlineEdit as MPencil,
+  MdOutlinePhone as MPhone,
+  MdOutlinePhoneDisabled as MPhoneOff,
+  MdOutlineAdd as MPlus,
+  MdOutlineBalance as MScale,
+  MdOutlineSearch as MSearch,
+  MdOutlineSend as MSend,
+  MdOutlineDns as MServer,
+  MdOutlineShare as MShare2,
+  MdOutlineShield as MShield,
+  MdOutlineAutoAwesome as MSparkles,
+  MdOutlineStarOutline as MStar,
+  MdOutlineDeleteOutline as MTrash2,
+  MdOutlineEmojiEvents as MTrophy,
+  MdOutlineRefresh as MRefreshCw,
+  MdOutlineDescription as MFileText,
+  MdOutlineUploadFile as MUpload,
+  MdOutlineClose as MX,
+  MdOutlineCancel as MXCircle,
+  MdOutlineZoomIn as MZoomIn,
+  MdOutlineZoomOut as MZoomOut,
+} from "react-icons/md";
+
 type IconProps = SVGAttributes<SVGSVGElement> & { size?: number | string };
 
 type LucideComp = LucideIcon;
 type PhosphorComp = React.ComponentType<any>;
+type MaterialComp = React.ComponentType<any>;
 
-function themed(LIcon: LucideComp, PIcon: PhosphorComp, displayName: string) {
+function themed(LIcon: LucideComp, PIcon: PhosphorComp, MIcon: MaterialComp, displayName: string) {
   const C = forwardRef<SVGSVGElement, IconProps>((props, ref) => {
     const iconSet = useIconSet();
     if (iconSet === "phosphor") {
       return <PIcon ref={ref} {...props} />;
+    }
+    if (iconSet === "material") {
+      return <MIcon ref={ref} {...props} />;
     }
     return <LIcon ref={ref} {...props} />;
   });
@@ -142,64 +207,64 @@ function themed(LIcon: LucideComp, PIcon: PhosphorComp, displayName: string) {
   return C;
 }
 
-export const AlertTriangle = themed(LAlertTriangle, PAlertTriangle, "AlertTriangle");
-export const ArrowDown = themed(LArrowDown, PArrowDown, "ArrowDown");
-export const ArrowLeft = themed(LArrowLeft, PArrowLeft, "ArrowLeft");
-export const ArrowRight = themed(LArrowRight, PArrowRight, "ArrowRight");
-export const ArrowUp = themed(LArrowUp, PArrowUp, "ArrowUp");
-export const ArrowUpDown = themed(LArrowUpDown, PArrowUpDown, "ArrowUpDown");
-export const Bell = themed(LBell, PBell, "Bell");
-export const Building2 = themed(LBuilding2, PBuilding2, "Building2");
-export const Calculator = themed(LCalculator, PCalculator, "Calculator");
-export const Check = themed(LCheck, PCheck, "Check");
-export const CheckCircle = themed(LCheckCircle, PCheckCircle, "CheckCircle");
-export const CheckCircle2 = themed(LCheckCircle2, PCheckCircle, "CheckCircle2");
-export const ChevronDown = themed(LChevronDown, PChevronDown, "ChevronDown");
-export const ChevronLeft = themed(LChevronLeft, PChevronLeft, "ChevronLeft");
-export const ChevronRight = themed(LChevronRight, PChevronRight, "ChevronRight");
-export const ChevronsUpDown = themed(LChevronsUpDown, PChevronsUpDown, "ChevronsUpDown");
-export const ChevronUp = themed(LChevronUp, PChevronUp, "ChevronUp");
-export const Circle = themed(LCircle, PCircle, "Circle");
-export const Clock = themed(LClock, PClock, "Clock");
-export const Crop = themed(LCrop, PCrop, "Crop");
-export const ExternalLink = themed(LExternalLink, PExternalLink, "ExternalLink");
-export const FlaskConical = themed(LFlaskConical, PFlaskConical, "FlaskConical");
-export const GalleryVerticalEnd = themed(LGalleryVerticalEnd, PGalleryVerticalEnd, "GalleryVerticalEnd");
-export const GitCompare = themed(LGitCompare, PGitCompare, "GitCompare");
-export const GripVertical = themed(LGripVertical, PGripVertical, "GripVertical");
-export const ImageIcon = themed(LImage, PImage, "ImageIcon");
-export const ImagePlus = themed(LImagePlus, PImagePlus, "ImagePlus");
-export const Images = themed(LImages, PImages, "Images");
-export const Info = themed(LInfo, PInfo, "Info");
-export const Loader2 = themed(LLoader2, PLoader2, "Loader2");
-export const Lock = themed(LLock, PLock, "Lock");
-export const Mail = themed(LMail, PMail, "Mail");
-export const MessageSquare = themed(LMessageSquare, PMessageSquare, "MessageSquare");
-export const Minus = themed(LMinus, PMinus, "Minus");
-export const MoreHorizontal = themed(LMoreHorizontal, PMoreHorizontal, "MoreHorizontal");
-export const PanelLeft = themed(LPanelLeft, PPanelLeft, "PanelLeft");
-export const Paperclip = themed(LPaperclip, PPaperclip, "Paperclip");
-export const Pencil = themed(LPencil, PPencil, "Pencil");
-export const Phone = themed(LPhone, PPhone, "Phone");
-export const PhoneOff = themed(LPhoneOff, PPhoneOff, "PhoneOff");
-export const Plus = themed(LPlus, PPlus, "Plus");
-export const Scale = themed(LScale, PScale, "Scale");
-export const Search = themed(LSearch, PSearch, "Search");
-export const Send = themed(LSend, PSend, "Send");
-export const Server = themed(LServer, PServer, "Server");
-export const Share2 = themed(LShare2, PShare2, "Share2");
-export const Shield = themed(LShield, PShield, "Shield");
-export const Sparkles = themed(LSparkles, PSparkles, "Sparkles");
-export const Star = themed(LStar, PStar, "Star");
-export const Trash2 = themed(LTrash2, PTrash2, "Trash2");
-export const Trophy = themed(LTrophy, PTrophy, "Trophy");
-export const RefreshCw = themed(LRefreshCw, PRefreshCw, "RefreshCw");
-export const FileText = themed(LFileText, PFileText, "FileText");
-export const Upload = themed(LUpload, PUpload, "Upload");
-export const X = themed(LX, PX, "X");
-export const XCircle = themed(LXCircle, PXCircle, "XCircle");
-export const ZoomIn = themed(LZoomIn, PZoomIn, "ZoomIn");
-export const ZoomOut = themed(LZoomOut, PZoomOut, "ZoomOut");
+export const AlertTriangle = themed(LAlertTriangle, PAlertTriangle, MAlertTriangle, "AlertTriangle");
+export const ArrowDown = themed(LArrowDown, PArrowDown, MArrowDown, "ArrowDown");
+export const ArrowLeft = themed(LArrowLeft, PArrowLeft, MArrowLeft, "ArrowLeft");
+export const ArrowRight = themed(LArrowRight, PArrowRight, MArrowRight, "ArrowRight");
+export const ArrowUp = themed(LArrowUp, PArrowUp, MArrowUp, "ArrowUp");
+export const ArrowUpDown = themed(LArrowUpDown, PArrowUpDown, MArrowUpDown, "ArrowUpDown");
+export const Bell = themed(LBell, PBell, MBell, "Bell");
+export const Building2 = themed(LBuilding2, PBuilding2, MBuilding2, "Building2");
+export const Calculator = themed(LCalculator, PCalculator, MCalculator, "Calculator");
+export const Check = themed(LCheck, PCheck, MCheck, "Check");
+export const CheckCircle = themed(LCheckCircle, PCheckCircle, MCheckCircle, "CheckCircle");
+export const CheckCircle2 = themed(LCheckCircle2, PCheckCircle, MCheckCircle, "CheckCircle2");
+export const ChevronDown = themed(LChevronDown, PChevronDown, MChevronDown, "ChevronDown");
+export const ChevronLeft = themed(LChevronLeft, PChevronLeft, MChevronLeft, "ChevronLeft");
+export const ChevronRight = themed(LChevronRight, PChevronRight, MChevronRight, "ChevronRight");
+export const ChevronsUpDown = themed(LChevronsUpDown, PChevronsUpDown, MChevronsUpDown, "ChevronsUpDown");
+export const ChevronUp = themed(LChevronUp, PChevronUp, MChevronUp, "ChevronUp");
+export const Circle = themed(LCircle, PCircle, MCircle, "Circle");
+export const Clock = themed(LClock, PClock, MClock, "Clock");
+export const Crop = themed(LCrop, PCrop, MCrop, "Crop");
+export const ExternalLink = themed(LExternalLink, PExternalLink, MExternalLink, "ExternalLink");
+export const FlaskConical = themed(LFlaskConical, PFlaskConical, MFlaskConical, "FlaskConical");
+export const GalleryVerticalEnd = themed(LGalleryVerticalEnd, PGalleryVerticalEnd, MGalleryVerticalEnd, "GalleryVerticalEnd");
+export const GitCompare = themed(LGitCompare, PGitCompare, MGitCompare, "GitCompare");
+export const GripVertical = themed(LGripVertical, PGripVertical, MGripVertical, "GripVertical");
+export const ImageIcon = themed(LImage, PImage, MImage, "ImageIcon");
+export const ImagePlus = themed(LImagePlus, PImagePlus, MImagePlus, "ImagePlus");
+export const Images = themed(LImages, PImages, MImages, "Images");
+export const Info = themed(LInfo, PInfo, MInfo, "Info");
+export const Loader2 = themed(LLoader2, PLoader2, MLoader2, "Loader2");
+export const Lock = themed(LLock, PLock, MLock, "Lock");
+export const Mail = themed(LMail, PMail, MMail, "Mail");
+export const MessageSquare = themed(LMessageSquare, PMessageSquare, MMessageSquare, "MessageSquare");
+export const Minus = themed(LMinus, PMinus, MMinus, "Minus");
+export const MoreHorizontal = themed(LMoreHorizontal, PMoreHorizontal, MMoreHorizontal, "MoreHorizontal");
+export const PanelLeft = themed(LPanelLeft, PPanelLeft, MPanelLeft, "PanelLeft");
+export const Paperclip = themed(LPaperclip, PPaperclip, MPaperclip, "Paperclip");
+export const Pencil = themed(LPencil, PPencil, MPencil, "Pencil");
+export const Phone = themed(LPhone, PPhone, MPhone, "Phone");
+export const PhoneOff = themed(LPhoneOff, PPhoneOff, MPhoneOff, "PhoneOff");
+export const Plus = themed(LPlus, PPlus, MPlus, "Plus");
+export const Scale = themed(LScale, PScale, MScale, "Scale");
+export const Search = themed(LSearch, PSearch, MSearch, "Search");
+export const Send = themed(LSend, PSend, MSend, "Send");
+export const Server = themed(LServer, PServer, MServer, "Server");
+export const Share2 = themed(LShare2, PShare2, MShare2, "Share2");
+export const Shield = themed(LShield, PShield, MShield, "Shield");
+export const Sparkles = themed(LSparkles, PSparkles, MSparkles, "Sparkles");
+export const Star = themed(LStar, PStar, MStar, "Star");
+export const Trash2 = themed(LTrash2, PTrash2, MTrash2, "Trash2");
+export const Trophy = themed(LTrophy, PTrophy, MTrophy, "Trophy");
+export const RefreshCw = themed(LRefreshCw, PRefreshCw, MRefreshCw, "RefreshCw");
+export const FileText = themed(LFileText, PFileText, MFileText, "FileText");
+export const Upload = themed(LUpload, PUpload, MUpload, "Upload");
+export const X = themed(LX, PX, MX, "X");
+export const XCircle = themed(LXCircle, PXCircle, MXCircle, "XCircle");
+export const ZoomIn = themed(LZoomIn, PZoomIn, MZoomIn, "ZoomIn");
+export const ZoomOut = themed(LZoomOut, PZoomOut, MZoomOut, "ZoomOut");
 
 export const ArrowDownIcon = ArrowDown;
 export const ArrowUpIcon = ArrowUp;
@@ -214,7 +279,7 @@ export const Loader2Icon = Loader2;
 export const LoaderIcon = Loader2;
 export const MoreHorizontalIcon = MoreHorizontal;
 export const MoreVerticalIcon = themed(
-  LMoreVertical, PMoreVertical, "MoreVerticalIcon"
+  LMoreVertical, PMoreVertical, MMoreVertical, "MoreVerticalIcon"
 );
 export const PhoneIcon = Phone;
 export const XIcon = X;

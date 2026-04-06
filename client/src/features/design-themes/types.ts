@@ -5,7 +5,7 @@ export interface DesignColor {
   description: string;
 }
 
-export type IconSetType = "lucide" | "phosphor";
+export type IconSetType = "lucide" | "phosphor" | "material";
 
 export interface DesignTheme {
   id: number;

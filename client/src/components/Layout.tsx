@@ -9,7 +9,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconResearch, IconTarget, IconHome, IconCompass, IconFolderOpen } from "@/components/icons";
+import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconResearch, IconTarget, IconHome, IconCompass, IconFolderOpen, IconMessageCircle } from "@/components/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ import { Separator } from "@/components/ui/separator";
 import GuidedWalkthrough, { useWalkthroughStore } from "@/components/GuidedWalkthrough";
 import { RebeccaChatbot } from "@/components/RebeccaChatbot";
 import { GuidanceSideSheet } from "@/components/research/GuidanceSideSheet";
+import { RebeccaPanel } from "@/components/rebecca/RebeccaPanel";
+import { usePanelManager } from "@/lib/panel-manager";
 
 import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } from "@/lib/theme";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
@@ -64,6 +66,23 @@ function ScenarioIndicator() {
         <span className="w-2 h-2 rounded-full bg-accent-pop shrink-0" data-testid="indicator-dirty-dot" />
       )}
     </div>
+  );
+}
+
+function RebeccaHeaderButton({ displayName }: { displayName: string }) {
+  const { openRebecca, activePanel } = usePanelManager();
+  const isActive = activePanel === "rebecca";
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => isActive ? usePanelManager.getState().closeAll() : openRebecca()}
+      className={cn("h-8 w-8 relative", isActive && "bg-primary/10")}
+      data-testid="button-rebecca-toggle"
+      title={displayName}
+    >
+      <IconMessageCircle className="w-4 h-4" />
+    </Button>
   );
 }
 
@@ -346,7 +365,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     </div>
   );
 
-  const activeIconSet: IconSetType = (myBranding?.iconSet === "phosphor" ? "phosphor" : "lucide");
+  const activeIconSet: IconSetType = (myBranding?.iconSet === "phosphor" ? "phosphor" : myBranding?.iconSet === "material" ? "material" : "lucide");
 
   return (
     <IconSetProvider value={activeIconSet}>
@@ -399,7 +418,9 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             </Button>
             <NotificationCenter />
             {!!(global as any)?.rebeccaEnabled && (
-              <RebeccaChatbot displayName={(global as any)?.rebeccaDisplayName || "Rebecca"} />
+              (global as any)?.rebeccaV2
+                ? <RebeccaHeaderButton displayName={(global as any)?.rebeccaDisplayName || "Rebecca"} />
+                : <RebeccaChatbot displayName={(global as any)?.rebeccaDisplayName || "Rebecca"} />
             )}
           </div>
         </header>
@@ -447,6 +468,9 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       <CommandPalette />
       <GuidedWalkthrough />
       <GuidanceSideSheet />
+      {!!(global as any)?.rebeccaEnabled && !!(global as any)?.rebeccaV2 && (
+        <RebeccaPanel displayName={(global as any)?.rebeccaDisplayName || "Rebecca"} />
+      )}
     </div>
     </IconSetProvider>
   );

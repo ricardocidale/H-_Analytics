@@ -78,6 +78,7 @@ export function ThemeFormDialog({ open, onOpenChange, editingTheme, themeForForm
               <SelectContent>
                 <SelectItem value="lucide">Lucide (default)</SelectItem>
                 <SelectItem value="phosphor">Phosphor</SelectItem>
+                <SelectItem value="material">Material Design</SelectItem>
               </SelectContent>
             </Select>
           </div>
