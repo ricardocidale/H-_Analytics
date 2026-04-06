@@ -186,8 +186,9 @@ export function registerIntelligenceRoutes(app: Express) {
 
   app.patch("/api/admin/pipeline-policies/:policyKey", requireAdmin, async (req, res) => {
     try {
-      const policyKey = req.params.policyKey as string;
-      if (!policyKey) return res.status(400).json({ error: "policyKey is required" });
+      const policyKeyParsed = z.string().min(1).max(100).regex(/^[a-z0-9_-]+$/i).safeParse(req.params.policyKey);
+      if (!policyKeyParsed.success) return res.status(400).json({ error: "Invalid policyKey" });
+      const policyKey = policyKeyParsed.data;
 
       const updateSchema = z.object({
         tier: z.number().int().min(0).max(2).optional(),
@@ -318,6 +319,9 @@ export function registerIntelligenceRoutes(app: Express) {
         });
       }
 
+      if (!prompt || prompt.length === 0) {
+        return res.status(422).json({ error: "Prompt assembly returned empty — check entity data and tier configuration" });
+      }
       const tokenEstimate = Math.ceil(prompt.length / 4);
       const costPerMillionTokens = 3.0;
       const estimatedCost = (tokenEstimate / 1_000_000) * costPerMillionTokens;

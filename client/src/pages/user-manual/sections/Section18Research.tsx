@@ -1,5 +1,5 @@
 import { SectionCard } from "@/components/ui/section-card";
-import { IconBot } from "@/components/icons";
+import { IconBookOpen } from "@/components/icons";
 
 interface SectionProps {
   expanded: boolean;
@@ -12,7 +12,7 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
     <SectionCard
       id="research-intelligence"
       title="18. Research & Intelligence"
-      icon={IconBot}
+      icon={IconBookOpen}
       variant="light"
       expanded={expanded}
       onToggle={onToggle}

@@ -11,7 +11,7 @@ export default function Section10Analysis({ expanded, onToggle, sectionRef }: Se
   return (
     <SectionCard
       id="analysis"
-      title="10. Simulation and Analysis"
+      title="10. Analysis Tools"
       icon={IconAnalysis}
       variant="light"
       expanded={expanded}

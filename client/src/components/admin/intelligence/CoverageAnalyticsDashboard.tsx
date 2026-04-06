@@ -90,7 +90,7 @@ export default function CoverageAnalyticsDashboard() {
   const [selectedEntity, setSelectedEntity] = useState<{ type: string; id: number } | null>(null);
   const { data: scenarios } = useScenarios();
 
-  const { data, isLoading } = useQuery<CoverageResponse>({
+  const { data, isLoading, isError } = useQuery<CoverageResponse>({
     queryKey: ["admin-coverage", scenarioId],
     queryFn: async () => {
       const url = scenarioId
@@ -102,7 +102,7 @@ export default function CoverageAnalyticsDashboard() {
     },
   });
 
-  const { data: detail, isLoading: detailLoading } = useQuery<EntityDetail>({
+  const { data: detail, isLoading: detailLoading, isError: detailError } = useQuery<EntityDetail>({
     queryKey: ["admin-coverage-detail", selectedEntity?.type, selectedEntity?.id, scenarioId],
     queryFn: async () => {
       if (!selectedEntity) return null;
@@ -120,6 +120,15 @@ export default function CoverageAnalyticsDashboard() {
     return (
       <div className="flex items-center justify-center py-16" data-testid="coverage-loading">
         <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center gap-3" data-testid="coverage-error">
+        <span className="text-3xl">⚠️</span>
+        <p className="text-sm text-muted-foreground">Failed to load coverage analytics. Please try again.</p>
       </div>
     );
   }
@@ -220,6 +229,10 @@ export default function CoverageAnalyticsDashboard() {
           {detailLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : detailError ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-2" data-testid="coverage-detail-error">
+              <p className="text-sm text-muted-foreground">Failed to load entity details.</p>
             </div>
           ) : detail ? (
             <div className="space-y-4">
