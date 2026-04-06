@@ -10,8 +10,14 @@ import {
 
 const parsePct = (s: string | undefined): number | null => {
   if (!s) return null;
-  const m = s.match(/([\d.]+)/);
-  return m ? parseFloat(m[1]) : null;
+  const m = s.match(/([\d.]+)\s*%/);
+  if (m) return parseFloat(m[1]) / 100;
+  const raw = s.match(/([\d.]+)/);
+  if (raw) {
+    const v = parseFloat(raw[1]);
+    return v > 1 ? v / 100 : v;
+  }
+  return null;
 };
 
 const parseRange = (s: string | undefined): { low: number; high: number; mid: number } | null => {

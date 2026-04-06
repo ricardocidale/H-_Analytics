@@ -13,10 +13,9 @@ export interface ClassificationInput {
 
 function getAdrTier(adr: number): string {
   if (adr >= 700) return "ultra-luxury";
-  if (adr >= 400) return "luxury";
-  if (adr >= 250) return "upper upscale";
-  if (adr >= 150) return "upscale";
-  if (adr >= 80) return "midscale";
+  if (adr >= 250) return "luxury";
+  if (adr >= 150) return "upper upscale";
+  if (adr >= 80) return "upscale";
   return "economy";
 }
 

@@ -22,9 +22,10 @@ async function fetchFredRate(seriesId: string, label: string, category: string):
       return { snapshots, errors };
     }
 
-    const data = await response.json() as any;
-    const obs = data.observations?.[0];
-    if (obs && obs.value !== ".") {
+    const data: unknown = await response.json();
+    const fredData = data as { observations?: Array<{ value?: string }> };
+    const obs = fredData.observations?.[0];
+    if (obs?.value && obs.value !== ".") {
       snapshots.push({
         snapshotKey: `fred_${seriesId.toLowerCase()}`,
         category,

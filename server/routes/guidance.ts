@@ -33,7 +33,12 @@ async function checkEntityAccess(user: Express.User, entityType: EntityType, ent
   if (entityType === "property") {
     return checkPropertyAccess(user, entityId);
   }
-  return true;
+  if (entityType === "company") {
+    const authUser = user as { companyId?: number | null; role?: string };
+    if (authUser.role === "admin") return true;
+    return authUser.companyId === entityId;
+  }
+  return false;
 }
 
 export function register(app: Express) {
