@@ -1,181 +1,161 @@
 ---
 name: rebecca-chatbot
-description: Rebecca — Conversational Intelligence Layer for the research system. Covers Super Conversations, research badge integration, email summaries, Norfolk AI feedback, RAG knowledge architecture, and admin configuration. Load when working on the chat endpoint, Rebecca UI, chatbot configuration, or research explanation flows.
+description: Rebecca — the sole AI assistant and conversational intelligence layer. Covers Super Conversations, context injection, email summaries, feedback, RAG knowledge architecture (Pinecone maximization), and admin configuration. Load when working on the chat endpoint, Rebecca UI, chatbot configuration, or research explanation flows. IMPORTANT — "Marcela" is never used; the AI assistant is always "Rebecca."
 ---
 
 # Rebecca Chatbot — Conversational Intelligence Layer
 
+## Critical Rule
+
+> **The AI assistant is ALWAYS "Rebecca."** If the user says "Marcela," they mean Rebecca. Marcela does not exist in this application. Never introduce Marcela references anywhere.
+
 ## Purpose
 
-Rebecca is the AI chatbot AND the conversational intelligence layer for the entire research system. She replaces complex tooltips for research explanations and provides "Super Conversations" (trademark Norfolk AI feature) — deep, multi-turn, contextual dialogues about any financial assumption, market benchmark, or research finding. Rebecca knows EVERYTHING about the portfolio.
+Rebecca is the AI chatbot AND the conversational intelligence layer for the entire research system. She replaces complex tooltips for research explanations and provides "Super Conversations" — deep, multi-turn, contextual dialogues about any financial assumption, market benchmark, or research finding. Rebecca knows EVERYTHING about the portfolio via RAG retrieval across multiple Pinecone namespaces.
 
-## Current Architecture (T19+T20 IMPLEMENTED)
+## Architecture (T19–T23 IMPLEMENTED)
 
 ```
-Client POST /api/chat { message, history, fieldContext? }
+Client POST /api/chat { message, history, fieldContext?, conversationId?, newConversation? }
   ↓
 requireAuth → aiRateLimit(20) → Zod validation
   ↓
 Feature gate: global.rebeccaEnabled === true?
   ↓
-If fieldContext present:
-  ├── Validate entity ownership (IDOR prevention)
-  │   ├── property: user's portfolio list check
-  │   └── company: authUser.companyId match
-  ├── buildRebeccaContext(entityType, entityId, fieldKey?, scenarioId?)
-  │   ├── buildPropertyContextPack() or buildCompanyContextPack()
-  │   ├── Fetch assumption_guidance for fieldKey (if provided)
-  │   ├── Format guidance ranges, comparable count, relaxation level
-  │   └── Generate autoGreeting message
-  └── Inject FOCUSED ENTITY CONTEXT + FIELD-SPECIFIC RESEARCH into system prompt
+Conversation resolution:
+  ├── conversationId provided? Validate ownership + context match
+  ├── newConversation? Force-create fresh thread
+  └── Otherwise: getOrCreateConversation(userId, contextType, contextKey)
   ↓
-Build base context:
-  ├── buildPropertyContext(properties) → property summaries
-  ├── Company name, inflation, projection years
-  ├── Management fees (base + incentive)
-  └── SAFE funding details (tranches, valuation cap, discount rate, interest)
+Load DB history: getRebeccaMessages(conversationId, limit=20) → most recent N
   ↓
-Assemble LLM contents → Return { response: text, autoGreeting?: string }
+Persist user message to rebecca_messages
+  ↓
+Build context layers (all parallel where possible):
+  ├── Portfolio context: buildPropertyContext(properties) + company/funding
+  ├── Document context: retrieveDocumentContext(message, propertyId, topK=3)
+  ├── RAG context: retrieveRelevantChunks(message, 4) + multiNamespaceQuery(research-history, assumption-guidance, topK=4)
+  └── Field context (if fieldContext present):
+      ├── Validate entity ownership (IDOR prevention)
+      ├── buildRebeccaContext(entityType, entityId, fieldKey?, scenarioId?)
+      └── Inject FOCUSED ENTITY CONTEXT + FIELD-SPECIFIC RESEARCH
+  ↓
+Assemble system prompt: base + portfolio + field + RAG + documents
+  ↓
+LLM call (Gemini/Perplexity based on engine setting)
+  ↓
+Persist assistant message → Generate follow-up chips
+  ↓
+Return { response, conversationId, suggestedChips, autoGreeting? }
 ```
 
-### Context Builder (`server/ai/rebecca-context-builder.ts`)
+## Pinecone RAG Architecture — MAXIMIZE USAGE
+
+Rebecca's intelligence depends on comprehensive Pinecone retrieval. All 5 namespaces MUST be leveraged:
+
+### Namespaces (Index: `lb-hospitality`)
+
+| Namespace | Purpose | Indexed By | Key Metadata Fields |
+|-----------|---------|-----------|-------------------|
+| `knowledge-base` | Static methodology docs, GAAP rules, USALI, ICP definitions | `indexKnowledgeBase()` at startup | `title`, `content`, `source`, `category` |
+| `research-history` | Every completed research result | `indexResearchResult()` after research | `summary`, `location`, `propertyType`, `type`, `completedAt` |
+| `assumption-guidance` | Historic assumption ranges by market/property type | `indexAssumptionGuidance()` after guidance computation | `assumptionKey`, `valueLow/Mid/High`, `confidence`, `reasoning`, `location`, `propertyType` |
+| `comparables` | Benchmark snapshots (ADR, Occupancy, etc.) | `indexBenchmarkSnapshot()` | Market-specific benchmark data |
+| `documents` | Extracted text from uploaded property documents | `indexDocumentExtraction()` | `content`, `documentType`, `propertyName`, `propertyId` |
+
+### Key Pinecone Service Methods (`server/ai/pinecone-service.ts`)
+
+```typescript
+queryChunks(namespace, query, topK=8): Promise<QueryMatch[]>
+multiNamespaceQuery(query, namespaces[], topK=5): Promise<MultiNamespaceMatch[]>
+upsertChunks(namespace, chunks[]): Promise<void>
+retrieveSimilarResearch(params): Promise<ResearchMatch[]>
+retrieveSimilarGuidance(params): Promise<GuidanceMatch[]>
+retrieveDocumentContext(params): Promise<DocumentMatch[]>
+```
+
+### RAG Token Budget (in chat route)
+
+- MAX_RAG_CHARS = 3000 (RAG context block)
+- Score threshold: 0.3 minimum
+- KB chunks: up to 600 chars each, from `retrieveRelevantChunks`
+- Multi-namespace matches: namespace-specific metadata mapping
+  - research-history → `summary` field
+  - assumption-guidance → `reasoning` + value range `low–mid–high`
+- Document context: separate block, 800 chars per doc, topK=3
+
+### When Adding New Features That Generate Knowledge
+
+Always index to Pinecone when:
+1. Research completes → `indexResearchResult()` to `research-history`
+2. Guidance is computed → `indexAssumptionGuidance()` to `assumption-guidance`
+3. Documents are uploaded → `indexDocumentExtraction()` to `documents`
+4. Benchmarks refresh → `indexBenchmarkSnapshot()` to `comparables`
+5. KB content changes → `indexKnowledgeBase()` to `knowledge-base`
+
+### Knowledge Base Content (`server/ai/kb-content.ts`)
+
+Currently includes:
+- Business Model Overview, Rules & Constraints, Capital Structure
+- Checker Manual methodology, platform guide, navigation
+- GAAP Revenue Recognition (ASC 606), USALI Expense Classification
+- Investment Metrics (IRR, Equity Multiple, Cap Rates, DSCR)
+- ICP Definitions (location, physical, financial, market position scores)
+- Benchmark Data Sources (STR, cap rates, debt market, operating expenses)
+
+## Super Conversations (T21 IMPLEMENTED)
+
+- Conversations persist in `rebecca_conversations` + `rebecca_messages`
+- `getOrCreateConversation()` resumes or creates by userId + contextType + contextKey
+- Context consistency: server rejects `conversationId` if context doesn't match current entity
+- `newConversation` flag forces fresh thread creation
+- DB history loads most recent N messages (desc + limit + reverse)
+- Follow-up chips evolve by round count and field context
+
+## Email + Feedback (T22 IMPLEMENTED)
+
+### Routes (`server/routes/rebecca.ts`)
+
+| Endpoint | Auth | Purpose |
+|----------|------|---------|
+| `POST /api/rebecca/email` | User | Derives summary server-side from DB messages, sends via Resend |
+| `POST /api/rebecca/feedback` | User | Category (incorrect/unhelpful/missing_data/other) + notes |
+| `GET /api/rebecca/conversations` | Admin | List all conversations |
+| `GET /api/rebecca/feedback` | Admin | List feedback, optional status filter |
+
+Security: Email content is NEVER client-supplied. Server loads conversation messages and derives subject/summary.
+
+### UI Components
+
+- `RebeccaEmailPreview.tsx` — Email preview modal (recipient input, subject/summary preview)
+- `RebeccaFeedbackForm.tsx` — Feedback modal (category dropdown, notes textarea)
+- Panel header buttons: Mail (email summary) + Flag (report issue), visible when conversation active with conversationId
+
+## Context Builder (`server/ai/rebecca-context-builder.ts`)
 
 Builds rich context server-side from entity IDs — never trusts client-provided context text.
 
-```typescript
-buildRebeccaContext(params: {
-  entityType: 'property' | 'company';
-  entityId: number;
-  fieldKey?: string;
-  scenarioId?: number;
-}): Promise<{
-  contextBlock: string;       // Natural-language context for LLM system prompt
-  autoGreeting: string;       // First message Rebecca shows to user
-  entityName: string;         // Property or company name
-  fieldLabel?: string;        // Human-readable field name
-  guidanceRange?: { low: number; mid: number; high: number };
-  comparableCount?: number;
-  relaxationLevel?: number;
-}>
-```
-
-Key behaviors:
 - 40+ field label mappings with proper format (%, $, raw number)
-- Calls `buildPropertyContextPack()` or `buildCompanyContextPack()` for full entity context
-- Fetches `assumption_guidance` records for specific field when `fieldKey` provided
-- Generates natural-language summary (NOT raw JSON) for LLM consumption
-- Auto-greeting references the specific field, current research data, and entity name
-
-### Chat Route Extensions (`server/routes/chat.ts`)
-
-Optional `fieldContext` Zod schema:
-```typescript
-fieldContext: z.object({
-  entityType: z.enum(['property', 'company']),
-  entityId: z.number(),
-  fieldKey: z.string().optional(),
-  scenarioId: z.number().optional(),
-}).optional()
-```
-
-Security:
-- Property ownership: validates `entityId` exists in user's property list
-- Company ownership: validates `entityId === authUser.companyId`
-- Context rebuilt server-side from IDs — client text never trusted
-
-## Rebecca Panel UX (T19 IMPLEMENTED)
-
-### RebeccaPanel (`client/src/components/rebecca/RebeccaPanel.tsx`)
-
-520px right slide-over panel (100vw on mobile):
-- Header: Rebecca avatar, name, property/field breadcrumb, close button
-- Context card (collapsed by default via `RebeccaContextCard`): current value, research range, star rating, comparable set, confidence
-- Chat area: markdown rendering + message bubbles
-- Input: text input + suggested follow-up chips
-- Auto-greeting: when opened with field context, sends initial request to get contextual greeting from server
-
-### RebeccaContextCard (`client/src/components/rebecca/RebeccaContextCard.tsx`)
-
-Collapsible card showing field context details when Rebecca is opened from a research badge.
-
-### Panel Conflict Resolution
-
-Rebecca Panel (520px) and Guidance Side-Sheet (480px) both open from the right. They are MUTUALLY EXCLUSIVE via `client/src/lib/panel-manager.ts` (Zustand store) with z-index orchestration. Opening one closes the other.
-
-### Research Badge Integration
-
-`ResearchBadgePopover` → "Ask Rebecca" passes:
-- `entityType`, `entityId` (from badge context)
-- `fieldKey` (assumption key, e.g. "revenuePerRoom")
-- `scenarioId` (current scenario)
-
-Panel manager's `RebeccaContext` interface:
-```typescript
-interface RebeccaContext {
-  entityType: 'property' | 'company';
-  entityId: number;
-  entityName: string;
-  contextSummary: string;
-  fieldKey?: string;
-  scenarioId?: number;
-}
-```
-
-## Planned Features (NOT YET IMPLEMENTED)
-
-### T21: Super Conversations (NEXT)
-- Persist conversations to `rebecca_conversations` + `rebecca_messages` tables
-- Resume conversations by `conversationId`
-- Conversation history in LLM context window
-- Follow-up chips that change per round:
-  - Round 1: "Why this range?", "Show comparables", "Impact on NOI", "Historical trends"
-  - Round 2: "Go deeper on [topic]", "Compare to company defaults", "Send email summary"
-  - Round 3+: "Report feedback to Norfolk", "Pin my current value", "Apply recommendation"
-
-### T22: Email Summaries
-- "Send Email Summary": preview modal → styled email template with conversation summary, field context, recommendation, sources → send via Resend → toast confirmation → logged in admin
-
-### T23: Norfolk AI Feedback / RAG Expansion
-- "Report to Norfolk AI": feedback form (category: data accuracy, missing source, wrong comparable, suggestion) → auto-includes conversation context → logged in admin
-- Pinecone namespace expansion for assumption-guidance vectors
-
-### T24: Admin Rebecca Section (6 sub-tabs under Admin → AI → Rebecca)
-1. **Configuration**: enable/disable, system prompt, model/engine, personality settings
-2. **RAG Knowledge**: connected sources, sync status, document counts per namespace, "Rebuild Index"
-3. **Email Templates**: explanatory email template, feedback report template, available variables
-4. **Conversation Logs**: searchable history, filter by user/property/topic, sentiment
-5. **Feedback Reports**: user-submitted feedback routed to Norfolk AI, status tracking
-6. **Analytics**: usage metrics, popular topics, satisfaction scores, response times
-
-### Rebecca RAG Knowledge (knows EVERYTHING)
-- Pinecone namespaces: research-history, market-reports, knowledge-base, assumption-guidance (NEW)
-- SQL live queries: benchmark_snapshots (Tier 0), entity context packs (computed), property financials
-- Document corpus: methodology docs, checker manual, ICP definitions, GAAP rules
-- Always cites sources inline: "[CBRE 2024 Cap Rate Survey]", "[STR Market Report Q3]"
+- Calls `buildPropertyContextPack()` or `buildCompanyContextPack()`
+- Fetches `assumption_guidance` for specific field when `fieldKey` provided
+- Generates auto-greeting referencing field, research data, and entity name
 
 ## Key Files
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `server/routes/chat.ts` | Chat endpoint — context building, fieldContext schema, IDOR prevention, LLM call | ✅ Implemented |
-| `server/ai/rebecca-context-builder.ts` | Builds rich entity+field context from IDs server-side | ✅ Implemented |
-| `server/ai/clients.ts` | Gemini client singleton (`getGeminiClient()`) | ✅ Implemented |
-| `server/ai/buildPropertyContext.ts` | Builds property summary text for base context injection | ✅ Implemented |
-| `server/middleware/rate-limit.ts` | `aiRateLimit()` middleware | ✅ Implemented |
-| `client/src/components/rebecca/RebeccaPanel.tsx` | 520px right slide-over chat panel | ✅ Implemented |
-| `client/src/components/rebecca/RebeccaContextCard.tsx` | Collapsed context card in panel header | ✅ Implemented |
-| `client/src/lib/panel-manager.ts` | Global panel state (open/close, mutual exclusion, RebeccaContext) | ✅ Implemented |
-| `client/src/components/research/ResearchBadgePopover.tsx` | 3-option popover passing fieldKey+scenarioId | ✅ Implemented |
-| `shared/schema/intelligence-v2.ts` | rebecca_conversations, rebecca_messages tables | ✅ Schema defined |
-| `server/storage/index.ts` | Rebecca CRUD operations (IntelligenceV2Storage) | ✅ Storage ready |
-
-### Planned New Files
-
-| File | Purpose | Task |
-|------|---------|------|
-| `client/src/components/rebecca/RebeccaEmailPreview.tsx` | Email preview modal | T22 |
-| `client/src/components/rebecca/RebeccaFeedbackForm.tsx` | Feedback to Norfolk AI form | T23 |
-| `server/routes/rebecca.ts` | Conversations, messages, email, feedback endpoints | T21 |
+| `server/routes/chat.ts` | Chat endpoint — context building, RAG injection, conversation persistence | ✅ T19-T23 |
+| `server/routes/rebecca.ts` | Email + feedback routes | ✅ T22 |
+| `server/ai/rebecca-context-builder.ts` | Builds entity+field context server-side | ✅ T20 |
+| `server/ai/pinecone-service.ts` | Vector store — all 5 namespaces + multiNamespaceQuery | ✅ T23 |
+| `server/ai/knowledge-base.ts` | KB indexing, retrieval, in-memory fallback | ✅ T23 |
+| `server/ai/kb-content.ts` | Static KB content (GAAP, USALI, ICP, methodology) | ✅ T23 |
+| `client/src/components/rebecca/RebeccaPanel.tsx` | 520px slide-over chat panel with email/feedback modals | ✅ T19-T22 |
+| `client/src/components/rebecca/RebeccaContextCard.tsx` | Collapsed context card | ✅ T19 |
+| `client/src/components/rebecca/RebeccaEmailPreview.tsx` | Email preview modal | ✅ T22 |
+| `client/src/components/rebecca/RebeccaFeedbackForm.tsx` | Feedback form modal | ✅ T22 |
+| `client/src/lib/panel-manager.ts` | Panel state (mutual exclusion, RebeccaContext) | ✅ T19-T21 |
+| `shared/schema/intelligence-v2.ts` | rebecca_conversations, messages, emails, feedback tables | ✅ Schema |
 
 ## Feature Gate
 
@@ -189,12 +169,14 @@ Feature flag: `REBECCA_V2` (currently OFF) — gates new Super Conversations fea
 | Max message length | 2,000 characters |
 | Max history length | 20 messages |
 | Rate limit | 20 requests per window |
-| Max output tokens | 1,024 (current, may increase for Super Conversations) |
+| Max output tokens | 1,024 |
+| RAG context budget | 3,000 characters |
+| Score threshold | 0.3 minimum |
 | Model | `gemini-2.5-flash` (configurable via admin) |
 
-## Related Skills
+## Upcoming (T24)
 
-- `.claude/skills/research/research-intelligence-redesign.md` — Full research redesign spec
-- `.claude/skills/research/SKILL.md` — Current research system architecture
-- `.claude/skills/admin/SKILL.md` — Admin configuration
-- `.claude/skills/market-intelligence/SKILL.md` — Market intelligence pipeline
+### T24: Admin Rebecca Section (Stage 1)
+1. **Configuration**: enable/disable, system prompt, model selection, temperature
+2. **Conversation Logs**: searchable history, filter by user/property/date
+3. **Feedback Reports**: feedback list with status tracking (new/reviewed/resolved)
