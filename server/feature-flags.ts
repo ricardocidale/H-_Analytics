@@ -11,7 +11,7 @@ const defaults: FeatureFlags = {
   RI_V2_WRITE: true,
   RI_V2_READ: false,
   REBECCA_V2: false,
-  ADMIN_INTEL_V2: false,
+  ADMIN_INTEL_V2: true,
 };
 
 let resolved: FeatureFlags | null = null;

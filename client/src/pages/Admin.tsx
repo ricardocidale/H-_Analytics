@@ -24,6 +24,8 @@ import NotificationsTab from "@/components/admin/NotificationsTab";
 import ModelDefaultsTab from "@/components/admin/ModelDefaultsTab";
 import ExportsTab from "@/components/admin/ExportsTab";
 import ScenariosTab from "@/components/admin/ScenariosTab";
+import CoverageAnalyticsDashboard from "@/components/admin/intelligence/CoverageAnalyticsDashboard";
+import PipelinePoliciesForm from "@/components/admin/intelligence/PipelinePoliciesForm";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary, SelfHealingBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -122,8 +124,8 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "database":         return <DatabaseTab />;
     case "cache-services":   return <IntegrationHealthTab />;
     case "integrations":     return <IntegrationsTab />;
-    case "coverage-analytics":
-    case "pipeline-policies":
+    case "coverage-analytics": return <CoverageAnalyticsDashboard />;
+    case "pipeline-policies":  return <PipelinePoliciesForm />;
     case "qa-sandbox":
     case "source-registry":
       return <IntelV2Placeholder section={section} />;

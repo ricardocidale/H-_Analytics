@@ -5,6 +5,7 @@ import { registerServiceRoutes } from "./services";
 import { registerResearchConfigRoutes } from "./research";
 import { registerExportConfigRoutes } from "./exports";
 import { registerAdminScenarioRoutes } from "./scenarios";
+import { registerIntelligenceRoutes } from "./intelligence";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -13,4 +14,5 @@ export function register(app: Express) {
   registerResearchConfigRoutes(app);
   registerExportConfigRoutes(app);
   registerAdminScenarioRoutes(app);
+  registerIntelligenceRoutes(app);
 }
