@@ -45,7 +45,8 @@
       "Read(//tmp/**)",
       "Bash(for f:*)",
       "Bash(do)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(sh:*)"
     ],
     "deny": []
   },

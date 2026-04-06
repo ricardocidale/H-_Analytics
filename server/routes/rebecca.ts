@@ -112,6 +112,20 @@ export function register(app: Express) {
     }
   });
 
+  app.get("/api/rebecca/conversations/:id/messages", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const conversationId = parseInt(req.params.id, 10);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      const messages = await storage.getRebeccaMessages(conversationId);
+      return res.json(messages);
+    } catch (err) {
+      logger.error(`Failed to list Rebecca messages: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to list messages" });
+    }
+  });
+
   app.get("/api/rebecca/feedback", requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
       const status = typeof req.query.status === "string" ? req.query.status : undefined;
@@ -120,6 +134,31 @@ export function register(app: Express) {
     } catch (err) {
       logger.error(`Failed to list Rebecca feedback: ${(err as Error).message}`, "rebecca");
       return res.status(500).json({ error: "Failed to list feedback" });
+    }
+  });
+
+  app.patch("/api/rebecca/feedback/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const feedbackId = parseInt(req.params.id, 10);
+      if (isNaN(feedbackId)) {
+        return res.status(400).json({ error: "Invalid feedback ID" });
+      }
+      const statusSchema = z.object({
+        status: z.enum(["new", "reviewed", "resolved"]),
+      });
+      const parsed = statusSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid status: " + parsed.error.issues[0]?.message });
+      }
+      const updated = await storage.updateRebeccaFeedbackStatus(feedbackId, parsed.data.status);
+      if (!updated) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+      logger.info(`Rebecca feedback ${feedbackId} status updated to ${parsed.data.status}`, "rebecca");
+      return res.json(updated);
+    } catch (err) {
+      logger.error(`Failed to update Rebecca feedback: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to update feedback" });
     }
   });
 }

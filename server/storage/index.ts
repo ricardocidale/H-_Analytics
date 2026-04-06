@@ -293,6 +293,7 @@ export class DatabaseStorage implements IStorage {
   createRebeccaEmail = this.intelligenceV2.createRebeccaEmail.bind(this.intelligenceV2);
   createRebeccaFeedback = this.intelligenceV2.createRebeccaFeedback.bind(this.intelligenceV2);
   getRebeccaFeedback = this.intelligenceV2.getRebeccaFeedback.bind(this.intelligenceV2);
+  updateRebeccaFeedbackStatus = this.intelligenceV2.updateRebeccaFeedbackStatus.bind(this.intelligenceV2);
   createCoverageSnapshot = this.intelligenceV2.createCoverageSnapshot.bind(this.intelligenceV2);
   getCoverageSnapshots = this.intelligenceV2.getCoverageSnapshots.bind(this.intelligenceV2);
   getSourceRegistry = this.intelligenceV2.getSourceRegistry.bind(this.intelligenceV2);

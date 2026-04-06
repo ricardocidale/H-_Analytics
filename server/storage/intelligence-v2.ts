@@ -274,6 +274,14 @@ export class IntelligenceV2Storage {
     return db.select().from(rebeccaFeedback).orderBy(desc(rebeccaFeedback.createdAt));
   }
 
+  async updateRebeccaFeedbackStatus(feedbackId: number, status: string): Promise<RebeccaFeedback | undefined> {
+    const [updated] = await db.update(rebeccaFeedback)
+      .set({ status })
+      .where(eq(rebeccaFeedback.id, feedbackId))
+      .returning();
+    return updated;
+  }
+
   async createCoverageSnapshot(data: InsertCoverageSnapshot): Promise<CoverageSnapshot> {
     const [snap] = await db.insert(coverageSnapshots)
       .values(data as typeof coverageSnapshots.$inferInsert)

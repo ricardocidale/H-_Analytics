@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 import { PageSkeleton } from "./ai-agents/agent-shared";
-import { RebeccaConfig } from "./ai-agents/RebeccaConfig";
+import RebeccaAdminTabs from "./ai/RebeccaAdminTabs";
 
 interface AIAgentsTabProps {
   onSaveStateChange?: (state: import("@/components/admin/save-state").AdminSaveState | null) => void;
@@ -263,30 +263,32 @@ export default function AIAgentsTab({ onSaveStateChange }: AIAgentsTabProps) {
         </div>
       </motion.div>
 
-      <RebeccaConfig
-        enabled={rebeccaEnabled}
-        displayName={rebeccaDisplayName}
-        systemPrompt={rebeccaSystemPrompt}
-        chatEngine={rebeccaChatEngine}
-        onEnabledChange={(v) => {
-          setRebeccaEnabled(v);
-          setRebeccaDirty(true);
+      <RebeccaAdminTabs
+        configProps={{
+          enabled: rebeccaEnabled,
+          displayName: rebeccaDisplayName,
+          systemPrompt: rebeccaSystemPrompt,
+          chatEngine: rebeccaChatEngine,
+          onEnabledChange: (v) => {
+            setRebeccaEnabled(v);
+            setRebeccaDirty(true);
+          },
+          onDisplayNameChange: (v) => {
+            setRebeccaDisplayName(v);
+            setRebeccaDirty(true);
+          },
+          onSystemPromptChange: (v) => {
+            setRebeccaSystemPrompt(v);
+            setRebeccaDirty(true);
+          },
+          onChatEngineChange: (v) => {
+            setRebeccaChatEngine(v);
+            setRebeccaDirty(true);
+          },
+          onSave: () => saveRebeccaMutation.mutate(),
+          isSaving: saveRebeccaMutation.isPending,
+          isDirty: rebeccaDirty,
         }}
-        onDisplayNameChange={(v) => {
-          setRebeccaDisplayName(v);
-          setRebeccaDirty(true);
-        }}
-        onSystemPromptChange={(v) => {
-          setRebeccaSystemPrompt(v);
-          setRebeccaDirty(true);
-        }}
-        onChatEngineChange={(v) => {
-          setRebeccaChatEngine(v);
-          setRebeccaDirty(true);
-        }}
-        onSave={() => saveRebeccaMutation.mutate()}
-        isSaving={saveRebeccaMutation.isPending}
-        isDirty={rebeccaDirty}
       />
     </div>
   );
