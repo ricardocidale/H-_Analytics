@@ -1,218 +1,452 @@
 ---
 name: Research System
-description: The research system provides industry-backed financial guidance for every property assumption in the simulation. It operates as a **3-tier data pip...
+description: The research system provides industry-backed financial guidance for every property assumption in the simulation. It operates as an 11-layer multi-LLM pipeline: N+1 orchestrator (dual analyst panels → API validation → Opus synthesis), 15 prompt-builder tools, 10 deterministic calc tools, 7 live market data sources, Pinecone vector similarity, post-LLM validation, guidance extraction, SSE streaming, and a 3-tier badge display hierarchy. Load this skill for any work touching research generation, badges, research config, or the orchestration pipeline.
 ---
 
 # Research System — Master Skill
 
-## Purpose
+**Related skills:** `research-orchestrator/` (N+1 synthesis deep-dive), `market-intelligence/` (7-source data aggregator), `icp-research/` (property targeting), `deterministic-tools` rule (calc tool registry)
 
-The research system provides industry-backed financial guidance for every property assumption in the simulation. It operates as a **3-tier data pipeline** that produces `{ display, mid, source }` entries displayed as amber "Research" badges next to editable fields.
+---
 
-## Asset Type Agnosticism
+## Purpose & Design Philosophy
 
-The platform's asset type is **not hardcoded**. It is stored in `globalAssumptions.propertyLabel` (default: `"Boutique Hotel"`). All research skills, AI prompts, seed profiles, and UI labels must reference the property label dynamically — never assume "boutique hotel" as a fixed term.
+The research system gives users **market-validated guidance** for every financial assumption in the simulation. It operates as amber "Research" badges next to every editable field. Badges show suggested ranges (e.g., `$280–$450`) derived from live market data, comparable properties, and LLM analysis.
 
-When generating AI research prompts, always include the current `propertyLabel` so the AI calibrates its analysis to the correct asset class (e.g., "Boutique Hotel", "Eco-Lodge", "Luxury Resort", "Serviced Apartment").
+**Core principle:** LLMs handle market knowledge and narrative. Deterministic calc tools handle all arithmetic. Research values are guidance only — they never auto-apply and never override the financial engine.
 
-## Architecture Overview
+**Asset agnosticism:** The property type is never hardcoded. All prompts reference `globalAssumptions.propertyLabel` (default: `"Boutique Hotel"`). STR/Airbnb properties, resorts, and B&Bs are all supported — the LLM calibrates to the asset type.
+
+---
+
+## 11-Layer Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    PropertyEdit.tsx                          │
-│  researchValues = DB seed → AI overlay → generic fallback   │
-│  ResearchBadge shows { display } text, onClick applies mid  │
-└──────────────┬──────────────────────────┬───────────────────┘
-               │                          │
-    ┌──────────▼──────────┐    ┌──────────▼──────────┐
-    │  property.research  │    │  market_research     │
-    │  Values (JSONB col) │    │  table (AI content)  │
-    │  source = 'seed'    │    │  Parsed → source='ai'│
-    └──────────┬──────────┘    └──────────┬──────────┘
-               │                          │
-    ┌──────────▼──────────┐    ┌──────────▼──────────┐
-    │  researchSeeds.ts   │    │  aiResearch.ts       │
-    │  25+ regional       │    │  LLM tool-calling    │
-    │  profiles            │    │  per-property        │
-    └─────────────────────┘    └──────────────────────┘
+User clicks "Run Research"
+        │
+        ▼
+[1] POST /api/research/generate
+        │ Load admin config (researchConfig JSONB)
+        │ Build PropertyContextPack or CompanyContextPack
+        │
+        ▼
+[2] MarketIntelligenceAggregator.gather()
+        │ FRED + CoStar/STR + Grounded + Moody's + S&P + CoStar + Xotelo
+        │ Partial failure OK — circuit breaker per service
+        │
+        ▼
+[3] research-orchestrator.ts (property research only)
+        │
+        ├──[3a] Phase 0: Pinecone comparable retrieval
+        │        Progressive relaxation L1–L5 strictness
+        │        Top 15 prior research vectors injected
+        │
+        ├──[3b] Phase 1: Parallel Analyst Panels (Promise.all)
+        │        Analyst A: Gemini 2.5 Flash (QUANTITATIVE)
+        │        Analyst B: Claude Sonnet (MARKET-STRATEGY)
+        │        Each runs full tool-calling loop (max 10 iterations)
+        │
+        ├──[3c] Phase 2: API Validation
+        │        Compare analyst outputs vs. live data (ADR/Occ/Cap/RevPAR)
+        │        Divergence calc: >15% diff → status "diverge"
+        │        Consensus ratio: 0–1 agreement fraction
+        │
+        └──[3d] Phase 3: Synthesis (Claude Opus)
+                 AGREE → HIGH confidence, tight range
+                 DIVERGE → wider range, LOW/MEDIUM confidence
+                 API confirms → elevated confidence
+                 Streams JSON via SSE → client sees it build in real time
+        │
+        ▼
+[4] Tool-Calling Iteration Loop (aiResearch.ts)
+        │ Each LLM call returns text blocks + tool calls
+        │ Tool calls dispatched to [5] or [6]
+        │ Results fed back as next message
+        │ Loop continues until end_turn or 0 tool calls (max 10)
+        │
+        ├──[5] Prompt-Builder Tools (15 tools)
+        │        analyze_market, analyze_adr, analyze_occupancy,
+        │        analyze_event_demand, analyze_cap_rates,
+        │        analyze_competitive_set, analyze_catering,
+        │        analyze_land_value, analyze_operating_costs,
+        │        analyze_property_value_costs,
+        │        analyze_management_service_fees,
+        │        analyze_income_tax, analyze_outsourcing_make_vs_buy,
+        │        analyze_local_economics, analyze_marketing_costs
+        │        → Returns rich in-context guidance blocks
+        │
+        └──[6] Deterministic Calc Tools (10 tools → calc/dispatch.ts)
+                 compute_property_metrics, compute_depreciation_basis,
+                 compute_debt_capacity, compute_occupancy_ramp,
+                 compute_adr_projection, compute_cap_rate_valuation,
+                 compute_cost_benchmarks, compute_service_fee,
+                 compute_markup_waterfall, compute_make_vs_buy
+                 → Returns exact numbers (no LLM arithmetic)
+        │
+        ▼
+[7] parseResearchJSON() → extract full structured output
+        │
+        ▼
+[8] Post-LLM Validation (validate-research.ts)
+        │ Bounds checks: ADR $50–$2000, occupancy 20–100%, cap rate 3–15%...
+        │ Cross-validation: ADR → NOI margin check (warn if <5%)
+        │ Cap Rate → implied value vs. purchase price (warn if >2x deviation)
+        │ Attaches _validation: { passed, warned, failed }
+        │
+        ▼
+[9] Guidance Extraction (guidance/extractor.ts)
+        │ Walks research JSON sections → GuidanceRecord[] per assumption key
+        │ 25+ keys: adr, occupancy, capRate, costHousekeeping, svcFeeMarketing...
+        │ Upserts to assumption_guidance table
+        │ Writes extracted values to properties.research_values JSONB
+        │
+        ▼
+[10] Storage
+        │ market_research table: full parsed JSON content
+        │ assumption_guidance table: per-key normalized records
+        │ properties.research_values: lightweight badge values
+        │ Async: Pinecone index (fire-and-forget, non-blocking)
+        │
+        ▼
+[11] Client Badge Display (PropertyEdit.tsx)
+         3-tier merge: GENERIC_DEFAULTS → seed overlay → AI overlay
+         ResearchBadge: amber pill, tooltip (source + date)
+         ResearchBadgePopover: Apply Value | View Details | Ask Rebecca
+         ConfidenceBadge: conservative (blue) | moderate (green) | aggressive (amber)
 ```
 
-## 3-Tier Data Source Hierarchy
+---
 
-### Tier 1: Location-Aware Database Seeds (source = `'seed'`)
+## Research Event Types
 
-- **File**: `server/researchSeeds.ts`
-- **When**: Automatically generated at property creation; backfilled during seed operations
-- **How**: Pattern matches property location fields against 25+ regional profiles
-- **Data**: 25 research keys per property (ADR, occupancy, cap rate, all cost categories, fees, tax)
-- **Schema**: Stored in `properties.research_values` JSONB column
-- **Type**: `Record<string, { display: string; mid: number; source: 'seed' | 'ai' | 'none' }>`
+| Event | Trigger | Models | Output |
+|-------|---------|--------|--------|
+| **Property** | "Run Research" on property page; auto-refresh on login if >7 days stale | Gemini 2.5 Flash + Claude Sonnet → Claude Opus (N+1) | 12 analysis sections → 25 guidance keys |
+| **Company** | "Run Research" on Management Company page | Configurable (admin) single-model | Fee structures, GAAP, ICP benchmarks |
+| **Global** | "Run Research" on global market page | Configurable (admin) single-model | Industry trends, cap rates, lending environment, supply pipeline |
 
-### Tier 2: AI-Generated Research (source = `'ai'`)
+---
 
-- **File**: `server/aiResearch.ts`
-- **When**: Triggered manually via "Run Research" button or auto-refresh on login (7-day staleness)
-- **How**: LLM tool-calling with structured output schemas (see individual analysis skills)
-- **Data**: Stored in `market_research` table as JSON `content` column
-- **Override**: When AI research exists, its values overlay seed values on the frontend
+## Research Skill Files (14 Analysis Modules)
 
-### Tier 3: Generic Fallback (no source tag)
+Each skill file is loaded by `loadSkill(type)` from `.claude/skills/research/*/SKILL.md`. They define the analysis scope, output JSON schema, and tool invocation order for that dimension.
 
-- **File**: Hardcoded in `PropertyEdit.tsx` as `GENERIC_DEFAULTS`
-- **When**: Only if the property has no `researchValues` column AND no AI research
-- **Data**: National US averages (ADR $193, Occupancy 69%, Cap Rate 8.5%)
-- **Sources**: CBRE Trends 2024-2025, Highland Group Boutique Hotel Report 2025, STR/CoStar, HVS
+| Skill | Directory | Output Section |
+|-------|-----------|---------------|
+| Market Overview | `research/market-overview/` | `marketOverview` |
+| ADR Analysis | `research/adr-analysis/` | `adrAnalysis` |
+| Occupancy Analysis | `research/occupancy-analysis/` | `occupancyAnalysis` |
+| Cap Rate Analysis | `research/cap-rate-analysis/` | `capRateAnalysis` |
+| Competitive Set | `research/competitive-set/` | `competitiveSet` |
+| Event Demand | `research/event-demand/` | `eventDemandAnalysis` |
+| Land Value | `research/land-value/` | `landValueAllocation` |
+| Operating Costs | `research/operating-costs/` | `operatingCostAnalysis` |
+| Property Value Costs | `research/property-value-costs/` | `propertyValueCostAnalysis` |
+| Management Service Fees | `research/management-service-fees/` | `managementServiceFeeAnalysis` |
+| Income Tax | `research/income-tax/` | `incomeTaxAnalysis` |
+| Local Economics | `research/local-economics/` | `localEconomics` |
+| Marketing Costs | `research/marketing-costs/` | `marketingCostAnalysis` |
+| Company Research | `research/company-research/` | Company-level output |
+| Global Research | `research/global-research/` | Global-level output |
 
-## Data Flow
+---
 
-### Property Creation
+## Prompt-Builder Tools (15)
 
-1. User creates property with location fields
-2. `POST /api/properties` calls `generateLocationAwareResearchValues(locationCtx)`
-3. Research values stored in `properties.research_values` JSONB column
-4. Frontend reads `property.researchValues` immediately — badges appear with seed data
+These tools execute in-context during the LLM tool-calling loop. They return rich guidance blocks that inform the LLM's next response. They do NOT compute numbers — that is the deterministic tools' job.
 
-### Seed / Backfill
+```
+analyze_market               → Local market conditions, supply, demand, tourism
+analyze_adr                  → ADR benchmarking, comparable rates, OTA data
+analyze_occupancy            → Occupancy patterns, seasonal, ramp-up timeline
+analyze_event_demand         → Wellness retreat, corporate, wedding demand
+analyze_cap_rates            → Investment cap rates, transaction comps
+analyze_competitive_set      → 4–6 comparable properties with metrics
+analyze_catering             → F&B catering boost, event catering revenue
+analyze_land_value           → IRS land allocation for depreciation basis
+analyze_operating_costs      → USALI-aligned departmental cost benchmarks
+analyze_property_value_costs → Insurance rates, property tax rates
+analyze_management_service_fees → 5-category service fees + incentive fee
+analyze_income_tax           → SPV entity tax rates, federal/state breakdown
+analyze_outsourcing_make_vs_buy → Vendor vs in-house cost comparison
+analyze_local_economics      → Inflation, interest rates, economic health
+analyze_marketing_costs      → Hospitality marketing spend benchmarks
+```
 
-1. `POST /api/admin/seed-data` creates properties with research values
-2. For existing properties missing `research_values`, backfill loop generates and saves them
-3. Uses same `generateLocationAwareResearchValues()` function
+---
 
-### AI Research Override
+## Deterministic Calc Tools (10)
 
-1. User clicks "Run Research" or login auto-refresh fires
-2. `POST /api/market-research/property/:id/generate` triggers LLM analysis
-3. AI results stored in `market_research` table
-4. Frontend `PropertyEdit.tsx` parses AI content, overlays on seed defaults
-5. AI values get `source: 'ai'` tag in the merged research object
+Called during the same tool-calling loop. Return exact numbers. LLM receives results and interprets them — never recomputes them.
 
-### Frontend Merge Logic (PropertyEdit.tsx)
+| Tool | File | Computes |
+|------|------|---------|
+| `compute_property_metrics` | `calc/research/property-metrics.ts` | Room revenue, F&B, total revenue, NOI, NOI margin |
+| `compute_depreciation_basis` | `calc/research/depreciation-basis.ts` | Land %, building %, depreciable basis |
+| `compute_debt_capacity` | `calc/research/debt-capacity.ts` | Max loan from DSCR, LTV, term |
+| `compute_occupancy_ramp` | `calc/research/occupancy-ramp.ts` | Month-by-month occupancy schedule |
+| `compute_adr_projection` | `calc/research/adr-projection.ts` | Multi-year ADR with growth rate |
+| `compute_cap_rate_valuation` | `calc/research/cap-rate-valuation.ts` | Implied property value from NOI ÷ cap rate |
+| `compute_cost_benchmarks` | `calc/research/cost-benchmarks.ts` | Dollar amounts from percentage cost rates |
+| `compute_service_fee` | `calc/research/service-fee.ts` | Service fee in dollars from percentage |
+| `compute_markup_waterfall` | `calc/research/markup-waterfall.ts` | Vendor markup cost allocation |
+| `compute_make_vs_buy` | `calc/research/make-vs-buy.ts` | In-house vs. outsourced cost comparison |
+
+---
+
+## Research JSON Output Structure
 
 ```typescript
-const baseDefaults = { ...GENERIC_DEFAULTS };
-if (property.researchValues) {
-  for (const [key, val] of Object.entries(property.researchValues)) {
-    if (val.source !== 'none') baseDefaults[key] = val;
+interface ParsedResearch {
+  // 12 analysis sections (property research)
+  marketOverview?: object
+  adrAnalysis: {
+    recommendedRange: string        // "$250–$350"
+    mid: number                     // 300
+    confidence: "conservative" | "moderate" | "aggressive"
+    marketComparables: Array<{ name, adr, roomCount }>
+    sourceName: string              // "CoStar STR"
+    sourceDate: string              // "2025-04-06"
   }
+  occupancyAnalysis: {
+    recommendedRange: string
+    initialOccupancy: { value: number, confidence: string }
+    rampUpTimeline: { months: number, confidence: string }
+    seasonalPatterns: { spring, summer, fall, winter }
+  }
+  capRateAnalysis: { ... }
+  operatingCostAnalysis: {
+    roomRevenueBased: { housekeeping, fbCostOfSales }
+    totalRevenueBased: { adminGeneral, marketing, propertyOps, utilities, ffe, it, other }
+  }
+  // ... more sections
+  
+  // Post-LLM metadata (added by pipeline, not LLM)
+  _validation?: { passed: number, warned: number, failed: number }
+  _marketIntelligence?: { benchmarks, rates, moodys, spGlobal, costar, xotelo, groundedResearch, errors, fetchedAt }
+  _orchestrator?: OrchestratorMeta  // see research-orchestrator skill
+  
+  // Fallback (if LLM output unparseable)
+  rawResponse?: string
 }
-if (research?.content) {
-  // Parse AI content → overlay with source: 'ai'
-}
-return merged;
 ```
+
+---
+
+## 3-Tier Client Display Hierarchy
+
+```typescript
+// PropertyEdit.tsx merge logic
+const researchValues = {
+  ...GENERIC_DEFAULTS,          // Tier 3: National US averages (last resort)
+  ...dbSeedValues,              // Tier 2: Location-aware seeds from properties.research_values
+  ...aiResearchValues,          // Tier 1: AI-generated values from market_research table
+}
+```
+
+| Tier | Source tag | When present |
+|------|-----------|-------------|
+| 1 (highest) | `"ai"` | After user runs research |
+| 2 | `"seed"` | Always — generated at property creation |
+| 3 (fallback) | (none) | Only if property has no researchValues AND no AI research |
+
+### Badge Entry Shape
+```typescript
+interface ResearchBadgeEntry {
+  display: string      // "$250–$350" or "70%–82%"
+  mid: number          // 300 or 76
+  source?: "seed" | "ai" | "market" | "none"
+  sourceName?: string  // "CoStar STR"
+  sourceDate?: string  // "2025-04-06"
+}
+```
+
+---
 
 ## Research Value Keys (25 total)
 
-| Key | Display Format | Badge Location | Calculation Base |
-|-----|---------------|----------------|------------------|
-| `adr` | `$280–$450` | Starting ADR | — |
-| `occupancy` | `70%–82%` | Max Occupancy | — |
-| `startOccupancy` | `30%–45%` | Initial Occupancy | — |
-| `rampMonths` | `12–24 mo` | Ramp-Up Months | — |
-| `capRate` | `6.5%–8.5%` | Exit Cap Rate | — |
-| `catering` | `25%–35%` | Catering Boost % | — |
-| `landValue` | `15%–25%` | Land Value Allocation | — |
-| `costHousekeeping` | `15%–22%` | Housekeeping | Room Revenue |
-| `costFB` | `7%–12%` | F&B Cost of Sales | Room Revenue |
-| `costAdmin` | `4%–7%` | Admin & General | Total Revenue |
-| `costPropertyOps` | `3%–5%` | Property Ops | Total Revenue |
-| `costUtilities` | `2.9%–4.0%` | Utilities | Total Revenue |
-| `costFFE` | `3%–5%` | FF&E Reserve | Total Revenue |
-| `costMarketing` | `1%–3%` | Marketing | Total Revenue |
-| `costIT` | `0.5%–1.5%` | IT | Total Revenue |
-| `costOther` | `3%–6%` | Other Expenses | Total Revenue |
-| `costInsurance` | `0.3%–0.5%` | Insurance | Property Value |
-| `costPropertyTaxes` | `1.0%–2.5%` | Property Taxes | Property Value |
-| `svcFeeMarketing` | `0.5%–1.5%` | Svc Fee: Marketing | Total Revenue |
-| `svcFeeIT` | `0.3%–0.8%` | Svc Fee: IT | Total Revenue |
-| `svcFeeAccounting` | `0.5%–1.5%` | Svc Fee: Accounting | Total Revenue |
-| `svcFeeReservations` | `1.0%–2.0%` | Svc Fee: Reservations | Total Revenue |
-| `svcFeeGeneralMgmt` | `0.7%–1.2%` | Svc Fee: General Mgmt | Total Revenue |
-| `incentiveFee` | `8%–12%` | Incentive Fee | GOP |
-| `incomeTax` | `24%–28%` | Income Tax Rate | Taxable Income |
+| Key | Badge Location | Base | Format |
+|-----|---------------|------|--------|
+| `adr` | Starting ADR | — | `$280–$450` |
+| `occupancy` | Max Occupancy | — | `70%–82%` |
+| `startOccupancy` | Initial Occupancy | — | `30%–45%` |
+| `rampMonths` | Ramp-Up Months | — | `12–24 mo` |
+| `capRate` | Exit Cap Rate | — | `6.5%–8.5%` |
+| `catering` | Catering Boost | — | `25%–35%` |
+| `landValue` | Land Value % | — | `15%–25%` |
+| `costHousekeeping` | Housekeeping | Room Revenue | `15%–22%` |
+| `costFB` | F&B Cost | F&B Revenue | `7%–12%` |
+| `costAdmin` | Admin & General | Total Revenue | `4%–7%` |
+| `costPropertyOps` | Property Ops | Total Revenue | `3%–5%` |
+| `costUtilities` | Utilities | Total Revenue | `2.9%–4.0%` |
+| `costFFE` | FF&E Reserve | Total Revenue | `3%–5%` |
+| `costMarketing` | Marketing | Total Revenue | `1%–3%` |
+| `costIT` | IT | Total Revenue | `0.5%–1.5%` |
+| `costOther` | Other Expenses | Total Revenue | `3%–6%` |
+| `costInsurance` | Insurance | Property Value | `0.3%–0.5%` |
+| `costPropertyTaxes` | Property Taxes | Property Value | `1.0%–2.5%` |
+| `svcFeeMarketing` | Svc: Marketing | Total Revenue | `0.5%–1.5%` |
+| `svcFeeIT` | Svc: Technology | Total Revenue | `0.3%–0.8%` |
+| `svcFeeAccounting` | Svc: Accounting | Total Revenue | `0.5%–1.5%` |
+| `svcFeeReservations` | Svc: Reservations | Total Revenue | `1.0%–2.0%` |
+| `svcFeeGeneralMgmt` | Svc: General Mgmt | Total Revenue | `0.7%–1.2%` |
+| `incentiveFee` | Incentive Fee | GOP | `8%–12%` |
+| `incomeTax` | Income Tax Rate | Taxable Income | `24%–28%` |
 
-## Source Tracking
+---
 
-| `source` value | Meaning | Badge behavior |
-|----------------|---------|----------------|
-| `'seed'` | Location-aware database default | Badge shown with seeded range |
-| `'ai'` | AI research override | Badge shown with AI-recommended range |
-| `'none'` | Explicitly hidden | Badge hidden (component returns null) |
+## Admin Configuration (researchConfig JSONB)
 
-## Industry Data Sources
+Stored in `global_assumptions.researchConfig`. Loaded in `server/routes/research.ts` and threaded as `eventConfig` into the orchestration pipeline.
 
-| Source | Used For | Citation |
-|--------|----------|----------|
-| CBRE Trends 2024-2025 | Utilities (2.9-4.0%), labor trends, cap rates | Operating costs, cap rates |
-| Highland Group Boutique Hotel Report 2025 | ADR ($193 national avg), upscale segment benchmarks | ADR, occupancy |
-| HVS | Cap rates (8.0-9.5%), management fees (2-4% + 8-12% incentive) | Fees, cap rates |
-| STR / CoStar | National occupancy (69%), RevPAR trends | Occupancy, ADR |
-| USALI | Departmental cost structure, calculation bases | All operating costs |
-| IRS Publication 946 | 27.5-year depreciation, land allocation | Land value, depreciation |
+```typescript
+interface ResearchConfig {
+  preferredLlm: string            // Fallback model ID for unspecified contexts
+  
+  propertyLlm?: ContextLlmConfig  // { primaryLlm, llmMode: "single"|"dual", secondaryLlm?, llmVendor? }
+  companyLlm?: ContextLlmConfig
+  marketLlm?: ContextLlmConfig
+  
+  property?: ResearchEventConfig
+  company?: ResearchEventConfig
+  global?: ResearchEventConfig
+  
+  companySources?: Array<{ label, url, category }>
+}
+
+interface ResearchEventConfig {
+  enabled: boolean               // Block this research type entirely if false
+  refreshIntervalDays: number    // Staleness threshold (default 7)
+  sources?: string[]             // Custom URL sources
+  enabledTools?: string[]        // Whitelist of allowed tool names
+  focusAreas?: string[]          // Research focus areas
+  regions?: string[]             // Geographic scope
+  customInstructions?: string    // Admin prose injected into system prompt
+  customQuestions?: string[]     // Required research questions
+}
+```
+
+---
+
+## Context Packs (V2 Prompt Architecture)
+
+The research system builds rich context narratives before calling the LLM:
+
+### PropertyContextPack (`server/ai/context-pack/property-pack.ts`)
+Includes: location display, amenity detection (F&B/events/wellness), revenue narrative (ADR/occupancy/revenue shares), cost narrative (all rates), capital narrative (loan terms/refi plans), ICP alignment score (0–100%), full current assumptions summary (20+ fields).
+
+### CompanyContextPack (`server/ai/context-pack/company-pack.ts`)
+Includes: global assumptions, all active properties, service templates, overhead structure.
+
+---
+
+## Research Freshness & Auto-Refresh
+
+**Staleness threshold**: `refreshIntervalDays` (default 7 days) per research type.
+
+**Status endpoint**: `GET /api/research/status`
+```typescript
+{
+  properties: [{ propertyId, name, status: "fresh"|"stale"|"missing", updatedAt, llmModel }]
+  company: { status, updatedAt }
+  global: { status, updatedAt }
+}
+```
+
+**Auto-refresh on login**: If any property research is `"stale"` or `"missing"`, the ResearchRefreshOverlay surfaces (3D animated) inviting the user to refresh.
+
+**Manual refresh**: "Run Research" button on any assumption page. Re-runs the full pipeline for that event type.
+
+---
+
+## Confidence Scoring
+
+Every recommended metric includes a `confidence` field:
+
+| Value | Meaning | ConfidenceBadge Color |
+|-------|---------|----------------------|
+| `"conservative"` | Below-market / cautious — safer for underwriting | Blue |
+| `"moderate"` | Market-aligned with strong comparable data | Green |
+| `"aggressive"` | Above-market / optimistic — higher risk | Amber |
+
+**Injected via**: `CONFIDENCE_PREAMBLE` in `server/ai/research-resources.ts`, loaded into every LLM system prompt. Defined once, not duplicated in skill files.
+
+---
+
+## Post-LLM Validation
+
+`validateResearchValues()` in `calc/research/validate-research.ts`:
+
+**Bounds checks:**
+- ADR: $50–$2,000/night
+- Occupancy: 20%–100%
+- Cap rate: 3%–15%
+- Catering boost: 5%–80%
+- Cost rates: 0.5%–50% of revenue
+- Service fee rates: 0.5%–10% per category
+
+**Cross-validation:**
+- ADR → compute NOI margin via `computePropertyMetrics()` → warn if margin < 5%
+- Cap rate → compute implied value via `computeCapRateValuation()` → warn if >2× deviation from purchase price
+
+Validation results are stored in `_validation` metadata. Warnings do NOT block storage — they are advisory.
+
+---
+
+## Storage Layer
+
+| Store | What | Key |
+|-------|------|-----|
+| `market_research` table | Full parsed JSON research content | `(userId, propertyId, type)` |
+| `assumption_guidance` table | Per-key GuidanceRecord (extracted + normalized) | `(propertyId, assumptionKey)` |
+| `properties.research_values` | Lightweight badge values `{ display, mid, source }` | JSONB column on property |
+| Pinecone | Embedded guidance vectors for cross-property similarity | Vector IDs linked to assumption_guidance |
+
+### Persistence Sequence (post-LLM)
+1. `parseResearchJSON()` → structured output
+2. `extractResearchValues()` → 25 badge entries
+3. `validateResearchValues()` → bounds/cross-validation
+4. `storage.updateProperty()` → write to `properties.research_values`
+5. `extractGuidance()` → GuidanceRecord[] (25+ records)
+6. `storage.upsertAssumptionGuidance()` → insert/update guidance table
+7. `indexAssumptionGuidance()` → async Pinecone indexing (fire-and-forget)
+8. `storage.upsertMarketResearch()` → write full JSON to `market_research`
+
+---
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `server/researchSeeds.ts` | 25+ regional profiles, location detection, seed generation |
-| `server/aiResearch.ts` | LLM-powered research with tool-calling |
-| `server/routes.ts` | Seed endpoints, property creation, backfill logic |
-| `client/src/pages/PropertyEdit.tsx` | Frontend merge logic, badge rendering |
-| `client/src/components/ui/research-badge.tsx` | ResearchBadge component |
-| `shared/schema.ts` | `ResearchValueEntry` type, `researchValues` JSONB column |
+| `server/routes/research.ts` | HTTP entry point, config loading, orchestration dispatch |
+| `server/ai/research-orchestrator.ts` | N+1 parallel analyst + API validation + Opus synthesis |
+| `server/ai/aiResearch.ts` | Tool-calling iteration loop, JSON parsing, streaming |
+| `server/ai/research-client.ts` | Multi-vendor LLM abstraction (Anthropic/OpenAI/Gemini) |
+| `server/ai/research-resources.ts` | Skill loading, CONFIDENCE_PREAMBLE, tool definitions |
+| `server/ai/research-tool-prompts.ts` | 15 prompt-builder tool implementations |
+| `server/ai/research-prompt-builders.ts` | User prompt assembly from context packs |
+| `server/ai/context-pack/property-pack.ts` | PropertyContextPack builder |
+| `server/ai/context-pack/company-pack.ts` | CompanyContextPack builder |
+| `server/ai/guidance/extractor.ts` | Research JSON → GuidanceRecord[] |
+| `calc/research/validate-research.ts` | Post-LLM bounds + cross-validation |
+| `calc/dispatch.ts` | Deterministic tool registry (10 research tools) |
+| `server/researchSeeds.ts` | 25+ regional seed profiles |
+| `client/src/components/property-research/useResearchStream.ts` | SSE hook |
+| `client/src/components/ui/research-badge.tsx` | Amber badge component |
+| `client/src/components/research/ResearchBadgePopover.tsx` | Apply / Details / Ask Rebecca |
+| `client/src/pages/PropertyEdit.tsx` | 3-tier merge logic (lines 97–150) |
 
-## Sub-Skills (Analysis Modules)
+---
 
-Each AI research module has its own skill file with tool schema:
+## Invariants
 
-| Skill | Directory | Analyzes |
-|-------|-----------|----------|
-| Market Overview | `research/market-overview/` | Local market conditions, supply/demand |
-| ADR Analysis | `research/adr-analysis/` | Average daily rate benchmarking |
-| Occupancy Analysis | `research/occupancy-analysis/` | Occupancy patterns, ramp-up |
-| Cap Rate Analysis | `research/cap-rate-analysis/` | Investment cap rates |
-| Competitive Set | `research/competitive-set/` | Comparable property analysis |
-| Event Demand | `research/event-demand/` | Event revenue potential |
-| Land Value | `research/land-value/` | IRS land allocation for depreciation |
-| Operating Costs | `research/operating-costs/` | USALI-based cost benchmarking |
-| Property Value Costs | `research/property-value-costs/` | Insurance and property taxes |
-| Management Service Fees | `research/management-service-fees/` | 5-category service fees + incentive |
-| Income Tax | `research/income-tax/` | SPV entity tax rates |
-| Company Research | `research/company-research/` | Management company benchmarks |
-| Global Research | `research/global-research/` | Industry-wide trends |
-| Auto-Refresh | `research/auto-refresh/` | Login-triggered staleness check |
-| Location-Aware Seeding | `research/location-aware-seeding/` | Database seed profiles |
-| Research Questions | `research/research-questions/` | Custom AI research question CRUD management |
-
-## Deterministic Calc Modules
-
-8 deterministic calc modules in `calc/research/`: `property-metrics`, `depreciation-basis`, `debt-capacity`, `occupancy-ramp`, `adr-projection`, `cap-rate-valuation`, `cost-benchmarks`, `validate-research`.
-
-Key architectural details:
-- **CONFIDENCE_PREAMBLE** is injected via `loadSkill()` in `server/aiResearch.ts` — confidence scoring is defined once, not duplicated in each skill file
-- **TOOL_PROMPTS** are now thin context summaries, not full analysis prompts — reduces token cost per research call
-- **Post-LLM validation layer** runs between extraction and storage in `server/routes/research.ts` via `validateResearchValues()` in `calc/research/validate-research.ts` (bounds checks, cross-validation, consistency)
-
-## Confidence Scoring
-
-Every recommended metric in AI research output must include a `confidence` field with one of three values:
-
-| Value | Meaning | UI Badge Color |
-|-------|---------|----------------|
-| `"conservative"` | Below-market or cautious estimate — safer for underwriting | Blue |
-| `"moderate"` | Market-aligned estimate supported by strong comparable data | Green |
-| `"aggressive"` | Above-market or optimistic estimate — higher risk | Amber |
-
-**Where it appears**: `adrAnalysis.confidence`, `capRateAnalysis.confidence`, `cateringAnalysis.confidence`, `landValueAllocation.confidence`, `occupancyAnalysis.confidence`, `incomeTaxAnalysis.confidence`, and every cost category object in `operatingCostAnalysis`, `propertyValueCostAnalysis`, and `managementServiceFeeAnalysis`.
-
-**Frontend rendering**: `ConfidenceBadge` component in `client/src/components/property-research/ConfidenceBadge.tsx`. Rendered inline with `MetricCard` values in `ResearchSections.tsx`.
-
-## Rules
-
-1. **Never hardcode "boutique hotel"** — always reference `globalAssumptions.propertyLabel`
-2. **Calculations trump research** — research badges are guidance, not calculations. The 1330-test proof system takes absolute priority.
-3. **Source tracking is mandatory** — every research value must have a `source` field (`'seed'`, `'ai'`, or `'none'`)
-4. **Seed values are location-aware** — generic national averages are the fallback of last resort
-5. **AI overrides seed** — when AI research runs, its values take precedence over seed defaults
-6. **Badge hides when source='none'** — the ResearchBadge component returns null for falsy values
-7. **Cost bases must be correct** — different costs have different bases (Room Revenue, Total Revenue, Property Value). Research values must specify the correct base.
+1. **LLMs never compute numbers** — all arithmetic goes through deterministic calc tools
+2. **Research never auto-applies** — user must explicitly click "Apply Value"
+3. **Source tracking is mandatory** — every badge entry has `source: "seed" | "ai" | "none"`
+4. **Asset type is dynamic** — never hardcode "boutique hotel"; always use `propertyLabel`
+5. **Validation warnings don't block** — invalid/suspect values are flagged, not rejected
+6. **AI overrides seed** — AI values take precedence in the 3-tier merge
+7. **Badge hides when source="none"** — `ResearchBadge` returns null for falsy display values
+8. **Cost bases must match** — different costs have different bases (Room Rev vs Total Rev vs Property Value)
+9. **Admin config is respected** — disabled research types are blocked at the route level before any LLM is called
+10. **Pinecone indexing is async** — research result storage never waits for Pinecone
