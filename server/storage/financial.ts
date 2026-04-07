@@ -5,6 +5,8 @@ import { stripAutoFields } from "./utils";
 import { computeFullDiff, reconstructScenarioProperties, type PropertyDiff } from "../scenarios/diff-engine";
 import { stableEquals } from "../scenarios/stable-json";
 import { USE_STABLE_SCENARIO_LOAD } from "@shared/constants";
+import { indexScenarioSummary } from "../ai/pinecone-service";
+import { logger } from "../logger";
 
 type DbOrTx = Pick<typeof db, "select" | "insert" | "update" | "delete">;
 
@@ -113,6 +115,38 @@ async function syncFeeCategories(
           .where(eq(propertyFeeCategories.id, liveCat.id));
       }
     }
+  }
+}
+
+async function _indexScenarioAsync(scenario: Scenario): Promise<void> {
+  try {
+    const propArr = Array.isArray(scenario.properties) ? scenario.properties : [];
+    const firstProp = propArr[0] as Record<string, any> | undefined;
+    const ga = scenario.globalAssumptions as Record<string, any> | null;
+    const cr = scenario.computedResults as Record<string, any> | null;
+
+    const propertyName = firstProp?.name ?? "Portfolio";
+    const location = firstProp?.location ?? firstProp?.city ?? "";
+    const propertyType = firstProp?.propertyType ?? firstProp?.property_type ?? "hotel";
+
+    await indexScenarioSummary({
+      scenarioId: scenario.id,
+      scenarioName: scenario.name,
+      propertyId: firstProp?.id ?? 0,
+      propertyName,
+      location,
+      propertyType,
+      totalRevenue: cr?.totalRevenue ?? null,
+      totalExpenses: cr?.totalExpenses ?? null,
+      noi: cr?.noi ?? null,
+      adr: ga?.adr ?? firstProp?.adr ?? null,
+      occupancy: ga?.occupancy ?? firstProp?.occupancy ?? null,
+      revpar: cr?.revpar ?? null,
+      years: ga?.holdPeriod ?? ga?.projectionYears ?? null,
+      createdBy: scenario.userId ? String(scenario.userId) : undefined,
+    });
+  } catch (err) {
+    logger.warn(`Async scenario index failed: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 }
 
@@ -245,6 +279,7 @@ export class FinancialStorage {
       .insert(scenarios)
       .values(data as typeof scenarios.$inferInsert)
       .returning();
+    _indexScenarioAsync(scenario).catch(() => {});
     return scenario;
   }
 
@@ -297,13 +332,15 @@ export class FinancialStorage {
     return results;
   }
 
-  /** Update scenario metadata (name, description). Does not re-snapshot financial data. */
   async updateScenario(id: number, data: UpdateScenario): Promise<Scenario | undefined> {
     const [scenario] = await db
       .update(scenarios)
       .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
       .where(eq(scenarios.id, id))
       .returning();
+    if (scenario) {
+      _indexScenarioAsync(scenario).catch(() => {});
+    }
     return scenario || undefined;
   }
 
@@ -326,6 +363,11 @@ export class FinancialStorage {
       .set({ globalAssumptions, properties: props, feeCategories, propertyPhotos: photos, computedResults, computeHash, updatedAt: new Date() })
       .where(eq(scenarios.id, scenarioId))
       .returning();
+
+    if (updated) {
+      _indexScenarioAsync(updated).catch(() => {});
+    }
+
     return updated || undefined;
   }
 

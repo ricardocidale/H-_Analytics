@@ -1,12 +1,15 @@
 /**
- * PineconeService — Persistent vector store for knowledge base and research history.
+ * PineconeService — Persistent vector store for the full H+ Analytics intelligence layer.
  *
  * Index: "lb-hospitality"
  * Namespaces:
- *   knowledge-base    — Indexed docs from attached_assets + methodology files.
- *                       Persists across restarts so we don't re-embed on every boot.
- *   research-history  — Every completed research result, indexed for retrieval.
- *                       Enables "what did we learn about similar properties?" context.
+ *   knowledge-base       — Methodology docs, platform guides, attached_assets, photos, logos.
+ *   research-history     — Completed research results for prior-knowledge retrieval.
+ *   comparables          — Benchmark snapshots (ADR, occupancy, cap rates) for relaxation engine.
+ *   assumption-guidance  — Validated assumption ranges (Low/Mid/High) seeding new research.
+ *   documents            — Chunked property documents (PDFs/OMs) for semantic search.
+ *   scenarios            — Financial scenario summaries for semantic retrieval by Rebecca.
+ *   properties           — Property profiles (metadata, location, type) for semantic search.
  *
  * Embedding model: text-embedding-3-small (1536 dims, cosine)
  */
@@ -15,10 +18,12 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 import { logger } from "../logger";
 
-const INDEX_NAME  = "lb-hospitality";
-const EMBED_MODEL = "text-embedding-3-small";
-const EMBED_DIMS  = 1536;
-const EMBED_BATCH = 20;
+const INDEX_NAME     = "lb-hospitality";
+const EMBED_MODEL    = "text-embedding-3-small";
+const EMBED_DIMS     = 1536;
+const EMBED_BATCH    = 20;
+const PINECONE_REGION = process.env.PINECONE_REGION || "us-east-1";
+const DOC_MAX_CHARS  = 100_000;
 
 let _embeddingClient: OpenAI | null = null;
 let _embeddingAvailable: boolean | null = null;
@@ -51,7 +56,12 @@ export function isEmbeddingAvailable(): boolean {
   return getEmbeddingClient() !== null;
 }
 
-export type PineconeNamespace = "knowledge-base" | "research-history" | "comparables" | "assumption-guidance" | "documents";
+export type PineconeNamespace = "knowledge-base" | "research-history" | "comparables" | "assumption-guidance" | "documents" | "scenarios" | "properties";
+
+export const ALL_NAMESPACES: PineconeNamespace[] = [
+  "knowledge-base", "research-history", "comparables",
+  "assumption-guidance", "documents", "scenarios", "properties",
+];
 
 export interface PineconeChunk {
   id: string;
@@ -104,7 +114,7 @@ async function ensureIndex(): Promise<void> {
         name: INDEX_NAME,
         dimension: EMBED_DIMS,
         metric: "cosine",
-        spec: { serverless: { cloud: "aws", region: "us-east-1" } },
+        spec: { serverless: { cloud: "aws", region: PINECONE_REGION } },
       });
       // Wait for index to initialise
       await new Promise(r => setTimeout(r, 8_000));
@@ -235,6 +245,50 @@ export async function vectorCount(namespace: PineconeNamespace): Promise<number>
     await ensureIndex();
     const stats = await getPC().index(INDEX_NAME).describeIndexStats();
     return stats.namespaces?.[namespace]?.recordCount ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function getNamespaceStats(): Promise<Record<PineconeNamespace, number>> {
+  const stats: Record<string, number> = {};
+  for (const ns of ALL_NAMESPACES) stats[ns] = 0;
+
+  if (!isPineconeAvailable()) return stats as Record<PineconeNamespace, number>;
+
+  try {
+    await ensureIndex();
+    const indexStats = await getPC().index(INDEX_NAME).describeIndexStats();
+    for (const ns of ALL_NAMESPACES) {
+      stats[ns] = indexStats.namespaces?.[ns]?.recordCount ?? 0;
+    }
+  } catch (err) {
+    logger.warn(`Failed to get namespace stats: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+
+  return stats as Record<PineconeNamespace, number>;
+}
+
+export async function deleteNamespace(namespace: PineconeNamespace): Promise<void> {
+  if (!isPineconeAvailable()) return;
+
+  try {
+    await ensureIndex();
+    const index = getPC().index(INDEX_NAME).namespace(namespace);
+    await index.deleteAll();
+    logger.info(`Cleared all vectors from namespace "${namespace}"`, "pinecone");
+  } catch (err) {
+    logger.warn(`Failed to clear namespace ${namespace}: ${err instanceof Error ? err.message : err}`, "pinecone");
+    throw err;
+  }
+}
+
+export async function getTotalVectorCount(): Promise<number> {
+  if (!isPineconeAvailable()) return 0;
+  try {
+    await ensureIndex();
+    const stats = await getPC().index(INDEX_NAME).describeIndexStats();
+    return stats.totalRecordCount ?? 0;
   } catch {
     return 0;
   }
@@ -456,7 +510,7 @@ export async function indexDocumentExtraction(params: {
     // Chunk the text into ~2000 char segments for Pinecone metadata limits
     const maxChunkSize = 2_000;
     const chunks: PineconeChunk[] = [];
-    const fullText = params.extractedText.slice(0, 20_000); // cap total
+    const fullText = params.extractedText.slice(0, DOC_MAX_CHARS);
 
     for (let i = 0; i < fullText.length; i += maxChunkSize) {
       const chunkIdx = Math.floor(i / maxChunkSize);
@@ -518,6 +572,194 @@ export async function retrieveDocumentContext(params: {
       }));
   } catch (err) {
     logger.warn(`Failed to retrieve document context: ${err instanceof Error ? err.message : err}`, "pinecone");
+    return [];
+  }
+}
+
+// ── Scenario indexing ─────────────────────────────────────────────────────────
+
+export async function indexScenarioSummary(params: {
+  scenarioId: number;
+  scenarioName: string;
+  propertyId: number;
+  propertyName: string;
+  location: string;
+  propertyType: string;
+  totalRevenue?: number | null;
+  totalExpenses?: number | null;
+  noi?: number | null;
+  adr?: number | null;
+  occupancy?: number | null;
+  revpar?: number | null;
+  years?: number;
+  createdBy?: string;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+
+  try {
+    const metrics: string[] = [];
+    if (params.totalRevenue) metrics.push(`Revenue: $${Math.round(params.totalRevenue).toLocaleString()}`);
+    if (params.totalExpenses) metrics.push(`Expenses: $${Math.round(params.totalExpenses).toLocaleString()}`);
+    if (params.noi) metrics.push(`NOI: $${Math.round(params.noi).toLocaleString()}`);
+    if (params.adr) metrics.push(`ADR: $${Math.round(params.adr)}`);
+    if (params.occupancy) metrics.push(`Occupancy: ${(params.occupancy * 100).toFixed(1)}%`);
+    if (params.revpar) metrics.push(`RevPAR: $${Math.round(params.revpar)}`);
+
+    const id = `scenario:${params.scenarioId}`;
+    const text = [
+      `Financial scenario "${params.scenarioName}" for ${params.propertyName}`,
+      `located in ${params.location}, ${params.propertyType} property`,
+      params.years ? `${params.years}-year projection` : "",
+      metrics.join(", "),
+      "hotel hospitality financial analysis scenario projection budget forecast",
+    ].filter(Boolean).join(". ");
+
+    await upsertChunks("scenarios", [{
+      id,
+      text,
+      metadata: {
+        scenarioId:    params.scenarioId,
+        scenarioName:  params.scenarioName.slice(0, 500),
+        propertyId:    params.propertyId,
+        propertyName:  params.propertyName.slice(0, 200),
+        location:      params.location,
+        propertyType:  params.propertyType,
+        totalRevenue:  params.totalRevenue ?? 0,
+        totalExpenses: params.totalExpenses ?? 0,
+        noi:           params.noi ?? 0,
+        adr:           params.adr ?? 0,
+        occupancy:     params.occupancy ?? 0,
+        revpar:        params.revpar ?? 0,
+        years:         params.years ?? 0,
+        createdBy:     (params.createdBy ?? "").slice(0, 100),
+      },
+    }]);
+
+    logger.info(`Indexed scenario ${params.scenarioId}: "${params.scenarioName}" for ${params.propertyName}`, "pinecone");
+  } catch (err) {
+    logger.warn(`Failed to index scenario: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
+export async function retrieveScenarioContext(params: {
+  query: string;
+  propertyId?: number;
+  topK?: number;
+}): Promise<Array<{
+  scenarioId: number;
+  scenarioName: string;
+  propertyId: number;
+  propertyName: string;
+  location: string;
+  noi: number;
+  adr: number;
+  occupancy: number;
+  score: number;
+}>> {
+  if (!isPineconeAvailable()) return [];
+
+  try {
+    const matches = await queryChunks("scenarios", params.query, params.topK ?? 5);
+
+    return matches
+      .filter(m => m.score > 0.4)
+      .filter(m => !params.propertyId || Number(m.metadata.propertyId) === params.propertyId)
+      .map(m => ({
+        scenarioId:   Number(m.metadata.scenarioId),
+        scenarioName: String(m.metadata.scenarioName),
+        propertyId:   Number(m.metadata.propertyId),
+        propertyName: String(m.metadata.propertyName),
+        location:     String(m.metadata.location),
+        noi:          Number(m.metadata.noi),
+        adr:          Number(m.metadata.adr),
+        occupancy:    Number(m.metadata.occupancy),
+        score:        m.score,
+      }));
+  } catch (err) {
+    logger.warn(`Failed to retrieve scenario context: ${err instanceof Error ? err.message : err}`, "pinecone");
+    return [];
+  }
+}
+
+// ── Property indexing ─────────────────────────────────────────────────────────
+
+export async function indexPropertyProfile(params: {
+  propertyId: number;
+  name: string;
+  location: string;
+  propertyType: string;
+  roomCount?: number | null;
+  starRating?: number | null;
+  status?: string;
+  purchasePrice?: number | null;
+  market?: string;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+
+  try {
+    const details: string[] = [];
+    if (params.roomCount) details.push(`${params.roomCount} rooms`);
+    if (params.starRating) details.push(`${params.starRating}-star`);
+    if (params.purchasePrice) details.push(`$${Math.round(params.purchasePrice).toLocaleString()} purchase price`);
+
+    const id = `property:${params.propertyId}`;
+    const text = [
+      `${params.name} — ${params.propertyType} hotel property in ${params.location}`,
+      params.market ? `${params.market} market` : "",
+      details.join(", "),
+      "hotel hospitality property portfolio real estate investment",
+    ].filter(Boolean).join(". ");
+
+    await upsertChunks("properties", [{
+      id,
+      text,
+      metadata: {
+        propertyId:    params.propertyId,
+        name:          params.name.slice(0, 200),
+        location:      params.location,
+        propertyType:  params.propertyType,
+        roomCount:     params.roomCount ?? 0,
+        starRating:    params.starRating ?? 0,
+        status:        params.status ?? "active",
+        purchasePrice: params.purchasePrice ?? 0,
+        market:        (params.market ?? "").slice(0, 200),
+      },
+    }]);
+
+    logger.info(`Indexed property profile ${params.propertyId}: "${params.name}"`, "pinecone");
+  } catch (err) {
+    logger.warn(`Failed to index property profile: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
+export async function retrievePropertyContext(params: {
+  query: string;
+  topK?: number;
+}): Promise<Array<{
+  propertyId: number;
+  name: string;
+  location: string;
+  propertyType: string;
+  roomCount: number;
+  score: number;
+}>> {
+  if (!isPineconeAvailable()) return [];
+
+  try {
+    const matches = await queryChunks("properties", params.query, params.topK ?? 5);
+
+    return matches
+      .filter(m => m.score > 0.4)
+      .map(m => ({
+        propertyId:   Number(m.metadata.propertyId),
+        name:         String(m.metadata.name),
+        location:     String(m.metadata.location),
+        propertyType: String(m.metadata.propertyType),
+        roomCount:    Number(m.metadata.roomCount),
+        score:        m.score,
+      }));
+  } catch (err) {
+    logger.warn(`Failed to retrieve property context: ${err instanceof Error ? err.message : err}`, "pinecone");
     return [];
   }
 }

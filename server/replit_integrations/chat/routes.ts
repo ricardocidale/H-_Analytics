@@ -7,6 +7,7 @@ import { UserRole } from "@shared/constants";
 import { DEFAULT_OPENAI_MODEL } from "../../ai/resolve-llm";
 import { logger } from "../../logger";
 import { retrieveRelevantChunks, buildRAGContext, indexKnowledgeBase, getKnowledgeBaseStatus } from "../../ai/knowledge-base";
+import { multiNamespaceQuery, retrieveScenarioContext, retrieveDocumentContext, isPineconeAvailable } from "../../ai/pinecone-service";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -293,6 +294,77 @@ function buildSystemPrompt(isAdmin: boolean): string {
   return prompt;
 }
 
+async function buildDeepRAGContext(query: string, userId?: number): Promise<string> {
+  if (!isPineconeAvailable()) return "";
+
+  try {
+    const [scenarioMatches, docMatches, researchMatches, propertyMatches] = await Promise.all([
+      multiNamespaceQuery(query, ["scenarios"], 5).catch(() => []),
+      multiNamespaceQuery(query, ["documents"], 3).catch(() => []),
+      multiNamespaceQuery(query, ["research-history"], 3).catch(() => []),
+      multiNamespaceQuery(query, ["properties"], 3).catch(() => []),
+    ]);
+
+    const parts: string[] = [];
+
+    const relevantScenarios = scenarioMatches
+      .filter(m => m.score > 0.45)
+      .filter(m => {
+        if (!userId) return true;
+        const ownerId = String(m.metadata.createdBy ?? "");
+        return !ownerId || ownerId === String(userId);
+      });
+    if (relevantScenarios.length > 0) {
+      parts.push("\n\n## Related Financial Scenarios");
+      for (const m of relevantScenarios.slice(0, 3)) {
+        const name = String(m.metadata.scenarioName ?? "");
+        const prop = String(m.metadata.propertyName ?? "");
+        const noi = Number(m.metadata.noi || 0);
+        const adr = Number(m.metadata.adr || 0);
+        parts.push(`- **${name}** (${prop}): NOI $${noi.toLocaleString()}, ADR $${Math.round(adr)}`);
+      }
+    }
+
+    const relevantProperties = propertyMatches.filter(m => m.score > 0.45);
+    if (relevantProperties.length > 0) {
+      parts.push("\n\n## Related Properties");
+      for (const m of relevantProperties) {
+        const name = String(m.metadata.name ?? "");
+        const location = String(m.metadata.location ?? "");
+        const type = String(m.metadata.propertyType ?? "");
+        const rooms = Number(m.metadata.roomCount || 0);
+        parts.push(`- **${name}** — ${type} in ${location}${rooms ? `, ${rooms} rooms` : ""}`);
+      }
+    }
+
+    const relevantDocs = docMatches.filter(m => m.score > 0.5);
+    if (relevantDocs.length > 0) {
+      parts.push("\n\n## Relevant Document Excerpts");
+      for (const m of relevantDocs) {
+        const propName = String(m.metadata.propertyName ?? "");
+        const docType = String(m.metadata.documentType ?? "");
+        const content = String(m.metadata.content ?? "").slice(0, 500);
+        parts.push(`\n### ${propName} — ${docType}\n${content}`);
+      }
+    }
+
+    const relevantResearch = researchMatches.filter(m => m.score > 0.5);
+    if (relevantResearch.length > 0) {
+      parts.push("\n\n## Prior Research Findings");
+      for (const m of relevantResearch) {
+        const location = String(m.metadata.location ?? "");
+        const summary = String(m.metadata.summary ?? "").slice(0, 400);
+        parts.push(`\n### ${location}\n${summary}`);
+      }
+    }
+
+    return parts.length > 0 ? parts.join("\n") : "";
+  } catch (err) {
+    logger.warn(`Deep RAG context failed: ${err instanceof Error ? err.message : err}`, "chat");
+    return "";
+  }
+}
+
 export function registerChatRoutes(app: Express): void {
   app.get("/api/conversations", requireAuth, async (req: Request, res: Response) => {
     try {
@@ -362,11 +434,12 @@ export function registerChatRoutes(app: Express): void {
       await chatStorage.createMessage(conversationId, "user", content.trim());
       const userRole = await getUserRole(userId);
       const isAdmin = userRole === UserRole.ADMIN;
-      const [contextPrompt, ragChunks] = await Promise.all([
+      const [contextPrompt, ragChunks, deepContext] = await Promise.all([
         buildContextPrompt(userId, isAdmin),
         retrieveRelevantChunks(content.trim(), 6).catch(() => []),
+        buildDeepRAGContext(content.trim(), isAdmin ? undefined : userId).catch(() => ""),
       ]);
-      const ragContext = buildRAGContext(ragChunks);
+      const ragContext = buildRAGContext(ragChunks) + deepContext;
       const messages = await chatStorage.getMessagesByConversation(conversationId);
       const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
         { role: "system", content: buildSystemPrompt(isAdmin) + contextPrompt + ragContext },

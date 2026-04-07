@@ -57,7 +57,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Monitoring & Analytics:** Sentry, PostHog
 - **Caching:** Upstash Redis
 - **AI/LLM Providers:** `@anthropic-ai/sdk`, Gemini
-- **Vector DB:** Pinecone (semantic retrieval: research history, assumption guidance, comparables, documents, asset intelligence for photos/logos)
+- **Vector DB:** Pinecone — fully integrated across 7 namespaces: knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties. Multi-namespace RAG powers Rebecca's chat. Admin dashboard provides per-namespace stats, re-indexing, and clearing. Region configurable via `PINECONE_REGION` env var.
 - **Icons:** Lucide, @phosphor-icons/react, react-icons (Material Design)
 - **Email:** Resend
 - **Research/Data APIs:** RapidAPI (RealtyService, USRealEstateService, XoteloService), FREDService, HospitalityBenchmarkService, MoodysService, SPGlobalService, Perplexity SDK, Tavily

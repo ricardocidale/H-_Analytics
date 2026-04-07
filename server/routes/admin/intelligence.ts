@@ -11,8 +11,9 @@ import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 import { resolveLlm, getVendorService, checkVendorAvailability, getRecommendedDefaults } from "../../ai/resolve-llm";
 import { createResearchClient } from "../../ai/research-client";
 import { getGeminiClient, getAnthropicClient, getOpenAIClient } from "../../ai/clients";
-import { isPineconeAvailable, isEmbeddingAvailable } from "../../ai/pinecone-service";
+import { isPineconeAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type PineconeNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/pinecone-service";
 import { indexAllAssets } from "../../ai/asset-intelligence";
+import { indexKnowledgeBase } from "../../ai/knowledge-base";
 import type { ResearchConfig } from "@shared/schema";
 import { insertScheduledResearchWorkflowSchema } from "@shared/schema";
 import { executeScheduledWorkflow } from "../../ai/ambient/research-scheduler";
@@ -757,6 +758,155 @@ export function registerIntelligenceRoutes(app: Express) {
       res.json({ success: true, indexed: result });
     } catch (error) {
       logAndSendError(res, "Failed to index assets", error);
+    }
+  });
+
+  app.get("/api/admin/pinecone/stats", requireAdmin, async (_req, res) => {
+    try {
+      if (!isPineconeAvailable()) {
+        return res.json({ available: false, namespaces: {}, totalVectors: 0 });
+      }
+      const [namespaces, totalVectors] = await Promise.all([
+        getNamespaceStats(),
+        getTotalVectorCount(),
+      ]);
+      res.json({
+        available: true,
+        embeddingsAvailable: isEmbeddingAvailable(),
+        totalVectors,
+        namespaces,
+        allNamespaces: ALL_NAMESPACES,
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to get Pinecone stats", error);
+    }
+  });
+
+  app.post("/api/admin/pinecone/reindex/:namespace", requireAdmin, async (req, res) => {
+    try {
+      const ns = req.params.namespace as PineconeNamespace;
+      if (!ALL_NAMESPACES.includes(ns)) {
+        return res.status(400).json({ error: `Invalid namespace: ${ns}` });
+      }
+      if (!isPineconeAvailable()) {
+        return res.status(400).json({ error: "Pinecone not configured" });
+      }
+      if (!isEmbeddingAvailable()) {
+        return res.status(400).json({ error: "Embedding service not available" });
+      }
+
+      let result: Record<string, any> = { namespace: ns };
+
+      if (ns === "knowledge-base") {
+        await deleteNamespace(ns);
+        const kbResult = await indexKnowledgeBase();
+        const assetResult = await indexAllAssets();
+        result.chunksIndexed = kbResult.chunksIndexed;
+        result.photosIndexed = assetResult.photos;
+        result.logosIndexed = assetResult.logos;
+        result.timeMs = kbResult.timeMs;
+      } else if (ns === "scenarios") {
+        await deleteNamespace(ns);
+        const allScenariosRaw = await storage.getAllScenarios();
+        const allScenarios = allScenariosRaw.filter(s => !s.deletedAt);
+        let indexed = 0;
+        for (const scenario of allScenarios) {
+          try {
+            const propArr = Array.isArray(scenario.properties) ? scenario.properties : [];
+            const firstProp = propArr[0] as Record<string, any> | undefined;
+            const ga = scenario.globalAssumptions as Record<string, any> | null;
+            const cr = scenario.computedResults as Record<string, any> | null;
+            await indexScenarioSummary({
+              scenarioId: scenario.id,
+              scenarioName: scenario.name,
+              propertyId: firstProp?.id ?? 0,
+              propertyName: firstProp?.name ?? "Portfolio",
+              location: firstProp?.location ?? firstProp?.city ?? "",
+              propertyType: firstProp?.propertyType ?? firstProp?.property_type ?? "hotel",
+              totalRevenue: cr?.totalRevenue ?? null,
+              totalExpenses: cr?.totalExpenses ?? null,
+              noi: cr?.noi ?? null,
+              adr: ga?.adr ?? firstProp?.adr ?? null,
+              occupancy: ga?.occupancy ?? firstProp?.occupancy ?? null,
+              revpar: cr?.revpar ?? null,
+              years: ga?.holdPeriod ?? ga?.projectionYears ?? null,
+            });
+            indexed++;
+          } catch { /* skip failed */ }
+        }
+        result.indexed = indexed;
+        result.total = allScenarios.length;
+      } else if (ns === "properties") {
+        await deleteNamespace(ns);
+        const allProperties = await storage.getAllProperties();
+        let indexed = 0;
+        for (const property of allProperties) {
+          try {
+            await indexPropertyProfile({
+              propertyId: property.id,
+              name: property.name ?? "Unnamed Property",
+              location: [property.city, property.stateProvince, property.country].filter(Boolean).join(", "),
+              propertyType: (property as any).propertyType ?? (property as any).property_type ?? "hotel",
+              roomCount: (property as any).roomCount ?? (property as any).room_count ?? null,
+              starRating: (property as any).starRating ?? (property as any).star_rating ?? null,
+              status: (property as any).status ?? "active",
+              purchasePrice: (property as any).purchasePrice ?? (property as any).purchase_price ?? null,
+              market: (property as any).market ?? null,
+            });
+            indexed++;
+          } catch { /* skip failed */ }
+        }
+        result.indexed = indexed;
+        result.total = allProperties.length;
+      } else if (ns === "comparables") {
+        await deleteNamespace(ns);
+        const snapshots = await storage.getBenchmarkSnapshots();
+        const { indexBenchmarkSnapshot } = await import("../../ai/pinecone-service");
+        let indexed = 0;
+        for (const snap of snapshots) {
+          try {
+            await indexBenchmarkSnapshot({
+              market: snap.snapshotKey,
+              propertyType: snap.category,
+              adr: snap.category === "adr" ? snap.value : null,
+              occupancy: snap.category === "occupancy" ? snap.value : null,
+              capRate: snap.category === "capRate" ? snap.value : null,
+              revpar: snap.category === "revpar" ? snap.value : null,
+              source: snap.source ?? "unknown",
+              snapshotDate: snap.fetchedAt.toISOString(),
+            });
+            indexed++;
+          } catch { /* skip failed */ }
+        }
+        result.indexed = indexed;
+        result.total = snapshots.length;
+      } else {
+        await deleteNamespace(ns);
+        result.cleared = true;
+        result.message = `Namespace "${ns}" cleared. Data will be re-indexed as new items are created.`;
+      }
+
+      logger.info(`Admin re-indexed Pinecone namespace "${ns}": ${JSON.stringify(result)}`, "pinecone");
+      res.json({ success: true, ...result });
+    } catch (error) {
+      logAndSendError(res, `Failed to reindex namespace ${req.params.namespace}`, error);
+    }
+  });
+
+  app.delete("/api/admin/pinecone/clear/:namespace", requireAdmin, async (req, res) => {
+    try {
+      const ns = req.params.namespace as PineconeNamespace;
+      if (!ALL_NAMESPACES.includes(ns)) {
+        return res.status(400).json({ error: `Invalid namespace: ${ns}` });
+      }
+      if (!isPineconeAvailable()) {
+        return res.status(400).json({ error: "Pinecone not configured" });
+      }
+      await deleteNamespace(ns);
+      logger.info(`Admin cleared Pinecone namespace "${ns}"`, "pinecone");
+      res.json({ success: true, namespace: ns, cleared: true });
+    } catch (error) {
+      logAndSendError(res, `Failed to clear namespace ${req.params.namespace}`, error);
     }
   });
 }

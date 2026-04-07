@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MdOutlineMemory, MdOutlineCloud, MdOutlineWarning, MdOutlineCheckCircle, MdOutlineError } from "react-icons/md";
+import { Button } from "@/components/ui/button";
+import { MdOutlineMemory, MdOutlineCloud, MdOutlineWarning, MdOutlineCheckCircle, MdOutlineError, MdRefresh, MdDeleteOutline } from "react-icons/md";
+import { useState } from "react";
 
 interface LlmVendorStatus {
   vendor: string;
@@ -25,13 +27,45 @@ interface SystemStatusData {
   };
 }
 
+interface PineconeStatsData {
+  available: boolean;
+  embeddingsAvailable?: boolean;
+  totalVectors: number;
+  namespaces: Record<string, number>;
+  allNamespaces: string[];
+}
+
 const vendorLabels: Record<string, string> = {
   google: "Google Gemini",
   anthropic: "Anthropic Claude",
   openai: "OpenAI GPT",
 };
 
+const namespaceLabels: Record<string, string> = {
+  "knowledge-base": "Knowledge Base",
+  "research-history": "Research History",
+  "comparables": "Comparables",
+  "assumption-guidance": "Assumption Guidance",
+  "documents": "Documents",
+  "scenarios": "Scenarios",
+  "properties": "Properties",
+};
+
+const namespaceDescriptions: Record<string, string> = {
+  "knowledge-base": "Methodology docs, guides, photos, logos",
+  "research-history": "Past research results for prior-knowledge retrieval",
+  "comparables": "ADR, occupancy, cap rate benchmarks",
+  "assumption-guidance": "Validated assumption ranges (Low/Mid/High)",
+  "documents": "Chunked property documents (PDFs/OMs)",
+  "scenarios": "Financial scenario summaries",
+  "properties": "Property profiles and metadata",
+};
+
 export default function SystemIntelligenceStatus() {
+  const queryClient = useQueryClient();
+  const [reindexingNs, setReindexingNs] = useState<string | null>(null);
+  const [clearingNs, setClearingNs] = useState<string | null>(null);
+
   const { data, isLoading, error } = useQuery<SystemStatusData>({
     queryKey: ["admin", "system-intelligence-status"],
     queryFn: async () => {
@@ -40,6 +74,48 @@ export default function SystemIntelligenceStatus() {
       return res.json();
     },
     staleTime: 60_000,
+  });
+
+  const { data: pineconeStats, isLoading: statsLoading } = useQuery<PineconeStatsData>({
+    queryKey: ["admin", "pinecone-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/pinecone/stats", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch Pinecone stats");
+      return res.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const reindexMutation = useMutation({
+    mutationFn: async (namespace: string) => {
+      setReindexingNs(namespace);
+      const res = await fetch(`/api/admin/pinecone/reindex/${namespace}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Reindex failed");
+      return res.json();
+    },
+    onSettled: () => {
+      setReindexingNs(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "pinecone-stats"] });
+    },
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: async (namespace: string) => {
+      setClearingNs(namespace);
+      const res = await fetch(`/api/admin/pinecone/clear/${namespace}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Clear failed");
+      return res.json();
+    },
+    onSettled: () => {
+      setClearingNs(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "pinecone-stats"] });
+    },
   });
 
   if (isLoading) {
@@ -133,6 +209,14 @@ export default function SystemIntelligenceStatus() {
                 <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">Unavailable</Badge>
               )}
             </div>
+            {pineconeStats?.available && (
+              <div className="flex items-center justify-between text-sm">
+                <span>Total Vectors</span>
+                <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-950/30">
+                  {pineconeStats.totalVectors.toLocaleString()}
+                </Badge>
+              </div>
+            )}
             <div className="pt-2 border-t border-border/50">
               {data.knowledgeBase.learningActive ? (
                 <div className="flex items-center gap-1.5 text-xs text-emerald-600">
@@ -167,6 +251,99 @@ export default function SystemIntelligenceStatus() {
           </Card>
         )}
       </div>
+
+      {pineconeStats?.available && (
+        <Card data-testid="pinecone-namespace-stats">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <MdOutlineMemory className="w-4 h-4 text-primary" />
+                Pinecone Namespaces — Vector Index
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["admin", "pinecone-stats"] })}
+                className="h-7 text-xs"
+                data-testid="btn-refresh-pinecone-stats"
+              >
+                <MdRefresh className="w-3.5 h-3.5 mr-1" /> Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 text-left">
+                    <th className="pb-2 font-medium text-muted-foreground">Namespace</th>
+                    <th className="pb-2 font-medium text-muted-foreground text-right">Vectors</th>
+                    <th className="pb-2 font-medium text-muted-foreground text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(pineconeStats.allNamespaces || Object.keys(pineconeStats.namespaces)).map(ns => {
+                    const count = pineconeStats.namespaces[ns] ?? 0;
+                    const isReindexing = reindexingNs === ns;
+                    const isClearing = clearingNs === ns;
+                    return (
+                      <tr key={ns} className="border-b border-border/30 last:border-0" data-testid={`pinecone-ns-${ns}`}>
+                        <td className="py-2.5">
+                          <div className="font-medium text-foreground">{namespaceLabels[ns] || ns}</div>
+                          <div className="text-xs text-muted-foreground">{namespaceDescriptions[ns] || ns}</div>
+                        </td>
+                        <td className="py-2.5 text-right">
+                          <Badge
+                            variant="outline"
+                            className={count > 0
+                              ? "text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30"
+                              : "text-muted-foreground border-border"}
+                          >
+                            {count.toLocaleString()}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs px-2"
+                              disabled={isReindexing || isClearing || !!reindexingNs}
+                              onClick={() => reindexMutation.mutate(ns)}
+                              data-testid={`btn-reindex-${ns}`}
+                            >
+                              <MdRefresh className={`w-3 h-3 mr-1 ${isReindexing ? "animate-spin" : ""}`} />
+                              {isReindexing ? "Indexing..." : "Re-index"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs px-2 text-destructive hover:text-destructive"
+                              disabled={isClearing || isReindexing || count === 0}
+                              onClick={() => {
+                                if (confirm(`Clear all ${count.toLocaleString()} vectors from "${namespaceLabels[ns] || ns}"?`)) {
+                                  clearMutation.mutate(ns);
+                                }
+                              }}
+                              data-testid={`btn-clear-${ns}`}
+                            >
+                              <MdDeleteOutline className="w-3 h-3 mr-1" />
+                              {isClearing ? "Clearing..." : "Clear"}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {statsLoading && (
+              <div className="text-center text-xs text-muted-foreground py-2">Loading namespace stats...</div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

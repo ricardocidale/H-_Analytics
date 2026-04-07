@@ -2,6 +2,26 @@ import { properties, type Property, type InsertProperty, type UpdateProperty } f
 import { db } from "../db";
 import { eq, or, isNull, sql } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
+import { indexPropertyProfile } from "../ai/pinecone-service";
+import { logger } from "../logger";
+
+async function _indexPropertyAsync(property: Property): Promise<void> {
+  try {
+    await indexPropertyProfile({
+      propertyId: property.id,
+      name: property.name ?? "Unnamed Property",
+      location: [property.city, property.stateProvince, property.country].filter(Boolean).join(", "),
+      propertyType: (property as any).propertyType ?? (property as any).property_type ?? "hotel",
+      roomCount: (property as any).roomCount ?? (property as any).room_count ?? null,
+      starRating: (property as any).starRating ?? (property as any).star_rating ?? null,
+      status: (property as any).status ?? "active",
+      purchasePrice: (property as any).purchasePrice ?? (property as any).purchase_price ?? null,
+      market: (property as any).market ?? null,
+    });
+  } catch (err) {
+    logger.warn(`Async property index failed: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
 
 export class PropertyStorage {
   /**
@@ -30,16 +50,19 @@ export class PropertyStorage {
       .insert(properties)
       .values(data as typeof properties.$inferInsert)
       .returning();
+    _indexPropertyAsync(property).catch(() => {});
     return property;
   }
 
-  /** Partially update a property's fields. Returns the updated record, or undefined if not found. */
   async updateProperty(id: number, data: UpdateProperty): Promise<Property | undefined> {
     const [property] = await db
       .update(properties)
       .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
       .where(eq(properties.id, id))
       .returning();
+    if (property) {
+      _indexPropertyAsync(property).catch(() => {});
+    }
     return property || undefined;
   }
 
