@@ -6,6 +6,7 @@ import { RebeccaContextCard } from "./RebeccaContextCard";
 import { RebeccaAvatar } from "./RebeccaAvatar";
 import { RebeccaTypingIndicator } from "./RebeccaTypingIndicator";
 import { RebeccaMarkdown } from "./RebeccaMarkdown";
+import { RebeccaInsightBanner } from "./RebeccaInsightBanner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -367,6 +368,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
           data-testid="rebecca-chat-area"
         >
+          <RebeccaInsightBanner
+            onAskRebecca={(q) => sendMessage(q)}
+            className="mb-1"
+          />
           {messages.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground gap-3 py-8">
               <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center">

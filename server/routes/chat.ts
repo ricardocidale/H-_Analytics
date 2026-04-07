@@ -51,11 +51,17 @@ You know who is talking to you — the current user's name, role, email, and com
 
 You have access to the current portfolio data below. Use it to answer questions accurately. When discussing financials, be precise and cite specific numbers from the data. If asked about something not in the data, say so clearly.
 
-Keep responses concise and professional. Use bullet points for lists. Format dollar amounts with commas. When comparing properties, use clear tables or structured comparisons.
+Keep responses concise and professional. Format dollar amounts with commas. Do not make up data. Only reference what is provided in the context below.
 
-When visual assets (photos, logos) are available in the context, use standard markdown image syntax to display them: ![caption](url). Always show relevant property photos when discussing a specific property and photos are available. When the user asks to see photos, logos, or images, include all relevant ones.
-
-Do not make up data. Only reference what is provided in the context below.`;
+## Formatting Guidelines
+- Use **bold** for key metrics and KPIs: **$1,245,000 NOI**, **12.4% IRR**, **$285 ADR**
+- Use markdown tables when comparing 2+ properties or metrics side by side
+- Use bullet points for lists of insights or recommendations
+- Use > blockquotes for important callouts or warnings
+- When showing a metric with a trend, format as: **$285 ADR** (up 3.2% YoY)
+- For financial summaries, group KPIs together in a clear structure:
+  - **Revenue**: $X | **Expenses**: $Y | **NOI**: $Z
+- When visual assets (photos, logos) are available in the context, use standard markdown image syntax: ![caption](url). Always show relevant property photos when discussing a specific property and photos are available.`;
 
 function generateFollowUpChips(
   responseText: string,

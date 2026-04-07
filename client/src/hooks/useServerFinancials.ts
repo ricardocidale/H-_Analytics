@@ -1,4 +1,5 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 import superjson from "superjson";
 import type { Property } from "@shared/schema";
 import type { GlobalResponse } from "@/lib/api";
@@ -12,6 +13,8 @@ import { consolidateYearlyFinancials, computeWeightedMetrics } from "@/lib/finan
 import { computeIRR } from "@analytics/returns/irr.js";
 import { propertyEquityInvested, acquisitionYearIndex } from "@/lib/financial/equityCalculations";
 import { PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
+import { analyzePortfolioForInsights } from "@/lib/rebecca-insights";
+import { useRebeccaInsightStore } from "@/components/rebecca/RebeccaInsightBanner";
 
 interface ServerPortfolioResult {
   engineVersion: string;
@@ -202,9 +205,27 @@ export function useServerFinancials(
     placeholderData: keepPreviousData,
   });
 
-  const mapped = (data && global)
-    ? mapToDashboardFinancials(data, activeProperties, global)
-    : null;
+  const mapped = useMemo(
+    () => (data && global) ? mapToDashboardFinancials(data, activeProperties, global) : null,
+    [data, global, activeProperties.length],
+  );
+
+  const addInsight = useRebeccaInsightStore((s) => s.addInsight);
+  const outputHash = data?.outputHash ?? null;
+  const propertyCount = activeProperties.length;
+
+  useEffect(() => {
+    if (!outputHash || !mapped) return;
+
+    const insight = analyzePortfolioForInsights(
+      mapped.yearlyConsolidatedCache,
+      propertyCount,
+      mapped.portfolioIRR,
+    );
+    if (insight) {
+      addInsight(insight, outputHash);
+    }
+  }, [outputHash, propertyCount, addInsight]);
 
   return { data: mapped, isLoading: enabled && isLoading, isError, error: error as Error | null };
 }

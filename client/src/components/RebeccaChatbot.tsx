@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RebeccaAvatar } from "./rebecca/RebeccaAvatar";
 import { RebeccaTypingIndicator } from "./rebecca/RebeccaTypingIndicator";
 import { RebeccaMarkdown } from "./rebecca/RebeccaMarkdown";
+import { RebeccaInsightBanner } from "./rebecca/RebeccaInsightBanner";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -140,6 +141,10 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            <RebeccaInsightBanner
+              onAskRebecca={(q) => { setInput(q); }}
+              className="mb-1"
+            />
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground gap-2">
                 <IconMessageCircle className="w-8 h-8 opacity-40" />

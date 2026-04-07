@@ -82,7 +82,7 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 | UI Blocks | `.claude/skills/ui-blocks/SKILL.md` | Reference shadcn block patterns |
 | Market Intelligence | `.claude/skills/market-intelligence/SKILL.md` | FRED, hospitality benchmarks, grounded research, BaseIntegrationService |
 | ICP Research | `.claude/skills/icp-research/SKILL.md` | ICP profile definition, AI research center, prompt builder |
-| Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md` | Gemini-powered portfolio analytics chat |
+| Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md` | Gemini-powered portfolio analytics chat. Proactive insight banners (`RebeccaInsightBanner` + `rebecca-insights.ts`) show deterministic post-compute observations in both chat UIs. |
 | Document Intelligence | `.claude/skills/document-intelligence/SKILL.md` | Google Document AI OCR pipeline, field mapping |
 | Map View | `.claude/skills/map-view/SKILL.md` | MapLibre GL, Supercluster clustering, globe animation |
 | Notifications | `.claude/skills/notifications/SKILL.md` | Alert rules, Resend email, notification logs |
@@ -100,7 +100,7 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 
 ---
 
-## Testing & Proof System (3,973 Tests, 170 Files)
+## Testing & Proof System (3,976 Tests, 170 Files)
 
 | Level | Domains | Skill |
 |-------|---------|-------|
