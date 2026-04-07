@@ -238,7 +238,7 @@ export const globalAssumptions = pgTable("global_assumptions", {
   showAiAssistant: boolean("show_ai_assistant").notNull().default(false),
   
   // Rebecca — AI text chatbot (Gemini or Perplexity engine)
-  rebeccaEnabled: boolean("rebecca_enabled").notNull().default(false),
+  rebeccaEnabled: boolean("rebecca_enabled").notNull().default(true),
   rebeccaDisplayName: text("rebecca_display_name").notNull().default("Rebecca"),
   rebeccaSystemPrompt: text("rebecca_system_prompt"),
   rebeccaChatEngine: text("rebecca_chat_engine").notNull().default("gemini"),
