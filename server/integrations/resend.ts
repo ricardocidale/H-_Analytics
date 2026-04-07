@@ -211,6 +211,71 @@ class ResendIntegration extends BaseIntegrationService {
     });
   }
 
+  async sendScenarioShareNotification(params: {
+    to: string;
+    recipientName: string;
+    sharerName: string;
+    sharerEmail: string;
+    scenarioNames: string[];
+    mode: "single" | "all";
+    portalUrl?: string;
+  }): Promise<void> {
+    const count = params.scenarioNames.length;
+    const scenarioList = params.scenarioNames
+      .map(name => `<li><strong>${name}</strong></li>`)
+      .join("");
+
+    const heading = params.mode === "single"
+      ? "A Scenario Has Been Shared With You"
+      : `${count} Scenario${count > 1 ? "s Have" : " Has"} Been Shared With You`;
+
+    const portalLink = params.portalUrl || "#";
+
+    const html = brandedTemplate(
+      heading,
+      `<p>Hi <strong>${params.recipientName}</strong>,</p>
+      <p><strong>${params.sharerName}</strong> (${params.sharerEmail}) has shared ${params.mode === "single" ? "a scenario" : `${count} scenario${count > 1 ? "s" : ""}`} with you:</p>
+      <ul style="margin:16px 0;padding-left:20px;">${scenarioList}</ul>
+      <p>You can view and load ${count > 1 ? "these scenarios" : "this scenario"} from the Scenarios page in the portal.</p>
+      <p style="margin-top:24px;"><a href="${portalLink}" class="btn">Open Scenarios</a></p>
+      <p style="margin-top:16px;" class="hint">You have view-only access. The owner can revoke access at any time.</p>`
+    );
+
+    await this.sendEmailInternal({
+      to: params.to,
+      subject: `${params.sharerName} shared ${params.mode === "single" ? `"${params.scenarioNames[0]}"` : `${count} scenarios`} with you — H+ Analytics`,
+      html,
+    });
+  }
+
+  async sendAdminShareNotification(params: {
+    to: string;
+    sharerName: string;
+    sharerEmail: string;
+    recipientName: string;
+    recipientEmail: string;
+    scenarioNames: string[];
+    mode: "single" | "all";
+  }): Promise<void> {
+    const count = params.scenarioNames.length;
+    const scenarioList = params.scenarioNames
+      .map(name => `<li>${name}</li>`)
+      .join("");
+
+    const html = brandedTemplate(
+      "Scenario Sharing Activity",
+      `<p><strong>${params.sharerName}</strong> (${params.sharerEmail}) shared ${params.mode === "single" ? "a scenario" : `${count} scenarios`} with <strong>${params.recipientName}</strong> (${params.recipientEmail}):</p>
+      <ul style="margin:16px 0;padding-left:20px;">${scenarioList}</ul>
+      <p style="margin-top:16px;" class="hint">This is an automated admin notification. No action is required.</p>`
+    );
+
+    await this.sendEmailInternal({
+      to: params.to,
+      subject: `Scenario shared: ${params.sharerName} → ${params.recipientName} — H+ Analytics`,
+      html,
+    });
+  }
+
   async sendPasswordResetEmail(params: {
     to: string;
     userName: string;
@@ -284,6 +349,10 @@ export const sendWelcomeEmail = (params: Parameters<typeof resendIntegration.sen
   resendIntegration.sendWelcomeEmail(params);
 export const sendPasswordResetEmail = (params: Parameters<typeof resendIntegration.sendPasswordResetEmail>[0]) =>
   resendIntegration.sendPasswordResetEmail(params);
+export const sendScenarioShareNotification = (params: Parameters<typeof resendIntegration.sendScenarioShareNotification>[0]) =>
+  resendIntegration.sendScenarioShareNotification(params);
+export const sendAdminShareNotification = (params: Parameters<typeof resendIntegration.sendAdminShareNotification>[0]) =>
+  resendIntegration.sendAdminShareNotification(params);
 export const testResendConnection = () => resendIntegration.healthCheck().then((h) => ({
   success: h.healthy,
   error: h.lastError,

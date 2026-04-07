@@ -16,6 +16,8 @@ import { computePortfolioProjection } from "../finance/service";
 import { stableHash } from "../scenarios/stable-json";
 import { logger } from "../logger";
 import { invalidateComputeCache } from "../finance/cache";
+import { sendScenarioShareNotification, sendAdminShareNotification } from "../integrations/resend";
+import { UserRole } from "@shared/constants";
 import {
   requireScenarioPermission,
   importScenarioSchema,
@@ -390,21 +392,59 @@ export function register(app: Express) {
         return res.status(404).json({ error: "No user found with that email address" });
       }
 
+      const sharer = getAuthUser(req);
+      const sharerDisplayName = fullName(sharer) || sharer.email;
+      const recipientDisplayName = fullName(recipient) || recipient.email;
+      let scenarioNames: string[] = [];
+
       if (mode === "single") {
         if (!scenarioId) {
           return res.status(400).json({ error: "scenarioId is required for single share mode" });
         }
         const scenario = await storage.getScenario(scenarioId);
         if (!scenario) return res.status(404).json({ error: "Scenario not found" });
-        if (scenario.userId !== getAuthUser(req).id) return res.status(403).json({ error: "You can only share your own scenarios" });
+        if (scenario.userId !== sharer.id) return res.status(403).json({ error: "You can only share your own scenarios" });
 
-        const share = await storage.shareScenarioWithUser(scenarioId, recipient.id, getAuthUser(req).id);
+        const share = await storage.shareScenarioWithUser(scenarioId, recipient.id, sharer.id);
         logActivity(req, "share", "scenario", scenarioId, scenario.name);
-        res.status(201).json({ shares: share ? [share] : [], recipientName: fullName(recipient) || recipient.email });
+        scenarioNames = [scenario.name];
+        res.status(201).json({ shares: share ? [share] : [], recipientName: recipientDisplayName });
       } else {
-        const shares = await storage.shareAllScenariosWithUser(getAuthUser(req).id, recipient.id);
+        const shares = await storage.shareAllScenariosWithUser(sharer.id, recipient.id);
         logActivity(req, "share_all", "scenario", null, `All scenarios to ${recipient.email}`);
-        res.status(201).json({ shares, recipientName: fullName(recipient) || recipient.email });
+        const userScenarios = await storage.getScenariosByUser(sharer.id);
+        scenarioNames = userScenarios.filter(s => s.kind === "manual").map(s => s.name);
+        res.status(201).json({ shares, recipientName: recipientDisplayName });
+      }
+
+      const portalUrl = process.env.REPLIT_DOMAINS
+        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}/scenarios`
+        : undefined;
+
+      sendScenarioShareNotification({
+        to: recipient.email,
+        recipientName: recipientDisplayName,
+        sharerName: sharerDisplayName,
+        sharerEmail: sharer.email,
+        scenarioNames,
+        mode,
+        portalUrl,
+      }).catch(err => logger.warn(`Failed to send share notification to recipient: ${(err as Error).message}`, "scenarios"));
+
+      if (sharer.role !== UserRole.ADMIN) {
+        const allUsers = await storage.getAllUsers();
+        const admins = allUsers.filter(u => u.role === UserRole.ADMIN && u.email !== sharer.email);
+        for (const admin of admins) {
+          sendAdminShareNotification({
+            to: admin.email,
+            sharerName: sharerDisplayName,
+            sharerEmail: sharer.email,
+            recipientName: recipientDisplayName,
+            recipientEmail: recipient.email,
+            scenarioNames,
+            mode,
+          }).catch(err => logger.warn(`Failed to send admin share notification: ${(err as Error).message}`, "scenarios"));
+        }
       }
     } catch (error) {
       logAndSendError(res, "Failed to share scenario", error);
