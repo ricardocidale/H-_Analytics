@@ -122,11 +122,47 @@ export function registerAdminScenarioRoutes(app: Express) {
     }
   });
 
+  app.post("/api/admin/scenarios/purge-expired", requireAdmin, async (req, res) => {
+    try {
+      const count = await storage.purgeExpiredScenarios();
+      logActivity(req, "admin-purge-expired-scenarios", "scenario", null, null, { purgedCount: count });
+      res.json({ success: true, purgedCount: count });
+    } catch (error) {
+      logAndSendError(res, "Failed to purge expired scenarios", error);
+    }
+  });
+
   app.get("/api/admin/scenarios/deleted", requireAdmin, async (req, res) => {
     try {
       const userId = req.query.userId ? Number(req.query.userId) : undefined;
       const deleted = await storage.getDeletedScenarios({ userId });
-      res.json(deleted);
+
+      const userCache = new Map<number, { email: string; name: string | null }>();
+      const enriched = [];
+      for (const s of deleted) {
+        if (!userCache.has(s.userId)) {
+          const user = await storage.getUserById(s.userId);
+          userCache.set(s.userId, {
+            email: user?.email ?? "unknown",
+            name: user ? [user.firstName, user.lastName].filter(Boolean).join(" ") || null : null,
+          });
+        }
+        const owner = userCache.get(s.userId)!;
+        enriched.push({
+          id: s.id,
+          name: s.name,
+          userId: s.userId,
+          kind: s.kind,
+          deletedAt: s.deletedAt,
+          deletedBy: s.deletedBy,
+          purgeAfter: s.purgeAfter,
+          createdAt: s.createdAt,
+          ownerEmail: owner.email,
+          ownerName: owner.name,
+        });
+      }
+
+      res.json(enriched);
     } catch (error) {
       logAndSendError(res, "Failed to fetch deleted scenarios", error);
     }

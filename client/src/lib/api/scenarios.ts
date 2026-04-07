@@ -260,6 +260,7 @@ interface DeletedScenario {
   name: string;
   userId: number;
   deletedAt: string;
+  purgeAfter: string | null;
   ownerEmail: string;
   ownerName: string | null;
 }
@@ -314,6 +315,27 @@ export function usePurgeScenario() {
   
   return useMutation({
     mutationFn: purgeScenario,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "scenarios", "deleted"] });
+    },
+  });
+}
+
+async function purgeExpiredScenarios(): Promise<{ purgedCount: number }> {
+  const res = await fetch("/api/admin/scenarios/purge-expired", {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to purge expired scenarios");
+  return res.json();
+}
+
+export function usePurgeExpiredScenarios() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: purgeExpiredScenarios,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "scenarios", "deleted"] });

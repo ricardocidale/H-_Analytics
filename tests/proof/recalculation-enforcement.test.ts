@@ -114,6 +114,7 @@ const NON_FINANCIAL_MUTATIONS = [
   "useAutoSave",
   "useRestoreScenario",
   "usePurgeScenario",
+  "usePurgeExpiredScenarios",
   "useGrantScenarioAccess",
   "useRevokeScenarioAccess",
 ];
