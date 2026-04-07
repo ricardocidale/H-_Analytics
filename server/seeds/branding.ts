@@ -7,54 +7,26 @@ import { SEED_COMPANY_IDENTITY } from "./properties";
 export async function seedDefaultLogos() {
   const existingLogos = await db.select().from(logos);
 
-  const hasHPlus = existingLogos.some(l => l.url === "/logos/h-plus-glass.png");
-  if (!hasHPlus && existingLogos.length > 0) {
+  const hasNewLogo = existingLogos.some(l => l.url === "/logos/h-logo-glass.png");
+  if (!hasNewLogo && existingLogos.length > 0) {
     await db.update(logos).set({ isDefault: false }).where(eq(logos.isDefault, true));
     await db.insert(logos).values({
-      name: "H+ Analytics - Glass",
+      name: "H+ Analytics",
       companyName: "H+ Analytics",
-      url: "/logos/h-plus-glass.png",
+      url: "/logos/h-logo-glass.png",
       isDefault: true,
     });
-    logger.info("Added H+ Analytics logo to portfolio and set as default", "seed");
-  }
-
-  const hPlusVariants = [
-    { name: "H+ Analytics - Enhanced", companyName: "H+ Analytics", url: "/logos/h-plus-enhanced-transparent.png", isDefault: false },
-    { name: "H+ Analytics - Dark", companyName: "H+ Analytics", url: "/logos/h-plus-enhanced-dark.png", isDefault: false },
-  ];
-  const missingVariants = hPlusVariants.filter(v => !existingLogos.some(l => l.url === v.url));
-  if (missingVariants.length > 0 && existingLogos.length > 0) {
-    await db.insert(logos).values(missingVariants);
-    logger.info(`Added ${missingVariants.length} missing H+ Analytics logo variant(s)`, "seed");
+    logger.info("Added new H+ Analytics logo and set as default", "seed");
   }
 
   if (existingLogos.length > 0) return;
 
   await db.insert(logos).values([
     {
-      name: "H+ Analytics - Glass",
+      name: "H+ Analytics",
       companyName: "H+ Analytics",
-      url: "/logos/h-plus-glass.png",
+      url: "/logos/h-logo-glass.png",
       isDefault: true,
-    },
-    {
-      name: "H+ Analytics - Enhanced",
-      companyName: "H+ Analytics",
-      url: "/logos/h-plus-enhanced-transparent.png",
-      isDefault: false,
-    },
-    {
-      name: "H+ Analytics - Dark",
-      companyName: "H+ Analytics",
-      url: "/logos/h-plus-enhanced-dark.png",
-      isDefault: false,
-    },
-    {
-      name: "Hospitality Business Group",
-      companyName: "Hospitality Business Group",
-      url: "/logos/default-hbg.png",
-      isDefault: false,
     },
     {
       name: "Norfolk AI - Blue",
@@ -75,7 +47,7 @@ export async function seedDefaultLogos() {
       isDefault: false,
     },
   ]);
-  logger.info("Seeded default logos: H+ Analytics (3 variants, Glass=default) + HBG + 3 Norfolk AI", "seed");
+  logger.info("Seeded default logos: H+ Analytics (default) + 3 Norfolk AI", "seed");
 }
 
 export async function seedCompanies() {

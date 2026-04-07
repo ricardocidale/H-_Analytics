@@ -143,7 +143,7 @@ export default function Login() {
                 {/* Logo + heading */}
                 <div className="flex flex-col items-center text-center gap-2 mb-1">
                   <div style={{ filter: "drop-shadow(0 0 14px rgba(var(--primary-rgb),0.35))" }}>
-                    <SpinningLogo3D size={204} onClick={handleAdminLogin} />
+                    <SpinningLogo3D size={96} onClick={handleAdminLogin} />
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold font-display tracking-tight" data-testid="text-welcome">

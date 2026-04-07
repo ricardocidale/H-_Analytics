@@ -1,5 +1,5 @@
 import { APP_BRAND_NAME } from "@shared/constants";
-import logoImg from "@/assets/h-plus-logo.png";
+import logoImg from "@/assets/h-logo-glass.png";
 
 export default function SpinningLogo3D({ size = 192, onClick }: { size?: number; onClick?: () => void }) {
   return (
