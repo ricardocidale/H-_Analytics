@@ -104,7 +104,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **No mock data** in production paths
 - **Finance changes must state Active Skill** and pass verification (UNQUALIFIED)
 - **Rebecca must NEVER compute financial values** — all data from the calculation engine
-- **Rebecca Proactive Insights:** After portfolio compute, deterministic analysis (`client/src/lib/rebecca-insights.ts`) generates insight banners (NOI margin, IRR, revenue growth) shown in both chat UIs. Uses `useRebeccaInsightStore` Zustand store with hash-based deduplication. Insights are dismissible and include "Ask Rebecca" actions.
+- **Rebecca Proactive Insights:** Two-tier insight system after portfolio compute. Tier 1: instant deterministic analysis (`client/src/lib/rebecca-insights.ts`) for immediate feedback. Tier 2: RAG-powered LLM insight via `POST /api/rebecca/insight` — queries Pinecone `comparables`, `assumption-guidance`, and `research-history` namespaces, then generates a context-aware observation using the chatbot LLM. Uses `useRebeccaInsightStore` Zustand store with hash-based deduplication. Insights get smarter as research accumulates.
 - **Engine chain**: `gop = revenue − opex`, `agop = gop − feeBase − feeIncentive`, `noi = agop − expenseTaxes`, `anoi = noi − expenseFFE`
 - **Balance Sheet Identity**: A = L + E must hold within $1
 - **Resend replaces SendGrid** for all transactional email

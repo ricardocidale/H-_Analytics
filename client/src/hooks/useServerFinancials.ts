@@ -213,18 +213,50 @@ export function useServerFinancials(
   const addInsight = useRebeccaInsightStore((s) => s.addInsight);
   const outputHash = data?.outputHash ?? null;
   const propertyCount = activeProperties.length;
+  const totalRooms = mapped?.totalRooms ?? 0;
 
   useEffect(() => {
     if (!outputHash || !mapped) return;
 
-    const insight = analyzePortfolioForInsights(
+    const deterministicInsight = analyzePortfolioForInsights(
       mapped.yearlyConsolidatedCache,
       propertyCount,
       mapped.portfolioIRR,
     );
-    if (insight) {
-      addInsight(insight, outputHash);
+    if (deterministicInsight) {
+      addInsight(deterministicInsight, outputHash);
     }
+
+    const year1 = mapped.yearlyConsolidatedCache[0];
+    const lastYear = mapped.yearlyConsolidatedCache[mapped.yearlyConsolidatedCache.length - 1];
+    if (!year1 || year1.revenueTotal <= 0) return;
+
+    const noiMargin = year1.noi / year1.revenueTotal;
+    const revenueGrowth = lastYear && year1.revenueTotal > 0
+      ? (lastYear.revenueTotal - year1.revenueTotal) / year1.revenueTotal
+      : undefined;
+
+    const ragHash = `rag-${outputHash}`;
+    fetch("/api/rebecca/insight", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        noiMargin,
+        portfolioIRR: mapped.portfolioIRR,
+        year1Revenue: year1.revenueTotal,
+        year1NOI: year1.noi,
+        propertyCount,
+        totalRooms,
+        revenueGrowth,
+      }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.insight) {
+          addInsight(data.insight, ragHash);
+        }
+      })
+      .catch(() => {});
   }, [outputHash, propertyCount, addInsight]);
 
   return { data: mapped, isLoading: enabled && isLoading, isError, error: error as Error | null };
