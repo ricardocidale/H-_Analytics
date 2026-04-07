@@ -22,7 +22,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconKey, IconUserPlus } from "@/components/icons";
+import { IconKey, IconUserPlus, IconSend } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminLogos, useAdminUsers, useAdminUserGroups, useAdminCompanies, useAdminThemes, useAdminAssetDescriptions } from "./hooks";
 import { UserRole } from "@shared/constants";
@@ -35,6 +35,7 @@ import EditUserDialog from "./users/EditUserDialog";
 import PasswordDialog from "./users/PasswordDialog";
 import ResetAllDialog from "./users/ResetAllDialog";
 import { InlineCompanyDialog, InlineGroupDialog } from "./users/InlineCreateDialogs";
+import InviteUsersDialog from "./users/InviteUsersDialog";
 
 export default function UsersTab() {
   const { toast } = useToast();
@@ -63,6 +64,7 @@ export default function UsersTab() {
   const [resetAllConfirm, setResetAllConfirm] = useState("");
   const [resetAllDialogOpen, setResetAllDialogOpen] = useState(false);
   const [showResetAllPassword, setShowResetAllPassword] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const { data: users, isLoading: usersLoading } = useAdminUsers();
   const { data: userGroupsList } = useAdminUserGroups();
@@ -377,6 +379,10 @@ export default function UsersTab() {
               {resetAllPasswordsMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconKey className="w-4 h-4" />}
               Reset All Passwords
             </Button>
+            <Button variant="outline" onClick={() => setInviteOpen(true)} data-testid="button-invite-users">
+              <IconSend className="w-4 h-4" />
+              Invite Users
+            </Button>
             <Button variant="default" onClick={() => setDialogOpen(true)} data-testid="button-add-user">
               <IconUserPlus className="w-4 h-4" />
               Add User
@@ -492,6 +498,13 @@ export default function UsersTab() {
         if (!inlineGroupForm.name) { toast({ title: "Name Required", description: "Please enter a group name.", variant: "destructive" }); return; }
         inlineCreateGroupMutation.mutate(inlineGroupForm);
       }}
+    />
+
+    <InviteUsersDialog
+      open={inviteOpen}
+      onOpenChange={setInviteOpen}
+      companiesList={companiesList}
+      userGroupsList={userGroupsList}
     />
     </>
   );

@@ -6,6 +6,8 @@ import { fromZodError } from "zod-validation-error";
 import { hashPassword } from "../../auth";
 import { VALID_USER_ROLES } from "../../../shared/schema/index.js";
 import { z } from "zod";
+import { sendInvitationEmail } from "../../integrations/resend";
+import { logger } from "../../logger";
 
 const roleSchema = z.enum(VALID_USER_ROLES);
 
@@ -240,6 +242,85 @@ export function registerUserRoutes(app: Express) {
       res.json({ success: true, message: `Reset passwords for ${count} users` });
     } catch (error) {
       logAndSendError(res, "Failed to reset passwords", error);
+    }
+  });
+
+  const invitationSchema = z.object({
+    emails: z.array(z.string().email()).min(1).max(50),
+    role: roleSchema.optional().default("user"),
+    message: z.string().max(500).optional(),
+    companyId: z.number().nullable().optional(),
+    userGroupId: z.number().nullable().optional(),
+  });
+
+  app.post("/api/admin/invitations", requireAdmin, async (req, res) => {
+    try {
+      const validation = invitationSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+
+      const { emails, role, message, companyId, userGroupId } = validation.data;
+      const adminUser = getAuthUser(req);
+      const adminProfile = await storage.getUserById(adminUser.id);
+      const inviterName = adminProfile
+        ? [adminProfile.firstName, adminProfile.lastName].filter(Boolean).join(" ") || adminProfile.email
+        : "An administrator";
+
+      const defaultGroup = await storage.getDefaultUserGroup();
+      const loginUrl = `${req.protocol}://${req.get("host")}/login`;
+
+      const results: { email: string; status: "created" | "existing" | "failed"; error?: string }[] = [];
+
+      for (const email of emails) {
+        try {
+          const existing = await storage.getUserByEmail(email);
+          if (existing) {
+            results.push({ email, status: "existing" });
+            continue;
+          }
+
+          const tempPassword = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6).toUpperCase() + "!";
+          const passwordHash = await hashPassword(tempPassword);
+
+          await storage.createUser({
+            email,
+            passwordHash,
+            role: role || "user",
+            firstName: null,
+            lastName: null,
+            company: null,
+            companyId: companyId ?? null,
+            title: null,
+            userGroupId: userGroupId ?? (defaultGroup?.id ?? null),
+          });
+
+          sendInvitationEmail({
+            to: email,
+            inviterName,
+            personalMessage: message,
+            loginUrl,
+          }).catch(err => {
+            logger.warn(`Failed to send invitation email to ${email}: ${err instanceof Error ? err.message : err}`, "invitations");
+          });
+
+          results.push({ email, status: "created" });
+        } catch (err) {
+          results.push({ email, status: "failed", error: err instanceof Error ? err.message : "Unknown error" });
+        }
+      }
+
+      const created = results.filter(r => r.status === "created").length;
+      const existing = results.filter(r => r.status === "existing").length;
+      const failed = results.filter(r => r.status === "failed").length;
+
+      logActivity(req, "admin-send-invitations", "user", null, null, {
+        emailCount: emails.length, created, existing, failed,
+      });
+
+      res.json({ results, summary: { created, existing, failed } });
+    } catch (error) {
+      logAndSendError(res, "Failed to send invitations", error);
     }
   });
 }

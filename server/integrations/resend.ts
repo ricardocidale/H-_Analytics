@@ -215,6 +215,39 @@ class ResendIntegration extends BaseIntegrationService {
     });
   }
 
+  async sendInvitationEmail(params: {
+    to: string;
+    inviterName: string;
+    personalMessage?: string;
+    loginUrl?: string;
+  }): Promise<void> {
+    const loginLink = params.loginUrl || "#";
+    const messageSection = params.personalMessage
+      ? `<div class="callout">${esc(params.personalMessage)}</div>`
+      : "";
+
+    const html = brandedTemplate(
+      "You're Invited to H+ Analytics",
+      `<p><strong>${esc(params.inviterName)}</strong> has invited you to join H+ Analytics by Norfolk AI — a premium financial analytics platform for boutique hospitality portfolio management.</p>
+      ${messageSection}
+      <p>Inside the portal you'll have access to:</p>
+      <ul style="margin:16px 0;padding-left:20px;color:#374151;">
+        <li style="margin-bottom:8px;">Financial modeling and scenario analysis</li>
+        <li style="margin-bottom:8px;">Portfolio reporting and benchmarking</li>
+        <li style="margin-bottom:8px;">AI-powered analytics with Rebecca, your dedicated assistant</li>
+      </ul>
+      <p style="margin-top:28px;text-align:center;"><a href="${loginLink}" class="btn">Accept Invitation</a></p>
+      <p class="hint" style="margin-top:20px;">Your account has been created and is ready to use. Click the button above to sign in and get started.</p>`,
+      "rebecca"
+    );
+
+    await this.sendEmailInternal({
+      to: params.to,
+      subject: `${params.inviterName} invited you to H+ Analytics`,
+      html,
+    });
+  }
+
   async sendScenarioShareNotification(params: {
     to: string;
     recipientName: string;
@@ -450,6 +483,8 @@ export const sendNotificationEmail = (params: Parameters<typeof resendIntegratio
   resendIntegration.sendNotificationEmail(params);
 export const sendWelcomeEmail = (params: Parameters<typeof resendIntegration.sendWelcomeEmail>[0]) =>
   resendIntegration.sendWelcomeEmail(params);
+export const sendInvitationEmail = (params: Parameters<typeof resendIntegration.sendInvitationEmail>[0]) =>
+  resendIntegration.sendInvitationEmail(params);
 export const sendPasswordResetEmail = (params: Parameters<typeof resendIntegration.sendPasswordResetEmail>[0]) =>
   resendIntegration.sendPasswordResetEmail(params);
 export const sendScenarioShareNotification = (params: Parameters<typeof resendIntegration.sendScenarioShareNotification>[0]) =>
