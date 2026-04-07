@@ -67,7 +67,7 @@ export interface AdminCompany {
 }
 
 export type AdminView = "users" | "companies" | "activity" | "verification" | "themes" | "branding" | "user-groups" | "sidebar" | "database" | "logos";
-export type ActivitySubView = "login" | "feed" | "checker";
+export type ActivitySubView = "login" | "feed" | "sharing" | "checker";
 
 export interface ActivityLogEntry {
   id: number;

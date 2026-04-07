@@ -1,11 +1,12 @@
 import { activityLogs, verificationRuns, loginLogs, users, sessions, type ActivityLog, type InsertActivityLog, type VerificationRun, type InsertVerificationRun, type LoginLog, type User, type Session } from "@shared/schema";
 import { db } from "../db";
-import { eq, desc, gte, lte, and, lt, gt, count, type SQL } from "drizzle-orm";
+import { eq, desc, gte, lte, and, lt, gt, count, inArray, type SQL } from "drizzle-orm";
 
 /** Filters for querying activity logs (admin panel). */
 export interface ActivityLogFilters {
   userId?: number;
   entityType?: string;
+  actions?: string[];
   from?: Date;
   to?: Date;
   limit?: number;
@@ -32,6 +33,7 @@ export class ActivityStorage {
     const conditions: SQL[] = [];
     if (filters.userId) conditions.push(eq(activityLogs.userId, filters.userId));
     if (filters.entityType) conditions.push(eq(activityLogs.entityType, filters.entityType));
+    if (filters.actions?.length) conditions.push(inArray(activityLogs.action, filters.actions));
     if (filters.from) conditions.push(gte(activityLogs.createdAt, filters.from));
     if (filters.to) conditions.push(lte(activityLogs.createdAt, filters.to));
 

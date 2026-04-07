@@ -265,4 +265,30 @@ export function registerToolRoutes(app: Express) {
       logAndSendError(res, "Failed to fetch activity logs", error);
     }
   });
+
+  const SHARING_ACTIONS = [
+    "share", "share_all",
+    "grant_access", "revoke_access",
+    "admin-grant-scenario-access", "admin-revoke-scenario-access", "admin-unshare-all",
+  ];
+
+  app.get("/api/admin/sharing-log", requireAdmin, async (req, res) => {
+    try {
+      const { userId, from, to, limit, offset } = req.query;
+      const logs = await storage.getActivityLogs({
+        userId: userId ? Number(userId) : undefined,
+        actions: SHARING_ACTIONS,
+        from: from ? new Date(from as string) : undefined,
+        to: to ? new Date(to as string) : undefined,
+        limit: limit ? Number(limit) : 100,
+        offset: offset ? Number(offset) : 0,
+      });
+      res.json(logs.map((l: any) => ({
+        ...l,
+        userName: `${l.user.firstName} ${l.user.lastName}`.trim() || l.user.email,
+      })));
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch sharing log", error);
+    }
+  });
 }

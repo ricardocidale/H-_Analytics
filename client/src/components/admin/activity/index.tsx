@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { IconClock, IconActivity, IconFileCheck } from "@/components/icons";
+import { IconClock, IconActivity, IconFileCheck, IconShare } from "@/components/icons";
 import type { User, LoginLog, ActivityLogEntry, CheckerActivityData, ActiveSession, ActivitySubView } from "../types";
 import { ActivityLogList } from "./ActivityLogList";
 import { ActivityFeed } from "./ActivityFeed";
 import { CheckerActivity } from "./CheckerActivity";
+import { SharingLog } from "./SharingLog";
 
 export default function ActivityTab() {
   const [activitySubTab, setActivitySubTab] = useState<ActivitySubView>("login");
@@ -87,6 +88,16 @@ export default function ActivityTab() {
           Activity Feed
         </Button>
         <Button
+          variant={activitySubTab === "sharing" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setActivitySubTab("sharing")}
+          className="rounded-lg font-display"
+          data-testid="button-activity-subtab-sharing"
+        >
+          <IconShare className="w-4 h-4 mr-2" />
+          Sharing Log
+        </Button>
+        <Button
           variant={activitySubTab === "checker" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActivitySubTab("checker")}
@@ -120,6 +131,9 @@ export default function ActivityTab() {
           activityUserFilter={activityUserFilter}
           setActivityUserFilter={setActivityUserFilter}
         />
+      )}
+      {activitySubTab === "sharing" && (
+        <SharingLog users={users} />
       )}
       {activitySubTab === "checker" && (
         <CheckerActivity checkerActivity={checkerActivity} />
