@@ -134,9 +134,6 @@ export default function Login() {
 
           {/* ── Left: form ───────────────────────────────────── */}
           <div className="bg-card flex flex-col">
-            {/* Accent bar */}
-            <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)))" }} />
-
             <form
               onSubmit={handleSubmit}
               className="flex items-center justify-center p-8 md:p-12"
