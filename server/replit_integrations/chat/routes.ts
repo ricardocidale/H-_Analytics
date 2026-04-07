@@ -312,7 +312,8 @@ async function buildDeepRAGContext(query: string, userId?: number): Promise<stri
       .filter(m => {
         if (!userId) return true;
         const ownerId = String(m.metadata.createdBy ?? "");
-        return !ownerId || ownerId === String(userId);
+        if (!ownerId) return false;
+        return ownerId === String(userId);
       });
     if (relevantScenarios.length > 0) {
       parts.push("\n\n## Related Financial Scenarios");

@@ -218,6 +218,7 @@ class ResendIntegration extends BaseIntegrationService {
   async sendInvitationEmail(params: {
     to: string;
     inviterName: string;
+    tempPassword: string;
     personalMessage?: string;
     loginUrl?: string;
   }): Promise<void> {
@@ -236,8 +237,13 @@ class ResendIntegration extends BaseIntegrationService {
         <li style="margin-bottom:8px;">Portfolio reporting and benchmarking</li>
         <li style="margin-bottom:8px;">AI-powered analytics with Rebecca, your dedicated assistant</li>
       </ul>
-      <p style="margin-top:28px;text-align:center;"><a href="${loginLink}" class="btn">Accept Invitation</a></p>
-      <p class="hint" style="margin-top:20px;">Your account has been created and is ready to use. Click the button above to sign in and get started.</p>`,
+      <div style="margin:24px 0;padding:16px 20px;background:#f3f4f6;border-radius:8px;border:1px solid #e5e7eb;">
+        <p style="margin:0 0 8px 0;font-size:13px;color:#6b7280;">Your temporary login credentials:</p>
+        <p style="margin:0 0 4px 0;font-size:14px;"><strong>Email:</strong> ${esc(params.to)}</p>
+        <p style="margin:0;font-size:14px;"><strong>Password:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:4px;font-family:monospace;">${esc(params.tempPassword)}</code></p>
+      </div>
+      <p style="margin-top:28px;text-align:center;"><a href="${loginLink}" class="btn">Sign In to Your Account</a></p>
+      <p class="hint" style="margin-top:20px;">Please change your password after your first login. If you have any questions, contact your account administrator or chat with Rebecca in the portal.</p>`,
       "rebecca"
     );
 

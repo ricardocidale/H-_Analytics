@@ -8,6 +8,7 @@ import { VALID_USER_ROLES } from "../../../shared/schema/index.js";
 import { z } from "zod";
 import { sendInvitationEmail } from "../../integrations/resend";
 import { logger } from "../../logger";
+import crypto from "crypto";
 
 const roleSchema = z.enum(VALID_USER_ROLES);
 
@@ -280,7 +281,7 @@ export function registerUserRoutes(app: Express) {
             continue;
           }
 
-          const tempPassword = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6).toUpperCase() + "!";
+          const tempPassword = crypto.randomBytes(6).toString("base64url") + crypto.randomBytes(2).toString("hex").toUpperCase() + "!";
           const passwordHash = await hashPassword(tempPassword);
 
           await storage.createUser({
@@ -298,6 +299,7 @@ export function registerUserRoutes(app: Express) {
           sendInvitationEmail({
             to: email,
             inviterName,
+            tempPassword,
             personalMessage: message,
             loginUrl,
           }).catch(err => {

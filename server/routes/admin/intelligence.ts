@@ -830,6 +830,7 @@ export function registerIntelligenceRoutes(app: Express) {
               occupancy: ga?.occupancy ?? firstProp?.occupancy ?? null,
               revpar: cr?.revpar ?? null,
               years: ga?.holdPeriod ?? ga?.projectionYears ?? null,
+              createdBy: scenario.userId ? String(scenario.userId) : undefined,
             });
             indexed++;
           } catch { /* skip failed */ }
