@@ -165,11 +165,11 @@ As an admin, this user has full system access. You can help them with administra
 
 When the admin asks about system status, users, or administrative functions, provide detailed, actionable guidance. You have full visibility into the platform's admin capabilities.`;
 
-async function buildContextPrompt(userId?: number): Promise<string> {
+async function buildContextPrompt(userId?: number, isAdmin = false): Promise<string> {
   try {
     const [assumptions, properties, allResearch] = await Promise.all([
       storage.getGlobalAssumptions(userId),
-      storage.getAllProperties(userId),
+      isAdmin ? storage.getAllProperties() : storage.getAllProperties(userId),
       storage.getAllMarketResearch(userId),
     ]);
 
@@ -360,12 +360,12 @@ export function registerChatRoutes(app: Express): void {
       }
 
       await chatStorage.createMessage(conversationId, "user", content.trim());
-      const [contextPrompt, userRole, ragChunks] = await Promise.all([
-        buildContextPrompt(userId),
-        getUserRole(userId),
+      const userRole = await getUserRole(userId);
+      const isAdmin = userRole === UserRole.ADMIN;
+      const [contextPrompt, ragChunks] = await Promise.all([
+        buildContextPrompt(userId, isAdmin),
         retrieveRelevantChunks(content.trim(), 6).catch(() => []),
       ]);
-      const isAdmin = userRole === UserRole.ADMIN;
       const ragContext = buildRAGContext(ragChunks);
       const messages = await chatStorage.getMessagesByConversation(conversationId);
       const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [

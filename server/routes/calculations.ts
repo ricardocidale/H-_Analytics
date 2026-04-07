@@ -32,8 +32,11 @@ export function register(app: Express) {
 
   app.post("/api/verification/run", requireChecker, async (req, res) => {
     try {
-      const properties = await storage.getAllProperties(getAuthUser(req).id);
-      const globalAssumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
+      const calcUser = getAuthUser(req);
+      const properties = calcUser.role === "admin"
+        ? await storage.getAllProperties()
+        : await storage.getAllProperties(calcUser.id);
+      const globalAssumptions = await storage.getGlobalAssumptions(calcUser.id);
 
       if (!globalAssumptions) {
         return res.status(400).json({ error: "Global assumptions not found" });

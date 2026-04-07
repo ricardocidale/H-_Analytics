@@ -152,7 +152,9 @@ export function register(app: Express) {
       if (!(global as any)?.rebeccaEnabled) {
         return res.status(403).json({ error: "Chat assistant is not enabled" });
       }
-      const allProperties = await storage.getAllProperties(userId);
+      const allProperties = isAdmin
+        ? await storage.getAllProperties()
+        : await storage.getAllProperties(userId);
       const properties = allProperties.filter(p => p.isActive !== false);
       const propertyContext = buildPropertyContext(properties);
 
@@ -310,7 +312,8 @@ export function register(app: Express) {
           const searchQuery = propertyNameMatch
             ? `${propertyNameMatch.name} ${message}`
             : message;
-          matchedAssets = await searchAssets(searchQuery, 4);
+          const accessibleIds = isAdmin ? undefined : properties.map(p => p.id);
+          matchedAssets = await searchAssets(searchQuery, 4, accessibleIds);
           if (matchedAssets.length > 0) {
             assetContextBlock = "\n\n" + buildAssetContext(matchedAssets);
           }

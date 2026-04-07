@@ -34,8 +34,11 @@ export function register(app: Express) {
   // Research status summary — used by the Research Hub page
   app.get("/api/research/status", requireAuth, async (req, res) => {
     try {
-      const allResearch = await storage.getAllMarketResearch(getAuthUser(req).id);
-      const allProperties = await storage.getAllProperties(getAuthUser(req).id);
+      const user = getAuthUser(req);
+      const allResearch = await storage.getAllMarketResearch(user.id);
+      const allProperties = user.role === "admin"
+        ? await storage.getAllProperties()
+        : await storage.getAllProperties(user.id);
 
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
       const researchConfig = (ga?.researchConfig as ResearchConfig) ?? {};
@@ -254,7 +257,10 @@ export function register(app: Express) {
               });
             }
           } else if (type === "company" && ga) {
-            const properties = await storage.getAllProperties(getAuthUser(req).id);
+            const reqUser = getAuthUser(req);
+            const properties = reqUser.role === "admin"
+              ? await storage.getAllProperties()
+              : await storage.getAllProperties(reqUser.id);
             const serviceTemplates = await storage.getAllServiceTemplates();
             const companyPack = buildCompanyContextPack(
               ga,

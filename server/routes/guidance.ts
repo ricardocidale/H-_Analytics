@@ -224,7 +224,9 @@ export function register(app: Express) {
           ambientData: ambientDataStr,
         });
       } else if (ga) {
-        const properties = await storage.getAllProperties(user.id);
+        const properties = user.role === "admin"
+          ? await storage.getAllProperties()
+          : await storage.getAllProperties(user.id);
         const serviceTemplates = await storage.getAllServiceTemplates();
         const companyPack = buildCompanyContextPack(
           ga,

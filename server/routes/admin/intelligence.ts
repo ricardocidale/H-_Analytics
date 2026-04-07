@@ -32,7 +32,7 @@ export function registerIntelligenceRoutes(app: Express) {
 
       const scenarioId = query.data.scenarioId ?? null;
       const user = getAuthUser(_req);
-      const allPropsRaw = await storage.getAllProperties(user.id);
+      const allPropsRaw = await storage.getAllProperties();
       const allProps = allPropsRaw
         .map(p => ({ id: p.id, name: p.name, starRating: p.starRating }))
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -251,7 +251,7 @@ export function registerIntelligenceRoutes(app: Express) {
         res.json({ entityType, entityId, entityName: property.name, contextPack });
       } else {
         if (!ga) return res.status(404).json({ error: "Global assumptions not found" });
-        const allProps = await storage.getAllProperties(user.id);
+        const allProps = await storage.getAllProperties();
         const serviceTemplates = await storage.getAllServiceTemplates();
         const contextPack = buildCompanyContextPack(
           ga,
@@ -307,7 +307,7 @@ export function registerIntelligenceRoutes(app: Express) {
       } else {
         if (!ga) return res.status(404).json({ error: "Global assumptions not found" });
         entityName = ga.companyName ?? "Management Company";
-        const allProps = await storage.getAllProperties(user.id);
+        const allProps = await storage.getAllProperties();
         const serviceTemplates = await storage.getAllServiceTemplates();
         const companyPack = buildCompanyContextPack(
           ga,
@@ -425,7 +425,7 @@ export function registerIntelligenceRoutes(app: Express) {
       } else {
         if (!ga) return res.status(404).json({ error: "Global assumptions not found" });
         entityName = ga.companyName ?? "Management Company";
-        const allProps = await storage.getAllProperties(user.id);
+        const allProps = await storage.getAllProperties();
         const serviceTemplates = await storage.getAllServiceTemplates();
         const companyPack = buildCompanyContextPack(
           ga,

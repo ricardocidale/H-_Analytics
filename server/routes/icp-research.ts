@@ -54,7 +54,10 @@ export function register(app: Express) {
         try {
           const companies = await storage.getAllCompanies();
           const mgmtCompany = companies.find((c: any) => c.type === "management");
-          const props = await storage.getAllProperties(getAuthUser(req).id);
+          const icpUser = getAuthUser(req);
+          const props = icpUser.role === "admin"
+            ? await storage.getAllProperties()
+            : await storage.getAllProperties(icpUser.id);
           const managedProps = mgmtCompany
             ? props.filter((p: any) => p.companyId === mgmtCompany.id)
             : props;

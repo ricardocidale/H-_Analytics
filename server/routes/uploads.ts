@@ -184,7 +184,9 @@ export function register(app: Express) {
       if (propertyId) {
         photos = await storage.getPropertyPhotos(propertyId);
       } else {
-        const allProperties = await storage.getAllProperties(user.id);
+        const allProperties = user.role === "admin"
+          ? await storage.getAllProperties()
+          : await storage.getAllProperties(user.id);
         // Bulk fetch all photos in a single query instead of N queries
         const photosByPropId = await storage.getPhotosByProperties(allProperties.map(p => p.id));
         photos = Object.values(photosByPropId).flat();

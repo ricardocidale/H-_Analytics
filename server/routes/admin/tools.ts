@@ -120,7 +120,7 @@ export function registerToolRoutes(app: Express) {
 
   app.get("/api/admin/sync-status", requireAdmin, async (req, res) => {
     try {
-      const properties = await storage.getAllProperties(getAuthUser(req).id);
+      const properties = await storage.getAllProperties();
       const status = properties.map((p: any) => ({
         id: p.id,
         name: p.name,

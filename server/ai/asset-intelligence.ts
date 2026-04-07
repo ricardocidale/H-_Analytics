@@ -95,9 +95,9 @@ export async function indexLogos(): Promise<number> {
   }
 }
 
-export async function searchAssets(query: string, topK = 6): Promise<AssetMatch[]> {
+export async function searchAssets(query: string, topK = 6, accessiblePropertyIds?: number[]): Promise<AssetMatch[]> {
   if (!isPineconeAvailable() || !isEmbeddingAvailable()) {
-    return fallbackAssetSearch(query);
+    return fallbackAssetSearch(query, accessiblePropertyIds);
   }
 
   try {
@@ -107,10 +107,16 @@ export async function searchAssets(query: string, topK = 6): Promise<AssetMatch[
     const assetMatches = matches
       .filter(m => String(m.metadata.assetType) === "photo" || String(m.metadata.assetType) === "logo")
       .filter(m => m.score > 0.3)
+      .filter(m => {
+        if (!accessiblePropertyIds) return true;
+        if (String(m.metadata.assetType) === "logo") return true;
+        const propId = Number(m.metadata.propertyId || 0);
+        return propId === 0 || accessiblePropertyIds.includes(propId);
+      })
       .slice(0, topK);
 
     if (assetMatches.length === 0) {
-      return fallbackAssetSearch(query);
+      return fallbackAssetSearch(query, accessiblePropertyIds);
     }
 
     return assetMatches.map(m => {
@@ -136,18 +142,21 @@ export async function searchAssets(query: string, topK = 6): Promise<AssetMatch[
     });
   } catch (err) {
     logger.warn(`Pinecone asset search failed, falling back: ${err instanceof Error ? err.message : err}`, "asset-intelligence");
-    return fallbackAssetSearch(query);
+    return fallbackAssetSearch(query, accessiblePropertyIds);
   }
 }
 
-async function fallbackAssetSearch(query: string): Promise<AssetMatch[]> {
+async function fallbackAssetSearch(query: string, accessiblePropertyIds?: number[]): Promise<AssetMatch[]> {
   const lq = query.toLowerCase();
   const results: AssetMatch[] = [];
 
   try {
     const allProperties = await storage.getAllProperties();
+    const filteredProperties = accessiblePropertyIds
+      ? allProperties.filter(p => accessiblePropertyIds.includes(p.id))
+      : allProperties;
 
-    for (const prop of allProperties) {
+    for (const prop of filteredProperties) {
       const nameMatch = prop.name && lq.includes(prop.name.toLowerCase());
       const locationMatch = prop.location && lq.includes(prop.location.toLowerCase());
       if (!nameMatch && !locationMatch) continue;

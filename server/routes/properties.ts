@@ -30,8 +30,10 @@ export function register(app: Express) {
 
   app.get("/api/properties", requireAuth, async (req, res) => {
     try {
-      let props = await storage.getAllProperties(getAuthUser(req).id);
       const user = getAuthUser(req);
+      let props = user.role === UserRole.ADMIN
+        ? await storage.getAllProperties()
+        : await storage.getAllProperties(user.id);
       if (user.role !== UserRole.ADMIN && user.userGroupId) {
         const allowedIds = await storage.getGroupPropertyIds(user.userGroupId);
         if (allowedIds.length > 0) {
@@ -129,10 +131,11 @@ export function register(app: Express) {
         }
       }
 
+      const user = getAuthUser(req);
       const createData = {
         ...validation.data,
         ...mergedData,
-        userId: null,
+        userId: user.role === UserRole.ADMIN ? null : user.id,
         researchValues: (validation.data as any).researchValues ?? {},
       };
       const suggestion = suggestStarRating(createData as any);
