@@ -12,6 +12,7 @@ import { resolveLlm, getVendorService, checkVendorAvailability, getRecommendedDe
 import { createResearchClient } from "../../ai/research-client";
 import { getGeminiClient, getAnthropicClient, getOpenAIClient } from "../../ai/clients";
 import { isPineconeAvailable, isEmbeddingAvailable } from "../../ai/pinecone-service";
+import { indexAllAssets } from "../../ai/asset-intelligence";
 import type { ResearchConfig } from "@shared/schema";
 import { insertScheduledResearchWorkflowSchema } from "@shared/schema";
 import { executeScheduledWorkflow } from "../../ai/ambient/research-scheduler";
@@ -741,6 +742,21 @@ export function registerIntelligenceRoutes(app: Express) {
       res.end();
     } catch (error) {
       logAndSendError(res, "Failed to execute scheduled research workflow", error);
+    }
+  });
+
+  app.post("/api/admin/intelligence/index-assets", requireAdmin, async (_req, res) => {
+    try {
+      if (!isPineconeAvailable()) {
+        return res.status(400).json({ error: "Pinecone not configured" });
+      }
+      if (!isEmbeddingAvailable()) {
+        return res.status(400).json({ error: "Embedding service not available" });
+      }
+      const result = await indexAllAssets();
+      res.json({ success: true, indexed: result });
+    } catch (error) {
+      logAndSendError(res, "Failed to index assets", error);
     }
   });
 }

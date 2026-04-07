@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { usePanelManager } from "@/lib/panel-manager";
@@ -12,14 +12,103 @@ import {
   RotateCcw,
   Mail,
   Flag,
+  ImageIcon,
 } from "lucide-react";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
+
+interface AssetMatch {
+  type: "photo" | "logo";
+  id: number;
+  url: string;
+  caption: string;
+  propertyName?: string;
+  propertyId?: number;
+  isHero?: boolean;
+  score: number;
+}
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  assets?: AssetMatch[];
+}
+
+function RichMessageContent({ content, assets }: { content: string; assets?: AssetMatch[] }) {
+  const parts = useMemo(() => {
+    const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const segments: Array<{ type: "text"; value: string } | { type: "image"; alt: string; src: string }> = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = imgRegex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        segments.push({ type: "text", value: content.slice(lastIndex, match.index) });
+      }
+      segments.push({ type: "image", alt: match[1], src: match[2] });
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < content.length) {
+      segments.push({ type: "text", value: content.slice(lastIndex) });
+    }
+    return segments;
+  }, [content]);
+
+  const hasInlineImages = parts.some(p => p.type === "image");
+  const extraAssets = assets?.filter(a =>
+    !hasInlineImages || !parts.some(p => p.type === "image" && (p as any).src === a.url)
+  ) ?? [];
+
+  return (
+    <div className="space-y-2">
+      {parts.map((part, i) => {
+        if (part.type === "text") {
+          return part.value ? <span key={i}>{part.value}</span> : null;
+        }
+        return (
+          <div key={i} className="mt-2 mb-2">
+            <div className="rounded-lg overflow-hidden border border-border/50 bg-background/50">
+              <img
+                src={part.src}
+                alt={part.alt}
+                className="w-full max-h-48 object-cover"
+                loading="lazy"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                data-testid={`img-rebecca-inline-${i}`}
+              />
+              {part.alt && (
+                <div className="px-2 py-1 text-[10px] text-muted-foreground flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3" />
+                  {part.alt}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      {extraAssets.length > 0 && (
+        <div className="grid grid-cols-2 gap-1.5 mt-2">
+          {extraAssets.map(asset => (
+            <div key={`${asset.type}-${asset.id}`} className="rounded-lg overflow-hidden border border-border/50 bg-background/50">
+              <img
+                src={asset.url}
+                alt={asset.caption}
+                className="w-full h-24 object-cover"
+                loading="lazy"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                data-testid={`img-rebecca-asset-${asset.type}-${asset.id}`}
+              />
+              <div className="px-2 py-1 text-[10px] text-muted-foreground truncate flex items-center gap-1">
+                <ImageIcon className="w-3 h-3 shrink-0" />
+                {asset.caption}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 let msgCounter = 0;
@@ -157,6 +246,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         id: nextMsgId("assistant"),
         role: "assistant",
         content: greeting,
+        assets: data.assets,
       }]);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -226,6 +316,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             id: nextMsgId("assistant"),
             role: "assistant",
             content: data.response,
+            assets: data.assets,
           },
         ]);
       } catch (err) {
@@ -399,7 +490,11 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 )}
                 data-testid={`rebecca-message-${msg.role}-${msg.id}`}
               >
-                {msg.content}
+                {msg.role === "assistant" ? (
+                  <RichMessageContent content={msg.content} assets={msg.assets} />
+                ) : (
+                  msg.content
+                )}
               </div>
             </div>
           ))}

@@ -57,7 +57,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Monitoring & Analytics:** Sentry, PostHog
 - **Caching:** Upstash Redis
 - **AI/LLM Providers:** `@anthropic-ai/sdk`, Gemini
-- **Vector DB:** Pinecone (for semantic retrieval and guidance vectors)
+- **Vector DB:** Pinecone (semantic retrieval: research history, assumption guidance, comparables, documents, asset intelligence for photos/logos)
 - **Icons:** Lucide, @phosphor-icons/react, react-icons (Material Design)
 - **Email:** Resend
 - **Research/Data APIs:** RapidAPI (RealtyService, USRealEstateService, XoteloService), FREDService, HospitalityBenchmarkService, MoodysService, SPGlobalService, Perplexity SDK, Tavily

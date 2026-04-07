@@ -13,6 +13,7 @@ import type { ResearchConfig } from "@shared/schema";
 import { buildRebeccaContext } from "../ai/rebecca-context-builder";
 import { retrieveDocumentContext, multiNamespaceQuery } from "../ai/pinecone-service";
 import { retrieveRelevantChunks } from "../ai/knowledge-base";
+import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
 
 /**
  * CONTRACT: This endpoint provides AI chat about portfolio properties.
@@ -48,6 +49,8 @@ You have access to the current portfolio data below. Use it to answer questions 
 
 Keep responses concise and professional. Use bullet points for lists. Format dollar amounts with commas. When comparing properties, use clear tables or structured comparisons.
 
+When visual assets (photos, logos) are available in the context, use standard markdown image syntax to display them: ![caption](url). Always show relevant property photos when discussing a specific property and photos are available. When the user asks to see photos, logos, or images, include all relevant ones.
+
 Do not make up data. Only reference what is provided in the context below.`;
 
 function generateFollowUpChips(
@@ -61,7 +64,7 @@ function generateFollowUpChips(
     if (fieldKey) {
       chips.push("Why this range?", "Show comparables", "Impact on NOI");
     } else {
-      chips.push("What are the key metrics?", "Compare properties", "Show revenue trends");
+      chips.push("What are the key metrics?", "Compare properties", "Show me photos");
     }
   } else if (messageCount <= 5) {
     if (responseText.toLowerCase().includes("comparable") || responseText.toLowerCase().includes("similar")) {
@@ -246,6 +249,24 @@ export function register(app: Express) {
         logger.warn(`RAG context retrieval failed (non-blocking): ${(err as Error).message}`, "chat");
       }
 
+      let assetContextBlock = "";
+      let matchedAssets: AssetMatch[] = [];
+      try {
+        const visualKeywords = /\b(photo|photos|picture|pictures|image|images|logo|logos|show me|what does .* look like|how does .* look|visual|gallery|branding)\b/i;
+        const propertyNameMatch = properties.find(p => p.name && message.toLowerCase().includes(p.name.toLowerCase()));
+        if (visualKeywords.test(message) || propertyNameMatch) {
+          const searchQuery = propertyNameMatch
+            ? `${propertyNameMatch.name} ${message}`
+            : message;
+          matchedAssets = await searchAssets(searchQuery, 4);
+          if (matchedAssets.length > 0) {
+            assetContextBlock = "\n\n" + buildAssetContext(matchedAssets);
+          }
+        }
+      } catch (err) {
+        logger.warn(`Asset search failed (non-blocking): ${(err as Error).message}`, "chat");
+      }
+
       let rebeccaFieldBlock = "";
       let autoGreeting: string | null = null;
       if (fieldCtx) {
@@ -331,7 +352,7 @@ export function register(app: Express) {
       });
 
       const systemPrompt = (global as any)?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-      const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}${rebeccaFieldBlock}${ragContextBlock}${documentContextBlock}`;
+      const fullSystemPrompt = `${systemPrompt}\n\n${contextBlock}${rebeccaFieldBlock}${ragContextBlock}${documentContextBlock}${assetContextBlock}`;
       const engine = ga?.rebeccaChatEngine ?? "gemini";
 
       let responseText: string;
@@ -417,6 +438,7 @@ export function register(app: Express) {
         conversationId,
         suggestedChips,
         ...(autoGreeting ? { autoGreeting } : {}),
+        ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
       });
     } catch (error: any) {
       logger.error(`Chat error: ${error?.message || error}`, "chat");

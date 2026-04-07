@@ -1,13 +1,77 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Send, X, Loader2 } from "@/components/icons/themed-icons";
 import { IconMessageCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ImageIcon } from "lucide-react";
+
+interface AssetMatch {
+  type: "photo" | "logo";
+  id: number;
+  url: string;
+  caption: string;
+  propertyName?: string;
+  isHero?: boolean;
+  score: number;
+}
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  assets?: AssetMatch[];
+}
+
+function RichContent({ content, assets }: { content: string; assets?: AssetMatch[] }) {
+  const parts = useMemo(() => {
+    const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const segments: Array<{ type: "text"; value: string } | { type: "image"; alt: string; src: string }> = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = imgRegex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        segments.push({ type: "text", value: content.slice(lastIndex, match.index) });
+      }
+      segments.push({ type: "image", alt: match[1], src: match[2] });
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < content.length) {
+      segments.push({ type: "text", value: content.slice(lastIndex) });
+    }
+    return segments;
+  }, [content]);
+
+  const hasInline = parts.some(p => p.type === "image");
+  const extra = assets?.filter(a => !hasInline || !parts.some(p => p.type === "image" && (p as any).src === a.url)) ?? [];
+
+  return (
+    <div className="space-y-1.5">
+      {parts.map((part, i) =>
+        part.type === "text" ? (
+          part.value ? <span key={i}>{part.value}</span> : null
+        ) : (
+          <div key={i} className="mt-1.5 rounded-md overflow-hidden border border-border/50">
+            <img src={part.src} alt={part.alt} className="w-full max-h-36 object-cover" loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              data-testid={`img-chat-inline-${i}`} />
+            {part.alt && <div className="px-1.5 py-0.5 text-[9px] text-muted-foreground flex items-center gap-1"><ImageIcon className="w-2.5 h-2.5" />{part.alt}</div>}
+          </div>
+        )
+      )}
+      {extra.length > 0 && (
+        <div className="grid grid-cols-2 gap-1 mt-1.5">
+          {extra.map(a => (
+            <div key={`${a.type}-${a.id}`} className="rounded-md overflow-hidden border border-border/50">
+              <img src={a.url} alt={a.caption} className="w-full h-20 object-cover" loading="lazy"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                data-testid={`img-chat-asset-${a.type}-${a.id}`} />
+              <div className="px-1.5 py-0.5 text-[9px] text-muted-foreground truncate">{a.caption}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 let msgCounter = 0;
@@ -73,7 +137,7 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
 
       if (!res.ok) throw new Error("Failed to get response");
       const data = await res.json();
-      setMessages((prev) => [...prev, { id: nextMsgId("assistant"), role: "assistant", content: data.response }]);
+      setMessages((prev) => [...prev, { id: nextMsgId("assistant"), role: "assistant", content: data.response, assets: data.assets }]);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setMessages((prev) => [
@@ -162,7 +226,11 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
                   )}
                   data-testid={`message-${msg.role}-${msg.id}`}
                 >
-                  {msg.content}
+                  {msg.role === "assistant" ? (
+                    <RichContent content={msg.content} assets={msg.assets} />
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
             ))}
