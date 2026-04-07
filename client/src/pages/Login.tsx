@@ -124,11 +124,11 @@ export default function Login() {
       className="fixed inset-0 flex flex-col items-center justify-center p-5 md:p-10 overflow-auto"
       style={{ background: "linear-gradient(145deg, hsl(var(--muted)) 0%, hsl(var(--border)) 100%)" }}
     >
-      <div className="w-full max-w-sm md:max-w-[860px] mx-auto flex flex-col gap-5">
+      <div className="w-full max-w-sm md:max-w-[920px] mx-auto flex flex-col gap-5">
 
         {/* ── Card ──────────────────────────────────────────────── */}
         <div
-          className="w-full overflow-hidden rounded-2xl border border-border/60 md:grid md:grid-cols-[1fr_340px]"
+          className="w-full overflow-hidden rounded-2xl border border-border/60 bg-card md:grid md:grid-cols-2"
           style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06)" }}
         >
 
