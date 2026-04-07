@@ -280,7 +280,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
 
   const sidebarHeader = (
     <div className="flex items-center gap-2.5 px-4 pt-4 pb-2">
-      <img src={companyLogo} alt={APP_BRAND_NAME} className="w-20 h-20 object-contain" />
+      <img src={companyLogo} alt={APP_BRAND_NAME} className="w-12 h-12 object-contain" />
       <h1 className="text-sm font-semibold text-foreground truncate"><span style={{ color: BRAND_ACCENT_HEX }}>{BRAND_ACCENT_PREFIX}</span>{APP_BRAND_NAME.slice(BRAND_ACCENT_PREFIX.length)}</h1>
     </div>
   );
