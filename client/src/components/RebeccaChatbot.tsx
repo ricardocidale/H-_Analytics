@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Send, X, Loader2 } from "@/components/icons/themed-icons";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, X } from "@/components/icons/themed-icons";
 import { IconMessageCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ImageIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { RebeccaAvatar } from "./rebecca/RebeccaAvatar";
+import { RebeccaTypingIndicator } from "./rebecca/RebeccaTypingIndicator";
+import { RebeccaMarkdown } from "./rebecca/RebeccaMarkdown";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -22,57 +25,6 @@ interface ChatMessage {
   assets?: AssetMatch[];
 }
 
-function RichContent({ content, assets }: { content: string; assets?: AssetMatch[] }) {
-  const parts = useMemo(() => {
-    const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    const segments: Array<{ type: "text"; value: string } | { type: "image"; alt: string; src: string }> = [];
-    let lastIndex = 0;
-    let match;
-    while ((match = imgRegex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        segments.push({ type: "text", value: content.slice(lastIndex, match.index) });
-      }
-      segments.push({ type: "image", alt: match[1], src: match[2] });
-      lastIndex = match.index + match[0].length;
-    }
-    if (lastIndex < content.length) {
-      segments.push({ type: "text", value: content.slice(lastIndex) });
-    }
-    return segments;
-  }, [content]);
-
-  const hasInline = parts.some(p => p.type === "image");
-  const extra = assets?.filter(a => !hasInline || !parts.some(p => p.type === "image" && (p as any).src === a.url)) ?? [];
-
-  return (
-    <div className="space-y-1.5">
-      {parts.map((part, i) =>
-        part.type === "text" ? (
-          part.value ? <span key={i}>{part.value}</span> : null
-        ) : (
-          <div key={i} className="mt-1.5 rounded-md overflow-hidden border border-border/50">
-            <img src={part.src} alt={part.alt} className="w-full max-h-36 object-cover" loading="lazy"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              data-testid={`img-chat-inline-${i}`} />
-            {part.alt && <div className="px-1.5 py-0.5 text-[9px] text-muted-foreground flex items-center gap-1"><ImageIcon className="w-2.5 h-2.5" />{part.alt}</div>}
-          </div>
-        )
-      )}
-      {extra.length > 0 && (
-        <div className="grid grid-cols-2 gap-1 mt-1.5">
-          {extra.map(a => (
-            <div key={`${a.type}-${a.id}`} className="rounded-md overflow-hidden border border-border/50">
-              <img src={a.url} alt={a.caption} className="w-full h-20 object-cover" loading="lazy"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                data-testid={`img-chat-asset-${a.type}-${a.id}`} />
-              <div className="px-1.5 py-0.5 text-[9px] text-muted-foreground truncate">{a.caption}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 let msgCounter = 0;
 function nextMsgId(role: string) {
@@ -172,7 +124,7 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
             <div className="flex items-center gap-2">
-              <IconMessageCircle className="w-4 h-4 text-primary" />
+              <RebeccaAvatar size="sm" />
               <span className="text-sm font-semibold">{displayName}</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">Norfolk AI</span>
             </div>
@@ -209,40 +161,39 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
               </div>
             )}
 
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn(
-                  "flex",
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
-                <div
+            <AnimatePresence initial={false}>
+              {messages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                   className={cn(
-                    "max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap",
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
+                    "flex gap-1.5",
+                    msg.role === "user" ? "justify-end" : "justify-start"
                   )}
-                  data-testid={`message-${msg.role}-${msg.id}`}
                 >
-                  {msg.role === "assistant" ? (
-                    <RichContent content={msg.content} assets={msg.assets} />
-                  ) : (
-                    msg.content
-                  )}
-                </div>
-              </div>
-            ))}
+                  {msg.role === "assistant" && <RebeccaAvatar size="sm" className="mt-1" />}
+                  <div
+                    className={cn(
+                      "max-w-[82%] rounded-lg px-3 py-2 text-sm",
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
+                        : "bg-muted text-foreground rounded-tl-sm"
+                    )}
+                    data-testid={`message-${msg.role}-${msg.id}`}
+                  >
+                    {msg.role === "assistant" ? (
+                      <RebeccaMarkdown content={msg.content} assets={msg.assets} />
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
 
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-muted rounded-lg px-3 py-2 text-sm flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Thinking...
-                </div>
-              </div>
-            )}
+            {loading && <RebeccaTypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
 

@@ -1,18 +1,20 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { usePanelManager } from "@/lib/panel-manager";
 import { RebeccaContextCard } from "./RebeccaContextCard";
+import { RebeccaAvatar } from "./RebeccaAvatar";
+import { RebeccaTypingIndicator } from "./RebeccaTypingIndicator";
+import { RebeccaMarkdown } from "./RebeccaMarkdown";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   X,
-  Loader2,
   Sparkles,
   RotateCcw,
   Mail,
   Flag,
-  ImageIcon,
 } from "lucide-react";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
@@ -35,81 +37,6 @@ interface ChatMessage {
   assets?: AssetMatch[];
 }
 
-function RichMessageContent({ content, assets }: { content: string; assets?: AssetMatch[] }) {
-  const parts = useMemo(() => {
-    const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    const segments: Array<{ type: "text"; value: string } | { type: "image"; alt: string; src: string }> = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = imgRegex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        segments.push({ type: "text", value: content.slice(lastIndex, match.index) });
-      }
-      segments.push({ type: "image", alt: match[1], src: match[2] });
-      lastIndex = match.index + match[0].length;
-    }
-    if (lastIndex < content.length) {
-      segments.push({ type: "text", value: content.slice(lastIndex) });
-    }
-    return segments;
-  }, [content]);
-
-  const hasInlineImages = parts.some(p => p.type === "image");
-  const extraAssets = assets?.filter(a =>
-    !hasInlineImages || !parts.some(p => p.type === "image" && (p as any).src === a.url)
-  ) ?? [];
-
-  return (
-    <div className="space-y-2">
-      {parts.map((part, i) => {
-        if (part.type === "text") {
-          return part.value ? <span key={i}>{part.value}</span> : null;
-        }
-        return (
-          <div key={i} className="mt-2 mb-2">
-            <div className="rounded-lg overflow-hidden border border-border/50 bg-background/50">
-              <img
-                src={part.src}
-                alt={part.alt}
-                className="w-full max-h-48 object-cover"
-                loading="lazy"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                data-testid={`img-rebecca-inline-${i}`}
-              />
-              {part.alt && (
-                <div className="px-2 py-1 text-[10px] text-muted-foreground flex items-center gap-1">
-                  <ImageIcon className="w-3 h-3" />
-                  {part.alt}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
-      {extraAssets.length > 0 && (
-        <div className="grid grid-cols-2 gap-1.5 mt-2">
-          {extraAssets.map(asset => (
-            <div key={`${asset.type}-${asset.id}`} className="rounded-lg overflow-hidden border border-border/50 bg-background/50">
-              <img
-                src={asset.url}
-                alt={asset.caption}
-                className="w-full h-24 object-cover"
-                loading="lazy"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                data-testid={`img-rebecca-asset-${asset.type}-${asset.id}`}
-              />
-              <div className="px-2 py-1 text-[10px] text-muted-foreground truncate flex items-center gap-1">
-                <ImageIcon className="w-3 h-3 shrink-0" />
-                {asset.caption}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 let msgCounter = 0;
 function nextMsgId(role: string) {
@@ -196,11 +123,11 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       if (rebeccaContext?.conversationId) {
         loadConversation(rebeccaContext.conversationId).then((loaded) => {
           if (!loaded) {
-            sendAutoGreeting();
+            sendAutoGreeting(null);
           }
         });
       } else {
-        sendAutoGreeting();
+        sendAutoGreeting(null);
       }
     }
     if (!isOpen) {
@@ -208,7 +135,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     }
   }, [isOpen, rebeccaContext]);
 
-  const sendAutoGreeting = useCallback(async () => {
+  const sendAutoGreeting = useCallback(async (explicitConvId?: number | null) => {
     if (!rebeccaContext?.entityType || !rebeccaContext?.entityId) return;
     setLoading(true);
     abortRef.current?.abort();
@@ -228,8 +155,9 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           scenarioId: rebeccaContext.scenarioId ?? null,
         },
       };
-      if (conversationId) {
-        body.conversationId = conversationId;
+      const convId = explicitConvId !== undefined ? explicitConvId : conversationId;
+      if (convId) {
+        body.conversationId = convId;
       }
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -373,9 +301,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         <SheetHeader className="px-5 pt-4 pb-3 border-b border-border/40 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4 text-primary" />
-              </div>
+              <RebeccaAvatar size="md" />
               <div className="min-w-0">
                 <SheetTitle className="text-sm font-semibold" data-testid="rebecca-panel-title">
                   {displayName}
@@ -473,40 +399,39 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             </div>
           )}
 
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={cn(
-                "flex",
-                msg.role === "user" ? "justify-end" : "justify-start"
-              )}
-            >
-              <div
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
                 className={cn(
-                  "max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap",
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-foreground"
+                  "flex gap-2",
+                  msg.role === "user" ? "justify-end" : "justify-start"
                 )}
-                data-testid={`rebecca-message-${msg.role}-${msg.id}`}
               >
-                {msg.role === "assistant" ? (
-                  <RichMessageContent content={msg.content} assets={msg.assets} />
-                ) : (
-                  msg.content
-                )}
-              </div>
-            </div>
-          ))}
+                {msg.role === "assistant" && <RebeccaAvatar size="sm" className="mt-1" />}
+                <div
+                  className={cn(
+                    "max-w-[82%] rounded-lg px-3 py-2 text-sm",
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
+                      : "bg-muted text-foreground rounded-tl-sm"
+                  )}
+                  data-testid={`rebecca-message-${msg.role}-${msg.id}`}
+                >
+                  {msg.role === "assistant" ? (
+                    <RebeccaMarkdown content={msg.content} assets={msg.assets} />
+                  ) : (
+                    msg.content
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-lg px-3 py-2 text-sm flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Thinking...
-              </div>
-            </div>
-          )}
+          {loading && <RebeccaTypingIndicator />}
           <div ref={messagesEndRef} />
         </div>
 
