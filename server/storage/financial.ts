@@ -335,6 +335,8 @@ export class FinancialStorage {
     await db.update(scenarios)
       .set({ deletedAt: now, deletedBy: userId, purgeAfter: purge, updatedAt: now })
       .where(eq(scenarios.id, id));
+    await db.delete(scenarioShares).where(eq(scenarioShares.scenarioId, id));
+    await db.delete(scenarioAccess).where(eq(scenarioAccess.scenarioId, id));
   }
 
   async hardDeleteScenario(id: number): Promise<void> {
@@ -815,6 +817,12 @@ export class FinancialStorage {
 
   async getSharesForScenario(scenarioId: number): Promise<ScenarioShare[]> {
     return await db.select().from(scenarioShares).where(eq(scenarioShares.scenarioId, scenarioId));
+  }
+
+  async removeAllSharesForScenario(scenarioId: number): Promise<{ sharesRemoved: number; accessRemoved: number }> {
+    const shares = await db.delete(scenarioShares).where(eq(scenarioShares.scenarioId, scenarioId)).returning();
+    const access = await db.delete(scenarioAccess).where(eq(scenarioAccess.scenarioId, scenarioId)).returning();
+    return { sharesRemoved: shares.length, accessRemoved: access.length };
   }
 
   async removeScenarioSharesByTarget(targetType: string, targetId: number): Promise<void> {

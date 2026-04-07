@@ -407,6 +407,24 @@ export default function ScenariosTab() {
     },
   });
 
+  const unshareAllMutation = useMutation({
+    mutationFn: async (scenarioId: number) => {
+      const res = await fetch(`/api/admin/scenarios/${scenarioId}/access/all`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to remove all shares");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
+      toast({ title: "All Access Removed", description: `Removed ${(data.sharesRemoved || 0) + (data.accessRemoved || 0)} access grant(s)` });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   useEffect(() => {
     if (selectedScenario && scenarios) {
       const updated = scenarios.find(s => s.id === selectedScenario.id);
@@ -792,6 +810,23 @@ export default function ScenariosTab() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No access grants yet.</p>
+            )}
+
+            {selectedScenario?.accessGrants && selectedScenario.accessGrants.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => {
+                  if (!selectedScenario) return;
+                  unshareAllMutation.mutate(selectedScenario.id);
+                }}
+                disabled={unshareAllMutation.isPending}
+                data-testid="button-unshare-all"
+              >
+                {unshareAllMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconTrash className="w-4 h-4 mr-2" />}
+                Remove All Access
+              </Button>
             )}
 
             <div className="border-t pt-4 space-y-3">

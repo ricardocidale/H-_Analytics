@@ -235,6 +235,22 @@ export function registerAdminScenarioRoutes(app: Express) {
     }
   });
 
+  app.delete("/api/admin/scenarios/:id/access/all", requireAdmin, async (req, res) => {
+    try {
+      const id = parseParamId(req.params.id, res, "scenario ID");
+      if (id === null) return;
+
+      const existing = await storage.getScenario(id);
+      if (!existing) return res.status(404).json({ error: "Scenario not found" });
+
+      const result = await storage.removeAllSharesForScenario(id);
+      logActivity(req, "admin-unshare-all", "scenario", id, existing.name);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      logAndSendError(res, "Failed to remove all scenario shares", error);
+    }
+  });
+
   app.get("/api/admin/users/:id/scenario-count", requireAdmin, async (req, res) => {
     try {
       const id = parseParamId(req.params.id, res, "user ID");

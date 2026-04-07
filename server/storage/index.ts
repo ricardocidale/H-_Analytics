@@ -133,6 +133,7 @@ export class DatabaseStorage implements IStorage {
   addScenarioAccess = this.financial.addScenarioAccess.bind(this.financial);
   removeScenarioAccess = this.financial.removeScenarioAccess.bind(this.financial);
   getScenarioCountByUser = this.financial.getScenarioCountByUser.bind(this.financial);
+  removeAllSharesForScenario = this.financial.removeAllSharesForScenario.bind(this.financial);
   removeScenarioSharesByTarget = this.financial.removeScenarioSharesByTarget.bind(this.financial);
   writePropertyOverrides = this.financial.writePropertyOverrides.bind(this.financial);
   getPropertyOverrides = this.financial.getPropertyOverrides.bind(this.financial);
