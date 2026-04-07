@@ -25,8 +25,8 @@
         "description": "Swap term in years"
       },
       "payment_frequency": {
-        "type": "integer",
-        "enum": [1, 2, 4, 12],
+        "type": "string",
+        "enum": ["1", "2", "4", "12"],
         "description": "Payment frequency: 1=annual, 2=semi-annual, 4=quarterly, 12=monthly"
       },
       "rate_scenarios": {
