@@ -16,9 +16,11 @@ import {
   RotateCcw,
   Mail,
   Flag,
+  History,
 } from "lucide-react";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
+import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -65,6 +67,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [suggestedChips, setSuggestedChips] = useState<string[]>([]);
   const [emailOpen, setEmailOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -273,6 +276,17 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     }
   };
 
+  const handleSelectConversation = useCallback(async (convId: number) => {
+    setMessages([]);
+    setSuggestedChips([]);
+    setHistoryOpen(false);
+    prevContextRef.current = undefined;
+    const loaded = await loadConversation(convId);
+    if (!loaded) {
+      setConversationId(convId);
+    }
+  }, [loadConversation]);
+
   const forceNewRef = useRef(false);
   const handleClearChat = () => {
     setMessages([]);
@@ -296,7 +310,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     <Sheet open={isOpen} onOpenChange={(o) => { if (!o) closeAll(); }}>
       <SheetContent
         side="right"
-        className="w-full sm:w-[520px] sm:max-w-[520px] p-0 flex flex-col overflow-hidden"
+        className="w-full sm:w-[520px] sm:max-w-[520px] p-0 flex flex-col overflow-hidden relative"
         data-testid="rebecca-panel"
       >
         <SheetHeader className="px-5 pt-4 pb-3 border-b border-border/40 shrink-0">
@@ -313,6 +327,16 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setHistoryOpen(true)}
+                title="Past conversations"
+                data-testid="button-rebecca-history"
+              >
+                <History className="w-3.5 h-3.5" />
+              </Button>
               {messages.length > 0 && conversationId && (
                 <>
                   <Button
@@ -485,6 +509,13 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             </Button>
           </div>
         </div>
+
+        <RebeccaConversationHistory
+          isOpen={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          onSelect={handleSelectConversation}
+          currentConversationId={conversationId}
+        />
       </SheetContent>
 
       <RebeccaEmailPreview

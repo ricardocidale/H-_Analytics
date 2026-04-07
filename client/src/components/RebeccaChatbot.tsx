@@ -4,10 +4,12 @@ import { IconMessageCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { History } from "lucide-react";
 import { RebeccaAvatar } from "./rebecca/RebeccaAvatar";
 import { RebeccaTypingIndicator } from "./rebecca/RebeccaTypingIndicator";
 import { RebeccaMarkdown } from "./rebecca/RebeccaMarkdown";
 import { RebeccaInsightBanner } from "./rebecca/RebeccaInsightBanner";
+import { RebeccaConversationHistory } from "./rebecca/RebeccaConversationHistory";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -42,6 +44,8 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -54,9 +58,31 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
     if (open) inputRef.current?.focus();
   }, [open]);
 
-  // Clean up abort controller on unmount
   useEffect(() => {
     return () => { abortRef.current?.abort(); };
+  }, []);
+
+  const handleSelectConversation = useCallback(async (convId: number) => {
+    setHistoryOpen(false);
+    setConversationId(convId);
+    try {
+      const res = await fetch(`/api/chat/conversations/${convId}/messages`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.messages?.length > 0) {
+        setMessages(
+          data.messages.map((m: { id: number; role: string; content: string }) => ({
+            id: `db-${m.id}`,
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          }))
+        );
+      } else {
+        setMessages([]);
+      }
+    } catch {
+      setMessages([]);
+    }
   }, []);
 
   const sendMessage = useCallback(async () => {
@@ -83,13 +109,15 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: trimmed,
-          history: historyForApi.slice(0, -1), // exclude the current message (sent separately)
+          history: historyForApi.slice(0, -1),
+          ...(conversationId ? { conversationId } : {}),
         }),
         signal: controller.signal,
       });
 
       if (!res.ok) throw new Error("Failed to get response");
       const data = await res.json();
+      if (data.conversationId) setConversationId(data.conversationId);
       setMessages((prev) => [...prev, { id: nextMsgId("assistant"), role: "assistant", content: data.response, assets: data.assets }]);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -120,7 +148,7 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
 
       {open && (
         <div
-          className="fixed bottom-4 right-4 z-[9999] w-[360px] max-w-[calc(100vw-2rem)] h-[480px] max-h-[calc(100vh-6rem)] flex flex-col bg-card border border-border rounded-xl shadow-2xl overflow-hidden"
+          className="fixed bottom-4 right-4 z-[9999] w-[360px] max-w-[calc(100vw-2rem)] h-[480px] max-h-[calc(100vh-6rem)] flex flex-col bg-card border border-border rounded-xl shadow-2xl overflow-hidden relative"
           data-testid="panel-chatbot"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
@@ -129,15 +157,27 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
               <span className="text-sm font-semibold">{displayName}</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">Norfolk AI</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setOpen(false)}
-              data-testid="button-chatbot-close"
-            >
-              <X className="w-3.5 h-3.5" />
-            </Button>
+            <div className="flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setHistoryOpen(true)}
+                title="Past conversations"
+                data-testid="button-chatbot-history"
+              >
+                <History className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setOpen(false)}
+                data-testid="button-chatbot-close"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
@@ -226,6 +266,13 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
               </Button>
             </div>
           </div>
+
+          <RebeccaConversationHistory
+            isOpen={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            onSelect={handleSelectConversation}
+            currentConversationId={conversationId}
+          />
         </div>
       )}
     </>

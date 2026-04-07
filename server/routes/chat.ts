@@ -110,6 +110,24 @@ function deriveContextKey(fieldCtx?: { entityType: string; entityId: number; fie
 }
 
 export function register(app: Express) {
+  app.get("/api/chat/conversations", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = getAuthUser(req).id;
+      const conversations = await storage.getRebeccaConversations(userId);
+      res.json(conversations.map(c => ({
+        id: c.id,
+        contextType: c.contextType,
+        contextKey: c.contextKey,
+        propertyId: c.propertyId,
+        startedAt: c.startedAt,
+        lastMessageAt: c.lastMessageAt,
+      })));
+    } catch (error: any) {
+      logger.error(`Failed to list conversations: ${error?.message || error}`, "chat");
+      res.status(500).json({ error: "Failed to list conversations" });
+    }
+  });
+
   app.get("/api/chat/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
     try {
       const conversationId = parseInt(req.params.id as string, 10);
