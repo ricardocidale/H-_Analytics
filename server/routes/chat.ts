@@ -45,6 +45,10 @@ const chatRequestSchema = z.object({
 
 const DEFAULT_SYSTEM_PROMPT = `You are Rebecca, a property investment analyst for a boutique hotel management company. You answer questions about the portfolio's properties, financial metrics, and hospitality industry concepts.
 
+You know who is talking to you — the current user's name, role, email, and company are provided in the context. Address them by first name. Tailor your responses to their access level:
+- Admin users can see ALL properties, ALL scenarios (including who created/owns each), and all system data. When an admin asks about scenarios, tell them who created each one.
+- Regular users can only see the default portfolio properties plus their own scenarios. Do not reference other users' scenarios or data they cannot access.
+
 You have access to the current portfolio data below. Use it to answer questions accurately. When discussing financials, be precise and cite specific numbers from the data. If asked about something not in the data, say so clearly.
 
 Keep responses concise and professional. Use bullet points for lists. Format dollar amounts with commas. When comparing properties, use clear tables or structured comparisons.
@@ -139,7 +143,10 @@ export function register(app: Express) {
       }
       const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation } = parsed.data;
 
-      const userId = getAuthUser(req).id;
+      const authUser = getAuthUser(req);
+      const userId = authUser.id;
+      const isAdmin = authUser.role === "admin";
+      const userName = [authUser.firstName, authUser.lastName].filter(Boolean).join(" ") || authUser.email;
 
       const global = await storage.getGlobalAssumptions(userId);
       if (!(global as any)?.rebeccaEnabled) {
@@ -168,7 +175,51 @@ export function register(app: Express) {
       const baseFee = ga?.baseManagementFee ?? 0;
       const incentiveFee = ga?.incentiveManagementFee ?? 0;
 
+      const userContextLines: string[] = [
+        "CURRENT USER:",
+        `Name: ${userName}`,
+        `Email: ${authUser.email}`,
+        `Role: ${authUser.role}`,
+        `Company: ${authUser.company ?? "N/A"}`,
+        `Title: ${authUser.title ?? "N/A"}`,
+      ];
+
+      let scenarioContextBlock = "";
+      try {
+        if (isAdmin) {
+          const allScenarios = await storage.getAllScenarios();
+          if (allScenarios.length > 0) {
+            const scenarioLines = ["", "ALL SCENARIOS (admin view — you can see who owns each):"];
+            for (const s of allScenarios.slice(0, 20)) {
+              const ownerName = s.ownerName ?? s.ownerEmail;
+              const propCount = Array.isArray(s.properties) ? s.properties.length : 0;
+              const updated = s.updatedAt ? new Date(s.updatedAt).toLocaleDateString() : "N/A";
+              scenarioLines.push(`- "${s.name}" by ${ownerName} (${s.ownerEmail}) | ${propCount} properties | ${s.kind ?? "manual"} | updated ${updated}${s.isLocked ? " [LOCKED]" : ""}`);
+            }
+            if (allScenarios.length > 20) {
+              scenarioLines.push(`  ... and ${allScenarios.length - 20} more scenarios`);
+            }
+            scenarioContextBlock = scenarioLines.join("\n");
+          }
+        } else {
+          const userScenarios = await storage.getScenariosByUser(userId);
+          if (userScenarios.length > 0) {
+            const scenarioLines = ["", "YOUR SCENARIOS:"];
+            for (const s of userScenarios.slice(0, 10)) {
+              const propCount = Array.isArray(s.properties) ? s.properties.length : 0;
+              const updated = s.updatedAt ? new Date(s.updatedAt).toLocaleDateString() : "N/A";
+              scenarioLines.push(`- "${s.name}" | ${propCount} properties | ${s.kind ?? "manual"} | updated ${updated}`);
+            }
+            scenarioContextBlock = scenarioLines.join("\n");
+          }
+        }
+      } catch (err) {
+        logger.warn(`Scenario context build failed (non-blocking): ${(err as Error).message}`, "chat");
+      }
+
       const contextBlock = [
+        ...userContextLines,
+        "",
         "PORTFOLIO DATA:",
         propertyContext,
         "",
@@ -181,6 +232,7 @@ export function register(app: Express) {
         "",
         "FUNDING:",
         ...fundingLines,
+        scenarioContextBlock,
       ].join("\n");
 
       let documentContextBlock = "";
@@ -271,7 +323,6 @@ export function register(app: Express) {
       let autoGreeting: string | null = null;
       if (fieldCtx) {
         try {
-          const authUser = getAuthUser(req);
           if (fieldCtx.entityType === "property") {
             const entity = properties.find(p => p.id === fieldCtx.entityId);
             if (!entity) {
