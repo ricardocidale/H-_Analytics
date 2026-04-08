@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 
 import GuidedWalkthrough, { useWalkthroughStore } from "@/components/GuidedWalkthrough";
 import { RebeccaChatbot } from "@/components/RebeccaChatbot";
+import { ResearchQueueIndicator } from "@/components/research/ResearchQueueIndicator";
 import { GuidanceSideSheet } from "@/components/research/GuidanceSideSheet";
 import { RebeccaPanel } from "@/components/rebecca/RebeccaPanel";
 import { usePanelManager } from "@/lib/panel-manager";
@@ -421,6 +422,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
               <Search className="w-3.5 h-3.5" />
               <kbd className="text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono">⌘K</kbd>
             </Button>
+            <ResearchQueueIndicator className="hidden sm:flex" />
             <NotificationCenter />
             {!!(global as any)?.rebeccaEnabled && (
               (global as any)?.rebeccaV2

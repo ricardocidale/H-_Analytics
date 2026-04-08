@@ -584,6 +584,7 @@ describe("Hardcoded Value Detection", () => {
         "scenario-dirty-state.ts",
         "panel-manager.ts",
         "rebecca-insights.ts",
+        "research-queue.ts",
       ]);
 
       const allLibFiles = fs.readdirSync(libDir)

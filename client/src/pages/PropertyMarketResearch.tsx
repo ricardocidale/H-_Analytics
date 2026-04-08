@@ -18,6 +18,7 @@ import { downloadResearchPDF } from "@/lib/exports/researchPdfExport";
 import { useToast } from "@/hooks/use-toast";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
 import { ResearchFreshnessBadge } from "@/components/research/ResearchFreshnessBadge";
+import { ResearchLoadingOverlay } from "@/components/research/ResearchLoadingOverlay";
 import { ResearchCriteriaTab } from "@/components/research/ResearchCriteriaTab";
 import { MarketRateBenchmark } from "@/components/property-research/MarketRateBenchmark";
 import MethodologyTransparencyPanel from "@/components/research/MethodologyTransparencyPanel";
@@ -35,7 +36,7 @@ export default function PropertyMarketResearch() {
   const { toast } = useToast();
 
   const { requestSave, SaveDialog } = useExportSave();
-  const { isGenerating, streamedContent, generateResearch } = useResearchStream({
+  const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
     property,
     propertyId,
     global,
@@ -116,19 +117,11 @@ export default function PropertyMarketResearch() {
           />
 
           {isGenerating && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`${card} p-6`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-primary/15 dark:bg-primary/10 flex items-center justify-center">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary dark:text-primary" />
-                </div>
-                <p className="text-muted-foreground text-sm font-medium">Analyzing market data for {property.name}...</p>
-              </div>
-              {streamedContent && (
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap max-h-40 overflow-y-auto bg-muted rounded-lg p-3 border border-border">
-                  {streamedContent.slice(0, 500)}...
-                </pre>
-              )}
-            </motion.div>
+            <ResearchLoadingOverlay
+              isVisible={isGenerating}
+              phases={phases}
+              variant="inline"
+            />
           )}
 
           {!hasResearch && !isGenerating && (

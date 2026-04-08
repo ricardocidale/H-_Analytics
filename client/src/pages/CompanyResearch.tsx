@@ -17,6 +17,7 @@ import {
 } from "@/components/icons";
 import { useCompanyResearchStream } from "@/components/company-research";
 import { ResearchFreshnessBadge } from "@/components/research/ResearchFreshnessBadge";
+import { ResearchLoadingOverlay } from "@/components/research/ResearchLoadingOverlay";
 import { ResearchCriteriaTab } from "@/components/research/ResearchCriteriaTab";
 import { motion, AnimatePresence } from "framer-motion";
 import MethodologyTransparencyPanel from "@/components/research/MethodologyTransparencyPanel";
@@ -144,17 +145,10 @@ export default function CompanyResearch() {
           />
 
           {isGenerating && (
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-xl shadow-sm border border-primary/20 p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">Researching company standards and benchmarks...</p>
-              </div>
-              {streamedContent && (
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto bg-muted rounded-lg p-3 border">{streamedContent.slice(0, 500)}...</pre>
-              )}
-            </motion.div>
+            <ResearchLoadingOverlay
+              isVisible={isGenerating}
+              variant="inline"
+            />
           )}
 
           {!isGenerating && (
