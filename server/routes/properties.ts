@@ -652,7 +652,7 @@ Return ONLY the JSON array, no other text.`;
       }
       const fetchResults: FetchResult[] = await Promise.all(
         urls.map(async (u): Promise<FetchResult> => {
-          if (!isSafeUrl(u.url)) {
+          if (!(await isSafeUrl(u.url))) {
             await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
             return { id: u.id, url: u.url, isValid: false, status: 0, title: "", description: "", hostname: "", error: "Blocked: internal or private URL" };
           }
