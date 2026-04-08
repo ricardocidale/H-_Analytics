@@ -9,7 +9,7 @@ import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBa
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconBanknote, IconFileStack } from "@/components/icons";
+import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconBanknote, IconFileStack, IconMap, IconGlobe } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import { calculateLoanParams, LoanParams, GlobalLoanParams, PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
@@ -41,6 +41,7 @@ import {
   buildPremiumExportPayload,
 } from "@/lib/exports/propertyDetailExports";
 import { fetchSinglePropertyCompute, buildPropertyQueryKey } from "@/hooks/useServerFinancials";
+import { buildLocationLinks, hasCoordinates } from "@/lib/map-utils";
 
 export default function PropertyDetail() {
   const [, params] = useRoute("/property/:id");
@@ -257,6 +258,33 @@ export default function PropertyDetail() {
         })()}
 
         <ScrollReveal>
+          {hasCoordinates(property) && (() => {
+            const links = buildLocationLinks(property.latitude!, property.longitude!, property.name);
+            return (
+              <div className="flex items-center gap-3 mb-3" data-testid="location-links">
+                <a
+                  href={links.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                  data-testid="link-detail-map"
+                >
+                  <IconMap className="w-3.5 h-3.5" />
+                  Google Maps
+                </a>
+                <a
+                  href={links.googleEarth3dUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                  data-testid="link-detail-3d"
+                >
+                  <IconGlobe className="w-3.5 h-3.5" />
+                  3D Flyover
+                </a>
+              </div>
+            );
+          })()}
           <Suspense fallback={<div className="flex items-center justify-center p-8 text-muted-foreground text-sm">Loading map…</div>}>
             <PropertyMap
               latitude={property.latitude}

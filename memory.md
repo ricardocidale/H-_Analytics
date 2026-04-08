@@ -39,6 +39,14 @@
 - Files: schema/properties.ts, storage/property-urls.ts, storage/index.ts, routes/properties.ts, PropertyLinksSection.tsx, property-edit/index.ts, PropertyDetail.tsx, PropertyEdit.tsx, PortfolioPropertyCard.tsx
 - Health check: ALL CLEAR — 0 TS errors, 3980 tests pass, verification UNQUALIFIED
 
+### Task #300: Map & 3D Flyover Location Links (April 2026) — COMPLETED
+- **Location link utility**: `buildLocationLinks(lat, lng, name)` in `client/src/lib/map-utils.ts` — pure function returning Google Maps URL and Google Earth 3D flyover URL
+- **hasCoordinates(property)**: Helper to check if property has valid lat/lng (non-null, non-zero)
+- **PortfolioPropertyCard**: Map and 3D Globe icon-buttons appear inline next to location text when property has coordinates. Uses `IconMap` and `IconGlobe`. Includes `stopPropagation` for click handling.
+- **PropertyDetail**: "Google Maps" and "3D Flyover" pill-shaped link buttons shown above the PropertyMap when coordinates exist
+- No DB changes, no new endpoints — purely client-side URL generation
+- Health check: ALL CLEAR — 0 TS errors, 3980 tests pass, verification UNQUALIFIED
+
 ### Task #299: Hero Image AI Enhancement Pipeline (April 2026) — COMPLETED
 - **Enhancement endpoint**: `POST /api/property-photos/:id/enhance` — sends photo to Replicate clarity-upscaler (photo-upscale model), saves enhanced base64 to `enhancedImageData` column
 - **Enhanced image serving**: `GET /api/property-photos/:id/enhanced-image` — serves enhanced image binary from DB

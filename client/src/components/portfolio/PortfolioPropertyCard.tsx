@@ -15,7 +15,7 @@
 import { PropertyStatus } from "@shared/constants";
 import { formatMoney } from "@/lib/financialEngine";
 import { ArrowRight } from "@/components/icons/themed-icons";
-import { IconTrash, IconMapPin, IconBed, IconCalendar, IconSettings, IconCamera } from "@/components/icons";
+import { IconTrash, IconMapPin, IconBed, IconCalendar, IconSettings, IconCamera, IconMap, IconGlobe } from "@/components/icons";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { PropertyTypeBadge } from "@/components/research/PropertyTypeSelector";
 import { useQuery } from "@tanstack/react-query";
 import { usePropertyPhotos } from "@/lib/api";
+import { buildLocationLinks, hasCoordinates } from "@/lib/map-utils";
 
 function truncateWords(text: string, maxWords: number): string {
   const words = text.split(/\s+/);
@@ -136,6 +137,35 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
           <div className="flex items-center text-foreground/60 text-sm mt-1 label-text">
             <IconMapPin className="w-3 h-3 mr-1" />
             {property.location}
+            {hasCoordinates(property) && (() => {
+              const links = buildLocationLinks(property.latitude!, property.longitude!, property.name);
+              return (
+                <span className="inline-flex items-center gap-1 ml-2">
+                  <a
+                    href={links.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-primary/10 text-foreground/40 hover:text-primary transition-colors"
+                    title="Open in Google Maps"
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid={`link-map-${property.id}`}
+                  >
+                    <IconMap className="w-3 h-3" />
+                  </a>
+                  <a
+                    href={links.googleEarth3dUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-primary/10 text-foreground/40 hover:text-primary transition-colors"
+                    title="3D View in Google Earth"
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid={`link-3d-${property.id}`}
+                  >
+                    <IconGlobe className="w-3 h-3" />
+                  </a>
+                </span>
+              );
+            })()}
           </div>
           <div className="flex items-center text-foreground/50 text-xs mt-1.5 label-text">
             <IconCalendar className="w-3 h-3 mr-1" />

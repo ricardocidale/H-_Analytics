@@ -154,3 +154,24 @@ export const MAP_STYLES = {
 };
 
 export const TOUR_PAUSE_MS = 4000;
+
+export interface LocationLinks {
+  googleMapsUrl: string;
+  googleEarth3dUrl: string;
+}
+
+export function buildLocationLinks(
+  lat: number,
+  lng: number,
+  name?: string,
+): LocationLinks {
+  const label = name ? encodeURIComponent(name) : "";
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}${label ? `&query_place_id=${label}` : ""}`;
+  const googleEarth3dUrl = `https://earth.google.com/web/@${lat},${lng},500a,800d,35y,0h,60t,0r`;
+  return { googleMapsUrl, googleEarth3dUrl };
+}
+
+export function hasCoordinates(property: { latitude?: number | null; longitude?: number | null }): boolean {
+  return property.latitude != null && property.longitude != null &&
+    property.latitude !== 0 && property.longitude !== 0;
+}
