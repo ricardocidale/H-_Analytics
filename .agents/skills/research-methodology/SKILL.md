@@ -461,7 +461,49 @@ Every research value presented to users must carry:
 | **Date/Vintage** | Currency | "2024 Q4", "2025 Annual" |
 | **Methodology** | How derived | "STR chain-scale weighted average for Upper Upscale segment in Southeast US" |
 
-### 7.4 The N+1 Synthesis Pipeline
+### 7.4 Property URLs as Research Sources
+
+User-provided property URLs (managed via the `property_urls` table) serve as first-party source material for the research engine. This enriches AI research with real-world data specific to the property being analyzed.
+
+#### URL Categories & Research Value
+
+| URL Type | Examples | Research Value |
+|----------|----------|----------------|
+| **OTA Listings** | Airbnb, VRBO, Booking.com | Live ADR, occupancy signals, guest reviews, amenity list |
+| **Property Website** | Direct booking site | Brand positioning, target market, rate card |
+| **Review Sites** | TripAdvisor, Google Reviews | Guest sentiment, service quality, comp positioning |
+| **Market Reports** | STR, HVS, CBRE links | Market data, comp set performance |
+| **Competitor Sites** | Nearby hotel websites | Competitive landscape, rate benchmarking |
+
+#### How URLs Feed Research
+
+1. **Context Pack Inclusion**: Validated URLs are included in the property context pack narrative sent to the research engine
+2. **Source Attribution**: Research findings derived from property URLs carry `source_type: "property_url"` attribution
+3. **Relevance Scoring**: Known hospitality domains (Airbnb, VRBO, Booking, TripAdvisor) auto-tagged as "relevant" with higher weight
+4. **Validation Gate**: Only URLs that pass HEAD-request validation (status 2xx/3xx) are included in research context
+5. **SSRF Protection**: All URL validation includes comprehensive SSRF guards (RFC1918 blocking, metadata IP blocking, DNS resolution guard)
+
+#### URL Lifecycle in Research
+
+```
+URL Added → Validation (HEAD request) → Relevance Scoring
+  ↓                                          ↓
+  ↓                                   Status badge (Valid/Relevant/Broken)
+  ↓                                          ↓
+Context Pack Builder ← Valid/Relevant URLs included
+  ↓
+Research Engine (N+1 pipeline) sees URLs as reference sources
+  ↓
+AI can extract: property details, photos, amenities, location info, pricing signals
+```
+
+#### Key Files
+- Schema: `shared/schema/properties.ts` (`property_urls` table)
+- Storage: `server/storage/property-urls.ts` (PropertyUrlStorage CRUD)
+- Routes: `server/routes/properties.ts` (5 URL endpoints)
+- UI: `client/src/components/property-edit/PropertyLinksSection.tsx`
+
+### 7.5 The N+1 Synthesis Pipeline
 
 The research engine uses a multi-model parallel synthesis approach:
 

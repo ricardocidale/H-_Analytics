@@ -39,6 +39,13 @@
 - Files: schema/properties.ts, storage/property-urls.ts, storage/index.ts, routes/properties.ts, PropertyLinksSection.tsx, property-edit/index.ts, PropertyDetail.tsx, PropertyEdit.tsx, PortfolioPropertyCard.tsx
 - Health check: ALL CLEAR — 0 TS errors, 3980 tests pass, verification UNQUALIFIED
 
+### Task #301: Reusable Property Intelligence Skills & Documentation (April 2026) — COMPLETED
+- **New skill created**: `.agents/skills/property-intelligence/SKILL.md` — comprehensive pipeline documentation covering all 5 enrichment stages: (1) Address Autocomplete & Geocoding, (2) Map & 3D Location Links, (3) URL Management & Validation, (4) AI Image Enhancement, (5) AI Description Rewrite. Includes file maps, API contracts, auth patterns, display patterns, data flow diagram, and extension guide for adding new stages.
+- **research-methodology skill updated**: New §7.4 "Property URLs as Research Sources" — documents how validated property URLs feed into the research engine context pack, URL category/value matrix (OTA listings, property website, review sites, market reports, competitor sites), relevance scoring for hospitality domains, SSRF protection gate, lifecycle diagram from URL add → research engine consumption.
+- **integrations-infrastructure skill updated**: (1) "Image Generation" section expanded to "Image Generation & Enhancement" with full AI Enhancement Pipeline table (trigger → model → staging → preview → accept/reject → revert), 6 enhancement endpoint table, security notes. (2) New "URL Validation Service" section with SSRF protection details and relevance auto-tagging list. (3) Integration File Map updated with Replicate (enhance) and URL Validation entries.
+- No code changes, no DB changes — documentation only
+- Health check: ALL CLEAR — 0 TS errors, 3980 tests pass, verification UNQUALIFIED
+
 ### Task #300: Map & 3D Flyover Location Links (April 2026) — COMPLETED
 - **Location link utility**: `buildLocationLinks(lat, lng, name)` in `client/src/lib/map-utils.ts` — pure function returning Google Maps URL and Google Earth 3D flyover URL
 - **hasCoordinates(property)**: Helper to check if property has valid lat/lng (non-null, non-zero)

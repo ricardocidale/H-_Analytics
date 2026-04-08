@@ -49,13 +49,64 @@ LLM provider selection is configurable via the admin panel.
 | **Twilio** (SMS + Voice) | SMS notifications, phone voice via WebSocket | `server/integrations/twilio.ts`, `server/routes/twilio.ts` |
 | **Resend** (Email) | Transactional email — welcome, password reset, report sharing | `server/integrations/resend.ts` |
 
-## Image Generation: Replicate
+## Image Generation & Enhancement: Replicate
 
 | Aspect | Detail |
 |--------|--------|
-| **Use cases** | Architectural renders — exterior, interior design concepts |
+| **Use cases** | Architectural renders (exterior, interior concepts) AND hero photo AI enhancement |
 | **Config** | Model configs in `server/config/replicate-models.json` |
-| **Files** | `server/integrations/replicate.ts`, `server/image/pipeline.ts` |
+| **Files** | `server/integrations/replicate.ts`, `server/image/pipeline.ts`, `server/routes/property-photos.ts` |
+
+### AI Image Enhancement Pipeline
+
+The enhancement pipeline uses Replicate's clarity-upscaler (photo-upscale model) to improve hero property photos:
+
+| Step | Detail |
+|------|--------|
+| **Trigger** | User clicks Sparkles button on hero photo |
+| **Model** | `clarity-upscaler` (photo-upscale category in replicate-models.json) |
+| **Staging** | Enhanced image stored in server memory (`pendingEnhancements` Map), NOT in DB |
+| **Preview** | `EnhancePreviewDialog` — side-by-side and slider comparison modes |
+| **Accept** | `POST /enhance/accept` commits base64 to `enhancedImageData` column + regenerates variants via `processImage()` |
+| **Reject** | `POST /enhance/reject` discards staged enhancement from server memory |
+| **Revert** | `DELETE /enhanced` clears `enhancedImageData` from DB |
+| **Security** | All 6 endpoints enforce `checkPropertyAccess` (prevents IDOR) |
+
+### Enhancement Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/api/property-photos/:id/enhance` | Send to Replicate, stage result |
+| GET | `/api/property-photos/:id/enhanced-image` | Serve enhanced image binary |
+| POST | `/api/property-photos/:id/enhance/accept` | Commit to DB + regenerate variants |
+| POST | `/api/property-photos/:id/enhance/reject` | Discard staged enhancement |
+| DELETE | `/api/property-photos/:id/enhanced` | Revert to original |
+| GET | `/api/property-photos/:id/enhance/status` | Check pending enhancement |
+
+## URL Validation Service
+
+| Aspect | Detail |
+|--------|--------|
+| **Use cases** | Validate user-provided property URLs, auto-tag hospitality domain relevance |
+| **Endpoint** | `POST /api/properties/:id/urls/validate` |
+| **Method** | HEAD requests with 5-second timeout per URL |
+| **Files** | `server/routes/properties.ts`, `server/storage/property-urls.ts` |
+
+### SSRF Protection
+
+The URL validation endpoint includes comprehensive SSRF guards:
+- Localhost variants (127.0.0.1, 0.0.0.0, ::1)
+- RFC1918 private ranges (10.x, 172.16-31.x, 192.168.x)
+- Cloud metadata IPs (169.254.169.254, metadata.google.internal)
+- Internal TLDs (.local, .internal)
+- DNS resolution guard (resolve hostname → check resolved IPs against private ranges)
+
+### Relevance Auto-Tagging
+
+Known hospitality domains are auto-tagged as "relevant" during validation:
+- OTA platforms: Airbnb, VRBO, Booking.com, Expedia, Hotels.com
+- Review sites: TripAdvisor, Google Reviews
+- Industry: STR, HVS, CBRE
 
 ## Observability
 
@@ -173,7 +224,9 @@ For full card anatomy, design patterns, and extension guide, see `.agents/skills
 | Document AI | `server/integrations/document-ai.ts` | `server/routes/documents.ts` | Google Cloud credentials |
 | Twilio | `server/integrations/twilio.ts` | `server/routes/twilio.ts` | Replit Connector |
 | Resend | `server/integrations/resend.ts` | — | `RESEND_API_KEY` |
-| Replicate | `server/integrations/replicate.ts` | — | `REPLICATE_API_TOKEN` |
+| Replicate (renders) | `server/integrations/replicate.ts` | — | `REPLICATE_API_TOKEN` |
+| Replicate (enhance) | `server/integrations/replicate.ts` | `server/routes/property-photos.ts` | `REPLICATE_API_TOKEN` |
+| URL Validation | `server/routes/properties.ts` | `server/routes/properties.ts` | — (outbound HEAD) |
 | Sentry | `client/src/lib/sentry.ts` | — | `SENTRY_DSN` |
 | PostHog | `client/src/lib/analytics.ts` | — | `POSTHOG_KEY` |
 | Stripe | — | — | Replit Connector (installed) |
