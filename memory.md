@@ -8,6 +8,19 @@
 
 ## Architecture Decisions Log
 
+### Task #302: Business-Model-Specific Financial Defaults (April 2026) — COMPLETED
+- **BUSINESS_MODEL_DEFAULTS** map in `shared/constants.ts` — keyed by `BusinessModelType` ('hotel'|'lodge'|'vrbo') with 21 fields per model (cost rates, revenue shares, catering boost, management fees, platform fees, pre-opening burn)
+- **PLATFORM_FEE_RATES** constant — airbnb 15.5%, vrbo 8%, booking 15%, direct 0%, blended 14%
+- **PropertyInput additions** (`engine/types.ts`): `businessModel`, `platformFeeRate`, `preOpeningMonthlyBurn`
+- **MonthlyFinancials additions**: `expensePlatformFees`, `expensePreOpening`
+- **resolvePropertyAssumptions** (`engine/property/resolve-assumptions.ts`): reads `property.businessModel` to pick `BUSINESS_MODEL_DEFAULTS[bm]` for all cost/rev defaults
+- **Engine computation**: Platform fees = `platformFeeRate × revenueRooms`; pre-opening = monthly burn during ramp months only. Both flow through totalOperatingExpenses → GOP
+- **Propagation**: yearlyAggregator.ts, consolidation.ts, property-detail/types.ts, calculation-checker types all updated
+- **Validation** (`calc/research/validate-research.ts`): Model-specific bounds (HOTEL_BOUNDS, LODGE_BOUNDS, VRBO_BOUNDS) — platform fee VRBO 3-25%, hotel/lodge 0-5%; ramp months hotel 3-36, lodge 3-24, vrbo 1-12
+- **Management company overhead**: Reviewed against HVS benchmarks — values well-calibrated (8.5% base fee, $75K staff salary, 2.5/4.5/7.0 FTE tiers, $540K-$900K partner comp). No changes needed.
+- **Tests**: 43 new tests in 2 files (business-model-defaults.test.ts, validate-research-models.test.ts)
+- Health check: ALL CLEAR — 0 TS errors, 4,023 tests pass (172 files), verification UNQUALIFIED
+
 ### Admin Replan v3 (April 2026)
 - **Full replan document**: `.local/replan-admin-intelligence-v3.md`
 - **Admin restructured to 5 groups**: Business, Intelligence Engine, AI Assistant, Design, System

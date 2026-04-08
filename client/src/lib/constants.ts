@@ -78,6 +78,8 @@ export {
   RESERVE_ROUNDING_INCREMENT,
   DEFAULT_OCCUPANCY_GROWTH_STEP,
   DEFAULT_PARTNER_COUNT,
+  BUSINESS_MODEL_DEFAULTS,
+  PLATFORM_FEE_RATES,
 } from "@shared/constants";
 
 // Property defaults — re-exported from shared/constants.ts (canonical source)

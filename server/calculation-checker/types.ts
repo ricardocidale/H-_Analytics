@@ -49,6 +49,8 @@ export interface EngineMonthlyResult {
   expenseUtilitiesFixed: number;
   expenseInsurance: number;
   expenseOtherCosts: number;
+  expensePlatformFees: number;
+  expensePreOpening: number;
   totalExpenses: number;
   gop: number;
   agop: number;

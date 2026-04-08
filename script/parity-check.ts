@@ -31,7 +31,8 @@ interface YearlyConsolidatedStub {
   expenseOther: number; expenseMarketing: number; expensePropertyOps: number;
   expenseAdmin: number; expenseIT: number; expenseInsurance: number;
   expenseUtilitiesVar: number; expenseUtilitiesFixed: number;
-  expenseOtherCosts: number; expenseTaxes: number; expenseFFE: number;
+  expenseOtherCosts: number; expensePlatformFees: number; expensePreOpening: number;
+  expenseTaxes: number; expenseFFE: number;
   gop: number; agop: number; noi: number; anoi: number;
   feeBase: number; feeIncentive: number;
   debtPayment: number; interestExpense: number; principalPayment: number;
@@ -379,6 +380,8 @@ function makeYearlyConsolidated(years: number): YearlyConsolidatedStub[] {
     expenseUtilitiesVar: 60_000,
     expenseUtilitiesFixed: 40_000,
     expenseOtherCosts: 70_000,
+    expensePlatformFees: 0,
+    expensePreOpening: 0,
     expenseTaxes: 100_000,
     expenseFFE: 150_000,
     gop: 2_050_000 + i * 100_000,
@@ -457,6 +460,8 @@ function makeMonthlyFinancials(months: number): MonthlyStub[] {
     expenseUtilitiesFixed: 3_333,
     expenseInsurance: 6_667,
     expenseOtherCosts: 5_833,
+    expensePlatformFees: 0,
+    expensePreOpening: 0,
     totalExpenses: 204_167,
     gop: 170_833,
     agop: 158_333,

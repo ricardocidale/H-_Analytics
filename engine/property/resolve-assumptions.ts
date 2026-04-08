@@ -14,29 +14,11 @@ import {
   DEFAULT_TERM_YEARS,
   DEPRECIATION_YEARS,
   DAYS_PER_MONTH,
-  DEFAULT_REV_SHARE_EVENTS,
-  DEFAULT_REV_SHARE_FB,
-  DEFAULT_REV_SHARE_OTHER,
-  DEFAULT_CATERING_BOOST_PCT,
-  DEFAULT_COST_RATE_ROOMS,
-  DEFAULT_COST_RATE_FB,
-  DEFAULT_COST_RATE_ADMIN,
-  DEFAULT_COST_RATE_MARKETING,
-  DEFAULT_COST_RATE_PROPERTY_OPS,
-  DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
-  DEFAULT_COST_RATE_IT,
-  DEFAULT_COST_RATE_FFE,
-  DEFAULT_COST_RATE_OTHER,
-  DEFAULT_COST_RATE_INSURANCE,
-  DEFAULT_EVENT_EXPENSE_RATE,
-  DEFAULT_OTHER_EXPENSE_RATE,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_PROPERTY_TAX_RATE,
   DEFAULT_OCCUPANCY_RAMP_MONTHS,
-  DEFAULT_BASE_MANAGEMENT_FEE_RATE,
-  DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
+  BUSINESS_MODEL_DEFAULTS,
 } from '@/lib/constants';
 import {
   DEFAULT_AR_DAYS,
@@ -126,6 +108,8 @@ export interface PropertyEngineContext {
   revShareFB: number;
   revShareOther: number;
   cateringBoostMultiplier: number;
+  platformFeeRate: number;
+  preOpeningMonthlyBurn: number;
 
   needsDaysLookup: boolean;
   daysInMonthLookup: number[];
@@ -200,12 +184,15 @@ export function resolvePropertyAssumptions(
   const apDays = property.apDays ?? DEFAULT_AP_DAYS;
   const escalationMethod = property.escalationMethod ?? DEFAULT_ESCALATION_METHOD;
 
+  const bm = (property.businessModel as 'hotel' | 'lodge' | 'vrbo') ?? 'hotel';
+  const modelDefaults = BUSINESS_MODEL_DEFAULTS[bm] ?? BUSINESS_MODEL_DEFAULTS.hotel;
+
   const baseAdr = property.startAdr;
   const baseMonthlyRoomRev = property.roomCount * daysPerMonth * baseAdr * property.startOccupancy;
-  const revShareEvents = property.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS;
-  const revShareFB = property.revShareFB ?? DEFAULT_REV_SHARE_FB;
-  const revShareOther = property.revShareOther ?? DEFAULT_REV_SHARE_OTHER;
-  const cateringBoostPct = property.cateringBoostPercent ?? DEFAULT_CATERING_BOOST_PCT;
+  const revShareEvents = property.revShareEvents ?? modelDefaults.revShareEvents;
+  const revShareFB = property.revShareFB ?? modelDefaults.revShareFB;
+  const revShareOther = property.revShareOther ?? modelDefaults.revShareOther;
+  const cateringBoostPct = property.cateringBoostPercent ?? modelDefaults.cateringBoostPct;
   const cateringBoostMultiplier = 1 + cateringBoostPct;
   const baseMonthlyEventsRev = baseMonthlyRoomRev * revShareEvents;
   const baseMonthlyFBRev = baseMonthlyRoomRev * revShareFB * cateringBoostMultiplier;
@@ -228,26 +215,26 @@ export function resolvePropertyAssumptions(
     }
   }
 
-  const costRateRooms = property.costRateRooms ?? DEFAULT_COST_RATE_ROOMS;
-  const costRateFB = property.costRateFB ?? DEFAULT_COST_RATE_FB;
-  const costRateAdmin = property.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN;
-  const costRateMarketing = property.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING;
-  const costRatePropertyOps = property.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS;
-  const costRateUtilities = property.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES;
-  const costRateTaxes = property.costRateTaxes ?? DEFAULT_COST_RATE_TAXES;
-  const costRateIT = property.costRateIT ?? DEFAULT_COST_RATE_IT;
-  const costRateFFE = property.costRateFFE ?? DEFAULT_COST_RATE_FFE;
-  const costRateOther = property.costRateOther ?? DEFAULT_COST_RATE_OTHER;
-  const costRateInsurance = property.costRateInsurance ?? DEFAULT_COST_RATE_INSURANCE;
-  const eventExpenseRate = global.eventExpenseRate ?? DEFAULT_EVENT_EXPENSE_RATE;
-  const otherExpenseRate = global.otherExpenseRate ?? DEFAULT_OTHER_EXPENSE_RATE;
+  const costRateRooms = property.costRateRooms ?? modelDefaults.costRateRooms;
+  const costRateFB = property.costRateFB ?? modelDefaults.costRateFB;
+  const costRateAdmin = property.costRateAdmin ?? modelDefaults.costRateAdmin;
+  const costRateMarketing = property.costRateMarketing ?? modelDefaults.costRateMarketing;
+  const costRatePropertyOps = property.costRatePropertyOps ?? modelDefaults.costRatePropertyOps;
+  const costRateUtilities = property.costRateUtilities ?? modelDefaults.costRateUtilities;
+  const costRateTaxes = property.costRateTaxes ?? modelDefaults.costRateTaxes;
+  const costRateIT = property.costRateIT ?? modelDefaults.costRateIT;
+  const costRateFFE = property.costRateFFE ?? modelDefaults.costRateFFE;
+  const costRateOther = property.costRateOther ?? modelDefaults.costRateOther;
+  const costRateInsurance = property.costRateInsurance ?? modelDefaults.costRateInsurance;
+  const eventExpenseRate = global.eventExpenseRate ?? modelDefaults.eventExpenseRate;
+  const otherExpenseRate = global.otherExpenseRate ?? modelDefaults.otherExpenseRate;
   const utilitiesVariableSplit = global.utilitiesVariableSplit ?? DEFAULT_UTILITIES_VARIABLE_SPLIT;
   const utilitiesFixedSplit = 1 - utilitiesVariableSplit;
   const adrGrowthRate = property.adrGrowthRate ?? 0;
   const effectiveInflation = property.inflationRate ?? global.inflationRate;
   const fixedEscalationRate = global.fixedCostEscalationRate ?? effectiveInflation;
-  const incentiveFeeRate = property.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE;
-  const baseMgmtFeeRate = property.baseManagementFeeRate ?? DEFAULT_BASE_MANAGEMENT_FEE_RATE;
+  const incentiveFeeRate = property.incentiveManagementFeeRate ?? modelDefaults.incentiveMgmtFeeRate;
+  const baseMgmtFeeRate = property.baseManagementFeeRate ?? modelDefaults.baseMgmtFeeRate;
   const activeFeeCategories = property.feeCategories?.filter(c => c.isActive);
   const hasActiveFeeCategories = activeFeeCategories != null && activeFeeCategories.length > 0;
   const rampMonths = Math.max(1, property.occupancyRampMonths ?? DEFAULT_OCCUPANCY_RAMP_MONTHS);
@@ -332,6 +319,8 @@ export function resolvePropertyAssumptions(
     revShareFB,
     revShareOther,
     cateringBoostMultiplier,
+    platformFeeRate: property.platformFeeRate ?? modelDefaults.platformFeeRate,
+    preOpeningMonthlyBurn: property.preOpeningMonthlyBurn ?? modelDefaults.preOpeningMonthlyBurn,
     needsDaysLookup,
     daysInMonthLookup,
     adrFactors,

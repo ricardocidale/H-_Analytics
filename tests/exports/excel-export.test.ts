@@ -25,6 +25,8 @@ function makeYearlyData(yearCount: number): (YearlyPropertyFinancials & { label:
     expenseEvents: 260000 + i * 15000,
     expenseOther: 60000 + i * 3000,
     expenseOtherCosts: 50000 + i * 2000,
+    expensePlatformFees: 0,
+    expensePreOpening: 0,
     expenseMarketing: 125000 + i * 7000,
     expensePropertyOps: 100000 + i * 5000,
     expenseUtilitiesVar: 90000 + i * 4000,

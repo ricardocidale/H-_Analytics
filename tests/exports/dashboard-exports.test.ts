@@ -64,6 +64,8 @@ function makeYearlyFinancials(overrides: Partial<YearlyPropertyFinancials> = {})
     expenseUtilitiesVar: 60000,
     expenseUtilitiesFixed: 36000,
     expenseOtherCosts: 30000,
+    expensePlatformFees: 0,
+    expensePreOpening: 0,
     totalExpenses: 2730700,
     gop: 3299300,
     feeBase: 180900,

@@ -66,6 +66,8 @@ export interface YearlyPropertyFinancials {
   expenseIT: number;
   expenseTaxes: number;
   expenseFFE: number;
+  expensePlatformFees: number;
+  expensePreOpening: number;
 
   // Fees (SUM)
   feeBase: number;
@@ -132,6 +134,7 @@ export function aggregatePropertyByYear(
     let expenseOtherCosts = 0, expenseInsurance = 0, expenseMarketing = 0, expensePropertyOps = 0;
     let expenseUtilitiesVar = 0, expenseUtilitiesFixed = 0;
     let expenseAdmin = 0, expenseIT = 0, expenseTaxes = 0, expenseFFE = 0;
+    let expensePlatformFees = 0, expensePreOpening = 0;
     let feeBase = 0, feeIncentive = 0;
     let totalExpenses = 0, gop = 0, agop = 0, noi = 0, anoi = 0;
     let interestExpense = 0, depreciationExpense = 0, incomeTax = 0, netIncome = 0;
@@ -163,6 +166,8 @@ export function aggregatePropertyByYear(
       expenseIT += m.expenseIT;
       expenseTaxes += m.expenseTaxes;
       expenseFFE += m.expenseFFE;
+      expensePlatformFees += m.expensePlatformFees;
+      expensePreOpening += m.expensePreOpening;
       feeBase += m.feeBase;
       feeIncentive += m.feeIncentive;
       totalExpenses += m.totalExpenses;
@@ -224,6 +229,8 @@ export function aggregatePropertyByYear(
       expenseIT,
       expenseTaxes,
       expenseFFE,
+      expensePlatformFees,
+      expensePreOpening,
       feeBase,
       feeIncentive,
       serviceFeesByCategory: catFees,
@@ -284,6 +291,7 @@ export function aggregateUnifiedByYear(
     let expenseOtherCosts = 0, expenseInsurance = 0, expenseMarketing = 0, expensePropertyOps = 0;
     let expenseUtilitiesVar = 0, expenseUtilitiesFixed = 0;
     let expenseAdmin = 0, expenseIT = 0, expenseTaxes = 0, expenseFFE = 0;
+    let expensePlatformFees = 0, expensePreOpening = 0;
     let feeBase = 0, feeIncentive = 0;
     let totalExpenses = 0, gop = 0, agop = 0, noi = 0, anoi = 0;
     let interestExpense = 0, depreciationExpense = 0, incomeTax = 0, netIncome = 0;
@@ -316,6 +324,8 @@ export function aggregateUnifiedByYear(
       expenseIT += m.expenseIT;
       expenseTaxes += m.expenseTaxes;
       expenseFFE += m.expenseFFE;
+      expensePlatformFees += m.expensePlatformFees;
+      expensePreOpening += m.expensePreOpening;
       feeBase += m.feeBase;
       feeIncentive += m.feeIncentive;
       totalExpenses += m.totalExpenses;
@@ -379,6 +389,8 @@ export function aggregateUnifiedByYear(
       expenseIT,
       expenseTaxes,
       expenseFFE,
+      expensePlatformFees,
+      expensePreOpening,
       feeBase,
       feeIncentive,
       serviceFeesByCategory: catFees,

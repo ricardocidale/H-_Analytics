@@ -10,6 +10,7 @@
 import { computePropertyMetrics } from "./property-metrics.js";
 import { computeCapRateValuation } from "./cap-rate-valuation.js";
 import { RESEARCH_CAP_RATE_VALUATION_MAX_MULTIPLIER, RESEARCH_CAP_RATE_VALUATION_MIN_MULTIPLIER } from "../../shared/constants.js";
+import type { BusinessModelType } from "../../shared/constants.js";
 
 interface ResearchValueEntry {
   display: string;
@@ -24,6 +25,7 @@ interface PropertyContext {
   purchasePrice?: number;
   costRateRooms?: number;
   costRateFB?: number;
+  businessModel?: string;
 }
 
 interface ValidationFlag {
@@ -41,21 +43,80 @@ export interface ValidatedResearchValues {
   };
 }
 
-// Reasonable bounds for hospitality metrics
-const BOUNDS = {
-  adr: { min: 50, max: 2000 },               // $50-$2000/night
-  occupancy: { min: 20, max: 100 },           // 20%-100%
-  startOccupancy: { min: 10, max: 90 },       // 10%-90%
-  capRate: { min: 3, max: 15 },               // 3%-15%
-  noiMargin: { min: 5, max: 55 },             // 5%-55% (reasonable for hotels)
-  costRate: { min: 0.5, max: 50 },            // 0.5%-50% for any cost category
-  catering: { min: 5, max: 80 },              // 5%-80% boost
-  landValue: { min: 5, max: 60 },             // 5%-60% of purchase price
-  incomeTax: { min: 5, max: 50 },             // 5%-50% effective rate
-  revShare: { min: 1, max: 60 },              // 1%-60% of room revenue
-  svcFee: { min: 0.5, max: 10 },              // 0.5%-10% per service category
-  rampMonths: { min: 3, max: 36 },            // 3-36 months
+interface BoundsSet {
+  adr: { min: number; max: number };
+  occupancy: { min: number; max: number };
+  startOccupancy: { min: number; max: number };
+  capRate: { min: number; max: number };
+  noiMargin: { min: number; max: number };
+  costRate: { min: number; max: number };
+  catering: { min: number; max: number };
+  landValue: { min: number; max: number };
+  incomeTax: { min: number; max: number };
+  revShare: { min: number; max: number };
+  svcFee: { min: number; max: number };
+  rampMonths: { min: number; max: number };
+  platformFee: { min: number; max: number };
+}
+
+const HOTEL_BOUNDS: BoundsSet = {
+  adr: { min: 50, max: 2000 },
+  occupancy: { min: 20, max: 100 },
+  startOccupancy: { min: 10, max: 90 },
+  capRate: { min: 3, max: 15 },
+  noiMargin: { min: 5, max: 55 },
+  costRate: { min: 0.5, max: 50 },
+  catering: { min: 5, max: 80 },
+  landValue: { min: 5, max: 60 },
+  incomeTax: { min: 5, max: 50 },
+  revShare: { min: 1, max: 60 },
+  svcFee: { min: 0.5, max: 10 },
+  rampMonths: { min: 3, max: 36 },
+  platformFee: { min: 0, max: 5 },
 };
+
+const LODGE_BOUNDS: BoundsSet = {
+  adr: { min: 100, max: 3000 },
+  occupancy: { min: 15, max: 95 },
+  startOccupancy: { min: 5, max: 80 },
+  capRate: { min: 4, max: 18 },
+  noiMargin: { min: 3, max: 50 },
+  costRate: { min: 0.3, max: 50 },
+  catering: { min: 0, max: 10 },
+  landValue: { min: 10, max: 80 },
+  incomeTax: { min: 5, max: 50 },
+  revShare: { min: 0, max: 40 },
+  svcFee: { min: 0.5, max: 25 },
+  rampMonths: { min: 3, max: 24 },
+  platformFee: { min: 0, max: 5 },
+};
+
+const VRBO_BOUNDS: BoundsSet = {
+  adr: { min: 75, max: 5000 },
+  occupancy: { min: 15, max: 95 },
+  startOccupancy: { min: 5, max: 85 },
+  capRate: { min: 3, max: 15 },
+  noiMargin: { min: 2, max: 50 },
+  costRate: { min: 0.5, max: 50 },
+  catering: { min: 0, max: 5 },
+  landValue: { min: 5, max: 60 },
+  incomeTax: { min: 5, max: 50 },
+  revShare: { min: 0, max: 15 },
+  svcFee: { min: 0.5, max: 30 },
+  rampMonths: { min: 1, max: 12 },
+  platformFee: { min: 3, max: 25 },
+};
+
+const BOUNDS_BY_MODEL: Record<BusinessModelType, BoundsSet> = {
+  hotel: HOTEL_BOUNDS,
+  lodge: LODGE_BOUNDS,
+  vrbo: VRBO_BOUNDS,
+};
+
+function getBounds(businessModel?: string): BoundsSet {
+  const bm = (businessModel as BusinessModelType) ?? 'hotel';
+  return BOUNDS_BY_MODEL[bm] ?? HOTEL_BOUNDS;
+}
 
 function checkBounds(value: number, bounds: { min: number; max: number }, label: string): ValidationFlag {
   if (value < bounds.min) return { status: "warn", reason: `${label} (${value}) below typical minimum (${bounds.min})` };
@@ -71,6 +132,7 @@ export function validateResearchValues(
   extracted: Record<string, ResearchValueEntry>,
   property: PropertyContext
 ): ValidatedResearchValues {
+  const BOUNDS = getBounds(property.businessModel);
   const values: Record<string, ResearchValueEntry & { validation?: ValidationFlag }> = {};
   let passed = 0, warned = 0, failed = 0;
 
@@ -82,11 +144,9 @@ export function validateResearchValues(
   };
 
   for (const [key, entry] of Object.entries(extracted)) {
-    // Bounds checks by key pattern
     if (key === "adr") {
       const flag = checkBounds(entry.mid, BOUNDS.adr, "ADR");
       if (flag.status === "pass") {
-        // Cross-validate: compute metrics with recommended ADR
         const metrics = computePropertyMetrics({
           room_count: property.roomCount,
           adr: entry.mid,
@@ -107,7 +167,6 @@ export function validateResearchValues(
     } else if (key === "startOccupancy") {
       const flag = checkBounds(entry.mid, BOUNDS.startOccupancy, "Starting occupancy");
       if (flag.status === "pass" && extracted["occupancy"]) {
-        // Start occupancy should be less than stabilized
         if (entry.mid >= extracted["occupancy"].mid) {
           addValidation(key, entry, { status: "warn", reason: `Start occupancy (${entry.mid}%) >= stabilized (${extracted["occupancy"].mid}%)` });
           continue;
@@ -118,7 +177,6 @@ export function validateResearchValues(
     } else if (key === "capRate") {
       const flag = checkBounds(entry.mid, BOUNDS.capRate, "Cap rate");
       if (flag.status === "pass" && property.purchasePrice) {
-        // Cross-validate: compute implied value
         const metrics = computePropertyMetrics({
           room_count: property.roomCount,
           adr: property.startAdr,
@@ -130,7 +188,6 @@ export function validateResearchValues(
             cap_rate: entry.mid / 100,
             purchase_price: property.purchasePrice,
           });
-          // Implied value should be within reasonable bounds of purchase price
           if (valuation.implied_value > property.purchasePrice * RESEARCH_CAP_RATE_VALUATION_MAX_MULTIPLIER) {
             addValidation(key, entry, { status: "warn", reason: `Cap rate ${entry.mid}% implies value $${valuation.implied_value.toLocaleString()} (>${RESEARCH_CAP_RATE_VALUATION_MAX_MULTIPLIER}x purchase price $${property.purchasePrice.toLocaleString()})` });
             continue;
@@ -155,6 +212,9 @@ export function validateResearchValues(
     } else if (key === "rampMonths") {
       addValidation(key, entry, checkBounds(entry.mid, BOUNDS.rampMonths, "Ramp months"));
 
+    } else if (key === "platformFee") {
+      addValidation(key, entry, checkBounds(entry.mid, BOUNDS.platformFee, "Platform fee rate"));
+
     } else if (key.startsWith("cost")) {
       addValidation(key, entry, checkBounds(entry.mid, BOUNDS.costRate, key));
 
@@ -165,7 +225,6 @@ export function validateResearchValues(
       addValidation(key, entry, checkBounds(entry.mid, BOUNDS.svcFee, key));
 
     } else {
-      // Unknown key — pass through without validation
       values[key] = { ...entry };
       passed++;
     }

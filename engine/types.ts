@@ -99,6 +99,14 @@ export interface PropertyInput {
   costSeg15yrPct?: number | null;
   // Per-property depreciation override (nullable — NULL means use global/constant fallback)
   depreciationYears?: number | null;
+  // Business model
+  businessModel?: string | null;
+  // Platform fee (VRBO/STR: Airbnb ~15.5%, VRBO ~8%)
+  platformFeeRate?: number | null;
+  // Pre-opening monthly burn during ramp-up (training, initial stock, soft-launch)
+  preOpeningMonthlyBurn?: number | null;
+  // Pre-opening costs (one-time, at acquisition)
+  preOpeningCosts?: number | null;
   // Property identity
   id?: number;
   name?: string;
@@ -205,6 +213,8 @@ export interface MonthlyFinancials {
   expenseUtilitiesFixed: number;
   expenseInsurance: number;
   expenseOtherCosts: number;
+  expensePlatformFees: number;
+  expensePreOpening: number;
   totalExpenses: number;
   gop: number;
   agop: number;

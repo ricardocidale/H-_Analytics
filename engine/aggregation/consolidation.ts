@@ -38,6 +38,8 @@ function addPropertyYear(target: YearlyPropertyFinancials, src: YearlyPropertyFi
   target.expenseIT += src.expenseIT;
   target.expenseTaxes += src.expenseTaxes;
   target.expenseFFE += src.expenseFFE;
+  target.expensePlatformFees += src.expensePlatformFees;
+  target.expensePreOpening += src.expensePreOpening;
   target.feeBase += src.feeBase;
   target.feeIncentive += src.feeIncentive;
   target.totalExpenses += src.totalExpenses;
@@ -143,6 +145,7 @@ function createEmptyYear(yearIndex: number): YearlyPropertyFinancials {
     expenseInsurance: 0, expenseMarketing: 0, expensePropertyOps: 0,
     expenseUtilitiesVar: 0, expenseUtilitiesFixed: 0, expenseUtilities: 0,
     expenseAdmin: 0, expenseIT: 0, expenseTaxes: 0, expenseFFE: 0,
+    expensePlatformFees: 0, expensePreOpening: 0,
     feeBase: 0, feeIncentive: 0, serviceFeesByCategory: {},
     totalExpenses: 0, gop: 0, agop: 0, noi: 0, anoi: 0,
     interestExpense: 0, depreciationExpense: 0, incomeTax: 0, netIncome: 0,

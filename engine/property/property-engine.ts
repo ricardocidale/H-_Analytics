@@ -100,6 +100,11 @@ export function generatePropertyProForma(
     const expenseUtilitiesVar = revenueTotal * (ctx.costRateUtilities * ctx.utilitiesVariableSplit);
     const expenseFFE = revenueTotal * ctx.costRateFFE;
 
+    const expensePlatformFees = ctx.platformFeeRate > 0 ? revenueRooms * ctx.platformFeeRate : 0;
+
+    const isRampingUp = isOperational && monthsSinceOps < ctx.rampMonths;
+    const expensePreOpening = isRampingUp && ctx.preOpeningMonthlyBurn > 0 ? ctx.preOpeningMonthlyBurn : 0;
+
     const fixedGate = isOperational ? 1 : 0;
     const fixedCostFactorGated = fixedCostFactor * fixedGate;
     const expenseAdmin = ctx.baseMonthlyTotalRev * ctx.costRateAdmin * fixedCostFactorGated;
@@ -126,7 +131,8 @@ export function generatePropertyProForma(
     const totalOperatingExpenses = 
       expenseRooms + expenseFB + expenseEvents + expenseOther + 
       expenseMarketing + expensePropertyOps + expenseUtilitiesVar + 
-      expenseAdmin + expenseIT + expenseUtilitiesFixed + expenseInsurance + expenseOtherCosts;
+      expenseAdmin + expenseIT + expenseUtilitiesFixed + expenseInsurance + expenseOtherCosts +
+      expensePlatformFees + expensePreOpening;
       
     const gop = revenueTotal - totalOperatingExpenses;
     const feeIncentive = Math.max(0, gop * ctx.incentiveFeeRate);
@@ -258,6 +264,8 @@ export function generatePropertyProForma(
       expenseUtilitiesFixed,
       expenseInsurance,
       expenseOtherCosts,
+      expensePlatformFees,
+      expensePreOpening,
       totalExpenses: totalOperatingExpenses + feeBase + feeIncentive + expenseTaxes + expenseFFE,
       gop,
       agop,

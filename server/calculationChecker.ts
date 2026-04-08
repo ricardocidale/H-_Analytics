@@ -41,6 +41,8 @@ function mapEngineMonthly(m: PipelineMonth): EngineMonthlyResult {
     expenseUtilitiesFixed: m.expenseUtilitiesFixed,
     expenseInsurance: m.expenseInsurance,
     expenseOtherCosts: m.expenseOtherCosts,
+    expensePlatformFees: m.expensePlatformFees,
+    expensePreOpening: m.expensePreOpening,
     totalExpenses: m.totalExpenses,
     gop: m.gop,
     agop: m.agop,
