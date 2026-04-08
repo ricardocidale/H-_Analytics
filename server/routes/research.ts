@@ -643,6 +643,24 @@ export function register(app: Express) {
     }
   });
 
+  app.get("/api/research/avg-duration", requireAuth, async (_req, res) => {
+    try {
+      const latestRuns = await storage.getLatestCompletedRunsPerEntity("property");
+      let totalDurationMs = 0;
+      let durationCount = 0;
+      for (const r of latestRuns) {
+        if (r.durationMs) {
+          totalDurationMs += Number(r.durationMs);
+          durationCount++;
+        }
+      }
+      const avgDurationMs = durationCount > 0 ? Math.round(totalDurationMs / durationCount) : null;
+      res.json({ avgDurationMs });
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch avg duration", error);
+    }
+  });
+
   app.get("/api/research/last-full-refresh", requireAuth, async (req, res) => {
     try {
       const lastRefresh = await storage.getLastFullResearchRefresh(getAuthUser(req).id);

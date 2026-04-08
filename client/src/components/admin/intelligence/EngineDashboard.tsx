@@ -51,10 +51,11 @@ function IntelligenceHealthCard({ counts }: { counts: FreshnessCounts }) {
     status === "amber" ? `${counts.stale} propert${counts.stale === 1 ? "y" : "ies"} need${counts.stale === 1 ? "s" : ""} refresh` :
     `${counts.missing} propert${counts.missing === 1 ? "y" : "ies"} missing intelligence`;
 
-  const total = counts.total || 1;
-  const currentPct = Math.round((counts.current / total) * 100);
-  const stalePct = Math.round((counts.stale / total) * 100);
-  const missingPct = Math.round((counts.missing / total) * 100);
+  const categorized = counts.current + counts.stale + counts.missing;
+  const denom = categorized || 1;
+  const currentPct = Math.round((counts.current / denom) * 100);
+  const stalePct = Math.round((counts.stale / denom) * 100);
+  const missingPct = Math.round((counts.missing / denom) * 100);
 
   return (
     <Card data-testid="intelligence-health-card">

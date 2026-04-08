@@ -88,14 +88,14 @@ export default function PropertyEdit() {
 
   const autoRefreshFired = useRef(false);
   const { data: freshnessMeta } = useQuery<{ avgDurationMs: number | null }>({
-    queryKey: ["/api/admin/intelligence/freshness-counts"],
+    queryKey: ["/api/research/avg-duration"],
     enabled: !autoRefreshFired.current,
   });
   useEffect(() => {
     if (autoRefreshFired.current || isDirty || isGenerating) return;
     if (!property) return;
     const estimatedMs = freshnessMeta?.avgDurationMs ?? null;
-    if (estimatedMs !== null && estimatedMs > 30_000) return;
+    if (estimatedMs === null || estimatedMs > 30_000) return;
     const { status } = computeFreshnessStatus({
       researchUpdatedAt,
       lastAssumptionChangeAt: propertyLastAssumptionChangeAt,

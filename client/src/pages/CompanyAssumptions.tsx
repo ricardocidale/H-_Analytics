@@ -83,14 +83,14 @@ export default function CompanyAssumptions() {
 
   const autoRefreshFired = useRef(false);
   const { data: freshnessMeta } = useQuery<{ avgDurationMs: number | null }>({
-    queryKey: ["/api/admin/intelligence/freshness-counts"],
+    queryKey: ["/api/research/avg-duration"],
     enabled: !autoRefreshFired.current,
   });
   useEffect(() => {
     if (autoRefreshFired.current || isDirty || isGenerating || isLoading) return;
     if (!global) return;
     const estimatedMs = freshnessMeta?.avgDurationMs ?? null;
-    if (estimatedMs !== null && estimatedMs > 30_000) return;
+    if (estimatedMs === null || estimatedMs > 30_000) return;
     const { status } = computeFreshnessStatus({
       researchUpdatedAt: companyResearchUpdatedAt,
       lastAssumptionChangeAt: global.lastAssumptionChangeAt ?? null,
