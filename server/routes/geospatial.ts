@@ -54,7 +54,8 @@ export function register(app: Express) {
       }
 
       const countryBias = req.query.country ? String(req.query.country).toLowerCase() : undefined;
-      const suggestions = await placesAutocomplete(q, countryBias);
+      const stateBias = req.query.state ? String(req.query.state) : undefined;
+      const suggestions = await placesAutocomplete(q, countryBias, stateBias);
       res.json(suggestions);
     } catch (error) {
       logAndSendError(res, "Autocomplete failed", error);

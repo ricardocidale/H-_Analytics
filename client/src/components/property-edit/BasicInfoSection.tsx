@@ -107,6 +107,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
   const isAutoFilled = (field: string) => autoFilledFields.has(field);
 
   const countryIso = geo.countryCode || undefined;
+  const stateForBias = draft.stateProvince || undefined;
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -149,6 +150,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                   className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground"
                   data-testid="input-street-address"
                   countryBias={countryIso}
+                  stateBias={stateForBias}
                 />
               </div>
               <div className="space-y-2">

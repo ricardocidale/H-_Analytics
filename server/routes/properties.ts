@@ -183,6 +183,9 @@ export function register(app: Express) {
         return res.status(400).json({ error: "latitude and longitude must be numbers" });
       }
       const updated = await storage.updateProperty(propertyId, { latitude, longitude });
+      if (!updated) {
+        return res.status(404).json({ error: "Property not found" });
+      }
       res.json({ latitude: updated.latitude, longitude: updated.longitude });
     } catch (error) {
       logAndSendError(res, "Failed to update coordinates", error);
