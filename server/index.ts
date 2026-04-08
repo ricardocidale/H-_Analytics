@@ -386,6 +386,12 @@ async function runSchemaMigrations() {
     await runSourceCallLogs001();
     await markMigrationApplied("source_call_logs_001");
   }
+
+  if (!(await isMigrationApplied("engine_suggested_lines_001"))) {
+    const { runEngineSuggestedLines001 } = await import("./migrations/engine-suggested-lines-001");
+    await runEngineSuggestedLines001();
+    await markMigrationApplied("engine_suggested_lines_001");
+  }
 }
 
 async function runSeeds() {

@@ -23,6 +23,7 @@ import DataSourcesTab from "@/components/admin/intelligence/DataSourcesTab";
 import PipelineConfigTab from "@/components/admin/intelligence/PipelineConfigTab";
 import KnowledgeBaseTab from "@/components/admin/KnowledgeBaseTab";
 import ConversationsTab from "@/components/admin/ConversationsTab";
+import FinancialLinesTab from "@/components/admin/intelligence/FinancialLinesTab";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -50,6 +51,7 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "pipeline-config":     { title: "Pipeline Config",          subtitle: "Staleness thresholds, token budgets, model routing, and refresh schedules" },
   "qa-sandbox":          { title: "QA Sandbox",               subtitle: "Preview context packs and prompts before running research" },
   "scheduled-research":  { title: "Scheduled Research",       subtitle: "Automated research workflows that keep intelligence fresh" },
+  "financial-lines":     { title: "Financial Lines",           subtitle: "Engine-suggested calculation additions for financial statements" },
   notifications:         { title: "Notifications",            subtitle: "Email channels, alert rules, and delivery tracking" },
   navigation:            { title: "Navigation",               subtitle: "Control which sidebar pages are visible to users" },
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
@@ -105,6 +107,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "pipeline-config":  return <PipelineConfigTab onSaveStateChange={onSaveStateChange} />;
     case "qa-sandbox":       return <QASandbox />;
     case "scheduled-research": return <ScheduledResearchPanel />;
+    case "financial-lines":  return <FinancialLinesTab />;
     case "notifications":    return <NotificationsTab />;
     case "navigation":       return <NavigationTab />;
     case "verification":     return <VerificationTab />;

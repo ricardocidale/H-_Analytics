@@ -9,6 +9,7 @@ import {
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
   IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconExport, IconScenarios, IconPalette,
   IconLayers, IconShieldCheck, IconGlobe, IconTimer, IconDashboard, IconGauge, IconMessageSquare,
+  IconCalculator,
 } from "@/components/icons";
 import { Link } from "wouter";
 
@@ -26,7 +27,7 @@ export type AdminSection =
   | "companies" | "groups" | "scenarios"
   | "brand" | "exports"
   | "ai-agents" | "knowledge-base" | "conversations"
-  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research"
+  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines"
   | "navigation" | "notifications" | "verification" | "database"
   | "icp" | "logos" | "themes" | "icons"
   | "llms" | "sources" | "model-routing"
@@ -95,6 +96,7 @@ function buildNavGroups(): NavGroup[] {
         { value: "pipeline-config", label: "Pipeline Config", icon: IconLayers },
         { value: "qa-sandbox", label: "QA Sandbox", icon: IconShieldCheck },
         { value: "scheduled-research", label: "Scheduled Research", icon: IconTimer },
+        { value: "financial-lines", label: "Financial Lines", icon: IconCalculator },
       ],
     },
     {

@@ -769,3 +769,12 @@ export async function retrievePropertyContext(params: {
     return [];
   }
 }
+
+export async function indexToKnowledgeBase(id: string, text: string, metadata: Record<string, unknown>): Promise<void> {
+  if (!isPineconeAvailable() || !isEmbeddingAvailable()) return;
+  await upsertChunks("knowledge-base", [{
+    id: `kb:${id}`,
+    text: text.slice(0, 8_000),
+    metadata: { ...metadata, content: text.slice(0, 2_000) },
+  }]);
+}

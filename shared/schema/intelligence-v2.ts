@@ -278,6 +278,31 @@ export const insertSourceCallLogSchema = createInsertSchema(sourceCallLogs).pick
 export type SourceCallLog = typeof sourceCallLogs.$inferSelect;
 export type InsertSourceCallLog = z.infer<typeof insertSourceCallLogSchema>;
 
+export const engineSuggestedLines = pgTable("engine_suggested_lines", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  statementType: text("statement_type").notNull(),
+  category: text("category").notNull(),
+  lineName: text("line_name").notNull(),
+  description: text("description"),
+  justification: text("justification"),
+  suggestedByRunId: integer("suggested_by_run_id").references(() => researchRuns.id, { onDelete: "set null" }),
+  status: text("status").notNull().default("pending"),
+  reviewedBy: integer("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("engine_suggested_lines_status_idx").on(table.status),
+  index("engine_suggested_lines_statement_idx").on(table.statementType),
+]);
+
+export const insertEngineSuggestedLineSchema = createInsertSchema(engineSuggestedLines).pick({
+  statementType: true, category: true, lineName: true, description: true,
+  justification: true, suggestedByRunId: true, status: true,
+});
+export type EngineSuggestedLine = typeof engineSuggestedLines.$inferSelect;
+export type InsertEngineSuggestedLine = z.infer<typeof insertEngineSuggestedLineSchema>;
+
 export const integrationKeyRotations = pgTable("integration_key_rotations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   serviceKey: text("service_key").notNull(),

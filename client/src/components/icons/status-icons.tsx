@@ -384,3 +384,22 @@ export function IconExecutive(p: IconProps) {
     </svg>
   );
 }
+
+export function IconCheck(p: IconProps) {
+  const a = defaults(p);
+  return (
+    <svg {...a}>
+      <path d="M20 6 9 17l-5-5" {...S} />
+    </svg>
+  );
+}
+
+export function IconX(p: IconProps) {
+  const a = defaults(p);
+  return (
+    <svg {...a}>
+      <path d="M18 6 6 18" {...S} />
+      <path d="m6 6 12 12" {...S} />
+    </svg>
+  );
+}

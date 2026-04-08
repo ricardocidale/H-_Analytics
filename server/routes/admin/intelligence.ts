@@ -693,6 +693,67 @@ export function registerIntelligenceRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/intelligence/financial-lines", requireAdmin, async (req, res) => {
+    try {
+      const status = z.enum(["all", "pending", "approved", "rejected"]).optional().safeParse(req.query.status);
+      const filter = status.success ? status.data : undefined;
+      const [lines, counts] = await Promise.all([
+        storage.getEngineSuggestedLines(filter),
+        storage.getEngineSuggestedLineCounts(),
+      ]);
+      res.json({ lines, counts });
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch financial line suggestions", error);
+    }
+  });
+
+  app.patch("/api/admin/intelligence/financial-lines/:id/approve", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const user = getAuthUser(req);
+      const existing = await storage.getEngineSuggestedLineById(id);
+      if (!existing) return res.status(404).json({ error: "Suggestion not found" });
+      const updated = await storage.approveEngineSuggestedLine(id, user.id);
+
+      if (updated) {
+        try {
+          const { indexToKnowledgeBase } = await import("../../ai/pinecone-service");
+          const text = `Approved financial line suggestion: ${updated.lineName} (${updated.statementType} / ${updated.category}). ${updated.description ?? ""} ${updated.justification ?? ""}`;
+          await indexToKnowledgeBase(`financial-line-${updated.id}`, text, {
+            type: "financial-line-suggestion",
+            statementType: updated.statementType,
+            category: updated.category,
+            lineName: updated.lineName,
+            status: "approved",
+          });
+        } catch {
+          logger.warn("Failed to index approved financial line to Pinecone", "financial-lines");
+        }
+      }
+
+      res.json(updated);
+    } catch (error) {
+      logAndSendError(res, "Failed to approve financial line suggestion", error);
+    }
+  });
+
+  app.patch("/api/admin/intelligence/financial-lines/:id/reject", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const body = z.object({ reason: z.string().min(1).max(500) }).safeParse(req.body);
+      if (!body.success) return res.status(400).json({ error: "Rejection reason is required (1-500 chars)" });
+      const user = getAuthUser(req);
+      const existing = await storage.getEngineSuggestedLineById(id);
+      if (!existing) return res.status(404).json({ error: "Suggestion not found" });
+      const updated = await storage.rejectEngineSuggestedLine(id, user.id, body.data.reason);
+      res.json(updated);
+    } catch (error) {
+      logAndSendError(res, "Failed to reject financial line suggestion", error);
+    }
+  });
+
   app.get("/api/admin/system-intelligence-status", requireAdmin, async (_req, res) => {
     try {
       const vendors = checkVendorAvailability();

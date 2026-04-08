@@ -1,8 +1,8 @@
 import {
   assumptionGuidance, researchRuns, benchmarkSnapshots, relaxationTraces,
   guidanceDecisions, rebeccaConversations, rebeccaMessages, rebeccaEmails,
-  rebeccaFeedback, coverageSnapshots, sourceRegistry, sourceCallLogs, integrationKeyRotations,
-  pipelinePolicies, scheduledResearchWorkflows,
+  rebeccaFeedback, coverageSnapshots, sourceRegistry, sourceCallLogs, engineSuggestedLines,
+  integrationKeyRotations, pipelinePolicies, scheduledResearchWorkflows,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type ResearchRun, type InsertResearchRun,
   type BenchmarkSnapshot, type InsertBenchmarkSnapshot,
@@ -15,6 +15,7 @@ import {
   type CoverageSnapshot, type InsertCoverageSnapshot,
   type SourceRegistryEntry, type InsertSourceRegistryEntry,
   type SourceCallLog, type InsertSourceCallLog,
+  type EngineSuggestedLine, type InsertEngineSuggestedLine,
   type IntegrationKeyRotation, type InsertIntegrationKeyRotation,
   type PipelinePolicy, type InsertPipelinePolicy,
   type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
@@ -478,5 +479,57 @@ export class IntelligenceV2Storage {
   async deleteScheduledResearchWorkflow(id: number): Promise<void> {
     await db.delete(scheduledResearchWorkflows)
       .where(eq(scheduledResearchWorkflows.id, id));
+  }
+
+  async getEngineSuggestedLines(status?: string): Promise<EngineSuggestedLine[]> {
+    if (status && status !== "all") {
+      return db.select().from(engineSuggestedLines)
+        .where(eq(engineSuggestedLines.status, status))
+        .orderBy(desc(engineSuggestedLines.createdAt));
+    }
+    return db.select().from(engineSuggestedLines).orderBy(desc(engineSuggestedLines.createdAt));
+  }
+
+  async getEngineSuggestedLineById(id: number): Promise<EngineSuggestedLine | undefined> {
+    const [row] = await db.select().from(engineSuggestedLines)
+      .where(eq(engineSuggestedLines.id, id)).limit(1);
+    return row;
+  }
+
+  async createEngineSuggestedLine(data: InsertEngineSuggestedLine): Promise<EngineSuggestedLine> {
+    const [inserted] = await db.insert(engineSuggestedLines)
+      .values(data as typeof engineSuggestedLines.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  async approveEngineSuggestedLine(id: number, reviewedBy: number): Promise<EngineSuggestedLine | undefined> {
+    const [updated] = await db.update(engineSuggestedLines)
+      .set({ status: "approved", reviewedBy, reviewedAt: new Date(), rejectionReason: null })
+      .where(eq(engineSuggestedLines.id, id))
+      .returning();
+    return updated;
+  }
+
+  async rejectEngineSuggestedLine(id: number, reviewedBy: number, reason: string): Promise<EngineSuggestedLine | undefined> {
+    const [updated] = await db.update(engineSuggestedLines)
+      .set({ status: "rejected", reviewedBy, reviewedAt: new Date(), rejectionReason: reason })
+      .where(eq(engineSuggestedLines.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getEngineSuggestedLineCounts(): Promise<{ pending: number; approved: number; rejected: number; total: number }> {
+    const rows = await db.execute(sql`
+      SELECT status, COUNT(*)::int AS count FROM engine_suggested_lines GROUP BY status
+    `);
+    const counts = { pending: 0, approved: 0, rejected: 0, total: 0 };
+    for (const row of (rows.rows ?? []) as { status: string; count: number }[]) {
+      if (row.status === "pending") counts.pending = row.count;
+      else if (row.status === "approved") counts.approved = row.count;
+      else if (row.status === "rejected") counts.rejected = row.count;
+    }
+    counts.total = counts.pending + counts.approved + counts.rejected;
+    return counts;
   }
 }
