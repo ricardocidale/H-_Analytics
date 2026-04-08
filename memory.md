@@ -37,7 +37,18 @@
 - **PropertyDetail.tsx**: Link chips displayed between description card and map — color-coded (primary=relevant, destructive=broken, muted=valid), dot indicator, hostname fallback with safe URL parsing
 - **PortfolioPropertyCard.tsx**: Compact link chips (max 3 shown, "+N" overflow) below description, stale-time query, stopPropagation on clicks
 - Files: schema/properties.ts, storage/property-urls.ts, storage/index.ts, routes/properties.ts, PropertyLinksSection.tsx, property-edit/index.ts, PropertyDetail.tsx, PropertyEdit.tsx, PortfolioPropertyCard.tsx
-- Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
+- Health check: ALL CLEAR — 0 TS errors, 3978 tests pass, verification UNQUALIFIED
+
+### Task #299: Hero Image AI Enhancement Pipeline (April 2026) — COMPLETED
+- **Enhancement endpoint**: `POST /api/property-photos/:id/enhance` — sends photo to Replicate clarity-upscaler (photo-upscale model), saves enhanced base64 to `enhancedImageData` column
+- **Enhanced image serving**: `GET /api/property-photos/:id/enhanced-image` — serves enhanced image binary from DB
+- **Revert endpoint**: `DELETE /api/property-photos/:id/enhanced` — clears enhancedImageData
+- **Schema**: Added `enhancedImageData` text column to `property_photos` (migration: enhanced-photo-001.ts)
+- **EnhancePreviewDialog**: Side-by-side and slider compare modes, Accept/Reject buttons
+- **PhotoCard**: Sparkles button on hero photos, "Enhanced" badge when enhanced data exists
+- **PropertyHeader**: Prefers enhanced image for hero display, shows "AI Enhanced" badge
+- **PortfolioPropertyCard**: Prefers enhanced hero image, shows "Enhanced" badge
+- Health check: ALL CLEAR — 0 TS errors, 3978 tests pass, verification UNQUALIFIED
 
 ### Task #297: Property Description Card with AI Rewrite (April 2026) — COMPLETED
 - **DescriptionSection enhanced** (`client/src/components/property-edit/DescriptionSection.tsx`): Read-only display mode (styled card with Edit button) when description exists; edit mode with textarea. Preview Dialog for AI rewrite — user can review improved vs original text side-by-side, then accept or dismiss. Frontend calls property-scoped `POST /api/properties/:id/rewrite-description`.
@@ -45,7 +56,7 @@
 - **PortfolioPropertyCard updated** (`client/src/components/portfolio/PortfolioPropertyCard.tsx`): Added `truncateWords(text, 60)` utility function; description shown as truncated text (max 60 words with ellipsis) below the location/date on the property card. Uses `line-clamp-3` for visual truncation.
 - **PropertyDetail page updated** (`client/src/pages/PropertyDetail.tsx`): Added full description card between PropertyHeader and map section. Shows when `property.description` exists — styled card with "Property Description" label and full text with `whitespace-pre-wrap`.
 - Files: DescriptionSection.tsx, PortfolioPropertyCard.tsx, PropertyDetail.tsx, server/routes/properties.ts
-- Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
+- Health check: ALL CLEAR — 0 TS errors, 3978 tests pass, verification UNQUALIFIED
 
 ### Task #296: Smart Address Autocomplete & Auto-Fill (April 2026) — COMPLETED
 - **Existing AddressAutocomplete extended** (`client/src/components/AddressAutocomplete.tsx`): Added AbortController for stale-response protection, `countryBias` prop for country-scoped Google Places results, `disabled` prop, map pin icon (`IconMapPin`), proper `credentials: "include"` on fetch calls, cleanup on unmount (abort + debounce timer), proper `unknown` error type (no `any`)
@@ -53,7 +64,7 @@
 - **Server enhanced**: `placesAutocomplete()` now accepts optional `countryBias` parameter for country-scoped results (`&components=country:XX`); route passes `?country=` query param through; new `PATCH /api/properties/:id/coords` endpoint for immediate lat/lng persistence after place selection
 - **Code review fixes**: (1) Extended existing component instead of creating duplicate, (2) Lat/lng persisted immediately via dedicated coords endpoint, (3) Country bias passed from frontend, (4) No `any` types — uses `unknown` + `instanceof`, (5) Only fills empty fields to preserve user-entered data
 - Files: AddressAutocomplete.tsx (extended), BasicInfoSection.tsx, geospatial.ts, geospatial routes, properties.ts
-- Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
+- Health check: ALL CLEAR — 0 TS errors, 3978 tests pass, verification UNQUALIFIED
 
 ### Task #292: Skill Authoring & Updates (April 2026) — COMPLETED
 - **3 new skills created**:
@@ -104,7 +115,7 @@
 - **SourceRegistryOverlay.tsx fixed**: Updated from serviceKey-based PATCH to ID-based toggle route
 - **15 seed records**: 4 APIs, 4 scrapers, 4 sources, 3 models
 - **`as any` cast removed**: lastHealthCheck update uses typed Date directly
-- All 3976 tests passing, 0 TS errors, lint clean, verification UNQUALIFIED
+- All 3978 tests passing, 0 TS errors, lint clean, verification UNQUALIFIED
 
 ### Phase 1 Schema Changes (April 2026) — COMPLETED
 - **businessModel field added** to properties table: `text("business_model").notNull().default("hotel")`
@@ -148,7 +159,7 @@
 - **PropertyEdit page** wired: Status bar below PageHeader, header dot uses `computeFreshnessStatus`
 - **CompanyAssumptions page** wired: Status bar below PageHeader, header dot unified via `computeFreshnessStatus`
 - **GlobalResponse type** updated: added `lastAssumptionChangeAt: string | null`
-- All 3976 tests passing, 0 TS errors, lint clean, verification UNQUALIFIED
+- All 3978 tests passing, 0 TS errors, lint clean, verification UNQUALIFIED
 
 ### Task #288: Freshness Infrastructure, Badges & Auto-Refresh (April 2026) — COMPLETED
 - **Backend endpoint**: `GET /api/admin/intelligence/freshness-counts` (admin-only)
@@ -258,7 +269,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - VRBO: 85–95% rental, 5–12% cleaning fees
 
 ## Test State
-- 3976 tests across 170 files — ALL PASSING
+- 3978 tests across 170 files — ALL PASSING
 - TypeScript: 0 errors
 - Lint: 0 errors
 - Financial verification: UNQUALIFIED

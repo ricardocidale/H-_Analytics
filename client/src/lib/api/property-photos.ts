@@ -138,7 +138,6 @@ export function useEnhancePhoto() {
       enhancePhoto(photoId),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
-      invalidateAllFinancialQueries(queryClient);
     },
   });
 }
@@ -150,7 +149,6 @@ export function useRemoveEnhancement() {
       removeEnhancement(photoId),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
-      invalidateAllFinancialQueries(queryClient);
     },
   });
 }

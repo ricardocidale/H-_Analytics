@@ -107,9 +107,11 @@ const NON_FINANCIAL_MUTATIONS = [
   "useSaveResearchConfig",  // Admin research prompt config — does not affect financial calculations
   "useRefreshAiModels",     // Admin AI model list refresh — does not affect financial calculations
   "useUpdateAdminConfig",   // Non-financial global_assumptions (branding, ICP, sidebar, asset def) — only invalidates globalAssumptions query
-  // Property photos (caption/reorder don't affect financial data)
+  // Property photos (caption/reorder/enhance don't affect financial data)
   "useUpdatePropertyPhoto",
   "useReorderPhotos",
+  "useEnhancePhoto",
+  "useRemoveEnhancement",
   // Scenario auto-save and admin restore/purge — do not affect live financial calculations
   "useAutoSave",
   "useRestoreScenario",
