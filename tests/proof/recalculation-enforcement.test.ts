@@ -111,6 +111,8 @@ const NON_FINANCIAL_MUTATIONS = [
   "useUpdatePropertyPhoto",
   "useReorderPhotos",
   "useEnhancePhoto",
+  "useAcceptEnhancement",
+  "useRejectEnhancement",
   "useRemoveEnhancement",
   // Scenario auto-save and admin restore/purge — do not affect live financial calculations
   "useAutoSave",

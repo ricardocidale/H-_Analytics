@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ImagePlus, Sparkles, Images } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useReorderPhotos, useEnhancePhoto, useRemoveEnhancement } from "@/lib/api";
+import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useReorderPhotos, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement, useRemoveEnhancement } from "@/lib/api";
 import { PhotoCard } from "./PhotoCard";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { PhotoGenerateDialog } from "./PhotoGenerateDialog";
@@ -41,6 +41,8 @@ export function PhotoAlbumGrid({
   const updatePhoto = useUpdatePropertyPhoto();
   const reorder = useReorderPhotos();
   const enhancePhoto = useEnhancePhoto();
+  const acceptEnhancement = useAcceptEnhancement();
+  const rejectEnhancement = useRejectEnhancement();
   const removeEnhancement = useRemoveEnhancement();
 
   const handleSetHero = (photoId: number) => {
@@ -63,7 +65,7 @@ export function PhotoAlbumGrid({
       { photoId, propertyId },
       {
         onSuccess: (data) => {
-          setEnhancedPreviewUrl(data.enhancedImageUrl);
+          setEnhancedPreviewUrl(data.previewUrl);
         },
         onError: (error) => {
           setEnhanceDialogOpen(false);
@@ -79,15 +81,27 @@ export function PhotoAlbumGrid({
   };
 
   const handleAcceptEnhance = () => {
+    if (enhancingPhotoId) {
+      acceptEnhancement.mutate(
+        { photoId: enhancingPhotoId, propertyId },
+        {
+          onSuccess: () => {
+            toast({ title: "Enhancement accepted", description: "The enhanced image is now active with regenerated variants." });
+          },
+          onError: () => {
+            toast({ title: "Accept failed", description: "Could not persist enhancement. Try again.", variant: "destructive" });
+          },
+        }
+      );
+    }
     setEnhanceDialogOpen(false);
     setEnhancingPhotoId(null);
     setEnhancedPreviewUrl(null);
-    toast({ title: "Enhancement accepted", description: "The enhanced image is now active." });
   };
 
   const handleRejectEnhance = () => {
     if (enhancingPhotoId) {
-      removeEnhancement.mutate({ photoId: enhancingPhotoId, propertyId });
+      rejectEnhancement.mutate({ photoId: enhancingPhotoId, propertyId });
     }
     setEnhanceDialogOpen(false);
     setEnhancingPhotoId(null);
@@ -199,6 +213,9 @@ export function PhotoAlbumGrid({
         open={enhanceDialogOpen}
         onOpenChange={(open) => {
           if (!open && !enhancePhoto.isPending) {
+            if (enhancingPhotoId && enhancedPreviewUrl) {
+              rejectEnhancement.mutate({ photoId: enhancingPhotoId, propertyId });
+            }
             setEnhanceDialogOpen(false);
             setEnhancingPhotoId(null);
             setEnhancedPreviewUrl(null);

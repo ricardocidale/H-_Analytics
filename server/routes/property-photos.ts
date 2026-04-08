@@ -5,7 +5,7 @@ import { insertPropertyPhotoSchema, updatePropertyPhotoSchema } from "@shared/sc
 import { fromZodError } from "zod-validation-error";
 import { logAndSendError } from "./helpers";
 import { z } from "zod";
-import { processExistingPhoto } from "../image/pipeline";
+import { processExistingPhoto, processImage } from "../image/pipeline";
 import { logger } from "../logger";
 import { isApiRateLimited } from "../auth";
 
@@ -162,11 +162,19 @@ export function register(app: Express) {
     }
   });
 
+  const pendingEnhancements = new Map<number, string>();
+
   app.get("/api/property-photos/:id/enhanced-image", requireAuth, async (req, res) => {
     try {
       const photoId = Number(req.params.id);
       const photo = await storage.getPhotoById(photoId);
-      if (!photo || !photo.enhancedImageData) {
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      if (!(await checkPropertyAccess(getAuthUser(req), photo.propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      if (!photo.enhancedImageData) {
         return res.status(404).json({ error: "Enhanced image not found" });
       }
       const buffer = Buffer.from(photo.enhancedImageData, "base64");
@@ -178,6 +186,32 @@ export function register(app: Express) {
       res.send(buffer);
     } catch (error) {
       logAndSendError(res, "Failed to serve enhanced photo", error);
+    }
+  });
+
+  app.get("/api/property-photos/:id/enhanced-preview", requireAuth, async (req, res) => {
+    try {
+      const photoId = Number(req.params.id);
+      const pending = pendingEnhancements.get(photoId);
+      if (!pending) {
+        return res.status(404).json({ error: "No pending enhancement preview" });
+      }
+      const photo = await storage.getPhotoById(photoId);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      if (!(await checkPropertyAccess(getAuthUser(req), photo.propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const buffer = Buffer.from(pending, "base64");
+      res.set({
+        "Content-Type": "image/png",
+        "Content-Length": buffer.length,
+        "Cache-Control": "no-store",
+      });
+      res.send(buffer);
+    } catch (error) {
+      logAndSendError(res, "Failed to serve enhanced preview", error);
     }
   });
 
@@ -202,12 +236,6 @@ export function register(app: Express) {
       let sourceBuffer: Buffer;
       if (photo.imageData) {
         sourceBuffer = Buffer.from(photo.imageData, "base64");
-      } else if (photo.imageUrl.startsWith("/api/property-photos/")) {
-        const innerPhoto = await storage.getPhotoById(photoId);
-        if (!innerPhoto?.imageData) {
-          return res.status(400).json({ error: "No image data available for enhancement" });
-        }
-        sourceBuffer = Buffer.from(innerPhoto.imageData, "base64");
       } else if (photo.imageUrl.startsWith("http")) {
         const imgRes = await fetch(photo.imageUrl);
         if (!imgRes.ok) {
@@ -241,18 +269,70 @@ export function register(app: Express) {
       );
 
       const enhancedBase64 = enhancedBuffer.toString("base64");
+      pendingEnhancements.set(photoId, enhancedBase64);
 
-      await storage.updatePropertyPhoto(photoId, {
-        enhancedImageData: enhancedBase64,
-      });
+      setTimeout(() => pendingEnhancements.delete(photoId), 10 * 60_000);
 
       res.json({
         success: true,
-        enhancedImageUrl: `/api/property-photos/${photoId}/enhanced-image`,
+        previewUrl: `/api/property-photos/${photoId}/enhanced-preview`,
         photoId,
       });
     } catch (error) {
       logAndSendError(res, "Failed to enhance photo", error);
+    }
+  });
+
+  app.post("/api/property-photos/:id/enhance/accept", requireManagementAccess, async (req, res) => {
+    try {
+      const photoId = Number(req.params.id);
+      const user = getAuthUser(req);
+
+      const photo = await storage.getPhotoById(photoId);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+
+      if (!(await checkPropertyAccess(user, photo.propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const pending = pendingEnhancements.get(photoId);
+      if (!pending) {
+        return res.status(404).json({ error: "No pending enhancement to accept" });
+      }
+
+      const enhancedBuffer = Buffer.from(pending, "base64");
+
+      let variantsUpdate: Record<string, unknown> = {};
+      try {
+        const result = await processImage(enhancedBuffer, { propertyId: photo.propertyId, photoId }, "image/png");
+        if (result) {
+          variantsUpdate = { variants: result.variants };
+        }
+      } catch (e) {
+        logger.warn(`Failed to regenerate variants from enhanced photo ${photoId}: ${(e as Error).message}`, "property-photos");
+      }
+
+      await storage.updatePropertyPhoto(photoId, {
+        enhancedImageData: pending,
+        ...variantsUpdate,
+      });
+      pendingEnhancements.delete(photoId);
+
+      res.json({ success: true, photoId });
+    } catch (error) {
+      logAndSendError(res, "Failed to accept enhancement", error);
+    }
+  });
+
+  app.post("/api/property-photos/:id/enhance/reject", requireManagementAccess, async (req, res) => {
+    try {
+      const photoId = Number(req.params.id);
+      pendingEnhancements.delete(photoId);
+      res.json({ success: true });
+    } catch (error) {
+      logAndSendError(res, "Failed to reject enhancement", error);
     }
   });
 

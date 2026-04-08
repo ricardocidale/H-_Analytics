@@ -49,13 +49,23 @@ async function reorderPhotos(propertyId: number, orderedIds: number[]): Promise<
   if (!res.ok) throw new Error("Failed to reorder photos");
 }
 
-async function enhancePhoto(photoId: number): Promise<{ success: boolean; enhancedImageUrl: string; photoId: number }> {
+async function enhancePhoto(photoId: number): Promise<{ success: boolean; previewUrl: string; photoId: number }> {
   const res = await fetch(`/api/property-photos/${photoId}/enhance`, { method: "POST" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: "Enhancement failed" }));
     throw new Error(body.error || "Failed to enhance photo");
   }
   return res.json();
+}
+
+async function acceptEnhancement(photoId: number): Promise<void> {
+  const res = await fetch(`/api/property-photos/${photoId}/enhance/accept`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to accept enhancement");
+}
+
+async function rejectEnhancement(photoId: number): Promise<void> {
+  const res = await fetch(`/api/property-photos/${photoId}/enhance/reject`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to reject enhancement");
 }
 
 async function removeEnhancement(photoId: number): Promise<void> {
@@ -136,6 +146,28 @@ export function useEnhancePhoto() {
   return useMutation({
     mutationFn: ({ photoId }: { photoId: number; propertyId: number }) =>
       enhancePhoto(photoId),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
+    },
+  });
+}
+
+export function useAcceptEnhancement() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ photoId }: { photoId: number; propertyId: number }) =>
+      acceptEnhancement(photoId),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
+    },
+  });
+}
+
+export function useRejectEnhancement() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ photoId }: { photoId: number; propertyId: number }) =>
+      rejectEnhancement(photoId),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
     },
