@@ -264,7 +264,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 ```
 
 ## External Data Sources Inventory
-- **APIs**: FRED, Xotelo, RapidAPI Hospitality, CoStar/STR, Moody's, S&P Global, Alpha Vantage, Open Exchange Rates, Weather API, World Bank
+- **APIs**: FRED (Federal Reserve Bank of St. Louis — https://www.stlouisfed.org/, API key from https://fred.stlouisfed.org/docs/api/api_key.html, env var `FRED_API_KEY`; series: SOFR, DGS2, DGS5, DGS10, DPRIME, CPIAUCSL — the definitive authority for US economic indicators), Xotelo, RapidAPI Hospitality, CoStar/STR, Moody's, S&P Global, Alpha Vantage, Open Exchange Rates, Weather API, World Bank
 - **Scrapers (Apify)**: airbnb-scraper, vrbo-scraper, booking-scraper, tripadvisor-scraper
 - **LLMs**: OpenAI (GPT-4o), Anthropic (Claude 3.5 Sonnet, Opus), Google Gemini Flash, Perplexity
 - **Vector DB**: Pinecone (index: lb-hospitality, namespaces: knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties)

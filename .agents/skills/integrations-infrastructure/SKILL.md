@@ -26,6 +26,21 @@ LLM provider selection is configurable via the admin panel.
 | **Env vars** | `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID` |
 | **Files** | `server/integrations/elevenlabs.ts`, `server/integrations/elevenlabs-audio.ts` |
 
+## Financial Data: Federal Reserve Bank of St. Louis (FRED)
+
+| Aspect | Detail |
+|--------|--------|
+| **Authority** | Federal Reserve Bank of St. Louis — https://www.stlouisfed.org/ |
+| **API Portal** | https://fred.stlouisfed.org/ (FRED = Federal Reserve Economic Data) |
+| **Use cases** | SOFR, Treasury yields (2Y/5Y/10Y), Prime Rate, CPI — core macro inputs for property valuations, discount rates, and inflation escalation |
+| **Env var** | `FRED_API_KEY` (obtain from https://fred.stlouisfed.org/docs/api/api_key.html) |
+| **Files** | `server/services/FREDService.ts`, `server/ai/ambient/fetchers.ts` |
+| **API base** | `https://api.stlouisfed.org/fred/series/observations` |
+| **Series used** | SOFR, DGS2, DGS5, DGS10, DPRIME, CPIAUCSL |
+| **Cache** | 24-hour stale-while-revalidate via in-memory cache |
+| **Refresh** | Ambient scheduler fetches every 6 hours; indexes snapshots to Pinecone |
+| **Reliability** | Government-operated, highly authoritative — the definitive source for US economic indicators |
+
 ## Geospatial: Google Maps Platform
 
 | Aspect | Detail |
@@ -217,6 +232,7 @@ For full card anatomy, design patterns, and extension guide, see `.agents/skills
 
 | Integration | Server File | Route File | Env Var |
 |------------|-------------|------------|---------|
+| FRED (St. Louis Fed) | `server/services/FREDService.ts` | `server/routes/market-rates.ts` | `FRED_API_KEY` |
 | Anthropic | `server/ai/clients.ts` | `server/routes/research.ts` | `ANTHROPIC_API_KEY` |
 | OpenAI | `server/ai/clients.ts` | `server/routes/ai.ts` | `AI_INTEGRATIONS_OPENAI_API_KEY` |
 | Gemini | `server/ai/clients.ts` | `server/routes/ai.ts` | `AI_INTEGRATIONS_GEMINI_API_KEY` |
