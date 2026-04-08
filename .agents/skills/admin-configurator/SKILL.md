@@ -1,18 +1,79 @@
-Admin panel tab architecture and patterns for the HBG Portal. Covers the standard tab component structure, settings card layout, group header convention, the `updateNested` callback pattern, and the API fetch/save flow. Use this skill when adding a new admin tab, modifying admin settings UI, or building admin configuration panels.
+---
+name: admin-configurator
+description: Admin panel architecture and patterns for H+ Analytics. Covers the 5-group sidebar structure (Business, Intelligence Engine, AI Assistant, Design, System), section redirect system, merged pages (Brand, Pipeline Config), Engine Dashboard anatomy, standard tab component pattern, settings card layout, and the API fetch/save flow. Use this skill when adding a new admin tab, modifying admin settings UI, or building admin configuration panels.
+---
+
+# Admin Panel Architecture
 
 ## Admin Panel Structure
 
-The Admin page (`client/src/pages/Admin.tsx`) renders a sidebar (`AdminSidebar.tsx`) + content area. Each sidebar item maps to a tab component in `client/src/components/admin/`.
+The Admin page (`client/src/pages/Admin.tsx`) renders a sidebar (`AdminSidebar.tsx`) + content area. Each sidebar item maps to a section component.
 
-### Sidebar Groups
+### 5-Group Sidebar Structure
 
-| Group | Tabs |
-|-------|------|
-| **Business** | Users, Companies, Groups |
-| **Research** | ICP Management Co, Research Center |
-| **Design** | Logos, Icons, Themes, Exports |
-| **AI** | AI Agents, LLMs, Sources |
-| **System** | App Defaults, Notifications, Navigation, Verification, Database, Cache & Services |
+| Group | Icon | Description | Sections |
+|-------|------|-------------|----------|
+| **Business** | `IconBriefcase` | Users, companies & groups | Users, Companies, Groups, Scenarios |
+| **Intelligence Engine** | `IconGauge` | Research & data management | Engine Dashboard, Data Sources, Pipeline Config, QA Sandbox, Scheduled Research, Financial Lines |
+| **AI Assistant** | `IconBot` | Rebecca configuration & training | Configuration, Knowledge Base, Conversations |
+| **Design** | `IconSwatchBook` | Brand & exports | Brand, Exports |
+| **System** | `IconShield` | Infrastructure & monitoring | App Defaults, Verification, Database, Notifications, Navigation |
+
+**Additional standalone items** (below groups, separated by border):
+- **Logs** → Activity (admin activity log)
+- **Help** → Link to `/help` (user manual)
+
+### Section Redirect System
+
+Legacy section IDs are automatically redirected to their new consolidated pages:
+
+```typescript
+const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
+  "icp": "engine-dashboard",
+  "logos": "brand",
+  "themes": "brand",
+  "icons": "brand",
+  "llms": "data-sources",
+  "model-routing": "pipeline-config",
+  "cache-services": "engine-dashboard",
+  "integrations": "data-sources",
+  "api-dashboard": "data-sources",
+  "coverage-analytics": "engine-dashboard",
+  "pipeline-policies": "pipeline-config",
+  "source-registry": "data-sources",
+  "system-intelligence": "engine-dashboard",
+  "research": "engine-dashboard",
+  "sources": "data-sources",
+};
+```
+
+Use `resolveSection(section)` to resolve any section ID to its canonical target.
+
+### Merged Pages
+
+Several previously separate pages have been consolidated:
+
+| Merged Page | Replaces | Content |
+|-------------|----------|---------|
+| **Brand** | Logos + Themes + Icons | All visual identity settings in one page |
+| **Pipeline Config** | Model Routing + Pipeline Policies | LLM config + research pipeline settings |
+| **Engine Dashboard** | ICP + Coverage Analytics + System Intelligence + Cache & Services | Unified intelligence observatory |
+| **Data Sources** | Source Registry + Integrations + API Dashboard + LLMs | Card-based source management |
+
+---
+
+## Engine Dashboard Anatomy
+
+The Engine Dashboard (`EngineDashboard.tsx`) is the centralized intelligence observatory:
+
+| Section | Content |
+|---------|---------|
+| **Intelligence Health** | Portfolio freshness counts (current/stale/missing/running), auto-refresh status |
+| **Portfolio Profile** | Auto-derived from property assumptions — star rating distribution, business model mix, market coverage |
+| **Coverage Analytics** | Which assumption fields have research vs gaps |
+| **Research Activity** | Recent research runs, success rates, average duration |
+
+---
 
 ## Standard Tab Component Pattern
 
@@ -61,7 +122,7 @@ export default function MyConfigTab() {
 
 ## The `updateNested` Callback Pattern
 
-For config objects with grouped keys (e.g., `ExportConfig` with `overview`, `statements`, `analysis`):
+For config objects with grouped keys:
 
 ```tsx
 const updateNested = useCallback(<
@@ -72,8 +133,6 @@ const updateNested = useCallback(<
   setDirty(true);
 }, []);
 ```
-
-This pattern is type-safe: the key must exist on the group, and the value must match the key's type.
 
 ## Reusable Admin UI Components
 
@@ -86,9 +145,8 @@ This pattern is type-safe: the key must exist on the group, and the value must m
 | `ADMIN_LINK_ICON` | `w-10 h-10 rounded-xl bg-muted ...` | Icon badge in list cards |
 | `ADMIN_TEXTAREA` | Full textarea styles | Multi-line text inputs |
 | `ADMIN_DIALOG` | `sm:max-w-lg` | Dialog width |
-| `LOGO_PREVIEW` | `relative w-14 h-14 rounded-lg ...` | Logo preview thumbnail |
 
-### Layout Components (from ExportsTab pattern)
+### Layout Components
 
 | Component | Pattern | Usage |
 |-----------|---------|-------|
@@ -97,9 +155,6 @@ This pattern is type-safe: the key must exist on the group, and the value must m
 | `GroupHeader` | Uppercase label + rule line | Visual group separator |
 | `ContentCard` | Two-column split card | Houses related toggles |
 | `SettingsCard` | Titled single-column card | Houses format switches |
-| `SubHeader` | Lighter uppercase label | Sub-groups within cards |
-
-These components are defined inline in `ExportsTab.tsx` but follow a consistent pattern reusable across tabs.
 
 ## API Fetch/Save Flow
 
@@ -129,21 +184,32 @@ export function registerMyConfigRoutes(app: Express) {
 }
 ```
 
-## Adding a New Admin Tab
+## Sidebar Freshness Badge
 
-1. Create `client/src/components/admin/MyNewTab.tsx` following the standard pattern
-2. Add the tab component to `Admin.tsx` tab registry
-3. Add sidebar entry in `AdminSidebar.tsx` with icon and label
-4. Create server route in `server/routes/admin/my-config.ts` with Zod validation
-5. Register route in `server/routes.ts`
-6. If config is persisted, add field to `global_assumptions` schema and create migration
+The Intelligence Engine group displays a freshness count badge when stale/missing properties exist:
+
+- Badge polls `GET /api/admin/intelligence/freshness-counts` every 60s
+- Red background if any `missing > 0`, amber if only `stale > 0`
+- Shows total count of `stale + missing`
+- `data-testid="intelligence-freshness-badge"`
+
+## Adding a New Admin Section
+
+1. Create component in `client/src/components/admin/` (or `admin/intelligence/` for engine sections)
+2. Add `AdminSection` union member in `AdminSidebar.tsx`
+3. Add section to `sectionMeta` object in `Admin.tsx`
+4. Add `SectionContent` switch case in `Admin.tsx`
+5. Add sidebar entry in `buildNavGroups()` in `AdminSidebar.tsx` with icon and label
+6. Create server route in `server/routes/admin/` with Zod validation
+7. Register route in `server/routes.ts`
+8. If config is persisted, add field to `global_assumptions` schema and create migration
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `client/src/pages/Admin.tsx` | Admin shell + tab routing |
-| `client/src/components/admin/AdminSidebar.tsx` | Sidebar navigation |
+| `client/src/pages/Admin.tsx` | Admin shell + section routing (sectionMeta + SectionContent) |
+| `client/src/components/admin/AdminSidebar.tsx` | Sidebar navigation, 5-group structure, redirects, freshness badge |
 | `client/src/components/admin/styles.ts` | Card style constants |
-| `client/src/components/admin/ExportsTab.tsx` | Reference implementation (fetch/save/reset + nested config) |
-| `server/routes/admin/exports.ts` | Reference server route (Zod + merge + persist) |
+| `client/src/components/admin/intelligence/` | Intelligence Engine section components |
+| `server/routes/admin/` | Admin API route files |

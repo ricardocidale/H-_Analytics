@@ -1,4 +1,9 @@
-The foundational business domain skill for HBG Portal. Covers the dual-entity model, hospitality revenue streams, USALI income waterfall, management fees, company overhead, SAFE funding, intercompany elimination, ICP system, make-vs-buy analysis, and property lifecycle. Use this skill whenever working on business logic, financial assumptions, property data, or any feature that touches the investment simulation model.
+---
+name: hbg-business-model
+description: The foundational business domain skill for HBG Portal. Covers the dual-entity model, hospitality revenue streams, USALI income waterfall, management fees, company overhead, SAFE funding, intercompany elimination, property lifecycle, and the three business models (Hotel, Lodge, VRBO/STR) with their distinct expense structures, fee models, and depreciation schedules. Use this skill whenever working on business logic, financial assumptions, property data, or any feature that touches the investment simulation model.
+---
+
+# HBG Business Model
 
 ## Dual-Entity Model
 
@@ -29,6 +34,77 @@ Three business models are supported, set via `businessModel` field on each prope
 | **VRBO/STR** | Short-term rental — platform-based | Nightly rental rate only | Platform fees (8-16%), per-turnover cleaning, 20-35% management fee |
 
 See `.agents/skills/research-methodology/SKILL.md` §2.2–2.3 for detailed financial profiles.
+
+### VRBO/STR Business Model Details
+
+Short-term rental properties operate fundamentally differently from hotels:
+
+#### Expense Categories Excluded
+VRBO/STR properties do NOT have:
+- F&B department expenses (no food service)
+- Events/meetings department (no event space)
+- Spa/wellness department
+- Full housekeeping department (per-turnover cleaning instead)
+- Concierge/front desk staffing
+
+#### Platform Fee Structure
+| Platform | Host-Side Fee | Notes |
+|----------|--------------|-------|
+| Airbnb | 15.5% | Split fee model alternative: 3% host + 14% guest |
+| VRBO | 8% | Host-only fee model |
+| Booking.com | 15–18% | Commission-based |
+| Direct bookings | 0% | Own website, no platform fee |
+
+#### Management Fee (All-In)
+Unlike hotels with 2–10% base + incentive structure, VRBO/STR uses an **all-in management fee**:
+
+| Fee Range | Typical | Services Included |
+|-----------|---------|-------------------|
+| 20–35% of revenue | 25% | Listing optimization, dynamic pricing, guest communication, cleaning coordination, maintenance coordination, accounting, channel management |
+
+No separate incentive fee — the all-in fee covers everything.
+
+#### Depreciation Difference
+| Model | Depreciation Schedule | IRS Basis |
+|-------|----------------------|-----------|
+| Hotel | 39-year straight-line | Commercial real estate (IRC §168) |
+| VRBO/STR | 27.5-year straight-line | Residential real estate (IRC §168) |
+| Lodge | 27.5-year (typically) or 39-year | Depends on classification |
+
+#### Revenue Mix Differences
+| Revenue Stream | Hotel | Lodge | VRBO/STR |
+|---------------|-------|-------|----------|
+| Room/nightly rental | 55–95% | 75–85% | 85–95% |
+| Food & Beverage | 2–28% | 15–25% of room rev | 0% |
+| Events/Meetings | 1–25% | 0% | 0% |
+| Cleaning fees | — | — | 5–12% |
+| Other (pet, guest fees) | 2–10% | 2–5% | 0–3% |
+
+#### VRBO/STR Expense Structure (% of Revenue)
+| Category | % of Revenue | Notes |
+|----------|-------------|-------|
+| Platform fees | 8–16% | Host-only fee model |
+| Cleaning/turnover | 10–15% | Per-guest turnover cost ($75–$300/turn) |
+| Management fee | 20–35% | All-in professional manager |
+| Maintenance/repairs | 3–5% | Ongoing upkeep |
+| Utilities | 5–8% | Owner-paid |
+| Insurance | 2–4% | STR-specific policy |
+| Property taxes | 1–3% | Varies by jurisdiction |
+| Supplies/amenities | 2–3% | Consumables |
+| Marketing (direct) | 1–3% | Beyond platform listings |
+| **Total Expenses** | **52–92%** | Wide range based on market |
+
+### Lodge Business Model Details
+
+Lodges sit between Hotel and VRBO in operational complexity:
+
+- **F&B Revenue**: 15–25% of room revenue (breakfast, meals, drinks, picnics) but no full restaurant department
+- **Events**: 0% — no event space staffing
+- **Management Fee**: 15–25% (between Hotel 2–10% and VRBO 20–35%)
+- **Cleaning**: Per-turnover $150–$500 (larger property = higher cost)
+- **Amenities**: Premium (gym, sauna, hot tub, sports courts, media room) but self-service
+- **Staffing**: Minimal on-site (caretaker + cleaning crews)
+- **Occupancy**: 45–70% stabilized (seasonal, group bookings)
 
 ## Hospitality Revenue Streams
 

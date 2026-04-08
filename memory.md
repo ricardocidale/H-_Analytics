@@ -23,6 +23,16 @@
 - **Skills to update**: admin-configurator, hbg-business-model, integrations-infrastructure
 - **Implementation phases**: 5 phases, 28 tasks total
 
+### Task #292: Skill Authoring & Updates (April 2026) — COMPLETED
+- **3 new skills created**:
+  - `help-documentation` — InfoTooltip patterns (benchmark citation format, STR chain scale reference, authoritative sources), manual section structure (SectionCard/ManualTable/Callout), glossary schema & categories, walkthrough step format (selector strategies), GuidanceSideSheet anatomy (tabs, attribution card, GuidanceRecord fields)
+  - `intelligence-freshness` — State machine (missing→running→current→stale), computeFreshnessStatus logic (priority order), staleness triggers (7 assumption fields), IntelligenceStatusBar states (4-state with colors/icons), API contract (freshness-counts + avg-duration), sidebar badge pattern, auto-refresh guard logic
+  - `data-source-cards` — Card report-card anatomy, health badge thresholds (90%/80%), category tabs (APIs/Scrapers/Sources/Models), full CRUD flow, toggle/test/logs actions, SSRF protection details, dependability rules, adding new source types
+- **3 existing skills updated**:
+  - `admin-configurator` — Rewritten for 5-group structure (Business/Intelligence Engine/AI Assistant/Design/System), section redirect system with full mapping table, merged pages (Brand/Pipeline Config/Engine Dashboard/Data Sources), Engine Dashboard anatomy, sidebar freshness badge, updated adding-new-section steps
+  - `hbg-business-model` — Added comprehensive VRBO/STR section: excluded expense categories, platform fee structure (Airbnb 15.5%/VRBO 8%/Booking 15-18%), all-in management fee (20-35%), depreciation difference (27.5yr vs 39yr), revenue mix comparison table, full expense structure (52-92% of revenue), Lodge model details
+  - `integrations-infrastructure` — Added Data Source Management section: source registry schema, card-based system replacing list-based, 4 category tabs, health badges, CRUD endpoints, call logging, SSRF protection, key files. Fixed "Marcela" references to "Rebecca"
+
 ### Task #291: Documentation & Help System Updates (April 2026) — COMPLETED
 - **InfoTooltip benchmark citations**: All key assumption tooltips updated with STR chain scale ranges — Starting ADR (Luxury $396+, Upper Upscale $173–$312, etc.), ADR Growth (2–5% Upper Upscale, 3–6% Luxury), Starting Occupancy (40–55% Luxury, 50–65% Upscale), Stabilized Occupancy (65–75% Luxury, 70–80% Upper Upscale), Housekeeping (22–28% Luxury, 18–25% Upper Upscale), Management Fees (3–5% base Upper Upscale, 6–10% specialty), Compensation ($75K–$95K Upper Upscale, $85K–$120K Luxury)
 - **User Manual Section18Research.tsx**: Added 4 new subsections — Research Badges (yellow pill/blue GAAP/guidance arrow), Freshness & Staleness (green/amber/red indicators with color dots), What Triggers Staleness (7 key assumption change types), Applying Research Recommendations (4-step workflow)
