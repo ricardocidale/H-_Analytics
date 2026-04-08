@@ -60,43 +60,46 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
   const handlePlaceSelect = useCallback((details: PlaceDetails) => {
     const filled: string[] = [];
 
-    if (details.streetAddress) {
-      onChange("streetAddress", details.streetAddress);
-      filled.push("streetAddress");
-    }
-    if (details.city) {
-      onChange("city", details.city);
-      filled.push("city");
-    }
-    if (details.stateProvince) {
-      onChange("stateProvince", details.stateProvince);
-      filled.push("stateProvince");
-    }
-    if (details.zipPostalCode) {
-      onChange("zipPostalCode", details.zipPostalCode);
-      filled.push("zipPostalCode");
-    }
-    if (details.country) {
-      onChange("country", details.country);
-      filled.push("country");
-    }
+    const fillIfEmpty = (key: string, value: string | number | null) => {
+      const current = draft[key];
+      if (!current || (typeof current === "string" && current.trim() === "")) {
+        onChange(key, value);
+        filled.push(key);
+      }
+    };
+
+    onChange("streetAddress", details.streetAddress || null);
+    if (details.streetAddress) filled.push("streetAddress");
+
+    if (details.city) fillIfEmpty("city", details.city);
+    if (details.stateProvince) fillIfEmpty("stateProvince", details.stateProvince);
+    if (details.zipPostalCode) fillIfEmpty("zipPostalCode", details.zipPostalCode);
+    if (details.country) fillIfEmpty("country", details.country);
 
     if (details.city || details.stateProvince) {
       const location = [details.city, details.stateProvince].filter(Boolean).join(", ");
-      onChange("location", location);
-      filled.push("location");
+      fillIfEmpty("location", location);
     }
 
     if (details.lat !== undefined && details.lng !== undefined) {
       onChange("latitude", details.lat);
       onChange("longitude", details.lng);
       filled.push("latitude", "longitude");
+
+      if (draft.id) {
+        fetch(`/api/properties/${draft.id}/coords`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ latitude: details.lat, longitude: details.lng }),
+        }).catch(() => {});
+      }
     }
 
     if (filled.length > 0) {
       markAutoFilled(filled);
     }
-  }, [onChange, markAutoFilled]);
+  }, [onChange, markAutoFilled, draft]);
 
   const isAutoFilled = (field: string) => autoFilledFields.has(field);
 

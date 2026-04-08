@@ -25,10 +25,10 @@
 
 ### Task #296: Smart Address Autocomplete & Auto-Fill (April 2026) — COMPLETED
 - **Existing AddressAutocomplete extended** (`client/src/components/AddressAutocomplete.tsx`): Added AbortController for stale-response protection, `countryBias` prop for country-scoped Google Places results, `disabled` prop, map pin icon (`IconMapPin`), proper `credentials: "include"` on fetch calls, cleanup on unmount (abort + debounce timer), proper `unknown` error type (no `any`)
-- **BasicInfoSection updated**: Street address plain `<Input>` replaced with `<AddressAutocomplete>`, place selection auto-fills streetAddress, city, stateProvince, zipPostalCode, country, location, **and latitude/longitude directly from place details** (no separate geocode call — coords saved when user saves form); `countryBias` passed from current geo selection; auto-fill badges ("auto-filled" green pill) + emerald ring highlights shown for 6s then fade
-- **Server enhanced**: `placesAutocomplete()` now accepts optional `countryBias` parameter for country-scoped results (`&components=country:XX`); route passes `?country=` query param through
-- **Code review fixes**: (1) Extended existing component instead of creating duplicate, (2) Lat/lng stored directly in draft from place details (no stale DB geocode), (3) Country bias passed from frontend, (4) No `any` types — uses `unknown` + `instanceof`
-- Files: AddressAutocomplete.tsx (extended), BasicInfoSection.tsx, geospatial.ts, geospatial routes
+- **BasicInfoSection updated**: Street address plain `<Input>` replaced with `<AddressAutocomplete>`, place selection auto-fills **only empty** fields (city, stateProvince, zipPostalCode, country, location) via `fillIfEmpty()` helper; street address always updated from selection; lat/lng stored in draft AND immediately persisted via `PATCH /api/properties/:id/coords`; `countryBias` passed from current geo selection; auto-fill badges ("auto-filled" green pill) + emerald ring highlights shown for 6s then fade
+- **Server enhanced**: `placesAutocomplete()` now accepts optional `countryBias` parameter for country-scoped results (`&components=country:XX`); route passes `?country=` query param through; new `PATCH /api/properties/:id/coords` endpoint for immediate lat/lng persistence after place selection
+- **Code review fixes**: (1) Extended existing component instead of creating duplicate, (2) Lat/lng persisted immediately via dedicated coords endpoint, (3) Country bias passed from frontend, (4) No `any` types — uses `unknown` + `instanceof`, (5) Only fills empty fields to preserve user-entered data
+- Files: AddressAutocomplete.tsx (extended), BasicInfoSection.tsx, geospatial.ts, geospatial routes, properties.ts
 - Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
 
 ### Task #292: Skill Authoring & Updates (April 2026) — COMPLETED

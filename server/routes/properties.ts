@@ -171,6 +171,24 @@ export function register(app: Express) {
     }
   });
 
+  app.patch("/api/properties/:id/coords", requireManagementAccess, async (req, res) => {
+    try {
+      const propertyId = Number(req.params.id);
+      const hasAccess = await checkPropertyAccess(getAuthUser(req), propertyId);
+      if (!hasAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const { latitude, longitude } = req.body;
+      if (typeof latitude !== "number" || typeof longitude !== "number") {
+        return res.status(400).json({ error: "latitude and longitude must be numbers" });
+      }
+      const updated = await storage.updateProperty(propertyId, { latitude, longitude });
+      res.json({ latitude: updated.latitude, longitude: updated.longitude });
+    } catch (error) {
+      logAndSendError(res, "Failed to update coordinates", error);
+    }
+  });
+
   app.patch("/api/properties/:id", requireManagementAccess, async (req, res) => {
     try {
       const propertyId = Number(req.params.id);
