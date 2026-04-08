@@ -118,6 +118,17 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 | `checker` | User + verification tools |
 | `investor` | Limited — Dashboard, Properties, Profile, Help |
 
+## Research Intelligence System
+
+The app uses a comprehensive research methodology documented in `.agents/skills/research-methodology/SKILL.md`. Key architectural principles:
+
+- **Auto-derived research profiles**: Properties derive their research profile from existing assumptions (starRating + ADR + hospitalityType + location). No separate ICP definition needed per property.
+- **Business model types**: `businessModel` field on properties: "hotel" (default) | "vrbo". Determines applicable expense categories, revenue streams, fee structures, and research approaches.
+- **STR chain scale equivalence**: Independent/boutique properties are classified into equivalent STR tiers (Luxury/Upper Upscale/Upscale/etc.) based on ADR and star rating for industry-standard benchmarking.
+- **Post-improvement targeting**: Research targets the property's planned operating state after improvements, not acquisition state.
+- **N+1 synthesis pipeline**: Parallel analyst panels (Gemini + Claude) → API validation → Opus synthesis with attribution.
+- **Badge system**: Gold/amber `accent-pop` badges near every guidable assumption input field, showing AI-recommended ranges with source attribution.
+
 ## Quick Commands
 
 ```bash
