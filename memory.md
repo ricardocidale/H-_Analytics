@@ -308,6 +308,15 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - Lint: 0 errors
 - Financial verification: UNQUALIFIED
 
+### Full Codebase Audit (April 2026) — COMPLETED
+- **Report**: `.local/audit-report.md`
+- **6 stages**: Backend/Security, Database/Schema, Financial Engine, Frontend/React, AI/Pinecone, Docs/UI
+- **Overall**: STRONG with targeted improvements needed
+- **P0 issues**: (1) Property deletion doesn't clean Pinecone vectors — stale data accumulates, (2) No timeout on LLM calls in research orchestrator
+- **P1 issues**: ~10 missing FK indexes, upsertGlobalAssumptions/writePropertyOverrides need transactions, finance route leaks err.message, zero React.memo on list components, N+1 per-card API calls
+- **P2 issues**: Accessibility gaps (aria-labels, landmarks, aria-live), oversized components (14 >500 lines), RAG score threshold too low (0.3)
+- **All STRONG**: Server setup, auth system, caching, schema design, storage layer, calc architecture, formula integrity, GAAP compliance, proof system, recalc enforcement, routing, state management, error handling, documentation, skills, UI consistency, UX patterns
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
