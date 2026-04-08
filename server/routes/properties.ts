@@ -179,8 +179,10 @@ export function register(app: Express) {
         return res.status(403).json({ error: "Access denied" });
       }
       const { latitude, longitude } = req.body;
-      if (typeof latitude !== "number" || typeof longitude !== "number") {
-        return res.status(400).json({ error: "latitude and longitude must be numbers" });
+      if (typeof latitude !== "number" || typeof longitude !== "number" ||
+          !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+          latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return res.status(400).json({ error: "latitude must be -90..90 and longitude must be -180..180" });
       }
       const updated = await storage.updateProperty(propertyId, { latitude, longitude });
       if (!updated) {
