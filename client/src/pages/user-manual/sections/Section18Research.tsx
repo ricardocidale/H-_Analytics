@@ -161,6 +161,86 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
         </div>
 
         <div>
+          <h4 className="font-semibold text-foreground mb-2">Research Badges</h4>
+          <p className="mb-3">
+            Every assumption field that has AI research available displays a <span className="font-medium text-foreground">Research Badge</span> —
+            a small label showing the recommended market range. Badges appear next to the field label and provide
+            quick access to intelligence without leaving the edit form.
+          </p>
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-2">
+            <p className="text-xs"><span className="font-medium text-foreground">Yellow pill badge:</span> <span className="text-muted-foreground">Shows the AI-recommended range (e.g., "55%–70%"). Hover for source and date, click to auto-fill the recommended value.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Blue GAAP badge:</span> <span className="text-muted-foreground">Shows the GAAP or IRS rule governing this field. Hover to see the accounting standard and its implications. Always visible.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Guidance arrow:</span> <span className="text-muted-foreground">Click the arrow icon next to any badge to open the Guidance Side Sheet with full details — P25/P50/P75 ranges, peer comparisons, methodology trail, and impact analysis.</span></p>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Freshness & Staleness</h4>
+          <p className="mb-3">
+            Research data has a limited shelf life. The system tracks how old each research result is and signals
+            when it should be refreshed through a color-coded <span className="font-medium text-foreground">freshness indicator</span>.
+          </p>
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-2">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
+              <p className="text-xs"><span className="font-medium text-foreground">Current (green):</span> <span className="text-muted-foreground">All research is up to date — generated or refreshed within the configured freshness threshold. No action needed.</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+              <p className="text-xs"><span className="font-medium text-foreground">Stale (amber):</span> <span className="text-muted-foreground">Some research has exceeded the freshness threshold and should be refreshed. Market conditions may have changed since it was generated.</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+              <p className="text-xs"><span className="font-medium text-foreground">Missing (red):</span> <span className="text-muted-foreground">Research has not been generated for one or more assumption fields. Run the research pipeline to populate these fields with market intelligence.</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+              <p className="text-xs"><span className="font-medium text-foreground">Running (blue):</span> <span className="text-muted-foreground">The research pipeline is actively generating or refreshing intelligence for this property. Results will appear automatically when complete.</span></p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            The <span className="font-medium text-foreground">Intelligence Status Bar</span> at the top of property and company
+            assumption pages shows the overall freshness state at a glance — green when all research is current,
+            amber when some results are stale, red when research is missing, and blue when research is actively running.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">What Triggers Staleness</h4>
+          <p className="mb-2">
+            Research can become stale in two ways: by aging past the configured threshold, or when you change
+            a <span className="font-medium text-foreground">key assumption</span> that invalidates previous research:
+          </p>
+          <div className="space-y-1.5 ml-1">
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Star rating change</span> — Luxury vs. Upper Upscale comparables are entirely different markets</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Business model change</span> — Hotel, Lodge, and VRBO/STR have different expense structures and benchmarks</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Hospitality type change</span> — Boutique vs. Extended Stay vs. Resort triggers new comp sets</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Room count change</span> — A 10-room inn has different benchmarks than a 150-room hotel</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Location change</span> — Market-level data is location-specific</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">ADR change</span> — Significant rate changes may move the property into a different comp tier</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Revenue share change</span> — Altering F&B or Events shares affects operating expense benchmarks</p>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            When a key assumption changes, the system marks all related research as stale. If the estimated
+            refresh time is under 30 seconds, the system auto-regenerates in the background. Otherwise, the
+            admin is notified to schedule a refresh.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Applying Research Recommendations</h4>
+          <p className="mb-2">
+            Research never overwrites your values automatically. You always choose whether to accept a recommendation:
+          </p>
+          <div className="space-y-1.5 ml-1">
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">1. Review the badge</span> — The yellow pill next to the field label shows the AI-recommended range</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">2. Click to apply</span> — Click the badge to auto-fill the P50 (median) value into the field</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">3. Open the Guidance Sheet</span> — Click the arrow icon for full details: P25/P50/P75 ranges, peer comparisons, the relaxation trail, and impact analysis showing how the change would affect downstream metrics</p>
+            <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">4. Choose your action</span> — Apply P25 (conservative), P50 (median), or P75 (aggressive); Pin (keep your current value); or Dismiss (hide the recommendation)</p>
+          </div>
+        </div>
+
+        <div>
           <h4 className="font-semibold text-foreground mb-2">Research Transparency Panel</h4>
           <p>
             Every research result page includes a collapsible <span className="font-medium text-foreground">Methodology</span> panel

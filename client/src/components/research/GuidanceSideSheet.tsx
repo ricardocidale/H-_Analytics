@@ -303,22 +303,50 @@ function RecommendationTab({ record, confidence }: { record: GuidanceRecord; con
         </div>
       </div>
 
-      <div className="flex items-center gap-3 px-1">
-        <div className="flex items-center gap-1.5">
-          <div className={cn("h-2.5 w-2.5 rounded-full", confidence.dotColor)} />
-          <span className="text-xs font-medium">{confidence.label} Confidence</span>
+      <div className="rounded-lg border border-border/40 p-3 bg-muted/20 space-y-2" data-testid="guidance-attribution">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <div className={cn("h-2.5 w-2.5 rounded-full", confidence.dotColor)} />
+            <span className="text-xs font-medium">{confidence.label} Confidence</span>
+          </div>
+          {record.relaxationLevel != null && record.relaxationLevel > 0 && (
+            <span className="text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded font-medium">
+              Relaxation Level {record.relaxationLevel}
+            </span>
+          )}
         </div>
+
         {record.sourceName && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Shield className="h-3 w-3" />
-            {record.sourceName}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Shield className="h-3 w-3 shrink-0" />
+            <span className="font-medium text-foreground">{record.sourceName}</span>
+            {record.sourceDate && (
+              <>
+                <span className="text-muted-foreground/50">·</span>
+                <Clock className="h-3 w-3 shrink-0" />
+                <span>{record.sourceDate}</span>
+              </>
+            )}
+          </div>
+        )}
+
+        {!record.sourceName && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground italic">
+            <Shield className="h-3 w-3 shrink-0" />
+            <span>Source attribution unavailable</span>
           </div>
         )}
       </div>
 
       {record.reasoning && (
-        <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground leading-relaxed" data-testid="guidance-reasoning">
-          {record.reasoning}
+        <div className="space-y-1.5" data-testid="guidance-reasoning">
+          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+            <FileText className="h-3 w-3" />
+            Methodology
+          </div>
+          <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground leading-relaxed">
+            {record.reasoning}
+          </div>
         </div>
       )}
     </>

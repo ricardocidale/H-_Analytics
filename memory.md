@@ -23,6 +23,15 @@
 - **Skills to update**: admin-configurator, hbg-business-model, integrations-infrastructure
 - **Implementation phases**: 5 phases, 28 tasks total
 
+### Task #291: Documentation & Help System Updates (April 2026) — COMPLETED
+- **InfoTooltip benchmark citations**: All key assumption tooltips updated with STR chain scale ranges — Starting ADR (Luxury $396+, Upper Upscale $173–$312, etc.), ADR Growth (2–5% Upper Upscale, 3–6% Luxury), Starting Occupancy (40–55% Luxury, 50–65% Upscale), Stabilized Occupancy (65–75% Luxury, 70–80% Upper Upscale), Housekeeping (22–28% Luxury, 18–25% Upper Upscale), Management Fees (3–5% base Upper Upscale, 6–10% specialty), Compensation ($75K–$95K Upper Upscale, $85K–$120K Luxury)
+- **User Manual Section18Research.tsx**: Added 4 new subsections — Research Badges (yellow pill/blue GAAP/guidance arrow), Freshness & Staleness (green/amber/red indicators with color dots), What Triggers Staleness (7 key assumption change types), Applying Research Recommendations (4-step workflow)
+- **Checker Manual Section13AIResearch.tsx**: Added Intelligence Verification subsection with 6-step cross-reference workflow table + Key Verification Benchmarks table (chain scale × ADR/Occ/Fee/Source) + Callout for out-of-range flags
+- **Glossary expanded**: 15 new terms — 6 STR chain scales (Luxury→Economy), 3 business models (Hotel/VRBO-STR/Lodge), 6 research terms (Freshness/Staleness/Context Pack/Guidance/STR/Chain Scale)
+- **GuidedWalkthrough.tsx**: Added 2 new tour steps — Research Badges (target: badge-research) and Intelligence Status Bar (target: intelligence-status-bar)
+- **GuidanceSideSheet.tsx RecommendationTab**: Enhanced attribution card — source name + date with Shield/Clock icons, relaxation level badge (amber), "Source attribution unavailable" fallback, Methodology label with FileText icon wrapping reasoning text
+- Files changed: RevenueAssumptionsSection.tsx, OperatingCostRatesSection.tsx, ManagementFeesSection.tsx, CompensationSection.tsx, Section18Research.tsx, Section13AIResearch.tsx, glossary.ts, GuidedWalkthrough.tsx, GuidanceSideSheet.tsx
+
 ### Task #293: Lodge Business Model & Lakeview Haven Update (April 2026) — COMPLETED
 - **"lodge" added** to both BUSINESS_MODEL_TYPES and HOSPITALITY_TYPES arrays in schema
 - **BusinessModelSelector** updated: 3 options — Hotel, Lodge ("Large vacation lodge — whole-property rental, premium amenities, no F&B or events departments"), VRBO/STR

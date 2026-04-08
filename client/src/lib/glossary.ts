@@ -209,6 +209,81 @@ const GLOSSARY: Record<string, GlossaryEntry> = {
     formulaRef: "F-C-02",
     category: "Fees",
   },
+  "Luxury": {
+    term: "Luxury (STR Chain Scale)",
+    definition: "The highest tier in the STR chain scale classification. Luxury hotels offer the highest ADR ($396+), premium service levels, and extensive amenities. Examples: Four Seasons, Ritz-Carlton, St. Regis. Stabilized occupancy benchmark: 65–75% (STR/CoStar 2024).",
+    category: "Classification",
+  },
+  "Upper Upscale": {
+    term: "Upper Upscale (STR Chain Scale)",
+    definition: "Second tier in the STR chain scale. Full-service hotels with high ADR ($173–$312) and comprehensive amenities. Examples: Marriott, Hilton, Hyatt flagship brands. Stabilized occupancy benchmark: 70–80% (STR/CoStar 2024).",
+    category: "Classification",
+  },
+  "Upscale": {
+    term: "Upscale (STR Chain Scale)",
+    definition: "Mid-upper tier in the STR chain scale. Select-service or full-service with ADR $134–$198. Examples: Courtyard by Marriott, Hilton Garden Inn. Stabilized occupancy benchmark: 72–82% (STR/CoStar 2024).",
+    category: "Classification",
+  },
+  "Upper Midscale": {
+    term: "Upper Midscale (STR Chain Scale)",
+    definition: "Middle tier in the STR chain scale. Limited-service with ADR $100–$140. Examples: Hampton Inn, Holiday Inn Express. Stabilized occupancy benchmark: 60–72% (STR/CoStar 2024).",
+    category: "Classification",
+  },
+  "Midscale": {
+    term: "Midscale (STR Chain Scale)",
+    definition: "Lower-middle tier in the STR chain scale. Economy-plus with ADR $75–$105. Examples: Best Western, La Quinta. Typically lower margins but higher occupancy consistency.",
+    category: "Classification",
+  },
+  "Economy": {
+    term: "Economy (STR Chain Scale)",
+    definition: "Lowest tier in the STR chain scale. Budget accommodations with ADR under $80. Examples: Motel 6, Super 8. Highest occupancy sensitivity to rate changes.",
+    category: "Classification",
+  },
+  "Hotel": {
+    term: "Hotel (Business Model)",
+    definition: "Traditional hospitality business model using the USALI framework with departmental expenses (Rooms, F&B, Events), management fees (2–5% base + incentive on GOP), and institutional-grade financial reporting.",
+    category: "Business Model",
+  },
+  "VRBO/STR": {
+    term: "VRBO/STR (Business Model)",
+    definition: "Vacation rental / short-term rental business model. Uses platform fees (Airbnb 15.5%, VRBO 8%), per-turnover cleaning costs, and all-in management fees (20–35%). No departmental USALI structure — simplified expense model focused on turnover economics.",
+    category: "Business Model",
+  },
+  "Lodge": {
+    term: "Lodge (Business Model)",
+    definition: "Large whole-property vacation lodge rental. Premium amenities with guest meals (F&B 15–25%) but no events department. Management fees 15–25%. Positioned between Hotel and VRBO in expense complexity.",
+    category: "Business Model",
+  },
+  "Freshness": {
+    term: "Research Freshness",
+    definition: "How recently research intelligence was generated or refreshed. Fresh (green) = within threshold, Aging (amber) = approaching threshold, Stale (red) = exceeded threshold. Thresholds are configured by the admin in Pipeline Config.",
+    category: "Research",
+  },
+  "Staleness": {
+    term: "Research Staleness",
+    definition: "When research data exceeds the configured freshness threshold, it becomes stale. Staleness is also triggered when key assumptions change (star rating, business model, room count, location, ADR). Stale research should be refreshed before use.",
+    category: "Research",
+  },
+  "Context Pack": {
+    term: "Context Pack",
+    definition: "A structured bundle of data assembled before AI research runs. Includes the property profile, comparable set, market data, historical performance, and business constraints. The richer the context pack, the more precise the AI recommendations.",
+    category: "Research",
+  },
+  "Guidance": {
+    term: "Assumption Guidance",
+    definition: "AI-generated recommendation for a specific assumption field, presented as a P25/P50/P75 range with confidence score, source attribution, peer comparisons, and impact analysis. Users choose whether to apply, pin, or dismiss each recommendation.",
+    category: "Research",
+  },
+  "STR": {
+    term: "Smith Travel Research (STR)",
+    definition: "The hotel industry's primary benchmarking source, now part of CoStar Group. Provides chain scale classifications, STAR reports, and market-level performance data (ADR, occupancy, RevPAR) used as the foundation for research intelligence.",
+    category: "Data Source",
+  },
+  "Chain Scale": {
+    term: "STR Chain Scale",
+    definition: "A classification system by Smith Travel Research (STR) that groups hotels into tiers based on ADR: Luxury, Upper Upscale, Upscale, Upper Midscale, Midscale, and Economy. Used by the research engine to match comparable properties and select appropriate benchmarks.",
+    category: "Classification",
+  },
 };
 
 export function lookupGlossary(term: string): GlossaryEntry | undefined {

@@ -227,7 +227,7 @@ export default function ManagementFeesSection({ properties, allFeeCategories, re
       <div>
         <h3 className="text-lg font-display text-foreground flex items-center gap-2">
           Revenue Model — Service Categories & Fees
-          <InfoTooltip text="Define the service categories and fee structure that drive management company revenue. Service categories are charged as a % of each property's Total Revenue. The Incentive Fee is a performance bonus on GOP. HVS 2024 Fee Survey: specialty/wellness operators typically command 6–10% base fee + 12–20% incentive fee. Values set here are defaults — each property can override them." manualSection="company-formulas" />
+          <InfoTooltip text="Define the service categories and fee structure that drive management company revenue. Service categories are charged as a % of each property's Total Revenue. The Incentive Fee is a performance bonus on GOP. HVS 2024 Fee Survey: Luxury/Upper Upscale operators command 3–5% base + 10–15% incentive; specialty/wellness operators 6–10% base + 12–20% incentive. Lodge/VRBO models use all-in management fees (15–35%) instead. Values set here are defaults — each property can override them." manualSection="company-formulas" />
         </h3>
         <p className="text-sm text-muted-foreground mt-1">
           Configure the services provided to properties and the fee structure for each.

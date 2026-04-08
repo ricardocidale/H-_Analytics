@@ -52,7 +52,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
-                label={<>Starting ADR <InfoTooltip text="The average nightly rate charged per occupied room when the hotel first opens. This is the foundation of all revenue projections — room revenue, F&B, and events all flow from ADR × occupancy. Boutique/lifestyle ADR benchmarks vary widely by market; $200–$400 is typical for secondary/tertiary markets (STR/HVS data)." /></>}
+                label={<>Starting ADR <InfoTooltip text="The average nightly rate charged per occupied room when the hotel first opens. This is the foundation of all revenue projections — room revenue, F&B, and events all flow from ADR × occupancy. STR Chain Scale ADR benchmarks (STR/CoStar 2024): Luxury $396+, Upper Upscale $173–$312, Upscale $134–$198, Upper Midscale $100–$140. Boutique/lifestyle properties in secondary markets typically fall in the $200–$400 range." /></>}
                 badgeProps={{ entry: researchValues.adr }}
                 onApplyValue={() => researchValues.adr && onChange("startAdr", researchValues.adr.mid)}
                 guidanceContext={gc("adr", "Starting ADR")}
@@ -78,7 +78,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
-                label={<>ADR Annual Growth <InfoTooltip text="The yearly percentage increase applied to ADR, compounding each year. A 3.5% growth rate means a $250 ADR becomes ~$259 in Year 2, ~$268 in Year 3, and so on. Reflects pricing power, inflation, and market positioning. Industry benchmark: 2–5% annual ADR growth for upper-upscale hotels (STR trend data)." /></>}
+                label={<>ADR Annual Growth <InfoTooltip text="The yearly percentage increase applied to ADR, compounding each year. A 3.5% growth rate means a $250 ADR becomes ~$259 in Year 2, ~$268 in Year 3, and so on. Reflects pricing power, inflation, and market positioning. Industry benchmark: 2–5% annual ADR growth for Upper Upscale; 3–6% for Luxury with strong brand equity (STR/CoStar 2024 trend data)." /></>}
                 badgeProps={{ entry: researchValues.adrGrowth }}
                 onApplyValue={() => researchValues.adrGrowth && onChange("adrGrowthRate", researchValues.adrGrowth.mid / 100)}
                 guidanceContext={gc("adrGrowth", "ADR Annual Growth")}
@@ -106,7 +106,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
-                label={<>Starting Occupancy <InfoTooltip text="The percentage of rooms sold in the first month of operations. New hotels typically open well below their long-term potential while they build awareness and reputation. This is the starting point of the occupancy ramp. Industry benchmark: 40–60% starting occupancy for boutique hotels in secondary markets." /></>}
+                label={<>Starting Occupancy <InfoTooltip text="The percentage of rooms sold in the first month of operations. New hotels typically open well below their long-term potential while they build awareness and reputation. This is the starting point of the occupancy ramp. STR benchmarks (STR/CoStar 2024): Luxury 40–55% initial, Upper Upscale 45–60%, Upscale 50–65%. VRBO/STR properties: 35–50% initial depending on listing maturity and market saturation." /></>}
                 badgeProps={{ entry: researchValues.startOccupancy }}
                 onApplyValue={() => researchValues.startOccupancy && onChange("startOccupancy", researchValues.startOccupancy.mid / 100)}
                 guidanceContext={gc("startOccupancy", "Starting Occupancy")}
@@ -132,7 +132,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
-                label={<>Stabilized Occupancy <InfoTooltip text="The maximum occupancy the property will reach once fully ramped. The occupancy growth step increases occupancy toward this ceiling at regular intervals. Once reached, occupancy stays here for the remainder of the projection. Industry benchmark: 75–90% stabilized occupancy for upper-upscale/boutique hotels (STR benchmarks)." /></>}
+                label={<>Stabilized Occupancy <InfoTooltip text="The maximum occupancy the property will reach once fully ramped. The occupancy growth step increases occupancy toward this ceiling at regular intervals. Once reached, occupancy stays here for the remainder of the projection. STR benchmarks (STR/CoStar 2024): Luxury 65–75%, Upper Upscale 70–80%, Upscale 72–82%, Upper Midscale 60–72%. VRBO/STR properties: 55–75% depending on market seasonality and pricing strategy." /></>}
                 badgeProps={{ entry: researchValues.occupancy }}
                 onApplyValue={() => researchValues.occupancy && onChange("maxOccupancy", researchValues.occupancy.mid / 100)}
                 guidanceContext={gc("occupancy", "Stabilized Occupancy")}

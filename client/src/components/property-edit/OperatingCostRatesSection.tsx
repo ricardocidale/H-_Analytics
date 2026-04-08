@@ -92,7 +92,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <ResearchContextFieldLabel
-                        label={<>Housekeeping <InfoTooltip text="USALI Rooms Department — variable cost covering cleaning labor, linens, guest supplies, and room maintenance. Scales directly with room revenue. Industry benchmark: 18–25% of room revenue for boutique/lifestyle hotels (USALI 12th Ed.)." /></>}
+                        label={<>Housekeeping <InfoTooltip text="USALI Rooms Department — variable cost covering cleaning labor, linens, guest supplies, and room maintenance. Scales directly with room revenue. Industry benchmark (USALI 12th Ed.): Luxury 22–28%, Upper Upscale 18–25%, Upscale 20–27%. VRBO/STR properties use per-turnover cleaning costs instead." /></>}
                         badgeProps={{ entry: researchValues.costHousekeeping }}
                         onApplyValue={() => researchValues.costHousekeeping && onChange("costRateRooms", researchValues.costHousekeeping.mid / 100)}
                         guidanceContext={gc("costHousekeeping", "Housekeeping")}
