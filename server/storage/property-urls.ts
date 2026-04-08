@@ -20,6 +20,11 @@ export class PropertyUrlStorage {
       .orderBy(asc(propertyUrls.createdAt));
   }
 
+  async getAllPropertyUrls(): Promise<PropertyUrl[]> {
+    return await db.select().from(propertyUrls)
+      .orderBy(asc(propertyUrls.propertyId), asc(propertyUrls.createdAt));
+  }
+
   async getPropertyUrlById(id: number): Promise<PropertyUrl | undefined> {
     const [row] = await db.select().from(propertyUrls)
       .where(eq(propertyUrls.id, id));

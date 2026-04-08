@@ -268,6 +268,14 @@ export function register(app: Express) {
       await storage.deleteProperty(id);
       invalidateComputeCache();
       logActivity(req, "delete", "property", id, property.name);
+
+      try {
+        const { cleanupPropertyVectors } = await import("../ai/pinecone-service");
+        await cleanupPropertyVectors(id);
+      } catch (err) {
+        logger.warn(`Pinecone cleanup failed for property ${id}: ${err instanceof Error ? err.message : err}`, "properties");
+      }
+
       res.json({ success: true });
     } catch (error) {
       logAndSendError(res, "Failed to delete property", error);
@@ -453,6 +461,15 @@ Rewritten description:`;
   // ────────────────────────────────────────────────────────────
   // PROPERTY URLS — linked reference URLs with validation
   // ────────────────────────────────────────────────────────────
+
+  app.get("/api/property-urls/all", requireAuth, async (_req, res) => {
+    try {
+      const urls = await storage.getAllPropertyUrls();
+      res.json(urls);
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch all property URLs", error);
+    }
+  });
 
   app.get("/api/properties/:id/urls", requireAuth, async (req, res) => {
     try {

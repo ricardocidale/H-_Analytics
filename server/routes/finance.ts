@@ -142,7 +142,7 @@ export function registerFinanceRoutes(router: Router): void {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Server computation failed";
       logger.error(`Compute error: ${message}`, "finance");
-      return res.status(500).json({ error: message });
+      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Server computation failed" : message });
     }
   });
 
@@ -184,7 +184,7 @@ export function registerFinanceRoutes(router: Router): void {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Property computation failed";
       logger.error(`Property compute error: ${message}`, "finance");
-      return res.status(500).json({ error: message });
+      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Property computation failed" : message });
     }
   });
 
@@ -217,7 +217,7 @@ export function registerFinanceRoutes(router: Router): void {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Company computation failed";
       logger.error(`Company compute error: ${message}`, "finance");
-      return res.status(500).json({ error: message });
+      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Company computation failed" : message });
     }
   });
 
@@ -272,7 +272,7 @@ export function registerFinanceRoutes(router: Router): void {
       if (message.includes("No global assumptions") || message.includes("No matching properties")) {
         return res.status(422).json({ error: message });
       }
-      return res.status(500).json({ error: message });
+      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Sensitivity computation failed" : message });
     }
   });
 }

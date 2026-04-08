@@ -234,6 +234,7 @@ describe("Recalculation Enforcement", () => {
         "research-questions",     // Research questions have their own invalidation
         "admin-research-config",  // Admin research prompt config — does not affect financial calculations
         "admin",                  // Admin scenario management (deleted scenarios, restore) — does not affect financial calculations
+        "propertyUrls",           // Property URL metadata — does not affect financial calculations
       ]);
 
       for (const prefix of financialQueryPrefixes) {

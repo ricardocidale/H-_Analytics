@@ -31,7 +31,7 @@ export function register(app: Express) {
 
   async function handleCredentialLogin(email: string, password: string, clientIp: string, res: import("express").Response) {
     if (isRateLimited(clientIp)) {
-      return res.status(429).json({ error: "Too many login attempts. Please try again in 1 minute." });
+      return res.status(429).json({ error: "Too many login attempts. Please try again in 15 minutes." });
     }
 
     const user = await storage.getUserByEmail(sanitizeEmail(email));

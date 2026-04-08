@@ -26,7 +26,7 @@ import type { Property, PropertyUrl } from "@shared/schema";
 import { HeroImage } from "@/features/property-images";
 import { cn } from "@/lib/utils";
 import { PropertyTypeBadge } from "@/components/research/PropertyTypeSelector";
-import { useQuery } from "@tanstack/react-query";
+import { memo } from "react";
 import { usePropertyPhotos } from "@/lib/api";
 import { buildLocationLinks, hasCoordinates } from "@/lib/map-utils";
 
@@ -41,9 +41,10 @@ interface PortfolioPropertyCardProps {
   propertyNumber: number;
   onDelete: (id: number, name: string) => void;
   onToggleActive?: (id: number, isActive: boolean) => void;
+  propertyUrls?: PropertyUrl[];
 }
 
-export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onToggleActive }: PortfolioPropertyCardProps) {
+export const PortfolioPropertyCard = memo(function PortfolioPropertyCard({ property, propertyNumber, onDelete, onToggleActive, propertyUrls = [] }: PortfolioPropertyCardProps) {
   const isActive = property.isActive !== false;
   const { data: photos = [] } = usePropertyPhotos(property.id);
   const heroPhoto = photos.find(p => p.isHero);
@@ -51,16 +52,7 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
     ? `/api/property-photos/${heroPhoto.id}/enhanced-image`
     : property.imageUrl;
   const isEnhanced = !!heroPhoto?.enhancedImageData;
-  const { data: propertyLinks = [] } = useQuery<PropertyUrl[]>({
-    queryKey: ["propertyUrls", property.id],
-    queryFn: async () => {
-      const res = await fetch(`/api/properties/${property.id}/urls`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    staleTime: 5 * 60_000,
-  });
-  const visibleLinks = propertyLinks.filter(l => l.isValid === true && l.isRelevant === true);
+  const visibleLinks = propertyUrls.filter(l => l.isValid === true && l.isRelevant === true);
   const validLinks = visibleLinks.slice(0, 3);
 
   return (
@@ -312,4 +304,4 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
     </StaggerItem>
     </AnimatedGridItem>
   );
-}
+});

@@ -335,6 +335,7 @@ export class DatabaseStorage implements IStorage {
   deleteScheduledResearchWorkflow = this.intelligenceV2.deleteScheduledResearchWorkflow.bind(this.intelligenceV2);
 
   // Property URLs
+  getAllPropertyUrls = this.propertyUrlStore.getAllPropertyUrls.bind(this.propertyUrlStore);
   getPropertyUrls = this.propertyUrlStore.getPropertyUrls.bind(this.propertyUrlStore);
   getPropertyUrlById = this.propertyUrlStore.getPropertyUrlById.bind(this.propertyUrlStore);
   addPropertyUrl = this.propertyUrlStore.addPropertyUrl.bind(this.propertyUrlStore);

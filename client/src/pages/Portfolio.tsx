@@ -23,7 +23,7 @@
 import { useState } from "react";
 import { PropertyStatus } from "@shared/constants";
 import Layout from "@/components/Layout";
-import { useProperties, useDeleteProperty, useCreateProperty, useGlobalAssumptions, useUpdateProperty } from "@/lib/api";
+import { useProperties, useDeleteProperty, useCreateProperty, useGlobalAssumptions, useUpdateProperty, useAllPropertyUrls } from "@/lib/api";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconPlus, IconAlertTriangle } from "@/components/icons";
 import { PageHeader } from "@/components/ui/page-header";
@@ -83,6 +83,7 @@ type PortfolioTab = "properties" | "map";
 export default function Portfolio() {
   const { data: properties, isLoading, isError } = useProperties();
   const { data: global } = useGlobalAssumptions();
+  const { data: allPropertyUrls = [] } = useAllPropertyUrls();
   const deleteProperty = useDeleteProperty();
   const createProperty = useCreateProperty();
   const updateProperty = useUpdateProperty();
@@ -234,6 +235,7 @@ export default function Portfolio() {
               propertyNumber={index + 1}
               onDelete={handleDelete}
               onToggleActive={handleToggleActive}
+              propertyUrls={allPropertyUrls.filter(u => u.propertyId === property.id)}
             />
           ))}
         </AnimatedGrid>

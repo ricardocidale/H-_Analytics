@@ -174,31 +174,33 @@ export class FinancialStorage {
    * first save or the hundredth.
    */
   async upsertGlobalAssumptions(data: InsertGlobalAssumptions, userId?: number): Promise<GlobalAssumptions> {
-    const userCondition = userId
-      ? eq(globalAssumptions.userId, userId)
-      : isNull(globalAssumptions.userId);
+    return await db.transaction(async (tx) => {
+      const userCondition = userId
+        ? eq(globalAssumptions.userId, userId)
+        : isNull(globalAssumptions.userId);
 
-    const [ownRow] = await db.select().from(globalAssumptions)
-      .where(userCondition)
-      .limit(1);
+      const [ownRow] = await tx.select().from(globalAssumptions)
+        .where(userCondition)
+        .limit(1);
 
-    if (ownRow) {
-      const [updated] = await db
-        .update(globalAssumptions)
-        .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
-        .where(eq(globalAssumptions.id, ownRow.id))
-        .returning();
-      return updated;
-    } else {
-      const [inserted] = await db
-        .insert(globalAssumptions)
-        .values({ 
-          ...data as typeof globalAssumptions.$inferInsert, 
-          userId 
-        })
-        .returning();
-      return inserted;
-    }
+      if (ownRow) {
+        const [updated] = await tx
+          .update(globalAssumptions)
+          .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
+          .where(eq(globalAssumptions.id, ownRow.id))
+          .returning();
+        return updated;
+      } else {
+        const [inserted] = await tx
+          .insert(globalAssumptions)
+          .values({ 
+            ...data as typeof globalAssumptions.$inferInsert, 
+            userId 
+          })
+          .returning();
+        return inserted;
+      }
+    });
   }
 
   /**
@@ -286,18 +288,20 @@ export class FinancialStorage {
   async writePropertyOverrides(scenarioId: number, diffs: PropertyDiff[]): Promise<void> {
     if (diffs.length === 0) return;
 
-    await db.delete(scenarioPropertyOverrides).where(eq(scenarioPropertyOverrides.scenarioId, scenarioId));
+    await db.transaction(async (tx) => {
+      await tx.delete(scenarioPropertyOverrides).where(eq(scenarioPropertyOverrides.scenarioId, scenarioId));
 
-    const values = diffs.map(d => ({
-      scenarioId,
-      propertyId: d.propertyId ?? undefined,
-      propertyName: d.propertyName,
-      changeType: d.changeType,
-      overrides: d.overrides as Record<string, unknown>,
-      basePropertySnapshot: d.baseSnapshot,
-    }));
+      const values = diffs.map(d => ({
+        scenarioId,
+        propertyId: d.propertyId ?? undefined,
+        propertyName: d.propertyName,
+        changeType: d.changeType,
+        overrides: d.overrides as Record<string, unknown>,
+        basePropertySnapshot: d.baseSnapshot,
+      }));
 
-    await db.insert(scenarioPropertyOverrides).values(values as Array<typeof scenarioPropertyOverrides.$inferInsert>);
+      await tx.insert(scenarioPropertyOverrides).values(values as Array<typeof scenarioPropertyOverrides.$inferInsert>);
+    });
   }
 
   async getPropertyOverrides(scenarioId: number) {

@@ -59,6 +59,8 @@ export const researchRuns = pgTable("research_runs", {
 }, (table) => [
   index("research_runs_entity_idx").on(table.entityType, table.entityId),
   index("research_runs_status_idx").on(table.status),
+  index("research_runs_user_idx").on(table.userId),
+  index("research_runs_scenario_idx").on(table.scenarioId),
 ]);
 
 export const insertResearchRunSchema = createInsertSchema(researchRuns).pick({
@@ -176,6 +178,7 @@ export const rebeccaEmails = pgTable("rebecca_emails", {
   sentAt: timestamp("sent_at"),
 }, (table) => [
   index("rebecca_emails_conv_idx").on(table.conversationId),
+  index("rebecca_emails_user_idx").on(table.userId),
 ]);
 
 export const insertRebeccaEmailSchema = createInsertSchema(rebeccaEmails).pick({
@@ -196,6 +199,8 @@ export const rebeccaFeedback = pgTable("rebecca_feedback", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("rebecca_feedback_status_idx").on(table.status),
+  index("rebecca_feedback_user_idx").on(table.userId),
+  index("rebecca_feedback_conv_idx").on(table.conversationId),
 ]);
 
 export const insertRebeccaFeedbackSchema = createInsertSchema(rebeccaFeedback).pick({
@@ -218,6 +223,7 @@ export const coverageSnapshots = pgTable("coverage_snapshots", {
   snapshotDate: date("snapshot_date").defaultNow().notNull(),
 }, (table) => [
   index("coverage_snapshots_entity_idx").on(table.entityType, table.entityId),
+  index("coverage_snapshots_scenario_idx").on(table.scenarioId),
 ]);
 
 export const insertCoverageSnapshotSchema = createInsertSchema(coverageSnapshots).pick({
@@ -310,7 +316,9 @@ export const integrationKeyRotations = pgTable("integration_key_rotations", {
   rotatedAt: timestamp("rotated_at").defaultNow().notNull(),
   previousKeyHash: text("previous_key_hash"),
   notes: text("notes"),
-});
+}, (table) => [
+  index("integration_key_rotations_service_idx").on(table.serviceKey),
+]);
 
 export const insertIntegrationKeyRotationSchema = createInsertSchema(integrationKeyRotations).pick({
   serviceKey: true, rotatedBy: true, previousKeyHash: true, notes: true,

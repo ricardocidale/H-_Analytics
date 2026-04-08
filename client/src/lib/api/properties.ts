@@ -129,6 +129,18 @@ export function useAllFeeCategories() {
   });
 }
 
+export function useAllPropertyUrls() {
+  return useQuery<import("@shared/schema").PropertyUrl[]>({
+    queryKey: ["propertyUrls", "all"],
+    queryFn: async () => {
+      const res = await fetch("/api/property-urls/all", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useUpdateFeeCategories() {
   const queryClient = useQueryClient();
 

@@ -295,6 +295,37 @@ export async function deleteNamespace(namespace: PineconeNamespace): Promise<voi
   }
 }
 
+export async function cleanupPropertyVectors(propertyId: number): Promise<void> {
+  if (!isPineconeAvailable()) return;
+  await ensureIndex();
+  const index = getPC().index(INDEX_NAME);
+
+  const namespacesToClean: PineconeNamespace[] = [
+    "properties", "research-history", "assumption-guidance", "documents", "scenarios",
+  ];
+
+  for (const ns of namespacesToClean) {
+    try {
+      const nsIndex = index.namespace(ns);
+      const listed = await nsIndex.listPaginated({ prefix: `property:${propertyId}` });
+      const prefixIds = listed.vectors?.map(v => v.id).filter((id): id is string => !!id) ?? [];
+      if (prefixIds.length > 0) {
+        await nsIndex.deleteMany(prefixIds);
+      }
+
+      await nsIndex.deleteMany([
+        `property:${propertyId}`,
+        `guidance:property:${propertyId}`,
+        `scenario:${propertyId}`,
+      ]);
+    } catch (err) {
+      logger.warn(`Pinecone cleanup for namespace ${ns} (property ${propertyId}) failed: ${err instanceof Error ? err.message : err}`, "pinecone");
+    }
+  }
+
+  logger.info(`Cleaned Pinecone vectors for property ${propertyId}`, "pinecone");
+}
+
 export async function getTotalVectorCount(): Promise<number> {
   if (!isPineconeAvailable()) return 0;
   try {
