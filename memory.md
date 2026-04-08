@@ -15,8 +15,9 @@
 - **Business-model-tagged Pinecone guidance**: `indexAssumptionGuidance` and `retrieveSimilarGuidance` now accept `businessModel` param. Metadata includes `businessModel` tag. Query text includes business model for better embedding similarity. Returns include `businessModel` field
 - **Relaxation engine model-aware scoring**: `ComparableProperty` now has `businessModel` field. `applyBusinessModelBoost()` gives same-model comps +15% score, cross-model comps -15%. `computeEvidenceScore()` adds 10% weight for business model alignment. Evidence scoring rebalanced: count 30%, similarity 25%, constraint 20%, diversity 15%, model alignment 10%
 - **Validation context plumbed**: `server/routes/research.ts` now passes `businessModel` to `validateResearchValues()`, `indexAssumptionGuidance()`, and `retrieveSimilarGuidance()`
-- **Tests**: 21 new tests in `tests/ai/research-calibration.test.ts` covering all 6 subtasks
-- Health check: ALL CLEAR — 0 TS errors, 4,045 tests pass (173 files)
+- **Tests**: 23 new tests in `tests/ai/research-calibration.test.ts` covering all 6 subtasks + scoring verification
+- **Code review fix**: `indexResearchResult` now accepts `businessModel` param; orchestrator passes it from context pack. `applyBusinessModelBoost` exported for direct testing
+- Health check: ALL CLEAR — 0 TS errors, 4,047 tests pass (173 files)
 
 ### Task #302: Business-Model-Specific Financial Defaults (April 2026) — COMPLETED
 - **BUSINESS_MODEL_DEFAULTS** map in `shared/constants.ts` — keyed by `BusinessModelType` ('hotel'|'lodge'|'vrbo') with 21 fields per model (cost rates, revenue shares, catering boost, management fees, platform fees, pre-opening burn)

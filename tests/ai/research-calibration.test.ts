@@ -3,6 +3,8 @@ import { extractResearchValues } from "../../server/ai/research-value-extractor"
 import { validateResearchValues } from "../../calc/research/validate-research";
 import { buildPropertyContextPack } from "../../server/ai/context-pack/property-pack";
 import { assembleResearchPrompt } from "../../server/ai/prompt/assemble-research-prompt";
+import { applyBusinessModelBoost } from "../../server/ai/comparables/relaxation-engine";
+import type { ComparableProperty } from "../../server/ai/comparables/relaxation-engine";
 
 const baseProperty = {
   id: 1,
@@ -385,6 +387,46 @@ describe("Research Calibration", () => {
       delete propWithoutModel.businessModel;
       const pack = buildPropertyContextPack(propWithoutModel, null, null);
       expect(pack.classification.businessModel).toBe("hotel");
+    });
+
+    it("same-model comps outrank cross-model comps after boost", () => {
+      const baseComp: ComparableProperty = {
+        name: "Comp A",
+        location: "Miami, FL",
+        roomCount: 30,
+        adr: 200,
+        starRating: 3,
+        score: 0.7,
+        source: "test",
+        businessModel: "vrbo",
+      };
+      const crossComp: ComparableProperty = {
+        ...baseComp,
+        name: "Comp B",
+        businessModel: "hotel",
+        score: 0.7,
+      };
+      const boosted = applyBusinessModelBoost([baseComp, crossComp], "vrbo");
+      const vrboScore = boosted.find(c => c.name === "Comp A")!.score;
+      const hotelScore = boosted.find(c => c.name === "Comp B")!.score;
+      expect(vrboScore).toBeCloseTo(0.7 * 1.15, 5);
+      expect(hotelScore).toBeCloseTo(0.7 * 0.85, 5);
+      expect(vrboScore).toBeGreaterThan(hotelScore);
+    });
+
+    it("boost is capped at 1.0", () => {
+      const highComp: ComparableProperty = {
+        name: "High Score",
+        location: "Denver, CO",
+        roomCount: 50,
+        adr: 300,
+        starRating: 4,
+        score: 0.95,
+        source: "test",
+        businessModel: "hotel",
+      };
+      const [boosted] = applyBusinessModelBoost([highComp], "hotel");
+      expect(boosted.score).toBeLessThanOrEqual(1);
     });
   });
 });

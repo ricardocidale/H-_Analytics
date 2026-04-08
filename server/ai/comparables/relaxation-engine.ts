@@ -176,7 +176,7 @@ function computeBusinessModelAlignment(comps: ComparableProperty[], targetModel:
   return sameModelCount / comps.length;
 }
 
-function applyBusinessModelBoost(comps: ComparableProperty[], targetModel: string): ComparableProperty[] {
+export function applyBusinessModelBoost(comps: ComparableProperty[], targetModel: string): ComparableProperty[] {
   return comps.map(c => {
     if (c.businessModel === targetModel) {
       return { ...c, score: Math.min(c.score * 1.15, 1) };
