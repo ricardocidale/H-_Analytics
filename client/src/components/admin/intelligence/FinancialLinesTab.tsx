@@ -87,7 +87,7 @@ export default function FinancialLinesTab() {
       apiRequest("PATCH", `/api/admin/intelligence/financial-lines/${id}/approve`).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/intelligence/financial-lines"] });
-      toast({ title: "Suggestion approved", description: "The financial line has been approved and indexed to knowledge base." });
+      toast({ title: "Suggestion approved", description: "The financial line has been approved." });
     },
     onError: () => toast({ title: "Failed to approve", variant: "destructive" }),
   });
