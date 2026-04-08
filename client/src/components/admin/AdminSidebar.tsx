@@ -4,25 +4,48 @@ import { Button } from "@/components/ui/button";
 import { X } from "@/components/icons/themed-icons";
 import {
   IconMenu, IconHelpCircle, IconPeople, IconUserCog, IconActivity, IconImage, IconSwatchBook,
-  IconUpload, IconPanelLeft, IconProperties, IconTrending, IconTarget,
+  IconPanelLeft, IconProperties,
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
-  IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconMessageCircle, IconExport, IconScenarios, IconPalette,
-  IconBarChart3, IconLayers, IconShieldCheck, IconGlobe, IconTimer,
+  IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconExport, IconScenarios, IconPalette,
+  IconLayers, IconShieldCheck, IconGlobe, IconTimer, IconDashboard, IconGauge, IconMessageSquare,
 } from "@/components/icons";
 import { Link } from "wouter";
-import { useGlobalAssumptions } from "@/lib/api/admin";
 
 export type AdminSection =
   | "model-defaults"
   | "users" | "activity"
-  | "icp"
   | "companies" | "groups" | "scenarios"
-  | "logos" | "themes" | "icons" | "exports"
-  | "ai-agents" | "llms" | "sources" | "model-routing"
-  | "research" | "navigation" | "notifications" | "verification" | "database"
+  | "brand" | "exports"
+  | "ai-agents" | "knowledge-base" | "conversations"
+  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research"
+  | "navigation" | "notifications" | "verification" | "database"
+  | "icp" | "logos" | "themes" | "icons"
+  | "llms" | "sources" | "model-routing"
   | "cache-services" | "integrations" | "api-dashboard"
-  | "coverage-analytics" | "pipeline-policies" | "qa-sandbox" | "source-registry"
-  | "system-intelligence" | "scheduled-research";
+  | "coverage-analytics" | "pipeline-policies" | "source-registry"
+  | "system-intelligence" | "research";
+
+const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
+  "icp": "engine-dashboard",
+  "logos": "brand",
+  "themes": "brand",
+  "icons": "brand",
+  "llms": "data-sources",
+  "model-routing": "pipeline-config",
+  "cache-services": "engine-dashboard",
+  "integrations": "data-sources",
+  "api-dashboard": "data-sources",
+  "coverage-analytics": "engine-dashboard",
+  "pipeline-policies": "pipeline-config",
+  "source-registry": "data-sources",
+  "system-intelligence": "engine-dashboard",
+  "research": "engine-dashboard",
+  "sources": "data-sources",
+};
+
+export function resolveSection(section: AdminSection): AdminSection {
+  return SECTION_REDIRECTS[section] ?? section;
+}
 
 interface SectionItem {
   value: AdminSection;
@@ -38,16 +61,7 @@ interface NavGroup {
   sections: SectionItem[];
 }
 
-function buildNavGroups(adminIntelV2: boolean): NavGroup[] {
-  const intelV2Sections: SectionItem[] = adminIntelV2 ? [
-    { value: "coverage-analytics", label: "Coverage Analytics", icon: IconBarChart3 },
-    { value: "pipeline-policies", label: "Pipeline Policies", icon: IconLayers },
-    { value: "qa-sandbox", label: "QA Sandbox", icon: IconShieldCheck },
-    { value: "source-registry", label: "Source Registry", icon: IconGlobe },
-    { value: "scheduled-research", label: "Scheduled Research", icon: IconTimer },
-    { value: "system-intelligence", label: "System Intelligence", icon: IconBrain },
-  ] : [];
-
+function buildNavGroups(): NavGroup[] {
   return [
     {
       id: "business",
@@ -63,37 +77,36 @@ function buildNavGroups(adminIntelV2: boolean): NavGroup[] {
     },
     {
       id: "intelligence",
-      label: "Intelligence",
-      icon: IconResearch,
-      description: "ICP, research center & analytics",
+      label: "Intelligence Engine",
+      icon: IconGauge,
+      description: "Research & data management",
       sections: [
-        { value: "icp", label: "ICP Management Co", icon: IconTarget },
-        { value: "research", label: "Research Center", icon: IconResearch },
-        ...intelV2Sections,
+        { value: "engine-dashboard", label: "Engine Dashboard", icon: IconDashboard },
+        { value: "data-sources", label: "Data Sources", icon: IconGlobe },
+        { value: "pipeline-config", label: "Pipeline Config", icon: IconLayers },
+        { value: "qa-sandbox", label: "QA Sandbox", icon: IconShieldCheck },
+        { value: "scheduled-research", label: "Scheduled Research", icon: IconTimer },
+      ],
+    },
+    {
+      id: "ai",
+      label: "AI Assistant",
+      icon: IconBot,
+      description: "Rebecca configuration & training",
+      sections: [
+        { value: "ai-agents", label: "Configuration", icon: IconBot },
+        { value: "knowledge-base", label: "Knowledge Base", icon: IconBookOpen },
+        { value: "conversations", label: "Conversations", icon: IconMessageSquare },
       ],
     },
     {
       id: "design",
       label: "Design",
       icon: IconSwatchBook,
-      description: "Logos, themes & exports",
+      description: "Brand & exports",
       sections: [
-        { value: "logos", label: "Logos", icon: IconImage },
-        { value: "themes", label: "Themes", icon: IconSwatchBook },
-        { value: "icons", label: "Icons", icon: IconPalette },
+        { value: "brand", label: "Brand", icon: IconPalette },
         { value: "exports", label: "Exports", icon: IconExport },
-      ],
-    },
-    {
-      id: "ai",
-      label: "AI",
-      icon: IconBot,
-      description: "AI agents, LLM models, and research sources",
-      sections: [
-        { value: "ai-agents", label: "AI Agents", icon: IconBot },
-        { value: "llms", label: "LLMs", icon: IconBrain },
-        { value: "model-routing", label: "Model Routing", icon: IconSliders },
-        { value: "sources", label: "Sources", icon: IconBookOpen },
       ],
     },
     {
@@ -103,21 +116,19 @@ function buildNavGroups(adminIntelV2: boolean): NavGroup[] {
       description: "Infrastructure & monitoring",
       sections: [
         { value: "model-defaults", label: "App Defaults", icon: IconSliders },
-        { value: "notifications", label: "Notifications", icon: IconPhone },
-        { value: "navigation", label: "Navigation", icon: IconPanelLeft },
         { value: "verification", label: "Verification", icon: IconFileCheck },
         { value: "database", label: "Database", icon: IconDatabase },
-        { value: "api-dashboard", label: "API Dashboard", icon: IconGlobe },
-        { value: "cache-services", label: "Cache & Services", icon: IconActivity },
-        { value: "integrations", label: "Integrations", icon: IconTrending },
+        { value: "notifications", label: "Notifications", icon: IconPhone },
+        { value: "navigation", label: "Navigation", icon: IconPanelLeft },
       ],
     },
   ];
 }
 
 function getGroupForSection(section: AdminSection, groups: NavGroup[]): string {
+  const resolved = resolveSection(section);
   for (const group of groups) {
-    if (group.sections.some((s) => s.value === section)) return group.id;
+    if (group.sections.some((s) => s.value === resolved)) return group.id;
   }
   return "business";
 }
@@ -129,9 +140,9 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { data: global } = useGlobalAssumptions();
-  const navGroups = buildNavGroups(!!global?.adminIntelV2);
-  const activeGroup = getGroupForSection(activeSection, navGroups);
+  const navGroups = buildNavGroups();
+  const resolved = resolveSection(activeSection);
+  const activeGroup = getGroupForSection(resolved, navGroups);
 
   const sidebarContent = (
     <nav className="flex flex-col gap-0.5 py-3 px-3">
@@ -153,7 +164,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
 
             <div className="space-y-0.5">
               {group.sections.map((section) => {
-                const isActive = activeSection === section.value;
+                const isActive = resolved === section.value;
                 const Icon = section.icon;
                 return (
                   <Button
@@ -210,7 +221,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
           data-testid="admin-nav-activity"
           className={cn(
             "relative w-full flex items-center gap-2.5 px-3 py-[7px] h-auto rounded-lg text-left justify-start transition-all duration-150 group/item cursor-pointer",
-            activeSection === "activity"
+            resolved === "activity"
               ? "bg-muted text-foreground font-medium"
               : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           )}
@@ -218,7 +229,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
           <IconActivity
             className={cn(
               "w-4 h-4 shrink-0 transition-colors",
-              activeSection === "activity"
+              resolved === "activity"
                 ? "text-foreground"
                 : "text-muted-foreground group-hover/item:text-muted-foreground"
             )}
@@ -226,7 +237,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
           <span
             className={cn(
               "text-[13px] transition-colors truncate",
-              activeSection === "activity" ? "font-medium" : "font-normal"
+              resolved === "activity" ? "font-medium" : "font-normal"
             )}
           >
             Activity

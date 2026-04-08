@@ -35,6 +35,26 @@
 - **Code review fix**: partnerComp1/2/3 → partnerCompYear1-10 (correct schema names)
 - DB columns added via direct SQL (drizzle-kit push had stableKey constraint prompt)
 
+### Phase 2 Admin Reorganization (April 2026) — COMPLETED
+- **AdminSidebar restructured** to new 5-group layout:
+  - Business: Users, Companies, Groups, Scenarios
+  - Intelligence Engine: Engine Dashboard, Data Sources, Pipeline Config, QA Sandbox, Scheduled Research
+  - AI Assistant: Configuration (Rebecca), Knowledge Base, Conversations
+  - Design: Brand (merged Logos+Themes+Icons), Exports
+  - System: App Defaults, Verification, Database, Notifications, Navigation
+  - Logs: Activity (separate section at bottom)
+- **Section redirects**: Old section IDs (icp, logos, themes, icons, llms, model-routing, cache-services, integrations, api-dashboard, coverage-analytics, pipeline-policies, source-registry, system-intelligence, research, sources) all redirect to their new locations via `resolveSection()`
+- **New components created**:
+  - `BrandTab.tsx` — sub-tabs for Logos, Themes, Icons
+  - `EngineDashboard.tsx` — health bar + 4 stat cards + coverage heatmap + portfolio profile
+  - `DataSourcesTab.tsx` — 4-column card grid (APIs/Scrapers/Sources/Models) with 15 seeded sources, toggle/configure/test/logs actions
+  - `PipelineConfigTab.tsx` — sub-tabs for Pipeline Policies + Model Routing
+  - `KnowledgeBaseTab.tsx` — wraps existing SourcesTab for Rebecca's training data
+  - `ConversationsTab.tsx` — placeholder for chat history/analytics
+- **No `adminIntelV2` feature flag dependency** — new sidebar always shows full structure
+- **buildNavGroups()** no longer takes arguments
+- Files: AdminSidebar.tsx, Admin.tsx, Layout.tsx, + 6 new component files
+
 ### Research Intelligence System (April 2026)
 - **Research methodology skill created**: `.agents/skills/research-methodology/SKILL.md` — exhaustive 500+ line document covering STR chain scales, star ratings, revenue mix benchmarks, USALI expense ratios by segment, management fee structures, geography-driven cost adjustments, VRBO/STR business model, comp set selection criteria, and the full N+1 AI research pipeline
 - **Key architectural decision**: Properties should auto-derive their research profile from existing assumptions — NO separate ICP definition needed per property. The property's own starRating + ADR + hospitalityType + location + revenue shares IS its research profile.

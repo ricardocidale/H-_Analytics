@@ -36,7 +36,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { IconSetProvider } from "@/components/icons/IconSetContext";
 import type { IconSetType } from "@/features/design-themes/types";
 import { useAdminSection } from "@/lib/admin-nav";
-import { buildNavGroups } from "@/components/admin/AdminSidebar";
+import { buildNavGroups, resolveSection } from "@/components/admin/AdminSidebar";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
@@ -235,7 +235,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     },
   ].filter(g => g.items.length > 0), [hasManagementAccess, isAdmin, global]);
 
-  const adminNavGroups = buildNavGroups(!!global?.adminIntelV2);
+  const adminNavGroups = buildNavGroups();
   const adminSidebarGroups: NavGroupDef[] = useMemo(() => {
     const groups: NavGroupDef[] = [
       {
@@ -272,7 +272,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   const isActiveLink = (href: string) => {
     if (href.startsWith("#admin-")) {
       const section = href.replace("#admin-", "") as AdminSection;
-      return adminSection === section;
+      return resolveSection(adminSection) === resolveSection(section);
     }
     return location === href ||
       (href === "/portfolio" && location.startsWith("/property/")) ||
