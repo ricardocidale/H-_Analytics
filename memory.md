@@ -33,13 +33,14 @@
 
 ### Task #289: Data Sources Card CRUD (April 2026) — COMPLETED
 - **sourceRegistry schema extended**: Added description, endpoint, apiKeyRef, rateLimitPerMin, successRate, avgLatencyMs, costPerCall, dataProvided (jsonb string[]) columns via direct SQL migration
-- **Storage methods added**: getSourceRegistryEntry, createSourceRegistryEntry, updateSourceRegistryEntry, deleteSourceRegistryEntry (server/storage/intelligence-v2.ts + index.ts)
-- **API routes added**: POST /api/admin/source-registry (create), PATCH /api/admin/source-registry/:id (update), PATCH /api/admin/source-registry/:id/toggle, DELETE /api/admin/source-registry/:id, POST /api/admin/source-registry/:id/test (connectivity)
-- **SSRF protection**: Test endpoint validates URL protocol (HTTP/HTTPS only), blocks private/internal/metadata IPs, uses redirect: manual
-- **DataSourcesTab.tsx rewritten**: Full CRUD with API-driven data (no more SEED_SOURCES), toggle persistence, ConfigureDialog (create/edit modes with useEffect form population), delete with AlertDialog confirmation, inline Test connectivity results, LogsPanel (Sheet with mock activity logs), HealthBadge (amber <90%, red <80% "Unreliable")
-- **SourceRegistryOverlay.tsx fixed**: Updated from serviceKey-based PATCH to ID-based toggle route (backward compatibility)
-- **15 seed records**: Inserted via SQL — 4 APIs (FRED, Xotelo, OpenExchange, Weather), 4 scrapers (Airbnb, VRBO, Booking, TripAdvisor), 4 sources (CBRE, HVS, PKF, AAHOA), 3 models (GPT-4o, Claude Sonnet, Gemini Flash)
-- **Category tabs**: APIs, Scrapers, Sources, Models — each with "+" card for adding new sources
+- **source_call_logs table**: Real activity logging — id, sourceId, serviceKey, timestamp, httpStatus, latencyMs, success, errorMessage; cascading delete on source removal
+- **Storage methods added**: getSourceRegistryEntry, createSourceRegistryEntry, updateSourceRegistryEntry, deleteSourceRegistryEntry, createSourceCallLog, getSourceCallLogs (server/storage/intelligence-v2.ts + index.ts)
+- **API routes added**: POST /api/admin/source-registry (create), PATCH /api/admin/source-registry/:id (update), PATCH /api/admin/source-registry/:id/toggle, DELETE /api/admin/source-registry/:id, POST /api/admin/source-registry/:id/test (connectivity + logs call), GET /api/admin/source-registry/:id/logs (last 50 entries)
+- **SSRF protection hardened**: Full RFC1918 CIDR blocking (10.0.0.0/8, 172.16-31.x.x, 192.168.x.x, 127.x.x.x, 169.254.x.x), IPv6 private (fc/fd/fe80), metadata IPs (Google/AWS), .local/.internal TLDs, DNS resolution guard (resolve hostname → check resolved IPs against private ranges)
+- **DataSourcesTab.tsx rewritten**: Full CRUD with API-driven data, toggle persistence, ConfigureDialog, delete with AlertDialog, inline Test results, **real LogsPanel** querying GET /api/admin/source-registry/:id/logs (no mock data), HealthBadge (amber <90%, red <80%)
+- **SourceRegistryOverlay.tsx fixed**: Updated from serviceKey-based PATCH to ID-based toggle route
+- **15 seed records**: 4 APIs, 4 scrapers, 4 sources, 3 models
+- **`as any` cast removed**: lastHealthCheck update uses typed Date directly
 - All 3976 tests passing, 0 TS errors, lint clean, verification UNQUALIFIED
 
 ### Phase 1 Schema Changes (April 2026) — COMPLETED

@@ -594,6 +594,19 @@ export function registerIntelligenceRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/source-registry/:id/logs", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const source = await storage.getSourceRegistryEntry(id);
+      if (!source) return res.status(404).json({ error: "Source not found" });
+      const logs = await storage.getSourceCallLogs(id, 50);
+      res.json(logs);
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch source call logs", error);
+    }
+  });
+
   app.post("/api/admin/source-registry/:id/test", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(String(req.params.id), 10);
@@ -604,6 +617,7 @@ export function registerIntelligenceRoutes(app: Express) {
       const startTime = Date.now();
       let healthy = false;
       let errorMsg: string | undefined;
+      let httpStatus: number | undefined;
 
       if (source.endpoint) {
         try {
@@ -611,18 +625,50 @@ export function registerIntelligenceRoutes(app: Express) {
           if (!["https:", "http:"].includes(url.protocol)) {
             return res.status(400).json({ error: "Only HTTP(S) endpoints are supported" });
           }
-          const blockedPatterns = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.", "10.", "172.16.", "192.168.", "[::1]", "metadata.google"];
-          if (blockedPatterns.some(p => url.hostname.includes(p))) {
+          const rawHostname = url.hostname.toLowerCase();
+          const hostname = rawHostname.replace(/^\[|\]$/g, "");
+
+          const isPrivateAddr = (addr: string): boolean => {
+            const h = addr.replace(/^\[|\]$/g, "").toLowerCase();
+            if (h === "localhost" || h === "::1" || h === "0.0.0.0") return true;
+            if (h.endsWith(".local") || h.endsWith(".internal")) return true;
+            if (h.includes("metadata.google") || h.includes("metadata.aws")) return true;
+            if (/^(127\.|10\.|0\.|192\.168\.|169\.254\.)/.test(h)) return true;
+            if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+            if (/^(fc|fd)[0-9a-f]{0,2}:/i.test(h) || /^fe80:/i.test(h)) return true;
+            return false;
+          };
+
+          if (isPrivateAddr(hostname)) {
             return res.status(400).json({ error: "Internal/private endpoints are not allowed" });
           }
+
+          const dns = await import("dns");
+          const ipv4 = await dns.promises.resolve4(hostname).catch(() => [] as string[]);
+          const ipv6 = await dns.promises.resolve6(hostname).catch(() => [] as string[]);
+          const allResolved = [...ipv4, ...ipv6];
+          if (allResolved.some(isPrivateAddr)) {
+            return res.status(400).json({ error: "Endpoint resolves to a private IP address" });
+          }
+
+          const safeIp = ipv4[0] || ipv6[0];
+          if (!safeIp) {
+            return res.status(400).json({ error: "Could not resolve endpoint hostname" });
+          }
+
+          const fetchUrl = new URL(source.endpoint);
+          fetchUrl.hostname = ipv4[0] ? safeIp : `[${safeIp}]`;
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 10000);
-          const response = await fetch(source.endpoint, {
+          const headers: Record<string, string> = { Host: url.hostname };
+          const response = await fetch(fetchUrl.toString(), {
             method: "HEAD",
             signal: controller.signal,
             redirect: "manual",
-          }).catch(() => fetch(source.endpoint!, { method: "GET", signal: controller.signal, redirect: "manual" }));
+            headers,
+          }).catch(() => fetch(fetchUrl.toString(), { method: "GET", signal: controller.signal, redirect: "manual", headers }));
           clearTimeout(timeout);
+          httpStatus = response.status;
           healthy = response.ok || response.status < 500;
         } catch (err: unknown) {
           errorMsg = err instanceof Error ? err.message : "Connection failed";
@@ -634,8 +680,16 @@ export function registerIntelligenceRoutes(app: Express) {
 
       const latencyMs = Date.now() - startTime;
 
-      await storage.updateSourceRegistryEntry(id, {
-        lastHealthCheck: new Date() as any,
+      const now = new Date();
+      await storage.updateSourceRegistryEntry(id, { lastHealthCheck: now });
+
+      await storage.createSourceCallLog({
+        sourceId: id,
+        serviceKey: source.serviceKey,
+        httpStatus: httpStatus ?? null,
+        latencyMs,
+        success: healthy,
+        errorMessage: errorMsg ?? null,
       });
 
       res.json({ healthy, latencyMs, error: errorMsg });

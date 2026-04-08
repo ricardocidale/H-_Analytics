@@ -257,6 +257,27 @@ export const insertSourceRegistrySchema = createInsertSchema(sourceRegistry).pic
 export type SourceRegistryEntry = typeof sourceRegistry.$inferSelect;
 export type InsertSourceRegistryEntry = z.infer<typeof insertSourceRegistrySchema>;
 
+export const sourceCallLogs = pgTable("source_call_logs", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  sourceId: integer("source_id").references(() => sourceRegistry.id, { onDelete: "cascade" }).notNull(),
+  serviceKey: text("service_key").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  httpStatus: integer("http_status"),
+  latencyMs: integer("latency_ms"),
+  success: boolean("success").notNull(),
+  errorMessage: text("error_message"),
+}, (table) => [
+  index("source_call_logs_source_idx").on(table.sourceId),
+  index("source_call_logs_ts_idx").on(table.timestamp),
+]);
+
+export const insertSourceCallLogSchema = createInsertSchema(sourceCallLogs).pick({
+  sourceId: true, serviceKey: true, httpStatus: true,
+  latencyMs: true, success: true, errorMessage: true,
+});
+export type SourceCallLog = typeof sourceCallLogs.$inferSelect;
+export type InsertSourceCallLog = z.infer<typeof insertSourceCallLogSchema>;
+
 export const integrationKeyRotations = pgTable("integration_key_rotations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   serviceKey: text("service_key").notNull(),

@@ -1,7 +1,7 @@
 import {
   assumptionGuidance, researchRuns, benchmarkSnapshots, relaxationTraces,
   guidanceDecisions, rebeccaConversations, rebeccaMessages, rebeccaEmails,
-  rebeccaFeedback, coverageSnapshots, sourceRegistry, integrationKeyRotations,
+  rebeccaFeedback, coverageSnapshots, sourceRegistry, sourceCallLogs, integrationKeyRotations,
   pipelinePolicies, scheduledResearchWorkflows,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type ResearchRun, type InsertResearchRun,
@@ -14,6 +14,7 @@ import {
   type RebeccaFeedback, type InsertRebeccaFeedback,
   type CoverageSnapshot, type InsertCoverageSnapshot,
   type SourceRegistryEntry, type InsertSourceRegistryEntry,
+  type SourceCallLog, type InsertSourceCallLog,
   type IntegrationKeyRotation, type InsertIntegrationKeyRotation,
   type PipelinePolicy, type InsertPipelinePolicy,
   type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
@@ -366,6 +367,20 @@ export class IntelligenceV2Storage {
 
   async deleteSourceRegistryEntry(id: number): Promise<void> {
     await db.delete(sourceRegistry).where(eq(sourceRegistry.id, id));
+  }
+
+  async createSourceCallLog(data: InsertSourceCallLog): Promise<SourceCallLog> {
+    const [log] = await db.insert(sourceCallLogs)
+      .values(data as typeof sourceCallLogs.$inferInsert)
+      .returning();
+    return log;
+  }
+
+  async getSourceCallLogs(sourceId: number, limit: number = 50): Promise<SourceCallLog[]> {
+    return db.select().from(sourceCallLogs)
+      .where(eq(sourceCallLogs.sourceId, sourceId))
+      .orderBy(desc(sourceCallLogs.timestamp))
+      .limit(limit);
   }
 
   async createKeyRotation(data: InsertIntegrationKeyRotation): Promise<IntegrationKeyRotation> {

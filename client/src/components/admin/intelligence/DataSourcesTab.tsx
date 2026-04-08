@@ -285,48 +285,61 @@ function ConfigureDialog({ open, onOpenChange, source, defaultCategory, onSave, 
   );
 }
 
-function LogsPanel({ open, onOpenChange, source }: { open: boolean; onOpenChange: (open: boolean) => void; source: SourceEntry | null }) {
-  if (!source) return null;
+interface CallLogEntry {
+  id: number;
+  sourceId: number;
+  serviceKey: string;
+  timestamp: string;
+  httpStatus: number | null;
+  latencyMs: number | null;
+  success: boolean;
+  errorMessage: string | null;
+}
 
-  const mockLogs = Array.from({ length: 15 }, (_, i) => {
-    const ts = new Date(Date.now() - i * 1000 * 60 * (5 + Math.random() * 30));
-    const statusCode = Math.random() > 0.1 ? 200 : Math.random() > 0.5 ? 429 : 500;
-    const latency = Math.round(100 + Math.random() * (source.avgLatencyMs ?? 500));
-    return {
-      timestamp: ts.toISOString(),
-      status: statusCode,
-      latencyMs: latency,
-      error: statusCode !== 200 ? (statusCode === 429 ? "Rate limited" : "Internal server error") : null,
-    };
+function LogsPanel({ open, onOpenChange, source }: { open: boolean; onOpenChange: (open: boolean) => void; source: SourceEntry | null }) {
+  const { data: logs = [], isLoading } = useQuery<CallLogEntry[]>({
+    queryKey: ["/api/admin/source-registry", source?.id, "logs"],
+    queryFn: () => apiRequest("GET", `/api/admin/source-registry/${source!.id}/logs`).then(r => r.json()),
+    enabled: open && !!source,
   });
+
+  if (!source) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-lg" data-testid="logs-panel">
         <SheetHeader>
           <SheetTitle>Activity Logs — {source.name}</SheetTitle>
-          <SheetDescription>Recent API call history for this source.</SheetDescription>
+          <SheetDescription>Last 50 API calls for this source.</SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-2 max-h-[calc(100vh-150px)] overflow-y-auto">
-          {mockLogs.map((log, i) => (
-            <div key={i} className="flex items-center gap-3 text-xs py-2 px-3 rounded-md bg-muted/40 border border-border/40">
-              <div className={cn(
-                "w-2 h-2 rounded-full shrink-0",
-                log.status === 200 ? "bg-emerald-500" : log.status === 429 ? "bg-amber-500" : "bg-red-500"
-              )} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-medium">{log.status}</span>
-                  <span className="text-muted-foreground">{log.latencyMs}ms</span>
-                  {log.error && <span className="text-red-600 dark:text-red-400 truncate">{log.error}</span>}
+          {isLoading && <p className="text-sm text-muted-foreground py-4 text-center">Loading logs…</p>}
+          {!isLoading && logs.length === 0 && (
+            <p className="text-sm text-muted-foreground py-8 text-center">No activity logged yet. Use the "Test" button to create an entry.</p>
+          )}
+          {logs.map((log) => {
+            const statusCode = log.httpStatus ?? (log.success ? 200 : 0);
+            return (
+              <div key={log.id} className="flex items-center gap-3 text-xs py-2 px-3 rounded-md bg-muted/40 border border-border/40">
+                <div className={cn(
+                  "w-2 h-2 rounded-full shrink-0",
+                  log.success ? "bg-emerald-500" : statusCode === 429 ? "bg-amber-500" : "bg-red-500"
+                )} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {statusCode > 0 && <span className="font-mono font-medium">{statusCode}</span>}
+                    {log.latencyMs !== null && <span className="text-muted-foreground">{log.latencyMs}ms</span>}
+                    {log.errorMessage && <span className="text-red-600 dark:text-red-400 truncate">{log.errorMessage}</span>}
+                    {!log.errorMessage && log.success && <span className="text-emerald-600 dark:text-emerald-400">OK</span>}
+                  </div>
                 </div>
+                <span className="text-muted-foreground shrink-0">
+                  <IconClock className="w-3 h-3 inline mr-1" />
+                  {new Date(log.timestamp).toLocaleString()}
+                </span>
               </div>
-              <span className="text-muted-foreground shrink-0">
-                <IconClock className="w-3 h-3 inline mr-1" />
-                {new Date(log.timestamp).toLocaleTimeString()}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </SheetContent>
     </Sheet>
