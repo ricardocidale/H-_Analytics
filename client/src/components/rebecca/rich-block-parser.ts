@@ -118,7 +118,7 @@ function parseCompare(body: string): CompareBlockData | null {
   const rows: { metric: string; values: string[] }[] = [];
 
   for (const line of lines) {
-    if (line.startsWith("title:")) {
+    if (line.toLowerCase().startsWith("title:")) {
       title = line.slice(6).trim();
       continue;
     }
@@ -153,7 +153,7 @@ function parseTimeline(body: string): TimelineBlockData | null {
   const phases: TimelinePhase[] = [];
 
   for (const line of lines) {
-    if (line.startsWith("title:")) {
+    if (line.toLowerCase().startsWith("title:")) {
       title = line.slice(6).trim();
       continue;
     }
@@ -207,7 +207,7 @@ function parseKpi(body: string): KpiBlockData | null {
   const metrics: KpiMetric[] = [];
 
   for (const line of lines) {
-    if (line.startsWith("title:")) {
+    if (line.toLowerCase().startsWith("title:")) {
       title = line.slice(6).trim();
       continue;
     }

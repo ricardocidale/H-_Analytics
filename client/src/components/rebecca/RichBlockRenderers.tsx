@@ -13,6 +13,16 @@ interface BlockProps {
   locale?: string;
 }
 
+const LABELS: Record<string, Record<string, string>> = {
+  en: { source: "Source" },
+  es: { source: "Fuente" },
+};
+
+function t(key: string, locale?: string): string {
+  const lang = locale?.slice(0, 2) ?? "en";
+  return LABELS[lang]?.[key] ?? LABELS.en[key] ?? key;
+}
+
 function deltaIcon(delta?: string) {
   if (!delta) return null;
   const lower = delta.toLowerCase();
@@ -33,7 +43,7 @@ function deltaColor(delta?: string): string {
   return "text-muted-foreground";
 }
 
-export function StatBlock({ value, label, delta, source }: StatBlockData & BlockProps) {
+export function StatBlock({ value, label, delta, source, locale }: StatBlockData & BlockProps) {
   return (
     <div
       className="my-2 rounded-lg border border-[#112548]/15 bg-gradient-to-br from-[#112548]/[0.04] to-transparent p-3"
@@ -52,7 +62,7 @@ export function StatBlock({ value, label, delta, source }: StatBlockData & Block
       </div>
       <p className="text-[11px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wider">{label}</p>
       {source && (
-        <p className="text-[10px] text-muted-foreground/60 mt-1 italic">Source: {source}</p>
+        <p className="text-[10px] text-muted-foreground/60 mt-1 italic">{t("source", locale)}: {source}</p>
       )}
     </div>
   );
@@ -135,7 +145,7 @@ export function TimelineBlock({ title, phases }: TimelineBlockData & BlockProps)
   );
 }
 
-export function InsightBlock({ text, source }: InsightBlockData & BlockProps) {
+export function InsightBlock({ text, source, locale }: InsightBlockData & BlockProps) {
   return (
     <div
       className="my-2 rounded-lg border-l-[3px] border-l-[#FDB817] border border-[#FDB817]/20 bg-[#FDB817]/[0.04] px-3 py-2.5"
@@ -146,7 +156,7 @@ export function InsightBlock({ text, source }: InsightBlockData & BlockProps) {
         <div>
           <p className="text-[12px] text-foreground leading-relaxed">{text}</p>
           {source && (
-            <p className="text-[10px] text-muted-foreground/60 mt-1 italic">— {source}</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1 italic">— {t("source", locale)}: {source}</p>
           )}
         </div>
       </div>
