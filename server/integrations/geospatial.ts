@@ -102,11 +102,14 @@ class GeospatialIntegration extends BaseIntegrationService {
     });
   }
 
-  async placesAutocomplete(query: string): Promise<any[]> {
+  async placesAutocomplete(query: string, countryBias?: string): Promise<any[]> {
     if (!this.isConfigured()) return [];
 
     return this.execute("placesAutocomplete", async () => {
-      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=address&key=${GOOGLE_MAPS_API_KEY}`;
+      let url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=address&key=${GOOGLE_MAPS_API_KEY}`;
+      if (countryBias) {
+        url += `&components=country:${encodeURIComponent(countryBias)}`;
+      }
       const response = await fetch(url);
       const data = await response.json();
 
@@ -243,7 +246,7 @@ const geospatialIntegration = new GeospatialIntegration();
 
 // Exported functions for backward compatibility
 export const geocodeAddress = (address: string) => geospatialIntegration.geocodeAddress(address);
-export const placesAutocomplete = (query: string) => geospatialIntegration.placesAutocomplete(query);
+export const placesAutocomplete = (query: string, countryBias?: string) => geospatialIntegration.placesAutocomplete(query, countryBias);
 export const placeDetails = (placeId: string) => geospatialIntegration.placeDetails(placeId);
 export const nearbyPOISearch = (lat: number, lng: number, types?: POIType[], radiusMiles?: number) =>
   geospatialIntegration.nearbyPOISearch(lat, lng, types, radiusMiles);

@@ -23,6 +23,14 @@
 - **Skills to update**: admin-configurator, hbg-business-model, integrations-infrastructure
 - **Implementation phases**: 5 phases, 28 tasks total
 
+### Task #296: Smart Address Autocomplete & Auto-Fill (April 2026) — COMPLETED
+- **AddressAutocomplete component created**: `client/src/components/ui/address-autocomplete.tsx` — Google Places-powered typeahead with debounced search (300ms), AbortController for stale-response protection, click-outside-to-close, loading spinner, structured suggestion display (mainText + secondaryText), map pin icon
+- **BasicInfoSection updated**: Street address plain `<Input>` replaced with `<AddressAutocomplete>`, place selection auto-fills streetAddress, city, stateProvince, zipPostalCode, country, and location fields; auto-fill badges ("auto-filled" green pill) + emerald ring highlights shown for 6s then fade; geocoding triggered via POST `/api/geocode/property/:id` after place selection
+- **Server enhanced**: `placesAutocomplete()` now accepts optional `countryBias` parameter for country-scoped results (`&components=country:XX`); route passes `?country=` query param through
+- **Code review fixes applied**: (1) Location always overwritten on place select (not conditional on empty), (2) Geocode trigger uses `!== undefined` instead of truthy check for lat/lng, (3) AbortController added to prevent stale suggestion races, (4) Cleanup on unmount for both debounce timer and abort controller
+- Files: address-autocomplete.tsx (new), BasicInfoSection.tsx, geospatial.ts, geospatial routes
+- Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
+
 ### Task #292: Skill Authoring & Updates (April 2026) — COMPLETED
 - **3 new skills created**:
   - `help-documentation` — InfoTooltip patterns (benchmark citation format, STR chain scale reference, authoritative sources), manual section structure (SectionCard/ManualTable/Callout), glossary schema & categories, walkthrough step format (selector strategies), GuidanceSideSheet anatomy (tabs, attribution card, GuidanceRecord fields)

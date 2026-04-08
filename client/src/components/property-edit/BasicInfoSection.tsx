@@ -10,18 +10,45 @@
  * total room revenue.  Property type influences which USALI expense
  * ratios the engine applies by default.
  */
+import { useState, useCallback, useRef, useEffect } from "react";
 import { PROPERTY_STATUS_VALUES } from "@shared/constants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CityCombobox } from "@/components/ui/city-combobox";
+import { AddressAutocomplete, type PlaceDetails } from "@/components/ui/address-autocomplete";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import StarRatingInput from "@/components/research/StarRatingInput";
 import PropertyTypeSelector, { BusinessModelSelector } from "@/components/research/PropertyTypeSelector";
 import type { PropertyEditSectionProps } from "./types";
+import { cn } from "@/lib/utils";
+
+function AutoFillBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-full animate-in fade-in slide-in-from-left-1 duration-300">
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M2.5 4L3.5 5L5.5 3" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      auto-filled
+    </span>
+  );
+}
 
 export default function BasicInfoSection({ draft, onChange, onNumberChange }: PropertyEditSectionProps) {
+  const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
+  const autoFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (autoFillTimerRef.current) clearTimeout(autoFillTimerRef.current);
+    };
+  }, []);
+
+  const markAutoFilled = useCallback((fields: string[]) => {
+    setAutoFilledFields(new Set(fields));
+    if (autoFillTimerRef.current) clearTimeout(autoFillTimerRef.current);
+    autoFillTimerRef.current = setTimeout(() => setAutoFilledFields(new Set()), 6000);
+  }, []);
+
   const geo = useGeoSelect({
     countryName: draft.country || "",
     stateName: draft.stateProvince || "",
@@ -29,6 +56,51 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
     onStateChange: (v) => onChange("stateProvince", v || null),
     onCityChange: (v) => onChange("city", v || null),
   });
+
+  const handlePlaceSelect = useCallback((details: PlaceDetails) => {
+    const filled: string[] = [];
+
+    if (details.streetAddress) {
+      onChange("streetAddress", details.streetAddress);
+      filled.push("streetAddress");
+    }
+    if (details.city) {
+      onChange("city", details.city);
+      filled.push("city");
+    }
+    if (details.stateProvince) {
+      onChange("stateProvince", details.stateProvince);
+      filled.push("stateProvince");
+    }
+    if (details.zipPostalCode) {
+      onChange("zipPostalCode", details.zipPostalCode);
+      filled.push("zipPostalCode");
+    }
+    if (details.country) {
+      onChange("country", details.country);
+      filled.push("country");
+    }
+
+    if (details.city || details.stateProvince) {
+      const location = [details.city, details.stateProvince].filter(Boolean).join(", ");
+      onChange("location", location);
+      filled.push("location");
+    }
+
+    if (filled.length > 0) {
+      markAutoFilled(filled);
+    }
+
+    if (details.lat !== undefined && details.lng !== undefined && draft.id) {
+      fetch(`/api/geocode/property/${draft.id}`, {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
+    }
+  }, [onChange, draft.id, markAutoFilled]);
+
+  const isAutoFilled = (field: string) => autoFilledFields.has(field);
+
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="relative p-6">
@@ -42,8 +114,12 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             <Input value={draft.name} onChange={(e) => onChange("name", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
           </div>
           <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Location<InfoTooltip text="City and state/region of the property. Used for market research to find comparable properties and local hospitality benchmarks." /></Label>
-            <Input value={draft.location} onChange={(e) => onChange("location", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
+            <Label className="label-text text-foreground flex items-center gap-1.5">
+              Location
+              {isAutoFilled("location") && <AutoFillBadge />}
+              <InfoTooltip text="City and state/region of the property. Used for market research to find comparable properties and local hospitality benchmarks." />
+            </Label>
+            <Input value={draft.location} onChange={(e) => onChange("location", e.target.value)} className={cn("bg-card border-primary/30 text-foreground placeholder:text-muted-foreground", isAutoFilled("location") && "ring-1 ring-emerald-400/50")} />
           </div>
           <div className="space-y-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Market<InfoTooltip text="The broader market or MSA (Metropolitan Statistical Area) this property operates in. Drives market research, comp set analysis, and regional benchmarks." /></Label>
@@ -51,16 +127,29 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
           </div>
 
           <div className="sm:col-span-2 border border-primary/20 rounded-xl p-4 space-y-4">
-            <p className="text-sm font-medium text-foreground label-text">Address Details <span className="text-muted-foreground font-normal">(optional)</span></p>
+            <p className="text-sm font-medium text-foreground label-text">Address Details <span className="text-muted-foreground font-normal">(optional — type to search)</span></p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
-                <Label className="label-text text-muted-foreground text-sm">Street Address</Label>
-                <Input value={draft.streetAddress || ""} onChange={(e) => onChange("streetAddress", e.target.value || null)} placeholder="123 Main Street" className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
+                <Label className="label-text text-muted-foreground text-sm flex items-center gap-1.5">
+                  Street Address
+                  {isAutoFilled("streetAddress") && <AutoFillBadge />}
+                </Label>
+                <AddressAutocomplete
+                  value={draft.streetAddress || ""}
+                  onChange={(val) => onChange("streetAddress", val || null)}
+                  onPlaceSelect={handlePlaceSelect}
+                  placeholder="Start typing an address..."
+                  className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground"
+                  data-testid="input-street-address"
+                />
               </div>
               <div className="space-y-2">
-                <Label className="label-text text-muted-foreground text-sm">Country</Label>
+                <Label className="label-text text-muted-foreground text-sm flex items-center gap-1.5">
+                  Country
+                  {isAutoFilled("country") && <AutoFillBadge />}
+                </Label>
                 <Select value={geo.countryCode || GEO_CLEAR_VALUE} onValueChange={geo.handleCountryChange}>
-                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-property-country">
+                  <SelectTrigger className={cn("bg-card border-primary/30 text-foreground", isAutoFilled("country") && "ring-1 ring-emerald-400/50")} data-testid="select-property-country">
                     <SelectValue placeholder="Select country" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[280px]">
@@ -74,9 +163,12 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="label-text text-muted-foreground text-sm">State / Province / Region</Label>
+                <Label className="label-text text-muted-foreground text-sm flex items-center gap-1.5">
+                  State / Province / Region
+                  {isAutoFilled("stateProvince") && <AutoFillBadge />}
+                </Label>
                 <Select value={geo.stateCode || GEO_CLEAR_VALUE} onValueChange={geo.handleStateChange} disabled={!geo.countryCode}>
-                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-property-state">
+                  <SelectTrigger className={cn("bg-card border-primary/30 text-foreground", isAutoFilled("stateProvince") && "ring-1 ring-emerald-400/50")} data-testid="select-property-state">
                     <SelectValue placeholder={geo.countryCode ? "Select state" : "Select country first"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[280px]">
@@ -90,20 +182,31 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="label-text text-muted-foreground text-sm">City</Label>
+                <Label className="label-text text-muted-foreground text-sm flex items-center gap-1.5">
+                  City
+                  {isAutoFilled("city") && <AutoFillBadge />}
+                </Label>
                 <CityCombobox
                   value={draft.city || ""}
                   onValueChange={geo.handleCityChange}
                   cities={geo.cities}
                   disabled={!geo.stateCode}
                   placeholder={geo.stateCode ? "Select city" : "Select state first"}
-                  className="bg-card border-primary/30 text-foreground"
+                  className={cn("bg-card border-primary/30 text-foreground", isAutoFilled("city") && "ring-1 ring-emerald-400/50")}
                   data-testid="select-property-city"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="label-text text-muted-foreground text-sm">Postal / ZIP Code</Label>
-                <Input value={draft.zipPostalCode || ""} onChange={(e) => onChange("zipPostalCode", e.target.value || null)} placeholder="78701" className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
+                <Label className="label-text text-muted-foreground text-sm flex items-center gap-1.5">
+                  Postal / ZIP Code
+                  {isAutoFilled("zipPostalCode") && <AutoFillBadge />}
+                </Label>
+                <Input
+                  value={draft.zipPostalCode || ""}
+                  onChange={(e) => onChange("zipPostalCode", e.target.value || null)}
+                  placeholder="78701"
+                  className={cn("bg-card border-primary/30 text-foreground placeholder:text-muted-foreground", isAutoFilled("zipPostalCode") && "ring-1 ring-emerald-400/50")}
+                />
               </div>
             </div>
           </div>
