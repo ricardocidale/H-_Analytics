@@ -39,6 +39,7 @@ import { Link, useRoute, useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
+import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import {
   PROJECTION_YEARS,
   DEFAULT_MODEL_START_DATE,
@@ -81,12 +82,8 @@ export default function PropertyEdit() {
     global: globalAssumptions,
   });
 
-  // Compute research freshness: green (<7 days), amber (>7 days), gray (missing)
-  const researchFreshness = (() => {
-    if (!research?.updatedAt) return "missing";
-    const days = (Date.now() - new Date(research.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
-    return days <= 7 ? "fresh" : "stale";
-  })();
+  const researchUpdatedAt = research?.updatedAt ?? null;
+  const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
   
   useEffect(() => {
     if (feeCategories && !feeDraft) {
@@ -417,14 +414,17 @@ export default function PropertyEdit() {
                       ) : (
                         <IconPlay className="w-4 h-4" />
                       )}
-                      {!isGenerating && (
-                        <span
-                          className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                            researchFreshness === "fresh" ? "bg-primary/80" :
-                            researchFreshness === "stale" ? "bg-accent-pop/80" : "bg-muted-foreground"
-                          }`}
-                        />
-                      )}
+                      {!isGenerating && (() => {
+                        const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
+                        return (
+                          <span
+                            className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white ${
+                              status === "current" ? "bg-primary/80" :
+                              status === "stale" ? "bg-accent-pop/80" : "bg-muted-foreground"
+                            }`}
+                          />
+                        );
+                      })()}
                     </span>
                     {isGenerating ? "Analyzing…" : "Run Research"}
                   </Button>
@@ -463,6 +463,13 @@ export default function PropertyEdit() {
               />
             </div>
           }
+        />
+
+        <IntelligenceStatusBar
+          researchUpdatedAt={researchUpdatedAt}
+          lastAssumptionChangeAt={propertyLastAssumptionChangeAt}
+          isGenerating={isGenerating}
+          onRunResearch={generateResearch}
         />
 
         {isGenerating && (

@@ -59,6 +59,7 @@ import { UserRole, GOVERNED_FIELDS, DEPRECIATION_YEARS, DAYS_PER_MONTH } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
+import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 
 export default function CompanyAssumptions() {
   const [, setLocation] = useLocation();
@@ -298,23 +299,18 @@ export default function CompanyAssumptions() {
                   )}
                   {isGenerating ? "Analyzing…" : "Run Research"}
                 </Button>
-                {companyResearchUpdatedAt && (
-                  <span
-                    className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-background ${
-                      (() => {
-                        const daysAgo = Math.floor((Date.now() - new Date(companyResearchUpdatedAt).getTime()) / (1000 * 60 * 60 * 24));
-                        return daysAgo <= 7 ? "bg-primary" : "bg-accent-pop";
-                      })()
-                    }`}
-                    data-testid="indicator-research-freshness"
-                  />
-                )}
-                {!companyResearchUpdatedAt && (
-                  <span
-                    className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-background bg-destructive"
-                    data-testid="indicator-research-freshness"
-                  />
-                )}
+                {(() => {
+                  const { status } = computeFreshnessStatus({ researchUpdatedAt: companyResearchUpdatedAt, lastAssumptionChangeAt: global.lastAssumptionChangeAt, isGenerating: false });
+                  return (
+                    <span
+                      className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-background ${
+                        status === "current" ? "bg-primary" :
+                        status === "stale" ? "bg-accent-pop" : "bg-destructive"
+                      }`}
+                      data-testid="indicator-research-freshness"
+                    />
+                  );
+                })()}
               </div>
               <Link href="/company/icp-definition" className="text-inherit no-underline">
                 <Button variant="outline" data-testid="button-icp-definition">
@@ -329,6 +325,13 @@ export default function CompanyAssumptions() {
               />
             </div>
           }
+        />
+
+        <IntelligenceStatusBar
+          researchUpdatedAt={companyResearchUpdatedAt}
+          lastAssumptionChangeAt={global.lastAssumptionChangeAt ?? null}
+          isGenerating={isGenerating}
+          onRunResearch={generateResearch}
         />
 
         <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />

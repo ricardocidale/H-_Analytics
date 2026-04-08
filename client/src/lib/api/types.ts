@@ -146,6 +146,7 @@ export interface GlobalResponse {
   // Governed model constants (DB-backed)
   depreciationYears: number;
   daysPerMonth: number;
+  lastAssumptionChangeAt: string | null;
   updatedAt: string;
 }
 

@@ -55,6 +55,18 @@
 - **buildNavGroups()** no longer takes arguments
 - Files: AdminSidebar.tsx, Admin.tsx, Layout.tsx, + 6 new component files
 
+### Phase 3 Intelligence Freshness System (April 2026) — COMPLETED
+- **IntelligenceStatusBar component** created: `client/src/components/intelligence/IntelligenceStatusBar.tsx`
+  - 4 states: Current (green), Stale (amber), Missing (red), Running (blue pulse)
+  - Unified `computeFreshnessStatus()` function — single source of truth for both the status bar AND the header dot indicators
+  - Handles: research age > 7 days (stale), assumptions changed since last research (stale), no research (missing), actively generating (running)
+  - Edge-case hardened: `safeTimestamp()` guard for invalid dates, `Math.max(0, ...)` clamp for future timestamps
+  - Regenerate button appears on stale/missing states
+- **PropertyEdit page** wired: Status bar below PageHeader, header dot uses `computeFreshnessStatus`
+- **CompanyAssumptions page** wired: Status bar below PageHeader, header dot unified via `computeFreshnessStatus`
+- **GlobalResponse type** updated: added `lastAssumptionChangeAt: string | null`
+- All 3976 tests passing, 0 TS errors, lint clean, verification UNQUALIFIED
+
 ### Research Intelligence System (April 2026)
 - **Research methodology skill created**: `.agents/skills/research-methodology/SKILL.md` — exhaustive 500+ line document covering STR chain scales, star ratings, revenue mix benchmarks, USALI expense ratios by segment, management fee structures, geography-driven cost adjustments, VRBO/STR business model, comp set selection criteria, and the full N+1 AI research pipeline
 - **Key architectural decision**: Properties should auto-derive their research profile from existing assumptions — NO separate ICP definition needed per property. The property's own starRating + ADR + hospitalityType + location + revenue shares IS its research profile.
