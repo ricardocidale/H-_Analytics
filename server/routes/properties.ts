@@ -667,22 +667,45 @@ Return ONLY the JSON array, no other text.`;
           try {
             const ctrl = new AbortController();
             const timeout = setTimeout(() => ctrl.abort(), 15_000);
-            const resp = await fetch(u.url, {
-              method: "GET",
-              signal: ctrl.signal,
-              headers: { "User-Agent": "H+Analytics/1.0 LinkValidator", "Accept": "text/html" },
-              redirect: "follow",
-            });
+            const MAX_REDIRECTS = 5;
+            let currentUrl = u.url;
+            let finalResp: Response | null = null;
+            for (let redir = 0; redir <= MAX_REDIRECTS; redir++) {
+              const resp = await fetch(currentUrl, {
+                method: "GET",
+                signal: ctrl.signal,
+                headers: { "User-Agent": "H+Analytics/1.0 LinkValidator", "Accept": "text/html" },
+                redirect: "manual",
+              });
+              if ([301, 302, 303, 307, 308].includes(resp.status)) {
+                const location = resp.headers.get("location");
+                if (!location) { finalResp = resp; break; }
+                const nextUrl = new URL(location, currentUrl).href;
+                if (!(await isSafeUrl(nextUrl))) {
+                  clearTimeout(timeout);
+                  await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
+                  return { id: u.id, url: u.url, isValid: false, status: 0, title: "", description: "", hostname: "", error: "Blocked: redirect to internal/private URL" };
+                }
+                currentUrl = nextUrl;
+                continue;
+              }
+              finalResp = resp;
+              break;
+            }
             clearTimeout(timeout);
-            const isValid = resp.ok;
+            if (!finalResp) {
+              await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
+              return { id: u.id, url: u.url, isValid: false, status: 0, title: "", description: "", hostname: "", error: "Too many redirects" };
+            }
+            const isValid = finalResp.ok;
             const hostname = new URL(u.url).hostname.replace("www.", "");
 
             let pageTitle = "";
             let pageDescription = "";
             if (isValid) {
-              const contentType = resp.headers.get("content-type") || "";
+              const contentType = finalResp.headers.get("content-type") || "";
               if (contentType.includes("text/html")) {
-                const body = await resp.text().catch(() => "");
+                const body = await finalResp.text().catch(() => "");
                 const head = body.slice(0, 20_000);
                 const meta = extractMeta(head);
                 pageTitle = meta.title;
@@ -690,7 +713,7 @@ Return ONLY the JSON array, no other text.`;
               }
             }
 
-            return { id: u.id, url: u.url, isValid, status: resp.status, title: pageTitle, description: pageDescription, hostname };
+            return { id: u.id, url: u.url, isValid, status: finalResp.status, title: pageTitle, description: pageDescription, hostname };
           } catch (err) {
             await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
             return { id: u.id, url: u.url, isValid: false, status: 0, title: "", description: "", hostname: "", error: err instanceof Error ? err.message : "Unknown error" };
