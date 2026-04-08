@@ -244,7 +244,7 @@ export interface SavedSearch {
 
 export type SavedSearchData = SavedSearch;
 
-export interface HotelSnapshotData {
+interface HotelSnapshotData {
   location: string;
   sampleSize: number;
   avgPriceMin: number | null;
@@ -259,14 +259,14 @@ export interface HotelSnapshotData {
   }>;
 }
 
-export interface HotelRateData {
+interface HotelRateData {
   name: string;
   key: string;
   rates: Array<{ name: string; rate: number }>;
   avgRate: number | null;
 }
 
-export interface CityMedianData {
+interface CityMedianData {
   city: string;
   stateCode: string;
   medianListingPrice: number;
@@ -286,7 +286,7 @@ export interface MarketContextResponse {
   fetchedAt: string;
 }
 
-export interface PropertyValueEstimate {
+interface PropertyValueEstimate {
   date: string;
   estimate: number;
   source: string;

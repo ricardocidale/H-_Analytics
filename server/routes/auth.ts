@@ -56,7 +56,7 @@ export function register(app: Express) {
     const expiresAt = getSessionExpiryDate();
     await storage.createSession(user.id, sessionId, expiresAt);
     await storage.createLoginLog(user.id, sessionId, clientIp);
-    ensureDefaultScenario(user.id).catch(() => {});
+    ensureDefaultScenario(user.id).catch(() => { /* ignore: default scenario seeding is non-blocking */ });
     setSessionCookie(res, sessionId);
     res.json({ user: userResponse(user) });
   }

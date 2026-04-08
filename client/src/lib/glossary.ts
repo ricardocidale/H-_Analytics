@@ -1,4 +1,4 @@
-export interface GlossaryEntry {
+interface GlossaryEntry {
   term: string;
   definition: string;
   formula?: string;
@@ -286,7 +286,7 @@ const GLOSSARY: Record<string, GlossaryEntry> = {
   },
 };
 
-export function lookupGlossary(term: string): GlossaryEntry | undefined {
+function lookupGlossary(term: string): GlossaryEntry | undefined {
   if (GLOSSARY[term]) return GLOSSARY[term];
   const upper = term.toUpperCase();
   for (const [key, entry] of Object.entries(GLOSSARY)) {

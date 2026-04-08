@@ -281,7 +281,7 @@ export class FinancialStorage {
       .insert(scenarios)
       .values(data as typeof scenarios.$inferInsert)
       .returning();
-    _indexScenarioAsync(scenario).catch(() => {});
+    _indexScenarioAsync(scenario).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
     return scenario;
   }
 
@@ -343,7 +343,7 @@ export class FinancialStorage {
       .where(eq(scenarios.id, id))
       .returning();
     if (scenario) {
-      _indexScenarioAsync(scenario).catch(() => {});
+      _indexScenarioAsync(scenario).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
     }
     return scenario || undefined;
   }
@@ -369,7 +369,7 @@ export class FinancialStorage {
       .returning();
 
     if (updated) {
-      _indexScenarioAsync(updated).catch(() => {});
+      _indexScenarioAsync(updated).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
     }
 
     return updated || undefined;

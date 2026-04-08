@@ -8,6 +8,15 @@
 
 ## Architecture Decisions Log
 
+### Task #304: Code Quality & Dead Code Audit (April 2026) — COMPLETED
+- **9 unused exports removed**: De-exported (made file-private) `LocationLinks` (map-utils.ts), `GlossaryEntry`+`lookupGlossary` (glossary.ts), `QueuedResearch` (research-queue.ts), `InsightResult` (rebecca-insights.ts), `HotelSnapshotData`+`HotelRateData`+`CityMedianData`+`PropertyValueEstimate` (api/types.ts)
+- **10 empty catch blocks annotated**: All `.catch(() => {})` patterns now have `/* ignore: reason */` comments explaining why the catch is intentionally empty (best-effort indexing, non-blocking seeding, background enrichment)
+- **Doc Harmony fixed**: Updated claude.md test counts from 4,024/172 to 4,047/173 across all 4 occurrences
+- **Exports check**: 525 used, 0 unused, 21 API contracts
+- **Quick audit**: 0 empty catch blocks, 0 `any` types, 0 TODOs, 0 console.logs
+- **Large files noted** (>500 lines): intelligence.ts (1131), financial.ts (1061), properties.ts (865), pinecone-service.ts (833), sidebar.tsx (771) — all complex business logic, not safely decomposable without risk
+- Health check: ALL CLEAR — 0 TS errors, 4,047 tests pass (173 files), verification UNQUALIFIED
+
 ### Task #303: AI Research Engine Calibration (April 2026) — COMPLETED
 - **Business-model-aware prompts**: `assembleResearchPrompt` now injects `buildBusinessModelGuidance(businessModel)` — Hotel gets USALI departmental benchmarks, VRBO gets platform economics/cleaning turnover/STR-specific ADR sources, Lodge gets whole-property rental norms/guest meal costs/seasonal patterns
 - **Context pack updated**: `PropertyContextPack.classification` now includes `businessModel` field; `property-pack.ts` reads `p.businessModel ?? "hotel"`

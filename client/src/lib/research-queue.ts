@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export interface QueuedResearch {
+interface QueuedResearch {
   id: string;
   label: string;
   propertyId?: number;

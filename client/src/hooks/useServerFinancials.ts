@@ -256,7 +256,7 @@ export function useServerFinancials(
           addInsight(data.insight, ragHash);
         }
       })
-      .catch(() => {});
+      .catch(() => { /* ignore: insight fetch is non-critical background enrichment */ });
   }, [outputHash, propertyCount, addInsight]);
 
   return { data: mapped, isLoading: enabled && isLoading, isError, error: error as Error | null };

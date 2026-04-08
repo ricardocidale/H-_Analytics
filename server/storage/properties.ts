@@ -52,7 +52,7 @@ export class PropertyStorage {
       .insert(properties)
       .values(data as typeof properties.$inferInsert)
       .returning();
-    _indexPropertyAsync(property).catch(() => {});
+    _indexPropertyAsync(property).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
     return property;
   }
 
@@ -63,7 +63,7 @@ export class PropertyStorage {
       .where(eq(properties.id, id))
       .returning();
     if (property) {
-      _indexPropertyAsync(property).catch(() => {});
+      _indexPropertyAsync(property).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
     }
     return property || undefined;
   }

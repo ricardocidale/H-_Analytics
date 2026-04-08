@@ -1,6 +1,6 @@
 import type { YearlyPropertyFinancials } from "@/lib/financial/yearlyAggregator";
 
-export interface InsightResult {
+interface InsightResult {
   message: string;
   type: "observation" | "warning" | "tip";
   context: string;

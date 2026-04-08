@@ -149,7 +149,7 @@ export function registerGoogleAuthRoutes(app: Express) {
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await storage.createSession(user.id, sessionId, expiresAt);
       await storage.createLoginLog(user.id, sessionId, clientIp);
-      ensureDefaultScenario(user.id).catch(() => {});
+      ensureDefaultScenario(user.id).catch(() => { /* ignore: default scenario seeding is non-blocking */ });
       setSessionCookie(res, sessionId);
 
       logger.info(`Google sign-in successful: ${email} (userId: ${user.id})`, "auth");

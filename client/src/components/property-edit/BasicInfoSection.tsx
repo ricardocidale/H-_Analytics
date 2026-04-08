@@ -95,7 +95,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ latitude: details.lat, longitude: details.lng }),
-        }).catch(() => {});
+        }).catch(() => { /* ignore: coord patch is best-effort after geocode */ });
       }
     }
 

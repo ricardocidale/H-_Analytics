@@ -155,7 +155,7 @@ export const MAP_STYLES = {
 
 export const TOUR_PAUSE_MS = 4000;
 
-export interface LocationLinks {
+interface LocationLinks {
   googleMapsUrl: string;
   googleEarth3dUrl: string;
   staticMapUrl: string;

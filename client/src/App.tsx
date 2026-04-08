@@ -325,7 +325,7 @@ function AutoSaveRestorePrompt() {
 
   const handleStartFresh = async () => {
     try {
-      await fetch("/api/scenarios/auto-save", { method: "DELETE", credentials: "include" }).catch(() => {});
+      await fetch("/api/scenarios/auto-save", { method: "DELETE", credentials: "include" }).catch(() => { /* ignore: auto-save cleanup is best-effort */ });
     } catch {
       // best-effort cleanup — auto-save deletion is non-critical
     }
