@@ -84,6 +84,20 @@
   - Guards: `!autoRefreshFired.current && !isDirty && !isGenerating`
   - Fires `generateResearch()` automatically when status is stale or missing
 
+### Source URLs Feature (April 2026) — COMPLETED
+- **Schema**: `sourceUrls` text array column added to `properties` table
+- **Frontend**: `SourceUrlsSection` component in `client/src/components/property-edit/SourceUrlsSection.tsx`
+  - Add/remove URLs with validation (must be valid URL format)
+  - Enter key support for adding URLs
+  - Hover-to-reveal delete button per URL
+  - "Research from URLs" button appears when URLs exist — triggers `generateResearch()`
+  - Positioned after Description section, before Timeline in PropertyEdit page
+- **Research integration**: Source URLs included in property context pack narrative
+  - AI research prompt sees user-provided URLs as reference sources
+  - Can extract property details, photos, amenities, location info from listed URLs
+- **Data flow**: URLs saved as `text[]` → property record → context pack → research prompt
+- **E2E tested**: Add/remove/validate/keyboard all verified via Playwright
+
 ### Research Intelligence System (April 2026)
 - **Research methodology skill created**: `.agents/skills/research-methodology/SKILL.md` — exhaustive 500+ line document covering STR chain scales, star ratings, revenue mix benchmarks, USALI expense ratios by segment, management fee structures, geography-driven cost adjustments, VRBO/STR business model, comp set selection criteria, and the full N+1 AI research pipeline
 - **Key architectural decision**: Properties should auto-derive their research profile from existing assumptions — NO separate ICP definition needed per property. The property's own starRating + ADR + hospitalityType + location + revenue shares IS its research profile.

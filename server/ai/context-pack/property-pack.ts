@@ -234,6 +234,14 @@ export function buildPropertyContextPack(
     `Comparable benchmark set: ${comparable}.`,
   ];
   if (globalContext) narrativeParts.push(globalContext);
+
+  const sourceUrls = (p as any).sourceUrls as string[] | null | undefined;
+  if (sourceUrls && sourceUrls.length > 0) {
+    narrativeParts.push(
+      `\n**Reference Sources (user-provided URLs — extract property details, photos, amenities, location info, and rates from these):**\n` +
+      sourceUrls.map((url, i) => `  ${i + 1}. ${url}`).join("\n")
+    );
+  }
   const fullNarrative = narrativeParts.join("\n");
 
   return {

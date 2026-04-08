@@ -186,6 +186,8 @@ export const properties = pgTable("properties", {
 
   researchValues: jsonb("research_values").$type<Record<string, ResearchValueEntry>>(),
 
+  sourceUrls: text("source_urls").array(),
+
   // Whether this property is active in the portfolio.
   // Inactive properties are excluded from all calculations and aggregations.
   // Default and seed value is true (ON).
@@ -287,6 +289,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   latitude: true,
   longitude: true,
   researchValues: true,
+  sourceUrls: true,
   isActive: true,
 });
 
@@ -302,6 +305,7 @@ const starRatingRefinement = z.object({
   starRatingSource: z.enum(["manual", "suggested"]).nullable().optional(),
   hospitalityType: z.enum(HOSPITALITY_TYPES).optional(),
   businessModel: z.enum(BUSINESS_MODEL_TYPES).optional(),
+  sourceUrls: z.array(z.string().url()).max(20).nullable().optional(),
 }).partial();
 
 export const updatePropertySchema = insertPropertySchema.partial().merge(starRatingRefinement);

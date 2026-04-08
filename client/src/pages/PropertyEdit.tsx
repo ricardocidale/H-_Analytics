@@ -54,6 +54,7 @@ import {
   OperatingCostRatesSection,
   ManagementFeesSection,
   OtherAssumptionsSection,
+  SourceUrlsSection,
   ApplyResearchDialog,
 } from "@/components/property-edit";
 
@@ -409,6 +410,25 @@ export default function PropertyEdit() {
     });
   };
 
+  const handleSourceUrlsChange = (urls: string[]) => {
+    setDraft({ ...draft, sourceUrls: urls });
+    setIsDirty(true);
+    markGlobalDirty();
+  };
+
+  const handleResearchFromUrls = () => {
+    const currentUrls = draft.sourceUrls ?? [];
+    if (currentUrls.length === 0) return;
+    updateProperty.mutate({ id: propertyId, data: { sourceUrls: currentUrls } }, {
+      onSuccess: () => {
+        generateResearch();
+      },
+      onError: () => {
+        toast({ title: "Error", description: "Failed to save URLs before research.", variant: "destructive" });
+      }
+    });
+  };
+
   const sectionProps = { draft, onChange: handleChange, onNumberChange: handleNumberChange, globalAssumptions, researchValues };
 
   return (
@@ -512,6 +532,12 @@ export default function PropertyEdit() {
 
         <BasicInfoSection {...sectionProps} />
         <DescriptionSection {...sectionProps} />
+        <SourceUrlsSection
+          urls={draft.sourceUrls ?? []}
+          onChange={handleSourceUrlsChange}
+          onRunResearch={handleResearchFromUrls}
+          isGenerating={isGenerating}
+        />
         <TimelineSection {...sectionProps} />
         <CapitalStructureSection {...sectionProps} />
         <RevenueAssumptionsSection {...sectionProps} />
