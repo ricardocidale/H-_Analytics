@@ -23,11 +23,19 @@
 - **Skills to update**: admin-configurator, hbg-business-model, integrations-infrastructure
 - **Implementation phases**: 5 phases, 28 tasks total
 
+### Task #293: Lodge Business Model & Lakeview Haven Update (April 2026) — COMPLETED
+- **"lodge" added** to both BUSINESS_MODEL_TYPES and HOSPITALITY_TYPES arrays in schema
+- **BusinessModelSelector** updated: 3 options — Hotel, Lodge ("Large vacation lodge — whole-property rental, premium amenities, no F&B or events departments"), VRBO/STR
+- **EngineDashboard** PortfolioProfile updated to display "Lodge" label for lodge business model
+- **Lakeview Haven Lodge seed** updated: roomCount 8, businessModel "lodge", hospitalityType "lodge", real address (5597 Utah-39 Scenic), real description from website, real OwnerRez photos (15 photos from uc.orez.io — 6 building exteriors, 3 interior, 6 amenities/views), revShareFB 25% (breakfast, meals, drinks, picnics), revShareEvents 0% (no events dept)
+- **Research methodology skill** updated: new §2.3 Lodge Business Model section with comparison table, expense structure, positioned between Hotel and VRBO
+- **hbg-business-model skill** updated: Business Models table added, Lodge described alongside Hotel/VRBO
+
 ### Phase 1 Schema Changes (April 2026) — COMPLETED
 - **businessModel field added** to properties table: `text("business_model").notNull().default("hotel")`
 - **"vrbo" added to HOSPITALITY_TYPES** array + BUSINESS_MODEL_TYPES enum
 - **lastAssumptionChangeAt** timestamp added to both `properties` and `global_assumptions` tables
-- **BusinessModelSelector** component created in PropertyTypeSelector.tsx with Hotel/VRBO options
+- **BusinessModelSelector** component created in PropertyTypeSelector.tsx with Hotel/Lodge/VRBO options
 - **BasicInfoSection** updated with Business Model field + InfoTooltip
 - **Auto-staleness detection** wired into property PATCH and global-assumptions PUT routes
   - Property triggers: starRating, startAdr, hospitalityType, businessModel, roomCount, city, stateProvince, country, revShareFB, revShareEvents, revShareOther, maxOccupancy, startOccupancy, adrGrowthRate

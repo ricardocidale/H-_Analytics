@@ -216,7 +216,7 @@ function PortfolioProfile() {
             <div>
               <p className="text-xs text-muted-foreground font-medium">Business Models</p>
               <p className="font-semibold text-foreground">
-                {Object.entries(byModel).map(([k, v]) => `${k === "hotel" ? "Hotel" : "VRBO"}: ${v}`).join(", ")}
+                {Object.entries(byModel).map(([k, v]) => `${k === "hotel" ? "Hotel" : k === "lodge" ? "Lodge" : "VRBO"}: ${v}`).join(", ")}
               </p>
             </div>
             <div className="col-span-2">

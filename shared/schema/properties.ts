@@ -293,9 +293,9 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   isActive: true,
 });
 
-export const HOSPITALITY_TYPES = ["hotel", "resort", "boutique_hotel", "business_hotel", "wellness_resort", "conference_hotel", "extended_stay", "vrbo"] as const;
+export const HOSPITALITY_TYPES = ["hotel", "resort", "boutique_hotel", "business_hotel", "wellness_resort", "conference_hotel", "extended_stay", "vrbo", "lodge"] as const;
 
-export const BUSINESS_MODEL_TYPES = ["hotel", "vrbo"] as const;
+export const BUSINESS_MODEL_TYPES = ["hotel", "lodge", "vrbo"] as const;
 export type BusinessModel = typeof BUSINESS_MODEL_TYPES[number];
 export type HospitalityType = typeof HOSPITALITY_TYPES[number];
 

@@ -9,10 +9,12 @@ const HOSPITALITY_TYPES = [
   { value: "conference_hotel", label: "Conference Hotel" },
   { value: "extended_stay", label: "Extended Stay" },
   { value: "vrbo", label: "VRBO / Short-Term Rental" },
+  { value: "lodge", label: "Lodge" },
 ] as const;
 
 const BUSINESS_MODEL_TYPES = [
   { value: "hotel", label: "Hotel", description: "Traditional hospitality — USALI framework, F&B, events, management fees" },
+  { value: "lodge", label: "Lodge", description: "Large vacation lodge — whole-property rental, premium amenities, guest meals, no events department" },
   { value: "vrbo", label: "VRBO / STR", description: "Short-term rental — platform fees, per-turnover cleaning, all-in management" },
 ] as const;
 

@@ -9,13 +9,26 @@ The foundational business domain skill for HBG Portal. Covers the dual-entity mo
 - Does **not** own property assets directly
 
 ### Property SPVs (Special Purpose Vehicles)
-- Each hotel property is held in its own independent legal entity
+- Each property is held in its own independent legal entity
 - Isolates liability — one property's failure doesn't affect others
 - Each SPV pays management fees to ManCo, carries its own debt, depreciation, and tax
 - Revenue, expenses, and cash flows tracked independently per property
+- Properties use one of three business models: **Hotel**, **Lodge**, or **VRBO/STR**
 
 ### Intercompany Elimination (ASC 810)
 On consolidation, management fees paid by properties cancel against fee revenue received by ManCo. The system validates **Fees Paid = Fees Received** within tolerance.
+
+## Business Models
+
+Three business models are supported, set via `businessModel` field on each property:
+
+| Model | Description | Revenue Streams | Key Differences |
+|-------|-------------|----------------|-----------------|
+| **Hotel** | Traditional hospitality — USALI framework | Room + F&B + Events + Other | Full departmental expenses, management fees (2-10%) |
+| **Lodge** | Large vacation lodge — whole-property rental | Nightly rental + F&B | Premium amenities (gym, sauna, courts), guest meals but no full restaurant dept, no events dept, 15-25% management fee |
+| **VRBO/STR** | Short-term rental — platform-based | Nightly rental rate only | Platform fees (8-16%), per-turnover cleaning, 20-35% management fee |
+
+See `.agents/skills/research-methodology/SKILL.md` §2.2–2.3 for detailed financial profiles.
 
 ## Hospitality Revenue Streams
 
@@ -33,6 +46,8 @@ Room Revenue = Room Count x DAYS_PER_MONTH (30.5) x ADR x Occupancy
 | Events & Functions | 30% |
 | Food & Beverage | 18% x (1 + Catering Boost, default 22%) |
 | Other/Ancillary | 5% |
+
+> **Note:** VRBO properties typically have 0% F&B and Events revenue shares. Lodges have significant F&B revenue (15–25% of room revenue) from breakfast, meals, drinks, and picnics, but no Events revenue.
 
 ## USALI Income Waterfall
 

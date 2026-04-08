@@ -165,13 +165,50 @@ A management company serving VRBO/STR properties provides a **narrower** set of 
 | Event sales | No | No event space |
 | Procurement/purchasing | No | Minimal purchasing |
 
-### 2.3 Architecture for Business Model Variable
+### 2.3 Lodge Business Model (Midpoint Between Hotel & VRBO)
 
-The property schema should add a `businessModel` field:
+Lodges are larger STR-style properties (typically 8–20 rooms) that operate on a whole-property rental basis. They offer hotel-like premium amenities (gym, sauna, hot tub, sports courts, media rooms) but lack F&B departments, events staff, or a front desk. Financially, lodges sit between Hotel and VRBO models.
+
+| Dimension | Hotel Model | Lodge Model | VRBO/STR Model |
+|-----------|------------|-------------|----------------|
+| **Property Size** | 20–500+ rooms | 8–20 rooms | 1–6 rooms |
+| **Rental Basis** | Per-room, per-night | Whole-property rental | Per-property, per-night |
+| **Revenue Source** | Room + F&B + Events + Other | Nightly rental rate only | Nightly rental rate only |
+| **F&B Revenue** | 12–28% of total | 15–25% of room rev (breakfast, meals, drinks, picnics) | 0% (no F&B operations) |
+| **Event Revenue** | 3–25% of total | 0% (no event space staffing) | 0% (no event space) |
+| **Amenities** | Full-service (restaurant, spa, concierge) | Premium (gym, sauna, hot tub, courts, media room) | Basic (kitchen, WiFi, parking) |
+| **Staffing** | On-site team (0.3–3.0 staff/room) | Minimal on-site (caretaker + cleaning crews) | Minimal (remote management + cleaning) |
+| **Management Fee** | 2–10% of revenue (HMC) | 15–25% of revenue | 20–35% of revenue (STR manager) |
+| **Cleaning** | Housekeeping dept (daily) | Per-turnover ($150–$500/turn, larger property) | Per-turnover ($75–$300/turn) |
+| **Maintenance** | Property ops department | Higher than VRBO (premium amenity upkeep) | On-call handyman |
+| **Utilities** | 5–8% of revenue | 6–10% of revenue (larger property, amenities) | 5–8% of revenue |
+| **Insurance** | Commercial hospitality policy | Commercial or mixed-use policy | STR-specific policy |
+| **Depreciation** | 39-year (commercial RE) | 27.5-year (residential RE) or 39-year | 27.5-year (residential RE) |
+| **Platform Fees** | OTA commissions 15–25% | Airbnb/VRBO 8–16% + direct booking site | Airbnb 15.5%, VRBO 8% |
+| **Occupancy** | 60–85% stabilized | 45–70% (seasonal, group bookings) | 50–75% (seasonal) |
+
+#### Lodge Expense Structure (% of Revenue)
+
+| Category | % of Revenue | Notes |
+|----------|-------------|-------|
+| Platform fees (Airbnb/VRBO) | 8–16% | Host-only fee model, plus direct bookings |
+| Cleaning/turnover | 8–12% | Higher per-turn cost but fewer turns (whole-property) |
+| Management fee | 15–25% | Between hotel HMC and full STR manager |
+| Maintenance/repairs | 5–8% | Premium amenity upkeep (hot tub, sauna, courts, gym) |
+| Utilities | 6–10% | Larger property, more amenities |
+| Insurance | 2–4% | Commercial or mixed-use policy |
+| Property taxes | 1–3% | Varies by jurisdiction |
+| Supplies/amenities | 2–4% | Gym equipment, sauna supplies, court maintenance |
+| Marketing (direct) | 2–4% | Direct booking site + platform listings |
+| **Total Expenses** | **49–85%** | Midpoint between hotel and VRBO ranges |
+
+### 2.4 Architecture for Business Model Variable
+
+The property schema includes a `businessModel` field:
 
 ```typescript
 businessModel: text("business_model").notNull().default("hotel"),
-// Allowed values: "hotel" | "vrbo"
+// Allowed values: "hotel" | "lodge" | "vrbo"
 // Future: "serviced_apartment" | "glamping" | "coliving"
 ```
 
