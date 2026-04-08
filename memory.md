@@ -47,11 +47,11 @@
 - Health check: ALL CLEAR — 0 TS errors, 3980 tests pass, verification UNQUALIFIED
 
 ### Task #300: Map & 3D Flyover Location Links (April 2026) — COMPLETED
-- **Location link utility**: `buildLocationLinks(lat, lng, name)` in `client/src/lib/map-utils.ts` — pure function returning Google Maps URL and Google Earth 3D flyover URL
-- **hasCoordinates(property)**: Helper to check if property has valid lat/lng (non-null, non-zero)
+- **Location link utility**: `buildLocationLinks(lat, lng, name)` in `client/src/lib/map-utils.ts` — pure function returning Google Maps URL, Google Earth 3D flyover URL, and static map thumbnail URL
+- **hasCoordinates(property)**: Helper to check if property has valid lat/lng (finite numbers, non-null)
 - **PortfolioPropertyCard**: Map and 3D Globe icon-buttons appear inline next to location text when property has coordinates. Uses `IconMap` and `IconGlobe`. Includes `stopPropagation` for click handling.
-- **PropertyDetail**: "Google Maps" and "3D Flyover" pill-shaped link buttons shown above the PropertyMap when coordinates exist
-- No DB changes, no new endpoints — purely client-side URL generation
+- **PropertyDetail**: "Google Maps" and "3D Flyover" pill-shaped link buttons shown above the PropertyMap when coordinates exist. Satellite thumbnail (static map) shown between link buttons and interactive map — clickable, opens Google Maps.
+- **Static map endpoint**: `GET /api/geospatial/static-map?lat=&lng=&zoom=&w=&h=` — proxies Google Maps Static API (satellite maptype, red marker), caches 24h, caps dimensions at 640px. Requires `requireAuth`.
 - Health check: ALL CLEAR — 0 TS errors, 3980 tests pass, verification UNQUALIFIED
 
 ### Task #299: Hero Image AI Enhancement Pipeline (April 2026) — COMPLETED

@@ -158,6 +158,7 @@ export const TOUR_PAUSE_MS = 4000;
 export interface LocationLinks {
   googleMapsUrl: string;
   googleEarth3dUrl: string;
+  staticMapUrl: string;
 }
 
 export function buildLocationLinks(
@@ -167,7 +168,8 @@ export function buildLocationLinks(
 ): LocationLinks {
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const googleEarth3dUrl = `https://earth.google.com/web/@${lat},${lng},500a,800d,35y,0h,60t,0r`;
-  return { googleMapsUrl, googleEarth3dUrl };
+  const staticMapUrl = `/api/geospatial/static-map?lat=${lat}&lng=${lng}&zoom=15&w=600&h=300`;
+  return { googleMapsUrl, googleEarth3dUrl, staticMapUrl };
 }
 
 export function hasCoordinates(property: { latitude?: number | null; longitude?: number | null }): boolean {

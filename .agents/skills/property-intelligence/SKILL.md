@@ -71,6 +71,10 @@ Description → AI Rewrite → Accept/Dismiss → Portfolio Display
 - **Google Maps**: `https://www.google.com/maps/search/?api=1&query={lat},{lng}`
 - **Google Earth 3D**: `https://earth.google.com/web/@{lat},{lng},500a,800d,35y,0h,60t,0r`
   - `500a` = altitude 500m, `800d` = distance 800m, `35y` = yaw 35°, `60t` = tilt 60°
+- **Static Map Thumbnail**: `/api/geospatial/static-map?lat={lat}&lng={lng}&zoom=15&w=600&h=300`
+  - Server-side proxy to Google Maps Static API (satellite maptype, red marker)
+  - Dimensions capped at 640px max, 24h cache header
+  - Rendered as clickable satellite thumbnail on PropertyDetail page (opens Google Maps)
 
 ### Coordinate Validation
 `hasCoordinates()` accepts any finite number (including 0) for lat/lng. Only `null`, `undefined`, `NaN`, and `Infinity` are rejected.

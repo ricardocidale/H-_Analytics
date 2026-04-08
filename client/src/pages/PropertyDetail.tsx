@@ -261,28 +261,44 @@ export default function PropertyDetail() {
           {hasCoordinates(property) && (() => {
             const links = buildLocationLinks(property.latitude!, property.longitude!, property.name);
             return (
-              <div className="flex items-center gap-3 mb-3" data-testid="location-links">
+              <>
+                <div className="flex items-center gap-3 mb-3" data-testid="location-links">
+                  <a
+                    href={links.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                    data-testid="link-detail-map"
+                  >
+                    <IconMap className="w-3.5 h-3.5" />
+                    Google Maps
+                  </a>
+                  <a
+                    href={links.googleEarth3dUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                    data-testid="link-detail-3d"
+                  >
+                    <IconGlobe className="w-3.5 h-3.5" />
+                    3D Flyover
+                  </a>
+                </div>
                 <a
                   href={links.googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-                  data-testid="link-detail-map"
+                  className="block mb-3 rounded-lg overflow-hidden border border-border/50 hover:border-primary/30 transition-colors"
+                  data-testid="static-map-thumbnail"
                 >
-                  <IconMap className="w-3.5 h-3.5" />
-                  Google Maps
+                  <img
+                    src={links.staticMapUrl}
+                    alt={`Satellite view of ${property.name}`}
+                    className="w-full h-[200px] object-cover"
+                    loading="lazy"
+                  />
                 </a>
-                <a
-                  href={links.googleEarth3dUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-                  data-testid="link-detail-3d"
-                >
-                  <IconGlobe className="w-3.5 h-3.5" />
-                  3D Flyover
-                </a>
-              </div>
+              </>
             );
           })()}
           <Suspense fallback={<div className="flex items-center justify-center p-8 text-muted-foreground text-sm">Loading map…</div>}>

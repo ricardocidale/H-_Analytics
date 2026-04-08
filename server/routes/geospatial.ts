@@ -97,6 +97,39 @@ export function register(app: Express) {
     }
   });
 
+  app.get("/api/geospatial/static-map", requireAuth, async (req, res) => {
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lng = parseFloat(req.query.lng as string);
+      const zoom = parseInt(req.query.zoom as string) || 15;
+      const width = Math.min(parseInt(req.query.w as string) || 600, 640);
+      const height = Math.min(parseInt(req.query.h as string) || 300, 640);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return res.status(400).json({ error: "Valid lat and lng are required" });
+      }
+
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: "Maps API not configured" });
+      }
+
+      const url = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${width}x${height}&maptype=satellite&markers=color:red|${lat},${lng}&key=${apiKey}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        return res.status(502).json({ error: "Failed to fetch static map" });
+      }
+
+      const contentType = response.headers.get("content-type") || "image/png";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      const buffer = Buffer.from(await response.arrayBuffer());
+      res.send(buffer);
+    } catch (error) {
+      logAndSendError(res, "Static map failed", error);
+    }
+  });
+
   app.get("/api/geospatial/status", requireAuth, async (_req, res) => {
     res.json(getGeospatialStatus());
   });

@@ -30,10 +30,11 @@ LLM provider selection is configurable via the admin panel.
 
 | Aspect | Detail |
 |--------|--------|
-| **Use cases** | Geocoding, Places autocomplete, Nearby POI for competitive landscape |
+| **Use cases** | Geocoding, Places autocomplete, Nearby POI, Static map thumbnails |
 | **Additional** | MapLibre for 3D globe flyover visualization |
 | **Env vars** | `GOOGLE_MAPS_API_KEY` |
 | **Files** | `server/integrations/geospatial.ts`, `server/routes/geospatial.ts` |
+| **Static map** | `GET /api/geospatial/static-map?lat=&lng=&zoom=&w=&h=` — proxied satellite image with marker, 24h cache |
 
 ## Document Intelligence: Google Cloud Document AI
 
