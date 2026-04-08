@@ -31,6 +31,17 @@
 - **Research methodology skill** updated: new §2.3 Lodge Business Model section with comparison table, expense structure, positioned between Hotel and VRBO
 - **hbg-business-model skill** updated: Business Models table added, Lodge described alongside Hotel/VRBO
 
+### Task #289: Data Sources Card CRUD (April 2026) — COMPLETED
+- **sourceRegistry schema extended**: Added description, endpoint, apiKeyRef, rateLimitPerMin, successRate, avgLatencyMs, costPerCall, dataProvided (jsonb string[]) columns via direct SQL migration
+- **Storage methods added**: getSourceRegistryEntry, createSourceRegistryEntry, updateSourceRegistryEntry, deleteSourceRegistryEntry (server/storage/intelligence-v2.ts + index.ts)
+- **API routes added**: POST /api/admin/source-registry (create), PATCH /api/admin/source-registry/:id (update), PATCH /api/admin/source-registry/:id/toggle, DELETE /api/admin/source-registry/:id, POST /api/admin/source-registry/:id/test (connectivity)
+- **SSRF protection**: Test endpoint validates URL protocol (HTTP/HTTPS only), blocks private/internal/metadata IPs, uses redirect: manual
+- **DataSourcesTab.tsx rewritten**: Full CRUD with API-driven data (no more SEED_SOURCES), toggle persistence, ConfigureDialog (create/edit modes with useEffect form population), delete with AlertDialog confirmation, inline Test connectivity results, LogsPanel (Sheet with mock activity logs), HealthBadge (amber <90%, red <80% "Unreliable")
+- **SourceRegistryOverlay.tsx fixed**: Updated from serviceKey-based PATCH to ID-based toggle route (backward compatibility)
+- **15 seed records**: Inserted via SQL — 4 APIs (FRED, Xotelo, OpenExchange, Weather), 4 scrapers (Airbnb, VRBO, Booking, TripAdvisor), 4 sources (CBRE, HVS, PKF, AAHOA), 3 models (GPT-4o, Claude Sonnet, Gemini Flash)
+- **Category tabs**: APIs, Scrapers, Sources, Models — each with "+" card for adding new sources
+- All 3976 tests passing, 0 TS errors, lint clean, verification UNQUALIFIED
+
 ### Phase 1 Schema Changes (April 2026) — COMPLETED
 - **businessModel field added** to properties table: `text("business_model").notNull().default("hotel")`
 - **"vrbo" added to HOSPITALITY_TYPES** array + BUSINESS_MODEL_TYPES enum
