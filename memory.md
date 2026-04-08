@@ -46,6 +46,19 @@
 - No code changes, no DB changes — documentation only
 - Health check: ALL CLEAR — 0 TS errors, 3980 tests pass, verification UNQUALIFIED
 
+### Pinecone Skills & Knowledge Installed (April 2026)
+- **7 Pinecone skills installed** from `pinecone-io/skills` repo into `.agents/skills/`:
+  - `pinecone-help` — Overview of all skills and prerequisites
+  - `pinecone-quickstart` — Step-by-step onboarding (Database or Assistant path)
+  - `pinecone-query` — Search integrated indexes via MCP (integrated indexes only)
+  - `pinecone-cli` — Terminal-based management for ALL index types, vector ops, backups, CI/CD
+  - `pinecone-assistant` — Managed RAG service for document Q&A with citations
+  - `pinecone-mcp` — Reference for all MCP tools (list/describe/create/upsert/search/rerank)
+  - `pinecone-docs` — Curated links to official docs organized by topic
+- **MCP**: Pinecone MCP not available as a Replit integration — would need manual MCP server configuration. Project already uses Pinecone TS SDK directly in `server/ai/pinecone-service.ts`
+- **Context7 knowledge absorbed**: TS SDK typed metadata (`pc.index<MovieMetadata>('idx')`), batch upsert patterns, namespace management, metadata filtering with MongoDB-style operators
+- **Current HBG Pinecone usage**: Index `lb-hospitality`, 7 namespaces (knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties), OpenAI text-embedding-3-small (1536d), cosine metric, batches of 100
+
 ### Context7 Best Practices Applied (April 2026)
 - **Express**: Added `app.disable("x-powered-by")` to `server/index.ts` — reduces server fingerprinting
 - **Drizzle indexes**: Added missing FK indexes for `companies.logoId`, `companies.themeId`, `property_photos.beforePhotoId` — both in schema definitions and via direct SQL
