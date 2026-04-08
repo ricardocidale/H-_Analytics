@@ -19,8 +19,15 @@ import { Button } from "@/components/ui/button";
 import { PropertyPhotoUpload } from "@/components/PropertyPhotoUpload";
 import { HeroImage } from "@/features/property-images";
 import type { PropertyHeaderProps } from "./types";
+import { usePropertyPhotos } from "@/lib/api";
 
 export default function PropertyHeader({ property, propertyId, heroCaption, onPhotoUploadComplete }: PropertyHeaderProps) {
+  const { data: photos = [] } = usePropertyPhotos(propertyId);
+  const heroPhoto = photos.find(p => p.isHero);
+  const heroSrc = heroPhoto?.enhancedImageData
+    ? `/api/property-photos/${heroPhoto.id}/enhanced-image`
+    : property.imageUrl;
+  const isEnhanced = !!heroPhoto?.enhancedImageData;
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -38,7 +45,7 @@ export default function PropertyHeader({ property, propertyId, heroCaption, onPh
     <div ref={heroRef} className="relative overflow-hidden rounded-lg">
       <motion.div style={{ y: heroY, scale: heroScale }} className="will-change-transform">
         <HeroImage
-          src={property.imageUrl}
+          src={heroSrc}
           alt={property.name}
           caption={heroCaption}
           aspectRatio="auto"
@@ -46,6 +53,13 @@ export default function PropertyHeader({ property, propertyId, heroCaption, onPh
           className="h-[180px] sm:h-[280px] rounded-none"
           priority
         >
+          {isEnhanced && (
+            <div className="absolute top-3 left-3 z-10">
+              <span className="px-2 py-0.5 rounded-full bg-primary/80 text-white text-[10px] font-medium backdrop-blur-sm border border-white/20" data-testid="badge-hero-enhanced">
+                AI Enhanced
+              </span>
+            </div>
+          )}
           <PropertyPhotoUpload
             propertyId={propertyId}
             currentImageUrl={property.imageUrl}

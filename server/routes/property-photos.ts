@@ -7,6 +7,7 @@ import { logAndSendError } from "./helpers";
 import { z } from "zod";
 import { processExistingPhoto } from "../image/pipeline";
 import { logger } from "../logger";
+import { isApiRateLimited } from "../auth";
 
 export function register(app: Express) {
   // GET /api/property-photos/:id/image — serve image binary stored in Neon DB.
@@ -158,6 +159,120 @@ export function register(app: Express) {
       res.json({ success: true });
     } catch (error) {
       logAndSendError(res, "Failed to reorder photos", error);
+    }
+  });
+
+  app.get("/api/property-photos/:id/enhanced-image", requireAuth, async (req, res) => {
+    try {
+      const photoId = Number(req.params.id);
+      const photo = await storage.getPhotoById(photoId);
+      if (!photo || !photo.enhancedImageData) {
+        return res.status(404).json({ error: "Enhanced image not found" });
+      }
+      const buffer = Buffer.from(photo.enhancedImageData, "base64");
+      res.set({
+        "Content-Type": "image/png",
+        "Content-Length": buffer.length,
+        "Cache-Control": "private, max-age=86400",
+      });
+      res.send(buffer);
+    } catch (error) {
+      logAndSendError(res, "Failed to serve enhanced photo", error);
+    }
+  });
+
+  app.post("/api/property-photos/:id/enhance", requireManagementAccess, async (req, res) => {
+    try {
+      const photoId = Number(req.params.id);
+      const user = getAuthUser(req);
+
+      if (isApiRateLimited(user.id, "enhance-photo", 3)) {
+        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+      }
+
+      const photo = await storage.getPhotoById(photoId);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+
+      if (!(await checkPropertyAccess(user, photo.propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      let sourceBuffer: Buffer;
+      if (photo.imageData) {
+        sourceBuffer = Buffer.from(photo.imageData, "base64");
+      } else if (photo.imageUrl.startsWith("/api/property-photos/")) {
+        const innerPhoto = await storage.getPhotoById(photoId);
+        if (!innerPhoto?.imageData) {
+          return res.status(400).json({ error: "No image data available for enhancement" });
+        }
+        sourceBuffer = Buffer.from(innerPhoto.imageData, "base64");
+      } else if (photo.imageUrl.startsWith("http")) {
+        const imgRes = await fetch(photo.imageUrl);
+        if (!imgRes.ok) {
+          return res.status(400).json({ error: "Failed to fetch source image" });
+        }
+        sourceBuffer = Buffer.from(await imgRes.arrayBuffer());
+      } else {
+        return res.status(400).json({ error: "Cannot resolve source image for enhancement" });
+      }
+
+      const sharp = (await import("sharp")).default;
+      const metadata = await sharp(sourceBuffer).metadata();
+      const maxDim = 2048;
+      let resizedBuffer = sourceBuffer;
+      if ((metadata.width && metadata.width > maxDim) || (metadata.height && metadata.height > maxDim)) {
+        resizedBuffer = await sharp(sourceBuffer)
+          .resize({ width: maxDim, height: maxDim, fit: "inside", withoutEnlargement: true })
+          .png()
+          .toBuffer();
+      }
+
+      const base64Source = resizedBuffer.toString("base64");
+      const dataUri = `data:image/png;base64,${base64Source}`;
+
+      const { replicateService } = await import("../integrations/replicate");
+
+      const enhancedBuffer = await replicateService.generateImage(
+        "photo-upscale",
+        "luxury real estate photography, professional color correction, perfect exposure, sharp details, HDR quality",
+        dataUri
+      );
+
+      const enhancedBase64 = enhancedBuffer.toString("base64");
+
+      await storage.updatePropertyPhoto(photoId, {
+        enhancedImageData: enhancedBase64,
+      });
+
+      res.json({
+        success: true,
+        enhancedImageUrl: `/api/property-photos/${photoId}/enhanced-image`,
+        photoId,
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to enhance photo", error);
+    }
+  });
+
+  app.delete("/api/property-photos/:id/enhanced", requireManagementAccess, async (req, res) => {
+    try {
+      const photoId = Number(req.params.id);
+      const photo = await storage.getPhotoById(photoId);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+
+      const user = getAuthUser(req);
+      if (!(await checkPropertyAccess(user, photo.propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      await storage.updatePropertyPhoto(photoId, { enhancedImageData: null });
+      res.json({ success: true });
+    } catch (error) {
+      logAndSendError(res, "Failed to remove enhanced photo", error);
     }
   });
 }

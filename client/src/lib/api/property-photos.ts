@@ -49,6 +49,20 @@ async function reorderPhotos(propertyId: number, orderedIds: number[]): Promise<
   if (!res.ok) throw new Error("Failed to reorder photos");
 }
 
+async function enhancePhoto(photoId: number): Promise<{ success: boolean; enhancedImageUrl: string; photoId: number }> {
+  const res = await fetch(`/api/property-photos/${photoId}/enhance`, { method: "POST" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Enhancement failed" }));
+    throw new Error(body.error || "Failed to enhance photo");
+  }
+  return res.json();
+}
+
+async function removeEnhancement(photoId: number): Promise<void> {
+  const res = await fetch(`/api/property-photos/${photoId}/enhanced`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to remove enhancement");
+}
+
 // --- Hooks ---
 
 export function usePropertyPhotos(propertyId: number) {
@@ -113,6 +127,30 @@ export function useReorderPhotos() {
       reorderPhotos(propertyId, orderedIds),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
+    },
+  });
+}
+
+export function useEnhancePhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ photoId }: { photoId: number; propertyId: number }) =>
+      enhancePhoto(photoId),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
+      invalidateAllFinancialQueries(queryClient);
+    },
+  });
+}
+
+export function useRemoveEnhancement() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ photoId }: { photoId: number; propertyId: number }) =>
+      removeEnhancement(photoId),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
+      invalidateAllFinancialQueries(queryClient);
     },
   });
 }

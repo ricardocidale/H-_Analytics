@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Star, Trash2, GripVertical, Pencil, Check, X } from "@/components/icons/themed-icons";
+import { Star, Trash2, GripVertical, Pencil, Check, X, Sparkles } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -12,11 +12,13 @@ interface PhotoCardProps {
   onSetHero: (photoId: number) => void;
   onDelete: (photoId: number) => void;
   onUpdateCaption: (photoId: number, caption: string) => void;
+  onEnhance?: (photoId: number) => void;
   isSettingHero?: boolean;
   isDeleting?: boolean;
+  isEnhancing?: boolean;
 }
 
-export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, isSettingHero, isDeleting }: PhotoCardProps) {
+export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhance, isSettingHero, isDeleting, isEnhancing }: PhotoCardProps) {
   const [editingCaption, setEditingCaption] = useState(false);
   const [captionDraft, setCaptionDraft] = useState(photo.caption || "");
 
@@ -57,6 +59,28 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, isSetti
       >
         <Star className={cn("w-4 h-4", photo.isHero && "fill-current")} />
       </Button>
+
+      {photo.enhancedImageData && (
+        <div className="absolute top-2 left-10 z-10">
+          <span className="px-1.5 py-0.5 rounded-full bg-primary/80 text-white text-[9px] font-medium backdrop-blur-sm" data-testid={`badge-enhanced-${photo.id}`}>
+            Enhanced
+          </span>
+        </div>
+      )}
+
+      {photo.isHero && onEnhance && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onEnhance(photo.id)}
+          disabled={isEnhancing}
+          className="absolute top-10 right-2 z-10 p-1.5 rounded-full h-auto w-auto bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 hover:bg-primary/80 hover:text-white transition-all"
+          title={photo.enhancedImageData ? "Re-enhance photo" : "Enhance with AI"}
+          data-testid={`button-enhance-${photo.id}`}
+        >
+          <Sparkles className={cn("w-4 h-4", isEnhancing && "animate-pulse")} />
+        </Button>
+      )}
 
       {/* Image */}
       <div className="aspect-[4/3] overflow-hidden">

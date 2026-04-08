@@ -22,11 +22,12 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { StaggerItem, TiltCard } from "@/components/ui/animated";
 import { AnimatedGridItem } from "@/components/graphics";
-import type { Property, PropertyUrl } from "@shared/schema";
+import type { Property, PropertyUrl, PropertyPhoto } from "@shared/schema";
 import { HeroImage } from "@/features/property-images";
 import { cn } from "@/lib/utils";
 import { PropertyTypeBadge } from "@/components/research/PropertyTypeSelector";
 import { useQuery } from "@tanstack/react-query";
+import { usePropertyPhotos } from "@/lib/api";
 
 function truncateWords(text: string, maxWords: number): string {
   const words = text.split(/\s+/);
@@ -43,6 +44,12 @@ interface PortfolioPropertyCardProps {
 
 export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onToggleActive }: PortfolioPropertyCardProps) {
   const isActive = property.isActive !== false;
+  const { data: photos = [] } = usePropertyPhotos(property.id);
+  const heroPhoto = photos.find(p => p.isHero);
+  const heroSrc = heroPhoto?.enhancedImageData
+    ? `/api/property-photos/${heroPhoto.id}/enhanced-image`
+    : property.imageUrl;
+  const isEnhanced = !!heroPhoto?.enhancedImageData;
   const { data: propertyLinks = [] } = useQuery<PropertyUrl[]>({
     queryKey: ["propertyUrls", property.id],
     queryFn: async () => {
@@ -65,7 +72,7 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
     )}>
       <div className="relative">
         <HeroImage
-          src={property.imageUrl}
+          src={heroSrc}
           alt={property.name}
           aspectRatio="16/10"
           overlay="none"
@@ -73,6 +80,13 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
           variants={null}
         >
           <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
+          {isEnhanced && (
+            <div className="absolute bottom-5 right-3 z-10">
+              <span className="px-1.5 py-0.5 rounded-full bg-primary/70 text-white text-[9px] font-medium backdrop-blur-sm border border-white/15" data-testid={`badge-enhanced-hero-${property.id}`}>
+                Enhanced
+              </span>
+            </div>
+          )}
           <div className="absolute bottom-3 left-3">
             <span className="w-7 h-7 flex items-center justify-center rounded-full bg-foreground/40 text-white/80 text-xs font-mono font-semibold border border-white/15">
               {propertyNumber}

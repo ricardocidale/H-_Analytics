@@ -398,6 +398,12 @@ async function runSchemaMigrations() {
     await runPropertyUrlsMigration();
     await markMigrationApplied("property_urls_001");
   }
+
+  if (!(await isMigrationApplied("enhanced_photo_001"))) {
+    const { runEnhancedPhoto001 } = await import("./migrations/enhanced-photo-001");
+    await runEnhancedPhoto001();
+    await markMigrationApplied("enhanced_photo_001");
+  }
 }
 
 async function runSeeds() {

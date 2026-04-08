@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ImagePlus, Sparkles, Images } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useReorderPhotos } from "@/lib/api";
+import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useReorderPhotos, useEnhancePhoto, useRemoveEnhancement } from "@/lib/api";
 import { PhotoCard } from "./PhotoCard";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { PhotoGenerateDialog } from "./PhotoGenerateDialog";
+import { EnhancePreviewDialog } from "./EnhancePreviewDialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface PhotoAlbumGridProps {
   propertyId: number;
@@ -28,12 +30,18 @@ export function PhotoAlbumGrid({
 }: PhotoAlbumGridProps) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [enhanceDialogOpen, setEnhanceDialogOpen] = useState(false);
+  const [enhancingPhotoId, setEnhancingPhotoId] = useState<number | null>(null);
+  const [enhancedPreviewUrl, setEnhancedPreviewUrl] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { data: photos = [], isLoading } = usePropertyPhotos(propertyId);
   const setHero = useSetHeroPhoto();
   const deletePhoto = useDeletePropertyPhoto();
   const updatePhoto = useUpdatePropertyPhoto();
   const reorder = useReorderPhotos();
+  const enhancePhoto = useEnhancePhoto();
+  const removeEnhancement = useRemoveEnhancement();
 
   const handleSetHero = (photoId: number) => {
     setHero.mutate({ propertyId, photoId });
@@ -45,6 +53,46 @@ export function PhotoAlbumGrid({
 
   const handleUpdateCaption = (photoId: number, caption: string) => {
     updatePhoto.mutate({ propertyId, photoId, data: { caption } });
+  };
+
+  const handleEnhance = (photoId: number) => {
+    setEnhancingPhotoId(photoId);
+    setEnhancedPreviewUrl(null);
+    setEnhanceDialogOpen(true);
+    enhancePhoto.mutate(
+      { photoId, propertyId },
+      {
+        onSuccess: (data) => {
+          setEnhancedPreviewUrl(data.enhancedImageUrl);
+        },
+        onError: (error) => {
+          setEnhanceDialogOpen(false);
+          setEnhancingPhotoId(null);
+          toast({
+            title: "Enhancement failed",
+            description: error instanceof Error ? error.message : "An error occurred during enhancement",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleAcceptEnhance = () => {
+    setEnhanceDialogOpen(false);
+    setEnhancingPhotoId(null);
+    setEnhancedPreviewUrl(null);
+    toast({ title: "Enhancement accepted", description: "The enhanced image is now active." });
+  };
+
+  const handleRejectEnhance = () => {
+    if (enhancingPhotoId) {
+      removeEnhancement.mutate({ photoId: enhancingPhotoId, propertyId });
+    }
+    setEnhanceDialogOpen(false);
+    setEnhancingPhotoId(null);
+    setEnhancedPreviewUrl(null);
+    toast({ title: "Enhancement rejected", description: "Reverted to the original image." });
   };
 
   // Loading skeleton
@@ -126,8 +174,10 @@ export function PhotoAlbumGrid({
                   onSetHero={handleSetHero}
                   onDelete={handleDelete}
                   onUpdateCaption={handleUpdateCaption}
+                  onEnhance={handleEnhance}
                   isSettingHero={setHero.isPending}
                   isDeleting={deletePhoto.isPending}
+                  isEnhancing={enhancePhoto.isPending && enhancingPhotoId === photo.id}
                 />
               </motion.div>
             ))}
@@ -145,6 +195,22 @@ export function PhotoAlbumGrid({
       )}
 
       {/* Dialogs */}
+      <EnhancePreviewDialog
+        open={enhanceDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && !enhancePhoto.isPending) {
+            setEnhanceDialogOpen(false);
+            setEnhancingPhotoId(null);
+            setEnhancedPreviewUrl(null);
+          }
+        }}
+        originalSrc={enhancingPhotoId ? (photos.find(p => p.id === enhancingPhotoId)?.imageUrl || "") : ""}
+        enhancedSrc={enhancedPreviewUrl}
+        isEnhancing={enhancePhoto.isPending}
+        onAccept={handleAcceptEnhance}
+        onReject={handleRejectEnhance}
+        photoCaption={enhancingPhotoId ? (photos.find(p => p.id === enhancingPhotoId)?.caption || undefined) : undefined}
+      />
       <PhotoUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} propertyId={propertyId} />
       <PhotoGenerateDialog
         open={generateOpen}
