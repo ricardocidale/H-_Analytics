@@ -132,7 +132,7 @@ All external data sources are tracked in the `source_registry` table:
 
 ### Call Logging
 
-Every test and production API call is logged in `source_call_logs`:
+Test connectivity checks and source health updates are logged in `source_call_logs`:
 - `httpStatus`, `latencyMs`, `success`, `errorMessage`, `timestamp`
 - Cascading delete: removing a source deletes all its logs
 - Viewable in a side-sheet panel from each card's "Logs" button

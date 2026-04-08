@@ -7,7 +7,7 @@ description: Patterns for building and extending the H+ Analytics help system �
 
 ## Purpose & Scope
 
-The H+ Analytics help system provides contextual, in-place documentation across the application. It consists of five interconnected subsystems:
+The H+ Analytics help system provides contextual, in-place documentation across the application. It consists of six interconnected subsystems:
 
 1. **InfoTooltips** — Inline benchmark citations on assumption fields
 2. **User Manual** — Comprehensive reference organized by numbered sections

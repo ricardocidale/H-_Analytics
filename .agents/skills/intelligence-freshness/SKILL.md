@@ -176,7 +176,7 @@ When a key assumption changes:
 
 1. System updates `lastAssumptionChangeAt` on the property
 2. `computeFreshnessStatus` returns `"stale"`
-3. System checks average research duration via `/api/admin/intelligence/avg-duration`
+3. System checks average research duration via `/api/research/avg-duration`
 4. **If estimated time < 30 seconds**: Auto-regenerate research in the background
 5. **If estimated time >= 30 seconds**: Surface the stale status to the admin for manual action
 
