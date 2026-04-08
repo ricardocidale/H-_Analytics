@@ -5,6 +5,7 @@ import { IconActivity, IconGauge, IconResearch, IconTimer } from "@/components/i
 import type { Property } from "@shared/schema";
 import CoverageAnalyticsDashboard from "./CoverageAnalyticsDashboard";
 import SystemIntelligenceStatus from "./SystemIntelligenceStatus";
+import ApiDashboardGrid from "@/components/admin/system/ApiDashboardGrid";
 
 interface FreshnessCounts {
   total: number;
@@ -234,6 +235,44 @@ function PortfolioProfile() {
   );
 }
 
+function MethodologyOverview() {
+  const steps = [
+    { label: "Context Assembly", desc: "Property profile, comps, market data, and constraints are bundled into a context pack" },
+    { label: "Tier Selection", desc: "Tier 0 (baseline defaults), Tier 1 (full AI research), or Tier 2 (targeted refresh)" },
+    { label: "Progressive Relaxation", desc: "If exact comps are scarce, criteria widen stepwise — geography → type → size" },
+    { label: "Confidence Scoring", desc: "1–5 star rating based on source count, similarity, and evidence diversity" },
+    { label: "Value Extraction", desc: "AI output parsed into structured assumption guidance with P25/P50/P75 ranges" },
+    { label: "Freshness Tracking", desc: "Results are timestamped; key assumption changes auto-trigger staleness detection" },
+  ];
+
+  return (
+    <Card data-testid="methodology-overview">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold">Research Methodology</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-xs text-muted-foreground mb-4">
+          The intelligence pipeline follows a deterministic six-stage process to generate calibrated assumption guidance.
+          Full methodology details are visible on each property's research page via the transparency panel.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {steps.map((s, i) => (
+            <div key={i} className="flex items-start gap-2.5 rounded-lg border border-border/50 bg-muted/20 p-3">
+              <span className="mt-0.5 w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold shrink-0">
+                {i + 1}
+              </span>
+              <div>
+                <p className="text-xs font-medium text-foreground">{s.label}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function EngineDashboard() {
   const { data: counts } = useFreshnessCounts();
 
@@ -259,6 +298,10 @@ export default function EngineDashboard() {
       <CoverageAnalyticsDashboard />
 
       <SystemIntelligenceStatus />
+
+      <ApiDashboardGrid />
+
+      <MethodologyOverview />
     </div>
   );
 }

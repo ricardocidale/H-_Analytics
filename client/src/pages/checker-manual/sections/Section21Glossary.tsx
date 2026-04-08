@@ -110,6 +110,20 @@ import { SectionCard } from "@/components/ui/section-card";
             ["Utilities Variable Split", "The fraction of total utility cost that scales with occupancy (variable) versus remains constant regardless of guests (fixed). Default 60% variable / 40% fixed. Set at the system level and applies to all properties", "F-P-08", "Expenses"],
             ["Variable Costs", "Operating expenses that scale with revenue/occupancy", "—", "Expenses"],
             ["Working Capital", "See Operating Reserve. Cash needed to fund day-to-day operations before revenue stabilizes", "—", "Capital"],
+
+            ["Chain Scale (Luxury)", "STR classification: ADR $396+, full-service amenities, high staff-to-room ratio. Examples: Four Seasons, Ritz-Carlton, St. Regis", "—", "Classification"],
+            ["Chain Scale (Upper Upscale)", "STR classification: ADR $173–$312, full-service with F&B and meeting space. Examples: Marriott, Hilton, Hyatt", "—", "Classification"],
+            ["Chain Scale (Upscale)", "STR classification: ADR $134–$198, select-service or boutique with limited F&B. Examples: Kimpton, Autograph Collection", "—", "Classification"],
+            ["Chain Scale (Upper Midscale)", "STR classification: ADR $100–$140, limited-service, economy F&B. Examples: Holiday Inn Express, Hampton Inn", "—", "Classification"],
+            ["Business Model (Hotel)", "Traditional hospitality model with USALI departmental accounting. Revenue streams: rooms, F&B, events, other. Management fees based on HMA structure", "—", "Classification"],
+            ["Business Model (Lodge)", "Whole-property rental model with seasonal patterns. Revenue based on nightly rate × occupancy. Typically includes guest meals. Lower operating complexity than hotels", "—", "Classification"],
+            ["Business Model (VRBO/STR)", "Short-term rental model using platforms (Airbnb, VRBO, Booking.com). Revenue subject to platform fees (8–25%). Higher cleaning turnover costs. ADR typically $100–$1,500", "—", "Classification"],
+            ["Platform Fee", "Commission charged by booking platforms (Airbnb, VRBO, Booking.com) on gross bookings. Rates: Airbnb 15.5%, VRBO 8%, Booking 15%, Direct 0%. Only applies to VRBO/STR business model", "—", "Revenue"],
+            ["Comparable Set (Comp Set)", "Group of similar properties used for benchmarking. Matched by location, size, type, and chain scale. Progressive relaxation widens criteria when exact matches are scarce", "—", "Research"],
+            ["Freshness Threshold", "Configurable age limit (in days) after which research results are flagged as stale. Set in Pipeline Config. Default varies by research tier", "—", "Research"],
+            ["Relaxation Trail", "Step-by-step record of how the AI widened its search criteria during progressive relaxation. Shows each constraint that was relaxed and the number of comps found at each stage", "—", "Research"],
+            ["Context Pack", "Structured bundle of property data, comparables, market intelligence, and constraints assembled before AI research runs. Previewable in QA Sandbox", "—", "Research"],
+            ["Trust Score", "Quality rating assigned to each data source in the Source Registry. Values: Verified (direct API), Estimated (derived/scraped), Unverified (manual/unknown provenance)", "—", "Research"],
           ]}
         />
       </SectionCard>

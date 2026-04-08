@@ -263,11 +263,14 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 - **T23 ✅** `server/routes/chat.ts` — RAG context injection: parallel KB + multi-namespace retrieval (research-history, assumption-guidance), namespace-specific metadata mapping, 3000-char budget cap with source attribution. Injected as `KNOWLEDGE BASE & RESEARCH CONTEXT` block in system prompt.
 - **T24 ✅** `client/src/components/admin/ai/RebeccaAdminTabs.tsx` — Tabbed container (Configuration + Conversations + Feedback). RebeccaConfigTab re-exports RebeccaConfig. RebeccaConversationsTab: searchable history with expandable message views from `GET /api/rebecca/conversations`. RebeccaFeedbackTab: status-filtered list (new/reviewed/resolved) with `PATCH /api/rebecca/feedback/:id` status updates. Old ConversationsTab stub removed; sidebar redirects to ai-agents.
 
-### Phase 5 Engine Observatory Wiring (IN PROGRESS)
+### Phase 5 Engine Observatory Wiring (COMPLETE)
 - **T27 ✅** `CoverageAnalyticsDashboard` wired into `EngineDashboard.tsx` — scenario-aware coverage analytics with entity drill-down, field-level detail, freshness summary cards
 - **T25 ✅** `SystemIntelligenceStatus` wired into `EngineDashboard.tsx` — LLM vendor availability, Pinecone namespace stats, knowledge base health, missing API key detection, namespace re-index/clear actions
 - **T32 ✅** `SourceRegistryOverlay` wired into `DataSourcesTab.tsx` — trust-scored source cards with health badges, category grouping, cadence info, activate/deactivate toggles
-- Remaining: T30 (Unified API Dashboard), T28a (QA Sandbox Preview), T31 (Model Routing), T33 (Help page), T34 (Methodology panel)
+- **T30 ✅** `ApiDashboardGrid` wired into `EngineDashboard.tsx` — integration health cards, circuit breaker status, cache stats, key rotation, toggle controls
+- **T34 ✅** `MethodologyOverview` added to `EngineDashboard.tsx` — 6-stage pipeline reference (context assembly → tier selection → relaxation → scoring → extraction → freshness)
+- **T33 ✅** Help pages verified complete — Section18Research covers badges, freshness, apply flow, FAQ; Section13AIResearch covers intelligence verification; 13 new glossary terms added (chain scales, business models, research terms)
+- **T28a ✅** `QASandbox` already wired in Admin.tsx; **T31 ✅** `ModelRoutingPanel` + `PipelinePoliciesForm` already inside `PipelineConfigTab`
 
 ---
 

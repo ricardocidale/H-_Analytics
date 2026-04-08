@@ -17,12 +17,16 @@
 - **replit.md updated**: Research Intelligence section updated to reflect Phase 4 complete
 - **Phase 4 (T19-T24) fully complete**: All Rebecca Layer tasks shipped
 
-### Phase 5 Engine Observatory Wiring (April 2026) — IN PROGRESS
+### Phase 5 Engine Observatory Wiring (April 2026) — COMPLETE
 - **CoverageAnalyticsDashboard wired into EngineDashboard**: Imported and rendered below CoverageHeatmap/PortfolioProfile grid. Provides scenario-aware coverage analytics with entity drill-down, field-level detail, freshness summary cards.
 - **SystemIntelligenceStatus wired into EngineDashboard**: Imported and rendered below CoverageAnalyticsDashboard. Shows LLM vendor availability, Pinecone namespace stats, knowledge base health, missing API key detection, namespace re-index/clear actions.
 - **SourceRegistryOverlay wired into DataSourcesTab**: Imported and rendered at bottom of DataSourcesTab. Trust-scored source cards with health badges, category grouping, cadence info, activate/deactivate toggles.
-- **Files changed**: `EngineDashboard.tsx` (2 imports + 2 renders), `DataSourcesTab.tsx` (1 import + 1 render)
-- **Remaining Phase 5 tasks**: T30 (Unified API Dashboard), T28a (QA Sandbox Preview), T31 (Model Routing), T33 (Help page), T34 (Methodology panel)
+- **ApiDashboardGrid wired into EngineDashboard**: Imported from `admin/system/ApiDashboardGrid`. Shows integration health cards, circuit breaker status, cache stats, key rotation history, and toggle controls.
+- **MethodologyOverview added to EngineDashboard**: New inline component showing the 6-stage research pipeline (Context Assembly → Tier Selection → Progressive Relaxation → Confidence Scoring → Value Extraction → Freshness Tracking).
+- **Glossary enriched**: Added 13 new terms to checker manual Section21Glossary — chain scales (Luxury, Upper Upscale, Upscale, Upper Midscale), business models (Hotel, Lodge, VRBO/STR), Platform Fee, Comparable Set, Freshness Threshold, Relaxation Trail, Context Pack, Trust Score.
+- **Pre-existing completions verified**: QASandbox (already wired in Admin.tsx), ModelRoutingPanel (already inside PipelineConfigTab), PipelinePoliciesForm (already inside PipelineConfigTab), MethodologyTransparencyPanel (already in research pages), Help page Section18Research (already comprehensive with badges/freshness/apply flow/FAQ), Section13AIResearch (already has intelligence verification workflow).
+- **Files changed**: `EngineDashboard.tsx` (4 imports + 4 renders + MethodologyOverview component), `DataSourcesTab.tsx` (1 import + 1 render), `Section21Glossary.tsx` (13 new terms)
+- All Phase 5 tasks complete. No remaining items.
 
 ### Skills Frontmatter Compliance (April 2026) — COMPLETED
 - **32 skills updated with Agent Skills spec-compliant frontmatter**: Added `---\nname:\ndescription:\n---` YAML frontmatter to all skills missing it
