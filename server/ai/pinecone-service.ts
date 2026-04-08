@@ -405,6 +405,7 @@ export async function indexAssumptionGuidance(params: {
   entityId: number;
   location: string;
   propertyType: string;
+  businessModel?: string;
   assumptionKey: string;
   valueLow: number | null;
   valueMid: number | null;
@@ -416,7 +417,8 @@ export async function indexAssumptionGuidance(params: {
 
   try {
     const id = `guidance:${params.entityType}:${params.entityId}:${params.assumptionKey}`;
-    const text = `${params.location} ${params.propertyType} ${params.assumptionKey} hospitality assumption guidance`;
+    const bm = params.businessModel ?? "hotel";
+    const text = `${params.location} ${params.propertyType} ${bm} ${params.assumptionKey} hospitality assumption guidance`;
 
     await upsertChunks("assumption-guidance", [{
       id,
@@ -426,6 +428,7 @@ export async function indexAssumptionGuidance(params: {
         entityId:      params.entityId,
         location:      params.location,
         propertyType:  params.propertyType,
+        businessModel: bm,
         assumptionKey: params.assumptionKey,
         valueLow:      params.valueLow ?? 0,
         valueMid:      params.valueMid ?? 0,
@@ -435,7 +438,7 @@ export async function indexAssumptionGuidance(params: {
       },
     }]);
 
-    logger.info(`Indexed assumption guidance: ${params.assumptionKey} for ${params.location}`, "pinecone");
+    logger.info(`Indexed assumption guidance: ${params.assumptionKey} for ${params.location} (${bm})`, "pinecone");
   } catch (err) {
     logger.warn(`Failed to index assumption guidance: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
@@ -448,6 +451,7 @@ export async function indexAssumptionGuidance(params: {
 export async function retrieveSimilarGuidance(params: {
   location: string;
   propertyType: string;
+  businessModel?: string;
   assumptionKeys?: string[];
   topK?: number;
 }): Promise<Array<{
@@ -458,16 +462,18 @@ export async function retrieveSimilarGuidance(params: {
   confidence: number;
   location: string;
   propertyType: string;
+  businessModel: string;
   reasoning: string | null;
   score: number;
 }>> {
   if (!isPineconeAvailable()) return [];
 
   try {
+    const bm = params.businessModel ?? "hotel";
     const keyPart = params.assumptionKeys?.length
       ? params.assumptionKeys.join(" ")
       : "ADR occupancy capRate costs fees";
-    const query = `${params.location} ${params.propertyType} ${keyPart} hospitality assumption guidance`;
+    const query = `${params.location} ${params.propertyType} ${bm} ${keyPart} hospitality assumption guidance`;
     const matches = await queryChunks("assumption-guidance", query, params.topK ?? 10);
 
     return matches
@@ -481,6 +487,7 @@ export async function retrieveSimilarGuidance(params: {
         confidence:    Number(m.metadata.confidence),
         location:      String(m.metadata.location),
         propertyType:  String(m.metadata.propertyType),
+        businessModel: String(m.metadata.businessModel ?? "hotel"),
         reasoning:     m.metadata.reasoning ? String(m.metadata.reasoning) : null,
         score:         m.score,
       }));

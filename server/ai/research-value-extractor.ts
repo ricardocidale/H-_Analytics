@@ -145,6 +145,47 @@ export function extractResearchValues(content: Record<string, any>): Record<stri
   const comm = c.dispositionAnalysis?.recommendedCommission ?? c.capRateAnalysis?.saleCommission;
   if (comm) { const pct = parsePct(comm); if (pct != null) vals.saleCommission = entry({ display: comm, mid: pct }); }
 
+  // Cost segregation splits
+  const csa = c.costSegregationAnalysis ?? c.capitalStructureAnalysis;
+  if (csa) {
+    const cs5 = parsePct(csa.fiveYearPercent ?? csa.costSeg5yrPct);
+    if (cs5 != null) vals.costSeg5yrPct = entry({ display: csa.fiveYearPercent ?? csa.costSeg5yrPct, mid: cs5 });
+    const cs7 = parsePct(csa.sevenYearPercent ?? csa.costSeg7yrPct);
+    if (cs7 != null) vals.costSeg7yrPct = entry({ display: csa.sevenYearPercent ?? csa.costSeg7yrPct, mid: cs7 });
+    const cs15 = parsePct(csa.fifteenYearPercent ?? csa.costSeg15yrPct);
+    if (cs15 != null) vals.costSeg15yrPct = entry({ display: csa.fifteenYearPercent ?? csa.costSeg15yrPct, mid: cs15 });
+  }
+
+  // Working capital
+  const wca = c.workingCapitalAnalysis ?? c.capitalStructureAnalysis;
+  if (wca) {
+    const arVal = wca.arDays ?? wca.accountsReceivableDays;
+    if (arVal != null) {
+      const arNum = typeof arVal === "number" ? arVal : parseInt(String(arVal), 10);
+      if (!isNaN(arNum)) vals.arDays = entry({ display: `${arNum} days`, mid: arNum });
+    }
+    const apVal = wca.apDays ?? wca.accountsPayableDays;
+    if (apVal != null) {
+      const apNum = typeof apVal === "number" ? apVal : parseInt(String(apVal), 10);
+      if (!isNaN(apNum)) vals.apDays = entry({ display: `${apNum} days`, mid: apNum });
+    }
+  }
+
+  // LTV
+  const ltvSrc = c.capitalStructureAnalysis?.recommendedLTV ?? c.financingAnalysis?.recommendedLTV;
+  if (ltvSrc) { const pctV = parsePct(ltvSrc); if (pctV != null) vals.ltv = entry({ display: ltvSrc, mid: pctV }); }
+
+  // Pre-opening costs
+  const preSrc = c.preOpeningAnalysis?.estimatedCost ?? c.preOpeningAnalysis?.recommendedBudget;
+  if (preSrc) {
+    const preRange = parseRange(preSrc);
+    if (preRange) vals.preOpeningCosts = entry({ display: preSrc, mid: preRange.mid });
+  }
+
+  // Platform fee (VRBO/STR)
+  const platSrc = c.platformFeeAnalysis?.recommendedRate ?? c.platformEconomics?.totalPlatformFeeRate;
+  if (platSrc) { const pctV = parsePct(platSrc); if (pctV != null) vals.platformFee = entry({ display: platSrc, mid: pctV }); }
+
   // Filter out nulls
   const result: Record<string, ResearchEntry> = {};
   for (const [k, v] of Object.entries(vals)) {

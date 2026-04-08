@@ -12,6 +12,7 @@ export interface ComparableProperty {
   source: "local" | "pinecone";
   starRating: number | null;
   hospitalityType: string;
+  businessModel: string;
   roomCount: number;
   adr: number;
   city: string | null;
@@ -116,6 +117,7 @@ function localPropToComparable(prop: Property): ComparableProperty {
     source: "local",
     starRating: (prop as { starRating?: number | null }).starRating ?? null,
     hospitalityType: (prop as { hospitalityType?: string }).hospitalityType ?? "hotel",
+    businessModel: (prop as { businessModel?: string }).businessModel ?? "hotel",
     roomCount: prop.roomCount ?? 0,
     adr: prop.startAdr ?? 0,
     city: prop.city ?? null,
@@ -135,6 +137,7 @@ function pineconeMatchToComparable(match: QueryMatch): ComparableProperty {
     source: "pinecone",
     starRating: typeof match.metadata.starRating === "number" ? match.metadata.starRating : null,
     hospitalityType: String(match.metadata.hospitalityType ?? "hotel"),
+    businessModel: String(match.metadata.businessModel ?? "hotel"),
     roomCount: typeof match.metadata.roomCount === "number" ? match.metadata.roomCount : 0,
     adr: typeof match.metadata.adr === "number" ? match.metadata.adr : 0,
     city: typeof match.metadata.city === "string" ? match.metadata.city : null,
@@ -167,10 +170,26 @@ function computeTypeDiversity(comps: ComparableProperty[]): number {
   return Math.min((unique - 1) / (known.length - 1), 1);
 }
 
+function computeBusinessModelAlignment(comps: ComparableProperty[], targetModel: string): number {
+  if (comps.length === 0) return 0;
+  const sameModelCount = comps.filter(c => c.businessModel === targetModel).length;
+  return sameModelCount / comps.length;
+}
+
+function applyBusinessModelBoost(comps: ComparableProperty[], targetModel: string): ComparableProperty[] {
+  return comps.map(c => {
+    if (c.businessModel === targetModel) {
+      return { ...c, score: Math.min(c.score * 1.15, 1) };
+    }
+    return { ...c, score: c.score * 0.85 };
+  });
+}
+
 function computeEvidenceScore(
   comps: ComparableProperty[],
   level: RelaxLevel,
   minCompCount: number,
+  targetBusinessModel?: string,
 ): number {
   const countScore = Math.min(comps.length / minCompCount, 1);
   const avgSimilarity = comps.length > 0
@@ -180,11 +199,15 @@ function computeEvidenceScore(
   const geoDiversity = computeGeographicDiversity(comps);
   const typeDiversity = computeTypeDiversity(comps);
   const diversityBonus = (geoDiversity + typeDiversity) / 2;
+  const modelAlignment = targetBusinessModel
+    ? computeBusinessModelAlignment(comps, targetBusinessModel)
+    : 0;
   return (
-    0.35 * countScore +
-    0.30 * avgSimilarity +
+    0.30 * countScore +
+    0.25 * avgSimilarity +
     0.20 * Math.max(0, constraintStrength) +
-    0.15 * diversityBonus
+    0.15 * diversityBonus +
+    0.10 * modelAlignment
   );
 }
 
@@ -279,6 +302,7 @@ export async function progressiveRelax(options: {
   const policy = await loadPolicy();
   const builder = new ComparableQueryBuilder(contextPack);
   const targetStar = contextPack.classification.starRating ?? contextPack.classification.starRatingSuggested;
+  const targetBusinessModel = contextPack.classification.businessModel ?? "hotel";
   const traces: InsertRelaxationTrace[] = [];
   let selectedLevel: RelaxLevel = 0;
   let bestComps: ComparableProperty[] = [];
@@ -297,7 +321,10 @@ export async function progressiveRelax(options: {
 
     merged = merged.filter(c => starGuard(c, targetStar));
 
-    const evidenceScore = computeEvidenceScore(merged, level as RelaxLevel, policy.minCompCount);
+    merged = applyBusinessModelBoost(merged, targetBusinessModel);
+    merged = merged.sort((a, b) => b.score - a.score);
+
+    const evidenceScore = computeEvidenceScore(merged, level as RelaxLevel, policy.minCompCount, targetBusinessModel);
 
     const trace: InsertRelaxationTrace = {
       researchRunId,

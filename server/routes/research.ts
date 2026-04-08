@@ -236,6 +236,7 @@ export function register(app: Express) {
                   const priorGuidance = await retrieveSimilarGuidance({
                     location: property.location ?? "",
                     propertyType: (property as any).hospitalityType ?? "boutique hotel",
+                    businessModel: (property as any).businessModel ?? "hotel",
                     topK: 15,
                   });
                   if (priorGuidance.length > 0) {
@@ -348,6 +349,7 @@ export function register(app: Express) {
                 purchasePrice: property.purchasePrice ?? undefined,
                 costRateRooms: property.costRateRooms ?? undefined,
                 costRateFB: property.costRateFB ?? undefined,
+                businessModel: property.businessModel ?? undefined,
               });
               const cleanValues: Record<string, { display: string; mid: number; source: "ai" }> = {};
               for (const [k, v] of Object.entries(validated.values)) {
@@ -408,6 +410,7 @@ export function register(app: Express) {
 
                 const propLocation = property.location ?? "";
                 const propType = (property as any).hospitalityType ?? "boutique hotel";
+                const propBusinessModel = (property as any).businessModel ?? "hotel";
                 for (const rec of guidanceResult.records) {
                   await storage.upsertAssumptionGuidance({
                     researchRunId: runId,
@@ -431,6 +434,7 @@ export function register(app: Express) {
                     entityId: propertyId,
                     location: propLocation,
                     propertyType: propType,
+                    businessModel: propBusinessModel,
                     assumptionKey: rec.assumptionKey,
                     valueLow: rec.valueLow ?? null,
                     valueMid: rec.valueMid ?? null,

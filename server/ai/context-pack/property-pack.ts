@@ -267,6 +267,7 @@ export function buildPropertyContextPack(
       starRatingSource: p.starRatingSource,
       starRatingSuggested: p.starRatingSuggested,
       hospitalityType: p.hospitalityType ?? "hotel",
+      businessModel: p.businessModel ?? "hotel",
       compositeLabel,
     },
     physicalCharacter: {

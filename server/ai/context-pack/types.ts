@@ -23,6 +23,7 @@ export interface PropertyContextPack {
     starRatingSource: string | null;
     starRatingSuggested: number | null;
     hospitalityType: string;
+    businessModel: string;
     compositeLabel: string;
   };
   physicalCharacter: {

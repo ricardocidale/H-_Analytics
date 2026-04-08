@@ -45,6 +45,7 @@ function makePack(overrides: Partial<{
       starRatingSource: "manual",
       starRatingSuggested: null,
       hospitalityType: o.hospitalityType,
+      businessModel: o.businessModel ?? "hotel",
       compositeLabel: "test",
     },
     physicalCharacter: { roomCount: o.roomCount, narrative: `${o.roomCount}-room property` },
