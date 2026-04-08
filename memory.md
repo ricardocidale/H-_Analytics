@@ -314,7 +314,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **Overall**: STRONG with targeted improvements needed
 - **P0 FIXED**: (1) `cleanupPropertyVectors()` in pinecone-service.ts — property deletion now cleans 5 namespaces, (2) `Promise.race` with `AI_GENERATION_TIMEOUT_MS` in research orchestrator
 - **P1 FIXED**: (a) 7 new FK indexes (research_runs user/scenario, rebecca_emails user, rebecca_feedback user/conv, coverage_snapshots scenario, integration_key_rotations service), (b) `upsertGlobalAssumptions` + `writePropertyOverrides` wrapped in transactions, (c) Finance route 500s sanitized in production, (d) `React.memo` on PortfolioPropertyCard, (e) Bulk property URL fetch via `GET /api/property-urls/all` + `useAllPropertyUrls` hook eliminates N+1, (f) Rate limit message fixed to "15 minutes"
-- **P2 remaining**: Accessibility gaps (aria-labels, landmarks, aria-live), oversized components (14 >500 lines), RAG score threshold too low (0.3)
+- **P2 FIXED**: (a) aria-labels added to ~25 icon-only buttons across 15 files, (b) aria-live on RebeccaTypingIndicator, (c) RAG score threshold raised from 0.3→0.45 in chat.ts, (d) Empty catch blocks annotated/logged (research-resources.ts, App.tsx, run-research.ts), (e) ScenariosTab decomposed: ScenarioCard + ScenarioAccessDialog extracted (1019→757 lines)
 - **All STRONG**: Server setup, auth system, caching, schema design, storage layer, calc architecture, formula integrity, GAAP compliance, proof system, recalc enforcement, routing, state management, error handling, documentation, skills, UI consistency, UX patterns
 
 ## Feature Flags

@@ -122,10 +122,10 @@ export function ThemeFormDialog({ open, onOpenChange, editingTheme, themeForForm
                     <div key={originalIdx} className="p-3 rounded-lg border border-border bg-card space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="flex flex-col gap-0.5">
-                          <Button type="button" variant="ghost" size="icon" onClick={moveUp} disabled={displayIdx === 0} className={`h-auto w-auto p-0.5 ${displayIdx === 0 ? 'opacity-30' : ''}`}>
+                          <Button type="button" variant="ghost" size="icon" aria-label="Move color up" onClick={moveUp} disabled={displayIdx === 0} className={`h-auto w-auto p-0.5 ${displayIdx === 0 ? 'opacity-30' : ''}`}>
                             <ChevronUp className="w-4 h-4 text-muted-foreground" />
                           </Button>
-                          <Button type="button" variant="ghost" size="icon" onClick={moveDown} disabled={displayIdx === arr.length - 1} className={`h-auto w-auto p-0.5 ${displayIdx === arr.length - 1 ? 'opacity-30' : ''}`}>
+                          <Button type="button" variant="ghost" size="icon" aria-label="Move color down" onClick={moveDown} disabled={displayIdx === arr.length - 1} className={`h-auto w-auto p-0.5 ${displayIdx === arr.length - 1 ? 'opacity-30' : ''}`}>
                             <ChevronDown className="w-4 h-4 text-muted-foreground" />
                           </Button>
                         </div>
@@ -133,7 +133,7 @@ export function ThemeFormDialog({ open, onOpenChange, editingTheme, themeForForm
                         <div className="w-36">
                           <ColorPicker value={color.hexCode} onChange={nc => { const c = [...themeForForm.colors]; c[originalIdx] = { ...c[originalIdx], hexCode: nc }; setThemeForForm({ ...themeForForm, colors: c }); }} />
                         </div>
-                        <Button type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setThemeForForm({ ...themeForForm, colors: themeForForm.colors.filter((_, i) => i !== originalIdx) })}>
+                        <Button type="button" size="sm" variant="ghost" aria-label="Remove color" className="text-destructive hover:text-destructive" onClick={() => setThemeForForm({ ...themeForForm, colors: themeForForm.colors.filter((_, i) => i !== originalIdx) })}>
                           <IconTrash className="w-4 h-4" />
                         </Button>
                       </div>
@@ -183,10 +183,10 @@ export function ThemeFormDialog({ open, onOpenChange, editingTheme, themeForForm
                     <div key={originalIdx} className="p-3 rounded-lg border border-border bg-card space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="flex flex-col gap-0.5">
-                          <Button type="button" variant="ghost" size="icon" onClick={moveUp} disabled={displayIdx === 0} className={`h-auto w-auto p-0.5 ${displayIdx === 0 ? 'opacity-30' : ''}`}>
+                          <Button type="button" variant="ghost" size="icon" aria-label="Move chart color up" onClick={moveUp} disabled={displayIdx === 0} className={`h-auto w-auto p-0.5 ${displayIdx === 0 ? 'opacity-30' : ''}`}>
                             <ChevronUp className="w-4 h-4 text-muted-foreground" />
                           </Button>
-                          <Button type="button" variant="ghost" size="icon" onClick={moveDown} disabled={displayIdx === arr.length - 1} className={`h-auto w-auto p-0.5 ${displayIdx === arr.length - 1 ? 'opacity-30' : ''}`}>
+                          <Button type="button" variant="ghost" size="icon" aria-label="Move chart color down" onClick={moveDown} disabled={displayIdx === arr.length - 1} className={`h-auto w-auto p-0.5 ${displayIdx === arr.length - 1 ? 'opacity-30' : ''}`}>
                             <ChevronDown className="w-4 h-4 text-muted-foreground" />
                           </Button>
                         </div>
@@ -194,7 +194,7 @@ export function ThemeFormDialog({ open, onOpenChange, editingTheme, themeForForm
                         <div className="w-36">
                           <ColorPicker value={color.hexCode} onChange={nc => { const c = [...themeForForm.colors]; c[originalIdx] = { ...c[originalIdx], hexCode: nc }; setThemeForForm({ ...themeForForm, colors: c }); }} />
                         </div>
-                        <Button type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setThemeForForm({ ...themeForForm, colors: themeForForm.colors.filter((_, i) => i !== originalIdx) })}>
+                        <Button type="button" size="sm" variant="ghost" aria-label="Remove chart color" className="text-destructive hover:text-destructive" onClick={() => setThemeForForm({ ...themeForForm, colors: themeForForm.colors.filter((_, i) => i !== originalIdx) })}>
                           <IconTrash className="w-4 h-4" />
                         </Button>
                       </div>

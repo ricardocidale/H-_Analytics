@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,32 +7,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconPlus, IconTrash, IconPencil, IconPeople, IconScenarios, IconProperties, IconBuilding2, IconFolderOpen } from "@/components/icons";
+import { IconPlus, IconTrash, IconScenarios, IconFolderOpen } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminUsers, useAdminUserGroups, useAdminCompanies, adminFetch } from "./hooks";
 import { formatDateTime } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDeletedScenarios, useRestoreScenario, usePurgeScenario, usePurgeExpiredScenarios } from "@/lib/api/scenarios";
-
-interface AdminScenario {
-  id: number;
-  userId: number;
-  name: string;
-  description: string | null;
-  kind: string | null;
-  ownerEmail: string;
-  ownerName: string | null;
-  propertyCount: number;
-  createdAt: string;
-  updatedAt: string;
-  accessGrants: Array<{
-    id: number;
-    targetType: string;
-    targetId: number;
-    grantedBy: number;
-    createdAt: string;
-  }>;
-}
+import { ScenarioCard, type AdminScenario } from "./scenarios/ScenarioCard";
+import { ScenarioAccessDialog } from "./scenarios/ScenarioAccessDialog";
 
 function getDaysSinceDeleted(deletedAt: string | Date | null): number {
   if (!deletedAt) return 0;
@@ -412,8 +394,6 @@ export default function ScenariosTab() {
   const [selectedScenario, setSelectedScenario] = useState<AdminScenario | null>(null);
   const [createForm, setCreateForm] = useState({ userId: "", name: "", description: "" });
   const [editForm, setEditForm] = useState({ name: "", description: "" });
-  const [grantForm, setGrantForm] = useState({ targetType: "group" as string, targetId: "" });
-
   const { data: scenarios, isLoading } = useQuery<AdminScenario[]>({
     queryKey: ["admin", "scenarios"],
     queryFn: adminFetch<AdminScenario[]>("/api/admin/scenarios", "Failed to fetch scenarios"),
@@ -493,68 +473,6 @@ export default function ScenariosTab() {
     },
   });
 
-  const addAccessMutation = useMutation({
-    mutationFn: async ({ scenarioId, targetType, targetId }: { scenarioId: number; targetType: string; targetId: number }) => {
-      const res = await fetch(`/api/admin/scenarios/${scenarioId}/access`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ targetType, targetId }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to add access");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
-      setGrantForm({ targetType: "group", targetId: "" });
-      toast({ title: "Access Granted" });
-    },
-    onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
-  });
-
-  const removeAccessMutation = useMutation({
-    mutationFn: async ({ scenarioId, targetType, targetId }: { scenarioId: number; targetType: string; targetId: number }) => {
-      const res = await fetch(`/api/admin/scenarios/${scenarioId}/access`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ targetType, targetId }),
-      });
-      if (!res.ok) throw new Error("Failed to remove access");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
-      toast({ title: "Access Revoked" });
-    },
-    onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
-  });
-
-  const unshareAllMutation = useMutation({
-    mutationFn: async (scenarioId: number) => {
-      const res = await fetch(`/api/admin/scenarios/${scenarioId}/access/all`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to remove all shares");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
-      toast({ title: "All Access Removed", description: `Removed ${(data.sharesRemoved || 0) + (data.accessRemoved || 0)} access grant(s)` });
-    },
-    onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
-  });
-
   useEffect(() => {
     if (selectedScenario && scenarios) {
       const updated = scenarios.find(s => s.id === selectedScenario.id);
@@ -596,18 +514,12 @@ export default function ScenariosTab() {
     });
   }, [scenarios, search, ownerFilter, groupFilter, companyFilter]);
 
-  function getGrantLabel(targetType: string, targetId: number) {
+  const getGrantLabel = (targetType: string, targetId: number) => {
     if (targetType === "group") return groupNameMap[targetId] || `Group #${targetId}`;
     if (targetType === "company") return companyNameMap[targetId] || `Company #${targetId}`;
     if (targetType === "user") return userNameMap[targetId] || `User #${targetId}`;
     return `${targetType} #${targetId}`;
-  }
-
-  function getGrantBadgeVariant(targetType: string): "default" | "secondary" | "outline" {
-    if (targetType === "group") return "default";
-    if (targetType === "company") return "secondary";
-    return "outline";
-  }
+  };
 
   if (isLoading) {
     return (
@@ -680,84 +592,14 @@ export default function ScenariosTab() {
 
       <div className="grid gap-4">
         {filteredScenarios.map(scenario => (
-          <Card key={scenario.id} data-testid={`card-scenario-${scenario.id}`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-base flex items-center gap-2" data-testid={`text-scenario-name-${scenario.id}`}>
-                    <IconScenarios className="w-4 h-4 text-muted-foreground" />
-                    {scenario.name}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1" data-testid={`text-scenario-owner-${scenario.id}`}>
-                    Owner: {scenario.ownerName || scenario.ownerEmail}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedScenario(scenario);
-                      setAccessOpen(true);
-                    }}
-                    data-testid={`button-manage-access-${scenario.id}`}
-                  >
-                    <IconPeople className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedScenario(scenario);
-                      setEditForm({ name: scenario.name, description: scenario.description || "" });
-                      setEditOpen(true);
-                    }}
-                    data-testid={`button-edit-scenario-${scenario.id}`}
-                  >
-                    <IconPencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedScenario(scenario);
-                      setDeleteOpen(true);
-                    }}
-                    data-testid={`button-delete-scenario-${scenario.id}`}
-                  >
-                    <IconTrash className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                {scenario.description && (
-                  <span data-testid={`text-scenario-desc-${scenario.id}`}>{scenario.description}</span>
-                )}
-                <span className="flex items-center gap-1">
-                  <IconProperties className="w-3.5 h-3.5" />
-                  {scenario.propertyCount} properties
-                </span>
-                <span>Created {formatDateTime(scenario.createdAt)}</span>
-              </div>
-              {scenario.accessGrants.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-3" data-testid={`grants-${scenario.id}`}>
-                  {scenario.accessGrants.map(grant => (
-                    <Badge
-                      key={grant.id}
-                      variant={getGrantBadgeVariant(grant.targetType)}
-                      className="text-xs"
-                    >
-                      {grant.targetType === "group" && <IconPeople className="w-3 h-3 mr-1" />}
-                      {grant.targetType === "company" && <IconBuilding2 className="w-3 h-3 mr-1" />}
-                      {getGrantLabel(grant.targetType, grant.targetId)}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ScenarioCard
+            key={scenario.id}
+            scenario={scenario}
+            onManageAccess={(s) => { setSelectedScenario(s); setAccessOpen(true); }}
+            onEdit={(s) => { setSelectedScenario(s); setEditForm({ name: s.name, description: s.description || "" }); setEditOpen(true); }}
+            onDelete={(s) => { setSelectedScenario(s); setDeleteOpen(true); }}
+            getGrantLabel={getGrantLabel}
+          />
         ))}
 
         {filteredScenarios.length === 0 && (
@@ -898,122 +740,14 @@ export default function ScenariosTab() {
       <DefaultScenariosSection scenarios={scenarios} users={users} />
       <DeletedScenariosSection />
 
-      <Dialog open={accessOpen} onOpenChange={setAccessOpen}>
-        <DialogContent className="max-w-lg" data-testid="dialog-manage-access">
-          <DialogHeader>
-            <DialogTitle>Manage Access — {selectedScenario?.name}</DialogTitle>
-            <DialogDescription>
-              Grant or revoke access for user groups, companies, or individual users.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedScenario?.accessGrants && selectedScenario.accessGrants.length > 0 ? (
-              <div className="space-y-2">
-                <Label>Current Access</Label>
-                <div className="space-y-1.5">
-                  {selectedScenario.accessGrants.map(grant => (
-                    <div key={grant.id} className="flex items-center justify-between bg-muted/50 rounded px-3 py-2">
-                      <span className="text-sm">
-                        <Badge variant={getGrantBadgeVariant(grant.targetType)} className="mr-2 text-xs">
-                          {grant.targetType}
-                        </Badge>
-                        {getGrantLabel(grant.targetType, grant.targetId)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (!selectedScenario) return;
-                          removeAccessMutation.mutate({
-                            scenarioId: selectedScenario.id,
-                            targetType: grant.targetType,
-                            targetId: grant.targetId,
-                          });
-                        }}
-                        data-testid={`button-revoke-access-${grant.id}`}
-                      >
-                        <IconTrash className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No access grants yet.</p>
-            )}
-
-            {selectedScenario?.accessGrants && selectedScenario.accessGrants.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
-                onClick={() => {
-                  if (!selectedScenario) return;
-                  unshareAllMutation.mutate(selectedScenario.id);
-                }}
-                disabled={unshareAllMutation.isPending}
-                data-testid="button-unshare-all"
-              >
-                {unshareAllMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconTrash className="w-4 h-4 mr-2" />}
-                Remove All Access
-              </Button>
-            )}
-
-            <div className="border-t pt-4 space-y-3">
-              <Label>Add Access</Label>
-              <div className="flex items-end gap-2">
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Type</Label>
-                  <Select value={grantForm.targetType} onValueChange={v => setGrantForm(f => ({ ...f, targetType: v, targetId: "" }))}>
-                    <SelectTrigger data-testid="select-grant-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="group">Group</SelectItem>
-                      <SelectItem value="company">Company</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Target</Label>
-                  <Select value={grantForm.targetId} onValueChange={v => setGrantForm(f => ({ ...f, targetId: v }))}>
-                    <SelectTrigger data-testid="select-grant-target">
-                      <SelectValue placeholder="Select..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {grantForm.targetType === "group" && groups?.map(g => (
-                        <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
-                      ))}
-                      {grantForm.targetType === "company" && companies?.map(c => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                      ))}
-                      {grantForm.targetType === "user" && users?.map(u => (
-                        <SelectItem key={u.id} value={String(u.id)}>{u.name || u.email}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (!selectedScenario || !grantForm.targetId) return;
-                    addAccessMutation.mutate({
-                      scenarioId: selectedScenario.id,
-                      targetType: grantForm.targetType,
-                      targetId: Number(grantForm.targetId),
-                    });
-                  }}
-                  disabled={!grantForm.targetId || addAccessMutation.isPending}
-                  data-testid="button-add-access"
-                >
-                  {addAccessMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconPlus className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ScenarioAccessDialog
+        open={accessOpen}
+        onOpenChange={setAccessOpen}
+        scenario={selectedScenario}
+        groups={groups}
+        companies={companies}
+        users={users}
+      />
     </div>
   );
 }

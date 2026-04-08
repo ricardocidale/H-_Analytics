@@ -240,6 +240,7 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
                       onClick={saveEdit}
                       disabled={!isValidEditUrl || editMutation.isPending}
                       data-testid={`button-save-edit-${u.id}`}
+                      aria-label="Save link"
                     >
                       <IconCheck className="w-4 h-4" />
                     </Button>
@@ -249,6 +250,7 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
                       className="h-8 w-8 text-muted-foreground"
                       onClick={cancelEdit}
                       data-testid={`button-cancel-edit-${u.id}`}
+                      aria-label="Cancel editing"
                     >
                       <IconX className="w-4 h-4" />
                     </Button>

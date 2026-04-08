@@ -240,6 +240,7 @@ export const PortfolioPropertyCard = memo(function PortfolioPropertyCard({ prope
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 data-testid={`button-delete-property-${property.id}`}
+                aria-label={`Delete ${property.name}`}
               >
                 <IconTrash className="w-4 h-4" />
               </Button>

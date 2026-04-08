@@ -87,6 +87,7 @@ export function RebeccaConversationHistory({
               className="h-7 w-7"
               onClick={onClose}
               data-testid="button-history-back"
+              aria-label="Close conversation history"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>

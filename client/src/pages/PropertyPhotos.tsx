@@ -59,7 +59,7 @@ export default function PropertyPhotos() {
         <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6">
           <div className="flex items-center gap-4">
             <Link href={`/property/${propertyId}`}>
-              <Button variant="outline" size="icon" className="h-9 w-9 hover:scale-[1.03] active:scale-[0.97] transition-transform" data-testid="button-back">
+              <Button variant="outline" size="icon" className="h-9 w-9 hover:scale-[1.03] active:scale-[0.97] transition-transform" data-testid="button-back" aria-label="Back to property">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>

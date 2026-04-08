@@ -157,6 +157,7 @@ function LocationCard({
             onClick={onRemove}
             className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
             data-testid={`button-remove-location-${location.id}`}
+            aria-label="Remove location"
           >
             <IconTrash className="w-3.5 h-3.5" />
           </Button>

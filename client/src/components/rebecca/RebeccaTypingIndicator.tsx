@@ -41,7 +41,7 @@ export function RebeccaTypingIndicator() {
   }, []);
 
   return (
-    <div className="flex items-start gap-2" data-testid="rebecca-typing-indicator">
+    <div className="flex items-start gap-2" data-testid="rebecca-typing-indicator" role="status" aria-live="polite" aria-label="Rebecca is thinking">
       <RebeccaAvatar size="sm" />
       <div className="bg-muted rounded-lg rounded-tl-sm px-3 py-2 text-sm text-muted-foreground">
         <div className="flex items-center gap-1.5">

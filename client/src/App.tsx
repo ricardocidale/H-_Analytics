@@ -326,7 +326,9 @@ function AutoSaveRestorePrompt() {
   const handleStartFresh = async () => {
     try {
       await fetch("/api/scenarios/auto-save", { method: "DELETE", credentials: "include" }).catch(() => {});
-    } catch {}
+    } catch {
+      // best-effort cleanup — auto-save deletion is non-critical
+    }
     setShowPrompt(false);
     setDismissed(true);
     if (user) sessionStorage.setItem(`autosave_prompt_${user.id}`, "1");

@@ -20,7 +20,7 @@ function PageHeader({ title, subtitle, backLink, actions, className }: PageHeade
         <div className="flex items-center gap-3">
           {backLink && (
             <Link href={backLink}>
-              <Button variant="outline" size="icon" className="h-9 w-9 hover:scale-[1.03] active:scale-[0.97] transition-transform">
+              <Button variant="outline" size="icon" className="h-9 w-9 hover:scale-[1.03] active:scale-[0.97] transition-transform" aria-label="Go back">
                 <ChevronLeft className="w-4 h-4" />
               </Button>
             </Link>

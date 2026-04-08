@@ -144,6 +144,7 @@ function GuidanceSideSheet() {
               onClick={closeAll}
               className="rounded-sm opacity-70 hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2"
               data-testid="guidance-close-button"
+              aria-label="Close guidance panel"
             >
               <XIcon className="h-4 w-4" />
             </button>

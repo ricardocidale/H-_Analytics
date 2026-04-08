@@ -125,7 +125,8 @@ export function loadToolDefinitions(): Anthropic.Tool[] {
           });
         }
       }
-    } catch {
+    } catch (err) {
+      logger.warn(`[research-resources] Failed to scan tool directory: ${(err as Error).message}`);
     }
   }
 

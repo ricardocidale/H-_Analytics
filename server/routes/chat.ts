@@ -291,7 +291,7 @@ export function register(app: Express) {
         let ragChars = 0;
 
         for (const chunk of kbChunks) {
-          if (chunk.score < 0.3) continue;
+          if (chunk.score < 0.45) continue;
           const entry = `[${chunk.source}] ${chunk.title} (${chunk.score.toFixed(2)}):\n${chunk.content.slice(0, 600)}`;
           if (ragChars + entry.length > MAX_RAG_CHARS) break;
           ragParts.push(entry);
@@ -299,7 +299,7 @@ export function register(app: Express) {
         }
 
         for (const match of multiResults) {
-          if (match.score < 0.3) continue;
+          if (match.score < 0.45) continue;
           let body: string;
           let title: string;
           if (match.namespace === "research-history") {

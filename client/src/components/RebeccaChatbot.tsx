@@ -261,6 +261,7 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
                 onClick={sendMessage}
                 disabled={!input.trim() || loading}
                 data-testid="button-send-message"
+                aria-label="Send message"
               >
                 <Send className="w-3.5 h-3.5" />
               </Button>

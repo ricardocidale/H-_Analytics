@@ -36,7 +36,9 @@ async function generateAndSave(
       propertyType: "boutique hotel",
       propertyId: propertyId || undefined,
     });
-  } catch {}
+  } catch {
+  // dotenv not available — environment variables already set
+}
 
   const params = {
     type,

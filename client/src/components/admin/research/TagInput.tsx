@@ -37,7 +37,7 @@ export function TagInput({
           placeholder={placeholder}
           className="h-8 text-sm"
         />
-        <Button data-testid={`button-add-${testIdPrefix}`} type="button" size="sm" variant="outline" onClick={add} className="h-8 px-2">
+        <Button data-testid={`button-add-${testIdPrefix}`} type="button" size="sm" variant="outline" onClick={add} className="h-8 px-2" aria-label={`Add ${placeholder?.toLowerCase() ?? "tag"}`}>
           <IconPlus className="w-3.5 h-3.5" />
         </Button>
       </div>

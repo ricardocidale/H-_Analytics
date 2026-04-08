@@ -76,7 +76,7 @@ export default function PropertyHeader({ property, propertyId, heroCaption, onPh
         <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <Link href="/portfolio">
-              <Button variant="outline" size="icon" className="h-9 w-9 hover:scale-[1.03] active:scale-[0.97] transition-transform">
+              <Button variant="outline" size="icon" className="h-9 w-9 hover:scale-[1.03] active:scale-[0.97] transition-transform" aria-label="Back to portfolio">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>

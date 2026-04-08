@@ -108,19 +108,22 @@ export default function UserCardGrid({
                 <div className="flex items-center gap-1 shrink-0">
                   <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8 p-0"
                     onClick={() => onEditUser(user)}
-                    data-testid={`button-edit-user-${user.id}`}>
+                    data-testid={`button-edit-user-${user.id}`}
+                    aria-label={`Edit ${user.name || user.email}`}>
                     <IconPencil className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8 p-0"
                     onClick={() => onPasswordUser(user)}
-                    data-testid={`button-password-user-${user.id}`}>
+                    data-testid={`button-password-user-${user.id}`}
+                    aria-label={`Reset password for ${user.name || user.email}`}>
                     <IconKey className="w-4 h-4" />
                   </Button>
                   {user.role !== UserRole.ADMIN && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="ghost" className="text-destructive/80 hover:text-destructive/60 hover:bg-destructive/10 h-8 w-8 p-0"
-                          data-testid={`button-delete-user-${user.id}`}>
+                          data-testid={`button-delete-user-${user.id}`}
+                          aria-label={`Delete ${user.name || user.email}`}>
                           <IconTrash className="w-4 h-4" />
                         </Button>
                       </AlertDialogTrigger>

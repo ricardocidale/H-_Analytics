@@ -61,10 +61,10 @@ function SourceCard({
         )}
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} data-testid={`button-edit-source-${source.id}`}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} data-testid={`button-edit-source-${source.id}`} aria-label={`Edit ${source.name}`}>
           <IconPencil className="w-3.5 h-3.5" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/80 hover:text-destructive/60" onClick={onDelete} data-testid={`button-delete-source-${source.id}`}>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/80 hover:text-destructive/60" onClick={onDelete} data-testid={`button-delete-source-${source.id}`} aria-label={`Delete ${source.name}`}>
           <IconTrash className="w-3.5 h-3.5" />
         </Button>
       </div>

@@ -402,6 +402,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
               className="md:hidden h-8 w-8"
               onClick={() => setMobileOpen(true)}
               data-testid="button-mobile-menu"
+              aria-label="Open menu"
             >
               <IconMenu className="w-5 h-5" />
             </Button>

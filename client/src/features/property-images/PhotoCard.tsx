@@ -118,10 +118,10 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
               autoFocus
               onKeyDown={(e) => e.key === "Enter" && handleSaveCaption()}
             />
-            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleSaveCaption}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleSaveCaption} aria-label="Save caption">
               <Check className="w-3.5 h-3.5" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setEditingCaption(false)}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setEditingCaption(false)} aria-label="Cancel editing">
               <X className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -136,12 +136,12 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
               {photo.caption || "Add caption..."}
             </Button>
             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }}>
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }} aria-label="Edit caption">
                 <Pencil className="w-3 h-3" />
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive">
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" aria-label="Delete photo">
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 </AlertDialogTrigger>
