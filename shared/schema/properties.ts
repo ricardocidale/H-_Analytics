@@ -175,6 +175,7 @@ export const properties = pgTable("properties", {
   starRatingSource: text("star_rating_source").default("manual"),
   starRatingSuggested: integer("star_rating_suggested"),
   hospitalityType: text("hospitality_type").notNull().default("hotel"),
+  businessModel: text("business_model").notNull().default("hotel"),
 
   description: text("description"),
 
@@ -190,6 +191,8 @@ export const properties = pgTable("properties", {
   // Default and seed value is true (ON).
   isActive: boolean("is_active").notNull().default(true),
   
+  lastAssumptionChangeAt: timestamp("last_assumption_change_at"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -279,6 +282,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   starRatingSource: true,
   starRatingSuggested: true,
   hospitalityType: true,
+  businessModel: true,
   description: true,
   latitude: true,
   longitude: true,
@@ -286,7 +290,10 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   isActive: true,
 });
 
-export const HOSPITALITY_TYPES = ["hotel", "resort", "boutique_hotel", "business_hotel", "wellness_resort", "conference_hotel", "extended_stay"] as const;
+export const HOSPITALITY_TYPES = ["hotel", "resort", "boutique_hotel", "business_hotel", "wellness_resort", "conference_hotel", "extended_stay", "vrbo"] as const;
+
+export const BUSINESS_MODEL_TYPES = ["hotel", "vrbo"] as const;
+export type BusinessModel = typeof BUSINESS_MODEL_TYPES[number];
 export type HospitalityType = typeof HOSPITALITY_TYPES[number];
 
 const starRatingRefinement = z.object({
@@ -294,6 +301,7 @@ const starRatingRefinement = z.object({
   starRatingSuggested: z.number().int().min(1).max(5).nullable().optional(),
   starRatingSource: z.enum(["manual", "suggested"]).nullable().optional(),
   hospitalityType: z.enum(HOSPITALITY_TYPES).optional(),
+  businessModel: z.enum(BUSINESS_MODEL_TYPES).optional(),
 }).partial();
 
 export const updatePropertySchema = insertPropertySchema.partial().merge(starRatingRefinement);
