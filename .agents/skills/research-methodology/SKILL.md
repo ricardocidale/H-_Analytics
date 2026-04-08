@@ -496,10 +496,26 @@ Research Engine (N+1 pipeline) sees URLs as reference sources
 AI can extract: property details, photos, amenities, location info, pricing signals
 ```
 
+#### Pinecone Indexing
+
+Validated, relevant URLs are indexed into the `properties` Pinecone namespace for retrieval during research:
+
+| Aspect | Detail |
+|--------|--------|
+| **Vector ID format** | `prop-url:{propertyId}:{urlId}` |
+| **Upsert trigger** | After batch validation, relevant URLs (relevanceScore >= 0.6) are upserted via `upsertChunks("properties", chunks)` |
+| **Delete trigger** | Stale/invalid URLs are removed via `deleteVectors("properties", staleIds)` |
+| **Text content** | `"Property {name} ({location}) reference link: {url} {title}"` |
+| **Metadata** | `{ propertyId, propertyName, location, url, title, relevanceScore, type: "property-url" }` |
+| **Consumer** | `server/ai/research-orchestrator.ts` queries Pinecone for `prop-url:{propertyId}` chunks, filters by ID prefix, and appends matched URLs as "Property Reference URLs" section in the research prompt |
+| **Max results** | 10 URL chunks per property per research run |
+
 #### Key Files
 - Schema: `shared/schema/properties.ts` (`property_urls` table)
 - Storage: `server/storage/property-urls.ts` (PropertyUrlStorage CRUD)
-- Routes: `server/routes/properties.ts` (5 URL endpoints)
+- Routes: `server/routes/properties.ts` (5 URL endpoints + Pinecone upsert/delete after validation)
+- Research consumer: `server/ai/research-orchestrator.ts` (URL retrieval during N+1 pipeline)
+- Pinecone service: `server/ai/pinecone-service.ts` (`upsertChunks`, `deleteVectors`, `queryChunks`)
 - UI: `client/src/components/property-edit/PropertyLinksSection.tsx`
 
 ### 7.5 The N+1 Synthesis Pipeline

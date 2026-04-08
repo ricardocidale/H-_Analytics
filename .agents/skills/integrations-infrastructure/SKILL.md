@@ -226,7 +226,7 @@ For full card anatomy, design patterns, and extension guide, see `.agents/skills
 | Resend | `server/integrations/resend.ts` | — | `RESEND_API_KEY` |
 | Replicate (renders) | `server/integrations/replicate.ts` | — | `REPLICATE_API_TOKEN` |
 | Replicate (enhance) | `server/integrations/replicate.ts` | `server/routes/property-photos.ts` | `REPLICATE_API_TOKEN` |
-| URL Validation | `server/routes/properties.ts` | `server/routes/properties.ts` | — (outbound HEAD) |
+| URL Validation | `server/routes/properties.ts` | `server/routes/properties.ts` | — (outbound GET) |
 | Sentry | `client/src/lib/sentry.ts` | — | `SENTRY_DSN` |
 | PostHog | `client/src/lib/analytics.ts` | — | `POSTHOG_KEY` |
 | Stripe | — | — | Replit Connector (installed) |

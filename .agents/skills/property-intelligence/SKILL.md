@@ -27,7 +27,7 @@ Description → AI Rewrite → Accept/Dismiss → Portfolio Display
 
 ### Flow
 1. User types street address in `BasicInfoSection`
-2. `AddressAutocomplete` component queries Google Places API via `GET /api/geospatial/places-autocomplete`
+2. `AddressAutocomplete` component queries Google Places API via `GET /api/places/autocomplete`
 3. User selects a suggestion
 4. Place details (lat/lng, city, state, zip, country) extracted from response
 5. Empty fields auto-filled via `fillIfEmpty()` — preserves user-entered data
@@ -122,10 +122,11 @@ Validation endpoint blocks via hostname/IP pattern checks:
 - **Broken** (destructive) — GET request failed or non-2xx response
 
 ### Research Integration
-Property URLs feed into the research engine as source material:
-- URLs included in property context pack narrative
-- AI research prompt sees user-provided URLs as reference sources
-- Can extract property details, photos, amenities, location info
+Property URLs feed into the research engine via Pinecone vector indexing:
+- After validation, relevant URLs (score >= 0.6) are upserted into Pinecone namespace `properties` with vector ID `prop-url:{propertyId}:{urlId}`
+- Stale/invalid URLs are deleted from Pinecone during validation
+- Research orchestrator (`server/ai/research-orchestrator.ts`) queries Pinecone for `prop-url:{propertyId}` chunks and appends them as "Property Reference URLs" in the research prompt
+- Property `sourceUrls` array also included in property context pack narrative
 
 ---
 
