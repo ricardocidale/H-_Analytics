@@ -526,7 +526,23 @@ Rewritten description:`;
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
-      const updated = await storage.updatePropertyUrl(urlId, parsed.data);
+      const updateData = { ...parsed.data };
+      if (updateData.url && updateData.url !== existing.url) {
+        (updateData as Record<string, unknown>).isValid = null;
+        (updateData as Record<string, unknown>).isRelevant = null;
+        (updateData as Record<string, unknown>).relevanceScore = null;
+        (updateData as Record<string, unknown>).metadata = null;
+        (updateData as Record<string, unknown>).lastCheckedAt = null;
+        try {
+          const { deleteVectors, isPineconeAvailable } = await import("../ai/pinecone-service");
+          if (isPineconeAvailable()) {
+            await deleteVectors("properties", [`prop-url:${propertyId}:${urlId}`]);
+          }
+        } catch (e) {
+          logger.warn(`Failed to remove stale URL vector on edit: ${(e as Error).message}`, "property-urls");
+        }
+      }
+      const updated = await storage.updatePropertyUrl(urlId, updateData);
       res.json(updated);
     } catch (error) {
       logAndSendError(res, "Failed to update property URL", error);
