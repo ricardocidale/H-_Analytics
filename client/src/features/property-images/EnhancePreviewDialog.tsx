@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, X } from "@/components/icons/themed-icons";
-import { cn } from "@/lib/utils";
 
 interface EnhancePreviewDialogProps {
   open: boolean;
@@ -132,7 +131,7 @@ export function EnhancePreviewDialog({
                 </div>
                 <input
                   type="range"
-                  min={0}
+                  min={1}
                   max={100}
                   value={sliderPos}
                   onChange={(e) => setSliderPos(Number(e.target.value))}

@@ -22,7 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { StaggerItem, TiltCard } from "@/components/ui/animated";
 import { AnimatedGridItem } from "@/components/graphics";
-import type { Property, PropertyUrl, PropertyPhoto } from "@shared/schema";
+import type { Property, PropertyUrl } from "@shared/schema";
 import { HeroImage } from "@/features/property-images";
 import { cn } from "@/lib/utils";
 import { PropertyTypeBadge } from "@/components/research/PropertyTypeSelector";

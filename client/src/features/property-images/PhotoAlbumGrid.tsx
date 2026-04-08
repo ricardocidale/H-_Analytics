@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ImagePlus, Sparkles, Images } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useReorderPhotos, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement, useRemoveEnhancement } from "@/lib/api";
+import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useReorderPhotos, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement } from "@/lib/api";
 import { PhotoCard } from "./PhotoCard";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { PhotoGenerateDialog } from "./PhotoGenerateDialog";
@@ -43,7 +43,6 @@ export function PhotoAlbumGrid({
   const enhancePhoto = useEnhancePhoto();
   const acceptEnhancement = useAcceptEnhancement();
   const rejectEnhancement = useRejectEnhancement();
-  const removeEnhancement = useRemoveEnhancement();
 
   const handleSetHero = (photoId: number) => {
     setHero.mutate({ propertyId, photoId });
