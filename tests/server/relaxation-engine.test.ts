@@ -5,6 +5,7 @@ import type { PropertyContextPack } from "../../server/ai/context-pack/types";
 function makePack(overrides: Partial<{
   starRating: number | null;
   hospitalityType: string;
+  businessModel: string;
   roomCount: number;
   startAdr: number;
   city: string | null;

@@ -8,6 +8,16 @@
 
 ## Architecture Decisions Log
 
+### Task #303: AI Research Engine Calibration (April 2026) — COMPLETED
+- **Business-model-aware prompts**: `assembleResearchPrompt` now injects `buildBusinessModelGuidance(businessModel)` — Hotel gets USALI departmental benchmarks, VRBO gets platform economics/cleaning turnover/STR-specific ADR sources, Lodge gets whole-property rental norms/guest meal costs/seasonal patterns
+- **Context pack updated**: `PropertyContextPack.classification` now includes `businessModel` field; `property-pack.ts` reads `p.businessModel ?? "hotel"`
+- **Expanded value extraction** (`research-value-extractor.ts`): Now extracts 6 new field categories: costSeg5yrPct/7yrPct/15yrPct (cost segregation splits), arDays/apDays (working capital), ltv (recommended LTV), preOpeningCosts, platformFee (VRBO). Falls back to alternative AI output field names (e.g. `capitalStructureAnalysis`, `financingAnalysis`, `platformEconomics`)
+- **Business-model-tagged Pinecone guidance**: `indexAssumptionGuidance` and `retrieveSimilarGuidance` now accept `businessModel` param. Metadata includes `businessModel` tag. Query text includes business model for better embedding similarity. Returns include `businessModel` field
+- **Relaxation engine model-aware scoring**: `ComparableProperty` now has `businessModel` field. `applyBusinessModelBoost()` gives same-model comps +15% score, cross-model comps -15%. `computeEvidenceScore()` adds 10% weight for business model alignment. Evidence scoring rebalanced: count 30%, similarity 25%, constraint 20%, diversity 15%, model alignment 10%
+- **Validation context plumbed**: `server/routes/research.ts` now passes `businessModel` to `validateResearchValues()`, `indexAssumptionGuidance()`, and `retrieveSimilarGuidance()`
+- **Tests**: 21 new tests in `tests/ai/research-calibration.test.ts` covering all 6 subtasks
+- Health check: ALL CLEAR — 0 TS errors, 4,045 tests pass (173 files)
+
 ### Task #302: Business-Model-Specific Financial Defaults (April 2026) — COMPLETED
 - **BUSINESS_MODEL_DEFAULTS** map in `shared/constants.ts` — keyed by `BusinessModelType` ('hotel'|'lodge'|'vrbo') with 21 fields per model (cost rates, revenue shares, catering boost, management fees, platform fees, pre-opening burn)
 - **PLATFORM_FEE_RATES** constant — airbnb 15.5%, vrbo 8%, booking 15%, direct 0%, blended 14%

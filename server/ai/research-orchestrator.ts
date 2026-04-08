@@ -618,6 +618,7 @@ export async function* orchestrateResearch(
       propertyId:   params.propertyId,
       location,
       propertyType: propType,
+      businessModel: relaxationContext?.contextPack?.classification?.businessModel,
       type:         params.type,
       summary,
       completedAt:  new Date().toISOString(),

@@ -347,6 +347,7 @@ export async function indexResearchResult(params: {
   propertyId?: number;
   location: string;
   propertyType: string;
+  businessModel?: string;
   type: "property" | "company" | "global";
   /** A compact textual summary of key findings — what gets embedded. */
   summary: string;
@@ -355,8 +356,9 @@ export async function indexResearchResult(params: {
 }): Promise<void> {
   if (!isPineconeAvailable()) return;
 
+  const bm = params.businessModel ?? "hotel";
   const id   = `research:${params.type}:${params.location.toLowerCase().replace(/\s+/g, "-")}:${Date.now()}`;
-  const text = `${params.location} ${params.propertyType} ${params.type} research\n\n${params.summary}`;
+  const text = `${params.location} ${params.propertyType} ${bm} ${params.type} research\n\n${params.summary}`;
 
   const metricFields: Record<string, number> = {};
   for (const [k, v] of Object.entries(params.keyMetrics ?? {})) {
@@ -370,6 +372,7 @@ export async function indexResearchResult(params: {
       propertyId:   params.propertyId ?? 0,
       location:     params.location,
       propertyType: params.propertyType,
+      businessModel: bm,
       type:         params.type,
       completedAt:  params.completedAt,
       summary:      params.summary.slice(0, 2_000),
@@ -377,7 +380,7 @@ export async function indexResearchResult(params: {
     },
   }]);
 
-  logger.info(`Indexed research result for ${params.location} (${params.type})`, "pinecone");
+  logger.info(`Indexed research result for ${params.location} (${params.type}, ${bm})`, "pinecone");
 }
 
 /**
