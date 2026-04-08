@@ -3,6 +3,7 @@ import {
   guidanceDecisions, rebeccaConversations, rebeccaMessages, rebeccaEmails,
   rebeccaFeedback, coverageSnapshots, sourceRegistry, sourceCallLogs, engineSuggestedLines,
   integrationKeyRotations, pipelinePolicies, scheduledResearchWorkflows, rebeccaGuardrails,
+  rebeccaKnowledgeBase, rebeccaKnowledgeHistory,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type ResearchRun, type InsertResearchRun,
   type BenchmarkSnapshot, type InsertBenchmarkSnapshot,
@@ -20,6 +21,8 @@ import {
   type PipelinePolicy, type InsertPipelinePolicy,
   type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
   type RebeccaGuardrail, type InsertRebeccaGuardrail,
+  type RebeccaKBEntry, type InsertRebeccaKBEntry,
+  type RebeccaKBHistory, type InsertRebeccaKBHistory,
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, isNull, lte, sql } from "drizzle-orm";
@@ -564,5 +567,110 @@ export class IntelligenceV2Storage {
       .where(eq(rebeccaGuardrails.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async getRebeccaKBEntries(category?: string): Promise<RebeccaKBEntry[]> {
+    if (category && category !== "all") {
+      return db.select().from(rebeccaKnowledgeBase)
+        .where(eq(rebeccaKnowledgeBase.category, category))
+        .orderBy(desc(rebeccaKnowledgeBase.priority), rebeccaKnowledgeBase.title);
+    }
+    return db.select().from(rebeccaKnowledgeBase)
+      .orderBy(desc(rebeccaKnowledgeBase.priority), rebeccaKnowledgeBase.title);
+  }
+
+  async getActiveRebeccaKBEntries(): Promise<RebeccaKBEntry[]> {
+    return db.select().from(rebeccaKnowledgeBase)
+      .where(eq(rebeccaKnowledgeBase.isActive, true))
+      .orderBy(desc(rebeccaKnowledgeBase.priority));
+  }
+
+  async getRebeccaKBEntry(id: number): Promise<RebeccaKBEntry | undefined> {
+    const [row] = await db.select().from(rebeccaKnowledgeBase)
+      .where(eq(rebeccaKnowledgeBase.id, id))
+      .limit(1);
+    return row;
+  }
+
+  async createRebeccaKBEntry(data: InsertRebeccaKBEntry): Promise<RebeccaKBEntry> {
+    const [row] = await db.insert(rebeccaKnowledgeBase)
+      .values(data as typeof rebeccaKnowledgeBase.$inferInsert)
+      .returning();
+    return row;
+  }
+
+  async updateRebeccaKBEntry(id: number, data: Partial<InsertRebeccaKBEntry>, changedBy?: string): Promise<RebeccaKBEntry | undefined> {
+    return db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(rebeccaKnowledgeBase)
+        .where(eq(rebeccaKnowledgeBase.id, id)).limit(1);
+      if (!existing) return undefined;
+
+      await tx.insert(rebeccaKnowledgeHistory).values({
+        entryId: id,
+        snapshot: {
+          title: existing.title,
+          content: existing.content,
+          category: existing.category,
+          source: existing.source,
+          tags: existing.tags,
+          priority: existing.priority,
+          isActive: existing.isActive,
+        },
+        changedBy: changedBy ?? null,
+      } as typeof rebeccaKnowledgeHistory.$inferInsert);
+
+      const [updated] = await tx.update(rebeccaKnowledgeBase)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(rebeccaKnowledgeBase.id, id))
+        .returning();
+      return updated;
+    });
+  }
+
+  async deleteRebeccaKBEntry(id: number): Promise<boolean> {
+    const result = await db.delete(rebeccaKnowledgeBase)
+      .where(eq(rebeccaKnowledgeBase.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getRebeccaKBHistory(entryId: number): Promise<RebeccaKBHistory[]> {
+    return db.select().from(rebeccaKnowledgeHistory)
+      .where(eq(rebeccaKnowledgeHistory.entryId, entryId))
+      .orderBy(desc(rebeccaKnowledgeHistory.createdAt));
+  }
+
+  async rollbackRebeccaKBEntry(entryId: number, historyId: number, changedBy?: string): Promise<RebeccaKBEntry | undefined> {
+    const [historyRow] = await db.select().from(rebeccaKnowledgeHistory)
+      .where(and(eq(rebeccaKnowledgeHistory.id, historyId), eq(rebeccaKnowledgeHistory.entryId, entryId)))
+      .limit(1);
+    if (!historyRow) return undefined;
+
+    const snap = historyRow.snapshot as Record<string, unknown>;
+    return this.updateRebeccaKBEntry(entryId, {
+      title: snap.title as string,
+      content: snap.content as string,
+      category: snap.category as string,
+      source: snap.source as string,
+      tags: snap.tags as string[],
+      priority: snap.priority as number,
+      isActive: snap.isActive as boolean,
+    }, changedBy);
+  }
+
+  async getRebeccaKBStats(): Promise<{ total: number; active: number; byCategory: Record<string, number> }> {
+    const rows = await db.execute(sql`
+      SELECT category, COUNT(*)::int AS count, COUNT(*) FILTER (WHERE is_active)::int AS active_count
+      FROM rebecca_knowledge_base GROUP BY category
+    `);
+    const byCategory: Record<string, number> = {};
+    let total = 0;
+    let active = 0;
+    for (const row of (rows.rows ?? []) as { category: string; count: number; active_count: number }[]) {
+      byCategory[row.category] = row.count;
+      total += row.count;
+      active += row.active_count;
+    }
+    return { total, active, byCategory };
   }
 }

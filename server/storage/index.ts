@@ -341,6 +341,17 @@ export class DatabaseStorage implements IStorage {
   updateRebeccaGuardrail = this.intelligenceV2.updateRebeccaGuardrail.bind(this.intelligenceV2);
   deleteRebeccaGuardrail = this.intelligenceV2.deleteRebeccaGuardrail.bind(this.intelligenceV2);
 
+  // Rebecca Knowledge Base
+  getRebeccaKBEntries = this.intelligenceV2.getRebeccaKBEntries.bind(this.intelligenceV2);
+  getActiveRebeccaKBEntries = this.intelligenceV2.getActiveRebeccaKBEntries.bind(this.intelligenceV2);
+  getRebeccaKBEntry = this.intelligenceV2.getRebeccaKBEntry.bind(this.intelligenceV2);
+  createRebeccaKBEntry = this.intelligenceV2.createRebeccaKBEntry.bind(this.intelligenceV2);
+  updateRebeccaKBEntry = this.intelligenceV2.updateRebeccaKBEntry.bind(this.intelligenceV2);
+  deleteRebeccaKBEntry = this.intelligenceV2.deleteRebeccaKBEntry.bind(this.intelligenceV2);
+  getRebeccaKBHistory = this.intelligenceV2.getRebeccaKBHistory.bind(this.intelligenceV2);
+  rollbackRebeccaKBEntry = this.intelligenceV2.rollbackRebeccaKBEntry.bind(this.intelligenceV2);
+  getRebeccaKBStats = this.intelligenceV2.getRebeccaKBStats.bind(this.intelligenceV2);
+
   // Property URLs
   getAllPropertyUrls = this.propertyUrlStore.getAllPropertyUrls.bind(this.propertyUrlStore);
   getPropertyUrls = this.propertyUrlStore.getPropertyUrls.bind(this.propertyUrlStore);

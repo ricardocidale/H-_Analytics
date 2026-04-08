@@ -381,6 +381,45 @@ export const insertScheduledResearchWorkflowSchema = createInsertSchema(schedule
 export type ScheduledResearchWorkflow = typeof scheduledResearchWorkflows.$inferSelect;
 export type InsertScheduledResearchWorkflow = z.infer<typeof insertScheduledResearchWorkflowSchema>;
 
+export const rebeccaKnowledgeBase = pgTable("rebecca_knowledge_base", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  category: text("category").notNull().default("custom"),
+  source: text("source").notNull().default("manual"),
+  tags: text("tags").array().default([]),
+  priority: integer("priority").notNull().default(50),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("rebecca_kb_category_idx").on(table.category),
+  index("rebecca_kb_active_idx").on(table.isActive),
+]);
+
+export const insertRebeccaKBSchema = createInsertSchema(rebeccaKnowledgeBase).pick({
+  title: true, content: true, category: true, source: true,
+  tags: true, priority: true, isActive: true,
+});
+export type RebeccaKBEntry = typeof rebeccaKnowledgeBase.$inferSelect;
+export type InsertRebeccaKBEntry = z.infer<typeof insertRebeccaKBSchema>;
+
+export const rebeccaKnowledgeHistory = pgTable("rebecca_knowledge_history", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  entryId: integer("entry_id").references(() => rebeccaKnowledgeBase.id, { onDelete: "cascade" }).notNull(),
+  snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+  changedBy: text("changed_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("rebecca_kb_history_entry_idx").on(table.entryId),
+]);
+
+export const insertRebeccaKBHistorySchema = createInsertSchema(rebeccaKnowledgeHistory).pick({
+  entryId: true, snapshot: true, changedBy: true,
+});
+export type RebeccaKBHistory = typeof rebeccaKnowledgeHistory.$inferSelect;
+export type InsertRebeccaKBHistory = z.infer<typeof insertRebeccaKBHistorySchema>;
+
 export const rebeccaGuardrails = pgTable("rebecca_guardrails", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   label: text("label").notNull(),

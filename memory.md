@@ -8,6 +8,17 @@
 
 ## Architecture Decisions Log
 
+### Task #306: Rebecca Knowledge Base CRUD (April 2026) — COMPLETED
+- **Schema**: `rebeccaKnowledgeBase` table (id, title, content, category, source, tags, priority, isActive, createdAt, updatedAt) and `rebeccaKnowledgeHistory` table (id, entryId FK, snapshot jsonb, changedBy, createdAt) in `shared/schema/intelligence-v2.ts`. Insert schemas via `drizzle-zod` with `.pick()`, types exported.
+- **Storage CRUD**: `IntelligenceV2Storage` methods: listRebeccaKBEntries (optional category filter), getRebeccaKBEntry, createRebeccaKBEntry, updateRebeccaKBEntry (auto-snapshots to history), deleteRebeccaKBEntry (cascades history), getRebeccaKBHistory, rollbackRebeccaKBEntry, getRebeccaKBStats. Bound via `server/storage/index.ts`.
+- **API routes** (`server/routes/rebecca.ts`): GET /api/rebecca/kb (list, optional ?category), GET /api/rebecca/kb/stats (total/active/vectorCount/byCategory), POST /api/rebecca/kb (create), PATCH /api/rebecca/kb/:id (update), DELETE /api/rebecca/kb/:id, GET /api/rebecca/kb/:id/history, POST /api/rebecca/kb/:id/rollback/:historyId. All admin-only with Zod validation.
+- **Pinecone sync**: Non-blocking `syncKBEntryToPinecone()` helper upserts to `knowledge-base` namespace with ID pattern `admin-kb:{entryId}`. Active entries upserted, inactive entries deleted from vectors. Delete route removes vectors.
+- **Seed migration**: `rebecca-kb-001.ts` seeds 26 entries from `kb-content.ts` into DB, registered with key `rebecca_kb_001` in server/index.ts.
+- **Admin UI**: `KnowledgeBaseEditor.tsx` — stats cards (total/active/vectors/categories), category filter tabs (All/Methodology/Hospitality/Financial/FAQ/Custom), search input, create form (title/content/category/priority/tags), inline edit, toggle active/inactive, delete with confirmation, version history drawer with rollback. Added as "Knowledge Base" tab in `RebeccaAdminTabs.tsx` (between Configuration and Guardrails tabs).
+- **Code review fix**: Inactive KB entries now deleted from Pinecone (not upserted) on toggle/rollback — prevents deactivated content from being retrieved by Rebecca.
+- **Files**: intelligence-v2.ts (schema+storage), storage/index.ts, rebecca.ts (routes), rebecca-kb-001.ts (migration), server/index.ts, KnowledgeBaseEditor.tsx, RebeccaAdminTabs.tsx
+- Health check: ALL CLEAR — 0 TS errors, 4,047 tests (173 files), verification UNQUALIFIED
+
 ### Task #305 Rebecca Personality Foundation & Guardrail Editor (April 2026) — COMPLETED
 - **Personality rewrite**: DEFAULT_SYSTEM_PROMPT in chat.ts fully rewritten with Super Conversations framework (curiosity, art of questioning, empathy, active listening, trust building), voice register, banned phrases, user awareness, brevity rules, first message exception, and hard guardrails
 - **rebecca_guardrails table**: New schema in intelligence-v2.ts (id, label, rule, sortOrder, isActive, createdAt, updatedAt) with insert schema and types

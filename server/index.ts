@@ -411,6 +411,12 @@ async function runSchemaMigrations() {
     await runRebeccaGuardrails001();
     await markMigrationApplied("rebecca_guardrails_001");
   }
+
+  if (!(await isMigrationApplied("rebecca_kb_001"))) {
+    const { runRebeccaKB001 } = await import("./migrations/rebecca-kb-001");
+    await runRebeccaKB001();
+    await markMigrationApplied("rebecca_kb_001");
+  }
 }
 
 async function runSeeds() {

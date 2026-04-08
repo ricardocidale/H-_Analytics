@@ -4,7 +4,8 @@ import { requireAuth, requireAdmin, getAuthUser } from "../auth";
 import { storage } from "../storage";
 import { sendNotificationEmail } from "../integrations/resend";
 import { logger } from "../logger";
-import { insertRebeccaGuardrailSchema } from "@shared/schema";
+import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
+import { upsertChunks, deleteVectors, vectorCount } from "../ai/pinecone-service";
 
 const emailRequestSchema = z.object({
   conversationId: z.number().int().positive(),
@@ -228,6 +229,141 @@ export function register(app: Express) {
       return res.status(500).json({ error: "Failed to delete guardrail" });
     }
   });
+
+  app.get("/api/rebecca/kb", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const category = typeof req.query.category === "string" ? req.query.category : undefined;
+      const entries = await storage.getRebeccaKBEntries(category);
+      return res.json(entries);
+    } catch (err) {
+      logger.error(`Failed to list KB entries: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to list KB entries" });
+    }
+  });
+
+  app.get("/api/rebecca/kb/stats", requireAuth, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const stats = await storage.getRebeccaKBStats();
+      let vectorCt = 0;
+      try { vectorCt = await vectorCount("knowledge-base"); } catch { /* no-op */ }
+      return res.json({ ...stats, vectorCount: vectorCt });
+    } catch (err) {
+      logger.error(`Failed to get KB stats: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to get KB stats" });
+    }
+  });
+
+  app.post("/api/rebecca/kb", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const parsed = insertRebeccaKBSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
+      }
+      const entry = await storage.createRebeccaKBEntry(parsed.data);
+      syncKBEntryToPinecone(entry.id, entry.title, entry.content, entry.category);
+      logger.info(`KB entry created: ${entry.title}`, "rebecca");
+      return res.json(entry);
+    } catch (err) {
+      logger.error(`Failed to create KB entry: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to create KB entry" });
+    }
+  });
+
+  app.patch("/api/rebecca/kb/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid KB entry ID" });
+
+      const updateSchema = insertRebeccaKBSchema.partial();
+      const parsed = updateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
+      }
+      const user = getAuthUser(req);
+      const updated = await storage.updateRebeccaKBEntry(id, parsed.data, user.email);
+      if (!updated) return res.status(404).json({ error: "KB entry not found" });
+
+      if (updated.isActive) {
+        syncKBEntryToPinecone(updated.id, updated.title, updated.content, updated.category);
+      } else {
+        deleteVectors("knowledge-base", [`admin-kb:${updated.id}`]).catch(e =>
+          logger.warn(`Pinecone delete failed for KB ${updated.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+        );
+      }
+      logger.info(`KB entry ${id} updated by ${user.email}`, "rebecca");
+      return res.json(updated);
+    } catch (err) {
+      logger.error(`Failed to update KB entry: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to update KB entry" });
+    }
+  });
+
+  app.delete("/api/rebecca/kb/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid KB entry ID" });
+
+      const deleted = await storage.deleteRebeccaKBEntry(id);
+      if (!deleted) return res.status(404).json({ error: "KB entry not found" });
+
+      deleteVectors("knowledge-base", [`admin-kb:${id}`]).catch(e =>
+        logger.warn(`Pinecone delete failed for KB ${id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+      );
+      logger.info(`KB entry ${id} deleted`, "rebecca");
+      return res.json({ success: true });
+    } catch (err) {
+      logger.error(`Failed to delete KB entry: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to delete KB entry" });
+    }
+  });
+
+  app.get("/api/rebecca/kb/:id/history", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const entryId = parseInt(req.params.id, 10);
+      if (isNaN(entryId)) return res.status(400).json({ error: "Invalid KB entry ID" });
+
+      const history = await storage.getRebeccaKBHistory(entryId);
+      return res.json(history);
+    } catch (err) {
+      logger.error(`Failed to get KB history: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to get KB history" });
+    }
+  });
+
+  app.post("/api/rebecca/kb/:id/rollback/:historyId", requireAuth, requireAdmin, async (req: Request<{ id: string; historyId: string }>, res: Response) => {
+    try {
+      const entryId = parseInt(req.params.id, 10);
+      const historyId = parseInt(req.params.historyId, 10);
+      if (isNaN(entryId) || isNaN(historyId)) return res.status(400).json({ error: "Invalid IDs" });
+
+      const user = getAuthUser(req);
+      const restored = await storage.rollbackRebeccaKBEntry(entryId, historyId, user.email);
+      if (!restored) return res.status(404).json({ error: "History entry not found" });
+
+      if (restored.isActive) {
+        syncKBEntryToPinecone(restored.id, restored.title, restored.content, restored.category);
+      } else {
+        deleteVectors("knowledge-base", [`admin-kb:${restored.id}`]).catch(e =>
+          logger.warn(`Pinecone delete failed for KB ${restored.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+        );
+      }
+      logger.info(`KB entry ${entryId} rolled back to history ${historyId} by ${user.email}`, "rebecca");
+      return res.json(restored);
+    } catch (err) {
+      logger.error(`Failed to rollback KB entry: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to rollback KB entry" });
+    }
+  });
+}
+
+function syncKBEntryToPinecone(entryId: number, title: string, content: string, category: string) {
+  upsertChunks("knowledge-base", [{
+    id: `admin-kb:${entryId}`,
+    text: `${title}\n\n${content}`,
+    metadata: { title, content: content.slice(0, 3_000), source: "admin-kb", category },
+  }]).catch(e =>
+    logger.warn(`Pinecone sync failed for KB ${entryId}: ${e instanceof Error ? e.message : e}`, "rebecca")
+  );
 }
 
 function buildEmailHtml(subject: string, summary: string): string {
