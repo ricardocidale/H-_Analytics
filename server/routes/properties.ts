@@ -188,7 +188,20 @@ export function register(app: Express) {
       const existingProp = await storage.getProperty(propertyId);
       const merged = { ...existingProp, ...validation.data };
       const suggestion = suggestStarRating(merged as any);
-      const updateData = { ...validation.data, starRatingSuggested: suggestion.rating };
+      const updateData: Record<string, unknown> = { ...validation.data, starRatingSuggested: suggestion.rating };
+
+      const STALENESS_TRIGGER_KEYS = [
+        "starRating", "startAdr", "hospitalityType", "businessModel",
+        "roomCount", "city", "stateProvince", "country",
+        "revShareFB", "revShareEvents", "revShareOther",
+        "maxOccupancy", "startOccupancy", "adrGrowthRate",
+      ];
+      const hasKeyChange = existingProp && STALENESS_TRIGGER_KEYS.some(
+        (k) => k in validation.data && (validation.data as any)[k] !== (existingProp as any)[k]
+      );
+      if (hasKeyChange) {
+        updateData.lastAssumptionChangeAt = new Date();
+      }
 
       const property = await storage.updateProperty(propertyId, updateData);
       if (!property) {

@@ -73,7 +73,22 @@ export function register(app: Express) {
         return res.status(400).json({ error: error.message });
       }
       
-      const assumptions = await storage.upsertGlobalAssumptions(validation.data, getAuthUser(req).id);
+      const GA_STALENESS_TRIGGER_KEYS = [
+        "baseManagementFee", "incentiveManagementFee",
+        "inflationRate", "companyTaxRate", "commissionRate",
+        "staffSalary",
+        "partnerCompYear1", "partnerCompYear2", "partnerCompYear3",
+        "partnerCompYear4", "partnerCompYear5", "partnerCompYear6",
+        "partnerCompYear7", "partnerCompYear8", "partnerCompYear9", "partnerCompYear10",
+      ];
+      const hasKeyChange = current && GA_STALENESS_TRIGGER_KEYS.some(
+        (k) => k in req.body && (req.body as any)[k] !== (current as any)[k]
+      );
+      const finalData = hasKeyChange
+        ? { ...validation.data, lastAssumptionChangeAt: new Date() }
+        : validation.data;
+
+      const assumptions = await storage.upsertGlobalAssumptions(finalData, getAuthUser(req).id);
       invalidateComputeCache();
       logActivity(req, "update", "global_assumptions", assumptions.id, "System Settings");
       res.json(assumptions);

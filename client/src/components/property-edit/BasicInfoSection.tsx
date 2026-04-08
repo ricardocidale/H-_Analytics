@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import StarRatingInput from "@/components/research/StarRatingInput";
-import PropertyTypeSelector from "@/components/research/PropertyTypeSelector";
+import PropertyTypeSelector, { BusinessModelSelector } from "@/components/research/PropertyTypeSelector";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function BasicInfoSection({ draft, onChange, onNumberChange }: PropertyEditSectionProps) {
@@ -138,6 +138,13 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             <PropertyTypeSelector
               value={draft.hospitalityType || "hotel"}
               onChange={(v) => onChange("hospitalityType", v)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="label-text text-foreground flex items-center gap-1.5">Business Model<InfoTooltip text="Determines the financial framework: Hotel uses USALI with departmental expenses (F&B, Events), management fees (2-5% base + incentive). VRBO/STR uses platform fees (Airbnb 15.5%, VRBO 8%), per-turnover cleaning, and all-in management fees (20-35%)." /></Label>
+            <BusinessModelSelector
+              value={draft.businessModel || "hotel"}
+              onChange={(v) => onChange("businessModel", v)}
             />
           </div>
         </div>

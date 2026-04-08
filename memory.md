@@ -23,6 +23,18 @@
 - **Skills to update**: admin-configurator, hbg-business-model, integrations-infrastructure
 - **Implementation phases**: 5 phases, 28 tasks total
 
+### Phase 1 Schema Changes (April 2026) — COMPLETED
+- **businessModel field added** to properties table: `text("business_model").notNull().default("hotel")`
+- **"vrbo" added to HOSPITALITY_TYPES** array + BUSINESS_MODEL_TYPES enum
+- **lastAssumptionChangeAt** timestamp added to both `properties` and `global_assumptions` tables
+- **BusinessModelSelector** component created in PropertyTypeSelector.tsx with Hotel/VRBO options
+- **BasicInfoSection** updated with Business Model field + InfoTooltip
+- **Auto-staleness detection** wired into property PATCH and global-assumptions PUT routes
+  - Property triggers: starRating, startAdr, hospitalityType, businessModel, roomCount, city, stateProvince, country, revShareFB, revShareEvents, revShareOther, maxOccupancy, startOccupancy, adrGrowthRate
+  - Company triggers: baseManagementFee, incentiveManagementFee, inflationRate, companyTaxRate, commissionRate, staffSalary, partnerCompYear1-10
+- **Code review fix**: partnerComp1/2/3 → partnerCompYear1-10 (correct schema names)
+- DB columns added via direct SQL (drizzle-kit push had stableKey constraint prompt)
+
 ### Research Intelligence System (April 2026)
 - **Research methodology skill created**: `.agents/skills/research-methodology/SKILL.md` — exhaustive 500+ line document covering STR chain scales, star ratings, revenue mix benchmarks, USALI expense ratios by segment, management fee structures, geography-driven cost adjustments, VRBO/STR business model, comp set selection criteria, and the full N+1 AI research pipeline
 - **Key architectural decision**: Properties should auto-derive their research profile from existing assumptions — NO separate ICP definition needed per property. The property's own starRating + ADR + hospitalityType + location + revenue shares IS its research profile.
