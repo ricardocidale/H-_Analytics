@@ -285,12 +285,3 @@ const GLOSSARY: Record<string, GlossaryEntry> = {
     category: "Classification",
   },
 };
-
-function lookupGlossary(term: string): GlossaryEntry | undefined {
-  if (GLOSSARY[term]) return GLOSSARY[term];
-  const upper = term.toUpperCase();
-  for (const [key, entry] of Object.entries(GLOSSARY)) {
-    if (key.toUpperCase() === upper) return entry;
-  }
-  return undefined;
-}
