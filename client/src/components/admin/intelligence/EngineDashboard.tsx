@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconActivity, IconGauge, IconResearch, IconTimer } from "@/components/icons";
 import type { Property } from "@shared/schema";
+import CoverageAnalyticsDashboard from "./CoverageAnalyticsDashboard";
+import SystemIntelligenceStatus from "./SystemIntelligenceStatus";
 
 interface FreshnessCounts {
   total: number;
@@ -253,6 +255,10 @@ export default function EngineDashboard() {
         <CoverageHeatmap />
         <PortfolioProfile />
       </div>
+
+      <CoverageAnalyticsDashboard />
+
+      <SystemIntelligenceStatus />
     </div>
   );
 }

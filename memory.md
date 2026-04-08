@@ -16,7 +16,13 @@
 - **claude.md updated**: T24 marked ✅, Phase 4 marked COMPLETE
 - **replit.md updated**: Research Intelligence section updated to reflect Phase 4 complete
 - **Phase 4 (T19-T24) fully complete**: All Rebecca Layer tasks shipped
-- **Phase 5 not yet started**: Remaining tracks include T27 (Coverage Analytics), T29 (Pipeline Policies), T30 (API Dashboard), T28a (QA Sandbox), T31 (Model Routing), T32-T34 (polish)
+
+### Phase 5 Engine Observatory Wiring (April 2026) — IN PROGRESS
+- **CoverageAnalyticsDashboard wired into EngineDashboard**: Imported and rendered below CoverageHeatmap/PortfolioProfile grid. Provides scenario-aware coverage analytics with entity drill-down, field-level detail, freshness summary cards.
+- **SystemIntelligenceStatus wired into EngineDashboard**: Imported and rendered below CoverageAnalyticsDashboard. Shows LLM vendor availability, Pinecone namespace stats, knowledge base health, missing API key detection, namespace re-index/clear actions.
+- **SourceRegistryOverlay wired into DataSourcesTab**: Imported and rendered at bottom of DataSourcesTab. Trust-scored source cards with health badges, category grouping, cadence info, activate/deactivate toggles.
+- **Files changed**: `EngineDashboard.tsx` (2 imports + 2 renders), `DataSourcesTab.tsx` (1 import + 1 render)
+- **Remaining Phase 5 tasks**: T30 (Unified API Dashboard), T28a (QA Sandbox Preview), T31 (Model Routing), T33 (Help page), T34 (Methodology panel)
 
 ### Skills Frontmatter Compliance (April 2026) — COMPLETED
 - **32 skills updated with Agent Skills spec-compliant frontmatter**: Added `---\nname:\ndescription:\n---` YAML frontmatter to all skills missing it

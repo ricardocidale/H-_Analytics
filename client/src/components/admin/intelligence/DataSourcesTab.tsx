@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { IconActivity, IconGlobe, IconResearch, IconBrain, IconSettingsGear, IconTrash, IconCheckCircle, IconXCircle, IconAlertTriangle, IconClock } from "@/components/icons";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import SourceRegistryOverlay from "./SourceRegistryOverlay";
 
 type SourceCategory = "apis" | "scrapers" | "sources" | "models";
 
@@ -654,6 +655,8 @@ export default function DataSourcesTab() {
       </AlertDialog>
 
       <LogsPanel open={!!logsSource} onOpenChange={(open) => !open && setLogsSource(null)} source={logsSource} />
+
+      <SourceRegistryOverlay />
     </div>
   );
 }
