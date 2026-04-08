@@ -68,8 +68,11 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
       }
     };
 
-    onChange("streetAddress", details.streetAddress || null);
-    if (details.streetAddress) filled.push("streetAddress");
+    const resolvedStreet = details.streetAddress || details.formattedAddress || null;
+    if (resolvedStreet) {
+      onChange("streetAddress", resolvedStreet);
+      filled.push("streetAddress");
+    }
 
     if (details.city) fillIfEmpty("city", details.city);
     if (details.stateProvince) fillIfEmpty("stateProvince", details.stateProvince);
