@@ -24,7 +24,7 @@
  * On save, the entire formData object is POSTed to the global-assumptions
  * endpoint, and all financial queries are invalidated for full recalculation.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
@@ -79,6 +79,21 @@ export default function CompanyAssumptions() {
   const { markDirty: markGlobalDirty, clearDirty: clearGlobalDirty } = useScenarioDirtyState();
   const { data: research } = useMarketResearch("company");
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
+
+  const autoRefreshFired = useRef(false);
+  useEffect(() => {
+    if (autoRefreshFired.current || isDirty || isGenerating || isLoading) return;
+    if (!global) return;
+    const { status } = computeFreshnessStatus({
+      researchUpdatedAt: companyResearchUpdatedAt,
+      lastAssumptionChangeAt: global.lastAssumptionChangeAt ?? null,
+      isGenerating: false,
+    });
+    if (status === "stale" || status === "missing") {
+      autoRefreshFired.current = true;
+      generateResearch();
+    }
+  }, [global, companyResearchUpdatedAt, isDirty, isGenerating, isLoading]);
 
   const researchValues = (() => {
     const COMPANY_DEFAULTS: Record<string, { display: string; mid: number }> = {

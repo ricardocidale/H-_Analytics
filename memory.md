@@ -67,6 +67,23 @@
 - **GlobalResponse type** updated: added `lastAssumptionChangeAt: string | null`
 - All 3976 tests passing, 0 TS errors, lint clean, verification UNQUALIFIED
 
+### Task #288: Freshness Infrastructure, Badges & Auto-Refresh (April 2026) — COMPLETED
+- **Backend endpoint**: `GET /api/admin/intelligence/freshness-counts` (admin-only)
+  - Queries `research_runs` table (DISTINCT ON per entity_id) + `properties.lastAssumptionChangeAt`
+  - Returns: `{ total, current, stale, missing, running, avgDurationMs }`
+  - New storage method: `getLatestCompletedRunsPerEntity(entityType)` in IntelligenceV2Storage
+- **Admin sidebar badge**: Intelligence Engine group shows count badge when stale/missing > 0
+  - Red badge (bg-red-500/15) when missing > 0, amber (bg-amber-500/15) when only stale
+  - Polls freshness-counts API every 60s
+- **Engine Dashboard fixed**: Replaced incorrect global `/api/research/last-full-refresh` derivation
+  - Now uses `/api/admin/intelligence/freshness-counts` API for stat cards + health bar
+  - Coverage heatmap uses `/api/research/status` for per-property status
+  - Polls every 30s for real-time updates
+- **Auto-refresh**: PropertyEdit + CompanyAssumptions auto-trigger research on stale/missing
+  - One-shot `useRef` guard prevents re-triggering
+  - Guards: `!autoRefreshFired.current && !isDirty && !isGenerating`
+  - Fires `generateResearch()` automatically when status is stale or missing
+
 ### Research Intelligence System (April 2026)
 - **Research methodology skill created**: `.agents/skills/research-methodology/SKILL.md` — exhaustive 500+ line document covering STR chain scales, star ratings, revenue mix benchmarks, USALI expense ratios by segment, management fee structures, geography-driven cost adjustments, VRBO/STR business model, comp set selection criteria, and the full N+1 AI research pipeline
 - **Key architectural decision**: Properties should auto-derive their research profile from existing assumptions — NO separate ICP definition needed per property. The property's own starRating + ADR + hospitalityType + location + revenue shares IS its research profile.

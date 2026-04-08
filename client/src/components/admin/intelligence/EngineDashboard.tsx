@@ -4,48 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconActivity, IconGauge, IconResearch, IconTimer } from "@/components/icons";
 import type { Property } from "@shared/schema";
 
-interface EngineStats {
-  totalProperties: number;
-  freshCount: number;
-  staleCount: number;
-  missingCount: number;
-  freshPct: number;
+interface FreshnessCounts {
+  total: number;
+  current: number;
+  stale: number;
+  missing: number;
+  running: number;
+  avgDurationMs: number | null;
 }
 
-function useEngineStats(): EngineStats {
-  const { data: properties } = useQuery<Property[]>({
-    queryKey: ["/api/properties"],
+function useFreshnessCounts() {
+  return useQuery<FreshnessCounts>({
+    queryKey: ["/api/admin/intelligence/freshness-counts"],
+    refetchInterval: 30_000,
   });
-  const { data: lastRefresh } = useQuery<{ lastFullRefresh: string | null }>({
-    queryKey: ["/api/research/last-full-refresh"],
-  });
-
-  const total = properties?.length ?? 0;
-  const lastGlobalResearch = lastRefresh?.lastFullRefresh ? new Date(lastRefresh.lastFullRefresh).getTime() : 0;
-
-  let fresh = 0;
-  let stale = 0;
-  let missing = 0;
-
-  for (const p of properties ?? []) {
-    const lastChange = p.lastAssumptionChangeAt ? new Date(p.lastAssumptionChangeAt).getTime() : 0;
-
-    if (!lastGlobalResearch) {
-      missing++;
-    } else if (lastChange > lastGlobalResearch) {
-      stale++;
-    } else {
-      fresh++;
-    }
-  }
-
-  return {
-    totalProperties: total,
-    freshCount: fresh,
-    staleCount: stale,
-    missingCount: missing,
-    freshPct: total > 0 ? Math.round((fresh / total) * 100) : 0,
-  };
 }
 
 function StatusDot({ status }: { status: "green" | "amber" | "red" }) {
@@ -61,12 +33,12 @@ function StatusDot({ status }: { status: "green" | "amber" | "red" }) {
   );
 }
 
-function HealthBar({ stats }: { stats: EngineStats }) {
-  const status = stats.missingCount > 0 ? "red" : stats.staleCount > 0 ? "amber" : "green";
+function HealthBar({ counts }: { counts: FreshnessCounts }) {
+  const status = counts.missing > 0 ? "red" : counts.stale > 0 ? "amber" : "green";
   const message =
     status === "green" ? "Engine Healthy — All intelligence is current" :
-    status === "amber" ? `${stats.staleCount} propert${stats.staleCount === 1 ? "y" : "ies"} need${stats.staleCount === 1 ? "s" : ""} refresh` :
-    `${stats.missingCount} propert${stats.missingCount === 1 ? "y" : "ies"} missing intelligence`;
+    status === "amber" ? `${counts.stale} propert${counts.stale === 1 ? "y" : "ies"} need${counts.stale === 1 ? "s" : ""} refresh` :
+    `${counts.missing} propert${counts.missing === 1 ? "y" : "ies"} missing intelligence`;
 
   return (
     <div
@@ -107,10 +79,12 @@ function StatCard({ label, value, icon: Icon, accent }: {
   );
 }
 
-function CoverageHeatmap({ stats }: { stats: EngineStats }) {
+function CoverageHeatmap() {
   const { data: properties } = useQuery<Property[]>({ queryKey: ["/api/properties"] });
-  const { data: lastRefresh } = useQuery<{ lastFullRefresh: string | null }>({
-    queryKey: ["/api/research/last-full-refresh"],
+  const { data: researchStatus } = useQuery<{
+    properties: { propertyId: number; name: string; status: "fresh" | "stale" | "missing"; updatedAt: string | null }[];
+  }>({
+    queryKey: ["/api/research/status"],
   });
 
   if (!properties?.length) {
@@ -124,7 +98,10 @@ function CoverageHeatmap({ stats }: { stats: EngineStats }) {
     );
   }
 
-  const lastGlobalResearch = lastRefresh?.lastFullRefresh ? new Date(lastRefresh.lastFullRefresh).getTime() : 0;
+  const statusMap = new Map<number, string>();
+  for (const ps of researchStatus?.properties ?? []) {
+    statusMap.set(ps.propertyId, ps.status);
+  }
 
   return (
     <Card data-testid="coverage-heatmap">
@@ -132,16 +109,16 @@ function CoverageHeatmap({ stats }: { stats: EngineStats }) {
       <CardContent>
         <div className="space-y-2">
           {properties.slice(0, 20).map((p) => {
-            const lastChange = p.lastAssumptionChangeAt ? new Date(p.lastAssumptionChangeAt).getTime() : 0;
-            const status: "green" | "amber" | "red" = !lastGlobalResearch ? "red" :
-              (lastChange > lastGlobalResearch) ? "amber" : "green";
+            const rawStatus = statusMap.get(p.id) ?? "missing";
+            const dotStatus: "green" | "amber" | "red" =
+              rawStatus === "fresh" ? "green" : rawStatus === "stale" ? "amber" : "red";
 
             return (
               <div key={p.id} className="flex items-center gap-3" data-testid={`heatmap-row-${p.id}`}>
-                <StatusDot status={status} />
+                <StatusDot status={dotStatus} />
                 <span className="text-sm text-foreground truncate flex-1">{p.name}</span>
                 <span className="text-xs text-muted-foreground">
-                  {status === "amber" ? "Stale" : status === "red" ? "No data" : "Current"}
+                  {dotStatus === "amber" ? "Stale" : dotStatus === "red" ? "No data" : "Current"}
                 </span>
               </div>
             );
@@ -211,21 +188,24 @@ function PortfolioProfile() {
 }
 
 export default function EngineDashboard() {
-  const stats = useEngineStats();
+  const { data: counts } = useFreshnessCounts();
+
+  const stats = counts ?? { total: 0, current: 0, stale: 0, missing: 0, running: 0, avgDurationMs: null };
+  const freshPct = stats.total > 0 ? Math.round((stats.current / stats.total) * 100) : 0;
 
   return (
     <div className="space-y-6" data-testid="engine-dashboard">
-      <HealthBar stats={stats} />
+      <HealthBar counts={stats} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Properties" value={stats.totalProperties} icon={IconResearch} />
-        <StatCard label="Fresh" value={`${stats.freshPct}%`} icon={IconGauge} accent="text-emerald-600" />
-        <StatCard label="Stale" value={stats.staleCount} icon={IconTimer} accent={stats.staleCount > 0 ? "text-amber-600" : undefined} />
-        <StatCard label="Missing" value={stats.missingCount} icon={IconActivity} accent={stats.missingCount > 0 ? "text-red-600" : undefined} />
+        <StatCard label="Properties" value={stats.total} icon={IconResearch} />
+        <StatCard label="Fresh" value={`${freshPct}%`} icon={IconGauge} accent="text-emerald-600" />
+        <StatCard label="Stale" value={stats.stale} icon={IconTimer} accent={stats.stale > 0 ? "text-amber-600" : undefined} />
+        <StatCard label="Missing" value={stats.missing} icon={IconActivity} accent={stats.missing > 0 ? "text-red-600" : undefined} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <CoverageHeatmap stats={stats} />
+        <CoverageHeatmap />
         <PortfolioProfile />
       </div>
     </div>

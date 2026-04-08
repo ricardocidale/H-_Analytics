@@ -579,6 +579,62 @@ export function register(app: Express) {
     }
   });
 
+  app.get("/api/admin/intelligence/freshness-counts", requireAdmin, async (_req, res) => {
+    try {
+      const STALE_THRESHOLD_DAYS = 7;
+      const allProperties = await storage.getAllProperties();
+      const latestRuns = await storage.getLatestCompletedRunsPerEntity("property");
+
+      const runMap = new Map<number, { completedAt: Date; durationMs: number | null }>();
+      for (const r of latestRuns) {
+        runMap.set(Number(r.entityId), { completedAt: new Date(r.completedAt), durationMs: r.durationMs ? Number(r.durationMs) : null });
+      }
+
+      let current = 0;
+      let stale = 0;
+      let missing = 0;
+      let running = 0;
+      let totalDurationMs = 0;
+      let durationCount = 0;
+
+      for (const p of allProperties) {
+        const run = runMap.get(p.id);
+        if (!run) {
+          missing++;
+          continue;
+        }
+
+        const completedTs = run.completedAt.getTime();
+        const daysAgo = Math.floor((Date.now() - completedTs) / (1000 * 60 * 60 * 24));
+        const assumptionTs = p.lastAssumptionChangeAt ? new Date(p.lastAssumptionChangeAt).getTime() : 0;
+
+        if (assumptionTs > completedTs || daysAgo > STALE_THRESHOLD_DAYS) {
+          stale++;
+        } else {
+          current++;
+        }
+
+        if (run.durationMs) {
+          totalDurationMs += run.durationMs;
+          durationCount++;
+        }
+      }
+
+      const avgDurationMs = durationCount > 0 ? Math.round(totalDurationMs / durationCount) : null;
+
+      res.json({
+        total: allProperties.length,
+        current,
+        stale,
+        missing,
+        running,
+        avgDurationMs,
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch freshness counts", error);
+    }
+  });
+
   app.get("/api/research/last-full-refresh", requireAuth, async (req, res) => {
     try {
       const lastRefresh = await storage.getLastFullResearchRefresh(getAuthUser(req).id);

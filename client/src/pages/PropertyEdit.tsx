@@ -36,7 +36,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link, useRoute, useLocation } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
@@ -84,7 +84,22 @@ export default function PropertyEdit() {
 
   const researchUpdatedAt = research?.updatedAt ?? null;
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
-  
+
+  const autoRefreshFired = useRef(false);
+  useEffect(() => {
+    if (autoRefreshFired.current || isDirty || isGenerating) return;
+    if (!property) return;
+    const { status } = computeFreshnessStatus({
+      researchUpdatedAt,
+      lastAssumptionChangeAt: propertyLastAssumptionChangeAt,
+      isGenerating: false,
+    });
+    if (status === "stale" || status === "missing") {
+      autoRefreshFired.current = true;
+      generateResearch();
+    }
+  }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isDirty, isGenerating]);
+
   useEffect(() => {
     if (feeCategories && !feeDraft) {
       setFeeDraft([...feeCategories]);

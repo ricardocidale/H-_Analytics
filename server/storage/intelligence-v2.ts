@@ -19,7 +19,7 @@ import {
   type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
 } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, desc, isNull, lte } from "drizzle-orm";
+import { eq, and, desc, isNull, lte, sql } from "drizzle-orm";
 import { indexBenchmarkSnapshot } from "../ai/pinecone-service";
 import { logger } from "../logger";
 
@@ -81,6 +81,21 @@ export class IntelligenceV2Storage {
     return db.select().from(researchRuns)
       .where(and(eq(researchRuns.entityType, entityType), eq(researchRuns.entityId, entityId)))
       .orderBy(desc(researchRuns.startedAt));
+  }
+
+  async getLatestCompletedRunsPerEntity(entityType: string): Promise<{ entityId: number; completedAt: Date; durationMs: number | null }[]> {
+    const rows = await db.execute(sql`
+      SELECT DISTINCT ON (entity_id)
+        entity_id AS "entityId",
+        completed_at AS "completedAt",
+        duration_ms AS "durationMs"
+      FROM research_runs
+      WHERE entity_type = ${entityType}
+        AND status = 'completed'
+        AND completed_at IS NOT NULL
+      ORDER BY entity_id, completed_at DESC
+    `);
+    return (rows.rows ?? []) as { entityId: number; completedAt: Date; durationMs: number | null }[];
   }
 
   async getBenchmarkSnapshots(category?: string): Promise<BenchmarkSnapshot[]> {

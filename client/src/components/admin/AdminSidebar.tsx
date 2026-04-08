@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { X } from "@/components/icons/themed-icons";
@@ -10,6 +11,14 @@ import {
   IconLayers, IconShieldCheck, IconGlobe, IconTimer, IconDashboard, IconGauge, IconMessageSquare,
 } from "@/components/icons";
 import { Link } from "wouter";
+
+interface FreshnessCounts {
+  total: number;
+  current: number;
+  stale: number;
+  missing: number;
+  running: number;
+}
 
 export type AdminSection =
   | "model-defaults"
@@ -141,6 +150,11 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navGroups = buildNavGroups();
+
+  const { data: freshnessCounts } = useQuery<FreshnessCounts>({
+    queryKey: ["/api/admin/intelligence/freshness-counts"],
+    refetchInterval: 60_000,
+  });
   const resolved = resolveSection(activeSection);
   const activeGroup = getGroupForSection(resolved, navGroups);
 
@@ -151,7 +165,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
 
         return (
           <div key={group.id} className="mb-0.5">
-            <div className="px-3 pt-4 pb-1">
+            <div className="px-3 pt-4 pb-1 flex items-center gap-2">
               <span
                 className={cn(
                   "text-[11px] font-medium",
@@ -160,6 +174,19 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
               >
                 {group.label}
               </span>
+              {group.id === "intelligence" && freshnessCounts && (freshnessCounts.stale > 0 || freshnessCounts.missing > 0) && (
+                <span
+                  data-testid="intelligence-freshness-badge"
+                  className={cn(
+                    "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold leading-none",
+                    freshnessCounts.missing > 0
+                      ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                      : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                  )}
+                >
+                  {freshnessCounts.stale + freshnessCounts.missing}
+                </span>
+              )}
             </div>
 
             <div className="space-y-0.5">
