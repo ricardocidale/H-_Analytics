@@ -15,7 +15,9 @@
 - **API routes**: GET/POST/PATCH/DELETE /api/rebecca/guardrails (admin-only, Zod-validated)
 - **System prompt injection**: Active guardrails fetched at query time and appended as structured "Admin-Configured Guardrails" block in system prompt
 - **Seed migration**: rebecca-guardrails-001.ts creates table + seeds 5 default guardrails (off-topic, legal/tax, guarantees, arithmetic, redirect), registered in server/index.ts
-- **Admin UI**: GuardrailEditor.tsx component (explainer banner, create form, inline edit, toggle active/inactive, delete with confirmation) as 4th tab "Guardrails" in RebeccaAdminTabs
+- **Admin UI**: GuardrailEditor.tsx component (explainer banner, create form, inline edit, toggle active/inactive, delete with confirmation, move up/down reorder controls persisting sortOrder via PATCH) as 4th tab "Guardrails" in RebeccaAdminTabs
+- **Multi-user awareness**: System prompt includes "ask if others are working through simulation" + remember guest names
+- **Rich block constraint**: "Maximum ONE rich formatting block per response" rule in system prompt
 - **Files**: chat.ts, rebecca.ts, intelligence-v2.ts (schema + storage), index.ts (storage + server), rebecca-guardrails-001.ts, GuardrailEditor.tsx, RebeccaAdminTabs.tsx, RebeccaConfig.tsx, RebeccaTab.tsx
 
 ### T24 Rebecca Admin Tabs & ConversationsTab Cleanup (April 2026) — COMPLETED

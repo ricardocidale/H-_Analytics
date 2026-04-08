@@ -26,7 +26,8 @@ export async function runRebeccaGuardrails001(): Promise<void> {
   `);
 
   const existing = await db.execute(sql`SELECT COUNT(*)::int AS count FROM rebecca_guardrails`);
-  const count = (existing.rows?.[0] as any)?.count ?? 0;
+  const row = existing.rows?.[0] as { count: number } | undefined;
+  const count = row?.count ?? 0;
 
   if (count === 0) {
     for (const g of DEFAULT_GUARDRAILS) {

@@ -104,6 +104,30 @@ export default function GuardrailEditor() {
     updateMutation.mutate({ id: g.id, data: { isActive: !g.isActive } });
   };
 
+  const handleMoveUp = (index: number) => {
+    if (!guardrails || index <= 0) return;
+    const current = guardrails[index];
+    const above = guardrails[index - 1];
+    Promise.all([
+      apiRequest("PATCH", `/api/rebecca/guardrails/${current.id}`, { sortOrder: above.sortOrder }),
+      apiRequest("PATCH", `/api/rebecca/guardrails/${above.id}`, { sortOrder: current.sortOrder }),
+    ]).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["rebeccaGuardrails"] });
+    });
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (!guardrails || index >= guardrails.length - 1) return;
+    const current = guardrails[index];
+    const below = guardrails[index + 1];
+    Promise.all([
+      apiRequest("PATCH", `/api/rebecca/guardrails/${current.id}`, { sortOrder: below.sortOrder }),
+      apiRequest("PATCH", `/api/rebecca/guardrails/${below.id}`, { sortOrder: current.sortOrder }),
+    ]).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["rebeccaGuardrails"] });
+    });
+  };
+
   const startEdit = (g: Guardrail) => {
     setEditingId(g.id);
     setEditLabel(g.label);
@@ -232,7 +256,7 @@ export default function GuardrailEditor() {
 
       <div className="space-y-3">
         <AnimatePresence mode="popLayout">
-          {guardrails?.map((g) => (
+          {guardrails?.map((g, idx) => (
             <motion.div
               key={g.id}
               layout
@@ -285,7 +309,30 @@ export default function GuardrailEditor() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex flex-col gap-0.5 shrink-0 pt-0.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                          onClick={() => handleMoveUp(idx)}
+                          disabled={idx === 0}
+                          data-testid={`button-move-up-${g.id}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                        </Button>
+                        <span className="text-[10px] text-muted-foreground/50 text-center font-mono">{idx + 1}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                          onClick={() => handleMoveDown(idx)}
+                          disabled={idx === (guardrails?.length ?? 1) - 1}
+                          data-testid={`button-move-down-${g.id}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </Button>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="text-sm font-semibold text-foreground truncate">{g.label}</p>
