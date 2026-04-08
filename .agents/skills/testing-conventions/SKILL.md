@@ -1,3 +1,8 @@
+---
+name: testing-conventions
+description: Testing conventions for the financial verification test suite. Covers golden tests, proof scenarios, reconciliation tests, fixture factory, artifact generation, and the npm run verify pipeline. Use when writing tests or debugging test failures.
+---
+
 Testing conventions and patterns for the financial verification test suite. Covers golden tests, proof scenarios, reconciliation tests, the fixture factory, artifact generation, severity-based reporting, and the `npm run verify` multi-phase pipeline. Use this skill when writing new tests, understanding test patterns, or debugging test failures.
 
 ## Test Pattern Taxonomy

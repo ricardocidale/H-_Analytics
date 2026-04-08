@@ -1,3 +1,8 @@
+---
+name: api-backend-contract
+description: Express backend architecture, route modules, storage interface, authentication middleware, and role-based access control for HBG Portal. Use when working on server routes, API endpoints, storage operations, or authentication.
+---
+
 The server-side architecture and API surface for the HBG Portal. Covers Express backend structure, route modules, storage interface, authentication middleware, rate limiting, SSE streaming, scenario system, multi-tenancy, and role-based access control. Use this skill when working on server routes, API endpoints, storage operations, or authentication.
 
 ## Tech Stack

@@ -1,3 +1,8 @@
+---
+name: integrations
+description: External service integrations for HBG Portal. Covers AI providers, financial services, geospatial, document intelligence, communication, image generation, observability, storage, and authentication. Use when working on integrations or external API calls.
+---
+
 # Integrations Infrastructure
 
 Every external service the HBG Portal connects to, how it connects, and its boundaries. Covers AI providers, voice AI, financial services, geospatial, document intelligence, communication, image generation, observability, storage, and authentication. Use this skill when working on integrations, external API calls, or service configuration.

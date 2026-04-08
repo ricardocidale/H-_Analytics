@@ -1,3 +1,8 @@
+---
+name: zod-schema-sync
+description: Zod schema sync rule for ResearchConfig. Prevents 400 errors when new fields are added to TypeScript types but not to the Zod strict validation schema. Use when modifying ResearchConfig or similar persisted JSON objects.
+---
+
 # Zod Schema Sync — ResearchConfig
 
 ## The Problem

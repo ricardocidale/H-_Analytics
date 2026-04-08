@@ -9,7 +9,7 @@ This project is a business simulation portal for Hospitality Business Group, des
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
-- All skills live in `.claude/skills/`; `.agents/skills/` contains slim pointers for Replit task agent compatibility.
+- Skills live in both `.agents/skills/` (primary, Agent Skills spec-compliant) and `.claude/skills/` (legacy, still active). All skills must have YAML frontmatter with `name` and `description` fields per the [Agent Skills specification](https://agentskills.io/specification).
 - Company name is "Hospitality Business Group" (or "Hospitality Business" for short).
 - Update skills and manuals after every feature change.
 - **Doc Harmony Rule:** `replit.md` and `.claude/claude.md` must stay in sync. Both are standalone, comprehensive project docs — neither is a "pointer" to the other. When updating one, update the other. The health check enforces matching test counts and stats across both files.

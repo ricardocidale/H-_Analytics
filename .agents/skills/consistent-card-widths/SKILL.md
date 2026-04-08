@@ -1,3 +1,8 @@
+---
+name: consistent-card-widths
+description: Card width and page layout container rules for HBG Portal. Covers max-width constraints, grid patterns, PageHeader alignment, and full-width vs constrained layouts. Use when building page layouts or card grids.
+---
+
 Rules for consistent card widths and page layout containers across all pages. Covers max-width constraints, grid patterns, PageHeader alignment, and when to use full-width vs constrained layouts.
 
 ## Standard Page Content Wrapper

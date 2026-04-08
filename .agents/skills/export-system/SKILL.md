@@ -1,3 +1,8 @@
+---
+name: export-system
+description: Shared formatting, styling, and generation patterns for all document exports (PDF, PPTX, Excel, CSV, PNG). Covers brand palette, row data model, number formatting, and export orchestrators. Use when working on any document export feature.
+---
+
 Shared formatting, styling, and generation patterns for all document exports (PDF, PPTX, Excel, CSV, PNG) used across the hospitality business portal. Covers brand palette, row data model, number formatting, PDF/PPTX/Excel/CSV/PNG helpers, and dashboard export orchestrators. Use this skill when working on any document export feature.
 
 ## Three Cardinal Export Rules

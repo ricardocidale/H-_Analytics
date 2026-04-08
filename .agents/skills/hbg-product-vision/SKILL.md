@@ -1,3 +1,8 @@
+---
+name: hbg-product-vision
+description: Product direction and design principles for HBG Portal. Covers product identity, core tenets, workflow principles, navigation, user roles, white-labeling, roadmap themes, and cross-skill reference map. Use when planning features or evaluating alignment.
+---
+
 Where the HBG Portal product is heading and the design principles that must govern all future work. Covers product identity, core design tenets, workflow principles, navigation architecture, user roles, white-labeling, active roadmap themes, future direction, and the cross-skill reference map. Use this skill when planning new features, making architectural decisions, or evaluating whether proposed work aligns with the product direction.
 
 ## Product Identity

@@ -1,3 +1,8 @@
+---
+name: server-finance
+description: Server-authoritative finance engine architecture. The server imports client pure functions directly as single source of truth. Use when working on server-side financial computation or snapshot persistence.
+---
+
 # Server-Authoritative Finance Engine
 
 ## Architecture

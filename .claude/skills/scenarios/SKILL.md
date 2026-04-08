@@ -1,3 +1,8 @@
+---
+name: scenarios
+description: Scenario save/load/compare/share system. Covers scenario snapshots, the Scenarios page UI, scenario API routes, and the scenarios table. Use when working on scenario features or snapshot persistence.
+---
+
 # Scenarios
 
 The scenario system allows users to save, restore, compare, and share complete snapshots of all portfolio assumptions and financial outputs. Use this skill when working on scenario save/load/share features, the Scenarios page UI, scenario-related API routes, or any code that touches the `scenarios` table.

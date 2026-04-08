@@ -1,3 +1,8 @@
+---
+name: tour
+description: Interactive guided tour/walkthrough for new users. Covers step-by-step feature highlights and workflow order. Use when modifying tour steps or onboarding flow.
+---
+
 # Guided Tour / Walkthrough
 
 ## Purpose

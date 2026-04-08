@@ -1,3 +1,8 @@
+---
+name: balance-sheet-integrity
+description: Guard the accounting identity Assets = Liabilities + Equity across all balance sheet views. Covers per-property, consolidated portfolio, and management company balance sheets. Use when modifying balance sheet calculations or views.
+---
+
 # Balance Sheet Integrity Skill
 
 ## Purpose

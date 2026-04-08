@@ -1,3 +1,8 @@
+---
+name: design-system-export
+description: Replicate the HBG design system in another project. Covers components, themes, icons, charts, and animations. Use when setting up a new app that should share the same UI look and feel.
+---
+
 Replicate the HBG design system in another project. Use when setting up a new app that should share the same UI look and feel — components, themes, icons, charts, animations.
 
 ## Architecture Overview

@@ -1,3 +1,8 @@
+---
+name: context7-best-practices
+description: Library-specific best practices from Context7 docs for Drizzle ORM, React, Express.js, and TanStack Query. Use when making architectural decisions, reviewing code, or optimizing performance and security.
+---
+
 # Context7 Best Practices — H+ Analytics
 
 Canonical reference for library-specific best practices sourced from Context7 documentation queries. Covers Drizzle ORM, React, Express.js, and TanStack Query patterns already applied or recommended for this codebase.

@@ -1,3 +1,8 @@
+---
+name: save-button-placement
+description: Rules for consistent Save Changes button placement. Covers SaveButton component API, three placement patterns, dirty-tracking flow, and dialog exceptions. Use when adding save buttons or form submission to any page.
+---
+
 Rules for placing Save Changes buttons consistently across the app. Covers the SaveButton component API, three placement patterns (PageHeader actions, bottom-of-form, tab/section level), dirty-tracking flow, and dialog exceptions. Use when adding save buttons, form submission buttons, or save changes functionality to any page.
 
 ## SaveButton Component

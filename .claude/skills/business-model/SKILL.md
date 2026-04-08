@@ -1,3 +1,8 @@
+---
+name: business-model
+description: Foundational business domain for HBG Portal. Covers dual-entity model, hospitality revenue streams, USALI income waterfall, management fees, company overhead, SAFE funding, intercompany elimination, and property lifecycle. Use when working on business logic or financial assumptions.
+---
+
 # HBG Business Model
 
 The foundational business domain skill for HBG Portal. Covers the dual-entity model, hospitality revenue streams, USALI income waterfall, management fees, company overhead, SAFE funding, intercompany elimination, ICP system, make-vs-buy analysis, and property lifecycle. Use this skill whenever working on business logic, financial assumptions, property data, or any feature that touches the investment simulation model.

@@ -1,3 +1,8 @@
+---
+name: export-config
+description: Per-category export configuration system controlling which sections appear in exported reports. Use when modifying export section visibility, adding toggleable sections, or debugging missing report sections.
+---
+
 Per-category export configuration system. Controls which sections appear in exported reports (Overview, Financial Statements, Financial Analysis). Use this skill when modifying export section visibility, adding new toggleable sections, or debugging why a report section is missing.
 
 ## Architecture

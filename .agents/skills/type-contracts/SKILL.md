@@ -1,3 +1,8 @@
+---
+name: type-contracts
+description: Type contract pipeline for the hospitality financial model. Maps four-layer type hierarchy from database schema through API, engine, and UI. Covers JSONB flattening, naming conventions, and top-down field flow. Use when adding new data fields.
+---
+
 Type contract pipeline for the hospitality financial model. Maps the four-layer type hierarchy from database schema through API, financial engine, and UI components. Covers JSONB flattening, naming conventions, and the rule that new fields flow top-down. Use this skill when adding new data fields, modifying engine types, or tracing data flow.
 
 ## Four-Layer Type Pipeline

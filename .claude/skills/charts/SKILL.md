@@ -1,3 +1,8 @@
+---
+name: charts
+description: Reusable chart library built on Recharts and shadcn ChartContainer. Covers component catalog, usage patterns, and chart styling. Use when adding or modifying data visualizations.
+---
+
 # Reusable Chart Library
 
 **Path:** `client/src/lib/charts/`

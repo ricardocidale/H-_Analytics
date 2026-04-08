@@ -1,3 +1,8 @@
+---
+name: verification-system
+description: Three-tier financial verification and audit opinion system. Covers server-side calculation checker, property/company/consolidated verification, GAAP compliance checks, audit opinions, and workpaper generation. Use when working on verification or audit features.
+---
+
 The three-tier financial verification and audit opinion system. Covers the independent server-side calculation checker, property/company/consolidated verification tiers, GAAP compliance checks, audit opinions, workpaper generation, and the AI review panel. Use this skill when working on verification, audit, financial validation, or checker-related features.
 
 ## Architecture

@@ -1,3 +1,8 @@
+---
+name: product-vision
+description: Comprehensive product vision for HBG Portal. Covers product identity, core workflows, two-entity financial model, settings architecture, research engine, AI assistant, verification system, market intelligence, admin capabilities, and multi-tenancy. Use when planning features or understanding the app.
+---
+
 # HBG Product Vision
 
 Where the HBG Portal product is, what it does, and the design principles that govern all work. Covers product identity, purpose, core workflows, two-entity financial model, settings architecture, research engine, AI assistant, verification system, market intelligence, notifications, admin capabilities, multi-tenancy, user roles, and the cross-skill reference map. Use this skill when planning new features, making architectural decisions, evaluating whether proposed work aligns with product direction, or when any agent needs to understand what the app is and why it exists.

@@ -1,3 +1,8 @@
+---
+name: constants-governance
+description: Constants governance for the hospitality financial model. Documents the shared/client barrel pattern, financial defaults in shared/constants.ts, the safeNum guard, and NaN bug prevention. Use when adding constants or modifying default values.
+---
+
 Constants governance for the hospitality financial model. Documents the shared/client barrel pattern, the rule that financial defaults live in `shared/constants.ts`, the `safeNum` guard pattern, and the NaN bug root cause. Use this skill when adding new constants, modifying default values, or working with the financial engine.
 
 ## Architecture: Two-File Barrel Pattern

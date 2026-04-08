@@ -1,3 +1,8 @@
+---
+name: hbg-design-philosophy
+description: Visual identity, UX principles, and hospitality-appropriate design language for HBG Portal. Covers Swiss Modernist design, typography, color philosophy, motion, layout, data presentation, and chart styling. Use when building pages or making visual decisions.
+---
+
 The visual identity, UX principles, and hospitality-appropriate design language governing every screen in the HBG Portal. Covers Swiss Modernist design identity, typography system, color philosophy, motion design, layout principles, data presentation patterns, hospitality vocabulary, navigation structure, responsive design, and chart styling. Use this skill when building new pages, designing UI, choosing terminology, or making any visual decision.
 
 ## Brand Palette

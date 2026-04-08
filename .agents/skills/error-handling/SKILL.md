@@ -1,3 +1,8 @@
+---
+name: error-handling
+description: Error handling and resilience patterns for HBG Portal. Covers server error middleware, client error boundaries, FinancialCalculationError, non-blocking side effects, and empty catch block rules. Use when adding error handling or debugging crashes.
+---
+
 Error handling and resilience patterns for the hospitality financial model. Covers server-side error middleware, client-side error boundaries, the FinancialCalculationError class, Sentry integration, non-blocking side effects, and the rule against empty catch blocks. Use this skill when adding error handling, debugging crashes, or working on resilience.
 
 ## Server-Side Patterns

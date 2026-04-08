@@ -1,3 +1,8 @@
+---
+name: property-photos
+description: Property photo management and rendering for HBG Portal. Covers photo data model, hero image selection, AI enhancement pipeline, and image display components. Use when adding, editing, or seeding property photos.
+---
+
 Property photo management and rendering requirements for HBG Portal. Use when adding, editing, or seeding property photos, or when working with image display components.
 
 ## Photo Data Model

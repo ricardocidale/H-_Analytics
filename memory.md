@@ -8,6 +8,14 @@
 
 ## Architecture Decisions Log
 
+### Skills Frontmatter Compliance (April 2026) — COMPLETED
+- **32 skills updated with Agent Skills spec-compliant frontmatter**: Added `---\nname:\ndescription:\n---` YAML frontmatter to all skills missing it
+- **20 `.agents/skills/` fixed**: api-backend-contract, app-defaults, consistent-card-widths, constants-governance, context7-best-practices, database, design-system-export, error-handling, export-config, export-system, financial-engine, hbg-design-philosophy, hbg-product-vision, property-photos, save-button-placement, settings-architecture, testing-conventions, type-contracts, verification-system, zod-schema-sync
+- **12 `.claude/skills/` fixed**: balance-sheet-integrity, business-model, charts, design-export, help-page, integrations, product-vision, scenarios, server-finance, str-properties, tour, ui-blocks
+- **All 54 `.agents/skills/` and 44 `.claude/skills/` now have proper frontmatter**
+- **5 skills over 500 lines noted** (spec recommends <500): source-code (832), research-methodology (800), product-vision (761), design-system (714), ui-ux-pro-max (658) — not restructured this pass
+- **Doc updates**: replit.md and claude.md updated — skills description changed from "slim pointers" to "full skills with Agent Skills spec frontmatter"
+
 ### Task #304: Code Quality & Dead Code Audit (April 2026) — COMPLETED
 - **9 unused exports removed**: De-exported (made file-private) `LocationLinks` (map-utils.ts), `GlossaryEntry`+`lookupGlossary` (glossary.ts), `QueuedResearch` (research-queue.ts), `InsightResult` (rebecca-insights.ts), `HotelSnapshotData`+`HotelRateData`+`CityMedianData`+`PropertyValueEstimate` (api/types.ts)
 - **10 empty catch blocks annotated**: All `.catch(() => {})` patterns now have `/* ignore: reason */` comments explaining why the catch is intentionally empty (best-effort indexing, non-blocking seeding, background enrichment)

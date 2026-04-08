@@ -1,3 +1,8 @@
+---
+name: help-page
+description: Unified help page at /help with tabbed navigation. Consolidates User Manual, Checker Manual, and Guided Tour. Use when modifying help content or navigation.
+---
+
 # Help Page
 
 ## Purpose

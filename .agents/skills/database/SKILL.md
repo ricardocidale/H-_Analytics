@@ -1,3 +1,8 @@
+---
+name: database
+description: Schema migration system for the hospitality financial model. Covers Drizzle SQL migrations, TypeScript startup migrations, naming conventions, idempotency, and dev workflow. Use when adding columns, creating tables, or modifying the schema.
+---
+
 Schema migration system for the hospitality financial model. Covers the dual migration approach (Drizzle SQL migrations + TypeScript startup migrations), naming conventions, orchestration order, idempotency requirements, and the dev workflow. Use this skill when adding database columns, creating tables, or modifying the schema.
 
 ## Dual Migration System

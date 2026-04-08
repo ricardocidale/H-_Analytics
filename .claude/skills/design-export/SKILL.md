@@ -1,3 +1,8 @@
+---
+name: design-export
+description: Replicate the HBG design system in another project. Covers components, themes, icons, charts, and animations with related skill references. Use when setting up a new app with HBG visual identity.
+---
+
 # Design System Export
 
 Replicate the HBG design system in another project. Use when setting up a new app that should share the same UI look and feel — components, themes, icons, charts, animations.

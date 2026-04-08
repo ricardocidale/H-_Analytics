@@ -1,3 +1,8 @@
+---
+name: app-defaults
+description: App Defaults single-source-of-truth rule for HBG Portal. All default/seed/starting values live exclusively in Admin App Defaults. Use when adding or modifying default configuration values.
+---
+
 # App Defaults — Single Source of Truth
 
 ## Rule

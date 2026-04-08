@@ -1,3 +1,8 @@
+---
+name: settings-architecture
+description: Where every configurable setting belongs in HBG Portal. Covers three configuration surfaces (Management Company, General Settings, Admin Panel), property overrides, and overlap prevention. Use when adding or moving settings.
+---
+
 Where every configurable setting belongs in the HBG Portal. Covers the three configuration surfaces (Management Company, General Settings, Admin Panel), property edit overrides, overlap prevention rules, and the decision tree for placing new settings. Use this skill when adding or moving any configurable setting.
 
 ## The Three Configuration Surfaces

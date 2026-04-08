@@ -1,3 +1,8 @@
+---
+name: financial-engine
+description: Technical contract for the deterministic financial calculation engines. Covers dual-engine architecture, pipeline stages, calc module taxonomy, return metrics, financial statements, and type contracts. Use when working on financial calculations or pro forma generation.
+---
+
 The technical contract for the deterministic financial calculation engines. Covers the dual-engine architecture (Property Engine + Company Engine), pipeline stages, calc module taxonomy, return metrics, financial statements, consolidated reporting, and TypeScript type contracts. Use this skill whenever working on financial calculations, engine inputs/outputs, pro forma generation, or return metric computation.
 
 ## Architecture

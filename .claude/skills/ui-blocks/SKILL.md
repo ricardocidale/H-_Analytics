@@ -1,3 +1,8 @@
+---
+name: ui-blocks
+description: UI block reference patterns from shadcn blocks. Templates and patterns for building new pages or layouts. Use as reference when designing new page layouts.
+---
+
 # UI Block Reference Patterns
 
 Reference source code from shadcn blocks, fetched via `npx shadcn@latest add`. These are templates and patterns — not active app components. Use them as reference when building new pages or layouts.

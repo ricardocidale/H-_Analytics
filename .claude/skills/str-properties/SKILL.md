@@ -1,3 +1,8 @@
+---
+name: str-properties
+description: Short-term rental (STR/VRBO) property model. Covers how STR properties use the same formulas with different assumption values and expense categories. Use when working on VRBO/STR property features or business model differences.
+---
+
 # Short-Term Rental (STR) Property Model
 
 Properties in the HBG portfolio are not exclusively boutique hotels. Some properties operate under a short-term rental (STR) model similar to Airbnb or VRBO. The financial engine uses the same formulas for all property types — the difference lies in which assumption values are meaningful and how expense categories are configured.
