@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Loader2, X } from "@/components/icons/themed-icons";
-import { IconWand2, IconCheck } from "@/components/icons";
+import { IconWand2, IconCheck, IconPencil } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import type { PropertyEditSectionProps } from "./types";
 export default function DescriptionSection({ draft, onChange }: PropertyEditSectionProps) {
   const [isRewriting, setIsRewriting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(!draft.description);
   const { toast } = useToast();
 
   const handleAIRewrite = async () => {
@@ -29,16 +30,11 @@ export default function DescriptionSection({ draft, onChange }: PropertyEditSect
     }
     setIsRewriting(true);
     try {
-      const res = await fetch("/api/ai/rewrite-description", {
+      const res = await fetch(`/api/properties/${draft.id}/rewrite-description`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          text,
-          propertyName: draft.name,
-          location: draft.location,
-          roomCount: draft.roomCount,
-        }),
+        body: JSON.stringify({ text }),
       });
       if (!res.ok) throw new Error("Rewrite failed");
       const data = await res.json();
@@ -64,57 +60,96 @@ export default function DescriptionSection({ draft, onChange }: PropertyEditSect
     setPreview(null);
   };
 
+  const hasSavedDescription = !!(draft.description || "").trim();
+
   return (
     <>
       <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="relative p-6">
-          <div className="mb-4">
-            <h3 className="text-xl font-display text-foreground">Property Description</h3>
-            <p className="text-muted-foreground text-sm label-text">Describe the property, its features, and investment thesis</p>
-          </div>
-          <div className="space-y-3">
-            <Label className="label-text text-foreground flex items-center gap-1.5">
-              Description
-              <InfoTooltip text="A narrative description of the property. This is used in reports, exports, and as context for AI research. Describe the property's unique features, target market, and investment appeal." />
-            </Label>
-            <Textarea
-              value={draft.description || ""}
-              onChange={(e) => onChange("description", e.target.value || null)}
-              placeholder="Describe this property — its setting, unique features, target guests, and what makes it an attractive investment..."
-              className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground min-h-[120px] resize-y"
-              data-testid="input-property-description"
-            />
-            <div className="flex items-center gap-2">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-display text-foreground">Property Description</h3>
+              <p className="text-muted-foreground text-sm label-text">Describe the property, its features, and investment thesis</p>
+            </div>
+            {hasSavedDescription && !isEditing && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleAIRewrite}
-                disabled={isRewriting || !(draft.description || "").trim()}
-                data-testid="button-ai-rewrite-description"
+                onClick={() => setIsEditing(true)}
+                data-testid="button-edit-description"
               >
-                {isRewriting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                ) : (
-                  <IconWand2 className="w-3.5 h-3.5 mr-1.5" />
-                )}
-                {isRewriting ? "Rewriting..." : "Improve with AI"}
+                <IconPencil className="w-3.5 h-3.5 mr-1.5" />
+                Edit
               </Button>
-              {(draft.description || "").trim() && (
+            )}
+          </div>
+
+          {hasSavedDescription && !isEditing ? (
+            <div className="rounded-md border border-border bg-muted/30 p-4" data-testid="card-saved-description">
+              <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap" data-testid="text-saved-description">
+                {draft.description}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Label className="label-text text-foreground flex items-center gap-1.5">
+                Description
+                <InfoTooltip text="A narrative description of the property. This is used in reports, exports, and as context for AI research. Describe the property's unique features, target market, and investment appeal." />
+              </Label>
+              <Textarea
+                value={draft.description || ""}
+                onChange={(e) => onChange("description", e.target.value || null)}
+                placeholder="Describe this property — its setting, unique features, target guests, and what makes it an attractive investment..."
+                className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground min-h-[120px] resize-y"
+                data-testid="input-property-description"
+              />
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => onChange("description", null)}
-                  className="text-muted-foreground"
-                  data-testid="button-clear-description"
+                  onClick={handleAIRewrite}
+                  disabled={isRewriting || !(draft.description || "").trim()}
+                  data-testid="button-ai-rewrite-description"
                 >
-                  <X className="w-3.5 h-3.5 mr-1" />
-                  Clear
+                  {isRewriting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                  ) : (
+                    <IconWand2 className="w-3.5 h-3.5 mr-1.5" />
+                  )}
+                  {isRewriting ? "Rewriting..." : "Improve with AI"}
                 </Button>
-              )}
+                {(draft.description || "").trim() && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onChange("description", null)}
+                      className="text-muted-foreground"
+                      data-testid="button-clear-description"
+                    >
+                      <X className="w-3.5 h-3.5 mr-1" />
+                      Clear
+                    </Button>
+                    {isEditing && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditing(false)}
+                        className="text-muted-foreground"
+                        data-testid="button-done-editing-description"
+                      >
+                        Done
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

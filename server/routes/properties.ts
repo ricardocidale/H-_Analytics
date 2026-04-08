@@ -377,6 +377,79 @@ export function register(app: Express) {
     }
   });
 
+  const rewriteDescriptionSchema = z.object({
+    text: z.string().min(1).max(5000),
+  });
+
+  app.post("/api/properties/:id/rewrite-description", requireManagementAccess, async (req, res) => {
+    try {
+      const propertyId = Number(req.params.id);
+      const hasAccess = await checkPropertyAccess(getAuthUser(req), propertyId);
+      if (!hasAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const property = await storage.getProperty(propertyId);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+      const parsed = rewriteDescriptionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request — provide text (1–5000 chars)" });
+      }
+      const { text } = parsed.data;
+
+      const { getGeminiClient } = await import("../ai/clients");
+      const { resolveLlm, getVendorService } = await import("../ai/resolve-llm");
+      const { logApiCost, estimateCost } = await import("../middleware/cost-logger");
+
+      const context = [
+        property.name && `Property: ${property.name}`,
+        property.location && `Location: ${property.location}`,
+        property.roomCount && `Rooms: ${property.roomCount}`,
+      ].filter(Boolean).join(". ");
+
+      const prompt = `You are a professional hospitality real estate copywriter. Rewrite the following property description to be polished, compelling, and professional. Keep the same factual content but improve clarity, flow, and appeal. Write in third person. Keep it concise (2-3 paragraphs max). Do not add fictional details — only enhance what is provided.
+
+${context ? `Context: ${context}\n\n` : ""}Original description:
+${text}
+
+Rewritten description:`;
+
+      const ga = await storage.getGlobalAssumptions(req.user?.id);
+      const rc = (ga?.researchConfig as Record<string, unknown>) ?? {};
+      const resolved = resolveLlm(rc, "aiUtilityLlm");
+      const gemini = getGeminiClient();
+      const startTime = Date.now();
+      const response = await gemini.models.generateContent({
+        model: resolved.model,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: { maxOutputTokens: 1024 },
+      });
+
+      const rewritten = response.text?.trim();
+      if (!rewritten) {
+        return res.status(500).json({ error: "No response from AI" });
+      }
+
+      const svc = getVendorService(resolved.vendor);
+      const inTok = response.usageMetadata?.promptTokenCount ?? Math.round(prompt.length / 4);
+      const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(rewritten.length / 4);
+      try {
+        logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "rewrite-description", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: `/api/properties/${propertyId}/rewrite-description` });
+      } catch (e) {
+        logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger");
+      }
+
+      res.json({ rewritten });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg === "Gemini API key not configured" || msg.includes("not configured")) {
+        return res.status(503).json({ error: "AI service is not available" });
+      }
+      logAndSendError(res, "Failed to rewrite description", error);
+    }
+  });
+
   // Walk Score — property-level walkability, transit, and bike scores
   app.get("/api/properties/:id/walk-score", requireAuth, async (req, res) => {
     try {
