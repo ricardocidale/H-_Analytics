@@ -329,6 +329,17 @@ export function register(app: Express) {
   app.post("/api/property-photos/:id/enhance/reject", requireManagementAccess, async (req, res) => {
     try {
       const photoId = Number(req.params.id);
+      const user = getAuthUser(req);
+
+      const photo = await storage.getPhotoById(photoId);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+
+      if (!(await checkPropertyAccess(user, photo.propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
       pendingEnhancements.delete(photoId);
       res.json({ success: true });
     } catch (error) {
