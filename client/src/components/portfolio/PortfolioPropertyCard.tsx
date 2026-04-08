@@ -22,10 +22,11 @@ import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { StaggerItem, TiltCard } from "@/components/ui/animated";
 import { AnimatedGridItem } from "@/components/graphics";
-import type { Property } from "@shared/schema";
+import type { Property, PropertyUrl } from "@shared/schema";
 import { HeroImage } from "@/features/property-images";
 import { cn } from "@/lib/utils";
 import { PropertyTypeBadge } from "@/components/research/PropertyTypeSelector";
+import { useQuery } from "@tanstack/react-query";
 
 function truncateWords(text: string, maxWords: number): string {
   const words = text.split(/\s+/);
@@ -42,6 +43,16 @@ interface PortfolioPropertyCardProps {
 
 export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onToggleActive }: PortfolioPropertyCardProps) {
   const isActive = property.isActive !== false;
+  const { data: propertyLinks = [] } = useQuery<PropertyUrl[]>({
+    queryKey: ["propertyUrls", property.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/properties/${property.id}/urls`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 5 * 60_000,
+  });
+  const validLinks = propertyLinks.filter(l => l.isValid !== false).slice(0, 3);
 
   return (
     <AnimatedGridItem>
@@ -120,6 +131,36 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
             <p className="text-xs text-foreground/55 mt-2.5 leading-relaxed line-clamp-3" data-testid={`text-description-${property.id}`}>
               {truncateWords(property.description, 60)}
             </p>
+          )}
+          {validLinks.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2.5" data-testid={`links-chips-${property.id}`}>
+              {validLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors ${
+                    link.isRelevant
+                      ? "border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+                      : "border-border bg-muted/50 text-foreground/60 hover:bg-muted"
+                  }`}
+                  data-testid={`card-link-chip-${link.id}`}
+                  title={link.url}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="w-1 h-1 rounded-full shrink-0" style={{
+                    backgroundColor: link.isRelevant ? "var(--primary)" : "var(--muted-foreground)",
+                  }} />
+                  {link.label || (() => { try { return new URL(link.url).hostname.replace("www.", ""); } catch { return "Link"; } })()}
+                </a>
+              ))}
+              {propertyLinks.filter(l => l.isValid !== false).length > 3 && (
+                <span className="text-[10px] text-muted-foreground self-center">
+                  +{propertyLinks.filter(l => l.isValid !== false).length - 3}
+                </span>
+              )}
+            </div>
           )}
         </div>
         

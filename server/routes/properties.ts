@@ -467,8 +467,13 @@ Rewritten description:`;
     }
   });
 
+  const httpUrlSchema = z.string().url().max(2048).refine(
+    (val) => { try { const u = new URL(val); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; } },
+    { message: "Only http and https URLs are allowed" },
+  );
+
   const addPropertyUrlSchema = z.object({
-    url: z.string().url().max(2048),
+    url: httpUrlSchema,
     label: z.string().max(200).optional(),
   });
 
@@ -561,8 +566,25 @@ Rewritten description:`;
         return res.json({ validated: 0, results: [] });
       }
 
+      const BLOCKED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "[::1]", "metadata.google.internal", "169.254.169.254"];
+      const isSafeUrl = (raw: string): boolean => {
+        try {
+          const parsed = new URL(raw);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+          const host = parsed.hostname.toLowerCase();
+          if (BLOCKED_HOSTS.includes(host)) return false;
+          if (host.endsWith(".internal") || host.endsWith(".local")) return false;
+          if (/^(10|172\.(1[6-9]|2\d|3[01])|192\.168)\./.test(host)) return false;
+          return true;
+        } catch { return false; }
+      };
+
       const results = await Promise.all(
         urls.map(async (u) => {
+          if (!isSafeUrl(u.url)) {
+            await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
+            return { id: u.id, url: u.url, isValid: false, isRelevant: u.isRelevant, relevanceScore: u.relevanceScore, status: 0, error: "Blocked: internal or private URL" };
+          }
           try {
             const ctrl = new AbortController();
             const timeout = setTimeout(() => ctrl.abort(), 10_000);

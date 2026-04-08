@@ -21,5 +21,6 @@ export { default as OperatingCostRatesSection } from "./OperatingCostRatesSectio
 export { default as ManagementFeesSection } from "./ManagementFeesSection";
 export { default as OtherAssumptionsSection } from "./OtherAssumptionsSection";
 export { default as SourceUrlsSection } from "./SourceUrlsSection";
+export { default as PropertyLinksSection } from "./PropertyLinksSection";
 export { ApplyResearchDialog, RESEARCH_TO_PROPERTY_MAP } from "./ApplyResearchDialog";
 export type { PropertyEditSectionProps, ManagementFeesSectionProps, OtherAssumptionsSectionProps } from "./types";

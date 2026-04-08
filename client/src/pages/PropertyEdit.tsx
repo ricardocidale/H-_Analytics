@@ -55,6 +55,7 @@ import {
   ManagementFeesSection,
   OtherAssumptionsSection,
   SourceUrlsSection,
+  PropertyLinksSection,
   ApplyResearchDialog,
 } from "@/components/property-edit";
 
@@ -538,6 +539,7 @@ export default function PropertyEdit() {
           onRunResearch={handleResearchFromUrls}
           isGenerating={isGenerating}
         />
+        <PropertyLinksSection propertyId={propertyId} />
         <TimelineSection {...sectionProps} />
         <CapitalStructureSection {...sectionProps} />
         <RevenueAssumptionsSection {...sectionProps} />

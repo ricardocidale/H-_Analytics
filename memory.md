@@ -23,6 +23,22 @@
 - **Skills to update**: admin-configurator, hbg-business-model, integrations-infrastructure
 - **Implementation phases**: 5 phases, 28 tasks total
 
+### Task #298: Property URL Card with Validation (April 2026) — COMPLETED
+- **Schema**: New `property_urls` table (`shared/schema/properties.ts`) — id, propertyId (FK cascade), url, label, isValid, isRelevant, relevanceScore, lastCheckedAt, metadata (jsonb), createdAt. Index on property_id. Insert schema with `.pick()`. Types exported: PropertyUrl, InsertPropertyUrl.
+- **Storage module**: `server/storage/property-urls.ts` — PropertyUrlStorage class with getPropertyUrls, getPropertyUrlById, addPropertyUrl, updatePropertyUrl, deletePropertyUrl. Wired into DatabaseStorage via index.ts.
+- **API routes** (`server/routes/properties.ts`): 5 new endpoints:
+  - `GET /api/properties/:id/urls` — list all URLs for a property (requireAuth)
+  - `POST /api/properties/:id/urls` — add URL with http/https-only validation + duplicate check (requireManagementAccess)
+  - `PATCH /api/properties/:id/urls/:urlId` — update label/validity fields (requireManagementAccess)
+  - `DELETE /api/properties/:id/urls/:urlId` — remove URL (requireManagementAccess)
+  - `POST /api/properties/:id/urls/validate` — batch HEAD-request validation with SSRF protection (blocked hosts, private IPs, internal domains), auto-tags relevance for known hospitality domains (Airbnb, VRBO, Booking, etc.)
+- **SSRF protection**: Blocked localhost, 127.0.0.1, 0.0.0.0, ::1, metadata.google.internal, 169.254.169.254, *.internal, *.local, 10.x, 172.16-31.x, 192.168.x private ranges
+- **PropertyLinksSection.tsx** (`client/src/components/property-edit/`): Full CRUD UI card — add URL with optional label, status badges (Unchecked/Valid/Relevant/Broken), validate-all button, delete per URL. Uses react-query mutations.
+- **PropertyDetail.tsx**: Link chips displayed between description card and map — color-coded (primary=relevant, destructive=broken, muted=valid), dot indicator, hostname fallback with safe URL parsing
+- **PortfolioPropertyCard.tsx**: Compact link chips (max 3 shown, "+N" overflow) below description, stale-time query, stopPropagation on clicks
+- Files: schema/properties.ts, storage/property-urls.ts, storage/index.ts, routes/properties.ts, PropertyLinksSection.tsx, property-edit/index.ts, PropertyDetail.tsx, PropertyEdit.tsx, PortfolioPropertyCard.tsx
+- Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
+
 ### Task #297: Property Description Card with AI Rewrite (April 2026) — COMPLETED
 - **DescriptionSection enhanced** (`client/src/components/property-edit/DescriptionSection.tsx`): Read-only display mode (styled card with Edit button) when description exists; edit mode with textarea. Preview Dialog for AI rewrite — user can review improved vs original text side-by-side, then accept or dismiss. Frontend calls property-scoped `POST /api/properties/:id/rewrite-description`.
 - **Server endpoint added** (`server/routes/properties.ts`): New `POST /api/properties/:id/rewrite-description` with `requireManagementAccess` + `checkPropertyAccess`, Zod validation (text 1-5000 chars), Gemini via `resolveLlm("aiUtilityLlm")`, cost logging.

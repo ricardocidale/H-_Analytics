@@ -3,6 +3,7 @@ import { DEPRECIATION_YEARS, USE_SERVER_COMPUTE, USE_SERVER_EXPORTS } from "@sha
 import Layout from "@/components/Layout";
 import { useProperty, useGlobalAssumptions } from "@/lib/api";
 import { usePropertyPhotos } from "@/lib/api/property-photos";
+import type { PropertyUrl } from "@shared/schema";
 import { generatePropertyProForma, getFiscalYearForModelYear } from "@/lib/financialEngine";
 import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBalanceSheet";
 import { CalcDetailsProvider } from "@/components/financial-table";
@@ -63,6 +64,15 @@ export default function PropertyDetail() {
     staleTime: 5 * 60_000,
   });
   const { data: photos } = usePropertyPhotos(propertyId);
+  const { data: propertyLinks = [] } = useQuery<PropertyUrl[]>({
+    queryKey: ["propertyUrls", propertyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/properties/${propertyId}/urls`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: propertyId > 0,
+  });
   const heroCaption = useMemo(() => photos?.find(p => p.isHero)?.caption ?? undefined, [photos]);
   
   const handlePhotoUploadComplete = () => {
@@ -215,6 +225,33 @@ export default function PropertyDetail() {
             <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap" data-testid="text-full-description">
               {property.description}
             </p>
+          </div>
+        )}
+
+        {propertyLinks.length > 0 && (
+          <div className="flex flex-wrap gap-2" data-testid="property-links-chips">
+            {propertyLinks.map((link) => (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors hover:shadow-sm ${
+                  link.isValid === false
+                    ? "border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10"
+                    : link.isRelevant
+                      ? "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+                      : "border-border bg-card text-foreground/70 hover:bg-muted"
+                }`}
+                data-testid={`link-chip-${link.id}`}
+                title={link.url}
+              >
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{
+                  backgroundColor: link.isValid === false ? "var(--destructive)" : link.isRelevant ? "var(--primary)" : "var(--muted-foreground)",
+                }} />
+                {link.label || (() => { try { return new URL(link.url).hostname.replace("www.", ""); } catch { return "Link"; } })()}
+              </a>
+            ))}
           </div>
         )}
 
