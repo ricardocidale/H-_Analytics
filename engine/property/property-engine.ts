@@ -115,17 +115,19 @@ export function generatePropertyProForma(
     const expenseOtherCosts = ctx.baseMonthlyTotalRev * ctx.costRateOther * fixedCostFactorGated;
     const expenseInsurance = ctx.totalPropertyValueDiv12 * ctx.costRateInsurance * fixedCostFactorGated;
     
+    const netRevenueAfterPlatformFees = revenueTotal - expensePlatformFees;
+
     const serviceFeesByCategory: Record<string, number> = {};
     let feeBase: number;
     if (ctx.hasActiveFeeCategories) {
       feeBase = 0;
       for (const cat of ctx.activeFeeCategories!) {
-        const catFee = revenueTotal * cat.rate;
+        const catFee = netRevenueAfterPlatformFees * cat.rate;
         serviceFeesByCategory[cat.name] = catFee;
         feeBase += catFee;
       }
     } else {
-      feeBase = revenueTotal * ctx.baseMgmtFeeRate;
+      feeBase = netRevenueAfterPlatformFees * ctx.baseMgmtFeeRate;
     }
     
     const totalOperatingExpenses = 

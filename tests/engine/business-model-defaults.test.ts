@@ -123,7 +123,7 @@ describe("resolvePropertyAssumptions — business model defaults", () => {
 
   it("resolves vrbo defaults when businessModel is vrbo", () => {
     const ctx = resolvePropertyAssumptions(
-      makeProperty({ businessModel: "vrbo" } as any),
+      makeProperty({ businessModel: "vrbo" }),
       makeGlobal(),
       24
     );
@@ -137,7 +137,7 @@ describe("resolvePropertyAssumptions — business model defaults", () => {
 
   it("resolves lodge defaults when businessModel is lodge", () => {
     const ctx = resolvePropertyAssumptions(
-      makeProperty({ businessModel: "lodge" } as any),
+      makeProperty({ businessModel: "lodge" }),
       makeGlobal(),
       24
     );
@@ -154,7 +154,7 @@ describe("resolvePropertyAssumptions — business model defaults", () => {
         businessModel: "vrbo",
         platformFeeRate: 0.08,
         costRateRooms: 0.22,
-      } as any),
+      }),
       makeGlobal(),
       24
     );
@@ -164,7 +164,7 @@ describe("resolvePropertyAssumptions — business model defaults", () => {
 
   it("pre-opening monthly burn resolves from model defaults", () => {
     const ctx = resolvePropertyAssumptions(
-      makeProperty({ preOpeningMonthlyBurn: 5000 } as any),
+      makeProperty({ preOpeningMonthlyBurn: 5000 }),
       makeGlobal(),
       24
     );
@@ -177,7 +177,7 @@ describe("property engine — platform fees", () => {
     const prop = makeProperty({
       businessModel: "vrbo",
       occupancyRampMonths: 1,
-    } as any);
+    });
     const result = generatePropertyProForma(prop, makeGlobal(), 12);
     const operational = result.filter(m => m.revenueRooms > 0);
     expect(operational.length).toBeGreaterThan(0);
@@ -188,7 +188,7 @@ describe("property engine — platform fees", () => {
   });
 
   it("hotel property has zero expensePlatformFees", () => {
-    const prop = makeProperty({ businessModel: "hotel" } as any);
+    const prop = makeProperty({ businessModel: "hotel" });
     const result = generatePropertyProForma(prop, makeGlobal(), 12);
     for (const m of result) {
       expect(m.expensePlatformFees).toBe(0);
@@ -200,12 +200,23 @@ describe("property engine — platform fees", () => {
       businessModel: "vrbo",
       platformFeeRate: 0.10,
       occupancyRampMonths: 1,
-    } as any);
+    });
     const result = generatePropertyProForma(prop, makeGlobal(), 12);
     const operational = result.filter(m => m.revenueRooms > 0);
     for (const m of operational) {
       expect(m.expensePlatformFees).toBeCloseTo(m.revenueRooms * 0.10, 2);
     }
+  });
+
+  it("management fees computed on net revenue after platform fees", () => {
+    const prop = makeProperty({
+      businessModel: "vrbo",
+      occupancyRampMonths: 1,
+    });
+    const result = generatePropertyProForma(prop, makeGlobal(), 12);
+    const m = result.find(r => r.revenueRooms > 0)!;
+    const expectedNetRevenue = m.revenueTotal - m.expensePlatformFees;
+    expect(m.feeBase).toBeCloseTo(expectedNetRevenue * BUSINESS_MODEL_DEFAULTS.vrbo.baseMgmtFeeRate, 2);
   });
 });
 
@@ -216,7 +227,7 @@ describe("property engine — pre-opening costs", () => {
     const prop = makeProperty({
       occupancyRampMonths: rampMonths,
       preOpeningMonthlyBurn: burn,
-    } as any);
+    });
     const result = generatePropertyProForma(prop, makeGlobal(), 12);
     const operational = result.filter(m => m.revenueRooms > 0);
     const preOpMonths = operational.filter(m => m.expensePreOpening > 0);
@@ -237,15 +248,16 @@ describe("property engine — pre-opening costs", () => {
   });
 });
 
-describe("platform fees deducted in total operating expenses", () => {
-  it("vrbo total expenses include platform fees", () => {
+describe("platform fees deducted before management fees", () => {
+  it("vrbo management fee base is net of platform fees", () => {
     const prop = makeProperty({
       businessModel: "vrbo",
       occupancyRampMonths: 1,
-    } as any);
+    });
     const result = generatePropertyProForma(prop, makeGlobal(), 12);
     const m = result.find(r => r.revenueRooms > 0)!;
     expect(m.expensePlatformFees).toBeGreaterThan(0);
-    expect(m.gop).toBeLessThan(m.revenueTotal - m.expensePlatformFees);
+    const grossFee = m.revenueTotal * BUSINESS_MODEL_DEFAULTS.vrbo.baseMgmtFeeRate;
+    expect(m.feeBase).toBeLessThan(grossFee);
   });
 });

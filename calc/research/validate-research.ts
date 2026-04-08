@@ -92,7 +92,7 @@ const LODGE_BOUNDS: BoundsSet = {
 };
 
 const VRBO_BOUNDS: BoundsSet = {
-  adr: { min: 75, max: 5000 },
+  adr: { min: 75, max: 1500 },
   occupancy: { min: 15, max: 95 },
   startOccupancy: { min: 5, max: 85 },
   capRate: { min: 3, max: 15 },

@@ -106,20 +106,14 @@ describe("validateResearchValues — lodge bounds", () => {
 });
 
 describe("validateResearchValues — vrbo bounds", () => {
-  it("accepts vrbo ADR within $75-$5000", () => {
-    const pass = validateResearchValues({ adr: entry("$3500", 3500) }, BASE_VRBO);
+  it("accepts vrbo ADR within $75-$1500", () => {
+    const pass = validateResearchValues({ adr: entry("$350", 350) }, BASE_VRBO);
     expect(pass.values.adr.validation?.status).toBe("pass");
   });
 
-  it("vrbo ADR ceiling ($5000) is higher than hotel ($2000)", () => {
-    const vrboPass = validateResearchValues({ adr: entry("$4000", 4000) }, BASE_VRBO);
-    expect(vrboPass.values.adr.validation?.status).toBe("pass");
-
-    const hotelWarn = validateResearchValues(
-      { adr: entry("$4000", 4000) },
-      { ...BASE_HOTEL }
-    );
-    expect(hotelWarn.values.adr.validation?.status).toBe("warn");
+  it("warns on vrbo ADR above $1500", () => {
+    const warn = validateResearchValues({ adr: entry("$2000", 2000) }, BASE_VRBO);
+    expect(warn.values.adr.validation?.status).toBe("warn");
   });
 
   it("vrbo platform fee bounds: 3-25%", () => {

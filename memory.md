@@ -18,8 +18,10 @@
 - **Propagation**: yearlyAggregator.ts, consolidation.ts, property-detail/types.ts, calculation-checker types all updated
 - **Validation** (`calc/research/validate-research.ts`): Model-specific bounds (HOTEL_BOUNDS, LODGE_BOUNDS, VRBO_BOUNDS) — platform fee VRBO 3-25%, hotel/lodge 0-5%; ramp months hotel 3-36, lodge 3-24, vrbo 1-12
 - **Management company overhead**: Reviewed against HVS benchmarks — values well-calibrated (8.5% base fee, $75K staff salary, 2.5/4.5/7.0 FTE tiers, $540K-$900K partner comp). No changes needed.
-- **Tests**: 43 new tests in 2 files (business-model-defaults.test.ts, validate-research-models.test.ts)
-- Health check: ALL CLEAR — 0 TS errors, 4,023 tests pass (172 files), verification UNQUALIFIED
+- **Tests**: 44 new tests in 2 files (business-model-defaults.test.ts, validate-research-models.test.ts)
+- **Fee ordering**: Management fees computed on net revenue after platform fees (not gross revenue)
+- **VRBO ADR bounds**: Tightened from $5000 to $1500 for operational realism
+- Health check: ALL CLEAR — 0 TS errors, 4,024 tests pass (172 files), verification UNQUALIFIED
 
 ### Admin Replan v3 (April 2026)
 - **Full replan document**: `.local/replan-admin-intelligence-v3.md`
