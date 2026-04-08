@@ -14,6 +14,7 @@ import { PROPERTY_STATUS_VALUES } from "@shared/constants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CityCombobox } from "@/components/ui/city-combobox";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import StarRatingInput from "@/components/research/StarRatingInput";
@@ -90,19 +91,15 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               </div>
               <div className="space-y-2">
                 <Label className="label-text text-muted-foreground text-sm">City</Label>
-                <Select value={draft.city || GEO_CLEAR_VALUE} onValueChange={geo.handleCityChange} disabled={!geo.stateCode}>
-                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-property-city">
-                    <SelectValue placeholder={geo.stateCode ? "Select city" : "Select state first"} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[280px]">
-                    <SelectItem value={GEO_CLEAR_VALUE} className="text-muted-foreground">None</SelectItem>
-                    {geo.cities.map((c) => (
-                      <SelectItem key={c.name} value={c.name}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CityCombobox
+                  value={draft.city || ""}
+                  onValueChange={geo.handleCityChange}
+                  cities={geo.cities}
+                  disabled={!geo.stateCode}
+                  placeholder={geo.stateCode ? "Select city" : "Select state first"}
+                  className="bg-card border-primary/30 text-foreground"
+                  data-testid="select-property-city"
+                />
               </div>
               <div className="space-y-2">
                 <Label className="label-text text-muted-foreground text-sm">Postal / ZIP Code</Label>

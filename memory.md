@@ -33,6 +33,7 @@
   - `hbg-business-model` — Added comprehensive VRBO/STR section: excluded expense categories, platform fee structure (Airbnb 15.5%/VRBO 8%/Booking 15-18%), all-in management fee (20-35%), depreciation difference (27.5yr vs 39yr), revenue mix comparison table, full expense structure (52-92% of revenue), Lodge model details
   - `integrations-infrastructure` — Added Data Source Management section: source registry schema, card-based system replacing list-based, 4 category tabs, health badges, CRUD endpoints, call logging, SSRF protection, key files. Fixed "Marcela" references to "Rebecca"
 
+
 ### Task #291: Documentation & Help System Updates (April 2026) — COMPLETED
 - **InfoTooltip benchmark citations**: All key assumption tooltips updated with STR chain scale ranges — Starting ADR (Luxury $396+, Upper Upscale $173–$312, etc.), ADR Growth (2–5% Upper Upscale, 3–6% Luxury), Starting Occupancy (40–55% Luxury, 50–65% Upscale), Stabilized Occupancy (65–75% Luxury, 70–80% Upper Upscale), Housekeeping (22–28% Luxury, 18–25% Upper Upscale), Management Fees (3–5% base Upper Upscale, 6–10% specialty), Compensation ($75K–$95K Upper Upscale, $85K–$120K Luxury)
 - **User Manual Section18Research.tsx**: Added 4 new subsections — Research Badges (yellow pill/blue GAAP/guidance arrow), Freshness & Staleness (green/amber/red indicators with color dots), What Triggers Staleness (7 key assumption change types), Applying Research Recommendations (4-step workflow)

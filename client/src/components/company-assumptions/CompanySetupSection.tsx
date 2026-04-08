@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CityCombobox } from "@/components/ui/city-combobox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
@@ -274,19 +275,15 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="label-text text-foreground">City</Label>
-                    <Select value={(formData.companyCity ?? global.companyCity) || GEO_CLEAR_VALUE} onValueChange={geo.handleCityChange} disabled={!geo.stateCode}>
-                      <SelectTrigger className="bg-card" data-testid="select-company-city">
-                        <SelectValue placeholder={geo.stateCode ? "Select city" : "Select state first"} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[280px]">
-                        <SelectItem value={GEO_CLEAR_VALUE} className="text-muted-foreground">None</SelectItem>
-                        {geo.cities.map((c) => (
-                          <SelectItem key={c.name} value={c.name}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <CityCombobox
+                      value={(formData.companyCity ?? global.companyCity) || ""}
+                      onValueChange={geo.handleCityChange}
+                      cities={geo.cities}
+                      disabled={!geo.stateCode}
+                      placeholder={geo.stateCode ? "Select city" : "Select state first"}
+                      className="bg-card"
+                      data-testid="select-company-city"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="label-text text-foreground">Zip / Postal Code</Label>
