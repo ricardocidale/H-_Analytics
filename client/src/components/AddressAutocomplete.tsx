@@ -63,11 +63,11 @@ export default function AddressAutocomplete({
 
     setLoading(true);
     try {
-      let url = `/api/places/autocomplete?q=${encodeURIComponent(query)}`;
+      const params = new URLSearchParams({ q: query });
       if (countryBias) {
-        url += `&country=${encodeURIComponent(countryBias)}`;
+        params.set("country", countryBias);
       }
-      const res = await fetch(url, {
+      const res = await fetch(`/api/places/autocomplete?${params.toString()}`, {
         credentials: "include",
         signal: controller.signal,
       });
