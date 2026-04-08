@@ -43,8 +43,8 @@ The freshness system tracks how current AI research intelligence is for each pro
 | `computeFreshnessStatus` | `client/src/components/intelligence/IntelligenceStatusBar.tsx` | Pure function: computes status from timestamps |
 | `IntelligenceStatusBar` | Same file | UI bar showing status + regenerate button |
 | Sidebar badge | `client/src/components/admin/AdminSidebar.tsx` | Portfolio-level freshness count badge |
-| Freshness counts API | `server/routes/admin/intelligence.ts` | `GET /api/admin/intelligence/freshness-counts` |
-| Average duration API | `server/routes/admin/intelligence.ts` | `GET /api/admin/intelligence/avg-duration` |
+| Freshness counts API | `server/routes/research.ts` | `GET /api/admin/intelligence/freshness-counts` (requireAdmin) |
+| Average duration API | `server/routes/research.ts` | `GET /api/research/avg-duration` (requireAuth) |
 
 ---
 
@@ -123,7 +123,9 @@ interface IntelligenceStatusBarProps {
 
 ## API Contract
 
-### GET /api/admin/intelligence/freshness-counts
+### GET /api/admin/intelligence/freshness-counts (requireAdmin)
+
+Route file: `server/routes/research.ts`
 
 Returns portfolio-wide freshness aggregation:
 
@@ -139,7 +141,9 @@ interface FreshnessCounts {
 
 Polled every 60 seconds by the admin sidebar.
 
-### GET /api/admin/intelligence/avg-duration
+### GET /api/research/avg-duration (requireAuth)
+
+Route file: `server/routes/research.ts`
 
 Returns average research generation time across the portfolio. Used to determine whether auto-refresh is viable (< 30s threshold).
 

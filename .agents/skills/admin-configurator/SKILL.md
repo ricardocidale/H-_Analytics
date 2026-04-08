@@ -188,7 +188,7 @@ export function registerMyConfigRoutes(app: Express) {
 
 The Intelligence Engine group displays a freshness count badge when stale/missing properties exist:
 
-- Badge polls `GET /api/admin/intelligence/freshness-counts` every 60s
+- Badge polls `GET /api/admin/intelligence/freshness-counts` every 60s (route in `server/routes/research.ts`, requires admin auth)
 - Red background if any `missing > 0`, amber if only `stale > 0`
 - Shows total count of `stale + missing`
 - `data-testid="intelligence-freshness-badge"`
