@@ -44,7 +44,8 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
   const [orchestratorMeta, setOrchestratorMeta] = useState<OrchestratorMeta | null>(null);
   const queryClient = useQueryClient();
   const abortRef = useRef<AbortController | null>(null);
-  const queue = useResearchQueue();
+
+  const getQueue = () => useResearchQueue.getState();
 
   const executeStream = useCallback(async (queueId: string) => {
     abortRef.current = new AbortController();
@@ -70,12 +71,13 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
     });
 
     if (response.status === 429) {
-      queue.markRateLimited(queueId);
-      const item = queue.items.find(i => i.id === queueId);
-      if (item && item.status === "queued") {
-        const delay = getBackoffDelay(item.retryCount);
+      useResearchQueue.getState().markRateLimited(queueId);
+      const freshItem = useResearchQueue.getState().items.find(i => i.id === queueId);
+      if (freshItem && freshItem.status === "queued") {
+        const delay = getBackoffDelay(freshItem.retryCount);
         setPhases(prev => [...prev, `Rate limited — retrying in ${Math.ceil(delay / 1000)}s...`]);
         await new Promise(r => setTimeout(r, delay));
+        useResearchQueue.getState().markActive(queueId);
         return executeStream(queueId);
       }
       throw new Error("Rate limit exceeded after retries");
@@ -127,7 +129,7 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
         }
       }
     }
-  }, [property, global, propertyId, queryClient, queue]);
+  }, [property, global, propertyId, queryClient]);
 
   const generateResearch = useCallback(async () => {
     if (!property) return;
@@ -137,7 +139,7 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
     setOrchestratorMeta(null);
 
     const queueId = `property-${propertyId}-${Date.now()}`;
-    queue.enqueue({
+    getQueue().enqueue({
       id: queueId,
       label: property.name || `Property ${propertyId}`,
       propertyId,
@@ -147,7 +149,7 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
     const waitForSlot = (): Promise<void> => {
       return new Promise((resolve) => {
         const check = () => {
-          const next = useResearchQueue.getState().getNext();
+          const next = getQueue().getNext();
           if (next?.id === queueId) {
             resolve();
           } else {
@@ -160,17 +162,18 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
 
     try {
       await waitForSlot();
-      queue.markActive(queueId);
+      getQueue().markActive(queueId);
       await executeStream(queueId);
-      queue.markComplete(queueId);
+      getQueue().markComplete(queueId);
     } catch (error: any) {
       if (error.name !== "AbortError") {
-        queue.markError(queueId, error.message || "Research failed");
+        getQueue().markError(queueId, error.message || "Research failed");
       }
     } finally {
       setIsGenerating(false);
+      setTimeout(() => getQueue().clearCompleted(), 15000);
     }
-  }, [property, global, propertyId, queryClient, queue, executeStream]);
+  }, [property, global, propertyId, queryClient, executeStream]);
 
   return { isGenerating, streamedContent, phases, orchestratorMeta, generateResearch };
 }
