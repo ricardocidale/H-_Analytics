@@ -338,7 +338,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - VRBO: 85–95% rental, 5–12% cleaning fees
 
 ## Test State
-- 3980 tests across 170 files — ALL PASSING
+- 4,047 tests across 173 files — ALL PASSING
 - TypeScript: 0 errors
 - Lint: 0 errors
 - Financial verification: UNQUALIFIED
@@ -355,7 +355,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
-- REBECCA_V2: OFF
+- REBECCA_V2: ON
 - ADMIN_INTEL_V2: ON
 
 ## Critical Rules

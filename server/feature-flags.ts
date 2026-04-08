@@ -10,7 +10,7 @@ export interface FeatureFlags {
 const defaults: FeatureFlags = {
   RI_V2_WRITE: true,
   RI_V2_READ: true,
-  REBECCA_V2: false,
+  REBECCA_V2: true,
   ADMIN_INTEL_V2: true,
 };
 
