@@ -33,26 +33,70 @@ function StatusDot({ status }: { status: "green" | "amber" | "red" }) {
   );
 }
 
-function HealthBar({ counts }: { counts: FreshnessCounts }) {
+function PercentBar({ value, color }: { value: number; color: string }) {
+  return (
+    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+      <div
+        className={cn("h-full rounded-full transition-all duration-500", color)}
+        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+      />
+    </div>
+  );
+}
+
+function IntelligenceHealthCard({ counts }: { counts: FreshnessCounts }) {
   const status = counts.missing > 0 ? "red" : counts.stale > 0 ? "amber" : "green";
   const message =
     status === "green" ? "Engine Healthy — All intelligence is current" :
     status === "amber" ? `${counts.stale} propert${counts.stale === 1 ? "y" : "ies"} need${counts.stale === 1 ? "s" : ""} refresh` :
     `${counts.missing} propert${counts.missing === 1 ? "y" : "ies"} missing intelligence`;
 
+  const total = counts.total || 1;
+  const currentPct = Math.round((counts.current / total) * 100);
+  const stalePct = Math.round((counts.stale / total) * 100);
+  const missingPct = Math.round((counts.missing / total) * 100);
+
   return (
-    <div
-      data-testid="engine-health-bar"
-      className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-lg border",
-        status === "green" && "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800",
-        status === "amber" && "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800",
-        status === "red" && "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
-      )}
-    >
-      <StatusDot status={status} />
-      <span className="text-sm font-medium text-foreground">{message}</span>
-    </div>
+    <Card data-testid="intelligence-health-card">
+      <CardContent className="pt-5 pb-4 px-5">
+        <div
+          data-testid="engine-health-bar"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg border mb-4",
+            status === "green" && "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800",
+            status === "amber" && "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800",
+            status === "red" && "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+          )}
+        >
+          <StatusDot status={status} />
+          <span className="text-sm font-medium text-foreground">{message}</span>
+        </div>
+
+        <div className="space-y-3">
+          <div data-testid="health-bar-current">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">Current</span>
+              <span className="text-xs font-semibold text-emerald-600">{counts.current} ({currentPct}%)</span>
+            </div>
+            <PercentBar value={currentPct} color="bg-emerald-500" />
+          </div>
+          <div data-testid="health-bar-stale">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">Stale</span>
+              <span className="text-xs font-semibold text-amber-600">{counts.stale} ({stalePct}%)</span>
+            </div>
+            <PercentBar value={stalePct} color="bg-amber-500" />
+          </div>
+          <div data-testid="health-bar-missing">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">Missing</span>
+              <span className="text-xs font-semibold text-red-600">{counts.missing} ({missingPct}%)</span>
+            </div>
+            <PercentBar value={missingPct} color="bg-red-500" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -195,7 +239,7 @@ export default function EngineDashboard() {
 
   return (
     <div className="space-y-6" data-testid="engine-dashboard">
-      <HealthBar counts={stats} />
+      <IntelligenceHealthCard counts={stats} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Properties" value={stats.total} icon={IconResearch} />

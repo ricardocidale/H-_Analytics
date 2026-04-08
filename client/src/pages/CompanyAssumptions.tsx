@@ -27,6 +27,7 @@
 import { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
+import { useQuery } from "@tanstack/react-query";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -81,9 +82,15 @@ export default function CompanyAssumptions() {
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
 
   const autoRefreshFired = useRef(false);
+  const { data: freshnessMeta } = useQuery<{ avgDurationMs: number | null }>({
+    queryKey: ["/api/admin/intelligence/freshness-counts"],
+    enabled: !autoRefreshFired.current,
+  });
   useEffect(() => {
     if (autoRefreshFired.current || isDirty || isGenerating || isLoading) return;
     if (!global) return;
+    const estimatedMs = freshnessMeta?.avgDurationMs ?? null;
+    if (estimatedMs !== null && estimatedMs > 30_000) return;
     const { status } = computeFreshnessStatus({
       researchUpdatedAt: companyResearchUpdatedAt,
       lastAssumptionChangeAt: global.lastAssumptionChangeAt ?? null,
@@ -93,7 +100,7 @@ export default function CompanyAssumptions() {
       autoRefreshFired.current = true;
       generateResearch();
     }
-  }, [global, companyResearchUpdatedAt, isDirty, isGenerating, isLoading]);
+  }, [global, companyResearchUpdatedAt, isDirty, isGenerating, isLoading, freshnessMeta]);
 
   const researchValues = (() => {
     const COMPANY_DEFAULTS: Record<string, { display: string; mid: number }> = {

@@ -590,6 +590,9 @@ export function register(app: Express) {
         runMap.set(Number(r.entityId), { completedAt: new Date(r.completedAt), durationMs: r.durationMs ? Number(r.durationMs) : null });
       }
 
+      const runningEntityIds = await storage.getRunningResearchEntityIds("property");
+      const runningEntities = new Set(runningEntityIds);
+
       let current = 0;
       let stale = 0;
       let missing = 0;
@@ -598,6 +601,11 @@ export function register(app: Express) {
       let durationCount = 0;
 
       for (const p of allProperties) {
+        if (runningEntities.has(p.id)) {
+          running++;
+          continue;
+        }
+
         const run = runMap.get(p.id);
         if (!run) {
           missing++;

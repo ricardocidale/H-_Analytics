@@ -25,6 +25,7 @@
  */
 import Layout from "@/components/Layout";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
+import { useQuery } from "@tanstack/react-query";
 import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch, useFeeCategories, useUpdateFeeCategories, type FeeCategoryResponse } from "@/lib/api";
 import { useMarketRates } from "@/lib/api/market-rates";
 import { Button } from "@/components/ui/button";
@@ -86,9 +87,15 @@ export default function PropertyEdit() {
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
 
   const autoRefreshFired = useRef(false);
+  const { data: freshnessMeta } = useQuery<{ avgDurationMs: number | null }>({
+    queryKey: ["/api/admin/intelligence/freshness-counts"],
+    enabled: !autoRefreshFired.current,
+  });
   useEffect(() => {
     if (autoRefreshFired.current || isDirty || isGenerating) return;
     if (!property) return;
+    const estimatedMs = freshnessMeta?.avgDurationMs ?? null;
+    if (estimatedMs !== null && estimatedMs > 30_000) return;
     const { status } = computeFreshnessStatus({
       researchUpdatedAt,
       lastAssumptionChangeAt: propertyLastAssumptionChangeAt,
@@ -98,7 +105,7 @@ export default function PropertyEdit() {
       autoRefreshFired.current = true;
       generateResearch();
     }
-  }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isDirty, isGenerating]);
+  }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isDirty, isGenerating, freshnessMeta]);
 
   useEffect(() => {
     if (feeCategories && !feeDraft) {

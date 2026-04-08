@@ -83,6 +83,15 @@ export class IntelligenceV2Storage {
       .orderBy(desc(researchRuns.startedAt));
   }
 
+  async getRunningResearchEntityIds(entityType: string): Promise<number[]> {
+    const rows = await db.execute(sql`
+      SELECT DISTINCT entity_id AS "entityId"
+      FROM research_runs
+      WHERE entity_type = ${entityType} AND status = 'running'
+    `);
+    return ((rows.rows ?? []) as { entityId: number }[]).map(r => Number(r.entityId));
+  }
+
   async getLatestCompletedRunsPerEntity(entityType: string): Promise<{ entityId: number; completedAt: Date; durationMs: number | null }[]> {
     const rows = await db.execute(sql`
       SELECT DISTINCT ON (entity_id)
