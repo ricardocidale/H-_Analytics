@@ -40,7 +40,7 @@ Description → AI Rewrite → Accept/Dismiss → Portfolio Display
 | `client/src/components/AddressAutocomplete.tsx` | Autocomplete input with AbortController, countryBias, debounce |
 | `client/src/components/property-edit/BasicInfoSection.tsx` | Auto-fill logic, coord persistence, "auto-filled" badges |
 | `server/integrations/geospatial.ts` | `placesAutocomplete(query, countryBias?)` — wraps Google Places API |
-| `server/routes/geospatial.ts` | `GET /api/geospatial/places-autocomplete?q=&country=` |
+| `server/routes/geospatial.ts` | `GET /api/places/autocomplete?q=&country=` |
 | `server/routes/properties.ts` | `PATCH /api/properties/:id/coords` — lat/lng persistence |
 
 ### Patterns
@@ -82,8 +82,8 @@ Description → AI Rewrite → Accept/Dismiss → Portfolio Display
 ### Flow
 1. User adds URLs via `PropertyLinksSection` in property edit
 2. URLs validated client-side (http/https only) + server-side duplicate check
-3. Batch validation via `POST /api/properties/:id/urls/validate` — HEAD requests with SSRF protection
-4. Auto-relevance tagging for known hospitality domains (Airbnb, VRBO, Booking, etc.)
+3. Batch validation via `POST /api/properties/:id/urls/validate` — GET requests (15s timeout) with SSRF protection
+4. AI-based relevance scoring with heuristic domain fallback for known hospitality sites
 5. Validated URLs displayed on portfolio cards and property detail with status badges
 
 ### Key Files
@@ -105,21 +105,21 @@ Description → AI Rewrite → Accept/Dismiss → Portfolio Display
 | POST | `/api/properties/:id/urls` | requireManagementAccess | Add URL (http/https only, duplicate check) |
 | PATCH | `/api/properties/:id/urls/:urlId` | requireManagementAccess | Update label/validity |
 | DELETE | `/api/properties/:id/urls/:urlId` | requireManagementAccess | Remove URL |
-| POST | `/api/properties/:id/urls/validate` | requireManagementAccess | Batch HEAD-request validation |
+| POST | `/api/properties/:id/urls/validate` | requireManagementAccess | Batch GET-request validation (15s timeout) |
 
 ### SSRF Protection
-Validation endpoint blocks:
+Validation endpoint blocks via hostname/IP pattern checks:
 - Localhost variants (127.0.0.1, 0.0.0.0, ::1)
 - RFC1918 private ranges (10.x, 172.16-31.x, 192.168.x)
 - Cloud metadata (169.254.169.254, metadata.google.internal)
 - Internal TLDs (.local, .internal)
-- DNS resolution guard (resolve hostname → check resolved IPs)
+- Protocol restriction (http/https only)
 
 ### Status Badges
 - **Unchecked** (gray) — Not yet validated
-- **Valid** (muted) — HEAD request returned 2xx/3xx
-- **Relevant** (primary) — Valid + known hospitality domain
-- **Broken** (destructive) — HEAD request failed
+- **Valid** (muted) — GET request returned 2xx
+- **Relevant** (primary) — Valid + AI/heuristic relevance score >= 0.6
+- **Broken** (destructive) — GET request failed or non-2xx response
 
 ### Research Integration
 Property URLs feed into the research engine as source material:
@@ -160,7 +160,7 @@ Property URLs feed into the research engine as source material:
 | POST | `/api/property-photos/:id/enhance/accept` | checkPropertyAccess | Commit to DB + regenerate variants |
 | POST | `/api/property-photos/:id/enhance/reject` | checkPropertyAccess | Discard staged enhancement |
 | DELETE | `/api/property-photos/:id/enhanced` | checkPropertyAccess | Revert to original |
-| GET | `/api/property-photos/:id/enhance/status` | checkPropertyAccess | Check pending enhancement |
+| GET | `/api/property-photos/:id/enhanced-preview` | requireAuth | Serve staged enhanced preview |
 
 ### Security
 - All 6 endpoints enforce `checkPropertyAccess` (prevents IDOR)

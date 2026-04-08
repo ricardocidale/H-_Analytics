@@ -477,20 +477,19 @@ User-provided property URLs (managed via the `property_urls` table) serve as fir
 
 #### How URLs Feed Research
 
-1. **Context Pack Inclusion**: Validated URLs are included in the property context pack narrative sent to the research engine
-2. **Source Attribution**: Research findings derived from property URLs carry `source_type: "property_url"` attribution
-3. **Relevance Scoring**: Known hospitality domains (Airbnb, VRBO, Booking, TripAdvisor) auto-tagged as "relevant" with higher weight
-4. **Validation Gate**: Only URLs that pass HEAD-request validation (status 2xx/3xx) are included in research context
-5. **SSRF Protection**: All URL validation includes comprehensive SSRF guards (RFC1918 blocking, metadata IP blocking, DNS resolution guard)
+1. **Context Pack Inclusion**: Property `sourceUrls` (text array on the properties table) are included in the property context pack narrative sent to the research engine
+2. **Relevance Scoring**: AI-based relevance scoring (via LLM analysis of page content) with heuristic domain fallback for known hospitality sites. URLs with relevanceScore >= 0.6 are flagged as relevant
+3. **Validation Gate**: Only URLs that pass GET-request validation (response.ok = 2xx status, 15s timeout) are marked valid
+4. **SSRF Protection**: URL validation includes hostname/IP pattern checks (RFC1918 blocking, metadata IP blocking, internal TLD blocking, protocol restriction)
 
 #### URL Lifecycle in Research
 
 ```
-URL Added → Validation (HEAD request) → Relevance Scoring
-  ↓                                          ↓
-  ↓                                   Status badge (Valid/Relevant/Broken)
-  ↓                                          ↓
-Context Pack Builder ← Valid/Relevant URLs included
+URL Added → Validation (GET request, 15s timeout) → AI Relevance Scoring
+  ↓                                                        ↓
+  ↓                                              Status badge (Valid/Relevant/Broken)
+  ↓                                                        ↓
+sourceUrls array on properties table → Context Pack Builder
   ↓
 Research Engine (N+1 pipeline) sees URLs as reference sources
   ↓

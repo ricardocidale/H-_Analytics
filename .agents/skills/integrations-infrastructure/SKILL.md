@@ -81,32 +81,32 @@ The enhancement pipeline uses Replicate's clarity-upscaler (photo-upscale model)
 | POST | `/api/property-photos/:id/enhance/accept` | Commit to DB + regenerate variants |
 | POST | `/api/property-photos/:id/enhance/reject` | Discard staged enhancement |
 | DELETE | `/api/property-photos/:id/enhanced` | Revert to original |
-| GET | `/api/property-photos/:id/enhance/status` | Check pending enhancement |
+| GET | `/api/property-photos/:id/enhanced-preview` | Serve staged enhanced preview |
 
 ## URL Validation Service
 
 | Aspect | Detail |
 |--------|--------|
-| **Use cases** | Validate user-provided property URLs, auto-tag hospitality domain relevance |
+| **Use cases** | Validate user-provided property URLs, score hospitality relevance |
 | **Endpoint** | `POST /api/properties/:id/urls/validate` |
-| **Method** | HEAD requests with 5-second timeout per URL |
+| **Method** | GET requests with 15-second timeout per URL, manual redirect handling |
 | **Files** | `server/routes/properties.ts`, `server/storage/property-urls.ts` |
 
 ### SSRF Protection
 
-The URL validation endpoint includes comprehensive SSRF guards:
+The URL validation endpoint includes hostname/IP pattern checks:
 - Localhost variants (127.0.0.1, 0.0.0.0, ::1)
 - RFC1918 private ranges (10.x, 172.16-31.x, 192.168.x)
 - Cloud metadata IPs (169.254.169.254, metadata.google.internal)
 - Internal TLDs (.local, .internal)
-- DNS resolution guard (resolve hostname → check resolved IPs against private ranges)
+- Protocol restriction (http/https only)
 
-### Relevance Auto-Tagging
+### Relevance Scoring
 
-Known hospitality domains are auto-tagged as "relevant" during validation:
-- OTA platforms: Airbnb, VRBO, Booking.com, Expedia, Hotels.com
-- Review sites: TripAdvisor, Google Reviews
-- Industry: STR, HVS, CBRE
+URLs are scored for relevance using a two-tier approach:
+1. **AI scoring** (primary): LLM analyzes fetched page content/metadata and returns relevance score 0-1
+2. **Heuristic fallback**: If AI scoring fails, known hospitality domains (Airbnb, VRBO, Booking.com, etc.) get 0.8 score; others get 0.3
+3. URLs with relevanceScore >= 0.6 are flagged as `isRelevant: true`
 
 ## Observability
 
