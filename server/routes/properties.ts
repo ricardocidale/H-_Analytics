@@ -545,6 +545,14 @@ Rewritten description:`;
         return res.status(404).json({ error: "URL not found" });
       }
       await storage.deletePropertyUrl(urlId);
+      try {
+        const { deleteVectors, isPineconeAvailable } = await import("../ai/pinecone-service");
+        if (isPineconeAvailable()) {
+          await deleteVectors("properties", [`prop-url:${propertyId}:${urlId}`]);
+        }
+      } catch (e) {
+        logger.warn(`Failed to remove URL vector: ${(e as Error).message}`, "property-urls");
+      }
       logActivity(req, "delete-url", "property", propertyId, existing.url);
       res.json({ success: true });
     } catch (error) {
@@ -726,10 +734,16 @@ Return ONLY the JSON array, no other text.`;
       );
 
       const relevantUrls = results.filter(r => r.isValid && r.isRelevant);
-      if (relevantUrls.length > 0) {
-        try {
-          const { upsertChunks, isPineconeAvailable } = await import("../ai/pinecone-service");
-          if (isPineconeAvailable()) {
+      const staleUrls = results.filter(r => !r.isValid || !r.isRelevant);
+      try {
+        const { upsertChunks, deleteVectors, isPineconeAvailable } = await import("../ai/pinecone-service");
+        if (isPineconeAvailable()) {
+          if (staleUrls.length > 0) {
+            const staleIds = staleUrls.map(r => `prop-url:${propertyId}:${r.id}`);
+            await deleteVectors("properties", staleIds);
+            logger.info(`Removed ${staleIds.length} stale URL vectors for property ${propertyId}`, "property-urls");
+          }
+          if (relevantUrls.length > 0) {
             const chunks = relevantUrls.map(r => ({
               id: `prop-url:${propertyId}:${r.id}`,
               text: `Property ${property!.name} (${property!.location}) reference link: ${r.url} ${r.title || ""}`,
@@ -746,9 +760,9 @@ Return ONLY the JSON array, no other text.`;
             await upsertChunks("properties", chunks);
             logger.info(`Indexed ${chunks.length} relevant URLs for property ${propertyId}`, "property-urls");
           }
-        } catch (e) {
-          logger.warn(`Failed to index property URLs to Pinecone: ${(e as Error).message}`, "property-urls");
         }
+      } catch (e) {
+        logger.warn(`Failed to manage property URL vectors in Pinecone: ${(e as Error).message}`, "property-urls");
       }
 
       res.json({ validated: results.length, results });

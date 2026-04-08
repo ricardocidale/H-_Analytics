@@ -52,7 +52,7 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
     },
     staleTime: 5 * 60_000,
   });
-  const visibleLinks = propertyLinks.filter(l => l.isValid !== false && (l.isRelevant || l.isValid === null));
+  const visibleLinks = propertyLinks.filter(l => l.isValid === true && l.isRelevant === true);
   const validLinks = visibleLinks.slice(0, 3);
 
   return (

@@ -229,7 +229,7 @@ export default function PropertyDetail() {
         )}
 
         {(() => {
-          const visibleLinks = propertyLinks.filter(l => l.isValid !== false && (l.isRelevant || l.isValid === null));
+          const visibleLinks = propertyLinks.filter(l => l.isValid === true && l.isRelevant === true);
           return visibleLinks.length > 0 ? (
             <div className="flex flex-wrap gap-2" data-testid="property-links-chips">
               {visibleLinks.map((link) => (

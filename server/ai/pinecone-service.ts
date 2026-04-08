@@ -201,6 +201,18 @@ export async function queryChunks(
   }));
 }
 
+export async function deleteVectors(
+  namespace: PineconeNamespace,
+  ids: string[],
+): Promise<void> {
+  if (!isPineconeAvailable() || ids.length === 0) return;
+  await ensureIndex();
+  const index = getPC().index(INDEX_NAME).namespace(namespace);
+  for (let i = 0; i < ids.length; i += 100) {
+    await index.deleteMany(ids.slice(i, i + 100));
+  }
+}
+
 export interface MultiNamespaceMatch extends QueryMatch {
   namespace: PineconeNamespace;
 }

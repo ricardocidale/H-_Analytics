@@ -494,8 +494,8 @@ export async function* orchestrateResearch(
   if (params.propertyId && isPineconeAvailable()) {
     try {
       const { queryChunks } = await import("./pinecone-service");
-      const allChunks = await queryChunks("properties", `property ${params.propertyContext?.name || ""} ${location} reference links URLs`, 20);
-      const urlChunks = allChunks.filter(c => c.metadata?.type === "property-url" && c.metadata?.propertyId === params.propertyId);
+      const urlChunks = await queryChunks("properties", `prop-url:${params.propertyId} property reference links ${params.propertyContext?.name || ""} ${location}`, 10)
+        .then(chunks => chunks.filter(c => c.id.startsWith(`prop-url:${params.propertyId}:`)));
       if (urlChunks.length > 0) {
         propertyUrlContext = "\n\n### Property Reference URLs (validated & relevant)\n" +
           urlChunks.map(c => `- ${c.metadata?.url || ""} ${c.metadata?.title ? `(${c.metadata.title})` : ""} [relevance: ${c.score.toFixed(2)}]`).join("\n");
