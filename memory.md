@@ -8,6 +8,16 @@
 
 ## Architecture Decisions Log
 
+### T24 Rebecca Admin Tabs & ConversationsTab Cleanup (April 2026) — COMPLETED
+- **T24 was already implemented**: RebeccaAdminTabs.tsx (3 tabs: Configuration, Conversations, Feedback) were already built and wired into AIAgentsTab
+- **ConversationsTab.tsx stub deleted**: Old placeholder removed from `client/src/components/admin/`
+- **Admin.tsx cleaned**: Removed ConversationsTab import and switch case
+- **Sidebar redirect added**: `"conversations": "ai-agents"` in SECTION_REDIRECTS — clicking Conversations in sidebar now navigates to AI Agents (where the real conversations tab lives)
+- **claude.md updated**: T24 marked ✅, Phase 4 marked COMPLETE
+- **replit.md updated**: Research Intelligence section updated to reflect Phase 4 complete
+- **Phase 4 (T19-T24) fully complete**: All Rebecca Layer tasks shipped
+- **Phase 5 not yet started**: Remaining tracks include T27 (Coverage Analytics), T29 (Pipeline Policies), T30 (API Dashboard), T28a (QA Sandbox), T31 (Model Routing), T32-T34 (polish)
+
 ### Skills Frontmatter Compliance (April 2026) — COMPLETED
 - **32 skills updated with Agent Skills spec-compliant frontmatter**: Added `---\nname:\ndescription:\n---` YAML frontmatter to all skills missing it
 - **20 `.agents/skills/` fixed**: api-backend-contract, app-defaults, consistent-card-widths, constants-governance, context7-best-practices, database, design-system-export, error-handling, export-config, export-system, financial-engine, hbg-design-philosophy, hbg-product-vision, property-photos, save-button-placement, settings-architecture, testing-conventions, type-contracts, verification-system, zod-schema-sync

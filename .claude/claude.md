@@ -246,7 +246,7 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 - `client/src/components/research/RelaxationTrailStepper.tsx` — L0-L5 vertical stepper with expandable detail
 - `client/src/components/research/ResearchContextFieldLabel.tsx` — Unified wrapper: label + badge + confidence + freshness + state
 
-### Phase 4 Rebecca Layer (IN PROGRESS — T19-T24)
+### Phase 4 Rebecca Layer (COMPLETE — T19-T24)
 - **T19 ✅** `client/src/components/rebecca/RebeccaPanel.tsx` — 520px slide-over, auto-greeting, field context chips
 - **T19 ✅** `client/src/components/rebecca/RebeccaContextCard.tsx` — Collapsible field context card
 - **T20 ✅** `server/ai/rebecca-context-builder.ts` — Server-side context assembly from entity IDs + field key. Calls context pack builders, fetches guidance records, generates auto-greeting. IDOR-safe (never trusts client context text).
@@ -261,7 +261,7 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 - **T23 ✅** `server/ai/pinecone-service.ts` — Added `multiNamespaceQuery(query, namespaces[], topK)` for parallel cross-namespace vector search. Returns `MultiNamespaceMatch[]` with namespace attribution, sorted by score.
 - **T23 ✅** `server/ai/kb-content.ts` — Added 5 new KB chunks: GAAP revenue recognition (ASC 606), USALI expense classification, investment metrics (IRR/equity multiple/cap rates/DSCR), ICP scoring definitions, benchmark data sources.
 - **T23 ✅** `server/routes/chat.ts` — RAG context injection: parallel KB + multi-namespace retrieval (research-history, assumption-guidance), namespace-specific metadata mapping, 3000-char budget cap with source attribution. Injected as `KNOWLEDGE BASE & RESEARCH CONTEXT` block in system prompt.
-- T24: NOT STARTED (admin tabs)
+- **T24 ✅** `client/src/components/admin/ai/RebeccaAdminTabs.tsx` — Tabbed container (Configuration + Conversations + Feedback). RebeccaConfigTab re-exports RebeccaConfig. RebeccaConversationsTab: searchable history with expandable message views from `GET /api/rebecca/conversations`. RebeccaFeedbackTab: status-filtered list (new/reviewed/resolved) with `PATCH /api/rebecca/feedback/:id` status updates. Old ConversationsTab stub removed; sidebar redirects to ai-agents.
 
 ---
 

@@ -51,6 +51,7 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "system-intelligence": "engine-dashboard",
   "research": "engine-dashboard",
   "sources": "data-sources",
+  "conversations": "ai-agents",
 };
 
 export function resolveSection(section: AdminSection): AdminSection {

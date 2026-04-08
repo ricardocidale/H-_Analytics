@@ -22,7 +22,6 @@ import EngineDashboard from "@/components/admin/intelligence/EngineDashboard";
 import DataSourcesTab from "@/components/admin/intelligence/DataSourcesTab";
 import PipelineConfigTab from "@/components/admin/intelligence/PipelineConfigTab";
 import KnowledgeBaseTab from "@/components/admin/KnowledgeBaseTab";
-import ConversationsTab from "@/components/admin/ConversationsTab";
 import FinancialLinesTab from "@/components/admin/intelligence/FinancialLinesTab";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -101,7 +100,6 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
       }><AIAgentsTab onSaveStateChange={onSaveStateChange} /></ErrorBoundary>
     );
     case "knowledge-base":   return <KnowledgeBaseTab onSaveStateChange={onSaveStateChange} />;
-    case "conversations":    return <ConversationsTab />;
     case "engine-dashboard": return <EngineDashboard />;
     case "data-sources":     return <DataSourcesTab />;
     case "pipeline-config":  return <PipelineConfigTab onSaveStateChange={onSaveStateChange} />;
