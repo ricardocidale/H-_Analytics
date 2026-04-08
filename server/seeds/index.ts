@@ -6,6 +6,7 @@ import { seedDefaultLogos, seedCompanies } from "./branding";
 import { seedMissingMarketResearch, getHudsonEstateResearch, getEdenSummitResearch, getAustinHillsideResearch, getCasaMedellinResearch, getBlueRidgeResearch } from "./research";
 import { seedServiceTemplates } from "./services";
 import { seedPropertyPhotos } from "./photos";
+import { indexPropertyProfile } from "../ai/pinecone-service";
 import { logger } from "../logger";
 
 export async function seed() {
@@ -113,6 +114,8 @@ export async function seed() {
 
     await seedPropertyPhotos();
 
+    await indexAllPropertiesToPinecone();
+
     logger.info("Database seed completed successfully!", "seed");
   } catch (err) {
     logger.error(`Seed failed — rolling back inserted data so --force re-run is safe: ${err instanceof Error ? err.message : String(err)}`, "seed");
@@ -124,6 +127,33 @@ export async function seed() {
       logger.warn(`Seed cleanup also failed: ${cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)}`, "seed");
     }
     throw err;
+  }
+}
+
+async function indexAllPropertiesToPinecone() {
+  try {
+    const allProps = await db.select().from(properties);
+    let indexed = 0;
+    for (const p of allProps) {
+      await indexPropertyProfile({
+        propertyId: p.id,
+        name: p.name ?? "Unnamed Property",
+        location: [p.city, p.stateProvince, p.country].filter(Boolean).join(", "),
+        propertyType: "hotel",
+        roomCount: p.roomCount ?? null,
+        status: p.status ?? "active",
+        purchasePrice: p.purchasePrice ?? null,
+        market: p.market ?? null,
+        description: p.description ?? null,
+        streetAddress: p.streetAddress ?? null,
+      });
+      indexed++;
+    }
+    if (indexed > 0) {
+      logger.info(`Indexed ${indexed} properties to Pinecone`, "seed");
+    }
+  } catch (err) {
+    logger.warn(`Pinecone property indexing skipped: ${err instanceof Error ? err.message : err}`, "seed");
   }
 }
 

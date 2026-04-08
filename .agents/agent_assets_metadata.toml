@@ -1,5 +1,10 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "bZagUlT3EgMjsURWMQXDI"
+uri = "file://client/public/images/property-loch-sheldrake.png"
+type = "image"
+title = "Loch Sheldrake octagonal estate aerial"
 
 [[outputs]]
 id = "h4_9p3fJLsy8dBOuBmAOv"

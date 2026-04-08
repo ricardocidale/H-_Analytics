@@ -275,8 +275,8 @@ export async function seedProperties() {
     {
       userId: null,
       name: "Loch Sheldrake",
-      description: "A serene lakeside retreat in Sullivan County's Catskill region, blending rustic charm with modern luxury for year-round mountain and lake experiences.",
-      streetAddress: "Loch Sheldrake",
+      description: "A 10-acre lakeside estate featuring an iconic octagonal main house, three private bodies of water, a private island with gazebo, and income-generating apartment. Set in Sullivan County's Catskill region with event venue potential for weddings, retreats, and luxury Airbnb experiences.",
+      streetAddress: "59 Hazelnis Drive",
       city: "Loch Sheldrake",
       stateProvince: "New York",
       zipPostalCode: "12759",

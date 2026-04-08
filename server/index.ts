@@ -414,6 +414,38 @@ async function runSeeds() {
 
   const { cleanOrphanedLogos } = await import("./migrations/db-hygiene-001");
   await cleanOrphanedLogos();
+
+  indexPropertiesToPineconeAsync();
+}
+
+function indexPropertiesToPineconeAsync() {
+  (async () => {
+    try {
+      const { indexPropertyProfile } = await import("./ai/pinecone-service");
+      const { properties: propertiesTable } = await import("@shared/schema");
+      const { db: database } = await import("./db");
+      const allProps = await database.select().from(propertiesTable);
+      for (const p of allProps) {
+        await indexPropertyProfile({
+          propertyId: p.id,
+          name: p.name ?? "Unnamed Property",
+          location: [p.city, p.stateProvince, p.country].filter(Boolean).join(", "),
+          propertyType: "hotel",
+          roomCount: p.roomCount ?? null,
+          status: p.status ?? "active",
+          purchasePrice: p.purchasePrice ?? null,
+          market: p.market ?? null,
+          description: p.description ?? null,
+          streetAddress: p.streetAddress ?? null,
+        });
+      }
+      if (allProps.length > 0) {
+        log(`Indexed ${allProps.length} property profiles to Pinecone`);
+      }
+    } catch (err) {
+      log(`Pinecone property indexing failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  })();
 }
 
 async function runMigrationsAndSeeds() {

@@ -693,6 +693,8 @@ export async function indexPropertyProfile(params: {
   status?: string;
   purchasePrice?: number | null;
   market?: string;
+  description?: string | null;
+  streetAddress?: string | null;
 }): Promise<void> {
   if (!isPineconeAvailable()) return;
 
@@ -702,11 +704,14 @@ export async function indexPropertyProfile(params: {
     if (params.starRating) details.push(`${params.starRating}-star`);
     if (params.purchasePrice) details.push(`$${Math.round(params.purchasePrice).toLocaleString()} purchase price`);
 
+    const address = params.streetAddress ? `${params.streetAddress}, ${params.location}` : params.location;
+
     const id = `property:${params.propertyId}`;
     const text = [
-      `${params.name} — ${params.propertyType} hotel property in ${params.location}`,
+      `${params.name} — ${params.propertyType} hotel property at ${address}`,
       params.market ? `${params.market} market` : "",
       details.join(", "),
+      params.description ?? "",
       "hotel hospitality property portfolio real estate investment",
     ].filter(Boolean).join(". ");
 
@@ -723,6 +728,7 @@ export async function indexPropertyProfile(params: {
         status:        params.status ?? "active",
         purchasePrice: params.purchasePrice ?? 0,
         market:        (params.market ?? "").slice(0, 200),
+        streetAddress: (params.streetAddress ?? "").slice(0, 200),
       },
     }]);
 
