@@ -4,6 +4,7 @@ import { requireAuth, requireAdmin, getAuthUser } from "../auth";
 import { storage } from "../storage";
 import { sendNotificationEmail } from "../integrations/resend";
 import { logger } from "../logger";
+import { insertRebeccaGuardrailSchema } from "@shared/schema";
 
 const emailRequestSchema = z.object({
   conversationId: z.number().int().positive(),
@@ -159,6 +160,72 @@ export function register(app: Express) {
     } catch (err) {
       logger.error(`Failed to update Rebecca feedback: ${(err as Error).message}`, "rebecca");
       return res.status(500).json({ error: "Failed to update feedback" });
+    }
+  });
+
+  app.get("/api/rebecca/guardrails", requireAuth, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const guardrails = await storage.getRebeccaGuardrails();
+      return res.json(guardrails);
+    } catch (err) {
+      logger.error(`Failed to list guardrails: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to list guardrails" });
+    }
+  });
+
+  app.post("/api/rebecca/guardrails", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const parsed = insertRebeccaGuardrailSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
+      }
+      const guardrail = await storage.createRebeccaGuardrail(parsed.data);
+      logger.info(`Rebecca guardrail created: ${guardrail.label}`, "rebecca");
+      return res.json(guardrail);
+    } catch (err) {
+      logger.error(`Failed to create guardrail: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to create guardrail" });
+    }
+  });
+
+  app.patch("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid guardrail ID" });
+      }
+      const updateSchema = insertRebeccaGuardrailSchema.partial();
+      const parsed = updateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
+      }
+      const updated = await storage.updateRebeccaGuardrail(id, parsed.data);
+      if (!updated) {
+        return res.status(404).json({ error: "Guardrail not found" });
+      }
+      logger.info(`Rebecca guardrail ${id} updated`, "rebecca");
+      return res.json(updated);
+    } catch (err) {
+      logger.error(`Failed to update guardrail: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to update guardrail" });
+    }
+  });
+
+  app.delete("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid guardrail ID" });
+      }
+      const deleted = await storage.deleteRebeccaGuardrail(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Guardrail not found" });
+      }
+      logger.info(`Rebecca guardrail ${id} deleted`, "rebecca");
+      return res.json({ success: true });
+    } catch (err) {
+      logger.error(`Failed to delete guardrail: ${(err as Error).message}`, "rebecca");
+      return res.status(500).json({ error: "Failed to delete guardrail" });
     }
   });
 }

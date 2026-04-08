@@ -334,6 +334,13 @@ export class DatabaseStorage implements IStorage {
   updateScheduledWorkflowRun = this.intelligenceV2.updateScheduledWorkflowRun.bind(this.intelligenceV2);
   deleteScheduledResearchWorkflow = this.intelligenceV2.deleteScheduledResearchWorkflow.bind(this.intelligenceV2);
 
+  // Rebecca Guardrails
+  getRebeccaGuardrails = this.intelligenceV2.getRebeccaGuardrails.bind(this.intelligenceV2);
+  getActiveRebeccaGuardrails = this.intelligenceV2.getActiveRebeccaGuardrails.bind(this.intelligenceV2);
+  createRebeccaGuardrail = this.intelligenceV2.createRebeccaGuardrail.bind(this.intelligenceV2);
+  updateRebeccaGuardrail = this.intelligenceV2.updateRebeccaGuardrail.bind(this.intelligenceV2);
+  deleteRebeccaGuardrail = this.intelligenceV2.deleteRebeccaGuardrail.bind(this.intelligenceV2);
+
   // Property URLs
   getAllPropertyUrls = this.propertyUrlStore.getAllPropertyUrls.bind(this.propertyUrlStore);
   getPropertyUrls = this.propertyUrlStore.getPropertyUrls.bind(this.propertyUrlStore);

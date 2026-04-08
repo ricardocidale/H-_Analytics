@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { IconSettings, IconMessageCircle, IconAlertCircle } from "@/components/icons";
+import { IconSettings, IconMessageCircle, IconAlertCircle, IconShield } from "@/components/icons";
 import { motion } from "framer-motion";
 import RebeccaConfigTab from "./RebeccaConfigTab";
 import RebeccaConversationsTab from "./RebeccaConversationsTab";
 import RebeccaFeedbackTab from "./RebeccaFeedbackTab";
+import GuardrailEditor from "./GuardrailEditor";
 import type { RebeccaConfigProps } from "./RebeccaConfigTab";
 
 interface RebeccaAdminTabsProps {
@@ -26,6 +27,10 @@ export default function RebeccaAdminTabs({ configProps }: RebeccaAdminTabsProps)
             <IconSettings className="w-3.5 h-3.5" />
             Configuration
           </TabsTrigger>
+          <TabsTrigger value="guardrails" className="gap-1.5 text-xs" data-testid="tab-guardrails">
+            <IconShield className="w-3.5 h-3.5" />
+            Guardrails
+          </TabsTrigger>
           <TabsTrigger value="conversations" className="gap-1.5 text-xs" data-testid="tab-conversations">
             <IconMessageCircle className="w-3.5 h-3.5" />
             Conversations
@@ -38,6 +43,10 @@ export default function RebeccaAdminTabs({ configProps }: RebeccaAdminTabsProps)
 
         <TabsContent value="configuration" className="mt-0">
           <RebeccaConfigTab {...configProps} />
+        </TabsContent>
+
+        <TabsContent value="guardrails" className="mt-0">
+          <GuardrailEditor />
         </TabsContent>
 
         <TabsContent value="conversations" className="mt-0">

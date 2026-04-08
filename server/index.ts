@@ -405,6 +405,12 @@ async function runSchemaMigrations() {
     await runEnhancedPhoto001();
     await markMigrationApplied("enhanced_photo_001");
   }
+
+  if (!(await isMigrationApplied("rebecca_guardrails_001"))) {
+    const { runRebeccaGuardrails001 } = await import("./migrations/rebecca-guardrails-001");
+    await runRebeccaGuardrails001();
+    await markMigrationApplied("rebecca_guardrails_001");
+  }
 }
 
 async function runSeeds() {

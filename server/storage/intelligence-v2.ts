@@ -2,7 +2,7 @@ import {
   assumptionGuidance, researchRuns, benchmarkSnapshots, relaxationTraces,
   guidanceDecisions, rebeccaConversations, rebeccaMessages, rebeccaEmails,
   rebeccaFeedback, coverageSnapshots, sourceRegistry, sourceCallLogs, engineSuggestedLines,
-  integrationKeyRotations, pipelinePolicies, scheduledResearchWorkflows,
+  integrationKeyRotations, pipelinePolicies, scheduledResearchWorkflows, rebeccaGuardrails,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type ResearchRun, type InsertResearchRun,
   type BenchmarkSnapshot, type InsertBenchmarkSnapshot,
@@ -19,6 +19,7 @@ import {
   type IntegrationKeyRotation, type InsertIntegrationKeyRotation,
   type PipelinePolicy, type InsertPipelinePolicy,
   type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
+  type RebeccaGuardrail, type InsertRebeccaGuardrail,
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, isNull, lte, sql } from "drizzle-orm";
@@ -531,5 +532,37 @@ export class IntelligenceV2Storage {
     }
     counts.total = counts.pending + counts.approved + counts.rejected;
     return counts;
+  }
+
+  async getRebeccaGuardrails(): Promise<RebeccaGuardrail[]> {
+    return db.select().from(rebeccaGuardrails).orderBy(rebeccaGuardrails.sortOrder);
+  }
+
+  async getActiveRebeccaGuardrails(): Promise<RebeccaGuardrail[]> {
+    return db.select().from(rebeccaGuardrails)
+      .where(eq(rebeccaGuardrails.isActive, true))
+      .orderBy(rebeccaGuardrails.sortOrder);
+  }
+
+  async createRebeccaGuardrail(data: InsertRebeccaGuardrail): Promise<RebeccaGuardrail> {
+    const [row] = await db.insert(rebeccaGuardrails)
+      .values(data as typeof rebeccaGuardrails.$inferInsert)
+      .returning();
+    return row;
+  }
+
+  async updateRebeccaGuardrail(id: number, data: Partial<InsertRebeccaGuardrail>): Promise<RebeccaGuardrail | undefined> {
+    const [row] = await db.update(rebeccaGuardrails)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(rebeccaGuardrails.id, id))
+      .returning();
+    return row;
+  }
+
+  async deleteRebeccaGuardrail(id: number): Promise<boolean> {
+    const result = await db.delete(rebeccaGuardrails)
+      .where(eq(rebeccaGuardrails.id, id))
+      .returning();
+    return result.length > 0;
   }
 }

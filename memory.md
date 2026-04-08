@@ -8,6 +8,16 @@
 
 ## Architecture Decisions Log
 
+### Task #305 Rebecca Personality Foundation & Guardrail Editor (April 2026) — COMPLETED
+- **Personality rewrite**: DEFAULT_SYSTEM_PROMPT in chat.ts fully rewritten with Super Conversations framework (curiosity, art of questioning, empathy, active listening, trust building), voice register, banned phrases, user awareness, brevity rules, first message exception, and hard guardrails
+- **rebecca_guardrails table**: New schema in intelligence-v2.ts (id, label, rule, sortOrder, isActive, createdAt, updatedAt) with insert schema and types
+- **Storage CRUD**: getRebeccaGuardrails, getActiveRebeccaGuardrails, createRebeccaGuardrail, updateRebeccaGuardrail, deleteRebeccaGuardrail in IntelligenceV2Storage, bound through DatabaseStorage
+- **API routes**: GET/POST/PATCH/DELETE /api/rebecca/guardrails (admin-only, Zod-validated)
+- **System prompt injection**: Active guardrails fetched at query time and appended as structured "Admin-Configured Guardrails" block in system prompt
+- **Seed migration**: rebecca-guardrails-001.ts creates table + seeds 5 default guardrails (off-topic, legal/tax, guarantees, arithmetic, redirect), registered in server/index.ts
+- **Admin UI**: GuardrailEditor.tsx component (explainer banner, create form, inline edit, toggle active/inactive, delete with confirmation) as 4th tab "Guardrails" in RebeccaAdminTabs
+- **Files**: chat.ts, rebecca.ts, intelligence-v2.ts (schema + storage), index.ts (storage + server), rebecca-guardrails-001.ts, GuardrailEditor.tsx, RebeccaAdminTabs.tsx, RebeccaConfig.tsx, RebeccaTab.tsx
+
 ### T24 Rebecca Admin Tabs & ConversationsTab Cleanup (April 2026) — COMPLETED
 - **T24 was already implemented**: RebeccaAdminTabs.tsx (3 tabs: Configuration, Conversations, Feedback) were already built and wired into AIAgentsTab
 - **ConversationsTab.tsx stub deleted**: Old placeholder removed from `client/src/components/admin/`

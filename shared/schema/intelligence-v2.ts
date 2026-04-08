@@ -380,3 +380,19 @@ export const insertScheduledResearchWorkflowSchema = createInsertSchema(schedule
 });
 export type ScheduledResearchWorkflow = typeof scheduledResearchWorkflows.$inferSelect;
 export type InsertScheduledResearchWorkflow = z.infer<typeof insertScheduledResearchWorkflowSchema>;
+
+export const rebeccaGuardrails = pgTable("rebecca_guardrails", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  label: text("label").notNull(),
+  rule: text("rule").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRebeccaGuardrailSchema = createInsertSchema(rebeccaGuardrails).pick({
+  label: true, rule: true, sortOrder: true, isActive: true,
+});
+export type RebeccaGuardrail = typeof rebeccaGuardrails.$inferSelect;
+export type InsertRebeccaGuardrail = z.infer<typeof insertRebeccaGuardrailSchema>;
