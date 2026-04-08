@@ -511,28 +511,136 @@ export function registerIntelligenceRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/admin/source-registry/:serviceKey", requireAdmin, async (req, res) => {
+  app.post("/api/admin/source-registry", requireAdmin, async (req, res) => {
     try {
-      const serviceKey = req.params.serviceKey;
       const bodySchema = z.object({
+        serviceKey: z.string().min(1).max(100).regex(/^[a-z0-9_-]+$/i),
+        name: z.string().min(1).max(200),
+        sourceType: z.string().min(1).max(100),
+        category: z.enum(["apis", "scrapers", "sources", "models"]),
+        description: z.string().max(500).optional(),
+        endpoint: z.string().url().optional().or(z.literal("")),
+        apiKeyRef: z.string().max(200).optional(),
+        rateLimitPerMin: z.number().int().min(0).max(10000).optional(),
+        costPerCall: z.string().max(50).optional(),
+        dataProvided: z.array(z.string().max(50)).max(20).optional(),
+        cadence: z.string().max(50).optional(),
         trustScore: z.enum(["verified", "estimated", "unverified"]).optional(),
         isActive: z.boolean().optional(),
-        cadence: z.string().optional(),
+      });
+      const parsed = bodySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      const created = await storage.createSourceRegistryEntry(parsed.data);
+      res.status(201).json(created);
+    } catch (error) {
+      logAndSendError(res, "Failed to create source registry entry", error);
+    }
+  });
+
+  app.patch("/api/admin/source-registry/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+
+      const bodySchema = z.object({
+        name: z.string().min(1).max(200).optional(),
+        sourceType: z.string().min(1).max(100).optional(),
+        category: z.enum(["apis", "scrapers", "sources", "models"]).optional(),
+        description: z.string().max(500).optional(),
+        endpoint: z.string().url().optional().or(z.literal("")),
+        apiKeyRef: z.string().max(200).optional(),
+        rateLimitPerMin: z.number().int().min(0).max(10000).optional(),
+        costPerCall: z.string().max(50).optional(),
+        dataProvided: z.array(z.string().max(50)).max(20).optional(),
+        cadence: z.string().max(50).optional(),
+        trustScore: z.enum(["verified", "estimated", "unverified"]).optional(),
+        isActive: z.boolean().optional(),
       });
       const parsed = bodySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
 
-      const existing = await storage.getSourceRegistry();
-      const entry = existing.find(s => s.serviceKey === serviceKey);
-      if (!entry) return res.status(404).json({ error: "Source not found" });
-
-      const updated = await storage.upsertSourceRegistry({
-        ...entry,
-        ...parsed.data,
-      });
+      const updated = await storage.updateSourceRegistryEntry(id, parsed.data);
+      if (!updated) return res.status(404).json({ error: "Source not found" });
       res.json(updated);
     } catch (error) {
       logAndSendError(res, "Failed to update source registry entry", error);
+    }
+  });
+
+  app.patch("/api/admin/source-registry/:id/toggle", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const { isActive } = req.body;
+      if (typeof isActive !== "boolean") return res.status(400).json({ error: "isActive must be a boolean" });
+      const updated = await storage.updateSourceRegistryEntry(id, { isActive });
+      if (!updated) return res.status(404).json({ error: "Source not found" });
+      res.json(updated);
+    } catch (error) {
+      logAndSendError(res, "Failed to toggle source", error);
+    }
+  });
+
+  app.delete("/api/admin/source-registry/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const existing = await storage.getSourceRegistryEntry(id);
+      if (!existing) return res.status(404).json({ error: "Source not found" });
+      await storage.deleteSourceRegistryEntry(id);
+      res.json({ success: true });
+    } catch (error) {
+      logAndSendError(res, "Failed to delete source", error);
+    }
+  });
+
+  app.post("/api/admin/source-registry/:id/test", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(String(req.params.id), 10);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const source = await storage.getSourceRegistryEntry(id);
+      if (!source) return res.status(404).json({ error: "Source not found" });
+
+      const startTime = Date.now();
+      let healthy = false;
+      let errorMsg: string | undefined;
+
+      if (source.endpoint) {
+        try {
+          const url = new URL(source.endpoint);
+          if (!["https:", "http:"].includes(url.protocol)) {
+            return res.status(400).json({ error: "Only HTTP(S) endpoints are supported" });
+          }
+          const blockedPatterns = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.", "10.", "172.16.", "192.168.", "[::1]", "metadata.google"];
+          if (blockedPatterns.some(p => url.hostname.includes(p))) {
+            return res.status(400).json({ error: "Internal/private endpoints are not allowed" });
+          }
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 10000);
+          const response = await fetch(source.endpoint, {
+            method: "HEAD",
+            signal: controller.signal,
+            redirect: "manual",
+          }).catch(() => fetch(source.endpoint!, { method: "GET", signal: controller.signal, redirect: "manual" }));
+          clearTimeout(timeout);
+          healthy = response.ok || response.status < 500;
+        } catch (err: unknown) {
+          errorMsg = err instanceof Error ? err.message : "Connection failed";
+        }
+      } else {
+        healthy = source.isActive;
+        if (!healthy) errorMsg = "No endpoint configured and source is inactive";
+      }
+
+      const latencyMs = Date.now() - startTime;
+
+      await storage.updateSourceRegistryEntry(id, {
+        lastHealthCheck: new Date() as any,
+      });
+
+      res.json({ healthy, latencyMs, error: errorMsg });
+    } catch (error) {
+      logAndSendError(res, "Failed to test source connectivity", error);
     }
   });
 

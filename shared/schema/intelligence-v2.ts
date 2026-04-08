@@ -238,11 +238,21 @@ export const sourceRegistry = pgTable("source_registry", {
   lastHealthCheck: timestamp("last_health_check"),
   lastDataDate: timestamp("last_data_date"),
   isActive: boolean("is_active").notNull().default(true),
+  description: text("description"),
+  endpoint: text("endpoint"),
+  apiKeyRef: text("api_key_ref"),
+  rateLimitPerMin: integer("rate_limit_per_min"),
+  successRate: real("success_rate"),
+  avgLatencyMs: integer("avg_latency_ms"),
+  costPerCall: text("cost_per_call"),
+  dataProvided: jsonb("data_provided").$type<string[]>(),
 });
 
 export const insertSourceRegistrySchema = createInsertSchema(sourceRegistry).pick({
   serviceKey: true, name: true, sourceType: true, trustScore: true,
   category: true, cadence: true, lastHealthCheck: true, lastDataDate: true, isActive: true,
+  description: true, endpoint: true, apiKeyRef: true, rateLimitPerMin: true,
+  successRate: true, avgLatencyMs: true, costPerCall: true, dataProvided: true,
 });
 export type SourceRegistryEntry = typeof sourceRegistry.$inferSelect;
 export type InsertSourceRegistryEntry = z.infer<typeof insertSourceRegistrySchema>;

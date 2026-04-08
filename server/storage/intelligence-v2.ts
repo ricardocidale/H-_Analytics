@@ -326,6 +326,12 @@ export class IntelligenceV2Storage {
     return db.select().from(sourceRegistry);
   }
 
+  async getSourceRegistryEntry(id: number): Promise<SourceRegistryEntry | undefined> {
+    const [row] = await db.select().from(sourceRegistry)
+      .where(eq(sourceRegistry.id, id)).limit(1);
+    return row;
+  }
+
   async upsertSourceRegistry(data: InsertSourceRegistryEntry): Promise<SourceRegistryEntry> {
     const [existing] = await db.select().from(sourceRegistry)
       .where(eq(sourceRegistry.serviceKey, data.serviceKey))
@@ -341,6 +347,25 @@ export class IntelligenceV2Storage {
       .values(data as typeof sourceRegistry.$inferInsert)
       .returning();
     return inserted;
+  }
+
+  async createSourceRegistryEntry(data: InsertSourceRegistryEntry): Promise<SourceRegistryEntry> {
+    const [inserted] = await db.insert(sourceRegistry)
+      .values(data as typeof sourceRegistry.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  async updateSourceRegistryEntry(id: number, data: Partial<InsertSourceRegistryEntry>): Promise<SourceRegistryEntry | undefined> {
+    const [updated] = await db.update(sourceRegistry)
+      .set(data)
+      .where(eq(sourceRegistry.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSourceRegistryEntry(id: number): Promise<void> {
+    await db.delete(sourceRegistry).where(eq(sourceRegistry.id, id));
   }
 
   async createKeyRotation(data: InsertIntegrationKeyRotation): Promise<IntegrationKeyRotation> {

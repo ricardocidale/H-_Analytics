@@ -75,8 +75,8 @@ export default function SourceRegistryOverlay() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ serviceKey, isActive }: { serviceKey: string; isActive: boolean }) => {
-      await apiRequest("PATCH", `/api/admin/source-registry/${serviceKey}`, { isActive });
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      await apiRequest("PATCH", `/api/admin/source-registry/${id}/toggle`, { isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/source-registry"] });
@@ -183,7 +183,7 @@ export default function SourceRegistryOverlay() {
                           variant="ghost"
                           size="sm"
                           className="h-7 text-[10px] shrink-0"
-                          onClick={() => toggleMutation.mutate({ serviceKey: source.serviceKey, isActive: !source.isActive })}
+                          onClick={() => toggleMutation.mutate({ id: source.id, isActive: !source.isActive })}
                           disabled={toggleMutation.isPending}
                           data-testid={`button-toggle-${source.serviceKey}`}
                         >
