@@ -83,7 +83,8 @@ export default function CompanyAssumptions() {
 
   const autoRefreshFired = useRef(false);
   const { data: freshnessMeta } = useQuery<{ avgDurationMs: number | null }>({
-    queryKey: ["/api/research/avg-duration"],
+    queryKey: ["/api/research/avg-duration", "company"],
+    queryFn: () => fetch("/api/research/avg-duration?entityType=company").then(r => r.json()),
     enabled: !autoRefreshFired.current,
   });
   useEffect(() => {

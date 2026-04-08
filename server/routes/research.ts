@@ -643,9 +643,10 @@ export function register(app: Express) {
     }
   });
 
-  app.get("/api/research/avg-duration", requireAuth, async (_req, res) => {
+  app.get("/api/research/avg-duration", requireAuth, async (req, res) => {
     try {
-      const latestRuns = await storage.getLatestCompletedRunsPerEntity("property");
+      const entityType = (req.query.entityType as string) || "property";
+      const latestRuns = await storage.getLatestCompletedRunsPerEntity(entityType);
       let totalDurationMs = 0;
       let durationCount = 0;
       for (const r of latestRuns) {
