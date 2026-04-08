@@ -31,6 +31,7 @@ interface AddressAutocompleteProps {
   className?: string;
   disabled?: boolean;
   countryBias?: string;
+  stateBias?: string;
 }
 
 export default function AddressAutocomplete({
@@ -43,6 +44,7 @@ export default function AddressAutocomplete({
   className,
   disabled,
   countryBias,
+  stateBias,
 }: AddressAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -67,6 +69,9 @@ export default function AddressAutocomplete({
       if (countryBias) {
         params.set("country", countryBias);
       }
+      if (stateBias) {
+        params.set("state", stateBias);
+      }
       const res = await fetch(`/api/places/autocomplete?${params.toString()}`, {
         credentials: "include",
         signal: controller.signal,
@@ -84,7 +89,7 @@ export default function AddressAutocomplete({
         setLoading(false);
       }
     }
-  }, [countryBias]);
+  }, [countryBias, stateBias]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
