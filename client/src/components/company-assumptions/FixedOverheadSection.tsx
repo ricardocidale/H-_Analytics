@@ -137,10 +137,12 @@ export default function FixedOverheadSection({ formData, onChange, global, model
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
-              Business Insurance
-              <InfoTooltip text="Annual corporate insurance premium — general liability, errors & omissions (E&O), and cyber liability for the management company. This is the company's own policy, separate from each property's insurance. Year 1 value, escalates annually. Typical range: $8K–$15K/year for small hotel management companies." />
-            </Label>
+            <ResearchContextFieldLabel
+              label={<>Business Insurance <InfoTooltip text="Annual corporate insurance premium — general liability, errors & omissions (E&O), and cyber liability for the management company. This is the company's own policy, separate from each property's insurance. Year 1 value, escalates annually. Typical range: $8K–$15K/year for small hotel management companies." /></>}
+              badgeProps={{ value: researchValues.businessInsurance?.display, sourceType: "industry", sourceName: "Insurance industry benchmarks", "data-testid": "badge-business-insurance" }}
+              onApplyValue={() => researchValues.businessInsurance && onChange("businessInsuranceStart", researchValues.businessInsurance.mid)}
+              guidanceContext={gc("businessInsurance", "Business Insurance")}
+            />
             <EditableValue
               value={formData.businessInsuranceStart ?? global.businessInsuranceStart}
               onChange={(v) => onChange("businessInsuranceStart", v)}

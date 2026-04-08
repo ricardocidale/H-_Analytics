@@ -4,6 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { IconPhone, IconGlobe, IconHash, IconCalendar, IconProperties, IconMail, IconMapPin, IconPercent } from "@/components/icons";
 import defaultLogo from "@/assets/logo.png";
 import { PROJECTION_YEARS } from "@/lib/constants";
@@ -11,7 +12,8 @@ import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import LogoSelector from "@/components/admin/LogoSelector";
 import type { CompanySetupSectionProps } from "./types";
 
-export default function CompanySetupSection({ formData, onChange, global, isAdmin }: CompanySetupSectionProps) {
+export default function CompanySetupSection({ formData, onChange, global, isAdmin, researchValues }: CompanySetupSectionProps) {
+  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
   const geo = useGeoSelect({
     countryName: formData.companyCountry ?? global.companyCountry ?? "",
     stateName: formData.companyStateProvince ?? global.companyStateProvince ?? "",
@@ -104,10 +106,13 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
           <CardContent className="space-y-3">
             <div className="max-w-md space-y-2">
               <div className="flex justify-between items-center">
-                <Label className="text-foreground label-text flex items-center gap-1">
-                  Company Inflation Rate
-                  <InfoTooltip text="Overrides the global inflation rate for management company overhead cost escalation. If left empty, falls back to the global inflation rate. Three-tier cascade: property → company → global." />
-                </Label>
+                <ResearchContextFieldLabel
+                  label={<>Company Inflation Rate <InfoTooltip text="Overrides the global inflation rate for management company overhead cost escalation. If left empty, falls back to the global inflation rate. Three-tier cascade: property → company → global." /></>}
+                  badgeProps={{ value: researchValues.companyInflationRate?.display, sourceType: "industry", sourceName: "CPI / Fed Reserve", "data-testid": "badge-company-inflation" }}
+                  onApplyValue={() => researchValues.companyInflationRate && onChange("companyInflationRate", researchValues.companyInflationRate.mid / 100)}
+                  guidanceContext={gc("companyInflationRate", "Company Inflation Rate")}
+                  className="text-foreground label-text"
+                />
                 <span className="text-sm font-mono text-primary">
                   {(formData.companyInflationRate ?? global.companyInflationRate) != null
                     ? `${(((formData.companyInflationRate ?? global.companyInflationRate) as number) * 100).toFixed(1)}%`

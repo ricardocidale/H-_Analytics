@@ -17,22 +17,31 @@
  */
 import { Label } from "@/components/ui/label";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { formatMoney } from "@/lib/financialEngine";
 import { DEFAULT_PARTNER_COMP, DEFAULT_PARTNER_COUNT } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { PartnerCompSectionProps } from "./types";
 
-export default function PartnerCompSection({ formData, onChange, global, modelStartYear }: PartnerCompSectionProps) {
+export default function PartnerCompSection({ formData, onChange, global, modelStartYear, researchValues }: PartnerCompSectionProps) {
+  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
       <div className="relative">
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-display text-foreground flex items-center gap-2">
-            Partner Compensation Schedule
-            <InfoTooltip text="Annual total partner compensation and partner count for each year. Individual partner compensation = Total ÷ Partner Count." manualSection="company-formulas" />
-          </h3>
+          <ResearchContextFieldLabel
+            label={<>Partner Compensation Schedule <InfoTooltip text="Annual total partner compensation and partner count for each year. Individual partner compensation = Total ÷ Partner Count." manualSection="company-formulas" /></>}
+            badgeProps={{ value: researchValues.partnerComp?.display, sourceType: "industry", sourceName: "Hospitality comp benchmarks", "data-testid": "badge-partner-comp" }}
+            onApplyValue={() => {
+              if (researchValues.partnerComp) {
+                onChange("partnerCompYear1", researchValues.partnerComp.mid);
+              }
+            }}
+            guidanceContext={gc("partnerComp", "Partner Compensation")}
+            className="text-lg font-display text-foreground"
+          />
           <p className="text-muted-foreground text-sm label-text">Configure total partner compensation and headcount by year</p>
         </div>
         <div className="overflow-x-auto">

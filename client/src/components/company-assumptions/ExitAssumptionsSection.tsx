@@ -82,9 +82,9 @@ export default function ExitAssumptionsSection({ formData, onChange, global, res
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
               label={<>Default Sales Commission Rate <InfoTooltip text="As a percentage of gross sale price. Default broker commission for new properties. Each property can override this with its own disposition commission on its assumptions page." /></>}
-              badgeProps={{ value: researchValues.salesCommission?.display, sourceType: "industry", sourceName: "NAR transaction data", "data-testid": "badge-sales-commission" }}
-              onApplyValue={() => researchValues.salesCommission && onChange("salesCommissionRate", researchValues.salesCommission.mid / 100)}
-              guidanceContext={gc("salesCommission", "Sales Commission Rate")}
+              badgeProps={{ value: researchValues.dispositionCommission?.display, sourceType: "industry", sourceName: "NAR transaction data", "data-testid": "badge-sales-commission" }}
+              onApplyValue={() => researchValues.dispositionCommission && onChange("salesCommissionRate", researchValues.dispositionCommission.mid / 100)}
+              guidanceContext={gc("dispositionCommission", "Sales Commission Rate")}
             />
             <EditableValue
               value={formData.salesCommissionRate ?? global.salesCommissionRate ?? DEFAULT_COMMISSION_RATE}

@@ -29,6 +29,7 @@ export interface CompanyAssumptionsSectionProps {
 
 export interface CompanySetupSectionProps extends CompanyAssumptionsSectionProps {
   isAdmin: boolean;
+  researchValues: Record<string, { display: string; mid: number } | null | undefined>;
 }
 
 export interface FundingSectionProps extends CompanyAssumptionsSectionProps {}
@@ -43,6 +44,7 @@ export interface PortfolioPropertySummary {
 export interface ManagementFeesSectionProps extends CompanyAssumptionsSectionProps {
   properties: PortfolioPropertySummary[];
   allFeeCategories: FeeCategoryResponse[];
+  researchValues: Record<string, { display: string; mid: number } | null | undefined>;
 }
 
 export interface CompensationSectionProps extends CompanyAssumptionsSectionProps {
@@ -72,4 +74,5 @@ export interface ExitAssumptionsSectionProps extends CompanyAssumptionsSectionPr
 
 export interface PartnerCompSectionProps extends CompanyAssumptionsSectionProps {
   modelStartYear: number;
+  researchValues: Record<string, { display: string; mid: number } | null | undefined>;
 }

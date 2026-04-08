@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
   IconPlus, IconSave, IconInfo, IconPercent, IconDollarSign, IconArrowRightLeft,
@@ -38,7 +39,7 @@ function formFromTemplate(t: ServiceTemplate): FormState {
   };
 }
 
-export default function ManagementFeesSection({ properties, allFeeCategories }: ManagementFeesSectionProps) {
+export default function ManagementFeesSection({ properties, allFeeCategories, researchValues }: ManagementFeesSectionProps) {
   const { toast } = useToast();
 
   const { data: templates, isLoading: templatesLoading } = useServiceTemplates();
@@ -203,6 +204,8 @@ export default function ManagementFeesSection({ properties, allFeeCategories }: 
     );
   };
 
+  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
+
   const sorted = [...(templates ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const activeTemplates = sorted.filter(t => t.isActive);
   const totalServiceRate = activeTemplates.reduce((sum, t) => sum + (t.defaultRate ?? 0), 0);
@@ -364,9 +367,18 @@ export default function ManagementFeesSection({ properties, allFeeCategories }: 
         <CardContent>
           <div className="flex items-end gap-4 max-w-md">
             <div className="space-y-2 flex-1">
-              <Label className="label-text text-foreground flex items-center gap-2">
-                <IconPercent className="w-3 h-3" /> Default Incentive Fee
-              </Label>
+              <ResearchContextFieldLabel
+                label={<><IconPercent className="w-3 h-3 inline" /> Default Incentive Fee</>}
+                badgeProps={{ value: researchValues.incentiveManagementFee?.display, sourceType: "industry", sourceName: "HVS 2024 Fee Survey", "data-testid": "badge-incentive-fee" }}
+                onApplyValue={() => {
+                  if (researchValues.incentiveManagementFee) {
+                    setIncentivePct(String(researchValues.incentiveManagementFee.mid));
+                    setIncentiveDirty(true);
+                  }
+                }}
+                guidanceContext={gc("incentiveManagementFee", "Incentive Management Fee")}
+                className="label-text text-foreground"
+              />
               <div className="relative">
                 <Input
                   type="number" step="0.1" min="0" max="100"

@@ -82,20 +82,29 @@ export default function CompanyAssumptions() {
   const researchValues = (() => {
     const COMPANY_DEFAULTS: Record<string, { display: string; mid: number }> = {
       staffSalary: { display: "$65K–$90K", mid: 75000 },
-      baseFee: { display: "3%–5%", mid: 4 },
-      incentiveFee: { display: "8%–15%", mid: 12 },
+      partnerComp: { display: "$120K–$250K", mid: 180000 },
+      baseManagementFee: { display: "3%–5%", mid: 4 },
+      incentiveManagementFee: { display: "8%–15%", mid: 12 },
+      svcFeeMarketing: { display: "0.5%–1.5%", mid: 1 },
+      svcFeeTechRes: { display: "0.5%–1.2%", mid: 0.8 },
+      svcFeeAccounting: { display: "0.3%–0.8%", mid: 0.5 },
+      svcFeeRevMgmt: { display: "0.5%–1.5%", mid: 1 },
+      svcFeeGeneralMgmt: { display: "1%–2.5%", mid: 1.5 },
+      svcFeeProcurement: { display: "0.3%–0.8%", mid: 0.5 },
       eventExpense: { display: "55%–70%", mid: 65 },
       marketingRate: { display: "3%–7%", mid: 5 },
-      miscOpsRate: { display: "2%–4%", mid: 3 },
+      miscOps: { display: "2%–4%", mid: 3 },
       officeLease: { display: "$24K–$48K", mid: 36000 },
       professionalServices: { display: "$18K–$36K", mid: 24000 },
       techInfra: { display: "$12K–$24K", mid: 18000 },
-      travelPerClient: { display: "$8K–$18K", mid: 12000 },
-      itLicensePerClient: { display: "$2K–$5K", mid: 3000 },
+      businessInsurance: { display: "$8K–$20K", mid: 14000 },
+      travelCost: { display: "$8K–$18K", mid: 12000 },
+      itLicense: { display: "$2K–$5K", mid: 3000 },
       companyTaxRate: { display: "25%–35%", mid: 30 },
       costOfEquity: { display: "15%–22%", mid: 18 },
       exitCapRate: { display: "7%–10%", mid: 8.5 },
-      salesCommission: { display: "4%–6%", mid: 5 },
+      dispositionCommission: { display: "4%–6%", mid: 5 },
+      companyInflationRate: { display: "2.5%–4%", mid: 3 },
       otherExpenseRate: { display: "50%–70%", mid: 60 },
       utilitiesVariableSplit: { display: "50%–70%", mid: 60 },
     };
@@ -117,8 +126,23 @@ export default function CompanyAssumptions() {
       return null;
     };
 
-    const baseFee = parsePctRange(c.managementFees?.baseFee?.recommended || c.managementFees?.baseFee?.boutiqueRange);
-    const incentiveFee = parsePctRange(c.managementFees?.incentiveFee?.recommended || c.managementFees?.incentiveFee?.industryRange);
+    const baseManagementFee = parsePctRange(c.managementFees?.baseFee?.recommended || c.managementFees?.baseFee?.boutiqueRange);
+    const incentiveManagementFee = parsePctRange(c.managementFees?.incentiveFee?.recommended || c.managementFees?.incentiveFee?.industryRange);
+
+    const svcCategories = c.managementFees?.serviceCategories || c.serviceCategories;
+    const findSvcFee = (keyword: string) => {
+      if (!svcCategories || !Array.isArray(svcCategories)) return null;
+      const match = (svcCategories as Array<{ name?: string; category?: string; rate?: string; range?: string }>).find(
+        s => (s.name || s.category || "").toLowerCase().includes(keyword.toLowerCase())
+      );
+      return match ? parsePctRange(match.rate || match.range) : null;
+    };
+    const svcFeeMarketing = findSvcFee("marketing");
+    const svcFeeTechRes = findSvcFee("tech") || findSvcFee("reservations");
+    const svcFeeAccounting = findSvcFee("accounting") || findSvcFee("finance");
+    const svcFeeRevMgmt = findSvcFee("revenue");
+    const svcFeeGeneralMgmt = findSvcFee("general") || findSvcFee("management");
+    const svcFeeProcurement = findSvcFee("procurement") || findSvcFee("purchasing");
 
     const opExRatios = c.industryBenchmarks?.operatingExpenseRatios as Array<{ category: string; range: string }> | undefined;
     const findRatio = (keyword: string) => {
@@ -132,12 +156,16 @@ export default function CompanyAssumptions() {
 
     const compBenchmarks = c.compensationBenchmarks;
     const staffSalary = compBenchmarks?.manager ? parseDollarRange(compBenchmarks.manager) : null;
+    const partnerComp = compBenchmarks?.partner ? parseDollarRange(compBenchmarks.partner) : null;
 
     const costOfEquity = parsePctRange(c.costOfEquity?.recommendedRate);
 
     const merged = { ...COMPANY_DEFAULTS };
     const aiOverrides: Record<string, { display: string; mid: number } | null> = {
-      baseFee, incentiveFee, eventExpense, marketingRate, staffSalary, costOfEquity,
+      baseManagementFee, incentiveManagementFee, eventExpense, marketingRate,
+      staffSalary, partnerComp, costOfEquity,
+      svcFeeMarketing, svcFeeTechRes, svcFeeAccounting, svcFeeRevMgmt,
+      svcFeeGeneralMgmt, svcFeeProcurement,
     };
     for (const [key, val] of Object.entries(aiOverrides)) {
       if (val) merged[key] = val;
@@ -303,11 +331,11 @@ export default function CompanyAssumptions() {
           }
         />
 
-        <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} />
+        <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />
 
         <FundingSection formData={formData} onChange={handleUpdate} global={global} />
 
-        <ManagementFeesSection formData={formData} onChange={handleUpdate} global={global} properties={properties} allFeeCategories={allFeeCategories} />
+        <ManagementFeesSection formData={formData} onChange={handleUpdate} global={global} properties={properties} allFeeCategories={allFeeCategories} researchValues={researchValues} />
 
         <CompensationSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
 
@@ -393,7 +421,7 @@ export default function CompanyAssumptions() {
         </ScrollReveal>
 
         <ScrollReveal>
-          <PartnerCompSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} />
+          <PartnerCompSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
         </ScrollReveal>
 
         <ScrollReveal>
