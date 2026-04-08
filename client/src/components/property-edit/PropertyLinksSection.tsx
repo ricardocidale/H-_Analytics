@@ -281,6 +281,7 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
                       className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
                       onClick={() => startEdit(u)}
                       data-testid={`button-edit-url-${u.id}`}
+                      aria-label="Edit link"
                     >
                       <IconPencil className="w-4 h-4" />
                     </Button>
@@ -291,6 +292,7 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
                       onClick={() => deleteMutation.mutate(u.id)}
                       disabled={deleteMutation.isPending}
                       data-testid={`button-delete-url-${u.id}`}
+                      aria-label="Delete link"
                     >
                       <IconTrash className="w-4 h-4" />
                     </Button>

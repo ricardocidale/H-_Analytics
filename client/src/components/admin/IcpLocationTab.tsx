@@ -220,6 +220,7 @@ function LocationCard({
                       onClick={() => handleRemoveState(location.states[i])}
                       className="ml-0.5 h-4 w-4 p-0 hover:text-destructive hover:bg-transparent"
                       data-testid={`remove-state-${location.states[i]}`}
+                      aria-label={`Remove ${name}`}
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -286,6 +287,7 @@ function LocationCard({
                 disabled={!addingCity}
                 className="h-9 px-2"
                 data-testid={`button-add-city-${location.id}`}
+                aria-label="Add city"
               >
                 <IconPlus className="w-3.5 h-3.5" />
               </Button>
@@ -317,6 +319,7 @@ function LocationCard({
                         onClick={() => handleRemoveCity(city.name)}
                         className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive hover:bg-transparent transition-colors"
                         data-testid={`remove-city-${city.name}`}
+                        aria-label={`Remove ${city.name}`}
                       >
                         <X className="w-3.5 h-3.5" />
                       </Button>

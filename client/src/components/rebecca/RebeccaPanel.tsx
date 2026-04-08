@@ -333,6 +333,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 className="h-7 w-7"
                 onClick={() => setHistoryOpen(true)}
                 title="Past conversations"
+                aria-label="Past conversations"
                 data-testid="button-rebecca-history"
               >
                 <History className="w-3.5 h-3.5" />
@@ -345,6 +346,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     className="h-7 w-7"
                     onClick={() => setEmailOpen(true)}
                     title="Email summary"
+                    aria-label="Email summary"
                     data-testid="button-rebecca-email"
                   >
                     <Mail className="w-3.5 h-3.5" />
@@ -355,6 +357,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     className="h-7 w-7"
                     onClick={() => setFeedbackOpen(true)}
                     title="Report issue"
+                    aria-label="Report issue"
                     data-testid="button-rebecca-feedback"
                   >
                     <Flag className="w-3.5 h-3.5" />
@@ -368,6 +371,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                   className="h-7 w-7"
                   onClick={handleClearChat}
                   title="New conversation"
+                  aria-label="New conversation"
                   data-testid="button-rebecca-clear"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -378,6 +382,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 size="icon"
                 className="h-7 w-7"
                 onClick={() => closeAll()}
+                aria-label="Close Rebecca"
                 data-testid="button-rebecca-close"
               >
                 <X className="w-3.5 h-3.5" />
@@ -504,6 +509,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               onClick={() => sendMessage()}
               disabled={!input.trim() || loading}
               data-testid="button-rebecca-send"
+              aria-label="Send message"
             >
               <Send className="w-3.5 h-3.5" />
             </Button>
