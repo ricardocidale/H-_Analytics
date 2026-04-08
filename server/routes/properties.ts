@@ -580,8 +580,6 @@ Rewritten description:`;
         } catch { return false; }
       };
 
-      const RELEVANT_DOMAINS = ["airbnb", "vrbo", "booking", "expedia", "tripadvisor", "hotels", "zillow", "realtor", "loopnet", "costar", "google.com/maps"];
-
       const extractMeta = (html: string): { title: string; description: string } => {
         const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
         const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*?)["']/i)
@@ -592,23 +590,71 @@ Rewritten description:`;
         };
       };
 
-      const scoreRelevance = (hostname: string, title: string, description: string, propName: string, propLocation: string): { isRelevant: boolean; relevanceScore: number } => {
-        let score = 0.3;
-        if (RELEVANT_DOMAINS.some(d => hostname.includes(d))) score += 0.4;
-        const context = `${title} ${description}`.toLowerCase();
-        const propWords = `${propName} ${propLocation}`.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-        const matchCount = propWords.filter(w => context.includes(w)).length;
-        if (matchCount > 0) score += Math.min(matchCount * 0.1, 0.3);
-        const hospitalityTerms = ["hotel", "resort", "lodge", "rental", "vacation", "stay", "accommodation", "property", "room", "booking", "airbnb", "vrbo"];
-        if (hospitalityTerms.some(t => context.includes(t))) score += 0.1;
-        return { isRelevant: score >= 0.6, relevanceScore: Math.min(score, 1.0) };
+      const scoreRelevanceAI = async (
+        urlEntries: Array<{ id: number; url: string; title: string; description: string; hostname: string }>,
+        propName: string, propLocation: string, propType: string
+      ): Promise<Map<number, { isRelevant: boolean; relevanceScore: number }>> => {
+        const results = new Map<number, { isRelevant: boolean; relevanceScore: number }>();
+        if (urlEntries.length === 0) return results;
+        try {
+          const { getGeminiClient } = await import("../ai/clients");
+          const gemini = getGeminiClient();
+          const urlList = urlEntries.map((e, i) =>
+            `${i + 1}. [ID:${e.id}] ${e.hostname} — Title: "${e.title || "N/A"}" — Description: "${e.description || "N/A"}" — URL: ${e.url}`
+          ).join("\n");
+          const prompt = `You are a hospitality property research assistant. Score each URL for relevance to this property:
+Property: ${propName}
+Location: ${propLocation}
+Type: ${propType}
+
+URLs to score:
+${urlList}
+
+For each URL, return a JSON array of objects: [{"id": <ID>, "score": <0.0-1.0>, "relevant": <true/false>}]
+Score > 0.6 means relevant. Consider: Is this URL about this specific property? Is it a listing, review, map, or reference for this property or its local market? Hospitality platform links (Airbnb, VRBO, Booking, etc.) for this property score high.
+Return ONLY the JSON array, no other text.`;
+
+          const response = await gemini.models.generateContent({
+            model: "gemini-2.0-flash",
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            config: { maxOutputTokens: 512 },
+          });
+
+          const text = response.text?.trim() || "[]";
+          const cleaned = text.replace(/```json?\s*/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(cleaned) as Array<{ id: number; score: number; relevant: boolean }>;
+          for (const item of parsed) {
+            if (typeof item.id === "number" && typeof item.score === "number") {
+              results.set(item.id, {
+                isRelevant: item.relevant === true || item.score >= 0.6,
+                relevanceScore: Math.min(Math.max(item.score, 0), 1),
+              });
+            }
+          }
+        } catch (err) {
+          logger.warn(`AI relevance scoring failed, using heuristic fallback: ${err instanceof Error ? err.message : "unknown"}`, "property-urls");
+          const RELEVANT_DOMAINS = ["airbnb", "vrbo", "booking", "expedia", "tripadvisor", "hotels", "zillow", "realtor", "loopnet", "costar"];
+          for (const entry of urlEntries) {
+            const isDomainRelevant = RELEVANT_DOMAINS.some(d => entry.hostname.includes(d));
+            results.set(entry.id, {
+              isRelevant: isDomainRelevant,
+              relevanceScore: isDomainRelevant ? 0.8 : 0.3,
+            });
+          }
+        }
+        return results;
       };
 
-      const results = await Promise.all(
-        urls.map(async (u) => {
+      interface FetchResult {
+        id: number; url: string; isValid: boolean; status: number;
+        title: string; description: string; hostname: string;
+        error?: string;
+      }
+      const fetchResults: FetchResult[] = await Promise.all(
+        urls.map(async (u): Promise<FetchResult> => {
           if (!isSafeUrl(u.url)) {
             await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
-            return { id: u.id, url: u.url, isValid: false, isRelevant: false, relevanceScore: 0, status: 0, error: "Blocked: internal or private URL" };
+            return { id: u.id, url: u.url, isValid: false, status: 0, title: "", description: "", hostname: "", error: "Blocked: internal or private URL" };
           }
           try {
             const ctrl = new AbortController();
@@ -636,31 +682,46 @@ Rewritten description:`;
               }
             }
 
-            const { isRelevant, relevanceScore } = isValid
-              ? scoreRelevance(hostname, pageTitle, pageDescription, property!.name, property!.location)
-              : { isRelevant: false, relevanceScore: 0 };
+            return { id: u.id, url: u.url, isValid, status: resp.status, title: pageTitle, description: pageDescription, hostname };
+          } catch (err) {
+            await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
+            return { id: u.id, url: u.url, isValid: false, status: 0, title: "", description: "", hostname: "", error: err instanceof Error ? err.message : "Unknown error" };
+          }
+        })
+      );
 
-            const metadata: Record<string, unknown> = {};
-            if (pageTitle) metadata.title = pageTitle;
-            if (pageDescription) metadata.description = pageDescription;
-            metadata.hostname = hostname;
-            metadata.validatedAt = new Date().toISOString();
+      const validFetches = fetchResults.filter(r => r.isValid && !r.error);
+      const aiScores = await scoreRelevanceAI(
+        validFetches,
+        property!.name,
+        property!.location,
+        property!.hospitalityType || "hotel"
+      );
 
-            await storage.updatePropertyUrl(u.id, {
-              isValid,
+      const results = await Promise.all(
+        fetchResults.map(async (r) => {
+          const scores = aiScores.get(r.id) || { isRelevant: false, relevanceScore: 0 };
+          const isRelevant = r.isValid ? scores.isRelevant : false;
+          const relevanceScore = r.isValid ? scores.relevanceScore : 0;
+
+          const metadata: Record<string, unknown> = {};
+          if (r.title) metadata.title = r.title;
+          if (r.description) metadata.description = r.description;
+          if (r.hostname) metadata.hostname = r.hostname;
+          metadata.validatedAt = new Date().toISOString();
+          metadata.scoredByAI = true;
+
+          if (!r.error) {
+            await storage.updatePropertyUrl(r.id, {
+              isValid: r.isValid,
               isRelevant,
               relevanceScore,
               lastCheckedAt: new Date(),
               metadata,
             });
-            return { id: u.id, url: u.url, isValid, isRelevant, relevanceScore, status: resp.status, title: pageTitle };
-          } catch (err) {
-            await storage.updatePropertyUrl(u.id, {
-              isValid: false,
-              lastCheckedAt: new Date(),
-            });
-            return { id: u.id, url: u.url, isValid: false, isRelevant: false, relevanceScore: 0, status: 0, error: err instanceof Error ? err.message : "Unknown error" };
           }
+
+          return { id: r.id, url: r.url, isValid: r.isValid, isRelevant, relevanceScore, status: r.status, title: r.title, ...(r.error ? { error: r.error } : {}) };
         })
       );
 

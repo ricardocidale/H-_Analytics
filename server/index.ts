@@ -392,6 +392,12 @@ async function runSchemaMigrations() {
     await runEngineSuggestedLines001();
     await markMigrationApplied("engine_suggested_lines_001");
   }
+
+  if (!(await isMigrationApplied("property_urls_001"))) {
+    const { runPropertyUrlsMigration } = await import("./migrations/property-urls-001");
+    await runPropertyUrlsMigration();
+    await markMigrationApplied("property_urls_001");
+  }
 }
 
 async function runSeeds() {
