@@ -52,7 +52,8 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
     },
     staleTime: 5 * 60_000,
   });
-  const validLinks = propertyLinks.filter(l => l.isValid !== false).slice(0, 3);
+  const visibleLinks = propertyLinks.filter(l => l.isValid !== false && (l.isRelevant || l.isValid === null));
+  const validLinks = visibleLinks.slice(0, 3);
 
   return (
     <AnimatedGridItem>
@@ -155,9 +156,9 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
                   {link.label || (() => { try { return new URL(link.url).hostname.replace("www.", ""); } catch { return "Link"; } })()}
                 </a>
               ))}
-              {propertyLinks.filter(l => l.isValid !== false).length > 3 && (
+              {visibleLinks.length > 3 && (
                 <span className="text-[10px] text-muted-foreground self-center">
-                  +{propertyLinks.filter(l => l.isValid !== false).length - 3}
+                  +{visibleLinks.length - 3}
                 </span>
               )}
             </div>

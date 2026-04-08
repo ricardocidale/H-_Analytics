@@ -228,32 +228,33 @@ export default function PropertyDetail() {
           </div>
         )}
 
-        {propertyLinks.length > 0 && (
-          <div className="flex flex-wrap gap-2" data-testid="property-links-chips">
-            {propertyLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors hover:shadow-sm ${
-                  link.isValid === false
-                    ? "border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10"
-                    : link.isRelevant
+        {(() => {
+          const visibleLinks = propertyLinks.filter(l => l.isValid !== false && (l.isRelevant || l.isValid === null));
+          return visibleLinks.length > 0 ? (
+            <div className="flex flex-wrap gap-2" data-testid="property-links-chips">
+              {visibleLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors hover:shadow-sm ${
+                    link.isRelevant
                       ? "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
                       : "border-border bg-card text-foreground/70 hover:bg-muted"
-                }`}
-                data-testid={`link-chip-${link.id}`}
-                title={link.url}
-              >
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{
-                  backgroundColor: link.isValid === false ? "var(--destructive)" : link.isRelevant ? "var(--primary)" : "var(--muted-foreground)",
-                }} />
-                {link.label || (() => { try { return new URL(link.url).hostname.replace("www.", ""); } catch { return "Link"; } })()}
-              </a>
-            ))}
-          </div>
-        )}
+                  }`}
+                  data-testid={`link-chip-${link.id}`}
+                  title={link.url}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{
+                    backgroundColor: link.isRelevant ? "var(--primary)" : "var(--muted-foreground)",
+                  }} />
+                  {link.label || (() => { try { return new URL(link.url).hostname.replace("www.", ""); } catch { return "Link"; } })()}
+                </a>
+              ))}
+            </div>
+          ) : null;
+        })()}
 
         <ScrollReveal>
           <Suspense fallback={<div className="flex items-center justify-center p-8 text-muted-foreground text-sm">Loading map…</div>}>
