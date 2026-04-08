@@ -8,6 +8,15 @@
 
 ## Architecture Decisions Log
 
+### Task #307: Rebecca Rich Message Formatting (April 2026) — COMPLETED
+- **Block parser**: `rich-block-parser.ts` — regex-based parser detects `:::blockType ... :::` patterns, extracts structured data, returns AST of mixed markdown + rich block nodes. Supports 5 block types: stat, compare, timeline, insight, kpi. Fenced code blocks are masked to prevent false positives.
+- **Block renderers**: `RichBlockRenderers.tsx` — 5 styled React components (StatBlock, CompareBlock, TimelineBlock, InsightBlock, KpiBlock) using H+ Analytics design system (navy #112548 headers, teal #0091AE accents, gold #FDB817 highlights, Poppins typography). Each has `locale` prop for future i18n. Data-testids: rich-block-stat/compare/timeline/insight/kpi.
+- **Markdown integration**: `RebeccaMarkdown.tsx` updated to parse rich blocks via `parseRichBlocks()`, rendering RichBlock components inline with standard ReactMarkdown. Added `locale` prop.
+- **System prompt**: Added "Rich Visual Blocks" section to DEFAULT_SYSTEM_PROMPT in `chat.ts` — block syntax examples, when to use each type, max 1 block per response rule, conversational context requirement, skip-for-simple-answers rule.
+- **Code review fix**: Added fenced code block masking to prevent `:::` inside code blocks from being parsed as rich blocks.
+- **Files**: rich-block-parser.ts, RichBlockRenderers.tsx, RebeccaMarkdown.tsx, chat.ts
+- Health check: ALL CLEAR — 0 TS errors, 4,047 tests (173 files), verification UNQUALIFIED
+
 ### Task #306: Rebecca Knowledge Base CRUD (April 2026) — COMPLETED
 - **Schema**: `rebeccaKnowledgeBase` table (id, title, content, category, source, tags, priority, isActive, createdAt, updatedAt) and `rebeccaKnowledgeHistory` table (id, entryId FK, snapshot jsonb, changedBy, createdAt) in `shared/schema/intelligence-v2.ts`. Insert schemas via `drizzle-zod` with `.pick()`, types exported.
 - **Storage CRUD**: `IntelligenceV2Storage` methods: listRebeccaKBEntries (optional category filter), getRebeccaKBEntry, createRebeccaKBEntry, updateRebeccaKBEntry (auto-snapshots to history), deleteRebeccaKBEntry (cascades history), getRebeccaKBHistory, rollbackRebeccaKBEntry, getRebeccaKBStats. Bound via `server/storage/index.ts`.

@@ -98,7 +98,72 @@ The first answer in a session should be substantive — 4-5 sentences with speci
 - Format trends as: **$285 ADR** (up 3.2% YoY)
 - Group KPIs: **Revenue**: $X | **Expenses**: $Y | **NOI**: $Z
 - Format dollar amounts with commas. Never make up data — only reference what is in the context.
-- When visual assets (photos, logos) are available, use markdown image syntax: ![caption](url).`;
+- When visual assets (photos, logos) are available, use markdown image syntax: ![caption](url).
+
+## Rich Visual Blocks
+You can use custom block syntax for structured data. Use these ONLY when the visual genuinely adds clarity — most answers should be plain text. Think of blocks the way a sharp analyst uses a chart: sparingly and precisely.
+
+### Block Types
+**Stat block** — One key number with context:
+\`\`\`
+:::stat
+value: $285
+label: Average Daily Rate
+delta: +3.2% YoY
+source: STR 2024
+:::
+\`\`\`
+
+**Compare block** — Side-by-side comparison table:
+\`\`\`
+:::compare
+title: Property Comparison
+| Metric | Jano Grande | Lakeview Haven |
+| ADR | $285 | $195 |
+| Occupancy | 72% | 68% |
+| RevPAR | $205 | $133 |
+:::
+\`\`\`
+
+**KPI block** — Row of metric cards:
+\`\`\`
+:::kpi
+title: Portfolio Snapshot
+ADR | $285 | +3.2% YoY
+RevPAR | $205 | +1.8% YoY
+NOI | $1.2M | +5.1% YoY
+:::
+\`\`\`
+
+**Timeline block** — Sequence of phases:
+\`\`\`
+:::timeline
+title: Renovation Schedule
+- Pre-Opening | Q1 2025 | Permits and contractor selection
+- Construction | Q2-Q3 2025 | Major renovation work
+- Soft Opening | Q4 2025 | Limited capacity trial
+- Full Operations | Q1 2026 | Stabilized occupancy target
+:::
+\`\`\`
+
+**Insight block** — Highlighted callout:
+\`\`\`
+:::insight
+Your ADR is 15% below comp set median. The gap widened from 8% last quarter, suggesting pricing strategy needs review.
+source: Comp set analysis, Q4 2024
+:::
+\`\`\`
+
+### Block Rules
+- Maximum ONE rich block per response. If the data needs multiple blocks, offer the most important one and ask: "Want me to show the comparison too?"
+- Always include a conversational sentence before or after the block — never let a block stand alone.
+- Skip blocks entirely for simple questions. "What's the ADR?" → just say the number in text.
+- Use :::stat for a single standout metric the user asked about.
+- Use :::compare when the user asks to compare properties or metrics side by side.
+- Use :::kpi when summarizing 3+ metrics in a dashboard-like view.
+- Use :::timeline for project phases, renovation schedules, or projection periods.
+- Use :::insight for a key observation that deserves visual emphasis — use sparingly.
+- Never nest blocks inside each other.`;
 
 function generateFollowUpChips(
   responseText: string,

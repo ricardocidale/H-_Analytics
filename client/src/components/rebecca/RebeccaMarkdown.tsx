@@ -4,6 +4,8 @@ import remarkGfm from "remark-gfm";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Components } from "react-markdown";
+import { parseRichBlocks } from "./rich-block-parser";
+import { RichBlock } from "./RichBlockRenderers";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -19,6 +21,7 @@ interface AssetMatch {
 interface RebeccaMarkdownProps {
   content: string;
   assets?: AssetMatch[];
+  locale?: string;
 }
 
 const markdownComponents: Components = {
@@ -128,7 +131,9 @@ const markdownComponents: Components = {
   ),
 };
 
-export function RebeccaMarkdown({ content, assets }: RebeccaMarkdownProps) {
+export function RebeccaMarkdown({ content, assets, locale }: RebeccaMarkdownProps) {
+  const nodes = useMemo(() => parseRichBlocks(content), [content]);
+
   const extraAssets = useMemo(() => {
     if (!assets?.length) return [];
     const imgRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
@@ -142,9 +147,16 @@ export function RebeccaMarkdown({ content, assets }: RebeccaMarkdownProps) {
 
   return (
     <div className="rebecca-markdown space-y-0">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-        {content}
-      </ReactMarkdown>
+      {nodes.map((node, i) => {
+        if (node.type === "richblock") {
+          return <RichBlock key={`rb-${i}`} block={node.block} locale={locale} />;
+        }
+        return (
+          <ReactMarkdown key={`md-${i}`} remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {node.content}
+          </ReactMarkdown>
+        );
+      })}
 
       {extraAssets.length > 0 && (
         <div className="grid grid-cols-2 gap-1.5 mt-2">
