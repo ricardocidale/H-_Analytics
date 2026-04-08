@@ -42,8 +42,8 @@ const PROPERTY_PHOTOS: Record<string, PhotoSeed[]> = {
   ],
   "Loch Sheldrake": [
     { imageUrl: "/images/property-loch-sheldrake.png", caption: "Loch Sheldrake — octagonal lakeside estate in Sullivan County", sortOrder: 0, isHero: true },
-    { imageUrl: "/images/property-loch-sheldrake-aerial.png", caption: "Aerial view of the octagonal main house and grounds", sortOrder: 1, isHero: false },
-    { imageUrl: "/images/property-loch-sheldrake-lake.png", caption: "Sunset over the private lake from the wraparound deck", sortOrder: 2, isHero: false },
+    { imageUrl: "/images/property-loch-sheldrake-lake.png", caption: "Sunset over the private lake from the wraparound deck", sortOrder: 1, isHero: false },
+    { imageUrl: "/images/property-loch-sheldrake-ground.png", caption: "Ground-level view of the octagonal main house and grounds", sortOrder: 2, isHero: false },
   ],
   "Belleayre Mountain": [
     { imageUrl: "/images/property-belleayre.png", caption: "Belleayre Mountain — alpine luxury in the Western Catskills", sortOrder: 0, isHero: true },
