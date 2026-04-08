@@ -380,6 +380,12 @@ async function runSchemaMigrations() {
     await runScenarioAccess001();
     await markMigrationApplied("scenario_access_001");
   }
+
+  if (!(await isMigrationApplied("source_call_logs_001"))) {
+    const { runSourceCallLogs001 } = await import("./migrations/source-call-logs-001");
+    await runSourceCallLogs001();
+    await markMigrationApplied("source_call_logs_001");
+  }
 }
 
 async function runSeeds() {
