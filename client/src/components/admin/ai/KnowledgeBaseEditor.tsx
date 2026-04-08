@@ -65,6 +65,7 @@ export default function KnowledgeBaseEditor() {
   const queryClient = useQueryClient();
 
   const [activeCategory, setActiveCategory] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -207,6 +208,8 @@ export default function KnowledgeBaseEditor() {
   };
 
   const filtered = (entries ?? []).filter(e => {
+    if (statusFilter === "active" && !e.isActive) return false;
+    if (statusFilter === "inactive" && e.isActive) return false;
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return e.title.toLowerCase().includes(q) || e.content.toLowerCase().includes(q) ||
@@ -262,6 +265,16 @@ export default function KnowledgeBaseEditor() {
             ))}
           </TabsList>
         </Tabs>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
+          <SelectTrigger className="w-[110px] h-9 text-xs bg-card border-border" data-testid="select-kb-status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
           <Input
