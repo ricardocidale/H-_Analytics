@@ -651,22 +651,17 @@ export function registerIntelligenceRoutes(app: Express) {
             return res.status(400).json({ error: "Endpoint resolves to a private IP address" });
           }
 
-          const safeIp = ipv4[0] || ipv6[0];
-          if (!safeIp) {
+          if (allResolved.length === 0) {
             return res.status(400).json({ error: "Could not resolve endpoint hostname" });
           }
 
-          const fetchUrl = new URL(source.endpoint);
-          fetchUrl.hostname = ipv4[0] ? safeIp : `[${safeIp}]`;
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 10000);
-          const headers: Record<string, string> = { Host: url.hostname };
-          const response = await fetch(fetchUrl.toString(), {
+          const response = await fetch(source.endpoint, {
             method: "HEAD",
             signal: controller.signal,
             redirect: "manual",
-            headers,
-          }).catch(() => fetch(fetchUrl.toString(), { method: "GET", signal: controller.signal, redirect: "manual", headers }));
+          }).catch(() => fetch(source.endpoint!, { method: "GET", signal: controller.signal, redirect: "manual" }));
           clearTimeout(timeout);
           httpStatus = response.status;
           healthy = response.ok || response.status < 500;
