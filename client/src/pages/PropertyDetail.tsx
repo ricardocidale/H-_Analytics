@@ -209,6 +209,15 @@ export default function PropertyDetail() {
           onPhotoUploadComplete={handlePhotoUploadComplete}
         />
 
+        {property.description && (
+          <div className="rounded-lg border border-border bg-card shadow-sm p-5" data-testid="card-property-description">
+            <p className="text-xs font-medium text-muted-foreground mb-2 label-text">Property Description</p>
+            <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap" data-testid="text-full-description">
+              {property.description}
+            </p>
+          </div>
+        )}
+
         <ScrollReveal>
           <Suspense fallback={<div className="flex items-center justify-center p-8 text-muted-foreground text-sm">Loading map…</div>}>
             <PropertyMap

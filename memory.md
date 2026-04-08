@@ -23,6 +23,13 @@
 - **Skills to update**: admin-configurator, hbg-business-model, integrations-infrastructure
 - **Implementation phases**: 5 phases, 28 tasks total
 
+### Task #297: Property Description Card with AI Rewrite (April 2026) — COMPLETED
+- **DescriptionSection enhanced** (`client/src/components/property-edit/DescriptionSection.tsx`): Added preview Dialog for AI rewrite — user can review improved vs original text side-by-side, then accept or dismiss. Accept applies rewrite to draft; dismiss keeps original. Uses existing `POST /api/ai/rewrite-description` endpoint (already in `server/routes/ai.ts` with Gemini Flash).
+- **PortfolioPropertyCard updated** (`client/src/components/portfolio/PortfolioPropertyCard.tsx`): Added `truncateWords(text, 60)` utility function; description shown as truncated text (max 60 words with ellipsis) below the location/date on the property card. Uses `line-clamp-3` for visual truncation.
+- **PropertyDetail page updated** (`client/src/pages/PropertyDetail.tsx`): Added full description card between PropertyHeader and map section. Shows when `property.description` exists — styled card with "Property Description" label and full text with `whitespace-pre-wrap`.
+- Files: DescriptionSection.tsx (enhanced with Dialog), PortfolioPropertyCard.tsx (truncated desc), PropertyDetail.tsx (full desc card)
+- Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
+
 ### Task #296: Smart Address Autocomplete & Auto-Fill (April 2026) — COMPLETED
 - **Existing AddressAutocomplete extended** (`client/src/components/AddressAutocomplete.tsx`): Added AbortController for stale-response protection, `countryBias` prop for country-scoped Google Places results, `disabled` prop, map pin icon (`IconMapPin`), proper `credentials: "include"` on fetch calls, cleanup on unmount (abort + debounce timer), proper `unknown` error type (no `any`)
 - **BasicInfoSection updated**: Street address plain `<Input>` replaced with `<AddressAutocomplete>`, place selection auto-fills **only empty** fields (city, stateProvince, zipPostalCode, country, location) via `fillIfEmpty()` helper; street address always updated from selection; lat/lng stored in draft AND immediately persisted via `PATCH /api/properties/:id/coords`; `countryBias` passed from current geo selection; auto-fill badges ("auto-filled" green pill) + emerald ring highlights shown for 6s then fade

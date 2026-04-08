@@ -27,6 +27,12 @@ import { HeroImage } from "@/features/property-images";
 import { cn } from "@/lib/utils";
 import { PropertyTypeBadge } from "@/components/research/PropertyTypeSelector";
 
+function truncateWords(text: string, maxWords: number): string {
+  const words = text.split(/\s+/);
+  if (words.length <= maxWords) return text;
+  return words.slice(0, maxWords).join(" ") + "…";
+}
+
 interface PortfolioPropertyCardProps {
   property: Property;
   propertyNumber: number;
@@ -110,6 +116,11 @@ export function PortfolioPropertyCard({ property, propertyNumber, onDelete, onTo
             {property.status === PropertyStatus.ACQUIRED || property.status === PropertyStatus.OPERATING ? "Acquired" : "Planned"}{" "}
             {new Date(property.acquisitionDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
           </div>
+          {property.description && (
+            <p className="text-xs text-foreground/55 mt-2.5 leading-relaxed line-clamp-3" data-testid={`text-description-${property.id}`}>
+              {truncateWords(property.description, 60)}
+            </p>
+          )}
         </div>
         
         <div className="px-5 pb-4 flex-1">
