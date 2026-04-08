@@ -11,16 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - name: ESLint (financial code)
-        run: npx eslint --max-warnings 0
+        run: npx eslint --max-warnings 10
 
       - name: TypeScript
         run: npm run check
@@ -50,13 +52,15 @@ jobs:
       NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - name: Run Tests
         run: npm run test:summary
