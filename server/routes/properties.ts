@@ -450,6 +450,157 @@ Rewritten description:`;
     }
   });
 
+  // ────────────────────────────────────────────────────────────
+  // PROPERTY URLS — linked reference URLs with validation
+  // ────────────────────────────────────────────────────────────
+
+  app.get("/api/properties/:id/urls", requireAuth, async (req, res) => {
+    try {
+      const propertyId = Number(req.params.id);
+      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const urls = await storage.getPropertyUrls(propertyId);
+      res.json(urls);
+    } catch (error) {
+      logAndSendError(res, "Failed to fetch property URLs", error);
+    }
+  });
+
+  const addPropertyUrlSchema = z.object({
+    url: z.string().url().max(2048),
+    label: z.string().max(200).optional(),
+  });
+
+  app.post("/api/properties/:id/urls", requireManagementAccess, async (req, res) => {
+    try {
+      const propertyId = Number(req.params.id);
+      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const parsed = addPropertyUrlSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const existing = await storage.getPropertyUrls(propertyId);
+      if (existing.some(u => u.url === parsed.data.url)) {
+        return res.status(409).json({ error: "URL already exists for this property" });
+      }
+      const row = await storage.addPropertyUrl({
+        propertyId,
+        url: parsed.data.url,
+        label: parsed.data.label ?? null,
+      });
+      logActivity(req, "add-url", "property", propertyId, parsed.data.url);
+      res.status(201).json(row);
+    } catch (error) {
+      logAndSendError(res, "Failed to add property URL", error);
+    }
+  });
+
+  const updatePropertyUrlSchema = z.object({
+    label: z.string().max(200).optional(),
+    isValid: z.boolean().optional(),
+    isRelevant: z.boolean().optional(),
+    relevanceScore: z.number().min(0).max(1).optional(),
+  });
+
+  app.patch("/api/properties/:id/urls/:urlId", requireManagementAccess, async (req, res) => {
+    try {
+      const propertyId = Number(req.params.id);
+      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const urlId = Number(req.params.urlId);
+      const existing = await storage.getPropertyUrlById(urlId);
+      if (!existing || existing.propertyId !== propertyId) {
+        return res.status(404).json({ error: "URL not found" });
+      }
+      const parsed = updatePropertyUrlSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const updated = await storage.updatePropertyUrl(urlId, parsed.data);
+      res.json(updated);
+    } catch (error) {
+      logAndSendError(res, "Failed to update property URL", error);
+    }
+  });
+
+  app.delete("/api/properties/:id/urls/:urlId", requireManagementAccess, async (req, res) => {
+    try {
+      const propertyId = Number(req.params.id);
+      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const urlId = Number(req.params.urlId);
+      const existing = await storage.getPropertyUrlById(urlId);
+      if (!existing || existing.propertyId !== propertyId) {
+        return res.status(404).json({ error: "URL not found" });
+      }
+      await storage.deletePropertyUrl(urlId);
+      logActivity(req, "delete-url", "property", propertyId, existing.url);
+      res.json({ success: true });
+    } catch (error) {
+      logAndSendError(res, "Failed to delete property URL", error);
+    }
+  });
+
+  app.post("/api/properties/:id/urls/validate", requireManagementAccess, async (req, res) => {
+    try {
+      const propertyId = Number(req.params.id);
+      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const property = await storage.getProperty(propertyId);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+      const urls = await storage.getPropertyUrls(propertyId);
+      if (urls.length === 0) {
+        return res.json({ validated: 0, results: [] });
+      }
+
+      const results = await Promise.all(
+        urls.map(async (u) => {
+          try {
+            const ctrl = new AbortController();
+            const timeout = setTimeout(() => ctrl.abort(), 10_000);
+            const resp = await fetch(u.url, {
+              method: "HEAD",
+              signal: ctrl.signal,
+              headers: { "User-Agent": "H+Analytics/1.0 LinkValidator" },
+              redirect: "follow",
+            });
+            clearTimeout(timeout);
+            const isValid = resp.ok;
+            const hostname = new URL(u.url).hostname.replace("www.", "");
+            const relevantDomains = ["airbnb", "vrbo", "booking", "expedia", "tripadvisor", "hotels", "zillow", "realtor", "loopnet", "costar", "google.com/maps"];
+            const isRelevant = relevantDomains.some(d => hostname.includes(d)) || u.isRelevant === true;
+            const relevanceScore = isRelevant ? 0.85 : 0.5;
+            await storage.updatePropertyUrl(u.id, {
+              isValid,
+              isRelevant,
+              relevanceScore,
+              lastCheckedAt: new Date(),
+            });
+            return { id: u.id, url: u.url, isValid, isRelevant, relevanceScore, status: resp.status };
+          } catch (err) {
+            await storage.updatePropertyUrl(u.id, {
+              isValid: false,
+              lastCheckedAt: new Date(),
+            });
+            return { id: u.id, url: u.url, isValid: false, isRelevant: u.isRelevant, relevanceScore: u.relevanceScore, status: 0, error: err instanceof Error ? err.message : "Unknown error" };
+          }
+        })
+      );
+
+      res.json({ validated: results.length, results });
+    } catch (error) {
+      logAndSendError(res, "Failed to validate property URLs", error);
+    }
+  });
+
   // Walk Score — property-level walkability, transit, and bike scores
   app.get("/api/properties/:id/walk-score", requireAuth, async (req, res) => {
     try {

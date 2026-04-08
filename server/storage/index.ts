@@ -40,6 +40,7 @@ import { ServiceStorage } from "./services";
 import { NotificationStorage } from "./notifications";
 import { IntegrationStorage } from "./integrations";
 import { IntelligenceV2Storage } from "./intelligence-v2";
+import { PropertyUrlStorage } from "./property-urls";
 
 export interface IStorage extends
   UserStorage,
@@ -53,7 +54,8 @@ export interface IStorage extends
   ServiceStorage,
   NotificationStorage,
   IntegrationStorage,
-  IntelligenceV2Storage {
+  IntelligenceV2Storage,
+  PropertyUrlStorage {
   deleteUser(id: number): Promise<void>;
 }
 
@@ -70,6 +72,7 @@ export class DatabaseStorage implements IStorage {
   private notifications = new NotificationStorage();
   private integrationStore = new IntegrationStorage();
   private intelligenceV2 = new IntelligenceV2Storage();
+  private propertyUrlStore = new PropertyUrlStorage();
 
   // Users
   getUserById = this.users.getUserById.bind(this.users);
@@ -330,6 +333,13 @@ export class DatabaseStorage implements IStorage {
   upsertScheduledResearchWorkflow = this.intelligenceV2.upsertScheduledResearchWorkflow.bind(this.intelligenceV2);
   updateScheduledWorkflowRun = this.intelligenceV2.updateScheduledWorkflowRun.bind(this.intelligenceV2);
   deleteScheduledResearchWorkflow = this.intelligenceV2.deleteScheduledResearchWorkflow.bind(this.intelligenceV2);
+
+  // Property URLs
+  getPropertyUrls = this.propertyUrlStore.getPropertyUrls.bind(this.propertyUrlStore);
+  getPropertyUrlById = this.propertyUrlStore.getPropertyUrlById.bind(this.propertyUrlStore);
+  addPropertyUrl = this.propertyUrlStore.addPropertyUrl.bind(this.propertyUrlStore);
+  updatePropertyUrl = this.propertyUrlStore.updatePropertyUrl.bind(this.propertyUrlStore);
+  deletePropertyUrl = this.propertyUrlStore.deletePropertyUrl.bind(this.propertyUrlStore);
 
   /**
    * Delete a user and ALL related data in a single transaction.

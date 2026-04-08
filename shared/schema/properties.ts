@@ -316,6 +316,38 @@ export type Property = typeof properties.$inferSelect;
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
 export type UpdateProperty = z.infer<typeof updatePropertySchema>;
 
+// --- PROPERTY URLS TABLE ---
+// Linked reference URLs for a property — listings, maps, review sites, etc.
+// Each URL is validated (format + reachability) and scored for relevance.
+// Separate from sourceUrls (text[] on properties) which are simple research inputs.
+export const propertyUrls = pgTable("property_urls", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  propertyId: integer("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  label: text("label"),
+  isValid: boolean("is_valid"),
+  isRelevant: boolean("is_relevant"),
+  relevanceScore: real("relevance_score"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_property_urls_property_id").on(t.propertyId),
+]);
+
+export const insertPropertyUrlSchema = createInsertSchema(propertyUrls).pick({
+  propertyId: true,
+  url: true,
+  label: true,
+  isValid: true,
+  isRelevant: true,
+  relevanceScore: true,
+  metadata: true,
+});
+
+export type PropertyUrl = typeof propertyUrls.$inferSelect;
+export type InsertPropertyUrl = z.infer<typeof insertPropertyUrlSchema>;
+
 // --- USER GROUP PROPERTIES TABLE ---
 // Controls which properties each user group can see. If a group has NO rows
 // here, all properties are visible (safe default — backward compatible).
