@@ -115,6 +115,7 @@ export const propertyPhotos = pgTable("property_photos", {
   // When present, the image is served directly from the DB at
   // /api/property-photos/:id/image, independent of Replit Object Storage.
   imageData: text("image_data"),
+  enhancedImageData: text("enhanced_image_data"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("property_photos_property_id_idx").on(table.propertyId),
@@ -130,6 +131,7 @@ export const insertPropertyPhotoSchema = createInsertSchema(propertyPhotos).pick
   generationStyle: true,
   beforePhotoId: true,
   imageData: true,
+  enhancedImageData: true,
 });
 
 export const updatePropertyPhotoSchema = z.object({
@@ -143,6 +145,7 @@ export const updatePropertyPhotoSchema = z.object({
     full: z.string().optional(),
     original: z.string().optional(),
   }).nullable().optional(),
+  enhancedImageData: z.string().nullable().optional(),
 });
 
 export type PropertyPhoto = typeof propertyPhotos.$inferSelect;
