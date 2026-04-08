@@ -31,6 +31,17 @@
 - **Research methodology skill** updated: new §2.3 Lodge Business Model section with comparison table, expense structure, positioned between Hotel and VRBO
 - **hbg-business-model skill** updated: Business Models table added, Lodge described alongside Hotel/VRBO
 
+### Task #290: Financial Lines Admin Page (April 2026) — COMPLETED
+- **engine_suggested_lines table**: statementType, category, lineName, formula, rationale, confidence, status (pending/approved/rejected), reviewedBy, reviewedAt, rejectionReason, propertyId, sourceId
+- **Migration**: server/migrations/engine-suggested-lines-001.ts with idx_esl_status, idx_esl_statement_type indexes
+- **Storage methods**: listEngineSuggestedLines (with status filter), getEngineSuggestedLineById, createEngineSuggestedLine, approveEngineSuggestedLine (+ Pinecone indexing), rejectEngineSuggestedLine, countEngineSuggestedLines
+- **API routes**: GET /api/admin/intelligence/financial-lines?status=, POST /api/admin/intelligence/financial-lines/:id/approve, POST /api/admin/intelligence/financial-lines/:id/reject
+- **FinancialLinesTab.tsx**: Count cards (total/pending/approved/rejected), status-filtered tabs, detail dialog, approve/reject with modal rejection reason, empty states
+- **Icons added**: IconCheck, IconX added to status-icons.tsx + brand-icons.tsx + index.ts exports
+- **Sidebar wired**: "Financial Lines" with IconCalculator in Intelligence Engine group
+- **Admin.tsx wired**: sectionMeta + SectionContent switch case
+- All tests passing, e2e verified, code review PASS
+
 ### Task #289: Data Sources Card CRUD (April 2026) — COMPLETED
 - **sourceRegistry schema extended**: Added description, endpoint, apiKeyRef, rateLimitPerMin, successRate, avgLatencyMs, costPerCall, dataProvided (jsonb string[]) columns via direct SQL migration
 - **source_call_logs table**: Real activity logging — id, sourceId, serviceKey, timestamp, httpStatus, latencyMs, success, errorMessage; cascading delete on source removal
