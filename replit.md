@@ -22,6 +22,7 @@ This project is a business simulation portal for Hospitality Business Group, des
 - **Context reduction is mandatory.** Every refactor must produce skills, helpers, scripts. See `skills/coding-conventions/context-reduction.md`.
 - **Premium design, always.** $50K+ bespoke financial platform feel. See `rules/design-standards.md`.
 - **Always update replit.md and claude.md after every task.** Mandatory — no exceptions.
+- **Always update memory.md after every task.** Track decisions, architecture changes, industry knowledge, test counts, and session state. This file persists across sessions and must reflect the current project state.
 
 ## System Architecture
 

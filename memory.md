@@ -8,6 +8,21 @@
 
 ## Architecture Decisions Log
 
+### Admin Replan v3 (April 2026)
+- **Full replan document**: `.local/replan-admin-intelligence-v3.md`
+- **Admin restructured to 5 groups**: Business, Intelligence Engine, AI Assistant, Design, System
+- **ICP page removed**: Auto-derived portfolio profile replaces manual ICP (per research methodology)
+- **Data Sources card system**: 4-column responsive grid for APIs, Scrapers, Sources, Models — each card = report card with health metrics, toggle on/off, configure, test, logs
+- **Engine Dashboard**: Unified intelligence observatory replacing Coverage Analytics + System Intelligence + API Dashboard + Cache & Services
+- **Intelligence freshness system**: Page-level green/amber/red status bar on Property + Company assumptions pages
+- **Auto-staleness detection**: Key assumption changes (starRating, ADR, hospitalityType, businessModel, roomCount, location, revShares) mark research as stale
+- **Auto-refresh**: If estimated research time < 30s, auto-regenerate; otherwise notify admin
+- **Financial Lines page**: New admin page for viewing/approving engine-suggested calculation additions
+- **Brand page**: Merge Logos + Themes + Icons into single page
+- **Skills to create**: help-documentation, intelligence-freshness, data-source-cards
+- **Skills to update**: admin-configurator, hbg-business-model, integrations-infrastructure
+- **Implementation phases**: 5 phases, 28 tasks total
+
 ### Research Intelligence System (April 2026)
 - **Research methodology skill created**: `.agents/skills/research-methodology/SKILL.md` — exhaustive 500+ line document covering STR chain scales, star ratings, revenue mix benchmarks, USALI expense ratios by segment, management fee structures, geography-driven cost adjustments, VRBO/STR business model, comp set selection criteria, and the full N+1 AI research pipeline
 - **Key architectural decision**: Properties should auto-derive their research profile from existing assumptions — NO separate ICP definition needed per property. The property's own starRating + ADR + hospitalityType + location + revenue shares IS its research profile.
@@ -26,6 +41,40 @@
 - Zustand store in `research-queue.ts`: concurrency 2, 429 retry with getState() fresh reads, reindex() position normalization, auto-prune after 15s
 - ResearchLoadingOverlay: 3 variants (property, company, global), rotating tips, pulsing orb animation
 - ResearchQueueIndicator mounted in Layout header
+
+## Current Admin Structure (Pre-Replan)
+```
+Business: Users, Companies, Groups, Scenarios
+Intelligence: ICP Mgmt Co, Research Center, [V2: Coverage, Policies, QA, Sources, Scheduler, System]
+Design: Logos, Themes, Icons, Exports
+AI: AI Agents, LLMs, Model Routing, Sources
+System: App Defaults, Notifications, Navigation, Verification, Database, API Dashboard, Cache/Services, Integrations, Activity
+```
+
+## Planned Admin Structure (Post-Replan)
+```
+Business: Users, Companies, Groups, Scenarios
+Intelligence Engine: Engine Dashboard, Data Sources (APIs|Scrapers|Sources|Models), Pipeline Config, QA Sandbox, Financial Lines
+AI Assistant: Configuration, Conversations, Knowledge Base
+Design: Brand (Logos|Themes|Icons), Exports
+System: App Defaults, Verification, Database, Notifications, Navigation, Activity
+```
+
+## External Data Sources Inventory
+- **APIs**: FRED, Xotelo, RapidAPI Hospitality, CoStar/STR, Moody's, S&P Global, Alpha Vantage, Open Exchange Rates, Weather API, World Bank
+- **Scrapers (Apify)**: airbnb-scraper, vrbo-scraper, booking-scraper, tripadvisor-scraper
+- **LLMs**: OpenAI (GPT-4o), Anthropic (Claude 3.5 Sonnet, Opus), Google Gemini Flash, Perplexity
+- **Vector DB**: Pinecone (index: lb-hospitality, namespaces: knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties)
+- **Health monitoring**: Circuit breaker (5 failures in 60s → open), BaseIntegrationService pattern, staleWhileRevalidate caching
+
+## Help System Inventory
+- InfoTooltip: primary contextual help pattern (i icon → hover → explanation + formula + manual link)
+- GuidanceSideSheet: deep dive panel (P25/P50/P75, peer comps, relaxation trail, impact analysis)
+- RebeccaPanel: AI assistant with contextual field awareness
+- GuidedWalkthrough: 9-step spotlight tour (auto-prompts new users)
+- Map Tour: cinematic fly-through of properties
+- Help page: User Manual, Checker Manual, Architecture, Guided Tour tabs
+- Glossary: shared data structure in `client/src/lib/glossary.ts`
 
 ## Industry Knowledge Reference
 
@@ -66,5 +115,5 @@
 - "Marcela" = "Rebecca" = text chat AI assistant
 - drizzle-zod: NEVER use `.omit()` — only `.pick()`
 - Domain boundary: Route files must NEVER import `db` or `drizzle-orm` directly
-- Always update replit.md AND claude.md after changes (Doc Harmony Rule)
+- Always update replit.md AND claude.md AND memory.md after changes (Doc Harmony Rule)
 - useResearchQueue.getState() pattern for fresh Zustand reads
