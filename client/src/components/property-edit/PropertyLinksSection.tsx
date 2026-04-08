@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Badge } from "@/components/ui/badge";
-import { IconPlus, IconTrash } from "@/components/icons";
+import { IconPlus, IconTrash, IconPencil, IconCheck, IconX } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { useToast } from "@/hooks/use-toast";
 import type { PropertyUrl } from "@shared/schema";
@@ -38,6 +38,9 @@ function statusBadge(u: PropertyUrl) {
 export default function PropertyLinksSection({ propertyId }: PropertyLinksSectionProps) {
   const [newUrl, setNewUrl] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editUrl, setEditUrl] = useState("");
+  const [editLabel, setEditLabel] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -74,6 +77,29 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
     },
   });
 
+  const editMutation = useMutation({
+    mutationFn: async ({ urlId, data }: { urlId: number; data: { url?: string; label?: string } }) => {
+      const res = await fetch(`/api/properties/${propertyId}/urls/${urlId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed" }));
+        throw new Error(err.error || "Failed to update URL");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["propertyUrls", propertyId] });
+      setEditingId(null);
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (urlId: number) => {
       const res = await fetch(`/api/properties/${propertyId}/urls/${urlId}`, {
@@ -96,10 +122,11 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
       if (!res.ok) throw new Error("Failed to validate URLs");
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: { validated: number; results: Array<{ isValid: boolean; isRelevant: boolean }> }) => {
       queryClient.invalidateQueries({ queryKey: ["propertyUrls", propertyId] });
-      const valid = data.results?.filter((r: any) => r.isValid).length ?? 0;
-      toast({ title: "Validation complete", description: `${valid}/${data.validated} URLs are reachable` });
+      const valid = data.results?.filter((r) => r.isValid).length ?? 0;
+      const relevant = data.results?.filter((r) => r.isRelevant).length ?? 0;
+      toast({ title: "Validation complete", description: `${valid}/${data.validated} reachable, ${relevant} relevant` });
     },
     onError: (err: Error) => {
       toast({ title: "Validation failed", description: err.message, variant: "destructive" });
@@ -120,9 +147,37 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
     }
   };
 
+  const startEdit = (u: PropertyUrl) => {
+    setEditingId(u.id);
+    setEditUrl(u.url);
+    setEditLabel(u.label || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditUrl("");
+    setEditLabel("");
+  };
+
+  const saveEdit = () => {
+    if (!editingId) return;
+    const trimmedUrl = editUrl.trim();
+    if (!trimmedUrl) return;
+    try { new URL(trimmedUrl); } catch { return; }
+    editMutation.mutate({
+      urlId: editingId,
+      data: { url: trimmedUrl, label: editLabel.trim() || undefined },
+    });
+  };
+
   const isValidUrl = (() => {
     if (!newUrl.trim()) return true;
     try { new URL(newUrl.trim()); return true; } catch { return false; }
+  })();
+
+  const isValidEditUrl = (() => {
+    if (!editUrl.trim()) return false;
+    try { new URL(editUrl.trim()); return true; } catch { return false; }
   })();
 
   return (
@@ -161,34 +216,84 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
           <div className="space-y-3">
             {urls.map((u) => (
               <div key={u.id} className="flex items-center gap-2 group" data-testid={`property-url-row-${u.id}`}>
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  {statusBadge(u)}
-                  <a
-                    href={u.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline truncate"
-                    data-testid={`property-url-link-${u.id}`}
-                    title={u.url}
-                  >
-                    {u.label || domainLabel(u.url)}
-                  </a>
-                  {u.label && (
-                    <span className="text-xs text-muted-foreground truncate hidden sm:inline">
-                      {domainLabel(u.url)}
-                    </span>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                  onClick={() => deleteMutation.mutate(u.id)}
-                  disabled={deleteMutation.isPending}
-                  data-testid={`button-delete-url-${u.id}`}
-                >
-                  <IconTrash className="w-4 h-4" />
-                </Button>
+                {editingId === u.id ? (
+                  <>
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <Input
+                        value={editUrl}
+                        onChange={(e) => setEditUrl(e.target.value)}
+                        className={`flex-1 bg-card border-primary/30 text-foreground text-sm ${!isValidEditUrl ? "border-destructive" : ""}`}
+                        data-testid={`input-edit-url-${u.id}`}
+                      />
+                      <Input
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        placeholder="Label"
+                        className="w-32 bg-card border-primary/30 text-foreground text-sm"
+                        data-testid={`input-edit-label-${u.id}`}
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-primary"
+                      onClick={saveEdit}
+                      disabled={!isValidEditUrl || editMutation.isPending}
+                      data-testid={`button-save-edit-${u.id}`}
+                    >
+                      <IconCheck className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground"
+                      onClick={cancelEdit}
+                      data-testid={`button-cancel-edit-${u.id}`}
+                    >
+                      <IconX className="w-4 h-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      {statusBadge(u)}
+                      <a
+                        href={u.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline truncate"
+                        data-testid={`property-url-link-${u.id}`}
+                        title={u.url}
+                      >
+                        {u.label || domainLabel(u.url)}
+                      </a>
+                      {u.label && (
+                        <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                          {domainLabel(u.url)}
+                        </span>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                      onClick={() => startEdit(u)}
+                      data-testid={`button-edit-url-${u.id}`}
+                    >
+                      <IconPencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      onClick={() => deleteMutation.mutate(u.id)}
+                      disabled={deleteMutation.isPending}
+                      data-testid={`button-delete-url-${u.id}`}
+                    >
+                      <IconTrash className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             ))}
 

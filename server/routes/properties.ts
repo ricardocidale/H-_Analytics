@@ -504,6 +504,7 @@ Rewritten description:`;
   });
 
   const updatePropertyUrlSchema = z.object({
+    url: httpUrlSchema.optional(),
     label: z.string().max(200).optional(),
     isValid: z.boolean().optional(),
     isRelevant: z.boolean().optional(),
@@ -579,43 +580,115 @@ Rewritten description:`;
         } catch { return false; }
       };
 
+      const RELEVANT_DOMAINS = ["airbnb", "vrbo", "booking", "expedia", "tripadvisor", "hotels", "zillow", "realtor", "loopnet", "costar", "google.com/maps"];
+
+      const extractMeta = (html: string): { title: string; description: string } => {
+        const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+        const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*?)["']/i)
+          || html.match(/<meta[^>]*content=["']([^"']*?)["'][^>]*name=["']description["']/i);
+        return {
+          title: (titleMatch?.[1] || "").trim().slice(0, 200),
+          description: (descMatch?.[1] || "").trim().slice(0, 500),
+        };
+      };
+
+      const scoreRelevance = (hostname: string, title: string, description: string, propName: string, propLocation: string): { isRelevant: boolean; relevanceScore: number } => {
+        let score = 0.3;
+        if (RELEVANT_DOMAINS.some(d => hostname.includes(d))) score += 0.4;
+        const context = `${title} ${description}`.toLowerCase();
+        const propWords = `${propName} ${propLocation}`.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+        const matchCount = propWords.filter(w => context.includes(w)).length;
+        if (matchCount > 0) score += Math.min(matchCount * 0.1, 0.3);
+        const hospitalityTerms = ["hotel", "resort", "lodge", "rental", "vacation", "stay", "accommodation", "property", "room", "booking", "airbnb", "vrbo"];
+        if (hospitalityTerms.some(t => context.includes(t))) score += 0.1;
+        return { isRelevant: score >= 0.6, relevanceScore: Math.min(score, 1.0) };
+      };
+
       const results = await Promise.all(
         urls.map(async (u) => {
           if (!isSafeUrl(u.url)) {
             await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
-            return { id: u.id, url: u.url, isValid: false, isRelevant: u.isRelevant, relevanceScore: u.relevanceScore, status: 0, error: "Blocked: internal or private URL" };
+            return { id: u.id, url: u.url, isValid: false, isRelevant: false, relevanceScore: 0, status: 0, error: "Blocked: internal or private URL" };
           }
           try {
             const ctrl = new AbortController();
-            const timeout = setTimeout(() => ctrl.abort(), 10_000);
+            const timeout = setTimeout(() => ctrl.abort(), 15_000);
             const resp = await fetch(u.url, {
-              method: "HEAD",
+              method: "GET",
               signal: ctrl.signal,
-              headers: { "User-Agent": "H+Analytics/1.0 LinkValidator" },
+              headers: { "User-Agent": "H+Analytics/1.0 LinkValidator", "Accept": "text/html" },
               redirect: "follow",
             });
             clearTimeout(timeout);
             const isValid = resp.ok;
             const hostname = new URL(u.url).hostname.replace("www.", "");
-            const relevantDomains = ["airbnb", "vrbo", "booking", "expedia", "tripadvisor", "hotels", "zillow", "realtor", "loopnet", "costar", "google.com/maps"];
-            const isRelevant = relevantDomains.some(d => hostname.includes(d)) || u.isRelevant === true;
-            const relevanceScore = isRelevant ? 0.85 : 0.5;
+
+            let pageTitle = "";
+            let pageDescription = "";
+            if (isValid) {
+              const contentType = resp.headers.get("content-type") || "";
+              if (contentType.includes("text/html")) {
+                const body = await resp.text().catch(() => "");
+                const head = body.slice(0, 20_000);
+                const meta = extractMeta(head);
+                pageTitle = meta.title;
+                pageDescription = meta.description;
+              }
+            }
+
+            const { isRelevant, relevanceScore } = isValid
+              ? scoreRelevance(hostname, pageTitle, pageDescription, property!.name, property!.location)
+              : { isRelevant: false, relevanceScore: 0 };
+
+            const metadata: Record<string, unknown> = {};
+            if (pageTitle) metadata.title = pageTitle;
+            if (pageDescription) metadata.description = pageDescription;
+            metadata.hostname = hostname;
+            metadata.validatedAt = new Date().toISOString();
+
             await storage.updatePropertyUrl(u.id, {
               isValid,
               isRelevant,
               relevanceScore,
               lastCheckedAt: new Date(),
+              metadata,
             });
-            return { id: u.id, url: u.url, isValid, isRelevant, relevanceScore, status: resp.status };
+            return { id: u.id, url: u.url, isValid, isRelevant, relevanceScore, status: resp.status, title: pageTitle };
           } catch (err) {
             await storage.updatePropertyUrl(u.id, {
               isValid: false,
               lastCheckedAt: new Date(),
             });
-            return { id: u.id, url: u.url, isValid: false, isRelevant: u.isRelevant, relevanceScore: u.relevanceScore, status: 0, error: err instanceof Error ? err.message : "Unknown error" };
+            return { id: u.id, url: u.url, isValid: false, isRelevant: false, relevanceScore: 0, status: 0, error: err instanceof Error ? err.message : "Unknown error" };
           }
         })
       );
+
+      const relevantUrls = results.filter(r => r.isValid && r.isRelevant);
+      if (relevantUrls.length > 0) {
+        try {
+          const { upsertChunks, isPineconeAvailable } = await import("../ai/pinecone-service");
+          if (isPineconeAvailable()) {
+            const chunks = relevantUrls.map(r => ({
+              id: `prop-url:${propertyId}:${r.id}`,
+              text: `Property ${property!.name} (${property!.location}) reference link: ${r.url} ${r.title || ""}`,
+              metadata: {
+                propertyId,
+                propertyName: property!.name,
+                location: property!.location,
+                url: r.url,
+                title: r.title || "",
+                relevanceScore: r.relevanceScore ?? 0,
+                type: "property-url",
+              },
+            }));
+            await upsertChunks("properties", chunks);
+            logger.info(`Indexed ${chunks.length} relevant URLs for property ${propertyId}`, "property-urls");
+          }
+        } catch (e) {
+          logger.warn(`Failed to index property URLs to Pinecone: ${(e as Error).message}`, "property-urls");
+        }
+      }
 
       res.json({ validated: results.length, results });
     } catch (error) {
