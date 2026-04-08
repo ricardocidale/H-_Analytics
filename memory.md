@@ -24,10 +24,11 @@
 - **Implementation phases**: 5 phases, 28 tasks total
 
 ### Task #297: Property Description Card with AI Rewrite (April 2026) — COMPLETED
-- **DescriptionSection enhanced** (`client/src/components/property-edit/DescriptionSection.tsx`): Added preview Dialog for AI rewrite — user can review improved vs original text side-by-side, then accept or dismiss. Accept applies rewrite to draft; dismiss keeps original. Uses existing `POST /api/ai/rewrite-description` endpoint (already in `server/routes/ai.ts` with Gemini Flash).
+- **DescriptionSection enhanced** (`client/src/components/property-edit/DescriptionSection.tsx`): Read-only display mode (styled card with Edit button) when description exists; edit mode with textarea. Preview Dialog for AI rewrite — user can review improved vs original text side-by-side, then accept or dismiss. Frontend calls property-scoped `POST /api/properties/:id/rewrite-description`.
+- **Server endpoint added** (`server/routes/properties.ts`): New `POST /api/properties/:id/rewrite-description` with `requireManagementAccess` + `checkPropertyAccess`, Zod validation (text 1-5000 chars), Gemini via `resolveLlm("aiUtilityLlm")`, cost logging.
 - **PortfolioPropertyCard updated** (`client/src/components/portfolio/PortfolioPropertyCard.tsx`): Added `truncateWords(text, 60)` utility function; description shown as truncated text (max 60 words with ellipsis) below the location/date on the property card. Uses `line-clamp-3` for visual truncation.
 - **PropertyDetail page updated** (`client/src/pages/PropertyDetail.tsx`): Added full description card between PropertyHeader and map section. Shows when `property.description` exists — styled card with "Property Description" label and full text with `whitespace-pre-wrap`.
-- Files: DescriptionSection.tsx (enhanced with Dialog), PortfolioPropertyCard.tsx (truncated desc), PropertyDetail.tsx (full desc card)
+- Files: DescriptionSection.tsx, PortfolioPropertyCard.tsx, PropertyDetail.tsx, server/routes/properties.ts
 - Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
 
 ### Task #296: Smart Address Autocomplete & Auto-Fill (April 2026) — COMPLETED
