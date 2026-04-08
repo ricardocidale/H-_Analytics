@@ -24,11 +24,11 @@
 - **Implementation phases**: 5 phases, 28 tasks total
 
 ### Task #296: Smart Address Autocomplete & Auto-Fill (April 2026) — COMPLETED
-- **AddressAutocomplete component created**: `client/src/components/ui/address-autocomplete.tsx` — Google Places-powered typeahead with debounced search (300ms), AbortController for stale-response protection, click-outside-to-close, loading spinner, structured suggestion display (mainText + secondaryText), map pin icon
-- **BasicInfoSection updated**: Street address plain `<Input>` replaced with `<AddressAutocomplete>`, place selection auto-fills streetAddress, city, stateProvince, zipPostalCode, country, and location fields; auto-fill badges ("auto-filled" green pill) + emerald ring highlights shown for 6s then fade; geocoding triggered via POST `/api/geocode/property/:id` after place selection
+- **Existing AddressAutocomplete extended** (`client/src/components/AddressAutocomplete.tsx`): Added AbortController for stale-response protection, `countryBias` prop for country-scoped Google Places results, `disabled` prop, map pin icon (`IconMapPin`), proper `credentials: "include"` on fetch calls, cleanup on unmount (abort + debounce timer), proper `unknown` error type (no `any`)
+- **BasicInfoSection updated**: Street address plain `<Input>` replaced with `<AddressAutocomplete>`, place selection auto-fills streetAddress, city, stateProvince, zipPostalCode, country, location, **and latitude/longitude directly from place details** (no separate geocode call — coords saved when user saves form); `countryBias` passed from current geo selection; auto-fill badges ("auto-filled" green pill) + emerald ring highlights shown for 6s then fade
 - **Server enhanced**: `placesAutocomplete()` now accepts optional `countryBias` parameter for country-scoped results (`&components=country:XX`); route passes `?country=` query param through
-- **Code review fixes applied**: (1) Location always overwritten on place select (not conditional on empty), (2) Geocode trigger uses `!== undefined` instead of truthy check for lat/lng, (3) AbortController added to prevent stale suggestion races, (4) Cleanup on unmount for both debounce timer and abort controller
-- Files: address-autocomplete.tsx (new), BasicInfoSection.tsx, geospatial.ts, geospatial routes
+- **Code review fixes**: (1) Extended existing component instead of creating duplicate, (2) Lat/lng stored directly in draft from place details (no stale DB geocode), (3) Country bias passed from frontend, (4) No `any` types — uses `unknown` + `instanceof`
+- Files: AddressAutocomplete.tsx (extended), BasicInfoSection.tsx, geospatial.ts, geospatial routes
 - Health check: ALL CLEAR — 0 TS errors, 3976 tests pass, verification UNQUALIFIED
 
 ### Task #292: Skill Authoring & Updates (April 2026) — COMPLETED

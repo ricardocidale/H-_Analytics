@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CityCombobox } from "@/components/ui/city-combobox";
-import { AddressAutocomplete, type PlaceDetails } from "@/components/ui/address-autocomplete";
+import AddressAutocomplete, { type PlaceDetails } from "@/components/AddressAutocomplete";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import StarRatingInput from "@/components/research/StarRatingInput";
@@ -87,19 +87,20 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
       filled.push("location");
     }
 
+    if (details.lat !== undefined && details.lng !== undefined) {
+      onChange("latitude", details.lat);
+      onChange("longitude", details.lng);
+      filled.push("latitude", "longitude");
+    }
+
     if (filled.length > 0) {
       markAutoFilled(filled);
     }
-
-    if (details.lat !== undefined && details.lng !== undefined && draft.id) {
-      fetch(`/api/geocode/property/${draft.id}`, {
-        method: "POST",
-        credentials: "include",
-      }).catch(() => {});
-    }
-  }, [onChange, draft.id, markAutoFilled]);
+  }, [onChange, markAutoFilled]);
 
   const isAutoFilled = (field: string) => autoFilledFields.has(field);
+
+  const countryIso = geo.countryCode || undefined;
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -141,6 +142,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                   placeholder="Start typing an address..."
                   className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground"
                   data-testid="input-street-address"
+                  countryBias={countryIso}
                 />
               </div>
               <div className="space-y-2">
