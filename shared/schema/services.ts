@@ -119,6 +119,7 @@ export const propertyPhotos = pgTable("property_photos", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("property_photos_property_id_idx").on(table.propertyId),
+  index("property_photos_before_photo_id_idx").on(table.beforePhotoId),
 ]);
 
 export const insertPropertyPhotoSchema = createInsertSchema(propertyPhotos).pick({

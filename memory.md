@@ -46,6 +46,12 @@
 - No code changes, no DB changes — documentation only
 - Health check: ALL CLEAR — 0 TS errors, 3980 tests pass, verification UNQUALIFIED
 
+### Context7 Best Practices Applied (April 2026)
+- **Express**: Added `app.disable("x-powered-by")` to `server/index.ts` — reduces server fingerprinting
+- **Drizzle indexes**: Added missing FK indexes for `companies.logoId`, `companies.themeId`, `property_photos.beforePhotoId` — both in schema definitions and via direct SQL
+- **Skill created**: `.agents/skills/context7-best-practices/SKILL.md` — comprehensive reference covering Drizzle ORM (FK indexing, GIN indexes, transactions), React (lazy loading, useMemo, useCallback, memo), Express (security headers, compression, error handling), and TanStack Query (hierarchical keys, stale time, optimistic updates, prefetching)
+- **Includes feature checklist**: 11-item checklist for verifying patterns on new features
+
 ### Task #300: Map & 3D Flyover Location Links (April 2026) — COMPLETED
 - **Location link utility**: `buildLocationLinks(lat, lng, name)` in `client/src/lib/map-utils.ts` — pure function returning Google Maps URL, Google Earth 3D flyover URL, and static map thumbnail URL
 - **hasCoordinates(property)**: Helper to check if property has valid lat/lng (finite numbers, non-null)

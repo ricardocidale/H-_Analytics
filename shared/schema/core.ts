@@ -17,7 +17,10 @@ export const companies = pgTable("companies", {
   themeId: integer("theme_id").references(() => designThemes.id, { onDelete: "set null" }),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("companies_logo_id_idx").on(table.logoId),
+  index("companies_theme_id_idx").on(table.themeId),
+]);
 
 export const insertCompanySchema = z.object({
   name: z.string().min(1),
