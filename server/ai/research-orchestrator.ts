@@ -133,6 +133,7 @@ async function runAnalystPanel(
 }
 
 // ── API validation (extracted to research-validation.ts) ─────────────────────
+import { buildApiValidation } from "./research-validation";
 export { buildApiValidation } from "./research-validation";
 
 // ── Synthesis prompt ──────────────────────────────────────────────────────────

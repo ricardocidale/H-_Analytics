@@ -416,7 +416,7 @@ describe("Schema & Data Model — stableKey insertion uniqueness", () => {
 describe("Schema & Data Model — race condition handling", () => {
   it("ensureDefaultScenario catches unique violation (23505)", () => {
     const src = readFile("server/routes/scenario-helpers.ts");
-    expect(src).toContain('err?.code === "23505"');
+    expect(src).toContain('code === "23505"');
     expect(src).toContain("concurrent creation");
   });
 

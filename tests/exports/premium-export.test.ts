@@ -37,7 +37,7 @@ describe("Premium export route structure audit", () => {
     expect(routeSource).toContain("res.status(504).json({");
     expect(routeSource).toContain("res.status(500).json({");
 
-    const catchBlock = routeSource.slice(routeSource.indexOf("} catch (error: any)"));
+    const catchBlock = routeSource.slice(routeSource.indexOf("} catch (error"));
     const formatOccurrences = (catchBlock.match(/\bformat\b/g) || []).length;
     expect(formatOccurrences).toBeGreaterThanOrEqual(4);
   });
