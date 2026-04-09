@@ -8,6 +8,11 @@
 
 ## Architecture Decisions Log
 
+### File Splits Batch 2: scenarios.ts + research.ts (April 2026) — COMPLETED
+- **scenarios.ts split** (713→491 lines): Extracted recompute/drift-check/results + access control routes to `server/routes/scenarios-access.ts` (235 lines). Updated static analysis test to include new file.
+- **research.ts split** (737→588 lines): Extracted freshness counts, avg-duration, last-refresh, mark-refresh, refresh-config, research-questions CRUD to `server/routes/research-meta.ts` (159 lines). Remaining 588 lines dominated by 460-line SSE streaming generate endpoint.
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), verification UNQUALIFIED
+
 ### File Splits, dDiv Safety & Cleanup (April 2026) — COMPLETED
 - **T001 — properties.ts split** (866→499 lines): Extracted URL routes to `server/routes/properties-urls.ts` (333 lines). Main file delegates via `registerPropertyUrlRoutes(app)`.
 - **T002 — pinecone-service.ts split** (833→354 lines): Extracted 12 domain indexing functions to `server/ai/pinecone-indexing.ts` (466 lines). Main file re-exports for backward compatibility.

@@ -219,7 +219,10 @@ describe("Scenario Persistence Infrastructure Audit", () => {
   });
 
   it("recompute endpoint exists with drift detection", () => {
-    const lines = grepServer("recompute|driftStatus|drift-check", "server/routes/scenarios.ts");
+    const lines = [
+      ...grepServer("recompute|driftStatus|drift-check", "server/routes/scenarios.ts"),
+      ...grepServer("recompute|driftStatus|drift-check", "server/routes/scenarios-access.ts"),
+    ];
     expect(lines.some(l => l.includes("recompute"))).toBe(true);
     expect(lines.some(l => l.includes("drift"))).toBe(true);
   });
