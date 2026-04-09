@@ -8,6 +8,17 @@
 
 ## Architecture Decisions Log
 
+### Deterministic Audit P1 Fixes (April 2026) — COMPLETED
+- **P1-1 (Waterfall div-by-zero)**: `calc/analysis/waterfall.ts:129` — added `catchUpTarget >= 1` guard before `catchUpTarget / (1 - catchUpTarget)` to prevent Infinity
+- **P1-3 (Chat LLM timeouts)**: `server/routes/chat.ts` — wrapped Perplexity + Gemini API calls with `Promise.race` + `AI_GENERATION_TIMEOUT_MS` (120s)
+- **P1-4 (Research hardcoded models)**: Added `OrchestratorModelOverrides` interface to `server/ai/research-orchestrator.ts`; `server/routes/research.ts` threads admin researchConfig models into orchestrator
+- **Dead pages removed**: Deleted `AdminLoginLogs.tsx` (124L), `ExecutiveSummary.tsx` (595L), `GlobalResearch.tsx` (499L), `Methodology.tsx` (647L) — 1,865 lines of dead code. Kept `ComparisonView`, `TimelineView`, `FundingPredictor` (embedded in Analysis.tsx), `SensitivityAnalysis`, `FinancingAnalysis` (embedded in Analysis.tsx), `CheckerManual` (embedded in Help.tsx)
+- **Dead lazy imports removed**: `GlobalResearch`, `SensitivityAnalysis`, `FinancingAnalysis`, `CheckerManual` from App.tsx (unused — components imported directly where embedded)
+- **Domain boundary fix (auth.ts)**: Replaced direct `db.update(users)` with `storage.updateUserProfile()` call; removed dead `db`, `eq`, `users` imports. Added `userGroupId` to `updateUserProfile` accepted fields.
+- **Remaining domain violations (deferred)**: `notifications/engine.ts` (4 db calls), `integrations/geospatial.ts` (2 db calls) — deeper refactors deferred to avoid regression risk
+- **Net**: 12 files changed, 47 insertions, 1,891 deletions
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), Lint PASS, verification UNQUALIFIED
+
 ### Hospitality Company Vendors & Services Audit (April 2026) — COMPLETED
 - **Scope**: Full audit of the management company's vendor/service model — schema (company_service_templates, property_fee_categories, external_integrations), storage (ServiceStorage, IntegrationStorage), routes (admin/services.ts, admin-integrations.ts), calculation engine (calc/services/), market intelligence services (21 files in server/services/), and frontend (ServicesTab, VendorCostsTab, IntegrationsTab, ServiceResearchPanel)
 - **Architecture verified clean**:

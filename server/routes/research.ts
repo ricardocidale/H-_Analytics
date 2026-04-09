@@ -4,7 +4,7 @@ import { requireAuth, requireAdmin, isApiRateLimited, checkPropertyAccess , getA
 import { researchGenerateSchema, researchQuestionCreateSchema, researchQuestionPatchSchema, logActivity, logAndSendError } from "./helpers";
 import { fromZodError } from "zod-validation-error";
 import { generateResearchWithToolsStream, buildUserPrompt, parseResearchJSON, extractResearchValues } from "../ai/aiResearch";
-import { orchestrateResearch, isOrchestratorAvailable } from "../ai/research-orchestrator";
+import { orchestrateResearch, isOrchestratorAvailable, type OrchestratorModelOverrides } from "../ai/research-orchestrator";
 import { validateResearchValues } from "../../calc/research/validate-research";
 import { processNotificationEvent } from "../notifications/engine";
 import { createEvent } from "../notifications/events";
@@ -310,8 +310,12 @@ export function register(app: Express) {
       const relaxCtx = (useOrchestrator && propertyContextPack && propertyId && earlyRunId)
         ? { researchRunId: earlyRunId, userId: getAuthUser(req).id, contextPack: propertyContextPack }
         : undefined;
+      const orchestratorModels: OrchestratorModelOverrides | undefined = useOrchestrator ? {
+        analystAModel: model,
+        analystBModel: secondaryModel || undefined,
+      } : undefined;
       const stream = useOrchestrator
-        ? orchestrateResearch(params, v2Prompt, relaxCtx)
+        ? orchestrateResearch(params, v2Prompt, relaxCtx, orchestratorModels)
         : generateResearchWithToolsStream(params, researchClient, model, secondaryModel, v2Prompt);
 
       // ── Stream loop — accumulate content, forward events to client ──

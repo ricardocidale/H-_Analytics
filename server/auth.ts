@@ -34,9 +34,6 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { storage } from "./storage";
 import type { User, ScenarioGlobalAssumptionsSnapshot, ScenarioPropertySnapshot } from "@shared/schema";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
-import { db } from "./db";
 import { logger } from "./logger";
 import { UserRole } from "@shared/constants";
 
@@ -484,7 +481,7 @@ export async function seedAdminUser() {
         logger.info(`User role corrected: ${seed.email} → ${seed.role}`, "auth");
       }
       if (seed.userGroupId && user.userGroupId !== seed.userGroupId) {
-        await db.update(users).set({ userGroupId: seed.userGroupId }).where(eq(users.id, user.id));
+        await storage.updateUserProfile(user.id, { userGroupId: seed.userGroupId });
         logger.info(`User group corrected: ${seed.email} → group ${seed.userGroupId}`, "auth");
       }
     }

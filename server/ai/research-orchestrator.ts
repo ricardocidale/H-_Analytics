@@ -35,12 +35,18 @@ import { retrieveSimilarResearch, indexResearchResult, isPineconeAvailable } fro
 import { logger } from "../logger";
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 
-// ── Model constants ───────────────────────────────────────────────────────────
+// ── Model defaults (used when caller does not supply resolved overrides) ──────
 
-const ANALYST_A_MODEL  = "gemini-2.5-flash";
-const ANALYST_B_MODEL  = "claude-sonnet-4-5";
-const SYNTHESIS_MODEL  = "claude-opus-4-6";
+const DEFAULT_ANALYST_A_MODEL  = "gemini-2.5-flash";
+const DEFAULT_ANALYST_B_MODEL  = "claude-sonnet-4-5";
+const DEFAULT_SYNTHESIS_MODEL  = "claude-opus-4-6";
 const SYNTHESIS_TOKENS = 12_000;
+
+export interface OrchestratorModelOverrides {
+  analystAModel?: string;
+  analystBModel?: string;
+  synthesisModel?: string;
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -270,7 +276,12 @@ export async function* orchestrateResearch(
   params: ResearchParams,
   v2Prompt?: string,
   relaxationContext?: { researchRunId: number; userId: number; contextPack: import("./context-pack/types").PropertyContextPack },
+  modelOverrides?: OrchestratorModelOverrides,
 ): AsyncGenerator<OrchestratorEvent> {
+  const ANALYST_A_MODEL  = modelOverrides?.analystAModel  ?? DEFAULT_ANALYST_A_MODEL;
+  const ANALYST_B_MODEL  = modelOverrides?.analystBModel  ?? DEFAULT_ANALYST_B_MODEL;
+  const SYNTHESIS_MODEL  = modelOverrides?.synthesisModel  ?? DEFAULT_SYNTHESIS_MODEL;
+
   const location    = params.propertyContext?.location ?? params.propertyContext?.market ?? "unknown";
   const propType    = params.propertyContext?.type ?? "boutique hotel";
   const mi          = params.marketIntelligence;

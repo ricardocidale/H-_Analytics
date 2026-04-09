@@ -76,16 +76,12 @@ const PropertyResearchCriteria = lazy(
 );
 const CompanyResearch = lazy(() => import("@/pages/CompanyResearch"));
 const CompanyIcpDefinition = lazy(() => import("@/pages/CompanyIcpDefinition"));
-const GlobalResearch = lazy(() => import("@/pages/GlobalResearch"));
 const ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const Logos = lazy(() => import("@/pages/Logos"));
 const Scenarios = lazy(() => import("@/pages/Scenarios"));
 const PropertyFinder = lazy(() => import("@/pages/PropertyFinder"));
-const SensitivityAnalysis = lazy(() => import("@/pages/SensitivityAnalysis"));
-const FinancingAnalysis = lazy(() => import("@/pages/FinancingAnalysis"));
 const Analysis = lazy(() => import("@/pages/Analysis"));
-const CheckerManual = lazy(() => import("@/pages/CheckerManual"));
 const Help = lazy(() => import("@/pages/Help"));
 const MapView = lazy(() => import("@/pages/MapView"));
 const IcpStudio = lazy(() => import("@/pages/IcpStudio"));

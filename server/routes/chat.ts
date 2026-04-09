@@ -6,6 +6,7 @@ import { storage } from "../storage";
 import { buildPropertyContext } from "../ai/buildPropertyContext.js";
 import { z } from "zod";
 import { DEFAULT_PROJECTION_YEARS, DEFAULT_PROPERTY_INFLATION_RATE } from "@shared/constants";
+import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
@@ -404,11 +405,16 @@ export function register(app: Express) {
         ];
 
         const startTime = Date.now();
-        const completion = await perplexity.chat.completions.create({
-          model: "sonar",
-          messages,
-          max_tokens: modeConfig.maxTokens,
-        });
+        const completion = await Promise.race([
+          perplexity.chat.completions.create({
+            model: "sonar",
+            messages,
+            max_tokens: modeConfig.maxTokens,
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Chat LLM timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)), AI_GENERATION_TIMEOUT_MS),
+          ),
+        ]);
 
         const messageContent = completion.choices?.[0]?.message?.content;
         responseText = (typeof messageContent === "string" ? messageContent : "")
@@ -448,11 +454,16 @@ export function register(app: Express) {
         ];
 
         const startTime = Date.now();
-        const response = await gemini.models.generateContent({
-          model: resolved.model,
-          contents,
-          config: { maxOutputTokens: modeConfig.maxTokens },
-        });
+        const response = await Promise.race([
+          gemini.models.generateContent({
+            model: resolved.model,
+            contents,
+            config: { maxOutputTokens: modeConfig.maxTokens },
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Chat LLM timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)), AI_GENERATION_TIMEOUT_MS),
+          ),
+        ]);
 
         responseText = response.text
           || "I'm sorry, I couldn't generate a response. Please try again.";

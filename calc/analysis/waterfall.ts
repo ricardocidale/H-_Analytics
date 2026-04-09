@@ -126,7 +126,9 @@ export function computeWaterfall(input: WaterfallInput): WaterfallOutput {
   if (input.catch_up_rate !== undefined && input.catch_up_rate > 0 && remaining > 0) {
     const catchUpTarget = input.catch_up_to_gp_pct ?? DEFAULT_GP_CATCH_UP_TARGET_PCT;
     const totalDistributedSoFar = totalToLP + totalToGP;
-    const gpTarget = r(totalDistributedSoFar * catchUpTarget / (1 - catchUpTarget));
+    const gpTarget = catchUpTarget >= 1
+      ? totalDistributedSoFar + remaining
+      : r(totalDistributedSoFar * catchUpTarget / (1 - catchUpTarget));
     const gpShortfall = r(Math.max(0, gpTarget - totalToGP));
     catch_up_amount = r(Math.min(remaining, gpShortfall));
     const catchGP = r(catch_up_amount * input.catch_up_rate);
