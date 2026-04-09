@@ -8,6 +8,23 @@
 
 ## Architecture Decisions Log
 
+### Rebecca AI System Full Audit (April 2026) — COMPLETED
+- **Scope**: Full architectural audit of the Rebecca AI assistant subsystem — schema (7 tables: conversations, messages, knowledge base, guardrails, feedback, emails, knowledge history), storage (27+ methods in intelligence-rebecca.ts), routes (20+ endpoints across chat.ts, chat-insight.ts, rebecca.ts), client UI (RebeccaPanel, RebeccaMarkdown, RichBlockRenderers, rich-block-parser), and 91 tests across 5 test files.
+- **Findings (all verified safe)**:
+  - Authorization: All admin routes properly protected with requireAuth + requireAdmin
+  - Conversation ownership: Verified before message access in both routes and storage layer
+  - Guardrails: Hard-coded + admin-configured rules properly concatenated into system prompt
+  - Knowledge Base: CRUD with Pinecone sync, version history + rollback all working correctly
+  - Rate limiting: Chat at 20 req/min, insight at 10 req/min per user — properly enforced
+  - Rich block rendering: No XSS (react-markdown escapes HTML, no dangerouslySetInnerHTML)
+  - Language detection: Heuristic-based Spanish/English detection — robust for typical usage
+  - Email route: Allows arbitrary recipient emails (by design for sharing conversations, auth-gated)
+- **Fixes applied**:
+  - Removed all `(global as any)` type casts in chat.ts — `GlobalAssumptions` type already includes `rebeccaEnabled`, `rebeccaSystemPrompt`, `rebeccaChatEngine` as real typed columns
+  - Fixed empty catch block in rebecca.ts KB stats Pinecone vector count — now logs warning
+  - Fixed potential memory leak in RebeccaPanel.tsx — uncleared `setTimeout` in useEffect now properly cleaned up
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), verification UNQUALIFIED
+
 ### Scenarios System Full Audit (April 2026) — COMPLETED
 - **Scope**: Full architectural audit of the scenarios subsystem — schema (4 tables), storage (30+ methods across 3 files), routes (28 endpoints across 3 files), client UI, and 261 tests across 8 files.
 - **Findings (all verified safe)**:
