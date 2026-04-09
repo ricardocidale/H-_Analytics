@@ -1,4 +1,4 @@
-import { FREDService } from "./FREDService";
+import { FREDService, type FREDSeriesKey } from "./FREDService";
 import { HospitalityBenchmarkService } from "./HospitalityBenchmarkService";
 import { GroundedResearchService } from "./GroundedResearchService";
 import { MoodysService } from "./MoodysService";
@@ -353,9 +353,9 @@ export class MarketIntelligenceAggregator {
   }
 
   async fetchRateWithHistory(seriesKey: string): Promise<FREDRateData | null> {
-    const validKeys = FREDService.getSeriesKeys();
-    if (!validKeys.includes(seriesKey as any)) return null;
-    return this.fred.fetchRate(seriesKey as any);
+    const validKeys: string[] = FREDService.getSeriesKeys();
+    if (!validKeys.includes(seriesKey)) return null;
+    return this.fred.fetchRate(seriesKey as FREDSeriesKey);
   }
 
   getServiceStatus(): { fred: boolean; hospitality: boolean; grounded: boolean; moodys: boolean; spGlobal: boolean; costar: boolean; xotelo: boolean; apify: boolean; rapidApiComps: boolean; weather: boolean; fx: boolean; worldBank: boolean; financialNews: boolean; alphaVantage: boolean } {

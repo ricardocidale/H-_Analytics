@@ -206,7 +206,7 @@ function parseNumericValue(text: string): number | null {
 }
 
 function getPropertyValue(property: Property, field: string): string | null {
-  const value = (property as any)[field];
+  const value = (property as Record<string, unknown>)[field];
   if (value === null || value === undefined) return null;
   return String(value);
 }

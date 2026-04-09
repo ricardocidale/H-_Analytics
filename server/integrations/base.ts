@@ -29,6 +29,7 @@ interface CircuitBreakerState {
   failureTimestamps: number[];
   lastFailureAt: number;
   openedAt: number;
+  lastErrorMessage?: string;
 }
 
 export interface IntegrationHealth {
@@ -85,7 +86,7 @@ export abstract class BaseIntegrationService {
   getLastError(): { lastError?: string; lastErrorAt?: number } {
     const cb = getCircuitState(this.serviceName);
     return {
-      lastError: (cb as any).lastErrorMessage,
+      lastError: cb.lastErrorMessage,
       lastErrorAt: cb.lastFailureAt || undefined,
     };
   }
@@ -109,7 +110,7 @@ export abstract class BaseIntegrationService {
     } catch (error) {
       const now = Date.now();
       cb.lastFailureAt = now;
-      (cb as any).lastErrorMessage = error instanceof Error ? error.message : String(error);
+      cb.lastErrorMessage = error instanceof Error ? error.message : String(error);
 
       const windowStart = now - this.circuitConfig.windowMs;
       cb.failureTimestamps = cb.failureTimestamps.filter((t) => t >= windowStart);

@@ -20,7 +20,7 @@ export function initSentry() {
     beforeSend(event) {
       const err = event.exception?.values?.[0];
       if (err?.type === "FinancialCalculationError") {
-        const tags = (err as any).mechanism?.data as Record<string, string> | undefined;
+        const tags = (err as { mechanism?: { data?: Record<string, string> } }).mechanism?.data;
         if (tags) {
           event.tags = { ...event.tags, ...tags };
         }

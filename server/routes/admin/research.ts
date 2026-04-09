@@ -174,7 +174,7 @@ async function fetchGeminiModels(): Promise<AiModelEntry[]> {
     const pager = await client.models.list();
     const models: AiModelEntry[] = [];
     for await (const m of pager) {
-      const id = ((m as any).name ?? "").replace("models/", "");
+      const id = ((m as { name?: string }).name ?? "").replace("models/", "");
       if (shouldInclude(id, "google")) {
         models.push({ id, label: formatLabel(id, "google"), provider: "google" });
       }

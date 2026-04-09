@@ -17,7 +17,7 @@ setInterval(() => {
 
 export function aiRateLimit(maxRequests = 20, windowMs = 60_000) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req as any).user?.id ?? req.ip ?? "anonymous";
+    const userId = (req as Request & { user?: { id?: number | string } }).user?.id ?? req.ip ?? "anonymous";
     const key = `${req.path}:${userId}`;
     const now = Date.now();
 

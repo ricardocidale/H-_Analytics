@@ -235,7 +235,7 @@ export function buildPropertyContextPack(
   ];
   if (globalContext) narrativeParts.push(globalContext);
 
-  const sourceUrls = (p as any).sourceUrls as string[] | null | undefined;
+  const sourceUrls = p.sourceUrls as string[] | null | undefined;
   if (sourceUrls && sourceUrls.length > 0) {
     narrativeParts.push(
       `\n**Reference Sources (user-provided URLs — extract property details, photos, amenities, location info, and rates from these):**\n` +

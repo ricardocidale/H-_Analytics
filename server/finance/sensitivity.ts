@@ -161,11 +161,11 @@ export async function computeSensitivityAnalysis(
 
   if (!rawGlobal) throw new Error("No global assumptions found");
 
-  const allProps = (rawProperties as unknown as (PropertyInput & { isActive?: boolean })[])
+  const allProps = (rawProperties as unknown as (PropertyInput & { id?: number; isActive?: boolean })[])
     .filter(p => p.isActive !== false);
   const targetProps = propertyId === "all"
     ? allProps
-    : allProps.filter(p => (p as any).id === propertyId);
+    : allProps.filter(p => p.id === propertyId);
 
   if (!targetProps.length) {
     if (propertyId !== "all") {
