@@ -8,6 +8,13 @@
 
 ## Architecture Decisions Log
 
+### Dead Replit Integration Chat/Audio Removal (April 2026) — COMPLETED
+- **Scope**: Removed ~997 lines of dead code from `server/replit_integrations/chat/` (routes.ts 502L, storage.ts 64L, index.ts 3L) and `server/replit_integrations/audio/` (routes.ts 138L, client.ts 274L, index.ts 14L)
+- **Why dead**: The frontend (`RebeccaPanel.tsx`, `RebeccaChatbot.tsx`) calls `/api/chat` and `/api/chat/conversations` routes from `server/routes/chat.ts` — NOT the `/api/conversations` routes from `replit_integrations/chat/routes.ts`. The audio routes were never registered (no call to `registerAudioRoutes` in routes.ts).
+- **Issues fixed**: Route conflicts (both systems registered `/api/conversations` endpoints), security gap (audio routes missing `requireAuth`), separate storage layer (`chatStorage` vs main `storage`), duplicate system prompt that could drift
+- **Kept**: `shared/schema/engagement.ts` (conversations + messages table definitions) — kept to avoid Drizzle dropping the tables. Tables exist in DB but are now unused.
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), Lint PASS, verification UNQUALIFIED
+
 ### Admin User Management Audit (April 2026) — COMPLETED
 - **Scope**: Full audit of user/admin management — schema (users, sessions, user groups), storage (20+ methods in users.ts), routes (admin/users.ts, auth.ts), middleware (4 tiers: requireAuth, requireAdmin, requireChecker, requireManagementAccess), frontend (UsersTab, UserCardGrid, Create/Edit/Password/Invite dialogs)
 - **Bugs found and fixed**:

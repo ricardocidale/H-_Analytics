@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { registerChatRoutes } from "./replit_integrations/chat";
 import * as authRoutes from "./routes/auth";
 import * as propertyRoutes from "./routes/properties";
 import * as adminRoutes from "./routes/admin";
@@ -39,7 +38,6 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   registerObjectStorageRoutes(app);
-  registerChatRoutes(app);
 
   app.use(healthRouter);
 
