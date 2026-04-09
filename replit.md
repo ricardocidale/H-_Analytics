@@ -139,8 +139,8 @@ The app uses a comprehensive research methodology documented in `.agents/skills/
 ```bash
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify + doc harmony (~60s)
-npm run test:summary   # All 4,054 tests, 173 files (~35s)
-npm run verify:summary # 8-phase financial verification (~20s)
+npm run test:summary   # All 4,263 tests, 176 files (~35s)
+npm run verify:summary # 11-phase financial verification (~25s)
 npm run lint:summary   # TypeScript check only (<10s)
 npm run stats          # File/line/test counts (<5s, no vitest)
 npm run audit:quick    # Code quality: any, TODO, console.log (<3s)
