@@ -20,7 +20,7 @@ import { logger } from "../logger";
 const RECENCY_WARNING_DAYS = 90;
 const RECENCY_CRITICAL_DAYS = 365;
 
-function checkDataPointRecency(dp: DataPoint<any> | undefined, source: string, field: string): DataRecencyWarning | null {
+function checkDataPointRecency(dp: DataPoint<unknown> | undefined, source: string, field: string): DataRecencyWarning | null {
   if (!dp) return null;
   const dateStr = dp.publishedAt || dp.fetchedAt;
   if (!dateStr) return null;

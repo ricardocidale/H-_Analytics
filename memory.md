@@ -8,6 +8,19 @@
 
 ## Architecture Decisions Log
 
+### Hospitality Company Vendors & Services Audit (April 2026) — COMPLETED
+- **Scope**: Full audit of the management company's vendor/service model — schema (company_service_templates, property_fee_categories, external_integrations), storage (ServiceStorage, IntegrationStorage), routes (admin/services.ts, admin-integrations.ts), calculation engine (calc/services/), market intelligence services (21 files in server/services/), and frontend (ServicesTab, VendorCostsTab, IntegrationsTab, ServiceResearchPanel)
+- **Architecture verified clean**:
+  - **Cost-plus model**: Centralized services use `vendorCost = fee / (1 + markup)`, direct services keep 100% as oversight fee. Properly computed per-month in `computeCostOfServices()`.
+  - **Service templates → fee categories**: Templates seed property fee categories on creation; `syncTemplatesToProperties()` fills missing categories (fill-only, respects user-set values).
+  - **21 market intelligence services**: All properly extend `BaseIntegrationService` (circuit breaker, timeout, structured logging). Key router (`rapidApiKeyRouter.ts`) routes 3 RapidAPI keys to correct subscriptions.
+  - **Admin integration health**: Comprehensive health check covering 14+ external services with circuit breaker state. All admin routes protected with `requireAdmin`.
+  - **DB constraints**: Check constraints on rate/markup ranges (0-1), service model enum (`centralized`/`direct`).
+- **Fixes applied**:
+  - Removed dead `vecteezy.ts` (123 lines) — Vecteezy service was never imported or used anywhere (no route, no client reference). Seed entry in migration kept (immutable).
+  - Fixed `DataPoint<any>` → `DataPoint<unknown>` in `MarketIntelligenceAggregator.ts` (function only accesses `.publishedAt`/`.fetchedAt`, doesn't need `any`)
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), Lint PASS, verification UNQUALIFIED
+
 ### Dead Replit Integration Chat/Audio Removal (April 2026) — COMPLETED
 - **Scope**: Removed ~997 lines of dead code from `server/replit_integrations/chat/` (routes.ts 502L, storage.ts 64L, index.ts 3L) and `server/replit_integrations/audio/` (routes.ts 138L, client.ts 274L, index.ts 14L)
 - **Why dead**: The frontend (`RebeccaPanel.tsx`, `RebeccaChatbot.tsx`) calls `/api/chat` and `/api/chat/conversations` routes from `server/routes/chat.ts` — NOT the `/api/conversations` routes from `replit_integrations/chat/routes.ts`. The audio routes were never registered (no call to `registerAudioRoutes` in routes.ts).
