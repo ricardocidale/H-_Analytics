@@ -56,11 +56,11 @@ export const PortfolioPropertyCard = memo(function PortfolioPropertyCard({ prope
   const validLinks = visibleLinks.slice(0, 3);
 
   return (
-    <AnimatedGridItem>
-    <StaggerItem>
-    <TiltCard intensity={5}>
+    <AnimatedGridItem className="h-full">
+    <StaggerItem className="h-full">
+    <TiltCard intensity={5} className="h-full">
     <div className={cn(
-      "group relative overflow-hidden rounded-lg flex flex-col bg-card border border-border shadow-sm transition-all duration-300 hover:shadow-lg",
+      "group relative overflow-hidden rounded-lg flex flex-col h-full bg-card border border-border shadow-sm transition-all duration-300 hover:shadow-lg",
       !isActive && "opacity-60 saturate-50"
     )}>
       <div className="relative">
