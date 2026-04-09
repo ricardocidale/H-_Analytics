@@ -101,10 +101,10 @@ export default function AIAgentsTab({ onSaveStateChange }: AIAgentsTabProps) {
           description: enabled ? "Text agent enabled." : "Text agent disabled.",
         });
         queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
-      } catch (err: any) {
+      } catch (err: unknown) {
         toast({
           title: "Error",
-          description: err.message || "Toggle failed",
+          description: err instanceof Error ? err.message : "Toggle failed",
           variant: "destructive",
         });
       } finally {

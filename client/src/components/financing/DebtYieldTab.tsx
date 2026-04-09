@@ -38,8 +38,8 @@ export function DebtYieldTab() {
         throw new Error(err.error || "Calculation failed");
       }
       setResult(await res.json());
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Calculation failed");
     } finally {
       setLoading(false);
     }

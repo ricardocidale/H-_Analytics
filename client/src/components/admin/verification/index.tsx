@@ -122,8 +122,8 @@ export default function VerificationTab() {
           }
         }
       }
-    } catch (error: any) {
-      toast({ title: "AI Review Failed", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "AI Review Failed", description: error instanceof Error ? error.message : "AI review failed", variant: "destructive" });
     } finally {
       setAiReviewLoading(false);
     }

@@ -167,10 +167,9 @@ export default function ResearchHub() {
         completedCount++;
         await queryClient.invalidateQueries({ queryKey: ["research", "status"] });
         await queryClient.invalidateQueries({ queryKey: ["research", "property", property.id] });
-      } catch (error: any) {
-        if (error.name === "AbortError") break;
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === "AbortError") break;
         failedNames.push(property.name);
-        console.error(`Research generation failed for ${property.name}:`, error);
       }
     }
 
@@ -182,10 +181,9 @@ export default function ResearchHub() {
         completedCount++;
         await queryClient.invalidateQueries({ queryKey: ["research", "status"] });
         await queryClient.invalidateQueries({ queryKey: ["research", "company"] });
-      } catch (error: any) {
-        if (error.name !== "AbortError") {
+      } catch (error: unknown) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
           failedNames.push("Company");
-          console.error("Research generation failed for company:", error);
         }
       }
     }
@@ -198,10 +196,9 @@ export default function ResearchHub() {
         completedCount++;
         await queryClient.invalidateQueries({ queryKey: ["research", "status"] });
         await queryClient.invalidateQueries({ queryKey: ["research", "global"] });
-      } catch (error: any) {
-        if (error.name !== "AbortError") {
+      } catch (error: unknown) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
           failedNames.push("Global");
-          console.error("Research generation failed for global:", error);
         }
       }
     }

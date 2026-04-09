@@ -254,8 +254,8 @@ export function useIcpResearch() {
         { assetDescription: optimized },
         { onSuccess: () => { setIsEditing(false); toast({ title: "Optimized", description: "Prompt has been optimized by AI." }); }, onError: mutateError }
       );
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to optimize prompt", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to optimize prompt", variant: "destructive" });
     } finally { setIsOptimizing(false); }
   };
 
@@ -293,8 +293,8 @@ export function useIcpResearch() {
         }
       }
       toast({ title: "Research Complete", description: "ICP Management Co market research report has been generated and saved." });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to generate research", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to generate research", variant: "destructive" });
     } finally { setIsGenerating(false); }
   }, [refetch, toast, promptBuilder]);
 
@@ -308,8 +308,8 @@ export function useIcpResearch() {
       const a = document.createElement("a"); a.href = url; a.download = `icp-research-report.${exportFormat}`; a.click();
       URL.revokeObjectURL(url);
       toast({ title: "Exported", description: `Report exported as ${exportFormat.toUpperCase()}.` });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Export failed", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Export failed", variant: "destructive" });
     } finally { setIsExporting(false); }
   };
 
@@ -360,8 +360,8 @@ export function useIcpResearch() {
       const updated: IcpSources = { ...sources, files: [...sources.files, ...newFiles] };
       setSources(updated); saveSources(updated);
       toast({ title: "Files Added", description: `${newFiles.length} file(s) added to research sources.` });
-    } catch (err: any) {
-      toast({ title: "Upload Error", description: err.message || "Failed to upload files", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Upload Error", description: err instanceof Error ? err.message : "Failed to upload files", variant: "destructive" });
     } finally { setIsUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 

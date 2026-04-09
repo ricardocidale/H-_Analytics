@@ -35,8 +35,9 @@ try {
   } else {
     console.log("PASS");
   }
-} catch (err: any) {
-  const output = stripAnsi((err.stdout ?? "") + (err.stderr ?? ""));
+} catch (err: unknown) {
+  const e = err as { stdout?: string; stderr?: string };
+  const output = stripAnsi((e.stdout ?? "") + (e.stderr ?? ""));
 
   // Show failing test names
   const failLines = output

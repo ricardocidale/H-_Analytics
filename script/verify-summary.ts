@@ -78,8 +78,9 @@ try {
     maxBuffer: 10 * 1024 * 1024,
   });
   parseOutput(raw);
-} catch (err: any) {
-  const raw = (err.stdout ?? "") + (err.stderr ?? "");
+} catch (err: unknown) {
+  const e = err as { stdout?: string; stderr?: string };
+  const raw = (e.stdout ?? "") + (e.stderr ?? "");
   parseOutput(raw);
 }
 

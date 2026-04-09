@@ -84,8 +84,8 @@ export function ShareScenarioDialog({
       });
       setRecipientName(result.recipientName);
       setStep("success");
-    } catch (error: any) {
-      const msg = error.message || "Failed to share scenario";
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to share scenario";
       if (msg.includes("No user found")) {
         setEmailError("No user found with that email address");
         setStep("enter");
@@ -103,8 +103,8 @@ export function ShareScenarioDialog({
         scenarioId: grant.grantType === "specific" ? grant.scenarioId : null,
       });
       toast({ title: "Access revoked", description: `Removed access for ${grant.granteeName || grant.granteeEmail}` });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to revoke access", variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to revoke access", variant: "destructive" });
     }
   };
 

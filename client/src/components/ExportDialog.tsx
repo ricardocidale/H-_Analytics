@@ -120,9 +120,9 @@ async function generatePremiumExport(
       body: JSON.stringify({ format, orientation, version, ...payload }),
       signal: controller.signal,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     clearTimeout(clientTimeout);
-    if (err?.name === "AbortError") {
+    if (err instanceof DOMException && err.name === "AbortError") {
       throw new Error("Export timed out — the server took too long to respond. Please try again.");
     }
     throw err;
@@ -425,17 +425,16 @@ export function ExportDialog({ open, onClose, onExport, title, showVersionOption
           const { saveFile } = await import("@/lib/exports/saveFile");
           await saveFile(blob, serverFilename);
           toast({ title: "File saved", description: `${serverFilename} saved to your computer.` });
-        } catch (err: any) {
-          if (err?.name === "AbortError") {
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === "AbortError") {
             onClose();
             return;
           }
           throw err;
         }
         onClose();
-      } catch (error: any) {
-        const errMsg = error?.message || "An unexpected error occurred. Please try again.";
-        console.error("[premium-export] Client error:", errMsg, error?.stack || "");
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : "An unexpected error occurred. Please try again.";
         toast({ title: "Premium export failed", description: errMsg, variant: "destructive" });
         setStep("options");
         setIsSaving(false);

@@ -57,8 +57,8 @@ export async function saveFile(blob: Blob, suggestedName: string): Promise<void>
       await writable.write(blob);
       await writable.close();
       return;
-    } catch (err: any) {
-      if (err?.name === "AbortError") throw err;
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") throw err;
     }
   }
 

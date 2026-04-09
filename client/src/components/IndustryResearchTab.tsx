@@ -115,9 +115,9 @@ export function IndustryResearchTab() {
           }
         }
       }
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
-        toast({ title: "Error", description: error.message || "Research generation failed. Please try again.", variant: "destructive" });
+    } catch (error: unknown) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Research generation failed. Please try again.", variant: "destructive" });
       }
     } finally {
       setIsGenerating(false);

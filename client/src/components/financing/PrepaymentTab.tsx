@@ -66,8 +66,8 @@ export function PrepaymentTab() {
         step_down: sd.penalty_amount,
         defeasance: df.penalty_amount,
       });
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Calculation failed");
     } finally {
       setLoading(false);
     }

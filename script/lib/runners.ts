@@ -9,8 +9,9 @@ export function shell(cmd: string, timeout = 30_000): string {
       timeout,
       maxBuffer: 10 * 1024 * 1024,
     }).trim();
-  } catch (err: any) {
-    return (err.stdout ?? "") + (err.stderr ?? "");
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string };
+    return (e.stdout ?? "") + (e.stderr ?? "");
   }
 }
 

@@ -114,8 +114,9 @@ try {
       statusLine("\u2713", "TypeScript", "PASS (0 errors)");
     }
   }
-} catch (err: any) {
-  const output = (err.stdout ?? "") + (err.stderr ?? "");
+} catch (err: unknown) {
+  const e = err as { stdout?: string; stderr?: string };
+  const output = (e.stdout ?? "") + (e.stderr ?? "");
   const lines = output.trim().split("\n");
   const count = lines.filter((l: string) => l.includes("error TS")).length;
   if (count > 0) {
@@ -134,8 +135,9 @@ try {
     encoding: "utf-8",
     maxBuffer: 10 * 1024 * 1024,
   });
-} catch (err: any) {
-  testRawOutput = (err.stdout ?? "") + (err.stderr ?? "");
+} catch (err: unknown) {
+  const e = err as { stdout?: string; stderr?: string };
+  testRawOutput = (e.stdout ?? "") + (e.stderr ?? "");
 }
 
 const testResult = parseTestOutput(testRawOutput);

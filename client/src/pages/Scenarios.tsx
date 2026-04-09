@@ -174,8 +174,8 @@ export default function Scenarios() {
       queryClient.invalidateQueries({ queryKey: ["/api/scenarios"] });
       queryClient.invalidateQueries({ queryKey: ["scenarios"] });
       toast({ title: "Imported", description: `Scenario "${data.name}" imported successfully` });
-    } catch (error: any) {
-      toast({ title: "Import Error", description: error.message || "Failed to import scenario", variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Import Error", description: error instanceof Error ? error.message : "Failed to import scenario", variant: "destructive" });
     }
     if (importFileRef.current) importFileRef.current.value = "";
   };

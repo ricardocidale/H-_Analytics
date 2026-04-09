@@ -14,8 +14,9 @@ try {
     timeout: 180_000,
     maxBuffer: 10 * 1024 * 1024,
   });
-} catch (err: any) {
-  raw = (err.stdout ?? "") + (err.stderr ?? "");
+} catch (err: unknown) {
+  const e = err as { stdout?: string; stderr?: string };
+  raw = (e.stdout ?? "") + (e.stderr ?? "");
 }
 
 const result = parseTestOutput(raw);

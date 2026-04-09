@@ -91,10 +91,10 @@ export default function Login() {
         throw new Error(data.error || "Admin login failed");
       }
       window.location.href = "/";
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid credentials",
+        description: error instanceof Error ? error.message : "Invalid credentials",
         variant: "destructive",
       });
     } finally {
@@ -108,10 +108,10 @@ export default function Login() {
     try {
       await login(email, password);
       setLocation("/");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid credentials",
+        description: error instanceof Error ? error.message : "Invalid credentials",
         variant: "destructive",
       });
     } finally {

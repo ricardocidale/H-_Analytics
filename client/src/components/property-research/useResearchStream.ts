@@ -165,9 +165,9 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
       getQueue().markActive(queueId);
       await executeStream(queueId);
       getQueue().markComplete(queueId);
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
-        getQueue().markError(queueId, error.message || "Research failed");
+    } catch (error: unknown) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        getQueue().markError(queueId, error instanceof Error ? error.message : "Research failed");
       }
     } finally {
       setIsGenerating(false);
