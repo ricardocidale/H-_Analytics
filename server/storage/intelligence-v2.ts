@@ -284,6 +284,14 @@ export class IntelligenceV2Storage {
       .orderBy(rebeccaMessages.createdAt);
   }
 
+  async getAllRebeccaMessageStats(): Promise<Array<{ conversationId: number; createdAt: Date }>> {
+    const rows = await db.select({
+      conversationId: rebeccaMessages.conversationId,
+      createdAt: rebeccaMessages.createdAt,
+    }).from(rebeccaMessages);
+    return rows;
+  }
+
   async createRebeccaEmail(data: InsertRebeccaEmail): Promise<RebeccaEmail> {
     const [email] = await db.insert(rebeccaEmails)
       .values(data as typeof rebeccaEmails.$inferInsert)

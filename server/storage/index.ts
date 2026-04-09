@@ -302,6 +302,7 @@ export class DatabaseStorage implements IStorage {
   getRebeccaConversations = this.intelligenceV2.getRebeccaConversations.bind(this.intelligenceV2);
   addRebeccaMessage = this.intelligenceV2.addRebeccaMessage.bind(this.intelligenceV2);
   getRebeccaMessages = this.intelligenceV2.getRebeccaMessages.bind(this.intelligenceV2);
+  getAllRebeccaMessageStats = this.intelligenceV2.getAllRebeccaMessageStats.bind(this.intelligenceV2);
   createRebeccaEmail = this.intelligenceV2.createRebeccaEmail.bind(this.intelligenceV2);
   createRebeccaFeedback = this.intelligenceV2.createRebeccaFeedback.bind(this.intelligenceV2);
   getRebeccaFeedback = this.intelligenceV2.getRebeccaFeedback.bind(this.intelligenceV2);

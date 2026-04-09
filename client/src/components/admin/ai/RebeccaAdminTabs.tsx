@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { IconSettings, IconMessageCircle, IconAlertCircle, IconShield, IconBrain } from "@/components/icons";
+import { IconSettings, IconMessageCircle, IconAlertCircle, IconShield, IconBrain, IconTrendingUp } from "@/components/icons";
 import { motion } from "framer-motion";
 import RebeccaConfigTab from "./RebeccaConfigTab";
 import RebeccaConversationsTab from "./RebeccaConversationsTab";
 import RebeccaFeedbackTab from "./RebeccaFeedbackTab";
+import RebeccaAnalyticsTab from "./RebeccaAnalyticsTab";
 import GuardrailEditor from "./GuardrailEditor";
 import KnowledgeBaseEditor from "./KnowledgeBaseEditor";
 import type { RebeccaConfigProps } from "./RebeccaConfigTab";
@@ -44,6 +45,10 @@ export default function RebeccaAdminTabs({ configProps }: RebeccaAdminTabsProps)
             <IconAlertCircle className="w-3.5 h-3.5" />
             Feedback
           </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-1.5 text-xs" data-testid="tab-analytics">
+            <IconTrendingUp className="w-3.5 h-3.5" />
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="configuration" className="mt-0">
@@ -64,6 +69,10 @@ export default function RebeccaAdminTabs({ configProps }: RebeccaAdminTabsProps)
 
         <TabsContent value="feedback" className="mt-0">
           <RebeccaFeedbackTab />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-0">
+          <RebeccaAnalyticsTab />
         </TabsContent>
       </Tabs>
     </motion.div>

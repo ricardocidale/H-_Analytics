@@ -354,6 +354,78 @@ export function register(app: Express) {
       return res.status(500).json({ error: "Failed to rollback KB entry" });
     }
   });
+
+  app.get("/api/rebecca/analytics", requireAuth, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const [conversations, allMessages] = await Promise.all([
+        storage.getRebeccaConversations(),
+        storage.getAllRebeccaMessageStats(),
+      ]);
+
+      const totalConversations = conversations.length;
+      const totalMessages = allMessages.length;
+      const uniqueUsers = new Set(conversations.map(c => c.userId)).size;
+
+      const turnsPerConv: Record<number, number> = {};
+      for (const m of allMessages) {
+        turnsPerConv[m.conversationId] = (turnsPerConv[m.conversationId] ?? 0) + 1;
+      }
+      const turnCounts = Object.values(turnsPerConv);
+      const avgTurnsPerConversation = turnCounts.length > 0
+        ? Math.round((turnCounts.reduce((a, b) => a + b, 0) / turnCounts.length) * 10) / 10
+        : 0;
+
+      const singleTurnCount = turnCounts.filter(t => t <= 2).length;
+      const deepCount = turnCounts.filter(t => t >= 6).length;
+      const singleTurnRate = totalConversations > 0 ? Math.round((singleTurnCount / totalConversations) * 100) : 0;
+      const deepConversationRate = totalConversations > 0 ? Math.round((deepCount / totalConversations) * 100) : 0;
+
+      const contextBreakdown: Record<string, number> = {};
+      for (const c of conversations) {
+        const ct = c.contextType ?? "general";
+        contextBreakdown[ct] = (contextBreakdown[ct] ?? 0) + 1;
+      }
+
+      const dailyVolumes: Record<string, { conversations: number; messages: number }> = {};
+      for (const c of conversations) {
+        const day = new Date(c.startedAt).toISOString().slice(0, 10);
+        if (!dailyVolumes[day]) dailyVolumes[day] = { conversations: 0, messages: 0 };
+        dailyVolumes[day].conversations++;
+      }
+      for (const m of allMessages) {
+        const day = new Date(m.createdAt).toISOString().slice(0, 10);
+        if (!dailyVolumes[day]) dailyVolumes[day] = { conversations: 0, messages: 0 };
+        dailyVolumes[day].messages++;
+      }
+
+      const sortedDays = Object.entries(dailyVolumes)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-30)
+        .map(([date, data]) => ({ date, ...data }));
+
+      const feedback = await storage.getRebeccaFeedback();
+      const feedbackByCategory: Record<string, number> = {};
+      for (const f of feedback) {
+        feedbackByCategory[f.category] = (feedbackByCategory[f.category] ?? 0) + 1;
+      }
+
+      res.json({
+        totalConversations,
+        totalMessages,
+        uniqueUsers,
+        avgTurnsPerConversation,
+        singleTurnRate,
+        deepConversationRate,
+        contextBreakdown,
+        dailyVolumes: sortedDays,
+        feedbackBreakdown: feedbackByCategory,
+        totalFeedback: feedback.length,
+      });
+    } catch (err) {
+      logger.error(`Failed to compute analytics: ${(err as Error).message}`, "rebecca");
+      res.status(500).json({ error: "Failed to compute analytics" });
+    }
+  });
 }
 
 function syncKBEntryToPinecone(entryId: number, title: string, content: string, category: string) {

@@ -35,13 +35,40 @@ const chatMessageSchema = z.object({
   content: z.string().max(MAX_MESSAGE_LENGTH),
 });
 
+const responseModeSchema = z.enum(["concise", "standard", "detailed"]).optional().default("standard");
+
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(MAX_MESSAGE_LENGTH),
   history: z.array(chatMessageSchema).max(MAX_HISTORY_LENGTH).optional().default([]),
   fieldContext: fieldContextSchema,
   conversationId: z.number().int().positive().optional(),
   newConversation: z.boolean().optional(),
+  responseMode: responseModeSchema,
 });
+
+const RESPONSE_MODE_CONFIG: Record<string, { maxTokens: number; promptOverlay: string }> = {
+  concise: {
+    maxTokens: 200,
+    promptOverlay: `\n\n## Response Mode: CONCISE
+- Give the headline answer in 1-2 tight sentences. No preamble, no filler.
+- Do NOT use any rich formatting blocks (:::stat, :::compare, etc.) — plain text only.
+- End with "Want me to go deeper?" or a specific one-line follow-up question.
+- Still be Rebecca — sharp, specific, opinionated. Concise doesn't mean robotic.`,
+  },
+  standard: {
+    maxTokens: 450,
+    promptOverlay: "",
+  },
+  detailed: {
+    maxTokens: 800,
+    promptOverlay: `\n\n## Response Mode: DETAILED
+- Provide thorough analysis: 5-8 sentences with supporting context and examples.
+- You may use up to TWO rich formatting blocks (:::stat, :::compare, :::kpi, etc.) if the data warrants it.
+- Include specific numbers, comparisons, and benchmarks where available.
+- Still end with a specific follow-up question — never leave the conversation hanging.
+- Stay tight even in detailed mode — every sentence earns its place.`,
+  },
+};
 
 const DEFAULT_SYSTEM_PROMPT = `You are Rebecca, the sharpest analyst at H+ Analytics. You know the portfolio inside out — every property's ADR, every cap rate assumption, every USALI line item. You have opinions about this work, backed by quiet confidence from watching the data compound. You're the colleague who sends a crisp insight with one perfect data point attached.
 
@@ -267,7 +294,8 @@ export function register(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
-      const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation } = parsed.data;
+      const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation, responseMode } = parsed.data;
+      const modeConfig = RESPONSE_MODE_CONFIG[responseMode ?? "standard"] ?? RESPONSE_MODE_CONFIG.standard;
 
       const authUser = getAuthUser(req);
       const userId = authUser.id;
@@ -544,7 +572,7 @@ export function register(app: Express) {
         logger.warn(`Failed to load guardrails (non-blocking): ${(err as Error).message}`, "chat");
       }
 
-      const fullSystemPrompt = `${systemPrompt}${guardrailBlock}\n\n${contextBlock}${rebeccaFieldBlock}${ragContextBlock}${documentContextBlock}${assetContextBlock}`;
+      const fullSystemPrompt = `${systemPrompt}${guardrailBlock}${modeConfig.promptOverlay}\n\n${contextBlock}${rebeccaFieldBlock}${ragContextBlock}${documentContextBlock}${assetContextBlock}`;
       const engine = ga?.rebeccaChatEngine ?? "gemini";
 
       let responseText: string;
@@ -564,7 +592,7 @@ export function register(app: Express) {
         const completion = await perplexity.chat.completions.create({
           model: "sonar",
           messages,
-          max_tokens: 1024,
+          max_tokens: modeConfig.maxTokens,
         });
 
         const messageContent = completion.choices?.[0]?.message?.content;
@@ -604,7 +632,7 @@ export function register(app: Express) {
         const response = await gemini.models.generateContent({
           model: resolved.model,
           contents,
-          config: { maxOutputTokens: 1024 },
+          config: { maxOutputTokens: modeConfig.maxTokens },
         });
 
         responseText = response.text

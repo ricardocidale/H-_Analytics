@@ -17,6 +17,9 @@ import {
   Mail,
   Flag,
   History,
+  Zap,
+  AlignLeft,
+  BookOpen,
 } from "lucide-react";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
@@ -46,6 +49,22 @@ function nextMsgId(role: string) {
   return `${role}-${Date.now()}-${++msgCounter}`;
 }
 
+type ResponseMode = "concise" | "standard" | "detailed";
+
+const RESPONSE_MODES: { value: ResponseMode; label: string; icon: typeof Zap; tip: string }[] = [
+  { value: "concise", label: "Concise", icon: Zap, tip: "Quick, to-the-point answers" },
+  { value: "standard", label: "Standard", icon: AlignLeft, tip: "Balanced analysis" },
+  { value: "detailed", label: "Detailed", icon: BookOpen, tip: "Deep-dive analysis" },
+];
+
+function getStoredMode(): ResponseMode {
+  try {
+    const v = localStorage.getItem("rebecca-response-mode");
+    if (v === "concise" || v === "standard" || v === "detailed") return v;
+  } catch {}
+  return "standard";
+}
+
 const DEFAULT_CHIPS = [
   "What does research suggest?",
   "Compare to similar properties",
@@ -68,6 +87,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [emailOpen, setEmailOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [responseMode, setResponseMode] = useState<ResponseMode>(getStoredMode);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -152,6 +172,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           ? `What does research suggest for ${rebeccaContext.fieldName ?? rebeccaContext.fieldKey}?`
           : `Tell me about this ${rebeccaContext.entityType}.`,
         history: [],
+        responseMode,
         fieldContext: {
           entityType: rebeccaContext.entityType,
           entityId: rebeccaContext.entityId,
@@ -185,7 +206,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [rebeccaContext, conversationId]);
+  }, [rebeccaContext, conversationId, responseMode]);
 
   const sendMessage = useCallback(
     async (text?: string) => {
@@ -211,6 +232,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         const body: Record<string, unknown> = {
           message: trimmed,
           history: [],
+          responseMode,
         };
 
         if (forceNewRef.current) {
@@ -266,7 +288,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         setLoading(false);
       }
     },
-    [input, loading, messages, rebeccaContext, conversationId]
+    [input, loading, messages, rebeccaContext, conversationId, responseMode]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -390,6 +412,34 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             </div>
           </div>
         </SheetHeader>
+
+        <div className="px-4 py-2 border-b border-border/30 shrink-0 flex items-center gap-1.5" data-testid="rebecca-mode-selector">
+          <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider mr-1">Mode</span>
+          {RESPONSE_MODES.map((m) => {
+            const Icon = m.icon;
+            const active = responseMode === m.value;
+            return (
+              <button
+                key={m.value}
+                onClick={() => {
+                  setResponseMode(m.value);
+                  try { localStorage.setItem("rebecca-response-mode", m.value); } catch {}
+                }}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/40"
+                )}
+                title={m.tip}
+                data-testid={`button-mode-${m.value}`}
+              >
+                <Icon className="w-3 h-3" />
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
 
         {rebeccaContext && <RebeccaContextCard context={rebeccaContext} />}
 
