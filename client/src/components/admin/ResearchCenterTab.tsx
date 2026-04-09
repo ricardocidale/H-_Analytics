@@ -157,7 +157,7 @@ export default function ResearchCenterTab({ onSaveStateChange }: ResearchCenterT
               <p className="text-xs text-muted-foreground mt-0.5">Automatically refresh stale research data after login (checks every 30 business days)</p>
             </div>
             <Switch
-              checked={(globalAssumptions as any)?.autoResearchRefreshEnabled ?? false}
+              checked={(globalAssumptions as Record<string, unknown> | undefined)?.autoResearchRefreshEnabled as boolean ?? false}
               onCheckedChange={(checked) =>
                 updateGlobalMutation.mutate({ autoResearchRefreshEnabled: checked })
               }

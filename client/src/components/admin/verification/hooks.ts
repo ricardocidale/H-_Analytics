@@ -15,7 +15,7 @@ async function safeFetchJSON<T>(url: string, label: string): Promise<T> {
       throw new Error(`${label}: server returned ${res.status} (non-JSON)`);
     }
     const body = await res.json().catch(() => ({}));
-    throw new Error(`${label}: ${(body as any).error || res.statusText}`);
+    throw new Error(`${label}: ${(body as Record<string, unknown>).error || res.statusText}`);
   }
   const ct = res.headers.get("content-type") || "";
   if (!ct.includes("application/json")) {
@@ -59,7 +59,7 @@ export function useRunVerification(onSuccess?: (data: VerificationResult) => voi
           throw new Error(`Server verification: returned ${serverRes.status} (non-JSON)`);
         }
         const body = await serverRes.json().catch(() => ({}));
-        throw new Error(`Server verification: ${(body as any).error || serverRes.statusText}`);
+        throw new Error(`Server verification: ${(body as Record<string, unknown>).error || serverRes.statusText}`);
       }
       const sct = serverRes.headers.get("content-type") || "";
       if (!sct.includes("application/json")) {

@@ -63,7 +63,7 @@ export function IndustryResearchTab() {
   const [streamedContent, setStreamedContent] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
-  const currentGlobal = global ?? {} as any;
+  const currentGlobal = global ?? ({} as Partial<NonNullable<typeof global>>);
 
   const generateResearch = useCallback(async () => {
     setIsGenerating(true);

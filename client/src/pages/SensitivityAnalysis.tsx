@@ -85,7 +85,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
             prop.startOccupancy
           ),
           adrGrowthRate: Math.max(0, prop.adrGrowthRate + (overrides.adrGrowth ?? 0) / 100),
-          interestRate: Math.max(0.005, ((prop as any).interestRate ?? 0.065) + (overrides.interestRate ?? 0) / 100),
+          interestRate: Math.max(0.005, ((prop as Record<string, unknown>).interestRate as number ?? 0.065) + (overrides.interestRate ?? 0) / 100),
           costRateInsurance: Math.max(0, (prop.costRateInsurance ?? DEFAULT_COST_RATE_INSURANCE) + (overrides.insuranceRate ?? 0) / 100),
         };
 
@@ -119,7 +119,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
         const debtAtExit = financials[financials.length - 1]?.debtOutstanding ?? 0;
         exitValue += Math.max(0, netExit - debtAtExit);
 
-        totalInitialEquity += prop.purchasePrice * (1 - ((prop as any).acquisitionLTV ?? 0));
+        totalInitialEquity += prop.purchasePrice * (1 - ((prop as Record<string, unknown>).acquisitionLTV as number ?? 0));
       }
 
       const irrFlows = [-totalInitialEquity, ...annualCashFlows];

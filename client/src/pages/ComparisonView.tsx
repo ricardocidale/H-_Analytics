@@ -67,7 +67,7 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
 
   const getBestValue = (key: string, dir?: "high" | "low"): number | string | null => {
     if (!dir || selectedProperties.length < 2) return null;
-    const values = selectedProperties.map((p) => (p as any)[key] as number);
+    const values = selectedProperties.map((p) => (p as unknown as Record<string, unknown>)[key] as number);
     if (values.some((v) => typeof v !== "number")) return null;
     return dir === "high" ? Math.max(...values) : Math.min(...values);
   };
@@ -88,7 +88,7 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
       if (!m.bestDir) return;
       const best = getBestValue(m.key, m.bestDir);
       selectedProperties.forEach(p => {
-        if ((p as any)[m.key] === best) {
+        if ((p as unknown as Record<string, unknown>)[m.key] === best) {
           wins[p.id]++;
         }
       });
@@ -115,7 +115,7 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
     const headers = ["Metric", ...selectedProperties.map((p) => p.name)];
     const rows = METRICS.map((m) => [
       m.label,
-      ...selectedProperties.map((p) => formatValue((p as any)[m.key], m.format)),
+      ...selectedProperties.map((p) => formatValue((p as unknown as Record<string, unknown>)[m.key], m.format)),
     ]);
     autoTable(doc, { head: [headers], body: rows, startY: 28 });
     const { saveFile } = await import("@/lib/exports/saveFile");
@@ -128,7 +128,7 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
     const headers = ["Metric", ...selectedProperties.map((p) => p.name)];
     const rows = METRICS.map((m) => [
       m.label,
-      ...selectedProperties.map((p) => formatValue((p as any)[m.key], m.format)),
+      ...selectedProperties.map((p) => formatValue((p as unknown as Record<string, unknown>)[m.key], m.format)),
     ]);
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     const wb = XLSX.utils.book_new();
@@ -144,7 +144,7 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
     const headers = ["Metric", ...selectedProperties.map((p) => p.name)];
     const rows = METRICS.map((m) => [
       m.label,
-      ...selectedProperties.map((p) => formatValue((p as any)[m.key], m.format)),
+      ...selectedProperties.map((p) => formatValue((p as unknown as Record<string, unknown>)[m.key], m.format)),
     ]);
     const csvContent = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     downloadCSV(csvContent, customFilename || "property-comparison.csv");
@@ -164,7 +164,7 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
       [{ text: "Metric", options: { bold: true } }, ...selectedProperties.map((p) => ({ text: p.name, options: { bold: true } }))],
       ...METRICS.map((m) => [
         { text: m.label, options: {} },
-        ...selectedProperties.map((p) => ({ text: formatValue((p as any)[m.key], m.format), options: {} })),
+        ...selectedProperties.map((p) => ({ text: formatValue((p as unknown as Record<string, unknown>)[m.key], m.format), options: {} })),
       ]),
     ];
     slide2.addTable(tableRows, { x: 0.5, y: 1.0, w: 9, colW: [2.5, ...selectedProperties.map(() => 6.5 / selectedProperties.length)] });
@@ -419,7 +419,7 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
                           {metric.label}
                         </td>
                         {selectedProperties.map((p) => {
-                          const raw = (p as any)[metric.key];
+                          const raw = (p as unknown as Record<string, unknown>)[metric.key];
                           const isBest =
                             best !== null &&
                             typeof raw === "number" &&

@@ -199,7 +199,7 @@ export function generatePortfolioInvestmentData(
 
       properties.forEach((prop, pi) => {
         const propCF = cf[pi] || [];
-        const crp = (prop as any).countryRiskPremium ?? 0;
+        const crp = (prop as Record<string, unknown>).countryRiskPremium as number ?? 0;
         const re = baseCOE + crp;
         const equity = propertyEquityInvested(prop);
         const isFullEquity = prop.type === "Full Equity";

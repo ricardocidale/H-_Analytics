@@ -34,7 +34,7 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
   const hasDescription = React.Children.toArray(children).some(
-    (child) => React.isValidElement(child) && (child as any).type?.displayName === DialogPrimitive.Description.displayName
+    (child) => React.isValidElement(child) && (child as React.ReactElement<unknown, React.FunctionComponent>).type?.displayName === DialogPrimitive.Description.displayName
   );
   return (
     <DialogPortal>

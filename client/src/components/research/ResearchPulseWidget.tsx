@@ -81,7 +81,7 @@ export function ResearchPulseWidget({ className }: ResearchPulseWidgetProps) {
   const { data: globalResearch } = useMarketResearch("industry");
   const { data: globalAssumptions } = useGlobalAssumptions();
 
-  const refreshIntervalDays = (globalAssumptions as any)?.researchRefreshIntervalDays ?? 7;
+  const refreshIntervalDays = (globalAssumptions as Record<string, unknown> | undefined)?.researchRefreshIntervalDays as number ?? 7;
 
   const statusRows: StatusRow[] = useMemo(() => {
     return researchTypes.map((rt) => {
@@ -101,21 +101,21 @@ export function ResearchPulseWidget({ className }: ResearchPulseWidgetProps) {
 
   // Key insights from the latest global/industry research
   const insights = useMemo(() => {
-    const content = (globalResearch as any)?.content;
+    const content = (globalResearch as Record<string, unknown> | undefined)?.content as Record<string, unknown> | undefined;
     return [
       {
         label: "ADR Trend",
-        value: content?.adrTrend ?? "\u2014",
+        value: String(content?.adrTrend ?? "\u2014"),
         icon: IconTrendingUp,
       },
       {
         label: "Cap Rate",
-        value: content?.capRate ?? "\u2014",
+        value: String(content?.capRate ?? "\u2014"),
         icon: IconTarget,
       },
       {
         label: "RevPAR",
-        value: content?.revpar ?? "\u2014",
+        value: String(content?.revpar ?? "\u2014"),
         icon: IconBarChart2,
       },
     ];

@@ -417,7 +417,7 @@ export default function Scenarios() {
                             <IconClock className="w-3 h-3" />
                             Saved: {formatDateTime(scenario.updatedAt)}
                           </span>
-                          <span className="font-mono">{(scenario.properties as any[])?.length || 0} properties</span>
+                          <span className="font-mono">{(Array.isArray(scenario.properties) ? scenario.properties.length : 0)} properties</span>
                         </div>
                       </div>
 
@@ -632,7 +632,7 @@ export default function Scenarios() {
                             <IconClock className="w-3 h-3" />
                             Saved: {formatDateTime(scenario.updatedAt)}
                           </span>
-                          <span className="font-mono">{(scenario.properties as any[])?.length || 0} properties</span>
+                          <span className="font-mono">{(Array.isArray(scenario.properties) ? scenario.properties.length : 0)} properties</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">

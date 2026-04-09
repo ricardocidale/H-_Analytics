@@ -140,7 +140,7 @@ export function runFullVerification(
   
   for (const property of properties) {
     try {
-      const projectionMonths = ((globalAssumptions as any).projectionYears ?? PROJECTION_YEARS) * MONTHS_PER_YEAR;
+      const projectionMonths = ((globalAssumptions as Record<string, unknown>).projectionYears as number ?? PROJECTION_YEARS) * MONTHS_PER_YEAR;
       const financials = generatePropertyProForma(property, globalAssumptions, projectionMonths);
       
       const formulaCheck = checkPropertyFormulas(financials);
