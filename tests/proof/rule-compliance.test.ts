@@ -410,6 +410,127 @@ describe("No raw Date constructor with date strings in financial files", () => {
   });
 });
 
+// ─────────────────────────────────────────────────────────────
+// Section 6: Error handling safety
+// Prevents regression of catch-any and unsafe error casts
+// ─────────────────────────────────────────────────────────────
+describe("Error handling safety — no catch(x: any) or unsafe (x as Error)", () => {
+  const SCAN_DIRS = [
+    path.resolve("client/src"),
+    path.resolve("server"),
+    path.resolve("calc"),
+    path.resolve("shared"),
+    path.resolve("script"),
+  ];
+
+  const CATCH_ANY_PATTERN = /catch\s*\(\s*\w+\s*:\s*any\s*\)/;
+  const UNSAFE_AS_ERROR_PATTERN = /\(\s*\w+\s+as\s+Error\s*\)\s*\.\s*message/;
+
+  function isExemptFile(filePath: string): boolean {
+    const rel = path.relative(path.resolve("."), filePath).replace(/\\/g, "/");
+    if (rel.endsWith(".test.ts") || rel.endsWith(".test.tsx")) return true;
+    if (rel.includes("node_modules")) return true;
+    return false;
+  }
+
+  it("no catch(x: any) in production code", () => {
+    const violations: string[] = [];
+
+    for (const dir of SCAN_DIRS) {
+      const files = collectTsFiles(dir);
+      for (const file of files) {
+        if (isExemptFile(file)) continue;
+        const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (line.trimStart().startsWith("//")) continue;
+          if (CATCH_ANY_PATTERN.test(line)) {
+            const rel = path.relative(path.resolve("."), file).replace(/\\/g, "/");
+            violations.push(`  ${rel}:${i + 1}\n    ${line.trim().substring(0, 120)}`);
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(
+        `Found ${violations.length} catch(x: any) violation(s):\n${violations.join("\n")}\n\n` +
+        `Use catch (error: unknown) with instanceof Error guards instead.`
+      );
+    }
+  });
+
+  it("no unsafe (x as Error).message casts in production code", () => {
+    const violations: string[] = [];
+
+    for (const dir of SCAN_DIRS) {
+      const files = collectTsFiles(dir);
+      for (const file of files) {
+        if (isExemptFile(file)) continue;
+        const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (line.trimStart().startsWith("//")) continue;
+          if (UNSAFE_AS_ERROR_PATTERN.test(line)) {
+            const rel = path.relative(path.resolve("."), file).replace(/\\/g, "/");
+            violations.push(`  ${rel}:${i + 1}\n    ${line.trim().substring(0, 120)}`);
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(
+        `Found ${violations.length} unsafe (x as Error).message cast(s):\n${violations.join("\n")}\n\n` +
+        `Use: error instanceof Error ? error.message : String(error)`
+      );
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Section 7: No `any` types in financial calculation code
+// ─────────────────────────────────────────────────────────────
+describe("No any types in financial calculation code", () => {
+  const FINANCE_DIRS = [
+    path.resolve("calc"),
+    path.resolve("engine"),
+  ];
+
+  const ANY_PATTERN = /:\s*any\b|as\s+any\b/;
+
+  it("calc/ and engine/ directories have zero any types", () => {
+    const violations: string[] = [];
+
+    for (const dir of FINANCE_DIRS) {
+      if (!fs.existsSync(dir)) continue;
+      const files = collectTsFiles(dir);
+      for (const file of files) {
+        if (file.endsWith(".test.ts")) continue;
+        const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (line.trimStart().startsWith("//") || line.trimStart().startsWith("*")) continue;
+          if (ANY_PATTERN.test(line)) {
+            const rel = path.relative(path.resolve("."), file).replace(/\\/g, "/");
+            violations.push(`  ${rel}:${i + 1}\n    ${line.trim().substring(0, 120)}`);
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(
+        `Found ${violations.length} any type(s) in financial calculation code:\n${violations.join("\n")}\n\n` +
+        `Financial calculation code must use explicit types for correctness.`
+      );
+    }
+  });
+});
+
 describe("Client-side financial calculation gate (T016)", () => {
   const CLIENT_FINANCE_DIRS = [
     path.resolve("client/src/components"),

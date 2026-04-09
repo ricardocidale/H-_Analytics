@@ -422,7 +422,7 @@ describe("Schema & Data Model — race condition handling", () => {
 
   it("auto-save route catches unique violation with retry", () => {
     const src = readFile("server/routes/scenarios.ts");
-    expect(src).toContain('createErr?.code === "23505"');
+    expect(src).toContain('dbErr?.code === "23505"');
   });
 
   it("partial unique index migration exists for system scenarios", () => {

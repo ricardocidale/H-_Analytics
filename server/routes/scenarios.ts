@@ -82,8 +82,9 @@ export function register(app: Express) {
             kind: "autosave",
           });
           res.json({ success: true, scenario });
-        } catch (createErr: any) {
-          if (createErr?.code === "23505") {
+        } catch (createErr: unknown) {
+          const dbErr = createErr as Record<string, unknown>;
+          if (dbErr?.code === "23505") {
             const raced = await storage.getAutoSaveScenario(user.id);
             if (raced) {
               const updated = await storage.updateScenarioSnapshot(raced.id, {
