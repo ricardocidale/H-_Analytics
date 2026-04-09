@@ -435,7 +435,7 @@ const loanScenarioSchema = z.object({
 });
 
 export const compareLoanSchema = z.object({
-  scenarios: z.array(loanScenarioSchema).min(1),
+  scenarios: z.array(loanScenarioSchema).min(2),
 });
 
 export const interestRateSwapSchema = z.object({

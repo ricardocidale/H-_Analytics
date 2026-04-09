@@ -24,6 +24,7 @@ const EXPECTED_TOOLS = [
   "calculate_prepayment",
   "calculate_sensitivity",
   "compare_loans",
+  "interest_rate_swap",
   "centralized_service_margin",
   "cost_of_services_aggregator",
   "compute_property_metrics",
