@@ -27,6 +27,9 @@ const phases: Phase[] = [
   { title: "PHASE 6: Portfolio Dynamics", file: "tests/proof/portfolio-dynamics.test.ts", passMsg: "Portfolio scaling verified", failMsg: "Portfolio dynamics FAILED" },
   { title: "PHASE 7: Recalculation Enforcement", file: "tests/proof/recalculation-enforcement.test.ts", passMsg: "All mutations trigger recalculation", failMsg: "Recalculation enforcement FAILED — stale data possible" },
   { title: "PHASE 8: Rule Compliance", file: "tests/proof/rule-compliance.test.ts", passMsg: "All architectural rules observed", failMsg: "Rule compliance FAILED" },
+  { title: "PHASE 9: Number Precision", file: "tests/proof/number-precision.test.ts", passMsg: "All input round-trip & precision tests passed", failMsg: "Number precision FAILED — values may drift through the pipeline" },
+  { title: "PHASE 10: Decimal.js Boundaries", file: "tests/proof/decimal-precision.test.ts", passMsg: "All decimal arithmetic boundary tests passed", failMsg: "Decimal precision FAILED — floating-point guard broken" },
+  { title: "PHASE 11: Aggregation Cross-Check", file: "tests/proof/aggregation-crosscheck.test.ts", passMsg: "All monthly→yearly→portfolio roll-up tests passed", failMsg: "Aggregation cross-check FAILED — totals don't match" },
 ];
 
 function run() {
