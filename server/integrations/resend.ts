@@ -43,7 +43,7 @@ class ResendIntegration extends BaseIntegrationService {
         name: this.serviceName,
         healthy: false,
         latencyMs: Date.now() - start,
-        lastError: error.message,
+        lastError: error instanceof Error ? error.message : String(error),
         lastErrorAt: Date.now(),
         circuitState: this.getCircuitState(),
       };

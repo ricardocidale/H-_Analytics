@@ -202,7 +202,7 @@ export function registerToolRoutes(app: Express) {
       const raw = JSON.parse(await readFile(resultsPath, "utf-8"));
       res.json(parseGoldenResults(raw));
     } catch (error: unknown) {
-      if (error.code === "ENOENT") {
+      if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
         return res.json({ timestamp: null, totalFiles: 0, totalTests: 0, passed: 0, failed: 0, duration: 0, scenarios: [] });
       }
       logAndSendError(res, "Failed to read golden test results", error);
