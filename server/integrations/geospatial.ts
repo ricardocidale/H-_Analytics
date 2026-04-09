@@ -67,7 +67,7 @@ class GeospatialIntegration extends BaseIntegrationService {
         lastErrorAt,
         circuitState: this.getCircuitState(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         name: this.serviceName,
         healthy: false,

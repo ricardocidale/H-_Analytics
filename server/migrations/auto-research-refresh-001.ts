@@ -19,7 +19,7 @@ export async function runMigration(): Promise<void> {
       WHERE auto_research_refresh_enabled = true
     `);
     logger.info(`[${TAG}] auto_research_refresh_enabled column added (or already existed)`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[${TAG}] Migration failed: ${String(error)}`, TAG);
     throw error;
   }

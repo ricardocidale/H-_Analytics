@@ -193,7 +193,7 @@ export function register(app: Express) {
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       res.setHeader("Content-Length", buffer.length);
       res.send(buffer);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMsg = error?.message || String(error) || "Unknown error";
       logger.error(`Error: ${errorMsg} ${error?.stack || ""}`, "premium-export");
       const format = typeof req.body?.format === "string" ? req.body.format : "unknown";

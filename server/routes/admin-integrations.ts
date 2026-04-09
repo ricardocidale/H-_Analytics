@@ -152,8 +152,8 @@ export function register(app: Express) {
       });
 
       res.json(results);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 
@@ -161,8 +161,8 @@ export function register(app: Express) {
     try {
       const stats = await cache.getStats();
       res.json(stats);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 
@@ -182,8 +182,8 @@ export function register(app: Express) {
         logActivity(req, "clear-all-cache", "cache");
         res.json({ cleared: true });
       }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 
@@ -193,8 +193,8 @@ export function register(app: Express) {
       const projections = await cache.invalidate(`projections:${propertyId}:*`);
       const research = await cache.invalidate(`research:${propertyId}:*`);
       res.json({ deleted: projections + research, propertyId });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 
@@ -203,8 +203,8 @@ export function register(app: Express) {
       const kind = typeof req.query.kind === "string" ? req.query.kind : undefined;
       const rows = await storage.getExternalIntegrations(kind);
       res.json(rows);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 
@@ -215,8 +215,8 @@ export function register(app: Express) {
       const row = await storage.createExternalIntegration(parsed.data);
       logActivity(req, "create-integration", "integration", row.id, row.name);
       res.status(201).json(row);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 
@@ -230,8 +230,8 @@ export function register(app: Express) {
       if (!row) return res.status(404).json({ error: "Integration not found" });
       logActivity(req, "update-integration", "integration", row.id, row.name);
       res.json(row);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 
@@ -245,8 +245,8 @@ export function register(app: Express) {
       if (!row) return res.status(404).json({ error: "Integration not found" });
       logActivity(req, isEnabled ? "enable-integration" : "disable-integration", "integration", row.id, row.name);
       res.json(row);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 
@@ -259,8 +259,8 @@ export function register(app: Express) {
       await storage.deleteExternalIntegration(id);
       logActivity(req, "delete-integration", "integration", id, existing.name);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
     }
   });
 }

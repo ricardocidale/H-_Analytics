@@ -65,8 +65,8 @@ export function registerToolRoutes(app: Express) {
       const result = await fill(storage);
       logActivity(req, "seed-production", "database", null, null, result as unknown as Record<string, unknown>);
       res.json({ success: true, message: "Missing values populated", ...result });
-    } catch (error: any) {
-      logAndSendError(res, error.message || "Fill failed", error);
+    } catch (error: unknown) {
+      logAndSendError(res, (error instanceof Error ? error.message : undefined) || "Fill failed", error);
     }
   });
 
@@ -75,8 +75,8 @@ export function registerToolRoutes(app: Express) {
     try {
       const result = await runSmartSync(storage, { dryRun: true });
       res.json(result);
-    } catch (error: any) {
-      logAndSendError(res, error.message || "Smart sync preview failed", error);
+    } catch (error: unknown) {
+      logAndSendError(res, (error instanceof Error ? error.message : undefined) || "Smart sync preview failed", error);
     }
   });
 
@@ -85,8 +85,8 @@ export function registerToolRoutes(app: Express) {
       const result = await runSmartSync(storage, { dryRun: false });
       logActivity(req, "smart-sync", "database", null, null, result as unknown as Record<string, unknown>);
       res.json({ success: true, ...result });
-    } catch (error: any) {
-      logAndSendError(res, error.message || "Smart sync failed", error);
+    } catch (error: unknown) {
+      logAndSendError(res, (error instanceof Error ? error.message : undefined) || "Smart sync failed", error);
     }
   });
 
@@ -201,7 +201,7 @@ export function registerToolRoutes(app: Express) {
       const resultsPath = resolve(process.cwd(), "test-results.json");
       const raw = JSON.parse(await readFile(resultsPath, "utf-8"));
       res.json(parseGoldenResults(raw));
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error.code === "ENOENT") {
         return res.json({ timestamp: null, totalFiles: 0, totalTests: 0, passed: 0, failed: 0, duration: 0, scenarios: [] });
       }

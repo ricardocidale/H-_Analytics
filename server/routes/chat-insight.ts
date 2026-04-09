@@ -107,7 +107,7 @@ Return ONLY the insight text, no quotes or labels.`;
           context: askContext,
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(`Insight generation failed: ${error?.message || error}`, "chat");
       res.json({ insight: null });
     }

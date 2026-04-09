@@ -8,6 +8,12 @@
 
 ## Architecture Decisions Log
 
+### Audit Batch 3: intelligence-v2 + research-orchestrator splits + catch-any cleanup (April 2026) — COMPLETED
+- **T001 — intelligence-v2.ts split** (709→431 lines): Extracted 27 Rebecca methods (conversations, messages, feedback, emails, guardrails, KB CRUD) to `server/storage/intelligence-rebecca.ts` (286 lines). New `IntelligenceRebeccaStorage` class wired in `server/storage/index.ts` via `private rebecca` instance.
+- **T002 — research-orchestrator.ts split** (638→446 lines): Extracted `buildApiValidation` + 5 helper functions (`extractMid`, `parseStringRate`, `extractDeep`, `divergencePct`, `compareMetric`) to `server/ai/research-validation.ts` (196 lines). Re-exported from orchestrator for backward compat.
+- **T003 — catch (error: any) cleanup**: Fixed 46 `catch (error: any)` / `catch (err: any)` patterns across 26 files → all now use `catch (error: unknown)` with proper type narrowing (`error instanceof Error ? error.message : String(error)`). Also fixed `isTransientError` in `integrations/base.ts` from `any` to `unknown`.
+- **New files**: `server/storage/intelligence-rebecca.ts`, `server/ai/research-validation.ts`
+
 ### File Splits Batch 2: scenarios.ts + research.ts (April 2026) — COMPLETED
 - **scenarios.ts split** (713→491 lines): Extracted recompute/drift-check/results + access control routes to `server/routes/scenarios-access.ts` (235 lines). Updated static analysis test to include new file.
 - **research.ts split** (737→588 lines): Extracted freshness counts, avg-duration, last-refresh, mark-refresh, refresh-config, research-questions CRUD to `server/routes/research-meta.ts` (159 lines). Remaining 588 lines dominated by 460-line SSE streaming generate endpoint.

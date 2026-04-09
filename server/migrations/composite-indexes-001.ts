@@ -28,7 +28,7 @@ export async function runCompositeIndexes001(): Promise<void> {
     `);
 
     logger.info(`[${TAG}] Composite indexes created (or already existed)`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[${TAG}] Migration failed: ${String(error)}`, TAG);
     throw error;
   }

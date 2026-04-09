@@ -38,7 +38,7 @@ class ResendIntegration extends BaseIntegrationService {
         lastErrorAt: healthy ? lastErrorAt : Date.now(),
         circuitState: this.getCircuitState(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         name: this.serviceName,
         healthy: false,

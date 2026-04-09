@@ -13,9 +13,10 @@ export async function runDropPlaid001() {
     await db.execute(sql`DROP TABLE IF EXISTS plaid_transactions CASCADE`);
     await db.execute(sql`DROP TABLE IF EXISTS plaid_connections CASCADE`);
     log("Plaid tables dropped", "migration:drop-plaid-001");
-  } catch (error: any) {
-    if (!error.message?.includes("does not exist")) {
-      log(`drop-plaid-001 failed: ${error.message}`, "migration:drop-plaid-001", "error");
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (!msg.includes("does not exist")) {
+      log(`drop-plaid-001 failed: ${msg}`, "migration:drop-plaid-001", "error");
     }
   }
 }

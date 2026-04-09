@@ -131,8 +131,8 @@ Rules:
 
     logger.info(`[design-pass] Applied design hints: density=${validated.data.tableDensity}, fontScale=${validated.data.globalFontSizeScale}`, "pdf");
     return validated.data;
-  } catch (err: any) {
-    logger.warn(`[design-pass] Falling back to defaults: ${err?.message}`, "pdf");
+  } catch (err: unknown) {
+    logger.warn(`[design-pass] Falling back to defaults: ${err instanceof Error ? err.message : String(err)}`, "pdf");
     return defaultForReport;
   }
 }

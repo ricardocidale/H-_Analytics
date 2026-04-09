@@ -136,7 +136,7 @@ export abstract class BaseIntegrationService {
     for (let attempt = 1; attempt <= this.retryConfig.maxAttempts; attempt++) {
       try {
         return await fn();
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
         if (!this.isTransientError(error)) throw error;
         if (attempt === this.retryConfig.maxAttempts) break;
@@ -161,16 +161,16 @@ export abstract class BaseIntegrationService {
     );
   }
 
-  private isTransientError(error: any): boolean {
+  private isTransientError(error: unknown): boolean {
     if (!error) return false;
-    const status = error.status || error.statusCode || error.code;
+    const err = error as Record<string, unknown>;
+    const status = (err.status ?? err.statusCode ?? err.code) as number | undefined;
     if (typeof status === "number" && status >= 400 && status < 500) return false;
     if (typeof status === "number" && status >= 500) return true;
-    const msg = String(error.message || "").toLowerCase();
+    const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
     if (msg.includes("econnreset") || msg.includes("econnrefused") || msg.includes("etimedout") || msg.includes("timeout") || msg.includes("network")) {
       return true;
     }
-    if (typeof status === "number" && status >= 500) return true;
     return msg.includes("5") && msg.includes("error");
   }
 }

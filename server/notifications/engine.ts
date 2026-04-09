@@ -49,11 +49,12 @@ export async function processNotificationEvent(event: NotificationEvent): Promis
         recipient: event.metadata.recipientEmail,
         subject: getEventLabel(event.type),
       });
-    } catch (error: any) {
-      logger.error(`Resend email failed: ${error.message}`, "notifications");
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Resend email failed: ${errMsg}`, "notifications");
       await logNotification(event, "email", "failed", {
         recipient: event.metadata.recipientEmail,
-        errorMessage: error.message,
+        errorMessage: errMsg,
       });
     }
   }

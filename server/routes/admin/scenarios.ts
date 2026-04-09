@@ -231,7 +231,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       logActivity(req, "admin-grant-scenario-access", "scenario", id, existing.name, { targetType, targetId });
       res.status(201).json(share);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error?.code === "23505") {
         return res.status(409).json({ error: "This access grant already exists" });
       }

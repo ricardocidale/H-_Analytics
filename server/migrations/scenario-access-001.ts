@@ -28,7 +28,7 @@ export async function runScenarioAccess001(): Promise<void> {
   for (const stmt of statements) {
     try {
       await db.execute(sql.raw(stmt));
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.warn(`[${TAG}] Statement skipped: ${err.message}`, TAG);
     }
   }

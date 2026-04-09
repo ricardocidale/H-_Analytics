@@ -168,7 +168,7 @@ export function register(app: Express) {
 
       res.write("data: [DONE]\n\n");
       res.end();
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!res.headersSent) {
         logAndSendError(res, "AI review failed", error);
       } else {

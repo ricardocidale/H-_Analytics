@@ -11,7 +11,7 @@ export async function runRebeccaChatEngine001(): Promise<void> {
       ADD COLUMN IF NOT EXISTS rebecca_chat_engine text NOT NULL DEFAULT 'gemini'
     `);
     logger.info(`[${TAG}] rebecca_chat_engine column added (or already existed)`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[${TAG}] Migration failed: ${String(error)}`, TAG);
     throw error;
   }

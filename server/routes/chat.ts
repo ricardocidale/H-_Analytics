@@ -55,7 +55,7 @@ export function register(app: Express) {
         startedAt: c.startedAt,
         lastMessageAt: c.lastMessageAt,
       })));
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to list conversations: ${error?.message || error}`, "chat");
       res.status(500).json({ error: "Failed to list conversations" });
     }
@@ -86,7 +86,7 @@ export function register(app: Express) {
           createdAt: m.createdAt,
         })),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to load conversation: ${error?.message || error}`, "chat");
       res.status(500).json({ error: "Failed to load conversation" });
     }
@@ -486,7 +486,7 @@ export function register(app: Express) {
         ...(autoGreeting ? { autoGreeting } : {}),
         ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Chat error: ${error?.message || error}`, "chat");
       if (error?.message?.includes("API key not configured")) {
         return res.status(503).json({ error: "Chat service is not available" });

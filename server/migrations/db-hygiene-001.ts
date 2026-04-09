@@ -52,16 +52,17 @@ export async function runDbHygiene001() {
         } else if (names.has(drop) && !names.has(keep)) {
           log(`Skipping ${drop} — keeper ${keep} not found`, TAG);
         }
-      } catch (err: any) {
-        if (!err.message?.includes("does not exist")) {
-          log(`Failed to drop ${drop}: ${err.message}`, TAG, "warn");
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        if (!errMsg.includes("does not exist")) {
+          log(`Failed to drop ${drop}: ${errMsg}`, TAG, "warn");
         }
       }
     }
 
     log(`FK phase complete — dropped ${totalDropped} duplicate FK(s)`, TAG);
-  } catch (error: any) {
-    log(`FK phase failed: ${error.message}`, TAG, "error");
+  } catch (error: unknown) {
+    log(`FK phase failed: ${error instanceof Error ? error.message : String(error)}`, TAG, "error");
   }
 }
 
@@ -89,7 +90,7 @@ export async function cleanOrphanedLogos() {
     } else {
       log("No orphaned logos found", TAG);
     }
-  } catch (error: any) {
-    log(`Logo cleanup failed: ${error.message}`, TAG, "error");
+  } catch (error: unknown) {
+    log(`Logo cleanup failed: ${error instanceof Error ? error.message : String(error)}`, TAG, "error");
   }
 }

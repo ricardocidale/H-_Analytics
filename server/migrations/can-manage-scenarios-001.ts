@@ -12,7 +12,7 @@ export async function runCanManageScenarios001(): Promise<void> {
     `);
 
     logger.info(`[${TAG}] can_manage_scenarios column added to users (or already existed)`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`[${TAG}] Migration failed: ${String(error)}`, TAG);
     throw error;
   }

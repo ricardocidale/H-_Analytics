@@ -39,7 +39,7 @@ import { DocumentStorage } from "./documents";
 import { ServiceStorage } from "./services";
 import { NotificationStorage } from "./notifications";
 import { IntegrationStorage } from "./integrations";
-import { IntelligenceV2Storage } from "./intelligence-v2";
+import { IntelligenceV2Storage, IntelligenceRebeccaStorage } from "./intelligence-v2";
 import { PropertyUrlStorage } from "./property-urls";
 
 export interface IStorage extends
@@ -72,6 +72,7 @@ export class DatabaseStorage implements IStorage {
   private notifications = new NotificationStorage();
   private integrationStore = new IntegrationStorage();
   private intelligenceV2 = new IntelligenceV2Storage();
+  private rebecca = new IntelligenceRebeccaStorage();
   private propertyUrlStore = new PropertyUrlStorage();
 
   // Users
@@ -298,19 +299,19 @@ export class DatabaseStorage implements IStorage {
   getRelaxationTraces = this.intelligenceV2.getRelaxationTraces.bind(this.intelligenceV2);
   createGuidanceDecision = this.intelligenceV2.createGuidanceDecision.bind(this.intelligenceV2);
   getGuidanceDecisions = this.intelligenceV2.getGuidanceDecisions.bind(this.intelligenceV2);
-  createRebeccaConversation = this.intelligenceV2.createRebeccaConversation.bind(this.intelligenceV2);
-  getRebeccaConversation = this.intelligenceV2.getRebeccaConversation.bind(this.intelligenceV2);
-  getOrCreateConversation = this.intelligenceV2.getOrCreateConversation.bind(this.intelligenceV2);
-  getRebeccaConversations = this.intelligenceV2.getRebeccaConversations.bind(this.intelligenceV2);
-  updateRebeccaConversationModel = this.intelligenceV2.updateRebeccaConversationModel.bind(this.intelligenceV2);
-  updateRebeccaConversationLanguage = this.intelligenceV2.updateRebeccaConversationLanguage.bind(this.intelligenceV2);
-  addRebeccaMessage = this.intelligenceV2.addRebeccaMessage.bind(this.intelligenceV2);
-  getRebeccaMessages = this.intelligenceV2.getRebeccaMessages.bind(this.intelligenceV2);
-  getAllRebeccaMessageStats = this.intelligenceV2.getAllRebeccaMessageStats.bind(this.intelligenceV2);
-  createRebeccaEmail = this.intelligenceV2.createRebeccaEmail.bind(this.intelligenceV2);
-  createRebeccaFeedback = this.intelligenceV2.createRebeccaFeedback.bind(this.intelligenceV2);
-  getRebeccaFeedback = this.intelligenceV2.getRebeccaFeedback.bind(this.intelligenceV2);
-  updateRebeccaFeedbackStatus = this.intelligenceV2.updateRebeccaFeedbackStatus.bind(this.intelligenceV2);
+  createRebeccaConversation = this.rebecca.createRebeccaConversation.bind(this.rebecca);
+  getRebeccaConversation = this.rebecca.getRebeccaConversation.bind(this.rebecca);
+  getOrCreateConversation = this.rebecca.getOrCreateConversation.bind(this.rebecca);
+  getRebeccaConversations = this.rebecca.getRebeccaConversations.bind(this.rebecca);
+  updateRebeccaConversationModel = this.rebecca.updateRebeccaConversationModel.bind(this.rebecca);
+  updateRebeccaConversationLanguage = this.rebecca.updateRebeccaConversationLanguage.bind(this.rebecca);
+  addRebeccaMessage = this.rebecca.addRebeccaMessage.bind(this.rebecca);
+  getRebeccaMessages = this.rebecca.getRebeccaMessages.bind(this.rebecca);
+  getAllRebeccaMessageStats = this.rebecca.getAllRebeccaMessageStats.bind(this.rebecca);
+  createRebeccaEmail = this.rebecca.createRebeccaEmail.bind(this.rebecca);
+  createRebeccaFeedback = this.rebecca.createRebeccaFeedback.bind(this.rebecca);
+  getRebeccaFeedback = this.rebecca.getRebeccaFeedback.bind(this.rebecca);
+  updateRebeccaFeedbackStatus = this.rebecca.updateRebeccaFeedbackStatus.bind(this.rebecca);
   createCoverageSnapshot = this.intelligenceV2.createCoverageSnapshot.bind(this.intelligenceV2);
   getCoverageSnapshots = this.intelligenceV2.getCoverageSnapshots.bind(this.intelligenceV2);
   getSourceRegistry = this.intelligenceV2.getSourceRegistry.bind(this.intelligenceV2);
@@ -340,22 +341,22 @@ export class DatabaseStorage implements IStorage {
   deleteScheduledResearchWorkflow = this.intelligenceV2.deleteScheduledResearchWorkflow.bind(this.intelligenceV2);
 
   // Rebecca Guardrails
-  getRebeccaGuardrails = this.intelligenceV2.getRebeccaGuardrails.bind(this.intelligenceV2);
-  getActiveRebeccaGuardrails = this.intelligenceV2.getActiveRebeccaGuardrails.bind(this.intelligenceV2);
-  createRebeccaGuardrail = this.intelligenceV2.createRebeccaGuardrail.bind(this.intelligenceV2);
-  updateRebeccaGuardrail = this.intelligenceV2.updateRebeccaGuardrail.bind(this.intelligenceV2);
-  deleteRebeccaGuardrail = this.intelligenceV2.deleteRebeccaGuardrail.bind(this.intelligenceV2);
+  getRebeccaGuardrails = this.rebecca.getRebeccaGuardrails.bind(this.rebecca);
+  getActiveRebeccaGuardrails = this.rebecca.getActiveRebeccaGuardrails.bind(this.rebecca);
+  createRebeccaGuardrail = this.rebecca.createRebeccaGuardrail.bind(this.rebecca);
+  updateRebeccaGuardrail = this.rebecca.updateRebeccaGuardrail.bind(this.rebecca);
+  deleteRebeccaGuardrail = this.rebecca.deleteRebeccaGuardrail.bind(this.rebecca);
 
   // Rebecca Knowledge Base
-  getRebeccaKBEntries = this.intelligenceV2.getRebeccaKBEntries.bind(this.intelligenceV2);
-  getActiveRebeccaKBEntries = this.intelligenceV2.getActiveRebeccaKBEntries.bind(this.intelligenceV2);
-  getRebeccaKBEntry = this.intelligenceV2.getRebeccaKBEntry.bind(this.intelligenceV2);
-  createRebeccaKBEntry = this.intelligenceV2.createRebeccaKBEntry.bind(this.intelligenceV2);
-  updateRebeccaKBEntry = this.intelligenceV2.updateRebeccaKBEntry.bind(this.intelligenceV2);
-  deleteRebeccaKBEntry = this.intelligenceV2.deleteRebeccaKBEntry.bind(this.intelligenceV2);
-  getRebeccaKBHistory = this.intelligenceV2.getRebeccaKBHistory.bind(this.intelligenceV2);
-  rollbackRebeccaKBEntry = this.intelligenceV2.rollbackRebeccaKBEntry.bind(this.intelligenceV2);
-  getRebeccaKBStats = this.intelligenceV2.getRebeccaKBStats.bind(this.intelligenceV2);
+  getRebeccaKBEntries = this.rebecca.getRebeccaKBEntries.bind(this.rebecca);
+  getActiveRebeccaKBEntries = this.rebecca.getActiveRebeccaKBEntries.bind(this.rebecca);
+  getRebeccaKBEntry = this.rebecca.getRebeccaKBEntry.bind(this.rebecca);
+  createRebeccaKBEntry = this.rebecca.createRebeccaKBEntry.bind(this.rebecca);
+  updateRebeccaKBEntry = this.rebecca.updateRebeccaKBEntry.bind(this.rebecca);
+  deleteRebeccaKBEntry = this.rebecca.deleteRebeccaKBEntry.bind(this.rebecca);
+  getRebeccaKBHistory = this.rebecca.getRebeccaKBHistory.bind(this.rebecca);
+  rollbackRebeccaKBEntry = this.rebecca.rollbackRebeccaKBEntry.bind(this.rebecca);
+  getRebeccaKBStats = this.rebecca.getRebeccaKBStats.bind(this.rebecca);
 
   // Property URLs
   getAllPropertyUrls = this.propertyUrlStore.getAllPropertyUrls.bind(this.propertyUrlStore);

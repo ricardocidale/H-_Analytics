@@ -125,8 +125,8 @@ export async function ensureDefaultScenario(userId: number): Promise<void> {
     }
 
     logger.info(`Created default scenario "${name}" (id=${scenario.id}) for userId=${userId}`, "scenario");
-  } catch (err: any) {
-    if (err?.code === "23505") {
+  } catch (err: unknown) {
+    if ((err as Record<string, unknown>)?.code === "23505") {
       logger.info(`Default scenario already exists for userId=${userId} (concurrent creation)`, "scenario");
       return;
     }

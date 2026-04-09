@@ -60,7 +60,7 @@ Rewritten description:`;
       try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "rewrite-description", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/ai/rewrite-description" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
 
       res.json({ rewritten });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`AI rewrite error: ${error?.message || error}`, "ai");
       if (error?.message === "Gemini API key not configured") {
         return res.status(503).json({ error: "AI service is not available" });
@@ -124,7 +124,7 @@ ${prompt}`,
       try { logApiCost({ timestamp: new Date().toISOString(), service: svc2, model: resolved2.model, operation: "optimize-prompt", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc2, resolved2.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/ai/optimize-prompt" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
 
       res.json({ optimized });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`AI optimize-prompt error: ${error?.message || error}`, "ai");
       res.status(500).json({ error: "Failed to optimize prompt" });
     }

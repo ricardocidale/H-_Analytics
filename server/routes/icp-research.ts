@@ -105,9 +105,10 @@ export function register(app: Express) {
 
       res.write(`data: ${JSON.stringify({ type: "done", report, markdown })}\n\n`);
       res.end();
-    } catch (error: any) {
-      logger.error(`ICP research generation error: ${error?.message || error}`, "icp-research");
-      res.write(`data: ${JSON.stringify({ type: "error", message: error.message || "Generation failed" })}\n\n`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error(`ICP research generation error: ${msg}`, "icp-research");
+      res.write(`data: ${JSON.stringify({ type: "error", message: msg || "Generation failed" })}\n\n`);
       res.end();
     }
   });
@@ -150,8 +151,8 @@ export function register(app: Express) {
         res.setHeader("Content-Disposition", `attachment; filename="icp-research-report.docx"`);
         res.send(buffer);
       }
-    } catch (error: any) {
-      logger.error(`ICP research export error: ${error?.message || error}`, "icp-research");
+    } catch (error: unknown) {
+      logger.error(`ICP research export error: ${error instanceof Error ? error.message : String(error)}`, "icp-research");
       logAndSendError(res, "Failed to export ICP research", error);
     }
   });
