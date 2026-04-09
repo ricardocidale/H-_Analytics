@@ -531,6 +531,104 @@ describe("No any types in financial calculation code", () => {
   });
 });
 
+// ─────────────────────────────────────────────────────────────
+// Section 8: Domain boundary — route files must not import
+// db or drizzle-orm directly (use storage interface instead)
+// ─────────────────────────────────────────────────────────────
+describe("Domain boundary — routes use storage interface only", () => {
+  const ROUTES_DIR = path.resolve("server/routes");
+
+  const FORBIDDEN_IMPORTS = [
+    /from\s+["']drizzle-orm/,
+    /from\s+["']\.\.\/db["']/,
+    /from\s+["']\.\/db["']/,
+    /from\s+["']\.\.\/\.\.\/db["']/,
+    /require\s*\(\s*["']drizzle-orm/,
+  ];
+
+  it("route files do not import db or drizzle-orm directly", () => {
+    const violations: string[] = [];
+    const files = collectTsFiles(ROUTES_DIR);
+
+    for (const file of files) {
+      if (file.endsWith(".test.ts")) continue;
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trimStart().startsWith("//")) continue;
+
+        for (const pattern of FORBIDDEN_IMPORTS) {
+          if (pattern.test(line)) {
+            const rel = path.relative(path.resolve("."), file).replace(/\\/g, "/");
+            violations.push(`  ${rel}:${i + 1}\n    ${line.trim().substring(0, 120)}`);
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(
+        `Found ${violations.length} domain boundary violation(s) in route files:\n${violations.join("\n")}\n\n` +
+        `Route files must use the storage interface (IStorage) for data access.\n` +
+        `Move direct db/drizzle-orm imports to server/storage.ts.`
+      );
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Section 9: as-any budget — track and cap unsafe type casts
+// in critical directories to prevent regression
+// ─────────────────────────────────────────────────────────────
+describe("as-any budget — capped unsafe type assertions", () => {
+  const AS_ANY_PATTERN = /\bas\s+any\b/;
+
+  function countAsAny(dir: string): number {
+    if (!fs.existsSync(dir)) return 0;
+    const files = collectTsFiles(dir);
+    let count = 0;
+    for (const file of files) {
+      if (file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+      for (const line of lines) {
+        if (line.trimStart().startsWith("//") || line.trimStart().startsWith("*")) continue;
+        const matches = line.match(new RegExp(AS_ANY_PATTERN, "g"));
+        if (matches) count += matches.length;
+      }
+    }
+    return count;
+  }
+
+  it("server/ as-any count stays within budget", () => {
+    const count = countAsAny(path.resolve("server"));
+    const BUDGET = 67;
+    expect(
+      count,
+      `server/ has ${count} 'as any' casts (budget: ${BUDGET}). Reduce before adding more.`
+    ).toBeLessThanOrEqual(BUDGET);
+  });
+
+  it("client/src/ as-any count stays within budget", () => {
+    const count = countAsAny(path.resolve("client/src"));
+    const BUDGET = 174;
+    expect(
+      count,
+      `client/src/ has ${count} 'as any' casts (budget: ${BUDGET}). Reduce before adding more.`
+    ).toBeLessThanOrEqual(BUDGET);
+  });
+
+  it("shared/ has zero as-any casts", () => {
+    const count = countAsAny(path.resolve("shared"));
+    expect(
+      count,
+      `shared/ has ${count} 'as any' casts — shared code must be fully typed.`
+    ).toBe(0);
+  });
+});
+
 describe("Client-side financial calculation gate (T016)", () => {
   const CLIENT_FINANCE_DIRS = [
     path.resolve("client/src/components"),
