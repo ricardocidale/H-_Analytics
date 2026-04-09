@@ -553,10 +553,12 @@ export function register(app: Express) {
 
       const effectiveHistory = dbHistory.length > 0 ? dbHistory : history;
 
+      const detectedLanguage = /[áéíóúñ¿¡]|(?:^|\s)(?:hola|cómo|qué|por favor|gracias|necesito|ayuda|cuánto|dónde|cuál)\b/i.test(message) ? "es" : "en";
       await storage.addRebeccaMessage({
         conversationId,
         role: "user",
         content: message,
+        metadata: { language: detectedLanguage },
       });
 
       const systemPrompt = (global as any)?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;

@@ -381,7 +381,7 @@ export function register(app: Express) {
         : 0;
 
       const singleTurnCount = turnCounts.filter(t => t <= 2).length;
-      const deepCount = turnCounts.filter(t => t >= 6).length;
+      const deepCount = turnCounts.filter(t => t >= 5).length;
       const singleTurnRate = totalConversations > 0 ? Math.round((singleTurnCount / totalConversations) * 100) : 0;
       const deepConversationRate = totalConversations > 0 ? Math.round((deepCount / totalConversations) * 100) : 0;
 
@@ -402,6 +402,22 @@ export function register(app: Express) {
         if (m.role === "assistant" && m.metadata) {
           const mode = String((m.metadata as Record<string, unknown>).responseMode ?? "standard");
           responseModeBreakdown[mode] = (responseModeBreakdown[mode] ?? 0) + 1;
+        }
+      }
+
+      const topicBreakdown: Record<string, number> = {};
+      for (const c of conversations) {
+        const topic = c.contextType ?? "general";
+        topicBreakdown[topic] = (topicBreakdown[topic] ?? 0) + 1;
+      }
+
+      const languageBreakdown: Record<string, number> = {};
+      for (const m of allMessages) {
+        if (m.role === "user" && m.metadata) {
+          const lang = String((m.metadata as Record<string, unknown>).language ?? "en");
+          languageBreakdown[lang] = (languageBreakdown[lang] ?? 0) + 1;
+        } else if (m.role === "user") {
+          languageBreakdown["en"] = (languageBreakdown["en"] ?? 0) + 1;
         }
       }
 
@@ -437,6 +453,8 @@ export function register(app: Express) {
         singleTurnRate,
         deepConversationRate,
         contextBreakdown,
+        topicBreakdown,
+        languageBreakdown,
         modelBreakdown,
         responseModeBreakdown,
         dailyVolumes: sortedDays,

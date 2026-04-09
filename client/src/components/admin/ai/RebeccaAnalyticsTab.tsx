@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { IconMessageCircle, IconUser, IconTrendingUp, IconZap } from "@/components/icons";
 import { motion } from "framer-motion";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ComposedChart, Bar, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 
@@ -18,6 +18,8 @@ interface AnalyticsData {
   singleTurnRate: number;
   deepConversationRate: number;
   contextBreakdown: Record<string, number>;
+  topicBreakdown: Record<string, number>;
+  languageBreakdown: Record<string, number>;
   modelBreakdown: Record<string, number>;
   responseModeBreakdown: Record<string, number>;
   dailyVolumes: Array<{ date: string; conversations: number; messages: number }>;
@@ -97,6 +99,15 @@ export default function RebeccaAnalyticsTab() {
 
   const modelPieData = Object.entries(data.modelBreakdown ?? {}).map(([name, value]) => ({ name, value }));
   const modePieData = Object.entries(data.responseModeBreakdown ?? {}).map(([name, value]) => ({ name, value }));
+  const topicPieData = Object.entries(data.topicBreakdown ?? {}).map(([name, value]) => ({
+    name: name.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+    value,
+  }));
+  const langMap: Record<string, string> = { en: "English", es: "Spanish" };
+  const languagePieData = Object.entries(data.languageBreakdown ?? {}).map(([code, value]) => ({
+    name: langMap[code] ?? code.toUpperCase(),
+    value,
+  }));
 
   const dailyData = data.dailyVolumes.map(d => ({
     ...d,
@@ -130,7 +141,7 @@ export default function RebeccaAnalyticsTab() {
           <CardContent className="p-4">
             <p className="text-lg font-display font-bold text-foreground" data-testid="stat-deep-rate">{data.deepConversationRate}%</p>
             <p className="text-[11px] text-muted-foreground font-medium">Deep Conversations</p>
-            <p className="text-[10px] text-muted-foreground/60">≥ 6 messages</p>
+            <p className="text-[10px] text-muted-foreground/60">≥ 5 turns</p>
           </CardContent>
         </Card>
         <Card className="bg-card border border-border/80 shadow-sm">
@@ -162,16 +173,16 @@ export default function RebeccaAnalyticsTab() {
         <CardContent>
           {dailyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={dailyData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+              <ComposedChart data={dailyData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid var(--border)" }}
                   labelStyle={{ fontWeight: 600 }}
                 />
+                <Area dataKey="messages" name="Messages" fill="#112548" fillOpacity={0.15} stroke="#112548" strokeWidth={1.5} type="monotone" />
                 <Bar dataKey="conversations" name="Conversations" fill="#0091AE" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="messages" name="Messages" fill="#112548" radius={[3, 3, 0, 0]} />
-              </BarChart>
+              </ComposedChart>
             </ResponsiveContainer>
           ) : (
             <div className="py-8 text-center text-sm text-muted-foreground">No daily data yet.</div>
@@ -316,6 +327,77 @@ export default function RebeccaAnalyticsTab() {
               </ResponsiveContainer>
             ) : (
               <div className="py-8 text-center text-sm text-muted-foreground">No response mode data yet.</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="bg-card border border-border/80 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-foreground">Topic Distribution</CardTitle>
+            <CardDescription className="label-text mt-0.5">What users ask about most</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {topicPieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={topicPieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={3}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                    style={{ fontSize: 10 }}
+                  >
+                    {topicPieData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[(i + 4) % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Legend wrapperStyle={{ fontSize: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">No topic data yet.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border border-border/80 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-foreground">Language Breakdown</CardTitle>
+            <CardDescription className="label-text mt-0.5">English vs Spanish message distribution</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {languagePieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={languagePieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={3}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                    style={{ fontSize: 10 }}
+                  >
+                    {languagePieData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[(i + 5) % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Legend wrapperStyle={{ fontSize: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">No language data yet.</div>
             )}
           </CardContent>
         </Card>
