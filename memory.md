@@ -578,6 +578,19 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **P2 FIXED**: (a) aria-labels added to ~25 icon-only buttons across 15 files, (b) aria-live on RebeccaTypingIndicator, (c) RAG score threshold raised from 0.3→0.45 in chat.ts, (d) Empty catch blocks annotated/logged (research-resources.ts, App.tsx, run-research.ts), (e) ScenariosTab decomposed: ScenarioCard + ScenarioAccessDialog extracted (1019→757 lines)
 - **All STRONG**: Server setup, auth system, caching, schema design, storage layer, calc architecture, formula integrity, GAAP compliance, proof system, recalc enforcement, routing, state management, error handling, documentation, skills, UI consistency, UX patterns
 
+### Exports & Photo Uploads Usability Audit (April 2026) — COMPLETED
+- **Scope**: 46 tests covering file exports (5 formats × 3 entity types + premium + special), photo management (CRUD, hero, enhance), upload system (validation, presigned URLs, content-type filtering), and security (auth enforcement on all endpoints)
+- **Standard exports ALL PASS**: PDF, Excel, CSV, PPTX, DOCX for portfolio/property/company entities — all generate valid binary files (3KB–230KB)
+- **Premium exports ALL PASS**: PDF/Excel/PPTX/DOCX with computeRef (server-side recompute), memoSections, and custom entity names (13KB–532KB)
+- **Special exports**: Scoped reports (income-only), portrait orientation, scenario export, ICP research export — all working
+- **Photo CRUD cycle verified**: Upload PNG→Register as property photo (imageUrl field)→Update caption→Set hero (uniqueness enforced)→Delete — full cycle clean, counts restored
+- **Upload validation correct**: PNG/JPEG/WebP/SVG accepted; text/json/pdf/octet-stream all rejected (400); empty body rejected; image-only restriction enforced
+- **AI enhance**: Trigger returns 200 with preview URL; enhanced-image/enhanced-preview return 404 when no enhancement exists (correct behavior)
+- **Presigned URLs**: `request-url` generates GCS signed URLs with objectPath
+- **Security**: All 5 endpoint categories reject unauthenticated requests with 401
+- **Key finding**: Photo registration requires `imageUrl` field (not `objectPath`) — the upload returns `objectPath` which must be passed as `imageUrl` when calling POST /api/properties/:id/photos
+- **Process-image**: Rejects non-object-storage URLs (returns "Only object storage paths are allowed")
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
