@@ -245,7 +245,7 @@ export function register(app: Express) {
     try {
       const stats = await storage.getRebeccaKBStats();
       let vectorCt = 0;
-      try { vectorCt = await vectorCount("knowledge-base"); } catch { /* no-op */ }
+      try { vectorCt = await vectorCount("knowledge-base"); } catch (err) { logger.warn(`Failed to get Pinecone vector count: ${err instanceof Error ? err.message : String(err)}`, "rebecca"); }
       return res.json({ ...stats, vectorCount: vectorCt });
     } catch (err) {
       logger.error(`Failed to get KB stats: ${(err as Error).message}`, "rebecca");
