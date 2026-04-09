@@ -267,6 +267,12 @@ export class IntelligenceV2Storage {
       .where(eq(rebeccaConversations.id, conversationId));
   }
 
+  async updateRebeccaConversationLanguage(conversationId: number, language: string): Promise<void> {
+    await db.update(rebeccaConversations)
+      .set({ language })
+      .where(eq(rebeccaConversations.id, conversationId));
+  }
+
   async addRebeccaMessage(data: InsertRebeccaMessage): Promise<RebeccaMessage> {
     const [msg] = await db.insert(rebeccaMessages)
       .values(data as typeof rebeccaMessages.$inferInsert)

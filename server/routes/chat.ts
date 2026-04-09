@@ -192,32 +192,126 @@ source: Comp set analysis, Q4 2024
 - Use :::insight for a key observation that deserves visual emphasis — use sparingly.
 - Never nest blocks inside each other.`;
 
+const SPANISH_DIACRITICS = /[áéíóúñ¿¡ü]/;
+const SPANISH_UNIQUE_WORDS = /(?:^|\s)(?:hola|cómo|qué|gracias|necesito|ayuda|cuánto|dónde|cuál|quiero|tengo|estoy|también|porque|mucho|poco|nada|algún|ningún|todas|todos|hacer|poder|tener|deber|saber|querer|decir|poner|creer|quedar|seguir|encontrar|llamar|llegar|llevar|dejar|traer|sentir|pensar|conocer|hablar|escuchar|comprar|vender|pagar|cobrar|ganar|perder|subir|bajar|abrir|cerrar|empezar|terminar|preguntar|responder|explicar|mostrar|enseñar|aprender|recordar|olvidar|dime|cuéntame|explícame|muéstrame|propiedad|inversión|rendimiento|ingreso|gasto|ocupación|tarifa|habitación)\b/i;
+
+function detectLanguage(text: string): "en" | "es" {
+  const words = text.toLowerCase().split(/\s+/);
+  const totalWords = words.length;
+  if (totalWords === 0) return "en";
+
+  const spanishStopwords = new Set(["el", "la", "los", "las", "del", "al", "con", "por", "para", "son", "está", "están", "sí", "como", "más", "muy", "mal", "tu", "su", "nos", "pero", "este", "esta", "estos", "estas", "otra", "otro", "hay"]);
+  let stopwordHits = 0;
+  for (const w of words) {
+    if (spanishStopwords.has(w)) stopwordHits++;
+  }
+
+  const hasDiacritics = SPANISH_DIACRITICS.test(text);
+  const hasUniqueWord = SPANISH_UNIQUE_WORDS.test(text);
+  const stopwordRatio = stopwordHits / totalWords;
+
+  if (hasDiacritics && (hasUniqueWord || stopwordRatio >= 0.15)) return "es";
+  if (hasUniqueWord && stopwordRatio >= 0.1) return "es";
+  if (stopwordRatio >= 0.25) return "es";
+
+  return "en";
+}
+
+const SPANISH_MULTILINGUAL_OVERLAY = `
+
+## Multilingual: Spanish Mode
+The user is writing in Spanish. You MUST respond ENTIRELY in Spanish — every word, including greetings, analysis, questions, and sign-offs. Never mix English into your response.
+
+### Personality in Spanish
+Sound like a native Spanish-speaking financial analyst — NOT a translated English bot. Use natural, professional Latin American Spanish. Your personality pillars translate as:
+- CURIOSITY: "Mencionaste que el ADR se ve bajo — ¿lo comparas contra el comp set o contra tus propias metas?"
+- ART OF QUESTIONING: "¿Qué opinas?" / "¿Cómo lo ves?" / "¿Te preocupa ese margen?"
+- EMPATHY: "Rehacer esas proyecciones después del cambio de tasa — eso es bastante trabajo. Esto es lo que se movió y lo que se mantuvo."
+- TRUST: Use property names, numbers, and projection years — never vague.
+
+### Voice Register in Spanish
+USE: "sinceramente", "la versión corta es", "esto es lo que yo miraría", "mi lectura de esto", "vale la pena señalar", "el número que salta a la vista", "¿tiene sentido?", "¿qué opinas?", "honestamente"
+NEVER USE: "¡Por supuesto!", "¡Gran pregunta!", "¡Estaré encantada de ayudar!", "Déjame desglosarlo para ti", "¡Espero que eso ayude!", "No dudes en preguntar", "En el mercado actual", "Esa es una pregunta muy perspicaz", "genuinamente", "increíblemente", "¿eso resuena?"
+
+### Financial Glossary (use Spanish terms, keep abbreviations in parentheses)
+- NOI → Ingreso Operativo Neto (NOI)
+- RevPAR → Ingreso por Habitación Disponible (RevPAR)
+- ADR → Tarifa Diaria Promedio (ADR)
+- IRR → Tasa Interna de Retorno (TIR)
+- DSCR → Ratio de Cobertura del Servicio de Deuda (DSCR)
+- Cap Rate → Tasa de Capitalización (Cap Rate)
+- USALI → USALI
+- EBITDA → EBITDA
+- Occupancy → Ocupación
+- Gross Revenue → Ingresos Brutos
+- Operating Expenses → Gastos Operativos
+- Cash Flow → Flujo de Caja
+- Depreciation → Depreciación
+- Amortization → Amortización
+- Debt Service → Servicio de la Deuda
+- Equity → Capital Propio
+- Yield → Rendimiento
+- Management Fee → Comisión de Gestión
+- Property Tax → Impuesto Predial
+- Insurance → Seguro
+- Benchmark → Referencia
+- Comp Set → Grupo Comparable
+- Projection → Proyección
+
+### Formatting in Spanish
+- Format bold metrics the same way: **$1,245,000 Ingreso Operativo Neto**, **12.4% TIR**, **$285 ADR**
+- Use "Fuentes:" instead of "Sources:"
+- Rich block labels: use "Fuente" for source, "Referencia" for benchmark, "Proyectado" for projected, "Valor" for value
+- End questions in Spanish: "¿Quieres que profundice en eso?" instead of "Want me to go deeper on that?"`;
+
 function generateFollowUpChips(
   responseText: string,
   messageCount: number,
   fieldKey?: string,
+  language?: string,
 ): string[] {
   const chips: string[] = [];
+  const isEs = language === "es";
 
   if (messageCount <= 2) {
     if (fieldKey) {
-      chips.push("Why this range?", "Show comparables", "Impact on NOI");
+      chips.push(
+        isEs ? "¿Por qué este rango?" : "Why this range?",
+        isEs ? "Mostrar comparables" : "Show comparables",
+        isEs ? "Impacto en NOI" : "Impact on NOI",
+      );
     } else {
-      chips.push("What are the key metrics?", "Compare properties", "Show me photos");
+      chips.push(
+        isEs ? "¿Cuáles son las métricas clave?" : "What are the key metrics?",
+        isEs ? "Comparar propiedades" : "Compare properties",
+        isEs ? "Muéstrame fotos" : "Show me photos",
+      );
     }
   } else if (messageCount <= 5) {
     if (responseText.toLowerCase().includes("comparable") || responseText.toLowerCase().includes("similar")) {
-      chips.push("Go deeper on comparables", "Show the relaxation trail");
+      chips.push(
+        isEs ? "Profundizar en comparables" : "Go deeper on comparables",
+        isEs ? "Mostrar el rastro de relajación" : "Show the relaxation trail",
+      );
     }
     if (fieldKey) {
-      chips.push("Compare to company defaults", "Historical trends");
+      chips.push(
+        isEs ? "Comparar con valores de la empresa" : "Compare to company defaults",
+        isEs ? "Tendencias históricas" : "Historical trends",
+      );
     } else {
-      chips.push("What risks should I watch?", "Summarize key findings");
+      chips.push(
+        isEs ? "¿Qué riesgos debo vigilar?" : "What risks should I watch?",
+        isEs ? "Resumir hallazgos clave" : "Summarize key findings",
+      );
     }
   } else {
-    chips.push("Summarize our conversation", "Any other insights?");
+    chips.push(
+      isEs ? "Resumir nuestra conversación" : "Summarize our conversation",
+      isEs ? "¿Algún otro insight?" : "Any other insights?",
+    );
     if (fieldKey) {
-      chips.push("Apply recommendation");
+      chips.push(isEs ? "Aplicar recomendación" : "Apply recommendation");
     }
   }
 
@@ -553,13 +647,17 @@ export function register(app: Express) {
 
       const effectiveHistory = dbHistory.length > 0 ? dbHistory : history;
 
-      const detectedLanguage = /[áéíóúñ¿¡]|(?:^|\s)(?:hola|cómo|qué|por favor|gracias|necesito|ayuda|cuánto|dónde|cuál)\b/i.test(message) ? "es" : "en";
+      const detectedLanguage = detectLanguage(message);
       await storage.addRebeccaMessage({
         conversationId,
         role: "user",
         content: message,
         metadata: { language: detectedLanguage },
       });
+
+      try {
+        await storage.updateRebeccaConversationLanguage(conversationId, detectedLanguage);
+      } catch {}
 
       const systemPrompt = (global as any)?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
 
@@ -574,7 +672,8 @@ export function register(app: Express) {
         logger.warn(`Failed to load guardrails (non-blocking): ${(err as Error).message}`, "chat");
       }
 
-      const fullSystemPrompt = `${systemPrompt}${guardrailBlock}${modeConfig.promptOverlay}\n\n${contextBlock}${rebeccaFieldBlock}${ragContextBlock}${documentContextBlock}${assetContextBlock}`;
+      const languageOverlay = detectedLanguage === "es" ? SPANISH_MULTILINGUAL_OVERLAY : "";
+      const fullSystemPrompt = `${systemPrompt}${guardrailBlock}${modeConfig.promptOverlay}${languageOverlay}\n\n${contextBlock}${rebeccaFieldBlock}${ragContextBlock}${documentContextBlock}${assetContextBlock}`;
       const engine = ga?.rebeccaChatEngine ?? "gemini";
       let resolvedModelName = engine === "perplexity" ? "sonar" : "gemini";
 
@@ -667,12 +766,13 @@ export function register(app: Express) {
       });
 
       const totalMessages = dbHistory.length + 2;
-      const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey);
+      const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
 
       res.json({
         response: responseText,
         conversationId,
         suggestedChips,
+        detectedLanguage,
         ...(autoGreeting ? { autoGreeting } : {}),
         ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
       });

@@ -138,6 +138,7 @@ export const rebeccaConversations = pgTable("rebecca_conversations", {
   contextType: text("context_type").notNull().default("general"),
   contextKey: text("context_key"),
   model: text("model"),
+  language: text("language").default("en"),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
 }, (table) => [
@@ -145,7 +146,7 @@ export const rebeccaConversations = pgTable("rebecca_conversations", {
 ]);
 
 export const insertRebeccaConversationSchema = createInsertSchema(rebeccaConversations).pick({
-  userId: true, propertyId: true, contextType: true, contextKey: true, model: true,
+  userId: true, propertyId: true, contextType: true, contextKey: true, model: true, language: true,
 });
 export type RebeccaConversation = typeof rebeccaConversations.$inferSelect;
 export type InsertRebeccaConversation = z.infer<typeof insertRebeccaConversationSchema>;

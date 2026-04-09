@@ -417,6 +417,12 @@ async function runSchemaMigrations() {
     await runRebeccaKB001();
     await markMigrationApplied("rebecca_kb_001");
   }
+
+  if (!(await isMigrationApplied("rebecca_language_001"))) {
+    const { runRebeccaLanguage001 } = await import("./migrations/rebecca-language-001");
+    await runRebeccaLanguage001();
+    await markMigrationApplied("rebecca_language_001");
+  }
 }
 
 async function runSeeds() {

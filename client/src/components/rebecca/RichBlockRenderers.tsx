@@ -14,8 +14,8 @@ interface BlockProps {
 }
 
 const LABELS: Record<string, Record<string, string>> = {
-  en: { source: "Source" },
-  es: { source: "Fuente" },
+  en: { source: "Source", benchmark: "Benchmark", value: "Value", projected: "Projected", period: "Period", metric: "Metric", insight: "Insight", current: "Current", recommended: "Recommended", difference: "Difference" },
+  es: { source: "Fuente", benchmark: "Referencia", value: "Valor", projected: "Proyectado", period: "Período", metric: "Métrica", insight: "Observación", current: "Actual", recommended: "Recomendado", difference: "Diferencia" },
 };
 
 function t(key: string, locale?: string): string {

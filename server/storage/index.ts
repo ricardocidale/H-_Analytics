@@ -301,6 +301,7 @@ export class DatabaseStorage implements IStorage {
   getOrCreateConversation = this.intelligenceV2.getOrCreateConversation.bind(this.intelligenceV2);
   getRebeccaConversations = this.intelligenceV2.getRebeccaConversations.bind(this.intelligenceV2);
   updateRebeccaConversationModel = this.intelligenceV2.updateRebeccaConversationModel.bind(this.intelligenceV2);
+  updateRebeccaConversationLanguage = this.intelligenceV2.updateRebeccaConversationLanguage.bind(this.intelligenceV2);
   addRebeccaMessage = this.intelligenceV2.addRebeccaMessage.bind(this.intelligenceV2);
   getRebeccaMessages = this.intelligenceV2.getRebeccaMessages.bind(this.intelligenceV2);
   getAllRebeccaMessageStats = this.intelligenceV2.getAllRebeccaMessageStats.bind(this.intelligenceV2);

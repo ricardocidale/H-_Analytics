@@ -41,6 +41,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   assets?: AssetMatch[];
+  detectedLanguage?: string;
 }
 
 
@@ -271,6 +272,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             role: "assistant",
             content: data.response,
             assets: data.assets,
+            detectedLanguage: data.detectedLanguage,
           },
         ]);
       } catch (err) {
@@ -506,7 +508,14 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                   data-testid={`rebecca-message-${msg.role}-${msg.id}`}
                 >
                   {msg.role === "assistant" ? (
-                    <RebeccaMarkdown content={msg.content} assets={msg.assets} />
+                    <>
+                      {msg.detectedLanguage === "es" && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400 px-1.5 py-0.5 rounded mb-1 w-fit" data-testid="language-badge-es">
+                          ES
+                        </span>
+                      )}
+                      <RebeccaMarkdown content={msg.content} assets={msg.assets} locale={msg.detectedLanguage === "es" ? "es" : "en"} />
+                    </>
                   ) : (
                     msg.content
                   )}
