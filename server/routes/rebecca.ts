@@ -370,9 +370,14 @@ export function register(app: Express) {
       for (const m of allMessages) {
         turnsPerConv[m.conversationId] = (turnsPerConv[m.conversationId] ?? 0) + 1;
       }
-      const turnCounts = Object.values(turnsPerConv);
+      const turnCounts = Object.values(turnsPerConv).sort((a, b) => a - b);
       const avgTurnsPerConversation = turnCounts.length > 0
         ? Math.round((turnCounts.reduce((a, b) => a + b, 0) / turnCounts.length) * 10) / 10
+        : 0;
+      const medianTurns = turnCounts.length > 0
+        ? turnCounts.length % 2 === 0
+          ? (turnCounts[turnCounts.length / 2 - 1] + turnCounts[turnCounts.length / 2]) / 2
+          : turnCounts[Math.floor(turnCounts.length / 2)]
         : 0;
 
       const singleTurnCount = turnCounts.filter(t => t <= 2).length;
@@ -384,6 +389,20 @@ export function register(app: Express) {
       for (const c of conversations) {
         const ct = c.contextType ?? "general";
         contextBreakdown[ct] = (contextBreakdown[ct] ?? 0) + 1;
+      }
+
+      const modelBreakdown: Record<string, number> = {};
+      for (const c of conversations) {
+        const m = c.model ?? "unknown";
+        modelBreakdown[m] = (modelBreakdown[m] ?? 0) + 1;
+      }
+
+      const responseModeBreakdown: Record<string, number> = {};
+      for (const m of allMessages) {
+        if (m.role === "assistant" && m.metadata) {
+          const mode = String((m.metadata as Record<string, unknown>).responseMode ?? "standard");
+          responseModeBreakdown[mode] = (responseModeBreakdown[mode] ?? 0) + 1;
+        }
       }
 
       const dailyVolumes: Record<string, { conversations: number; messages: number }> = {};
@@ -414,9 +433,12 @@ export function register(app: Express) {
         totalMessages,
         uniqueUsers,
         avgTurnsPerConversation,
+        medianTurns,
         singleTurnRate,
         deepConversationRate,
         contextBreakdown,
+        modelBreakdown,
+        responseModeBreakdown,
         dailyVolumes: sortedDays,
         feedbackBreakdown: feedbackByCategory,
         totalFeedback: feedback.length,

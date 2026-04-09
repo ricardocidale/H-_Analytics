@@ -574,6 +574,11 @@ export function register(app: Express) {
 
       const fullSystemPrompt = `${systemPrompt}${guardrailBlock}${modeConfig.promptOverlay}\n\n${contextBlock}${rebeccaFieldBlock}${ragContextBlock}${documentContextBlock}${assetContextBlock}`;
       const engine = ga?.rebeccaChatEngine ?? "gemini";
+      let resolvedModelName = engine === "perplexity" ? "sonar" : "gemini";
+
+      try {
+        await storage.updateRebeccaConversationModel(conversationId, engine === "perplexity" ? "perplexity:sonar" : "gemini");
+      } catch {}
 
       let responseText: string;
 
@@ -613,6 +618,10 @@ export function register(app: Express) {
       } else {
         const rc = (ga?.researchConfig as ResearchConfig) ?? {};
         const resolved = resolveLlm(rc, "chatbotLlm");
+        resolvedModelName = resolved.model;
+        try {
+          await storage.updateRebeccaConversationModel(conversationId, `${resolved.vendor}:${resolved.model}`);
+        } catch {}
         const gemini = getGeminiClient();
         const chatHistory = effectiveHistory.map((msg) => ({
           role: msg.role === "user" ? "user" : ("model" as const),
@@ -648,6 +657,11 @@ export function register(app: Express) {
         conversationId,
         role: "assistant",
         content: responseText,
+        metadata: {
+          responseMode: responseMode ?? "standard",
+          model: resolvedModelName,
+          engine,
+        },
       });
 
       const totalMessages = dbHistory.length + 2;

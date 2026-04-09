@@ -261,6 +261,12 @@ export class IntelligenceV2Storage {
     return q;
   }
 
+  async updateRebeccaConversationModel(conversationId: number, model: string): Promise<void> {
+    await db.update(rebeccaConversations)
+      .set({ model })
+      .where(eq(rebeccaConversations.id, conversationId));
+  }
+
   async addRebeccaMessage(data: InsertRebeccaMessage): Promise<RebeccaMessage> {
     const [msg] = await db.insert(rebeccaMessages)
       .values(data as typeof rebeccaMessages.$inferInsert)
@@ -284,10 +290,12 @@ export class IntelligenceV2Storage {
       .orderBy(rebeccaMessages.createdAt);
   }
 
-  async getAllRebeccaMessageStats(): Promise<Array<{ conversationId: number; createdAt: Date }>> {
+  async getAllRebeccaMessageStats(): Promise<Array<{ conversationId: number; role: string; createdAt: Date; metadata: Record<string, unknown> | null }>> {
     const rows = await db.select({
       conversationId: rebeccaMessages.conversationId,
+      role: rebeccaMessages.role,
       createdAt: rebeccaMessages.createdAt,
+      metadata: rebeccaMessages.metadata,
     }).from(rebeccaMessages);
     return rows;
   }

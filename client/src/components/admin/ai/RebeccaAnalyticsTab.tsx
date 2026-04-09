@@ -14,9 +14,12 @@ interface AnalyticsData {
   totalMessages: number;
   uniqueUsers: number;
   avgTurnsPerConversation: number;
+  medianTurns: number;
   singleTurnRate: number;
   deepConversationRate: number;
   contextBreakdown: Record<string, number>;
+  modelBreakdown: Record<string, number>;
+  responseModeBreakdown: Record<string, number>;
   dailyVolumes: Array<{ date: string; conversations: number; messages: number }>;
   feedbackBreakdown: Record<string, number>;
   totalFeedback: number;
@@ -92,6 +95,9 @@ export default function RebeccaAnalyticsTab() {
     value,
   }));
 
+  const modelPieData = Object.entries(data.modelBreakdown ?? {}).map(([name, value]) => ({ name, value }));
+  const modePieData = Object.entries(data.responseModeBreakdown ?? {}).map(([name, value]) => ({ name, value }));
+
   const dailyData = data.dailyVolumes.map(d => ({
     ...d,
     label: formatDateShort(d.date),
@@ -112,32 +118,33 @@ export default function RebeccaAnalyticsTab() {
         <StatCard label="Avg Turns" value={data.avgTurnsPerConversation} icon={IconTrendingUp} sub="messages per conversation" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="bg-card border border-border/80 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="min-w-0">
-              <p className="text-lg font-display font-bold text-foreground">{data.singleTurnRate}%</p>
-              <p className="text-[11px] text-muted-foreground font-medium">Single-Turn Rate</p>
-              <p className="text-[10px] text-muted-foreground/60">Conversations with ≤ 2 messages</p>
-            </div>
+          <CardContent className="p-4">
+            <p className="text-lg font-display font-bold text-foreground" data-testid="stat-single-turn-rate">{data.singleTurnRate}%</p>
+            <p className="text-[11px] text-muted-foreground font-medium">Single-Turn Rate</p>
+            <p className="text-[10px] text-muted-foreground/60">≤ 2 messages</p>
           </CardContent>
         </Card>
         <Card className="bg-card border border-border/80 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="min-w-0">
-              <p className="text-lg font-display font-bold text-foreground">{data.deepConversationRate}%</p>
-              <p className="text-[11px] text-muted-foreground font-medium">Deep Conversation Rate</p>
-              <p className="text-[10px] text-muted-foreground/60">Conversations with ≥ 6 messages</p>
-            </div>
+          <CardContent className="p-4">
+            <p className="text-lg font-display font-bold text-foreground" data-testid="stat-deep-rate">{data.deepConversationRate}%</p>
+            <p className="text-[11px] text-muted-foreground font-medium">Deep Conversations</p>
+            <p className="text-[10px] text-muted-foreground/60">≥ 6 messages</p>
           </CardContent>
         </Card>
         <Card className="bg-card border border-border/80 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="min-w-0">
-              <p className="text-lg font-display font-bold text-foreground">{data.totalFeedback}</p>
-              <p className="text-[11px] text-muted-foreground font-medium">Total Feedback</p>
-              <p className="text-[10px] text-muted-foreground/60">User-submitted reports</p>
-            </div>
+          <CardContent className="p-4">
+            <p className="text-lg font-display font-bold text-foreground" data-testid="stat-median-turns">{data.medianTurns}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">Median Turns</p>
+            <p className="text-[10px] text-muted-foreground/60">Middle conversation length</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border border-border/80 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-lg font-display font-bold text-foreground" data-testid="stat-total-feedback">{data.totalFeedback}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">Total Feedback</p>
+            <p className="text-[10px] text-muted-foreground/60">User-submitted reports</p>
           </CardContent>
         </Card>
       </div>
@@ -238,6 +245,77 @@ export default function RebeccaAnalyticsTab() {
               </ResponsiveContainer>
             ) : (
               <div className="py-8 text-center text-sm text-muted-foreground">No feedback yet.</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="bg-card border border-border/80 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-foreground">Model Attribution</CardTitle>
+            <CardDescription className="label-text mt-0.5">AI model used per conversation</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {modelPieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={modelPieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={3}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                    style={{ fontSize: 10 }}
+                  >
+                    {modelPieData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[(i + 1) % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Legend wrapperStyle={{ fontSize: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">No model data yet.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border border-border/80 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-foreground">Response Mode Usage</CardTitle>
+            <CardDescription className="label-text mt-0.5">Concise / Standard / Detailed breakdown</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {modePieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={modePieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={3}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                    style={{ fontSize: 10 }}
+                  >
+                    {modePieData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[(i + 3) % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Legend wrapperStyle={{ fontSize: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">No response mode data yet.</div>
             )}
           </CardContent>
         </Card>
