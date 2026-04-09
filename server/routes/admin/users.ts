@@ -1,6 +1,6 @@
 import { type Express } from "express";
 import { storage } from "../../storage";
-import { requireAdmin, validatePassword , getAuthUser } from "../../auth";
+import { requireAdmin, validatePassword , getAuthUser, sanitizeEmail } from "../../auth";
 import { userResponse, createUserSchema, logAndSendError, logActivity, parseParamId } from "../helpers";
 import { fromZodError } from "zod-validation-error";
 import { hashPassword } from "../../auth";
@@ -95,8 +95,16 @@ export function registerUserRoutes(app: Express) {
         }
       }
 
+      if (email !== undefined) {
+        const cleanEmail = sanitizeEmail(email);
+        const existing = await storage.getUserByEmail(cleanEmail);
+        if (existing && existing.id !== id) {
+          return res.status(400).json({ error: "Email already in use by another user" });
+        }
+      }
+
       const profileData: Record<string, any> = {};
-      if (email !== undefined) profileData.email = email;
+      if (email !== undefined) profileData.email = sanitizeEmail(email);
       if (firstName !== undefined) profileData.firstName = firstName;
       if (lastName !== undefined) profileData.lastName = lastName;
       if (company !== undefined) profileData.company = company;

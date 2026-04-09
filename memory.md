@@ -8,6 +8,14 @@
 
 ## Architecture Decisions Log
 
+### Admin User Management Audit (April 2026) — COMPLETED
+- **Scope**: Full audit of user/admin management — schema (users, sessions, user groups), storage (20+ methods in users.ts), routes (admin/users.ts, auth.ts), middleware (4 tiers: requireAuth, requireAdmin, requireChecker, requireManagementAccess), frontend (UsersTab, UserCardGrid, Create/Edit/Password/Invite dialogs)
+- **Bugs found and fixed**:
+  - Admin PATCH /api/admin/users/:id was missing email uniqueness check — could create duplicate emails. Added `getUserByEmail` check before update.
+  - Admin PATCH /api/admin/users/:id was not sanitizing email (lowercase+trim) — could cause case-mismatch login failures. Added `sanitizeEmail()` call.
+- **Everything else verified clean**: bcrypt 12 rounds, crypto.randomBytes session IDs, httpOnly/secure/sameSite cookies, IP rate limiting (5 attempts/15min), self-protection (can't delete self or change own role), transactional user deletion (14 tables), passwordHash stripped from all API responses, Google token encryption at rest, invitation system (temp passwords, batch limit 50), bulk reset requires confirmation phrase
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), verification UNQUALIFIED
+
 ### Google Drive Removed Entirely (April 2026) — COMPLETED
 - Deleted: `client/src/pages/GoogleDrive.tsx`, `server/routes/google-drive.ts`
 - Removed: Sidebar nav item, App.tsx route, server routes.ts registration, server/index.ts public paths
