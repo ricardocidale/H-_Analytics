@@ -156,13 +156,11 @@ export async function buildCreateSnapshotData(userId: number) {
     propertyFeeCategories[feeKey] = (feeCatsByPropId[p.id] || []) as ScenarioFeeCategorySnapshot[];
   }
 
-  const liveAssumptions = await storage.getGlobalAssumptions(userId);
-  const liveProperties = await storage.getAllProperties(userId);
   const scenarioGA: ScenarioGlobalAssumptionsSnapshot = (assumptions || {}) as ScenarioGlobalAssumptionsSnapshot;
   const scenarioProps: ScenarioPropertySnapshot[] = (properties || []) as ScenarioPropertySnapshot[];
   const diffResult = computeFullDiff(
-    (liveAssumptions || {}) as ScenarioGlobalAssumptionsSnapshot,
-    (liveProperties || []) as ScenarioPropertySnapshot[],
+    scenarioGA,
+    scenarioProps,
     scenarioGA,
     scenarioProps
   );
@@ -210,9 +208,9 @@ export interface LoadValidationResult {
 }
 
 export function validateLoadSnapshot(
-  scenario: { properties: any; feeCategories: any; propertyPhotos: any },
+  scenario: { properties: unknown; feeCategories: Record<string, unknown[]> | null | undefined; propertyPhotos: Record<string, unknown[]> | null | undefined },
 ): LoadValidationResult {
-  const snapshotProps: ScenarioPropertySnapshot[] = scenario.properties || [];
+  const snapshotProps: ScenarioPropertySnapshot[] = (scenario.properties || []) as ScenarioPropertySnapshot[];
   const snapshotPropNames = snapshotProps.map(p => p.name).filter(Boolean);
   const snapshotFeeCats = scenario.feeCategories;
 
