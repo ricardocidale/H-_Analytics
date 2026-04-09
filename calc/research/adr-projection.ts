@@ -49,7 +49,7 @@ export function computeADRProjection(input: ADRProjectionInput): ADRProjectionOu
 
   for (let y = 1; y <= projection_years; y++) {
     const adr = roundCents(start_adr * dPow(1 + growth_rate, y) * dPow(1 + inflation_rate, y));
-    const growthFromStart = ((adr - start_adr) / start_adr) * 100;
+    const growthFromStart = start_adr === 0 ? 0 : ((adr - start_adr) / start_adr) * 100;
 
     const proj: YearProjection = {
       year: y,
@@ -68,7 +68,7 @@ export function computeADRProjection(input: ADRProjectionInput): ADRProjectionOu
   }
 
   const endAdr = projections[projections.length - 1]?.adr ?? start_adr;
-  const totalGrowth = ((endAdr - start_adr) / start_adr) * 100;
+  const totalGrowth = start_adr === 0 ? 0 : ((endAdr - start_adr) / start_adr) * 100;
 
   return {
     projections,

@@ -8,6 +8,14 @@
 
 ## Architecture Decisions Log
 
+### Task #311: Calc Dispatch Validation & ADR Zero-Guard (April 2026) — COMPLETED
+- **Dispatch schemas**: Added 26 Zod input schemas to `calc/shared/schemas.ts` for all previously unvalidated tools: waterfall, hold-vs-sell, stress-test, capex-reserve, revpar-index, debt-yield, dscr, prepayment, sensitivity, compare-loans, interest-rate-swap, centralized-service-margin, cost-of-services, property-metrics, depreciation-basis, debt-capacity, occupancy-ramp, adr-projection, cap-rate-valuation, cost-benchmarks, service-fee, markup-waterfall, make-vs-buy, wacc, portfolio-wacc, mirr.
+- **Schema registration**: All 38 tools in `calc/dispatch.ts` now have input validation — every dispatch call goes through `safeParse()` before reaching the handler.
+- **ADR zero-guard**: `calc/research/adr-projection.ts` lines 52 and 71 now return 0% growth when `start_adr === 0` instead of producing Infinity.
+- **Tests**: 7 new tests in `tests/calc/dispatch.test.ts` — zero-ADR edge case, valid ADR projection, schema coverage (all 38 tools reject invalid input), and specific rejection tests for DCF, waterfall, MIRR, and DSCR.
+- **make-vs-buy schema**: `unitCount` uses `.min(0)` not `.positive()` because the function gracefully handles zero units.
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), verification UNQUALIFIED
+
 ### Task #310: Scheduled Research Authorization Gaps (April 2026) — COMPLETED
 - **Backend**: Changed `/api/research/scheduled/check-stale` and `/api/research/scheduled/:id/execute` from `requireAuth` to `requireAdmin` in `server/routes/admin/intelligence.ts`. These endpoints expose internal workflow metadata and trigger costly AI research operations.
 - **Frontend**: Added `user.role !== "admin"` guard to `ScheduledResearchGate` in `App.tsx` so non-admin users don't even make the stale-check request.

@@ -270,3 +270,331 @@ export const breakEvenSchema = z.object({
   monthly_income_tax_estimate: z.number().min(0).optional(),
   ancillary_revenue_pct: z.number().min(0).optional(),
 });
+
+const waterfallTierSchema = z.object({
+  label: z.string(),
+  hurdle_irr: z.number().min(0),
+  lp_split: z.number().min(0).max(1),
+  gp_split: z.number().min(0).max(1),
+});
+
+export const waterfallSchema = z.object({
+  total_equity_invested: z.number().positive(),
+  lp_equity: z.number().min(0),
+  gp_equity: z.number().min(0),
+  distributable_cash_flows: z.array(z.number()).min(1),
+  preferred_return: z.number().min(0),
+  tiers: z.array(waterfallTierSchema).min(1),
+  catch_up_rate: z.number().min(0).max(1).optional(),
+  catch_up_to_gp_pct: z.number().min(0).max(1).optional(),
+});
+
+export const holdVsSellSchema = z.object({
+  property_name: z.string().optional(),
+  current_noi: z.number(),
+  noi_growth_rate: z.number(),
+  current_market_value: z.number().positive(),
+  exit_cap_rate: z.number().positive(),
+  future_exit_cap_rate: z.number().positive().optional(),
+  remaining_hold_years: z.number().int().positive(),
+  discount_rate: z.number().positive(),
+  outstanding_debt: z.number().min(0).optional(),
+  commission_rate: z.number().min(0).max(0.10).optional(),
+  annual_capex: z.number().min(0).optional(),
+  annual_debt_service: z.number().min(0).optional(),
+  original_cost_basis: z.number().min(0).optional(),
+  capital_gains_rate: z.number().min(0).max(1).optional(),
+  depreciation_recapture_rate: z.number().min(0).max(1).optional(),
+  accumulated_depreciation: z.number().min(0).optional(),
+});
+
+const stressScenarioSchema = z.object({
+  label: z.string(),
+  adr_shock_pct: z.number(),
+  occupancy_shock_pct: z.number(),
+  expense_shock_pct: z.number().optional(),
+  cap_rate_shock_bps: z.number().optional(),
+  revenue_shock_pct: z.number().optional(),
+});
+
+export const stressTestSchema = z.object({
+  property_name: z.string().optional(),
+  base_adr: z.number().positive(),
+  base_occupancy: z.number().min(0).max(1),
+  base_noi: z.number(),
+  room_count: z.number().int().positive(),
+  annual_revenue: z.number(),
+  annual_debt_service: z.number().min(0).optional(),
+  exit_cap_rate: z.number().positive(),
+  hold_period_years: z.number().int().positive(),
+  scenarios: z.array(stressScenarioSchema).min(1),
+});
+
+const capexCategorySchema = z.object({
+  label: z.string(),
+  useful_life_years: z.number().positive(),
+  replacement_cost: z.number().min(0),
+  age_years: z.number().min(0).optional(),
+});
+
+export const capexReserveSchema = z.object({
+  property_name: z.string().optional(),
+  room_count: z.number().int().positive(),
+  annual_revenue: z.number(),
+  ffe_reserve_rate: z.number().min(0).max(0.15).optional(),
+  initial_reserve_balance: z.number().min(0).optional(),
+  hold_period_years: z.number().int().positive(),
+  revenue_growth_rate: z.number().optional(),
+  capex_categories: z.array(capexCategorySchema).optional(),
+  inflation_rate: z.number().optional(),
+});
+
+export const revparIndexSchema = z.object({
+  property_name: z.string().optional(),
+  room_count: z.number().int().positive(),
+  adr: z.number().positive(),
+  occupancy: z.number().min(0).max(1),
+  market_adr: z.number().positive(),
+  market_occupancy: z.number().min(0).max(1),
+  comp_set_adr: z.number().positive().optional(),
+  comp_set_occupancy: z.number().min(0).max(1).optional(),
+});
+
+export const debtYieldSchema = z.object({
+  noi_annual: z.number(),
+  loan_amount: z.number().positive().optional(),
+  min_debt_yield: z.number().positive().optional(),
+  purchase_price: z.number().positive().optional(),
+  ltv_max: z.number().min(0).max(1).optional(),
+});
+
+export const dscrSchema = z.object({
+  noi_annual: z.number(),
+  interest_rate_annual: z.number().min(0),
+  term_months: z.number().int().positive(),
+  amortization_months: z.number().int().positive(),
+  io_months: z.number().int().min(0).optional(),
+  min_dscr: z.number().positive(),
+  purchase_price: z.number().positive().optional(),
+  ltv_max: z.number().min(0).max(1).optional(),
+});
+
+export const prepaymentSchema = z.object({
+  outstanding_balance: z.number().positive().optional(),
+  schedule: z.array(z.object({
+    month: z.number().int().min(0),
+    beginning_balance: z.number(),
+    interest: z.number(),
+    principal: z.number(),
+    payment: z.number(),
+    ending_balance: z.number(),
+  })).optional(),
+  prepayment_month: z.number().int().min(0).optional(),
+  loan_rate_annual: z.number().min(0),
+  term_months: z.number().int().positive(),
+  prepayment_type: z.enum(["yield_maintenance", "step_down", "defeasance"]),
+  treasury_rate_annual: z.number().min(0).optional(),
+  step_down_schedule: z.array(z.number()).optional(),
+  defeasance_fee_pct: z.number().min(0).optional(),
+});
+
+export const sensitivitySchema = z.object({
+  noi_annual: z.number(),
+  loan_amount: z.number().positive(),
+  interest_rate_annual: z.number().min(0),
+  amortization_months: z.number().int().positive(),
+  term_months: z.number().int().positive(),
+  io_months: z.number().int().min(0).optional(),
+  rate_shocks_bps: z.array(z.number()),
+  noi_shocks_pct: z.array(z.number()),
+  min_dscr: z.number().positive().optional(),
+});
+
+const financingInputSchema = z.object({
+  purchase_date: z.string(),
+  purchase_price: z.number().positive(),
+  loan_type: z.enum(["amortizing", "IO_then_amortizing"]),
+  interest_rate_annual: z.number().min(0),
+  term_months: z.number().int().positive(),
+  amortization_months: z.number().int().positive(),
+  ltv_max: z.number().min(0).max(1).optional(),
+  loan_amount_override: z.number().positive().optional(),
+  closing_cost_pct: z.number().min(0),
+  fixed_fees: z.number().min(0).optional(),
+  upfront_reserves: z.number().min(0).optional(),
+  accounting_policy_ref: z.object({
+    loan_origination_cost_treatment: z.string(),
+    closing_cost_treatment: z.string(),
+  }),
+});
+
+const loanScenarioSchema = z.object({
+  label: z.string(),
+  input: financingInputSchema,
+  noi_annual: z.number().optional(),
+});
+
+export const compareLoanSchema = z.object({
+  scenarios: z.array(loanScenarioSchema).min(1),
+});
+
+export const interestRateSwapSchema = z.object({
+  notional_amount: z.number().positive(),
+  fixed_rate: z.number().min(0),
+  floating_rate_current: z.number().min(0),
+  floating_rate_spread: z.number(),
+  swap_term_years: z.number().int().positive(),
+  payment_frequency: z.union([z.literal(1), z.literal(2), z.literal(4), z.literal(12)]),
+  rate_scenarios: z.array(z.number()).optional(),
+  noi_annual: z.number().optional(),
+});
+
+export const centralizedServiceMarginSchema = z.object({
+  serviceRevenue: z.number(),
+  markup: z.number().min(0),
+});
+
+export const costOfServicesSchema = z.object({
+  feesByCategory: z.record(z.string(), z.number()),
+  templates: z.array(z.object({
+    name: z.string(),
+    serviceModel: z.enum(["centralized", "direct"]),
+    serviceMarkup: z.number().min(0),
+    isActive: z.boolean(),
+  })),
+});
+
+export const propertyMetricsSchema = z.object({
+  room_count: z.number().int().positive(),
+  adr: z.number().min(0),
+  occupancy: z.number().min(0).max(1),
+  cost_rate_rooms: z.number().min(0).optional(),
+  cost_rate_fb: z.number().min(0).optional(),
+  cost_rate_admin: z.number().min(0).optional(),
+  cost_rate_marketing: z.number().min(0).optional(),
+  cost_rate_property_ops: z.number().min(0).optional(),
+  cost_rate_utilities: z.number().min(0).optional(),
+  cost_rate_ffe: z.number().min(0).optional(),
+  cost_rate_other: z.number().min(0).optional(),
+  rev_share_events: z.number().min(0).optional(),
+  rev_share_fb: z.number().min(0).optional(),
+  rev_share_other: z.number().min(0).optional(),
+  catering_boost_pct: z.number().min(0).optional(),
+  base_management_fee_rate: z.number().min(0).optional(),
+  incentive_management_fee_rate: z.number().min(0).optional(),
+  days_per_month: z.number().positive().optional(),
+});
+
+export const depreciationBasisSchema = z.object({
+  purchase_price: z.number().positive(),
+  land_value_pct: z.number().min(0).max(1),
+  building_improvements: z.number().min(0).optional(),
+  depreciation_years: z.number().int().positive().optional(),
+});
+
+export const debtCapacitySchema = z.object({
+  annual_noi: z.number(),
+  dscr_target: z.number().positive(),
+  interest_rate: z.number().min(0),
+  term_years: z.number().int().positive(),
+  property_value: z.number().positive().optional(),
+});
+
+export const occupancyRampSchema = z.object({
+  start_occupancy: z.number().min(0).max(1),
+  max_occupancy: z.number().min(0).max(1),
+  ramp_months: z.number().int().positive(),
+  growth_step: z.number().min(0),
+  stabilization_months: z.number().int().min(0),
+  adr: z.number().min(0).optional(),
+  room_count: z.number().int().positive().optional(),
+  days_per_month: z.number().positive().optional(),
+});
+
+export const adrProjectionSchema = z.object({
+  start_adr: z.number().min(0),
+  growth_rate: z.number(),
+  inflation_rate: z.number().optional(),
+  projection_years: z.number().int().positive(),
+  occupancy: z.number().min(0).max(1).optional(),
+  room_count: z.number().int().positive().optional(),
+  days_per_month: z.number().positive().optional(),
+});
+
+export const capRateValuationSchema = z.object({
+  annual_noi: z.number(),
+  cap_rate: z.number().positive(),
+  purchase_price: z.number().positive().optional(),
+  sensitivity_steps: z.number().int().positive().optional(),
+});
+
+export const costBenchmarksSchema = z.object({
+  annual_room_revenue: z.number(),
+  annual_total_revenue: z.number(),
+  purchase_price: z.number().positive().optional(),
+  cost_rate_rooms: z.number().min(0).optional(),
+  cost_rate_fb: z.number().min(0).optional(),
+  cost_rate_admin: z.number().min(0).optional(),
+  cost_rate_marketing: z.number().min(0).optional(),
+  cost_rate_property_ops: z.number().min(0).optional(),
+  cost_rate_utilities: z.number().min(0).optional(),
+  cost_rate_taxes: z.number().min(0).optional(),
+  cost_rate_insurance: z.number().min(0).optional(),
+  cost_rate_it: z.number().min(0).optional(),
+  cost_rate_ffe: z.number().min(0).optional(),
+  cost_rate_other: z.number().min(0).optional(),
+});
+
+export const serviceFeeSchema = z.object({
+  propertyRevenue: z.number(),
+  serviceType: z.string(),
+});
+
+export const markupWaterfallSchema = z.object({
+  vendorCost: z.number().min(0),
+  markupPct: z.number().min(0),
+  serviceType: z.string().optional(),
+});
+
+export const makeVsBuySchema = z.object({
+  serviceName: z.string(),
+  inHouseLabor: z.number().min(0),
+  benefitsRate: z.number().min(0),
+  trainingAnnual: z.number().min(0),
+  suppliesAnnual: z.number().min(0),
+  allocatedOverhead: z.number().min(0),
+  vendorContractPrice: z.number().min(0),
+  internalOversightHours: z.number().min(0),
+  managerHourlyRate: z.number().min(0),
+  unitCount: z.number().int().min(0),
+  projection_years: z.number().int().positive().optional(),
+  discount_rate: z.number().min(0).optional(),
+  cost_escalation_rate: z.number().optional(),
+});
+
+export const waccSchema = z.object({
+  equity: z.number().min(0),
+  debt: z.number().min(0),
+  cost_of_equity: z.number().min(0),
+  cost_of_debt: z.number().min(0),
+  tax_rate: z.number().min(0).max(1),
+});
+
+const portfolioPropertyWACCSchema = z.object({
+  name: z.string(),
+  equity: z.number().min(0),
+  debt: z.number().min(0),
+  cost_of_equity: z.number().min(0),
+  cost_of_debt: z.number().min(0),
+});
+
+export const portfolioWaccSchema = z.object({
+  properties: z.array(portfolioPropertyWACCSchema).min(1),
+  tax_rate: z.number().min(0).max(1),
+});
+
+export const mirrSchema = z.object({
+  cash_flow_vector: z.array(z.number()).min(2),
+  finance_rate: z.number().min(0),
+  reinvestment_rate: z.number().min(0),
+});

@@ -129,4 +129,94 @@ describe("executeComputationTool", () => {
     expect(parsed.mirr).toBeGreaterThan(0);
     expect(parsed.mirr).toBeLessThan(1);
   });
+
+  it("ADR projection with zero start_adr returns 0% growth", () => {
+    const result = executeComputationTool("compute_adr_projection", {
+      start_adr: 0,
+      growth_rate: 0.03,
+      projection_years: 3,
+    });
+    expect(result).not.toBeNull();
+    const parsed = JSON.parse(result!);
+    expect(parsed.start_adr).toBe(0);
+    expect(parsed.end_adr).toBe(0);
+    expect(parsed.total_growth_pct).toBe("0%");
+    for (const proj of parsed.projections) {
+      expect(proj.adr).toBe(0);
+      expect(proj.adr_growth_from_start).toBe("0%");
+    }
+  });
+
+  it("ADR projection with valid ADR computes growth", () => {
+    const result = executeComputationTool("compute_adr_projection", {
+      start_adr: 200,
+      growth_rate: 0.05,
+      projection_years: 2,
+    });
+    expect(result).not.toBeNull();
+    const parsed = JSON.parse(result!);
+    expect(parsed.start_adr).toBe(200);
+    expect(parsed.end_adr).toBeGreaterThan(200);
+    expect(parsed.projections).toHaveLength(2);
+  });
+});
+
+describe("dispatch schema validation", () => {
+  const SCHEMA_VALIDATED_TOOLS = Object.keys(
+    // All 38 tools should have schemas
+    Object.fromEntries(EXPECTED_TOOLS.map(t => [t, true]))
+  );
+
+  it("every registered tool has a schema", () => {
+    for (const name of SCHEMA_VALIDATED_TOOLS) {
+      const badInput = executeComputationTool(name, { __invalid: true });
+      expect(badInput).not.toBeNull();
+      const parsed = JSON.parse(badInput!);
+      expect(parsed.error).toBeDefined();
+    }
+  });
+
+  it("rejects malformed DCF input with clear message", () => {
+    const result = executeComputationTool("calculate_dcf_npv", {
+      cash_flows: "not_an_array",
+      discount_rate: -1,
+    });
+    const parsed = JSON.parse(result!);
+    expect(parsed.error).toContain("Validation failed");
+  });
+
+  it("rejects waterfall with negative equity", () => {
+    const result = executeComputationTool("compute_waterfall", {
+      total_equity_invested: -100,
+      lp_equity: 0,
+      gp_equity: 0,
+      distributable_cash_flows: [100],
+      preferred_return: 0.08,
+      tiers: [{ label: "t1", hurdle_irr: 0.08, lp_split: 0.8, gp_split: 0.2 }],
+    });
+    const parsed = JSON.parse(result!);
+    expect(parsed.error).toContain("Validation failed");
+  });
+
+  it("rejects MIRR with single cash flow", () => {
+    const result = executeComputationTool("compute_mirr", {
+      cash_flow_vector: [100],
+      finance_rate: 0.1,
+      reinvestment_rate: 0.1,
+    });
+    const parsed = JSON.parse(result!);
+    expect(parsed.error).toContain("Validation failed");
+  });
+
+  it("rejects DSCR with negative term_months", () => {
+    const result = executeComputationTool("calculate_dscr", {
+      noi_annual: 100000,
+      interest_rate_annual: 0.05,
+      term_months: -12,
+      amortization_months: 360,
+      min_dscr: 1.25,
+    });
+    const parsed = JSON.parse(result!);
+    expect(parsed.error).toContain("Validation failed");
+  });
 });
