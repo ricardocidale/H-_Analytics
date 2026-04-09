@@ -192,7 +192,7 @@ export function registerPineconeRoutes(app: Express) {
               createdBy: scenario.userId ? String(scenario.userId) : undefined,
             });
             indexed++;
-          } catch { /* skip failed */ }
+          } catch (e) { logger.warn(`Failed to index scenario ${scenario.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
         }
         result.indexed = indexed;
         result.total = allScenarios.length;
@@ -214,7 +214,7 @@ export function registerPineconeRoutes(app: Express) {
               market: (property as any).market ?? null,
             });
             indexed++;
-          } catch { /* skip failed */ }
+          } catch (e) { logger.warn(`Failed to index property ${property.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
         }
         result.indexed = indexed;
         result.total = allProperties.length;
@@ -236,7 +236,7 @@ export function registerPineconeRoutes(app: Express) {
               snapshotDate: snap.fetchedAt.toISOString(),
             });
             indexed++;
-          } catch { /* skip failed */ }
+          } catch (e) { logger.warn(`Failed to index benchmark ${snap.snapshotKey}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
         }
         result.indexed = indexed;
         result.total = snapshots.length;
