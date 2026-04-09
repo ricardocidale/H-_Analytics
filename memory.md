@@ -578,6 +578,20 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **P2 FIXED**: (a) aria-labels added to ~25 icon-only buttons across 15 files, (b) aria-live on RebeccaTypingIndicator, (c) RAG score threshold raised from 0.3→0.45 in chat.ts, (d) Empty catch blocks annotated/logged (research-resources.ts, App.tsx, run-research.ts), (e) ScenariosTab decomposed: ScenarioCard + ScenarioAccessDialog extracted (1019→757 lines)
 - **All STRONG**: Server setup, auth system, caching, schema design, storage layer, calc architecture, formula integrity, GAAP compliance, proof system, recalc enforcement, routing, state management, error handling, documentation, skills, UI consistency, UX patterns
 
+### Deterministic Codebase Audit (April 2026) — COMPLETED
+- **Report**: `.local/deterministic-audit-report.md`
+- **Scope**: Full 136,610-line codebase (788 source files, 178 test files), 12 analysis areas
+- **Verdict**: Production-grade, architecturally sound. 0 P0 (critical), 6 P1 (important), 11 P2 (advisory)
+- **P1 issues found**:
+  1. Waterfall div-by-zero when `catch_up_to_gp_pct = 1.0` (calc/analysis/waterfall.ts:129)
+  2. Missing FK indexes on `property_fee_categories.propertyId` and `property_photos.propertyId`
+  3. Rebecca chat missing timeout on LLM calls (server/routes/chat.ts)
+  4. Research orchestrator hardcodes model constants, bypasses `resolveLlm()`
+  5. 12 dead page files (4,405 lines) — unreachable or redirect-only
+  6. Domain boundary violations — 3 files directly import db/drizzle-orm (auth.ts, notifications/engine.ts, geospatial.ts)
+- **STRONG**: Financial engine (0 `as any`, decimal.js, 167 proof tests), verification (8-phase UNQUALIFIED), auth (default-deny, 4-tier RBAC), exports (5 formats × 3 entities), caching (LRU-200/60s TTL), security headers
+- **calc/ layer**: 0 `as any`, 0 TODO/FIXME — cleanest layer in the codebase
+
 ### Exports & Photo Uploads Usability Audit (April 2026) — COMPLETED
 - **Scope**: 46 tests covering file exports (5 formats × 3 entity types + premium + special), photo management (CRUD, hero, enhance), upload system (validation, presigned URLs, content-type filtering), and security (auth enforcement on all endpoints)
 - **Standard exports ALL PASS**: PDF, Excel, CSV, PPTX, DOCX for portfolio/property/company entities — all generate valid binary files (3KB–230KB)
