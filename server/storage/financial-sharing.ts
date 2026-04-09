@@ -71,17 +71,22 @@ export class FinancialSharingStorage {
     }
 
     if (filters?.groupId || filters?.companyId) {
-      const allShares = await db.select().from(scenarioShares);
-      const matchingScenarioIds = new Set<number>();
-      for (const share of allShares) {
-        if (filters.groupId && share.targetType === "group" && share.targetId === filters.groupId) {
-          matchingScenarioIds.add(share.scenarioId);
-        }
-        if (filters.companyId && share.targetType === "company" && share.targetId === filters.companyId) {
-          matchingScenarioIds.add(share.scenarioId);
-        }
+      const conditions = [];
+      if (filters.groupId) {
+        conditions.push(
+          and(eq(scenarioShares.targetType, "group"), eq(scenarioShares.targetId, filters.groupId))
+        );
       }
-      result = result.filter(r => matchingScenarioIds.has(r.id));
+      if (filters.companyId) {
+        conditions.push(
+          and(eq(scenarioShares.targetType, "company"), eq(scenarioShares.targetId, filters.companyId))
+        );
+      }
+      const matchingShares = await db.select({ scenarioId: scenarioShares.scenarioId })
+        .from(scenarioShares)
+        .where(conditions.length > 1 ? or(...conditions) : conditions[0]!);
+      const matchingIds = new Set(matchingShares.map(s => s.scenarioId));
+      result = result.filter(r => matchingIds.has(r.id));
     }
 
     return result;

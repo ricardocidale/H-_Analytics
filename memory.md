@@ -4,9 +4,17 @@
 - **App Name**: H+ Analytics App
 - **Brand**: H+ Analytics by Norfolk AI
 - **AI Assistant**: Rebecca (text chat analytics AI)
-- **Admin**: ricardo.cidale@norfolkgroup.io / admin456
+- **Admin**: ricardo.cidale@norfolkgroup.io (password stored in environment secrets only)
 
 ## Architecture Decisions Log
+
+### Audit Remediation: Critical & High Priority Fixes (April 2026) — COMPLETED
+- **Access control**: `/api/fee-categories/all` and `/api/property-urls/all` upgraded from `requireAuth` to `requireAdmin` (cross-tenant data exposure fix)
+- **Credential leak**: Removed hardcoded admin password from `memory.md`
+- **N+1 query**: Admin coverage endpoint now uses single `getAllAssumptionGuidanceForScenario()` batch query instead of per-property `getAssumptionGuidance()` loop. New method in `server/storage/intelligence-v2.ts`.
+- **In-memory filtering**: `financial-sharing.ts` `getAllScenarios()` now pushes group/company filters into SQL WHERE clause on `scenarioShares` instead of fetching entire table
+- **WACC rounding drift**: `computePortfolioWACC` now uses raw (unrounded) per-property WACC values for capital weighting before final `roundTo()`, eliminating compounded rounding error
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), verification UNQUALIFIED
 
 ### Task #312: Empty Catches, Lazy-Loading & File Splits (April 2026) — COMPLETED
 - **T001 — Empty catch blocks**: Fixed 5 empty catches: `chat.ts` (lines 660, 682, 725) now use `logger.warn(...)`, `RebeccaPanel.tsx` (lines 65, 428) now use `console.warn(...)`.

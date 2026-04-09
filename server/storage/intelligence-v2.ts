@@ -42,6 +42,16 @@ export class IntelligenceV2Storage {
       .orderBy(assumptionGuidance.assumptionKey);
   }
 
+  async getAllAssumptionGuidanceForScenario(scenarioId: number | null): Promise<AssumptionGuidance[]> {
+    return db.select().from(assumptionGuidance)
+      .where(
+        scenarioId != null
+          ? eq(assumptionGuidance.scenarioId, scenarioId)
+          : isNull(assumptionGuidance.scenarioId),
+      )
+      .orderBy(assumptionGuidance.entityType, assumptionGuidance.entityId, assumptionGuidance.assumptionKey);
+  }
+
   async upsertAssumptionGuidance(data: InsertAssumptionGuidance): Promise<AssumptionGuidance> {
     const conditions = [
       eq(assumptionGuidance.entityType, data.entityType),

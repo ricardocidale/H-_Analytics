@@ -45,8 +45,17 @@ export function registerIntelligenceRoutes(app: Express) {
       let totalStale = 0;
       let totalMissing = 0;
 
+      const allGuidance = await storage.getAllAssumptionGuidanceForScenario(scenarioId);
+      const guidanceByEntity = new Map<string, typeof allGuidance>();
+      for (const g of allGuidance) {
+        const key = `${g.entityType}:${g.entityId}`;
+        const arr = guidanceByEntity.get(key);
+        if (arr) arr.push(g);
+        else guidanceByEntity.set(key, [g]);
+      }
+
       for (const prop of allProps) {
-        const guidance = await storage.getAssumptionGuidance(scenarioId, "property", prop.id);
+        const guidance = guidanceByEntity.get(`property:${prop.id}`) ?? [];
         let fresh = 0;
         let stale = 0;
         let lastUpdated: string | null = null;
@@ -77,7 +86,7 @@ export function registerIntelligenceRoutes(app: Express) {
         });
       }
 
-      const companyGuidance = await storage.getAssumptionGuidance(scenarioId, "company", 1);
+      const companyGuidance = guidanceByEntity.get("company:1") ?? [];
       let compFresh = 0, compStale = 0;
       let compLastUpdated: string | null = null;
       for (const g of companyGuidance) {

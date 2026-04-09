@@ -206,7 +206,11 @@ export function computePortfolioWACC(input: PortfolioWACCInput): PortfolioWACCOu
       rounding_policy: input.rounding_policy,
     });
 
-    weightedWaccSum += propResult.wacc * capitalShare;
+    const rawEquityWeight = p.equity / propCapital;
+    const rawDebtWeight = p.debt / propCapital;
+    const rawWacc = (rawEquityWeight * p.cost_of_equity)
+      + (rawDebtWeight * p.cost_of_debt * (1 - tax_rate));
+    weightedWaccSum += rawWacc * capitalShare;
 
     details.push({
       name: p.name,

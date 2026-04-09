@@ -376,7 +376,7 @@ export function register(app: Express) {
     }
   });
 
-  app.get("/api/fee-categories/all", requireAuth, async (_req, res) => {
+  app.get("/api/fee-categories/all", requireAdmin, async (_req, res) => {
     try {
       const categories = await storage.getAllFeeCategories();
       res.json(categories);
@@ -462,7 +462,7 @@ Rewritten description:`;
   // PROPERTY URLS — linked reference URLs with validation
   // ────────────────────────────────────────────────────────────
 
-  app.get("/api/property-urls/all", requireAuth, async (_req, res) => {
+  app.get("/api/property-urls/all", requireAdmin, async (_req, res) => {
     try {
       const urls = await storage.getAllPropertyUrls();
       res.json(urls);
