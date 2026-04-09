@@ -409,3 +409,93 @@ describe("No raw Date constructor with date strings in financial files", () => {
     }
   });
 });
+
+describe("Client-side financial calculation gate (T016)", () => {
+  const CLIENT_FINANCE_DIRS = [
+    path.resolve("client/src/components"),
+    path.resolve("client/src/pages"),
+    path.resolve("client/src/lib"),
+  ];
+
+  const ALLOWLISTED_FILES = new Set([
+    "useServerFinancials.ts",
+    "usePortfolioFinancials.ts",
+    "financialEngine.ts",
+    "yearlyAggregator.ts",
+    "loanCalculations.ts",
+    "equityCalculations.ts",
+    "portfolio-helpers.ts",
+    "statementBuilders.ts",
+    "cash-flow.ts",
+    "investment.ts",
+    "formatters.ts",
+    "auditIncomeStatement.ts",
+    "crossCalculatorValidation.ts",
+    "formulaChecker.ts",
+    "runVerification.ts",
+    "known-value-runner.ts",
+    "pdfHelpers.ts",
+    "pdfChartDrawer.ts",
+    "exportStyles.ts",
+    "companyExports.ts",
+    "property-sheets.ts",
+    "map-utils.ts",
+    "map-elements.ts",
+    "icp-config.ts",
+    "PropertyIRRTable.tsx",
+    "SensitivityAnalysis.tsx",
+    "OverviewTab.tsx",
+    "overview-helpers.ts",
+    "overviewExportData.ts",
+    "DCFAnalysis.tsx",
+    "InvestmentAnalysis.tsx",
+  ]);
+
+  const FINANCIAL_CALC_PATTERNS = [
+    /\bfunction\s+calculateIRR\b/,
+    /\bconst\s+\w+\s*=.*\bcomputeIRR\b/,
+    /\bconst\s+equityMultiple\s*=.*\//,
+    /\bconst\s+cashOnCash\s*=.*\//,
+    /\bconst\s+portfolioIRR\s*=.*calculateIRR/,
+    /\bconst\s+totalInitialEquity\s*=.*reduce/,
+  ];
+
+  it("no unauthorized financial calculations in client components/pages", () => {
+    const violations: string[] = [];
+
+    for (const dir of CLIENT_FINANCE_DIRS) {
+      const files = collectTsFiles(dir);
+      for (const file of files) {
+        const fileName = path.basename(file);
+        if (ALLOWLISTED_FILES.has(fileName)) continue;
+        if (file.includes("node_modules")) continue;
+
+        const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (line.trimStart().startsWith("//") || line.trimStart().startsWith("*")) continue;
+
+          for (const pattern of FINANCIAL_CALC_PATTERNS) {
+            if (pattern.test(line)) {
+              const relFile = path.relative(process.cwd(), file);
+              violations.push(
+                `  ${relFile}:${i + 1} — unauthorized financial calc: ${pattern.source}\n    ${line.trim().substring(0, 120)}`
+              );
+            }
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(
+        `Found ${violations.length} unauthorized client-side financial calculation(s):\n` +
+        `${violations.join("\n")}\n\n` +
+        `Financial computations must happen server-side. If this is a legitimate UI-only calculation,\n` +
+        `add the file to the ALLOWLISTED_FILES set in this test.`
+      );
+    }
+  });
+});

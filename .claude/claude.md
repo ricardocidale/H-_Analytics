@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-Business simulation portal for **Hospitality Business Group**. Models a boutique hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). 1006 source files, ~172K lines, 4,325 tests across 178 test files. 11-phase verification pipeline. Hosted on Replit.
+Business simulation portal for **Hospitality Business Group**. Models a boutique hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). 1015 source files, ~172K lines, 4,378 tests across 180 test files. 15-phase verification pipeline. Hosted on Replit.
 
 > **Rebecca** is the sole active AI agent. Marcela voice agent, ElevenLabs, and Twilio integrations have been fully removed.
 
@@ -55,7 +55,7 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 | Design System | `.claude/skills/design-system/SKILL.md` | Colors, typography, component catalog, CSS classes |
 | Theme Engine | `.claude/skills/ui/theme-engine.md` | Multi-theme system, token structure |
 | Component Library | `.claude/skills/component-library/SKILL.md` | PageHeader, GlassButton, ExportMenu, CurrentThemeTab |
-| Proof System | `.claude/skills/proof-system/SKILL.md` | 4,325 tests across 178 files, 583 golden values, 11-phase verification pipeline |
+| Proof System | `.claude/skills/proof-system/SKILL.md` | 4,378 tests across 180 files, 583 golden values, 15-phase verification pipeline |
 | Testing (8 skills) | `.claude/skills/testing/` | Per-statement/analysis test coverage |
 | 3D Graphics | `.claude/skills/3d-graphics/SKILL.md` | Three.js scenes, framer-motion wrappers |
 | Database | `.claude/skills/database/SKILL.md` | Dev/prod databases, Drizzle ORM, migrations, sync |
@@ -111,7 +111,7 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 | Returns Analysis | IRR, NPV, MOIC, sensitivity | `testing/analysis-returns.md` |
 | Golden Scenarios | 500 hand-calculated reference tests (incl. Clearwater Inn mgmt co + 1 property, WACC) | `testing/golden-scenarios.md` |
 
-**Commands**: `npm test` (all 4,325 tests, 178 files) · `npm run verify` (11-phase GAAP) · `npm run health` (tsc+tests+verify+doc harmony)
+**Commands**: `npm test` (all 4,378 tests, 180 files) · `npm run verify` (15-phase GAAP) · `npm run health` (tsc+tests+verify+doc harmony)
 
 ---
 
@@ -354,8 +354,8 @@ Old individual `server/migrations/*.ts` files have been superseded by this conso
 ```bash
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify + doc harmony (~60s)
-npm run test:summary   # All 4,325 tests, 178 files (~35s)
-npm run verify:summary # 11-phase financial verification (~25s)
+npm run test:summary   # All 4,378 tests, 180 files (~35s)
+npm run verify:summary # 15-phase financial verification (~25s)
 npm run lint:summary   # TypeScript check only (<10s)
 npm run stats          # File/line/test counts (<5s, no vitest)
 npm run audit:quick    # Code quality: `any`, TODO, console.log (<3s)

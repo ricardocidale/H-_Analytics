@@ -1,5 +1,5 @@
 /**
- * Verify Summary — runs 8-phase financial verification in a single vitest invocation.
+ * Verify Summary — runs 15-phase financial verification in a single vitest invocation.
  * Outputs only failures + audit opinion. ~3x faster than running each phase separately.
  *
  * Usage: npm run verify:summary
@@ -17,6 +17,13 @@ const phases = [
   { name: "Portfolio Dynamics", file: "portfolio-dynamics.test.ts" },
   { name: "Recalc Enforcement", file: "recalculation-enforcement.test.ts" },
   { name: "Rule Compliance", file: "rule-compliance.test.ts" },
+  { name: "Number Precision", file: "number-precision.test.ts" },
+  { name: "Decimal Boundaries", file: "decimal-precision.test.ts" },
+  { name: "Aggregation Xcheck", file: "aggregation-crosscheck.test.ts" },
+  { name: "Snapshot Integrity", file: "snapshot-integrity.test.ts" },
+  { name: "Regression Snapshots", file: "regression-snapshots.test.ts" },
+  { name: "Parity Numeric", file: "parity-numeric.test.ts" },
+  { name: "Cache Integrity", file: "cache-integrity.test.ts" },
 ];
 
 const allFiles = phases.map((p) => `tests/proof/${p.file}`).join(" ");
@@ -28,7 +35,8 @@ function parseOutput(raw: string) {
   const lines = clean.split("\n");
 
   for (const phase of phases) {
-    const fileLine = lines.find((l) => l.includes(phase.file));
+    const fileLine = lines.find((l) => l.includes(phase.file) && !l.trimStart().startsWith("stdout") && !l.trimStart().startsWith("stderr"))
+      ?? lines.find((l) => l.includes(phase.file));
 
     if (!fileLine) {
       allPassed = false;

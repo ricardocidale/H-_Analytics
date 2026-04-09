@@ -30,6 +30,10 @@ const phases: Phase[] = [
   { title: "PHASE 9: Number Precision", file: "tests/proof/number-precision.test.ts", passMsg: "All input round-trip & precision tests passed", failMsg: "Number precision FAILED — values may drift through the pipeline" },
   { title: "PHASE 10: Decimal.js Boundaries", file: "tests/proof/decimal-precision.test.ts", passMsg: "All decimal arithmetic boundary tests passed", failMsg: "Decimal precision FAILED — floating-point guard broken" },
   { title: "PHASE 11: Aggregation Cross-Check", file: "tests/proof/aggregation-crosscheck.test.ts", passMsg: "All monthly→yearly→portfolio roll-up tests passed", failMsg: "Aggregation cross-check FAILED — totals don't match" },
+  { title: "PHASE 12: Snapshot Integrity", file: "tests/proof/snapshot-integrity.test.ts", passMsg: "All JSONB round-trip & hash determinism tests passed", failMsg: "Snapshot integrity FAILED — scenario persistence may corrupt data" },
+  { title: "PHASE 13: Regression Snapshots", file: "tests/proof/regression-snapshots.test.ts", passMsg: "All pinned engine output regressions passed", failMsg: "Regression snapshots FAILED — engine output has changed" },
+  { title: "PHASE 14: Parity Numeric", file: "tests/proof/parity-numeric.test.ts", passMsg: "All statement builder numeric values match engine output", failMsg: "Parity numeric FAILED — UI values diverge from engine" },
+  { title: "PHASE 15: Cache Integrity", file: "tests/proof/cache-integrity.test.ts", passMsg: "All cache hash & invalidation tests passed", failMsg: "Cache integrity FAILED — stale results possible" },
 ];
 
 function run() {
