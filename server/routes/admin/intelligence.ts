@@ -897,7 +897,7 @@ export function registerIntelligenceRoutes(app: Express) {
     }
   });
 
-  app.get("/api/research/scheduled/check-stale", requireAuth, async (req, res) => {
+  app.get("/api/research/scheduled/check-stale", requireAdmin, async (req, res) => {
     try {
       const staleWorkflows = await storage.getDueScheduledWorkflows();
       res.json({
@@ -916,7 +916,7 @@ export function registerIntelligenceRoutes(app: Express) {
     }
   });
 
-  app.post("/api/research/scheduled/:id/execute", requireAuth, async (req, res) => {
+  app.post("/api/research/scheduled/:id/execute", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id as string, 10);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });

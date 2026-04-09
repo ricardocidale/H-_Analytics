@@ -8,6 +8,12 @@
 
 ## Architecture Decisions Log
 
+### Task #310: Scheduled Research Authorization Gaps (April 2026) — COMPLETED
+- **Backend**: Changed `/api/research/scheduled/check-stale` and `/api/research/scheduled/:id/execute` from `requireAuth` to `requireAdmin` in `server/routes/admin/intelligence.ts`. These endpoints expose internal workflow metadata and trigger costly AI research operations.
+- **Frontend**: Added `user.role !== "admin"` guard to `ScheduledResearchGate` in `App.tsx` so non-admin users don't even make the stale-check request.
+- **Audit scan**: Verified no other `requireAuth` routes in `server/routes/admin/` expose admin-level operations (execute, purge, reset, seed, etc.).
+- Health check: ALL CLEAR — 0 TS errors, 4,047 tests (173 files), verification UNQUALIFIED
+
 ### Deep Codebase Audit Fixes (April 2026) — COMPLETED
 - **T001 — IDOR/Authorization hardening**: Added `checkPropertyAccess` to property-photos (GET image access check + photo ownership in PATCH/DELETE), uploads (process-image), documents (extract + field status write-before-check fix), geospatial (geocode). Sanitized error messages in export-generate and premium-exports (generic messages instead of leaking internals). Added `getExtractionField()` single-field lookup to document storage.
 - **T002 — Graceful shutdown + migration fail-safe**: Migration failures now fatal (`process.exit(1)`). All 4 `setInterval` calls wrapped in `intervalHandles[]` array. SIGTERM/SIGINT handler clears intervals, closes HTTP server, ends DB pool with 10s forced exit timeout.

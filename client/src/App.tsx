@@ -380,7 +380,7 @@ function ScheduledResearchGate() {
   const checkedRef = useRef(false);
 
   useEffect(() => {
-    if (!user || checkedRef.current) return;
+    if (!user || user.role !== "admin" || checkedRef.current) return;
     checkedRef.current = true;
 
     const sessionKey = `hbg_sched_research_${user.id}`;
