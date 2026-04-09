@@ -324,7 +324,7 @@ export function register(app: Express) {
           variantsUpdate = { variants: result.variants };
         }
       } catch (e) {
-        logger.warn(`Failed to regenerate variants from enhanced photo ${photoId}: ${(e as Error).message}`, "property-photos");
+        logger.warn(`Failed to regenerate variants from enhanced photo ${photoId}: ${(e instanceof Error ? e.message : String(e))}`, "property-photos");
       }
 
       await storage.updatePropertyPhoto(photoId, {

@@ -88,7 +88,7 @@ Return ONLY the insight text, no quotes or labels.`;
       const svc = getVendorService(resolved.vendor);
       const inTok = response.usageMetadata?.promptTokenCount ?? 200;
       const outTok = response.usageMetadata?.candidatesTokenCount ?? 40;
-      try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "insight", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/rebecca/insight" }); } catch (e) { logger.warn(`Failed to log insight cost: ${(e as Error).message}`, "cost-logger"); }
+      try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "insight", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/rebecca/insight" }); } catch (e) { logger.warn(`Failed to log insight cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       if (!insightText) {
         return res.json({ insight: null });

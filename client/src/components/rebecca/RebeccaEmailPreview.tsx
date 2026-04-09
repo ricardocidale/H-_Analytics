@@ -80,7 +80,7 @@ export function RebeccaEmailPreview({
     } catch (err) {
       toast({
         title: "Error",
-        description: (err as Error).message,
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     } finally {

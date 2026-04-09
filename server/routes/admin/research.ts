@@ -146,7 +146,7 @@ async function fetchOpenAIModels(): Promise<AiModelEntry[]> {
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
   } catch (e) {
-    logger.error(`Failed to fetch OpenAI models: ${(e as Error).message}`, "research");
+    logger.error(`Failed to fetch OpenAI models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
 }
@@ -163,7 +163,7 @@ async function fetchAnthropicModels(): Promise<AiModelEntry[]> {
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
   } catch (e) {
-    logger.error(`Failed to fetch Anthropic models: ${(e as Error).message}`, "research");
+    logger.error(`Failed to fetch Anthropic models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
 }
@@ -181,7 +181,7 @@ async function fetchGeminiModels(): Promise<AiModelEntry[]> {
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
   } catch (e) {
-    logger.error(`Failed to fetch Gemini models: ${(e as Error).message}`, "research");
+    logger.error(`Failed to fetch Gemini models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
 }
@@ -203,7 +203,7 @@ async function fetchXaiModels(): Promise<AiModelEntry[]> {
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
   } catch (e) {
-    logger.error(`Failed to fetch xAI models: ${(e as Error).message}`, "research");
+    logger.error(`Failed to fetch xAI models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
 }
@@ -225,7 +225,7 @@ async function fetchDeepSeekModels(): Promise<AiModelEntry[]> {
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
   } catch (e) {
-    logger.error(`Failed to fetch DeepSeek models: ${(e as Error).message}`, "research");
+    logger.error(`Failed to fetch DeepSeek models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
 }
@@ -247,7 +247,7 @@ async function fetchMetaModels(): Promise<AiModelEntry[]> {
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
   } catch (e) {
-    logger.error(`Failed to fetch Meta models: ${(e as Error).message}`, "research");
+    logger.error(`Failed to fetch Meta models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
 }

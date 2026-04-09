@@ -174,7 +174,7 @@ export function register(app: Express) {
           }
         }
       } catch (err) {
-        logger.warn(`Scenario context build failed (non-blocking): ${(err as Error).message}`, "chat");
+        logger.warn(`Scenario context build failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
       }
 
       const contextBlock = [
@@ -210,7 +210,7 @@ export function register(app: Express) {
           documentContextBlock = `\n\nRELEVANT DOCUMENTS:\n${docLines.join("\n\n")}`;
         }
       } catch (err) {
-        logger.warn(`Document context retrieval failed (non-blocking): ${(err as Error).message}`, "chat");
+        logger.warn(`Document context retrieval failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
       }
 
       let ragContextBlock = "";
@@ -258,7 +258,7 @@ export function register(app: Express) {
           ragContextBlock = `\n\nKNOWLEDGE BASE & RESEARCH CONTEXT:\n${ragParts.join("\n\n")}`;
         }
       } catch (err) {
-        logger.warn(`RAG context retrieval failed (non-blocking): ${(err as Error).message}`, "chat");
+        logger.warn(`RAG context retrieval failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
       }
 
       let assetContextBlock = "";
@@ -277,7 +277,7 @@ export function register(app: Express) {
           }
         }
       } catch (err) {
-        logger.warn(`Asset search failed (non-blocking): ${(err as Error).message}`, "chat");
+        logger.warn(`Asset search failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
       }
 
       let rebeccaFieldBlock = "";
@@ -306,7 +306,7 @@ export function register(app: Express) {
           rebeccaFieldBlock = fieldParts.join("\n");
           autoGreeting = ctxPayload.autoGreeting;
         } catch (err) {
-          logger.warn(`Failed to build Rebecca field context: ${(err as Error).message}`, "chat");
+          logger.warn(`Failed to build Rebecca field context: ${(err instanceof Error ? err.message : String(err))}`, "chat");
         }
       }
 
@@ -352,7 +352,7 @@ export function register(app: Express) {
         const dbMessages = await storage.getRebeccaMessages(conversationId, MAX_HISTORY_LENGTH);
         dbHistory = dbMessages.map(m => ({ role: m.role, content: m.content }));
       } catch (err) {
-        logger.warn(`Failed to load conversation history: ${(err as Error).message}`, "chat");
+        logger.warn(`Failed to load conversation history: ${(err instanceof Error ? err.message : String(err))}`, "chat");
       }
 
       const effectiveHistory = dbHistory.length > 0 ? dbHistory : history;
@@ -367,7 +367,7 @@ export function register(app: Express) {
 
       try {
         await storage.updateRebeccaConversationLanguage(conversationId, detectedLanguage);
-      } catch (e) { logger.warn(`Failed to update conversation language: ${(e as Error).message}`, "chat"); }
+      } catch (e) { logger.warn(`Failed to update conversation language: ${(e instanceof Error ? e.message : String(e))}`, "chat"); }
 
       const systemPrompt = ga?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
 
@@ -379,7 +379,7 @@ export function register(app: Express) {
           guardrailBlock = `\n\n## Admin-Configured Guardrails\nYou MUST follow these rules at all times:\n${rules}`;
         }
       } catch (err) {
-        logger.warn(`Failed to load guardrails (non-blocking): ${(err as Error).message}`, "chat");
+        logger.warn(`Failed to load guardrails (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
       }
 
       const languageOverlay = detectedLanguage === "es" ? SPANISH_MULTILINGUAL_OVERLAY : "";
@@ -390,7 +390,7 @@ export function register(app: Express) {
 
       try {
         await storage.updateRebeccaConversationModel(conversationId, engine === "perplexity" ? "perplexity:sonar" : "gemini");
-      } catch (e) { logger.warn(`Failed to update conversation model: ${(e as Error).message}`, "chat"); }
+      } catch (e) { logger.warn(`Failed to update conversation model: ${(e instanceof Error ? e.message : String(e))}`, "chat"); }
 
       let responseText: string;
 
@@ -431,14 +431,14 @@ export function register(app: Express) {
 
         const inTok = completion.usage?.prompt_tokens ?? Math.round(message.length / 4);
         const outTok = completion.usage?.completion_tokens ?? Math.round(responseText.length / 4);
-        try { logApiCost({ timestamp: new Date().toISOString(), service: "perplexity", model: "sonar", operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("perplexity", "sonar", inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/chat" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
+        try { logApiCost({ timestamp: new Date().toISOString(), service: "perplexity", model: "sonar", operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("perplexity", "sonar", inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/chat" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
       } else {
         const rc = (ga?.researchConfig as ResearchConfig) ?? {};
         const resolved = resolveLlm(rc, "chatbotLlm");
         resolvedModelName = resolved.model;
         try {
           await storage.updateRebeccaConversationModel(conversationId, `${resolved.vendor}:${resolved.model}`);
-        } catch (e) { logger.warn(`Failed to update conversation model: ${(e as Error).message}`, "chat"); }
+        } catch (e) { logger.warn(`Failed to update conversation model: ${(e instanceof Error ? e.message : String(e))}`, "chat"); }
         const gemini = getGeminiClient();
         const chatHistory = effectiveHistory.map((msg) => ({
           role: msg.role === "user" ? "user" : ("model" as const),
@@ -472,7 +472,7 @@ export function register(app: Express) {
         const svc = getVendorService(resolved.vendor);
         const inTok = response.usageMetadata?.promptTokenCount ?? Math.round(message.length / 4);
         const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(responseText.length / 4);
-        try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/chat" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
+        try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/chat" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
       }
 
       await storage.addRebeccaMessage({

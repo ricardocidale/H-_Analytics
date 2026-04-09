@@ -199,7 +199,7 @@ export function registerPropertyUrlRoutes(app: Express) {
           await deleteVectors("properties", [`prop-url:${propertyId}:${urlId}`]);
         }
       } catch (e) {
-        logger.warn(`Failed to remove URL vector: ${(e as Error).message}`, "property-urls");
+        logger.warn(`Failed to remove URL vector: ${(e instanceof Error ? e.message : String(e))}`, "property-urls");
       }
       logActivity(req, "delete-url", "property", propertyId, existing.url);
       res.json({ success: true });
@@ -322,7 +322,7 @@ export function registerPropertyUrlRoutes(app: Express) {
           }
         }
       } catch (e) {
-        logger.warn(`Failed to manage property URL vectors in Pinecone: ${(e as Error).message}`, "property-urls");
+        logger.warn(`Failed to manage property URL vectors in Pinecone: ${(e instanceof Error ? e.message : String(e))}`, "property-urls");
       }
 
       res.json({ validated: results.length, results });

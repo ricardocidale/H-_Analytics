@@ -40,7 +40,7 @@ export async function generateImageBuffer(
     }
     throw new Error("No image data in Nano Banana response");
   } catch (err) {
-    logger.warn(`Nano Banana image generation failed, falling back to OpenAI: ${(err as Error).message}`, "image-gen");
+    logger.warn(`Nano Banana image generation failed, falling back to OpenAI: ${err instanceof Error ? err.message : String(err)}`, "image-gen");
   }
 
   const response = await openai.images.generate({

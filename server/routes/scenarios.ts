@@ -424,7 +424,7 @@ export function register(app: Express) {
         scenarioNames,
         mode,
         portalUrl,
-      }).catch(err => logger.warn(`Failed to send share notification to recipient: ${(err as Error).message}`, "scenarios"));
+      }).catch(err => logger.warn(`Failed to send share notification to recipient: ${err instanceof Error ? err.message : String(err)}`, "scenarios"));
 
       if (sharer.role !== UserRole.ADMIN) {
         const allUsers = await storage.getAllUsers();
@@ -438,7 +438,7 @@ export function register(app: Express) {
             recipientEmail: recipient.email,
             scenarioNames,
             mode,
-          }).catch(err => logger.warn(`Failed to send admin share notification: ${(err as Error).message}`, "scenarios"));
+          }).catch(err => logger.warn(`Failed to send admin share notification: ${err instanceof Error ? err.message : String(err)}`, "scenarios"));
         }
       }
     } catch (error) {

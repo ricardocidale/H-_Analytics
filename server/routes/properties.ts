@@ -446,7 +446,7 @@ Rewritten description:`;
       try {
         logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "rewrite-description", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: `/api/properties/${propertyId}/rewrite-description` });
       } catch (e) {
-        logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger");
+        logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger");
       }
 
       res.json({ rewritten });

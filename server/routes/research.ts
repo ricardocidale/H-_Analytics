@@ -556,7 +556,7 @@ export function register(app: Express) {
         const outTok = Math.round(fullContent.length / 4);
         try {
           logApiCost({ timestamp: new Date().toISOString(), service: svcName, model, operation: "research", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svcName, model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/research/generate" });
-        } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
+        } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
         processNotificationEvent(createEvent("RESEARCH_COMPLETE", {
           propertyId,
@@ -575,7 +575,7 @@ export function register(app: Express) {
             error: fullContent ? null : "No content generated",
           });
         } catch (e) {
-          logger.warn(`Failed to finalize early research run ${earlyRunId}: ${(e as Error).message}`, "research");
+          logger.warn(`Failed to finalize early research run ${earlyRunId}: ${(e instanceof Error ? e.message : String(e))}`, "research");
         }
       }
 

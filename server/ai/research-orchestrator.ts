@@ -330,7 +330,7 @@ export async function* orchestrateResearch(
         yield { type: "phase", data: `Retrieved ${urlChunks.length} validated property URLs from knowledge base` };
       }
     } catch (e) {
-      logger.warn(`Failed to retrieve property URLs from Pinecone: ${(e as Error).message}`, "research-orchestrator");
+      logger.warn(`Failed to retrieve property URLs from Pinecone: ${(e instanceof Error ? e.message : String(e))}`, "research-orchestrator");
     }
   }
 

@@ -164,7 +164,7 @@ export function register(app: Express) {
 
       const inTok = Math.round(summaryText.length / 4);
       const outTok = Math.round(fullReviewContent.length / 4);
-      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: llmModel, operation: "ai-verification-review", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", llmModel, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/verification/ai-review" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
+      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: llmModel, operation: "ai-verification-review", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", llmModel, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/verification/ai-review" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       res.write("data: [DONE]\n\n");
       res.end();
