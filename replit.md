@@ -93,6 +93,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 | Multi-Tenancy | `.claude/skills/multi-tenancy/SKILL.md` |
 | Exports | `.claude/skills/exports/SKILL.md` |
 | Admin (16 sections) | `.claude/skills/admin/SKILL.md` |
+| Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md`, `.agents/skills/rebecca-chatbot/SKILL.md` |
 | Finance (22 skills) | `.claude/skills/finance/` |
 | Research (23 skills) | `.claude/skills/research/` |
 | UI (45 skills) | `.claude/skills/ui/` |
@@ -106,6 +107,9 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Finance changes must state Active Skill** and pass verification (UNQUALIFIED)
 - **Rebecca must NEVER compute financial values** — all data from the calculation engine
 - **Rebecca Proactive Insights:** Two-tier insight system after portfolio compute. Tier 1: instant deterministic analysis (`client/src/lib/rebecca-insights.ts`) for immediate feedback. Tier 2: RAG-powered LLM insight via `POST /api/rebecca/insight` — queries Pinecone `comparables`, `assumption-guidance`, and `research-history` namespaces, then generates a context-aware observation using the chatbot LLM. Uses `useRebeccaInsightStore` Zustand store with hash-based deduplication. Insights get smarter as research accumulates.
+- **Rebecca Rich Blocks**: 5 visual block types (stat/compare/timeline/insight/kpi) via `:::blockType ... :::` syntax. Max 1 block per response. Parser in `rich-block-parser.ts`, renderers in `RichBlockRenderers.tsx`.
+- **Rebecca Knowledge Base**: Admin CRUD with Pinecone sync (active entries upserted, inactive deleted). Version history with rollback. See `.agents/skills/rebecca-chatbot/SKILL.md`.
+- **Rebecca Guardrails**: Admin-configured response rules injected into system prompt at runtime. CRUD via `/api/rebecca/guardrails`.
 - **Engine chain**: `gop = revenue − opex`, `agop = gop − feeBase − feeIncentive`, `noi = agop − expenseTaxes`, `anoi = noi − expenseFFE`
 - **Balance Sheet Identity**: A = L + E must hold within $1
 - **Resend replaces SendGrid** for all transactional email

@@ -15,7 +15,7 @@ The Admin page (`client/src/pages/Admin.tsx`) renders a sidebar (`AdminSidebar.t
 |-------|------|-------------|----------|
 | **Business** | `IconBriefcase` | Users, companies & groups | Users, Companies, Groups, Scenarios |
 | **Intelligence Engine** | `IconGauge` | Research & data management | Engine Dashboard, Data Sources, Pipeline Config, QA Sandbox, Scheduled Research, Financial Lines |
-| **AI Assistant** | `IconBot` | Rebecca configuration & training | Configuration, Knowledge Base, Conversations |
+| **AI Assistant** | `IconBot` | Rebecca configuration & training | Configuration, Knowledge Base, Guardrails, Conversations, Feedback |
 | **Design** | `IconSwatchBook` | Brand & exports | Brand, Exports |
 | **System** | `IconShield` | Infrastructure & monitoring | App Defaults, Verification, Database, Notifications, Navigation |
 

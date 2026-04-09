@@ -8,6 +8,14 @@
 
 ## Architecture Decisions Log
 
+### Skills & Documentation Update (April 2026) — COMPLETED
+- **Rebecca chatbot skill updated**: `.claude/skills/rebecca-chatbot/SKILL.md` — comprehensive rewrite covering all Tasks #305-#307 (personality, guardrails, KB CRUD, rich blocks, 5 admin tabs, Pinecone sync, constraints table)
+- **Rebecca chatbot skill created**: `.agents/skills/rebecca-chatbot/SKILL.md` — Agent Skills spec-compliant version for `.agents/` skills directory
+- **Admin configurator updated**: `.agents/skills/admin-configurator/SKILL.md` — AI Assistant group now shows all 5 tabs (Configuration, Knowledge Base, Guardrails, Conversations, Feedback)
+- **replit.md updated**: Added Rebecca Rich Blocks, Knowledge Base, and Guardrails to Key Rules section. Added Rebecca Chatbot to Skill Router table.
+- **claude.md updated**: Recent Changes (April 8) section added for Tasks #305-#307. Rebecca Enhancement Layer section added under Phase 4. Skill Router entry updated.
+- **memory.md updated**: Skills update entry added
+
 ### Task #307: Rebecca Rich Message Formatting (April 2026) — COMPLETED
 - **Block parser**: `rich-block-parser.ts` — regex-based parser detects `:::blockType ... :::` patterns, extracts structured data, returns AST of mixed markdown + rich block nodes. Supports 5 block types: stat, compare, timeline, insight, kpi. Fenced code blocks are masked to prevent false positives.
 - **Block renderers**: `RichBlockRenderers.tsx` — 5 styled React components (StatBlock, CompareBlock, TimelineBlock, InsightBlock, KpiBlock) using H+ Analytics design system (navy #112548 headers, teal #0091AE accents, gold #FDB817 highlights, Poppins typography). Each has `locale` prop for future i18n. Data-testids: rich-block-stat/compare/timeline/insight/kpi.

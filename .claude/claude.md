@@ -83,7 +83,7 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 | UI Blocks | `.claude/skills/ui-blocks/SKILL.md` | Reference shadcn block patterns |
 | Market Intelligence | `.claude/skills/market-intelligence/SKILL.md` | FRED, hospitality benchmarks, grounded research, BaseIntegrationService |
 | ICP Research | `.claude/skills/icp-research/SKILL.md` | ICP profile definition, AI research center, prompt builder |
-| Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md` | Gemini-powered portfolio analytics chat. Two-tier proactive insights: deterministic (instant) + RAG-powered LLM (`POST /api/rebecca/insight` queries Pinecone comparables/research-history). Gets smarter as research accumulates. |
+| Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md` | Gemini-powered portfolio analytics chat. Super Conversations, RAG across 7 Pinecone namespaces, Knowledge Base CRUD with Pinecone sync, Guardrail Editor with runtime injection, Rich Message Formatting (5 block types: stat/compare/timeline/insight/kpi), email summaries, feedback system, admin 5-tab config. Also: `.agents/skills/rebecca-chatbot/SKILL.md`. |
 | Document Intelligence | `.claude/skills/document-intelligence/SKILL.md` | Google Document AI OCR pipeline, field mapping |
 | Map View | `.claude/skills/map-view/SKILL.md` | MapLibre GL, Supercluster clustering, globe animation |
 | Notifications | `.claude/skills/notifications/SKILL.md` | Alert rules, Resend email, notification logs |
@@ -114,6 +114,12 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 **Commands**: `npm test` (all 4,047 tests, 173 files) · `npm run verify` (8-phase GAAP) · `npm run health` (tsc+tests+verify+doc harmony)
 
 ---
+
+## Recent Changes (April 8, 2026)
+
+- **Rebecca Rich Message Formatting (Task #307)** — Rich block parser (`rich-block-parser.ts`) detects `:::blockType ... :::` patterns (stat/compare/timeline/insight/kpi), extracts structured data into AST nodes. Fenced code masking prevents false positives. Case-insensitive key parsing. `RichBlockRenderers.tsx` implements 5 styled components (navy/teal/gold, Poppins). `RebeccaMarkdown.tsx` renders rich blocks inline with standard ReactMarkdown. System prompt updated with block syntax examples and usage rules (max 1 block/response). Locale-aware label translation via `t()` function (en/es).
+- **Rebecca Knowledge Base CRUD (Task #306)** — `rebeccaKnowledgeBase` + `rebeccaKnowledgeHistory` tables. Full CRUD (7 API endpoints under `/api/rebecca/kb/*`, admin-only). Pinecone sync: active entries upserted (`admin-kb:{id}`), inactive entries deleted from vectors. Version history with rollback. `KnowledgeBaseEditor.tsx` admin UI with stats cards, category tabs, search, inline edit, version history drawer. Seed migration with 26 entries. Tab added to `RebeccaAdminTabs.tsx`.
+- **Rebecca Personality & Guardrails (Task #305)** — Full personality rewrite in `DEFAULT_SYSTEM_PROMPT` (Super Conversations framework, banned phrases, multi-user awareness). `rebecca_guardrails` table with CRUD routes. Runtime injection: active guardrails fetched per query, appended to system prompt. `GuardrailEditor.tsx` admin UI with reorder/toggle/delete. Seed migration with 5 defaults. Admin tabs expanded to 5: Configuration, Knowledge Base, Guardrails, Conversations, Feedback.
 
 ## Recent Changes (April 6, 2026)
 
@@ -262,6 +268,11 @@ starRating (1-5), starRatingSource, starRatingSuggested, hospitalityType (hotel|
 - **T23 ✅** `server/ai/kb-content.ts` — Added 5 new KB chunks: GAAP revenue recognition (ASC 606), USALI expense classification, investment metrics (IRR/equity multiple/cap rates/DSCR), ICP scoring definitions, benchmark data sources.
 - **T23 ✅** `server/routes/chat.ts` — RAG context injection: parallel KB + multi-namespace retrieval (research-history, assumption-guidance), namespace-specific metadata mapping, 3000-char budget cap with source attribution. Injected as `KNOWLEDGE BASE & RESEARCH CONTEXT` block in system prompt.
 - **T24 ✅** `client/src/components/admin/ai/RebeccaAdminTabs.tsx` — Tabbed container (Configuration + Conversations + Feedback). RebeccaConfigTab re-exports RebeccaConfig. RebeccaConversationsTab: searchable history with expandable message views from `GET /api/rebecca/conversations`. RebeccaFeedbackTab: status-filtered list (new/reviewed/resolved) with `PATCH /api/rebecca/feedback/:id` status updates. Old ConversationsTab stub removed; sidebar redirects to ai-agents.
+
+### Rebecca Enhancement Layer (COMPLETE — Tasks #305-#307)
+- **#305 ✅** `server/routes/chat.ts` — Full personality rewrite (Super Conversations framework, banned phrases, multi-user awareness). `rebecca_guardrails` table, CRUD routes, runtime injection into system prompt. `GuardrailEditor.tsx` admin UI. Seed migration with 5 defaults. Admin tabs expanded to 5.
+- **#306 ✅** `rebeccaKnowledgeBase` + `rebeccaKnowledgeHistory` tables. 7 API endpoints (`/api/rebecca/kb/*`). Pinecone sync (active→upsert, inactive→delete, ID pattern `admin-kb:{id}`). `KnowledgeBaseEditor.tsx` with stats, category tabs, search, CRUD, version history drawer. Seed migration with 26 entries.
+- **#307 ✅** `rich-block-parser.ts` (regex parser, fenced code masking, case-insensitive keys), `RichBlockRenderers.tsx` (5 H+ styled components: stat/compare/timeline/insight/kpi), `RebeccaMarkdown.tsx` (mixed AST rendering). System prompt updated with block syntax + usage rules (max 1/response). Locale-aware `t()` for en/es labels.
 
 ### Phase 5 Engine Observatory Wiring (COMPLETE)
 - **T27 ✅** `CoverageAnalyticsDashboard` wired into `EngineDashboard.tsx` — scenario-aware coverage analytics with entity drill-down, field-level detail, freshness summary cards
