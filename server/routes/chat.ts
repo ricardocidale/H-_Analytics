@@ -106,8 +106,8 @@ export function register(app: Express) {
       const isAdmin = authUser.role === "admin";
       const userName = [authUser.firstName, authUser.lastName].filter(Boolean).join(" ") || authUser.email;
 
-      const global = await storage.getGlobalAssumptions(userId);
-      if (!(global as any)?.rebeccaEnabled) {
+      const ga = await storage.getGlobalAssumptions(userId);
+      if (!ga?.rebeccaEnabled) {
         return res.status(403).json({ error: "Chat assistant is not enabled" });
       }
       const allProperties = isAdmin
@@ -116,7 +116,6 @@ export function register(app: Express) {
       const properties = allProperties.filter(p => p.isActive !== false);
       const propertyContext = buildPropertyContext(properties);
 
-      const ga = global as any;
       const fundingInterestRate = ga?.fundingInterestRate ?? 0;
       const fundingLines: string[] = [];
       fundingLines.push(`Funding Source: ${ga?.fundingSourceLabel ?? "Funding Vehicle"}`);
@@ -369,7 +368,7 @@ export function register(app: Express) {
         await storage.updateRebeccaConversationLanguage(conversationId, detectedLanguage);
       } catch (e) { logger.warn(`Failed to update conversation language: ${(e as Error).message}`, "chat"); }
 
-      const systemPrompt = (global as any)?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+      const systemPrompt = ga?.rebeccaSystemPrompt ?? DEFAULT_SYSTEM_PROMPT;
 
       let guardrailBlock = "";
       try {
