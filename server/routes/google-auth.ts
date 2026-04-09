@@ -43,15 +43,6 @@ function buildOAuth2Client() {
   );
 }
 
-function buildDriveOAuth2Client() {
-  const baseUrl = getBaseUrl();
-  return new OAuth2Client(
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    `${baseUrl}/api/auth/google/drive/callback`
-  );
-}
-
 export function registerGoogleAuthRoutes(app: Express) {
   if (!isGoogleAuthConfigured()) {
     logger.warn("Google OAuth routes disabled: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set", "google-auth");
@@ -157,88 +148,6 @@ export function registerGoogleAuthRoutes(app: Express) {
     } catch (error) {
       logger.error(`Google auth callback error: ${error instanceof Error ? error.message : error}`, "auth");
       res.redirect("/login?error=google_failed");
-    }
-  });
-
-  app.get("/api/auth/google/drive", async (req, res) => {
-    try {
-      if (!req.user) {
-        return res.redirect("/login");
-      }
-
-      const state = crypto.randomUUID();
-      pendingStates.set(state, { createdAt: Date.now(), userId: req.user.id, purpose: "drive" });
-
-      const oAuth2Client = buildDriveOAuth2Client();
-      const authorizeUrl = oAuth2Client.generateAuthUrl({
-        access_type: "offline",
-        scope: [
-          "openid",
-          "email",
-          "profile",
-          "https://www.googleapis.com/auth/drive.file",
-        ],
-        state,
-        prompt: "consent",
-      });
-
-      logger.info(`Google Drive connect: redirecting user ${req.user.id} to Google`, "auth");
-      res.redirect(authorizeUrl);
-    } catch (error) {
-      logger.error(`Google Drive redirect error: ${error instanceof Error ? error.message : error}`, "auth");
-      res.redirect("/drive?error=drive_unavailable");
-    }
-  });
-
-  app.get("/api/auth/google/drive/callback", async (req, res) => {
-    try {
-      const { state, code, error: oauthError } = req.query;
-
-      if (oauthError) {
-        logger.error(`Google Drive OAuth error: ${oauthError}`, "auth");
-        return res.redirect("/drive?error=drive_failed");
-      }
-
-      if (!state || typeof state !== "string" || !pendingStates.has(state)) {
-        logger.error("Google Drive callback: invalid state", "auth");
-        return res.redirect("/drive?error=invalid_state");
-      }
-
-      if (!code || typeof code !== "string") {
-        logger.error("Google Drive callback: missing authorization code", "auth");
-        return res.redirect("/drive?error=drive_failed");
-      }
-
-      const stateData = pendingStates.get(state)!;
-      if (stateData.purpose !== "drive" || !stateData.userId) {
-        logger.error("Google Drive callback: state purpose mismatch or missing userId", "auth");
-        pendingStates.delete(state);
-        return res.redirect("/drive?error=invalid_state");
-      }
-
-      const userId = stateData.userId;
-      pendingStates.delete(state);
-
-      const oAuth2Client = buildDriveOAuth2Client();
-      const { tokens } = await oAuth2Client.getToken(code);
-
-      if (!tokens.access_token) {
-        logger.error("Google Drive callback: no access token returned", "auth");
-        return res.redirect("/drive?error=drive_failed");
-      }
-
-      await storage.updateUserGoogleTokens(userId, {
-        googleAccessToken: tokens.access_token,
-        googleRefreshToken: tokens.refresh_token || undefined,
-        googleTokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
-        googleDriveConnected: true,
-      });
-
-      logger.info(`Google Drive connected for user ${userId}`, "auth");
-      res.redirect("/drive?success=connected");
-    } catch (error) {
-      logger.error(`Google Drive callback error: ${error instanceof Error ? error.message : error}`, "auth");
-      res.redirect("/drive?error=drive_failed");
     }
   });
 }

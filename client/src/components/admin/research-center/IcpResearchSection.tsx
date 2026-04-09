@@ -461,13 +461,10 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
           newUrl={h.newUrl} setNewUrl={h.setNewUrl}
           newLabel={h.newLabel} setNewLabel={h.setNewLabel}
           urlSearch={h.urlSearch} setUrlSearch={h.setUrlSearch}
-          driveUrl={h.driveUrl} setDriveUrl={h.setDriveUrl}
-          driveName={h.driveName} setDriveName={h.setDriveName}
           isUploading={h.isUploading} fileInputRef={h.fileInputRef}
           updateMutationPending={h.updateMutation.isPending}
           onAddUrl={h.handleAddUrl} onRemoveUrl={h.handleRemoveUrl}
           onLocalFileSelect={h.handleLocalFileSelect}
-          onAddGoogleDrive={h.handleAddGoogleDrive}
           onRemoveFile={h.handleRemoveFile}
           onToggleUnrestricted={(v) => {
             const updated = { ...h.sources, allowUnrestricted: v };

@@ -93,7 +93,6 @@ const Icp = lazy(() => import("@/pages/Icp"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
 const About = lazy(() => import("@/pages/About"));
-const GoogleDrive = lazy(() => import("@/pages/GoogleDrive"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -616,9 +615,6 @@ function Router() {
           <FinancialErrorBoundary>
             <ManagementRoute component={MapView} />
           </FinancialErrorBoundary>
-        </Route>
-        <Route path="/drive">
-          <ProtectedRoute component={GoogleDrive} />
         </Route>
         <Route path="/checker-manual">
           <Redirect to="/help" />

@@ -56,7 +56,7 @@ function SourceCard({
         )}
         {!isUrl && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{source.origin === "google-drive" ? "Google Drive" : "Local upload"}</span>
+            <span>Local upload</span>
             {source.fileSize && <span>{(source.fileSize / 1024).toFixed(0)} KB</span>}
           </div>
         )}

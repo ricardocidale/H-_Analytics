@@ -72,7 +72,6 @@ export function buildIcpResearchPrompt(
   {
     const urlList = (sources?.urls || []).map((u: any) => `- ${u.label}: ${u.url}`).join("\n");
     const fileList = (sources?.files || []).map((f: any) => {
-      if (f.origin === "google-drive" && f.driveUrl) return `- [Google Drive] ${f.name}: ${f.driveUrl}`;
       return `- [Uploaded] ${f.name}`;
     }).join("\n");
     const companySrcList = (companySources || []).map((s) => `- ${s.label}: ${s.url}`).join("\n");

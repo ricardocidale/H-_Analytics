@@ -9,7 +9,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconResearch, IconTarget, IconHome, IconCompass, IconFolderOpen, IconMessageCircle } from "@/components/icons";
+import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconResearch, IconTarget, IconHome, IconCompass, IconMessageCircle } from "@/components/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -230,7 +230,6 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       items: [
         { href: "/profile", label: "My Profile", icon: IconProfile },
         ...(sb("sidebarScenarios") && hasManagementAccess ? [{ href: "/scenarios", label: "Scenarios", icon: IconScenarios }] : []),
-        { href: "/drive", label: "Google Drive", icon: IconFolderOpen },
       ],
     },
   ].filter(g => g.items.length > 0), [hasManagementAccess, isAdmin, global]);

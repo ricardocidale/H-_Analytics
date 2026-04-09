@@ -105,7 +105,6 @@ export class UserStorage {
     googleAccessToken: string;
     googleRefreshToken?: string;
     googleTokenExpiry?: Date;
-    googleDriveConnected?: boolean;
   }): Promise<void> {
     const updates: Record<string, unknown> = {
       googleAccessToken: encryptToken(data.googleAccessToken),
@@ -113,7 +112,6 @@ export class UserStorage {
     };
     if (data.googleRefreshToken !== undefined) updates.googleRefreshToken = encryptToken(data.googleRefreshToken);
     if (data.googleTokenExpiry !== undefined) updates.googleTokenExpiry = data.googleTokenExpiry;
-    if (data.googleDriveConnected !== undefined) updates.googleDriveConnected = data.googleDriveConnected;
     await db.update(users).set(updates).where(eq(users.id, id));
   }
 
@@ -121,26 +119,14 @@ export class UserStorage {
     accessToken: string | null;
     refreshToken: string | null;
     tokenExpiry: Date | null;
-    driveConnected: boolean;
   }> {
     const user = await this.getUserById(id);
-    if (!user) return { accessToken: null, refreshToken: null, tokenExpiry: null, driveConnected: false };
+    if (!user) return { accessToken: null, refreshToken: null, tokenExpiry: null };
     return {
       accessToken: user.googleAccessToken ? decryptToken(user.googleAccessToken) : null,
       refreshToken: user.googleRefreshToken ? decryptToken(user.googleRefreshToken) : null,
       tokenExpiry: user.googleTokenExpiry,
-      driveConnected: user.googleDriveConnected,
     };
-  }
-
-  async clearUserGoogleDriveTokens(id: number): Promise<void> {
-    await db.update(users).set({
-      googleAccessToken: null,
-      googleRefreshToken: null,
-      googleTokenExpiry: null,
-      googleDriveConnected: false,
-      updatedAt: new Date(),
-    }).where(eq(users.id, id));
   }
 
   // Sessions
@@ -183,7 +169,6 @@ export class UserStorage {
           googleAccessToken: users.googleAccessToken,
           googleRefreshToken: users.googleRefreshToken,
           googleTokenExpiry: users.googleTokenExpiry,
-          googleDriveConnected: users.googleDriveConnected,
           hideTourPrompt: users.hideTourPrompt,
           canManageScenarios: users.canManageScenarios,
           colorMode: users.colorMode,

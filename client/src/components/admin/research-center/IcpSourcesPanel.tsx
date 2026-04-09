@@ -19,17 +19,12 @@ interface IcpSourcesPanelProps {
   setNewLabel: (v: string) => void;
   urlSearch: string;
   setUrlSearch: (v: string) => void;
-  driveUrl: string;
-  setDriveUrl: (v: string) => void;
-  driveName: string;
-  setDriveName: (v: string) => void;
   isUploading: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   updateMutationPending: boolean;
   onAddUrl: () => void;
   onRemoveUrl: (id: string) => void;
   onLocalFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onAddGoogleDrive: () => void;
   onRemoveFile: (id: string) => void;
   onToggleUnrestricted: (v: boolean) => void;
 }
@@ -38,9 +33,8 @@ export function IcpSourcesPanel({
   sources, filteredUrls,
   newUrl, setNewUrl, newLabel, setNewLabel,
   urlSearch, setUrlSearch,
-  driveUrl, setDriveUrl, driveName, setDriveName,
   isUploading, fileInputRef, updateMutationPending,
-  onAddUrl, onRemoveUrl, onLocalFileSelect, onAddGoogleDrive, onRemoveFile,
+  onAddUrl, onRemoveUrl, onLocalFileSelect, onRemoveFile,
   onToggleUnrestricted,
 }: IcpSourcesPanelProps) {
   return (
@@ -121,40 +115,20 @@ export function IcpSourcesPanel({
           <IconFile className="w-4 h-4 text-muted-foreground" />
           File Sources
         </h4>
-        <p className="text-xs text-muted-foreground mt-0.5">Upload documents or add Google Drive links.</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Upload documents to use as research sources.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-2 p-3 rounded-lg border border-dashed border-border/60 bg-muted/10">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <IconUpload className="w-3.5 h-3.5" />
-            Local Files
-          </Label>
-          <input ref={fileInputRef} type="file" multiple onChange={onLocalFileSelect} className="hidden" accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.tiff" data-testid="input-file-upload" />
-          <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full text-xs h-8 gap-1.5" data-testid="button-upload-local">
-            {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconUpload className="w-3.5 h-3.5" />}
-            {isUploading ? "Uploading..." : "Choose Files"}
-          </Button>
-          <p className="text-[10px] text-muted-foreground">PNG, JPEG, GIF, WebP, SVG, BMP, TIFF</p>
-        </div>
-
-        <div className="space-y-2 p-3 rounded-lg border border-dashed border-border/60 bg-muted/10">
-          <Label className="text-xs font-medium flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7z" />
-              <polyline points="14,2 14,8 20,8" />
-            </svg>
-            Google Drive
-          </Label>
-          <Input value={driveUrl} onChange={(e) => setDriveUrl(e.target.value)} placeholder="https://drive.google.com/file/d/..." className="h-8 text-xs bg-card" data-testid="input-drive-url" />
-          <div className="flex gap-1.5">
-            <Input value={driveName} onChange={(e) => setDriveName(e.target.value)} placeholder="File name (optional)" className="h-8 text-xs bg-card flex-1" data-testid="input-drive-name" />
-            <Button size="sm" variant="outline" onClick={onAddGoogleDrive} disabled={!driveUrl.trim() || updateMutationPending} className="h-8 text-xs gap-1" data-testid="button-add-drive">
-              <IconPlus className="w-3 h-3" />
-              Add
-            </Button>
-          </div>
-        </div>
+      <div className="space-y-2 p-3 rounded-lg border border-dashed border-border/60 bg-muted/10">
+        <Label className="text-xs font-medium flex items-center gap-1.5">
+          <IconUpload className="w-3.5 h-3.5" />
+          Local Files
+        </Label>
+        <input ref={fileInputRef} type="file" multiple onChange={onLocalFileSelect} className="hidden" accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.tiff" data-testid="input-file-upload" />
+        <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full text-xs h-8 gap-1.5" data-testid="button-upload-local">
+          {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconUpload className="w-3.5 h-3.5" />}
+          {isUploading ? "Uploading..." : "Choose Files"}
+        </Button>
+        <p className="text-[10px] text-muted-foreground">PNG, JPEG, GIF, WebP, SVG, BMP, TIFF</p>
       </div>
 
       {sources.files.length > 0 && (
@@ -162,28 +136,16 @@ export function IcpSourcesPanel({
           {sources.files.map((file) => (
             <div key={file.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-border/60 bg-muted/20 group hover:bg-muted/40 transition-colors" data-testid={`file-source-${file.id}`}>
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                {file.origin === "google-drive" ? (
-                  <svg className="w-3.5 h-3.5 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7z" />
-                    <polyline points="14,2 14,8 20,8" />
-                  </svg>
-                ) : (
-                  <IconFileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                )}
+                <IconFileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {file.origin === "google-drive" ? "Google Drive" : "Local upload"}
+                    Local upload
                     {file.size > 0 && ` · ${formatFileSize(file.size)}`}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {file.driveUrl && (
-                  <a href={file.driveUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                    <IconExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                )}
                 <Button variant="ghost" onClick={() => onRemoveFile(file.id)} className="text-muted-foreground hover:text-destructive h-auto w-auto p-0.5 opacity-0 group-hover:opacity-100 transition-opacity" data-testid={`remove-file-${file.id}`}>
                   <X className="w-3.5 h-3.5" />
                 </Button>

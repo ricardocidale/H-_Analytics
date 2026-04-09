@@ -8,6 +8,15 @@
 
 ## Architecture Decisions Log
 
+### Google Drive Removed Entirely (April 2026) — COMPLETED
+- Deleted: `client/src/pages/GoogleDrive.tsx`, `server/routes/google-drive.ts`
+- Removed: Sidebar nav item, App.tsx route, server routes.ts registration, server/index.ts public paths
+- Removed: Drive OAuth flow from `google-auth.ts` (kept Google Sign-In OAuth)
+- Removed: `clearUserGoogleDriveTokens` storage method, `googleDriveConnected` from storage queries
+- Removed: Google Drive link fields from ICP research sources (IcpSourcesPanel, useIcpResearch, icp-types, research-types, admin/research Zod schema, icp-research-helpers)
+- Schema columns (`googleDriveConnected`, `googleAccessToken`, etc.) kept in database — non-destructive removal
+- Net: 695 lines deleted across 17 files
+
 ### Profile Page 3-Column Layout (April 2026) — COMPLETED
 - **Change**: Restructured Profile page from single-column (`max-w-2xl`) to responsive 3-column grid (`max-w-7xl`, `grid-cols-1 lg:grid-cols-3`)
 - **Layout**: Column 1: Personal Information | Column 2: Appearance + Theme Preference | Column 3: Change Password

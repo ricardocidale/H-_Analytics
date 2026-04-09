@@ -30,8 +30,6 @@ export function useIcpResearch() {
   const [newUrl, setNewUrl] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [urlSearch, setUrlSearch] = useState("");
-  const [driveUrl, setDriveUrl] = useState("");
-  const [driveName, setDriveName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [promptBuilder, setPromptBuilder] = useState<PromptBuilderConfig>(DEFAULT_PROMPT_BUILDER);
@@ -367,16 +365,6 @@ export function useIcpResearch() {
     } finally { setIsUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 
-  const handleAddGoogleDrive = () => {
-    const trimmedUrl = driveUrl.trim();
-    if (!trimmedUrl) return;
-    if (!isValidUrl(trimmedUrl)) { toast({ title: "Invalid URL", description: "Please enter a valid Google Drive link.", variant: "destructive" }); return; }
-    if (sources.files.some((f) => f.driveUrl === trimmedUrl)) { toast({ title: "Duplicate", description: "This Google Drive file is already in your sources.", variant: "destructive" }); return; }
-    const name = driveName.trim() || trimmedUrl.split("/").pop() || "Google Drive File";
-    const updated: IcpSources = { ...sources, files: [...sources.files, { id: `gdrive-${Date.now()}`, name, size: 0, type: "application/google-drive", origin: "google-drive", driveUrl: trimmedUrl, addedAt: new Date().toISOString() }] };
-    setSources(updated); saveSources(updated); setDriveUrl(""); setDriveName("");
-  };
-
   const handleRemoveFile = (id: string) => {
     const updated: IcpSources = { ...sources, files: sources.files.filter((f) => f.id !== id) };
     setSources(updated); saveSources(updated);
@@ -395,14 +383,14 @@ export function useIcpResearch() {
     exportFormat, setExportFormat, exportOrientation, setExportOrientation, isExporting,
     prompt, updateMutation,
     sources, newUrl, setNewUrl, newLabel, setNewLabel, urlSearch, setUrlSearch,
-    driveUrl, setDriveUrl, driveName, setDriveName, isUploading, fileInputRef, filteredUrls,
+    isUploading, fileInputRef, filteredUrls,
     handleAddQuestion, handleEditQuestion, handleSaveEditQuestion, handleCopyQuestion,
     handleDeleteQuestion, handleReinsertDefaults, handleContextChange,
     handleInstructionsChange, handleSaveInstructions,
     handleGenerate, handleEdit, handleSaveEdit, handleCancelEdit,
     handleCopy, handleClear, handleOptimize,
     handleGenerateResearch, handleExport, handleExportMarkdown, formatMetricValue,
-    handleAddUrl, handleRemoveUrl, handleLocalFileSelect, handleAddGoogleDrive, handleRemoveFile,
+    handleAddUrl, handleRemoveUrl, handleLocalFileSelect, handleRemoveFile,
     saveSources, setSources,
   };
 }

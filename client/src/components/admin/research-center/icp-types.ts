@@ -10,9 +10,8 @@ export interface FileSource {
   name: string;
   size: number;
   type: string;
-  origin: "local" | "google-drive";
+  origin: "local";
   objectPath?: string;
-  driveUrl?: string;
   addedAt: string;
 }
 

@@ -91,8 +91,6 @@ const PUBLIC_API_PATHS = new Set([
   "/api/auth/me",
   "/api/auth/google",
   "/api/auth/google/callback",
-  "/api/auth/google/drive",
-  "/api/auth/google/drive/callback",
   "/api/finance/health",
   "/api/health/live",
   "/api/health/ready",

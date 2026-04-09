@@ -45,8 +45,7 @@ export interface ResearchSourceFile {
   url?: string;
   filePath?: string;
   fileSize?: number;
-  origin?: "local" | "google-drive";
-  googleDriveId?: string;
+  origin?: "local";
   category: "management-company" | "properties" | "general-marketing";
   addedAt: string;
 }
