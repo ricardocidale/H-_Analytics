@@ -46,6 +46,10 @@ All components must use CSS variable tokens or `hsl()` wrappers. No raw hex or T
 
 **Fonts:** Inter (body), IBM Plex Sans (headings), JetBrains Mono (numbers). No emojis — use Lucide icons.
 
+## Multi-Column Layout Principle
+
+**Pages should default to 2 or 3 column layouts.** Single-column pages are rare exceptions (login, simple wizards). When building any page, always group related content into side-by-side columns at desktop widths. All grids must collapse to single column on mobile. See the `consistent-card-widths` skill for specific width categories and grid patterns.
+
 ## Page Structure
 
 Every page follows this layout:
