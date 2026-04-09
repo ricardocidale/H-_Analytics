@@ -16,13 +16,6 @@ import { retrieveRelevantChunks } from "../ai/knowledge-base";
 import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
 import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERLAY, detectLanguage, generateFollowUpChips, deriveContextType, deriveContextKey } from "./chat-prompts";
 import { registerInsightRoute } from "./chat-insight";
-
-/**
- * CONTRACT: This endpoint provides AI chat about portfolio properties.
- * All financial metrics are computed via deterministic tools (calc/dispatch.ts),
- * never inline arithmetic. The LLM interprets pre-computed values only.
- */
-
 import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH } from "../constants";
 
 const fieldContextSchema = z.object({
@@ -48,10 +41,8 @@ const chatRequestSchema = z.object({
   responseMode: responseModeSchema,
 });
 
-
 export function register(app: Express) {
   registerInsightRoute(app);
-
   app.get("/api/chat/conversations", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = getAuthUser(req).id;

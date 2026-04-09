@@ -248,6 +248,9 @@ describe("Scenario Save/Load Code Path Verification", () => {
   ) + fs.readFileSync(
     path.resolve(__dirname, "../../server/storage/financial-sharing.ts"),
     "utf-8"
+  ) + fs.readFileSync(
+    path.resolve(__dirname, "../../server/storage/financial-fees.ts"),
+    "utf-8"
   );
   const schemaSrc = fs.readFileSync(
     path.resolve(__dirname, "../../shared/schema/scenarios.ts"),

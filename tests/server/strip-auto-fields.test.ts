@@ -105,6 +105,7 @@ describe("Storage Layer — stripAutoFields integration (static analysis)", () =
 describe("Storage Layer — all update methods use stripAutoFields", () => {
   describe("financial.ts", () => {
     const src = readStorageFile("financial.ts");
+    const feesSrc = readStorageFile("financial-fees.ts");
 
     it("imports stripAutoFields", () => {
       expect(src).toContain('import { stripAutoFields } from "./utils"');
@@ -125,9 +126,9 @@ describe("Storage Layer — all update methods use stripAutoFields", () => {
     });
 
     it("updateFeeCategory uses stripAutoFields", () => {
-      const methodStart = src.indexOf("async updateFeeCategory(");
-      const methodEnd = src.indexOf("async deleteFeeCategory(");
-      const body = src.slice(methodStart, methodEnd);
+      const methodStart = feesSrc.indexOf("async updateFeeCategory(");
+      const methodEnd = feesSrc.indexOf("async deleteFeeCategory(");
+      const body = feesSrc.slice(methodStart, methodEnd);
       expect(body).toContain("stripAutoFields(");
     });
 
