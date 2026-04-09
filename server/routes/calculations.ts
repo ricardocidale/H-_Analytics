@@ -172,7 +172,7 @@ export function register(app: Express) {
       if (!res.headersSent) {
         logAndSendError(res, "AI review failed", error);
       } else {
-        logger.error(`AI verification review error: ${error?.message || error}`, "calculations");
+        logger.error(`AI verification review error: ${error instanceof Error ? error.message : String(error)}`, "calculations");
         res.end();
       }
     }

@@ -61,8 +61,9 @@ Rewritten description:`;
 
       res.json({ rewritten });
     } catch (error: unknown) {
-      logger.error(`AI rewrite error: ${error?.message || error}`, "ai");
-      if (error?.message === "Gemini API key not configured") {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error(`AI rewrite error: ${msg}`, "ai");
+      if (msg === "Gemini API key not configured") {
         return res.status(503).json({ error: "AI service is not available" });
       }
       res.status(500).json({ error: "Failed to rewrite description" });
@@ -125,7 +126,7 @@ ${prompt}`,
 
       res.json({ optimized });
     } catch (error: unknown) {
-      logger.error(`AI optimize-prompt error: ${error?.message || error}`, "ai");
+      logger.error(`AI optimize-prompt error: ${error instanceof Error ? error.message : String(error)}`, "ai");
       res.status(500).json({ error: "Failed to optimize prompt" });
     }
   });

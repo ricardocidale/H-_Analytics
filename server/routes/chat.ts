@@ -56,7 +56,7 @@ export function register(app: Express) {
         lastMessageAt: c.lastMessageAt,
       })));
     } catch (error: unknown) {
-      logger.error(`Failed to list conversations: ${error?.message || error}`, "chat");
+      logger.error(`Failed to list conversations: ${error instanceof Error ? error.message : String(error)}`, "chat");
       res.status(500).json({ error: "Failed to list conversations" });
     }
   });
@@ -87,7 +87,7 @@ export function register(app: Express) {
         })),
       });
     } catch (error: unknown) {
-      logger.error(`Failed to load conversation: ${error?.message || error}`, "chat");
+      logger.error(`Failed to load conversation: ${error instanceof Error ? error.message : String(error)}`, "chat");
       res.status(500).json({ error: "Failed to load conversation" });
     }
   });
@@ -487,8 +487,9 @@ export function register(app: Express) {
         ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
       });
     } catch (error: unknown) {
-      logger.error(`Chat error: ${error?.message || error}`, "chat");
-      if (error?.message?.includes("API key not configured")) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error(`Chat error: ${msg}`, "chat");
+      if (msg.includes("API key not configured")) {
         return res.status(503).json({ error: "Chat service is not available" });
       }
       res.status(500).json({ error: "Failed to generate response" });

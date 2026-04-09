@@ -16,7 +16,7 @@ import {
   type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
 } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, desc, lte, sql } from "drizzle-orm";
+import { eq, and, desc, lte, sql, isNull } from "drizzle-orm";
 export { IntelligenceRebeccaStorage } from "./intelligence-rebecca";
 import { indexBenchmarkSnapshot } from "../ai/pinecone-service";
 import { logger } from "../logger";

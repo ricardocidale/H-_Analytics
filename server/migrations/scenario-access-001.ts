@@ -29,7 +29,7 @@ export async function runScenarioAccess001(): Promise<void> {
     try {
       await db.execute(sql.raw(stmt));
     } catch (err: unknown) {
-      logger.warn(`[${TAG}] Statement skipped: ${err.message}`, TAG);
+      logger.warn(`[${TAG}] Statement skipped: ${err instanceof Error ? err.message : String(err)}`, TAG);
     }
   }
 

@@ -232,7 +232,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       logActivity(req, "admin-grant-scenario-access", "scenario", id, existing.name, { targetType, targetId });
       res.status(201).json(share);
     } catch (error: unknown) {
-      if (error?.code === "23505") {
+      if ((error as NodeJS.ErrnoException)?.code === "23505") {
         return res.status(409).json({ error: "This access grant already exists" });
       }
       logAndSendError(res, "Failed to add scenario access", error);
