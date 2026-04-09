@@ -8,6 +8,14 @@
 
 ## Architecture Decisions Log
 
+### Profile Page 3-Column Layout (April 2026) — COMPLETED
+- **Change**: Restructured Profile page from single-column (`max-w-2xl`) to responsive 3-column grid (`max-w-7xl`, `grid-cols-1 lg:grid-cols-3`)
+- **Layout**: Column 1: Personal Information | Column 2: Appearance + Theme Preference | Column 3: Change Password
+- **Checker Manual banner**: Stays full-width above the grid (admin/checker only)
+- **Font grid**: Changed from `grid-cols-4` to `grid-cols-2` to fit narrower column width
+- **Added**: `data-testid` attributes on all 3 password visibility toggle buttons
+- **File**: `client/src/pages/Profile.tsx`
+
 ### Rebecca AI System Full Audit (April 2026) — COMPLETED
 - **Scope**: Full architectural audit of the Rebecca AI assistant subsystem — schema (7 tables: conversations, messages, knowledge base, guardrails, feedback, emails, knowledge history), storage (27+ methods in intelligence-rebecca.ts), routes (20+ endpoints across chat.ts, chat-insight.ts, rebecca.ts), client UI (RebeccaPanel, RebeccaMarkdown, RichBlockRenderers, rich-block-parser), and 91 tests across 5 test files.
 - **Findings (all verified safe)**:
