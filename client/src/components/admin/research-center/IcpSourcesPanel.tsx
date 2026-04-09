@@ -130,12 +130,12 @@ export function IcpSourcesPanel({
             <IconUpload className="w-3.5 h-3.5" />
             Local Files
           </Label>
-          <input ref={fileInputRef} type="file" multiple onChange={onLocalFileSelect} className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.json,.pptx,.rtf" data-testid="input-file-upload" />
+          <input ref={fileInputRef} type="file" multiple onChange={onLocalFileSelect} className="hidden" accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.tiff" data-testid="input-file-upload" />
           <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full text-xs h-8 gap-1.5" data-testid="button-upload-local">
             {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconUpload className="w-3.5 h-3.5" />}
             {isUploading ? "Uploading..." : "Choose Files"}
           </Button>
-          <p className="text-[10px] text-muted-foreground">PDF, DOC, DOCX, XLS, XLSX, CSV, TXT, PPTX</p>
+          <p className="text-[10px] text-muted-foreground">PNG, JPEG, GIF, WebP, SVG, BMP, TIFF</p>
         </div>
 
         <div className="space-y-2 p-3 rounded-lg border border-dashed border-border/60 bg-muted/10">

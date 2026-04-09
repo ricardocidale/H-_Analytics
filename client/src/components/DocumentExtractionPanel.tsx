@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { validateImageFile } from "@/hooks/use-upload";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +111,11 @@ export default function DocumentExtractionPanel({ propertyId }: { propertyId: nu
 
   const handleUpload = useCallback(
     async (file: File) => {
+      const validationError = validateImageFile(file);
+      if (validationError) {
+        toast({ title: "Unsupported file type", description: validationError, variant: "destructive" });
+        return;
+      }
       setUploading(true);
       try {
         const response = await fetch("/api/documents/extract", {
@@ -205,13 +211,13 @@ export default function DocumentExtractionPanel({ propertyId }: { propertyId: nu
                 <Upload className="w-10 h-10 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Drop a document here or click to upload</p>
-                  <p className="text-sm text-muted-foreground mt-1">PDF, PNG, JPEG, TIFF, WebP (max 20MB)</p>
+                  <p className="text-sm text-muted-foreground mt-1">PNG, JPEG, GIF, WebP, TIFF (max 10MB)</p>
                 </div>
                 <label>
                   <input
                     type="file"
                     className="hidden"
-                    accept=".pdf,.png,.jpg,.jpeg,.tiff,.webp"
+                    accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.tiff"
                     onChange={handleFileSelect}
                     data-testid="input-document-file"
                   />

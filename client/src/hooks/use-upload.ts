@@ -1,5 +1,16 @@
 import { useState, useCallback } from "react";
 
+export const ALLOWED_IMAGE_TYPES = [
+  "image/png", "image/jpeg", "image/jpg", "image/gif",
+  "image/webp", "image/svg+xml", "image/bmp", "image/tiff",
+];
+
+export const ALLOWED_IMAGE_EXTENSIONS = ".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.tiff";
+
+export const ALLOWED_IMAGE_LABEL = "PNG, JPEG, GIF, WebP, SVG, BMP, or TIFF";
+
+const MAX_FILE_SIZE_MB = 10;
+
 interface UploadResponse {
   objectPath: string;
 }
@@ -7,6 +18,16 @@ interface UploadResponse {
 interface UseUploadOptions {
   onSuccess?: (response: UploadResponse) => void;
   onError?: (error: Error) => void;
+}
+
+export function validateImageFile(file: File): string | null {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return `"${file.name}" is not a supported image format. Please upload ${ALLOWED_IMAGE_LABEL} files only.`;
+  }
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    return `"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum file size is ${MAX_FILE_SIZE_MB}MB.`;
+  }
+  return null;
 }
 
 export function useUpload(options: UseUploadOptions = {}) {
@@ -19,6 +40,15 @@ export function useUpload(options: UseUploadOptions = {}) {
       setIsUploading(true);
       setError(null);
       setProgress(0);
+
+      const validationError = validateImageFile(file);
+      if (validationError) {
+        const err = new Error(validationError);
+        setError(err);
+        options.onError?.(err);
+        setIsUploading(false);
+        return null;
+      }
 
       try {
         setProgress(10);

@@ -56,7 +56,7 @@ export function register(app: Express) {
 
       const contentType = (req.headers["content-type"] || "").split(";")[0].trim();
       if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
-        return res.status(400).json({ error: `Unsupported content type: ${contentType}. Allowed: ${ALLOWED_CONTENT_TYPES.join(", ")}` });
+        return res.status(400).json({ error: "Only image files are supported (PNG, JPEG, GIF, WebP, SVG, BMP, TIFF). Please select an image file and try again." });
       }
 
       const contentLength = parseInt(req.headers["content-length"] || "0", 10);

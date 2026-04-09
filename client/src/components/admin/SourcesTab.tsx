@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { validateImageFile } from "@/hooks/use-upload";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -134,7 +135,7 @@ function CategoryPanel({
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
-                accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.json"
+                accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.tiff"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) onAddFile(f);
@@ -261,6 +262,11 @@ export default function SourcesTab({ onSaveStateChange }: SourcesTabProps) {
   };
 
   const handleAddFile = (cat: SourceCategory, file: File) => {
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast({ title: "Unsupported file type", description: validationError, variant: "destructive" });
+      return;
+    }
     const newSource: ResearchSourceFile = {
       id: generateId(),
       name: file.name,
