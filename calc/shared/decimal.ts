@@ -16,8 +16,13 @@ export function dMul(a: number, b: number): number {
   return new Decimal(a).times(new Decimal(b)).toNumber();
 }
 
-export function dDiv(a: number, b: number): number {
-  if (b === 0) return 0;
+export function dDiv(a: number, b: number, label?: string): number {
+  if (b === 0) {
+    if (process.env.NODE_ENV !== "production" && label) {
+      console.warn(`[dDiv] division by zero in "${label}" (a=${a})`);
+    }
+    return 0;
+  }
   if (!Number.isFinite(a) || !Number.isFinite(b)) return 0;
   return new Decimal(a).dividedBy(new Decimal(b)).toNumber();
 }

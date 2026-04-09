@@ -8,6 +8,15 @@
 
 ## Architecture Decisions Log
 
+### File Splits, dDiv Safety & Cleanup (April 2026) — COMPLETED
+- **T001 — properties.ts split** (866→499 lines): Extracted URL routes to `server/routes/properties-urls.ts` (333 lines). Main file delegates via `registerPropertyUrlRoutes(app)`.
+- **T002 — pinecone-service.ts split** (833→354 lines): Extracted 12 domain indexing functions to `server/ai/pinecone-indexing.ts` (466 lines). Main file re-exports for backward compatibility.
+- **T003 — ScenariosTab.tsx split** (753→388 lines): Extracted `DeletedScenariosSection` + `DefaultScenariosSection` to `ScenariosTabSections.tsx` (358 lines). Cleaned up unused imports.
+- **T004 — dDiv safety**: Added optional `label` parameter; logs `console.warn` on div-by-zero in non-production mode.
+- **T005 — LB_Hospitality**: Deleted 96MB stale directory (copy of codebase).
+- **T006 — npm audit**: 25→12 vulnerabilities. Critical eliminated (1→0), high reduced (10→2). Remaining 2 high are `xlsx` with no fix available.
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), verification UNQUALIFIED
+
 ### Audit Remediation: Critical & High Priority Fixes (April 2026) — COMPLETED
 - **Access control**: `/api/fee-categories/all` and `/api/property-urls/all` upgraded from `requireAuth` to `requireAdmin` (cross-tenant data exposure fix)
 - **Credential leak**: Removed hardcoded admin password from `memory.md`
