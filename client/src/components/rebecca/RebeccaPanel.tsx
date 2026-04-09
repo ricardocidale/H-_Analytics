@@ -62,7 +62,7 @@ function getStoredMode(): ResponseMode {
   try {
     const v = localStorage.getItem("rebecca-response-mode");
     if (v === "concise" || v === "standard" || v === "detailed") return v;
-  } catch {}
+  } catch (e) { console.warn("Failed to read response mode from localStorage", e); }
   return "standard";
 }
 
@@ -425,7 +425,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 key={m.value}
                 onClick={() => {
                   setResponseMode(m.value);
-                  try { localStorage.setItem("rebecca-response-mode", m.value); } catch {}
+                  try { localStorage.setItem("rebecca-response-mode", m.value); } catch (e) { console.warn("Failed to save response mode to localStorage", e); }
                 }}
                 className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",

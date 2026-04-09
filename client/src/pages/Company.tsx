@@ -23,7 +23,7 @@
  * All statement data is pre-generated in lib/company-data.ts to keep this
  * page free of inline financial logic.
  */
-import React, { useState, useRef, useMemo, useCallback } from "react";
+import React, { useState, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import { ExportDialog, type ExportVersion, type PremiumExportPayload } from "@/components/ExportDialog";
 import { loadExportConfig } from "@/lib/exportConfig";
 import { useQuery } from "@tanstack/react-query";
@@ -45,7 +45,12 @@ import { CalcDetailsProvider } from "@/components/financial-table";
 import { Link } from "wouter";
 import { AnimatedPage } from "@/components/graphics";
 import { analyzeCompanyCashPosition } from "@/lib/financial/analyzeCompanyCashPosition";
-import { CompanyHeader, CompanyIncomeTab, CompanyCashFlowTab, CompanyBalanceSheet, CompanyBenchmarkPanel } from "@/components/company";
+import { CompanyHeader } from "@/components/company";
+
+const CompanyIncomeTab = lazy(() => import("@/components/company/CompanyIncomeTab").then(m => ({ default: m.default })));
+const CompanyCashFlowTab = lazy(() => import("@/components/company/CompanyCashFlowTab").then(m => ({ default: m.default })));
+const CompanyBalanceSheet = lazy(() => import("@/components/company/CompanyBalanceSheet").then(m => ({ default: m.default })));
+const CompanyBenchmarkPanel = lazy(() => import("@/components/company/CompanyBenchmarkPanel").then(m => ({ default: m.default })));
 import { 
   generateCompanyIncomeData, 
   generateCompanyCashFlowData, 
@@ -372,6 +377,7 @@ export default function Company() {
             onOpenModelInputs={handleOpenModelInputs}
           />
           
+          <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
           <div className="mt-4 mb-2">
             <CompanyBenchmarkPanel global={global} yearlyChartData={yearlyChartData} financials={financials} />
           </div>
@@ -424,6 +430,7 @@ export default function Company() {
               yearlyChartData={yearlyChartData}
             />
           </TabsContent>
+          </Suspense>
 
           {!isAdmin && (
             <div ref={modelInputsRef} className="mt-6" data-testid="panel-model-inputs">

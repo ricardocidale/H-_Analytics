@@ -8,6 +8,15 @@
 
 ## Architecture Decisions Log
 
+### Task #312: Empty Catches, Lazy-Loading & File Splits (April 2026) — COMPLETED
+- **T001 — Empty catch blocks**: Fixed 5 empty catches: `chat.ts` (lines 660, 682, 725) now use `logger.warn(...)`, `RebeccaPanel.tsx` (lines 65, 428) now use `console.warn(...)`.
+- **T002 — Lazy-loading**: Dashboard (5 tab components), Company (4 tab components), Scenarios (5 dialog components) all converted to `React.lazy()` with `<Suspense>` boundaries.
+- **T003 — chat.ts split** (889→507 lines): Extracted `chat-prompts.ts` (prompt constants, `detectLanguage`, `generateFollowUpChips`, `deriveContextType`, `deriveContextKey`) and `chat-insight.ts` (`/api/rebecca/insight` endpoint). Main `chat.ts` imports and delegates.
+- **T004 — financial.ts split** (1061→657 lines): Extracted `financial-sharing.ts` (`FinancialSharingStorage` class with 20 sharing/access/results methods). `FinancialStorage` delegates via module-level `_sharing` instance to avoid TS `IStorage` conflicts. Circular dependency avoided by inlining `getGlobalAssumptions` in `FinancialSharingStorage`.
+- **T005 — intelligence.ts split** (1131→509 lines): Extracted `intelligence-sources.ts` (source registry CRUD, toggle, test, logs), `intelligence-scheduled.ts` (scheduled research CRUD, execute, stale-check), `intelligence-pinecone.ts` (financial lines, system intelligence status, Pinecone stats/reindex/clear, asset indexing). Main `intelligence.ts` calls `registerSourceRoutes`, `registerScheduledResearchRoutes`, `registerPineconeRoutes`.
+- **New files**: `server/routes/chat-prompts.ts`, `server/routes/chat-insight.ts`, `server/routes/admin/intelligence-sources.ts`, `server/routes/admin/intelligence-scheduled.ts`, `server/routes/admin/intelligence-pinecone.ts`, `server/storage/financial-sharing.ts`
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), verification UNQUALIFIED
+
 ### Task #311: Calc Dispatch Validation & ADR Zero-Guard (April 2026) — COMPLETED
 - **Dispatch schemas**: Added 26 Zod input schemas to `calc/shared/schemas.ts` for all previously unvalidated tools: waterfall, hold-vs-sell, stress-test, capex-reserve, revpar-index, debt-yield, dscr, prepayment, sensitivity, compare-loans, interest-rate-swap, centralized-service-margin, cost-of-services, property-metrics, depreciation-basis, debt-capacity, occupancy-ramp, adr-projection, cap-rate-valuation, cost-benchmarks, service-fee, markup-waterfall, make-vs-buy, wacc, portfolio-wacc, mirr.
 - **Schema registration**: All 38 tools in `calc/dispatch.ts` now have input validation — every dispatch call goes through `safeParse()` before reaching the handler.

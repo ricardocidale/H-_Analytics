@@ -31,7 +31,7 @@
  * available from the tab bar. Data generators live in dashboardExports.ts.
  */
 import { APP_BRAND_NAME, USE_SERVER_EXPORTS } from "@shared/constants";
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, { useState, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useExportSave } from "@/hooks/useExportSave";
 import Layout from "@/components/Layout";
@@ -39,7 +39,8 @@ import { useProperties, useGlobalAssumptions } from "@/lib/api";
 import { getFiscalYearForModelYear } from "@/lib/financialEngine";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertTriangle, IconDashboard, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconInvestment } from "@/components/icons";import { PageHeader } from "@/components/ui/page-header";
+import { IconAlertTriangle, IconDashboard, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconInvestment } from "@/components/icons";
+import { PageHeader } from "@/components/ui/page-header";
 import { PROJECTION_YEARS } from "@/lib/constants";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
 import { ExportDialog, type ExportVersion, type PremiumExportPayload } from "@/components/ExportDialog";
@@ -50,11 +51,6 @@ import { captureOverviewCharts } from "@/lib/exports/captureOverviewCharts";
 import { format } from "date-fns";
 import {
   usePortfolioFinancials,
-  OverviewTab,
-  IncomeStatementTab,
-  CashFlowTab,
-  BalanceSheetTab,
-  InvestmentAnalysisTab,
   generatePortfolioIncomeData,
   generatePortfolioCashFlowData,
   generatePortfolioInvestmentData,
@@ -68,6 +64,12 @@ import {
   buildOverviewExportData,
   exportOverviewCSV,
 } from "@/components/dashboard";
+
+const OverviewTab = lazy(() => import("@/components/dashboard/OverviewTab").then(m => ({ default: m.OverviewTab })));
+const IncomeStatementTab = lazy(() => import("@/components/dashboard/IncomeStatementTab").then(m => ({ default: m.IncomeStatementTab })));
+const CashFlowTab = lazy(() => import("@/components/dashboard/CashFlowTab").then(m => ({ default: m.CashFlowTab })));
+const BalanceSheetTab = lazy(() => import("@/components/dashboard/BalanceSheetTab").then(m => ({ default: m.BalanceSheetTab })));
+const InvestmentAnalysisTab = lazy(() => import("@/components/dashboard/InvestmentAnalysisTab").then(m => ({ default: m.InvestmentAnalysisTab })));
 
 
 const TAB_LABELS: Record<string, string> = {
@@ -405,6 +407,7 @@ export default function Dashboard() {
               />
             </div>
 
+            <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
             <ScrollReveal>
               <div ref={tabContentRef}>
                 <TabsContent value="overview" className="mt-0 focus-visible:outline-none">
@@ -428,6 +431,7 @@ export default function Dashboard() {
                 </TabsContent>
               </div>
             </ScrollReveal>
+            </Suspense>
           </Tabs>
         </div>
       </AnimatedPage>

@@ -10,11 +10,17 @@ import { IconSave, IconFolderOpen, IconPencil, IconTrash, IconClock, IconFileSta
 import { PageHeader } from "@/components/ui/page-header";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, lazy, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDateTime } from "@/lib/formatters";
-import { SaveScenarioDialog, EditScenarioDialog, CompareResultDialog, ShareScenarioDialog, LoadSharedWarningDialog, type ScenarioCompareResult } from "@/components/scenarios";
+import type { ScenarioCompareResult } from "@/components/scenarios";
+
+const SaveScenarioDialog = lazy(() => import("@/components/scenarios/SaveScenarioDialog").then(m => ({ default: m.SaveScenarioDialog })));
+const EditScenarioDialog = lazy(() => import("@/components/scenarios/EditScenarioDialog").then(m => ({ default: m.EditScenarioDialog })));
+const CompareResultDialog = lazy(() => import("@/components/scenarios/CompareResultDialog").then(m => ({ default: m.CompareResultDialog })));
+const ShareScenarioDialog = lazy(() => import("@/components/scenarios/ShareScenarioDialog").then(m => ({ default: m.ShareScenarioDialog })));
+const LoadSharedWarningDialog = lazy(() => import("@/components/scenarios/LoadSharedWarningDialog").then(m => ({ default: m.LoadSharedWarningDialog })));
 import { useAuth } from "@/lib/auth";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
@@ -675,6 +681,7 @@ export default function Scenarios() {
           </CardContent>
         </Card>
 
+        <Suspense fallback={null}>
         <SaveScenarioDialog
           open={isCreating}
           onOpenChange={setIsCreating}
@@ -720,6 +727,7 @@ export default function Scenarios() {
             isPending={loadScenario.isPending}
           />
         )}
+        </Suspense>
       </div>
       </TooltipProvider>
       </AnimatedPage>
