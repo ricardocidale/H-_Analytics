@@ -8,6 +8,21 @@
 
 ## Architecture Decisions Log
 
+### Scenarios System Full Audit (April 2026) — COMPLETED
+- **Scope**: Full architectural audit of the scenarios subsystem — schema (4 tables), storage (30+ methods across 3 files), routes (28 endpoints across 3 files), client UI, and 261 tests across 8 files.
+- **Findings (all verified safe)**:
+  - Authorization: No IDOR bypass found — all load/preview/recompute paths check ownership + sharing tables
+  - Access control: Dual sharing model (scenario_shares + scenario_access) properly enforced at all layers
+  - Auto-save: Race condition handled via catch on unique constraint (23505) + fallback to update
+  - stableLoadProperties: Preserves property IDs via stableKey matching, orphaned properties soft-archived (isActive:false)
+  - Photos: By design, photos stay linked via property_id (stable across loads) — not snapshotted
+  - Property URLs: Not included in snapshots (metadata lives outside scenario scope)
+  - Comparison: feeCategories intentionally excluded from diff (design choice, not a bug)
+- **Fixes applied**:
+  - Removed double database fetch in `buildCreateSnapshotData` — was calling `getGlobalAssumptions()` + `getAllProperties()` twice per create
+  - Replaced 3 `any` types in `validateLoadSnapshot` parameter with proper types (`unknown`, `Record<string, unknown[]> | null | undefined`)
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), verification UNQUALIFIED
+
 ### Audit Batch 3: intelligence-v2 + research-orchestrator splits + catch-any cleanup (April 2026) — COMPLETED
 - **T001 — intelligence-v2.ts split** (709→431 lines): Extracted 27 Rebecca methods (conversations, messages, feedback, emails, guardrails, KB CRUD) to `server/storage/intelligence-rebecca.ts` (286 lines). New `IntelligenceRebeccaStorage` class wired in `server/storage/index.ts` via `private rebecca` instance.
 - **T002 — research-orchestrator.ts split** (638→446 lines): Extracted `buildApiValidation` + 5 helper functions (`extractMid`, `parseStringRate`, `extractDeep`, `divergencePct`, `compareMetric`) to `server/ai/research-validation.ts` (196 lines). Re-exported from orchestrator for backward compat.
