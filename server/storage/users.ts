@@ -169,6 +169,7 @@ export class UserStorage {
           googleAccessToken: users.googleAccessToken,
           googleRefreshToken: users.googleRefreshToken,
           googleTokenExpiry: users.googleTokenExpiry,
+          googleDriveConnected: users.googleDriveConnected,
           hideTourPrompt: users.hideTourPrompt,
           canManageScenarios: users.canManageScenarios,
           colorMode: users.colorMode,
