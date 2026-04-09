@@ -433,13 +433,4 @@ export class FinancialSharingStorage {
       .limit(1);
     return result;
   }
-
-  async getScenarioResultByHash(scenarioId: number, outputHash: string): Promise<ScenarioResult | undefined> {
-    const [result] = await db.select().from(scenarioResults)
-      .where(and(
-        eq(scenarioResults.scenarioId, scenarioId),
-        eq(scenarioResults.outputHash, outputHash),
-      ));
-    return result;
-  }
 }

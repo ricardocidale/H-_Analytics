@@ -182,28 +182,27 @@ export function register(app: Express) {
       res.setHeader("Connection", "keep-alive");
 
       const adWithGlobal = {
-        ...(assetDefinition as any),
-        description: (assetDefinition as any)?.description || ga?.assetDescription || undefined,
+        ...assetDefinition,
+        description: assetDefinition?.description || ga?.assetDescription || undefined,
       };
 
       let marketIntelligence;
       try {
         const aggregator = getMarketIntelligenceAggregator();
-        const pc = propertyContext as any;
         marketIntelligence = await aggregator.gather({
-          location: pc?.location || pc?.market,
-          propertyType: (assetDefinition as any)?.level || "boutique hotel",
+          location: propertyContext?.location || propertyContext?.market,
+          propertyType: assetDefinition?.level || "boutique hotel",
           propertyId: propertyId || undefined,
         });
       } catch (err) {
         logger.warn(`Market intelligence fetch failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
       }
 
-      const params = {
+      const params: import("../ai/research-prompt-builders").ResearchParams = {
         type,
         propertyId: propertyId || undefined,
-        propertyContext: propertyContext as any,
-        assetDefinition: adWithGlobal,
+        propertyContext: propertyContext as import("../ai/research-prompt-builders").ResearchParams["propertyContext"],
+        assetDefinition: adWithGlobal as import("../ai/research-prompt-builders").ResearchParams["assetDefinition"],
         researchVariables,
         propertyLabel: ga?.propertyLabel,
         eventConfig,
@@ -236,8 +235,8 @@ export function register(app: Express) {
                 if (isPineconeAvailable()) {
                   const priorGuidance = await retrieveSimilarGuidance({
                     location: property.location ?? "",
-                    propertyType: (property as any).hospitalityType ?? "boutique hotel",
-                    businessModel: (property as any).businessModel ?? "hotel",
+                    propertyType: property.hospitalityType ?? "boutique hotel",
+                    businessModel: property.businessModel ?? "hotel",
                     topK: 15,
                   });
                   if (priorGuidance.length > 0) {
@@ -414,8 +413,8 @@ export function register(app: Express) {
                 }
 
                 const propLocation = property.location ?? "";
-                const propType = (property as any).hospitalityType ?? "boutique hotel";
-                const propBusinessModel = (property as any).businessModel ?? "hotel";
+                const propType = property.hospitalityType ?? "boutique hotel";
+                const propBusinessModel = property.businessModel ?? "hotel";
                 for (const rec of guidanceResult.records) {
                   await storage.upsertAssumptionGuidance({
                     researchRunId: runId,
@@ -552,11 +551,11 @@ export function register(app: Express) {
 
         logActivity(req, "generate", "market_research", propertyId, type);
 
-        const svcName = vendorKey === "google" ? "gemini" : vendorKey === "openai" ? "openai" : "anthropic";
+        const svcName = (vendorKey === "google" ? "gemini" : vendorKey === "openai" ? "openai" : "anthropic") as "gemini" | "openai" | "anthropic";
         const inTok  = Math.round(JSON.stringify(params).length / 4);
         const outTok = Math.round(fullContent.length / 4);
         try {
-          logApiCost({ timestamp: new Date().toISOString(), service: svcName as any, model, operation: "research", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svcName, model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/research/generate" });
+          logApiCost({ timestamp: new Date().toISOString(), service: svcName, model, operation: "research", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svcName, model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/research/generate" });
         } catch (e) { logger.warn(`Failed to log API cost: ${(e as Error).message}`, "cost-logger"); }
 
         processNotificationEvent(createEvent("RESEARCH_COMPLETE", {

@@ -8,6 +8,19 @@
 
 ## Architecture Decisions Log
 
+### Deterministic Audit P2 Fixes (April 2026) — COMPLETED
+- **P2-2 (Orphaned storage method)**: Removed `getScenarioResultByHash` from `financial-sharing.ts`, `financial.ts`, and `index.ts` — was fully implemented but never called from any route
+- **P2-3 (IStorage interface)**: Added `getDbHealth()` method signature to `IStorage` interface — was implemented on `DatabaseStorage` but missing from the interface
+- **P2-9 (Research `as any` casts)**: Eliminated all 10 `as any` instances in `server/routes/research.ts`:
+  - `(property as any).hospitalityType/businessModel` → direct property access (fields exist on Property type)
+  - `assetDefinition as any` → removed cast (already `Record<string, any>` from Zod)
+  - `propertyContext as any` → removed cast, typed params as `ResearchParams`
+  - `svcName as any` → properly typed as `"gemini" | "openai" | "anthropic"` union
+- **P2-11 (Prompt injection defense)**: Added `<user_message>` XML tag delimiters around user input in both Perplexity and Gemini chat paths. Added input boundary instruction to system prompt telling LLM to only respond to content inside tags.
+- **P2-4/5/6/7/10 deferred**: Schema-level advisory items (text dates, serial vs identity, N+1 fee sync, unbounded property fetch, dual sharing tables) — acceptable at current scale, would risk regressions.
+- **P2-8 confirmed false positive**: All 3 types (ExportConfig, ConsolidatedYearlyJson, RawExtractionData) ARE used in schema and storage.
+- Health check: ALL CLEAR — 0 TS errors, 4,054 tests (173 files), Lint PASS (0 errors), verification UNQUALIFIED
+
 ### Deterministic Audit P1 Fixes (April 2026) — COMPLETED
 - **P1-1 (Waterfall div-by-zero)**: `calc/analysis/waterfall.ts:129` — added `catchUpTarget >= 1` guard before `catchUpTarget / (1 - catchUpTarget)` to prevent Infinity
 - **P1-3 (Chat LLM timeouts)**: `server/routes/chat.ts` — wrapped Perplexity + Gemini API calls with `Promise.race` + `AI_GENERATION_TIMEOUT_MS` (120s)

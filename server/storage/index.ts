@@ -57,6 +57,7 @@ export interface IStorage extends
   IntelligenceV2Storage,
   PropertyUrlStorage {
   deleteUser(id: number): Promise<void>;
+  getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -155,7 +156,6 @@ export class DatabaseStorage implements IStorage {
   // Scenario Results
   saveScenarioResult = this.financial.saveScenarioResult.bind(this.financial);
   getLatestScenarioResult = this.financial.getLatestScenarioResult.bind(this.financial);
-  getScenarioResultByHash = this.financial.getScenarioResultByHash.bind(this.financial);
 
   // Fee Categories
   getFeeCategoriesByProperty = this.financial.getFeeCategoriesByProperty.bind(this.financial);

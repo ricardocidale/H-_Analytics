@@ -488,5 +488,4 @@ export class FinancialStorage {
   async getScenariosSharedViaAccess(userId: number) { return _sharing.getScenariosSharedViaAccess(userId); }
   async saveScenarioResult(data: InsertScenarioResult) { return _sharing.saveScenarioResult(data); }
   async getLatestScenarioResult(scenarioId: number) { return _sharing.getLatestScenarioResult(scenarioId); }
-  async getScenarioResultByHash(scenarioId: number, outputHash: string) { return _sharing.getScenarioResultByHash(scenarioId, outputHash); }
 }
