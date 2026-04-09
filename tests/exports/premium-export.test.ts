@@ -56,9 +56,8 @@ describe("Premium export route structure audit", () => {
     expect(routeSource).toContain("res.status(504)");
   });
 
-  it("truncates long error messages at 300 characters", () => {
-    expect(routeSource).toContain("errorMsg.length > 300");
-    expect(routeSource).toContain("errorMsg.substring(0, 300)");
+  it("returns generic error message without leaking internal details", () => {
+    expect(routeSource).toContain("Premium export generation failed. Please try again.");
   });
 
   it("sanitizes company name for filenames", () => {

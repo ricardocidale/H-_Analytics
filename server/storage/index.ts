@@ -248,6 +248,7 @@ export class DatabaseStorage implements IStorage {
   updateDocumentExtraction = this.documents.updateDocumentExtraction.bind(this.documents);
   createExtractionField = this.documents.createExtractionField.bind(this.documents);
   createExtractionFields = this.documents.createExtractionFields.bind(this.documents);
+  getExtractionField = this.documents.getExtractionField.bind(this.documents);
   getExtractionFields = this.documents.getExtractionFields.bind(this.documents);
   updateExtractionFieldStatus = this.documents.updateExtractionFieldStatus.bind(this.documents);
   bulkUpdateExtractionFieldStatus = this.documents.bulkUpdateExtractionFieldStatus.bind(this.documents);

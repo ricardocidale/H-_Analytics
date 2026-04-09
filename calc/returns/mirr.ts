@@ -44,6 +44,9 @@ export function computeMIRR(input: MIRRInput): MIRROutput {
   if (fvPositive <= 0) {
     return { mirr: null, is_valid: false, warnings: ["No positive cash flows — MIRR requires returns"] };
   }
+  if (!Number.isFinite(fvPositive) || !Number.isFinite(pvNegative)) {
+    return { mirr: null, is_valid: false, warnings: ["MIRR computation produced non-finite intermediate values"] };
+  }
 
   const mirr = dPow(dDiv(fvPositive, Math.abs(pvNegative)), 1 / periods) - 1;
 

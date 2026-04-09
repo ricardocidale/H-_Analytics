@@ -176,7 +176,7 @@ export function register(app: Express) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : "";
       logger.error(`[server-export] Error: ${errorMsg} ${errorStack}`, "server-export");
-      res.status(500).json({ error: errorMsg.length > 300 ? errorMsg.substring(0, 300) + "…" : errorMsg });
+      res.status(500).json({ error: "Export generation failed. Please try again." });
     }
   });
 

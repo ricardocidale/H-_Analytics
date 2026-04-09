@@ -216,7 +216,8 @@ app.use((req, res, next) => {
 
       // ── Phase 2: Migrations + seeds (runs after port is open) ────────
       runMigrationsAndSeeds().catch(err => {
-        serverLog(`Migrations/seeds failed after retries: ${err instanceof Error ? err.message : err}`, "startup", "error");
+        serverLog(`FATAL: Migrations/seeds failed: ${err instanceof Error ? err.message : err}`, "startup", "error");
+        process.exit(1);
       });
 
       // ── Phase 3: Ambient benchmark scheduler ────────
@@ -233,8 +234,29 @@ app.use((req, res, next) => {
         serverLog(`[research-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      const intervalHandles: NodeJS.Timeout[] = [];
+
+      // ── Graceful shutdown handler ────────
+      let isShuttingDown = false;
+      const shutdown = async (signal: string) => {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+        serverLog(`Received ${signal}, shutting down gracefully...`, "shutdown", "info");
+        for (const h of intervalHandles) clearInterval(h);
+        const forceTimer = setTimeout(() => { serverLog("Forced exit after timeout", "shutdown", "error"); process.exit(1); }, 10_000);
+        httpServer.close(() => {
+          serverLog("HTTP server closed", "shutdown", "info");
+          clearTimeout(forceTimer);
+          import("./db").then(({ pool }) => {
+            pool.end().then(() => process.exit(0)).catch(() => process.exit(1));
+          }).catch(() => process.exit(0));
+        });
+      };
+      process.on("SIGTERM", () => shutdown("SIGTERM"));
+      process.on("SIGINT", () => shutdown("SIGINT"));
+
       // Refresh stale market rates periodically
-      setInterval(async () => {
+      intervalHandles.push(setInterval(async () => {
         try {
           const { refreshAllStaleRates } = await import("./data/marketRates");
           const refreshed = await refreshAllStaleRates();
@@ -249,10 +271,10 @@ app.use((req, res, next) => {
         } catch (err) {
           serverLog(`[ERROR] [market-rates] FRED refresh error: ${err instanceof Error ? err.message : err}`);
         }
-      }, MARKET_RATE_REFRESH_INTERVAL_MS);
+      }, MARKET_RATE_REFRESH_INTERVAL_MS));
 
       // Clean expired sessions, stale rate-limit entries, and old login logs periodically
-      setInterval(async () => {
+      intervalHandles.push(setInterval(async () => {
         try {
           const sessions = await storage.deleteExpiredSessions();
           if (sessions > 0) log(`Cleaned ${sessions} expired sessions`);
@@ -263,10 +285,10 @@ app.use((req, res, next) => {
         } catch (err) {
           serverLog(`Periodic cleanup error: ${err instanceof Error ? err.message : err}`, "cleanup", "error");
         }
-      }, SESSION_CLEANUP_INTERVAL_MS);
+      }, SESSION_CLEANUP_INTERVAL_MS));
 
       // Invalidate stale property-level MI cache daily so next research regen gets fresh data
-      setInterval(async () => {
+      intervalHandles.push(setInterval(async () => {
         try {
           const { cache } = await import("./cache");
           const invalidated = await cache.invalidate("mi:property:*");
@@ -274,17 +296,17 @@ app.use((req, res, next) => {
         } catch (err) {
           serverLog(`MI cache invalidation error: ${err instanceof Error ? err.message : err}`, "cache", "error");
         }
-      }, MI_CACHE_INVALIDATION_INTERVAL_MS);
+      }, MI_CACHE_INVALIDATION_INTERVAL_MS));
 
       // Purge soft-deleted scenarios past their retention period
-      setInterval(async () => {
+      intervalHandles.push(setInterval(async () => {
         try {
           const purged = await storage.purgeExpiredScenarios();
           if (purged > 0) log(`Purged ${purged} expired soft-deleted scenarios`);
         } catch (err) {
           serverLog(`Scenario purge error: ${err instanceof Error ? err.message : err}`, "purge", "error");
         }
-      }, SCENARIO_PURGE_INTERVAL_MS);
+      }, SCENARIO_PURGE_INTERVAL_MS));
     },
   );
 })();

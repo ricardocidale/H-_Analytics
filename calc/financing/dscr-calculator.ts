@@ -135,7 +135,7 @@ export function computeDSCR(input: DSCRInput): DSCROutput {
   if (isFullIO) {
     maxLoanDSCR = monthlyRate > 0
       ? r(maxMonthlyDS / monthlyRate)
-      : Infinity;
+      : 0;
   } else {
     maxLoanDSCR = reversePMT(maxMonthlyDS, monthlyRate, input.amortization_months);
     maxLoanDSCR = r(maxLoanDSCR);

@@ -8,6 +8,15 @@
 
 ## Architecture Decisions Log
 
+### Deep Codebase Audit Fixes (April 2026) — COMPLETED
+- **T001 — IDOR/Authorization hardening**: Added `checkPropertyAccess` to property-photos (GET image access check + photo ownership in PATCH/DELETE), uploads (process-image), documents (extract + field status write-before-check fix), geospatial (geocode). Sanitized error messages in export-generate and premium-exports (generic messages instead of leaking internals). Added `getExtractionField()` single-field lookup to document storage.
+- **T002 — Graceful shutdown + migration fail-safe**: Migration failures now fatal (`process.exit(1)`). All 4 `setInterval` calls wrapped in `intervalHandles[]` array. SIGTERM/SIGINT handler clears intervals, closes HTTP server, ends DB pool with 10s forced exit timeout.
+- **T003 — Financial engine safety**: `dDiv()` now guards non-finite inputs (NaN/Infinity) returning 0 before reaching Decimal.js. DSCR calculator returns 0 instead of Infinity when `isFullIO && monthlyRate===0`. MIRR computation adds non-finite intermediate check on `fvPositive`/`pvNegative` before final calculation.
+- **T004 — Atomic operations**: `updateUserPassword()` now wraps password hash update + session invalidation in a database transaction. `upsertMarketResearch()` wraps SELECT-then-INSERT/UPDATE in a transaction to prevent race conditions.
+- **T005 — Frontend code splitting + ref fix**: `App.tsx` fixed `useState<any>(null)` used as mutable ref → `useRef<any>(null)` with `.current` access. `Admin.tsx` converted all 20 admin tab imports to `React.lazy()` with `<Suspense>` fallback spinner.
+- **Files changed**: `server/index.ts`, `server/routes/property-photos.ts`, `server/routes/uploads.ts`, `server/routes/documents.ts`, `server/routes/geospatial.ts`, `server/routes/export-generate.ts`, `server/routes/premium-exports.ts`, `server/storage/users.ts`, `server/storage/research.ts`, `server/storage/documents.ts`, `server/storage/index.ts`, `calc/shared/decimal.ts`, `calc/financing/dscr-calculator.ts`, `calc/returns/mirr.ts`, `client/src/App.tsx`, `client/src/pages/Admin.tsx`, `tests/exports/premium-export.test.ts`
+- Health check: ALL CLEAR — 0 TS errors, 4,047 tests (173 files), verification UNQUALIFIED
+
 ### Task #308: Response Mode & Conversation Analytics (April 2026) — COMPLETED
 - **Response mode backend**: Added `responseMode` param to `chatRequestSchema` in `chat.ts` (concise/standard/detailed, default standard). Mode-specific token budgets (concise=200, standard=450, detailed=800) applied to both Gemini `maxOutputTokens` and Perplexity `max_tokens`. Mode-specific system prompt overlays: concise forces plain text + headline answers, detailed allows 2 rich blocks + thorough analysis.
 - **Response mode frontend**: Added segmented mode selector in `RebeccaPanel.tsx` header (below SheetHeader, above context card). Icons: Zap/AlignLeft/BookOpen. State persisted to `localStorage` key `rebecca-response-mode`. Mode sent with all `/api/chat` calls (`responseMode` field).

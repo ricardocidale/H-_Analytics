@@ -53,8 +53,10 @@ export class UserStorage {
    * so they must re-authenticate with the new password.
    */
   async updateUserPassword(id: number, passwordHash: string): Promise<void> {
-    await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, id));
-    await db.delete(sessions).where(eq(sessions.userId, id));
+    await db.transaction(async (tx) => {
+      await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, id));
+      await tx.delete(sessions).where(eq(sessions.userId, id));
+    });
   }
 
   /** Update a user's profile fields (name, email, company, title). Timestamps the update. */

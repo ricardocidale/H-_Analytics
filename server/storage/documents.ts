@@ -68,6 +68,13 @@ export class DocumentStorage {
     return db.insert(extractionFields).values(data).returning();
   }
 
+  async getExtractionField(id: number): Promise<ExtractionField | undefined> {
+    const [field] = await db.select().from(extractionFields)
+      .where(eq(extractionFields.id, id))
+      .limit(1);
+    return field;
+  }
+
   async getExtractionFields(extractionId: number): Promise<ExtractionField[]> {
     return db.select().from(extractionFields)
       .where(eq(extractionFields.extractionId, extractionId))

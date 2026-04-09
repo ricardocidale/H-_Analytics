@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { requireAuth, requireManagementAccess, isApiRateLimited, getAuthUser } from "../auth";
+import { requireAuth, requireManagementAccess, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
 import { geocodeSchema, logAndSendError } from "./helpers";
 import { fromZodError } from "zod-validation-error";
 import {
@@ -36,7 +36,11 @@ export function register(app: Express) {
 
   app.post("/api/geocode/property/:id", requireManagementAccess, async (req, res) => {
     try {
-      const coords = await geocodeAndUpdateProperty(Number(req.params.id));
+      const propertyId = Number(req.params.id);
+      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const coords = await geocodeAndUpdateProperty(propertyId);
       if (!coords) {
         return res.status(404).json({ error: "Could not geocode property address" });
       }

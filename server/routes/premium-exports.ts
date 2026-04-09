@@ -200,7 +200,7 @@ export function register(app: Express) {
       if (errorMsg.includes("timed out")) {
         return res.status(504).json({ error: `Export timed out generating ${format.toUpperCase()}. Please try again.`, format });
       }
-      res.status(500).json({ error: errorMsg.length > 300 ? errorMsg.substring(0, 300) + "…" : errorMsg, format });
+      res.status(500).json({ error: "Premium export generation failed. Please try again.", format });
     }
   });
 

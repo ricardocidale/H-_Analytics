@@ -1,28 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { type AdminSection, resolveSection } from "@/components/admin/AdminSidebar";
-import {
-  CompaniesTab, ActivityTab, VerificationTab,
-  DatabaseTab,
-} from "@/components/admin";
-import PeopleTab from "@/components/admin/PeopleTab";
-import GroupsTab from "@/components/admin/GroupsTab";
-import NavigationTab from "@/components/admin/NavigationTab";
-import AIAgentsTab from "@/components/admin/AIAgentsTab";
-import NotificationsTab from "@/components/admin/NotificationsTab";
-import ModelDefaultsTab from "@/components/admin/ModelDefaultsTab";
-import ExportsTab from "@/components/admin/ExportsTab";
-import ScenariosTab from "@/components/admin/ScenariosTab";
-import QASandbox from "@/components/admin/intelligence/QASandbox";
-import ScheduledResearchPanel from "@/components/admin/intelligence/ScheduledResearchPanel";
-import BrandTab from "@/components/admin/BrandTab";
-import EngineDashboard from "@/components/admin/intelligence/EngineDashboard";
-import DataSourcesTab from "@/components/admin/intelligence/DataSourcesTab";
-import PipelineConfigTab from "@/components/admin/intelligence/PipelineConfigTab";
-import KnowledgeBaseTab from "@/components/admin/KnowledgeBaseTab";
-import FinancialLinesTab from "@/components/admin/intelligence/FinancialLinesTab";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -30,6 +10,28 @@ import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
 import { useAdminSection } from "@/lib/admin-nav";
 import type { AdminSaveState } from "@/components/admin/save-state";
+import { Loader2 } from "@/components/icons/themed-icons";
+
+const CompaniesTab = lazy(() => import("@/components/admin").then(m => ({ default: m.CompaniesTab })));
+const ActivityTab = lazy(() => import("@/components/admin").then(m => ({ default: m.ActivityTab })));
+const VerificationTab = lazy(() => import("@/components/admin").then(m => ({ default: m.VerificationTab })));
+const DatabaseTab = lazy(() => import("@/components/admin").then(m => ({ default: m.DatabaseTab })));
+const PeopleTab = lazy(() => import("@/components/admin/PeopleTab"));
+const GroupsTab = lazy(() => import("@/components/admin/GroupsTab"));
+const NavigationTab = lazy(() => import("@/components/admin/NavigationTab"));
+const AIAgentsTab = lazy(() => import("@/components/admin/AIAgentsTab"));
+const NotificationsTab = lazy(() => import("@/components/admin/NotificationsTab"));
+const ModelDefaultsTab = lazy(() => import("@/components/admin/ModelDefaultsTab"));
+const ExportsTab = lazy(() => import("@/components/admin/ExportsTab"));
+const ScenariosTab = lazy(() => import("@/components/admin/ScenariosTab"));
+const QASandbox = lazy(() => import("@/components/admin/intelligence/QASandbox"));
+const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligence/ScheduledResearchPanel"));
+const BrandTab = lazy(() => import("@/components/admin/BrandTab"));
+const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
+const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
+const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
+const KnowledgeBaseTab = lazy(() => import("@/components/admin/KnowledgeBaseTab"));
+const FinancialLinesTab = lazy(() => import("@/components/admin/intelligence/FinancialLinesTab"));
 
 export type { AdminSaveState };
 
@@ -152,7 +154,9 @@ export default function Admin() {
           />
 
           <div className="space-y-6" data-testid={`admin-content-${resolved}`}>
-            <SectionContent section={activeSection} onNavigate={setActiveSection} onSaveStateChange={handleSaveStateChange} />
+            <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+              <SectionContent section={activeSection} onNavigate={setActiveSection} onSaveStateChange={handleSaveStateChange} />
+            </Suspense>
           </div>
         </div>
       </Layout>

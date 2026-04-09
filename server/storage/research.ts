@@ -1,6 +1,6 @@
 import { marketResearch, prospectiveProperties, savedSearches, globalAssumptions, type MarketResearch, type InsertMarketResearch, type ProspectiveProperty, type InsertProspectiveProperty, type SavedSearch, type InsertSavedSearch } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, desc, isNull, or } from "drizzle-orm";
+import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
 
 export class ResearchStorage {
   // ── Market Research ──────────────────────────────────────────────
@@ -38,31 +38,34 @@ export class ResearchStorage {
    * otherwise insert a new one. This prevents duplicate reports from piling up.
    */
   async upsertMarketResearch(data: InsertMarketResearch): Promise<MarketResearch> {
-    const conditions = [eq(marketResearch.type, data.type!)];
-    if (data.userId) conditions.push(eq(marketResearch.userId, data.userId));
-    if (data.propertyId) conditions.push(eq(marketResearch.propertyId, data.propertyId));
-    
-    const [existing] = await db.select().from(marketResearch)
-      .where(and(...conditions))
-      .limit(1);
-    
-    if (existing) {
-      const [updated] = await db.update(marketResearch)
-        .set({ 
-          title: data.title, 
-          content: data.content, 
-          llmModel: data.llmModel,
-          updatedAt: new Date() 
-        })
-        .where(eq(marketResearch.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [inserted] = await db.insert(marketResearch)
-        .values(data as typeof marketResearch.$inferInsert)
-        .returning();
-      return inserted;
-    }
+    return await db.transaction(async (tx) => {
+      const conditions = [eq(marketResearch.type, data.type!)];
+      if (data.userId) conditions.push(eq(marketResearch.userId, data.userId));
+      if (data.propertyId) conditions.push(eq(marketResearch.propertyId, data.propertyId));
+
+      const [existing] = await tx.select().from(marketResearch)
+        .where(and(...conditions))
+        .limit(1)
+        .for("update");
+
+      if (existing) {
+        const [updated] = await tx.update(marketResearch)
+          .set({
+            title: data.title,
+            content: data.content,
+            llmModel: data.llmModel,
+            updatedAt: new Date()
+          })
+          .where(eq(marketResearch.id, existing.id))
+          .returning();
+        return updated;
+      } else {
+        const [inserted] = await tx.insert(marketResearch)
+          .values(data as typeof marketResearch.$inferInsert)
+          .returning();
+        return inserted;
+      }
+    });
   }
   
   async getLastFullResearchRefresh(_userId: number): Promise<Date | null> {

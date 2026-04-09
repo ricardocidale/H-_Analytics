@@ -422,22 +422,22 @@ function ScheduledResearchGate() {
 function Router() {
   const { user, isLoading } = useAuth();
   const [showResearchRefresh, setShowResearchRefresh] = useState(false);
-  const prevUserRef = useState<any>(null);
+  const prevUserRef = useRef<any>(null);
 
   useEffect(() => {
     if (user) {
       setClientUser({ id: user.id, email: user.email, role: user.role });
       identifyUser({ id: user.id, email: user.email, role: user.role, companyId: user.companyId });
-      if (!prevUserRef[0]) trackUserLogin(user.role);
+      if (!prevUserRef.current) trackUserLogin(user.role);
     }
   }, [user]);
 
   useEffect(() => {
-    if (user && !prevUserRef[0]) {
+    if (user && !prevUserRef.current) {
       const guardKey = `research_refresh_done_${user.id || "default"}`;
       const sessionGuard = sessionStorage.getItem(guardKey);
       if (sessionGuard) {
-        prevUserRef[0] = user;
+        prevUserRef.current = user;
         return;
       }
 
@@ -470,7 +470,7 @@ function Router() {
         })
         .catch(() => { /* ignore: best-effort prefetch */ });
     }
-    prevUserRef[0] = user;
+    prevUserRef.current = user;
   }, [user]);
 
   const handleResearchComplete = useCallback((skipped?: boolean) => {

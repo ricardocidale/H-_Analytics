@@ -50,6 +50,9 @@ export function register(app: Express) {
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
       }
+      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
 
       const chunks: Buffer[] = [];
       let totalSize = 0;
@@ -200,12 +203,16 @@ export function register(app: Express) {
       }
       const { status } = validation.data;
 
-      const updated = await storage.updateExtractionFieldStatus(fieldId, status);
-
-      const ownerExtraction = await storage.getDocumentExtraction(updated.extractionId);
-      if (ownerExtraction && !await checkPropertyAccess(getAuthUser(req), ownerExtraction.propertyId)) {
+      const existingField = await storage.getExtractionField(fieldId);
+      if (!existingField) {
+        return res.status(404).json({ error: "Field not found" });
+      }
+      const ownerExtraction = await storage.getDocumentExtraction(existingField.extractionId);
+      if (!ownerExtraction || !(await checkPropertyAccess(getAuthUser(req), ownerExtraction.propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
+
+      const updated = await storage.updateExtractionFieldStatus(fieldId, status);
 
       if (status === "approved" && updated.mappedPropertyField) {
         const extraction = ownerExtraction;

@@ -20,6 +20,9 @@ export function register(app: Express) {
       if (!photo || !photo.imageData) {
         return res.status(404).json({ error: "Image not found in database" });
       }
+      if (!(await checkPropertyAccess(getAuthUser(req), photo.propertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const buffer = Buffer.from(photo.imageData, "base64");
       res.set({
         "Content-Type": "image/png",
@@ -98,6 +101,11 @@ export function register(app: Express) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
 
+      const existingPhoto = await storage.getPhotoById(photoId);
+      if (!existingPhoto || existingPhoto.propertyId !== propertyId) {
+        return res.status(404).json({ error: "Photo not found for this property" });
+      }
+
       const photo = await storage.updatePropertyPhoto(photoId, parsed.data);
       if (!photo) return res.status(404).json({ error: "Photo not found" });
       res.json(photo);
@@ -113,13 +121,18 @@ export function register(app: Express) {
         return res.status(403).json({ error: "Access denied" });
       }
 
+      const photoId = Number(req.params.photoId);
+      const existingPhoto = await storage.getPhotoById(photoId);
+      if (!existingPhoto || existingPhoto.propertyId !== propertyId) {
+        return res.status(404).json({ error: "Photo not found for this property" });
+      }
+
       const photos = await storage.getPropertyPhotos(propertyId);
       const user = getAuthUser(req);
       if (photos.length <= 1 && user.role !== "admin") {
         return res.status(403).json({ error: "Cannot delete the last photo — admin required" });
       }
 
-      const photoId = Number(req.params.photoId);
       await storage.deletePropertyPhoto(photoId);
       res.status(204).send();
     } catch (error) {

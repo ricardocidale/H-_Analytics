@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { requireAuth, isApiRateLimited , getAuthUser } from "../auth";
+import { requireAuth, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
 import { objectStorageClient, ObjectStorageService } from "../replit_integrations/object_storage";
 import { logActivity, logAndSendError, uploadRequestSchema, processImageSchema, bulkProcessPhotosSchema } from "./helpers";
 import { fromZodError } from "zod-validation-error";
@@ -112,6 +112,10 @@ export function register(app: Express) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
       const { propertyId, photoId, imageUrl, crop } = validation.data;
+
+      if (!(await checkPropertyAccess(getAuthUser(req), Number(propertyId)))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
 
       if (!imageUrl.startsWith("/objects/")) {
         return res.status(400).json({ error: "Only object storage paths are allowed" });
