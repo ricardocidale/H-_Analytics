@@ -757,6 +757,16 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **as any count**: 29 in scope (pages 28, features 1, hooks 0, App.tsx 0); 21 avoidable
 - **Resilience score**: 8.4/10 (route architecture 9, code splitting 9, hook correctness 8, state management 8, error handling 8)
 
+### Opus Audit #325: Client Financial & Dashboard Components (April 2026) — COMPLETED
+- **Report**: `docs/audits/325-client-financial-dashboard-components-findings.md`
+- **Scope**: 125 files (~18,074 lines) across 14 directories — dashboard/ (23), statements/ (4), financial-table/ (7), charts/ (5), portfolio/ (3), investment/ (3), financing/ (5), sensitivity/ (6), scenarios/ (6), funding/ (4), lib/financial/ (16), lib/audits/ (13), lib/charts/ (2), plus key hooks
+- **Verdict**: PASS — 0 critical, 1 high, 4 medium, 5 low findings
+- **Key findings**: (H) FormulaDetailRow duplicated 3× (same issue as #323 — specialized-rows.tsx + YearlyCashFlowStatement + YearlyIncomeStatement); (M) FCFAnalysisTable props typed as `any[]` (5 any types in interface); (M) 0 data-testid in financial-table/ (6 files); (M) 2 data-testid in charts/ (5 files); (M) CashFlowTab 12 independent .reduce() calls (could be single-pass)
+- **Positives**: Outstanding USALI compliance across all 3 statement layers (display/export/audit); ASC 230 indirect method correctly implemented; balance sheet cash formula consistent between useBalanceSheetData and statementBuilders; 2,616-line client audit system (GAAP/USALI verification defense-in-depth); financial-table library zero as-any/zero duplication; D3 charts properly typed with CHART_COLORS; balance sheet self-verification flag; server-compute toggle with per-property LRU cache
+- **as any count**: 4 in scope (usePortfolioFinancials 2, jsPDF × 3 — all justified)
+- **Catch blocks**: 10 in scope, all compliant (`e: unknown` / `error: unknown`)
+- **Resilience score**: 8.6/10 (GAAP compliance 10, formula consistency 9, type safety 8, test coverage 7, code organization 9)
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
