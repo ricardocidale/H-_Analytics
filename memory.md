@@ -739,6 +739,15 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **Resilience score**: 8.1/10 (fault isolation 9, recovery 7, data integrity 8, observability 8, type safety 8)
 - **Seeds/scripts**: 13 files (2,537 lines), zero `as any`, no security concerns, seed orchestrator has transactional rollback
 
+### Opus Audit #323: Server Exports & Report Generation (April 2026) — COMPLETED
+- **Report**: `docs/audits/323-server-exports-report-generation-findings.md`
+- **Scope**: 37 files (~7,885 lines) across server/pdf/ (8), server/report/ (4), server/exports/ (1), client/src/lib/exports/ (24)
+- **Verdict**: PASS — 0 critical, 1 high, 4 medium, 5 low findings
+- **Key findings**: (H) fmtCompact (4 copies) + monotoneCubicPath (3 copies) duplicated across server/pdf/chart-render.tsx, server/report/svg-charts.ts, server/theme-resolver.ts, server/svg-charts.ts, client exportRenderersPdfComprehensive.ts; (M) 32 `as any` in client exports — 20 avoidable from untyped PropertyExportContext.property/global; (M) Object.entries(...) as any unnecessary in companyExports.ts; (M) Zero catch blocks in server/report/ (1,050 lines); (M) Excel bold/fill styling silently ignored without SheetJS Pro; (L) 7 catch blocks use `(e)`/`(err)` instead of `(error: unknown)`; (L) IRR swallows error → returns 0 instead of N/A; (L) pdfHelpers.ts uses `doc: any` on all functions; (L) 5th inline fmtCompact in exportRenderersPdfComprehensive.ts; (L) pptxgen `as any` × 3 (necessary — library gap)
+- **Positives**: Zero `as any` in server/pdf/ + server/report/ (exemplary); design-pass.ts model AI resilience (4s timeout, Zod validation, graceful fallback); exportStyles.ts true single source of truth for brand palette + formatting; PPTX autoPage with header repeat; dense pagination section splitting; saveFile.ts modern File System Access API with fallback
+- **as any count**: server 0, client exports 32 (20 avoidable via PropertyExportContext typing)
+- **Resilience score**: 7.8/10 (fault isolation 8, recovery 7, data integrity 9, observability 7, type safety 7)
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
