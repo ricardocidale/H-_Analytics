@@ -8,6 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 10, 2026 — Export Test Refactoring
+- Created `tests/exports/helpers/index.ts` with 4 shared factories: `makeBrowserDownloadMocks`, `makeYearlyData`, `makeYearlyFinancials`, `makeTableRows`.
+- Merged `pptx-export.test.ts` + `pptx-footer.test.ts` → `pptx.test.ts`; moved `tests/client/export-helpers.test.ts` → `tests/exports/excel-helpers.test.ts`.
+- Eliminated duplicate coverage: inline Zod schema in premium-export, formatShort/BRAND in png-export, Excel helpers group in excel-export, pptxFontSize/pptxColumnWidths in pptx-footer.
+- Standardized all describe/it naming across 8 files (no dot-notation, present-tense it blocks). 4,437 tests / 182 files, all passing.
+
 ## Session: March 23, 2026 — Export Polish, KPI Removal, LLM Recommendations, Skills Update
 - Removed KPI cover pages permanently from report compiler — no KPI sections in ANY PDF export, ever.
 - Chart screenshots fully wired: `captureOverviewCharts.ts` → `dom-to-image-more` → base64 PNG → server `ImageSection` via `@react-pdf/renderer`.
