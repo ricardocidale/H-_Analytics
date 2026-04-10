@@ -733,9 +733,11 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **Report**: `docs/audits/322-server-ai-integrations-services-findings.md`
 - **Scope**: 52 files (~10,819 lines) across server/ai/ (21), server/services/ (20), server/integrations/ (5), server/notifications/ (2), server/document-ai/ (2), server/image/ (2)
 - **Verdict**: PASS — 0 critical, 1 high, 4 medium, 6 low findings
-- **Key findings**: (H) Notification actionUrl always undefined (dead ternary); (M) Duplicate BaseIntegrationService classes with divergent resilience; (M) 7 `as any` in research-scheduler JSONB payloads; (M) Hardcoded 8s sleep on Pinecone index creation; (M) 5 `as any` in rebecca-context-builder for missing type fields; (L) 8 empty catch blocks; (L) Fragile isTransientError string matching; (L) Unbounded geospatial caches; (L) Document AI fallback returns hardcoded fake data; (L) Resend creates new client per email; (L) Synthesis hardcodes Anthropic despite configurable model
+- **Key findings**: (H) Notification actionUrl always undefined (dead ternary); (M) Duplicate BaseIntegrationService classes with divergent resilience; (M) 6 `as any` in research-scheduler JSONB payloads; (M) Hardcoded 8s sleep on Pinecone index creation; (M) 5 `as any` in rebecca-context-builder for missing type fields; (L) 8 empty catch blocks; (L) Fragile isTransientError string matching; (L) Unbounded geospatial caches; (L) Document AI fallback returns hardcoded fake data; (L) Resend creates new client per email; (L) Synthesis hardcodes Anthropic despite configurable model
 - **Positives**: N+1 parallel research synthesis (dual analysts + API validation + Opus synthesis), Promise.allSettled fault isolation in 14-source aggregator, data recency validation (90/365 day thresholds), proper circuit breakers, mutex-based Pinecone index creation, branded responsive email templates, RapidAPI 3-slot key routing
-- **as any count**: 15 in scope (research-scheduler 7, rebecca-context-builder 5, research-client 2, pinecone-service 1)
+- **as any count**: 14 in scope (research-scheduler 6, rebecca-context-builder 5, research-client 2, pinecone-service 1)
+- **Resilience score**: 8.1/10 (fault isolation 9, recovery 7, data integrity 8, observability 8, type safety 8)
+- **Seeds/scripts**: 13 files (2,537 lines), zero `as any`, no security concerns, seed orchestrator has transactional rollback
 
 ## Feature Flags
 - RI_V2_WRITE: ON

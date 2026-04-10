@@ -2,12 +2,24 @@
 
 **Auditor**: Opus (automated deep review)  
 **Date**: 2026-04-10  
-**Scope**: `server/ai/` (21 files, 5,055 lines), `server/services/` (20 files, 3,300 lines), `server/integrations/` (5 files, 1,391 lines), `server/notifications/` (2 files, 165 lines), `server/document-ai/` (2 files, 679 lines), `server/image/` (2 files, 229 lines)  
-**Total**: 52 files, ~10,819 lines
+**Scope**: `server/ai/` (21 files, 5,055 lines), `server/services/` (20 files, 3,300 lines), `server/integrations/` (5 files, 1,391 lines), `server/notifications/` (2 files, 165 lines), `server/document-ai/` (2 files, 679 lines), `server/image/` (2 files, 229 lines), `server/seeds/` (9 files, 2,137 lines), `server/scripts/` (4 files, 400 lines)  
+**Total**: 65 files, ~13,356 lines
 
 ---
 
 ## Verdict: **PASS** — 0 Critical, 1 High, 4 Medium, 6 Low
+
+### Overall Resilience Score: **8.1 / 10**
+
+| Dimension | Score | Notes |
+|-----------|-------|-------|
+| Fault Isolation | 9/10 | Promise.allSettled in aggregator, circuit breakers on all integrations, non-blocking side effects |
+| Error Recovery | 7/10 | Circuit breakers with half-open probe (integrations), but no retry in services base class; scheduler mutual exclusion prevents cascading |
+| Data Integrity | 8/10 | Stale-while-revalidate caching, data recency validation, Pinecone mutex; but simulated Document AI fallback risks fake data leaking |
+| Observability | 8/10 | Sentry tracing on integrations, structured logging with service tags, API cost logging; but 8 empty catch blocks reduce debuggability |
+| Type Safety | 8/10 | 14 `as any` casts in scope (down from earlier audit baselines), proper `error instanceof Error` pattern in 45+ catch blocks |
+
+Scoring methodology: Each dimension rated 1-10 based on adherence to production best practices. Overall = weighted average (fault isolation 25%, error recovery 20%, data integrity 25%, observability 15%, type safety 15%).
 
 ---
 
@@ -141,6 +153,22 @@ The synthesis phase hardcodes `getAnthropicClient()` for streaming, even though 
 
 ---
 
+## Seeds & Scripts Review
+
+### server/seeds/ (9 files, 2,137 lines)
+- **`as any` count**: 0 — Clean.
+- **Catch blocks**: `index.ts` uses `catch (err)` without `: unknown` annotation (lines 120, 126, 155); `research.ts` uses `catch (err)` (line 588). These are seed-time scripts, not runtime code, so impact is low.
+- **Positive**: `index.ts` wraps all seeding in a try/catch with partial-failure cleanup (deletes inserted rows on error). Transactional rollback pattern is documented in comments.
+- **No security concerns**: Seeds contain hardcoded demo data only (no credentials, no user input processing).
+
+### server/scripts/ (4 files, 400 lines)
+- **`as any` count**: 0 — Clean.
+- **Catch blocks**: All 4 scripts use `catch (err)` without `: unknown` (lines vary). Acceptable for one-time CLI scripts.
+- **Pattern**: All scripts follow `run().catch(err => { console.error(err); process.exit(1) })` — correct for CLI tools.
+- **No resilience concerns**: Scripts are idempotent one-time operations (backfills, image generation).
+
+---
+
 ## Positive Observations
 
 1. **N+1 parallel research architecture**: The orchestrator's design (dual analyst panels → API validation → synthesis) with temporal decay on prior research is genuinely sophisticated. The single-panel fallback mode and confidence calibration are well-engineered.
@@ -169,11 +197,13 @@ The synthesis phase hardcodes `getAnthropicClient()` for streaming, even though 
 
 | File | Count | Context |
 |------|-------|---------|
-| `ambient/research-scheduler.ts` | 7 | ResearchConfig keys, JSONB payloads |
+| `ambient/research-scheduler.ts` | 6 | ResearchConfig keys, JSONB payloads |
 | `rebecca-context-builder.ts` | 5 | Missing type fields on GA/templates |
 | `research-client.ts` | 2 | Gemini tools cast, schema cleanup |
 | `pinecone-service.ts` | 1 | Pinecone upsert records format |
-| **Total** | **15** | |
+| **Total** | **14** | |
+
+Note: `server/seeds/` (9 files) and `server/scripts/` (4 files) contain zero `as any` casts.
 
 ---
 
@@ -239,3 +269,34 @@ The synthesis phase hardcodes `getAnthropicClient()` for streaming, even though 
 ### server/image/ (2 files)
 - `pipeline.ts` — Sharp image processing + variant generation
 - `variants.ts` — Image variant specifications
+
+### server/seeds/ (9 files)
+- `index.ts` — Seed orchestrator with transactional rollback on partial failure
+- `branding.ts` — Theme + company seed data
+- `properties.ts` — Property seed definitions
+- `property-data.ts` — Detailed property financial data (435 lines)
+- `research.ts` — Research seed data with AI-generated content (633 lines)
+- `market-rates.ts` — Market rate benchmark seeds
+- `photos.ts` — Property photo seed data
+- `users.ts` — User seed data (admin + demo users)
+- `services.ts` — Service template seeds
+
+### server/scripts/ (4 files)
+- `backfill-benchmarks-pinecone.ts` — One-time Pinecone benchmark backfill
+- `backfill-photo-image-data.ts` — Photo metadata backfill
+- `generate-medellin-exterior.ts` — Replicate image generation script
+- `generate-medellin-renders.ts` — Replicate batch render script
+
+---
+
+## Priority Fixes (Recommended Order)
+
+1. **H-1 (Immediate)**: Fix `actionUrl: event.link ? undefined : undefined` → `actionUrl: event.link || undefined` in `server/notifications/engine.ts:39`. One-line fix, restores notification email action URLs.
+
+2. **M-2 (Short-term)**: Define explicit TypeScript interfaces for scheduled research JSONB payloads (`ScheduledResearchContent`, `ScheduledResearchPromptConditions`) to eliminate 4 of 6 `as any` casts in `ambient/research-scheduler.ts`.
+
+3. **M-4 (Short-term)**: Extend `ServiceTemplate` type to include `defaultRate`, `serviceModel`, `serviceMarkup`, `isActive` fields; add `icpConfig` to `GlobalAssumptions` type. Eliminates 5 `as any` casts in `rebecca-context-builder.ts`.
+
+4. **M-1 (Medium-term)**: Add retry capability to `server/services/BaseIntegrationService.ts` by porting the exponential backoff from `server/integrations/base.ts`. Improves resilience of all 17 market data services.
+
+5. **M-3 (Medium-term)**: Replace hardcoded 8s sleep in `pinecone-service.ts` with poll-until-ready loop on `describeIndex()`. Low urgency since index creation is a one-time event.
