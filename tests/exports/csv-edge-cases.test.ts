@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { vi } from "vitest";
+import { makeBrowserDownloadMocks } from "./helpers";
 
 vi.mock("../../client/src/lib/exports/domCapture", () => ({
   captureToPng: vi.fn().mockResolvedValue("data:image/png;base64,"),
@@ -10,59 +12,32 @@ import {
   type ExportRow,
 } from "../../client/src/components/dashboard/dashboardExports";
 
-let mockLink: any;
-let capturedBlob: Blob | null;
+const mocks = makeBrowserDownloadMocks();
+beforeEach(() => mocks.install());
+afterEach(() => mocks.uninstall());
 
-beforeEach(() => {
-  capturedBlob = null;
-  mockLink = {
-    href: "",
-    download: "",
-    click: vi.fn(),
-    style: { display: "" },
-  };
-
-  (globalThis as any).document = {
-    createElement: vi.fn().mockReturnValue(mockLink),
-    body: {
-      appendChild: vi.fn().mockReturnValue(mockLink),
-      removeChild: vi.fn().mockReturnValue(mockLink),
-    },
-  };
-
-  (URL as any).createObjectURL = vi.fn((blob: Blob) => {
-    capturedBlob = blob;
-    return "blob:http://test/abc123";
-  });
-  (URL as any).revokeObjectURL = vi.fn();
-});
-
-afterEach(() => {
-  delete (globalThis as any).document;
-});
-
-describe("downloadCSV (csvExport.ts)", () => {
+describe("downloadCSV — edge cases", () => {
   it("creates blob with correct MIME type", async () => {
     await downloadCSV("a,b\n1,2", "test.csv");
-    expect(capturedBlob).toBeInstanceOf(Blob);
-    expect(capturedBlob!.type).toBe("text/csv;charset=utf-8;");
+    expect(mocks.capturedBlob).toBeInstanceOf(Blob);
+    expect(mocks.capturedBlob!.type).toBe("text/csv;charset=utf-8;");
   });
 
   it("sanitizes dangerous filename characters", async () => {
     await downloadCSV("data", 'portfolio/export:file*"name".csv');
-    expect(mockLink.download).toBe("portfolio_export_file__name_.csv");
+    expect(mocks.mockLink.download).toBe("portfolio_export_file__name_.csv");
   });
 
   it("preserves safe filename characters", async () => {
     await downloadCSV("data", "my-report_2025.csv");
-    expect(mockLink.download).toBe("my-report_2025.csv");
+    expect(mocks.mockLink.download).toBe("my-report_2025.csv");
   });
 
   it("handles commas in pre-escaped cell values", async () => {
     const content = '"Category","Value"\n"Grand Hotel, NYC","$1,500,000"';
     await downloadCSV(content, "test.csv");
 
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     expect(text).toContain('"Grand Hotel, NYC"');
     expect(text).toContain('"$1,500,000"');
   });
@@ -71,7 +46,7 @@ describe("downloadCSV (csvExport.ts)", () => {
     const content = '"Name","Description"\n"The ""Grand"" Hotel","A luxury property"';
     await downloadCSV(content, "quotes.csv");
 
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     expect(text).toContain('""Grand""');
   });
 
@@ -79,7 +54,7 @@ describe("downloadCSV (csvExport.ts)", () => {
     const content = '"Name","Notes"\n"Hotel A","Line 1\nLine 2"';
     await downloadCSV(content, "multiline.csv");
 
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     expect(text).toContain("Line 1\nLine 2");
   });
 
@@ -87,7 +62,7 @@ describe("downloadCSV (csvExport.ts)", () => {
     const content = '"Category","Year 1"\n"Revenue \u2014 Total","$1,234,567"\n"NOI (Net Operating Income)","$500,000"';
     await downloadCSV(content, "unicode.csv");
 
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     expect(text).toContain("Revenue \u2014 Total");
   });
 
@@ -101,7 +76,7 @@ describe("downloadCSV (csvExport.ts)", () => {
   });
 });
 
-describe("exportPortfolioCSV (dashboardExports.ts)", () => {
+describe("exportPortfolioCSV — CSV structure and encoding", () => {
   it("builds correct CSV structure from ExportRow data", async () => {
     const years = [2025, 2026, 2027];
     const rows: ExportRow[] = [
@@ -113,7 +88,7 @@ describe("exportPortfolioCSV (dashboardExports.ts)", () => {
     exportPortfolioCSV(years, rows, "portfolio-is.csv");
 
     await new Promise(r => setTimeout(r, 50));
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
 
     expect(text).toContain("Category,2025,2026,2027");
     expect(text).toContain('"Total Revenue"');
@@ -130,7 +105,7 @@ describe("exportPortfolioCSV (dashboardExports.ts)", () => {
     exportPortfolioCSV(years, rows, "nested.csv");
 
     await new Promise(r => setTimeout(r, 50));
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     expect(text).toContain('"    Hotel A"');
   });
 
@@ -143,7 +118,7 @@ describe("exportPortfolioCSV (dashboardExports.ts)", () => {
     exportPortfolioCSV(years, rows, "special.csv");
 
     await new Promise(r => setTimeout(r, 50));
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     expect(text).toContain("O'Brien's Resort & Spa");
     expect(text).toContain("Ch\u00e2teau du Lac");
   });
@@ -156,7 +131,7 @@ describe("exportPortfolioCSV (dashboardExports.ts)", () => {
     exportPortfolioCSV(years, rows, "comma-category.csv");
 
     await new Promise(r => setTimeout(r, 50));
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     expect(text).toContain('"Revenue, Total"');
   });
 
@@ -168,7 +143,7 @@ describe("exportPortfolioCSV (dashboardExports.ts)", () => {
     exportPortfolioCSV(years, rows, "decimals.csv");
 
     await new Promise(r => setTimeout(r, 50));
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     expect(text).toContain("1234567.89");
     expect(text).toContain("2345679.00");
   });
@@ -183,7 +158,7 @@ describe("exportPortfolioCSV (dashboardExports.ts)", () => {
     exportPortfolioCSV(years, rows, "structured.csv");
 
     await new Promise(r => setTimeout(r, 50));
-    const text = await capturedBlob!.text();
+    const text = await mocks.capturedBlob!.text();
     const lines = text.split("\n");
     expect(lines[0]).toBe("Category,2025,2026");
     expect(lines).toHaveLength(4);
@@ -196,6 +171,6 @@ describe("exportPortfolioCSV (dashboardExports.ts)", () => {
       values: [i * 10000, i * 11000],
     }));
     exportPortfolioCSV(years, rows, "large.csv");
-    expect(mockLink.click).toHaveBeenCalled();
+    expect(mocks.mockLink.click).toHaveBeenCalled();
   });
 });
