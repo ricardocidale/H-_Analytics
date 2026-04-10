@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { makeBrowserDownloadMocks, makeYearlyFinancials } from "./helpers";
 
 vi.mock("../../client/src/lib/exports/domCapture", () => ({
   captureToPng: vi.fn().mockResolvedValue("data:image/png;base64,"),
@@ -12,84 +13,10 @@ import {
   type ExportRow,
   type ExportData,
 } from "../../client/src/components/dashboard/dashboardExports";
-import type { YearlyPropertyFinancials } from "../../client/src/lib/financial/yearlyAggregator";
 
-let mockLink: any;
-let capturedContent: string | null;
-
-beforeEach(() => {
-  capturedContent = null;
-  mockLink = {
-    href: "",
-    download: "",
-    click: vi.fn(),
-    style: { display: "" },
-  };
-  (globalThis as any).document = {
-    createElement: vi.fn().mockReturnValue(mockLink),
-    body: {
-      appendChild: vi.fn().mockReturnValue(mockLink),
-      removeChild: vi.fn().mockReturnValue(mockLink),
-    },
-  };
-  (URL as any).createObjectURL = vi.fn((blob: Blob) => {
-    blob.text().then(t => { capturedContent = t; });
-    return "blob:http://test/abc123";
-  });
-  (URL as any).revokeObjectURL = vi.fn();
-});
-
-afterEach(() => {
-  delete (globalThis as any).document;
-});
-
-function makeYearlyFinancials(overrides: Partial<YearlyPropertyFinancials> = {}): YearlyPropertyFinancials {
-  return {
-    availableRooms: 36500,
-    soldRooms: 29200,
-    revenueRooms: 4380000,
-    revenueFB: 1200000,
-    revenueEvents: 300000,
-    revenueOther: 150000,
-    revenueTotal: 6030000,
-    expenseRooms: 876000,
-    expenseFB: 600000,
-    expenseEvents: 120000,
-    expenseOther: 75000,
-    expenseMarketing: 181000,
-    expensePropertyOps: 241200,
-    expenseAdmin: 301500,
-    expenseIT: 90000,
-    expenseInsurance: 120000,
-    expenseUtilitiesVar: 60000,
-    expenseUtilitiesFixed: 36000,
-    expenseOtherCosts: 30000,
-    expensePlatformFees: 0,
-    expensePreOpening: 0,
-    totalExpenses: 2730700,
-    gop: 3299300,
-    feeBase: 180900,
-    feeIncentive: 65000,
-    agop: 3053400,
-    expenseTaxes: 150000,
-    noi: 2903400,
-    expenseFFE: 120600,
-    anoi: 2782800,
-    interestExpense: 400000,
-    depreciationExpense: 200000,
-    incomeTax: 50000,
-    netIncome: 2132800,
-    principalPayment: 100000,
-    debtPayment: 500000,
-    operatingCashFlow: 2332800,
-    cashFlow: 1832800,
-    endingCash: 2332800,
-    debtOutstanding: 5000000,
-    serviceFeesByCategory: {},
-    refinancingProceeds: 0,
-    ...overrides,
-  } as YearlyPropertyFinancials;
-}
+const mocks = makeBrowserDownloadMocks();
+beforeEach(() => mocks.install());
+afterEach(() => mocks.uninstall());
 
 describe("toExportData", () => {
   it("converts ExportData years to strings", () => {
@@ -127,7 +54,7 @@ describe("toExportData", () => {
   });
 });
 
-describe("exportPortfolioCSV", () => {
+describe("exportPortfolioCSV — download integration", () => {
   it("builds CSV with headers and rows and triggers download", () => {
     const years = [2025, 2026];
     const rows: ExportRow[] = [
@@ -137,8 +64,8 @@ describe("exportPortfolioCSV", () => {
 
     exportPortfolioCSV(years, rows, "portfolio.csv");
 
-    expect(mockLink.click).toHaveBeenCalled();
-    expect(mockLink.download).toBe("portfolio.csv");
+    expect(mocks.mockLink.click).toHaveBeenCalled();
+    expect(mocks.mockLink.download).toBe("portfolio.csv");
   });
 
   it("includes indentation in CSV category column", async () => {
@@ -149,7 +76,8 @@ describe("exportPortfolioCSV", () => {
     exportPortfolioCSV(years, rows, "indent-test.csv");
 
     await new Promise(r => setTimeout(r, 50));
-    expect(capturedContent).toContain('"    Room Revenue"');
+    const text = await mocks.capturedBlob!.text();
+    expect(text).toContain('"    Room Revenue"');
   });
 
   it("formats values with 2 decimal places", async () => {
@@ -160,7 +88,8 @@ describe("exportPortfolioCSV", () => {
     exportPortfolioCSV(years, rows, "decimals.csv");
 
     await new Promise(r => setTimeout(r, 50));
-    expect(capturedContent).toContain("1234567.89");
+    const text = await mocks.capturedBlob!.text();
+    expect(text).toContain("1234567.89");
   });
 });
 
@@ -250,12 +179,10 @@ describe("generatePortfolioInvestmentData", () => {
 
     const noiRow = result.rows.find(r => r.category === "Net Operating Income (NOI)");
     expect(noiRow).toBeDefined();
-    // Investment Analysis uses raw NOI (not fee-adjusted like Income Statement)
     expect(noiRow!.values[0]).toBe(2903400);
 
     const dscrRow = result.rows.find(r => r.category === "DSCR");
     expect(dscrRow).toBeDefined();
-    // DSCR = consolidatedANOI / debtService (ANOI = NOI - FF&E reserve)
     expect(dscrRow!.values[0]).toBeCloseTo(2782800 / 200000, 1);
   });
 });
