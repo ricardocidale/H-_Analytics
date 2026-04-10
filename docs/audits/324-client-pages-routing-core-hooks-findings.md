@@ -29,7 +29,7 @@ Scoring methodology: Each dimension rated 1-10. Overall = weighted average (rout
 - **Provider hierarchy**: `Sentry.ErrorBoundary` → `ErrorBoundary` → `QueryClientProvider` → `AuthProvider` → `TooltipProvider` → `Router`. Clean top-down composition.
 - **Four route guards**: `ProtectedRoute` (any auth), `AdminRoute` (admin only), `ManagementRoute` (non-investor), `CheckerRoute` (admin or checker). All handle loading states and redirect to `/login`.
 - **Global behaviors**: `GlobalBeforeUnloadGuard` (warns on dirty tab close), `NavigationGuard` (intercepts route changes with unsaved work), `IdleAutoSave` (saves after 60min idle), `AutoSaveRestorePrompt` (offers to restore on login), `LogoutProtectionDialog`, `ScheduledResearchGate` (checks for stale research workflows).
-- **9 legacy redirects**: /settings→/admin, /methodology→/help, /research→/, /global/research→/company/research, /sensitivity→/analysis, /financing→/analysis, /executive-summary→/, /checker-manual→/help, /compare→/analysis, /timeline→/analysis.
+- **11 legacy redirects**: /settings→/admin, /methodology→/help, /research→/, /company/criteria→/company/icp-definition, /global/research→/company/research, /icp→admin(IcpRedirect), /sensitivity→/analysis, /financing→/analysis, /executive-summary→/, /checker-manual→/help, /compare→/analysis, /timeline→/analysis. Plus /login→/ for already-authenticated users.
 - **Analytics**: Sentry init at module level; analytics deferred via `requestIdleCallback` (good).
 - **Lazy loading**: All 24 pages lazy-loaded with `React.lazy()` + `<Suspense>`. Login lazied separately (pulls Three.js).
 
@@ -245,7 +245,7 @@ This double cast (`as unknown as`) bridges between `Property` and `LoanParams` t
 
 6. **Server-side financial computation**: `useServerFinancials` sends all properties to `/api/finance/compute` and maps the response — computation happens server-side, not in the browser. Proper `keepPreviousData` prevents flash-of-empty during recomputation.
 
-7. **9 legacy redirects preserved**: Old routes (/sensitivity, /financing, /map, /compare, /timeline, etc.) all redirect to their new consolidated locations. No broken bookmarks.
+7. **11 legacy redirects preserved**: Old routes (/settings, /methodology, /research, /company/criteria, /global/research, /icp, /sensitivity, /financing, /executive-summary, /checker-manual, /compare, /timeline) all redirect to their new consolidated locations. No broken bookmarks.
 
 8. **Feature modules are well-structured**: `design-themes/` and `property-images/` follow the barrel pattern with dedicated hooks, types, and components. Clean separation.
 
