@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { estimateSectionHeight, splitOversizedSections, groupSectionsIntoPages, HEADER_HEIGHT_PT, FOOTER_HEIGHT_PT, PAGE_PADDING_TOP, PAGE_PADDING_BOTTOM, SECTION_GAP } from "../../server/pdf/pagination";
 import { PAGE_LANDSCAPE, PAGE_PORTRAIT } from "../../server/pdf/theme-mappers";
 import { fmtCompact, monotoneCubicPath } from "../../server/pdf/chart-render";
@@ -211,5 +211,174 @@ describe("renderPremiumPdf export integrity", () => {
   it("renderPremiumPdf is exported from render.tsx", async () => {
     const mod = await import("../../server/pdf/render");
     expect(typeof mod.renderPremiumPdf).toBe("function");
+  });
+});
+
+const testTokens = {
+  primary: "#112548",
+  secondary: "#0091AE",
+  accent: "#FDB817",
+  foreground: "#1a1a1a",
+  border: "#cccccc",
+  muted: "#f5f5f5",
+  surface: "#fafafa",
+  background: "#ffffff",
+  white: "#ffffff",
+  negativeRed: "#dc2626",
+  chart: ["#0091AE", "#FDB817", "#112548"],
+  line: ["#cccccc"],
+};
+
+const testCover = {
+  companyName: "Test Company",
+  entityName: "Test Hotel",
+  reportTitle: "Financial Report",
+  date: "2026-01-01",
+};
+
+function makeTestTableRows(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    category: `Row ${i + 1}`,
+    type: (i === 0 ? "header" : "data") as "header" | "data",
+    indent: i === 0 ? 0 : 1,
+    values: [
+      { text: "$100,000", raw: 100000, negative: false },
+      { text: "$200,000", raw: 200000, negative: false },
+    ],
+    rawValues: [100000, 200000],
+    format: undefined,
+  }));
+}
+
+describe("renderPremiumPdf — render-level structural snapshots", () => {
+  let renderPremiumPdf: (input: unknown) => Promise<Buffer>;
+
+  beforeAll(async () => {
+    const mod = await import("../../server/pdf/render");
+    renderPremiumPdf = mod.renderPremiumPdf;
+  });
+
+  it("renders dense + landscape and produces a valid PDF buffer", async () => {
+    const report = {
+      cover: testCover,
+      tokens: testTokens,
+      orientation: "landscape" as const,
+      densePagination: true,
+      sections: [
+        { kind: "kpi" as const, title: "Key Metrics", metrics: [
+          { label: "Revenue", value: "$1M", description: "Total" },
+          { label: "NOI", value: "$400K", description: "Net" },
+        ]},
+        { kind: "table" as const, title: "Income Statement", years: ["Year 1", "Year 2"], rows: makeTestTableRows(5) },
+      ],
+    };
+    const buffer = await renderPremiumPdf(report);
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(1000);
+    expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
+  });
+
+  it("renders dense + portrait and produces a valid PDF buffer", async () => {
+    const report = {
+      cover: testCover,
+      tokens: testTokens,
+      orientation: "portrait" as const,
+      densePagination: true,
+      sections: [
+        { kind: "table" as const, title: "Cash Flow", years: ["Year 1", "Year 2"], rows: makeTestTableRows(8) },
+      ],
+    };
+    const buffer = await renderPremiumPdf(report);
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(1000);
+    expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
+  });
+
+  it("renders non-dense + landscape and produces a valid PDF buffer", async () => {
+    const report = {
+      cover: testCover,
+      tokens: testTokens,
+      orientation: "landscape" as const,
+      densePagination: false,
+      sections: [
+        { kind: "kpi" as const, title: "KPIs", metrics: [
+          { label: "RevPAR", value: "$150", description: "" },
+        ]},
+        { kind: "table" as const, title: "Balance Sheet", years: ["Year 1"], rows: makeTestTableRows(3) },
+        { kind: "chart" as const, title: "Revenue Trend", years: ["Year 1", "Year 2", "Year 3"], series: [
+          { label: "Revenue", values: [100000, 200000, 300000], color: "#0091AE" },
+        ]},
+      ],
+    };
+    const buffer = await renderPremiumPdf(report);
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(1000);
+    expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
+  });
+
+  it("renders non-dense + portrait and produces a valid PDF buffer", async () => {
+    const report = {
+      cover: testCover,
+      tokens: testTokens,
+      orientation: "portrait" as const,
+      densePagination: false,
+      sections: [
+        { kind: "table" as const, title: "Statement", years: ["Year 1", "Year 2"], rows: makeTestTableRows(4) },
+      ],
+    };
+    const buffer = await renderPremiumPdf(report);
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(1000);
+    expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
+  });
+
+  it("renders empty sections (no data) and produces valid fallback PDF", async () => {
+    const report = {
+      cover: testCover,
+      tokens: testTokens,
+      orientation: "landscape" as const,
+      densePagination: false,
+      sections: [],
+    };
+    const buffer = await renderPremiumPdf(report);
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
+  });
+
+  it("oversized table splits across pages in dense mode", async () => {
+    const report = {
+      cover: testCover,
+      tokens: testTokens,
+      orientation: "landscape" as const,
+      densePagination: true,
+      sections: [
+        { kind: "table" as const, title: "Large Table", years: ["Y1", "Y2"], rows: makeTestTableRows(80) },
+      ],
+    };
+    const buffer = await renderPremiumPdf(report);
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(5000);
+    expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
+  });
+
+  it("dense landscape produces smaller PDF than non-dense for same content", async () => {
+    const sections = [
+      { kind: "kpi" as const, title: "Metrics", metrics: [
+        { label: "Revenue", value: "$1M", description: "" },
+        { label: "NOI", value: "$400K", description: "" },
+      ]},
+      { kind: "table" as const, title: "Income", years: ["Y1", "Y2"], rows: makeTestTableRows(10) },
+    ];
+
+    const denseBuffer = await renderPremiumPdf({
+      cover: testCover, tokens: testTokens, orientation: "landscape" as const,
+      densePagination: true, sections,
+    });
+    const nonDenseBuffer = await renderPremiumPdf({
+      cover: testCover, tokens: testTokens, orientation: "landscape" as const,
+      densePagination: false, sections,
+    });
+
+    expect(denseBuffer.length).toBeLessThan(nonDenseBuffer.length);
   });
 });

@@ -35,7 +35,7 @@
 - **Orchestrator**: `render.tsx` reduced to 125 lines
 - **Deviation**: PageHeader/PageFooter/SectionDivider placed in `theme-mappers.tsx` (not `section-renderers.tsx`) to avoid circular dependency between chart-render↔section-renderers and table-render↔section-renderers
 - **Snapshot tests**: 20 new tests in `tests/server/pdf-render.snapshot.test.ts` covering pagination constants, estimateSectionHeight (landscape vs portrait, all densities), splitOversizedSections, groupSectionsIntoPages, fmtCompact, monotoneCubicPath, and export integrity
-- Health: ALL CLEAR — 4,456 tests (183 files)
+- Health: ALL CLEAR — 4,463 tests (183 files)
 
 ### T013-T015 Pinecone Financial Intelligence (April 2026) — COMPLETED + ULTRAPLAN REVISION
 - **T013 (Bug Fix + Tests)**: Fixed critical category→KPI mapping bug. Now uses explicit lookup table `CATEGORY_TO_KPI` (no substring matching). Null value propagates correctly (null ≠ zero).
