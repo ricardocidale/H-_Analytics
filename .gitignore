@@ -27,7 +27,9 @@ npm-debug.log*
 # Server generated public files
 server/public
 
-# Duplicate image locations (canonical: client/public/images/)
+# Property images — stored in Neon DB, served via /api/property-photos/:id/image
+client/public/images/property-*.png
+client/public/images/medellin-*.jpeg
 public/images/
 client/src/assets/property-*.png
 
