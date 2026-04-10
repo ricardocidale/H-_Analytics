@@ -207,12 +207,12 @@ export function registerPineconeRoutes(app: Express) {
               propertyId: property.id,
               name: property.name ?? "Unnamed Property",
               location: [property.city, property.stateProvince, property.country].filter(Boolean).join(", "),
-              propertyType: (property as any).propertyType ?? (property as any).property_type ?? "hotel",
-              roomCount: (property as any).roomCount ?? (property as any).room_count ?? null,
-              starRating: (property as any).starRating ?? (property as any).star_rating ?? null,
-              status: (property as any).status ?? "active",
-              purchasePrice: (property as any).purchasePrice ?? (property as any).purchase_price ?? null,
-              market: (property as any).market ?? null,
+              propertyType: "hotel",
+              roomCount: property.roomCount ?? null,
+              starRating: property.starRating ?? null,
+              status: "active",
+              purchasePrice: property.purchasePrice ?? null,
+              market: null,
             });
             indexed++;
           } catch (e) { logger.warn(`Failed to index property ${property.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
