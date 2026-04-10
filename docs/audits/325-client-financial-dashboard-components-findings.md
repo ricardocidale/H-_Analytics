@@ -77,7 +77,7 @@ Cash = Operating Reserve + (cumulative ANOI − Debt Service − Tax) + Refi Pro
 
 ---
 
-## T004 — `as any` Usage (4 instances)
+## T004 — `as any` Usage (5 instances across 4 locations)
 
 | Location | Usage | Justification | Severity |
 |----------|-------|---------------|----------|
