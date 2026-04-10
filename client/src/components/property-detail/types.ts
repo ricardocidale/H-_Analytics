@@ -20,6 +20,9 @@
  */
 import type { RefObject } from "react";
 import type { LoanParams, GlobalLoanParams } from "@/lib/financial/loanCalculations";
+import type { Property } from "@shared/schema";
+import type { MonthlyFinancials } from "@/lib/financialEngine";
+import type { GlobalResponse } from "@/lib/api/types";
 
 export interface YearlyChartDataPoint {
   year: string;
@@ -75,16 +78,16 @@ export interface CashFlowDataPoint {
 }
 
 export interface PPECostBasisScheduleProps {
-  property: any;
-  global: any;
+  property: Property;
+  global: GlobalResponse;
 }
 
 export interface IncomeStatementTabProps {
   yearlyChartData: YearlyChartDataPoint[];
   yearlyDetails: YearlyDetail[];
-  financials: any[];
-  property: any;
-  global: any;
+  financials: MonthlyFinancials[];
+  property: Property;
+  global: GlobalResponse;
   projectionYears: number;
   startYear: number;
   incomeChartRef: RefObject<HTMLDivElement | null>;
@@ -96,9 +99,9 @@ export interface CashFlowTabProps {
   yearlyChartData: YearlyChartDataPoint[];
   cashFlowData: CashFlowDataPoint[];
   yearlyDetails: YearlyDetail[];
-  financials: any[];
-  property: any;
-  global: any;
+  financials: MonthlyFinancials[];
+  property: Property;
+  global: GlobalResponse;
   projectionYears: number;
   startYear: number;
   cashFlowChartRef: RefObject<HTMLDivElement | null>;
@@ -106,7 +109,7 @@ export interface CashFlowTabProps {
 }
 
 export interface PropertyHeaderProps {
-  property: any;
+  property: Property;
   propertyId: number;
   heroCaption?: string;
   onPhotoUploadComplete: () => void;

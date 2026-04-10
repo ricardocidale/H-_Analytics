@@ -183,6 +183,42 @@ findings.push({
   samples: [],
 });
 
+// 11. Catch compliance — catch blocks without `: unknown` annotation
+const catchNoUnknownRaw = [
+  ...grep("\\} catch \\(\\w+\\) \\{", "client/src/", "*.{ts,tsx}"),
+  ...grep("\\} catch \\(\\w+\\) \\{", "server/", "*.ts"),
+  ...grep("\\} catch \\(\\w+\\) \\{", "calc/", "*.ts"),
+].filter(line => !line.includes(".test."));
+findings.push({
+  label: "catch without `: unknown`",
+  count: catchNoUnknownRaw.length,
+  severity: catchNoUnknownRaw.length > 0 ? "warning" : "info",
+  samples: catchNoUnknownRaw.slice(0, 3),
+});
+
+// 12. Brand hex audit — hardcoded brand colors outside CSS/config
+const brandHexRaw = [
+  ...grep("#112548|#0091AE|#FDB817", "client/src/", "*.{ts,tsx}"),
+  ...grep("#112548|#0091AE|#FDB817", "server/", "*.ts"),
+].filter(line => !line.includes(".test.") && !line.includes("index.css") && !line.includes("constants"));
+findings.push({
+  label: "Hardcoded brand hex outside CSS",
+  count: brandHexRaw.length,
+  severity: brandHexRaw.length > 3 ? "warning" : "info",
+  samples: brandHexRaw.slice(0, 3),
+});
+
+// 13. Prop `any` tracker — `: any` or `?: any` in component interfaces
+const propAnyRaw = [
+  ...grep(":\\s*any[\\[;,\\s]|\\?:\\s*any[\\[;,\\s]", "client/src/", "*.{ts,tsx}"),
+].filter(line => !line.includes(".test.") && !line.includes("node_modules"));
+findings.push({
+  label: "Prop `: any` in component types",
+  count: propAnyRaw.length,
+  severity: propAnyRaw.length > 5 ? "warning" : "info",
+  samples: propAnyRaw.slice(0, 3),
+});
+
 // Output
 console.log("");
 console.log("  Quick Audit");

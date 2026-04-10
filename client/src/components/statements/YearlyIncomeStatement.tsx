@@ -27,6 +27,8 @@
  */
 import { useState } from "react";
 import { MonthlyFinancials, formatMoney } from "@/lib/financialEngine";
+import type { Property } from "@shared/schema";
+import type { GlobalResponse } from "@/lib/api/types";
 import {
   DEFAULT_COST_RATE_PROPERTY_OPS, DEFAULT_COST_RATE_UTILITIES,
   DEFAULT_COST_RATE_ADMIN, DEFAULT_COST_RATE_TAXES, DEFAULT_COST_RATE_INSURANCE,
@@ -61,8 +63,8 @@ interface Props {
   data: MonthlyFinancials[];
   years?: number;
   startYear?: number;
-  property?: any;
-  global?: any;
+  property?: Property;
+  global?: GlobalResponse;
   allExpanded?: boolean;
 }
 

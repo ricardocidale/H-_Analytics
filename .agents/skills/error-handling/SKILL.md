@@ -157,6 +157,22 @@ setClientUser({ id: user.id, email: user.email, role: user.role });
 
 ## Rules
 
+### Catch Blocks Must Use `: unknown` Annotation
+
+Every `catch` block must annotate the error parameter as `: unknown`. This is enforced by the Quick Audit scanner (`npm run audit:quick`, check #11).
+
+```typescript
+// WRONG — implicit `any` error type
+try { await riskyOp(); } catch (err) {
+  console.error(err.message); // unsafe property access
+}
+
+// CORRECT — typed as unknown, safe access
+try { await riskyOp(); } catch (err: unknown) {
+  console.error("[ERROR] riskyOp failed:", err instanceof Error ? err.message : String(err));
+}
+```
+
 ### Empty Catch Blocks Are Not Permitted
 
 Every `catch` block must either:
@@ -169,7 +185,7 @@ Every `catch` block must either:
 try { await riskyOp(); } catch {}
 
 // CORRECT — log and continue
-try { await riskyOp(); } catch (err) {
+try { await riskyOp(); } catch (err: unknown) {
   console.error("[ERROR] riskyOp failed:", err);
 }
 
@@ -179,6 +195,7 @@ storage.createLog(data).catch(err => console.error("[ERROR] log failed:", err));
 
 ### Error Handling Checklist
 
+- [ ] All `catch` blocks use `(error: unknown)` annotation — enforced by `npm run audit:quick` check #11
 - [ ] Server routes use `logAndSendError` for unexpected errors
 - [ ] Validation errors return 400 with `fromZodError` messages
 - [ ] Side effects (logging, notifications) use `.catch()` to prevent cascading failures
