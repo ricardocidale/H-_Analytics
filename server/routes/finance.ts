@@ -1,12 +1,14 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import superjson from "superjson";
-import { computePortfolioProjection, computeSingleProperty, computeCompanyProjection } from "../finance/service";
+import { computePortfolioProjection, computePortfolioProjectionWithAudit, computeSingleProperty, computeCompanyProjection } from "../finance/service";
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
-import { getCacheStatus, invalidateComputeCache, resetCacheStats } from "../finance/cache";
+import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../auth";
 import { logger } from "../logger";
+import { storage } from "../storage";
 import type { PropertyInput, GlobalInput } from "@engine/types";
+import type { AuditTrailPerProperty } from "../finance/service";
 
 const propertyInputSchema = z.object({
   operationsStartDate: z.string(),
@@ -109,6 +111,33 @@ function sendSuperjson(res: Response, data: unknown): void {
   res.json(serialized);
 }
 
+interface AuditPersistMeta {
+  scenarioId: number;
+  userId: number;
+  engineVersion: string;
+  inputHash: string;
+  outputHash: string;
+  opinion: string;
+}
+
+async function persistAuditTrails(trails: AuditTrailPerProperty[], meta: AuditPersistMeta): Promise<void> {
+  const startTime = Date.now();
+  for (const trail of trails) {
+    await storage.saveCalcAuditLog({
+      scenarioId: meta.scenarioId,
+      propertyId: trail.propertyId ?? 0,
+      userId: meta.userId,
+      engineVersion: meta.engineVersion,
+      inputHash: meta.inputHash,
+      outputHash: meta.outputHash,
+      auditOpinion: meta.opinion,
+      durationMs: Date.now() - startTime,
+      totalSteps: trail.totalSteps,
+      logEntries: trail.entries,
+    });
+  }
+}
+
 export function registerFinanceRoutes(router: Router): void {
   router.post("/api/finance/compute", requireAuth, async (req: Request, res: Response) => {
     try {
@@ -127,12 +156,37 @@ export function registerFinanceRoutes(router: Router): void {
       }
 
       const { properties, globalAssumptions, projectionYears } = validation.data;
+      const wantAudit = req.query.audit === "true";
 
-      const result = computePortfolioProjection({
-        properties: properties as PropertyInput[],
-        globalAssumptions: globalAssumptions as GlobalInput,
-        projectionYears,
-      });
+      const { result, auditTrails } = computePortfolioProjectionWithAudit(
+        {
+          properties: properties as PropertyInput[],
+          globalAssumptions: globalAssumptions as GlobalInput,
+          projectionYears,
+        },
+        wantAudit,
+      );
+
+      if (wantAudit && auditTrails.length > 0) {
+        const userId = getAuthUser(req).id;
+        const scenarioId = typeof req.body.scenarioId === "number" ? req.body.scenarioId : 0;
+        const inputHash = computeCacheKey({
+          properties: properties as PropertyInput[],
+          globalAssumptions: globalAssumptions as GlobalInput,
+          projectionYears,
+        });
+
+        persistAuditTrails(auditTrails, {
+          scenarioId,
+          userId,
+          engineVersion: result.engineVersion,
+          inputHash,
+          outputHash: result.outputHash,
+          opinion: result.validationSummary.opinion,
+        }).catch((err: unknown) => {
+          logger.error(`Audit trail persist failed: ${err instanceof Error ? err.message : String(err)}`, "finance");
+        });
+      }
 
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);
       res.setHeader("X-Finance-Output-Hash", result.outputHash);

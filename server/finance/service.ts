@@ -14,6 +14,8 @@ import {
   getCachedResult,
   setCachedResult,
 } from "./cache";
+import { AuditCollector } from "@engine/property/audit-collector";
+import type { AuditEntry } from "@engine/property/audit-collector";
 
 const ENGINE_VERSION = "1.0.0";
 const PROJECTION_YEARS_DEFAULT = 10;
@@ -110,13 +112,35 @@ function runValidation(allPropertyYearlyArrays: YearlyPropertyFinancials[][]) {
   return { opinion: worstOpinion, identityChecks: totalChecks, passed: passedChecks, failed: failedChecks };
 }
 
+export interface AuditTrailPerProperty {
+  propertyKey: string;
+  propertyId: number | null;
+  entries: AuditEntry[];
+  totalSteps: number;
+}
+
+export interface ComputeResultWithAudit {
+  result: PortfolioComputeResult;
+  auditTrails: AuditTrailPerProperty[];
+}
+
 export function computePortfolioProjection(
   input: ComputePortfolioInput,
 ): PortfolioComputeResult {
+  const { result } = computePortfolioProjectionWithAudit(input, false);
+  return result;
+}
+
+export function computePortfolioProjectionWithAudit(
+  input: ComputePortfolioInput,
+  collectAudit: boolean,
+): ComputeResultWithAudit {
   const cacheKey = computeCacheKey(input);
-  const cached = getCachedResult(cacheKey);
-  if (cached) {
-    return { ...cached, cached: true };
+  if (!collectAudit) {
+    const cached = getCachedResult(cacheKey);
+    if (cached) {
+      return { result: { ...cached, cached: true }, auditTrails: [] };
+    }
   }
 
   const projectionYears = input.projectionYears ?? PROJECTION_YEARS_DEFAULT;
@@ -124,6 +148,7 @@ export function computePortfolioProjection(
 
   const perPropertyYearly: Record<string, YearlyPropertyFinancials[]> = {};
   const perPropertyMonthly: Record<string, MonthlyFinancials[]> = {};
+  const auditTrails: AuditTrailPerProperty[] = [];
 
   for (let i = 0; i < input.properties.length; i++) {
     const property = input.properties[i];
@@ -134,6 +159,19 @@ export function computePortfolioProjection(
 
     perPropertyMonthly[key] = monthly;
     perPropertyYearly[key] = yearly;
+
+    if (collectAudit) {
+      const collector = new AuditCollector();
+      const propName = property.name ?? key;
+      collector.collectFromMonthly(monthly, propName);
+      collector.collectFromYearly(yearly, propName);
+      auditTrails.push({
+        propertyKey: key,
+        propertyId: property.id ?? null,
+        entries: collector.getEntries(),
+        totalSteps: collector.totalSteps,
+      });
+    }
   }
 
   const allPropertyYearlyArrays = Object.values(perPropertyYearly);
@@ -162,7 +200,7 @@ export function computePortfolioProjection(
   };
 
   setCachedResult(cacheKey, result);
-  return result;
+  return { result, auditTrails };
 }
 
 export function computeSingleProperty(

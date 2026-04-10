@@ -8,6 +8,13 @@
 
 ## Architecture Decisions Log
 
+### T001-T002 Calculation Audit Trail (April 2026) — COMPLETED
+- **T001**: Schema + storage + routes for `calculation_audit_logs` table. Files: `shared/schema/calc-audit.ts`, `server/storage/calc-audit.ts`, `server/routes/calc-audit.ts`, migration `calc-audit-001.ts`
+- **T002**: Engine instrumentation — `AuditCollector` class (`engine/property/audit-collector.ts`), `computePortfolioProjectionWithAudit()` in `server/finance/service.ts`, finance route wired (`?audit=true` bypasses cache + async persistence)
+- **Code review fixes applied**: (1) Cache bypass when `audit=true` (was returning empty trails on cache hits), (2) Engine decoupled from DB schema — `AuditEntry` interface defined in engine, mapped at server boundary, (3) IDOR fix — all calc-audit routes now filter by authenticated userId, (4) Proper error logging on fire-and-forget persistence (0 empty catch blocks)
+- **Next**: T003 (Audit Log Viewer UI)
+- Health: 4,385 tests, 0 TS errors, 0 lint, UNQUALIFIED, 0 empty catch blocks
+
 ### T019 Health Check Dashboard (April 2026) — COMPLETED
 - **Pipeline Health tab** added to Admin > Verification section
 - Server routes: `POST /api/admin/health-check/run` (runs TS + lint + 15-phase verify), `GET /api/admin/health-check/last`

@@ -26,7 +26,7 @@
  * by every route file in server/routes/.
  */
 import { db, pool } from "../db";
-import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, scenarioResults, notificationPreferences, documentExtractions, conversations, type User, type Session, type GlobalAssumptions, type Property, type Scenario, type ScenarioResult, type InsertScenarioResult, type Logo, type AssetDescription, type UserGroup, type Company, type FeeCategory, type ResearchQuestion, type DesignTheme } from "@shared/schema";
+import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, scenarioResults, notificationPreferences, documentExtractions, conversations, calculationAuditLogs, type User, type Session, type GlobalAssumptions, type Property, type Scenario, type ScenarioResult, type InsertScenarioResult, type Logo, type AssetDescription, type UserGroup, type Company, type FeeCategory, type ResearchQuestion, type DesignTheme } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { UserStorage } from "./users";
 import { PropertyStorage } from "./properties";
@@ -41,6 +41,7 @@ import { NotificationStorage } from "./notifications";
 import { IntegrationStorage } from "./integrations";
 import { IntelligenceV2Storage, IntelligenceRebeccaStorage } from "./intelligence-v2";
 import { PropertyUrlStorage } from "./property-urls";
+import { CalcAuditStorage, type ICalcAuditStorage } from "./calc-audit";
 
 export interface IStorage extends
   UserStorage,
@@ -55,7 +56,8 @@ export interface IStorage extends
   NotificationStorage,
   IntegrationStorage,
   IntelligenceV2Storage,
-  PropertyUrlStorage {
+  PropertyUrlStorage,
+  ICalcAuditStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -75,6 +77,7 @@ export class DatabaseStorage implements IStorage {
   private intelligenceV2 = new IntelligenceV2Storage();
   private rebecca = new IntelligenceRebeccaStorage();
   private propertyUrlStore = new PropertyUrlStorage();
+  private calcAudit = new CalcAuditStorage();
 
   // Users
   getUserById = this.users.getUserById.bind(this.users);
@@ -365,6 +368,12 @@ export class DatabaseStorage implements IStorage {
   updatePropertyUrl = this.propertyUrlStore.updatePropertyUrl.bind(this.propertyUrlStore);
   deletePropertyUrl = this.propertyUrlStore.deletePropertyUrl.bind(this.propertyUrlStore);
 
+  // Calculation Audit Logs
+  saveCalcAuditLog = this.calcAudit.saveCalcAuditLog.bind(this.calcAudit);
+  getCalcAuditLogs = this.calcAudit.getCalcAuditLogs.bind(this.calcAudit);
+  getCalcAuditLog = this.calcAudit.getCalcAuditLog.bind(this.calcAudit);
+  updateCalcAuditLogNote = this.calcAudit.updateCalcAuditLogNote.bind(this.calcAudit);
+
   /**
    * Delete a user and ALL related data in a single transaction.
    * Cascading deletes remove sessions, scenarios, research, properties,
@@ -389,6 +398,7 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(loginLogs).where(eq(loginLogs.userId, id));
       await tx.delete(activityLogs).where(eq(activityLogs.userId, id));
       await tx.delete(verificationRuns).where(eq(verificationRuns.userId, id));
+      await tx.delete(calculationAuditLogs).where(eq(calculationAuditLogs.userId, id));
       await tx.delete(users).where(eq(users.id, id));
     });
   }

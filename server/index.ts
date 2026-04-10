@@ -441,7 +441,12 @@ async function runSchemaMigrations() {
   if (!(await isMigrationApplied("rebecca_language_001"))) {
     const { runRebeccaLanguage001 } = await import("./migrations/rebecca-language-001");
     await runRebeccaLanguage001();
-    await markMigrationApplied("rebecca_language_001");
+  }
+
+  if (!(await isMigrationApplied("calc_audit_001"))) {
+    const { runCalcAudit001 } = await import("./migrations/calc-audit-001");
+    await runCalcAudit001();
+    await markMigrationApplied("calc_audit_001");
   }
 }
 

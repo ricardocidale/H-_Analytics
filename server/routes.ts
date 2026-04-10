@@ -32,6 +32,7 @@ import { registerFinanceRoutes } from "./routes/finance";
 import healthRouter from "./routes/health";
 import * as guidanceRoutes from "./routes/guidance";
 import * as rebeccaRoutes from "./routes/rebecca";
+import * as calcAuditRoutes from "./routes/calc-audit";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -71,6 +72,7 @@ export async function registerRoutes(
   registerFinanceRoutes(app);
   guidanceRoutes.register(app);
   rebeccaRoutes.register(app);
+  calcAuditRoutes.register(app);
 
   return httpServer;
 }
