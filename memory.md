@@ -700,6 +700,14 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **Key finding**: Photo registration requires `imageUrl` field (not `objectPath`) — the upload returns `objectPath` which must be passed as `imageUrl` when calling POST /api/properties/:id/photos
 - **Process-image**: Rejects non-object-storage URLs (returns "Only object storage paths are allowed")
 
+### Opus Audit #318: Calc Engine & Financial Logic (April 2026) — COMPLETED
+- **Report**: `.local/tasks/audit-opus-1-calc-engine-findings.md`
+- **Scope**: ~100 TypeScript files across calc/ (10 sub-modules), server/finance/, server/calculation-checker/
+- **Verdict**: ✅ PASS — Production-quality, exemplary financial software engineering. 0 critical, 0 material, 4 minor, 6 informational findings
+- **Architecture**: 10 clean modules (shared→returns→financing→refinance→funding→analysis→research→validation→services→dispatch) with Decimal.js precision, GAAP journal hooks, pure functional design, Zod validation at dispatch boundary
+- **Compliance**: All 8 checked rules pass (no any in calc/, catch-unknown, no raw Date, decimal.js, pure functions, rounding policy, GAAP balance, Zod schemas)
+- **Highlights**: 40+ computation tools in dispatch.ts, three-tier independent verification (property→portfolio→consolidated), industry benchmark validation in research validators
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
