@@ -134,6 +134,55 @@ findings.push({
   samples: [],
 });
 
+// 7. catch(x: any) violations
+const catchAnyRaw = [
+  ...grep("catch\\s*\\(\\s*\\w+\\s*:\\s*any\\s*\\)", "client/src/", "*.{ts,tsx}"),
+  ...grep("catch\\s*\\(\\s*\\w+\\s*:\\s*any\\s*\\)", "server/", "*.ts"),
+  ...grep("catch\\s*\\(\\s*\\w+\\s*:\\s*any\\s*\\)", "calc/", "*.ts"),
+  ...grep("catch\\s*\\(\\s*\\w+\\s*:\\s*any\\s*\\)", "shared/", "*.ts"),
+].filter(line => !line.includes(".test.ts"));
+findings.push({
+  label: "catch(x: any) violations",
+  count: catchAnyRaw.length,
+  severity: catchAnyRaw.length > 0 ? "critical" : "info",
+  samples: catchAnyRaw.slice(0, 3),
+});
+
+// 8. Unsafe (x as Error).message casts
+const unsafeErrorRaw = [
+  ...grep("\\(\\s*\\w+\\s+as\\s+Error\\s*\\)\\.message", "client/src/", "*.{ts,tsx}"),
+  ...grep("\\(\\s*\\w+\\s+as\\s+Error\\s*\\)\\.message", "server/", "*.ts"),
+  ...grep("\\(\\s*\\w+\\s+as\\s+Error\\s*\\)\\.message", "calc/", "*.ts"),
+].filter(line => !line.includes(".test.ts"));
+findings.push({
+  label: "Unsafe (x as Error).message casts",
+  count: unsafeErrorRaw.length,
+  severity: unsafeErrorRaw.length > 0 ? "warning" : "info",
+  samples: unsafeErrorRaw.slice(0, 3),
+});
+
+// 9. @ts-ignore directives (prefer @ts-expect-error)
+const tsIgnoreRaw = [
+  ...grep("@ts-ignore", "client/src/", "*.{ts,tsx}"),
+  ...grep("@ts-ignore", "server/", "*.ts"),
+];
+findings.push({
+  label: "@ts-ignore directives",
+  count: tsIgnoreRaw.length,
+  severity: tsIgnoreRaw.length > 0 ? "warning" : "info",
+  samples: tsIgnoreRaw.slice(0, 3),
+});
+
+// 10. as-any budget tracking
+const serverAsAny = countMatches("\\bas\\s+any\\b", "server/", "*.ts");
+const clientAsAny = countMatches("\\bas\\s+any\\b", "client/src/", "*.{ts,tsx}");
+findings.push({
+  label: `\`as any\` budget (server: ${serverAsAny}, client: ${clientAsAny})`,
+  count: serverAsAny + clientAsAny,
+  severity: "info",
+  samples: [],
+});
+
 // Output
 console.log("");
 console.log("  Quick Audit");
