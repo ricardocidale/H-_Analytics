@@ -15,7 +15,27 @@
 - **icp-prompt-builder.ts**: Updated imports to use `icp-types` and `icp-units` directly (avoids circular dependency)
 - **Zero importer changes needed**: All 10 importing files use `@/components/admin/icp-config` barrel — no import path changes required
 - **icp-config.ts dropped off Quick Audit "Files over 500 lines"** list (was #4, now gone)
-- Health: ALL CLEAR — 4,436 tests, 0 TS errors, Lint PASS, verification UNQUALIFIED
+- Health: ALL CLEAR — 4,456 tests, 0 TS errors, Lint PASS, verification UNQUALIFIED
+
+### Task #315 Split sidebar.tsx (April 2026) — COMPLETED
+- **Objective**: Split 771-line monolith into focused modules
+- **New files**: `sidebar-context.tsx` (144L), `sidebar-shell.tsx` (353L), `sidebar-menu.tsx` (263L)
+- **Barrel**: `sidebar.tsx` reduced to 34-line barrel, original public API only
+- Health: ALL CLEAR — 4,436 tests
+
+### Task #316 Split Scenarios.tsx (April 2026) — COMPLETED
+- **Objective**: Split 737-line page into focused modules
+- **New files**: `useScenarioActions.ts` (232L), `MyScenariosCard.tsx` (357L), `SharedScenariosCard.tsx` (130L), `ScenarioDialogs.tsx` (77L)
+- **Orchestrator**: `Scenarios.tsx` reduced to 74 lines
+- Health: ALL CLEAR — 4,436 tests
+
+### Task #317 Split pdf/render.tsx (April 2026) — COMPLETED
+- **Objective**: Split 680-line monolith into focused modules
+- **New files**: `theme-mappers.tsx` (57L), `chart-render.tsx` (157L), `table-render.tsx` (135L), `pagination.ts` (105L), `section-renderers.tsx` (131L)
+- **Orchestrator**: `render.tsx` reduced to 125 lines
+- **Deviation**: PageHeader/PageFooter/SectionDivider placed in `theme-mappers.tsx` (not `section-renderers.tsx`) to avoid circular dependency between chart-render↔section-renderers and table-render↔section-renderers
+- **Snapshot tests**: 20 new tests in `tests/server/pdf-render.snapshot.test.ts` covering pagination constants, estimateSectionHeight (landscape vs portrait, all densities), splitOversizedSections, groupSectionsIntoPages, fmtCompact, monotoneCubicPath, and export integrity
+- Health: ALL CLEAR — 4,456 tests (183 files)
 
 ### T013-T015 Pinecone Financial Intelligence (April 2026) — COMPLETED + ULTRAPLAN REVISION
 - **T013 (Bug Fix + Tests)**: Fixed critical category→KPI mapping bug. Now uses explicit lookup table `CATEGORY_TO_KPI` (no substring matching). Null value propagates correctly (null ≠ zero).
