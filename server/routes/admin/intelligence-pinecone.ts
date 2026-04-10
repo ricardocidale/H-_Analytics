@@ -212,7 +212,7 @@ export function registerPineconeRoutes(app: Express) {
               starRating: property.starRating ?? null,
               status: "active",
               purchasePrice: property.purchasePrice ?? null,
-              market: null,
+              market: undefined,
             });
             indexed++;
           } catch (e) { logger.warn(`Failed to index property ${property.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
