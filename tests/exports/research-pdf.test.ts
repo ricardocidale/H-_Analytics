@@ -52,7 +52,7 @@ vi.mock("jspdf-autotable", () => {
 
 import { downloadResearchPDF } from "../../client/src/lib/exports/researchPdfExport";
 
-describe("researchPdfExport.downloadResearchPDF", () => {
+describe("downloadResearchPDF", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     pageCount = 1;

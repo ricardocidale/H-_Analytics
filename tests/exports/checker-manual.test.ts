@@ -43,7 +43,7 @@ vi.mock("jspdf-autotable", () => {
 
 import { exportManualPDF, exportFullData } from "../../client/src/lib/exports/checkerManualExport";
 
-describe("checkerManualExport.exportManualPDF", () => {
+describe("exportManualPDF", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -113,7 +113,7 @@ describe("checkerManualExport.exportManualPDF", () => {
   });
 });
 
-describe("checkerManualExport.exportFullData", () => {
+describe("exportFullData", () => {
   it("is exported as an async function", () => {
     expect(typeof exportFullData).toBe("function");
   });

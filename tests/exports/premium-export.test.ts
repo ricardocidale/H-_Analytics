@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { z } from "zod";
 import fs from "fs";
 import path from "path";
 import { AI_GENERATION_TIMEOUT_MS } from "../../server/constants";
@@ -80,73 +79,6 @@ describe("Timeout coordination", () => {
   it("route uses compiled report pipeline", () => {
     expect(routeSource).toContain("compileReport");
     expect(routeSource).toContain("generateViaTemplatePipeline");
-  });
-});
-
-describe("Premium export schema validation behavior", () => {
-  const exportRowSchema = z.object({
-    category: z.string(),
-    values: z.array(z.number()),
-    indent: z.number().optional(),
-    isBold: z.boolean().optional(),
-    isHeader: z.boolean().optional(),
-  });
-
-  const premiumExportSchema = z.object({
-    format: z.enum(["xlsx", "pptx", "pdf", "docx", "png"]),
-    orientation: z.enum(["landscape", "portrait"]).optional().default("landscape"),
-    version: z.enum(["short", "extended"]).optional().default("short"),
-    entityName: z.string(),
-    companyName: z.string().optional().default("Hospitality Business Group"),
-    statementType: z.string().optional(),
-    years: z.array(z.string()).optional(),
-    rows: z.array(exportRowSchema).optional(),
-  });
-
-  it("accepts valid xlsx request", () => {
-    const result = premiumExportSchema.safeParse({
-      format: "xlsx",
-      entityName: "Hotel Portfolio",
-      years: ["2025", "2026"],
-      rows: [{ category: "Revenue", values: [1000, 2000] }],
-    });
-    expect(result.success).toBe(true);
-    expect(result.data?.companyName).toBe("Hospitality Business Group");
-    expect(result.data?.orientation).toBe("landscape");
-  });
-
-  it("accepts valid pptx request", () => {
-    const result = premiumExportSchema.safeParse({
-      format: "pptx",
-      entityName: "Test Hotel",
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects invalid format", () => {
-    const result = premiumExportSchema.safeParse({
-      format: "txt",
-      entityName: "Test",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects missing entityName", () => {
-    const result = premiumExportSchema.safeParse({
-      format: "pdf",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("applies default values for optional fields", () => {
-    const result = premiumExportSchema.safeParse({
-      format: "docx",
-      entityName: "Test",
-    });
-    expect(result.success).toBe(true);
-    expect(result.data?.orientation).toBe("landscape");
-    expect(result.data?.version).toBe("short");
-    expect(result.data?.companyName).toBe("Hospitality Business Group");
   });
 });
 

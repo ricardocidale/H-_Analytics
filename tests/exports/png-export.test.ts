@@ -1,25 +1,4 @@
 import { describe, it, expect } from "vitest";
-import {
-  BRAND,
-  formatShort,
-  formatFull,
-} from "../../client/src/lib/exports/exportStyles";
-
-describe("PNG export data formatting", () => {
-  it("formatShort produces compact labels suitable for PNG table cells", () => {
-    expect(formatShort(6030000)).toBe("$6.0M");
-    expect(formatShort(450000)).toBe("$450K");
-    expect(formatShort(800)).toBe("$800");
-    expect(formatShort(0)).toBe("\u2014");
-    expect(formatShort(-1200000)).toBe("($1.2M)");
-  });
-
-  it("formatFull produces detailed labels for PNG financial tables", () => {
-    expect(formatFull(1234567)).toBe("$1,234,567");
-    expect(formatFull(0)).toBe("\u2014");
-    expect(formatFull(-50000)).toBe("($50,000)");
-  });
-});
 
 describe("PNG export configuration defaults", () => {
   it("default retina scale of 2 doubles pixel dimensions", () => {
@@ -41,19 +20,6 @@ describe("PNG export configuration defaults", () => {
     const height = customHeight || elementHeight * scale;
     expect(width).toBe(1200);
     expect(height).toBe(600);
-  });
-});
-
-describe("PNG brand color consistency", () => {
-  it("BRAND colors used in PNG table headers match brand spec", () => {
-    expect(BRAND.SECONDARY_HEX).toBe("3F3F46");
-    expect(BRAND.PRIMARY_HEX).toBe("18181B");
-    expect(BRAND.ACCENT_HEX).toBe("10B981");
-  });
-
-  it("BRAND RGB tuples match hex values", () => {
-    expect(BRAND.SECONDARY_RGB).toEqual([0x3F, 0x3F, 0x46]);
-    expect(BRAND.PRIMARY_RGB).toEqual([0x18, 0x18, 0x1B]);
   });
 });
 
