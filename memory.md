@@ -715,6 +715,13 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **Key findings**: (M) insertGlobalAssumptionsSchema uses `.omit()` instead of `.pick()`; (M) UserRole defined twice with "partner" mismatch between constants-enums.ts and auth.ts; (L) legacy dead files shared/auth.ts and shared/chat.ts; (L) DebtAssumptions interface duplicated with different shapes; (L) 14 JSONB shapes with open index signatures; (L) engagement.ts missing insert schemas
 - **Positives**: Zero `as any` casts in shared/, exceptional table documentation, rigorous constants sourcing (USALI/IRS/HVS/Damodaran), comprehensive country defaults (11 countries, 10 US states), field-registry pattern for GA↔property mapping
 
+### Opus Audit #320: Server Auth, Security & Middleware (April 2026) — COMPLETED
+- **Report**: `docs/audits/320-server-auth-security-middleware-findings.md`
+- **Scope**: 13 TypeScript files + 1 JSON config across auth, middleware, crypto, OAuth, Express security config
+- **Verdict**: PASS — Production-quality auth/security layer. 0 critical, 0 high, 2 medium, 4 low findings
+- **Key findings**: (M) No CSRF token protection (mitigated by sameSite:lax + CSP frame-ancestors); (M) In-memory rate limiting not shared across instances (mitigated by single-instance deployment); (L) catch(e) without type annotation in google-auth.ts; (L) err:any in Express error handlers (accepted); (L) Replit OIDC auth scaffold is dead code; (L) No timing-safe session comparison (mitigated by DB lookup)
+- **Positives**: 256-bit session IDs, bcrypt-12, AES-256-GCM token encryption, default-deny authorization, Zod input validation on all auth endpoints, production error hiding, comprehensive security headers, 4-tier RBAC, property-level access control
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
