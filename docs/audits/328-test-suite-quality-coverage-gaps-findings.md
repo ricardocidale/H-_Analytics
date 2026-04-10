@@ -2,7 +2,8 @@
 
 **Auditor:** Opus Code-Review Agent  
 **Date:** 2026-04-10  
-**Scope:** 185 test files, ~49,941 lines, 4,463 tests (3,903 `it()` blocks + parameterized expansions)  
+**Scope:** 185 test files, ~49,941 lines, 4,463 tests  
+**Counting methodology:** Test count (4,463) is from Vitest reporter output. `it()` block count (3,903) is lower because parameterized tests (e.g., `it.each`) expand to multiple test cases at runtime. Per-directory `it()` counts below are static grep counts; actual runtime counts are higher.  
 **Verdict:** PASS — 0 Critical, 1 High, 3 Medium, 5 Low  
 **Resilience Score:** 9.2 / 10
 
@@ -112,17 +113,19 @@ Golden tests use `toBeCloseTo(expected, 2)` (penny precision) for financial valu
 21 proof test files (6,493 lines, 420 tests) implement systematic verification:
 
 ### Rule Compliance (721L, largest proof file)
-Tests 13 architectural rules via static source analysis:
-1. No hardcoded admin config strings
-2. Constants re-export parity (shared → client)
-3. parseLocalDate single source of truth
-4. Doc harmony (replit.md and claude.md sync)
-5. No raw `new Date()` in financial files
-6. Error handling safety (no `catch(x: any)`)
-7. No `any` types in calc/engine code
-8. Domain boundary (routes use storage only)
-9. `as any` budget enforcement (server ≤70, client ≤100)
-10. Client-side financial calculation gate (allowlisted files only)
+Enforces 10 architectural rule categories (31 individual `it()` checks) via static source analysis:
+1. No hardcoded admin config strings (1 check)
+2. Constants re-export parity — shared → client (4 checks)
+3. parseLocalDate single source of truth (2 checks)
+4. Doc harmony — replit.md and claude.md sync (5 checks)
+5. No raw `new Date()` in financial files (1 check)
+6. Error handling safety — no `catch(x: any)` or unsafe `(x as Error)` casts (2 checks)
+7. No `any` types in calc/engine code (1 check)
+8. Domain boundary — routes use storage interface only (1 check)
+9. `as any` budget enforcement — server ≤70, client ≤100, shared = 0 (3 checks)
+10. Client-side financial calculation gate — allowlisted files only (1 check)
+
+Additional rule-compliance tests exist across the broader proof suite (e.g., `seed-constants-drift.test.ts`, `domain-boundaries.test.ts`, `typescript-safety.test.ts`, `tool-registry.test.ts`) bringing total architectural enforcement to 21 proof files with 420 checks.
 
 ### Input Verification (338L)
 Independently recomputes from raw inputs:
