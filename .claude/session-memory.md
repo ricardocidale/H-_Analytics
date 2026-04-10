@@ -8,6 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 10, 2026 — Technical Debt Cleanup Sprint
+- Task 1: Replaced hardcoded hex colors in StarRatingInput + RebeccaAnalyticsTab with CSS tokens and named brand constants (HP_NAVY/HP_TEAL/HP_GOLD).
+- Task 2: Fixed domain boundary violations — refactored `server/notifications/engine.ts` (4 db calls) and `server/integrations/geospatial.ts` (2 db calls) to use IStorage facade. Added `getActiveAlertRulesForProperty()` to NotificationStorage. Fixed lint-staged tsc command (`bash -c` wrapper for `-p tsconfig.json`).
+- Task 3: Replit split 4 of 5 large files (sidebar 771→33, Scenarios 736→74, icp-config 689→113, properties 691→265, constants 764→293). Fixed hardcoded-detection proof test to follow `export *` re-exports.
+- Task 4: Removed 87 unnecessary `as any` casts from Excel exports (xlsx has types). Count 207→120. 
+- All gates pass: 4,463 tests / 183 files, 0 TS errors, 0 lint errors, UNQUALIFIED verification, Doc Harmony PASS.
+
 ## Session: April 10, 2026 — Export Test Refactoring
 - Created `tests/exports/helpers/index.ts` with 4 shared factories: `makeBrowserDownloadMocks`, `makeYearlyData`, `makeYearlyFinancials`, `makeTableRows`.
 - Merged `pptx-export.test.ts` + `pptx-footer.test.ts` → `pptx.test.ts`; moved `tests/client/export-helpers.test.ts` → `tests/exports/excel-helpers.test.ts`.
