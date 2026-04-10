@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Star, Trash2, GripVertical, Pencil, Check, X, Sparkles } from "@/components/icons/themed-icons";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { PropertyPhoto } from "@shared/schema";
@@ -25,6 +27,23 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
   const handleSaveCaption = () => {
     onUpdateCaption(photo.id, captionDraft);
     setEditingCaption(false);
+  };
+
+  const handleDownload = async (enhanced?: boolean) => {
+    const url = enhanced
+      ? `/api/property-photos/${photo.id}/enhanced-image`
+      : (photo.imageData ? `/api/property-photos/${photo.id}/image` : photo.imageUrl);
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const suffix = enhanced ? "-enhanced" : "";
+    const name = (photo.caption || `photo-${photo.id}`)
+      .replace(/[^a-zA-Z0-9 -]/g, "").trim().replace(/\s+/g, "-");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name}${suffix}.png`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   return (
@@ -139,6 +158,24 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }} aria-label="Edit caption">
                 <Pencil className="w-3 h-3" />
               </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleDownload(false)} aria-label="Download photo">
+                    <Download className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom"><p className="text-xs">Download original</p></TooltipContent>
+              </Tooltip>
+              {photo.enhancedImageData && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-6 w-6 text-primary/70 hover:text-primary" onClick={() => handleDownload(true)} aria-label="Download enhanced photo">
+                      <Sparkles className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom"><p className="text-xs">Download AI enhanced</p></TooltipContent>
+                </Tooltip>
+              )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" aria-label="Delete photo">
