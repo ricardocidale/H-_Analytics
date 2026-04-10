@@ -2,7 +2,7 @@
 
 **Auditor:** Opus Code-Review Agent  
 **Date:** 2026-04-10  
-**Scope:** 125 files, ~18,074 lines across 14 directories  
+**Scope:** 137 files, ~18,922 lines across 14 directories  
 **Verdict:** PASS — 0 Critical, 1 High, 4 Medium, 5 Low  
 **Resilience Score:** 8.6 / 10
 
@@ -24,7 +24,7 @@
 | `components/funding/` | 4 | ~600 | SAFE/equity funding analysis |
 | `lib/financial/` | 16 | ~25 | Barrel re-exports from `@engine/` |
 | `lib/audits/` | 13 | ~2,600 | Client-side GAAP/USALI verification checkers |
-| `lib/charts/` | 2 | ~226 | Chart type definitions |
+| `lib/charts/` | 14 | ~1,074 | Recharts component library (bar, donut, radial, line, radar) + type definitions |
 | `dashboard/usePortfolioFinancials.ts` | 1 | 207 | Portfolio financial computation orchestrator |
 | `dashboard/useBalanceSheetData.ts` | 1 | 169 | Balance sheet yearly data hook |
 | `dashboard/statementBuilders.ts` | 1 | 334 | Export data builders for IS, BS, CF |
@@ -86,7 +86,7 @@ Cash = Operating Reserve + (cumulative ANOI − Debt Service − Tax) + Refi Pro
 | `exportRenderersPdfComprehensive.ts:327` | `(doc as any).lastAutoTable` | Same jsPDF plugin pattern | Low |
 | `useSensitivityExports.ts:89` | `(doc as any).lastAutoTable` | Same jsPDF plugin pattern | Low |
 
-**Assessment:** 4 total, well within client budget (≤100). The 3 jsPDF casts are unavoidable — the `jspdf-autotable` plugin monkey-patches the doc prototype. The `usePortfolioFinancials` cast (`p as any`) is the only one worth addressing long-term via a shared `PropertyEngineInput` type adapter.
+**Assessment:** 5 total, well within client budget (≤100). The 3 jsPDF casts are unavoidable — the `jspdf-autotable` plugin monkey-patches the doc prototype. The `usePortfolioFinancials` casts (`p as any`, `global as any`) are the only ones worth addressing long-term via a shared `PropertyEngineInput` type adapter.
 
 ---
 
@@ -222,8 +222,10 @@ This is an impressive dual-verification architecture — server engine + client 
 ### P-002: Financial-table shared component library
 Zero `as any`, zero duplication within the 7-file library. Clean typed interfaces with proper tooltip/formula/calc-detail context support. Components handle edge cases (zero suppression, negation, percentage formatting, indent levels).
 
-### P-003: D3 chart components properly typed
+### P-003: Chart components properly typed (D3 + Recharts)
 `TornadoDiagram.tsx` uses strongly-typed `TornadoVariable` interface, `CHART_COLORS` constant palette, proper `forwardRef` with `useImperativeHandle` for canvas export. No `any` casts in rendering logic.
+
+The `lib/charts/` directory (14 files, 1,074 lines) provides a typed Recharts component library (BarChart variants, DonutChart, RadialChart, LineChart, RadarChart) with shared `types.ts` defining `BarChartProps`, `DonutChartProps`, etc. Zero `as any` casts across all 14 files.
 
 ### P-004: Balance sheet self-verification
 `ConsolidatedBalanceSheet.tsx` includes an `isBalanced` flag that checks `totalAssets === totalLiabilitiesEquity` and renders a warning badge when unbalanced — proactive GAAP compliance in the UI.
