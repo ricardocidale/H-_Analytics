@@ -1,5 +1,5 @@
-import type { IcpConfig, IcpDescriptive, IcpLocation, Priority, UnitType } from "./icp-config";
-import { dualUnit } from "./icp-config";
+import type { IcpConfig, IcpDescriptive, IcpLocation, Priority, UnitType } from "./icp-types";
+import { dualUnit } from "./icp-units";
 
 function fmt$(n: number): string {
   if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`;

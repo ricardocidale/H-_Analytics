@@ -8,6 +8,15 @@
 
 ## Architecture Decisions Log
 
+### Task #314 Split icp-config.ts (April 2026) — COMPLETED
+- **Objective**: Split 690-line monolith into focused modules per architect risk assessment
+- **New files created**: `icp-types.ts` (186 lines), `icp-defaults.ts` (190 lines), `icp-sections.ts` (182 lines), `icp-units.ts` (33 lines)
+- **Barrel**: `icp-config.ts` reduced to 113 lines (barrel re-exports + `generateIcpEssay`)
+- **icp-prompt-builder.ts**: Updated imports to use `icp-types` and `icp-units` directly (avoids circular dependency)
+- **Zero importer changes needed**: All 10 importing files use `@/components/admin/icp-config` barrel — no import path changes required
+- **icp-config.ts dropped off Quick Audit "Files over 500 lines"** list (was #4, now gone)
+- Health: ALL CLEAR — 4,436 tests, 0 TS errors, Lint PASS, verification UNQUALIFIED
+
 ### T013-T015 Pinecone Financial Intelligence (April 2026) — COMPLETED + ULTRAPLAN REVISION
 - **T013 (Bug Fix + Tests)**: Fixed critical category→KPI mapping bug. Now uses explicit lookup table `CATEGORY_TO_KPI` (no substring matching). Null value propagates correctly (null ≠ zero).
 - **T014 (Tests)**: 14 tests — score threshold, business model filtering, deterministic IDs, graceful degradation.
