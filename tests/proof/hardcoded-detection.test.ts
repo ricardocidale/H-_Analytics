@@ -470,7 +470,18 @@ describe("Hardcoded Value Detection", () => {
       const constantsPath = path.resolve("shared/constants.ts");
       expect(fs.existsSync(constantsPath), "shared/constants.ts must exist").toBe(true);
 
-      const content = fs.readFileSync(constantsPath, "utf-8");
+      const mainContent = fs.readFileSync(constantsPath, "utf-8");
+
+      // Collect content from re-exported sub-files (export * from './constants-xxx')
+      const reExportRegex = /export\s+\*\s+from\s+['"]\.\/([^'"]+)['"]/g;
+      let reMatch;
+      let content = mainContent;
+      while ((reMatch = reExportRegex.exec(mainContent)) !== null) {
+        const subPath = path.resolve("shared", reMatch[1] + (reMatch[1].endsWith(".ts") ? "" : ".ts"));
+        if (fs.existsSync(subPath)) {
+          content += "\n" + fs.readFileSync(subPath, "utf-8");
+        }
+      }
 
       const requiredExports = [
         "DEFAULT_REV_SHARE_EVENTS",
@@ -522,12 +533,23 @@ describe("Hardcoded Value Detection", () => {
 
     it("no duplicate constant definitions exist outside shared/constants.ts", () => {
       const constantsPath = path.resolve("shared/constants.ts");
-      const content = fs.readFileSync(constantsPath, "utf-8");
+      const mainContent = fs.readFileSync(constantsPath, "utf-8");
+
+      // Collect content from main + re-exported sub-files
+      const reExportRegex = /export\s+\*\s+from\s+['"]\.\/([^'"]+)['"]/g;
+      let reMatch;
+      let allContent = mainContent;
+      while ((reMatch = reExportRegex.exec(mainContent)) !== null) {
+        const subPath = path.resolve("shared", reMatch[1] + (reMatch[1].endsWith(".ts") ? "" : ".ts"));
+        if (fs.existsSync(subPath)) {
+          allContent += "\n" + fs.readFileSync(subPath, "utf-8");
+        }
+      }
 
       const exportedNames: string[] = [];
       const exportRegex = /export\s+const\s+([A-Z_]+)\b/g;
       let match;
-      while ((match = exportRegex.exec(content)) !== null) {
+      while ((match = exportRegex.exec(allContent)) !== null) {
         exportedNames.push(match[1]);
       }
 
