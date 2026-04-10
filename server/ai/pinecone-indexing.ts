@@ -10,6 +10,22 @@ import {
 
 const DOC_MAX_CHARS = 100_000;
 
+export function mapCategoryToKpis(category: string, value: number | null): {
+  adr: number | null;
+  occupancy: number | null;
+  capRate: number | null;
+  revpar: number | null;
+} {
+  const cat = category.toLowerCase();
+  const v = value ?? 0;
+  return {
+    adr:       cat.includes("adr") ? v : null,
+    occupancy: cat.includes("occupancy") ? v : null,
+    capRate:   cat.includes("cap_rate") || cat === "caprate" ? v : null,
+    revpar:    cat.includes("revpar") ? v : null,
+  };
+}
+
 export async function indexResearchResult(params: {
   propertyId?: number;
   location: string;

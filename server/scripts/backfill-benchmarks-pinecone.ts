@@ -10,6 +10,7 @@
 
 import { storage } from "../storage";
 import { indexBenchmarkSnapshot, isPineconeAvailable } from "../ai/pinecone-service";
+import { mapCategoryToKpis } from "../ai/pinecone-indexing";
 import { logger } from "../logger";
 
 async function main() {
@@ -27,13 +28,11 @@ async function main() {
 
   for (const snap of snapshots) {
     try {
+      const kpis = mapCategoryToKpis(snap.category, snap.value);
       await indexBenchmarkSnapshot({
         market: snap.snapshotKey,
         propertyType: snap.category,
-        adr: snap.category === "adr" ? snap.value : null,
-        occupancy: snap.category === "occupancy" ? snap.value : null,
-        capRate: snap.category === "capRate" ? snap.value : null,
-        revpar: snap.category === "revpar" ? snap.value : null,
+        ...kpis,
         source: snap.source ?? "unknown",
         snapshotDate: snap.fetchedAt.toISOString(),
       });

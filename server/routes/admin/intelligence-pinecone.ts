@@ -5,6 +5,7 @@ import { logAndSendError } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { isPineconeAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type PineconeNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/pinecone-service";
+import { mapCategoryToKpis } from "../../ai/pinecone-indexing";
 import { indexAllAssets } from "../../ai/asset-intelligence";
 import { indexKnowledgeBase } from "../../ai/knowledge-base";
 import { checkVendorAvailability, getRecommendedDefaults } from "../../ai/resolve-llm";
@@ -225,13 +226,11 @@ export function registerPineconeRoutes(app: Express) {
         let indexed = 0;
         for (const snap of snapshots) {
           try {
+            const kpis = mapCategoryToKpis(snap.category, snap.value);
             await indexBenchmarkSnapshot({
               market: snap.snapshotKey,
               propertyType: snap.category,
-              adr: snap.category === "adr" ? snap.value : null,
-              occupancy: snap.category === "occupancy" ? snap.value : null,
-              capRate: snap.category === "capRate" ? snap.value : null,
-              revpar: snap.category === "revpar" ? snap.value : null,
+              ...kpis,
               source: snap.source ?? "unknown",
               snapshotDate: snap.fetchedAt.toISOString(),
             });

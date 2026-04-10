@@ -8,6 +8,13 @@
 
 ## Architecture Decisions Log
 
+### T013-T015 Pinecone Financial Intelligence (April 2026) — COMPLETED
+- **T013 (Bug Fix + Tests)**: Fixed critical category→KPI mapping bug — `hospitality_adr`, `cap_rates`, etc. were all mapping to null. New `mapCategoryToKpis()` in `pinecone-indexing.ts` shared across 4 call sites. 35 tests in `tests/pinecone/benchmark-accuracy.test.ts`.
+- **T014 (Tests)**: 14 tests in `tests/pinecone/guidance-quality.test.ts` — mocked Pinecone, score threshold, business model filtering, deterministic IDs, graceful degradation.
+- **T015 (Tests)**: 16 tests in `tests/pinecone/scenario-indexing.test.ts` — deterministic `scenario:{id}`, KPI extraction, text construction, truncation limits, upsert semantics.
+- **All phases (1-7) of Financial Integrity Plan now COMPLETE** — 19 tasks done.
+- Health: 4,450 tests (183 files), 0 TS errors
+
 ### T001-T003 Calculation Audit Trail (April 2026) — COMPLETED
 - **T001**: Schema + storage + routes for `calculation_audit_logs` table. Files: `shared/schema/calc-audit.ts`, `server/storage/calc-audit.ts`, `server/routes/calc-audit.ts`, migration `calc-audit-001.ts`
 - **T002**: Engine instrumentation — `AuditCollector` class (`engine/property/audit-collector.ts`), `computePortfolioProjectionWithAudit()` in `server/finance/service.ts`, finance route wired (`?audit=true` bypasses cache + async persistence)

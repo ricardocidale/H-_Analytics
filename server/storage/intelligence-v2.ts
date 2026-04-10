@@ -19,6 +19,7 @@ import { db } from "../db";
 import { eq, and, desc, lte, sql, isNull } from "drizzle-orm";
 export { IntelligenceRebeccaStorage } from "./intelligence-rebecca";
 import { indexBenchmarkSnapshot } from "../ai/pinecone-service";
+import { mapCategoryToKpis } from "../ai/pinecone-indexing";
 import { logger } from "../logger";
 
 export class IntelligenceV2Storage {
@@ -132,20 +133,17 @@ export class IntelligenceV2Storage {
         .where(eq(benchmarkSnapshots.id, existing.id))
         .returning();
 
-      // Fire-and-forget: re-index to Pinecone comparables namespace
       try {
+        const kpis = mapCategoryToKpis(updated.category, updated.value);
         indexBenchmarkSnapshot({
           market: updated.snapshotKey,
           propertyType: updated.category,
-          adr: updated.category === "adr" ? updated.value : null,
-          occupancy: updated.category === "occupancy" ? updated.value : null,
-          capRate: updated.category === "capRate" ? updated.value : null,
-          revpar: updated.category === "revpar" ? updated.value : null,
+          ...kpis,
           source: updated.source ?? "unknown",
           snapshotDate: updated.fetchedAt.toISOString(),
         }).catch(err => logger.warn(`Pinecone benchmark re-index failed: ${err}`, "intelligence-v2"));
-      } catch (err) {
-        logger.warn(`Pinecone benchmark re-index failed: ${err}`, "intelligence-v2");
+      } catch (err: unknown) {
+        logger.warn(`Pinecone benchmark re-index failed: ${err instanceof Error ? err.message : String(err)}`, "intelligence-v2");
       }
 
       return updated;
@@ -154,20 +152,17 @@ export class IntelligenceV2Storage {
       .values(data as typeof benchmarkSnapshots.$inferInsert)
       .returning();
 
-    // Fire-and-forget: index to Pinecone comparables namespace
     try {
+      const kpis = mapCategoryToKpis(inserted.category, inserted.value);
       indexBenchmarkSnapshot({
         market: inserted.snapshotKey,
         propertyType: inserted.category,
-        adr: inserted.category === "adr" ? inserted.value : null,
-        occupancy: inserted.category === "occupancy" ? inserted.value : null,
-        capRate: inserted.category === "capRate" ? inserted.value : null,
-        revpar: inserted.category === "revpar" ? inserted.value : null,
+        ...kpis,
         source: inserted.source ?? "unknown",
         snapshotDate: inserted.fetchedAt.toISOString(),
       }).catch(err => logger.warn(`Pinecone benchmark index failed: ${err}`, "intelligence-v2"));
-    } catch (err) {
-      logger.warn(`Pinecone benchmark index failed: ${err}`, "intelligence-v2");
+    } catch (err: unknown) {
+      logger.warn(`Pinecone benchmark index failed: ${err instanceof Error ? err.message : String(err)}`, "intelligence-v2");
     }
 
     return inserted;
