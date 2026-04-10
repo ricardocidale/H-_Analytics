@@ -785,6 +785,15 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **as any count**: 0 (zero) in entire scope
 - **Resilience score**: 9.0/10 (type safety 10, theme architecture 9, API layer 8, auth design 9, accessibility support 9, documentation 9)
 
+### Opus Audit #328: Test Suite Quality & Coverage Gaps (April 2026) — COMPLETED
+- **Report**: `docs/audits/328-test-suite-quality-coverage-gaps-findings.md`
+- **Scope**: 185 test files (~49,941 lines), 4,463 tests across 20 directories
+- **Verdict**: PASS — 0 critical, 1 high, 3 medium, 5 low findings
+- **Key findings**: (H) Flaky pdf-render.snapshot.test.ts timeout (line 364, 5s timeout for double PDF gen); (M) Server tests are static-analysis-only — no HTTP integration tests; (M) Export tests use fixed setTimeout delays (50ms, 8 instances); (M) NO_EXCEL_GUARANTEE.md test count stale (says 384, actual 4,463); (L) 2 untested calc modules (data-integrity.ts indirectly covered, dispatch-handler.ts gap); (L) 1 client test file for entire frontend; (L) E2E tests require manual activation; (L) fixture uses as-any for financing overrides; (L) verify-runner.ts empty catch block
+- **Positives**: ZERO snapshot assertions (all 8,045 value assertions explicit); 96% calc engine coverage (75/78 files); 15-phase verification pipeline with audit opinions; 30 golden scenarios with penny-exact assertions; mock density 0.37/file (real implementations tested); assertion ratio 35:1 value-to-existence; zero test.only/test.skip; rule-compliance.test.ts codifies 13 architectural rules as executable tests
+- **Coverage gaps**: Client components (1 test file), server routes (static-only), AI/chat routes (0 API tests), theme engine (0 unit tests), dispatch-handler.ts (0 tests)
+- **Resilience score**: 9.2/10 (verification system 10, golden tests 10, proof tests 9, calc coverage 10, server tests 7, infrastructure 9, assertion quality 10)
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
