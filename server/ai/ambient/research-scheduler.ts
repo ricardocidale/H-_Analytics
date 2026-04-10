@@ -186,7 +186,7 @@ async function processPendingBatches(): Promise<void> {
   const adminUser = users.find(u => u.role === "admin") ?? users[0];
   if (!adminUser) return;
 
-  for (const [batchId, workflows] of batchGroups) {
+  for (const [batchId, workflows] of Array.from(batchGroups)) {
     try {
       const batch = await anthropic.messages.batches.retrieve(batchId);
 
