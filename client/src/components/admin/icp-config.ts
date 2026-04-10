@@ -11,7 +11,7 @@ export type {
   DescriptiveSection,
 } from "./icp-types";
 
-export { PRIORITY_LABELS, DEFAULT_ICP_CONFIG, DEFAULT_ICP_DESCRIPTIVE, FB_RATING_LABELS } from "./icp-defaults";
+export { PRIORITY_LABELS, DEFAULT_ICP_CONFIG, DEFAULT_ICP_DESCRIPTIVE } from "./icp-defaults";
 export { UNIT_DEFS, dualUnit } from "./icp-units";
 export { PARAMETER_SECTIONS, DESCRIPTIVE_SECTIONS } from "./icp-sections";
 export { generateIcpPrompt } from "./icp-prompt-builder";
