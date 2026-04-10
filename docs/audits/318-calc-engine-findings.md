@@ -143,7 +143,7 @@ The checker runs ~30 checks per property (revenue reconstitution, expense reason
 
 | Rule | Status |
 |------|--------|
-| No `any` in calc/ | PASS — `as ToolFn`/`as never` in dispatch.ts are acceptable bridge casts |
+| No `any` in calc/ | PASS — Zero literal `any` types. Note: dispatch.ts uses `as ToolFn`/`as never` bridge casts (not `any`) to adapt heterogeneous tool signatures; these are non-`any` type escape hatches mitigated by Zod validation (see F-001) |
 | `catch (error: unknown)` convention | PASS — dispatch.ts line 215 follows the pattern |
 | No raw `Date` in finance calculations | PASS — All dates are strings (YYYY-MM-DD or YYYY-MM) |
 | Decimal.js for financial math | PASS — All monetary calculations use decimal wrappers |
@@ -154,6 +154,20 @@ The checker runs ~30 checks per property (revenue reconstitution, expense reason
 
 ---
 
+## Audit Method
+
+**Approach**: Full manual code review of every file in scope, reading each module's types, implementation, validation, and barrel exports. Cross-referenced financial formulas against GAAP standards (ASC 230, ASC 310-20, ASC 470, ASC 810) and industry conventions (USALI, STR benchmarks).
+
+**Verification commands** (reproducible):
+- `npm run health` — TypeScript 0 errors, 4463/4463 tests pass, UNQUALIFIED verification
+- `npm run verify:summary` — 15 verification suites pass (498 checks), UNQUALIFIED opinion
+- `npm run audit:quick` — 0 `any` in finance code, 0 catch-any violations, 0 unsafe error casts
+- `npm run exports:check` — 551 exports used, 0 unused
+
+**Files checked**: All `.ts` files under `calc/shared/`, `calc/returns/`, `calc/financing/`, `calc/refinance/`, `calc/funding/`, `calc/analysis/`, `calc/research/`, `calc/validation/`, `calc/services/`, `calc/dispatch.ts`, `server/finance/`, `server/calculation-checker/`.
+
+---
+
 ## Conclusion
 
-The calc engine is exemplary financial software engineering. The modular architecture (returns, financing, refinance, funding, analysis, research, validation, services, dispatch) provides clean separation of concerns. The Decimal.js precision layer, GAAP-compliant journal hooks, and three-tier verification system demonstrate domain expertise. No critical or high-severity defects were found. The 2 medium-severity findings are pragmatic trade-offs with adequate mitigations in place. The codebase is ready for continued production use.
+The calc engine demonstrates strong financial software engineering. The modular architecture (returns, financing, refinance, funding, analysis, research, validation, services, dispatch) provides clean separation of concerns. The Decimal.js precision layer, GAAP-compliant journal hooks, and three-tier verification system demonstrate domain expertise. No critical or high-severity defects were found. The 2 medium-severity findings are pragmatic trade-offs with adequate mitigations in place. The codebase is ready for continued production use.
