@@ -113,7 +113,7 @@ export function registerExportConfigRoutes(app: Express) {
       const ga = await storage.getGlobalAssumptions();
       if (!ga) return res.status(404).json({ error: "No global assumptions found" });
       res.json(mergeWithDefaults(ga.exportConfig as StoredConfig | null));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch export config", error);
     }
   });
@@ -135,7 +135,7 @@ export function registerExportConfigRoutes(app: Express) {
       };
       await storage.patchGlobalAssumptions(ga.id, { exportConfig: merged });
       res.json(merged);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to save export config", error);
     }
   });

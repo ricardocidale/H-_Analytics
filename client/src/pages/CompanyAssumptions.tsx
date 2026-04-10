@@ -273,7 +273,7 @@ export default function CompanyAssumptions() {
         });
       }
       setLocation("/company");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to save company assumptions:", error);
       toast({
         title: "Error",

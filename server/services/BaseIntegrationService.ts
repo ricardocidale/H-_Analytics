@@ -36,7 +36,7 @@ export abstract class BaseIntegrationService {
 
       this.recordSuccess();
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof Error && !error.message.startsWith(this.serviceName)) {
         this.recordFailure();
       }

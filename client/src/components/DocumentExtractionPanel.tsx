@@ -146,7 +146,7 @@ export default function DocumentExtractionPanel({ propertyId }: { propertyId: nu
               : result.extraction.errorMessage || "Could not extract data",
           variant: result.extraction.status === "completed" ? "default" : "destructive",
         });
-      } catch (error) {
+      } catch (error: unknown) {
         toast({
           title: "Upload failed",
           description: error instanceof Error ? error.message : "An error occurred",

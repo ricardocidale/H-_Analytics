@@ -67,7 +67,7 @@ export async function captureOverviewCharts(
           dataUrl,
           aspectRatio: rect.width / rect.height,
         });
-      } catch (err) {
+      } catch (err: unknown) {
         console.warn(`[chart-capture] Failed to capture "${title}":`, err);
       }
     }

@@ -19,6 +19,7 @@ import {
   SpacerRow,
   MetricRow,
   MarginRow,
+  FormulaDetailStringRow,
 } from "@/components/financial-table";
 import { TableRow, TableCell } from "@/components/ui/table";
 import {
@@ -33,20 +34,6 @@ import { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
 import { aggregatePropertyByYear } from "@/lib/financial/yearlyAggregator";
 import { computeCashFlowSections } from "@/lib/financial/cashFlowSections";
 
-function FormulaDetailRow({ label, values, colCount }: { label: string; values: string[]; colCount: number }) {
-  return (
-    <TableRow className="bg-primary/[0.03]" data-expandable-row="true">
-      <TableCell className="pl-12 sticky left-0 bg-primary/[0.03] py-0.5 text-xs text-muted-foreground italic">
-        {label}
-      </TableCell>
-      {values.map((v, i) => (
-        <TableCell key={i} className="text-right py-0.5 font-mono text-xs text-muted-foreground">
-          {v}
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-}
 
 interface CashPositionAnalysis {
   operatingReserve: number;
@@ -233,7 +220,7 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
           expanded={!!expanded.cfAdrRate}
           onToggle={() => toggleSection('cfAdrRate')}
         >
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="Starting ADR × (1 + growth rate)^year"
             values={yearlyDetails.map(y => {
               if (y.cleanAdr <= 0) return "-";
@@ -252,7 +239,7 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
           expanded={!!expanded.cfAdrEff}
           onToggle={() => toggleSection('cfAdrEff')}
         >
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="Room Revenue ÷ Sold Rooms"
             values={yearlyDetails.map(y =>
               y.soldRooms > 0 ? `${formatMoney(y.revenueRooms)} ÷ ${y.soldRooms.toLocaleString()}` : "-"
@@ -270,12 +257,12 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
           expanded={!!expanded.cfOcc}
           onToggle={() => toggleSection('cfOcc')}
         >
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="Sold Rooms"
             values={yearlyDetails.map(y => y.soldRooms.toLocaleString())}
             colCount={years}
           />
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="Available Rooms"
             values={yearlyDetails.map(y => y.availableRooms.toLocaleString())}
             colCount={years}
@@ -291,14 +278,14 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
           expanded={!!expanded.cfRevpar}
           onToggle={() => toggleSection('cfRevpar')}
         >
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="Room Revenue ÷ Available Rooms"
             values={yearlyDetails.map(y =>
               y.availableRooms > 0 ? `${formatMoney(y.revenueRooms)} ÷ ${y.availableRooms.toLocaleString()}` : "-"
             )}
             colCount={years}
           />
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="Cross-check: ADR × Occupancy"
             values={yearlyDetails.map(y => {
               if (y.availableRooms === 0) return "-";
@@ -324,7 +311,7 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
           expanded={!!expanded.cfTrevpar}
           onToggle={() => toggleSection('cfTrevpar')}
         >
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="Total Revenue ÷ Available Rooms"
             values={yearlyDetails.map(y =>
               y.availableRooms > 0 ? `${formatMoney(y.revenueTotal)} ÷ ${y.availableRooms.toLocaleString()}` : "-"

@@ -36,7 +36,7 @@ async function fetchFredRate(seriesId: string, label: string, category: string):
         cadence: "monthly",
       });
     }
-  } catch (err) {
+  } catch (err: unknown) {
     errors.push(`FRED ${seriesId}: ${err instanceof Error ? err.message : String(err)}`);
   }
 

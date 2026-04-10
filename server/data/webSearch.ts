@@ -50,7 +50,7 @@ export async function webSearch(
       url: item.link,
       snippet: item.snippet,
     }));
-  } catch (error) {
+  } catch (error: unknown) {
     logger.warn(`Web search error: ${error instanceof Error ? error.message : error}`, "web-search");
     return [];
   }

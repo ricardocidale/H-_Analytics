@@ -70,7 +70,7 @@ function formatTooltip(sourceType: BadgeSourceType, sourceName?: string, sourceD
     try {
       const d = new Date(sourceDate);
       parts.push(`updated ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`);
-    } catch (error) {
+    } catch (error: unknown) {
       parts.push(`updated ${sourceDate}`);
     }
   }

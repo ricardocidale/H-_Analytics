@@ -117,13 +117,13 @@ export async function seed() {
     await indexAllPropertiesToPinecone();
 
     logger.info("Database seed completed successfully!", "seed");
-  } catch (err) {
+  } catch (err: unknown) {
     logger.error(`Seed failed — rolling back inserted data so --force re-run is safe: ${err instanceof Error ? err.message : String(err)}`, "seed");
     try {
       await db.delete(marketResearch);
       await db.delete(properties);
       await db.delete(globalAssumptions);
-    } catch (cleanupErr) {
+    } catch (cleanupErr: unknown) {
       logger.warn(`Seed cleanup also failed: ${cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)}`, "seed");
     }
     throw err;
@@ -152,7 +152,7 @@ async function indexAllPropertiesToPinecone() {
     if (indexed > 0) {
       logger.info(`Indexed ${indexed} properties to Pinecone`, "seed");
     }
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Pinecone property indexing skipped: ${err instanceof Error ? err.message : err}`, "seed");
   }
 }

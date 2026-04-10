@@ -52,7 +52,7 @@ export function register(app: Express) {
         feeCategories: catsByProperty.get(p.id) ?? [],
       }));
       res.json(enriched);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch properties", error);
     }
   });
@@ -67,7 +67,7 @@ export function register(app: Express) {
       }
       const ids = await storage.getGroupPropertyIds(groupId);
       res.json(ids);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch group properties", error);
     }
   });
@@ -85,7 +85,7 @@ export function register(app: Express) {
       const { propertyIds } = parsed.data;
       await storage.setGroupProperties(Number(req.params.id), propertyIds);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update group properties", error);
     }
   });
@@ -108,7 +108,7 @@ export function register(app: Express) {
         ...property,
         feeCategories: cats.map(c => ({ name: c.name, rate: c.rate, isActive: c.isActive })),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch property", error);
     }
   });
@@ -167,7 +167,7 @@ export function register(app: Express) {
       })).catch((err) => logger.error(`Notification error: ${err?.message || err}`, "properties"));
 
       res.status(201).json(property);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create property", error);
     }
   });
@@ -190,7 +190,7 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Property not found" });
       }
       res.json({ latitude: updated.latitude, longitude: updated.longitude });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update coordinates", error);
     }
   });
@@ -248,7 +248,7 @@ export function register(app: Express) {
       }
 
       res.json(property);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update property", error);
     }
   });
@@ -273,12 +273,12 @@ export function register(app: Express) {
       try {
         const { cleanupPropertyVectors } = await import("../ai/pinecone-service");
         await cleanupPropertyVectors(id);
-      } catch (err) {
+      } catch (err: unknown) {
         logger.warn(`Pinecone cleanup failed for property ${id}: ${err instanceof Error ? err.message : err}`, "properties");
       }
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete property", error);
     }
   });
@@ -310,7 +310,7 @@ export function register(app: Express) {
 
       logActivity(req, "seed-research", "property", id, property.name);
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to seed research", error);
     }
   });
@@ -324,7 +324,7 @@ export function register(app: Express) {
       }
       const categories = await storage.getFeeCategoriesByProperty(propertyId);
       res.json(categories);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch fee categories", error);
     }
   });
@@ -372,7 +372,7 @@ export function register(app: Express) {
       invalidateComputeCache();
       logActivity(req, "update", "fee-categories", propertyId);
       res.json(results);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to save fee categories", error);
     }
   });
@@ -381,7 +381,7 @@ export function register(app: Express) {
     try {
       const categories = await storage.getAllFeeCategories();
       res.json(categories);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch fee categories", error);
     }
   });
@@ -445,7 +445,7 @@ Rewritten description:`;
       const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(rewritten.length / 4);
       try {
         logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "rewrite-description", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: `/api/properties/${propertyId}/rewrite-description` });
-      } catch (e) {
+      } catch (e: unknown) {
         logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger");
       }
 
@@ -492,7 +492,7 @@ Rewritten description:`;
 
       if (!scores) return res.status(502).json({ error: "Walk Score unavailable" });
       return res.json(scores);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch Walk Score", error);
     }
   });

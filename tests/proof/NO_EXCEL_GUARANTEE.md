@@ -2,7 +2,7 @@
 
 Every item below is enforced by automated tests. If any check fails, the build is blocked.
 
-## Enforced by `npm test` (384 tests)
+## Enforced by `npm test` (4,463 tests)
 
 | # | Guarantee | Enforcing Test |
 |---|-----------|---------------|
@@ -74,7 +74,7 @@ For every golden scenario, `test-artifacts/` contains:
 ## Commands
 
 ```bash
-npm test                  # Run all 384 tests
+npm test                  # Run all 4,463 tests
 npm run verify            # Full 4-phase verification (UNQUALIFIED = pass)
 npx vitest run --watch    # Watch mode for development
 ```

@@ -30,7 +30,7 @@ export function register(app: Express) {
         "Cache-Control": "private, max-age=86400",
       });
       res.send(buffer);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to serve photo from database", error);
     }
   });
@@ -44,7 +44,7 @@ export function register(app: Express) {
       }
       const photos = await storage.getPropertyPhotos(propertyId);
       res.json(photos);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch property photos", error);
     }
   });
@@ -83,7 +83,7 @@ export function register(app: Express) {
       }
 
       res.status(201).json(photo);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to add property photo", error);
     }
   });
@@ -109,7 +109,7 @@ export function register(app: Express) {
       const photo = await storage.updatePropertyPhoto(photoId, parsed.data);
       if (!photo) return res.status(404).json({ error: "Photo not found" });
       res.json(photo);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update property photo", error);
     }
   });
@@ -135,7 +135,7 @@ export function register(app: Express) {
 
       await storage.deletePropertyPhoto(photoId);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete property photo", error);
     }
   });
@@ -150,7 +150,7 @@ export function register(app: Express) {
       const photoId = Number(req.params.photoId);
       await storage.setHeroPhoto(propertyId, photoId);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to set hero photo", error);
     }
   });
@@ -170,7 +170,7 @@ export function register(app: Express) {
 
       await storage.reorderPhotos(propertyId, parsed.data.orderedIds);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to reorder photos", error);
     }
   });
@@ -197,7 +197,7 @@ export function register(app: Express) {
         "Cache-Control": "private, max-age=86400",
       });
       res.send(buffer);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to serve enhanced photo", error);
     }
   });
@@ -223,7 +223,7 @@ export function register(app: Express) {
         "Cache-Control": "no-store",
       });
       res.send(buffer);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to serve enhanced preview", error);
     }
   });
@@ -291,7 +291,7 @@ export function register(app: Express) {
         previewUrl: `/api/property-photos/${photoId}/enhanced-preview`,
         photoId,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to enhance photo", error);
     }
   });
@@ -323,7 +323,7 @@ export function register(app: Express) {
         if (result) {
           variantsUpdate = { variants: result.variants };
         }
-      } catch (e) {
+      } catch (e: unknown) {
         logger.warn(`Failed to regenerate variants from enhanced photo ${photoId}: ${(e instanceof Error ? e.message : String(e))}`, "property-photos");
       }
 
@@ -334,7 +334,7 @@ export function register(app: Express) {
       pendingEnhancements.delete(photoId);
 
       res.json({ success: true, photoId });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to accept enhancement", error);
     }
   });
@@ -355,7 +355,7 @@ export function register(app: Express) {
 
       pendingEnhancements.delete(photoId);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to reject enhancement", error);
     }
   });
@@ -375,7 +375,7 @@ export function register(app: Express) {
 
       await storage.updatePropertyPhoto(photoId, { enhancedImageData: null });
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to remove enhanced photo", error);
     }
   });

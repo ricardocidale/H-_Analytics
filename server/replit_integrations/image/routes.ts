@@ -49,14 +49,14 @@ export function registerImageRoutes(app: Express): void {
         size: size as "1024x1024" | "512x512" | "256x256",
       });
 
-      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-image" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       const imageData = response.data?.[0];
       res.json({
         url: imageData?.url,
         b64_json: imageData?.b64_json,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error generating image: ${error instanceof Error ? error.message : error}`, "image-gen");
       res.status(500).json({ error: "Failed to generate image" });
     }
@@ -66,7 +66,7 @@ export function registerImageRoutes(app: Express): void {
     try {
       const styles = getAvailableStyles();
       res.json({ styles });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error fetching Replicate styles: ${error instanceof Error ? error.message : error}`, "image-gen");
       res.status(500).json({ error: "Failed to fetch available styles" });
     }
@@ -96,19 +96,19 @@ export function registerImageRoutes(app: Express): void {
             prompt,
             beforeImageUrl
           );
-          try { logApiCost({ timestamp: new Date().toISOString(), service: "replicate", model: style, operation: "image-gen", estimatedCostUsd: unitCost("replicate-image"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
-        } catch (replicateError) {
+          try { logApiCost({ timestamp: new Date().toISOString(), service: "replicate", model: style, operation: "image-gen", estimatedCostUsd: unitCost("replicate-image"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+        } catch (replicateError: unknown) {
           logger.warn(
             `Replicate generation failed, falling back to standard: ${replicateError instanceof Error ? replicateError.message : replicateError}`,
             "image-gen"
           );
           imageBuffer = await generateImageBuffer(prompt, "1024x1024");
           usedFallback = true;
-          try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+          try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
         }
       } else {
         imageBuffer = await generateImageBuffer(prompt, "1024x1024");
-        try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+        try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
       }
 
       const objectStorageService = sharedObjectStorageService;
@@ -137,7 +137,7 @@ export function registerImageRoutes(app: Express): void {
         usedFallback,
         fallbackNotice: usedFallback ? "Using standard generation — specialized rendering unavailable" : undefined,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error generating property image: ${error instanceof Error ? error.message : error}`, "image-gen");
       const message = error instanceof Error ? error.message : "Failed to generate image";
       res.status(500).json({ error: message });
@@ -181,10 +181,10 @@ export function registerImageRoutes(app: Express): void {
       const svc = getVendorService(resolved.vendor);
       const inTok = response.usageMetadata?.promptTokenCount ?? Math.round(prompt.length / 4);
       const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round((enhanced?.length ?? 0) / 4);
-      try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "enhance-logo-prompt", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/enhance-logo-prompt" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "enhance-logo-prompt", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/enhance-logo-prompt" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       res.json({ enhanced });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error enhancing prompt: ${error instanceof Error ? error.message : error}`, "image-gen");
       const message = error instanceof Error ? error.message : "Failed to enhance prompt";
       res.status(500).json({ error: message });

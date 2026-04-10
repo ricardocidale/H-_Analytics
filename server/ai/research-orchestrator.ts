@@ -127,7 +127,7 @@ async function runAnalystPanel(
     ]);
 
     return { model, role, output, durationMs: Date.now() - start };
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Analyst panel failed (${model}): ${err instanceof Error ? err.message : err}`, "orchestrator");
     return {
       model, role,
@@ -307,7 +307,7 @@ export async function* orchestrateResearch(
           `${compsBlock}\n\n## RESEARCH INSTRUCTIONS`
         );
       }
-    } catch (err) {
+    } catch (err: unknown) {
       yield { type: "phase", data: `Relaxation skipped: ${err instanceof Error ? err.message : "unknown error"}` };
     }
   }
@@ -329,7 +329,7 @@ export async function* orchestrateResearch(
           urlChunks.map(c => `- ${c.metadata?.url || ""} ${c.metadata?.title ? `(${c.metadata.title})` : ""} [relevance: ${c.score.toFixed(2)}]`).join("\n");
         yield { type: "phase", data: `Retrieved ${urlChunks.length} validated property URLs from knowledge base` };
       }
-    } catch (e) {
+    } catch (e: unknown) {
       logger.warn(`Failed to retrieve property URLs from Pinecone: ${(e instanceof Error ? e.message : String(e))}`, "research-orchestrator");
     }
   }

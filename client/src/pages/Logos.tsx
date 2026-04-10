@@ -130,7 +130,7 @@ export default function Logos() {
       reader.readAsDataURL(file);
 
       toast({ title: "Uploaded", description: "Logo image uploaded successfully." });
-    } catch (error) {
+    } catch (error: unknown) {
       toast({ title: "Upload Failed", description: "Failed to upload logo image.", variant: "destructive" });
     } finally {
       setUploadingFile(false);

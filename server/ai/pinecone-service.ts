@@ -244,7 +244,7 @@ export async function multiNamespaceQuery(
           metadata: (m.metadata ?? {}) as Record<string, string | number | boolean>,
           namespace: ns,
         }));
-      } catch (err) {
+      } catch (err: unknown) {
         logger.warn(`Pinecone query failed for namespace ${ns}: ${err instanceof Error ? err.message : err}`, "pinecone");
         return [];
       }
@@ -280,7 +280,7 @@ export async function getNamespaceStats(): Promise<Record<PineconeNamespace, num
     for (const ns of ALL_NAMESPACES) {
       stats[ns] = indexStats.namespaces?.[ns]?.recordCount ?? 0;
     }
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to get namespace stats: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 
@@ -295,7 +295,7 @@ export async function deleteNamespace(namespace: PineconeNamespace): Promise<voi
     const index = getPC().index(INDEX_NAME).namespace(namespace);
     await index.deleteAll();
     logger.info(`Cleared all vectors from namespace "${namespace}"`, "pinecone");
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to clear namespace ${namespace}: ${err instanceof Error ? err.message : err}`, "pinecone");
     throw err;
   }
@@ -324,7 +324,7 @@ export async function cleanupPropertyVectors(propertyId: number): Promise<void> 
         `guidance:property:${propertyId}`,
         `scenario:${propertyId}`,
       ]);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Pinecone cleanup for namespace ${ns} (property ${propertyId}) failed: ${err instanceof Error ? err.message : err}`, "pinecone");
     }
   }

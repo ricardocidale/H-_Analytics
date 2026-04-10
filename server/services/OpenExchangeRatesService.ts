@@ -71,7 +71,7 @@ export class OpenExchangeRatesService extends BaseIntegrationService {
             .map(([symbol, rate]) => [symbol, 1 / rate])
         ),
       };
-    } catch (err) {
+    } catch (err: unknown) {
       this.warn("Failed to fetch FX rates", err);
       return null;
     }

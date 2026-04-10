@@ -396,7 +396,7 @@ export function extractGuidance(
         rawRecords.push(gr);
       }
     }
-  } catch (err) {
+  } catch (err: unknown) {
     errors.push(`Extraction error: ${err instanceof Error ? err.message : String(err)}`);
   }
 

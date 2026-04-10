@@ -89,7 +89,7 @@ Return ONLY the JSON array, no other text.`;
         });
       }
     }
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`AI relevance scoring failed, using heuristic fallback: ${err instanceof Error ? err.message : "unknown"}`, "property-urls");
     const RELEVANT_DOMAINS = ["airbnb", "vrbo", "booking", "expedia", "tripadvisor", "hotels", "zillow", "realtor", "loopnet", "costar"];
     for (const entry of urlEntries) {
@@ -108,7 +108,7 @@ export function registerPropertyUrlRoutes(app: Express) {
     try {
       const urls = await storage.getAllPropertyUrls();
       res.json(urls);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch all property URLs", error);
     }
   });
@@ -121,7 +121,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       }
       const urls = await storage.getPropertyUrls(propertyId);
       res.json(urls);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch property URLs", error);
     }
   });
@@ -147,7 +147,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       });
       logActivity(req, "add-url", "property", propertyId, parsed.data.url);
       res.status(201).json(row);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to add property URL", error);
     }
   });
@@ -176,7 +176,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       const updated = await storage.updatePropertyUrl(urlId, updateData);
       logActivity(req, "update-url", "property", propertyId, parsed.data.url ?? existing.url);
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update property URL", error);
     }
   });
@@ -198,12 +198,12 @@ export function registerPropertyUrlRoutes(app: Express) {
         if (isPineconeAvailable()) {
           await deleteVectors("properties", [`prop-url:${propertyId}:${urlId}`]);
         }
-      } catch (e) {
+      } catch (e: unknown) {
         logger.warn(`Failed to remove URL vector: ${(e instanceof Error ? e.message : String(e))}`, "property-urls");
       }
       logActivity(req, "delete-url", "property", propertyId, existing.url);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete property URL", error);
     }
   });
@@ -251,7 +251,7 @@ export function registerPropertyUrlRoutes(app: Express) {
             const isValid = response.ok;
             await storage.updatePropertyUrl(u.id, { isValid, lastCheckedAt: new Date() });
             return { id: u.id, url: u.url, isValid, status: response.status, title: meta.title, description: meta.description, hostname };
-          } catch (err) {
+          } catch (err: unknown) {
             await storage.updatePropertyUrl(u.id, { isValid: false, lastCheckedAt: new Date() });
             return { id: u.id, url: u.url, isValid: false, status: 0, title: "", description: "", hostname: "", error: err instanceof Error ? err.message : "Unknown error" };
           }
@@ -321,12 +321,12 @@ export function registerPropertyUrlRoutes(app: Express) {
             logger.info(`Indexed ${chunks.length} relevant URLs for property ${propertyId}`, "property-urls");
           }
         }
-      } catch (e) {
+      } catch (e: unknown) {
         logger.warn(`Failed to manage property URL vectors in Pinecone: ${(e instanceof Error ? e.message : String(e))}`, "property-urls");
       }
 
       res.json({ validated: results.length, results });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to validate property URLs", error);
     }
   });

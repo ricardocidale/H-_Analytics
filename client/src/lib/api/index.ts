@@ -23,7 +23,7 @@ export async function fetchApi<T>(url: string, options?: RequestInit): Promise<T
     let errorData;
     try {
       errorData = await res.json();
-    } catch (e) {
+    } catch (e: unknown) {
       errorData = { message: res.statusText };
     }
     throw new Error(errorData.message || errorData.error || `Request failed with status ${res.status}`);

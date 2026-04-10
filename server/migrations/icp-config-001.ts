@@ -11,7 +11,7 @@ export async function runIcpConfigMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS icp_config jsonb
     `);
     logger.info("Migration complete", TAG);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Migration failed: ${error}`, TAG);
   }
 }

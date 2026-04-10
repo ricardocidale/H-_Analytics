@@ -63,7 +63,7 @@ export function register(app: Express) {
             : props;
 
           financialSummary = buildFinancialSummary(ga, mgmtCompany, managedProps);
-        } catch (err) {
+        } catch (err: unknown) {
           logger.warn(`Failed to gather financial context: ${err instanceof Error ? err.message : err}`, "icp-research");
           res.write(`data: ${JSON.stringify({ type: "status", message: "Warning: Could not load financial data — continuing without financial context." })}\n\n`);
         }
@@ -101,7 +101,7 @@ export function register(app: Express) {
 
       const inTok = Math.round(prompt.length / 4);
       const outTok = Math.round(fullContent.length / 4);
-      try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model, operation: "icp-research", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/research/icp/generate" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model, operation: "icp-research", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/research/icp/generate" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       res.write(`data: ${JSON.stringify({ type: "done", report, markdown })}\n\n`);
       res.end();
@@ -119,7 +119,7 @@ export function register(app: Express) {
       if (!ga) return res.status(404).json({ error: "No global assumptions found" });
       const icpConfig = ga.icpConfig || {};
       res.json(icpConfig._research || null);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch ICP research", error);
     }
   });

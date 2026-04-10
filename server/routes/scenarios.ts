@@ -42,7 +42,7 @@ export function register(app: Express) {
       const userVisible = owned.filter(s => s.kind === "manual");
       const ownedWithAccess = userVisible.map(s => ({ ...s, accessType: "owned" as const, sharedByUserId: null, sharedByName: null }));
       res.json([...ownedWithAccess, ...shared]);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scenarios", error);
     }
   });
@@ -102,7 +102,7 @@ export function register(app: Express) {
           throw createErr;
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to auto-save scenario", error);
     }
   });
@@ -111,7 +111,7 @@ export function register(app: Express) {
     try {
       const existing = await storage.getAutoSaveScenario(getAuthUser(req).id);
       res.json({ exists: !!existing, updatedAt: existing?.updatedAt?.toISOString() ?? null });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to check auto-save", error);
     }
   });
@@ -122,7 +122,7 @@ export function register(app: Express) {
       const count = await storage.countManualScenarios(user.id);
       const suggestion = computeGhostName(count, user);
       res.json({ suggestion });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to suggest scenario name", error);
     }
   });
@@ -168,7 +168,7 @@ export function register(app: Express) {
         ...scenario,
         snapshotStatus: computedResults ? "computed" : "failed",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create scenario", error);
     }
   });
@@ -194,7 +194,7 @@ export function register(app: Express) {
 
       logActivity(req, "update", "scenario", id, scenario.name);
       res.json(scenario);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update scenario", error);
     }
   });
@@ -250,7 +250,7 @@ export function register(app: Express) {
           ...orphanedPhotos.map(name => `Photos for "${name}" have no matching property`),
         ].filter(w => w.length > 0),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to load scenario", error);
     }
   });
@@ -270,7 +270,7 @@ export function register(app: Express) {
       await storage.softDeleteScenario(id, user.id);
       logActivity(req, "delete", "scenario", id, scenario.name);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete scenario", error);
     }
   });
@@ -290,7 +290,7 @@ export function register(app: Express) {
       const cloned = await storage.cloneScenario(id, getAuthUser(req).id);
       logActivity(req, "clone", "scenario", cloned.id, cloned.name);
       res.status(201).json(cloned);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to clone scenario", error);
     }
   });
@@ -315,7 +315,7 @@ export function register(app: Express) {
       res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       res.json(exportData);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to export scenario", error);
     }
   });
@@ -345,7 +345,7 @@ export function register(app: Express) {
 
       logActivity(req, "import", "scenario", scenario.id, scenario.name);
       res.status(201).json(scenario);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to import scenario", error);
     }
   });
@@ -365,7 +365,7 @@ export function register(app: Express) {
 
       const result = storage.compareScenarios(s1, s2);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to compare scenarios", error);
     }
   });
@@ -442,7 +442,7 @@ export function register(app: Express) {
           }).catch(err => logger.warn(`Failed to send admin share notification: ${err instanceof Error ? err.message : String(err)}`, "scenarios"));
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to share scenario", error);
     }
   });
@@ -463,7 +463,7 @@ export function register(app: Express) {
       const overrides = await storage.getPropertyOverrides(id);
       const liveProperties = await storage.getAllProperties(scenario.userId);
       res.json(buildPreviewData(overrides, liveProperties as Array<Record<string, unknown>>, scenario));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to preview scenario", error);
     }
   });
@@ -483,7 +483,7 @@ export function register(app: Express) {
         scenarios: buildCrossQueryResult(userScenarios, field),
         overrides: results,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to query across scenarios", error);
     }
   });

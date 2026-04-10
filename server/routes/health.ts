@@ -23,7 +23,7 @@ router.get("/api/health/ready", async (_req: Request, res: Response) => {
       return;
     }
     res.json({ status: "ready", db: "connected", migrations: "complete" });
-  } catch (err) {
+  } catch (err: unknown) {
     logger.error(`Readiness check failed: ${err instanceof Error ? err.message : err}`, "health");
     res.status(503).json({ status: "not_ready", db: "disconnected", migrations: "unknown" });
   }
@@ -39,7 +39,7 @@ router.get("/api/health/deep", async (_req: Request, res: Response) => {
       serverTime: health.serverTime,
       pool: health.pool,
     };
-  } catch (err) {
+  } catch (err: unknown) {
     checks.database = { status: "error", message: err instanceof Error ? err.message : String(err) };
   }
 

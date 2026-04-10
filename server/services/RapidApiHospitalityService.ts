@@ -279,7 +279,7 @@ export class RapidApiHospitalityService extends BaseIntegrationService {
         headers: rapidApiHeaders(host, slot),
       });
       return await response.json();
-    } catch (err) {
+    } catch (err: unknown) {
       this.warn(`${label} fetch failed`, err);
       return null;
     }

@@ -11,7 +11,7 @@ export function registerScheduledResearchRoutes(app: Express) {
     try {
       const workflows = await storage.getScheduledResearchWorkflows();
       res.json(workflows);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scheduled research workflows", error);
     }
   });
@@ -24,7 +24,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       }
       const workflow = await storage.upsertScheduledResearchWorkflow(validation.data);
       res.json(workflow);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create scheduled research workflow", error);
     }
   });
@@ -50,7 +50,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       }
       const workflow = await storage.upsertScheduledResearchWorkflow(data as any);
       res.json(workflow);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update scheduled research workflow", error);
     }
   });
@@ -61,7 +61,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
       await storage.deleteScheduledResearchWorkflow(id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete scheduled research workflow", error);
     }
   });
@@ -112,7 +112,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       }
 
       res.end();
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to execute scheduled research workflow", error);
     }
   });
@@ -131,7 +131,7 @@ export function registerScheduledResearchRoutes(app: Express) {
           frequencyHours: w.frequencyHours,
         })),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to check stale scheduled workflows", error);
     }
   });
@@ -179,7 +179,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       }
 
       res.end();
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to execute scheduled research workflow", error);
     }
   });

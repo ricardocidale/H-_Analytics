@@ -35,7 +35,7 @@ export function register(app: Express) {
       });
 
       res.json(enriched);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch market rates", error);
     }
   });
@@ -48,7 +48,7 @@ export function register(app: Express) {
       if (!ok) return sendError(res, 404, "Rate not found or could not be refreshed");
       const updated = await getMarketRate(key);
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to refresh rate", error);
     }
   });
@@ -58,7 +58,7 @@ export function register(app: Express) {
     try {
       const count = await refreshAllStaleRates();
       res.json({ refreshed: count });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to refresh rates", error);
     }
   });
@@ -86,7 +86,7 @@ export function register(app: Express) {
 
       const updated = await getMarketRate(key);
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update rate", error);
     }
   });
@@ -97,7 +97,7 @@ export function register(app: Express) {
       const data = await aggregator.fetchRateWithHistory(String(req.params.seriesKey));
       if (!data) return sendError(res, 404, "Series not found or FRED API unavailable");
       res.json(data);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch FRED history", error);
     }
   });
@@ -107,7 +107,7 @@ export function register(app: Express) {
       const aggregator = getMarketIntelligenceAggregator();
       const data = await aggregator.fetchRatesOnly();
       res.json(data);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch FRED rates", error);
     }
   });
@@ -116,7 +116,7 @@ export function register(app: Express) {
     try {
       const aggregator = getMarketIntelligenceAggregator();
       res.json(aggregator.getServiceStatus());
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to get service status", error);
     }
   });
@@ -139,7 +139,7 @@ export function register(app: Express) {
         spGlobal: data.spGlobal || null,
         costar: data.costar || null,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch credit risk data", error);
     }
   });
@@ -152,7 +152,7 @@ export function register(app: Express) {
       const aggregator = getMarketIntelligenceAggregator();
       const data = await aggregator.gather({ location, state, propertyType, propertyClass, chainScale });
       res.json(data);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to gather market intelligence", error);
     }
   });

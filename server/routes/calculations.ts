@@ -59,7 +59,7 @@ export function register(app: Express) {
 
       logActivity(req, "run-verification", "verification", run.id, `Audit ${run.id}: ${run.auditOpinion}`);
       res.json(run);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Verification failed", error);
     }
   });
@@ -68,7 +68,7 @@ export function register(app: Express) {
     try {
       const history = await storage.getVerificationRuns(50);
       res.json(history);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch verification history", error);
     }
   });
@@ -78,7 +78,7 @@ export function register(app: Express) {
       const run = await storage.getVerificationRun(Number(req.params.id));
       if (!run) return res.status(404).json({ error: "Run not found" });
       res.json(run);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch verification run", error);
     }
   });
@@ -164,7 +164,7 @@ export function register(app: Express) {
 
       const inTok = Math.round(summaryText.length / 4);
       const outTok = Math.round(fullReviewContent.length / 4);
-      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: llmModel, operation: "ai-verification-review", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", llmModel, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/verification/ai-review" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: llmModel, operation: "ai-verification-review", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", llmModel, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/verification/ai-review" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       res.write("data: [DONE]\n\n");
       res.end();
@@ -184,7 +184,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = computeDCF({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "DCF calculation failed" });
     }
   });
@@ -195,7 +195,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = buildIRRVector(validation.data);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "IRR calculation failed" });
     }
   });
@@ -206,7 +206,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = computeEquityMultiple({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json({ equityMultiple: result });
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Equity multiple calculation failed" });
     }
   });
@@ -217,7 +217,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = computeExitValuation({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Exit valuation failed" });
     }
   });
@@ -228,7 +228,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = validateFinancialIdentities({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Identity validation failed" });
     }
   });
@@ -239,7 +239,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = checkFundingGates(validation.data);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Funding gate check failed" });
     }
   });
@@ -250,7 +250,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = reconcileSchedule(validation.data);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Schedule reconciliation failed" });
     }
   });
@@ -261,7 +261,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = checkAssumptionConsistency(validation.data);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Consistency check failed" });
     }
   });
@@ -272,7 +272,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = verifyExport(validation.data);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Export verification failed" });
     }
   });
@@ -283,7 +283,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = consolidateStatements({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Consolidation failed" });
     }
   });
@@ -294,7 +294,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = compareScenarios(validation.data);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Scenario comparison failed" });
     }
   });
@@ -305,7 +305,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = computeBreakEven(validation.data);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       res.status(500).json({ error: "Break-even analysis failed" });
     }
   });

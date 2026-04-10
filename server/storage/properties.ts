@@ -20,7 +20,7 @@ async function _indexPropertyAsync(property: Property): Promise<void> {
       description: (property as any).description ?? null,
       streetAddress: (property as any).streetAddress ?? (property as any).street_address ?? null,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Async property index failed: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 }

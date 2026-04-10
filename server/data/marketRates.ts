@@ -52,7 +52,7 @@ export async function fetchFredRate(seriesId: string): Promise<{ value: number; 
     if (!obs || obs.value === ".") return null;
 
     return { value: parseFloat(obs.value), date: obs.date };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.warn(`FRED fetch error for ${seriesId}: ${error instanceof Error ? error.message : error}`, "market-rates");
     return null;
   }
@@ -91,7 +91,7 @@ export async function fetchFrankfurterRate(targetCurrency: string): Promise<{ va
     if (rate == null) return null;
 
     return { value: rate, date: data.date };
-  } catch (error) {
+  } catch (error: unknown) {
     if (!frankfurterWarned.has(targetCurrency)) {
       logger.warn(`Frankfurter fetch error for ${targetCurrency}: ${error instanceof Error ? error.message : error}`, "market-rates");
       frankfurterWarned.add(targetCurrency);

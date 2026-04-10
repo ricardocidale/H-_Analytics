@@ -69,7 +69,7 @@ export function register(app: Express) {
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(validation.data.email, validation.data.password, clientIp, res);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Login failed", error);
     }
   });
@@ -86,7 +86,7 @@ export function register(app: Express) {
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(adminSeed.email, validation.data.password, clientIp, res);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Admin login failed", error);
     }
   });
@@ -113,7 +113,7 @@ export function register(app: Express) {
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(adminSeed.email, adminPassword, clientIp, res);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Dev login failed", error);
     }
   });
@@ -126,7 +126,7 @@ export function register(app: Express) {
       }
       clearSessionCookie(res);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Logout failed", error);
     }
   });
@@ -189,7 +189,7 @@ export function register(app: Express) {
       
       const user = await storage.updateUserProfile(getAuthUser(req).id, updates);
       res.json(userResponse(user));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update profile", error);
     }
   });
@@ -225,7 +225,7 @@ export function register(app: Express) {
       await storage.updateUserPassword(getAuthUser(req).id, newPasswordHash);
       
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to change password", error);
     }
   });
@@ -239,7 +239,7 @@ export function register(app: Express) {
       }
       await storage.updateUserHideTourPrompt(getAuthUser(req).id, validation.data.hide);
       res.json({ hideTourPrompt: validation.data.hide });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update preference", error);
     }
   });
@@ -261,7 +261,7 @@ export function register(app: Express) {
         fontPreference: validation.data.fontPreference,
       });
       res.json({ colorMode: user.colorMode, bgAnimation: user.bgAnimation, fontPreference: user.fontPreference });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update appearance preferences", error);
     }
   });
@@ -281,7 +281,7 @@ export function register(app: Express) {
       }
       const user = await storage.updateUserSelectedTheme(getAuthUser(req).id, validation.data.themeId);
       res.json({ selectedThemeId: user.selectedThemeId });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update theme preference", error);
     }
   });

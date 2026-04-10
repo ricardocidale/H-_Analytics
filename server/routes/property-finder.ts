@@ -184,7 +184,7 @@ export function register(app: Express) {
     try {
       const properties = await storage.getProspectiveProperties(getAuthUser(req).id);
       res.json(properties);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch prospective properties", error);
     }
   });
@@ -203,7 +203,7 @@ export function register(app: Express) {
 
       logActivity(req, "favorite", "prospective_property", property.id, property.address);
       res.status(201).json(property);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to add prospective property", error);
     }
   });
@@ -212,7 +212,7 @@ export function register(app: Express) {
     try {
       await storage.deleteProspectiveProperty(Number(req.params.id), getAuthUser(req).id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete prospective property", error);
     }
   });
@@ -230,7 +230,7 @@ export function register(app: Express) {
       );
       if (!property) return res.status(404).json({ error: "Property not found" });
       res.json(property);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update notes", error);
     }
   });
@@ -349,7 +349,7 @@ export function register(app: Express) {
         regionalMedians,
         fetchedAt: new Date().toISOString(),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Market context failed", error);
     }
   });
@@ -367,7 +367,7 @@ export function register(app: Express) {
 
       const history = await usRealEstateService.getPropertyValueHistory(parsed.data.property_id);
       res.json({ history });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Property value lookup failed", error);
     }
   });
@@ -376,7 +376,7 @@ export function register(app: Express) {
     try {
       const searches = await storage.getSavedSearches(getAuthUser(req).id);
       res.json(searches);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch saved searches", error);
     }
   });
@@ -395,7 +395,7 @@ export function register(app: Express) {
 
       logActivity(req, "save-search", "saved_search", search.id, search.name);
       res.status(201).json(search);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to add saved search", error);
     }
   });
@@ -404,7 +404,7 @@ export function register(app: Express) {
     try {
       await storage.deleteSavedSearch(Number(req.params.id), getAuthUser(req).id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete saved search", error);
     }
   });

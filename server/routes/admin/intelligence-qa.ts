@@ -64,7 +64,7 @@ export function registerQaRoutes(app: Express) {
         const contextPack = buildCompanyContextPack(ga, allProps, await buildServiceTemplateSummary());
         res.json({ entityType, entityName: ga.companyName ?? "Management Company", contextPack });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to preview context pack", error);
     }
   });
@@ -125,7 +125,7 @@ export function registerQaRoutes(app: Express) {
         estimatedCostUsd: Math.round(estimatedCost * 10000) / 10000,
         promptLengthChars: prompt.length,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to preview prompt", error);
     }
   });
@@ -136,7 +136,7 @@ export function registerQaRoutes(app: Express) {
       if (!parsed.success) return res.status(400).json({ error: "Invalid serviceKey" });
       const rotations = await storage.getKeyRotationsByService(parsed.data);
       res.json(rotations);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch key rotations", error);
     }
   });
@@ -162,7 +162,7 @@ export function registerQaRoutes(app: Express) {
         notes: body.data.notes ?? null,
       });
       res.json({ success: true, rotatedAt: rotation.rotatedAt, id: rotation.id });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to rotate key", error);
     }
   });
@@ -256,7 +256,7 @@ export function registerQaRoutes(app: Express) {
         estimatedCostUsd: Math.round(estimatedCost * 10000) / 10000,
         durationMs,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to run live test", error);
     }
   });

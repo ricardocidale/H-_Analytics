@@ -63,7 +63,7 @@ export function registerGoogleAuthRoutes(app: Express) {
 
       logger.info(`Google auth: redirecting to Google (baseUrl=${process.env.BASE_URL || 'https://h-analysis.com'})`, "auth");
       res.redirect(authorizeUrl);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Google auth redirect error: ${error instanceof Error ? error.message : error}`, "auth");
       res.redirect("/login?error=google_unavailable");
     }
@@ -130,7 +130,7 @@ export function registerGoogleAuthRoutes(app: Express) {
       if (payload.sub && !user.googleId) {
         try {
           await storage.updateUserGoogleId(user.id, payload.sub);
-        } catch (e) {
+        } catch (e: unknown) {
           logger.error(`Failed to store googleId for user ${user.id}: ${e}`, "auth");
         }
       }
@@ -145,7 +145,7 @@ export function registerGoogleAuthRoutes(app: Express) {
 
       logger.info(`Google sign-in successful: ${email} (userId: ${user.id})`, "auth");
       res.redirect("/");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Google auth callback error: ${error instanceof Error ? error.message : error}`, "auth");
       res.redirect("/login?error=google_failed");
     }

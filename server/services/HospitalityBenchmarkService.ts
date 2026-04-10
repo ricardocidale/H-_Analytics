@@ -34,7 +34,7 @@ export class HospitalityBenchmarkService extends BaseIntegrationService {
       async () => {
         try {
           return await this.queryApi(query);
-        } catch (error) {
+        } catch (error: unknown) {
           this.warn(`Failed to fetch benchmarks for ${query.city}`, error);
           return null;
         }

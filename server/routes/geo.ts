@@ -89,7 +89,7 @@ export function register(app: Express) {
       });
 
       res.json(locations);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to build default locations: ${err instanceof Error ? err.message : err}`, "geo");
       res.status(500).json({ error: "Failed to build default locations" });
     }

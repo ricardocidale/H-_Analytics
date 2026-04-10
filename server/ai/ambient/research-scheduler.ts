@@ -127,7 +127,7 @@ export async function executeScheduledWorkflow(
     });
 
     return { success: true, content, durationMs };
-  } catch (err) {
+  } catch (err: unknown) {
     const durationMs = Date.now() - startTime;
     const error = err instanceof Error ? err.message : String(err);
     return { success: false, content: "", durationMs, error };
@@ -245,7 +245,7 @@ async function processPendingBatches(): Promise<void> {
           logger.error(`Batch result "${workflow.name}" failed: ${result.result.type}`, "research-scheduler");
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error(`Error processing batch ${batchId}: ${msg}`, "research-scheduler");
       for (const workflow of workflows) {
@@ -323,7 +323,7 @@ async function runScheduledCheckCycle(): Promise<void> {
             lastRunError: BATCH_ID_PREFIX + batchId,
           });
         }
-      } catch (err) {
+      } catch (err: unknown) {
         logger.error(
           `Batch submission failed, falling back to sync: ${err instanceof Error ? err.message : err}`,
           "research-scheduler",
@@ -339,7 +339,7 @@ async function runScheduledCheckCycle(): Promise<void> {
         await runWorkflowSync(workflow);
       }
     }
-  } catch (err) {
+  } catch (err: unknown) {
     logger.error(
       `Research scheduler cycle failed: ${err instanceof Error ? err.message : err}`,
       "research-scheduler",
@@ -370,7 +370,7 @@ async function runWorkflowSync(workflow: ScheduledResearchWorkflow): Promise<voi
     } else {
       logger.error(`Failed "${workflow.name}": ${result.error}`, "research-scheduler");
     }
-  } catch (err) {
+  } catch (err: unknown) {
     await storage.updateScheduledWorkflowRun(workflow.id, {
       lastRunAt: new Date(),
       nextRunAt: new Date(Date.now() + workflow.frequencyHours * 60 * 60 * 1000),
@@ -390,14 +390,14 @@ export function startResearchScheduler(): void {
   setTimeout(async () => {
     try {
       await runScheduledCheckCycle();
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Initial check failed: ${err instanceof Error ? err.message : String(err)}`, "research-scheduler");
     }
 
     schedulerInterval = setInterval(async () => {
       try {
         await runScheduledCheckCycle();
-      } catch (err) {
+      } catch (err: unknown) {
         logger.error(`Periodic check failed: ${err instanceof Error ? err.message : String(err)}`, "research-scheduler");
       }
     }, CHECK_INTERVAL_MS);

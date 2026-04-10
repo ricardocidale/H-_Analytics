@@ -224,7 +224,7 @@ class GeospatialIntegration extends BaseIntegrationService {
       await storage.updateProperty(propertyId, { latitude: coords.lat, longitude: coords.lng });
 
       return coords;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Geocode and update error: ${error instanceof Error ? error.message : error}`, "geospatial");
       return null;
     }

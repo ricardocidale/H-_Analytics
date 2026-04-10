@@ -254,7 +254,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       req.user = session.user;
       req.sessionId = sessionId;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Auth middleware error: ${error instanceof Error ? error.message : error}`, "auth");
   }
   

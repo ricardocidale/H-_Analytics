@@ -216,7 +216,7 @@ export async function exportManualPDF(user: { email?: string; role?: string; com
   const pdfBlob = doc.output("blob");
   await saveFile(pdfBlob, customFilename || "LB_Checker_Manual.pdf");
   return { success: true };
-  } catch (err) {
+  } catch (err: unknown) {
     return { success: false, status: "error", error: err instanceof Error ? err.message : "Manual PDF export failed" };
   }
 }
@@ -447,7 +447,7 @@ export async function exportFullData(user: { email?: string; role?: string; comp
         ["Ending Cash", ...yearly.map(yr => formatMoney(yr.endingCash))],
       ]);
       includedStatements.push(`${p.name} — Cash Flow`);
-    } catch (e) {
+    } catch (e: unknown) {
       warnings.push(`Failed to generate financials for "${p.name}": ${e instanceof Error ? e.message : "unknown error"}`);
     }
   });
@@ -478,7 +478,7 @@ export async function exportFullData(user: { email?: string; role?: string; comp
     ]);
     includedStatements.push("Management Company — Summary");
     companyIncluded = true;
-  } catch (e) {
+  } catch (e: unknown) {
     warnings.push(`Failed to generate Management Company financials: ${e instanceof Error ? e.message : "unknown error"}`);
   }
 
@@ -541,7 +541,7 @@ export async function exportFullData(user: { email?: string; role?: string; comp
     projectionYears: projYears,
     exportTimestamp,
   };
-  } catch (err) {
+  } catch (err: unknown) {
     return {
       success: false,
       status: "error",

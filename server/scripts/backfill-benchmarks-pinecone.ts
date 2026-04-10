@@ -40,7 +40,7 @@ async function main() {
       if (indexed % 10 === 0) {
         logger.info(`[backfill] Progress: ${indexed}/${snapshots.length}`);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       failed++;
       logger.warn(`[backfill] Failed to index ${snap.snapshotKey}: ${err instanceof Error ? err.message : err}`);
     }

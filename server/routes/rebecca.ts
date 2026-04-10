@@ -67,7 +67,7 @@ export function register(app: Express) {
 
       logger.info(`Rebecca email sent to ${recipientEmail} for conversation ${conversationId}`, "rebecca");
       return res.json({ success: true, emailId: email.id });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to send Rebecca email: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to send email" });
     }
@@ -98,7 +98,7 @@ export function register(app: Express) {
 
       logger.info(`Rebecca feedback submitted: ${category} for conversation ${conversationId}`, "rebecca");
       return res.json({ success: true, feedbackId: feedback.id });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to store Rebecca feedback: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to submit feedback" });
     }
@@ -108,7 +108,7 @@ export function register(app: Express) {
     try {
       const conversations = await storage.getRebeccaConversations();
       return res.json(conversations);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to list Rebecca conversations: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to list conversations" });
     }
@@ -122,7 +122,7 @@ export function register(app: Express) {
       }
       const messages = await storage.getRebeccaMessages(conversationId);
       return res.json(messages);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to list Rebecca messages: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to list messages" });
     }
@@ -133,7 +133,7 @@ export function register(app: Express) {
       const status = typeof req.query.status === "string" ? req.query.status : undefined;
       const feedback = await storage.getRebeccaFeedback(status);
       return res.json(feedback);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to list Rebecca feedback: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to list feedback" });
     }
@@ -158,7 +158,7 @@ export function register(app: Express) {
       }
       logger.info(`Rebecca feedback ${feedbackId} status updated to ${parsed.data.status}`, "rebecca");
       return res.json(updated);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to update Rebecca feedback: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to update feedback" });
     }
@@ -168,7 +168,7 @@ export function register(app: Express) {
     try {
       const guardrails = await storage.getRebeccaGuardrails();
       return res.json(guardrails);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to list guardrails: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to list guardrails" });
     }
@@ -183,7 +183,7 @@ export function register(app: Express) {
       const guardrail = await storage.createRebeccaGuardrail(parsed.data);
       logger.info(`Rebecca guardrail created: ${guardrail.label}`, "rebecca");
       return res.json(guardrail);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to create guardrail: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to create guardrail" });
     }
@@ -206,7 +206,7 @@ export function register(app: Express) {
       }
       logger.info(`Rebecca guardrail ${id} updated`, "rebecca");
       return res.json(updated);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to update guardrail: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to update guardrail" });
     }
@@ -224,7 +224,7 @@ export function register(app: Express) {
       }
       logger.info(`Rebecca guardrail ${id} deleted`, "rebecca");
       return res.json({ success: true });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to delete guardrail: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to delete guardrail" });
     }
@@ -235,7 +235,7 @@ export function register(app: Express) {
       const category = typeof req.query.category === "string" ? req.query.category : undefined;
       const entries = await storage.getRebeccaKBEntries(category);
       return res.json(entries);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to list KB entries: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to list KB entries" });
     }
@@ -245,9 +245,9 @@ export function register(app: Express) {
     try {
       const stats = await storage.getRebeccaKBStats();
       let vectorCt = 0;
-      try { vectorCt = await vectorCount("knowledge-base"); } catch (err) { logger.warn(`Failed to get Pinecone vector count: ${err instanceof Error ? err.message : String(err)}`, "rebecca"); }
+      try { vectorCt = await vectorCount("knowledge-base"); } catch (err: unknown) { logger.warn(`Failed to get Pinecone vector count: ${err instanceof Error ? err.message : String(err)}`, "rebecca"); }
       return res.json({ ...stats, vectorCount: vectorCt });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to get KB stats: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to get KB stats" });
     }
@@ -263,7 +263,7 @@ export function register(app: Express) {
       syncKBEntryToPinecone(entry.id, entry.title, entry.content, entry.category);
       logger.info(`KB entry created: ${entry.title}`, "rebecca");
       return res.json(entry);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to create KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to create KB entry" });
     }
@@ -292,7 +292,7 @@ export function register(app: Express) {
       }
       logger.info(`KB entry ${id} updated by ${user.email}`, "rebecca");
       return res.json(updated);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to update KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to update KB entry" });
     }
@@ -311,7 +311,7 @@ export function register(app: Express) {
       );
       logger.info(`KB entry ${id} deleted`, "rebecca");
       return res.json({ success: true });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to delete KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to delete KB entry" });
     }
@@ -324,7 +324,7 @@ export function register(app: Express) {
 
       const history = await storage.getRebeccaKBHistory(entryId);
       return res.json(history);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to get KB history: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to get KB history" });
     }
@@ -349,7 +349,7 @@ export function register(app: Express) {
       }
       logger.info(`KB entry ${entryId} rolled back to history ${historyId} by ${user.email}`, "rebecca");
       return res.json(restored);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to rollback KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to rollback KB entry" });
     }
@@ -461,7 +461,7 @@ export function register(app: Express) {
         feedbackBreakdown: feedbackByCategory,
         totalFeedback: feedback.length,
       });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Failed to compute analytics: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       res.status(500).json({ error: "Failed to compute analytics" });
     }

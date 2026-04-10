@@ -13,7 +13,7 @@ export function register(app: Express) {
     try {
       const rules = await storage.getAllAlertRules();
       res.json(rules);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch alert rules", error);
     }
   });
@@ -26,7 +26,7 @@ export function register(app: Express) {
       }
       const rule = await storage.createAlertRule(validation.data);
       res.status(201).json(rule);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create alert rule", error);
     }
   });
@@ -40,7 +40,7 @@ export function register(app: Express) {
       const rule = await storage.updateAlertRule(Number(req.params.id), validation.data);
       if (!rule) return res.status(404).json({ error: "Rule not found" });
       res.json(rule);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update alert rule", error);
     }
   });
@@ -49,7 +49,7 @@ export function register(app: Express) {
     try {
       await storage.deleteAlertRule(Number(req.params.id));
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete alert rule", error);
     }
   });
@@ -60,7 +60,7 @@ export function register(app: Express) {
       const limit = Number(req.query.limit) || 100;
       const logs = await storage.getNotificationLogs(limit);
       res.json(logs);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch notification logs", error);
     }
   });
@@ -74,7 +74,7 @@ export function register(app: Express) {
         result[s.settingKey] = s.settingValue;
       }
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch notification settings", error);
     }
   });
@@ -90,7 +90,7 @@ export function register(app: Express) {
         await storage.setNotificationSetting(key, value);
       }
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update notification settings", error);
     }
   });
@@ -100,7 +100,7 @@ export function register(app: Express) {
     try {
       const prefs = await storage.getNotificationPreferences(getAuthUser(req).id);
       res.json(prefs);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch notification preferences", error);
     }
   });
@@ -118,7 +118,7 @@ export function register(app: Express) {
       const { eventType, channel, enabled } = validation.data;
       await storage.upsertNotificationPreference(getAuthUser(req).id, eventType, channel, enabled);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update notification preference", error);
     }
   });
@@ -128,7 +128,7 @@ export function register(app: Express) {
     try {
       const result = await testResendConnection();
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to test Resend connection", error);
     }
   });
@@ -161,7 +161,7 @@ export function register(app: Express) {
       });
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to share report via email", error);
     }
   });
@@ -180,7 +180,7 @@ export function register(app: Express) {
 
       await sendScenarioSummaryEmail({ to, scenarios, message });
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to share scenario summary", error);
     }
   });

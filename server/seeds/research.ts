@@ -585,7 +585,7 @@ export async function seedMissingMarketResearch() {
       await db.insert(marketResearch).values(toInsert);
       logger.info(`Seeded market research for ${toInsert.length} properties: ${missingNames.join(", ")}`, "seed");
     }
-  } catch (err) {
+  } catch (err: unknown) {
     logger.error(`Error seeding market research: ${err}`, "seed");
   }
 }

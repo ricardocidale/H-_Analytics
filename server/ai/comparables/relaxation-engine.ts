@@ -258,7 +258,7 @@ async function queryPinecone(pack: PropertyContextPack, criteria: ComparableCrit
     const matches = await queryChunks("research-history", queryText, 15);
     const comps = matches.map(pineconeMatchToComparable);
     return comps.filter(c => filterCompAgainstCriteria(c, criteria, pack));
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Pinecone comparable query failed at L${criteria.level}: ${err instanceof Error ? err.message : err}`, "relaxation");
     return [];
   }
@@ -274,7 +274,7 @@ async function queryLocalDb(
     return allProps
       .filter(p => matchesCriteria(p, criteria, pack))
       .map(localPropToComparable);
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Local DB comparable query failed at L${criteria.level}: ${err instanceof Error ? err.message : err}`, "relaxation");
     return [];
   }
@@ -339,7 +339,7 @@ export async function progressiveRelax(options: {
 
     try {
       await storage.createRelaxationTrace(trace);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Failed to persist relaxation trace L${level}: ${err instanceof Error ? err.message : err}`, "relaxation");
     }
 

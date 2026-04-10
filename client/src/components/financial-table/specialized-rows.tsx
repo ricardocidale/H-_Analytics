@@ -137,6 +137,27 @@ export function FormulaDetailRow({ label, values, positive }: FormulaDetailRowPr
    portfolio total.
    ═══════════════════════════════════════════════ */
 
+interface FormulaDetailStringRowProps {
+  label: string;
+  values: string[];
+  colCount?: number;
+}
+
+export function FormulaDetailStringRow({ label, values }: FormulaDetailStringRowProps) {
+  return (
+    <TableRow className="bg-primary/[0.03]" data-expandable-row="true">
+      <TableCell className="pl-12 sticky left-0 bg-primary/[0.03] py-0.5 text-xs text-muted-foreground italic">
+        {label}
+      </TableCell>
+      {values.map((v, i) => (
+        <TableCell key={i} className="text-right py-0.5 font-mono text-xs text-muted-foreground">
+          {v}
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
+
 interface PropertyBreakdownRowProps {
   propertyName: string;
   values: number[];

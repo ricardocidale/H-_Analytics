@@ -95,7 +95,7 @@ export class FinancialNewsService extends BaseIntegrationService {
         source:      "cnbc" as const,
         category:    a.section ?? a.category ?? undefined,
       })).filter(h => h.title);
-    } catch (err) {
+    } catch (err: unknown) {
       this.warn(`CNBC fetch failed for topic="${topic}"`, err);
       return null;
     }
@@ -119,7 +119,7 @@ export class FinancialNewsService extends BaseIntegrationService {
         source:      "bloomberg" as const,
         category:    a.type ?? a.category ?? undefined,
       })).filter(h => h.title);
-    } catch (err) {
+    } catch (err: unknown) {
       this.warn(`Bloomberg fetch failed for topic="${topic}"`, err);
       return null;
     }

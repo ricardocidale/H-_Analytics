@@ -17,7 +17,7 @@ export function register(app: Express) {
       res.set("Cache-Control", "public, max-age=86400");
       const buf = Buffer.from(await resp.arrayBuffer());
       res.send(buf);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`OSM tile fetch error ${z}/${x}/${y}: ${err instanceof Error ? err.message : err}`, "tiles");
       res.status(502).send("Tile fetch error");
     }
@@ -37,7 +37,7 @@ export function register(app: Express) {
       res.set("Cache-Control", "public, max-age=86400");
       const buf = Buffer.from(await resp.arrayBuffer());
       res.send(buf);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Satellite tile fetch error ${z}/${x}/${y}: ${err instanceof Error ? err.message : err}`, "tiles");
       res.status(502).send("Tile fetch error");
     }
@@ -55,7 +55,7 @@ export function register(app: Express) {
       res.set("Cache-Control", "public, max-age=86400");
       const buf = Buffer.from(await resp.arrayBuffer());
       res.send(buf);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Terrain tile fetch error ${z}/${x}/${y}: ${err instanceof Error ? err.message : err}`, "tiles");
       res.status(502).send("Tile fetch error");
     }

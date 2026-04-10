@@ -10,7 +10,7 @@ export function registerSourceRoutes(app: Express) {
     try {
       const sources = await storage.getSourceRegistry();
       res.json(sources);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch source registry", error);
     }
   });
@@ -36,7 +36,7 @@ export function registerSourceRoutes(app: Express) {
       if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
       const created = await storage.createSourceRegistryEntry(parsed.data);
       res.status(201).json(created);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create source registry entry", error);
     }
   });
@@ -66,7 +66,7 @@ export function registerSourceRoutes(app: Express) {
       const updated = await storage.updateSourceRegistryEntry(id, parsed.data);
       if (!updated) return res.status(404).json({ error: "Source not found" });
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update source registry entry", error);
     }
   });
@@ -80,7 +80,7 @@ export function registerSourceRoutes(app: Express) {
       const updated = await storage.updateSourceRegistryEntry(id, { isActive });
       if (!updated) return res.status(404).json({ error: "Source not found" });
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to toggle source", error);
     }
   });
@@ -93,7 +93,7 @@ export function registerSourceRoutes(app: Express) {
       if (!existing) return res.status(404).json({ error: "Source not found" });
       await storage.deleteSourceRegistryEntry(id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete source", error);
     }
   });
@@ -106,7 +106,7 @@ export function registerSourceRoutes(app: Express) {
       if (!source) return res.status(404).json({ error: "Source not found" });
       const logs = await storage.getSourceCallLogs(id, 50);
       res.json(logs);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch source call logs", error);
     }
   });
@@ -192,7 +192,7 @@ export function registerSourceRoutes(app: Express) {
       });
 
       res.json({ healthy, latencyMs, error: errorMsg });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to test source connectivity", error);
     }
   });

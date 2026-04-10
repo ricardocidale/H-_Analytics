@@ -97,7 +97,7 @@ export class ReplicateService extends BaseIntegrationService {
         latencyMs: Date.now() - start,
         circuitState: this.getCircuitState(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         name: this.serviceName,
         healthy: false,

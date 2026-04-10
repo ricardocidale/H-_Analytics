@@ -66,7 +66,7 @@ export class FREDService extends BaseIntegrationService {
         },
         history: history,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.warn(`Failed to fetch ${seriesKey}`, error);
       return null;
     }
@@ -135,7 +135,7 @@ export class FREDService extends BaseIntegrationService {
           date: o.date,
           value: parseFloat(o.value),
         }));
-    } catch (error) {
+    } catch (error: unknown) {
       this.warn(`Historical fetch failed for ${seriesId}`, error);
       return [];
     }

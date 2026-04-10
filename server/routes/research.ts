@@ -84,7 +84,7 @@ export function register(app: Express) {
         company: { status: getStatus(companyResearch?.updatedAt, "company"), updatedAt: companyResearch?.updatedAt?.toISOString() || null },
         global: { status: getStatus(globalResearch?.updatedAt, "global"), updatedAt: globalResearch?.updatedAt?.toISOString() || null },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch research status", error);
     }
   });
@@ -101,7 +101,7 @@ export function register(app: Express) {
         propertyId ? Number(propertyId) : undefined
       );
       res.json(research || null);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch research", error);
     }
   });
@@ -118,7 +118,7 @@ export function register(app: Express) {
         propertyId ? Number(propertyId) : undefined
       );
       res.json(research || null);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch research", error);
     }
   });
@@ -194,7 +194,7 @@ export function register(app: Express) {
           propertyType: assetDefinition?.level || "boutique hotel",
           propertyId: propertyId || undefined,
         });
-      } catch (err) {
+      } catch (err: unknown) {
         logger.warn(`Market intelligence fetch failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
       }
 
@@ -246,7 +246,7 @@ export function register(app: Express) {
                     priorGuidanceStr = `## Prior Assumption Benchmarks (from similar properties)\n\n${lines.join("\n")}`;
                   }
                 }
-              } catch (err) {
+              } catch (err: unknown) {
                 logger.warn(`Prior guidance retrieval failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
               }
 
@@ -280,7 +280,7 @@ export function register(app: Express) {
               ambientData: ambientDataStr,
             });
           }
-        } catch (err) {
+        } catch (err: unknown) {
           logger.warn(`RI v2 prompt assembly failed, falling back to v1: ${err instanceof Error ? err.message : err}`, "research");
         }
       }
@@ -454,7 +454,7 @@ export function register(app: Express) {
             if (guidanceResult.errors.length > 0) {
               logger.warn(`RI v2 extraction errors: ${guidanceResult.errors.join("; ")}`, "research");
             }
-          } catch (err) {
+          } catch (err: unknown) {
             logger.warn(`RI v2 guidance extraction failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
           }
         }
@@ -519,7 +519,7 @@ export function register(app: Express) {
             if (guidanceResult.errors.length > 0) {
               logger.warn(`RI v2 company extraction errors: ${guidanceResult.errors.join("; ")}`, "research");
             }
-          } catch (err) {
+          } catch (err: unknown) {
             logger.warn(`RI v2 company guidance extraction failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
           }
         }
@@ -556,7 +556,7 @@ export function register(app: Express) {
         const outTok = Math.round(fullContent.length / 4);
         try {
           logApiCost({ timestamp: new Date().toISOString(), service: svcName, model, operation: "research", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svcName, model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/research/generate" });
-        } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+        } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
         processNotificationEvent(createEvent("RESEARCH_COMPLETE", {
           propertyId,
@@ -574,13 +574,13 @@ export function register(app: Express) {
             tokensUsed: Math.round((JSON.stringify(params).length + (fullContent || "").length) / 4),
             error: fullContent ? null : "No content generated",
           });
-        } catch (e) {
+        } catch (e: unknown) {
           logger.warn(`Failed to finalize early research run ${earlyRunId}: ${(e instanceof Error ? e.message : String(e))}`, "research");
         }
       }
 
       res.end();
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Research generation error: ${error instanceof Error ? error.message : error}`, "research");
       res.write(`data: ${JSON.stringify({ type: "error", message: "Generation failed" })}\n\n`);
       res.end();

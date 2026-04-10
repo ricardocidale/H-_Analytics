@@ -176,7 +176,7 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
       try {
         await upsertChunks("knowledge-base", pineconeChunks);
         logger.info(`Pinecone: uploaded ${pineconeChunks.length} KB chunks`, "knowledge-base");
-      } catch (err) {
+      } catch (err: unknown) {
         logger.warn(`Pinecone KB upload failed (in-memory cache still valid): ${err}`, "knowledge-base");
       }
     }
@@ -207,7 +207,7 @@ export async function retrieveRelevantChunks(query: string, topK: number = TOP_K
           category: String(m.metadata.category ?? "reference"),
           score:    m.score,
         }));
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Pinecone KB query failed, falling back to in-memory: ${err}`, "knowledge-base");
     }
   }

@@ -35,7 +35,7 @@ export class MoodysService extends BaseIntegrationService {
       async () => {
         try {
           return await this.queryApi(query);
-        } catch (error) {
+        } catch (error: unknown) {
           this.warn(`Failed to fetch risk data for ${query.location}`, error);
           return null;
         }

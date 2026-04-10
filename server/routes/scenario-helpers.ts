@@ -193,7 +193,7 @@ export function tryComputeResults(
       },
       computeHash: computeResult.outputHash,
     };
-  } catch (computeErr) {
+  } catch (computeErr: unknown) {
     logger.warn(`[scenario] Failed to compute results on save: ${computeErr}`, "scenarios");
     return { computedResults: null, computeHash: null };
   }

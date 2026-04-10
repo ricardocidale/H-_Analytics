@@ -138,7 +138,7 @@ async function _indexScenarioAsync(scenario: Scenario): Promise<void> {
       years: ga?.holdPeriod ?? ga?.projectionYears ?? null,
       createdBy: scenario.userId ? String(scenario.userId) : undefined,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Async scenario index failed: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 }

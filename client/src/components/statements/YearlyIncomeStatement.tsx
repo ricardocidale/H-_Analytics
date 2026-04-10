@@ -44,6 +44,7 @@ import {
   ExpandableMetricRow,
   ExpandableLineItem,
   useCalcDetails,
+  FormulaDetailStringRow,
 } from "@/components/financial-table";
 import { aggregatePropertyByYear } from "@/lib/financial/yearlyAggregator";
 import { TableRow, TableCell } from "@/components/ui/table";
@@ -66,20 +67,6 @@ interface Props {
 }
 
 
-function FormulaDetailRow({ label, values, colCount }: { label: string; values: string[]; colCount: number }) {
-  return (
-    <TableRow className="bg-primary/[0.03]" data-expandable-row="true">
-      <TableCell className="pl-12 sticky left-0 bg-primary/[0.03] py-0.5 text-xs text-muted-foreground italic">
-        {label}
-      </TableCell>
-      {values.map((v, i) => (
-        <TableCell key={i} className="text-right py-0.5 font-mono text-xs text-muted-foreground">
-          {v}
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-}
 
 export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, property, global, allExpanded = false }: Props) {
   const yd = aggregatePropertyByYear(data, years);
@@ -157,17 +144,17 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
     const effectiveRate = isUtilities ? rate * (1 - utilitiesVariableSplit) : rate;
     return (
       <>
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label={`Base Mo. Revenue`}
           values={yd.map(() => fmt(baseMonthlyTotalRev))}
           colCount={years}
         />
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label={isUtilities ? `Fixed portion rate (${pct(rate)} × ${pct(1 - utilitiesVariableSplit)} = ${pct(effectiveRate)})` : `Rate: ${pct(rate)}`}
           values={yd.map(() => `${fmt(baseMonthlyTotalRev * effectiveRate)}/mo base`)}
           colCount={years}
         />
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label="Monthly base × escalation factor, summed over 12 months"
           values={yd.map((y) => {
             const factors = getMonthlyFactors(y.year);
@@ -180,7 +167,7 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           })}
           colCount={years}
         />
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label="= Annual total (sum of monthly amounts)"
           values={yd.map((_, i) => fmt(yearlyValues[i]))}
           colCount={years}
@@ -210,7 +197,7 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
         expanded={isExpanded("adrRate")}
         onToggle={() => toggle("adrRate")}
       >
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label="Starting ADR × (1 + growth rate)^year"
           values={yd.map((y) =>
             y.cleanAdr > 0 ? `$${property?.startAdr?.toFixed(2) ?? "?"} × (1+${pct(property?.adrGrowthRate ?? 0)})^${y.year}` : "-"
@@ -228,7 +215,7 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
         expanded={isExpanded("adrEffective")}
         onToggle={() => toggle("adrEffective")}
       >
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label="Room Revenue ÷ Sold Rooms"
           values={yd.map((y) =>
             y.soldRooms > 0 ? `${fmt(y.revenueRooms)} ÷ ${y.soldRooms.toLocaleString()}` : "-"
@@ -248,12 +235,12 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
         expanded={isExpanded("occupancy")}
         onToggle={() => toggle("occupancy")}
       >
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label="Sold Rooms"
           values={yd.map((y) => y.soldRooms.toLocaleString())}
           colCount={years}
         />
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label="Available Rooms"
           values={yd.map((y) => y.availableRooms.toLocaleString())}
           colCount={years}
@@ -269,14 +256,14 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
         expanded={isExpanded("revpar")}
         onToggle={() => toggle("revpar")}
       >
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label="Room Revenue ÷ Available Rooms"
           values={yd.map((y) =>
             y.availableRooms > 0 ? `${fmt(y.revenueRooms)} ÷ ${y.availableRooms.toLocaleString()}` : "-"
           )}
           colCount={years}
         />
-        <FormulaDetailRow
+        <FormulaDetailStringRow
           label="Cross-check: ADR × Occupancy"
           values={yd.map((y) => {
             if (y.availableRooms === 0) return "-";
@@ -362,12 +349,12 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
             expanded={isExpanded("utilities")}
             onToggle={() => toggle("utilities")}
           >
-            <FormulaDetailRow
+            <FormulaDetailStringRow
               label="Variable portion (scales with revenue)"
               values={yd.map((y) => fmt(y.expenseUtilitiesVar))}
               colCount={years}
             />
-            <FormulaDetailRow
+            <FormulaDetailStringRow
               label="Fixed portion (anchored to Year 1 base)"
               values={yd.map((y) => fmt(y.expenseUtilitiesFixed))}
               colCount={years}
@@ -411,12 +398,12 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
       <SubtotalRow label="Gross Operating Profit (GOP)" values={yd.map((y) => y.gop)} positive tooltip="The property's core operating profitability — revenue after all departmental and overhead costs. This is the key metric for comparing operational efficiency across properties, regardless of ownership structure or financing." formula="Total Revenue − Dept Expenses − Undistributed Expenses" />
       {isExpanded("gopFormula") ? (
         <>
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="= Total Revenue − Total Operating Expenses"
             values={yd.map((y) => `${fmt(y.revenueTotal)} − ${fmt(y.revenueTotal - y.gop)}`)}
             colCount={years}
           />
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="= GOP"
             values={yd.map((y) => fmt(y.gop))}
             colCount={years}
@@ -452,12 +439,12 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
       <SubtotalRow label="Adjusted GOP (AGOP)" values={yd.map((y) => y.agop)} positive tooltip="Gross Operating Profit after deducting management fees. AGOP represents the property's operating income available to cover fixed charges, reserves, and debt service." formula="GOP − Base Fee − Incentive Fee" />
       {isExpanded("agopFormula") ? (
         <>
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="= GOP − Base Fee − Incentive Fee"
             values={yd.map((y) => `${fmt(y.gop)} − ${fmt(y.feeBase)} − ${fmt(y.feeIncentive)}`)}
             colCount={years}
           />
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="= AGOP"
             values={yd.map((y) => fmt(y.agop))}
             colCount={years}
@@ -487,17 +474,17 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           >
             {hasContext && (
               <>
-                <FormulaDetailRow
+                <FormulaDetailStringRow
                   label={`Property Value (Purchase + Improvements)`}
                   values={yd.map(() => fmt(totalPropertyValue))}
                   colCount={years}
                 />
-                <FormulaDetailRow
+                <FormulaDetailStringRow
                   label={`Monthly base: ${fmt(totalPropertyValue)} ÷ 12 × ${pct(costRates.taxes)}`}
                   values={yd.map(() => `${fmt(totalPropertyValue / MONTHS_PER_YEAR * costRates.taxes)}/mo base`)}
                   colCount={years}
                 />
-                <FormulaDetailRow
+                <FormulaDetailStringRow
                   label="Monthly base × escalation factor, summed over 12 months"
                   values={yd.map((y) => {
                     const factors = getMonthlyFactors(y.year);
@@ -510,7 +497,7 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
                   })}
                   colCount={years}
                 />
-                <FormulaDetailRow
+                <FormulaDetailStringRow
                   label="= Annual total (sum of monthly amounts)"
                   values={yd.map((_, i) => fmt(yd[i].expenseTaxes))}
                   colCount={years}
@@ -530,12 +517,12 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
       <SubtotalRow label="Net Operating Income (NOI)" values={yd.map((y) => y.noi)} positive tooltip="AGOP minus fixed charges (property taxes). NOI measures the property's income from operations before reserves and debt service. Used directly in cap rate valuation (Property Value = NOI / Cap Rate)." formula="AGOP − Property Taxes" />
       {isExpanded("noiFormula") ? (
         <>
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="= AGOP − Property Taxes"
             values={yd.map((y) => `${fmt(y.agop)} − ${fmt(y.expenseTaxes)}`)}
             colCount={years}
           />
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="= NOI"
             values={yd.map((y) => fmt(y.noi))}
             colCount={years}
@@ -561,12 +548,12 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
       <SubtotalRow label="Adjusted NOI (ANOI)" values={yd.map((y) => y.anoi)} positive tooltip="NOI after deducting the FF&E reserve. This is what's available to service debt, pay income taxes, and generate investor returns. ANOI is the starting point for cash-on-cash return calculations." formula="NOI − FF&E Reserve" />
       {isExpanded("anoiFormula") ? (
         <>
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="= NOI − FF&E Reserve"
             values={yd.map((y) => `${fmt(y.noi)} − ${fmt(y.expenseFFE)}`)}
             colCount={years}
           />
-          <FormulaDetailRow
+          <FormulaDetailStringRow
             label="= ANOI"
             values={yd.map((y) => fmt(y.anoi))}
             colCount={years}

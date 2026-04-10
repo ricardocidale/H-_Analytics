@@ -107,7 +107,7 @@ export abstract class BaseIntegrationService {
         logger.info(`${this.serviceName} circuit breaker CLOSED (probe succeeded)`, "integration");
       }
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       const now = Date.now();
       cb.lastFailureAt = now;
       cb.lastErrorMessage = error instanceof Error ? error.message : String(error);

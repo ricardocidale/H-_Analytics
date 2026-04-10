@@ -77,7 +77,7 @@ export function RebeccaEmailPreview({
         setSent(false);
         setRecipientEmail("");
       }, 1500);
-    } catch (err) {
+    } catch (err: unknown) {
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : String(err),

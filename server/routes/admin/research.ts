@@ -145,7 +145,7 @@ async function fetchOpenAIModels(): Promise<AiModelEntry[]> {
       }
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
-  } catch (e) {
+  } catch (e: unknown) {
     logger.error(`Failed to fetch OpenAI models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
@@ -162,7 +162,7 @@ async function fetchAnthropicModels(): Promise<AiModelEntry[]> {
       }
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
-  } catch (e) {
+  } catch (e: unknown) {
     logger.error(`Failed to fetch Anthropic models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
@@ -180,7 +180,7 @@ async function fetchGeminiModels(): Promise<AiModelEntry[]> {
       }
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
-  } catch (e) {
+  } catch (e: unknown) {
     logger.error(`Failed to fetch Gemini models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
@@ -202,7 +202,7 @@ async function fetchXaiModels(): Promise<AiModelEntry[]> {
       }
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
-  } catch (e) {
+  } catch (e: unknown) {
     logger.error(`Failed to fetch xAI models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
@@ -224,7 +224,7 @@ async function fetchDeepSeekModels(): Promise<AiModelEntry[]> {
       }
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
-  } catch (e) {
+  } catch (e: unknown) {
     logger.error(`Failed to fetch DeepSeek models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
@@ -246,7 +246,7 @@ async function fetchMetaModels(): Promise<AiModelEntry[]> {
       }
     }
     return models.sort((a, b) => a.id.localeCompare(b.id));
-  } catch (e) {
+  } catch (e: unknown) {
     logger.error(`Failed to fetch Meta models: ${(e instanceof Error ? e.message : String(e))}`, "research");
     return [];
   }
@@ -280,7 +280,7 @@ export function registerResearchConfigRoutes(app: Express) {
       const raw = (ga.researchConfig as ResearchConfig) ?? {};
       const normalized = normalizeServerResearchConfig(raw);
       res.json(normalized);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch research config", error);
     }
   });
@@ -321,7 +321,7 @@ export function registerResearchConfigRoutes(app: Express) {
         liveCount: models.length,
         fromCache: models.length === 0,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to refresh AI models", error);
     }
   });
@@ -369,7 +369,7 @@ export function registerResearchConfigRoutes(app: Express) {
       await storage.upsertGlobalAssumptions({ researchConfig: merged } as InsertGlobalAssumptions);
       logActivity(req, "update-research-config", "research", null, null, { events: Object.keys(incoming).filter(k => k !== "cachedModels" && k !== "cachedModelsAt") });
       res.json(merged);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update research config", error);
     }
   });

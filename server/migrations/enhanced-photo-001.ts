@@ -11,7 +11,7 @@ export async function runEnhancedPhoto001(): Promise<void> {
         ADD COLUMN IF NOT EXISTS enhanced_image_data TEXT
     `);
     logger.info("Added enhanced_image_data column to property_photos", TAG);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Migration failed: ${error}`, TAG);
     throw error;
   }

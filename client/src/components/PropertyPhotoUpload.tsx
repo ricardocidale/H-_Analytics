@@ -43,7 +43,7 @@ export function PropertyPhotoUpload({ propertyId, currentImageUrl, onUploadCompl
           description: "Property photo has been successfully updated.",
         });
         onUploadComplete?.(imageUrl);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to update property with new image:", error);
         toast({
           title: "Update Failed",

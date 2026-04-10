@@ -132,7 +132,7 @@ export function register(app: Express) {
             confidenceLevel: getConfidenceLevel(f.confidence),
           })),
         });
-      } catch (extractionError) {
+      } catch (extractionError: unknown) {
         await storage.updateDocumentExtraction(extraction.id, {
           status: "failed",
           errorMessage: extractionError instanceof Error ? extractionError.message : "Extraction failed",
@@ -147,7 +147,7 @@ export function register(app: Express) {
           fields: [],
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to process document", error);
     }
   });
@@ -164,7 +164,7 @@ export function register(app: Express) {
 
       const extractions = await storage.getPropertyExtractions(propertyId);
       res.json(extractions);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to get extractions", error);
     }
   });
@@ -189,7 +189,7 @@ export function register(app: Express) {
           confidenceLevel: getConfidenceLevel(f.confidence),
         }))
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to get extraction fields", error);
     }
   });
@@ -248,7 +248,7 @@ export function register(app: Express) {
       }
 
       res.json({ ...updated, confidenceLevel: getConfidenceLevel(updated.confidence) });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update field status", error);
     }
   });
@@ -312,7 +312,7 @@ export function register(app: Express) {
           confidenceLevel: getConfidenceLevel(f.confidence),
         }))
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to bulk update fields", error);
     }
   });
@@ -355,7 +355,7 @@ export function register(app: Express) {
       );
 
       res.json({ html: rendered.html, subject: rendered.subject });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to preview template", error);
     }
   });

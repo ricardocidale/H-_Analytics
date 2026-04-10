@@ -25,7 +25,7 @@ export function register(app: Express) {
     try {
       const assumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
       res.json({ ...assumptions, rebeccaV2: flag("REBECCA_V2"), adminIntelV2: flag("ADMIN_INTEL_V2") });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch global assumptions", error);
     }
   });
@@ -53,7 +53,7 @@ export function register(app: Express) {
       const updated = await storage.patchGlobalAssumptions(current.id, patch);
       logActivity(req, "update", "global_assumptions", updated.id, "Rebecca Config");
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update global assumptions", error);
     }
   });
@@ -92,7 +92,7 @@ export function register(app: Express) {
       invalidateComputeCache();
       logActivity(req, "update", "global_assumptions", assumptions.id, "System Settings");
       res.json(assumptions);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update global assumptions", error);
     }
   });
@@ -105,7 +105,7 @@ export function register(app: Express) {
         defaultBgAnimation: ga?.defaultBgAnimation ?? null,
         defaultFontPreference: ga?.defaultFontPreference ?? null,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch appearance defaults", error);
     }
   });
@@ -131,7 +131,7 @@ export function register(app: Express) {
         defaultBgAnimation: updated.defaultBgAnimation ?? null,
         defaultFontPreference: updated.defaultFontPreference ?? null,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update appearance defaults", error);
     }
   });
@@ -140,7 +140,7 @@ export function register(app: Express) {
     try {
       const templates = await storage.getAllServiceTemplates();
       res.json(templates);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch service templates", error);
     }
   });
@@ -159,7 +159,7 @@ export function register(app: Express) {
       if (!template) return res.status(404).json({ error: "Service template not found" });
       logActivity(req, "update-service-template", "service-template", id, template.name);
       res.json(template);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update service template", error);
     }
   });

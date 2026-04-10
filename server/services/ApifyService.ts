@@ -264,7 +264,7 @@ export class ApifyService extends BaseIntegrationService {
 
       const data = await response.json();
       return Array.isArray(data) ? data : [];
-    } catch (err) {
+    } catch (err: unknown) {
       this.warn(`Actor ${actorId} failed`, err);
       return [];
     }

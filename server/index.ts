@@ -259,14 +259,14 @@ app.use((req, res, next) => {
           const { refreshAllStaleRates } = await import("./data/marketRates");
           const refreshed = await refreshAllStaleRates();
           if (refreshed > 0) log(`Refreshed ${refreshed} stale market rates`);
-        } catch (err) {
+        } catch (err: unknown) {
           serverLog(`[ERROR] [market-rates] Market rate refresh error: ${err instanceof Error ? err.message : err}`);
         }
         try {
           const { getMarketIntelligenceAggregator } = await import("./services/MarketIntelligenceAggregator");
           const aggregator = getMarketIntelligenceAggregator();
           await aggregator.refreshFREDRates();
-        } catch (err) {
+        } catch (err: unknown) {
           serverLog(`[ERROR] [market-rates] FRED refresh error: ${err instanceof Error ? err.message : err}`);
         }
       }, MARKET_RATE_REFRESH_INTERVAL_MS));
@@ -280,7 +280,7 @@ app.use((req, res, next) => {
           if (rateLimits > 0) log(`Cleaned ${rateLimits} stale rate-limit entries`);
           const oldLogs = await storage.deleteOldLoginLogs(180);
           if (oldLogs > 0) log(`Cleaned ${oldLogs} login logs older than 180 days`);
-        } catch (err) {
+        } catch (err: unknown) {
           serverLog(`Periodic cleanup error: ${err instanceof Error ? err.message : err}`, "cleanup", "error");
         }
       }, SESSION_CLEANUP_INTERVAL_MS));
@@ -291,7 +291,7 @@ app.use((req, res, next) => {
           const { cache } = await import("./cache");
           const invalidated = await cache.invalidate("mi:property:*");
           if (invalidated > 0) log(`Invalidated ${invalidated} stale MI cache entries`);
-        } catch (err) {
+        } catch (err: unknown) {
           serverLog(`MI cache invalidation error: ${err instanceof Error ? err.message : err}`, "cache", "error");
         }
       }, MI_CACHE_INVALIDATION_INTERVAL_MS));
@@ -301,7 +301,7 @@ app.use((req, res, next) => {
         try {
           const purged = await storage.purgeExpiredScenarios();
           if (purged > 0) log(`Purged ${purged} expired soft-deleted scenarios`);
-        } catch (err) {
+        } catch (err: unknown) {
           serverLog(`Scenario purge error: ${err instanceof Error ? err.message : err}`, "purge", "error");
         }
       }, SCENARIO_PURGE_INTERVAL_MS));
@@ -504,7 +504,7 @@ function indexPropertiesToPineconeAsync() {
       if (allProps.length > 0) {
         log(`Indexed ${allProps.length} property profiles to Pinecone`);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       log(`Pinecone property indexing failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   })();

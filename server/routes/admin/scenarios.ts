@@ -55,7 +55,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       }));
 
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch admin scenarios", error);
     }
   });
@@ -78,7 +78,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       logActivity(req, "admin-create-scenario", "scenario", scenario.id, scenario.name, { forUserId: validation.data.userId });
       res.status(201).json(scenario);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create admin scenario", error);
     }
   });
@@ -101,7 +101,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       logActivity(req, "admin-update-scenario", "scenario", id, scenario.name);
       res.json(scenario);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update admin scenario", error);
     }
   });
@@ -117,7 +117,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       await storage.hardDeleteScenario(id);
       logActivity(req, "admin-delete-scenario", "scenario", id, existing.name);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete admin scenario", error);
     }
   });
@@ -127,7 +127,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       const count = await storage.purgeExpiredScenarios();
       logActivity(req, "admin-purge-expired-scenarios", "scenario", null, null, { purgedCount: count });
       res.json({ success: true, purgedCount: count });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to purge expired scenarios", error);
     }
   });
@@ -163,7 +163,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       }
 
       res.json(enriched);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch deleted scenarios", error);
     }
   });
@@ -180,7 +180,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       const restored = await storage.restoreScenario(id);
       logActivity(req, "admin-restore-scenario", "scenario", id, existing.name);
       res.json(restored);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to restore scenario", error);
     }
   });
@@ -196,7 +196,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       await storage.hardDeleteScenario(id);
       logActivity(req, "admin-purge-scenario", "scenario", id, existing.name);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to purge scenario", error);
     }
   });
@@ -254,7 +254,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       logActivity(req, "admin-revoke-scenario-access", "scenario", id, null, { targetType, targetId });
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to remove scenario access", error);
     }
   });
@@ -266,7 +266,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       const shares = await storage.getScenarioSharesForScenario(id);
       res.json(shares);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scenario access", error);
     }
   });
@@ -282,7 +282,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       const result = await storage.removeAllSharesForScenario(id);
       logActivity(req, "admin-unshare-all", "scenario", id, existing.name);
       res.json({ success: true, ...result });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to remove all scenario shares", error);
     }
   });
@@ -294,7 +294,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       const count = await storage.getScenarioCountByUser(id);
       res.json({ count });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to get scenario count", error);
     }
   });

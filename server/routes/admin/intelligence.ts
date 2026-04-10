@@ -123,7 +123,7 @@ export function registerIntelligenceRoutes(app: Express) {
         },
         entities,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch coverage analytics", error);
     }
   });
@@ -179,7 +179,7 @@ export function registerIntelligenceRoutes(app: Express) {
           tokensUsed: lastRun.tokensUsed,
         } : null,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch entity coverage detail", error);
     }
   });
@@ -188,7 +188,7 @@ export function registerIntelligenceRoutes(app: Express) {
     try {
       const policies = await storage.getPipelinePolicies();
       res.json(policies);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch pipeline policies", error);
     }
   });
@@ -221,7 +221,7 @@ export function registerIntelligenceRoutes(app: Express) {
       });
 
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update pipeline policy", error);
     }
   });

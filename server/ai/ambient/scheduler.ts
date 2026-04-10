@@ -17,7 +17,7 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
       try {
         await storage.upsertBenchmarkSnapshot(snapshot);
         upserted++;
-      } catch (err) {
+      } catch (err: unknown) {
         result.errors.push(`DB upsert ${snapshot.snapshotKey}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
@@ -46,14 +46,14 @@ export function startAmbientScheduler(): void {
   setTimeout(async () => {
     try {
       await runRefreshCycle();
-    } catch (err) {
+    } catch (err: unknown) {
       log(`Initial refresh failed: ${err instanceof Error ? err.message : String(err)}`, "ambient-scheduler", "error");
     }
 
     schedulerInterval = setInterval(async () => {
       try {
         await runRefreshCycle();
-      } catch (err) {
+      } catch (err: unknown) {
         log(`Periodic refresh failed: ${err instanceof Error ? err.message : String(err)}`, "ambient-scheduler", "error");
       }
     }, REFRESH_INTERVAL_MS);

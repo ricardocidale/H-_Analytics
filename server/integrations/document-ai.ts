@@ -113,10 +113,10 @@ export class DocumentAIService extends BaseIntegrationService {
         const data = await response.json();
         const result = this.parseDocumentAIResponse(data);
         const pageCount = result.pages?.length ?? 1;
-        try { logApiCost({ timestamp: new Date().toISOString(), service: "document-ai", operation: "document-parse", estimatedCostUsd: 0.01 * pageCount, durationMs: Date.now() - startTime, route: "document-ai-integration" }); } catch (e) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+        try { logApiCost({ timestamp: new Date().toISOString(), service: "document-ai", operation: "document-parse", estimatedCostUsd: 0.01 * pageCount, durationMs: Date.now() - startTime, route: "document-ai-integration" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
         return result;
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Document AI processing failed, falling back to simulation: ${error instanceof Error ? error.message : error}`, "document-ai");
       return this.simulateExtraction(objectPath);
     }

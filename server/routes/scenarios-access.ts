@@ -90,7 +90,7 @@ export function registerScenarioAccessRoutes(app: Express) {
         driftStatus,
         computedAt: savedResult.computedAt,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to recompute scenario", error);
     }
   });
@@ -111,7 +111,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       if (!result) return res.status(404).json({ error: "No computed results found for this scenario" });
 
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scenario result", error);
     }
   });
@@ -145,7 +145,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const driftResponse = buildDriftCheckResponse(stored, computeResult.outputHash, computeResult.engineVersion);
       logger.info(`[drift-check] Scenario ${scenarioId}: status=${driftResponse.status}`, "scenario-results");
       res.json(driftResponse);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to check scenario drift", error);
     }
   });
@@ -189,7 +189,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const access = await storage.grantScenarioAccess(user.id, granteeId, resolvedScenarioId);
       logActivity(req, "grant_access", "scenario_access", access.id, `Grant ${resolvedScenarioId ? `scenario ${resolvedScenarioId}` : "all scenarios"} to user ${granteeId}`);
       res.status(201).json(access);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to grant scenario access", error);
     }
   });
@@ -208,7 +208,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       await storage.revokeScenarioAccess(user.id, granteeId, resolvedScenarioId);
       logActivity(req, "revoke_access", "scenario_access", null, `Revoke ${resolvedScenarioId ? `scenario ${resolvedScenarioId}` : "all scenarios"} from user ${granteeId}`);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to revoke scenario access", error);
     }
   });
@@ -218,7 +218,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const user = getAuthUser(req);
       const grants = await storage.getScenarioAccessByOwner(user.id);
       res.json(grants);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scenario access grants", error);
     }
   });
@@ -228,7 +228,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const user = getAuthUser(req);
       const sharedScenarios = await storage.getScenariosSharedWithUser(user.id);
       res.json(sharedScenarios);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch shared scenarios", error);
     }
   });

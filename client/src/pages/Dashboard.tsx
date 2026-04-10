@@ -137,7 +137,7 @@ export default function Dashboard() {
       const dataUrl = await captureToPng(tabContentRef.current, { quality: 1, bgcolor: '#ffffff' });
       const { saveDataUrl } = await import("@/lib/exports/saveFile");
       await saveDataUrl(dataUrl, customFilename || `${label.toLowerCase().replace(/\s+/g, "-")}-chart.png`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Chart PNG export failed:", error);
     }
   }, [activeTab]);
@@ -587,7 +587,7 @@ export default function Dashboard() {
             if (cfg.compositionCharts && tabContentRef.current) {
               try {
                 chartScreenshots = await captureOverviewCharts(tabContentRef.current);
-              } catch (err) {
+              } catch (err: unknown) {
                 console.warn("[overview-export] Chart capture failed:", err);
               }
             }

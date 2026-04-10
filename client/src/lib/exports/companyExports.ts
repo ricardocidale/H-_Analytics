@@ -505,7 +505,7 @@ export const exportChartPNG = async (
 
     const name = companyName || "Management Company";
     await saveDataUrl(dataUrl, customFilename || `${name} - Performance Chart.png`);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error exporting chart:', error);
   }
 };
@@ -538,7 +538,7 @@ export const exportTablePNG = async (
     const name = companyName || "Management Company";
     const tabLabel = activeTab === 'income' ? 'Income Statement' : activeTab === 'cashflow' ? 'Cash Flow' : 'Balance Sheet';
     await saveDataUrl(dataUrl, customFilename || `${name} - ${tabLabel}.png`);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error exporting table:', error);
   } finally {
     hiddenRows.forEach(row => {

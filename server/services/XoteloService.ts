@@ -191,7 +191,7 @@ export class XoteloService extends BaseIntegrationService {
       if (!locationKey) return null;
 
       return this.getMarketSnapshotByKey(locationKey, location);
-    } catch (error) {
+    } catch (error: unknown) {
       this.warn(`Market snapshot failed for ${location}`, error);
       return null;
     }
@@ -229,7 +229,7 @@ export class XoteloService extends BaseIntegrationService {
         sampleSize: mapped.length,
         fetchedAt: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.warn(`Market snapshot by key failed for ${locationKey}`, error);
       return null;
     }
@@ -249,7 +249,7 @@ export class XoteloService extends BaseIntegrationService {
         provenance: "cited",
         confidence: snapshot.sampleSize >= 10 ? "medium" : "low",
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.warn(`ADR benchmark failed for ${location}`, error);
       return null;
     }

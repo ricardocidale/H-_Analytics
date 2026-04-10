@@ -76,7 +76,7 @@ export function register(app: Express) {
             riskPremiumApplied = premiumBps;
             effectiveRate = interest_rate_annual + premiumBps / 10000;
           }
-        } catch (err) { logger.warn(`Moody's risk premium lookup failed: ${err instanceof Error ? err.message : err}`, "financing"); }
+        } catch (err: unknown) { logger.warn(`Moody's risk premium lookup failed: ${err instanceof Error ? err.message : err}`, "financing"); }
       }
 
       const result = computeDSCR({
@@ -97,7 +97,7 @@ export function register(app: Express) {
         effective_rate: effectiveRate,
         base_rate: interest_rate_annual,
       });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`DSCR calculation failed: ${err instanceof Error ? err.message : err}`, "financing");
       res.status(500).json({ error: "DSCR calculation failed" });
     }
@@ -123,7 +123,7 @@ export function register(app: Express) {
             riskPremiumApplied = premiumBps;
             effectiveRate = interest_rate_annual + premiumBps / 10000;
           }
-        } catch (err) { logger.warn(`Moody's risk premium lookup failed: ${err instanceof Error ? err.message : err}`, "financing"); }
+        } catch (err: unknown) { logger.warn(`Moody's risk premium lookup failed: ${err instanceof Error ? err.message : err}`, "financing"); }
       }
 
       const result = computeSensitivity({
@@ -145,7 +145,7 @@ export function register(app: Express) {
         effective_rate: effectiveRate,
         base_rate: interest_rate_annual,
       });
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Sensitivity analysis failed: ${err instanceof Error ? err.message : err}`, "financing");
       res.status(500).json({ error: "Sensitivity analysis failed" });
     }
@@ -163,7 +163,7 @@ export function register(app: Express) {
         rounding_policy: DEFAULT_ROUNDING,
       });
       res.json(result);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Debt yield calculation failed: ${err instanceof Error ? err.message : err}`, "financing");
       res.status(500).json({ error: "Debt yield calculation failed" });
     }
@@ -181,7 +181,7 @@ export function register(app: Express) {
         rounding_policy: DEFAULT_ROUNDING,
       });
       res.json(result);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`Prepayment calculation failed: ${err instanceof Error ? err.message : err}`, "financing");
       res.status(500).json({ error: "Prepayment calculation failed" });
     }

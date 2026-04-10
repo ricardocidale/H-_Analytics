@@ -11,7 +11,7 @@ export async function runMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS theme_id integer
     `);
     logger.info("Migration complete", TAG);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Migration failed: ${error}`, TAG);
   }
 }

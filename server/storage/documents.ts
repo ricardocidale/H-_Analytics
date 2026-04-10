@@ -50,7 +50,7 @@ export class DocumentStorage {
             location: prop?.location ?? "",
           }).catch(err => logger.warn(`Pinecone document index failed: ${err}`, "documents"));
         }
-      } catch (err) {
+      } catch (err: unknown) {
         logger.warn(`Pinecone document index failed: ${err}`, "documents");
       }
     }

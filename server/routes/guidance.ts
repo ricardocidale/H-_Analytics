@@ -84,7 +84,7 @@ export function register(app: Express) {
         staleCount,
         coveragePct: guidance.length > 0 ? Math.round((freshCount / guidance.length) * 100) : 0,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch coverage", error);
     }
   });
@@ -105,7 +105,7 @@ export function register(app: Express) {
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
       res.json(guidance);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch guidance", error);
     }
   });
@@ -128,7 +128,7 @@ export function register(app: Express) {
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
       const match = guidance.find(g => g.assumptionKey === assumptionKey);
       res.json(match ?? null);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch guidance for key", error);
     }
   });
@@ -159,7 +159,7 @@ export function register(app: Express) {
 
       logActivity(req, "guidance-decision", "guidance", assumptionGuidanceId, action);
       res.status(201).json(decision);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to record guidance decision", error);
     }
   });
@@ -176,7 +176,7 @@ export function register(app: Express) {
 
       const runs = await storage.getResearchRuns(entityType, entityId);
       res.json(runs);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch research runs", error);
     }
   });
@@ -331,7 +331,7 @@ export function register(app: Express) {
         assumptionKeys,
         errors: guidanceResult.errors,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Tier 2 deep-dive failed", error);
     }
   });

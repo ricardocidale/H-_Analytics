@@ -29,7 +29,7 @@ export function register(app: Express) {
       }
 
       res.json(coords);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Geocoding failed", error);
     }
   });
@@ -45,7 +45,7 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Could not geocode property address" });
       }
       res.json(coords);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Property geocoding failed", error);
     }
   });
@@ -61,7 +61,7 @@ export function register(app: Express) {
       const stateBias = req.query.state ? String(req.query.state) : undefined;
       const suggestions = await placesAutocomplete(q, countryBias, stateBias);
       res.json(suggestions);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Autocomplete failed", error);
     }
   });
@@ -73,7 +73,7 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Place not found" });
       }
       res.json(details);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Place details failed", error);
     }
   });
@@ -96,7 +96,7 @@ export function register(app: Express) {
 
       const pois = await nearbyPOISearch(lat, lng, types, radius);
       res.json(pois);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Nearby search failed", error);
     }
   });
@@ -129,7 +129,7 @@ export function register(app: Express) {
       res.setHeader("Cache-Control", "public, max-age=86400");
       const buffer = Buffer.from(await response.arrayBuffer());
       res.send(buffer);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Static map failed", error);
     }
   });

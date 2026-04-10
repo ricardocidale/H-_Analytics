@@ -21,7 +21,7 @@ export function registerPineconeRoutes(app: Express) {
         storage.getEngineSuggestedLineCounts(),
       ]);
       res.json({ lines, counts });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch financial line suggestions", error);
     }
   });
@@ -52,7 +52,7 @@ export function registerPineconeRoutes(app: Express) {
       }
 
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to approve financial line suggestion", error);
     }
   });
@@ -68,7 +68,7 @@ export function registerPineconeRoutes(app: Express) {
       if (!existing) return res.status(404).json({ error: "Suggestion not found" });
       const updated = await storage.rejectEngineSuggestedLine(id, user.id, body.data.reason);
       res.json(updated);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to reject financial line suggestion", error);
     }
   });
@@ -101,7 +101,7 @@ export function registerPineconeRoutes(app: Express) {
           embeddingKey: !embeddings,
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to check system intelligence status", error);
     }
   });
@@ -116,7 +116,7 @@ export function registerPineconeRoutes(app: Express) {
       }
       const result = await indexAllAssets();
       res.json({ success: true, indexed: result });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to index assets", error);
     }
   });
@@ -137,7 +137,7 @@ export function registerPineconeRoutes(app: Express) {
         namespaces,
         allNamespaces: ALL_NAMESPACES,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to get Pinecone stats", error);
     }
   });
@@ -193,7 +193,7 @@ export function registerPineconeRoutes(app: Express) {
               createdBy: scenario.userId ? String(scenario.userId) : undefined,
             });
             indexed++;
-          } catch (e) { logger.warn(`Failed to index scenario ${scenario.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
+          } catch (e: unknown) { logger.warn(`Failed to index scenario ${scenario.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
         }
         result.indexed = indexed;
         result.total = allScenarios.length;
@@ -215,7 +215,7 @@ export function registerPineconeRoutes(app: Express) {
               market: undefined,
             });
             indexed++;
-          } catch (e) { logger.warn(`Failed to index property ${property.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
+          } catch (e: unknown) { logger.warn(`Failed to index property ${property.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
         }
         result.indexed = indexed;
         result.total = allProperties.length;
@@ -235,7 +235,7 @@ export function registerPineconeRoutes(app: Express) {
               snapshotDate: snap.fetchedAt.toISOString(),
             });
             indexed++;
-          } catch (e) { logger.warn(`Failed to index benchmark ${snap.snapshotKey}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
+          } catch (e: unknown) { logger.warn(`Failed to index benchmark ${snap.snapshotKey}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
         }
         result.indexed = indexed;
         result.total = snapshots.length;
@@ -247,7 +247,7 @@ export function registerPineconeRoutes(app: Express) {
 
       logger.info(`Admin re-indexed Pinecone namespace "${ns}": ${JSON.stringify(result)}`, "pinecone");
       res.json({ success: true, ...result });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, `Failed to reindex namespace ${req.params.namespace}`, error);
     }
   });
@@ -264,7 +264,7 @@ export function registerPineconeRoutes(app: Express) {
       await deleteNamespace(ns);
       logger.info(`Admin cleared Pinecone namespace "${ns}"`, "pinecone");
       res.json({ success: true, namespace: ns, cleared: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, `Failed to clear namespace ${req.params.namespace}`, error);
     }
   });

@@ -100,7 +100,7 @@ export class WorldBankService extends BaseIntegrationService {
         gniPerCapita:    data.gniPerCapita,
         fetchedAt:       new Date().toISOString(),
       };
-    } catch (err) {
+    } catch (err: unknown) {
       this.warn(`Failed to fetch World Bank data for ${country}`, err);
       return null;
     }

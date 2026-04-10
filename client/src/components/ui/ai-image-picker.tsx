@@ -148,7 +148,7 @@ export function AIImagePicker({
       const data = await res.json();
       onImageChange(data.objectPath);
       toast({ title: "Image Generated", description: "AI-generated image is ready." });
-    } catch (err) {
+    } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error("Image generation failed");
       setGenerationError(error.message);
       toast({ title: "Generation Failed", description: error.message, variant: "destructive" });

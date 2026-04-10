@@ -62,7 +62,7 @@ function getStoredMode(): ResponseMode {
   try {
     const v = localStorage.getItem("rebecca-response-mode");
     if (v === "concise" || v === "standard" || v === "detailed") return v;
-  } catch (e) { console.warn("Failed to read response mode from localStorage", e); }
+  } catch (e: unknown) { console.warn("Failed to read response mode from localStorage", e); }
   return "standard";
 }
 
@@ -203,7 +203,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         content: greeting,
         assets: data.assets,
       }]);
-    } catch (err) {
+    } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return;
     } finally {
       setLoading(false);
@@ -276,7 +276,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             detectedLanguage: data.detectedLanguage,
           },
         ]);
-      } catch (err) {
+      } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setMessages((prev) => [
           ...prev,
@@ -426,7 +426,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 key={m.value}
                 onClick={() => {
                   setResponseMode(m.value);
-                  try { localStorage.setItem("rebecca-response-mode", m.value); } catch (e) { console.warn("Failed to save response mode to localStorage", e); }
+                  try { localStorage.setItem("rebecca-response-mode", m.value); } catch (e: unknown) { console.warn("Failed to save response mode to localStorage", e); }
                 }}
                 className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",

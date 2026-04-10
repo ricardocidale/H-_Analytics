@@ -65,7 +65,7 @@ export function registerResearchMetaRoutes(app: Express) {
         running,
         avgDurationMs,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch freshness counts", error);
     }
   });
@@ -84,7 +84,7 @@ export function registerResearchMetaRoutes(app: Express) {
       }
       const avgDurationMs = durationCount > 0 ? Math.round(totalDurationMs / durationCount) : null;
       res.json({ avgDurationMs });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch avg duration", error);
     }
   });
@@ -93,7 +93,7 @@ export function registerResearchMetaRoutes(app: Express) {
     try {
       const lastRefresh = await storage.getLastFullResearchRefresh(getAuthUser(req).id);
       res.json({ lastRefresh: lastRefresh?.toISOString() ?? null });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch last full research refresh", error);
     }
   });
@@ -102,7 +102,7 @@ export function registerResearchMetaRoutes(app: Express) {
     try {
       await storage.markFullResearchRefresh(getAuthUser(req).id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to mark full research refresh", error);
     }
   });
@@ -112,7 +112,7 @@ export function registerResearchMetaRoutes(app: Express) {
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
       if (!ga) return res.status(404).json({ error: "No global assumptions found" });
       res.json((ga.researchConfig as ResearchConfig) ?? {});
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch research refresh config", error);
     }
   });
@@ -121,7 +121,7 @@ export function registerResearchMetaRoutes(app: Express) {
     try {
       const questions = await storage.getAllResearchQuestions();
       res.json(questions);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch research questions", error);
     }
   });
@@ -132,7 +132,7 @@ export function registerResearchMetaRoutes(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const q = await storage.createResearchQuestion({ question: validation.data.question });
       res.status(201).json(q);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create research question", error);
     }
   });
@@ -143,7 +143,7 @@ export function registerResearchMetaRoutes(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const q = await storage.updateResearchQuestion(Number(req.params.id), validation.data.question);
       res.json(q);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update research question", error);
     }
   });
@@ -152,7 +152,7 @@ export function registerResearchMetaRoutes(app: Express) {
     try {
       await storage.deleteResearchQuestion(Number(req.params.id));
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete research question", error);
     }
   });

@@ -99,7 +99,7 @@ export function ImageCropDialog({
       const croppedFile = await cropImageToFile(imgRef.current, completedCrop, fileName, fileType);
       onCropComplete(croppedFile);
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Image cropping failed:", error);
     } finally {
       setIsCropping(false);

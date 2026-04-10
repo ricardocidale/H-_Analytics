@@ -102,7 +102,7 @@ async function run() {
         "luxury duplex interior El Poblado Medellín, contemporary open-concept design",
         sourceUrl,
       );
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       // Surface rate-limit errors clearly so the user knows to add Replicate credits
       if (msg.includes("429") || msg.includes("throttled") || msg.includes("rate limit")) {

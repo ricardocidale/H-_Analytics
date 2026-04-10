@@ -54,7 +54,7 @@ async function run() {
     let imageData: string;
     try {
       imageData = await fetchImageAsBase64(srcUrl);
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error(`  [${photo.id}] Failed to fetch: ${err instanceof Error ? err.message : err}`, TAG);
       failed++;
       continue;

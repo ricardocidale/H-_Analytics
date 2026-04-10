@@ -140,7 +140,7 @@ export class AlphaVantageService extends BaseIntegrationService {
           monthChangePct: monthAgo ? ((latest - monthAgo) / monthAgo) * 100 : 0,
           fetchedAt: new Date().toISOString(),
         };
-      } catch (err) {
+      } catch (err: unknown) {
         this.warn(`Failed to fetch ${symbol} weekly series`, err);
         return null;
       }

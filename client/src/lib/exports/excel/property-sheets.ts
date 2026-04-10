@@ -377,7 +377,7 @@ export async function exportFullPropertyWorkbook(
     const irrCashFlows = [-equityInvestedVal, ...cfData.map(cf => cf.freeCashFlowToEquity + cf.exitValue)];
     const result = computeIRR(irrCashFlows, 1);
     propertyIRR = (result.irr_periodic ?? 0) * 100;
-  } catch (e) {
+  } catch (e: unknown) {
     console.warn("IRR calculation failed for property export, defaulting to 0:", e);
     propertyIRR = 0;
   }

@@ -37,7 +37,7 @@ export function useManualExports(sections: ManualSection[]) {
         } else {
           toast({ title: "Export Failed", description: result.error || "Could not generate PDF.", variant: "destructive" });
         }
-      } catch (err) {
+      } catch (err: unknown) {
         toast({ title: "Export Failed", description: "Could not generate PDF.", variant: "destructive" });
       } finally {
         setExportingManual(false);
@@ -76,7 +76,7 @@ export function useManualExports(sections: ManualSection[]) {
         } else {
           toast({ title: "Full Data Export Complete", description: "PDF with all assumptions, financials, and completeness report has been downloaded." });
         }
-      } catch (err) {
+      } catch (err: unknown) {
         logActivity("full-data-export", { exportType: "full-data", status: "error", exportedAt: new Date().toISOString() });
         toast({ title: "Export Failed", description: "Could not generate full data export.", variant: "destructive" });
       } finally {

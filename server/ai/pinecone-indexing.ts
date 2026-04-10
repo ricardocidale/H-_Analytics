@@ -137,7 +137,7 @@ export async function indexAssumptionGuidance(params: {
     }]);
 
     logger.info(`Indexed assumption guidance: ${params.assumptionKey} for ${params.location} (${bm})`, "pinecone");
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to index assumption guidance: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 }
@@ -185,7 +185,7 @@ export async function retrieveSimilarGuidance(params: {
         reasoning:     m.metadata.reasoning ? String(m.metadata.reasoning) : null,
         score:         m.score,
       }));
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to retrieve similar guidance: ${err instanceof Error ? err.message : err}`, "pinecone");
     return [];
   }
@@ -224,7 +224,7 @@ export async function indexBenchmarkSnapshot(params: {
     }]);
 
     logger.info(`Indexed benchmark snapshot: ${params.market} (${params.source})`, "pinecone");
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to index benchmark snapshot: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 }
@@ -266,7 +266,7 @@ export async function indexDocumentExtraction(params: {
       await upsertChunks("documents", chunks);
       logger.info(`Indexed document extraction ${params.extractionId}: ${chunks.length} chunks for ${params.propertyName}`, "pinecone");
     }
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to index document extraction: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 }
@@ -299,7 +299,7 @@ export async function retrieveDocumentContext(params: {
         content:      String(m.metadata.content),
         score:        m.score,
       }));
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to retrieve document context: ${err instanceof Error ? err.message : err}`, "pinecone");
     return [];
   }
@@ -365,7 +365,7 @@ export async function indexScenarioSummary(params: {
     }]);
 
     logger.info(`Indexed scenario ${params.scenarioId}: "${params.scenarioName}" for ${params.propertyName}`, "pinecone");
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to index scenario: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 }
@@ -404,7 +404,7 @@ export async function retrieveScenarioContext(params: {
         occupancy:    Number(m.metadata.occupancy),
         score:        m.score,
       }));
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to retrieve scenario context: ${err instanceof Error ? err.message : err}`, "pinecone");
     return [];
   }
@@ -460,7 +460,7 @@ export async function indexPropertyProfile(params: {
     }]);
 
     logger.info(`Indexed property profile ${params.propertyId}: "${params.name}"`, "pinecone");
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to index property profile: ${err instanceof Error ? err.message : err}`, "pinecone");
   }
 }
@@ -491,7 +491,7 @@ export async function retrievePropertyContext(params: {
         roomCount:    Number(m.metadata.roomCount),
         score:        m.score,
       }));
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Failed to retrieve property context: ${err instanceof Error ? err.message : err}`, "pinecone");
     return [];
   }

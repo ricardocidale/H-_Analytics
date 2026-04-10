@@ -11,7 +11,7 @@ export async function runExportConfig001(): Promise<void> {
       ADD COLUMN IF NOT EXISTS export_config jsonb
     `);
     logger.info(`export_config column added (or already existed)`, TAG);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Migration failed: ${error}`, TAG);
   }
 }

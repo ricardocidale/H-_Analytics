@@ -49,7 +49,7 @@ export async function fixLegacyOwnership(): Promise<void> {
         log(`[INFO] [fix-shared-ownership] Deduplicated global_assumptions, kept id=${keepId}`, "migration");
       }
     }
-  } catch (err) {
+  } catch (err: unknown) {
     log(`Migration failed (non-fatal): ${err instanceof Error ? err.message : err}`, "fix-shared-ownership", "error");
   }
 }

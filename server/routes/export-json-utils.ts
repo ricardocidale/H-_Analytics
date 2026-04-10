@@ -73,14 +73,14 @@ export function aggressiveParse(raw: string): any {
   const jsonStr = extractJsonFromText(raw);
   let lastErr: unknown;
 
-  try { return JSON.parse(jsonStr); } catch (e) { lastErr = e; }
+  try { return JSON.parse(jsonStr); } catch (e: unknown) { lastErr = e; }
 
-  try { return JSON.parse(repairTruncatedJson(jsonStr)); } catch (e) { lastErr = e; }
+  try { return JSON.parse(repairTruncatedJson(jsonStr)); } catch (e: unknown) { lastErr = e; }
 
   const lines = jsonStr.split("\n");
   for (let drop = 1; drop <= Math.min(20, lines.length - 1); drop++) {
     const trimmed = lines.slice(0, lines.length - drop).join("\n");
-    try { return JSON.parse(repairTruncatedJson(trimmed)); } catch (e) { lastErr = e; }
+    try { return JSON.parse(repairTruncatedJson(trimmed)); } catch (e: unknown) { lastErr = e; }
   }
 
   logger.warn(`aggressiveParse exhausted all strategies (input length=${jsonStr.length}): ${lastErr instanceof Error ? lastErr.message : lastErr}`, "export-json");

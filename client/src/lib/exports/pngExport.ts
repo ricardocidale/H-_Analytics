@@ -52,7 +52,7 @@ export async function exportTablePNG(options: TablePNGOptions): Promise<void> {
     element.style.border = '';
 
     await saveDataUrl(dataUrl, filename);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error exporting table as PNG:', error);
   } finally {
     hiddenRows.forEach(row => {
@@ -83,7 +83,7 @@ export async function exportChartPNG(options: ChartPNGOptions): Promise<void> {
     });
 
     await saveDataUrl(dataUrl, filename);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error exporting chart as PNG:', error);
   }
 }
@@ -97,7 +97,7 @@ export async function captureChartAsImage(containerRef: HTMLDivElement, bgColor 
       width: containerRef.offsetWidth * 2,
       height: containerRef.offsetHeight * 2,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error capturing chart:', error);
 
     try {
@@ -134,7 +134,7 @@ export async function captureChartAsImage(containerRef: HTMLDivElement, bgColor 
         img.onerror = () => resolve(null);
         img.src = dataUri;
       });
-    } catch (fallbackError) {
+    } catch (fallbackError: unknown) {
       console.error('Fallback also failed:', fallbackError);
       return null;
     }

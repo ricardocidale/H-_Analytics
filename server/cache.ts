@@ -38,7 +38,7 @@ export class CacheService {
       }
       stats.misses++;
       return null;
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Cache get error for ${key}: ${err}`, "cache");
       return null;
     }
@@ -54,7 +54,7 @@ export class CacheService {
         await r.set(key, value);
       }
       stats.sets++;
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Cache set error for ${key}: ${err}`, "cache");
     }
   }
@@ -104,7 +104,7 @@ export class CacheService {
       } while (cursor !== "0");
       stats.invalidations += deleted;
       return deleted;
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Cache invalidate error for ${pattern}: ${err}`, "cache");
       return 0;
     }
@@ -126,7 +126,7 @@ export class CacheService {
     if (!r) return;
     try {
       await r.flushdb();
-    } catch (err) {
+    } catch (err: unknown) {
       logger.warn(`Cache clearAll error: ${err}`, "cache");
     }
   }

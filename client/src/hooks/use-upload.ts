@@ -75,7 +75,7 @@ export function useUpload(options: UseUploadOptions = {}) {
         setProgress(100);
         options.onSuccess?.(uploadResponse);
         return uploadResponse;
-      } catch (err) {
+      } catch (err: unknown) {
         const error = err instanceof Error ? err : new Error("Upload failed");
         setError(error);
         options.onError?.(error);

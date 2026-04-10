@@ -123,7 +123,7 @@ export class ObjectStorageService {
       });
 
       stream.pipe(res);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error downloading file: ${error instanceof Error ? error.message : error}`, "object-storage");
       if (!res.headersSent) {
         res.status(500).json({ error: "Error downloading file" });

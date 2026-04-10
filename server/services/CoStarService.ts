@@ -36,7 +36,7 @@ export class CoStarService extends BaseIntegrationService {
       async () => {
         try {
           return await this.queryApi(query);
-        } catch (error) {
+        } catch (error: unknown) {
           this.warn(`Failed to fetch market data for ${query.location}`, error);
           return null;
         }

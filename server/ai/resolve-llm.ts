@@ -83,21 +83,21 @@ export function checkVendorAvailability(): LlmVendorStatus[] {
   try {
     getGeminiClient();
     results.push({ vendor: "google", available: true });
-  } catch (err) {
+  } catch (err: unknown) {
     results.push({ vendor: "google", available: false, reason: err instanceof Error ? err.message : "Unknown error" });
   }
 
   try {
     getAnthropicClient();
     results.push({ vendor: "anthropic", available: true });
-  } catch (err) {
+  } catch (err: unknown) {
     results.push({ vendor: "anthropic", available: false, reason: err instanceof Error ? err.message : "Unknown error" });
   }
 
   try {
     getOpenAIClient();
     results.push({ vendor: "openai", available: true });
-  } catch (err) {
+  } catch (err: unknown) {
     results.push({ vendor: "openai", available: false, reason: err instanceof Error ? err.message : "Unknown error" });
   }
 

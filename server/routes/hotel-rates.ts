@@ -41,7 +41,7 @@ export function register(app: Express) {
       const xotelo = getMarketIntelligenceAggregator().getXoteloService();
       const results = await xotelo.searchHotels(parsed.data.query);
       res.json({ results });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Hotel search failed", error);
     }
   });
@@ -55,7 +55,7 @@ export function register(app: Express) {
       const xotelo = getMarketIntelligenceAggregator().getXoteloService();
       const rates = await xotelo.getHotelRates(hotel_key, chk_in, chk_out, currency);
       res.json({ rates });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Hotel rate lookup failed", error);
     }
   });
@@ -69,7 +69,7 @@ export function register(app: Express) {
       const xotelo = getMarketIntelligenceAggregator().getXoteloService();
       const hotels = await xotelo.getHotelList(location_key, limit, offset, sort);
       res.json({ hotels });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Hotel list failed", error);
     }
   });
@@ -85,7 +85,7 @@ export function register(app: Express) {
         ? await xotelo.getMarketSnapshotByKey(location_key, location || undefined)
         : await xotelo.getMarketSnapshot(location!);
       res.json({ snapshot });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Market snapshot failed", error);
     }
   });

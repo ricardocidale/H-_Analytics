@@ -61,7 +61,7 @@ export async function runPropertyPhotos001(): Promise<void> {
     `);
 
     logger.info("Migration complete", TAG);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Migration failed: ${error}`, TAG);
   }
 }

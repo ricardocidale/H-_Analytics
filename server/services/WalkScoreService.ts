@@ -88,7 +88,7 @@ export class WalkScoreService extends BaseIntegrationService {
         wsUrl:        data.ws_link ?? null,
         fetchedAt:    new Date().toISOString(),
       };
-    } catch (err) {
+    } catch (err: unknown) {
       this.warn(`Failed to fetch Walk Score for ${params.address}`, err);
       return null;
     }

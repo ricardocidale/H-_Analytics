@@ -33,7 +33,7 @@ export function buildPropertyContext(properties: Property[]): string {
       if (metricsJson) {
         metrics = JSON.parse(metricsJson);
       }
-    } catch (e) {
+    } catch (e: unknown) {
       logger.error(`Failed to compute metrics for ${p.name}: ${e instanceof Error ? e.message : e}`, "buildPropertyContext");
     }
     const totalInvestment = (p.purchasePrice ?? 0) + (p.buildingImprovements ?? 0) + (p.preOpeningCosts ?? 0) + (p.operatingReserve ?? 0);

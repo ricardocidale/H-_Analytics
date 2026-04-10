@@ -15,7 +15,7 @@ export function registerAuthRoutes(app: Express): void {
       const userId = req.user.claims.sub;
       const user = await authStorage.getUser(userId);
       res.json(user);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error fetching user: ${error instanceof Error ? error.message : error}`, "auth");
       res.status(500).json({ message: "Failed to fetch user" });
     }

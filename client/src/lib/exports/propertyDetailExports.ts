@@ -115,7 +115,7 @@ export async function exportChartPNG(ctx: PropertyExportContext, orientation: 'l
     });
     const { saveDataUrl } = await import("@/lib/exports/saveFile");
     await saveDataUrl(dataUrl, customFilename || `${ctx.property.name.replace(/\s+/g, '_')}_chart_${orientation}.png`);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error exporting chart:', error);
   }
 }
@@ -134,7 +134,7 @@ export async function exportTablePNG(ctx: PropertyExportContext, orientation: 'l
     });
     const { saveDataUrl } = await import("@/lib/exports/saveFile");
     await saveDataUrl(dataUrl, customFilename || `${ctx.property.name.replace(/\s+/g, '_')}_${ctx.activeTab}_table.png`);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error exporting table:', error);
   }
 }

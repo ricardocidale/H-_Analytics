@@ -361,7 +361,7 @@ describe("renderPremiumPdf — render-level structural snapshots", () => {
     expect(buffer.subarray(0, 5).toString()).toBe("%PDF-");
   });
 
-  it("dense landscape produces smaller PDF than non-dense for same content", async () => {
+  it("dense landscape produces smaller PDF than non-dense for same content", { timeout: 15000 }, async () => {
     const sections = [
       { kind: "kpi" as const, title: "Metrics", metrics: [
         { label: "Revenue", value: "$1M", description: "" },

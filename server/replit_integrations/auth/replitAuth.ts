@@ -180,7 +180,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
     return next();
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(401).json({ message: "Unauthorized" });
     return;
   }

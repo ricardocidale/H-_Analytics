@@ -119,7 +119,7 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
       const data = await res.json();
       if (data.conversationId) setConversationId(data.conversationId);
       setMessages((prev) => [...prev, { id: nextMsgId("assistant"), role: "assistant", content: data.response, assets: data.assets }]);
-    } catch (err) {
+    } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setMessages((prev) => [
         ...prev,

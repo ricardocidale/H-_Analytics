@@ -236,7 +236,7 @@ export function registerToolRoutes(app: Express) {
         summary: { totalActions, verificationRuns, manualViews, exports, pageVisits, roleChanges },
         recentActivity: recentActivity.slice(0, 50),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch checker activity", error);
     }
   });
@@ -276,7 +276,7 @@ export function registerToolRoutes(app: Express) {
     try {
       const result = await runFillOnlySync(storage);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to backfill research", error);
     }
   });
@@ -291,7 +291,7 @@ export function registerToolRoutes(app: Express) {
         loginAt: log.loginAt,
         logoutAt: log.logoutAt,
       })));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch login logs", error);
     }
   });
@@ -310,7 +310,7 @@ export function registerToolRoutes(app: Express) {
         lastUpdated: p.updatedAt,
       }));
       res.json(status);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch sync status", error);
     }
   });
@@ -325,7 +325,7 @@ export function registerToolRoutes(app: Express) {
         expiresAt: s.expiresAt,
         createdAt: s.createdAt,
       })));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch active sessions", error);
     }
   });
@@ -334,7 +334,7 @@ export function registerToolRoutes(app: Express) {
     try {
       await storage.forceDeleteSession(String(req.params.id));
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete session", error);
     }
   });
@@ -423,7 +423,7 @@ export function registerToolRoutes(app: Express) {
       await writeFile(resolve(projectRoot, "test-results-golden.json"), JSON.stringify(raw), "utf-8").catch(() => { /* ignore: cache write is best-effort */ });
 
       res.json(parseGoldenResults(raw));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to run golden tests", error);
     }
   });
@@ -443,7 +443,7 @@ export function registerToolRoutes(app: Express) {
         ...l,
         userName: `${l.user.firstName} ${l.user.lastName}`.trim() || l.user.email,
       })));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch activity logs", error);
     }
   });
@@ -469,7 +469,7 @@ export function registerToolRoutes(app: Express) {
         ...l,
         userName: `${l.user.firstName} ${l.user.lastName}`.trim() || l.user.email,
       })));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch sharing log", error);
     }
   });

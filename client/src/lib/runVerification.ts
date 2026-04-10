@@ -179,7 +179,7 @@ export function runFullVerification(
       );
       crossReports.push(crossReport);
       
-    } catch (error) {
+    } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       complianceReports.push({
         propertyName: property.name,

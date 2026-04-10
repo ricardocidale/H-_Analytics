@@ -179,7 +179,7 @@ export async function processExistingPhoto(
     }
 
     return await processImage(buffer, { propertyId, photoId }, contentType);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Failed to process existing photo ${photoId}: ${error instanceof Error ? error.message : error}`, "image-pipeline");
     return null;
   }

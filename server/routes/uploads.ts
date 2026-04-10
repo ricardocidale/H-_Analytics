@@ -42,7 +42,7 @@ export function register(app: Express) {
         objectPath,
         metadata: { name, size, contentType }
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to generate upload URL", error);
     }
   });
@@ -97,7 +97,7 @@ export function register(app: Express) {
       logActivity(req, "upload-direct", "asset", undefined, objectId, { objectPath, contentType, size: body.length });
 
       res.json({ objectPath });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to upload file", error);
     }
   });
@@ -165,7 +165,7 @@ export function register(app: Express) {
       });
 
       res.json({ variants: result.variants });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to process image", error);
     }
   });
@@ -237,7 +237,7 @@ export function register(app: Express) {
           });
 
           processed++;
-        } catch (err) {
+        } catch (err: unknown) {
           logger.error(`Failed to process photo ${photo.id}: ${err instanceof Error ? err.message : err}`, "uploads");
           failed++;
         }
@@ -249,7 +249,7 @@ export function register(app: Express) {
         failed,
         skipped: photos.length - unprocessed.length,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to bulk process photos", error);
     }
   });

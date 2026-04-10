@@ -44,7 +44,7 @@ export async function runDocuments001(): Promise<void> {
     await db.execute(sql`DROP TABLE IF EXISTS docusign_envelopes CASCADE`);
 
     logger.info("Migration complete", TAG);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Migration failed: ${error}`, TAG);
   }
 }

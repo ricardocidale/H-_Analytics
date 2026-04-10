@@ -16,7 +16,7 @@ export function registerServiceRoutes(app: Express) {
     try {
       const templates = await storage.getAllServiceTemplates();
       res.json(templates);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch service templates", error);
     }
   });
@@ -30,7 +30,7 @@ export function registerServiceRoutes(app: Express) {
       const template = await storage.createServiceTemplate(validation.data);
       logActivity(req, "create-service-template", "service-template", template.id, template.name);
       res.status(201).json(template);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create service template", error);
     }
   });
@@ -49,7 +49,7 @@ export function registerServiceRoutes(app: Express) {
       if (!template) return res.status(404).json({ error: "Service template not found" });
       logActivity(req, "update-service-template", "service-template", id, template.name);
       res.json(template);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update service template", error);
     }
   });
@@ -65,7 +65,7 @@ export function registerServiceRoutes(app: Express) {
       await storage.deleteServiceTemplate(id);
       logActivity(req, "delete-service-template", "service-template", id, existing.name);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete service template", error);
     }
   });
@@ -77,7 +77,7 @@ export function registerServiceRoutes(app: Express) {
         message: `Sync complete: ${result.created} fee categories created, ${result.skipped} already existed`,
         ...result,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to sync service templates to properties", error);
     }
   });

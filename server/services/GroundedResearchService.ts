@@ -65,7 +65,7 @@ export class GroundedResearchService extends BaseIntegrationService {
         return this.searchPerplexity(query);
       }
       return this.searchTavily(query);
-    } catch (error) {
+    } catch (error: unknown) {
       this.warn(`Search failed: ${query.query.slice(0, 60)}...`, error);
       return null;
     }

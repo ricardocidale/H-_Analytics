@@ -22,7 +22,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const users = await storage.getAllUsers();
       res.json(users.map((u: any) => ({ ...userResponse(u), createdAt: u.createdAt, userGroupId: u.userGroupId, canManageScenarios: u.canManageScenarios ?? true })));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch users", error);
     }
   });
@@ -58,7 +58,7 @@ export function registerUserRoutes(app: Express) {
 
       logActivity(req, "create-user", "user", user.id, email, { role });
       res.status(201).json(userResponse(user));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create user", error);
     }
   });
@@ -123,7 +123,7 @@ export function registerUserRoutes(app: Express) {
 
       logActivity(req, "update-user", "user", id, email, { fields: Object.keys(req.body) });
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update user", error);
     }
   });
@@ -146,7 +146,7 @@ export function registerUserRoutes(app: Express) {
       await storage.updateUserRole(id, roleResult.data);
       logActivity(req, "change-role", "user", id, null, { newRole: roleResult.data });
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update user role", error);
     }
   });
@@ -162,7 +162,7 @@ export function registerUserRoutes(app: Express) {
       await storage.deleteUser(id);
       logActivity(req, "delete-user", "user", id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete user", error);
     }
   });
@@ -184,7 +184,7 @@ export function registerUserRoutes(app: Express) {
       await storage.updateUserPassword(id, passwordHash);
       logActivity(req, "reset-password", "user", id);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update password", error);
     }
   });
@@ -200,7 +200,7 @@ export function registerUserRoutes(app: Express) {
       const { groupId } = parsed.data;
       const user = await storage.assignUserToGroup(id, groupId ?? null);
       res.json(user);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to assign user to group", error);
     }
   });
@@ -216,7 +216,7 @@ export function registerUserRoutes(app: Express) {
       const { themeId } = parsed.data;
       await storage.updateUserSelectedTheme(id, themeId ?? null);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to assign theme", error);
     }
   });
@@ -249,7 +249,7 @@ export function registerUserRoutes(app: Express) {
       }
       logActivity(req, "reset-all-passwords", "user", null, null, { usersAffected: count });
       res.json({ success: true, message: `Reset passwords for ${count} users` });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to reset passwords", error);
     }
   });
@@ -315,7 +315,7 @@ export function registerUserRoutes(app: Express) {
           });
 
           results.push({ email, status: "created" });
-        } catch (err) {
+        } catch (err: unknown) {
           results.push({ email, status: "failed", error: err instanceof Error ? err.message : "Unknown error" });
         }
       }
@@ -329,7 +329,7 @@ export function registerUserRoutes(app: Express) {
       });
 
       res.json({ results, summary: { created, existing, failed } });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to send invitations", error);
     }
   });
