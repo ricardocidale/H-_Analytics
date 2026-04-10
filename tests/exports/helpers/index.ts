@@ -40,7 +40,8 @@ export function makeBrowserDownloadMocks() {
     (URL as any).revokeObjectURL = _mockRevokeObjectURL;
   };
 
-  const uninstall = () => {
+  const uninstall = async () => {
+    await new Promise((r) => setTimeout(r, 300));
     delete (globalThis as any).document;
   };
 
