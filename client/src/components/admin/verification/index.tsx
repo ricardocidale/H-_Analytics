@@ -19,10 +19,11 @@ import { IdentityDashboard } from "./IdentityDashboard";
 import type { VerificationResult, SuiteId, SuiteRunResult } from "./types";
 
 const HealthCheckDashboard = lazy(() => import("./HealthCheckDashboard"));
+const CalcAuditViewer = lazy(() => import("./CalcAuditViewer"));
 
 export default function VerificationTab() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"results" | "history" | "identities" | "ai" | "pipeline">("results");
+  const [activeTab, setActiveTab] = useState<"results" | "history" | "identities" | "ai" | "pipeline" | "calc-audit">("results");
   const [verificationResults, setVerificationResults] = useState<VerificationResult | null>(null);
   const [aiReview, setAiReview] = useState<string>("");
   const [aiReviewLoading, setAiReviewLoading] = useState(false);
@@ -460,6 +461,10 @@ export default function VerificationTab() {
                 <IconGauge className="w-3.5 h-3.5 mr-1.5" />
                 Pipeline Health
               </TabsTrigger>
+              <TabsTrigger value="calc-audit" data-testid="tab-verification-calc-audit">
+                <IconFileDown className="w-3.5 h-3.5 mr-1.5" />
+                Calc Audit
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="results" className="min-h-[300px]">
@@ -550,6 +555,12 @@ export default function VerificationTab() {
             <TabsContent value="pipeline" className="min-h-[300px]">
               <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
                 <HealthCheckDashboard />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="calc-audit" className="min-h-[300px]">
+              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+                <CalcAuditViewer />
               </Suspense>
             </TabsContent>
           </Tabs>
