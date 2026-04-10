@@ -767,6 +767,15 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **Catch blocks**: 10 in scope, all compliant (`e: unknown` / `error: unknown`)
 - **Resilience score**: 8.6/10 (GAAP compliance 10, formula consistency 9, type safety 8, test coverage 7, code organization 9)
 
+### Opus Audit #326: Client Admin, Intelligence & AI Components (April 2026) — COMPLETED
+- **Report**: `docs/audits/326-client-admin-intelligence-ai-components-findings.md`
+- **Scope**: 262 files (~53,444 lines) across 17 directories — admin/ (106), intelligence/ (1), research/ (19), property-research/ (11), company-research/ (13), rebecca/ (11), icp/ (0 empty), property-detail/ (8), property-edit/ (13), property-finder/ (8), company/ (12), company-assumptions/ (19), map/ (4), methodology/ (4), data-table/ (6), graphics/ (8), icons/ (19)
+- **Verdict**: PASS — 0 critical, 0 high, 5 medium, 7 low findings
+- **Key findings**: (M) 8 catch blocks missing `: unknown` annotation (admin/hooks 2, RebeccaPanel 4, RebeccaEmailPreview 1, RebeccaFeedbackForm 1); (M) company-research/ 0 data-testid in 10 files; (M) data-table/ 0 data-testid in 5 files; (M) company/ 0 ARIA attributes in 10 files; (M) RichBlockRenderers hardcoded brand hex colors (#112548/#0091AE/#FDB817) instead of CSS variables; (L) AssetDefinitionTab 6× `v as any` from dynamic ICP config keys; (L) empty icp/ directory; (L) all UI strings hardcoded English
+- **Positives**: Exceptional admin architecture (106 files, 5-group sidebar, 35+ typed sections, 14 SECTION_REDIRECTS); admin testid coverage 793 in 89 files (8.9/file); ICP config system fully declarative with zero as-any; research streams use AbortController + catch(error:unknown); dual icon set system; verification UI 11 files; property edit form sections well-documented with GAAP references
+- **as any count**: 14 in scope (admin 12, property-edit 2); 5 jsPDF unavoidable, 6 ICP dynamic key, 1 JSONB merge, 2 research badge sourceName
+- **Resilience score**: 8.2/10 (admin architecture 9, form handling 8, Rebecca state management 8, research pipeline 9, testid coverage 7, accessibility 7)
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
