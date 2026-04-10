@@ -203,7 +203,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
 
   useEffect(() => { setMobileOpen(false); }, [location]);
 
-  const sb = (key: string) => (global as any)?.[key] !== false;
+  const sb = (key: string) => (global as unknown as Record<string, unknown>)?.[key] !== false;
   const showAnalysis = sb("sidebarSensitivity");
   const onAdminRoute = location.startsWith("/admin");
   const [adminSection, setAdminSectionState] = useAdminSection();
@@ -424,10 +424,10 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             </Button>
             <ResearchQueueIndicator className="hidden sm:flex" />
             <NotificationCenter />
-            {!!(global as any)?.rebeccaEnabled && (
-              (global as any)?.rebeccaV2
-                ? <RebeccaHeaderButton displayName={(global as any)?.rebeccaDisplayName || "Rebecca"} />
-                : <RebeccaChatbot displayName={(global as any)?.rebeccaDisplayName || "Rebecca"} />
+            {!!global?.rebeccaEnabled && (
+              global?.rebeccaV2
+                ? <RebeccaHeaderButton displayName={global?.rebeccaDisplayName || "Rebecca"} />
+                : <RebeccaChatbot displayName={global?.rebeccaDisplayName || "Rebecca"} />
             )}
           </div>
         </header>
@@ -438,7 +438,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       </main>
 
       {(() => {
-        const bottomNavItems: { href: string; label: string; icon: any }[] = [
+        const bottomNavItems: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
           { href: "/", label: "Dashboard", icon: IconDashboard },
           { href: "/portfolio", label: "Properties", icon: IconProperties },
           ...(hasManagementAccess ? [{ href: "/company", label: "Company", icon: IconBriefcase }] : []),
@@ -475,8 +475,8 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       <CommandPalette />
       <GuidedWalkthrough />
       <GuidanceSideSheet />
-      {!!(global as any)?.rebeccaEnabled && !!(global as any)?.rebeccaV2 && (
-        <RebeccaPanel displayName={(global as any)?.rebeccaDisplayName || "Rebecca"} />
+      {!!global?.rebeccaEnabled && !!global?.rebeccaV2 && (
+        <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
       )}
     </div>
     </IconSetProvider>

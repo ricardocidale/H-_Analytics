@@ -11,7 +11,7 @@ interface IcpMarketContextTabProps {
 }
 
 export function IcpMarketContextTab({ global, properties, companyInputs, focusAreas }: IcpMarketContextTabProps) {
-  const assetDef = global.assetDefinition as any;
+  const assetDef = global.assetDefinition as Record<string, string> | undefined;
 
   return (
     <div className="space-y-4">

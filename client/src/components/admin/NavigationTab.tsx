@@ -106,7 +106,7 @@ export default function NavigationTab() {
     },
   });
 
-  const isOn = (key: string) => (globalAssumptions as any)?.[key] !== false;
+  const isOn = (key: string) => (globalAssumptions as unknown as Record<string, unknown>)?.[key] !== false;
 
   return (
     <div className="space-y-4" data-testid="card-sidebar-settings">
@@ -211,7 +211,7 @@ export default function NavigationTab() {
               <p className="text-xs text-muted-foreground mt-0.5">Income statement, cash flow, and balance sheet on the Company page</p>
             </div>
             <Switch
-              checked={(globalAssumptions as any)?.showCompanyCalculationDetails ?? true}
+              checked={globalAssumptions?.showCompanyCalculationDetails ?? true}
               onCheckedChange={(checked) =>
                 updateSidebarMutation.mutate({ showCompanyCalculationDetails: checked })
               }
@@ -224,7 +224,7 @@ export default function NavigationTab() {
               <p className="text-xs text-muted-foreground mt-0.5">All property-level income statements, cash flows, and balance sheets</p>
             </div>
             <Switch
-              checked={(globalAssumptions as any)?.showPropertyCalculationDetails ?? true}
+              checked={globalAssumptions?.showPropertyCalculationDetails ?? true}
               onCheckedChange={(checked) =>
                 updateSidebarMutation.mutate({ showPropertyCalculationDetails: checked })
               }

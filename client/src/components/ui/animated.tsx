@@ -123,7 +123,7 @@ export function StaggerContainer({ children, className, delay = 0 }: { children:
         visible: {
           ...staggerContainer.visible,
           transition: {
-            ...(staggerContainer.visible as any).transition,
+            ...((staggerContainer.visible as Record<string, unknown>)?.transition as Record<string, unknown>),
             delayChildren: delay + 0.1,
           },
         },

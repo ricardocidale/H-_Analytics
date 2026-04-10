@@ -1,14 +1,14 @@
 import * as Sentry from "@sentry/react";
 
-const DSN = (import.meta as any).env?.VITE_SENTRY_DSN as string | undefined;
+const DSN = import.meta.env.VITE_SENTRY_DSN;
 
 export function initClientSentry() {
   if (!DSN) return;
 
   Sentry.init({
     dsn: DSN,
-    environment: (import.meta as any).env?.PROD ? "production" : "development",
-    tracesSampleRate: (import.meta as any).env?.PROD ? 0.2 : 1.0,
+    environment: import.meta.env.PROD ? "production" : "development",
+    tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
     replaysOnErrorSampleRate: 0,
     integrations: [
       Sentry.browserTracingIntegration(),

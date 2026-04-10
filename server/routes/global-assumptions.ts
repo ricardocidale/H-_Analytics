@@ -82,7 +82,7 @@ export function register(app: Express) {
         "partnerCompYear7", "partnerCompYear8", "partnerCompYear9", "partnerCompYear10",
       ];
       const hasKeyChange = current && GA_STALENESS_TRIGGER_KEYS.some(
-        (k) => k in req.body && (req.body as any)[k] !== (current as any)[k]
+        (k) => k in req.body && (req.body as Record<string, unknown>)[k] !== (current as Record<string, unknown>)[k]
       );
       const finalData = hasKeyChange
         ? { ...validation.data, lastAssumptionChangeAt: new Date() }

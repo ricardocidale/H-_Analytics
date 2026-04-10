@@ -154,8 +154,8 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
       setPropertyLabel(ga.propertyLabel || "Boutique Hotel");
       if (ga.icpConfig) {
         setConfig({ ...DEFAULT_ICP_CONFIG, ...(ga.icpConfig as Partial<IcpConfig>) });
-        if ((ga.icpConfig as any)._descriptive) {
-          const saved = (ga.icpConfig as any)._descriptive as Record<string, any>;
+        if (ga.icpConfig._descriptive) {
+          const saved = ga.icpConfig._descriptive as Record<string, unknown>;
           const migrated = { ...saved };
           if (!migrated.locationDetails && (migrated.usRegions || migrated.latAmRegions || migrated.emeaRegions)) {
             const parts: string[] = [];
@@ -169,11 +169,11 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
           delete migrated.emeaRegions;
           setDesc({ ...DEFAULT_ICP_DESCRIPTIVE, ...(migrated as Partial<IcpDescriptive>) });
         }
-        if ((ga.icpConfig as any)._customAmenities) {
-          setCustomAmenities((ga.icpConfig as any)._customAmenities as CustomAmenity[]);
+        if (ga.icpConfig._customAmenities) {
+          setCustomAmenities(ga.icpConfig._customAmenities as CustomAmenity[]);
         }
-        if ((ga.icpConfig as any)._hiddenFields) {
-          setHiddenFields(new Set((ga.icpConfig as any)._hiddenFields as string[]));
+        if (ga.icpConfig._hiddenFields) {
+          setHiddenFields(new Set(ga.icpConfig._hiddenFields as string[]));
         }
       }
       setDirty(false);
@@ -190,7 +190,7 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
     setDirty(true);
   }, []);
 
-  const locations = useMemo(() => ((ga?.icpConfig as any)?._locations ?? []) as IcpLocation[], [ga?.icpConfig]);
+  const locations = useMemo(() => (ga?.icpConfig?._locations ?? []) as IcpLocation[], [ga?.icpConfig]);
 
   const generatedPrompt = useMemo(
     () => generateIcpPrompt(config, desc, propertyLabel, { locations, customAmenities }),

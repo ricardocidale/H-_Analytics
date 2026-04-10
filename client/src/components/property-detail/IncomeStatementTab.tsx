@@ -56,7 +56,7 @@ export default function IncomeStatementTab({
     if (!yd) return { items: [], totalRevenue: 0 };
 
     const totalRev = yd.revenueTotal;
-    const deptExpenses = yd.expenseRooms + yd.expenseFB + yd.expenseEvents + (yd as any).expenseOther;
+    const deptExpenses = yd.expenseRooms + yd.expenseFB + yd.expenseEvents + yd.expenseOther;
     const undistributed = yd.expenseAdmin + yd.expenseMarketing + yd.expensePropertyOps +
       yd.expenseUtilitiesVar + yd.expenseUtilitiesFixed + yd.expenseIT + yd.expenseInsurance + yd.expenseOtherCosts;
     const mgmtFees = yd.feeBase + yd.feeIncentive;

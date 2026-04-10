@@ -103,7 +103,7 @@ export function registerUserRoutes(app: Express) {
         }
       }
 
-      const profileData: Record<string, any> = {};
+      const profileData: Record<string, unknown> = {};
       if (email !== undefined) profileData.email = sanitizeEmail(email);
       if (firstName !== undefined) profileData.firstName = firstName;
       if (lastName !== undefined) profileData.lastName = lastName;
@@ -114,7 +114,7 @@ export function registerUserRoutes(app: Express) {
       if (canManageScenarios !== undefined) profileData.canManageScenarios = canManageScenarios;
 
       if (Object.keys(profileData).length > 0) {
-        await storage.updateUserProfile(id, profileData as any);
+        await storage.updateUserProfile(id, profileData as Parameters<typeof storage.updateUserProfile>[1]);
       }
 
       if (role) {

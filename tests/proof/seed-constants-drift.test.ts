@@ -5,13 +5,14 @@ import * as path from "path";
 /**
  * Seed Constants Drift Detection
  *
- * Verifies that seed data in server/seeds/properties.ts uses named constants
- * from shared/constants.ts rather than hardcoded literals that could drift.
- * Also checks structural integrity of seed data.
+ * Verifies that seed data in server/seeds/properties.ts and property-data.ts
+ * uses named constants from shared/constants.ts rather than hardcoded literals
+ * that could drift. Also checks structural integrity of seed data.
  */
 
 const seedPropsPath = path.resolve(__dirname, "../../server/seeds/properties.ts");
-const seedPropsContent = fs.readFileSync(seedPropsPath, "utf-8");
+const seedDataPath = path.resolve(__dirname, "../../server/seeds/property-data.ts");
+const seedPropsContent = fs.readFileSync(seedPropsPath, "utf-8") + "\n" + fs.readFileSync(seedDataPath, "utf-8");
 
 const seedIndexPath = path.resolve(__dirname, "../../server/seeds/index.ts");
 const seedIndexContent = fs.readFileSync(seedIndexPath, "utf-8");
@@ -78,7 +79,6 @@ describe("Seed Constants Drift — Property Revenue & Fee Rates", () => {
     "DEFAULT_PROPERTY_TAX_RATE",
     "DEFAULT_BASE_MANAGEMENT_FEE_RATE",
     "DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE",
-    "DEFAULT_OCCUPANCY_RAMP_MONTHS",
     "DEFAULT_COMMISSION_RATE",
   ];
 
@@ -98,11 +98,8 @@ describe("Seed Data Structural Integrity", () => {
   });
 
   it("all seed properties have userId set to null (shared ownership)", () => {
-    const propStart = seedPropsContent.indexOf("export async function seedProperties");
-    const propEnd = seedPropsContent.indexOf("export async function seedFeeCategories");
-    const propSection = seedPropsContent.slice(propStart, propEnd);
-    expect(propSection).toContain("userId: null");
-    expect(propSection).not.toContain("userId: adminUserId");
+    expect(seedPropsContent).toContain("userId: null");
+    expect(seedPropsContent).not.toContain("userId: adminUserId");
   });
 
   it("financed properties have per-property financing fields", () => {

@@ -24,7 +24,7 @@
 - **T002**: Engine instrumentation — `AuditCollector` class (`engine/property/audit-collector.ts`), `computePortfolioProjectionWithAudit()` in `server/finance/service.ts`, finance route wired (`?audit=true` bypasses cache + async persistence)
 - **T002 code review fixes**: (1) Cache bypass when `audit=true`, (2) Engine decoupled from DB schema — `AuditEntry` interface in engine layer, (3) IDOR fix — calc-audit routes filter by userId, (4) Proper error logging on fire-and-forget persistence
 - **T003**: Calc Audit Viewer UI — new "Calc Audit" tab in Admin > Verification section. `CalcAuditViewer.tsx` (lazy-loaded). Scenario ID search → log list → drill-down detail with expandable Property → Period → Line Items tree. Each entry: step #, label, formula, inputs, output. Inline note editor per step. Search/filter across all entries.
-- Health: 4,437 tests, 0 TS errors, 0 lint, UNQUALIFIED, 0 empty catch blocks
+- Health: 4,436 tests, 0 TS errors, 0 lint, UNQUALIFIED, 0 empty catch blocks
 
 ### T019 Health Check Dashboard (April 2026) — COMPLETED
 - **Pipeline Health tab** added to Admin > Verification section

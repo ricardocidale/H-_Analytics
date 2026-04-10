@@ -165,15 +165,15 @@ export function IcpContent({ onSaveStateChange }: IcpContentProps) {
   }, [ga?.icpConfig]);
 
   const desc: IcpDescriptive = useMemo(() => {
-    if (ga?.icpConfig && (ga.icpConfig as any)?._descriptive) {
-      return { ...DEFAULT_ICP_DESCRIPTIVE, ...((ga.icpConfig as any)._descriptive as Partial<IcpDescriptive>) };
+    if (ga?.icpConfig && ga.icpConfig._descriptive) {
+      return { ...DEFAULT_ICP_DESCRIPTIVE, ...(ga.icpConfig._descriptive as Partial<IcpDescriptive>) };
     }
     return DEFAULT_ICP_DESCRIPTIVE;
   }, [ga?.icpConfig]);
 
   const propertyLabel = ga?.propertyLabel || "Boutique Hotel";
 
-  const savedDefinition = (ga?.icpConfig as any)?._definition as string | undefined;
+  const savedDefinition = ga?.icpConfig?._definition as string | undefined;
 
   const essay = useMemo(
     () => generateIcpEssay(config, desc, propertyLabel),

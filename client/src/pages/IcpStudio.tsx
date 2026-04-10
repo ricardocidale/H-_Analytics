@@ -192,31 +192,31 @@ export default function IcpStudio() {
 
   useEffect(() => {
     if (!global) return;
-    const g = global as any;
+    const g = global as unknown as Record<string, unknown>;
 
     // Load quantitative ICP config
     if (g.icpConfig && typeof g.icpConfig === "object") {
-      setQuantitative({ ...DEFAULT_ICP_CONFIG, ...g.icpConfig });
+      setQuantitative({ ...DEFAULT_ICP_CONFIG, ...(g.icpConfig as Partial<IcpConfig>) });
     }
 
     // Load descriptive fields
     if (g.icpDescriptive && typeof g.icpDescriptive === "object") {
-      setDescriptive({ ...DEFAULT_ICP_DESCRIPTIVE, ...g.icpDescriptive });
+      setDescriptive({ ...DEFAULT_ICP_DESCRIPTIVE, ...(g.icpDescriptive as Partial<IcpDescriptive>) });
     }
 
     // Load qualitative vision
     if (g.icpQualitative && typeof g.icpQualitative === "object") {
-      setQualitative(g.icpQualitative);
+      setQualitative(g.icpQualitative as Record<string, string>);
     }
 
     // Load manual prompt
     if (g.icpGeneratedPrompt) {
-      setManualPrompt(g.icpGeneratedPrompt);
+      setManualPrompt(g.icpGeneratedPrompt as string);
     }
 
     // Load version history
     if (Array.isArray(g.icpVersionHistory)) {
-      setVersions(g.icpVersionHistory);
+      setVersions(g.icpVersionHistory as VersionEntry[]);
     }
 
     // Load prompt mode
@@ -227,8 +227,8 @@ export default function IcpStudio() {
 
   // ── Auto-generated prompt ──────────────────────────────────────────────────
 
-  const locations = useMemo(() => ((global as any)?.icpConfig?._locations ?? []) as IcpLocation[], [global]);
-  const customAmenities = useMemo(() => ((global as any)?.icpConfig?._customAmenities ?? []) as { label: string; priority: Priority }[], [global]);
+  const locations = useMemo(() => (global?.icpConfig?._locations ?? []) as IcpLocation[], [global]);
+  const customAmenities = useMemo(() => (global?.icpConfig?._customAmenities ?? []) as { label: string; priority: Priority }[], [global]);
 
   const autoPrompt = useMemo(
     () => generateStudioPrompt(qualitative, quantitative, descriptive, locations, customAmenities),

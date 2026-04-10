@@ -51,15 +51,15 @@ export function useIcpResearch() {
 
   const config = (ga?.icpConfig as IcpConfig) || DEFAULT_ICP_CONFIG;
   const desc: IcpDescriptive = (() => {
-    if (ga?.icpConfig && (ga.icpConfig as any)?._descriptive) {
-      return { ...DEFAULT_ICP_DESCRIPTIVE, ...((ga.icpConfig as any)._descriptive as Partial<IcpDescriptive>) };
+    if (ga?.icpConfig && ga.icpConfig._descriptive) {
+      return { ...DEFAULT_ICP_DESCRIPTIVE, ...(ga.icpConfig._descriptive as Partial<IcpDescriptive>) };
     }
     return DEFAULT_ICP_DESCRIPTIVE;
   })();
   const propertyLabel = ga?.propertyLabel || "Boutique Hotel";
   const promptOpts = {
-    locations: ((ga?.icpConfig as any)?._locations ?? []) as IcpLocation[],
-    customAmenities: ((ga?.icpConfig as any)?._customAmenities ?? []) as { label: string; priority: Priority }[],
+    locations: (ga?.icpConfig?._locations ?? []) as IcpLocation[],
+    customAmenities: (ga?.icpConfig?._customAmenities ?? []) as { label: string; priority: Priority }[],
   };
   const prompt = (ga?.assetDescription as string) || "";
 

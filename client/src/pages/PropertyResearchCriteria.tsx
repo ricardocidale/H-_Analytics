@@ -52,11 +52,11 @@ export default function PropertyResearchCriteria() {
     );
   }
 
-  const researchConfig = ((global as any)?.researchConfig as ResearchConfig) ?? {};
+  const researchConfig = ((global as unknown as Record<string, unknown>)?.researchConfig as ResearchConfig) ?? {};
   const eventConfig: Partial<ResearchEventConfig> = researchConfig.property ?? {};
-  const assetDef = global?.assetDefinition as any;
+  const assetDef = global?.assetDefinition as Record<string, string> | undefined;
   const propertyLabel = global?.propertyLabel ?? "Boutique Hotel";
-  const icpDefinition = ((global as any)?.icpConfig as Record<string, any>)?._definition as string | undefined;
+  const icpDefinition = global?.icpConfig?._definition as string | undefined;
 
   const propertyInputs = [
     { label: "Property Name", value: property.name },
