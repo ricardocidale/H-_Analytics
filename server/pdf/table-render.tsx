@@ -3,8 +3,7 @@ import { Page, View, Text } from "@react-pdf/renderer";
 import { type PdfTheme } from "./theme";
 import type { TableRow as IRTableRow } from "../report/types";
 import type { LayoutHints } from "./design-pass";
-import { PAGE_LANDSCAPE, PAGE_PORTRAIT } from "./theme-mappers";
-import { PageHeader, PageFooter } from "./section-renderers";
+import { PAGE_LANDSCAPE, PAGE_PORTRAIT, PageHeader, PageFooter } from "./theme-mappers";
 
 export const DENSITY_PADDING: Record<string, string> = {
   cramped: "3 6",

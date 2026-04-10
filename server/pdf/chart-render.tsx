@@ -2,8 +2,7 @@ import React from "react";
 import { Page, View, Text, Svg, Line, Circle, Path, G } from "@react-pdf/renderer";
 import { type PdfTheme } from "./theme";
 import type { LayoutHints } from "./design-pass";
-import { PAGE_LANDSCAPE, PAGE_PORTRAIT } from "./theme-mappers";
-import { PageHeader, PageFooter } from "./section-renderers";
+import { PAGE_LANDSCAPE, PAGE_PORTRAIT, PageHeader, PageFooter } from "./theme-mappers";
 
 export function fmtCompact(v: number): string {
   if (v === 0) return "$0";

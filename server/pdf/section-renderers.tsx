@@ -1,43 +1,12 @@
 import React from "react";
-import { View, Text, Image } from "@react-pdf/renderer";
+import { Page, View, Text, Image } from "@react-pdf/renderer";
 import { type PdfTheme } from "./theme";
 import type { ReportSection } from "../report/types";
 import type { LayoutHints } from "./design-pass";
+import { PAGE_LANDSCAPE, PAGE_PORTRAIT, PageHeader, PageFooter, SectionDivider } from "./theme-mappers";
 import { SECTION_GAP } from "./pagination";
 import { TableBody } from "./table-render";
 import { ChartSvgBody } from "./chart-render";
-
-export function PageHeader({ title, companyName, entityName, theme }: { title: string; companyName: string; entityName: string; theme: PdfTheme }) {
-  return (
-    <View style={{ marginBottom: 14 }}>
-      <View style={{ backgroundColor: theme.primary, padding: "12 20 10 20", borderBottomLeftRadius: 6, borderBottomRightRadius: 6, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View>
-          <Text style={{ fontSize: 16, fontWeight: "bold", color: theme.white, fontFamily: "Helvetica-Bold" }}>{title}</Text>
-          <Text style={{ fontSize: 7.5, color: theme.muted, marginTop: 2 }}>{companyName} — {entityName}</Text>
-        </View>
-        <Text style={{ fontSize: 7, color: theme.secondary, fontWeight: "bold", fontFamily: "Helvetica-Bold" }}>{companyName}</Text>
-      </View>
-    </View>
-  );
-}
-
-export function PageFooter({ companyName, theme }: { companyName: string; theme: PdfTheme }) {
-  return (
-    <View style={{ position: "absolute", bottom: 12, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between" }} fixed>
-      <Text style={{ fontSize: 6, color: theme.border }}>{companyName}</Text>
-      <Text style={{ fontSize: 6, color: theme.border }}>CONFIDENTIAL</Text>
-      <Text style={{ fontSize: 6, color: theme.border }} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-    </View>
-  );
-}
-
-export function SectionDivider({ title, theme }: { title: string; theme: PdfTheme }) {
-  return (
-    <View style={{ backgroundColor: theme.primary, padding: "6 12 5 12", borderRadius: 4, marginBottom: 10, marginTop: 4 }}>
-      <Text style={{ fontSize: 11, fontWeight: "bold", fontFamily: "Helvetica-Bold", color: theme.white }}>{title}</Text>
-    </View>
-  );
-}
 
 export function KpiCards({ title, metrics, companyName, entityName, theme, isLandscape, hints }: {
   title: string;
@@ -48,9 +17,7 @@ export function KpiCards({ title, metrics, companyName, entityName, theme, isLan
   isLandscape: boolean;
   hints: LayoutHints;
 }) {
-  const pageSize: [number, number] = isLandscape
-    ? [406.4 * 2.83465, 228.6 * 2.83465]
-    : [215.9 * 2.83465, 279.4 * 2.83465];
+  const pageSize: [number, number] = isLandscape ? PAGE_LANDSCAPE : PAGE_PORTRAIT;
   const cols = isLandscape ? 3 : 2;
 
   const rows: Array<typeof metrics> = [];
@@ -58,7 +25,6 @@ export function KpiCards({ title, metrics, companyName, entityName, theme, isLan
     rows.push(metrics.slice(i, i + cols));
   }
 
-  const Page = require("@react-pdf/renderer").Page;
   return (
     <Page size={pageSize} style={{ paddingTop: 10, paddingHorizontal: isLandscape ? 60 : 50, paddingBottom: 30, backgroundColor: theme.white }}>
       <PageHeader title={title} companyName={companyName} entityName={entityName} theme={theme} />
