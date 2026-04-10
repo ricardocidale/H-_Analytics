@@ -1,6 +1,4 @@
-import { db } from "../db";
-import { properties } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { storage } from "../storage";
 import { BaseIntegrationService, type IntegrationHealth } from "./base";
 import { logger } from "../logger";
 
@@ -206,7 +204,7 @@ class GeospatialIntegration extends BaseIntegrationService {
 
   async geocodeAndUpdateProperty(propertyId: number): Promise<{ lat: number; lng: number } | null> {
     try {
-      const [property] = await db.select().from(properties).where(eq(properties.id, propertyId));
+      const property = await storage.getProperty(propertyId);
       if (!property) return null;
 
       const addressParts = [
@@ -223,9 +221,7 @@ class GeospatialIntegration extends BaseIntegrationService {
       const coords = await this.geocodeAddress(address);
       if (!coords) return null;
 
-      await db.update(properties)
-        .set({ latitude: coords.lat, longitude: coords.lng })
-        .where(eq(properties.id, propertyId));
+      await storage.updateProperty(propertyId, { latitude: coords.lat, longitude: coords.lng });
 
       return coords;
     } catch (error) {

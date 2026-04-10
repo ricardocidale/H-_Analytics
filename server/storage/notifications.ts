@@ -1,11 +1,24 @@
 import { db } from "../db";
 import { alertRules, notificationLogs, notificationPreferences, notificationSettings } from "@shared/schema";
 import type { AlertRule, InsertAlertRule, InsertNotificationLog, NotificationLog, NotificationPreference, NotificationSetting } from "@shared/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 
 export class NotificationStorage {
   async getAllAlertRules(): Promise<AlertRule[]> {
     return db.select().from(alertRules).orderBy(desc(alertRules.createdAt));
+  }
+
+  async getActiveAlertRulesForProperty(propertyId: number): Promise<AlertRule[]> {
+    return db.select().from(alertRules).where(
+      and(
+        eq(alertRules.isActive, true),
+        or(
+          eq(alertRules.scope, "all"),
+          eq(alertRules.scope, "portfolio"),
+          and(eq(alertRules.scope, "specific"), eq(alertRules.propertyId, propertyId))
+        )
+      )
+    );
   }
 
   async createAlertRule(data: InsertAlertRule): Promise<AlertRule> {

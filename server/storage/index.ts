@@ -275,6 +275,7 @@ export class DatabaseStorage implements IStorage {
   getNotificationSetting = this.notifications.getNotificationSetting.bind(this.notifications);
   setNotificationSetting = this.notifications.setNotificationSetting.bind(this.notifications);
   getAllNotificationSettings = this.notifications.getAllNotificationSettings.bind(this.notifications);
+  getActiveAlertRulesForProperty = this.notifications.getActiveAlertRulesForProperty.bind(this.notifications);
 
   // External Integrations
   getExternalIntegrations = this.integrationStore.getExternalIntegrations.bind(this.integrationStore);

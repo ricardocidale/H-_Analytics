@@ -1,17 +1,10 @@
 import type { NotificationEvent } from "./events";
 import { getEventLabel } from "./events";
-import type { AlertRule, Property } from "@shared/schema";
+import type { Property } from "@shared/schema";
 import { sendNotificationEmail } from "../integrations/resend";
-import { db } from "../db";
-import { alertRules, notificationLogs, notificationSettings } from "@shared/schema";
-import { eq, and, isNull, or } from "drizzle-orm";
+import { storage } from "../storage";
 import { APP_BRAND_NAME } from "@shared/constants";
 import { logger } from "../logger";
-
-async function getNotificationSetting(key: string): Promise<string | null> {
-  const [row] = await db.select().from(notificationSettings).where(eq(notificationSettings.settingKey, key)).limit(1);
-  return row?.settingValue ?? null;
-}
 
 async function logNotification(
   event: NotificationEvent,
@@ -19,7 +12,7 @@ async function logNotification(
   status: string,
   extra: { recipient?: string; subject?: string; errorMessage?: string; alertRuleId?: number; retryCount?: number } = {}
 ) {
-  await db.insert(notificationLogs).values({
+  await storage.createNotificationLog({
     eventType: event.type,
     channel,
     recipient: extra.recipient ?? null,
@@ -34,7 +27,7 @@ async function logNotification(
 }
 
 export async function processNotificationEvent(event: NotificationEvent): Promise<void> {
-  const resendEnabled = await getNotificationSetting("resend_enabled");
+  const resendEnabled = await storage.getNotificationSetting("resend_enabled");
 
   if (resendEnabled === "true" && event.metadata?.recipientEmail && event.type !== "REPORT_SHARED") {
     try {
@@ -64,16 +57,7 @@ export async function evaluateAlertRules(
   property: Property,
   metrics: { dscr?: number; cap_rate?: number; occupancy?: number; noi_variance?: number }
 ): Promise<void> {
-  const rules = await db.select().from(alertRules).where(
-    and(
-      eq(alertRules.isActive, true),
-      or(
-        eq(alertRules.scope, "all"),
-        eq(alertRules.scope, "portfolio"),
-        and(eq(alertRules.scope, "specific"), eq(alertRules.propertyId, property.id))
-      )
-    )
-  );
+  const rules = await storage.getActiveAlertRulesForProperty(property.id);
 
   for (const rule of rules) {
     const metricValue = metrics[rule.metric as keyof typeof metrics];
@@ -106,9 +90,7 @@ export async function evaluateAlertRules(
 
     await processNotificationEvent(event);
 
-    await db.update(alertRules)
-      .set({ lastTriggeredAt: new Date(), updatedAt: new Date() })
-      .where(eq(alertRules.id, rule.id));
+    await storage.updateAlertRule(rule.id, { lastTriggeredAt: new Date() });
   }
 }
 
