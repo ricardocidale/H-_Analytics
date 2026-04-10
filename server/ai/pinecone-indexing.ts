@@ -10,24 +10,44 @@ import {
 
 const DOC_MAX_CHARS = 100_000;
 
+type KpiField = "adr" | "occupancy" | "capRate" | "revpar";
+
+const CATEGORY_TO_KPI: Record<string, KpiField> = {
+  hospitality_adr:       "adr",
+  adr:                   "adr",
+  hospitality_occupancy: "occupancy",
+  occupancy:             "occupancy",
+  hospitality_revpar:    "revpar",
+  revpar:                "revpar",
+  cap_rates:             "capRate",
+  caprate:               "capRate",
+};
+
+const NULL_KPIS = { adr: null, occupancy: null, capRate: null, revpar: null } as const;
+
+const FRESHNESS_THRESHOLD_DAYS = 90;
+
+export function computeBenchmarkFreshness(fetchedAt: Date | string): "fresh" | "stale" {
+  const fetched = typeof fetchedAt === "string" ? new Date(fetchedAt) : fetchedAt;
+  const ageMs = Date.now() - fetched.getTime();
+  const ageDays = ageMs / (24 * 60 * 60 * 1000);
+  return ageDays <= FRESHNESS_THRESHOLD_DAYS ? "fresh" : "stale";
+}
+
 export function mapCategoryToKpis(category: string, value: number | null): {
   adr: number | null;
   occupancy: number | null;
   capRate: number | null;
   revpar: number | null;
 } {
-  const cat = category.toLowerCase();
-  const v = value ?? 0;
-  return {
-    adr:       cat.includes("adr") ? v : null,
-    occupancy: cat.includes("occupancy") ? v : null,
-    capRate:   cat.includes("cap_rate") || cat === "caprate" ? v : null,
-    revpar:    cat.includes("revpar") ? v : null,
-  };
+  const field = CATEGORY_TO_KPI[category.toLowerCase()];
+  if (!field) return { ...NULL_KPIS };
+  return { ...NULL_KPIS, [field]: value };
 }
 
 export async function indexResearchResult(params: {
   propertyId?: number;
+  userId?: number;
   location: string;
   propertyType: string;
   businessModel?: string;
@@ -52,6 +72,7 @@ export async function indexResearchResult(params: {
     text,
     metadata: {
       propertyId:   params.propertyId ?? 0,
+      userId:       params.userId ?? 0,
       location:     params.location,
       propertyType: params.propertyType,
       businessModel: bm,
@@ -78,6 +99,7 @@ export async function retrieveSimilarResearch(
 export async function indexAssumptionGuidance(params: {
   entityType: "property" | "company";
   entityId: number;
+  userId?: number;
   location: string;
   propertyType: string;
   businessModel?: string;
@@ -101,6 +123,7 @@ export async function indexAssumptionGuidance(params: {
       metadata: {
         entityType:    params.entityType,
         entityId:      params.entityId,
+        userId:        params.userId ?? 0,
         location:      params.location,
         propertyType:  params.propertyType,
         businessModel: bm,
@@ -287,6 +310,7 @@ export async function indexScenarioSummary(params: {
   scenarioName: string;
   propertyId: number;
   propertyName: string;
+  userId?: number;
   location: string;
   propertyType: string;
   totalRevenue?: number | null;
@@ -326,6 +350,7 @@ export async function indexScenarioSummary(params: {
         scenarioName:  params.scenarioName.slice(0, 500),
         propertyId:    params.propertyId,
         propertyName:  params.propertyName.slice(0, 200),
+        userId:        params.userId ?? 0,
         location:      params.location,
         propertyType:  params.propertyType,
         totalRevenue:  params.totalRevenue ?? 0,

@@ -8,19 +8,23 @@
 
 ## Architecture Decisions Log
 
-### T013-T015 Pinecone Financial Intelligence (April 2026) — COMPLETED
-- **T013 (Bug Fix + Tests)**: Fixed critical category→KPI mapping bug — `hospitality_adr`, `cap_rates`, etc. were all mapping to null. New `mapCategoryToKpis()` in `pinecone-indexing.ts` shared across 4 call sites. 35 tests in `tests/pinecone/benchmark-accuracy.test.ts`.
-- **T014 (Tests)**: 14 tests in `tests/pinecone/guidance-quality.test.ts` — mocked Pinecone, score threshold, business model filtering, deterministic IDs, graceful degradation.
-- **T015 (Tests)**: 16 tests in `tests/pinecone/scenario-indexing.test.ts` — deterministic `scenario:{id}`, KPI extraction, text construction, truncation limits, upsert semantics.
+### T013-T015 Pinecone Financial Intelligence (April 2026) — COMPLETED + ULTRAPLAN REVISION
+- **T013 (Bug Fix + Tests)**: Fixed critical category→KPI mapping bug. Now uses explicit lookup table `CATEGORY_TO_KPI` (no substring matching). Null value propagates correctly (null ≠ zero).
+- **T014 (Tests)**: 14 tests — score threshold, business model filtering, deterministic IDs, graceful degradation.
+- **T015 (Tests)**: 16 tests — deterministic `scenario:{id}`, KPI extraction, truncation limits.
+- **Ultraplan P0 fix**: Tenant-scoped vector retrieval — `userId` metadata added to `indexResearchResult`, `indexAssumptionGuidance`, `indexScenarioSummary`. Post-filter in `chat.ts` RAG loop by user's property IDs. `queryChunks`/`multiNamespaceQuery` now accept optional `filter` parameter.
+- **Ultraplan P1 fix**: Replaced substring `includes()` matching with explicit `CATEGORY_TO_KPI` lookup table. Unknown categories return all-null (no false positives).
+- **Ultraplan P1 fix**: Null vs zero semantics preserved — `mapCategoryToKpis(cat, null)` returns null for matched field, not 0.
+- **Ultraplan P2 fix**: `computeBenchmarkFreshness()` utility — 90-day threshold, accepts Date or ISO string.
+- Total: 74 tests across 3 files. 0 TS errors.
 - **All phases (1-7) of Financial Integrity Plan now COMPLETE** — 19 tasks done.
-- Health: 4,450 tests (183 files), 0 TS errors
 
 ### T001-T003 Calculation Audit Trail (April 2026) — COMPLETED
 - **T001**: Schema + storage + routes for `calculation_audit_logs` table. Files: `shared/schema/calc-audit.ts`, `server/storage/calc-audit.ts`, `server/routes/calc-audit.ts`, migration `calc-audit-001.ts`
 - **T002**: Engine instrumentation — `AuditCollector` class (`engine/property/audit-collector.ts`), `computePortfolioProjectionWithAudit()` in `server/finance/service.ts`, finance route wired (`?audit=true` bypasses cache + async persistence)
 - **T002 code review fixes**: (1) Cache bypass when `audit=true`, (2) Engine decoupled from DB schema — `AuditEntry` interface in engine layer, (3) IDOR fix — calc-audit routes filter by userId, (4) Proper error logging on fire-and-forget persistence
 - **T003**: Calc Audit Viewer UI — new "Calc Audit" tab in Admin > Verification section. `CalcAuditViewer.tsx` (lazy-loaded). Scenario ID search → log list → drill-down detail with expandable Property → Period → Line Items tree. Each entry: step #, label, formula, inputs, output. Inline note editor per step. Search/filter across all entries.
-- Health: 4,385 tests, 0 TS errors, 0 lint, UNQUALIFIED, 0 empty catch blocks
+- Health: 4,459 tests, 0 TS errors, 0 lint, UNQUALIFIED, 0 empty catch blocks
 
 ### T019 Health Check Dashboard (April 2026) — COMPLETED
 - **Pipeline Health tab** added to Admin > Verification section

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapCategoryToKpis } from "../../server/ai/pinecone-indexing";
+import { mapCategoryToKpis, computeBenchmarkFreshness } from "../../server/ai/pinecone-indexing";
 
 const ALL_BENCHMARK_CATEGORIES = [
   { key: "us_hotel_avg_adr_2024",       category: "hospitality_adr",       value: 157.95, expectedField: "adr" },
@@ -83,9 +83,21 @@ describe("T013 — Benchmark Snapshot Accuracy", () => {
       expect(kpis.adr).toBe(200);
     });
 
-    it("coerces null value to 0 for matched categories", () => {
+    it("preserves null value for matched categories (null ≠ zero)", () => {
       const kpis = mapCategoryToKpis("hospitality_adr", null);
+      expect(kpis.adr).toBeNull();
+    });
+
+    it("preserves zero value for matched categories (zero is valid)", () => {
+      const kpis = mapCategoryToKpis("hospitality_adr", 0);
       expect(kpis.adr).toBe(0);
+    });
+
+    it("returns all nulls for unknown category (no silent false positive)", () => {
+      const kpis = mapCategoryToKpis("some_new_unknown_category", 42);
+      for (const field of KPI_FIELDS) {
+        expect(kpis[field]).toBeNull();
+      }
     });
 
     it("returns all nulls for non-KPI category with null value", () => {
@@ -158,15 +170,33 @@ describe("T013 — Benchmark Snapshot Accuracy", () => {
     });
   });
 
-  describe("freshness policy", () => {
-    it("benchmarks older than 90 days should be flagged stale", () => {
-      const now = new Date();
-      const freshDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const staleDate = new Date(now.getTime() - 91 * 24 * 60 * 60 * 1000);
-      const FRESHNESS_THRESHOLD_MS = 90 * 24 * 60 * 60 * 1000;
+  describe("freshness policy (computeBenchmarkFreshness)", () => {
+    it("marks benchmarks fetched within 90 days as fresh", () => {
+      const recent = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      expect(computeBenchmarkFreshness(recent)).toBe("fresh");
+    });
 
-      expect(now.getTime() - freshDate.getTime()).toBeLessThan(FRESHNESS_THRESHOLD_MS);
-      expect(now.getTime() - staleDate.getTime()).toBeGreaterThan(FRESHNESS_THRESHOLD_MS);
+    it("marks benchmarks older than 90 days as stale", () => {
+      const old = new Date(Date.now() - 91 * 24 * 60 * 60 * 1000);
+      expect(computeBenchmarkFreshness(old)).toBe("stale");
+    });
+
+    it("marks benchmarks exactly at 90 days as fresh (boundary)", () => {
+      const boundary = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      expect(computeBenchmarkFreshness(boundary)).toBe("fresh");
+    });
+
+    it("accepts ISO string dates", () => {
+      const recent = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+      expect(computeBenchmarkFreshness(recent)).toBe("fresh");
+    });
+
+    it("marks very old benchmarks as stale", () => {
+      expect(computeBenchmarkFreshness("2020-01-01T00:00:00Z")).toBe("stale");
+    });
+
+    it("marks just-fetched benchmarks as fresh", () => {
+      expect(computeBenchmarkFreshness(new Date())).toBe("fresh");
     });
   });
 });

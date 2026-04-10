@@ -232,8 +232,11 @@ export function register(app: Express) {
           ragChars += entry.length;
         }
 
+        const userPropertyIds = new Set(properties.map(p => p.id));
         for (const match of multiResults) {
           if (match.score < 0.45) continue;
+          const matchPropId = Number(match.metadata.propertyId ?? 0);
+          if (matchPropId > 0 && !userPropertyIds.has(matchPropId)) continue;
           let body: string;
           let title: string;
           if (match.namespace === "research-history") {

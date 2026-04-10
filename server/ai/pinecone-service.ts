@@ -186,13 +186,16 @@ export async function queryChunks(
   namespace: PineconeNamespace,
   query: string,
   topK = 8,
+  filter?: Record<string, unknown>,
 ): Promise<QueryMatch[]> {
   if (!isPineconeAvailable() || !isEmbeddingAvailable()) return [];
   await ensureIndex();
 
   const vector = await embed(query);
   const index  = getPC().index(INDEX_NAME).namespace(namespace);
-  const res    = await index.query({ vector, topK, includeMetadata: true });
+  const queryParams: Record<string, unknown> = { vector, topK, includeMetadata: true };
+  if (filter) queryParams.filter = filter;
+  const res    = await index.query(queryParams as Parameters<typeof index.query>[0]);
 
   return (res.matches ?? []).map(m => ({
     id:       m.id,
@@ -221,6 +224,7 @@ export async function multiNamespaceQuery(
   query: string,
   namespaces: PineconeNamespace[],
   topK = 5,
+  filter?: Record<string, unknown>,
 ): Promise<MultiNamespaceMatch[]> {
   if (!isPineconeAvailable() || !isEmbeddingAvailable() || namespaces.length === 0) return [];
   await ensureIndex();
@@ -231,7 +235,9 @@ export async function multiNamespaceQuery(
   const results = await Promise.all(
     namespaces.map(async (ns) => {
       try {
-        const res = await index.namespace(ns).query({ vector, topK, includeMetadata: true });
+        const queryParams: Record<string, unknown> = { vector, topK, includeMetadata: true };
+        if (filter) queryParams.filter = filter;
+        const res = await index.namespace(ns).query(queryParams as Parameters<ReturnType<typeof index.namespace>["query"]>[0]);
         return (res.matches ?? []).map(m => ({
           id: m.id,
           score: m.score ?? 0,

@@ -34,6 +34,8 @@ export interface ResearchClient {
   convertTools(tools: Anthropic.Tool[]): unknown[];
 }
 
+const ADAPTIVE_THINKING_MODELS = new Set(["claude-sonnet-4-6", "claude-opus-4-6"]);
+
 export class AnthropicResearchClient implements ResearchClient {
   constructor(private client: Anthropic) {}
 
@@ -45,13 +47,15 @@ export class AnthropicResearchClient implements ResearchClient {
     tools?: Anthropic.Tool[];
     toolChoice?: "auto" | "none";
   }): Promise<ResearchResponse> {
+    const useThinking = ADAPTIVE_THINKING_MODELS.has(params.model);
     const response = await this.client.messages.create({
       model: params.model,
       max_tokens: params.maxTokens,
-      system: params.system,
+      system: [{ type: "text", text: params.system, cache_control: { type: "ephemeral" } }],
       messages: params.messages as Anthropic.MessageParam[],
       tools: params.tools,
       tool_choice: params.tools ? { type: params.toolChoice ?? "auto" } : undefined,
+      ...(useThinking && { thinking: { type: "adaptive" } }),
     });
 
     const textBlocks = response.content

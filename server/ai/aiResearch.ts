@@ -37,7 +37,7 @@ export async function* generateResearchWithToolsStream(
 
     const response = await client.createMessage({
       model: activeModel,
-      maxTokens: 8192,
+      maxTokens: 16000,
       system: systemPrompt,
       messages,
       tools: params.type === "property" ? tools : undefined,
