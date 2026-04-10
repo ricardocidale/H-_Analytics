@@ -6,6 +6,12 @@ uri = "file://client/public/images/property-loch-sheldrake.png"
 type = "image"
 title = "Loch Sheldrake octagonal estate aerial"
 
+[[generated]]
+id = "L-ve75XabXJWlJNsPRzNo"
+uri = "file://attached_assets/rebecca-portrait.png"
+type = "image"
+title = "Rebecca AI portrait"
+
 [[outputs]]
 id = "h4_9p3fJLsy8dBOuBmAOv"
 uri = "file://.local/tasks/migrate-authors-books-library.md"
