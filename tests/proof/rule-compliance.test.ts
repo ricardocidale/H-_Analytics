@@ -614,7 +614,7 @@ describe("as-any budget — capped unsafe type assertions", () => {
 
   it("client/src/ as-any count stays within budget", () => {
     const count = countAsAny(path.resolve("client/src"));
-    const BUDGET = 174;
+    const BUDGET = 100;
     expect(
       count,
       `client/src/ has ${count} 'as any' casts (budget: ${BUDGET}). Reduce before adding more.`

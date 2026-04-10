@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-Business simulation portal for **Hospitality Business Group**. Models a boutique hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). 1035 source files, ~174K lines, 4,463 tests across 183 test files. 15-phase verification pipeline. Hosted on Replit.
+Business simulation portal for **Hospitality Business Group**. Models a boutique hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). 1041 source files, ~174K lines, 4,463 tests across 183 test files. 15-phase verification pipeline. Hosted on Replit.
 
 > **Rebecca** is the sole active AI agent. Marcela voice agent, ElevenLabs, and Twilio integrations have been fully removed.
 
@@ -114,6 +114,13 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 **Commands**: `npm test` (all 4,463 tests, 183 files) · `npm run verify` (15-phase GAAP) · `npm run health` (tsc+tests+verify+doc harmony)
 
 ---
+
+## Recent Changes (April 10, 2026)
+
+- **Technical Debt Cleanup Sprint** — Hardcoded hex colors replaced in `StarRatingInput.tsx` (uses `currentColor` + CSS class) and `RebeccaAnalyticsTab.tsx` (extracted H+ brand colors to `HP_NAVY`, `HP_TEAL`, `HP_GOLD`; remaining chart colors use `hsl(var(--chart-N))`). Domain boundary violations fixed in `server/notifications/engine.ts` (4 direct db calls → storage facade, added `getActiveAlertRulesForProperty()` to `NotificationStorage`) and `server/integrations/geospatial.ts` (2 direct db calls → storage facade). 87 unnecessary `(XLSX as any)` casts removed across 5 Excel export files (count 207 → 120). `tests/proof/hardcoded-detection.test.ts` updated to follow `export * from './constants-xxx'` re-exports. `.lintstagedrc.json` fixed (tsc pre-commit hook needs `bash -c` wrapper).
+- **Split shared/constants.ts** — 764 → 293 lines. Extracted 6 sub-files: `constants-business-models.ts` (107L), `constants-research.ts` (52L), `constants-funding.ts` (37L), `constants-enums.ts` (35L), `constants-capex.ts` (19L), `constants-staffing.ts` (17L). Re-exported via `export *` — zero downstream import changes.
+- **Split pdf/render.tsx (Task #317)** — 680 → 125-line orchestrator + 5 modules: `theme-mappers.tsx` (57L), `chart-render.tsx` (157L), `table-render.tsx` (135L), `pagination.ts` (105L), `section-renderers.tsx` (131L). 27 snapshot tests including 7 render-level structural PDF tests.
+- **Split sidebar.tsx (#315), Scenarios.tsx (#316), icp-config.ts (#314)** — All under 500 lines.
 
 ## Recent Changes (April 8, 2026)
 

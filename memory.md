@@ -29,6 +29,14 @@
 - **Orchestrator**: `Scenarios.tsx` reduced to 74 lines
 - Health: ALL CLEAR — 4,436 tests
 
+### Technical Debt Cleanup Sprint (April 10, 2026) — COMPLETED
+- **Hardcoded hex colors**: Fixed in `StarRatingInput.tsx` (`currentColor` + CSS class) and `RebeccaAnalyticsTab.tsx` (extracted `HP_NAVY`/`HP_TEAL`/`HP_GOLD`, chart colors → `hsl(var(--chart-N))`)
+- **Domain boundary violations**: `server/notifications/engine.ts` (4 direct db calls → storage facade, added `getActiveAlertRulesForProperty()`), `server/integrations/geospatial.ts` (2 direct db calls → storage facade)
+- **`as any` reduction**: 87 `(XLSX as any)` casts removed across 5 Excel export files (207 → 120 total; server 50, client 70). Client budget tightened from 174 → 100 (actual count 88, Quick Audit reports 70 due to different counting).
+- **Proof test fix**: `tests/proof/hardcoded-detection.test.ts` updated to follow `export * from './constants-xxx'` re-exports after constants split
+- **Lint-staged fix**: `.lintstagedrc.json` tsc pre-commit hook needs `bash -c` wrapper
+- Health: ALL CLEAR — 4,463 tests (183 files)
+
 ### Split shared/constants.ts (April 2026) — COMPLETED
 - **Objective**: Split 764-line barrel into focused sub-files, re-exported from barrel
 - **Barrel**: `shared/constants.ts` reduced to 293 lines (from 764)

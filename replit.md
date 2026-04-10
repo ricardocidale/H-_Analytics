@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a business simulation portal for Hospitality Business Group, designed to model a boutique hospitality management company and its individual property Special Purpose Vehicles (SPVs). It provides monthly and yearly financial projections, adhering to GAAP standards (ASC 230, ASC 360, ASC 470). The platform's core purpose is to deliver a premium, bespoke financial platform experience, enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
+This project is a business simulation portal for Hospitality Business Group, designed to model a boutique hospitality management company and its individual property Special Purpose Vehicles (SPVs). It provides monthly and yearly financial projections, adhering to GAAP standards (ASC 230, ASC 360, ASC 470). 1041 source files, ~174K lines. The platform's core purpose is to deliver a premium, bespoke financial platform experience, enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
 
 ## User Preferences
 
