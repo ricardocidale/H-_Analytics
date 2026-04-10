@@ -776,6 +776,15 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **as any count**: 14 in scope (admin 12, property-edit 2); 5 jsPDF unavoidable, 6 ICP dynamic key, 1 JSONB merge, 2 research badge sourceName
 - **Resilience score**: 8.2/10 (admin architecture 9, form handling 8, Rebecca state management 8, research pipeline 9, testid coverage 7, accessibility 7)
 
+### Opus Audit #327: Client UI Library, Theme & API Layer (April 2026) — COMPLETED
+- **Report**: `docs/audits/327-client-ui-library-theme-api-layer-findings.md`
+- **Scope**: 115 files (~12,584 lines) — components/ui/ (74, 7,770L), lib/theme/ (6, 433L), lib/api/ (9, 1,599L), lib/ root (24, 2,782L), assets/ (11)
+- **Verdict**: PASS — 0 critical, 0 high, 2 medium, 4 low findings
+- **Key findings**: (M) 4 catch blocks missing `: unknown` — image-crop-dialog:102, research-badge:73, ai-image-picker:151, api/index:26; (M) contrastHsl() uses 0.55 luminance threshold with BT.601 coefficients instead of WCAG 2.1 formula (low practical impact — all 6 presets use colors well outside threshold); (L) market-rates.ts not in barrel; (L) duplicate fetchJson in market-rates.ts; (L) logo.png and h-logo-glass.png byte-identical (583KB wasted); (L) lib/api.ts single-line re-export barrel
+- **Positives**: ZERO as-any in all 115 files (best type-safety of all 10 scopes); theme engine 30 CSS custom properties from 6 presets; queryClient.ts 20-line JSDoc documenting staleTime:Infinity rationale; constants.ts re-exports 83 shared constants correctly; appearance.ts respects prefers-reduced-motion + OpenDyslexic support; auth context with role-based access + unsaved-changes guard
+- **as any count**: 0 (zero) in entire scope
+- **Resilience score**: 9.0/10 (type safety 10, theme architecture 9, API layer 8, auth design 9, accessibility support 9, documentation 9)
+
 ## Feature Flags
 - RI_V2_WRITE: ON
 - RI_V2_READ: ON
