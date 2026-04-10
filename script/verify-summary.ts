@@ -7,26 +7,9 @@
 import { execSync } from "child_process";
 import { stripAnsi } from "./lib/test-parser.js";
 import { header, footer } from "./lib/formatter.js";
+import { VERIFY_PHASES, allProofFilePaths } from "./lib/verify-phases.js";
 
-const phases = [
-  { name: "Proof Scenarios", file: "scenarios.test.ts" },
-  { name: "Hardcoded Detection", file: "hardcoded-detection.test.ts" },
-  { name: "Golden Values", file: "golden-values.test.ts" },
-  { name: "Reconciliation", file: "reconciliation-report.test.ts" },
-  { name: "Data Integrity", file: "data-integrity.test.ts" },
-  { name: "Portfolio Dynamics", file: "portfolio-dynamics.test.ts" },
-  { name: "Recalc Enforcement", file: "recalculation-enforcement.test.ts" },
-  { name: "Rule Compliance", file: "rule-compliance.test.ts" },
-  { name: "Number Precision", file: "number-precision.test.ts" },
-  { name: "Decimal Boundaries", file: "decimal-precision.test.ts" },
-  { name: "Aggregation Xcheck", file: "aggregation-crosscheck.test.ts" },
-  { name: "Snapshot Integrity", file: "snapshot-integrity.test.ts" },
-  { name: "Regression Snapshots", file: "regression-snapshots.test.ts" },
-  { name: "Parity Numeric", file: "parity-numeric.test.ts" },
-  { name: "Cache Integrity", file: "cache-integrity.test.ts" },
-];
-
-const allFiles = phases.map((p) => `tests/proof/${p.file}`).join(" ");
+const allFiles = allProofFilePaths().join(" ");
 let allPassed = true;
 const results: string[] = [];
 
@@ -34,7 +17,7 @@ function parseOutput(raw: string) {
   const clean = stripAnsi(raw);
   const lines = clean.split("\n");
 
-  for (const phase of phases) {
+  for (const phase of VERIFY_PHASES) {
     const fileLine = lines.find((l) => l.includes(phase.file) && !l.trimStart().startsWith("stdout") && !l.trimStart().startsWith("stderr"))
       ?? lines.find((l) => l.includes(phase.file));
 
@@ -52,9 +35,17 @@ function parseOutput(raw: string) {
       const testCount = fileLine.match(/\((\d+) tests?.*?\)/);
       results.push(`  \u2717 ${phase.name.padEnd(22)} FAIL${testCount ? ` (${testCount[1]} tests)` : ""}`);
 
-      const failDetails = lines
+      const phaseFileBase = phase.file.replace(".test.ts", "");
+      const phaseStart = lines.findIndex((l: string) => l.includes(phaseFileBase) && (l.includes("FAIL") || l.includes("\u00d7")));
+      const phaseEnd = phaseStart >= 0
+        ? lines.findIndex((l: string, i: number) => i > phaseStart && (l.includes(".test.ts") || l.trimStart() === ""))
+        : -1;
+      const scopedLines = phaseStart >= 0
+        ? lines.slice(phaseStart, phaseEnd > phaseStart ? phaseEnd : phaseStart + 20)
+        : lines;
+      const failDetails = scopedLines
         .filter((l: string) =>
-          (l.includes("AssertionError") || l.includes("expected") || l.includes("Error:")) &&
+          (l.includes("AssertionError") || l.includes("AssertError") || l.includes("expected") || l.includes("Error:")) &&
           !l.includes("node_modules"),
         )
         .slice(0, 3);

@@ -11,44 +11,27 @@ import { execSync } from "child_process";
 import { readFileSync } from "fs";
 import { stripAnsi, parseTestOutput } from "./lib/test-parser.js";
 import { header, footer, statusLine } from "./lib/formatter.js";
-
-const PROOF_FILES = [
-  "scenarios.test.ts",
-  "hardcoded-detection.test.ts",
-  "golden-values.test.ts",
-  "reconciliation-report.test.ts",
-  "data-integrity.test.ts",
-  "portfolio-dynamics.test.ts",
-  "recalculation-enforcement.test.ts",
-  "rule-compliance.test.ts",
-];
+import { VERIFY_PHASES } from "./lib/verify-phases.js";
 
 function parseVerificationFromTestOutput(clean: string): { passed: boolean; summary: string } {
   const startTime = Date.now();
-  let allProofPassed = true;
+  const failedNames: string[] = [];
 
-  for (const file of PROOF_FILES) {
-    const fileRegex = new RegExp(file.replace(".test.ts", ""));
+  for (const phase of VERIFY_PHASES) {
+    const fileRegex = new RegExp(phase.file.replace(".test.ts", ""));
     const lines = clean.split("\n").filter((l) => fileRegex.test(l));
     const hasFail = lines.some(
       (l) => l.includes("FAIL") || l.includes("\u2717") || l.includes("\u00d7"),
     );
     if (hasFail) {
-      allProofPassed = false;
-      break;
+      failedNames.push(phase.name.toLowerCase().replace(/\s+/g, "-"));
     }
   }
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  if (allProofPassed) {
+  if (failedNames.length === 0) {
     return { passed: true, summary: `PASS \u2014 UNQUALIFIED (${elapsed}s)` };
   }
-  const failedNames = PROOF_FILES.filter((file) => {
-    const fileRegex = new RegExp(file.replace(".test.ts", ""));
-    return clean.split("\n").filter((l) => fileRegex.test(l)).some(
-      (l) => l.includes("FAIL") || l.includes("\u2717") || l.includes("\u00d7"),
-    );
-  }).map((f) => f.replace(".test.ts", ""));
   return { passed: false, summary: `FAIL \u2014 ${failedNames.join(", ")}` };
 }
 

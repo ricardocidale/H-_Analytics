@@ -7,6 +7,7 @@ import { readFile } from "fs/promises";
 import { resolve } from "path";
 import { UserRole } from "@shared/constants";
 import { execFile } from "child_process";
+import { VERIFY_PHASES, allProofFilePaths } from "../../../script/lib/verify-phases.js";
 
 interface HealthCheckPhase {
   name: string;
@@ -27,24 +28,7 @@ interface HealthCheckResult {
 }
 
 let lastHealthCheck: HealthCheckResult | null = null;
-
-const VERIFY_PHASES = [
-  { name: "Proof Scenarios", file: "scenarios.test.ts" },
-  { name: "Hardcoded Detection", file: "hardcoded-detection.test.ts" },
-  { name: "Golden Values", file: "golden-values.test.ts" },
-  { name: "Reconciliation", file: "reconciliation-report.test.ts" },
-  { name: "Data Integrity", file: "data-integrity.test.ts" },
-  { name: "Portfolio Dynamics", file: "portfolio-dynamics.test.ts" },
-  { name: "Recalc Enforcement", file: "recalculation-enforcement.test.ts" },
-  { name: "Rule Compliance", file: "rule-compliance.test.ts" },
-  { name: "Number Precision", file: "number-precision.test.ts" },
-  { name: "Decimal Boundaries", file: "decimal-precision.test.ts" },
-  { name: "Aggregation Xcheck", file: "aggregation-crosscheck.test.ts" },
-  { name: "Snapshot Integrity", file: "snapshot-integrity.test.ts" },
-  { name: "Regression Snapshots", file: "regression-snapshots.test.ts" },
-  { name: "Parity Numeric", file: "parity-numeric.test.ts" },
-  { name: "Cache Integrity", file: "cache-integrity.test.ts" },
-];
+let healthCheckRunning = false;
 
 function stripAnsiCodes(str: string): string {
   return str.replace(/\u001b\[[0-9;]*m/g, "");
@@ -71,9 +55,17 @@ function parseVerifyOutput(rawOutput: string): HealthCheckPhase[] {
     const testCount = testCountMatch ? parseInt(testCountMatch[1], 10) : null;
 
     if (isFail) {
-      const failDetails = lines
+      const phaseFileBase = phase.file.replace(".test.ts", "");
+      const phaseStart = lines.findIndex((l: string) => l.includes(phaseFileBase) && (l.includes("FAIL") || l.includes("\u00d7")));
+      const phaseEnd = phaseStart >= 0
+        ? lines.findIndex((l: string, i: number) => i > phaseStart && (l.includes(".test.ts") || l.trimStart() === ""))
+        : -1;
+      const scopedLines = phaseStart >= 0
+        ? lines.slice(phaseStart, phaseEnd > phaseStart ? phaseEnd : phaseStart + 20)
+        : lines;
+      const failDetails = scopedLines
         .filter((l: string) =>
-          (l.includes("AssertionError") || l.includes("expected") || l.includes("Error:")) &&
+          (l.includes("AssertionError") || l.includes("AssertError") || l.includes("expected") || l.includes("Error:")) &&
           !l.includes("node_modules"),
         )
         .slice(0, 3)
@@ -86,6 +78,41 @@ function parseVerifyOutput(rawOutput: string): HealthCheckPhase[] {
     }
   }
   return results;
+}
+
+function docHarmonyCheckAll(content: string, file: string, pattern: RegExp, actual: number, label: string, stale: string[]) {
+  let m: RegExpExecArray | null;
+  const re = new RegExp(pattern.source, "g");
+  while ((m = re.exec(content)) !== null) {
+    const documented = parseInt(m[1].replace(/,/g, ""), 10);
+    if (documented !== actual) {
+      stale.push(`${label}: ${file} says ${documented}, actual ${actual}`);
+    }
+  }
+}
+
+async function checkDocHarmonyServer(verifyOutput: string): Promise<{ passed: boolean; summary: string }> {
+  try {
+    const [claudeMd, replitMd] = await Promise.all([
+      readFile(resolve(".claude/claude.md"), "utf-8"),
+      readFile(resolve("replit.md"), "utf-8"),
+    ]);
+
+    const clean = stripAnsiCodes(verifyOutput);
+    const totalMatch = clean.match(/Tests\s+\d+\s+passed\s*(?:\|\s*\d+\s+skipped\s*)?\((\d+)\)/);
+    const actualTests = totalMatch ? parseInt(totalMatch[1], 10) : 0;
+    if (actualTests === 0) return { passed: true, summary: "PASS (skipped — no test count)" };
+
+    const stale: string[] = [];
+
+    docHarmonyCheckAll(claudeMd, "claude.md", /(\d[,\d]*)\s*tests/, actualTests, "tests", stale);
+    docHarmonyCheckAll(replitMd, "replit.md", /(\d[,\d]*)\s*tests/, actualTests, "tests", stale);
+
+    const unique = Array.from(new Set(stale));
+    return { passed: unique.length === 0, summary: unique.length === 0 ? "PASS" : `FAIL — ${unique[0]}` };
+  } catch (error: unknown) {
+    return { passed: true, summary: "PASS (skipped — files not readable)" };
+  }
 }
 
 function runCommand(cmd: string, args: string[], timeoutMs = 180_000): Promise<string> {
@@ -110,18 +137,22 @@ export function registerToolRoutes(app: Express) {
 
   app.post("/api/admin/health-check/run", requireAdmin, async (req, res) => {
     try {
+      if (healthCheckRunning) {
+        return res.status(429).json({ error: "Health check already running" });
+      }
       if (isApiRateLimited(getAuthUser(req).id, "health-check-run", 1)) {
         return res.status(429).json({ error: "Health check rate-limited to 1 run per minute" });
       }
+      healthCheckRunning = true;
       logActivity(req, "run-health-check", "verification");
       const startTime = Date.now();
 
-      const allProofFiles = VERIFY_PHASES.map(p => `tests/proof/${p.file}`).join(" ");
+      const proofFiles = allProofFilePaths();
 
       const [tscOutput, lintOutput, verifyOutput] = await Promise.all([
         runCommand("npx", ["tsc", "--noEmit"]),
         runCommand("npx", ["eslint", ".", "--ext", ".ts,.tsx", "--quiet", "--format", "compact"], 60_000).catch(() => ""),
-        runCommand("npx", ["vitest", "run", ...allProofFiles.split(" ")]),
+        runCommand("npx", ["vitest", "run", ...proofFiles]),
       ]);
 
       const tscClean = stripAnsiCodes(tscOutput);
@@ -135,22 +166,27 @@ export function registerToolRoutes(app: Express) {
       const phases = parseVerifyOutput(verifyOutput);
       const totalTests = phases.reduce((sum, p) => sum + (p.testCount ?? 0), 0);
       const allPhasesPassed = phases.every(p => p.status === "PASS");
+
+      const docHarmony = await checkDocHarmonyServer(verifyOutput);
+
       const durationMs = Date.now() - startTime;
 
       const result: HealthCheckResult = {
         timestamp: new Date().toISOString(),
-        opinion: allPhasesPassed && tsErrors === 0 && lintErrors === 0 ? "UNQUALIFIED" : "ADVERSE",
+        opinion: allPhasesPassed && tsErrors === 0 && lintErrors === 0 && docHarmony.passed ? "UNQUALIFIED" : "ADVERSE",
         phases,
         typescript: { passed: tsErrors === 0, errorCount: tsErrors },
         lint: { passed: lintErrors === 0, errorCount: lintErrors },
-        docHarmony: { passed: true, summary: "PASS" },
+        docHarmony,
         totalTests,
         durationMs,
       };
 
       lastHealthCheck = result;
+      healthCheckRunning = false;
       res.json(result);
     } catch (error: unknown) {
+      healthCheckRunning = false;
       logAndSendError(res, "Health check failed", error);
     }
   });
