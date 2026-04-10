@@ -8,6 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 10, 2026 — Repo Optimization & Photo Migration
+- Git gc: .git 701MB→267MB. Removed 26 unused npm deps (121→105). Installed 6 targeted d3 sub-packages replacing monolithic `d3`.
+- Removed 7 tracked junk/artifact files (COST-MONITOR docs, memory.md, skills-lock.json, broken command file). Updated .gitignore.
+- Migrated last 3 static Loch Sheldrake photos to Neon DB. All 28 property photos now database-backed, zero static refs. Removed 37 orphaned PNGs (65MB) from git.
+- Added download buttons to PhotoCard: original photo + AI-enhanced version (when available). Replit added `Download` to themed-icons for consistency.
+- Fixed 31 pre-existing TS errors (`colCount` prop on `FormulaDetailStringRow`). Replit later removed the prop from callers instead.
+
 ## Session: April 10, 2026 — Technical Debt Cleanup Sprint
 - Task 1: Replaced hardcoded hex colors in StarRatingInput + RebeccaAnalyticsTab with CSS tokens and named brand constants (HP_NAVY/HP_TEAL/HP_GOLD).
 - Task 2: Fixed domain boundary violations — refactored `server/notifications/engine.ts` (4 db calls) and `server/integrations/geospatial.ts` (2 db calls) to use IStorage facade. Added `getActiveAlertRulesForProperty()` to NotificationStorage. Fixed lint-staged tsc command (`bash -c` wrapper for `-p tsconfig.json`).
