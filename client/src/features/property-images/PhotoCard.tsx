@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Star, Trash2, GripVertical, Pencil, Check, X, Sparkles } from "@/components/icons/themed-icons";
-import { Download } from "lucide-react";
+import { Star, Trash2, GripVertical, Pencil, Check, X, Sparkles, Download } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -160,7 +159,7 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
               </Button>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleDownload(false)} aria-label="Download photo">
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleDownload(false)} aria-label="Download photo" data-testid={`button-download-${photo.id}`}>
                     <Download className="w-3 h-3" />
                   </Button>
                 </TooltipTrigger>
@@ -169,8 +168,9 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
               {photo.enhancedImageData && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button size="icon" variant="ghost" className="h-6 w-6 text-primary/70 hover:text-primary" onClick={() => handleDownload(true)} aria-label="Download enhanced photo">
-                      <Sparkles className="w-3 h-3" />
+                    <Button size="icon" variant="ghost" className="relative h-6 w-6 text-primary/70 hover:text-primary" onClick={() => handleDownload(true)} aria-label="Download enhanced photo" data-testid={`button-download-enhanced-${photo.id}`}>
+                      <Download className="w-3 h-3" />
+                      <Sparkles className="w-1.5 h-1.5 absolute -bottom-0 -right-0" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom"><p className="text-xs">Download AI enhanced</p></TooltipContent>

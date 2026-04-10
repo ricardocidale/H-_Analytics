@@ -12,6 +12,7 @@ import {
   Building2 as LBuilding2,
   Calculator as LCalculator,
   Check as LCheck,
+  Download as LDownload,
   CheckCircle as LCheckCircle,
   CheckCircle2 as LCheckCircle2,
   ChevronDown as LChevronDown,
@@ -75,6 +76,7 @@ import {
   Buildings as PBuilding2,
   Calculator as PCalculator,
   Check as PCheck,
+  DownloadSimple as PDownload,
   CheckCircle as PCheckCircle,
   CaretDown as PChevronDown,
   CaretLeft as PChevronLeft,
@@ -136,6 +138,7 @@ import {
   MdOutlineApartment as MBuilding2,
   MdOutlineCalculate as MCalculator,
   MdOutlineCheck as MCheck,
+  MdOutlineFileDownload as MDownload,
   MdOutlineCheckCircle as MCheckCircle,
   MdOutlineExpandMore as MChevronDown,
   MdOutlineChevronLeft as MChevronLeft,
@@ -217,6 +220,7 @@ export const Bell = themed(LBell, PBell, MBell, "Bell");
 export const Building2 = themed(LBuilding2, PBuilding2, MBuilding2, "Building2");
 export const Calculator = themed(LCalculator, PCalculator, MCalculator, "Calculator");
 export const Check = themed(LCheck, PCheck, MCheck, "Check");
+export const Download = themed(LDownload, PDownload, MDownload, "Download");
 export const CheckCircle = themed(LCheckCircle, PCheckCircle, MCheckCircle, "CheckCircle");
 export const CheckCircle2 = themed(LCheckCircle2, PCheckCircle, MCheckCircle, "CheckCircle2");
 export const ChevronDown = themed(LChevronDown, PChevronDown, MChevronDown, "ChevronDown");
