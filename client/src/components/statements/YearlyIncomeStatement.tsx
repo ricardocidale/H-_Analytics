@@ -147,12 +147,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
         <FormulaDetailStringRow
           label={`Base Mo. Revenue`}
           values={yd.map(() => fmt(baseMonthlyTotalRev))}
-          colCount={years}
         />
         <FormulaDetailStringRow
           label={isUtilities ? `Fixed portion rate (${pct(rate)} × ${pct(1 - utilitiesVariableSplit)} = ${pct(effectiveRate)})` : `Rate: ${pct(rate)}`}
           values={yd.map(() => `${fmt(baseMonthlyTotalRev * effectiveRate)}/mo base`)}
-          colCount={years}
         />
         <FormulaDetailStringRow
           label="Monthly base × escalation factor, summed over 12 months"
@@ -165,12 +163,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
             }
             return uniqueFactors.map(f => `×${f.toFixed(4)}`).join(", ") + ` (${operatingMonths} mo)`;
           })}
-          colCount={years}
         />
         <FormulaDetailStringRow
           label="= Annual total (sum of monthly amounts)"
           values={yd.map((_, i) => fmt(yearlyValues[i]))}
-          colCount={years}
         />
       </>
     );
@@ -202,7 +198,6 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           values={yd.map((y) =>
             y.cleanAdr > 0 ? `$${property?.startAdr?.toFixed(2) ?? "?"} × (1+${pct(property?.adrGrowthRate ?? 0)})^${y.year}` : "-"
           )}
-          colCount={years}
         />
       </ExpandableMetricRow>
 
@@ -220,7 +215,6 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           values={yd.map((y) =>
             y.soldRooms > 0 ? `${fmt(y.revenueRooms)} ÷ ${y.soldRooms.toLocaleString()}` : "-"
           )}
-          colCount={years}
         />
       </ExpandableMetricRow>
 
@@ -238,12 +232,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
         <FormulaDetailStringRow
           label="Sold Rooms"
           values={yd.map((y) => y.soldRooms.toLocaleString())}
-          colCount={years}
         />
         <FormulaDetailStringRow
           label="Available Rooms"
           values={yd.map((y) => y.availableRooms.toLocaleString())}
-          colCount={years}
         />
       </ExpandableMetricRow>
 
@@ -261,7 +253,6 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           values={yd.map((y) =>
             y.availableRooms > 0 ? `${fmt(y.revenueRooms)} ÷ ${y.availableRooms.toLocaleString()}` : "-"
           )}
-          colCount={years}
         />
         <FormulaDetailStringRow
           label="Cross-check: ADR × Occupancy"
@@ -271,7 +262,6 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
             const occ = y.soldRooms / y.availableRooms;
             return `$${effAdr.toFixed(2)} × ${(occ * 100).toFixed(1)}% = $${(effAdr * occ).toFixed(2)}`;
           })}
-          colCount={years}
         />
       </ExpandableMetricRow>
 
@@ -352,12 +342,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
             <FormulaDetailStringRow
               label="Variable portion (scales with revenue)"
               values={yd.map((y) => fmt(y.expenseUtilitiesVar))}
-              colCount={years}
             />
             <FormulaDetailStringRow
               label="Fixed portion (anchored to Year 1 base)"
               values={yd.map((y) => fmt(y.expenseUtilitiesFixed))}
-              colCount={years}
             />
             {fixedCostFormulaRows("utilities", yd.map((y) => y.expenseUtilitiesFixed), true)}
           </ExpandableLineItem>
@@ -401,12 +389,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           <FormulaDetailStringRow
             label="= Total Revenue − Total Operating Expenses"
             values={yd.map((y) => `${fmt(y.revenueTotal)} − ${fmt(y.revenueTotal - y.gop)}`)}
-            colCount={years}
           />
           <FormulaDetailStringRow
             label="= GOP"
             values={yd.map((y) => fmt(y.gop))}
-            colCount={years}
           />
         </>
       ) : (
@@ -442,12 +428,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           <FormulaDetailStringRow
             label="= GOP − Base Fee − Incentive Fee"
             values={yd.map((y) => `${fmt(y.gop)} − ${fmt(y.feeBase)} − ${fmt(y.feeIncentive)}`)}
-            colCount={years}
           />
           <FormulaDetailStringRow
             label="= AGOP"
             values={yd.map((y) => fmt(y.agop))}
-            colCount={years}
           />
         </>
       ) : (
@@ -477,12 +461,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
                 <FormulaDetailStringRow
                   label={`Property Value (Purchase + Improvements)`}
                   values={yd.map(() => fmt(totalPropertyValue))}
-                  colCount={years}
                 />
                 <FormulaDetailStringRow
                   label={`Monthly base: ${fmt(totalPropertyValue)} ÷ 12 × ${pct(costRates.taxes)}`}
                   values={yd.map(() => `${fmt(totalPropertyValue / MONTHS_PER_YEAR * costRates.taxes)}/mo base`)}
-                  colCount={years}
                 />
                 <FormulaDetailStringRow
                   label="Monthly base × escalation factor, summed over 12 months"
@@ -495,12 +477,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
                     }
                     return uniqueFactors.map(f => `×${f.toFixed(4)}`).join(", ") + ` (${operatingMonths} mo)`;
                   })}
-                  colCount={years}
                 />
                 <FormulaDetailStringRow
                   label="= Annual total (sum of monthly amounts)"
                   values={yd.map((_, i) => fmt(yd[i].expenseTaxes))}
-                  colCount={years}
                 />
               </>
             )}
@@ -520,12 +500,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           <FormulaDetailStringRow
             label="= AGOP − Property Taxes"
             values={yd.map((y) => `${fmt(y.agop)} − ${fmt(y.expenseTaxes)}`)}
-            colCount={years}
           />
           <FormulaDetailStringRow
             label="= NOI"
             values={yd.map((y) => fmt(y.noi))}
-            colCount={years}
           />
         </>
       ) : (
@@ -551,12 +529,10 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           <FormulaDetailStringRow
             label="= NOI − FF&E Reserve"
             values={yd.map((y) => `${fmt(y.noi)} − ${fmt(y.expenseFFE)}`)}
-            colCount={years}
           />
           <FormulaDetailStringRow
             label="= ANOI"
             values={yd.map((y) => fmt(y.anoi))}
-            colCount={years}
           />
         </>
       ) : (

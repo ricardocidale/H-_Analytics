@@ -228,7 +228,6 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
               const growthRate = property.adrGrowthRate ?? 0;
               return `$${startAdr.toFixed(2)} × (1+${(growthRate * 100).toFixed(1)}%)^${y.year}`;
             })}
-            colCount={years}
           />
         </ExpandableMetricRow>
 
@@ -244,7 +243,6 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
             values={yearlyDetails.map(y =>
               y.soldRooms > 0 ? `${formatMoney(y.revenueRooms)} ÷ ${y.soldRooms.toLocaleString()}` : "-"
             )}
-            colCount={years}
           />
         </ExpandableMetricRow>
 
@@ -260,12 +258,10 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
           <FormulaDetailStringRow
             label="Sold Rooms"
             values={yearlyDetails.map(y => y.soldRooms.toLocaleString())}
-            colCount={years}
           />
           <FormulaDetailStringRow
             label="Available Rooms"
             values={yearlyDetails.map(y => y.availableRooms.toLocaleString())}
-            colCount={years}
           />
         </ExpandableMetricRow>
 
@@ -283,7 +279,6 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
             values={yearlyDetails.map(y =>
               y.availableRooms > 0 ? `${formatMoney(y.revenueRooms)} ÷ ${y.availableRooms.toLocaleString()}` : "-"
             )}
-            colCount={years}
           />
           <FormulaDetailStringRow
             label="Cross-check: ADR × Occupancy"
@@ -293,7 +288,6 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
               const occ = y.soldRooms / y.availableRooms;
               return `$${effAdr.toFixed(2)} × ${(occ * 100).toFixed(1)}% = $${(effAdr * occ).toFixed(2)}`;
             })}
-            colCount={years}
           />
         </ExpandableMetricRow>
 
@@ -316,7 +310,6 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
             values={yearlyDetails.map(y =>
               y.availableRooms > 0 ? `${formatMoney(y.revenueTotal)} ÷ ${y.availableRooms.toLocaleString()}` : "-"
             )}
-            colCount={years}
           />
         </ExpandableMetricRow>
       </ExpandableLineItem>
