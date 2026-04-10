@@ -27,7 +27,11 @@ interface AnalyticsData {
   totalFeedback: number;
 }
 
-const CHART_COLORS = ["#0091AE", "#112548", "#FDB817", "#4ade80", "#f97316", "#8b5cf6"];
+// H+ Analytics brand colors — intentional for Rebecca's branded analytics views
+const HP_TEAL = "#0091AE";
+const HP_NAVY = "#112548";
+const HP_GOLD = "#FDB817";
+const CHART_COLORS = [HP_TEAL, HP_NAVY, HP_GOLD, "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-3))"];
 
 function StatCard({ label, value, icon: Icon, sub }: { label: string; value: string | number; icon: React.ElementType; sub?: string }) {
   return (
@@ -180,8 +184,8 @@ export default function RebeccaAnalyticsTab() {
                   contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid var(--border)" }}
                   labelStyle={{ fontWeight: 600 }}
                 />
-                <Area dataKey="messages" name="Messages" fill="#112548" fillOpacity={0.15} stroke="#112548" strokeWidth={1.5} type="monotone" />
-                <Bar dataKey="conversations" name="Conversations" fill="#0091AE" radius={[3, 3, 0, 0]} />
+                <Area dataKey="messages" name="Messages" fill={HP_NAVY} fillOpacity={0.15} stroke={HP_NAVY} strokeWidth={1.5} type="monotone" />
+                <Bar dataKey="conversations" name="Conversations" fill={HP_TEAL} radius={[3, 3, 0, 0]} />
               </ComposedChart>
             </ResponsiveContainer>
           ) : (

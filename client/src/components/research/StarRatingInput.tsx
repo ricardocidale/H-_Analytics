@@ -47,8 +47,8 @@ export default function StarRatingInput({ value, suggested, onChange, disabled }
               width="20"
               height="20"
               viewBox="0 0 24 24"
-              fill={star <= display ? "#f59e0b" : "none"}
-              stroke={star <= display ? "#f59e0b" : "currentColor"}
+              fill={star <= display ? "currentColor" : "none"}
+              stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
