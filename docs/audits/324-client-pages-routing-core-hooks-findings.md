@@ -29,7 +29,7 @@ Scoring methodology: Each dimension rated 1-10. Overall = weighted average (rout
 - **Provider hierarchy**: `Sentry.ErrorBoundary` → `ErrorBoundary` → `QueryClientProvider` → `AuthProvider` → `TooltipProvider` → `Router`. Clean top-down composition.
 - **Four route guards**: `ProtectedRoute` (any auth), `AdminRoute` (admin only), `ManagementRoute` (non-investor), `CheckerRoute` (admin or checker). All handle loading states and redirect to `/login`.
 - **Global behaviors**: `GlobalBeforeUnloadGuard` (warns on dirty tab close), `NavigationGuard` (intercepts route changes with unsaved work), `IdleAutoSave` (saves after 60min idle), `AutoSaveRestorePrompt` (offers to restore on login), `LogoutProtectionDialog`, `ScheduledResearchGate` (checks for stale research workflows).
-- **11 legacy redirects**: /settings→/admin, /methodology→/help, /research→/, /company/criteria→/company/icp-definition, /global/research→/company/research, /icp→admin(IcpRedirect), /sensitivity→/analysis, /financing→/analysis, /executive-summary→/, /checker-manual→/help, /compare→/analysis, /timeline→/analysis. Plus /login→/ for already-authenticated users.
+- **12 legacy redirects**: /settings→/admin, /methodology→/help, /research→/, /company/criteria→/company/icp-definition, /global/research→/company/research, /icp→(IcpRedirect, role-based), /sensitivity→/analysis, /financing→/analysis, /executive-summary→/, /checker-manual→/help, /compare→/analysis, /timeline→/analysis. Additionally /login→/ for already-authenticated users (not counted as legacy).
 - **Analytics**: Sentry init at module level; analytics deferred via `requestIdleCallback` (good).
 - **Lazy loading**: All 24 pages lazy-loaded with `React.lazy()` + `<Suspense>`. Login lazied separately (pulls Three.js).
 
@@ -245,13 +245,13 @@ This double cast (`as unknown as`) bridges between `Property` and `LoanParams` t
 
 6. **Server-side financial computation**: `useServerFinancials` sends all properties to `/api/finance/compute` and maps the response — computation happens server-side, not in the browser. Proper `keepPreviousData` prevents flash-of-empty during recomputation.
 
-7. **11 legacy redirects preserved**: Old routes (/settings, /methodology, /research, /company/criteria, /global/research, /icp, /sensitivity, /financing, /executive-summary, /checker-manual, /compare, /timeline) all redirect to their new consolidated locations. No broken bookmarks.
+7. **12 legacy redirects preserved**: Old routes (/settings, /methodology, /research, /company/criteria, /global/research, /icp, /sensitivity, /financing, /executive-summary, /checker-manual, /compare, /timeline) all redirect to their new consolidated locations. No broken bookmarks.
 
 8. **Feature modules are well-structured**: `design-themes/` and `property-images/` follow the barrel pattern with dedicated hooks, types, and components. Clean separation.
 
 9. **`data-testid` coverage**: 34 of 35 page-level files (97%) have at least one `data-testid`. Deep coverage in interactive pages (Profile: 19, ComparisonView: 14, MyScenariosCard: 13, Logos: 11, IcpProfileTab: 11).
 
-10. **All pages use `<Layout>`**: Every page wraps its content in the shared Layout component, ensuring consistent sidebar/header/footer.
+10. **All authenticated pages use `<Layout>`**: Every authenticated app page wraps its content in the shared Layout component, ensuring consistent sidebar/header/footer. Public pages (Login, PrivacyPolicy, TermsOfService, About) render without the Layout wrapper as expected.
 
 ---
 
