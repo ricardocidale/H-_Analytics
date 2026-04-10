@@ -715,6 +715,13 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **Key findings**: (M) insertGlobalAssumptionsSchema uses `.omit()` instead of `.pick()`; (M) UserRole defined twice with "partner" mismatch between constants-enums.ts and auth.ts; (L) legacy dead files shared/auth.ts and shared/chat.ts; (L) DebtAssumptions interface duplicated with different shapes; (L) 14 JSONB shapes with open index signatures; (L) engagement.ts missing insert schemas
 - **Positives**: Zero `as any` casts in shared/, exceptional table documentation, rigorous constants sourcing (USALI/IRS/HVS/Damodaran), comprehensive country defaults (11 countries, 10 US states), field-registry pattern for GA↔property mapping
 
+### Opus Audit #321: Server API Routes & Storage Layer (April 2026) — COMPLETED
+- **Report**: `docs/audits/321-server-api-routes-storage-findings.md`
+- **Scope**: 46 route files (~11,455 lines) + 19 storage files (~3,716 lines) + 2 barrel files
+- **Verdict**: PASS — Well-architected API surface with perfect domain boundary compliance. 0 critical, 0 high, 3 medium, 5 low findings
+- **Key findings**: (M) 9 unnecessary `as any` in storage/properties.ts for property indexing; (M) ~250+ catch blocks missing `: unknown` annotation; (M) raw req.body merge in global-assumptions PUT before Zod validation; (L) 7 `as any` in route files; (L) manual boolean validation instead of Zod in 2 toggle endpoints; (L) skipProcessing read from unvalidated req.body; (L) catch(e) in admin research routes; (L) as any[] in raw SQL result
+- **Positives**: Zero domain boundary violations, 60+ Zod-validated endpoints, 16 transactional operations, consistent auth middleware, property access control, SSRF guard, activity logging
+
 ### Opus Audit #320: Server Auth, Security & Middleware (April 2026) — COMPLETED
 - **Report**: `docs/audits/320-server-auth-security-middleware-findings.md`
 - **Scope**: 13 TypeScript files + 1 JSON config across auth, middleware, crypto, OAuth, Express security config
