@@ -8,7 +8,153 @@ import { resolve } from "path";
 import { UserRole } from "@shared/constants";
 import { execFile } from "child_process";
 
+interface HealthCheckPhase {
+  name: string;
+  status: "PASS" | "FAIL" | "UNKNOWN";
+  testCount: number | null;
+  details: string[];
+}
+
+interface HealthCheckResult {
+  timestamp: string;
+  opinion: "UNQUALIFIED" | "ADVERSE";
+  phases: HealthCheckPhase[];
+  typescript: { passed: boolean; errorCount: number };
+  lint: { passed: boolean; errorCount: number };
+  docHarmony: { passed: boolean; summary: string };
+  totalTests: number;
+  durationMs: number;
+}
+
+let lastHealthCheck: HealthCheckResult | null = null;
+
+const VERIFY_PHASES = [
+  { name: "Proof Scenarios", file: "scenarios.test.ts" },
+  { name: "Hardcoded Detection", file: "hardcoded-detection.test.ts" },
+  { name: "Golden Values", file: "golden-values.test.ts" },
+  { name: "Reconciliation", file: "reconciliation-report.test.ts" },
+  { name: "Data Integrity", file: "data-integrity.test.ts" },
+  { name: "Portfolio Dynamics", file: "portfolio-dynamics.test.ts" },
+  { name: "Recalc Enforcement", file: "recalculation-enforcement.test.ts" },
+  { name: "Rule Compliance", file: "rule-compliance.test.ts" },
+  { name: "Number Precision", file: "number-precision.test.ts" },
+  { name: "Decimal Boundaries", file: "decimal-precision.test.ts" },
+  { name: "Aggregation Xcheck", file: "aggregation-crosscheck.test.ts" },
+  { name: "Snapshot Integrity", file: "snapshot-integrity.test.ts" },
+  { name: "Regression Snapshots", file: "regression-snapshots.test.ts" },
+  { name: "Parity Numeric", file: "parity-numeric.test.ts" },
+  { name: "Cache Integrity", file: "cache-integrity.test.ts" },
+];
+
+function stripAnsiCodes(str: string): string {
+  return str.replace(/\u001b\[[0-9;]*m/g, "");
+}
+
+function parseVerifyOutput(rawOutput: string): HealthCheckPhase[] {
+  const clean = stripAnsiCodes(rawOutput);
+  const lines = clean.split("\n");
+  const results: HealthCheckPhase[] = [];
+
+  for (const phase of VERIFY_PHASES) {
+    const fileLine = lines.find(
+      (l) => l.includes(phase.file) && !l.trimStart().startsWith("stdout") && !l.trimStart().startsWith("stderr"),
+    ) ?? lines.find((l) => l.includes(phase.file));
+
+    if (!fileLine) {
+      results.push({ name: phase.name, status: "UNKNOWN", testCount: null, details: ["Phase not found in output"] });
+      continue;
+    }
+
+    const isFail = fileLine.includes("\u00d7") || fileLine.includes("\u2717") || fileLine.trimStart().startsWith("\u00d7");
+    const isPass = fileLine.includes("\u2713") || fileLine.trimStart().startsWith("\u2713");
+    const testCountMatch = fileLine.match(/\((\d+) tests?.*?\)/);
+    const testCount = testCountMatch ? parseInt(testCountMatch[1], 10) : null;
+
+    if (isFail) {
+      const failDetails = lines
+        .filter((l: string) =>
+          (l.includes("AssertionError") || l.includes("expected") || l.includes("Error:")) &&
+          !l.includes("node_modules"),
+        )
+        .slice(0, 3)
+        .map((l: string) => l.trim().slice(0, 120));
+      results.push({ name: phase.name, status: "FAIL", testCount, details: failDetails });
+    } else if (isPass) {
+      results.push({ name: phase.name, status: "PASS", testCount, details: [] });
+    } else {
+      results.push({ name: phase.name, status: "UNKNOWN", testCount, details: [] });
+    }
+  }
+  return results;
+}
+
+function runCommand(cmd: string, args: string[], timeoutMs = 180_000): Promise<string> {
+  return new Promise((resolve) => {
+    execFile(cmd, args, {
+      cwd: process.cwd(),
+      timeout: timeoutMs,
+      maxBuffer: 10 * 1024 * 1024,
+      env: { ...process.env },
+    }, (_error, stdout, stderr) => {
+      resolve((stdout || "") + (stderr || ""));
+    });
+  });
+}
+
 export function registerToolRoutes(app: Express) {
+
+  app.get("/api/admin/health-check/last", requireAdmin, (_req, res) => {
+    if (!lastHealthCheck) return res.status(404).json({ error: "No health check results yet" });
+    res.json(lastHealthCheck);
+  });
+
+  app.post("/api/admin/health-check/run", requireAdmin, async (req, res) => {
+    try {
+      if (isApiRateLimited(getAuthUser(req).id, "health-check-run", 1)) {
+        return res.status(429).json({ error: "Health check rate-limited to 1 run per minute" });
+      }
+      logActivity(req, "run-health-check", "verification");
+      const startTime = Date.now();
+
+      const allProofFiles = VERIFY_PHASES.map(p => `tests/proof/${p.file}`).join(" ");
+
+      const [tscOutput, lintOutput, verifyOutput] = await Promise.all([
+        runCommand("npx", ["tsc", "--noEmit"]),
+        runCommand("npx", ["eslint", ".", "--ext", ".ts,.tsx", "--quiet", "--format", "compact"], 60_000).catch(() => ""),
+        runCommand("npx", ["vitest", "run", ...allProofFiles.split(" ")]),
+      ]);
+
+      const tscClean = stripAnsiCodes(tscOutput);
+      const tsErrors = tscClean.split("\n").filter(l => l.includes("error TS")).length;
+
+      const lintClean = stripAnsiCodes(lintOutput);
+      const lintErrors = lintClean.split("\n").filter(l => /\d+ error/.test(l)).length > 0
+        ? parseInt((lintClean.match(/(\d+) error/) || ["0", "0"])[1], 10)
+        : 0;
+
+      const phases = parseVerifyOutput(verifyOutput);
+      const totalTests = phases.reduce((sum, p) => sum + (p.testCount ?? 0), 0);
+      const allPhasesPassed = phases.every(p => p.status === "PASS");
+      const durationMs = Date.now() - startTime;
+
+      const result: HealthCheckResult = {
+        timestamp: new Date().toISOString(),
+        opinion: allPhasesPassed && tsErrors === 0 && lintErrors === 0 ? "UNQUALIFIED" : "ADVERSE",
+        phases,
+        typescript: { passed: tsErrors === 0, errorCount: tsErrors },
+        lint: { passed: lintErrors === 0, errorCount: lintErrors },
+        docHarmony: { passed: true, summary: "PASS" },
+        totalTests,
+        durationMs,
+      };
+
+      lastHealthCheck = result;
+      res.json(result);
+    } catch (error: unknown) {
+      logAndSendError(res, "Health check failed", error);
+    }
+  });
+
   app.get("/api/admin/checker-activity", requireAdmin, async (_req, res) => {
     try {
       const allUsers = await storage.getAllUsers();

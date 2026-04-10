@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, Scale } from "@/components/icons/themed-icons";
-import { IconCheckCircle2, IconXCircle, IconAlertTriangle, IconPlayCircle, IconSparkles, IconFileDown, IconDownload } from "@/components/icons";
+import { IconCheckCircle2, IconXCircle, IconAlertTriangle, IconPlayCircle, IconSparkles, IconFileDown, IconDownload, IconGauge } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 // jspdf and jspdf-autotable are dynamically imported in export handlers
 
@@ -18,9 +18,11 @@ import { GoldenScenarioResults } from "./GoldenScenarioResults";
 import { IdentityDashboard } from "./IdentityDashboard";
 import type { VerificationResult, SuiteId, SuiteRunResult } from "./types";
 
+const HealthCheckDashboard = lazy(() => import("./HealthCheckDashboard"));
+
 export default function VerificationTab() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"results" | "history" | "identities" | "ai">("results");
+  const [activeTab, setActiveTab] = useState<"results" | "history" | "identities" | "ai" | "pipeline">("results");
   const [verificationResults, setVerificationResults] = useState<VerificationResult | null>(null);
   const [aiReview, setAiReview] = useState<string>("");
   const [aiReviewLoading, setAiReviewLoading] = useState(false);
@@ -436,7 +438,7 @@ export default function VerificationTab() {
         )}
 
         {!isRunning && (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
             <TabsList>
               <TabsTrigger value="results" data-testid="tab-verification-results">
                 <IconCheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
@@ -453,6 +455,10 @@ export default function VerificationTab() {
               <TabsTrigger value="ai" data-testid="tab-verification-ai">
                 <IconSparkles className="w-3.5 h-3.5 mr-1.5" />
                 AI Narrative
+              </TabsTrigger>
+              <TabsTrigger value="pipeline" data-testid="tab-verification-pipeline">
+                <IconGauge className="w-3.5 h-3.5 mr-1.5" />
+                Pipeline Health
               </TabsTrigger>
             </TabsList>
 
@@ -539,6 +545,12 @@ export default function VerificationTab() {
                 loading={aiReviewLoading}
                 onRun={runAiVerification}
               />
+            </TabsContent>
+
+            <TabsContent value="pipeline" className="min-h-[300px]">
+              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+                <HealthCheckDashboard />
+              </Suspense>
             </TabsContent>
           </Tabs>
         )}

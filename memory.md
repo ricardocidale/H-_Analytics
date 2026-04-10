@@ -8,6 +8,14 @@
 
 ## Architecture Decisions Log
 
+### T019 Health Check Dashboard (April 2026) — COMPLETED
+- **Pipeline Health tab** added to Admin > Verification section
+- Server routes: `POST /api/admin/health-check/run` (runs TS + lint + 15-phase verify), `GET /api/admin/health-check/last`
+- Rate-limited 1/min per user, admin-only, in-memory cache
+- Dashboard: `HealthCheckDashboard.tsx` — opinion banner, infra cards (TS/Lint/DocHarmony), 15 phase cards with expandable failure details
+- Code review fixes applied: opinion now gates on lint + TS + phases (not just TS + phases), PhaseCard uses flex-col layout, removed `as any` tab cast
+- `as any` budget: server 56, client 154 (down 1 from 155)
+
 ### Deterministic Audit P2 Fixes (April 2026) — COMPLETED
 - **P2-2 (Orphaned storage method)**: Removed `getScenarioResultByHash` from `financial-sharing.ts`, `financial.ts`, and `index.ts` — was fully implemented but never called from any route
 - **P2-3 (IStorage interface)**: Added `getDbHealth()` method signature to `IStorage` interface — was implemented on `DatabaseStorage` but missing from the interface

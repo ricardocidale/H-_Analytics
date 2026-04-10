@@ -358,7 +358,7 @@ npm run test:summary   # All 4,385 tests, 180 files (~35s)
 npm run verify:summary # 15-phase financial verification (~25s)
 npm run lint:summary   # TypeScript check only (<10s)
 npm run stats          # File/line/test counts (<5s, no vitest)
-npm run audit:quick    # Code quality: `any`, TODO, console.log (<3s)
+npm run audit:quick    # Code quality: 10 checks — any, catch-any, error casts, TODO, etc (<3s)
 npm run exports:check  # Unused export detection (<5s)
 npm run diff:summary   # Git status + diff stats (<1s)
 npm run db:push        # Push schema changes
