@@ -104,13 +104,13 @@ export async function exportPropertyIncomeStatement(
   const yearly = aggregateByYear(data, years, modelStartDate, fiscalYearStartMonth);
   const rows = buildPropertyISRows(yearly);
 
-  const ws = (XLSX as any).utils.aoa_to_sheet(rows);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
   setColumnWidths(ws, [30, ...yearly.map(() => 16)]);
   applyCurrencyFormat(ws, rows);
   applyHeaderStyle(ws, rows);
 
-  const wb = (XLSX as any).utils.book_new();
-  (XLSX as any).utils.book_append_sheet(wb, ws, "Income Statement");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Income Statement");
 
   const safeName = propertyName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 30);
   await downloadWorkbook(wb, `${safeName} - Income Statement.xlsx`);
@@ -196,13 +196,13 @@ export async function exportPropertyCashFlow(
     ["  Free Cash Flow to Equity (FCFE)", ...s.fcfe],
   ];
 
-  const ws = (XLSX as any).utils.aoa_to_sheet(rows);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
   setColumnWidths(ws, [38, ...yearly.map(() => 16)]);
   applyCurrencyFormat(ws, rows);
   applyHeaderStyle(ws, rows);
 
-  const wb = (XLSX as any).utils.book_new();
-  (XLSX as any).utils.book_append_sheet(wb, ws, "Cash Flow");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Cash Flow");
 
   const safeName = propertyName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 30);
   await downloadWorkbook(wb, `${safeName} - Cash Flow.xlsx`);
@@ -233,16 +233,16 @@ export async function exportFullPropertyWorkbook(
   const acquisitionYear = getAcquisitionYear(loan);
   const totalPropertyCost = (property as any).purchasePrice + ((property as any).buildingImprovements ?? 0) + ((property as any).preOpeningCosts ?? 0);
 
-  const wb = (XLSX as any).utils.book_new();
+  const wb = XLSX.utils.book_new();
   const safeCompany = (companyName || "Portfolio").replace(/[^a-zA-Z0-9 &\-]/g, "").substring(0, 40);
   const safeProp = propertyName.replace(/[^a-zA-Z0-9 &\-]/g, "").substring(0, 40);
 
   const isRows = buildPropertyISRows(yearly);
-  const isWs = (XLSX as any).utils.aoa_to_sheet(isRows);
+  const isWs = XLSX.utils.aoa_to_sheet(isRows);
   setColumnWidths(isWs, [30, ...yearly.map(() => 16)]);
   applyCurrencyFormat(isWs, isRows);
   applyHeaderStyle(isWs, isRows);
-  (XLSX as any).utils.book_append_sheet(wb, isWs, "Income Statement");
+  XLSX.utils.book_append_sheet(wb, isWs, "Income Statement");
 
   const s = computeCashFlowSections(yearly, cfData, loan, acquisitionYear, totalPropertyCost, years);
 
@@ -302,11 +302,11 @@ export async function exportFullPropertyWorkbook(
     ["  Less: Principal Payments", ...cfData.map((cf) => -cf.principalPayment)],
     ["  Free Cash Flow to Equity (FCFE)", ...s.fcfe],
   ];
-  const cfWs = (XLSX as any).utils.aoa_to_sheet(cfRows);
+  const cfWs = XLSX.utils.aoa_to_sheet(cfRows);
   setColumnWidths(cfWs, [38, ...yearly.map(() => 16)]);
   applyCurrencyFormat(cfWs, cfRows);
   applyHeaderStyle(cfWs, cfRows);
-  (XLSX as any).utils.book_append_sheet(wb, cfWs, "Cash Flow");
+  XLSX.utils.book_append_sheet(wb, cfWs, "Cash Flow");
 
   const yearLabels = yearly.map(y => y.label);
   const ppe = (property as any).purchasePrice + ((property as any).buildingImprovements ?? 0);
@@ -358,11 +358,11 @@ export async function exportFullPropertyWorkbook(
     ["Total Liabilities + Equity", ...bsYearlyData.map(d => d.debt + equityInvestedVal + d.retained)],
   ];
 
-  const bsWs = (XLSX as any).utils.aoa_to_sheet(bsRows);
+  const bsWs = XLSX.utils.aoa_to_sheet(bsRows);
   setColumnWidths(bsWs, [30, ...yearLabels.map(() => 16)]);
   applyCurrencyFormat(bsWs, bsRows);
   applyHeaderStyle(bsWs, bsRows);
-  (XLSX as any).utils.book_append_sheet(wb, bsWs, "Balance Sheet");
+  XLSX.utils.book_append_sheet(wb, bsWs, "Balance Sheet");
 
   const totalExitValue = cfData.reduce((sum, cf) => sum + cf.exitValue, 0);
   const totalCashFlow = data.reduce((sum, m) => sum + m.cashFlow, 0);
@@ -400,11 +400,11 @@ export async function exportFullPropertyWorkbook(
     ["  DSCR", ...dscr],
   ];
 
-  const iaWs = (XLSX as any).utils.aoa_to_sheet(iaRows);
+  const iaWs = XLSX.utils.aoa_to_sheet(iaRows);
   setColumnWidths(iaWs, [30, ...yearLabels.map(() => 16)]);
   applyCurrencyFormat(iaWs, iaRows);
   applyHeaderStyle(iaWs, iaRows);
-  (XLSX as any).utils.book_append_sheet(wb, iaWs, "Investment Analysis");
+  XLSX.utils.book_append_sheet(wb, iaWs, "Investment Analysis");
 
   await downloadWorkbook(wb, customFilename || `${safeCompany} - ${safeProp} Financial Statements.xlsx`);
 }

@@ -14,7 +14,7 @@ export async function exportPortfolioExcel(
 ): Promise<void> {
   const XLSX = await import("xlsx");
   const { applyCurrencyFormat, applyHeaderStyle, setColumnWidths } = await import("@/lib/exports/excel/helpers");
-  const wb = (XLSX as any).utils.book_new();
+  const wb = XLSX.utils.book_new();
 
   const fmtUSD = (v: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
@@ -52,17 +52,17 @@ export async function exportPortfolioExcel(
       ["Avg Rooms / Property", cs.avgRoomsPerProperty.toFixed(0)],
       ["Avg Daily Rate (ADR)", fmtUSD(cs.avgADR)],
     ];
-    const wsSummary = (XLSX as any).utils.aoa_to_sheet(summaryData);
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
     setColumnWidths(wsSummary, [36, 20]);
-    (XLSX as any).utils.book_append_sheet(wb, wsSummary, "Portfolio Summary");
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Portfolio Summary");
 
     const propHeaders = ["#", "Property", "Market", "Rooms", "Status", "Acquisition Cost", "ADR", "IRR"];
     const propRows = overviewData.propertyItems.map((p, i) => [
       i + 1, p.name, p.market, p.rooms, p.status, fmtUSD(p.acquisitionCost), fmtUSD(p.adr), fmtPct(p.irr),
     ]);
-    const wsProps = (XLSX as any).utils.aoa_to_sheet([propHeaders, ...propRows]);
+    const wsProps = XLSX.utils.aoa_to_sheet([propHeaders, ...propRows]);
     setColumnWidths(wsProps, [5, 28, 18, 10, 16, 20, 12, 10]);
-    (XLSX as any).utils.book_append_sheet(wb, wsProps, "Properties & IRR");
+    XLSX.utils.book_append_sheet(wb, wsProps, "Properties & IRR");
 
     const mktRows: (string | number)[][] = [
       ["Market", "Properties", "Share (%)"],
@@ -75,28 +75,28 @@ export async function exportPortfolioExcel(
         s, c, parseFloat(((c / cs.totalProperties) * 100).toFixed(1)),
       ]),
     ];
-    const wsMkt = (XLSX as any).utils.aoa_to_sheet(mktRows);
+    const wsMkt = XLSX.utils.aoa_to_sheet(mktRows);
     setColumnWidths(wsMkt, [24, 14, 14]);
-    (XLSX as any).utils.book_append_sheet(wb, wsMkt, "Market & Status");
+    XLSX.utils.book_append_sheet(wb, wsMkt, "Market & Status");
 
     const projHeader = ["Year", "Revenue", "NOI", "ANOI", "Cash Flow"];
     const projRows = overviewData.revenueNOIData.map((d) => [
       d.year, fmtUSD(d.revenue), fmtUSD(d.noi), fmtUSD(d.anoi), fmtUSD(d.cashFlow),
     ]);
-    const wsProj = (XLSX as any).utils.aoa_to_sheet([projHeader, ...projRows]);
+    const wsProj = XLSX.utils.aoa_to_sheet([projHeader, ...projRows]);
     setColumnWidths(wsProj, [10, 18, 18, 18, 18]);
-    (XLSX as any).utils.book_append_sheet(wb, wsProj, "Revenue Projection");
+    XLSX.utils.book_append_sheet(wb, wsProj, "Revenue Projection");
 
     const wfHeader = ["", ...overviewData.yearLabels.map(String)];
     const wfRows = overviewData.waterfallRows.map((row) => [
       row.label,
       ...row.values.map((v) => (row.isDeduction ? -v : v)),
     ]);
-    const wsWf = (XLSX as any).utils.aoa_to_sheet([wfHeader, ...wfRows]);
+    const wsWf = XLSX.utils.aoa_to_sheet([wfHeader, ...wfRows]);
     setColumnWidths(wsWf, [40, ...overviewData.yearLabels.map(() => 16)]);
     applyCurrencyFormat(wsWf, [wfHeader, ...wfRows]);
     applyHeaderStyle(wsWf, [wfHeader, ...wfRows]);
-    (XLSX as any).utils.book_append_sheet(wb, wsWf, "USALI Waterfall");
+    XLSX.utils.book_append_sheet(wb, wsWf, "USALI Waterfall");
   }
 
   const sheets: { name: string; data: ExportData }[] = [
@@ -114,16 +114,16 @@ export async function exportPortfolioExcel(
         ...row.values,
       ]),
     ];
-    const ws = (XLSX as any).utils.aoa_to_sheet(wsData);
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
     setColumnWidths(ws, [38, ...sheet.data.years.map(() => 16)]);
     applyCurrencyFormat(ws, wsData);
     applyHeaderStyle(ws, wsData);
-    (XLSX as any).utils.book_append_sheet(wb, ws, sheet.name);
+    XLSX.utils.book_append_sheet(wb, ws, sheet.name);
   }
 
   const safeName = companyName.replace(/[^a-zA-Z0-9 &\-]/g, "").substring(0, 60);
   const { saveFile: saveXlsx } = await import("./../../lib/exports/saveFile");
-  const xlData = (XLSX as any).write(wb, { bookType: "xlsx", type: "array" });
+  const xlData = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   const xlBlob = new Blob([xlData], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   await saveXlsx(xlBlob, customFilename || `${safeName} - Consolidated Financial Statements.xlsx`);
 }

@@ -203,7 +203,7 @@ async function exportCompanyFullWorkbook(
 ) {
   const { getFiscalYearForModelYear } = await import("@/lib/financialEngine");
   const XLSX = await import("xlsx");
-  const wb = (XLSX as any).utils.book_new();
+  const wb = XLSX.utils.book_new();
   const companyName = global?.companyName || "Management Company";
   const modelStartDate = global.modelStartDate;
 
@@ -262,12 +262,12 @@ async function exportCompanyFullWorkbook(
   }
 
   const addSheet = async (sheetName: string, rows: (string | number)[][]) => {
-    const ws = (XLSX as any).utils.aoa_to_sheet(rows);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
     ws["!cols"] = [{ wch: 38 }, ...yearLabels.map(() => ({ wch: 16 }))];
     const { applyCurrencyFormat, applyHeaderStyle } = await import("@/lib/exports/excel/helpers");
     applyCurrencyFormat(ws, rows);
     applyHeaderStyle(ws, rows);
-    (XLSX as any).utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
   };
 
   const isRows: (string | number)[][] = [
@@ -473,7 +473,7 @@ async function exportCompanyFullWorkbook(
   await addSheet("Investment Analysis", iaRows);
 
   const safeName = companyName.replace(/[^a-zA-Z0-9 &\-]/g, "").substring(0, 60);
-  const xlData = (XLSX as any).write(wb, { bookType: "xlsx", type: "array" });
+  const xlData = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   const xlBlob = new Blob([xlData], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   await saveFile(xlBlob, customFilename || `${safeName} - Management Company Financial Statements.xlsx`);
 }

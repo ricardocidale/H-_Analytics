@@ -161,13 +161,13 @@ export async function exportPropertyBalanceSheet(
     dataRows.push(row);
   }
 
-  const ws = (XLSX as any).utils.aoa_to_sheet(dataRows);
+  const ws = XLSX.utils.aoa_to_sheet(dataRows);
   setColumnWidths(ws, [30, ...yearLabels.map(() => 16)]);
   applyCurrencyFormat(ws, dataRows);
   applyHeaderStyle(ws, dataRows);
 
-  const wb = (XLSX as any).utils.book_new();
-  (XLSX as any).utils.book_append_sheet(wb, ws, "Balance Sheet");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Balance Sheet");
 
   const safeName = title.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 30);
   await downloadWorkbook(wb, `${safeName} - Balance Sheet.xlsx`);
@@ -318,13 +318,13 @@ export async function exportCompanyIncomeStatement(
     ["Cash Flow", ...yearlyData.map((y) => y.cashFlow)],
   );
 
-  const ws = (XLSX as any).utils.aoa_to_sheet(rows);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
   setColumnWidths(ws, [35, ...yearLabels.map(() => 16)]);
   applyCurrencyFormat(ws, rows);
   applyHeaderStyle(ws, rows);
 
-  const wb = (XLSX as any).utils.book_new();
-  (XLSX as any).utils.book_append_sheet(wb, ws, "Company Income Statement");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Company Income Statement");
 
   await downloadWorkbook(wb, "Management Company - Income Statement.xlsx");
 }
@@ -452,13 +452,13 @@ export async function exportCompanyCashFlow(
     ["Closing Cash Balance", ...closingCash],
   );
 
-  const ws = (XLSX as any).utils.aoa_to_sheet(rows);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
   setColumnWidths(ws, [45, ...yearLabels.map(() => 16)]);
   applyCurrencyFormat(ws, rows);
   applyHeaderStyle(ws, rows);
 
-  const wb = (XLSX as any).utils.book_new();
-  (XLSX as any).utils.book_append_sheet(wb, ws, "Company Cash Flow");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Company Cash Flow");
 
   await downloadWorkbook(wb, "Management Company - Cash Flow.xlsx");
 }
@@ -517,13 +517,13 @@ export async function exportCompanyBalanceSheet(
     ["TOTAL LIABILITIES + EQUITY", totalLiabilities + totalEquity],
   );
 
-  const ws = (XLSX as any).utils.aoa_to_sheet(rows);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
   setColumnWidths(ws, [35, 18]);
   applyCurrencyFormat(ws, rows);
   applyHeaderStyle(ws, rows);
 
-  const wb = (XLSX as any).utils.book_new();
-  (XLSX as any).utils.book_append_sheet(wb, ws, "Company Balance Sheet");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Company Balance Sheet");
 
   await downloadWorkbook(wb, "Management Company - Balance Sheet.xlsx");
 }

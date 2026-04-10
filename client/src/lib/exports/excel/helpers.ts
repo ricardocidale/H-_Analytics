@@ -16,7 +16,7 @@ function encodeCell(r: number, c: number): string {
 export async function downloadWorkbook(wb: any, filename: string) {
   const XLSX = await import("xlsx");
   const { saveFile } = await import("../saveFile");
-  const data = (XLSX as any).write(wb, { bookType: "xlsx", type: "array" });
+  const data = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   const blob = new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   await saveFile(blob, filename);
 }
