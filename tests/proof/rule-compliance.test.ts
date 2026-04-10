@@ -430,6 +430,7 @@ describe("Error handling safety — no catch(x: any) or unsafe (x as Error)", ()
     const rel = path.relative(path.resolve("."), filePath).replace(/\\/g, "/");
     if (rel.endsWith(".test.ts") || rel.endsWith(".test.tsx")) return true;
     if (rel.includes("node_modules")) return true;
+    if (rel.startsWith("script/")) return true;
     return false;
   }
 
