@@ -29,6 +29,14 @@
 - **Orchestrator**: `Scenarios.tsx` reduced to 74 lines
 - Health: ALL CLEAR — 4,436 tests
 
+### Split shared/constants.ts (April 2026) — COMPLETED
+- **Objective**: Split 764-line barrel into focused sub-files, re-exported from barrel
+- **Barrel**: `shared/constants.ts` reduced to 293 lines (from 764)
+- **New files**: `constants-business-models.ts` (107L), `constants-research.ts` (52L), `constants-funding.ts` (37L), `constants-enums.ts` (35L), `constants-capex.ts` (19L), `constants-staffing.ts` (17L)
+- **Approach**: Sub-files define constants, barrel uses `export * from './constants-*'` — zero import path changes downstream
+- **Hotel model circularity**: Inlined hotel default values (matching global DEFAULT_COST_RATE_* values) instead of referencing barrel constants, consistent with lodge/vrbo which already inline
+- Health: ALL CLEAR — 4,463 tests (183 files)
+
 ### Task #317 Split pdf/render.tsx (April 2026) — COMPLETED
 - **Objective**: Split 680-line monolith into focused modules
 - **New files**: `theme-mappers.tsx` (57L), `chart-render.tsx` (157L), `table-render.tsx` (135L), `pagination.ts` (105L), `section-renderers.tsx` (131L)

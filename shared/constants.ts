@@ -2,10 +2,11 @@
  * shared/constants.ts — Single Source of Truth for Financial Defaults
  *
  * Every default value that the financial engine, seed data, verification checker,
- * and UI all rely on lives here. Changing a value here automatically propagates
- * across the entire stack (client + server). These constants represent industry-
- * standard benchmarks from USALI (Uniform System of Accounts for the Lodging
- * Industry), IRS publications, and HVS fee surveys.
+ * and UI all rely on lives here (or in the sub-files re-exported below).
+ * Changing a value here automatically propagates across the entire stack
+ * (client + server). These constants represent industry-standard benchmarks
+ * from USALI (Uniform System of Accounts for the Lodging Industry),
+ * IRS publications, and HVS fee surveys.
  *
  * How these are used:
  *   - The database schema (shared/schema.ts) references them as column defaults
@@ -20,6 +21,14 @@
  *   CONFIGURABLE — User-overridable defaults (DEFAULT_* prefix):
  *     All other constants. Database value takes precedence; these are fallbacks.
  */
+
+// ── Re-exports from sub-files ───────────────────────────────────────────
+export * from './constants-business-models';
+export * from './constants-funding';
+export * from './constants-research';
+export * from './constants-capex';
+export * from './constants-staffing';
+export * from './constants-enums';
 
 // ──────────────────────────────────────────────────────────
 // REVENUE STREAM SHARES
@@ -103,25 +112,13 @@ export const DEFAULT_SERVICE_FEE_CATEGORIES = [
 
 // ──────────────────────────────────────────────────────────
 // CENTRALIZED SERVICES DEFAULTS
-// The management company can provide services to properties either as
-// "centralized" (company procures externally, passes through with markup)
-// or "direct" (property handles, company still earns fee for oversight).
-// Terminology follows USALI Schedule 16 and standard HMA conventions.
 // ──────────────────────────────────────────────────────────
 
-// Default cost-plus markup on centralized services. If the company buys
-// a service for $1.00, it charges the property $1.00 × (1 + 0.20) = $1.20.
 export const DEFAULT_SERVICE_MARKUP = 0.20;
 
-// Default service model for new service templates.
-// 'centralized' = company procures, passes through with markup
-// 'direct'      = property handles directly, company earns fee for oversight (no cost-of-service)
 export type ServiceModel = 'centralized' | 'direct';
 export const DEFAULT_SERVICE_MODEL: ServiceModel = 'centralized';
 
-// Default service template categories. These seed the company_service_templates
-// table on first run. The first 5 match DEFAULT_SERVICE_FEE_CATEGORIES (property fee categories).
-// The 6th (Procurement) is an additional centralized service category.
 export const DEFAULT_SERVICE_TEMPLATES = [
   { name: "Marketing",                defaultRate: 0.02,  serviceModel: 'centralized' as ServiceModel, serviceMarkup: 0.20, sortOrder: 1 },
   { name: "Technology & Reservations", defaultRate: 0.025, serviceModel: 'centralized' as ServiceModel, serviceMarkup: 0.20, sortOrder: 2 },
@@ -133,54 +130,31 @@ export const DEFAULT_SERVICE_TEMPLATES = [
 
 // ──────────────────────────────────────────────────────────
 // EXIT & SALE DEFAULTS
-// Used when modeling the sale/disposition of a property at the end of the
-// projection horizon or at a refinance event.
 // ──────────────────────────────────────────────────────────
 
-// Cap rate applied to trailing NOI to compute exit (sale) price.
-// Exit price = NOI / Cap Rate. A lower cap rate = higher valuation.
 export const DEFAULT_EXIT_CAP_RATE = 0.085;
-// Income tax rate applied to each property SPV's taxable income.
-// This is the per-entity default for property-level income tax.
-// The management company has its own rate: DEFAULT_COMPANY_TAX_RATE.
 export const DEFAULT_PROPERTY_TAX_RATE = 0.25;
-// Broker commission on property sale (% of sale price)
 export const DEFAULT_COMMISSION_RATE = 0.05;
 
 // ──────────────────────────────────────────────────────────
 // DEPRECIATION & LAND VALUE
 // ──────────────────────────────────────────────────────────
 
-// Land is not depreciable under IRS rules. This percentage of total purchase
-// price is allocated to land, and the remainder to the depreciable building.
-// Source: IRS Publication 946
 export const DEFAULT_LAND_VALUE_PERCENT = 0.25;
 
 // Default depreciation period — US nonresidential real property (hotels) per
 // IRS Publication 946, IRC §168(e)(2)(A), straight-line MACRS over 39 years.
-// This is the FALLBACK default when no country or property override is set.
-// The calculation METHOD always follows US GAAP (ASC 360, straight-line).
-// Only the useful life period varies by jurisdiction — see countryDefaults.ts.
-// Cascade: property.depreciationYears → global.depreciationYears → this constant.
 export const DEPRECIATION_YEARS = 39;
 
 // ──────────────────────────────────────────────────────────
 // TIME CONSTANTS
 // ──────────────────────────────────────────────────────────
 
-// Months per year — used for annual-to-monthly conversion (interest rates,
-// depreciation, salary, etc.). Prefer this over bare `/ 12` for readability.
 export const MONTHS_PER_YEAR = 12;
-
-// Average days per month (365/12 ≈ 30.42, rounded to 30.5). Used to convert
-// monthly ADR × occupancy into available-room-night revenue.
 export const DAYS_PER_MONTH = 30.5;
 
 // ──────────────────────────────────────────────────────────
 // GOVERNED FIELD REGISTRY
-// Fields whose values are governed by external authorities and
-// should not be casually edited. Used by GovernedFieldWrapper
-// in the UI to display amber-styled read-only indicators.
 // ──────────────────────────────────────────────────────────
 export interface GovernedFieldMeta {
   fieldName: string;
@@ -209,341 +183,63 @@ export const GOVERNED_FIELDS: Record<string, GovernedFieldMeta> = {
   },
 };
 
-// How many months between each occupancy growth step during the ramp-up phase
-// after a property opens. New hotels don't fill instantly — occupancy grows
-// in steps until reaching a stabilized level.
 export const DEFAULT_OCCUPANCY_RAMP_MONTHS = 6;
 
 // ──────────────────────────────────────────────────────────
 // PROPERTY-LEVEL DEFAULTS
-// Fallbacks for property-specific fields when not set by the user.
 // ──────────────────────────────────────────────────────────
 
-// Default room count for a boutique hotel (used as creation default)
 export const DEFAULT_ROOM_COUNT = 10;
-// Default starting ADR (Average Daily Rate) in dollars
 export const DEFAULT_START_ADR = 250;
-// Default stabilized max occupancy (85%)
 export const DEFAULT_MAX_OCCUPANCY = 0.85;
 export const DEFAULT_ADR_GROWTH_RATE = 0.03;
 export const DEFAULT_START_OCCUPANCY = 0.55;
-// Default months to reach stabilized occupancy after property opening.
-// Industry standard for boutique hotels in secondary/tertiary markets.
 export const DEFAULT_STABILIZATION_MONTHS = 36;
 
 // ──────────────────────────────────────────────────────────
 // INFLATION & COST ESCALATION
 // ──────────────────────────────────────────────────────────
 
-// Default inflation rate for property SPV cost escalation.
-// Each property can override with its own rate on the Property Edit screen.
-// Cascade: property.inflationRate → global.inflationRate → this value
 export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
-
-// Default inflation rate for management company overhead escalation.
-// Set by the user on the Company Assumptions screen.
-// Cascade: global.companyInflationRate → global.inflationRate → this value
 export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
-
-// Annual escalation rate for fixed operating expenses (office lease,
-// professional services). Applied as compound growth each year.
-// Defaults to the system inflation rate when not explicitly overridden.
 export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RATE;
-
-// Corporate income tax rate applied to the management company's net income.
-// Used to compute after-tax free cash flow at the company level.
 export const DEFAULT_COMPANY_TAX_RATE = 0.30;
 
 // ──────────────────────────────────────────────────────────
 // PROJECTION HORIZON
 // ──────────────────────────────────────────────────────────
 
-// Default number of years for the financial model (10-year pro forma is
-// standard for hospitality private equity underwriting).
 export const DEFAULT_PROJECTION_YEARS = 10;
 
 // ──────────────────────────────────────────────────────────
-// FUNDING INSTRUMENT DEFAULTS
-// These defaults configure the initial funding instrument assumptions.
-// The user can rename the instrument via fundingSourceLabel (e.g. SAFE,
-// Convertible Note, Seed Round). Valuation cap and discount rate are
-// optional — set to 0 to disable them for instruments that don't use them.
-// ──────────────────────────────────────────────────────────
-
-// Valuation cap: maximum company valuation at which the instrument converts to equity (0 = not applicable)
-export const DEFAULT_SAFE_VALUATION_CAP = 2500000;
-// Discount rate: investors get this % discount to the next round's price (0 = not applicable)
-export const DEFAULT_SAFE_DISCOUNT_RATE = 0.20;
-// ─── Funding Predictor Algorithm Defaults ───
-// Used by the funding-predictor engine to compute raise amounts, tranche splits,
-// and SAFE/convertible-note terms. These are algorithm tuning parameters, not
-// user-facing assumptions.
-export const DEFAULT_EARLY_STAGE_DISCOUNT_PREMIUM = 0.05;
-export const DEFAULT_EARLY_STAGE_CAP_DISCOUNT = 0.20;
-export const DEFAULT_TRANCHE_BUFFER_MULTIPLIER = 1.15;
-export const DEFAULT_FUNDING_ROUNDING_INCREMENT = 50_000;
-export const DEFAULT_TRANCHE1_PERIOD_RATIO = 0.45;
-export const DEFAULT_TRANCHE1_MAX_ALLOCATION = 0.65;
-export const DEFAULT_TRANCHE_BIFURCATION_MONTHS = 48;
-export const DEFAULT_TRANCHE2_PERIOD_RATIO = 0.75;
-export const DEFAULT_TRANCHE2_ALLOCATION_PCT = 0.55;
-export const DEFAULT_VALUATION_CAP_UPLIFT = 1.20;
-export const DEFAULT_MIN_DISCOUNT_RATE = 0.10;
-export const DEFAULT_RISK_FREE_RATE_FALLBACK = 0.04;
-export const DEFAULT_SINGLE_TRANCHE_MAX_MONTHS = 18;
-export const DEFAULT_SINGLE_TRANCHE_MAX_RAISE = 400_000;
-export const DEFAULT_THREE_TRANCHE_MIN_T2 = 500_000;
-export const DEFAULT_TREASURY_HIGH_RATE_THRESHOLD = 4.5;
-export const DEFAULT_TREASURY_LOW_RATE_THRESHOLD = 3.0;
-
-// Funding interest rate: annual simple interest on outstanding principal (0 = no interest)
-export const DEFAULT_FUNDING_INTEREST_RATE = 0.08;
-// Funding interest payment frequency: "accrues_only" | "quarterly" | "annually"
-export const DEFAULT_FUNDING_INTEREST_PAYMENT_FREQUENCY = "accrues_only";
-
-// ──────────────────────────────────────────────────────────
-// SEED DEBT ASSUMPTIONS
-// Default loan terms used when seeding production data (initial portfolio).
-// These are the starting-point leverage assumptions for both acquisition
-// and refinance scenarios.
-// ──────────────────────────────────────────────────────────
-
-// ──────────────────────────────────────────────────────────
-// AI AGENT DEFAULTS
+// AI AGENT & SCENARIO DEFAULTS
 // ──────────────────────────────────────────────────────────
 
 export const DEFAULT_AI_AGENT_NAME = "Rebecca";
-
 export const DEFAULT_MAX_STALENESS_HOURS = 24;
-
-// ──────────────────────────────────────────────────────────
-// SCENARIO LOAD STRATEGY
-// When true (default), loadScenario uses stableKey-based upsert:
-//   - Matches snapshot properties to live properties by stableKey
-//   - Updates matched properties in place (preserving property IDs and photos)
-//   - Inserts new snapshot properties that don't exist in live data
-//   - Soft-archives orphaned live properties (isActive=false) instead of deleting
-//     to prevent cascading photo deletions via property_photos ON DELETE CASCADE
-// When false, falls back to destructive delete-all-and-recreate behavior.
-// ──────────────────────────────────────────────────────────
 export const USE_STABLE_SCENARIO_LOAD = true;
-
 export const DEFAULT_ALERT_COOLDOWN_MINUTES = 1440;
 
-// ──────────────────────────────────────────────────────────
-// STAFFING TIER THRESHOLDS
-// Management company staffing scales in tiers based on active property count.
-// These are the portfolio-size breakpoints stored in global_assumptions.
-// ──────────────────────────────────────────────────────────
-
-export const DEFAULT_STAFF_TIER1_MAX_PROPERTIES = 3;
-export const DEFAULT_STAFF_TIER2_MAX_PROPERTIES = 6;
-
-export const STAFFING_TIERS = [
-  { maxProperties: 3, fte: 2.5 },
-  { maxProperties: 6, fte: 4.5 },
-  { maxProperties: Infinity, fte: 7.0 },
-];
-
-export const DEFAULT_SAFE_TRANCHE = 800_000;
-
-// ──────────────────────────────────────────────────────────
-// MANAGEMENT COMPANY OVERHEAD DEFAULTS
-// Annual fixed/variable costs for the management company. These
-// seed the company pro-forma when no user-specified values exist.
-// ──────────────────────────────────────────────────────────
-
-export const DEFAULT_STAFF_SALARY = 75_000;
-export const DEFAULT_OFFICE_LEASE = 36_000;
-export const DEFAULT_PROFESSIONAL_SERVICES = 24_000;
-export const DEFAULT_TECH_INFRA = 18_000;
-export const DEFAULT_BUSINESS_INSURANCE_COMPANY = 12_000;
-export const DEFAULT_TRAVEL_PER_CLIENT = 12_000;
-export const DEFAULT_IT_LICENSE_PER_CLIENT = 3_000;
-export const DEFAULT_PARTNER_COMP = [540_000, 540_000, 540_000, 600_000, 600_000, 700_000, 700_000, 800_000, 800_000, 900_000];
-
-// ──────────────────────────────────────────────────────────
-// RESEARCH CONFIGURATION DEFAULTS
-// Per-event admin configuration for the AI research system.
-// enabledTools: empty array = all 9 tools enabled (no filtering).
-// ──────────────────────────────────────────────────────────
-
-export const DEFAULT_RESEARCH_TIME_HORIZON = "10-year";
-
-export const RESEARCH_SOURCES = [
-  { name: "STR", category: "Hospitality", url: "https://str.com" },
-  { name: "CBRE Hotels", category: "Hospitality", url: "https://www.cbre.com/industries/hotels" },
-  { name: "HVS", category: "Hospitality", url: "https://hvs.com" },
-  { name: "PKF Trends", category: "Hospitality", url: "https://www.pkfhotels.com" },
-  { name: "HotStats", category: "Hospitality", url: "https://www.hotstats.com" },
-  { name: "Xotels", category: "Hospitality", url: "https://www.xotels.com" },
-  { name: "FRED", category: "Economics", url: "https://fred.stlouisfed.org" },
-  { name: "BLS", category: "Economics", url: "https://www.bls.gov" },
-  { name: "USALI 12th Ed (HFTP)", category: "Accounting", url: "https://usali.hftp.org" },
-  { name: "Withum USALI Guide", category: "Accounting", url: "https://www.withum.com/resources/usali-12th-edition-aligning-hotel-accounting-with-modern-hospitality/" },
-  { name: "Chatlyn Glossary", category: "Definitions", url: "https://chatlyn.com/en/glossary/adjusted-gross-operating-profit-agop/" },
-  { name: "Canary Technologies", category: "Definitions", url: "https://www.canarytechnologies.com/hotel-terminology/adjusted-gross-operating-profit" },
-] as const;
-
-export const DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS = 30;
-
-export const DEFAULT_RESEARCH_EVENT_CONFIG = {
-  enabled: true,
-  focusAreas: [] as string[],
-  regions: [] as string[],
-  timeHorizon: DEFAULT_RESEARCH_TIME_HORIZON,
-  customInstructions: "",
-  customQuestions: "",
-  enabledTools: [] as string[],
-  refreshIntervalDays: DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS,
-};
-
-// ──────────────────────────────────────────────────────────
-// BUSINESS-MODEL-SPECIFIC DEFAULTS
-// Each business model (hotel, lodge, vrbo) has its own set of
-// default cost rates, revenue mix, and fee structures that reflect
-// real-world operating norms for that segment.
-//
-// Hotel: Full-service USALI departmental model (F&B, Events, etc.)
-// Lodge: Whole-property rental, guest meals, premium amenities, no events
-// VRBO/STR: Platform-based (Airbnb/VRBO fees), per-turnover cleaning
-//
-// These are used by resolve-assumptions.ts to pick the right defaults
-// based on property.businessModel when no user override exists.
-// ──────────────────────────────────────────────────────────
-
-export type BusinessModelType = 'hotel' | 'lodge' | 'vrbo';
-
-export interface BusinessModelDefaults {
-  costRateRooms: number;
-  costRateFB: number;
-  costRateAdmin: number;
-  costRateMarketing: number;
-  costRatePropertyOps: number;
-  costRateUtilities: number;
-  costRateTaxes: number;
-  costRateIT: number;
-  costRateFFE: number;
-  costRateOther: number;
-  costRateInsurance: number;
-  revShareEvents: number;
-  revShareFB: number;
-  revShareOther: number;
-  cateringBoostPct: number;
-  baseMgmtFeeRate: number;
-  incentiveMgmtFeeRate: number;
-  eventExpenseRate: number;
-  otherExpenseRate: number;
-  platformFeeRate: number;
-  preOpeningMonthlyBurn: number;
-}
-
-export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDefaults> = {
-  hotel: {
-    costRateRooms: DEFAULT_COST_RATE_ROOMS,           // 20% — housekeeping, front desk, linens
-    costRateFB: DEFAULT_COST_RATE_FB,                  // 9% — F&B COGS + labor
-    costRateAdmin: DEFAULT_COST_RATE_ADMIN,            // 8% — G&A
-    costRateMarketing: DEFAULT_COST_RATE_MARKETING,    // 1% — Sales & Marketing
-    costRatePropertyOps: DEFAULT_COST_RATE_PROPERTY_OPS, // 4% — POM
-    costRateUtilities: DEFAULT_COST_RATE_UTILITIES,    // 5% — Utilities
-    costRateTaxes: DEFAULT_COST_RATE_TAXES,            // 3% — Property taxes
-    costRateIT: DEFAULT_COST_RATE_IT,                  // 0.5% — IT
-    costRateFFE: DEFAULT_COST_RATE_FFE,                // 4% — FF&E reserve
-    costRateOther: DEFAULT_COST_RATE_OTHER,            // 5% — Other
-    costRateInsurance: DEFAULT_COST_RATE_INSURANCE,    // 1.5% — Insurance
-    revShareEvents: DEFAULT_REV_SHARE_EVENTS,          // 30% of room revenue
-    revShareFB: DEFAULT_REV_SHARE_FB,                  // 18% of room revenue
-    revShareOther: DEFAULT_REV_SHARE_OTHER,            // 5% of room revenue
-    cateringBoostPct: DEFAULT_CATERING_BOOST_PCT,      // 22% uplift on F&B
-    baseMgmtFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE, // 8.5% of total revenue
-    incentiveMgmtFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE, // 12% of GOP
-    eventExpenseRate: DEFAULT_EVENT_EXPENSE_RATE,       // 65% of event revenue
-    otherExpenseRate: DEFAULT_OTHER_EXPENSE_RATE,       // 60% of other revenue
-    platformFeeRate: 0,                                 // N/A for hotels
-    preOpeningMonthlyBurn: 0,                           // No default pre-opening budget
-  },
-
-  lodge: {
-    costRateRooms: 0.25,        // 25% — higher cleaning, premium linens, guest supplies
-    costRateFB: 0.15,           // 15% — guest meals included (breakfast/dinner typical)
-    costRateAdmin: 0.06,        // 6% — lighter admin (fewer departments)
-    costRateMarketing: 0.02,    // 2% — niche marketing (nature/wellness positioning)
-    costRatePropertyOps: 0.05,  // 5% — higher maintenance (grounds, trails, docks)
-    costRateUtilities: 0.06,    // 6% — higher utilities (heating, well water, remote)
-    costRateTaxes: 0.025,       // 2.5% — rural areas often lower assessments
-    costRateIT: 0.003,          // 0.3% — simpler tech stack
-    costRateFFE: 0.03,          // 3% — less FF&E turnover vs hotel
-    costRateOther: 0.04,        // 4% — activities, equipment rental
-    costRateInsurance: 0.02,    // 2% — higher insurance (remote, outdoor risk)
-    revShareEvents: 0,          // 0% — no events department
-    revShareFB: 0.25,           // 25% — guest meals are a significant revenue stream
-    revShareOther: 0.08,        // 8% — activities, equipment, experiences
-    cateringBoostPct: 0,        // 0% — no event catering
-    baseMgmtFeeRate: 0.18,      // 18% — higher mgmt fees (whole-property complexity)
-    incentiveMgmtFeeRate: 0.10, // 10% — lower incentive (fewer profit levers)
-    eventExpenseRate: 0,        // N/A
-    otherExpenseRate: 0.55,     // 55% of other revenue
-    platformFeeRate: 0,         // Direct bookings, no platform fees
-    preOpeningMonthlyBurn: 0,
-  },
-
-  vrbo: {
-    costRateRooms: 0.30,        // 30% — per-turnover cleaning, guest supplies, laundry
-    costRateFB: 0,              // 0% — no F&B operations
-    costRateAdmin: 0.05,        // 5% — lighter admin
-    costRateMarketing: 0.02,    // 2% — listing optimization, photography
-    costRatePropertyOps: 0.06,  // 6% — handyman, landscaping, pool
-    costRateUtilities: 0.07,    // 7% — guest-paid utilities on full home
-    costRateTaxes: 0.03,        // 3% — residential assessments
-    costRateIT: 0.01,           // 1% — smart locks, WiFi, channel manager
-    costRateFFE: 0.03,          // 3% — furniture refresh, appliances
-    costRateOther: 0.03,        // 3% — supplies, consumables
-    costRateInsurance: 0.025,   // 2.5% — higher STR insurance
-    revShareEvents: 0,          // 0% — no events
-    revShareFB: 0,              // 0% — no F&B
-    revShareOther: 0.03,        // 3% — cleaning fees charged to guests
-    cateringBoostPct: 0,        // 0% — no catering
-    baseMgmtFeeRate: 0.25,      // 25% — all-in management fee
-    incentiveMgmtFeeRate: 0,    // 0% — no incentive fee (all-in model)
-    eventExpenseRate: 0,        // N/A
-    otherExpenseRate: 0.50,     // 50% of other revenue
-    platformFeeRate: 0.14,      // 14% — blended Airbnb/VRBO platform fee
-    preOpeningMonthlyBurn: 0,
-  },
-};
-
-// Platform fee rates for VRBO/STR properties by listing platform
-export const PLATFORM_FEE_RATES = {
-  airbnb: 0.155,  // 15.5% host-only fee (Airbnb)
-  vrbo: 0.08,     // 8% host fee (VRBO/Expedia)
-  booking: 0.15,  // 15% commission (Booking.com)
-  direct: 0,      // 0% for direct bookings
-  blended: 0.14,  // 14% blended average across platforms
-} as const;
-
-// ── Working Capital Defaults ──────────────────────────────────────────────
-// Divisor for daily revenue/cost approximation in AR/AP calculations.
-// Uses calendar month (30 days) rather than DAYS_PER_MONTH (30.5) because
-// AR/AP DSO/DPO conventions assume a 30-day month per industry practice.
+// ── Working Capital Defaults ────────────────────────────────────────────
 export const WORKING_CAPITAL_DAYS_PER_MONTH = 30;
 export const DEFAULT_AR_DAYS = 30;
 export const DEFAULT_AP_DAYS = 45;
 
-// ── MIRR Defaults ────────────────────────────────────────────────────────
+// ── MIRR Defaults ───────────────────────────────────────────────────────
 export const DEFAULT_REINVESTMENT_RATE = 0.05;
 
-// ── Day-Count Convention ─────────────────────────────────────────────────
+// ── Day-Count Convention ────────────────────────────────────────────────
 export type DayCountConvention = '30/360' | 'ACT/360' | 'ACT/365';
 export const DEFAULT_DAY_COUNT_CONVENTION: DayCountConvention = '30/360';
 
-// ── Escalation Method ────────────────────────────────────────────────────
+// ── Escalation Method ───────────────────────────────────────────────────
 export type EscalationMethod = 'annual' | 'monthly';
 export const DEFAULT_ESCALATION_METHOD: EscalationMethod = 'annual';
 
-// ── NOL (Net Operating Loss) Defaults ────────────────────────────────────
+// ── NOL (Net Operating Loss) Defaults ───────────────────────────────────
 export const NOL_UTILIZATION_CAP = 0.8;
 
-// ── Cost Segregation Defaults ────────────────────────────────────────────
+// ── Cost Segregation Defaults ───────────────────────────────────────────
 export const DEFAULT_COST_SEG_5YR_PCT = 0.15;
 export const DEFAULT_COST_SEG_7YR_PCT = 0.10;
 export const DEFAULT_COST_SEG_15YR_PCT = 0.05;
@@ -554,37 +250,7 @@ export const COST_SEG_5YR_LIFE_YEARS = 5;
 export const COST_SEG_7YR_LIFE_YEARS = 7;
 export const COST_SEG_15YR_LIFE_YEARS = 15;
 
-// ── CapEx Reserve Benchmarks (ISHC / HVS Reserve Study Standards) ────────────
-// Default replacement costs for full-service hotel FF&E components.
-// Fixed costs are property-level (independent of room count).
-// Per-key costs scale with room count.
-// Source: ISHC Lodging Maintenance Standards 2024, HVS Reserve Studies
-
-// Fixed replacement costs (full-service hotel average)
-export const CAPEX_ELEVATOR_MECHANICAL_COST = 150_000;     // Elevator/mechanical systems
-export const CAPEX_ROOF_EXTERIOR_COST = 200_000;           // Roof & building exterior
-export const CAPEX_FB_EQUIPMENT_COST = 100_000;            // Restaurant/bar kitchen equipment
-export const CAPEX_SPA_EQUIPMENT_COST = 75_000;            // Spa/wellness facility equipment
-
-// Per-key replacement costs (per occupied room unit)
-export const CAPEX_SOFT_GOODS_PER_KEY = 8_000;             // Bedding, drapes, carpet
-export const CAPEX_CASE_GOODS_PER_KEY = 12_000;            // Furniture, fixtures
-export const CAPEX_HVAC_PER_KEY = 5_000;                   // HVAC systems per room
-export const CAPEX_TECH_PER_KEY = 2_000;                   // Technology/PMS per room
-
-// Useful life in years (replacement cycle)
-export const CAPEX_SOFT_GOODS_LIFE_YEARS = 5;
-export const CAPEX_CASE_GOODS_LIFE_YEARS = 10;
-export const CAPEX_HVAC_LIFE_YEARS = 15;
-export const CAPEX_STRUCTURAL_LIFE_YEARS = 20;             // Elevator, roof, exterior
-export const CAPEX_TECH_LIFE_YEARS = 5;
-export const CAPEX_FB_EQUIPMENT_LIFE_YEARS = 8;
-export const CAPEX_SPA_EQUIPMENT_LIFE_YEARS = 7;
-
-// Industry benchmark: $5,000 per key per year for full-service hotel FF&E reserves
-export const CAPEX_INDUSTRY_BENCHMARK_PER_KEY = 5_000;
-
-// ── Loan / Financing Defaults ──────────────────────────────────────────────
+// ── Loan / Financing Defaults ───────────────────────────────────────────
 export const DEFAULT_LTV = 0.75;
 export const DEFAULT_INTEREST_RATE = 0.09;
 export const DEFAULT_TERM_YEARS = 25;
@@ -593,62 +259,24 @@ export const DEFAULT_REFI_CLOSING_COST_RATE = 0.03;
 export const DEFAULT_ACQ_CLOSING_COST_RATE = 0.02;
 export const DEFAULT_REFI_PERIOD_YEARS = 3;
 
-// ── Management Company Cost Rates ────────────────────────────────────────
-// Percentage of total fee revenue allocated to marketing and miscellaneous ops
+// ── Management Company Cost Rates ───────────────────────────────────────
 export const DEFAULT_MARKETING_RATE = 0.05;
 export const DEFAULT_MISC_OPS_RATE = 0.03;
 
-// ── Operating Reserve / Funding Buffers ──────────────────────────────────
-// Minimum cash cushions to prevent negative balances
+// ── Operating Reserve / Funding Buffers ─────────────────────────────────
 export const OPERATING_RESERVE_BUFFER = 50_000;
 export const COMPANY_FUNDING_BUFFER = 100_000;
 export const RESERVE_ROUNDING_INCREMENT = 10_000;
 
-// ── Property Defaults ────────────────────────────────────────────────────
+// ── Property Defaults ───────────────────────────────────────────────────
 export const DEFAULT_OCCUPANCY_GROWTH_STEP = 0.05;
 export const DEFAULT_PARTNER_COUNT = 3;
 
-// WACC: default cost of equity for private hospitality (no CAPM; user-provided)
 export const DEFAULT_COST_OF_EQUITY = 0.18;
 
-
-// Cap rate sensitivity analysis: each step = 50 basis points
 export const CAP_RATE_SENSITIVITY_STEP = 0.005;
 
-// Research example: 30% corporate tax bracket for tax shield comparison
-export const RESEARCH_TAX_RATE_30_PCT = 0.30;
-
-// Make-vs-buy: savings must exceed this threshold to recommend outsource/in-house
-export const RESEARCH_MAKE_VS_BUY_MARGINAL_THRESHOLD = 0.10;
-export const RESEARCH_MAKE_VS_BUY_DEFAULT_DISCOUNT_RATE = 0.08;
-export const RESEARCH_MAKE_VS_BUY_DEFAULT_ESCALATION_RATE = 0.03;
-
-// ── Hold-vs-Sell Analysis Defaults ──────────────────────────────────────────
-// Default tax rates for disposition analysis (IRC §1 / §1250)
-export const DEFAULT_CAPITAL_GAINS_RATE = 0.20;
-export const DEFAULT_DEP_RECAPTURE_RATE = 0.25;
-// Recommendation dead zone: ±2% of market value = "indifferent"
-export const HOLD_VS_SELL_INDIFFERENCE_PCT = 0.02;
-
-// ── Waterfall Defaults ──────────────────────────────────────────────────────
-// GP catch-up target percentage of total distributions
-export const DEFAULT_GP_CATCH_UP_TARGET_PCT = 0.20;
-
-// ── Stress Test Thresholds ──────────────────────────────────────────────────
-// Minimum DSCR for debt serviceability under stress
-export const STRESS_TEST_MIN_DSCR = 1.25;
-// NOI impact thresholds for severity classification (percentage points)
-export const STRESS_SEVERITY_MODERATE_PCT = -5;
-export const STRESS_SEVERITY_SEVERE_PCT = -15;
-export const STRESS_SEVERITY_CRITICAL_PCT = -30;
-
-// ── RevPAR Index Thresholds ─────────────────────────────────────────────────
-// RGI thresholds for competitive performance assessment
-export const RGI_OUTPERFORMING_THRESHOLD = 1.05;
-export const RGI_UNDERPERFORMING_THRESHOLD = 0.95;
-
-// ── Validation Range Constants ──────────────────────────────────────────────
-// Reasonable bounds for assumption validation (assumption-consistency)
+// ── Validation Range Constants ──────────────────────────────────────────
 export const VALIDATION_EXIT_CAP_RATE_MIN = 0.03;
 export const VALIDATION_EXIT_CAP_RATE_MAX = 0.15;
 export const VALIDATION_INFLATION_RATE_MAX = 0.15;
@@ -657,108 +285,9 @@ export const VALIDATION_INTEREST_RATE_MAX = 0.25;
 export const VALIDATION_ACQ_LTV_MAX = 0.95;
 export const VALIDATION_LAND_VALUE_PCT_MAX = 0.80;
 
-// ── Calculation Checker Thresholds ──────────────────────────────────────────
-// Revenue growth variance: flag if actual CAGR differs from expected by more than this
+// ── Calculation Checker Thresholds ──────────────────────────────────────
 export const CHECKER_REVENUE_GROWTH_VARIANCE = 0.2;
-// NOI margin reasonable range (%)
 export const CHECKER_NOI_MARGIN_MIN_PCT = 5;
 export const CHECKER_NOI_MARGIN_MAX_PCT = 70;
-// Balance sheet tolerance (dollars)
 export const CHECKER_BALANCE_SHEET_TOLERANCE = 1.0;
-// Minimum DSCR for debt coverage check
 export const CHECKER_MIN_DSCR = 1.0;
-
-// ── Funding Predictor Algorithm Limits ──────────────────────────────────────
-// Maximum discount rate cap for SAFE terms
-export const DEFAULT_MAX_SAFE_DISCOUNT_RATE = 0.30;
-// Risk-free rate sensitivity multiplier for discount adjustment
-export const DEFAULT_RISK_FREE_RATE_SENSITIVITY = 0.1;
-// Rolling year lookback (months - 1, since we include the current month)
-export const TRAILING_YEAR_MONTHS_OFFSET = 11;
-
-// Cap rate valuation bounds: implied value must be within these multipliers of purchase price
-export const RESEARCH_CAP_RATE_VALUATION_MAX_MULTIPLIER = 3.0;
-export const RESEARCH_CAP_RATE_VALUATION_MIN_MULTIPLIER = 0.3;
-
-export const SEED_DEBT_ASSUMPTIONS = {
-  acqLTV: 0.75,             // Acquisition loan-to-value (75% LTV means 25% equity down)
-  refiLTV: 0.75,            // Refinance loan-to-value
-  interestRate: 0.09,       // Annual interest rate (9%)
-  amortizationYears: 25,    // Loan fully amortizes over 25 years
-  acqClosingCostRate: 0.02, // Acquisition closing costs as % of loan amount
-  refiClosingCostRate: 0.03,// Refinance closing costs as % of new loan amount
-} as const;
-
-// ──────────────────────────────────────────────────────────
-// PROPERTY STATUS ENUM
-// Lifecycle stages a property can be in. Used throughout the UI,
-// seed data, and schema defaults to ensure consistency.
-// ──────────────────────────────────────────────────────────
-
-export const PropertyStatus = {
-  PIPELINE: "Pipeline",
-  OPERATING: "Operating",
-  IMPROVEMENTS: "Improvements",
-  ACQUIRED: "Acquired",
-  IN_NEGOTIATION: "In Negotiation",
-  PLANNED: "Planned",
-} as const;
-
-export type PropertyStatusValue = (typeof PropertyStatus)[keyof typeof PropertyStatus];
-
-export const PROPERTY_STATUS_VALUES = Object.values(PropertyStatus);
-
-// ──────────────────────────────────────────────────────────
-// USER ROLE ENUM
-// Platform-level user roles for access control.
-// NOT to be confused with LLM/OpenAI message roles ("user"/"assistant").
-// ──────────────────────────────────────────────────────────
-
-export const UserRole = {
-  ADMIN: "admin",
-  USER: "user",
-  CHECKER: "checker",
-  PARTNER: "partner",
-  INVESTOR: "investor",
-} as const;
-
-export type UserRoleValue = (typeof UserRole)[keyof typeof UserRole];
-
-export const USER_ROLE_VALUES = Object.values(UserRole);
-
-// ──────────────────────────────────────────────────────────
-// BRAND CONSTANTS
-// ──────────────────────────────────────────────────────────
-// DEFAULT LLM MODELS
-// Fallback model identifiers used when no admin override is set.
-// Server-side resolve-llm.ts re-exports these for domain routing.
-// ──────────────────────────────────────────────────────────
-
-export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5";
-
-// ──────────────────────────────────────────────────────────
-// APPLICATION BRAND IDENTITY
-// Change these to rebrand the entire portal in one place.
-// ──────────────────────────────────────────────────────────
-
-export const APP_BRAND_NAME = "H+ Analytics";
-export const APP_FULL_BRAND = "H+ Analytics by Norfolk AI";
-export const BRAND_ACCENT_PREFIX = "H+";
-export const BRAND_ACCENT_HEX = "#00A9B8";
-
-// ──────────────────────────────────────────────────────────
-// SERVER-SIDE COMPUTE FEATURE FLAG
-// When true, the dashboard and property detail pages fetch
-// pre-computed financials from /api/finance/* instead of
-// running the engine in the browser.  Set to false to fall
-// back to the legacy client-side computation path.
-// ──────────────────────────────────────────────────────────
-export const USE_SERVER_COMPUTE = true;
-
-// ──────────────────────────────────────────────────────────
-// FEATURE FLAG: Server-Side Export Generation (Phase 4)
-// When true, export buttons call POST /api/exports/generate
-// which computes data server-side from cache and streams the
-// file. When false, exports are generated client-side.
-// ──────────────────────────────────────────────────────────
-export const USE_SERVER_EXPORTS = true;
