@@ -102,9 +102,9 @@ The calc engine is **production-quality, well-architected financial software**. 
 **Recommendation**: Remove lines 51-53 for clarity, though this is cosmetic.
 
 ### F-004: IRR solver convergence edge case [LOW]
-**File**: `analytics/returns/irr.ts` (shared IRR implementation used by `calc/returns/`)  
+**File**: `analytics/returns/irr.ts` (outside primary audit scope but included as a direct dependency of `calc/returns/irr-vector.ts` and `calc/analysis/hold-vs-sell.ts`)  
 **Issue**: The IRR solver uses iterative Newton-Raphson with a max-iteration cap. For cash flow vectors with no real IRR (e.g., all positive flows with no initial investment), the solver returns 0 or NaN.  
-**Risk**: Minimal — downstream consumers in `calc/returns/irr-vector.ts` and `calc/analysis/hold-vs-sell.ts` handle NaN/0 returns gracefully.  
+**Risk**: Minimal — downstream consumers in the calc/ layer handle NaN/0 returns gracefully.  
 **Recommendation**: No change needed. Current behavior is correct.
 
 ---
