@@ -710,7 +710,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 
 ### Opus Audit #319: Shared Schema, Types & Constants (April 2026) — COMPLETED
 - **Report**: `docs/audits/319-shared-schema-types-constants-findings.md`
-- **Scope**: 33 TypeScript files (~4,700 lines) across shared/ (17 schema files, 7 constants files, 9 utility/type files)
+- **Scope**: 35 TypeScript files (~4,700 lines) across shared/ (17 schema files, 7 constants files, 9 utility/type files, 2 legacy files)
 - **Verdict**: PASS — Well-organized, thoroughly documented, architecturally sound. 0 critical, 0 high, 2 medium, 4 low findings
 - **Key findings**: (M) insertGlobalAssumptionsSchema uses `.omit()` instead of `.pick()`; (M) UserRole defined twice with "partner" mismatch between constants-enums.ts and auth.ts; (L) legacy dead files shared/auth.ts and shared/chat.ts; (L) DebtAssumptions interface duplicated with different shapes; (L) 14 JSONB shapes with open index signatures; (L) engagement.ts missing insert schemas
 - **Positives**: Zero `as any` casts in shared/, exceptional table documentation, rigorous constants sourcing (USALI/IRS/HVS/Damodaran), comprehensive country defaults (11 countries, 10 US states), field-registry pattern for GA↔property mapping
