@@ -33,9 +33,11 @@ export function register(app: Express) {
   app.post("/api/verification/run", requireChecker, async (req, res) => {
     try {
       const calcUser = getAuthUser(req);
-      const properties = calcUser.role === "admin"
+      const allProperties = calcUser.role === "admin"
         ? await storage.getAllProperties()
         : await storage.getAllProperties(calcUser.id);
+      // Only verify active properties — inactive ones are excluded from all calculations
+      const properties = allProperties.filter(p => p.isActive !== false);
       const globalAssumptions = await storage.getGlobalAssumptions(calcUser.id);
 
       if (!globalAssumptions) {

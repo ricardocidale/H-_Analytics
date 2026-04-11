@@ -125,7 +125,8 @@ export default function Company() {
         ...t,
         serviceModel: t.serviceModel as 'centralized' | 'direct',
       }));
-      return generateCompanyProForma(properties, global, projectionMonths, templates);
+      const activeProps = properties.filter(p => p.isActive !== false);
+      return generateCompanyProForma(activeProps, global, projectionMonths, templates);
     },
     [properties, global, projectionMonths, serviceTemplates]
   );
@@ -141,7 +142,7 @@ export default function Company() {
     () => {
       if (USE_SERVER_COMPUTE) return [];
       if (!properties?.length || !global) return [];
-      return properties.map(p => ({
+      return properties.filter(p => p.isActive !== false).map(p => ({
         property: p,
         financials: generatePropertyProForma(p, global, projectionMonths)
       }));

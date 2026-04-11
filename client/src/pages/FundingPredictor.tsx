@@ -43,7 +43,8 @@ export default function FundingPredictor({ embedded }: { embedded?: boolean }) {
       ...t,
       serviceModel: t.serviceModel as 'centralized' | 'direct',
     }));
-    return generateCompanyProForma(properties, global, projectionMonths, templates);
+    const activeProps = properties.filter(p => p.isActive !== false);
+    return generateCompanyProForma(activeProps, global, projectionMonths, templates);
   }, [properties, global, projectionMonths, serviceTemplates]);
 
   const financials = USE_SERVER_COMPUTE ? serverCompany.companyMonthly : clientFinancials;

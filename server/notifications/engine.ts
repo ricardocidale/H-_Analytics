@@ -57,6 +57,9 @@ export async function evaluateAlertRules(
   property: Property,
   metrics: { dscr?: number; cap_rate?: number; occupancy?: number; noi_variance?: number }
 ): Promise<void> {
+  // Skip alerts for properties excluded from portfolio calculations
+  if (property.isActive === false) return;
+
   const rules = await storage.getActiveAlertRulesForProperty(property.id);
 
   for (const rule of rules) {

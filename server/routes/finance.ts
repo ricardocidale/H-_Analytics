@@ -155,7 +155,9 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { properties, globalAssumptions, projectionYears } = validation.data;
+      const { properties: allProperties, globalAssumptions, projectionYears } = validation.data;
+      // Defense-in-depth: exclude inactive properties even if client already filtered
+      const properties = allProperties.filter((p: Record<string, unknown>) => p.isActive !== false);
       const wantAudit = req.query.audit === "true";
 
       const { result, auditTrails } = computePortfolioProjectionWithAudit(
@@ -255,7 +257,9 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { properties, globalAssumptions, projectionYears } = validation.data;
+      const { properties: allCompanyProps, globalAssumptions, projectionYears } = validation.data;
+      // Defense-in-depth: exclude inactive properties even if client already filtered
+      const properties = allCompanyProps.filter((p: Record<string, unknown>) => p.isActive !== false);
 
       const result = computeCompanyProjection({
         properties: properties as PropertyInput[],
