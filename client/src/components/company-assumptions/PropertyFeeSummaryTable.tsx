@@ -73,9 +73,9 @@ export function PropertyFeeSummaryTable({ properties, allFeeCategories }: Proper
                         {hasCategoryData ? (
                           <>
                             {allCatNames.map(name => {
-                              const cat = propCats.find(c => c.name === name);
+                              const cat = propCats.find(c => c.name === name && c.isActive);
                               return (
-                                <td key={name} className={`px-3 py-2 text-right font-mono text-xs ${cat?.isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                <td key={name} className="px-3 py-2 text-right font-mono text-xs text-foreground">
                                   {cat ? formatPercent(cat.rate) : '—'}
                                 </td>
                               );

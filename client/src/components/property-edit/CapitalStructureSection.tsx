@@ -27,12 +27,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { EditableValue } from "@/components/ui/editable-value";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { GaapBadge } from "@/components/ui/gaap-badge";
 import { GovernedFieldWrapper } from "@/components/ui/governed-field";
-import { GOVERNED_FIELDS } from "@shared/constants";
+import { GOVERNED_FIELDS, DEFAULT_COST_SEG_5YR_PCT, DEFAULT_COST_SEG_7YR_PCT, DEFAULT_COST_SEG_15YR_PCT } from "@shared/constants";
 import { MarketRateBenchmark } from "@/components/property-research/MarketRateBenchmark";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/formatters";
 import { 
@@ -146,6 +147,87 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
             />
           </div>
         </GovernedFieldWrapper>
+
+        <div className="border-t border-white/10 pt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="label-text text-foreground flex items-center gap-1.5">
+                Cost Segregation Study
+                <InfoTooltip text="Apply accelerated depreciation using cost segregation analysis. Instead of straight-line 39-year depreciation, portions of the property value are allocated to 5-year, 7-year, and 15-year schedules (personal property, land improvements, etc.), accelerating tax deductions in the early years." />
+                <GaapBadge rule="IRS Rev. Proc. 87-56: Cost segregation reclassifies building components into shorter MACRS recovery periods (5, 7, 15 years). The remaining building basis depreciates over 39 years. Accelerates depreciation deductions but does not change total lifetime depreciation." />
+              </Label>
+              <p className="text-xs text-muted-foreground">Accelerated 5/7/15-year schedules instead of straight-line</p>
+            </div>
+            <Switch
+              checked={draft.costSegEnabled ?? false}
+              onCheckedChange={(checked) => onChange("costSegEnabled", checked)}
+              data-testid="switch-cost-seg-enabled"
+            />
+          </div>
+          {draft.costSegEnabled && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pl-1">
+              <div className="space-y-1.5">
+                <Label className="label-text text-foreground text-xs flex items-center gap-1">
+                  5-Year Property (%)
+                  <InfoTooltip text="Percentage of depreciable basis allocated to 5-year MACRS property (furniture, fixtures, equipment, carpeting, appliances). Typical range: 10-20%." />
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Slider
+                    data-testid="slider-cost-seg-5yr"
+                    value={[(draft.costSeg5yrPct ?? DEFAULT_COST_SEG_5YR_PCT) * 100]}
+                    onValueChange={(vals: number[]) => onNumberChange("costSeg5yrPct", (vals[0] / 100).toString())}
+                    min={0}
+                    max={40}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-xs font-mono text-foreground w-10 text-right">{((draft.costSeg5yrPct ?? DEFAULT_COST_SEG_5YR_PCT) * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="label-text text-foreground text-xs flex items-center gap-1">
+                  7-Year Property (%)
+                  <InfoTooltip text="Percentage of depreciable basis allocated to 7-year MACRS property (office furniture, specialized fixtures). Typical range: 5-15%." />
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Slider
+                    data-testid="slider-cost-seg-7yr"
+                    value={[(draft.costSeg7yrPct ?? DEFAULT_COST_SEG_7YR_PCT) * 100]}
+                    onValueChange={(vals: number[]) => onNumberChange("costSeg7yrPct", (vals[0] / 100).toString())}
+                    min={0}
+                    max={30}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-xs font-mono text-foreground w-10 text-right">{((draft.costSeg7yrPct ?? DEFAULT_COST_SEG_7YR_PCT) * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="label-text text-foreground text-xs flex items-center gap-1">
+                  15-Year Property (%)
+                  <InfoTooltip text="Percentage of depreciable basis allocated to 15-year MACRS property (land improvements, site work, parking lots, landscaping). Typical range: 3-10%." />
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Slider
+                    data-testid="slider-cost-seg-15yr"
+                    value={[(draft.costSeg15yrPct ?? DEFAULT_COST_SEG_15YR_PCT) * 100]}
+                    onValueChange={(vals: number[]) => onNumberChange("costSeg15yrPct", (vals[0] / 100).toString())}
+                    min={0}
+                    max={20}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-xs font-mono text-foreground w-10 text-right">{((draft.costSeg15yrPct ?? DEFAULT_COST_SEG_15YR_PCT) * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+              <div className="sm:col-span-3">
+                <p className="text-xs text-muted-foreground">
+                  Remaining {(100 - ((draft.costSeg5yrPct ?? DEFAULT_COST_SEG_5YR_PCT) + (draft.costSeg7yrPct ?? DEFAULT_COST_SEG_7YR_PCT) + (draft.costSeg15yrPct ?? DEFAULT_COST_SEG_15YR_PCT)) * 100).toFixed(0)}% depreciates over {draft.depreciationYears ?? 39} years (building)
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="space-y-3 pt-2">
           <Label className="label-text text-foreground flex items-center gap-1.5">Type of Funding<InfoTooltip text="How the acquisition is financed. Full Equity means 100% cash investment. Financed means a portion is covered by a mortgage loan." /></Label>

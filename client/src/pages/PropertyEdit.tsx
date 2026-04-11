@@ -357,7 +357,7 @@ export default function PropertyEdit() {
     );
   }
 
-  const handleChange = (key: string, value: string | number | null) => {
+  const handleChange = (key: string, value: string | number | boolean | null) => {
     setDraft({ ...draft, [key]: value });
     setIsDirty(true);
     markGlobalDirty();

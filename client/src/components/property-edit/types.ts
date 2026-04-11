@@ -24,7 +24,7 @@ import type { FeeCategoryResponse } from "@/lib/api";
 
 export interface PropertyEditSectionProps {
   draft: any;
-  onChange: (key: string, value: string | number | null) => void;
+  onChange: (key: string, value: string | number | boolean | null) => void;
   onNumberChange: (key: string, value: string) => void;
   globalAssumptions: any;
   researchValues: Record<string, { display: string; mid: number; source?: string; sourceName?: string; sourceDate?: string }>;
