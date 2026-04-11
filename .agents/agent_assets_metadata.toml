@@ -18,6 +18,12 @@ uri = "file://generated-icon.png"
 type = "image"
 title = "h-plus-analytics-icon"
 
+[[generated]]
+id = "--c1IyX9bR7XJgCSTGocO"
+uri = "file://attached_assets/og-banner.png"
+type = "image"
+title = "h-plus-analytics-og-banner"
+
 [[outputs]]
 id = "h4_9p3fJLsy8dBOuBmAOv"
 uri = "file://.local/tasks/migrate-authors-books-library.md"
