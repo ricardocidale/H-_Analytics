@@ -38,7 +38,7 @@ export async function exportPortfolioPDF(
   const tableConfig = buildFinancialTableConfig(years, rows, orientation, 32, brand);
   autoTable(doc, tableConfig);
 
-  const portfolioFinalY = (doc as any).lastAutoTable?.finalY ?? 100;
+  const portfolioFinalY = doc.lastAutoTable?.finalY ?? 100;
   if (portfolioFinalY > 40) doc.addPage();
   drawTitle(doc, `${companyName} \u2014 ${title} Performance Trend`, 14, 15, { fontSize: 16 }, brand);
   drawSubtitleRow(doc,

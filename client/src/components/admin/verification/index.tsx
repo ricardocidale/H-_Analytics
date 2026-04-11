@@ -173,7 +173,7 @@ export default function VerificationTab() {
       bodyStyles: { halign: "center", fontSize: 10, fontStyle: "bold" },
       margin: { left: 14, right: 14 },
     });
-    y = (doc as any).lastAutoTable.finalY + 8;
+    y = doc.lastAutoTable!.finalY + 8;
 
     if (verificationResults.clientKnownValueTests) {
       doc.setFont("helvetica", "bold");
@@ -228,7 +228,7 @@ export default function VerificationTab() {
         },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 6;
+      y = doc.lastAutoTable!.finalY + 6;
     }
 
     if (verificationResults.companyChecks.length > 0) {
@@ -250,7 +250,7 @@ export default function VerificationTab() {
         },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 6;
+      y = doc.lastAutoTable!.finalY + 6;
     }
 
     if (verificationResults.consolidatedChecks.length > 0) {
@@ -272,7 +272,7 @@ export default function VerificationTab() {
         },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 6;
+      y = doc.lastAutoTable!.finalY + 6;
     }
 
     if (verificationResults.clientAuditReports && verificationResults.clientAuditReports.length > 0) {
@@ -299,7 +299,7 @@ export default function VerificationTab() {
         },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as any).lastAutoTable.finalY + 6;
+      y = doc.lastAutoTable!.finalY + 6;
     }
 
     const pageCount = doc.getNumberOfPages();

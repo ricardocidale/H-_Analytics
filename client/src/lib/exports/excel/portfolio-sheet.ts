@@ -7,6 +7,8 @@ import { LoanParams } from "@/lib/financial/loanCalculations";
 import { propertyEquityInvested, acquisitionYearIndex } from "@/lib/financial/equityCalculations";
 import { propertyPPE } from "@/lib/financial/portfolio-helpers";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
+
+type PortfolioLoanParams = LoanParams & { operationsStartDate?: string | null };
 import {
   applyCurrencyFormat,
   applyHeaderStyle,
@@ -19,9 +21,9 @@ import {
  * consolidated portfolio.
  */
 export async function exportPropertyBalanceSheet(
-  properties: LoanParams[],
-  globalAssumptions: any,
-  allProFormas: { property: LoanParams; data: MonthlyFinancials[] }[],
+  properties: PortfolioLoanParams[],
+  globalAssumptions: Record<string, unknown>,
+  allProFormas: { property: PortfolioLoanParams; data: MonthlyFinancials[] }[],
   years: number,
   modelStartDate: string,
   fiscalYearStartMonth: number,
@@ -59,22 +61,22 @@ export async function exportPropertyBalanceSheet(
       const relevantMonths = proForma.slice(0, monthsToInclude);
 
       const acqYear = acquisitionYearIndex(
-        (prop as any).acquisitionDate,
-        (prop as any).operationsStartDate,
+        prop.acquisitionDate ?? null,
+        prop.operationsStartDate ?? null,
         modelStartDate,
       );
       if (yearIdx < acqYear) return;
 
-      const totalPropValue = propertyPPE((prop as any).purchasePrice, (prop as any).buildingImprovements);
+      const totalPropValue = propertyPPE(prop.purchasePrice, prop.buildingImprovements);
       totalPropertyValue += totalPropValue;
 
       const accDep = relevantMonths.reduce((sum, m) => sum + m.depreciationExpense, 0);
       totalAccDepreciation += accDep;
 
-      const operatingReserve = (prop as any).operatingReserve ?? 0;
+      const operatingReserve = prop.operatingReserve ?? 0;
       totalCashReserves += operatingReserve;
 
-      const equityInvested = propertyEquityInvested(prop as any);
+      const equityInvested = propertyEquityInvested(prop);
       totalEquity += equityInvested;
 
       const lastMonthIdx = monthsToInclude - 1;

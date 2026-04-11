@@ -19,46 +19,47 @@
  *   • Several legacy routes (e.g. /sensitivity, /financing, /map) redirect to their
  *     new consolidated locations.
  */
-import { Switch, Route, Redirect, useLocation } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
-import { setAdminSection as setAdminSectionFn } from "@/lib/admin-nav";
 import {
   ErrorBoundary,
   FinancialErrorBoundary,
 } from "@/components/ErrorBoundary";
-import { Loader2 } from "@/components/icons/themed-icons";
 import NotFound from "@/pages/not-found";
 import { initClientSentry, setClientUser, Sentry } from "@/lib/sentry";
 import { initAnalytics, identifyUser, trackUserLogin } from "@/lib/analytics";
-import { UserRole } from "@shared/constants";
-import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
-import { UnsavedChangesDialog } from "@/components/scenarios";
-import { useAutoSave, useAutoSaveCheck, useLoadScenario } from "@/lib/api/scenarios";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { formatDateTime } from "@/lib/formatters";
+import {
+  PageLoader,
+  ProtectedRoute,
+  AdminRoute,
+  ManagementRoute,
+  CheckerRoute,
+  IcpRedirect,
+} from "./app-guards";
+import {
+  GlobalBeforeUnloadGuard,
+  NavigationGuard,
+  IdleAutoSave,
+  AutoSaveRestorePrompt,
+  LogoutProtectionDialog,
+  ScheduledResearchGate,
+} from "./app-session";
 
 initClientSentry();
-// Defer analytics init to after first paint — not needed for rendering
 if (typeof requestIdleCallback === "function") {
   requestIdleCallback(() => initAnalytics());
 } else {
   setTimeout(initAnalytics, 0);
 }
 
-// Lazy-load Login (pulls Three.js ~600KB via SpinningLogo3D) and ResearchRefreshOverlay (also Three.js)
 const Login = lazy(() => import("@/pages/Login"));
 const ResearchRefreshOverlay = lazy(() =>
   import("@/components/ResearchRefreshOverlay").then(m => ({ default: m.ResearchRefreshOverlay }))
-);
-const ScheduledResearchOverlayLazy = lazy(() =>
-  import("@/components/research/ScheduledResearchOverlay").then(m => ({ default: m.ScheduledResearchOverlay }))
 );
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Company = lazy(() => import("@/pages/Company"));
@@ -90,334 +91,10 @@ const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
 const About = lazy(() => import("@/pages/About"));
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-  </div>
-);
-
-function ProtectedRoute({
-  component: Component,
-}: {
-  component: React.ComponentType;
-}) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <PageLoader />;
-  }
-
-  if (!user) {
-    return <Redirect to="/login" />;
-  }
-
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Component />
-    </Suspense>
-  );
-}
-
-function AdminRoute({
-  component: Component,
-  redirectTo = "/",
-}: {
-  component: React.ComponentType;
-  redirectTo?: string;
-}) {
-  const { user, isLoading, isAdmin } = useAuth();
-
-  if (isLoading) return <PageLoader />;
-  if (!user) return <Redirect to="/login" />;
-  if (!isAdmin) return <Redirect to={redirectTo} />;
-
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Component />
-    </Suspense>
-  );
-}
-
-function ManagementRoute({
-  component: Component,
-}: {
-  component: React.ComponentType;
-}) {
-  const { user, isLoading, hasManagementAccess } = useAuth();
-
-  if (isLoading) return <PageLoader />;
-  if (!user) return <Redirect to="/login" />;
-  if (!hasManagementAccess) return <Redirect to="/" />;
-
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Component />
-    </Suspense>
-  );
-}
-
-function CheckerRoute({
-  component: Component,
-}: {
-  component: React.ComponentType;
-}) {
-  const { user, isLoading, isAdmin } = useAuth();
-
-  if (isLoading) return <PageLoader />;
-  if (!user) return <Redirect to="/login" />;
-
-  const isChecker = isAdmin || user.role === UserRole.CHECKER;
-  if (!isChecker) return <Redirect to="/" />;
-
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Component />
-    </Suspense>
-  );
-}
-
-function IcpRedirect() {
-  const { user, isLoading, hasManagementAccess } = useAuth();
-  if (isLoading) return <PageLoader />;
-  if (!user) return <Redirect to="/login" />;
-  if (!hasManagementAccess) return <Redirect to="/" />;
-  setAdminSectionFn("icp");
-  return <Redirect to="/admin" />;
-}
-
-
-const IDLE_TIMEOUT_MS = 60 * 60 * 1000;
-
-function GlobalBeforeUnloadGuard() {
-  const { isDirty } = useScenarioDirtyState();
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [isDirty]);
-  return null;
-}
-
-function NavigationGuard() {
-  const [location] = useLocation();
-  const [, setLocation] = useLocation();
-  const { isDirty } = useScenarioDirtyState();
-  const [pendingPath, setPendingPath] = useState<string | null>(null);
-  const prevLocationRef = useRef(location);
-  const suppressGuardRef = useRef(false);
-
-  useEffect(() => {
-    if (suppressGuardRef.current) {
-      suppressGuardRef.current = false;
-      prevLocationRef.current = location;
-      return;
-    }
-    if (location !== prevLocationRef.current && isDirty) {
-      const newPath = location;
-      setLocation(prevLocationRef.current);
-      setPendingPath(newPath);
-    } else {
-      prevLocationRef.current = location;
-    }
-  }, [location, isDirty, setLocation]);
-
-  const handleDiscard = () => {
-    if (pendingPath) {
-      suppressGuardRef.current = true;
-      setPendingPath(null);
-      setLocation(pendingPath);
-    }
-  };
-
-  const handleStay = () => {
-    setPendingPath(null);
-  };
-
-  return (
-    <UnsavedChangesDialog
-      open={!!pendingPath}
-      onOpenChange={(v) => { if (!v) handleStay(); }}
-      onDiscard={handleDiscard}
-      onStay={handleStay}
-      context="navigate"
-    />
-  );
-}
-
-function IdleAutoSave() {
-  const { user } = useAuth();
-  const autoSave = useAutoSave();
-  const { toast } = useToast();
-  const lastActivityRef = useRef(Date.now());
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    const updateActivity = () => { lastActivityRef.current = Date.now(); };
-    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
-    events.forEach(e => window.addEventListener(e, updateActivity, { passive: true }));
-
-    timerRef.current = setInterval(() => {
-      const idle = Date.now() - lastActivityRef.current;
-      const { isDirty } = useScenarioDirtyState.getState();
-      if (idle >= IDLE_TIMEOUT_MS && isDirty) {
-        autoSave.mutate(undefined, {
-          onSuccess: () => {
-            useScenarioDirtyState.getState().clearDirty();
-            toast({ title: "Auto-saved", description: "Your work has been auto-saved." });
-          },
-        });
-        lastActivityRef.current = Date.now();
-      }
-    }, 60 * 1000);
-
-    return () => {
-      events.forEach(e => window.removeEventListener(e, updateActivity));
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [user]);
-
-  return null;
-}
-
-function AutoSaveRestorePrompt() {
-  const { user } = useAuth();
-  const { data: autoSaveCheck, isLoading: checkLoading } = useAutoSaveCheck(!!user);
-  const loadScenario = useLoadScenario();
-  const { toast } = useToast();
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    if (autoSaveCheck?.exists && !dismissed) {
-      const sessionKey = `autosave_prompt_${user?.id}`;
-      if (!sessionStorage.getItem(sessionKey)) {
-        setShowPrompt(true);
-      }
-    }
-  }, [autoSaveCheck, user, dismissed]);
-
-  const handleRestore = async () => {
-    try {
-      const res = await fetch("/api/scenarios?kind=autosave", { credentials: "include" });
-      if (res.ok) {
-        const scenarios = await res.json();
-        if (scenarios.length > 0) {
-          await loadScenario.mutateAsync(scenarios[0].id);
-          useScenarioDirtyState.getState().setActiveScenario(scenarios[0].name || "Restored", "autosave");
-          useScenarioDirtyState.getState().clearDirty();
-          toast({ title: "Restored", description: "Your auto-saved work has been restored." });
-        }
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to restore auto-save.", variant: "destructive" });
-    }
-    setShowPrompt(false);
-    setDismissed(true);
-    if (user) sessionStorage.setItem(`autosave_prompt_${user.id}`, "1");
-  };
-
-  const handleStartFresh = async () => {
-    try {
-      await fetch("/api/scenarios/auto-save", { method: "DELETE", credentials: "include" }).catch(() => { /* ignore: auto-save cleanup is best-effort */ });
-    } catch {
-      // best-effort cleanup — auto-save deletion is non-critical
-    }
-    setShowPrompt(false);
-    setDismissed(true);
-    if (user) sessionStorage.setItem(`autosave_prompt_${user.id}`, "1");
-  };
-
-  if (!showPrompt || !autoSaveCheck?.exists) return null;
-
-  return (
-    <Dialog open={showPrompt} onOpenChange={(v) => { if (!v) handleStartFresh(); }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display">Restore Unsaved Work?</DialogTitle>
-          <DialogDescription className="label-text">
-            You have unsaved work from {autoSaveCheck.updatedAt ? formatDateTime(autoSaveCheck.updatedAt) : "a previous session"}. Would you like to restore it or start fresh?
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={handleStartFresh} data-testid="button-start-fresh">
-            Start Fresh
-          </Button>
-          <Button onClick={handleRestore} disabled={loadScenario.isPending} data-testid="button-restore-autosave">
-            {loadScenario.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Restore
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function LogoutProtectionDialog() {
-  const { logoutPending, confirmLogout, cancelLogout } = useAuth();
-
-  return (
-    <UnsavedChangesDialog
-      open={logoutPending}
-      onOpenChange={(v) => { if (!v) cancelLogout(); }}
-      onDiscard={confirmLogout}
-      onStay={cancelLogout}
-      context="logout"
-    />
-  );
-}
-
-function ScheduledResearchGate() {
-  const { user } = useAuth();
-  const [staleWorkflows, setStaleWorkflows] = useState<any[]>([]);
-  const [show, setShow] = useState(false);
-  const checkedRef = useRef(false);
-
-  useEffect(() => {
-    if (!user || user.role !== "admin" || checkedRef.current) return;
-    checkedRef.current = true;
-
-    const sessionKey = `hbg_sched_research_${user.id}`;
-    const lastCheck = sessionStorage.getItem(sessionKey);
-    const fiveMinAgo = Date.now() - 5 * 60 * 1000;
-    if (lastCheck && parseInt(lastCheck) > fiveMinAgo) return;
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch("/api/research/scheduled/check-stale", { credentials: "include" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.hasStale && data.workflows.length > 0) {
-          setStaleWorkflows(data.workflows);
-          setShow(true);
-        }
-        sessionStorage.setItem(sessionKey, String(Date.now()));
-      } catch { /* silent */ }
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [user]);
-
-  if (!show || staleWorkflows.length === 0) return null;
-
-  return (
-    <Suspense fallback={null}>
-      <ScheduledResearchOverlayLazy
-        workflows={staleWorkflows}
-        onDismiss={() => {
-          setShow(false);
-          sessionStorage.setItem(`hbg_sched_research_${user?.id}`, String(Date.now()));
-        }}
-      />
-    </Suspense>
-  );
-}
-
-/** Router — declares all client-side routes and handles the research refresh overlay. */
 function Router() {
   const { user, isLoading } = useAuth();
   const [showResearchRefresh, setShowResearchRefresh] = useState(false);
-  const prevUserRef = useRef<any>(null);
+  const prevUserRef = useRef<unknown>(null);
 
   useEffect(() => {
     if (user) {
@@ -482,11 +159,7 @@ function Router() {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

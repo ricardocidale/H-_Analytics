@@ -86,7 +86,7 @@ export function useSensitivityExports({
     }
 
     if (tornadoData.length) {
-      const finalY = (doc as any).lastAutoTable?.finalY ?? 80;
+      const finalY = doc.lastAutoTable?.finalY ?? 80;
       doc.setFontSize(13);
       doc.setTextColor(40);
       doc.text(`Tornado Chart — Impact on ${tornadoMetric === "irr" ? "IRR (pp)" : "NOI (%)"}`, 14, finalY + 12);

@@ -133,7 +133,7 @@ export async function exportPropertyCashFlow(
   const cfData = aggregateCashFlowByYear(data, property, global, years);
   const loan = calculateLoanParams(property, global);
   const acquisitionYear = getAcquisitionYear(loan);
-  const totalPropertyCost = (property as any).purchasePrice + ((property as any).buildingImprovements ?? 0) + ((property as any).preOpeningCosts ?? 0);
+  const totalPropertyCost = property.purchasePrice + (property.buildingImprovements ?? 0) + (property.preOpeningCosts ?? 0);
 
   const s = computeCashFlowSections(yearly, cfData, loan, acquisitionYear, totalPropertyCost, years);
 
@@ -231,7 +231,7 @@ export async function exportFullPropertyWorkbook(
   const cfData = aggregateCashFlowByYear(data, property, global, years);
   const loan = calculateLoanParams(property, global);
   const acquisitionYear = getAcquisitionYear(loan);
-  const totalPropertyCost = (property as any).purchasePrice + ((property as any).buildingImprovements ?? 0) + ((property as any).preOpeningCosts ?? 0);
+  const totalPropertyCost = property.purchasePrice + (property.buildingImprovements ?? 0) + (property.preOpeningCosts ?? 0);
 
   const wb = XLSX.utils.book_new();
   const safeCompany = (companyName || "Portfolio").replace(/[^a-zA-Z0-9 &\-]/g, "").substring(0, 40);
@@ -309,8 +309,8 @@ export async function exportFullPropertyWorkbook(
   XLSX.utils.book_append_sheet(wb, cfWs, "Cash Flow");
 
   const yearLabels = yearly.map(y => y.label);
-  const ppe = (property as any).purchasePrice + ((property as any).buildingImprovements ?? 0);
-  const equityInvestedVal = propertyEquityInvested(property as any);
+  const ppe = property.purchasePrice + (property.buildingImprovements ?? 0);
+  const equityInvestedVal = propertyEquityInvested(property);
 
   const bsYearlyData = Array.from({ length: years }, (_, y) => {
     const monthsToInclude = (y + 1) * MONTHS_PER_YEAR;
@@ -319,7 +319,7 @@ export async function exportFullPropertyWorkbook(
     if (!lastMonth) return { accDep: 0, cash: 0, netPropValue: ppe, totalAssets: ppe, debt: 0, retained: 0 };
 
     const accDep = relevantMonths.reduce((sum, m) => sum + m.depreciationExpense, 0);
-    const operatingReserve = (property as any).operatingReserve ?? 0;
+    const operatingReserve = property.operatingReserve ?? 0;
     const cumulativeANOI = relevantMonths.reduce((sum, m) => sum + m.anoi, 0);
     const cumulativeDS = relevantMonths.reduce((sum, m) => sum + m.interestExpense + m.principalPayment, 0);
     const cumulativeTax = relevantMonths.reduce((sum, m) => sum + m.incomeTax, 0);

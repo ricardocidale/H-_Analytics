@@ -73,4 +73,5 @@ INSTALL-COST*.txt
 # Replit agent artifacts
 memory.md
 skills-lock.json
+.claude/settings.local.json
 

@@ -42,7 +42,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Multi-Tenancy:** Supports users, groups, logos, themes, and branding for multiple entities.
 - **LLM Integration:** Features a dual-model configuration (primary + fallback) for AI-powered functionalities across 7 domains.
 - **Input Validation & Rate Limiting:** All mutation endpoints use Zod schema validation. Rate limiting is applied to compute-heavy endpoints.
-- **Code Quality & Audit:** ESLint, Husky pre-commit hooks, and GitHub CI workflows enforce coding standards and TypeScript. Deep audit tests cover data-flow integrity and system security.
+- **Code Quality & Audit:** ESLint (covers `calc/`, `client/src/`, `server/`; `no-unused-vars: warn`, `no-console: warn`), Husky pre-commit hooks, and GitHub CI workflows enforce coding standards and TypeScript. Quick Audit runs 13 guardrail checks (catch compliance, brand hex, prop-any tracking, `as any` budget ≤100). Deep audit tests cover data-flow integrity and system security.
 - **Observability:** Structured logging, client-side error boundaries (Sentry.ErrorBoundary, ErrorBoundary, FinancialErrorBoundary), activity logging, Sentry for error tracking, PostHog for analytics, Upstash Redis for caching, and circuit breakers. Health endpoints monitor system status.
 - **Image Processing:** Server-side Sharp pipeline for responsive WebP/AVIF image variants.
 - **Research Intelligence Redesign (Task #287):** A major architectural evolution of the research system, introducing a Star Rating System, Hotel vs Resort Classification, Entity Context Packs, 3-Tier Intelligence (ambient, entity-scoped, deep-dive), Progressive Relaxation for comparable sets, and Rebecca as a conversational AI layer for guidance. 13 new V2 database tables implemented. Phases 1-3 complete (T1-T18). Phase 4 complete (T19-T24): Rebecca 520px panel with context card, server-side context injection with IDOR prevention, Super Conversations with history persistence, email summaries + feedback system, RAG expansion with multi-namespace Pinecone queries, and admin tabs (Configuration, Conversations, Feedback). Phase 5 complete: All Engine Observatory components wired — CoverageAnalyticsDashboard, SystemIntelligenceStatus, ApiDashboardGrid, and MethodologyOverview in EngineDashboard; SourceRegistryOverlay in DataSourcesTab. QASandbox, ModelRoutingPanel, PipelinePoliciesForm already wired. Help pages and glossary enriched with chain scale, business model, and research intelligence terms.
@@ -143,7 +143,7 @@ npm run test:summary   # All 4,463 tests, 183 files (~35s)
 npm run verify:summary # 15-phase financial verification (~25s)
 npm run lint:summary   # TypeScript check only (<10s)
 npm run stats          # File/line/test counts (<5s, no vitest)
-npm run audit:quick    # Code quality: 10 checks — any, catch-any, error casts, TODO, etc (<3s)
+npm run audit:quick    # Code quality: 13 checks — any, catch-any, error casts, brand hex, prop-any (<3s)
 npm run exports:check  # Unused export detection (<5s)
 npm run diff:summary   # Git status + diff stats (<1s)
 npm run db:push        # Push schema changes

@@ -324,7 +324,7 @@ export async function exportDashboardComprehensivePDF(params: ComprehensiveDashb
           didDrawPage: (data: any) => { if (data.pageNumber > 1) drawPageChrome(); },
         });
         if (cfg.overview.aiInsights) {
-          const afterTableY = (doc as any).lastAutoTable?.finalY ?? (startY! + 60);
+          const afterTableY = doc.lastAutoTable?.finalY ?? (startY! + 60);
           const { kpis } = { kpis: overviewData.portfolioKPIs };
           const insightLines = [
             `Markets: ${Object.entries(overviewData.marketCounts).map(([m, c]) => `${m} (${c})`).join(", ")}`,

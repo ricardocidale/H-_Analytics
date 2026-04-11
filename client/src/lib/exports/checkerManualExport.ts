@@ -173,7 +173,7 @@ export async function exportManualPDF(user: { email?: string; role?: string; com
         headStyles: { fillColor: [26, 46, 61], textColor: [255, 255, 255], fontStyle: "bold" },
         alternateRowStyles: { fillColor: [245, 245, 245] },
       });
-      y = (doc as any).lastAutoTable.finalY + 8;
+      y = doc.lastAutoTable!.finalY + 8;
     }
   };
 
@@ -373,7 +373,7 @@ export async function exportFullData(user: { email?: string; role?: string; comp
       headStyles: { fillColor: [26, 46, 61], textColor: [255, 255, 255], fontStyle: "bold" },
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
-    y = (doc as any).lastAutoTable.finalY + 8;
+    y = doc.lastAutoTable!.finalY + 8;
   };
 
   addTable("Global Assumptions", ["Parameter", "Value"], [

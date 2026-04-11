@@ -145,7 +145,7 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 - **Calculation Checker Consolidation (Phase 6)** (Task #273) — Added `reconcileSchedule` adapter to `server/calculation-checker/adapters.ts`. All 3 `calc/validation` modules now wired: `validateFinancialIdentities`, `checkFundingGates`, `reconcileSchedule`. Independent amortization schedule computation via `calc/shared/pmt.ts`. Boundary enforcement test prevents `@engine/` imports in checker code.
 - **Deep Re-Audit & Final Quality Gate** (Task #268) — 6 audit test files in `tests/audit/` covering: data-flow integrity (engine pipeline trace, chain identity, precision, determinism), cache invalidation (hit/miss/clear, mutation path coverage, consistency under repeated access), scenario save/load (roundtrip hash, consolidation, persistence infra), endpoint security (auth, rate limiting, Zod validation, no hardcoded secrets), export parity (verifyExport checks, pipeline structure, hash stability), integration pipeline (engine→service→export contract verification, portfolio consolidation parity, scenario persistence roundtrip simulation, export data shape contracts, file-based server structure verification).
 - **Zod Validation + Rate Limiting** (Task #266) — All unprotected POST/PUT/PATCH handlers now use Zod schema validation. `marketRatePatchSchema` uses `z.coerce.number` for backward compat. Rate limiting on compute-heavy endpoints.
-- **ESLint CI + Pre-Commit Hooks** (Task #267) — ESLint flat config (`eslint.config.mjs`) scoped to `calc/` and `engine/` bans `Math.pow`, `|| 0`, `as any`, bare `any`, `safeNum`. Husky pre-commit hooks + lint-staged. `.github/workflows/ci.yml` for PR enforcement.
+- **ESLint CI + Pre-Commit Hooks** (Task #267) — ESLint flat config (`eslint.config.mjs`) scoped to `calc/`, `client/src/`, `server/` with `no-unused-vars: warn`, `no-console: warn`. Finance code (`calc/`, `engine/`) has stricter rules banning `Math.pow`, `|| 0`, `as any`, bare `any`, `safeNum`. Husky pre-commit hooks + lint-staged. `.github/workflows/ci.yml` for PR enforcement.
 
 ## Recent Changes (April 3, 2026)
 
@@ -365,7 +365,7 @@ npm run test:summary   # All 4,463 tests, 183 files (~35s)
 npm run verify:summary # 15-phase financial verification (~25s)
 npm run lint:summary   # TypeScript check only (<10s)
 npm run stats          # File/line/test counts (<5s, no vitest)
-npm run audit:quick    # Code quality: 10 checks — any, catch-any, error casts, TODO, etc (<3s)
+npm run audit:quick    # Code quality: 13 checks — any, catch-any, error casts, brand hex, prop-any (<3s)
 npm run exports:check  # Unused export detection (<5s)
 npm run diff:summary   # Git status + diff stats (<1s)
 npm run db:push        # Push schema changes
