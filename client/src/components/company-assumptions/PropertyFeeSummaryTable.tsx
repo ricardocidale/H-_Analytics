@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { IconTrending } from "@/components/icons";
 import { formatPercent } from "@/lib/financialEngine";
+import { Badge } from "@/components/ui/badge";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -54,12 +55,20 @@ export function PropertyFeeSummaryTable({ properties, allFeeCategories }: Proper
                   <tr><td colSpan={hasCategoryData ? allCatNames.length + 3 : 3} className="px-4 py-3 text-center text-muted-foreground">No properties configured</td></tr>
                 ) : (
                   properties.map((prop) => {
+                    const isInactive = prop.isActive === false;
                     const propCats = allFeeCategories.filter(c => c.propertyId === prop.id);
                     const propTotalServiceRate = propCats.filter(c => c.isActive).reduce((sum, c) => sum + c.rate, 0);
                     return (
-                      <tr key={prop.id} className="border-b border-primary/10 last:border-b-0 hover:bg-primary/5">
+                      <tr key={prop.id} className={`border-b border-primary/10 last:border-b-0 ${isInactive ? 'opacity-60 saturate-50' : 'hover:bg-primary/5'}`} data-testid={`row-fee-property-${prop.id}`}>
                         <td className="px-4 py-2 text-foreground whitespace-nowrap">
-                          <Link href={`/property/${prop.id}/edit`} className="text-primary hover:underline">{prop.name}</Link>
+                          <span className="flex items-center gap-2">
+                            <Link href={`/property/${prop.id}/edit`} className={`hover:underline ${isInactive ? 'text-muted-foreground' : 'text-primary'}`}>{prop.name}</Link>
+                            {isInactive && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400" data-testid={`badge-excluded-${prop.id}`}>
+                                Excluded
+                              </Badge>
+                            )}
+                          </span>
                         </td>
                         {hasCategoryData ? (
                           <>

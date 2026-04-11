@@ -220,6 +220,20 @@ export default function PropertyDetail() {
           onPhotoUploadComplete={handlePhotoUploadComplete}
         />
 
+        {property.isActive === false && (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20" data-testid="banner-property-inactive">
+            <IconAlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                This property is excluded from portfolio calculations.
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                Toggle &ldquo;Included in portfolio&rdquo; on the <Link href="/portfolio" className="underline hover:no-underline">Portfolio page</Link> to re-include it.
+              </p>
+            </div>
+          </div>
+        )}
+
         {property.description && (
           <div className="rounded-lg border border-border bg-card shadow-sm p-5" data-testid="card-property-description">
             <p className="text-xs font-medium text-muted-foreground mb-2 label-text">Property Description</p>
