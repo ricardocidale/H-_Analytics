@@ -12,6 +12,12 @@ uri = "file://attached_assets/rebecca-portrait.png"
 type = "image"
 title = "Rebecca AI portrait"
 
+[[generated]]
+id = "3XQqwfpaemF7c5VwDtvKQ"
+uri = "file://generated-icon.png"
+type = "image"
+title = "h-plus-analytics-icon"
+
 [[outputs]]
 id = "h4_9p3fJLsy8dBOuBmAOv"
 uri = "file://.local/tasks/migrate-authors-books-library.md"
