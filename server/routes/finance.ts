@@ -160,11 +160,24 @@ export function registerFinanceRoutes(router: Router): void {
       const properties = allProperties.filter((p: Record<string, unknown>) => p.isActive !== false);
       const wantAudit = req.query.audit === "true";
 
+      // Load service templates for company cost-of-services calculation
+      const allTemplates = await storage.getAllServiceTemplates();
+      const serviceTemplates = allTemplates.map(t => ({
+        id: t.id,
+        name: t.name,
+        defaultRate: Number(t.defaultRate) || 0,
+        serviceModel: t.serviceModel as "centralized" | "direct",
+        serviceMarkup: Number(t.serviceMarkup) || 0,
+        isActive: t.isActive,
+        sortOrder: t.sortOrder ?? 0,
+      }));
+
       const { result, auditTrails } = computePortfolioProjectionWithAudit(
         {
           properties: properties as PropertyInput[],
           globalAssumptions: globalAssumptions as GlobalInput,
           projectionYears,
+          serviceTemplates,
         },
         wantAudit,
       );
@@ -261,10 +274,23 @@ export function registerFinanceRoutes(router: Router): void {
       // Defense-in-depth: exclude inactive properties even if client already filtered
       const properties = allCompanyProps.filter((p: Record<string, unknown>) => p.isActive !== false);
 
+      // Load service templates for company cost-of-services calculation
+      const allTemplates = await storage.getAllServiceTemplates();
+      const serviceTemplates = allTemplates.map(t => ({
+        id: t.id,
+        name: t.name,
+        defaultRate: Number(t.defaultRate) || 0,
+        serviceModel: t.serviceModel as "centralized" | "direct",
+        serviceMarkup: Number(t.serviceMarkup) || 0,
+        isActive: t.isActive,
+        sortOrder: t.sortOrder ?? 0,
+      }));
+
       const result = computeCompanyProjection({
         properties: properties as PropertyInput[],
         globalAssumptions: globalAssumptions as GlobalInput,
         projectionYears,
+        serviceTemplates,
       });
 
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);

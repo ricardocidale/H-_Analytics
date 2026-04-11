@@ -3,6 +3,7 @@ import { requireAdmin } from "../../auth";
 import { updateServiceTemplateSchema, insertServiceTemplateSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { storage } from "../../storage";
+import { invalidateComputeCache } from "../../finance/cache";
 import { logAndSendError, logActivity, parseParamId } from "../helpers";
 
 export function registerServiceRoutes(app: Express) {
@@ -28,6 +29,7 @@ export function registerServiceRoutes(app: Express) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
       const template = await storage.createServiceTemplate(validation.data);
+      invalidateComputeCache();
       logActivity(req, "create-service-template", "service-template", template.id, template.name);
       res.status(201).json(template);
     } catch (error: unknown) {
@@ -47,6 +49,7 @@ export function registerServiceRoutes(app: Express) {
 
       const template = await storage.updateServiceTemplate(id, validation.data);
       if (!template) return res.status(404).json({ error: "Service template not found" });
+      invalidateComputeCache();
       logActivity(req, "update-service-template", "service-template", id, template.name);
       res.json(template);
     } catch (error: unknown) {
@@ -63,6 +66,7 @@ export function registerServiceRoutes(app: Express) {
       if (!existing) return res.status(404).json({ error: "Service template not found" });
 
       await storage.deleteServiceTemplate(id);
+      invalidateComputeCache();
       logActivity(req, "delete-service-template", "service-template", id, existing.name);
       res.json({ success: true });
     } catch (error: unknown) {
@@ -73,6 +77,7 @@ export function registerServiceRoutes(app: Express) {
   app.post("/api/admin/service-templates/sync", requireAdmin, async (_req, res) => {
     try {
       const result = await storage.syncTemplatesToProperties();
+      invalidateComputeCache();
       res.json({
         message: `Sync complete: ${result.created} fee categories created, ${result.skipped} already existed`,
         ...result,

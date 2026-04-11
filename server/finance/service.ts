@@ -4,6 +4,7 @@ import { consolidateYearlyFinancials } from "./core/consolidation";
 import { validateFinancialIdentities } from "@calc/validation/financial-identities";
 import { stableHash } from "../scenarios/stable-json";
 import type { PropertyInput, GlobalInput, MonthlyFinancials, CompanyMonthlyFinancials, CompanyYearlyFinancials } from "@engine/types";
+import type { ServiceTemplate } from "@calc/services/types";
 import type { YearlyPropertyFinancials } from "@engine/aggregation/yearlyAggregator";
 import type { PortfolioComputeResult, SinglePropertyComputeResult } from "./core/types";
 import { MONTHS_PER_YEAR } from "@shared/constants";
@@ -25,6 +26,7 @@ export interface ComputePortfolioInput {
   properties: PropertyInput[];
   globalAssumptions: GlobalInput;
   projectionYears?: number;
+  serviceTemplates?: ServiceTemplate[];
 }
 
 export interface ComputeSinglePropertyInput {
@@ -37,6 +39,7 @@ export interface ComputeCompanyInput {
   properties: PropertyInput[];
   globalAssumptions: GlobalInput;
   projectionYears?: number;
+  serviceTemplates?: ServiceTemplate[];
 }
 
 export interface CompanyComputeResult {
@@ -179,7 +182,7 @@ export function computePortfolioProjectionWithAudit(
 
   const validationSummary = runValidation(allPropertyYearlyArrays);
 
-  const companyMonthly = generateCompanyProForma(input.properties, input.globalAssumptions, months);
+  const companyMonthly = generateCompanyProForma(input.properties, input.globalAssumptions, months, input.serviceTemplates);
   const companyYearly = aggregateCompanyByYear(companyMonthly, projectionYears);
 
   const outputPayload = { perPropertyYearly, perPropertyMonthly, consolidatedYearly, companyMonthly, companyYearly };
@@ -283,6 +286,7 @@ export function computeCompanyProjection(
     input.properties,
     input.globalAssumptions,
     months,
+    input.serviceTemplates,
   );
   const companyYearly = aggregateCompanyByYear(companyMonthly, projectionYears);
 
