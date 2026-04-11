@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-Business simulation portal for **Hospitality Business Group**. Models a boutique hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). 1055 source files, ~174K lines, 4,495 tests across 185 test files. 15-phase verification pipeline. Hosted on Replit.
+Business simulation portal for **Hospitality Business Group**. Models a boutique hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). 1056 source files, ~174K lines, 4,495 tests across 185 test files. 15-phase verification pipeline. Hosted on Replit.
 
 > **Rebecca** is the sole active AI agent. Marcela voice agent, ElevenLabs, and Twilio integrations have been fully removed.
 

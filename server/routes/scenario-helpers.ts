@@ -7,6 +7,7 @@ import type {
   ScenarioPropertySnapshot,
   ScenarioFeeCategorySnapshot,
   ScenarioPhotoSnapshot,
+  ScenarioServiceTemplateSnapshot,
 } from "@shared/schema";
 import { computeFullDiff, reconstructScenarioProperties } from "../scenarios/diff-engine";
 import { computePortfolioProjection } from "../finance/service";
@@ -102,7 +103,7 @@ export async function ensureDefaultScenario(userId: number): Promise<void> {
   const initials = (fi + li) || user.email.split("@")[0].slice(0, 2).toUpperCase();
   const name = `${initials} Default Scenario`;
 
-  const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, diffResult } = await buildCreateSnapshotData(userId);
+  const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates, diffResult } = await buildCreateSnapshotData(userId);
   const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps);
 
   try {
@@ -114,6 +115,7 @@ export async function ensureDefaultScenario(userId: number): Promise<void> {
       properties: scenarioProps,
       feeCategories: propertyFeeCategories,
       propertyPhotos,
+      serviceTemplates,
       computedResults,
       computeHash,
       kind: "default",
@@ -156,6 +158,17 @@ export async function buildCreateSnapshotData(userId: number) {
     propertyFeeCategories[feeKey] = (feeCatsByPropId[p.id] || []) as ScenarioFeeCategorySnapshot[];
   }
 
+  const allTemplates = await storage.getAllServiceTemplates();
+  const serviceTemplates: ScenarioServiceTemplateSnapshot[] = allTemplates.map(t => ({
+    id: t.id,
+    name: t.name,
+    defaultRate: t.defaultRate,
+    serviceModel: t.serviceModel,
+    serviceMarkup: t.serviceMarkup,
+    isActive: t.isActive,
+    sortOrder: t.sortOrder,
+  }));
+
   const scenarioGA: ScenarioGlobalAssumptionsSnapshot = (assumptions || {}) as ScenarioGlobalAssumptionsSnapshot;
   const scenarioProps: ScenarioPropertySnapshot[] = (properties || []) as ScenarioPropertySnapshot[];
   const diffResult = computeFullDiff(
@@ -165,7 +178,7 @@ export async function buildCreateSnapshotData(userId: number) {
     scenarioProps
   );
 
-  return { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, diffResult };
+  return { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates, diffResult };
 }
 
 export function tryComputeResults(

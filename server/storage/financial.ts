@@ -1,4 +1,4 @@
-import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, scenarioAccess, propertyFeeCategories, propertyPhotos, scenarioResults, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type ScenarioShare, type ScenarioAccess, type ScenarioResult, type InsertScenarioResult, type FeeCategory, type InsertFeeCategory, type UpdateFeeCategory, properties, users } from "@shared/schema";
+import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, scenarioAccess, propertyFeeCategories, propertyPhotos, scenarioResults, companyServiceTemplates, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type ScenarioShare, type ScenarioAccess, type ScenarioResult, type InsertScenarioResult, type FeeCategory, type InsertFeeCategory, type UpdateFeeCategory, properties, users } from "@shared/schema";
 import { db } from "../db";
 import { eq, desc, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
@@ -107,6 +107,37 @@ async function syncFeeCategories(
         await tx.delete(propertyFeeCategories)
           .where(eq(propertyFeeCategories.id, liveCat.id));
       }
+    }
+  }
+}
+
+async function syncServiceTemplates(
+  tx: DbOrTx,
+  savedTemplates: Array<Record<string, unknown>>,
+): Promise<void> {
+  const liveTemplates = await tx.select().from(companyServiceTemplates);
+  const liveByName = new Map(liveTemplates.map(t => [t.name, t]));
+  const snapshotNames = new Set<string>();
+
+  for (const tmpl of savedTemplates) {
+    const name = tmpl.name as string;
+    snapshotNames.add(name);
+    const { id: _id, createdAt: _created, ...tmplData } = tmpl;
+    const existing = liveByName.get(name);
+    if (existing) {
+      await tx.update(companyServiceTemplates)
+        .set(stripAutoFields(tmplData) as typeof companyServiceTemplates.$inferInsert)
+        .where(eq(companyServiceTemplates.id, existing.id));
+    } else {
+      await tx.insert(companyServiceTemplates)
+        .values(stripAutoFields(tmplData) as typeof companyServiceTemplates.$inferInsert);
+    }
+  }
+
+  for (const live of liveTemplates) {
+    if (!snapshotNames.has(live.name)) {
+      await tx.delete(companyServiceTemplates)
+        .where(eq(companyServiceTemplates.id, live.id));
     }
   }
 }
@@ -352,12 +383,15 @@ export class FinancialStorage {
     properties: any;
     feeCategories?: any;
     propertyPhotos?: any;
+    serviceTemplates?: any;
     computedResults?: any;
     computeHash?: string | null;
   }): Promise<Scenario | undefined> {
-    const { globalAssumptions, properties: props, feeCategories, propertyPhotos: photos, computedResults, computeHash } = data;
+    const { globalAssumptions, properties: props, feeCategories, propertyPhotos: photos, serviceTemplates, computedResults, computeHash } = data;
+    const setData: Record<string, unknown> = { globalAssumptions, properties: props, feeCategories, propertyPhotos: photos, computedResults, computeHash, updatedAt: new Date() };
+    if (serviceTemplates !== undefined) setData.serviceTemplates = serviceTemplates;
     const [updated] = await db.update(scenarios)
-      .set({ globalAssumptions, properties: props, feeCategories, propertyPhotos: photos, computedResults, computeHash, updatedAt: new Date() })
+      .set(setData)
       .where(eq(scenarios.id, scenarioId))
       .returning();
 
@@ -431,7 +465,7 @@ export class FinancialStorage {
    * Photos are never touched in either path — they remain attached to their
    * property via property_id, which is stable across loads.
    */
-  async loadScenario(userId: number, savedAssumptions: Record<string, unknown>, savedProperties: Array<Record<string, unknown>>, savedFeeCategories?: Record<string, Array<Record<string, unknown>>>, _savedPropertyPhotos?: Record<string, Array<Record<string, unknown>>>): Promise<void> {
+  async loadScenario(userId: number, savedAssumptions: Record<string, unknown>, savedProperties: Array<Record<string, unknown>>, savedFeeCategories?: Record<string, Array<Record<string, unknown>>>, _savedPropertyPhotos?: Record<string, Array<Record<string, unknown>>>, savedServiceTemplates?: Array<Record<string, unknown>>): Promise<void> {
     await db.transaction(async (tx) => {
       const { id: _gaId, createdAt: _gaCreated, updatedAt: _gaUpdated, userId: _gaUser, ...gaData } = savedAssumptions;
 
@@ -457,6 +491,10 @@ export class FinancialStorage {
 
       if (savedFeeCategories) {
         await syncFeeCategories(tx, resolvedProperties, savedFeeCategories);
+      }
+
+      if (savedServiceTemplates) {
+        await syncServiceTemplates(tx, savedServiceTemplates);
       }
     });
   }

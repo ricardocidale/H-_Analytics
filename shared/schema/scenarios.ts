@@ -12,6 +12,7 @@ import type {
   ScenarioPhotoSnapshot,
   ScenarioImagesSnapshot,
   ScenarioPropertyOverrideData,
+  ScenarioServiceTemplateSnapshot,
 } from "./types/jsonb-shapes";
 
 export interface ComputedResultsSnapshot {
@@ -34,6 +35,7 @@ export const scenarios = pgTable("scenarios", {
   scenarioImages: jsonb("scenario_images").$type<ScenarioImagesSnapshot>(),
   feeCategories: jsonb("fee_categories").$type<Record<string, ScenarioFeeCategorySnapshot[]>>(),
   propertyPhotos: jsonb("property_photos").$type<Record<string, ScenarioPhotoSnapshot[]>>(),
+  serviceTemplates: jsonb("service_templates").$type<ScenarioServiceTemplateSnapshot[]>(),
   computedResults: jsonb("computed_results").$type<ComputedResultsSnapshot | null>(),
   computeHash: text("compute_hash"),
   version: integer("version").notNull().default(1),
@@ -137,6 +139,7 @@ export const insertScenarioSchema = createInsertSchema(scenarios).pick({
   scenarioImages: true,
   feeCategories: true,
   propertyPhotos: true,
+  serviceTemplates: true,
   computedResults: true,
   computeHash: true,
   version: true,

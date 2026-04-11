@@ -1,4 +1,5 @@
-import { globalAssumptions, scenarios, scenarioShares, scenarioAccess, scenarioResults, properties, users, propertyFeeCategories, propertyPhotos, type GlobalAssumptions, type Scenario, type ScenarioShare, type ScenarioAccess, type ScenarioResult, type InsertScenarioResult } from "@shared/schema";
+import { globalAssumptions, scenarios, scenarioShares, scenarioAccess, scenarioResults, properties, users, propertyFeeCategories, propertyPhotos, companyServiceTemplates, type GlobalAssumptions, type Scenario, type ScenarioShare, type ScenarioAccess, type ScenarioResult, type InsertScenarioResult } from "@shared/schema";
+import type { ScenarioServiceTemplateSnapshot } from "@shared/schema/types/jsonb-shapes";
 import { db } from "../db";
 import { eq, desc, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
 
@@ -15,6 +16,7 @@ export class FinancialSharingStorage {
         scenarioImages: scenarios.scenarioImages,
         feeCategories: scenarios.feeCategories,
         propertyPhotos: scenarios.propertyPhotos,
+        serviceTemplates: scenarios.serviceTemplates,
         computedResults: scenarios.computedResults,
         computeHash: scenarios.computeHash,
         version: scenarios.version,
@@ -48,6 +50,7 @@ export class FinancialSharingStorage {
       scenarioImages: r.scenarioImages,
       feeCategories: r.feeCategories,
       propertyPhotos: r.propertyPhotos,
+      serviceTemplates: r.serviceTemplates,
       computedResults: r.computedResults,
       computeHash: r.computeHash,
       version: r.version,
@@ -126,6 +129,17 @@ export class FinancialSharingStorage {
       photosByProp[p.name] = photoRows.filter(ph => ph.propertyId === p.id);
     }
 
+    const allTemplates = await db.select().from(companyServiceTemplates);
+    const svcTemplates: ScenarioServiceTemplateSnapshot[] = allTemplates.map(t => ({
+      id: t.id,
+      name: t.name,
+      defaultRate: t.defaultRate,
+      serviceModel: t.serviceModel,
+      serviceMarkup: t.serviceMarkup,
+      isActive: t.isActive,
+      sortOrder: t.sortOrder,
+    }));
+
     const [scenario] = await db.insert(scenarios).values({
       userId,
       name: data.name,
@@ -134,6 +148,7 @@ export class FinancialSharingStorage {
       properties: allProps || [],
       feeCategories: feeCatsByProp,
       propertyPhotos: photosByProp,
+      serviceTemplates: svcTemplates,
       ...(data.kind ? { kind: data.kind } : {}),
     } as typeof scenarios.$inferInsert).returning();
     return scenario;

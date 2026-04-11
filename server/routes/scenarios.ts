@@ -50,7 +50,7 @@ export function register(app: Express) {
   app.post("/api/scenarios/auto-save", requireManagementAccess, async (req, res) => {
     try {
       const user = getAuthUser(req);
-      const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos } = await buildCreateSnapshotData(user.id);
+      const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates } = await buildCreateSnapshotData(user.id);
       const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps);
 
       const existing = await storage.getAutoSaveScenario(user.id);
@@ -60,6 +60,7 @@ export function register(app: Express) {
           properties: scenarioProps,
           feeCategories: propertyFeeCategories,
           propertyPhotos,
+          serviceTemplates,
           computedResults,
           computeHash,
         });
@@ -77,6 +78,7 @@ export function register(app: Express) {
             properties: scenarioProps,
             feeCategories: propertyFeeCategories,
             propertyPhotos,
+            serviceTemplates,
             computedResults,
             computeHash,
             kind: "autosave",
@@ -92,6 +94,7 @@ export function register(app: Express) {
                 properties: scenarioProps,
                 feeCategories: propertyFeeCategories,
                 propertyPhotos,
+                serviceTemplates,
                 computedResults,
                 computeHash,
               });
@@ -140,7 +143,7 @@ export function register(app: Express) {
         return res.status(400).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
       }
 
-      const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, diffResult } =
+      const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates, diffResult } =
         await buildCreateSnapshotData(user.id);
 
       const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps);
@@ -153,6 +156,7 @@ export function register(app: Express) {
         properties: scenarioProps,
         feeCategories: propertyFeeCategories,
         propertyPhotos: propertyPhotos,
+        serviceTemplates,
         computedResults,
         computeHash,
         version: 1,
@@ -237,7 +241,8 @@ export function register(app: Express) {
         scenario.globalAssumptions,
         snapshotProps,
         scenario.feeCategories ?? undefined,
-        scenario.propertyPhotos ?? undefined
+        scenario.propertyPhotos ?? undefined,
+        scenario.serviceTemplates ?? undefined
       );
 
       invalidateComputeCache();

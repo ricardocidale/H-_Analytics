@@ -106,6 +106,17 @@ export interface ScenarioPhotoSnapshot {
   [key: string]: unknown;
 }
 
+export interface ScenarioServiceTemplateSnapshot {
+  id?: number;
+  name: string;
+  defaultRate: number;
+  serviceModel: string;
+  serviceMarkup: number;
+  isActive: boolean;
+  sortOrder: number;
+  [key: string]: unknown;
+}
+
 export interface ScenarioImagesSnapshot {
   [key: string]: unknown;
 }

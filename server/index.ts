@@ -448,6 +448,12 @@ async function runSchemaMigrations() {
     await runCalcAudit001();
     await markMigrationApplied("calc_audit_001");
   }
+
+  if (!(await isMigrationApplied("scenario_service_templates_001"))) {
+    const { runScenarioServiceTemplates001 } = await import("./migrations/scenario-service-templates-001");
+    await runScenarioServiceTemplates001();
+    await markMigrationApplied("scenario_service_templates_001");
+  }
 }
 
 async function runSeeds() {
