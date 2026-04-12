@@ -268,9 +268,9 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
       </ExpandableMetricRow>
 
       <LineItem label="Room Revenue"        values={yd.map((y) => y.revenueRooms)} tooltip="Income from guest room bookings — the primary revenue driver for any hotel. Grows with both ADR increases and occupancy ramp-up." formula="Rooms × Days × ADR × Occupancy" />
-      <LineItem label="Food & Beverage"     values={yd.map((y) => y.revenueFB)} tooltip="Income from restaurants, bars, room service, minibar, and catering operations. Expressed as a percentage of Room Revenue, then boosted by the catering uplift factor for properties with significant banquet business." formula="Room Revenue × F&B Share × (1 + Catering Boost)" />
-      <LineItem label="Events & Functions"   values={yd.map((y) => y.revenueEvents)} tooltip="Income from conferences, weddings, corporate events, and banquet bookings. Driven by the property's event facilities and local demand." formula="Room Revenue × Events Share" />
-      <LineItem label="Other Revenue"        values={yd.map((y) => y.revenueOther)} tooltip="Ancillary income from spa services, parking, resort fees, retail shops, and other guest amenities." formula="Room Revenue × Other Share" />
+      <LineItem label="Food & Beverage"     values={yd.map((y) => y.revenueFB)} tooltip="Income from restaurants, bars, room service, minibar, and catering operations. Expressed as a percentage of Total Revenue." formula="Total Revenue × F&B Share" />
+      <LineItem label="Events & Functions"   values={yd.map((y) => y.revenueEvents)} tooltip="Income from conferences, weddings, corporate events, and banquet bookings. Driven by the property's event facilities and local demand." formula="Total Revenue × Events Share" />
+      <LineItem label="Other Revenue"        values={yd.map((y) => y.revenueOther)} tooltip="Ancillary income from spa services, parking, resort fees, retail shops, and other guest amenities." formula="Total Revenue × Other Share" />
       <SubtotalRow label="Total Revenue"     values={yd.map((y) => y.revenueTotal)} positive tooltip="All revenue streams combined — rooms, food & beverage, events, and other income. This is the top line against which expense ratios are measured." />
 
       <SpacerRow colSpan={colSpan} />

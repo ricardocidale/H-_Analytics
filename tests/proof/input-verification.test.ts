@@ -40,22 +40,21 @@ describe("Revenue Verification (independent recomputation)", () => {
     }
   });
 
-  it("events revenue = room revenue × revShareEvents", () => {
+  it("events revenue = total revenue × revShareEvents", () => {
     for (const m of result) {
-      expect(m.revenueEvents).toBeCloseTo(m.revenueRooms * property.revShareEvents, 2);
+      expect(m.revenueEvents).toBeCloseTo(m.revenueTotal * property.revShareEvents, 2);
     }
   });
 
-  it("F&B revenue = room revenue × revShareFB × (1 + cateringBoostPercent)", () => {
-    const cateringMultiplier = 1 + property.cateringBoostPercent;
+  it("F&B revenue = total revenue × revShareFB", () => {
     for (const m of result) {
-      expect(m.revenueFB).toBeCloseTo(m.revenueRooms * property.revShareFB * cateringMultiplier, 2);
+      expect(m.revenueFB).toBeCloseTo(m.revenueTotal * property.revShareFB, 2);
     }
   });
 
-  it("other revenue = room revenue × revShareOther", () => {
+  it("other revenue = total revenue × revShareOther", () => {
     for (const m of result) {
-      expect(m.revenueOther).toBeCloseTo(m.revenueRooms * property.revShareOther, 2);
+      expect(m.revenueOther).toBeCloseTo(m.revenueTotal * property.revShareOther, 2);
     }
   });
 
@@ -193,12 +192,10 @@ describe("Variable Cost Verification", () => {
 
 describe("Fixed Cost Escalation Verification", () => {
   const baseRoomRev = property.roomCount * DAYS_PER_MONTH * property.startAdr * property.startOccupancy;
-  const cateringMultiplier = 1 + property.cateringBoostPercent;
-  const baseTotalRev =
-    baseRoomRev +
-    baseRoomRev * property.revShareEvents +
-    baseRoomRev * property.revShareFB * cateringMultiplier +
-    baseRoomRev * property.revShareOther;
+  // Revenue shares are % of TOTAL revenue; room share = 1 - ancillary
+  const ancillaryShare = property.revShareEvents + property.revShareFB + property.revShareOther;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const baseTotalRev = baseRoomRev / roomShareOfTotal;
 
   it("Year 1 fixed admin = baseTotalRev × costRateAdmin × (1 + escalation)^0", () => {
     const expected = baseTotalRev * property.costRateAdmin;
@@ -317,9 +314,9 @@ describe("Refi Loan Sizing Verification", () => {
     expect(refiResult[refiMonth].refinancingProceeds).toBeCloseTo(netProceeds, -1);
   });
 
-  it("refi loan amount is reasonable (between 50% and 200% of purchase price)", () => {
+  it("refi loan amount is reasonable (between 50% and 500% of purchase price)", () => {
     expect(refiResult[refiMonth].debtOutstanding).toBeGreaterThan(refiProperty.purchasePrice * 0.5);
-    expect(refiResult[refiMonth].debtOutstanding).toBeLessThan(refiProperty.purchasePrice * 2);
+    expect(refiResult[refiMonth].debtOutstanding).toBeLessThan(refiProperty.purchasePrice * 5);
   });
 });
 

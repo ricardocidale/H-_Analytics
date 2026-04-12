@@ -74,23 +74,49 @@ export function generatePropertyProForma(
       fixedCostFactor = ctx.fixedEscFactors[opsYear];
     }
 
+    // ── Task 3.4: Occupancy ramp (curve override or step function fallback) ──
     let occupancy = 0;
     if (isOperational) {
-      const rampSteps = Math.floor(monthsSinceOps / ctx.rampMonths);
-      occupancy = Math.min(
-        property.maxOccupancy,
-        property.startOccupancy + (rampSteps * property.occupancyGrowthStep)
-      );
+      if (ctx.occupancyRampCurve && ctx.occupancyRampCurve.length > 0) {
+        // Ramp curve: array of annual fractions of maxOccupancy (e.g., [0.55, 0.75, 0.90, 1.0])
+        const curveIdx = Math.min(opsYear, ctx.occupancyRampCurve.length - 1);
+        occupancy = property.maxOccupancy * ctx.occupancyRampCurve[curveIdx];
+      } else {
+        // Original step function fallback
+        const rampSteps = Math.floor(monthsSinceOps / ctx.rampMonths);
+        occupancy = Math.min(
+          property.maxOccupancy,
+          property.startOccupancy + (rampSteps * property.occupancyGrowthStep)
+        );
+      }
     }
 
-    const soldRooms = isOperational ? ctx.availableRooms * occupancy : 0;
-    const revenueRooms = soldRooms * currentAdr;
+    // ── Task 3.3: Seasonality — apply monthly factor to occupancy and ADR ──
+    const calendarMonth = (ctx.startMonth + i) % MONTHS_PER_YEAR; // 0=Jan, 11=Dec
+    const seasonFactor = ctx.seasonalityProfile ? ctx.seasonalityProfile[calendarMonth] ?? 1 : 1;
+    const seasonalOccupancy = Math.min(1, occupancy * seasonFactor); // cap at 100%
+    const seasonalAdr = currentAdr * seasonFactor;
 
-    const revenueEvents = revenueRooms * ctx.revShareEvents;
-    const baseFB = revenueRooms * ctx.revShareFB;
-    const revenueFB = baseFB * ctx.cateringBoostMultiplier;
-    const revenueOther = revenueRooms * ctx.revShareOther;
-    const revenueTotal = revenueRooms + revenueEvents + revenueFB + revenueOther;
+    // Per-room: availableRooms × occupancy × ADR (hotel model)
+    // Per-property: daysPerMonth × occupancy × nightlyPropertyRate (luxury rental)
+    let soldRooms: number;
+    let revenueRooms: number;
+    if (ctx.pricingModel === 'per_property') {
+      soldRooms = isOperational ? ctx.daysPerMonth * seasonalOccupancy : 0;
+      revenueRooms = soldRooms * (ctx.nightlyPropertyRate * ctx.adrFactors[opsYear] * seasonFactor);
+    } else {
+      soldRooms = isOperational ? ctx.availableRooms * seasonalOccupancy : 0;
+      revenueRooms = soldRooms * seasonalAdr;
+    }
+
+    // Revenue shares now express % of TOTAL revenue (not room revenue)
+    // Room share is derived: 1 - events - fb - other
+    const ancillaryShare = ctx.revShareEvents + ctx.revShareFB + ctx.revShareOther;
+    const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare); // guard: rooms ≥ 5% of total
+    const revenueTotal = revenueRooms / roomShareOfTotal;
+    const revenueEvents = revenueTotal * ctx.revShareEvents;
+    const revenueFB = revenueTotal * ctx.revShareFB;
+    const revenueOther = revenueTotal * ctx.revShareOther;
 
     const expenseRooms = revenueRooms * ctx.costRateRooms;
     const expenseFB = revenueFB * ctx.costRateFB;
@@ -137,8 +163,39 @@ export function generatePropertyProForma(
       expensePlatformFees + expensePreOpening;
       
     const gop = revenueTotal - totalOperatingExpenses;
-    const feeIncentive = Math.max(0, gop * ctx.incentiveFeeRate);
-    const agop = gop - feeBase - feeIncentive;
+
+    // ── Task 3.5: Owner's priority return — incentive fee only after owner hurdle met ──
+    let feeIncentive: number;
+    const hurdle = ctx.ownerPriorityReturn * ctx.equityInvested; // annual hurdle amount
+    if (ctx.ownerPriorityReturn > 0 && ctx.cumulativeOwnerCashFlow < hurdle) {
+      // Owner hasn't received their minimum return yet — no incentive fee
+      feeIncentive = 0;
+    } else {
+      feeIncentive = Math.max(0, gop * ctx.incentiveFeeRate);
+    }
+
+    // ── Task 3.6: Fee subordination — defer fees when cash can't cover debt service ──
+    let effectiveFeeBase = feeBase;
+    let effectiveFeeIncentive = feeIncentive;
+    let deferredFees = 0;
+    if (ctx.feeSubordination !== 'none' && ctx.isFinanced) {
+      // Preliminary cash flow before fees to check if it covers debt
+      const prelimAnoi = gop - expenseTaxes - expenseFFE; // ANOI before fees
+      const prelimCashBeforeFees = prelimAnoi; // simplified: available for debt + fees
+      if (ctx.feeSubordination === 'full' && prelimCashBeforeFees < ctx.monthlyPayment) {
+        // Full subordination: defer ALL fees when cash < debt service
+        deferredFees = effectiveFeeBase + effectiveFeeIncentive;
+        effectiveFeeBase = 0;
+        effectiveFeeIncentive = 0;
+      } else if (ctx.feeSubordination === 'partial' && prelimCashBeforeFees < ctx.monthlyPayment) {
+        // Partial subordination: defer only incentive fee
+        deferredFees = effectiveFeeIncentive;
+        effectiveFeeIncentive = 0;
+      }
+    }
+    ctx.cumulativeDeferredFees += deferredFees;
+
+    const agop = gop - effectiveFeeBase - effectiveFeeIncentive;
     const noi = agop - expenseTaxes;
     const anoi = noi - expenseFFE;
     
@@ -221,7 +278,7 @@ export function generatePropertyProForma(
     const netIncome = anoi - interestExpense - depreciationExpense - incomeTax;
 
     const currentAR = isOperational ? (revenueTotal / WORKING_CAPITAL_DAYS_PER_MONTH) * ctx.arDays : 0;
-    const totalOpCosts = totalOperatingExpenses + feeBase + feeIncentive + expenseTaxes;
+    const totalOpCosts = totalOperatingExpenses + effectiveFeeBase + effectiveFeeIncentive + expenseTaxes;
     const currentAP = isOperational ? (totalOpCosts / WORKING_CAPITAL_DAYS_PER_MONTH) * ctx.apDays : 0;
     const workingCapitalChange = (currentAR - ctx.prevAR) - (currentAP - ctx.prevAP);
     ctx.prevAR = currentAR;
@@ -236,12 +293,14 @@ export function generatePropertyProForma(
     }
     ctx.cumulativeCash += cashFlow;
     const endingCash = ctx.cumulativeCash;
+    // Track cumulative owner cash flow for priority return calculation (Task 3.5)
+    ctx.cumulativeOwnerCashFlow += cashFlow;
 
     financials.push({
       date: currentDate,
       monthIndex: i,
-      occupancy,
-      adr: currentAdr,
+      occupancy: seasonalOccupancy,
+      adr: ctx.pricingModel === 'per_property' ? ctx.nightlyPropertyRate * ctx.adrFactors[opsYear] * seasonFactor : seasonalAdr,
       availableRooms: ctx.availableRooms,
       soldRooms,
       revenueRooms,
@@ -257,8 +316,8 @@ export function generatePropertyProForma(
       expensePropertyOps,
       expenseUtilitiesVar,
       expenseFFE,
-      feeBase,
-      feeIncentive,
+      feeBase: effectiveFeeBase,
+      feeIncentive: effectiveFeeIncentive,
       serviceFeesByCategory,
       expenseAdmin,
       expenseIT,
@@ -268,7 +327,7 @@ export function generatePropertyProForma(
       expenseOtherCosts,
       expensePlatformFees,
       expensePreOpening,
-      totalExpenses: totalOperatingExpenses + feeBase + feeIncentive + expenseTaxes + expenseFFE,
+      totalExpenses: totalOperatingExpenses + effectiveFeeBase + effectiveFeeIncentive + expenseTaxes + expenseFFE,
       gop,
       agop,
       noi,
@@ -291,6 +350,8 @@ export function generatePropertyProForma(
       workingCapitalChange,
       nolBalance: ctx.nolBalance,
       cashShortfall: endingCash < 0,
+      deferredFees,
+      cumulativeDeferredFees: ctx.cumulativeDeferredFees,
     });
   }
 

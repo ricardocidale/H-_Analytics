@@ -915,14 +915,18 @@ describe("Edge Case: Operations start before model start", () => {
 });
 
 // ===========================================================================
-// 20. Catering Boost Percent = 0
+// 20. Catering Boost Percent = 0 (deprecated — boost never applied to revenue)
 // ===========================================================================
 describe("Edge Case: Catering boost percent = 0 (no F&B uplift)", () => {
   const prop = { ...baseProperty, cateringBoostPercent: 0 };
   const result = generatePropertyProForma(prop, baseGlobal, 12);
 
-  it("F&B revenue = roomRevenue x revShareFB (no boost)", () => {
-    const expectedFB = result[0].revenueRooms * baseProperty.revShareFB;
+  it("F&B revenue = totalRevenue x revShareFB (new model, no boost)", () => {
+    // New model: F&B = revenueTotal * revShareFB, catering boost is NOT applied
+    const ancillaryShare = prop.revShareEvents + prop.revShareFB + prop.revShareOther;
+    const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+    const expectedTotal = result[0].revenueRooms / roomShareOfTotal;
+    const expectedFB = expectedTotal * prop.revShareFB;
     expect(result[0].revenueFB).toBeCloseTo(expectedFB, 2);
   });
 
@@ -932,20 +936,25 @@ describe("Edge Case: Catering boost percent = 0 (no F&B uplift)", () => {
 });
 
 // ===========================================================================
-// 21. Very High Catering Boost
+// 21. Very High Catering Boost (deprecated — boost no longer affects revenue)
 // ===========================================================================
-describe("Edge Case: Very high catering boost (200%)", () => {
+describe("Edge Case: Very high catering boost (200%) — deprecated, no effect on revenue", () => {
   const prop = { ...baseProperty, cateringBoostPercent: 2.0 };
   const result = generatePropertyProForma(prop, baseGlobal, 12);
 
-  it("F&B revenue = roomRevenue x revShareFB x 3.0", () => {
-    const expectedFB = result[0].revenueRooms * baseProperty.revShareFB * 3.0;
+  it("F&B revenue = totalRevenue x revShareFB (boost ignored)", () => {
+    // New model: catering boost is NOT applied to revenue regardless of value
+    const ancillaryShare = prop.revShareEvents + prop.revShareFB + prop.revShareOther;
+    const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+    const expectedTotal = result[0].revenueRooms / roomShareOfTotal;
+    const expectedFB = expectedTotal * prop.revShareFB;
     expect(result[0].revenueFB).toBeCloseTo(expectedFB, 2);
   });
 
-  it("total revenue is higher than with default boost", () => {
+  it("total revenue is the same regardless of catering boost (deprecated)", () => {
     const defaultResult = generatePropertyProForma(baseProperty, baseGlobal, 12);
-    expect(result[0].revenueTotal).toBeGreaterThan(defaultResult[0].revenueTotal);
+    // Since catering boost is no longer applied, total revenue should be the same
+    expect(result[0].revenueTotal).toBeCloseTo(defaultResult[0].revenueTotal, 2);
   });
 
   it("contains no NaN or Infinity values", () => {
@@ -982,27 +991,31 @@ describe("Edge Case: Zero purchase price", () => {
 });
 
 // ===========================================================================
-// 23. Revenue Stream Proportionality
+// 23. Revenue Stream Proportionality (new "% of total revenue" model)
 // ===========================================================================
 describe("Edge Case: Revenue stream proportionality is exact", () => {
   const result = generatePropertyProForma(baseProperty, baseGlobal, 12);
+  const ancillaryShare = baseProperty.revShareEvents + baseProperty.revShareFB + baseProperty.revShareOther;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
 
-  it("event revenue = room revenue x revShareEvents", () => {
+  it("event revenue = totalRevenue x revShareEvents", () => {
     for (const m of result) {
-      expect(m.revenueEvents).toBeCloseTo(m.revenueRooms * baseProperty.revShareEvents, 2);
+      const expectedTotal = m.revenueRooms / roomShareOfTotal;
+      expect(m.revenueEvents).toBeCloseTo(expectedTotal * baseProperty.revShareEvents, 2);
     }
   });
 
-  it("F&B revenue = room revenue x revShareFB x (1 + cateringBoost)", () => {
-    const boost = 1 + (baseProperty.cateringBoostPercent ?? 0.30);
+  it("F&B revenue = totalRevenue x revShareFB (no catering boost)", () => {
     for (const m of result) {
-      expect(m.revenueFB).toBeCloseTo(m.revenueRooms * baseProperty.revShareFB * boost, 2);
+      const expectedTotal = m.revenueRooms / roomShareOfTotal;
+      expect(m.revenueFB).toBeCloseTo(expectedTotal * baseProperty.revShareFB, 2);
     }
   });
 
-  it("other revenue = room revenue x revShareOther", () => {
+  it("other revenue = totalRevenue x revShareOther", () => {
     for (const m of result) {
-      expect(m.revenueOther).toBeCloseTo(m.revenueRooms * baseProperty.revShareOther, 2);
+      const expectedTotal = m.revenueRooms / roomShareOfTotal;
+      expect(m.revenueOther).toBeCloseTo(expectedTotal * baseProperty.revShareOther, 2);
     }
   });
 

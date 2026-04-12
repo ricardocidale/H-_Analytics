@@ -20,10 +20,15 @@ import { DEPRECIATION_YEARS } from "../../shared/constants.js";
  *   Available rooms = 10 × 30.5 = 305
  *   Sold rooms = 305 × 0.60 = 183
  *   Room Revenue = 183 × $200 = $36,600
- *   Event Revenue = $36,600 × 0.43 = $15,738
- *   F&B Revenue = $36,600 × 0.22 × 1.30 = $10,471.60
- *   Other Revenue = $36,600 × 0.07 = $2,562
- *   Total Revenue = $36,600 + $15,738 + $10,471.60 + $2,562 = $65,371.60
+ *
+ *   New revenue model (% of total revenue):
+ *   ancillaryShare = 0.43 + 0.22 + 0.07 = 0.72
+ *   roomShareOfTotal = max(0.05, 1 - 0.72) = 0.28
+ *   Total Revenue = $36,600 / 0.28 = $130,714.2857...
+ *   Event Revenue = $130,714.2857 × 0.43 = $56,207.1429...
+ *   F&B Revenue = $130,714.2857 × 0.22 = $28,757.1429...
+ *   Other Revenue = $130,714.2857 × 0.07 = $9,150.00
+ *   (Catering boost is NOT applied to revenue — deprecated)
  *
  *   Depreciation = $750,000 / DEPRECIATION_YEARS / 12 = $2,272.727...
  *   Debt = $0 (Full Equity)
@@ -32,7 +37,7 @@ import { DEPRECIATION_YEARS } from "../../shared/constants.js";
 const property = baseProperty;
 const global = makeGlobal({ projectionYears: 1 });
 
-// Hand-calculated constants
+// Hand-calculated constants (new "% of total revenue" model)
 const DAYS = 30.5;
 const rooms = 10;
 const adr = 200;
@@ -40,10 +45,12 @@ const occ = 0.60;
 const availableRooms = rooms * DAYS; // 305
 const soldRooms = availableRooms * occ; // 183
 const roomRev = soldRooms * adr; // 36,600
-const eventRev = roomRev * 0.43; // 15,738
-const fbRev = roomRev * 0.22 * 1.30; // 10,471.60
-const otherRev = roomRev * 0.07; // 2,562
-const totalRev = roomRev + eventRev + fbRev + otherRev;
+const ancillaryShare = 0.43 + 0.22 + 0.07; // 0.72
+const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare); // 0.28
+const totalRev = roomRev / roomShareOfTotal;
+const eventRev = totalRev * 0.43;
+const fbRev = totalRev * 0.22; // catering boost NOT applied to revenue
+const otherRev = totalRev * 0.07;
 
 const depreciableBasis = 1_000_000 * 0.75; // 750,000
 const monthlyDep = depreciableBasis / DEPRECIATION_YEARS / 12;
@@ -78,15 +85,15 @@ describe("generatePropertyProForma — golden scenario (Full Equity)", () => {
       expect(m0.revenueRooms).toBeCloseTo(roomRev, 2);
     });
 
-    it("event revenue = room rev × 0.43", () => {
+    it("event revenue = totalRev × 0.43", () => {
       expect(m0.revenueEvents).toBeCloseTo(eventRev, 2);
     });
 
-    it("F&B revenue = room rev × 0.22 × 1.30", () => {
+    it("F&B revenue = totalRev × 0.22 (no catering boost)", () => {
       expect(m0.revenueFB).toBeCloseTo(fbRev, 2);
     });
 
-    it("other revenue = room rev × 0.07", () => {
+    it("other revenue = totalRev × 0.07", () => {
       expect(m0.revenueOther).toBeCloseTo(otherRev, 2);
     });
 

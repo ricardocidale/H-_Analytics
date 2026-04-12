@@ -101,15 +101,13 @@ const H_AVAIL_ROOMS = 15 * DAYS_PER_MONTH;                          // 457.5
 const H_SOLD_ROOMS = H_AVAIL_ROOMS * 0.68;                          // 311.1
 // Step 3: Room revenue = 311.1 × 175 = 54,442.50
 const H_REV_ROOMS = H_SOLD_ROOMS * 175;                             // 54,442.50
-// Step 4: Events = room_rev × 0.30 = 16,332.75
-const H_REV_EVENTS = H_REV_ROOMS * DEFAULT_REV_SHARE_EVENTS;        // 16,332.75
-// Step 5: F&B = room_rev × 0.18 × (1 + 0.22) = 11,955.573
-const H_BASE_FB = H_REV_ROOMS * DEFAULT_REV_SHARE_FB;               // 9,799.65
-const H_REV_FB = H_BASE_FB * (1 + DEFAULT_CATERING_BOOST_PCT);      // 11,955.573
-// Step 6: Other = room_rev × 0.05 = 2,722.125
-const H_REV_OTHER = H_REV_ROOMS * DEFAULT_REV_SHARE_OTHER;          // 2,722.125
-// Step 7: Total revenue
-const H_REV_TOTAL = H_REV_ROOMS + H_REV_EVENTS + H_REV_FB + H_REV_OTHER;
+// Revenue shares are % of TOTAL revenue; room share = 1 - ancillary
+const H_ANCILLARY = DEFAULT_REV_SHARE_EVENTS + DEFAULT_REV_SHARE_FB + DEFAULT_REV_SHARE_OTHER;
+const H_ROOM_SHARE = Math.max(0.05, 1 - H_ANCILLARY);
+const H_REV_TOTAL = H_REV_ROOMS / H_ROOM_SHARE;
+const H_REV_EVENTS = H_REV_TOTAL * DEFAULT_REV_SHARE_EVENTS;
+const H_REV_FB = H_REV_TOTAL * DEFAULT_REV_SHARE_FB;
+const H_REV_OTHER = H_REV_TOTAL * DEFAULT_REV_SHARE_OTHER;
 
 // Step 8: Department costs
 const H_EXP_ROOMS = H_REV_ROOMS * DEFAULT_COST_RATE_ROOMS;          // rooms cost = room_rev × 0.20
@@ -706,19 +704,18 @@ describe("Golden Scenario: Clearwater Inn — Mgmt Co + 1 Property", () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe("Revenue Component Ratios", () => {
-    it("events revenue = 30% of room revenue", () => {
-      expect(propFinancials[0].revenueEvents / propFinancials[0].revenueRooms)
+    it("events revenue = 18% of total revenue", () => {
+      expect(propFinancials[0].revenueEvents / propFinancials[0].revenueTotal)
         .toBeCloseTo(DEFAULT_REV_SHARE_EVENTS, 6);
     });
 
-    it("F&B revenue = 18% of room revenue x 1.22 catering boost", () => {
-      const expectedRatio = DEFAULT_REV_SHARE_FB * (1 + DEFAULT_CATERING_BOOST_PCT);
-      expect(propFinancials[0].revenueFB / propFinancials[0].revenueRooms)
-        .toBeCloseTo(expectedRatio, 6);
+    it("F&B revenue = 30% of total revenue", () => {
+      expect(propFinancials[0].revenueFB / propFinancials[0].revenueTotal)
+        .toBeCloseTo(DEFAULT_REV_SHARE_FB, 6);
     });
 
-    it("other revenue = 5% of room revenue", () => {
-      expect(propFinancials[0].revenueOther / propFinancials[0].revenueRooms)
+    it("other revenue = 3% of total revenue", () => {
+      expect(propFinancials[0].revenueOther / propFinancials[0].revenueTotal)
         .toBeCloseTo(DEFAULT_REV_SHARE_OTHER, 6);
     });
 

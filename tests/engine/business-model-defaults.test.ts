@@ -54,8 +54,8 @@ describe("BUSINESS_MODEL_DEFAULTS constant map", () => {
   });
 
   it("vrbo has non-zero F&B and events revenue shares", () => {
-    expect(BUSINESS_MODEL_DEFAULTS.vrbo.revShareFB).toBe(0.10);
-    expect(BUSINESS_MODEL_DEFAULTS.vrbo.revShareEvents).toBe(0.05);
+    expect(BUSINESS_MODEL_DEFAULTS.vrbo.revShareFB).toBe(0.08);
+    expect(BUSINESS_MODEL_DEFAULTS.vrbo.revShareEvents).toBe(0.04);
     expect(BUSINESS_MODEL_DEFAULTS.vrbo.costRateFB).toBe(0.05);
   });
 
@@ -129,8 +129,8 @@ describe("resolvePropertyAssumptions — business model defaults", () => {
     );
     expect(ctx.platformFeeRate).toBe(0.14);
     expect(ctx.costRateRooms).toBe(BUSINESS_MODEL_DEFAULTS.vrbo.costRateRooms);
-    expect(ctx.revShareFB).toBe(0.10);
-    expect(ctx.revShareEvents).toBe(0.05);
+    expect(ctx.revShareFB).toBe(0.08);
+    expect(ctx.revShareEvents).toBe(0.04);
     expect(ctx.incentiveFeeRate).toBe(0);
     expect(ctx.baseMgmtFeeRate).toBe(0.25);
   });
@@ -144,7 +144,7 @@ describe("resolvePropertyAssumptions — business model defaults", () => {
     expect(ctx.platformFeeRate).toBe(0);
     expect(ctx.costRateRooms).toBe(BUSINESS_MODEL_DEFAULTS.lodge.costRateRooms);
     expect(ctx.revShareEvents).toBe(0);
-    expect(ctx.revShareFB).toBe(0.25);
+    expect(ctx.revShareFB).toBe(0.20);
     expect(ctx.baseMgmtFeeRate).toBe(0.18);
   });
 

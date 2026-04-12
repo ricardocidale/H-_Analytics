@@ -54,11 +54,13 @@ describe("T012 — Deterministic Engine Regression Snapshots", () => {
 
     it("month 0 revenue matches pinned values", () => {
       const m0 = snapshot[0];
+      // baseProperty: revShareEvents=0.43, revShareFB=0.22, revShareOther=0.07
+      // ancillary=0.72, roomShare=0.28, revRooms=36600, revTotal=36600/0.28=130714.2857...
       expect(m0.revenueRooms).toBeCloseTo(36600, PENNY);
-      expect(m0.revenueEvents).toBeCloseTo(15738, PENNY);
-      expect(m0.revenueFB).toBeCloseTo(10467.60, PENNY);
-      expect(m0.revenueOther).toBeCloseTo(2562, PENNY);
-      expect(m0.revenueTotal).toBeCloseTo(65367.60, PENNY);
+      expect(m0.revenueEvents).toBeCloseTo(130714.285714 * 0.43, PENNY);
+      expect(m0.revenueFB).toBeCloseTo(130714.285714 * 0.22, PENNY);
+      expect(m0.revenueOther).toBeCloseTo(130714.285714 * 0.07, PENNY);
+      expect(m0.revenueTotal).toBeCloseTo(130714.285714, PENNY);
     });
 
     it("zero debt throughout", () => {

@@ -346,7 +346,10 @@ describe("T010 — Business Model Golden Scenarios", () => {
     });
 
     it("lodge F&B share matches config", () => {
-      expect(m.revenueFB).toBeCloseTo(m.revenueRooms * lodgeDefaults.revShareFB, PENNY);
+      const ancillary = lodgeDefaults.revShareEvents + lodgeDefaults.revShareFB + lodgeDefaults.revShareOther;
+      const roomShare = Math.max(0.05, 1 - ancillary);
+      const totalRev = m.revenueRooms / roomShare;
+      expect(m.revenueFB).toBeCloseTo(totalRev * lodgeDefaults.revShareFB, PENNY);
     });
 
     it("lodge management fee uses lodge rate", () => {
@@ -369,11 +372,13 @@ describe("T010 — Business Model Golden Scenarios", () => {
       const revRooms = sold * 350;
       expect(m.revenueRooms).toBeCloseTo(revRooms, PENNY);
       expect(m.revenueEvents).toBe(0);
-      const revFB = revRooms * lodgeDefaults.revShareFB;
+      const ancillary = lodgeDefaults.revShareEvents + lodgeDefaults.revShareFB + lodgeDefaults.revShareOther;
+      const roomShare = Math.max(0.05, 1 - ancillary);
+      const revTotal = revRooms / roomShare;
+      const revFB = revTotal * lodgeDefaults.revShareFB;
       expect(m.revenueFB).toBeCloseTo(revFB, PENNY);
-      const revOther = revRooms * lodgeDefaults.revShareOther;
+      const revOther = revTotal * lodgeDefaults.revShareOther;
       expect(m.revenueOther).toBeCloseTo(revOther, PENNY);
-      const revTotal = revRooms + revFB + revOther;
       expect(m.revenueTotal).toBeCloseTo(revTotal, PENNY);
       const expRooms = revRooms * lodgeDefaults.costRateRooms;
       expect(m.expenseRooms).toBeCloseTo(expRooms, PENNY);
@@ -446,13 +451,18 @@ describe("T010 — Business Model Golden Scenarios", () => {
 
     it("VRBO has non-zero event revenue", () => {
       const revRooms = m.revenueRooms;
-      expect(m.revenueEvents).toBeCloseTo(revRooms * vrboDefaults.revShareEvents, PENNY);
+      const ancillary = vrboDefaults.revShareEvents + vrboDefaults.revShareFB + vrboDefaults.revShareOther;
+      const roomShare = Math.max(0.05, 1 - ancillary);
+      const totalRev = revRooms / roomShare;
+      expect(m.revenueEvents).toBeCloseTo(totalRev * vrboDefaults.revShareEvents, PENNY);
     });
 
     it("VRBO has non-zero F&B revenue", () => {
       const revRooms = m.revenueRooms;
-      const expectedFB = revRooms * vrboDefaults.revShareFB * (1 + vrboDefaults.cateringBoostPct);
-      expect(m.revenueFB).toBeCloseTo(expectedFB, PENNY);
+      const ancillary = vrboDefaults.revShareEvents + vrboDefaults.revShareFB + vrboDefaults.revShareOther;
+      const roomShare = Math.max(0.05, 1 - ancillary);
+      const totalRev = revRooms / roomShare;
+      expect(m.revenueFB).toBeCloseTo(totalRev * vrboDefaults.revShareFB, PENNY);
     });
 
     it("VRBO platform fees are deducted correctly", () => {
@@ -485,13 +495,15 @@ describe("T010 — Business Model Golden Scenarios", () => {
       const sold = avail * 0.65;
       const revRooms = sold * 250;
       expect(m.revenueRooms).toBeCloseTo(revRooms, PENNY);
-      const revEvents = revRooms * vrboDefaults.revShareEvents;
+      const ancillary = vrboDefaults.revShareEvents + vrboDefaults.revShareFB + vrboDefaults.revShareOther;
+      const roomShare = Math.max(0.05, 1 - ancillary);
+      const revTotal = revRooms / roomShare;
+      const revEvents = revTotal * vrboDefaults.revShareEvents;
       expect(m.revenueEvents).toBeCloseTo(revEvents, PENNY);
-      const revFB = revRooms * vrboDefaults.revShareFB * (1 + vrboDefaults.cateringBoostPct);
+      const revFB = revTotal * vrboDefaults.revShareFB;
       expect(m.revenueFB).toBeCloseTo(revFB, PENNY);
-      const revOther = revRooms * vrboDefaults.revShareOther;
+      const revOther = revTotal * vrboDefaults.revShareOther;
       expect(m.revenueOther).toBeCloseTo(revOther, PENNY);
-      const revTotal = revRooms + revEvents + revFB + revOther;
       expect(m.revenueTotal).toBeCloseTo(revTotal, PENNY);
       const platformFees = revRooms * vrboDefaults.platformFeeRate;
       expect(m.expensePlatformFees).toBeCloseTo(platformFees, PENNY);

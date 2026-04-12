@@ -11,11 +11,11 @@
  *     • ADR growth rate — annual escalation of nightly rate
  *     • RevPAR is derived: ADR × Occupancy (Revenue Per Available Room)
  *
- *   Ancillary Revenue (as % of room revenue):
- *     • F&B (Food & Beverage) percentage
- *     • Catering boost — additional F&B uplift from weddings/events
- *     • Event / function revenue percentage
- *     • Other revenue (spa, parking, retail) percentage
+ *   Ancillary Revenue (as % of total revenue):
+ *     • F&B (Food & Beverage) percentage of total revenue
+ *     • Catering boost — deprecated (absorbed into F&B share)
+ *     • Event / function revenue percentage of total revenue
+ *     • Other revenue (spa, parking, retail) percentage of total revenue
  *
  *   Growth:
  *     • Revenue growth rate applied after stabilization year
@@ -213,14 +213,14 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
 
         <div className="space-y-4 pt-2 border-t border-primary/15">
           <Label className="label-text text-foreground flex items-center gap-1.5">
-            Additional Revenue as % of Room Revenue
-            <InfoTooltip text="Configure how much additional revenue each stream generates as a percentage of room revenue. F&B revenue gets boosted by the catering boost percentage." />
+            Revenue Shares (% of Total Revenue)
+            <InfoTooltip text="Configure what fraction of total property revenue each ancillary stream represents. Room revenue share is derived as the remainder (1 - events - F&B - other)." />
           </Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:items-end">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <ResearchContextFieldLabel
-                  label={<>Events <InfoTooltip text="Revenue from meetings, weddings, and other events as a percentage of room revenue. Global Wellness Institute 2024: wellness/retreat properties generate 25–35% of total revenue from events and programming. Standard hotels typically see 10–15%." /> <GaapBadge rule="ASC 606: Event revenue recognized when the event occurs (point-in-time). Deposits recorded as deferred revenue until the performance obligation is satisfied." /></>}
+                  label={<>Events <InfoTooltip text="Revenue from meetings, weddings, and other events as a percentage of total revenue. Global Wellness Institute 2024: wellness/retreat properties generate 25–35% of total revenue from events and programming. Standard hotels typically see 10–15%." /> <GaapBadge rule="ASC 606: Event revenue recognized when the event occurs (point-in-time). Deposits recorded as deferred revenue until the performance obligation is satisfied." /></>}
                   badgeProps={{ entry: researchValues.revShareEvents }}
                   onApplyValue={() => researchValues.revShareEvents && onChange("revShareEvents", researchValues.revShareEvents.mid / 100)}
                   guidanceContext={gc("revShareEvents", "Events")}
@@ -247,7 +247,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <ResearchContextFieldLabel
-                  label={<>F&B <InfoTooltip text="USALI F&B Department — base food & beverage revenue as a percentage of room revenue. This gets boosted by the catering boost percentage below. Industry benchmark: 15–25% of room revenue for boutique hotels with on-site dining (USALI 12th Ed.)." /> <GaapBadge rule="ASC 606: F&B revenue recognized at the point of sale. Bundled packages (e.g., room + breakfast) must allocate revenue to each performance obligation based on standalone selling prices." /></>}
+                  label={<>F&B <InfoTooltip text="USALI F&B Department — food & beverage revenue as a percentage of total revenue. Includes restaurant, bar, room service, and catering. Industry benchmark: 25–35% of total revenue for boutique hotels with on-site dining and event catering (USALI 12th Ed.)." /> <GaapBadge rule="ASC 606: F&B revenue recognized at the point of sale. Bundled packages (e.g., room + breakfast) must allocate revenue to each performance obligation based on standalone selling prices." /></>}
                   badgeProps={{ entry: researchValues.revShareFB }}
                   onApplyValue={() => researchValues.revShareFB && onChange("revShareFB", researchValues.revShareFB.mid / 100)}
                   guidanceContext={gc("revShareFB", "F&B")}
@@ -274,7 +274,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <ResearchContextFieldLabel
-                  label={<>Other <InfoTooltip text="USALI Other Operated Departments — revenue from spa, parking, activities, and other ancillary services. Industry benchmark: 3–8% of room revenue for boutique/lifestyle hotels (USALI 12th Ed.)." /></>}
+                  label={<>Other <InfoTooltip text="USALI Other Operated Departments — revenue from spa, parking, activities, and other ancillary services as a percentage of total revenue. Industry benchmark: 2–6% of total revenue for boutique/lifestyle hotels (USALI 12th Ed.)." /></>}
                   badgeProps={{ entry: researchValues.revShareOther }}
                   onApplyValue={() => researchValues.revShareOther && onChange("revShareOther", researchValues.revShareOther.mid / 100)}
                   guidanceContext={gc("revShareOther", "Other Revenue")}
@@ -301,7 +301,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <ResearchContextFieldLabel
-                  label={<>Catering Boost <InfoTooltip text="Percentage uplift applied to base F&B revenue from catered events. For example, 30% means total F&B = Base F&B × 1.30. This blended rate accounts for the mix of catered vs. non-catered events. Properties with strong wedding/corporate retreat programs may see 20–40% catering uplift." /></>}
+                  label={<>Catering Boost (deprecated) <InfoTooltip text="This field is no longer used in revenue calculations. F&B share now directly represents the target F&B percentage of total revenue, with catering uplift absorbed into that share. Kept for backward compatibility." /></>}
                   badgeProps={{ entry: researchValues.catering }}
                   onApplyValue={() => researchValues.catering && onChange("cateringBoostPercent", researchValues.catering.mid / 100)}
                   guidanceContext={gc("catering", "Catering Boost")}

@@ -46,10 +46,15 @@ export interface TestCase {
 
 export function computeMonthlyPL(tc: TestCase) {
   const roomRev = tc.expectedMonthlyRoomRevenue;
-  const eventsRev = roomRev * (tc.property.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS);
-  const fbRev = roomRev * (tc.property.revShareFB ?? DEFAULT_REV_SHARE_FB) * (1 + DEFAULT_CATERING_BOOST_PCT);
-  const otherRev = roomRev * (tc.property.revShareOther ?? DEFAULT_REV_SHARE_OTHER);
-  const totalRev = roomRev + eventsRev + fbRev + otherRev;
+  const revShareEvents = tc.property.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS;
+  const revShareFB = tc.property.revShareFB ?? DEFAULT_REV_SHARE_FB;
+  const revShareOther = tc.property.revShareOther ?? DEFAULT_REV_SHARE_OTHER;
+  const ancillaryShare = revShareEvents + revShareFB + revShareOther;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const totalRev = roomRev / roomShareOfTotal;
+  const eventsRev = totalRev * revShareEvents;
+  const fbRev = totalRev * revShareFB;
+  const otherRev = totalRev * revShareOther;
 
   const totalPropertyValue = (tc.property.purchasePrice || 0) + (tc.property.buildingImprovements || 0);
 

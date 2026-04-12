@@ -100,11 +100,13 @@ const MONTHS = 120;
 const H_AVAIL_ROOMS = 15 * DAYS_PER_MONTH;                          // 457.5
 const H_SOLD_ROOMS = H_AVAIL_ROOMS * 0.65;                          // 297.375
 const H_REV_ROOMS = H_SOLD_ROOMS * 180;                             // 53,527.50
-const H_REV_EVENTS = H_REV_ROOMS * DEFAULT_REV_SHARE_EVENTS;        // 53,527.50 × 0.30 = 16,058.25
-const H_BASE_FB = H_REV_ROOMS * DEFAULT_REV_SHARE_FB;               // 53,527.50 × 0.18 = 9,634.95
-const H_REV_FB = H_BASE_FB * (1 + DEFAULT_CATERING_BOOST_PCT);      // 9,634.95 × 1.22 = 11,754.639
-const H_REV_OTHER = H_REV_ROOMS * DEFAULT_REV_SHARE_OTHER;          // 53,527.50 × 0.05 = 2,676.375
-const H_REV_TOTAL = H_REV_ROOMS + H_REV_EVENTS + H_REV_FB + H_REV_OTHER;
+// Revenue shares are % of TOTAL revenue; room share = 1 - ancillary
+const H_ANCILLARY = DEFAULT_REV_SHARE_EVENTS + DEFAULT_REV_SHARE_FB + DEFAULT_REV_SHARE_OTHER;
+const H_ROOM_SHARE = Math.max(0.05, 1 - H_ANCILLARY);
+const H_REV_TOTAL = H_REV_ROOMS / H_ROOM_SHARE;
+const H_REV_EVENTS = H_REV_TOTAL * DEFAULT_REV_SHARE_EVENTS;
+const H_REV_FB = H_REV_TOTAL * DEFAULT_REV_SHARE_FB;
+const H_REV_OTHER = H_REV_TOTAL * DEFAULT_REV_SHARE_OTHER;
 
 // Variable expenses
 const H_EXP_ROOMS = H_REV_ROOMS * DEFAULT_COST_RATE_ROOMS;

@@ -553,14 +553,17 @@ describe("ASC 606 — Revenue recognition", () => {
     }
   });
 
-  it("revenue streams computed correctly from room revenue", () => {
+  it("revenue streams computed correctly from total revenue (new model)", () => {
     const data = generatePropertyProForma(fullEquityProperty, baseGlobal, 12);
     for (const m of data) {
-      expect(m.revenueEvents).toBeCloseTo(m.revenueRooms * fullEquityProperty.revShareEvents, 2);
-      const expectedFB =
-        m.revenueRooms * fullEquityProperty.revShareFB * (1 + fullEquityProperty.cateringBoostPercent);
-      expect(m.revenueFB).toBeCloseTo(expectedFB, 2);
-      expect(m.revenueOther).toBeCloseTo(m.revenueRooms * fullEquityProperty.revShareOther, 2);
+      // New model: ancillary revenues are % of total revenue, not room revenue
+      // revenueTotal = revenueRooms / roomShareOfTotal
+      const ancillaryShare = fullEquityProperty.revShareEvents + fullEquityProperty.revShareFB + fullEquityProperty.revShareOther;
+      const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+      const expectedTotal = m.revenueRooms / roomShareOfTotal;
+      expect(m.revenueEvents).toBeCloseTo(expectedTotal * fullEquityProperty.revShareEvents, 2);
+      expect(m.revenueFB).toBeCloseTo(expectedTotal * fullEquityProperty.revShareFB, 2);
+      expect(m.revenueOther).toBeCloseTo(expectedTotal * fullEquityProperty.revShareOther, 2);
     }
   });
 

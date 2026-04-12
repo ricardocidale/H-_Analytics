@@ -65,10 +65,12 @@ describe("Golden Value Tests — Penny-Exact Verification", () => {
   const avail = 10 * DAYS_PER_MONTH;
   const sold = avail * 0.70;
   const revRooms = sold * 200;
-  const revEvents = revRooms * 0.43;
-  const revFB = revRooms * 0.22 * 1.30;
-  const revOther = revRooms * 0.07;
-  const revTotal = revRooms + revEvents + revFB + revOther;
+  const ancillaryShare = 0.43 + 0.22 + 0.07;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const revTotal = revRooms / roomShareOfTotal;
+  const revEvents = revTotal * 0.43;
+  const revFB = revTotal * 0.22;
+  const revOther = revTotal * 0.07;
 
   const expRooms = revRooms * 0.20;
   const expFB = revFB * 0.09;

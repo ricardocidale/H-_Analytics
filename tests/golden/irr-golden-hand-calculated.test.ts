@@ -66,10 +66,10 @@ describe("Golden Lodge — Hand-Calculated IRR Scenario", () => {
     buildingImprovements: 0,
     taxRate: 0.25,
     operatingReserve: 0,
-    revShareEvents: 0.30,
-    revShareFB: 0.18,
-    revShareOther: 0.05,
-    cateringBoostPercent: 0.22,
+    revShareEvents: 0.18,
+    revShareFB: 0.30,
+    revShareOther: 0.03,
+    cateringBoostPercent: 0,
     baseManagementFeeRate: 0.085,
     incentiveManagementFeeRate: 0.12,
   } as any);
@@ -94,15 +94,16 @@ describe("Golden Lodge — Hand-Calculated IRR Scenario", () => {
   const monthlyPayment = pmt(loanAmount, monthlyRate, totalPayments);
 
   // ── Revenue (hand-calculated step by step) ─────────────────────────────
+  // Revenue shares are % of TOTAL revenue; room share = 1 - ancillary
   const availableRooms = 20 * DAYS_PER_MONTH; // 20 * 30.5 = 610
   const soldRooms = availableRooms * 0.70; // 610 * 0.70 = 427
   const revenueRooms = soldRooms * 200; // 427 * 200 = 85,400.00
-  const revenueEvents = revenueRooms * 0.30; // 85,400 * 0.30 = 25,620.00
-  const baseFB = revenueRooms * 0.18; // 85,400 * 0.18 = 15,372.00
-  const revenueFB = baseFB * 1.22; // 15,372 * 1.22 = 18,753.84
-  const revenueOther = revenueRooms * 0.05; // 85,400 * 0.05 = 4,270.00
-  const revenueTotal = revenueRooms + revenueEvents + revenueFB + revenueOther;
-  // = 85,400 + 25,620 + 18,753.84 + 4,270 = 134,043.84
+  const ancillaryShare = 0.18 + 0.30 + 0.03; // 0.51
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare); // 0.49
+  const revenueTotal = revenueRooms / roomShareOfTotal; // 85,400 / 0.49 = 174,285.71...
+  const revenueEvents = revenueTotal * 0.18;
+  const revenueFB = revenueTotal * 0.30;
+  const revenueOther = revenueTotal * 0.03;
 
   // ── Variable expenses (on actual revenue) ──────────────────────────────
   const expenseRooms = revenueRooms * DEFAULT_COST_RATE_ROOMS; // 85,400 * 0.20 = 17,080.00

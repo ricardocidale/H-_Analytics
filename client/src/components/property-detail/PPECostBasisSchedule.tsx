@@ -66,8 +66,7 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
   const totalPropertyValue = purchasePrice + buildingImprovements;
 
   // ---- Revenue cross-check calculations ----
-  // Ancillary revenue (events, F&B, other) is modeled as a percentage of
-  // room revenue, so all revenue lines trace back to ADR × occupancy.
+  // Revenue shares express % of TOTAL revenue. Room share is derived: 1 - ancillary shares.
   const revShareEvents = property.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS;
   const revShareFB = property.revShareFB ?? DEFAULT_REV_SHARE_FB;
   const revShareOther = property.revShareOther ?? DEFAULT_REV_SHARE_OTHER;
@@ -77,11 +76,13 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
   // Base monthly room revenue = rooms × days/month × nightly rate × occupancy
   const resolvedDaysPerMonth = global.daysPerMonth ?? DAYS_PER_MONTH;
   const baseMonthlyRoomRev = property.roomCount * resolvedDaysPerMonth * property.startAdr * property.startOccupancy;
-  const baseMonthlyEventsRev = baseMonthlyRoomRev * revShareEvents;
-  // F&B includes catering boost (e.g. weddings, banquets add to base F&B)
-  const baseMonthlyFBRev = baseMonthlyRoomRev * revShareFB * cateringBoostMultiplier;
-  const baseMonthlyOtherRev = baseMonthlyRoomRev * revShareOther;
-  const baseMonthlyTotalRev = baseMonthlyRoomRev + baseMonthlyEventsRev + baseMonthlyFBRev + baseMonthlyOtherRev;
+  // Total revenue derived from room revenue and ancillary shares of total
+  const ancillaryShare = revShareEvents + revShareFB + revShareOther;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const baseMonthlyTotalRev = baseMonthlyRoomRev / roomShareOfTotal;
+  const baseMonthlyEventsRev = baseMonthlyTotalRev * revShareEvents;
+  const baseMonthlyFBRev = baseMonthlyTotalRev * revShareFB;
+  const baseMonthlyOtherRev = baseMonthlyTotalRev * revShareOther;
   const baseAnnualTotalRev = baseMonthlyTotalRev * MONTHS_PER_YEAR;
 
   const fixedCostEscRate = global.fixedCostEscalationRate ?? 0.03;
@@ -187,9 +188,9 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
                 <DetailRow label="Starting ADR" value={fmt(property.startAdr)} />
                 <DetailRow label="Starting Occupancy" value={pct(property.startOccupancy)} />
                 <DetailRow label="Base Monthly Room Revenue" value={fmt(baseMonthlyRoomRev)} bold />
-                <DetailRow label={`Events Revenue (${pct(revShareEvents)} of rooms)`} value={fmt(baseMonthlyEventsRev)} indent />
-                <DetailRow label={`F&B Revenue (${pct(revShareFB)} × ${pct(cateringBoostMultiplier - 1)} boost)`} value={fmt(baseMonthlyFBRev)} indent />
-                <DetailRow label={`Other Revenue (${pct(revShareOther)} of rooms)`} value={fmt(baseMonthlyOtherRev)} indent />
+                <DetailRow label={`Events Revenue (${pct(revShareEvents)} of total)`} value={fmt(baseMonthlyEventsRev)} indent />
+                <DetailRow label={`F&B Revenue (${pct(revShareFB)} of total)`} value={fmt(baseMonthlyFBRev)} indent />
+                <DetailRow label={`Other Revenue (${pct(revShareOther)} of total)`} value={fmt(baseMonthlyOtherRev)} indent />
                 <DetailRow label="Base Monthly Total Revenue" value={fmt(baseMonthlyTotalRev)} bold />
                 <DetailRow label="Base Annual Total Revenue" value={fmt(baseAnnualTotalRev)} bold />
 

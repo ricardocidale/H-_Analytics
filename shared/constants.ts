@@ -31,25 +31,27 @@ export * from './constants-staffing';
 export * from './constants-enums';
 
 // ──────────────────────────────────────────────────────────
-// REVENUE STREAM SHARES
+// REVENUE STREAM SHARES (% of TOTAL revenue)
 // Each property generates revenue from multiple sources. These percentages
-// express how much revenue each ancillary stream contributes relative to
-// room revenue. For example, 0.30 means event revenue = 30% of room revenue.
+// express what fraction of TOTAL revenue each ancillary stream represents.
+// Room revenue share is derived: 1 - events - fb - other.
+// For example, events=0.18 + fb=0.30 + other=0.03 = 0.51 ancillary,
+// so rooms = 49% of total, and totalRevenue = roomRevenue / 0.49.
 // ──────────────────────────────────────────────────────────
 
-// Events share is higher than standard hotels (10-15%) because these are
-// boutique wellness/retreat properties with dedicated event programming.
+// Events share — 18% of total revenue (meetings, weddings, conferences).
+// Boutique wellness/retreat properties with dedicated event programming.
 // Source: Global Wellness Institute 2024 — wellness retreats generate 25-35% of total revenue.
-export const DEFAULT_REV_SHARE_EVENTS = 0.30;
-// Food & Beverage revenue as a share of room revenue
-export const DEFAULT_REV_SHARE_FB = 0.18;
-// Other revenue (parking, spa, gift shop, etc.) as a share of room revenue
-export const DEFAULT_REV_SHARE_OTHER = 0.05;
+export const DEFAULT_REV_SHARE_EVENTS = 0.18;
+// Food & Beverage — 30% of total revenue (restaurant, bar, room service, catering).
+export const DEFAULT_REV_SHARE_FB = 0.30;
+// Other revenue (parking, spa, gift shop, etc.) — 3% of total revenue.
+export const DEFAULT_REV_SHARE_OTHER = 0.03;
 
-// Catering boost: percentage uplift applied on top of base F&B revenue to
-// account for event catering (weddings, corporate retreats, etc.).
-// This is a blended rate across catered and non-catered events.
-export const DEFAULT_CATERING_BOOST_PCT = 0.22;
+// Catering boost: DEPRECATED for revenue calculation. F&B share now directly
+// represents the target F&B % of total revenue (catering boost absorbed).
+// Kept at 0 for backward compatibility; field not removed from interfaces.
+export const DEFAULT_CATERING_BOOST_PCT = 0;
 
 // ──────────────────────────────────────────────────────────
 // EXPENSE RATES (GLOBAL-CONFIGURABLE)

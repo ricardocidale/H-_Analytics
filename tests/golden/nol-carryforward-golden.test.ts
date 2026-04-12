@@ -21,25 +21,23 @@ import {
  * utilization cap (NOL_UTILIZATION_CAP = 0.80) per IRC Section 382 / TCJA rules.
  *
  * Scenario:
- *   10 rooms | $150 ADR | 70% occupancy (steady) | 0% growth | 0% inflation
- *   $1,450,000 purchase | 75% LTV ($1,087,500 loan) | 9% interest | 25yr term
+ *   5 rooms | $150 ADR | 70% occupancy (steady) | 0% growth | 0% inflation
+ *   $1,100,000 purchase | 75% LTV ($825,000 loan) | 9% interest | 20yr term
  *   Land: 25% of purchase | Tax rate: 25%
  *   Projection: 120 months (10 years) starting 2026-04-01
  *
  * Why this triggers NOL:
- *   Monthly ANOI is ~$10,713 while combined interest (~$8,156) and depreciation
- *   (~$3,295) total ~$11,452 — exceeding ANOI by ~$739/month initially. Pre-tax
- *   income (ANOI - interest - depreciation) is negative for ~77 months, causing
- *   ~$31K of NOL to accumulate. As interest expense declines through amortization,
- *   pre-tax income eventually turns positive. At that point, NOL offsets up to 80%
- *   of income per the NOL_UTILIZATION_CAP, reducing taxes until the carryforward
- *   is consumed.
+ *   With the total-revenue model (rooms ≈ 49% of total), monthly ANOI is moderate
+ *   while combined interest + depreciation exceed it in early months. Pre-tax
+ *   income is negative for ~50 months, accumulating ~$15K of NOL. As interest
+ *   expense declines through amortization, pre-tax income turns positive and
+ *   the NOL is fully consumed by month 120 via the 80% utilization cap.
  */
 describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
   // ── Scenario inputs ──────────────────────────────────────────────────────
   const property = makeProperty({
-    purchasePrice: 1_600_000,
-    roomCount: 10,
+    purchasePrice: 1_100_000,
+    roomCount: 5,
     startAdr: 150,
     startOccupancy: 0.70,
     maxOccupancy: 0.70,
@@ -48,7 +46,7 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
     type: "Financed" as any,
     acquisitionLTV: 0.75,
     acquisitionInterestRate: 0.09,
-    acquisitionTermYears: 15,
+    acquisitionTermYears: 20,
     landValuePercent: 0.25,
     buildingImprovements: 0,
     taxRate: DEFAULT_PROPERTY_TAX_RATE, // 0.25
@@ -66,17 +64,16 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
   const PENNY = 2; // toBeCloseTo precision (within $0.01)
 
   // ── Hand-calculated constants ──────────────────────────────────────────
-  const purchasePrice = 1_600_000;
-  const loanAmount = purchasePrice * 0.75; // $1,200,000
-  const monthlyRate = 0.09 / 12; // 0.0075
-  const totalPayments = 15 * 12; // 180
+  const purchasePrice = 1_100_000;
+  const loanAmount = purchasePrice * 0.75; // $825,000
+  const monthlyRate = 0.09 / 12;
+  const totalPayments = 20 * 12; // 240
   const monthlyPayment = pmt(loanAmount, monthlyRate, totalPayments);
 
-  const buildingValue = purchasePrice * 0.75; // $1,200,000
+  const buildingValue = purchasePrice * 0.75; // $1,875,000
   const monthlyDepreciation = buildingValue / DEPRECIATION_YEARS / 12;
-  // = 1,200,000 / 39 / 12 ≈ 2,564.10
 
-  const interestMonth1 = loanAmount * monthlyRate; // 1,200,000 * 0.0075 = 9,000.00
+  const interestMonth1 = loanAmount * monthlyRate;
 
   // Helper: compute pre-tax income for a given month
   function preTaxIncome(i: number): number {

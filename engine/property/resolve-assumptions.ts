@@ -99,8 +99,11 @@ export interface PropertyEngineContext {
   activeFeeCategories: { name: string; rate: number; isActive: boolean }[] | undefined;
   hasActiveFeeCategories: boolean;
 
+  pricingModel: "per_room" | "per_property";
+  nightlyPropertyRate: number;
   rampMonths: number;
   availableRooms: number;
+  daysPerMonth: number;
   baseAdr: number;
   baseMonthlyRoomRev: number;
   baseMonthlyTotalRev: number;
@@ -117,8 +120,21 @@ export interface PropertyEngineContext {
   fixedEscFactors: number[];
   monthlyEscRate: number;
 
+  // Seasonality (12 monthly factors, null = flat)
+  seasonalityProfile: number[] | null;
+  // Occupancy ramp curve (annual % of stabilized, null = use step function)
+  occupancyRampCurve: number[] | null;
+  // Owner's priority return (fraction of equity invested required before incentive fees)
+  ownerPriorityReturn: number;
+  // Fee subordination mode: "none" | "partial" | "full"
+  feeSubordination: string;
+  // Equity invested (for priority return calculation)
+  equityInvested: number;
+
   nolBalance: number;
   cumulativeCash: number;
+  cumulativeOwnerCashFlow: number;
+  cumulativeDeferredFees: number;
   prevDebtOutstanding: number;
   acqDebtMonthCount: number;
   prevAR: number;
@@ -187,17 +203,22 @@ export function resolvePropertyAssumptions(
   const bm = (property.businessModel as 'hotel' | 'lodge' | 'vrbo') ?? 'hotel';
   const modelDefaults = BUSINESS_MODEL_DEFAULTS[bm] ?? BUSINESS_MODEL_DEFAULTS.hotel;
 
+  const pricingModel = property.pricingModel ?? 'per_room';
+  const nightlyPropertyRate = property.nightlyPropertyRate ?? 0;
   const baseAdr = property.startAdr;
-  const baseMonthlyRoomRev = property.roomCount * daysPerMonth * baseAdr * property.startOccupancy;
+  // Per-room: roomCount × daysPerMonth × ADR × occupancy
+  // Per-property: nightlyPropertyRate × daysPerMonth × occupancy (whole property, one unit)
+  const baseMonthlyRoomRev = pricingModel === 'per_property'
+    ? nightlyPropertyRate * daysPerMonth * property.startOccupancy
+    : property.roomCount * daysPerMonth * baseAdr * property.startOccupancy;
   const revShareEvents = property.revShareEvents ?? modelDefaults.revShareEvents;
   const revShareFB = property.revShareFB ?? modelDefaults.revShareFB;
   const revShareOther = property.revShareOther ?? modelDefaults.revShareOther;
   const cateringBoostPct = property.cateringBoostPercent ?? modelDefaults.cateringBoostPct;
   const cateringBoostMultiplier = 1 + cateringBoostPct;
-  const baseMonthlyEventsRev = baseMonthlyRoomRev * revShareEvents;
-  const baseMonthlyFBRev = baseMonthlyRoomRev * revShareFB * cateringBoostMultiplier;
-  const baseMonthlyOtherRev = baseMonthlyRoomRev * revShareOther;
-  const baseMonthlyTotalRev = baseMonthlyRoomRev + baseMonthlyEventsRev + baseMonthlyFBRev + baseMonthlyOtherRev;
+  const ancillaryShare = revShareEvents + revShareFB + revShareOther;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const baseMonthlyTotalRev = baseMonthlyRoomRev / roomShareOfTotal;
 
   const startYear = modelStart.getFullYear();
   const startMonth = modelStart.getMonth();
@@ -310,8 +331,11 @@ export function resolvePropertyAssumptions(
     baseMgmtFeeRate,
     activeFeeCategories,
     hasActiveFeeCategories,
+    pricingModel,
+    nightlyPropertyRate,
     rampMonths,
     availableRooms,
+    daysPerMonth,
     baseAdr,
     baseMonthlyRoomRev,
     baseMonthlyTotalRev,
@@ -326,8 +350,15 @@ export function resolvePropertyAssumptions(
     adrFactors,
     fixedEscFactors,
     monthlyEscRate,
+    seasonalityProfile: property.seasonalityProfile ?? null,
+    occupancyRampCurve: property.occupancyRampCurve ?? null,
+    ownerPriorityReturn: property.ownerPriorityReturn ?? 0,
+    feeSubordination: property.feeSubordination ?? 'none',
+    equityInvested: totalPropertyValue - originalLoanAmount,
     nolBalance: 0,
     cumulativeCash: 0,
+    cumulativeOwnerCashFlow: 0,
+    cumulativeDeferredFees: 0,
     prevDebtOutstanding: originalLoanAmount,
     acqDebtMonthCount: 0,
     prevAR: 0,

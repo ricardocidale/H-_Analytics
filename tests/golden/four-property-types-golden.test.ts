@@ -93,11 +93,13 @@ describe("Golden Scenario 1: US Hotel (financed, 25% tax, 39yr depreciation)", (
   const avail = 25 * DAYS_PER_MONTH;                           // 762.5
   const sold = avail * 0.70;                                    // 533.75
   const revRooms = sold * 220;                                  // 117,425
-  const revEvents = revRooms * DEFAULT_REV_SHARE_EVENTS;
-  const baseFB = revRooms * DEFAULT_REV_SHARE_FB;
-  const revFB = baseFB * (1 + DEFAULT_CATERING_BOOST_PCT);
-  const revOther = revRooms * DEFAULT_REV_SHARE_OTHER;
-  const revTotal = revRooms + revEvents + revFB + revOther;
+  // Revenue shares are % of TOTAL revenue; room share = 1 - ancillary
+  const ancillaryShare = DEFAULT_REV_SHARE_EVENTS + DEFAULT_REV_SHARE_FB + DEFAULT_REV_SHARE_OTHER;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const revTotal = revRooms / roomShareOfTotal;
+  const revEvents = revTotal * DEFAULT_REV_SHARE_EVENTS;
+  const revFB = revTotal * DEFAULT_REV_SHARE_FB;
+  const revOther = revTotal * DEFAULT_REV_SHARE_OTHER;
 
   // Expenses
   const expRooms = revRooms * DEFAULT_COST_RATE_ROOMS;
@@ -210,11 +212,13 @@ describe("Golden Scenario 2: Colombian Hotel (35% tax, 20yr depreciation)", () =
   const avail = 12 * DAYS_PER_MONTH;
   const sold = avail * 0.65;
   const revRooms = sold * 180;
-  const revEvents = revRooms * DEFAULT_REV_SHARE_EVENTS;
-  const baseFB = revRooms * DEFAULT_REV_SHARE_FB;
-  const revFB = baseFB * (1 + DEFAULT_CATERING_BOOST_PCT);
-  const revOther = revRooms * DEFAULT_REV_SHARE_OTHER;
-  const revTotal = revRooms + revEvents + revFB + revOther;
+  // Revenue shares are % of TOTAL revenue; room share = 1 - ancillary
+  const ancillaryShare = DEFAULT_REV_SHARE_EVENTS + DEFAULT_REV_SHARE_FB + DEFAULT_REV_SHARE_OTHER;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const revTotal = revRooms / roomShareOfTotal;
+  const revEvents = revTotal * DEFAULT_REV_SHARE_EVENTS;
+  const revFB = revTotal * DEFAULT_REV_SHARE_FB;
+  const revOther = revTotal * DEFAULT_REV_SHARE_OTHER;
 
   const expRooms = revRooms * DEFAULT_COST_RATE_ROOMS;
   const expFB = revFB * DEFAULT_COST_RATE_FB;
@@ -329,11 +333,13 @@ describe("Golden Scenario 3: Hotel with Refinancing", () => {
   const avail = 18 * DAYS_PER_MONTH;
   const sold = avail * 0.65;
   const revRooms = sold * 200;
-  const revEvents = revRooms * DEFAULT_REV_SHARE_EVENTS;
-  const baseFB = revRooms * DEFAULT_REV_SHARE_FB;
-  const revFB = baseFB * (1 + DEFAULT_CATERING_BOOST_PCT);
-  const revOther = revRooms * DEFAULT_REV_SHARE_OTHER;
-  const revTotal = revRooms + revEvents + revFB + revOther;
+  // Revenue shares are % of TOTAL revenue; room share = 1 - ancillary
+  const ancillaryShare = DEFAULT_REV_SHARE_EVENTS + DEFAULT_REV_SHARE_FB + DEFAULT_REV_SHARE_OTHER;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const revTotal = revRooms / roomShareOfTotal;
+  const revEvents = revTotal * DEFAULT_REV_SHARE_EVENTS;
+  const revFB = revTotal * DEFAULT_REV_SHARE_FB;
+  const revOther = revTotal * DEFAULT_REV_SHARE_OTHER;
 
   it("pre-refinance months use original loan terms", () => {
     const m0 = result[0];
@@ -401,7 +407,11 @@ describe("Golden Scenario 4: VRBO Luxury Rental", () => {
   const PROP = {
     id: 104, name: "Medellín Luxury Duplex", type: "Full Equity",
     purchasePrice: 800_000, buildingImprovements: 0, preOpeningCosts: 0,
-    roomCount: 1, startAdr: 350, startOccupancy: 0.60, maxOccupancy: 0.60,
+    // Per-property pricing: whole property rented at $350/night, 4 bedrooms for capacity tracking
+    pricingModel: "per_property" as const,
+    nightlyPropertyRate: 350,
+    maxGuests: 8,
+    roomCount: 4, startAdr: 350, startOccupancy: 0.60, maxOccupancy: 0.60,
     occupancyGrowthStep: 0, occupancyRampMonths: 1, adrGrowthRate: 0, inflationRate: 0,
     operationsStartDate: "2026-04-01", acquisitionDate: "2026-04-01",
     operatingReserve: 0, taxRate: 0.35,
@@ -437,15 +447,18 @@ describe("Golden Scenario 4: VRBO Luxury Rental", () => {
   const MONTHS = 24;
   const result = generatePropertyProForma(PROP, GLOBAL, MONTHS);
 
-  // Hand calculations
-  const avail = 1 * DAYS_PER_MONTH;                             // 30.5
-  const sold = avail * 0.60;                                      // 18.3
-  const revRooms = sold * 350;                                    // 6,405
-  const revEvents = revRooms * vrbo.revShareEvents;               // 5%
-  const baseFB = revRooms * vrbo.revShareFB;                      // 10%
-  const revFB = baseFB * (1 + vrbo.cateringBoostPct);             // × 1.05
-  const revOther = revRooms * vrbo.revShareOther;                 // 3%
-  const revTotal = revRooms + revEvents + revFB + revOther;
+  // Hand calculations — per_property pricing: nightlyRate × daysPerMonth × occupancy
+  // (roomCount=4 is tracked for capacity but NOT used for revenue)
+  const avail = DAYS_PER_MONTH;                                   // 30.5 (one property, available each day)
+  const sold = avail * 0.60;                                      // 18.3 nights occupied
+  const revRooms = sold * 350;                                    // 6,405 ($350/night × 18.3 nights)
+  // Revenue shares are % of TOTAL revenue; room share = 1 - ancillary
+  const vrboAncillary = vrbo.revShareEvents + vrbo.revShareFB + vrbo.revShareOther;
+  const vrboRoomShare = Math.max(0.05, 1 - vrboAncillary);
+  const revTotal = revRooms / vrboRoomShare;
+  const revEvents = revTotal * vrbo.revShareEvents;
+  const revFB = revTotal * vrbo.revShareFB;
+  const revOther = revTotal * vrbo.revShareOther;
 
   // Platform fees
   const platformFees = revRooms * vrbo.platformFeeRate;           // 14%

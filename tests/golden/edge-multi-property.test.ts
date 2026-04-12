@@ -75,9 +75,9 @@ const ALL_PROPS = [PROP_A, PROP_B, PROP_C];
 // Hand-calculated revenue per property per month (flat scenario)
 function monthlyRevTotal(roomCount: number, adr: number, occ: number) {
   const rooms = roomCount * DAYS_PER_MONTH * occ * adr;
-  return rooms * (1 + DEFAULT_REV_SHARE_EVENTS +
-    DEFAULT_REV_SHARE_FB * (1 + DEFAULT_CATERING_BOOST_PCT) +
-    DEFAULT_REV_SHARE_OTHER);
+  const ancillaryShare = DEFAULT_REV_SHARE_EVENTS + DEFAULT_REV_SHARE_FB + DEFAULT_REV_SHARE_OTHER;
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  return rooms / roomShareOfTotal;
 }
 
 const H_REV_A = monthlyRevTotal(8, 180, 0.70);

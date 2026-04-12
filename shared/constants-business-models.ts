@@ -37,10 +37,10 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     costRateFFE: 0.04,             // 4% — FF&E reserve (= DEFAULT_COST_RATE_FFE)
     costRateOther: 0.05,           // 5% — Other (= DEFAULT_COST_RATE_OTHER)
     costRateInsurance: 0.015,      // 1.5% — Insurance (= DEFAULT_COST_RATE_INSURANCE)
-    revShareEvents: 0.30,          // 30% of room revenue (= DEFAULT_REV_SHARE_EVENTS)
-    revShareFB: 0.18,              // 18% of room revenue (= DEFAULT_REV_SHARE_FB)
-    revShareOther: 0.05,           // 5% of room revenue (= DEFAULT_REV_SHARE_OTHER)
-    cateringBoostPct: 0.22,        // 22% uplift on F&B (= DEFAULT_CATERING_BOOST_PCT)
+    revShareEvents: 0.18,          // 18% of total revenue — meetings, weddings, conferences
+    revShareFB: 0.30,              // 30% of total revenue — restaurant, bar, room service, catering
+    revShareOther: 0.03,           // 3% of total revenue — spa, parking, activities
+    cateringBoostPct: 0,           // 0% — catering boost absorbed into F&B share (deprecated)
     baseMgmtFeeRate: 0.085,        // 8.5% of total revenue (= DEFAULT_BASE_MANAGEMENT_FEE_RATE)
     incentiveMgmtFeeRate: 0.12,    // 12% of GOP (= DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE)
     eventExpenseRate: 0.65,         // 65% of event revenue (= DEFAULT_EVENT_EXPENSE_RATE)
@@ -61,10 +61,10 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     costRateFFE: 0.03,          // 3% — less FF&E turnover vs hotel
     costRateOther: 0.04,        // 4% — activities, equipment rental
     costRateInsurance: 0.02,    // 2% — higher insurance (remote, outdoor risk)
-    revShareEvents: 0,          // 0% — no events department
-    revShareFB: 0.25,           // 25% — guest meals are a significant revenue stream
-    revShareOther: 0.08,        // 8% — activities, equipment, experiences
-    cateringBoostPct: 0,        // 0% — no event catering
+    revShareEvents: 0,             // 0% — no events department
+    revShareFB: 0.20,              // 20% of total revenue — guest meals
+    revShareOther: 0.06,           // 6% of total revenue — activities, equipment, experiences
+    cateringBoostPct: 0,           // 0% — deprecated
     baseMgmtFeeRate: 0.18,      // 18% — higher mgmt fees (whole-property complexity)
     incentiveMgmtFeeRate: 0.10, // 10% — lower incentive (fewer profit levers)
     eventExpenseRate: 0,        // N/A
@@ -85,10 +85,10 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     costRateFFE: 0.03,          // 3% — furniture refresh, appliances
     costRateOther: 0.03,        // 3% — supplies, consumables
     costRateInsurance: 0.025,   // 2.5% — higher STR insurance
-    revShareEvents: 0.05,        // 5% — receptions, parties, creative experiences
-    revShareFB: 0.10,            // 10% — welcome baskets, catering, cooking experiences; all models must include F&B
-    revShareOther: 0.03,        // 3% — cleaning fees charged to guests
-    cateringBoostPct: 0.05,     // 5% — event catering for guest-hosted receptions
+    revShareEvents: 0.04,          // 4% of total revenue — receptions, parties, experiences
+    revShareFB: 0.08,              // 8% of total revenue — welcome baskets, catering, cooking
+    revShareOther: 0.02,           // 2% of total revenue — cleaning fees charged to guests
+    cateringBoostPct: 0,           // 0% — deprecated
     baseMgmtFeeRate: 0.25,      // 25% — all-in management fee
     incentiveMgmtFeeRate: 0,    // 0% — no incentive fee (all-in model)
     eventExpenseRate: 0,        // N/A

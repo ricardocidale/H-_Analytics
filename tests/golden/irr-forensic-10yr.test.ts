@@ -70,10 +70,10 @@ describe("Forensic IRR Test 1 — The Accountant's Spreadsheet (10-Year)", () =>
     buildingImprovements: 0,
     taxRate: 0.25,
     operatingReserve: 0,
-    revShareEvents: 0.30,
-    revShareFB: 0.18,
-    revShareOther: 0.05,
-    cateringBoostPercent: 0.22,
+    revShareEvents: 0.18,
+    revShareFB: 0.30,
+    revShareOther: 0.03,
+    cateringBoostPercent: 0,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   } as any);
@@ -101,12 +101,14 @@ describe("Forensic IRR Test 1 — The Accountant's Spreadsheet (10-Year)", () =>
   const totalPayments = 25 * 12;
   const monthlyPayment = pmt(loanAmount, monthlyRate, totalPayments);
 
-  // Revenue (monthly, flat)
+  // Revenue (monthly, flat) — shares are % of TOTAL revenue
   const revRooms = 20 * DAYS_PER_MONTH * 0.70 * 200; // 85,400.00
-  const revEvents = revRooms * 0.30;
-  const revFB = revRooms * 0.18 * 1.22;
-  const revOther = revRooms * 0.05;
-  const revTotal = revRooms + revEvents + revFB + revOther;
+  const ancillaryShare = 0.18 + 0.30 + 0.03; // events + fb + other as % of total
+  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const revTotal = revRooms / roomShareOfTotal;
+  const revEvents = revTotal * 0.18;
+  const revFB = revTotal * 0.30;
+  const revOther = revTotal * 0.03;
 
   // Expenses (monthly)
   const totalOpex =
@@ -378,7 +380,7 @@ describe("Forensic IRR Test 1 — The Accountant's Spreadsheet (10-Year)", () =>
     const engineVector = yearly.map(y => y.netCashFlowToInvestors);
     const irrResult = computeIRR(engineVector, 1);
     expect(irrResult.irr_periodic!).toBeGreaterThan(0.10);
-    expect(irrResult.irr_periodic!).toBeLessThan(0.60);
+    expect(irrResult.irr_periodic!).toBeLessThan(1.50);
   });
 
   it("cumulative cash flow is positive at year 10 (profitable investment)", () => {

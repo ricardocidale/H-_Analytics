@@ -103,6 +103,12 @@ export interface PropertyInput {
   costSeg15yrPct?: number | null;
   // Per-property depreciation override (nullable — NULL means use global/constant fallback)
   depreciationYears?: number | null;
+  // Seasonality: 12 monthly multipliers applied to occupancy and ADR (default: all 1.0 = flat)
+  // Example: Caribbean resort [1.4, 1.5, 1.6, 1.3, 0.8, 0.5, 0.4, 0.4, 0.3, 0.6, 1.0, 1.3]
+  seasonalityProfile?: number[] | null;
+  // Occupancy ramp curve: annual percentages of stabilized occupancy (overrides step function)
+  // Example: [0.55, 0.75, 0.90, 1.0] means Year 1=55%, Year 2=75%, Year 3=90%, Year 4+=100% of maxOccupancy
+  occupancyRampCurve?: number[] | null;
   // Quality tier (luxury, upper_upscale, upscale, upper_midscale, midscale, economy)
   qualityTier?: string | null;
   // Property descriptors — context for research engines and comp set selection
@@ -133,6 +139,12 @@ export interface PropertyInput {
   estimatedConversionMonths?: number | null;
   // Business model
   businessModel?: string | null;
+  // Pricing model: "per_room" (hotel) or "per_property" (luxury rental / VRBO)
+  pricingModel?: "per_room" | "per_property" | null;
+  // Nightly rate for the whole property (only used when pricingModel === "per_property")
+  nightlyPropertyRate?: number | null;
+  // Maximum guest capacity (for per_property pricing — informational + research engine context)
+  maxGuests?: number | null;
   // Platform fee (VRBO/STR: Airbnb ~15.5%, VRBO ~8%)
   platformFeeRate?: number | null;
   // Pre-opening monthly burn during ramp-up (training, initial stock, soft-launch)
@@ -276,6 +288,10 @@ export interface MonthlyFinancials {
   nolBalance: number;
   // Negative cash detection
   cashShortfall: boolean;
+  // Fee subordination: fees deferred when cash flow < debt service
+  deferredFees: number;
+  // Cumulative deferred fees balance
+  cumulativeDeferredFees: number;
 }
 
 export interface ServiceFeeBreakdown {
