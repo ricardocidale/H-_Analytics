@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import type { Logo, User, AdminCompany, UserGroup, AssetDesc } from "./types";
+import type { Logo, User, AdminCompany, AssetDesc } from "./types";
 
 interface ThemeEntry { id: number; name: string; isDefault: boolean }
 
@@ -47,13 +47,6 @@ export function useAdminCompanies() {
   return useQuery<AdminCompany[]>({
     queryKey: ["admin", "companies"],
     queryFn: adminFetch<AdminCompany[]>("/api/companies", "Failed to fetch companies"),
-  });
-}
-
-export function useAdminUserGroups() {
-  return useQuery<UserGroup[]>({
-    queryKey: ["admin", "user-groups"],
-    queryFn: adminFetch<UserGroup[]>("/api/user-groups", "Failed to fetch user groups"),
   });
 }
 

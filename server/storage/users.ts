@@ -161,7 +161,6 @@ export class UserStorage {
           company: users.company,
           companyId: users.companyId,
           title: users.title,
-          userGroupId: users.userGroupId,
           selectedThemeId: users.selectedThemeId,
           phoneNumber: users.phoneNumber,
           googleId: users.googleId,

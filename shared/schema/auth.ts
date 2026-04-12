@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, real, integer, timestamp, jsonb, boolean, index, serial, unique, check, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { companies, userGroups, designThemes } from "./core";
+import { companies, designThemes } from "./core";
 
 // --- USERS TABLE ---
 // Every person who can log in. Roles control what they can see and do:
@@ -10,7 +10,7 @@ import { companies, userGroups, designThemes } from "./core";
 //   - "user": general access — can edit properties and assumptions
 //   - "checker": independent auditor — read-only access plus verification tools
 //   - "investor": limited view — sees dashboard and reports but cannot edit
-// Each user optionally belongs to a company (SPV) and a user group (branding).
+// Each user optionally belongs to a company (SPV).
 export const users = pgTable("users", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   email: text("email").notNull().unique(),
@@ -21,7 +21,6 @@ export const users = pgTable("users", {
   company: text("company"),
   companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }),
   title: text("title"),
-  userGroupId: integer("user_group_id").references(() => userGroups.id, { onDelete: "set null" }),
   selectedThemeId: integer("selected_theme_id").references(() => designThemes.id, { onDelete: "set null" }),
   phoneNumber: text("phone_number"),
   googleId: text("google_id"),
@@ -38,7 +37,6 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("users_company_id_idx").on(table.companyId),
-  index("users_user_group_id_idx").on(table.userGroupId),
   index("users_phone_number_idx").on(table.phoneNumber),
 ]);
 
@@ -56,7 +54,6 @@ export const insertUserSchema = z.object({
   title: z.string().nullable().optional(),
   phoneNumber: z.string().nullable().optional(),
   googleId: z.string().nullable().optional(),
-  userGroupId: z.number().nullable().optional(),
 });
 
 export const selectUserSchema = createSelectSchema(users);

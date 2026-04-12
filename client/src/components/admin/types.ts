@@ -22,7 +22,6 @@ export interface User {
   role: string;
   canManageScenarios: boolean;
   createdAt: string;
-  userGroupId: number | null;
 }
 
 export interface Logo {
@@ -45,16 +44,6 @@ export interface LoginLog {
   userName: string | null;
 }
 
-export interface UserGroup {
-  id: number;
-  name: string;
-  logoId: number | null;
-  themeId: number | null;
-  assetDescriptionId: number | null;
-  isDefault: boolean;
-  createdAt: string;
-}
-
 export interface AdminCompany {
   id: number;
   name: string;
@@ -66,7 +55,7 @@ export interface AdminCompany {
   createdAt: string;
 }
 
-export type AdminView = "users" | "companies" | "activity" | "verification" | "themes" | "branding" | "user-groups" | "sidebar" | "database" | "logos";
+export type AdminView = "users" | "companies" | "activity" | "verification" | "themes" | "branding" | "sidebar" | "database" | "logos";
 export type ActivitySubView = "login" | "feed" | "sharing" | "checker";
 
 export interface ActivityLogEntry {

@@ -22,11 +22,9 @@ interface EditUserDialogProps {
   setShowEditPassword: React.Dispatch<React.SetStateAction<boolean>>;
   companiesList: { id: number; name: string; logoId: number | null; isActive: boolean }[] | undefined;
   companyLogoMap: Record<number, string>;
-  userGroupsList: { id: number; name: string }[] | undefined;
   isPending: boolean;
   onSubmit: () => void;
   onAddCompany: () => void;
-  onAddGroup: () => void;
 }
 
 export default function EditUserDialog({
@@ -39,11 +37,9 @@ export default function EditUserDialog({
   setShowEditPassword,
   companiesList,
   companyLogoMap,
-  userGroupsList,
   isPending,
   onSubmit,
   onAddCompany,
-  onAddGroup,
 }: EditUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
@@ -82,22 +78,6 @@ export default function EditUserDialog({
                   </SelectItem>
                 ))}
                 <SelectItem value="__add_new__"><span className="flex items-center gap-2 text-primary"><IconPlus className="w-4 h-4" />Add New Company</span></SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2"><IconUserCog className="w-4 h-4 text-muted-foreground" />Group</Label>
-            <Select value={editUser.userGroupId != null ? String(editUser.userGroupId) : "none"} onValueChange={(v) => {
-              if (v === "__add_new__") { onAddGroup(); return; }
-              setEditUser(prev => ({ ...prev, userGroupId: v === "none" ? null : parseInt(v) }));
-            }} data-testid="select-edit-group">
-              <SelectTrigger data-testid="select-edit-group"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Group</SelectItem>
-                {userGroupsList?.map(g => (
-                  <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
-                ))}
-                <SelectItem value="__add_new__"><span className="flex items-center gap-2 text-primary"><IconPlus className="w-4 h-4" />Add New Group</span></SelectItem>
               </SelectContent>
             </Select>
           </div>

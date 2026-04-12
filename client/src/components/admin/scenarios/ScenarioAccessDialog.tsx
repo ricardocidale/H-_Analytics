@@ -27,31 +27,26 @@ interface ScenarioAccessDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   scenario: ScenarioForAccess | null;
-  groups: Array<{ id: number; name: string }> | undefined;
   companies: Array<{ id: number; name: string }> | undefined;
   users: Array<{ id: number; email: string; name: string | null }> | undefined;
 }
 
 function getGrantBadgeVariant(targetType: string): "default" | "secondary" | "outline" {
-  if (targetType === "group") return "default";
   if (targetType === "company") return "secondary";
   return "outline";
 }
 
-export function ScenarioAccessDialog({ open, onOpenChange, scenario, groups, companies, users }: ScenarioAccessDialogProps) {
+export function ScenarioAccessDialog({ open, onOpenChange, scenario, companies, users }: ScenarioAccessDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [grantForm, setGrantForm] = useState({ targetType: "group" as string, targetId: "" });
+  const [grantForm, setGrantForm] = useState({ targetType: "company" as string, targetId: "" });
 
-  const groupNameMap: Record<number, string> = {};
-  groups?.forEach(g => { groupNameMap[g.id] = g.name; });
   const companyNameMap: Record<number, string> = {};
   companies?.forEach(c => { companyNameMap[c.id] = c.name; });
   const userNameMap: Record<number, string> = {};
   users?.forEach(u => { userNameMap[u.id] = u.name || u.email; });
 
   const getGrantLabel = (targetType: string, targetId: number) => {
-    if (targetType === "group") return groupNameMap[targetId] || `Group #${targetId}`;
     if (targetType === "company") return companyNameMap[targetId] || `Company #${targetId}`;
     if (targetType === "user") return userNameMap[targetId] || `User #${targetId}`;
     return `${targetType} #${targetId}`;
@@ -73,7 +68,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, groups, com
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
-      setGrantForm({ targetType: "group", targetId: "" });
+      setGrantForm({ targetType: "company", targetId: "" });
       toast({ title: "Access Granted" });
     },
     onError: (err: Error) => {
@@ -125,7 +120,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, groups, com
         <DialogHeader>
           <DialogTitle>Manage Access — {scenario?.name}</DialogTitle>
           <DialogDescription>
-            Grant or revoke access for user groups, companies, or individual users.
+            Grant or revoke access for companies or individual users.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -192,7 +187,6 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, groups, com
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="group">Group</SelectItem>
                     <SelectItem value="company">Company</SelectItem>
                     <SelectItem value="user">User</SelectItem>
                   </SelectContent>
@@ -205,9 +199,6 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, groups, com
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {grantForm.targetType === "group" && groups?.map(g => (
-                      <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
-                    ))}
                     {grantForm.targetType === "company" && companies?.map(c => (
                       <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                     ))}

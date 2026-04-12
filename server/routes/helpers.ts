@@ -84,7 +84,6 @@ export const createUserSchema = z.object({
   companyId: z.number().nullable().optional(),
   title: z.string().max(100).optional(),
   role: z.enum(VALID_USER_ROLES).optional().default("user"),
-  userGroupId: z.number().nullable().optional(),
 });
 
 export const createScenarioSchema = z.object({

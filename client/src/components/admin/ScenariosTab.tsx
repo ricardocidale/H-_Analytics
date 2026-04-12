@@ -9,7 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconPlus } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { useAdminUsers, useAdminUserGroups, useAdminCompanies, adminFetch } from "./hooks";
+import { useAdminUsers, useAdminCompanies, adminFetch } from "./hooks";
 import { ScenarioCard, type AdminScenario } from "./scenarios/ScenarioCard";
 import { ScenarioAccessDialog } from "./scenarios/ScenarioAccessDialog";
 import { DeletedScenariosSection, DefaultScenariosSection } from "./ScenariosTabSections";
@@ -35,7 +35,6 @@ export default function ScenariosTab() {
   });
 
   const { data: users } = useAdminUsers();
-  const { data: groups } = useAdminUserGroups();
   const { data: companies } = useAdminCompanies();
 
   const createMutation = useMutation({
@@ -117,12 +116,6 @@ export default function ScenariosTab() {
     }
   }, [scenarios]);
 
-  const groupNameMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    groups?.forEach(g => { map[g.id] = g.name; });
-    return map;
-  }, [groups]);
-
   const companyNameMap = useMemo(() => {
     const map: Record<number, string> = {};
     companies?.forEach(c => { map[c.id] = c.name; });
@@ -143,14 +136,12 @@ export default function ScenariosTab() {
         s.ownerEmail.toLowerCase().includes(search.toLowerCase()) ||
         (s.ownerName && s.ownerName.toLowerCase().includes(search.toLowerCase()));
       const matchesOwner = ownerFilter === "all" || s.userId === Number(ownerFilter);
-      const matchesGroup = groupFilter === "all" || s.accessGrants.some(g => g.targetType === "group" && g.targetId === Number(groupFilter));
       const matchesCompany = companyFilter === "all" || s.accessGrants.some(g => g.targetType === "company" && g.targetId === Number(companyFilter));
-      return matchesSearch && matchesOwner && matchesGroup && matchesCompany;
+      return matchesSearch && matchesOwner && matchesCompany;
     });
-  }, [scenarios, search, ownerFilter, groupFilter, companyFilter]);
+  }, [scenarios, search, ownerFilter, companyFilter]);
 
   const getGrantLabel = (targetType: string, targetId: number) => {
-    if (targetType === "group") return groupNameMap[targetId] || `Group #${targetId}`;
     if (targetType === "company") return companyNameMap[targetId] || `Company #${targetId}`;
     if (targetType === "user") return userNameMap[targetId] || `User #${targetId}`;
     return `${targetType} #${targetId}`;
@@ -184,19 +175,6 @@ export default function ScenariosTab() {
               {users?.map(u => (
                 <SelectItem key={u.id} value={String(u.id)}>
                   {u.name || u.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={groupFilter} onValueChange={setGroupFilter}>
-            <SelectTrigger className="w-[180px]" data-testid="select-group-filter">
-              <SelectValue placeholder="All groups" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All groups</SelectItem>
-              {groups?.map(g => (
-                <SelectItem key={g.id} value={String(g.id)}>
-                  {g.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -379,7 +357,6 @@ export default function ScenariosTab() {
         open={accessOpen}
         onOpenChange={setAccessOpen}
         scenario={selectedScenario}
-        groups={groups}
         companies={companies}
         users={users}
       />

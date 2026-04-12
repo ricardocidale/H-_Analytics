@@ -49,7 +49,6 @@ declare global {
       company: string | null;
       companyId: number | null;
       title: string | null;
-      userGroupId: number | null;
       selectedThemeId: number | null;
       phoneNumber: string | null;
       googleAccessToken: string | null;

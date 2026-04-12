@@ -29,14 +29,12 @@ interface InviteUsersDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   companiesList?: { id: number; name: string }[];
-  userGroupsList?: { id: number; name: string }[];
 }
 
 export default function InviteUsersDialog({
   open,
   onOpenChange,
   companiesList,
-  userGroupsList,
 }: InviteUsersDialogProps) {
   const queryClient = useQueryClient();
   const [emails, setEmails] = useState<string[]>([]);
@@ -51,7 +49,7 @@ export default function InviteUsersDialog({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const sendInvitations = useMutation({
-    mutationFn: async (data: { emails: string[]; role: string; message?: string; companyId?: number | null; userGroupId?: number | null }) => {
+    mutationFn: async (data: { emails: string[]; role: string; message?: string; companyId?: number | null }) => {
       const res = await fetch("/api/admin/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,7 +117,6 @@ export default function InviteUsersDialog({
       role,
       message: message.trim() || undefined,
       companyId: companyId !== "none" ? Number(companyId) : null,
-      userGroupId: groupId !== "none" ? Number(groupId) : null,
     });
   };
 
@@ -337,23 +334,6 @@ export default function InviteUsersDialog({
                     </Select>
                   </div>
                 </div>
-
-                {userGroupsList && userGroupsList.length > 0 && (
-                  <div>
-                    <Label className="label-text font-semibold mb-2 block">User Group</Label>
-                    <Select value={groupId} onValueChange={setGroupId}>
-                      <SelectTrigger data-testid="select-invite-group">
-                        <SelectValue placeholder="Default" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Default</SelectItem>
-                        {userGroupsList.map(g => (
-                          <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
 
                 <div>
                   <Label className="label-text font-semibold mb-2 block">Personal Message (optional)</Label>

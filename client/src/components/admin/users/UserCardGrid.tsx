@@ -15,7 +15,6 @@ interface UserCardGridProps {
   sortDir: SortDir;
   toggleSort: (field: SortField) => void;
   companyNameMap: Record<number, string>;
-  groupNameMap: Record<number, string>;
   companyLogoMap: Record<number, string>;
   generalLogoUrl: string | null;
   companiesList: { id: number; name: string }[] | undefined;
@@ -36,7 +35,6 @@ export default function UserCardGrid({
   sortDir,
   toggleSort,
   companyNameMap,
-  groupNameMap,
   companyLogoMap,
   generalLogoUrl,
   companiesList,
@@ -57,9 +55,6 @@ export default function UserCardGrid({
         <Button variant="ghost" className="flex items-center gap-1.5 text-sm text-muted-foreground font-display h-auto px-1 py-0.5 hover:text-foreground" onClick={() => toggleSort("company")} data-testid="sort-user-company">
           <IconBuilding2 className="w-4 h-4" />Company <SortIcon field="company" sortField={sortField} sortDir={sortDir} />
         </Button>
-        <Button variant="ghost" className="flex items-center gap-1.5 text-sm text-muted-foreground font-display h-auto px-1 py-0.5 hover:text-foreground" onClick={() => toggleSort("group")} data-testid="sort-user-group">
-          <IconUserCog className="w-4 h-4" />Group <SortIcon field="group" sortField={sortField} sortDir={sortDir} />
-        </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {sortedUsers.map((user, idx, arr) => {
@@ -67,12 +62,8 @@ export default function UserCardGrid({
           const prevCompany = idx > 0
             ? (arr[idx - 1].companyId ? companyNameMap[arr[idx - 1].companyId!] || "Unknown Company" : "No Company")
             : null;
-          const currentGroup = user.userGroupId ? groupNameMap[user.userGroupId] || "Unknown Group" : "No Group";
-          const prevGroup = idx > 0
-            ? (arr[idx - 1].userGroupId ? groupNameMap[arr[idx - 1].userGroupId!] || "Unknown Group" : "No Group")
-            : null;
-          const sectionLabel = sortField === "company" ? currentCompany : sortField === "group" ? currentGroup : null;
-          const prevLabel = sortField === "company" ? prevCompany : sortField === "group" ? prevGroup : null;
+          const sectionLabel = sortField === "company" ? currentCompany : null;
+          const prevLabel = sortField === "company" ? prevCompany : null;
           const showHeader = sectionLabel !== null && sectionLabel !== prevLabel;
           return (<React.Fragment key={user.id}>
             {showHeader && (
@@ -154,9 +145,6 @@ export default function UserCardGrid({
                     : 'bg-muted text-muted-foreground'}`}>
                   {user.role}
                 </span>
-                {user.userGroupId && groupNameMap[user.userGroupId]
-                  ? <span className="text-xs text-accent">{groupNameMap[user.userGroupId]}</span>
-                  : <span className="text-xs text-muted-foreground/40">—</span>}
                 <div className="ml-auto flex items-center gap-1.5">
                   <span className="text-[11px] text-muted-foreground">Scenarios</span>
                   <Switch

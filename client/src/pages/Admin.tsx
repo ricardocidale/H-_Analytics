@@ -17,7 +17,6 @@ const ActivityTab = lazy(() => import("@/components/admin").then(m => ({ default
 const VerificationTab = lazy(() => import("@/components/admin").then(m => ({ default: m.VerificationTab })));
 const DatabaseTab = lazy(() => import("@/components/admin").then(m => ({ default: m.DatabaseTab })));
 const PeopleTab = lazy(() => import("@/components/admin/PeopleTab"));
-const GroupsTab = lazy(() => import("@/components/admin/GroupsTab"));
 const NavigationTab = lazy(() => import("@/components/admin/NavigationTab"));
 const AIAgentsTab = lazy(() => import("@/components/admin/AIAgentsTab"));
 const NotificationsTab = lazy(() => import("@/components/admin/NotificationsTab"));
@@ -83,7 +82,6 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "users":            return <PeopleTab />;
     case "activity":         return <ActivityTab />;
     case "companies":        return <CompaniesTab />;
-    case "groups":           return <GroupsTab />;
     case "scenarios":        return <ScenariosTab />;
     case "brand":            return <BrandTab />;
     case "exports":          return <ExportsTab />;

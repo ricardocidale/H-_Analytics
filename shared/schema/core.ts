@@ -124,36 +124,6 @@ export type AssetDescription = typeof assetDescriptions.$inferSelect;
 export type InsertAssetDescription = z.infer<typeof insertAssetDescriptionSchema>;
 
 
-// --- USER GROUPS TABLE ---
-// Groups allow white-label branding per audience. Each group can have its own
-// logo, color theme, and asset description. When a user belongs to a group,
-// the UI renders that group's branding instead of the system default.
-// Example: "Investor Portal" group sees a different logo than the internal team.
-export const userGroups = pgTable("user_groups", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  name: text("name").notNull(),
-  logoId: integer("logo_id").references(() => logos.id, { onDelete: "set null" }),
-  themeId: integer("theme_id").references(() => designThemes.id, { onDelete: "set null" }),
-  assetDescriptionId: integer("asset_description_id").references(() => assetDescriptions.id, { onDelete: "set null" }),
-  isDefault: boolean("is_default").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("user_groups_logo_id_idx").on(table.logoId),
-  index("user_groups_theme_id_idx").on(table.themeId),
-]);
-
-export const insertUserGroupSchema = z.object({
-  name: z.string().min(1),
-  logoId: z.number().nullable().optional(),
-  themeId: z.number().nullable().optional(),
-  assetDescriptionId: z.number().nullable().optional(),
-});
-
-export type UserGroup = typeof userGroups.$inferSelect;
-export type InsertUserGroup = z.infer<typeof insertUserGroupSchema>;
-
-
-
 // --- DESIGN THEMES TABLE ---
 // Color themes for the UI. Each theme has an ordered list of named colors
 // (primary, secondary, accent, etc.) that the frontend applies as CSS variables.

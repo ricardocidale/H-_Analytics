@@ -31,7 +31,6 @@ function mockUser(overrides: Partial<Express.User> = {}): Express.User {
     company: "TestCo",
     companyId: null,
     title: "Tester",
-    userGroupId: null,
     selectedThemeId: null,
     phoneNumber: null,
     googleAccessToken: null,

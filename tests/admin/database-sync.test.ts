@@ -361,7 +361,6 @@ describe("Database Sync — Seed Constants Integrity", () => {
       environment: "development",
       summary: {
         users: 8,
-        userGroups: 2,
         properties: SEED_PROPERTIES.length,
         themes: 1,
         hasGlobalAssumptions: true,
@@ -386,10 +385,6 @@ describe("Database Sync — Seed Constants Integrity", () => {
         feeCategories: DEFAULT_SERVICE_FEE_CATEGORIES.map(c => ({ name: c.name, rate: c.rate, isActive: true })),
         hasResearchValues: true,
       })),
-      userGroups: [
-        { id: 1, name: "KIT Group", companyName: "KIT Capital" },
-        { id: 2, name: "Norfolk Group", companyName: "Norfolk Group" },
-      ],
     };
 
     it("response has correct environment field", () => {
@@ -398,7 +393,6 @@ describe("Database Sync — Seed Constants Integrity", () => {
 
     it("summary has all required fields", () => {
       expect(mockSyncResponse.summary).toHaveProperty("users");
-      expect(mockSyncResponse.summary).toHaveProperty("userGroups");
       expect(mockSyncResponse.summary).toHaveProperty("properties");
       expect(mockSyncResponse.summary).toHaveProperty("themes");
       expect(mockSyncResponse.summary).toHaveProperty("hasGlobalAssumptions");
@@ -436,13 +430,6 @@ describe("Database Sync — Seed Constants Integrity", () => {
       }
     });
 
-    it("user groups have required fields", () => {
-      for (const group of mockSyncResponse.userGroups) {
-        expect(group).toHaveProperty("id");
-        expect(group).toHaveProperty("name");
-        expect(group).toHaveProperty("companyName");
-      }
-    });
   });
 
   describe("Seed-Production Sync Results Shape", () => {
@@ -451,7 +438,6 @@ describe("Database Sync — Seed Constants Integrity", () => {
       message: "Production data seeding completed",
       results: {
         users: { created: 0, skipped: 8, updated: 0 },
-        userGroups: { created: 0, skipped: 2 },
         globalAssumptions: { created: 0, skipped: 0, updated: 1 },
         properties: { created: 0, skipped: 0, updated: SEED_PROPERTIES.length },
         propertyFeeCategories: { created: 0, updated: SEED_PROPERTIES.length * DEFAULT_SERVICE_FEE_CATEGORIES.length },
@@ -465,7 +451,6 @@ describe("Database Sync — Seed Constants Integrity", () => {
 
     it("has results for all entity types", () => {
       expect(mockSyncResults.results).toHaveProperty("users");
-      expect(mockSyncResults.results).toHaveProperty("userGroups");
       expect(mockSyncResults.results).toHaveProperty("globalAssumptions");
       expect(mockSyncResults.results).toHaveProperty("properties");
       expect(mockSyncResults.results).toHaveProperty("propertyFeeCategories");

@@ -3,7 +3,7 @@ import { pgTable, text, integer, timestamp, jsonb, index, unique, boolean } from
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./auth";
-import { userGroups, companies } from "./core";
+import { companies } from "./core";
 import { properties } from "./properties";
 import type {
   ScenarioGlobalAssumptionsSnapshot,

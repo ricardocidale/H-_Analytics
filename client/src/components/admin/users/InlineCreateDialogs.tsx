@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconSave, IconPeople, IconBuilding2, IconImage, IconPalette, IconFileText, IconProperties } from "@/components/icons";
-import type { InlineCompanyForm, InlineGroupForm } from "./types";
+import type { InlineCompanyForm } from "./types";
 
 interface InlineCompanyDialogProps {
   open: boolean;
@@ -78,76 +78,6 @@ export function InlineCompanyDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-inline-company">Cancel</Button>
           <Button variant="outline" onClick={onSubmit} disabled={!form.name || isPending} data-testid="button-save-inline-company" className="flex items-center gap-2">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
-            Create
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-interface InlineGroupDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  form: InlineGroupForm;
-  setForm: React.Dispatch<React.SetStateAction<InlineGroupForm>>;
-  allThemes: { id: number; name: string; isDefault: boolean }[] | undefined;
-  assetDescriptions: { id: number; name: string }[] | undefined;
-  isPending: boolean;
-  onSubmit: () => void;
-}
-
-export function InlineGroupDialog({
-  open,
-  onOpenChange,
-  form,
-  setForm,
-  allThemes,
-  assetDescriptions,
-  isPending,
-  onSubmit,
-}: InlineGroupDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display">Create User Group</DialogTitle>
-          <DialogDescription className="label-text">Create a new group to assign to this user</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2"><IconPeople className="w-4 h-4 text-muted-foreground" />Group Name</Label>
-            <Input value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g., KIT Capital Team" data-testid="input-inline-group-name" />
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2"><IconPalette className="w-4 h-4 text-muted-foreground" />Theme</Label>
-            <Select value={form.themeId != null ? String(form.themeId) : "default"} onValueChange={(v) => setForm(prev => ({ ...prev, themeId: v === "default" ? null : parseInt(v) }))}>
-              <SelectTrigger data-testid="select-inline-group-theme"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default Theme</SelectItem>
-                {allThemes?.map(theme => (
-                  <SelectItem key={theme.id} value={String(theme.id)}>{theme.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2"><IconProperties className="w-4 h-4 text-muted-foreground" />Property Description (Property Label)</Label>
-            <Select value={form.assetDescriptionId != null ? String(form.assetDescriptionId) : "default"} onValueChange={(v) => setForm(prev => ({ ...prev, assetDescriptionId: v === "default" ? null : parseInt(v) }))}>
-              <SelectTrigger data-testid="select-inline-group-asset-desc"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default Label</SelectItem>
-                {assetDescriptions?.map(ad => (
-                  <SelectItem key={ad.id} value={String(ad.id)}>{ad.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-inline-group">Cancel</Button>
-          <Button variant="outline" onClick={onSubmit} disabled={!form.name || isPending} data-testid="button-save-inline-group" className="flex items-center gap-2">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
             Create
           </Button>

@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, real, integer, timestamp, jsonb, boolean, index, serial, unique, check, primaryKey, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { companies, userGroups, businessBrands, type ResearchValueEntry } from "./core";
+import { companies, businessBrands, type ResearchValueEntry } from "./core";
 import { users } from "./auth";
 import {
   PropertyStatus,
@@ -417,12 +417,4 @@ export type PropertyUrl = typeof propertyUrls.$inferSelect;
 export type InsertPropertyUrl = z.infer<typeof insertPropertyUrlSchema>;
 
 // --- USER GROUP PROPERTIES TABLE ---
-// Controls which properties each user group can see. If a group has NO rows
-// here, all properties are visible (safe default — backward compatible).
-// If rows exist, only those property IDs are visible to the group's members.
-// Admin users always bypass this filter.
-export const userGroupProperties = pgTable("user_group_properties", {
-  userGroupId: integer("user_group_id").notNull().references(() => userGroups.id, { onDelete: "cascade" }),
-  propertyId: integer("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
-}, (t) => [primaryKey({ columns: [t.userGroupId, t.propertyId] })]);
 
