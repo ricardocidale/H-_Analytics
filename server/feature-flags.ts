@@ -1,17 +1,11 @@
 import { logger } from "./logger";
 
 export interface FeatureFlags {
-  RI_V2_WRITE: boolean;
-  RI_V2_READ: boolean;
   REBECCA_V2: boolean;
-  ADMIN_INTEL_V2: boolean;
 }
 
 const defaults: FeatureFlags = {
-  RI_V2_WRITE: true,
-  RI_V2_READ: true,
   REBECCA_V2: true,
-  ADMIN_INTEL_V2: true,
 };
 
 let resolved: FeatureFlags | null = null;
@@ -20,10 +14,7 @@ function resolve(): FeatureFlags {
   if (resolved) return resolved;
 
   resolved = {
-    RI_V2_WRITE: envBool("RI_V2_WRITE", defaults.RI_V2_WRITE),
-    RI_V2_READ: envBool("RI_V2_READ", defaults.RI_V2_READ),
     REBECCA_V2: envBool("REBECCA_V2", defaults.REBECCA_V2),
-    ADMIN_INTEL_V2: envBool("ADMIN_INTEL_V2", defaults.ADMIN_INTEL_V2),
   };
 
   const active = Object.entries(resolved)

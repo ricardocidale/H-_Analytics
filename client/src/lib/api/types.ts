@@ -83,7 +83,6 @@ export interface GlobalResponse {
   // Rebecca AI
   rebeccaEnabled: boolean;
   rebeccaV2: boolean;
-  adminIntelV2: boolean;
   rebeccaDisplayName: string;
   rebeccaSystemPrompt: string | null;
   // Display Settings

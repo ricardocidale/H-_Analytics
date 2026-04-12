@@ -20,7 +20,6 @@ import { buildPropertyContextPack } from "../ai/context-pack/property-pack";
 import { buildCompanyContextPack } from "../ai/context-pack/company-pack";
 import { assembleResearchPrompt } from "../ai/prompt/assemble-research-prompt";
 import { extractGuidance } from "../ai/guidance/extractor";
-import { flag } from "../feature-flags";
 import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 import { indexAssumptionGuidance, retrieveSimilarGuidance, isPineconeAvailable } from "../ai/pinecone-service";
 import { registerResearchMetaRoutes } from "./research-meta";
@@ -213,8 +212,7 @@ export function register(app: Express) {
 
       let v2Prompt: string | undefined;
       let propertyContextPack: import("../ai/context-pack/types").PropertyContextPack | undefined;
-      if (flag("RI_V2_WRITE")) {
-        try {
+      try {
           let ambientDataStr: string | undefined;
           const benchmarks = await storage.getBenchmarkSnapshots();
           if (benchmarks.length > 0) {
@@ -281,9 +279,8 @@ export function register(app: Express) {
             });
           }
         } catch (err: unknown) {
-          logger.warn(`RI v2 prompt assembly failed, falling back to v1: ${err instanceof Error ? err.message : err}`, "research");
+          logger.warn(`Research prompt assembly failed: ${err instanceof Error ? err.message : err}`, "research");
         }
-      }
 
       const useOrchestrator = type === "property" && isOrchestratorAvailable();
       let earlyRunId: number | undefined;
@@ -375,7 +372,7 @@ export function register(app: Express) {
           }
         }
 
-        if (flag("RI_V2_WRITE") && type === "property" && propertyId && !parsed.rawResponse) {
+        if (type === "property" && propertyId && !parsed.rawResponse) {
           try {
             const guidanceResult = extractGuidance(parsed as Record<string, unknown>, 1, "property");
             if (guidanceResult.records.length > 0) {
@@ -460,7 +457,7 @@ export function register(app: Express) {
         }
 
         const authCompanyId = (getAuthUser(req) as { companyId?: number | null }).companyId;
-        if (flag("RI_V2_WRITE") && type === "company" && !parsed.rawResponse && ga && authCompanyId) {
+        if (type === "company" && !parsed.rawResponse && ga && authCompanyId) {
           try {
             const guidanceResult = extractGuidance(parsed as Record<string, unknown>, 1, "company");
             if (guidanceResult.records.length > 0) {
