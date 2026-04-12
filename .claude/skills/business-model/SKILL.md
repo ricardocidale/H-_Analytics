@@ -1,306 +1,169 @@
 ---
 name: business-model
-description: Foundational business domain for HBG Portal. Covers dual-entity model, hospitality revenue streams, USALI income waterfall, management fees, company overhead, SAFE funding, intercompany elimination, and property lifecycle. Use when working on business logic or financial assumptions.
+description: Foundational business domain for H+ Analytics. Covers dual-entity model (ManCo + SPVs), TWO property business models (hotel + luxury rental), vertical community targeting, 50/50 F&B revenue split goal, conversion pipeline, management fees with brand component, and international operations (US + Colombia). This is a FUNDRAISING tool for sophisticated investors.
 ---
 
-# HBG Business Model
+# H+ Analytics Business Model
 
-The foundational business domain skill for HBG Portal. Covers the dual-entity model, hospitality revenue streams, USALI income waterfall, management fees, company overhead, SAFE funding, intercompany elimination, ICP system, make-vs-buy analysis, and property lifecycle. Use this skill whenever working on business logic, financial assumptions, property data, or any feature that touches the investment simulation model.
+## Core Purpose
+H+ Analytics is a **fundraising and capital-raising tool**, NOT a business operations system. It helps a hospitality management company build credible, defensible financial models to raise capital from sophisticated investors (PE, family offices, HNWIs). The AI research engines are what make this app valuable — without them it's just Excel with a nicer UI.
 
-**Related skills:** `finance/` (calculation contracts), `proof-system/` (audit checks), `design-system/` (visual identity), `integrations/` (external services), `marcela-ai/` (AI agent), `architecture/` (server architecture), `product-vision/` (product direction)
+**Related skills:** `finance/`, `proof-system/`, `architecture/`, `product-vision/`, `rebecca-chatbot/`, `research/`
 
 ---
 
-## Dual-Entity Model
+## The Two Businesses
 
-HBG operates a dual-entity structure common in hospitality investment:
+### Business 1: The Brand/Management Company (ManCo)
+- Builds an increasingly valuable hospitality brand focused on **vertical communities** (wellness, sexual wellness, corporate retreats, health/healing)
+- Markets worldwide to these communities, bringing ICPs directly to properties
+- Earns **management fees** (base + incentive) + **service fees** from every property
+- The brand's value grows with each property as the community network grows
+- Commands higher fees over time because the brand delivers — good value, real experiences
+- **The competitive advantage:** Most small vertical-focused hotels charge premium prices but deliver mediocre experiences. This brand delivers better quality at fair prices.
+- Single brand for now. Architecture must support multiple brands in future (use `business_brand` entity).
+- SAFE is just ONE of many funding vehicles for ManCo. Properties are funded separately.
 
-### Management Company (ManCo)
-- The operating entity — HBG itself
-- Earns fee revenue from Property SPVs (Base Fee + Incentive Fee)
-- Bears corporate overhead (staffing, office, professional services, technology)
-- Funded by SAFE instrument tranches during pre-profitability phase
-- Does **not** own property assets directly
-
-### Property SPVs (Special Purpose Vehicles)
-- Each hotel property is held in its own independent legal entity
-- Isolates liability — one property's failure doesn't affect others
-- Each SPV pays management fees to ManCo for operational services
-- Each SPV carries its own debt, depreciation, and tax obligations
-- Revenue, expenses, and cash flows are tracked independently per property
+### Business 2: Each Property (SPV)
+- Each property has its OWN set of investors operating under a **Special Purpose Vehicle (SPV)**
+- SPV funds acquisition + conversion, receives economic benefits, exits at end of hold period
+- Some investors may invest in multiple SPVs — app doesn't track cross-SPV overlap
+- These are **mature real estate hospitality transactions**, NOT tech investments
+- SPV pays management/brand fees to ManCo and keeps the rest
 
 ### Intercompany Elimination (ASC 810)
-On consolidation, management fees paid by properties cancel against fee revenue received by ManCo. The system validates that **Fees Paid = Fees Received** within tolerance. This is required under ASC 810 (Consolidation) for accurate consolidated financial statements.
+Management fees paid by SPVs cancel against fee revenue received by ManCo on consolidation.
 
 ---
 
-## Property Type Spectrum
+## TWO Property Business Models
 
-The portfolio spans a range of hospitality property types — not exclusively boutique hotels:
+### Model 1: Boutique Hotel (all properties except Medellín duplex)
+- Converted from large residential estates on acreage
+- Main house → common areas (restaurant, bar, lobby, event space)
+- Rooms in additions: A-frame cabins, glamping units, converted outbuildings
+- Barn/outbuilding → event venue
+- **Revenue:** ADR × rooms × occupancy + F&B + events + other
+- **Target revenue split: 50% rooms / 35-50% F&B / 5-15% other**
+- Targets specific verticals: wellness, sexual wellness, corporate retreats, healing
+- **Quality tier** (not star rating): Luxury, Upper Upscale, Upscale, Upper Midscale, Midscale, Economy
 
-| Type | Examples | Key Characteristics |
-|------|----------|-------------------|
-| **Boutique Hotel** | Independent lifestyle hotels, design hotels | Full service: front desk, F&B, events, staff-intensive |
-| **Boutique Resort** | Wellness retreats, destination resorts | High ADR, strong events/spa revenue, seasonal |
-| **Bed & Breakfast** | Inn-style properties | Owner-operated, fewer rooms, high personalization |
-| **Short-Term Rental (STR)** | Airbnb, VRBO-style properties | Platform-distributed, self-service, lower staffing |
-| **Hybrid / Serviced Apartment** | Extended stay with hotel-like services | Mix of STR flexibility and hotel amenity depth |
-
-**STR-specific model adjustments:**
-- Set F&B and Events ancillary rates near 0% — STR properties typically have no restaurant or event space
-- Platform distribution fees (Airbnb/VRBO, ~3–5% of room revenue) are modeled as Other Operating Expenses
-- Departmental labor is lower — no front desk or restaurant staff; housekeeping is contracted per-turn
-- Cleaning fee revenue offset by cleaning cost is captured in Other revenue/expenses
-- Dynamic pricing tools replace traditional RevPAR management — set higher ADR volatility assumptions
-- Regulatory/licensing costs (STR permits, short-term rental taxes) appear as fixed operating expenses
-- ManCo still earns management fees for platform management, cleaning coordination, guest communications, and revenue optimization
-
-All revenue calculations use the same formula regardless of property type. The property type determines which ancillary revenue percentage assumptions are meaningful vs. set to near-zero.
-
----
-
-## Hospitality Revenue Streams
-
-Revenue is modeled using industry-standard hospitality metrics:
-
-### Room Revenue (Primary)
-```
-Room Revenue = Room Count × DAYS_PER_MONTH (30.5) × ADR × Occupancy
-```
-- **ADR** (Average Daily Rate): The average price per occupied room per night. Grows annually by `adrGrowthRate`.
-- **Occupancy**: Percentage of available rooms sold. Ramps from `startOccupancy` to `maxOccupancy` via step-function growth.
-- **RevPAR** (Revenue Per Available Room): `ADR × Occupancy` — the single most important performance metric in hospitality.
-- **Available Room Nights**: `Room Count × 30.5 days/month`
-
-### Ancillary Revenue Streams (as % of Room Revenue)
-| Stream | Default Share | Description | STR Typical |
-|--------|--------------|-------------|------------|
-| Events & Functions | 30% | Weddings, retreats, corporate events | 0% |
-| Food & Beverage | 18% × (1 + Catering Boost) | Restaurant, bar, room service | 0–2% |
-| Other/Ancillary | 5% | Spa, parking, gift shop, cleaning fees | 3–8% |
-
-### Total Revenue
-```
-Total Revenue = Room Revenue + Events Revenue + F&B Revenue + Other Revenue
-```
+### Model 2: Luxury Rental (Medellín duplex type)
+- Whole-property rental at per-night rate (~$2,500/day for Medellín duplex)
+- Revenue is per-property-per-night, NOT per-room
+- Capacity measured in beds/people (4 bedrooms, 8-10 guests), not room count
+- Additional revenue from F&B events, receptions, parties, creative experiences
+- Guests invite others for events — increases F&B revenue beyond staying guests
+- Simpler cost structure, fewer services from ManCo
+- Located in premium areas: sky areas, beach, upscale urban neighborhoods
+- **Needs better name than "VRBO"** — consider "luxury residence" or "estate rental"
 
 ---
 
-## USALI Income Waterfall
+## F&B Revenue Is Central — NOT an Afterthought
 
-The Uniform System of Accounts for the Lodging Industry (USALI) defines the standard profit waterfall for hotel operations. Every line item in the portal follows this hierarchy:
+**ALL property models must include F&B revenue.** Even the luxury rental has F&B from events, welcome baskets, catering, experience programming.
 
-```
-Total Revenue
-  − Departmental Expenses (Rooms, F&B, Events, Other)
-  − Undistributed Operating Expenses (Admin, Marketing, Property Ops, Utilities, IT, Other)
-  ─────────────────────────────────────────
-  = GOP (Gross Operating Profit)
-  − Management Fees (Base Fee + Incentive Fee)
-  ─────────────────────────────────────────
-  = AGOP (Adjusted Gross Operating Profit)
-  − Property Taxes (fixed charge, escalated annually)
-  ─────────────────────────────────────────
-  = NOI (Net Operating Income)
-  − FF&E Reserve
-  ─────────────────────────────────────────
-  = ANOI (Adjusted Net Operating Income)
-  − Interest Expense
-  − Depreciation
-  − Income Tax (with NOL carryforward at 80% cap per IRC §172)
-  ─────────────────────────────────────────
-  = Net Income
-```
-
-### Key Metrics Defined
-| Metric | Definition | Significance |
-|--------|-----------|--------------|
-| **GOP** | Revenue minus all operating expenses (before management fees) | Measures property operational efficiency |
-| **AGOP** | GOP minus management fees | What the property retains after paying ManCo |
-| **NOI** | AGOP minus property taxes | The standard metric for property valuation (NOI / Cap Rate = Value) |
-| **ANOI** | NOI minus FF&E Reserve | Cash available before debt service and taxes |
-| **Net Income** | ANOI minus interest, depreciation, and income tax | Bottom-line GAAP profit |
-
-### Expense Categories (USALI-Aligned)
-| Category | Type | Default Rate | Base |
-|----------|------|-------------|------|
-| Rooms (Housekeeping) | Variable | 20% | Room Revenue |
-| Food & Beverage | Variable | 9% | F&B Revenue |
-| Events | Variable | 65% | Events Revenue |
-| Other | Variable | 60% | Other Revenue |
-| Admin & General | Fixed | 8% | Total Revenue (Y1 base, escalated) |
-| Marketing | Variable | 1% | Total Revenue |
-| Property Ops & Maintenance | Fixed | 4% | Total Revenue (Y1 base, escalated) |
-| Utilities | Split | 5% | 60% variable / 40% fixed |
-| IT | Fixed | 0.5% | Total Revenue (Y1 base, escalated) |
-| Property Taxes | Fixed | 3% | Total Property Value / 12 (escalated) |
-| FF&E Reserve | Variable | 4% | Total Revenue |
-| Other Operating | Fixed | 5% | Total Revenue (Y1 base, escalated) |
-
-**Fixed cost escalation:** Fixed expenses are anchored to Year 1 base revenue and escalated annually by the `fixedCostEscalationRate` (defaults to inflation rate). Supports annual or monthly compounding via `escalationMethod`.
+- Target: **50% rooms / 50% F&B** (Ennismore/Accor model, Obra Pía Cartagena)
+- Current DEFAULT_REV_SHARE_FB = 0.18 (18% of room revenue ≈ 12% of total) is **WAY too low**
+- To achieve 50/50: F&B must attract non-hotel guests (destination dining, events, local community)
+- All-inclusive or MAP packaging captures 3 meals/day from in-house guests
+- Event/banquet revenue from estate properties can be 20-30% of total
+- The VRBO model with costRateFB=0 and revShareFB=0 is **WRONG**
 
 ---
 
-## Management Fee Model
+## Management Fee Structure
 
-### Base Fee
-- Default: **8.5% of Total Revenue**
-- Compensates ManCo for day-to-day property management
-- Can be replaced by granular **Service Fee Categories**
-
-### Incentive Fee
-- Default: **12% of GOP**
-- Rewards ManCo when the property performs well operationally
-- Only positive amounts apply: `max(0, GOP × incentiveFeeRate)`
-
-### Service Fee Categories (Granular Breakdown)
-Instead of a flat base fee, each property can break fees into specific service categories. Default categories sum to 8.5% to match the flat base rate:
-
-| Category | Default Rate | Description |
-|----------|-------------|-------------|
-| Marketing | 2.0% | Brand, digital campaigns, channel management |
+### Service Fees (Base Management)
+Properties pay the management company for centralized services:
+| Category | Default Rate | Notes |
+|----------|-------------|-------|
+| Marketing & Brand | 2.0% | Includes franchise/brand component — MANDATORY |
 | Technology & Reservations | 2.5% | PMS, booking engine, CRS |
 | Accounting | 1.5% | Bookkeeping, reporting, audit prep |
 | Revenue Management | 1.0% | Dynamic pricing, demand forecasting |
 | General Management | 1.5% | Executive oversight, HR |
+| Procurement | 1.0% | Group purchasing, vendor management |
+| **Total** | **8.5%** | Of total revenue |
 
-Each category supports **Direct vs Centralized/Pass-Through** delivery models with a markup waterfall for cost-of-services analysis.
+Marketing & Brand and Performance Fee are **mandatory** — non-optional for branded properties.
 
----
+### Incentive Management Fee (Performance-Based)
+- Default: **12% of GOP** (industry standard for boutique operators: 5-12%)
+- Rewards ManCo when property performs well
+- Should include **owner's priority return hurdle** (8-10% of equity) — currently missing
+- Should include **fee subordination** option to debt service — currently missing
 
-## Management Company Overhead
-
-### Fixed Costs (escalated by inflation annually)
-| Item | Default Annual | Notes |
-|------|---------------|-------|
-| Office Lease | $36,000 | Physical office space |
-| Professional Services | $24,000 | Legal, accounting, audit |
-| Technology Infrastructure | $18,000 | Cloud hosting, SaaS tools |
-
-### Variable Costs
-| Item | Default | Basis |
-|------|---------|-------|
-| Travel | $12,000/property/year | Per active property |
-| IT Licensing | $3,000/property/year | Per active property |
-| Marketing | 5% | Of total fee revenue |
-| Miscellaneous Ops | 3% | Of total fee revenue |
-
-### Staffing Tiers
-Headcount scales with portfolio size:
-
-| Tier | Max Properties | FTE | Default Salary |
-|------|---------------|-----|---------------|
-| Tier 1 | ≤ 3 | 2.5 | $75,000/year |
-| Tier 2 | ≤ 6 | 4.5 | $75,000/year |
-| Tier 3 | 7+ | 7.0 | $75,000/year |
-
-### Partner Compensation (10-Year Fixed Schedule)
-| Years | Annual Compensation (Total) |
-|-------|---------------------------|
-| Y1–Y3 | $540,000 |
-| Y4–Y5 | $600,000 |
-| Y6–Y7 | $700,000 |
-| Y8–Y9 | $800,000 |
-| Y10 | $900,000 |
+### What's Missing in Current Model
+- Owner's priority return hurdle before incentive fee kicks in
+- Fee subordination to debt service (investor protection)
+- Performance test provisions (owner termination right if underperformance)
+- "Marketing" should be renamed "Marketing & Brand" to reflect franchise component
 
 ---
 
-## SAFE Funding Vehicle
+## Property Conversion Pipeline
 
-The management company is funded during its pre-profitability phase through a SAFE (Simple Agreement for Future Equity) instrument:
+Properties are NOT acquisitions of existing hotels. The pipeline:
+1. Buy large home on large lot (estate, ranch, farm)
+2. Convert: main house → common areas, add rooms via A-frames/cabins/outbuildings
+3. Convert barn → event venue, expand kitchen to commercial grade
+4. Handle zoning, permitting, fire code, ADA, liquor licensing
+5. Pre-opening: staffing, training, marketing
+6. Start operations
 
-- **Two tranches** with configurable dates, amounts, valuation cap, and discount rate
-- Default tranche amount: $800,000 each
-- Optional interest rate with configurable payment frequency (accrues only, quarterly, or annually)
-- **Operational gate rule:** No ManCo revenue or expenses accrue until BOTH `companyOpsStartDate` AND `safeTranche1Date` are reached. This is a strict gate — even one day early returns zero.
+### Cost Categories to Model
+- Acquisition price + Conversion/renovation + Room additions + Event venue + Commercial kitchen
+- Fire safety/ADA + Zoning/permitting + FF&E + Technology + Pre-opening + Operating deficit reserve
+- Liquor licensing varies: NY ~$10-25K, Utah $15-40K+, Colombia $2-8K
 
----
-
-## Ideal Customer Profile (ICP) System
-
-The ICP defines what properties HBG targets for acquisition:
-
-### Physical Parameters
-- Room count range, land area, total square footage
-- Property type preferences (boutique hotel, resort, bed & breakfast)
-
-### Amenity Priorities
-- **Must Have** — non-negotiable (e.g., wellness spa, event space)
-- **Major Plus** — strongly preferred
-- **Nice to Have** — desirable but not required
-- **Exclude** — deal-breakers
-
-### Financial Targets
-- ADR range, Occupancy range, RevPAR range
-- Target IRR, equity multiple
-- Purchase price range
-
-### Location Definitions
-- Geographic markets with radius search
-- Proximity requirements (airports, comparable hotels, amenities)
-
-The ICP drives AI-powered company research prompts — physical parameters, amenity priorities, and financial targets are formatted into system prompts that guide LLM property research.
+### Key Constraints Research Must Flag
+- Septic capacity (binding constraint on rural room count)
+- Corridor width (36" residential vs 44" commercial minimum)
+- Utah water rights + liquor license quotas (40+ room threshold for hotel license)
+- Cartagena heritage zones (24-36+ month timelines)
+- Properties under 12-15 rooms struggle to cover fixed costs
 
 ---
 
-## Make-vs-Buy Analysis
-
-For each service fee category, the system computes:
-```
-Total In-House Cost = Internal FTE × Salary + Overhead
-Total Vendor Cost = External service provider quote + Management overhead
-Savings = Total In-House Cost − Total Vendor Cost
-```
-A savings threshold recommendation helps ManCo decide whether to deliver services in-house or outsource to specialized vendors.
-
-**Key file:** `calc/research/make-vs-buy.ts`
+## Current Portfolio
+- **Medellín, Colombia** — duplex (luxury rental model)
+- **Cartagena, Colombia** — Obra Pía (hotel model, 50/50 rooms/F&B)
+- **New York State** — 2 properties (hotel model, estate conversions)
+- **Utah** — 1 property (hotel model, NOTE: restricted liquor environment)
+- **Potential:** Asheville NC, Austin TX, others fitting the model
 
 ---
 
-## Property Lifecycle
+## Vertical Communities & Scheduling
 
-Every property moves through a defined investment lifecycle:
+### Target Verticals
+- Wellness (yoga, meditation, detox)
+- Sexual wellness (tantra, intimacy workshops — NOT swinger/lifestyle coded)
+- Corporate retreats (team offsites, strategic planning)
+- Health and healing
+- Group experiences and events
 
-```
-Acquisition → Pre-Opening → Operations → Hold Period → Refinance (optional) → Exit/Disposition
-```
+### Scheduling Conflict Rule
+A corporate team and a sexual wellness retreat CANNOT be at the same property simultaneously. Properties either dedicate to verticals or implement calendar-based separation. This reduces effective capacity.
 
-| Stage | Description | Financial Impact |
-|-------|-------------|-----------------|
-| **Acquisition** | Property purchased, debt begins | `acquisitionDate` starts debt service and depreciation |
-| **Pre-Opening** | Renovation/construction before hotel opens | Debt service accrues with no revenue (cash burn) |
-| **Operations** | Hotel is open for guests | Revenue begins at `operationsStartDate`; occupancy ramps |
-| **Hold Period** | Active operations during investment horizon | Default 10-year projection (120 months) |
-| **Refinance** | Optional new loan replaces acquisition debt | Based on stabilized NOI / cap rate × refi LTV |
-| **Exit/Disposition** | Property sold at end of hold period | Exit Value = (Terminal NOI / Cap Rate) − Commission − Outstanding Debt |
-
-### Key Dates
-- **`acquisitionDate`**: When the property is purchased. Debt and depreciation begin. Defaults to `operationsStartDate` if omitted.
-- **`operationsStartDate`**: When the hotel opens for business. Revenue and variable expenses start. May be later than `acquisitionDate`.
+### Practitioner-Led Marketing
+Facilitators (yoga teachers, tantra educators, corporate coaches) bring their audiences. The brand provides venue + operational excellence. The app should consider practitioner partnerships as a demand driver.
 
 ---
 
-## Hospitality Vocabulary Rules
+## Financial Constants — NO Magic Numbers
 
-Always use hospitality industry terminology throughout the application:
+**Only truly universal math constants may be hardcoded:** MONTHS_PER_YEAR=12, DAYS_PER_MONTH=30.5
 
-| Use This | Not This |
-|----------|----------|
-| Properties | Items, assets (except financial context) |
-| Rooms | Units |
-| ADR (Average Daily Rate) | Average price |
-| Occupancy | Utilization, utilization rate |
-| Guests | Users (when referring to hotel customers) |
-| Gross Operating Profit (GOP) | Gross margin |
-| Housekeeping | Cleaning costs |
-| Food & Beverage | Dining |
-| Pre-Opening | Setup period |
-| Hold Period | Duration |
-| Disposition | Sale (in formal contexts) |
-| Capital Improvements | Upgrades |
-| RevPAR | Revenue per unit |
-| FF&E Reserve | Maintenance fund |
-| Property Operations | Facility management |
+**Everything else follows a hierarchy:**
+1. **Country-level** (set by law): depreciation years, income tax, inflation benchmarks
+2. **State/province-level**: property tax, state income tax
+3. **City/municipal-level**: hotel/tourism taxes, some cost of capital
+4. **Research-engine-driven** (per property): ADR, occupancy, cost rates, cap rates, revenue shares — NEVER in defaults tables
+
+If research hasn't run for a property, market-driven fields should be EMPTY, not pre-filled with guesses.
 
 ---
 
@@ -308,10 +171,12 @@ Always use hospitality industry terminology throughout the application:
 
 | File | Purpose |
 |------|---------|
-| `shared/constants.ts` | All financial default values (USALI rates, fee defaults, staffing tiers) |
-| `client/src/lib/constants.ts` | Client-side constants + re-exports from shared |
-| `shared/schema.ts` | Database schema — property, globalAssumptions, feeCategory tables |
-| `client/src/lib/financial/types.ts` | TypeScript interfaces: PropertyInput, GlobalInput, MonthlyFinancials |
-| `calc/research/make-vs-buy.ts` | Make-vs-buy analysis calculator |
-| `calc/research/service-fee.ts` | Service fee category calculator |
-| `calc/research/markup-waterfall.ts` | Markup waterfall for cost-of-services |
+| `shared/constants.ts` | Financial defaults — NEEDS MAJOR REVISION per no-magic-numbers rule |
+| `shared/constants-business-models.ts` | Hotel/lodge/VRBO model defaults — VRBO F&B=0 is WRONG |
+| `shared/countryDefaults.ts` | Country-level regulatory defaults (12 countries) |
+| `shared/countryRiskPremiums.ts` | Damodaran CRP data (54 countries) |
+| `engine/types.ts` | PropertyInput, GlobalInput, MonthlyFinancials interfaces |
+| `engine/property/property-engine.ts` | Single-property pro forma generator |
+| `engine/company/company-engine.ts` | Management company financials |
+| `calc/dispatch.ts` | 37 computation tools via single dispatch |
+| `server/feature-flags.ts` | 4 flags, all default true — likely dead code |
