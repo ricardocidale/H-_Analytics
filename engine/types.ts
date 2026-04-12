@@ -117,6 +117,16 @@ export interface PropertyInput {
   lastRenovationYear?: number | null;
   managementType?: string | null;
   onMunicipalSewer?: boolean | null;
+  // Conversion cost fields — residential → hotel capital stack
+  conversionCost?: number | null;
+  roomAdditionCost?: number | null;
+  eventVenueCost?: number | null;
+  commercialKitchenCost?: number | null;
+  zoningPermitCost?: number | null;
+  fireCodeAdaCost?: number | null;
+  liquorLicenseCost?: number | null;
+  operatingDeficitReserve?: number | null;
+  estimatedConversionMonths?: number | null;
   // Business model
   businessModel?: string | null;
   // Platform fee (VRBO/STR: Airbnb ~15.5%, VRBO ~8%)

@@ -197,6 +197,17 @@ export const properties = pgTable("properties", {
   managementType: text("management_type"),
   onMunicipalSewer: boolean("on_municipal_sewer").default(false),
 
+  // Conversion cost fields — residential → hotel capital stack
+  conversionCost: real("conversion_cost"),
+  roomAdditionCost: real("room_addition_cost"),
+  eventVenueCost: real("event_venue_cost"),
+  commercialKitchenCost: real("commercial_kitchen_cost"),
+  zoningPermitCost: real("zoning_permit_cost"),
+  fireCodeAdaCost: real("fire_code_ada_cost"),
+  liquorLicenseCost: real("liquor_license_cost"),
+  operatingDeficitReserve: real("operating_deficit_reserve"),
+  estimatedConversionMonths: integer("estimated_conversion_months"),
+
   latitude: real("latitude"),
   longitude: real("longitude"),
 
@@ -320,6 +331,15 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   lastRenovationYear: true,
   managementType: true,
   onMunicipalSewer: true,
+  conversionCost: true,
+  roomAdditionCost: true,
+  eventVenueCost: true,
+  commercialKitchenCost: true,
+  zoningPermitCost: true,
+  fireCodeAdaCost: true,
+  liquorLicenseCost: true,
+  operatingDeficitReserve: true,
+  estimatedConversionMonths: true,
   latitude: true,
   longitude: true,
   researchValues: true,
