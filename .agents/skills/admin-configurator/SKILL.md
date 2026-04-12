@@ -1,6 +1,6 @@
 ---
 name: admin-configurator
-description: Admin panel architecture and patterns for H+ Analytics. Covers the 5-group sidebar structure (Business, Intelligence Engine, AI Assistant, Design, System), section redirect system, merged pages (Brand, Pipeline Config), Engine Dashboard anatomy, standard tab component pattern, settings card layout, and the API fetch/save flow. Use this skill when adding a new admin tab, modifying admin settings UI, or building admin configuration panels.
+description: Admin panel architecture and patterns for H+ Analytics. Covers the 10-block sidebar structure (Management Company, Properties, AI Research Engines, Users, Scenarios, Rebecca AI Assistant, Themes & Appearance, App Settings, Testing & Verification, Reports & Exports), section redirect system, merged pages (Brand, Pipeline Config), Engine Dashboard anatomy, standard tab component pattern, settings card layout, and the API fetch/save flow. Use this skill when adding a new admin tab, modifying admin settings UI, or building admin configuration panels.
 ---
 
 # Admin Panel Architecture
@@ -9,19 +9,26 @@ description: Admin panel architecture and patterns for H+ Analytics. Covers the 
 
 The Admin page (`client/src/pages/Admin.tsx`) renders a sidebar (`AdminSidebar.tsx`) + content area. Each sidebar item maps to a section component.
 
-### 5-Group Sidebar Structure
+### 10-Block Sidebar Structure
 
-| Group | Icon | Description | Sections |
-|-------|------|-------------|----------|
-| **Business** | `IconBriefcase` | Users, companies & groups | Users, Companies, Groups, Scenarios |
-| **Intelligence Engine** | `IconGauge` | Research & data management | Engine Dashboard, Data Sources, Pipeline Config, QA Sandbox, Scheduled Research, Financial Lines |
-| **AI Assistant** | `IconBot` | Rebecca configuration & training | Configuration, Knowledge Base, Guardrails, Conversations, Feedback, Analytics |
-| **Design** | `IconSwatchBook` | Brand & exports | Brand, Exports |
-| **System** | `IconShield` | Infrastructure & monitoring | App Defaults, Verification, Database, Notifications, Navigation |
+| Block | Group ID | Icon | Sections |
+|-------|----------|------|----------|
+| **Management Company** | `management-company` | `IconBriefcase` | Financial Defaults → `model-defaults`, Services & Fees → `companies`, Financial Statement Lines → `financial-lines` |
+| **Properties** | `properties` | `IconProperties` | Hotel Model Defaults → `model-defaults`, Luxury Rental Defaults → `model-defaults`, Required Fields Config → `model-defaults` |
+| **AI Research Engines** | `ai-research` | `IconBrain` | Sources & APIs → `data-sources`, LLM Configuration → `pipeline-config`, Engine Health → `engine-dashboard`, Scheduled Research |
+| **Users** | `users` | `IconPeople` | User Management → `users` |
+| **Scenarios** | `scenarios` | `IconScenarios` | All Scenarios, Default Assignments → `scenarios` |
+| **Rebecca AI Assistant** | `rebecca` | `IconBot` | Configuration → `ai-agents`, Knowledge Base, Conversations → `ai-agents` |
+| **Themes & Appearance** | `themes` | `IconSwatchBook` | Brand & Appearance → `brand` |
+| **App Settings** | `app-settings` | `IconSettingsGear` | Notifications, Navigation, Database |
+| **Testing & Verification** | `testing` | `IconShieldCheck` | Verification, QA Sandbox |
+| **Reports & Exports** | `reports` | `IconExport` | Reports & Exports → `exports` |
 
 **Additional standalone items** (below groups, separated by border):
 - **Logs** → Activity (admin activity log)
 - **Help** → Link to `/help` (user manual)
+
+> **Alias sections** — many sidebar items use alias section IDs (e.g. `financial-defaults`, `sources-apis`) that resolve to canonical sections via `SECTION_REDIRECTS`. The alias IDs have dedicated `sectionMeta` entries for proper page titles. Future tasks (2.3, 2.4) will replace these aliases with real dedicated components.
 
 ### Section Redirect System
 

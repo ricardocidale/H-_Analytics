@@ -22,6 +22,7 @@ interface FreshnessCounts {
 }
 
 export type AdminSection =
+  // Canonical sections (have real components)
   | "model-defaults"
   | "users" | "activity"
   | "companies" | "groups" | "scenarios"
@@ -29,13 +30,25 @@ export type AdminSection =
   | "ai-agents" | "knowledge-base" | "conversations"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines"
   | "navigation" | "notifications" | "verification" | "database"
+  // Legacy aliases (redirect to canonical)
   | "icp" | "logos" | "themes" | "icons"
   | "llms" | "sources" | "model-routing"
   | "cache-services" | "integrations" | "api-dashboard"
   | "coverage-analytics" | "pipeline-policies" | "source-registry"
-  | "system-intelligence" | "research";
+  | "system-intelligence" | "research"
+  // New 10-block navigation aliases
+  | "financial-defaults" | "services-fees" | "company-profile"
+  | "hotel-defaults" | "rental-defaults" | "required-fields"
+  | "sources-apis" | "llm-config" | "engine-health"
+  | "user-management"
+  | "default-assignments"
+  | "rebecca-config" | "themes-appearance"
+  | "app-settings"
+  | "testing-verification"
+  | "reports-exports";
 
 const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
+  // Legacy aliases
   "icp": "engine-dashboard",
   "logos": "brand",
   "themes": "brand",
@@ -52,6 +65,25 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "research": "engine-dashboard",
   "sources": "data-sources",
   "conversations": "ai-agents",
+  // Groups removed in Phase 1.4 — redirect to users in the meantime
+  "groups": "users",
+  // New 10-block aliases → canonical sections
+  "financial-defaults": "model-defaults",
+  "services-fees": "companies",
+  "company-profile": "companies",
+  "hotel-defaults": "model-defaults",
+  "rental-defaults": "model-defaults",
+  "required-fields": "model-defaults",
+  "sources-apis": "data-sources",
+  "llm-config": "pipeline-config",
+  "engine-health": "engine-dashboard",
+  "user-management": "users",
+  "default-assignments": "scenarios",
+  "rebecca-config": "ai-agents",
+  "themes-appearance": "brand",
+  "app-settings": "notifications",
+  "testing-verification": "verification",
+  "reports-exports": "exports",
 };
 
 export function resolveSection(section: AdminSection): AdminSection {
@@ -75,63 +107,106 @@ interface NavGroup {
 function buildNavGroups(): NavGroup[] {
   return [
     {
-      id: "business",
-      label: "Business",
+      id: "management-company",
+      label: "Management Company",
       icon: IconBriefcase,
-      description: "Users, companies & groups",
+      description: "Financial defaults, services & fees",
       sections: [
-        { value: "users", label: "Users", icon: IconPeople },
-        { value: "companies", label: "Companies", icon: IconProperties },
-        { value: "groups", label: "Groups", icon: IconUserCog },
-        { value: "scenarios", label: "Scenarios", icon: IconScenarios },
+        { value: "financial-defaults", label: "Financial Defaults",        icon: IconSliders },
+        { value: "services-fees",      label: "Services & Fees",           icon: IconBriefcase },
+        { value: "financial-lines",    label: "Financial Statement Lines", icon: IconCalculator },
       ],
     },
     {
-      id: "intelligence",
-      label: "Intelligence Engine",
-      icon: IconGauge,
-      description: "Research & data management",
+      id: "properties",
+      label: "Properties",
+      icon: IconProperties,
+      description: "Property model defaults and configuration",
       sections: [
-        { value: "engine-dashboard", label: "Engine Dashboard", icon: IconDashboard },
-        { value: "data-sources", label: "Data Sources", icon: IconGlobe },
-        { value: "pipeline-config", label: "Pipeline Config", icon: IconLayers },
-        { value: "qa-sandbox", label: "QA Sandbox", icon: IconShieldCheck },
-        { value: "scheduled-research", label: "Scheduled Research", icon: IconTimer },
-        { value: "financial-lines", label: "Financial Lines", icon: IconCalculator },
+        { value: "hotel-defaults",  label: "Hotel Model Defaults",         icon: IconDashboard },
+        { value: "rental-defaults", label: "Luxury Rental Defaults",       icon: IconGlobe },
+        { value: "required-fields", label: "Required Fields Config",       icon: IconFileCheck },
       ],
     },
     {
-      id: "ai",
-      label: "AI Assistant",
+      id: "ai-research",
+      label: "AI Research Engines",
+      icon: IconBrain,
+      description: "Sources, LLMs & engine health",
+      sections: [
+        { value: "sources-apis",       label: "Sources & APIs",       icon: IconGlobe },
+        { value: "llm-config",         label: "LLM Configuration",    icon: IconLayers },
+        { value: "engine-health",      label: "Engine Health",        icon: IconGauge },
+        { value: "scheduled-research", label: "Scheduled Research",   icon: IconTimer },
+      ],
+    },
+    {
+      id: "users",
+      label: "Users",
+      icon: IconPeople,
+      description: "User accounts and assignments",
+      sections: [
+        { value: "users", label: "User Management", icon: IconPeople },
+      ],
+    },
+    {
+      id: "scenarios",
+      label: "Scenarios",
+      icon: IconScenarios,
+      description: "Scenario management and assignments",
+      sections: [
+        { value: "scenarios",           label: "All Scenarios",      icon: IconScenarios },
+        { value: "default-assignments", label: "Default Assignments", icon: IconUserCog },
+      ],
+    },
+    {
+      id: "rebecca",
+      label: "Rebecca AI Assistant",
       icon: IconBot,
-      description: "Rebecca configuration & training",
+      description: "Configuration, knowledge base & conversations",
       sections: [
-        { value: "ai-agents", label: "Configuration", icon: IconBot },
+        { value: "ai-agents",     label: "Configuration",  icon: IconBot },
         { value: "knowledge-base", label: "Knowledge Base", icon: IconBookOpen },
-        { value: "conversations", label: "Conversations", icon: IconMessageSquare },
+        { value: "conversations", label: "Conversations",   icon: IconMessageSquare },
       ],
     },
     {
-      id: "design",
-      label: "Design",
+      id: "themes",
+      label: "Themes & Appearance",
       icon: IconSwatchBook,
-      description: "Brand & exports",
+      description: "Logos, themes, and icon customization",
       sections: [
-        { value: "brand", label: "Brand", icon: IconPalette },
-        { value: "exports", label: "Exports", icon: IconExport },
+        { value: "brand", label: "Brand & Appearance", icon: IconPalette },
       ],
     },
     {
-      id: "system",
-      label: "System",
-      icon: IconShield,
-      description: "Infrastructure & monitoring",
+      id: "app-settings",
+      label: "App Settings",
+      icon: IconSettingsGear,
+      description: "Notifications, navigation & system",
       sections: [
-        { value: "model-defaults", label: "App Defaults", icon: IconSliders },
-        { value: "verification", label: "Verification", icon: IconFileCheck },
-        { value: "database", label: "Database", icon: IconDatabase },
         { value: "notifications", label: "Notifications", icon: IconPhone },
-        { value: "navigation", label: "Navigation", icon: IconPanelLeft },
+        { value: "navigation",    label: "Navigation",    icon: IconPanelLeft },
+        { value: "database",      label: "Database",      icon: IconDatabase },
+      ],
+    },
+    {
+      id: "testing",
+      label: "Testing & Verification",
+      icon: IconShieldCheck,
+      description: "GAAP audit, compliance & QA",
+      sections: [
+        { value: "verification", label: "Verification", icon: IconFileCheck },
+        { value: "qa-sandbox",   label: "QA Sandbox",   icon: IconShieldCheck },
+      ],
+    },
+    {
+      id: "reports",
+      label: "Reports & Exports",
+      icon: IconExport,
+      description: "PDF, PPTX, Excel & CSV exports",
+      sections: [
+        { value: "exports", label: "Reports & Exports", icon: IconExport },
       ],
     },
   ];
@@ -140,9 +215,9 @@ function buildNavGroups(): NavGroup[] {
 function getGroupForSection(section: AdminSection, groups: NavGroup[]): string {
   const resolved = resolveSection(section);
   for (const group of groups) {
-    if (group.sections.some((s) => s.value === resolved)) return group.id;
+    if (group.sections.some((s) => resolveSection(s.value) === resolved || s.value === resolved)) return group.id;
   }
-  return "business";
+  return "management-company";
 }
 
 interface AdminSidebarProps {
@@ -177,7 +252,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
               >
                 {group.label}
               </span>
-              {group.id === "intelligence" && freshnessCounts && (freshnessCounts.stale > 0 || freshnessCounts.missing > 0) && (
+              {group.id === "ai-research" && freshnessCounts && (freshnessCounts.stale > 0 || freshnessCounts.missing > 0) && (
                 <span
                   data-testid="intelligence-freshness-badge"
                   className={cn(
@@ -194,7 +269,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
 
             <div className="space-y-0.5">
               {group.sections.map((section) => {
-                const isActive = resolved === section.value;
+                const isActive = resolved === resolveSection(section.value);
                 const Icon = section.icon;
                 return (
                   <Button

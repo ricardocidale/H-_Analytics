@@ -72,6 +72,23 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "source-registry":     { title: "Data Sources",             subtitle: "Source registry and trust scores" },
   "system-intelligence": { title: "Engine Dashboard",         subtitle: "System intelligence status" },
   research:              { title: "Engine Dashboard",         subtitle: "Research center" },
+  // New 10-block navigation entries
+  "financial-defaults":  { title: "Financial Defaults",       subtitle: "Default financial parameters and seed values for new entities" },
+  "services-fees":       { title: "Services & Fees",          subtitle: "Management company service categories and fee templates" },
+  "company-profile":     { title: "Company Profile",          subtitle: "Management company identity and settings" },
+  "hotel-defaults":      { title: "Hotel Model Defaults",     subtitle: "Default parameters for hotel property financial models" },
+  "rental-defaults":     { title: "Luxury Rental Defaults",   subtitle: "Default parameters for luxury rental property models" },
+  "required-fields":     { title: "Required Fields Config",   subtitle: "Configure which property fields are required before research runs" },
+  "sources-apis":        { title: "Sources & APIs",           subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
+  "llm-config":          { title: "LLM Configuration",        subtitle: "Language model routing and pipeline policies" },
+  "engine-health":       { title: "Engine Health",            subtitle: "Unified intelligence observatory — coverage, freshness, and health" },
+  "user-management":     { title: "Users",                    subtitle: "Manage user accounts and assignments" },
+  "default-assignments": { title: "Default Assignments",      subtitle: "Assign default scenarios per user with property toggles" },
+  "rebecca-config":      { title: "Rebecca Configuration",    subtitle: "System prompt, personality, and engine settings for your AI assistant" },
+  "themes-appearance":   { title: "Themes & Appearance",      subtitle: "Logos, themes, and icon customization" },
+  "app-settings":        { title: "App Settings",             subtitle: "Notifications, navigation, and system configuration" },
+  "testing-verification":{ title: "Testing & Verification",   subtitle: "Independent GAAP financial audit and compliance" },
+  "reports-exports":     { title: "Reports & Exports",        subtitle: "Configure content, orientation, and layout for all report exports" },
 };
 
 function SectionContent({ section, onNavigate, onSaveStateChange }: { section: AdminSection; onNavigate: (s: AdminSection) => void; onSaveStateChange: (state: AdminSaveState | null) => void }) {
