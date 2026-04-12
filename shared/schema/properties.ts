@@ -174,6 +174,7 @@ export const properties = pgTable("properties", {
   starRating: integer("star_rating"),
   starRatingSource: text("star_rating_source").default("manual"),
   starRatingSuggested: integer("star_rating_suggested"),
+  qualityTier: text("quality_tier").notNull().default("upscale"),
   hospitalityType: text("hospitality_type").notNull().default("hotel"),
   businessModel: text("business_model").notNull().default("hotel"),
 
@@ -283,6 +284,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   starRating: true,
   starRatingSource: true,
   starRatingSuggested: true,
+  qualityTier: true,
   hospitalityType: true,
   businessModel: true,
   description: true,
@@ -299,10 +301,14 @@ export const BUSINESS_MODEL_TYPES = ["hotel", "lodge", "vrbo"] as const;
 export type BusinessModel = typeof BUSINESS_MODEL_TYPES[number];
 export type HospitalityType = typeof HOSPITALITY_TYPES[number];
 
+export const QUALITY_TIERS = ["luxury", "upper_upscale", "upscale", "upper_midscale", "midscale", "economy"] as const;
+export type QualityTier = typeof QUALITY_TIERS[number];
+
 const starRatingRefinement = z.object({
   starRating: z.number().int().min(1).max(5).nullable().optional(),
   starRatingSuggested: z.number().int().min(1).max(5).nullable().optional(),
   starRatingSource: z.enum(["manual", "suggested"]).nullable().optional(),
+  qualityTier: z.enum(QUALITY_TIERS).optional(),
   hospitalityType: z.enum(HOSPITALITY_TYPES).optional(),
   businessModel: z.enum(BUSINESS_MODEL_TYPES).optional(),
   sourceUrls: z.array(z.string().url()).max(20).nullable().optional(),

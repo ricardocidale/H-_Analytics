@@ -99,6 +99,8 @@ export interface PropertyInput {
   costSeg15yrPct?: number | null;
   // Per-property depreciation override (nullable — NULL means use global/constant fallback)
   depreciationYears?: number | null;
+  // Quality tier (luxury, upper_upscale, upscale, upper_midscale, midscale, economy)
+  qualityTier?: string | null;
   // Business model
   businessModel?: string | null;
   // Platform fee (VRBO/STR: Airbnb ~15.5%, VRBO ~8%)
