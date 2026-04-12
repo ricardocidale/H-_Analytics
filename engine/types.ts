@@ -101,6 +101,22 @@ export interface PropertyInput {
   depreciationYears?: number | null;
   // Quality tier (luxury, upper_upscale, upscale, upper_midscale, midscale, economy)
   qualityTier?: string | null;
+  // Property descriptors — context for research engines and comp set selection
+  serviceLevel?: string | null;
+  locationType?: string | null;
+  marketTier?: string | null;
+  guestMixBusiness?: number | null;
+  guestMixLeisure?: number | null;
+  guestMixGroup?: number | null;
+  fbVenues?: number | null;
+  fbSeats?: number | null;
+  eventSpaceSqft?: number | null;
+  totalPropertyAcreage?: number | null;
+  totalBuildingSqft?: number | null;
+  yearBuilt?: number | null;
+  lastRenovationYear?: number | null;
+  managementType?: string | null;
+  onMunicipalSewer?: boolean | null;
   // Business model
   businessModel?: string | null;
   // Platform fee (VRBO/STR: Airbnb ~15.5%, VRBO ~8%)
