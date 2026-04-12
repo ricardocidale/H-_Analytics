@@ -59,6 +59,30 @@ export type Logo = typeof logos.$inferSelect;
 export type InsertLogo = z.infer<typeof insertLogoSchema>;
 
 
+// --- BUSINESS BRANDS TABLE ---
+// Represents hospitality brands under which properties operate.
+// Single brand for now, but architecture supports multiple brands.
+// All properties reference a brand; the default brand is seeded on first run.
+export const businessBrands = pgTable("business_brands", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  description: text("description"),
+  logoId: integer("logo_id").references(() => logos.id, { onDelete: "set null" }),
+  isDefault: boolean("is_default").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBusinessBrandSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().nullable().optional(),
+  logoId: z.number().nullable().optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export type BusinessBrand = typeof businessBrands.$inferSelect;
+export type InsertBusinessBrand = z.infer<typeof insertBusinessBrandSchema>;
+
+
 // --- RESEARCH VALUE TYPES ---
 // When AI research is generated for a property, the LLM produces numeric estimates
 // (e.g. market ADR, RevPAR, cap rates) along with display labels. Each value tracks

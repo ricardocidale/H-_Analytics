@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, real, integer, timestamp, jsonb, boolean, index, serial, unique, check, primaryKey, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { companies, userGroups, type ResearchValueEntry } from "./core";
+import { companies, userGroups, businessBrands, type ResearchValueEntry } from "./core";
 import { users } from "./auth";
 import {
   PropertyStatus,
@@ -177,6 +177,7 @@ export const properties = pgTable("properties", {
   qualityTier: text("quality_tier").notNull().default("upscale"),
   hospitalityType: text("hospitality_type").notNull().default("hotel"),
   businessModel: text("business_model").notNull().default("hotel"),
+  brandId: integer("brand_id").references(() => businessBrands.id, { onDelete: "set null" }),
 
   description: text("description"),
 
@@ -315,6 +316,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   qualityTier: true,
   hospitalityType: true,
   businessModel: true,
+  brandId: true,
   description: true,
   serviceLevel: true,
   locationType: true,
