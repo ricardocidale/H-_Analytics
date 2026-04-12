@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImagePlus, Sparkles, Images } from "@/components/icons/themed-icons";
+import { LayoutGrid, GalleryHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useReorderPhotos, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement } from "@/lib/api";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
+import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement } from "@/lib/api";
 import { PhotoCard } from "./PhotoCard";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { PhotoGenerateDialog } from "./PhotoGenerateDialog";
 import { EnhancePreviewDialog } from "./EnhancePreviewDialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
+type ViewMode = "grid" | "carousel";
 
 interface PhotoAlbumGridProps {
   propertyId: number;
@@ -33,16 +37,30 @@ export function PhotoAlbumGrid({
   const [enhanceDialogOpen, setEnhanceDialogOpen] = useState(false);
   const [enhancingPhotoId, setEnhancingPhotoId] = useState<number | null>(null);
   const [enhancedPreviewUrl, setEnhancedPreviewUrl] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [currentSlide, setCurrentSlide] = useState(0);
   const { toast } = useToast();
 
   const { data: photos = [], isLoading } = usePropertyPhotos(propertyId);
   const setHero = useSetHeroPhoto();
   const deletePhoto = useDeletePropertyPhoto();
   const updatePhoto = useUpdatePropertyPhoto();
-  const reorder = useReorderPhotos();
   const enhancePhoto = useEnhancePhoto();
   const acceptEnhancement = useAcceptEnhancement();
   const rejectEnhancement = useRejectEnhancement();
+
+  const onCarouselSelect = useCallback(() => {
+    if (!carouselApi) return;
+    setCurrentSlide(carouselApi.selectedScrollSnap());
+  }, [carouselApi]);
+
+  useEffect(() => {
+    if (!carouselApi) return;
+    onCarouselSelect();
+    carouselApi.on("select", onCarouselSelect);
+    return () => { carouselApi.off("select", onCarouselSelect); };
+  }, [carouselApi, onCarouselSelect]);
 
   const handleSetHero = (photoId: number) => {
     setHero.mutate({ propertyId, photoId });
@@ -135,18 +153,49 @@ export function PhotoAlbumGrid({
           <InfoTooltip text="Manage multiple photos for this property. Mark one as the hero image — it will represent the property on portfolio cards, detail pages, and exports." />
         </div>
         <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setGenerateOpen(true)}>
+          {/* View mode toggle — only shown when there are photos */}
+          {photos.length > 0 && (
+            <div className="flex items-center rounded-md border border-border overflow-hidden">
+              <button
+                onClick={() => setViewMode("grid")}
+                data-testid="button-view-grid"
+                aria-label="Grid view"
+                className={cn(
+                  "h-7 px-2 flex items-center justify-center transition-colors",
+                  viewMode === "grid"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setViewMode("carousel")}
+                data-testid="button-view-carousel"
+                aria-label="Carousel view"
+                className={cn(
+                  "h-7 px-2 flex items-center justify-center transition-colors border-l border-border",
+                  viewMode === "carousel"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <GalleryHorizontal className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setGenerateOpen(true)} data-testid="button-generate-photo">
             <Sparkles className="w-3.5 h-3.5" />
             Generate
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setUploadOpen(true)}>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setUploadOpen(true)} data-testid="button-upload-photo">
             <ImagePlus className="w-3.5 h-3.5" />
             Upload
           </Button>
         </div>
       </div>
 
-      {/* Photo grid */}
+      {/* Empty state */}
       {photos.length === 0 ? (
         <div className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center">
           <Images className="w-10 h-10 mx-auto text-primary/30 mb-3" />
@@ -161,7 +210,124 @@ export function PhotoAlbumGrid({
             </Button>
           </div>
         </div>
+      ) : viewMode === "carousel" ? (
+        /* ── Carousel view ── */
+        <div className="space-y-3">
+          <div className="relative px-10">
+            <Carousel
+              setApi={setCarouselApi}
+              opts={{ loop: true, align: "center" }}
+              className="w-full"
+              data-testid="photo-carousel"
+            >
+              <CarouselContent>
+                {photos.map((photo) => {
+                  const src = photo.enhancedImageData
+                    ? `/api/property-photos/${photo.id}/enhanced-image`
+                    : photo.imageUrl;
+                  const isHero = photo.isHero;
+                  return (
+                    <CarouselItem key={photo.id}>
+                      <div className="relative rounded-xl overflow-hidden shadow-md" style={{ aspectRatio: "16 / 9" }}>
+                        <img
+                          src={src}
+                          alt={photo.caption || `Photo ${photo.id}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+
+                        {/* Hero badge */}
+                        {isHero && (
+                          <div className="absolute top-3 left-3">
+                            <span className="px-2 py-0.5 rounded-full bg-accent-pop text-white text-[10px] font-semibold border border-white/20 shadow-sm">
+                              ★ Hero
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Enhanced badge */}
+                        {photo.enhancedImageData && (
+                          <div className="absolute top-3 right-3">
+                            <span className="px-2 py-0.5 rounded-full bg-primary/80 text-white text-[10px] font-semibold backdrop-blur-sm border border-white/20">
+                              Enhanced
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Caption */}
+                        {photo.caption && (
+                          <div className="absolute bottom-3 inset-x-4 pointer-events-none">
+                            <p className="text-white text-sm font-medium drop-shadow-md italic truncate">
+                              {photo.caption}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+              <CarouselPrevious
+                className="left-0 bg-background/90 backdrop-blur-sm border-border hover:bg-background shadow-md"
+                data-testid="button-carousel-prev"
+              />
+              <CarouselNext
+                className="right-0 bg-background/90 backdrop-blur-sm border-border hover:bg-background shadow-md"
+                data-testid="button-carousel-next"
+              />
+            </Carousel>
+          </div>
+
+          {/* Slide counter + dots */}
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {currentSlide + 1} of {photos.length}
+            </span>
+            <div className="flex gap-1.5">
+              {photos.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => carouselApi?.scrollTo(i)}
+                  aria-label={`Go to photo ${i + 1}`}
+                  className={cn(
+                    "rounded-full transition-all duration-300 bg-primary",
+                    i === currentSlide ? "w-5 h-1.5" : "w-1.5 h-1.5 opacity-30"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Thumbnail strip */}
+          <div className="flex gap-2 overflow-x-auto pb-1 snap-x">
+            {photos.map((photo, i) => {
+              const src = photo.enhancedImageData
+                ? `/api/property-photos/${photo.id}/enhanced-image`
+                : photo.imageUrl;
+              return (
+                <button
+                  key={photo.id}
+                  onClick={() => carouselApi?.scrollTo(i)}
+                  aria-label={`Thumbnail ${i + 1}`}
+                  data-testid={`thumbnail-${photo.id}`}
+                  className={cn(
+                    "shrink-0 rounded-md overflow-hidden border-2 transition-all snap-start",
+                    i === currentSlide
+                      ? "border-primary shadow-sm scale-105"
+                      : "border-transparent opacity-60 hover:opacity-90"
+                  )}
+                  style={{ width: 64, height: 48 }}
+                >
+                  <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
       ) : (
+        /* ── Grid view (default) ── */
         <motion.div
           className="grid grid-cols-2 sm:grid-cols-3 gap-3"
           initial="hidden"
@@ -198,8 +364,8 @@ export function PhotoAlbumGrid({
         </motion.div>
       )}
 
-      {/* Hero indicator */}
-      {photos.length > 0 && (
+      {/* Hero indicator — only show in grid mode */}
+      {photos.length > 0 && viewMode === "grid" && (
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-full bg-accent-pop/80" />
           Gold star = hero image shown on portfolio cards and headers
