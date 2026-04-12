@@ -78,6 +78,43 @@ const RATE_DEFINITIONS: RateDefinition[] = [
     displayValue: "PPI Construction Materials",
   },
 
+  // DGS30 — 30-Year Treasury (long-term financing benchmark)
+  {
+    rateKey: "treasury_30y",
+    source: "fred",
+    seriesId: "DGS30",
+    sourceUrl: "https://fred.stlouisfed.org/series/DGS30",
+    maxStalenessHours: 24,
+    displayValue: "30-Year Treasury",
+  },
+  // CPIHOSSL — Hotel & Motel CPI (hotel-specific inflation for ADR/expense escalation)
+  {
+    rateKey: "cpi_hotels",
+    source: "fred",
+    seriesId: "CPIHOSSL",
+    sourceUrl: "https://fred.stlouisfed.org/series/CPIHOSSL",
+    maxStalenessHours: 168,
+    displayValue: "CPI Hotels & Motels",
+  },
+  // SOFR90DAYAVG — 90-day average SOFR (common in hotel lending spreads)
+  {
+    rateKey: "sofr_90d_avg",
+    source: "fred",
+    seriesId: "SOFR90DAYAVG",
+    sourceUrl: "https://fred.stlouisfed.org/series/SOFR90DAYAVG",
+    maxStalenessHours: 24,
+    displayValue: "SOFR 90-Day Avg",
+  },
+  // UNRATE — Unemployment Rate (macro health indicator)
+  {
+    rateKey: "unemployment",
+    source: "fred",
+    seriesId: "UNRATE",
+    sourceUrl: "https://fred.stlouisfed.org/series/UNRATE",
+    maxStalenessHours: 168,
+    displayValue: "Unemployment Rate",
+  },
+
   // --- Frankfurter (Currency Exchange — ECB-sourced, major currencies only) ---
   {
     rateKey: "usd_mxn",
@@ -86,6 +123,22 @@ const RATE_DEFINITIONS: RateDefinition[] = [
     sourceUrl: "https://frankfurter.dev",
     maxStalenessHours: 24,
     displayValue: "USD/MXN",
+  },
+  {
+    rateKey: "usd_cop",
+    source: "frankfurter",
+    seriesId: "COP",
+    sourceUrl: "https://frankfurter.dev",
+    maxStalenessHours: 24,
+    displayValue: "USD/COP",
+  },
+  {
+    rateKey: "usd_brl",
+    source: "frankfurter",
+    seriesId: "BRL",
+    sourceUrl: "https://frankfurter.dev",
+    maxStalenessHours: 24,
+    displayValue: "USD/BRL",
   },
 
   // --- Admin-Maintained (no auto-fetch) ---
@@ -205,7 +258,7 @@ function getSeedValue(def: RateDefinition): { value: number | null; displayValue
   return { value: null, displayValue: def.displayValue };
 }
 
-const RETIRED_RATE_KEYS = ["usd_cop", "usd_crc"];
+const RETIRED_RATE_KEYS = ["usd_crc"];
 
 export async function seedMarketRates(): Promise<void> {
   for (const key of RETIRED_RATE_KEYS) {
