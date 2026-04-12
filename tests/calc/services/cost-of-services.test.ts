@@ -14,7 +14,7 @@ const makeTemplate = (overrides: Partial<ServiceTemplate> & { name: string }): S
 });
 
 const templates: ServiceTemplate[] = [
-  makeTemplate({ id: 1, name: "Marketing", serviceModel: "centralized", serviceMarkup: 0.20, sortOrder: 1 }),
+  makeTemplate({ id: 1, name: "Marketing & Brand", serviceModel: "centralized", serviceMarkup: 0.20, sortOrder: 1 }),
   makeTemplate({ id: 2, name: "Technology & Reservations", serviceModel: "centralized", serviceMarkup: 0.20, sortOrder: 2 }),
   makeTemplate({ id: 3, name: "General Management", serviceModel: "direct", serviceMarkup: 0.20, sortOrder: 3 }),
   makeTemplate({ id: 4, name: "Procurement", serviceModel: "centralized", serviceMarkup: 0.15, sortOrder: 4 }),
@@ -23,7 +23,7 @@ const templates: ServiceTemplate[] = [
 describe("Cost of Centralized Services Aggregator", () => {
   describe("basic aggregation", () => {
     const fees: Record<string, number> = {
-      "Marketing": 10_000,
+      "Marketing & Brand": 10_000,
       "Technology & Reservations": 5_000,
       "General Management": 8_000,
       "Procurement": 3_000,
@@ -36,7 +36,7 @@ describe("Cost of Centralized Services Aggregator", () => {
     });
 
     it("centralized: Marketing vendor cost = fee / 1.20", () => {
-      const cat = result.byCategory["Marketing"];
+      const cat = result.byCategory["Marketing & Brand"];
       expect(cat.serviceModel).toBe("centralized");
       expect(cat.revenue).toBe(10_000);
       expect(cat.vendorCost).toBeCloseTo(vendorCostFromFee(10_000, 0.20), 2);
@@ -85,7 +85,7 @@ describe("Cost of Centralized Services Aggregator", () => {
 
   describe("zero-sum identity: revenue = vendorCost + grossProfit", () => {
     const fees: Record<string, number> = {
-      "Marketing": 25_000,
+      "Marketing & Brand": 25_000,
       "Technology & Reservations": 12_000,
       "General Management": 15_000,
       "Procurement": 8_000,
@@ -116,7 +116,7 @@ describe("Cost of Centralized Services Aggregator", () => {
     });
 
     it("empty templates: all categories treated as direct", () => {
-      const fees = { "Marketing": 10_000, "Unknown": 5_000 };
+      const fees = { "Marketing & Brand": 10_000, "Unknown": 5_000 };
       const result = computeCostOfServices(fees, []);
       expect(result.totalVendorCost).toBe(0);
       expect(result.totalGrossProfit).toBeCloseTo(15_000, 2);
@@ -124,7 +124,7 @@ describe("Cost of Centralized Services Aggregator", () => {
     });
 
     it("fee category not in templates: treated as direct", () => {
-      const fees = { "Marketing": 10_000, "Mystery Service": 7_000 };
+      const fees = { "Marketing & Brand": 10_000, "Mystery Service": 7_000 };
       const result = computeCostOfServices(fees, templates);
       const mystery = result.byCategory["Mystery Service"];
       expect(mystery.serviceModel).toBe("direct");
@@ -134,17 +134,17 @@ describe("Cost of Centralized Services Aggregator", () => {
 
     it("inactive templates are ignored", () => {
       const inactiveTemplates = templates.map(t =>
-        t.name === "Marketing" ? { ...t, isActive: false } : t
+        t.name === "Marketing & Brand" ? { ...t, isActive: false } : t
       );
-      const fees = { "Marketing": 10_000 };
+      const fees = { "Marketing & Brand": 10_000 };
       const result = computeCostOfServices(fees, inactiveTemplates);
       // Marketing template is inactive, so treated as direct (no vendor cost)
-      expect(result.byCategory["Marketing"].vendorCost).toBe(0);
-      expect(result.byCategory["Marketing"].serviceModel).toBe("direct");
+      expect(result.byCategory["Marketing & Brand"].vendorCost).toBe(0);
+      expect(result.byCategory["Marketing & Brand"].serviceModel).toBe("direct");
     });
 
     it("zero fee amounts produce zero costs", () => {
-      const fees = { "Marketing": 0, "Technology & Reservations": 0 };
+      const fees = { "Marketing & Brand": 0, "Technology & Reservations": 0 };
       const result = computeCostOfServices(fees, templates);
       expect(result.totalVendorCost).toBe(0);
       expect(result.totalGrossProfit).toBe(0);
@@ -152,7 +152,7 @@ describe("Cost of Centralized Services Aggregator", () => {
 
     it("all-direct templates produce zero vendor cost", () => {
       const directOnly = templates.map(t => ({ ...t, serviceModel: "direct" as const }));
-      const fees = { "Marketing": 10_000, "Technology & Reservations": 5_000 };
+      const fees = { "Marketing & Brand": 10_000, "Technology & Reservations": 5_000 };
       const result = computeCostOfServices(fees, directOnly);
       expect(result.totalVendorCost).toBe(0);
       expect(result.totalGrossProfit).toBeCloseTo(15_000, 2);

@@ -285,8 +285,8 @@ describe("Database Sync — Seed Constants Integrity", () => {
       }
     });
 
-    it("Marketing fee is 2%", () => {
-      const marketing = DEFAULT_SERVICE_FEE_CATEGORIES.find(c => c.name === "Marketing");
+    it("Marketing & Brand fee is 2%", () => {
+      const marketing = DEFAULT_SERVICE_FEE_CATEGORIES.find(c => c.name === "Marketing & Brand");
       expect(marketing?.rate).toBe(0.02);
     });
 

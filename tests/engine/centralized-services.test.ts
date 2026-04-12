@@ -20,7 +20,7 @@ const baseProperty = {
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   feeCategories: [
-    { name: "Marketing", rate: 0.02, isActive: true },
+    { name: "Marketing & Brand", rate: 0.02, isActive: true },
     { name: "Technology & Reservations", rate: 0.025, isActive: true },
     { name: "General Management", rate: 0.015, isActive: true },
   ],
@@ -51,7 +51,7 @@ const baseGlobal = {
 };
 
 const serviceTemplates: ServiceTemplate[] = [
-  { id: 1, name: "Marketing", defaultRate: 0.02, serviceModel: "centralized", serviceMarkup: 0.20, isActive: true, sortOrder: 1 },
+  { id: 1, name: "Marketing & Brand", defaultRate: 0.02, serviceModel: "centralized", serviceMarkup: 0.20, isActive: true, sortOrder: 1 },
   { id: 2, name: "Technology & Reservations", defaultRate: 0.025, serviceModel: "centralized", serviceMarkup: 0.20, isActive: true, sortOrder: 2 },
   { id: 3, name: "General Management", defaultRate: 0.015, serviceModel: "direct", serviceMarkup: 0.20, isActive: true, sortOrder: 3 },
 ];
@@ -113,7 +113,7 @@ describe("Centralized Services — Engine Integration", () => {
       const operational = result.filter(m => m.totalRevenue > 0);
       for (const m of operational) {
         const costs = m.costOfCentralizedServices!;
-        const marketing = costs.byCategory["Marketing"];
+        const marketing = costs.byCategory["Marketing & Brand"];
         expect(marketing).toBeDefined();
         expect(marketing.serviceModel).toBe("centralized");
         expect(marketing.vendorCost).toBeCloseTo(

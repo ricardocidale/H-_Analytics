@@ -348,7 +348,7 @@
     ],
     "feeCategories": [
       {
-        "key": "Marketing",
+        "key": "Marketing & Brand",
         "fields": {
           "rate": 0.015,
           "sortOrder": 1

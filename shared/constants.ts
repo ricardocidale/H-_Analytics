@@ -103,7 +103,7 @@ export const DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE = 0.12;   // 12% of Gross Ope
 // ──────────────────────────────────────────────────────────
 
 export const DEFAULT_SERVICE_FEE_CATEGORIES = [
-  { name: "Marketing", rate: 0.02, sortOrder: 1 },                    // 2.0% — brand, digital, campaigns
+  { name: "Marketing & Brand", rate: 0.02, sortOrder: 1 },              // 2.0% — brand, digital, campaigns, franchise
   { name: "Technology & Reservations", rate: 0.025, sortOrder: 2 },   // 2.5% — PMS, booking engine, channel manager, CRS
   { name: "Accounting", rate: 0.015, sortOrder: 3 },                  // 1.5% — bookkeeping, reporting, audit prep
   { name: "Revenue Management", rate: 0.01, sortOrder: 4 },           // 1.0% — dynamic pricing, demand forecasting
@@ -120,7 +120,7 @@ export type ServiceModel = 'centralized' | 'direct';
 export const DEFAULT_SERVICE_MODEL: ServiceModel = 'centralized';
 
 export const DEFAULT_SERVICE_TEMPLATES = [
-  { name: "Marketing",                defaultRate: 0.02,  serviceModel: 'centralized' as ServiceModel, serviceMarkup: 0.20, sortOrder: 1 },
+  { name: "Marketing & Brand",        defaultRate: 0.02,  serviceModel: 'centralized' as ServiceModel, serviceMarkup: 0.20, sortOrder: 1 },
   { name: "Technology & Reservations", defaultRate: 0.025, serviceModel: 'centralized' as ServiceModel, serviceMarkup: 0.20, sortOrder: 2 },
   { name: "Accounting",               defaultRate: 0.015, serviceModel: 'centralized' as ServiceModel, serviceMarkup: 0.20, sortOrder: 3 },
   { name: "Revenue Management",       defaultRate: 0.01,  serviceModel: 'centralized' as ServiceModel, serviceMarkup: 0.20, sortOrder: 4 },

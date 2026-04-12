@@ -227,7 +227,7 @@ describe("CompanyContextPack builder", () => {
     { ...baseProperty, id: 2, name: "Property 2", city: "Bogota", country: "CO", roomCount: 30, startAdr: 200 },
   ];
   const serviceTemplates = [
-    { name: "Marketing", defaultRate: 0.02, serviceModel: "percentage", serviceMarkup: 0, isActive: true },
+    { name: "Marketing & Brand", defaultRate: 0.02, serviceModel: "percentage", serviceMarkup: 0, isActive: true },
     { name: "Accounting", defaultRate: 0.015, serviceModel: "percentage", serviceMarkup: 0, isActive: true },
   ];
 
@@ -280,8 +280,8 @@ describe("CompanyContextPack builder", () => {
   it("serviceMenu lists active templates", () => {
     const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
     expect(pack.serviceMenu.templates.length).toBe(2);
-    expect(pack.serviceMenu.templates[0].name).toBe("Marketing");
-    expect(pack.serviceMenu.narrative).toContain("Marketing");
+    expect(pack.serviceMenu.templates[0].name).toBe("Marketing & Brand");
+    expect(pack.serviceMenu.narrative).toContain("Marketing & Brand");
   });
 
   it("fullNarrative is a non-empty string mentioning company", () => {

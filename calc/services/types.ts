@@ -14,7 +14,7 @@ export type ServiceModel = 'centralized' | 'direct';
 export interface ServiceTemplate {
   /** Template ID from company_service_templates table */
   id: number;
-  /** Service category name (e.g., "Marketing", "Technology & Reservations") */
+  /** Service category name (e.g., "Marketing & Brand", "Technology & Reservations") */
   name: string;
   /** Default fee rate for new properties (e.g., 0.02 = 2% of revenue) */
   defaultRate: number;

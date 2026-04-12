@@ -10,8 +10,8 @@ import type { ServiceTemplate } from "@shared/schema";
 import { ServiceResearchPanel } from "./ServiceResearchPanel";
 
 export const SERVICE_HELP: Record<string, string> = {
-  "Marketing":
-    "Brand strategy, digital marketing campaigns, social media management, content creation, OTA channel management (Booking.com, Expedia), SEO/SEM, reputation monitoring, loyalty program management, and public relations. Per USALI 12th Edition Schedule 16 (Annual Mandatory Brand and Operator Costs), centralized marketing leverages group purchasing power for ad spend and brand-wide campaigns. Charged as a percentage of Total Revenue.",
+  "Marketing & Brand":
+    "Brand strategy, franchise/brand fees, digital marketing campaigns, social media management, content creation, OTA channel management (Booking.com, Expedia), SEO/SEM, reputation monitoring, loyalty program management, and public relations. Per USALI 12th Edition Schedule 16 (Annual Mandatory Brand and Operator Costs), centralized marketing leverages group purchasing power for ad spend and brand-wide campaigns. Includes the brand/franchise component that is mandatory for all branded properties. Charged as a percentage of Total Revenue.",
   "Technology & Reservations":
     "Property Management System (PMS), booking engine, Wi-Fi infrastructure, cybersecurity, help desk support, system integrations (POS, key systems, kiosk/mobile check-in), cloud services, Central Reservation System (CRS), call center operations, group booking coordination, and channel distribution strategy. Per USALI 12th Edition, technology costs are recognized as a distinct undistributed expense category. Centralizing technology and reservations provides economies of scale and consistent standards across properties. Charged as a percentage of Total Revenue.",
   "Accounting":

@@ -47,7 +47,7 @@ describe("updateScenarioSchema", () => {
 
 describe("updateServiceTemplateSchema", () => {
   it("accepts valid partial update", () => {
-    const result = updateServiceTemplateSchema.safeParse({ name: "Marketing" });
+    const result = updateServiceTemplateSchema.safeParse({ name: "Marketing & Brand" });
     expect(result.success).toBe(true);
   });
 
