@@ -253,17 +253,8 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
     }
   }
 
-  // Assign default theme to ALL user groups that don't have a theme (idempotent)
   const defaultTheme = await storage.getDefaultDesignTheme();
   const fallbackThemeId = lbBrandThemeId ?? defaultTheme?.id;
-  if (fallbackThemeId) {
-    const groups = await storage.getAllUserGroups();
-    for (const group of groups) {
-      if (!(group as any).themeId) {
-        await storage.updateUserGroup(group.id, { themeId: fallbackThemeId });
-      }
-    }
-  }
 
   // Assign system default theme to ALL companies (idempotent)
   const canonicalDefaultThemeId = defaultTheme?.id;

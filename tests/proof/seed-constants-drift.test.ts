@@ -132,7 +132,6 @@ describe("Seed Data Structural Integrity", () => {
     expect(seedIndexContent).toContain("seedProperties()");
     expect(seedIndexContent).toContain("seedFeeCategories()");
     expect(seedIndexContent).toContain("seedDefaultLogos()");
-    expect(seedIndexContent).toContain("seedUserGroups()");
     expect(seedIndexContent).toContain("seedServiceTemplates()");
   });
 

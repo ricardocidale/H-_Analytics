@@ -21,7 +21,7 @@ export function registerUserRoutes(app: Express) {
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      res.json(users.map((u: any) => ({ ...userResponse(u), createdAt: u.createdAt, userGroupId: u.userGroupId, canManageScenarios: u.canManageScenarios ?? true })));
+      res.json(users.map((u: any) => ({ ...userResponse(u), createdAt: u.createdAt, canManageScenarios: u.canManageScenarios ?? true })));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch users", error);
     }
@@ -39,10 +39,8 @@ export function registerUserRoutes(app: Express) {
         return res.status(400).json({ error: "User already exists" });
       }
 
-      const { email, password, role, firstName, lastName, company, companyId, title, userGroupId } = validation.data;
+      const { email, password, role, firstName, lastName, company, companyId, title } = validation.data;
       const passwordHash = password ? await hashPassword(password) : null;
-
-      const defaultGroup = await storage.getDefaultUserGroup();
 
       const user = await storage.createUser({
         email,
@@ -53,7 +51,6 @@ export function registerUserRoutes(app: Express) {
         company,
         companyId,
         title,
-        userGroupId: userGroupId !== undefined ? userGroupId : (defaultGroup?.id ?? null),
       });
 
       logActivity(req, "create-user", "user", user.id, email, { role });
@@ -71,7 +68,6 @@ export function registerUserRoutes(app: Express) {
     companyId: z.number().nullable().optional(),
     title: z.string().nullable().optional(),
     role: roleSchema.optional(),
-    userGroupId: z.number().nullable().optional(),
     canManageScenarios: z.boolean().optional(),
   });
 
@@ -83,7 +79,7 @@ export function registerUserRoutes(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
-      const { email, firstName, lastName, company, companyId, title, role, userGroupId, canManageScenarios } = parsed.data;
+      const { email, firstName, lastName, company, companyId, title, role, canManageScenarios } = parsed.data;
 
       if (role !== undefined) {
         const roleResult = roleSchema.safeParse(role);
@@ -110,7 +106,6 @@ export function registerUserRoutes(app: Express) {
       if (company !== undefined) profileData.company = company;
       if (companyId !== undefined) profileData.companyId = companyId;
       if (title !== undefined) profileData.title = title;
-      if (userGroupId !== undefined) profileData.userGroupId = userGroupId;
       if (canManageScenarios !== undefined) profileData.canManageScenarios = canManageScenarios;
 
       if (Object.keys(profileData).length > 0) {
@@ -189,22 +184,6 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/admin/users/:id/group", requireAdmin, async (req, res) => {
-    try {
-      const id = parseParamId(req.params.id, res, "user ID");
-      if (id === null) return;
-      const parsed = z.object({ groupId: z.number().nullable() }).safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      const { groupId } = parsed.data;
-      const user = await storage.assignUserToGroup(id, groupId ?? null);
-      res.json(user);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to assign user to group", error);
-    }
-  });
-
   app.patch("/api/admin/users/:id/theme", requireAdmin, async (req, res) => {
     try {
       const id = parseParamId(req.params.id, res, "user ID");
@@ -259,7 +238,6 @@ export function registerUserRoutes(app: Express) {
     role: roleSchema.optional().default("user"),
     message: z.string().max(500).optional(),
     companyId: z.number().nullable().optional(),
-    userGroupId: z.number().nullable().optional(),
   });
 
   app.post("/api/admin/invitations", requireAdmin, async (req, res) => {
@@ -269,14 +247,13 @@ export function registerUserRoutes(app: Express) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
 
-      const { emails, role, message, companyId, userGroupId } = validation.data;
+      const { emails, role, message, companyId } = validation.data;
       const adminUser = getAuthUser(req);
       const adminProfile = await storage.getUserById(adminUser.id);
       const inviterName = adminProfile
         ? [adminProfile.firstName, adminProfile.lastName].filter(Boolean).join(" ") || adminProfile.email
         : "An administrator";
 
-      const defaultGroup = await storage.getDefaultUserGroup();
       const loginUrl = `${req.protocol}://${req.get("host")}/login`;
 
       const results: { email: string; status: "created" | "existing" | "failed"; error?: string }[] = [];
@@ -301,7 +278,6 @@ export function registerUserRoutes(app: Express) {
             company: null,
             companyId: companyId ?? null,
             title: null,
-            userGroupId: userGroupId ?? (defaultGroup?.id ?? null),
           });
 
           sendInvitationEmail({

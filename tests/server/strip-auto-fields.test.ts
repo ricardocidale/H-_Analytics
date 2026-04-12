@@ -171,13 +171,6 @@ describe("Storage Layer — all update methods use stripAutoFields", () => {
       expect(body).toContain("stripAutoFields(");
     });
 
-    it("updateUserGroup uses stripAutoFields", () => {
-      const methodStart = src.indexOf("async updateUserGroup(");
-      const methodEnd = src.indexOf("async getDefaultUserGroup(");
-      const body = src.slice(methodStart, methodEnd);
-      expect(body).toContain("stripAutoFields(");
-    });
-
     it("updateCompany uses stripAutoFields", () => {
       const methodStart = src.indexOf("async updateCompany(");
       const delStart = src.indexOf("async deleteCompany(");

@@ -192,9 +192,6 @@ export class FinancialSharingStorage {
     if (!user) return [];
 
     const conditions = [and(eq(scenarioShares.targetType, "user"), eq(scenarioShares.targetId, userId))];
-    if (user.userGroupId) {
-      conditions.push(and(eq(scenarioShares.targetType, "group"), eq(scenarioShares.targetId, user.userGroupId)));
-    }
     if (user.companyId) {
       conditions.push(and(eq(scenarioShares.targetType, "company"), eq(scenarioShares.targetId, user.companyId)));
     }

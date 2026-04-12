@@ -32,15 +32,9 @@ export function register(app: Express) {
   app.get("/api/properties", requireAuth, async (req, res) => {
     try {
       const user = getAuthUser(req);
-      let props = user.role === UserRole.ADMIN
+      const props = user.role === UserRole.ADMIN
         ? await storage.getAllProperties()
         : await storage.getAllProperties(user.id);
-      if (user.role !== UserRole.ADMIN && user.userGroupId) {
-        const allowedIds = await storage.getGroupPropertyIds(user.userGroupId);
-        if (allowedIds.length > 0) {
-          props = props.filter((p) => allowedIds.includes(p.id));
-        }
-      }
       const allCats = await storage.getAllFeeCategories();
       const catsByProperty = new Map<number, { name: string; rate: number; isActive: boolean }[]>();
       for (const c of allCats) {
@@ -57,51 +51,11 @@ export function register(app: Express) {
     }
   });
 
-  // Group property visibility
-  app.get("/api/user-groups/:id/properties", requireAuth, async (req, res) => {
-    try {
-      const groupId = Number(req.params.id);
-      const user = getAuthUser(req);
-      if (user.role !== UserRole.ADMIN && user.userGroupId !== groupId) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      const ids = await storage.getGroupPropertyIds(groupId);
-      res.json(ids);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch group properties", error);
-    }
-  });
-
-  const groupPropertyIdsSchema = z.object({
-    propertyIds: z.array(z.number().int()).default([]),
-  });
-
-  app.put("/api/user-groups/:id/properties", requireAdmin, async (req, res) => {
-    try {
-      const parsed = groupPropertyIdsSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      const { propertyIds } = parsed.data;
-      await storage.setGroupProperties(Number(req.params.id), propertyIds);
-      res.json({ success: true });
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to update group properties", error);
-    }
-  });
-
   app.get("/api/properties/:id", requireAuth, async (req, res) => {
     try {
       const property = await storage.getProperty(Number(req.params.id));
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
-      }
-      const user = getAuthUser(req);
-      if (user.role !== UserRole.ADMIN && user.userGroupId) {
-        const allowedIds = await storage.getGroupPropertyIds(user.userGroupId);
-        if (allowedIds.length > 0 && !allowedIds.includes(property.id)) {
-          return res.status(403).json({ error: "Access denied" });
-        }
       }
       const cats = await storage.getFeeCategoriesByProperty(property.id);
       res.json({

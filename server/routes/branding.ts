@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin , getAuthUser } from "../auth";
-import { insertLogoSchema, insertCompanySchema, insertUserGroupSchema, insertDesignThemeSchema } from "@shared/schema";
+import { insertLogoSchema, insertCompanySchema, insertDesignThemeSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { logger } from "../logger";
 import { fullName, logAndSendError } from "./helpers";
@@ -23,10 +23,10 @@ function generateLetterLogoSvg(letter: string, companyName: string): string {
 
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
-  // LOGOS, ASSET DESCRIPTIONS, USER GROUPS, COMPANIES
+  // LOGOS, ASSET DESCRIPTIONS, COMPANIES
   // CRUD for white-label branding entities. Each has standard REST endpoints.
   // GET /api/branding — composite endpoint returning the current user's
-  // personalized logo, theme colors, and group branding.
+  // personalized logo, theme colors, and branding.
   // ────────────────────────────────────────────────────────────
 
   // Public — no auth required. Returns the system default theme colors for pre-login pages.
@@ -106,15 +106,7 @@ export function register(app: Express) {
         }
       }
 
-      // 3. Group-level theme
-      if (!resolvedTheme && u.userGroupId) {
-        const group = await storage.getUserGroup(u.userGroupId);
-        if (group?.themeId) {
-          resolvedTheme = await storage.getDesignTheme(group.themeId);
-        }
-      }
-
-      // 4. System default theme
+      // 3. System default theme
       if (!resolvedTheme) {
         resolvedTheme = await storage.getDefaultDesignTheme();
       }
@@ -180,63 +172,6 @@ export function register(app: Express) {
       res.json(descriptions);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch asset descriptions", error);
-    }
-  });
-
-  // User Groups CRUD
-  app.get("/api/user-groups", requireAuth, async (req, res) => {
-    try {
-      const groups = await storage.getAllUserGroups();
-      res.json(groups);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch user groups", error);
-    }
-  });
-
-  app.post("/api/user-groups", requireAdmin, async (req, res) => {
-    try {
-      const validation = insertUserGroupSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
-      }
-      const data = validation.data;
-      if (!data.themeId) {
-        const defaultTheme = await storage.getDefaultDesignTheme();
-        if (defaultTheme) data.themeId = defaultTheme.id;
-      }
-      const group = await storage.createUserGroup(data);
-      res.status(201).json(group);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to create user group", error);
-    }
-  });
-
-  const updateUserGroupSchema = z.object({
-    name: z.string().min(1).optional(),
-    logoId: z.number().nullable().optional(),
-    themeId: z.number().nullable().optional(),
-    assetDescriptionId: z.number().nullable().optional(),
-  });
-
-  app.patch("/api/user-groups/:id", requireAdmin, async (req, res) => {
-    try {
-      const parsed = updateUserGroupSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      const group = await storage.updateUserGroup(Number(req.params.id), parsed.data);
-      res.json(group);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to update user group", error);
-    }
-  });
-
-  app.delete("/api/user-groups/:id", requireAdmin, async (req, res) => {
-    try {
-      await storage.deleteUserGroup(Number(req.params.id));
-      res.json({ success: true });
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete user group", error);
     }
   });
 

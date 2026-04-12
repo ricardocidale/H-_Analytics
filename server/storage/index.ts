@@ -26,7 +26,7 @@
  * by every route file in server/routes/.
  */
 import { db, pool } from "../db";
-import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, scenarioResults, notificationPreferences, documentExtractions, conversations, calculationAuditLogs, type User, type Session, type GlobalAssumptions, type Property, type Scenario, type ScenarioResult, type InsertScenarioResult, type Logo, type AssetDescription, type UserGroup, type Company, type FeeCategory, type ResearchQuestion, type DesignTheme } from "@shared/schema";
+import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, scenarioResults, notificationPreferences, documentExtractions, conversations, calculationAuditLogs, type User, type Session, type GlobalAssumptions, type Property, type Scenario, type ScenarioResult, type InsertScenarioResult, type Logo, type AssetDescription, type Company, type FeeCategory, type ResearchQuestion, type DesignTheme } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { UserStorage } from "./users";
 import { PropertyStorage } from "./properties";
@@ -184,16 +184,6 @@ export class DatabaseStorage implements IStorage {
   deleteLogo = this.admin.deleteLogo.bind(this.admin);
 
   getAllAssetDescriptions = this.admin.getAllAssetDescriptions.bind(this.admin);
-
-  getAllUserGroups = this.admin.getAllUserGroups.bind(this.admin);
-  getUserGroup = this.admin.getUserGroup.bind(this.admin);
-  createUserGroup = this.admin.createUserGroup.bind(this.admin);
-  updateUserGroup = this.admin.updateUserGroup.bind(this.admin);
-  deleteUserGroup = this.admin.deleteUserGroup.bind(this.admin);
-  assignUserToGroup = this.admin.assignUserToGroup.bind(this.admin);
-  getDefaultUserGroup = this.admin.getDefaultUserGroup.bind(this.admin);
-  getGroupPropertyIds = this.admin.getGroupPropertyIds.bind(this.admin);
-  setGroupProperties = this.admin.setGroupProperties.bind(this.admin);
 
   getAllCompanies = this.admin.getAllCompanies.bind(this.admin);
   getCompany = this.admin.getCompany.bind(this.admin);

@@ -219,9 +219,6 @@ export function registerAdminScenarioRoutes(app: Express) {
       if (targetType === "user") {
         const targetUser = await storage.getUserById(targetId);
         if (!targetUser) return res.status(404).json({ error: "Target user not found" });
-      } else if (targetType === "group") {
-        const targetGroup = await storage.getUserGroup(targetId);
-        if (!targetGroup) return res.status(404).json({ error: "Target group not found" });
       } else if (targetType === "company") {
         const targetCompany = await storage.getCompany(targetId);
         if (!targetCompany) return res.status(404).json({ error: "Target company not found" });

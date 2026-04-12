@@ -1,4 +1,4 @@
-import { designThemes, logos, assetDescriptions, userGroups, userGroupProperties, companies, researchQuestions, users, scenarioShares, type DesignTheme, type InsertDesignTheme, type Logo, type InsertLogo, type AssetDescription, type UserGroup, type InsertUserGroup, type Company, type InsertCompany, type ResearchQuestion, type InsertResearchQuestion, type User } from "@shared/schema";
+import { designThemes, logos, assetDescriptions, companies, researchQuestions, users, scenarioShares, type DesignTheme, type InsertDesignTheme, type Logo, type InsertLogo, type AssetDescription, type Company, type InsertCompany, type ResearchQuestion, type InsertResearchQuestion } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, isNull, inArray } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
@@ -96,60 +96,6 @@ export class AdminStorage {
     return await db.select().from(assetDescriptions).orderBy(assetDescriptions.createdAt);
   }
 
-  // ── User Groups ─────────────────────────────────────────────
-
-  /** List all user groups alphabetically. */
-  async getAllUserGroups(): Promise<UserGroup[]> {
-    return db.select().from(userGroups).orderBy(userGroups.name);
-  }
-
-  /** Fetch a single user group by ID. Used to resolve branding for a user. */
-  async getUserGroup(id: number): Promise<UserGroup | undefined> {
-    const [group] = await db.select().from(userGroups).where(eq(userGroups.id, id));
-    return group || undefined;
-  }
-
-  /** Create a new user group with optional logo, theme, and asset description links. */
-  async createUserGroup(data: InsertUserGroup): Promise<UserGroup> {
-    const [group] = await db.insert(userGroups).values(data).returning();
-    return group;
-  }
-
-  /** Update a group's settings (name, linked logo/theme/asset description). */
-  async updateUserGroup(id: number, data: Partial<InsertUserGroup>): Promise<UserGroup> {
-    const [group] = await db.update(userGroups).set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() } as unknown as typeof userGroups.$inferInsert).where(eq(userGroups.id, id)).returning();
-    return group;
-  }
-
-  /** Get the group marked as isDefault=true. Users from deleted groups are reassigned here. */
-  async getDefaultUserGroup(): Promise<UserGroup | undefined> {
-    const [group] = await db.select().from(userGroups).where(eq(userGroups.isDefault, true));
-    return group || undefined;
-  }
-
-  /**
-   * Delete a user group. The default group cannot be deleted. When a non-default
-   * group is deleted, all its users are reassigned to the default group so they
-   * aren't left orphaned without branding.
-   */
-  async deleteUserGroup(id: number): Promise<void> {
-    const [group] = await db.select().from(userGroups).where(eq(userGroups.id, id));
-    if (group?.isDefault) throw new Error("Cannot delete the default user group");
-    const defaultGroup = await this.getDefaultUserGroup();
-    if (!defaultGroup) throw new Error("Cannot delete group: no default group exists to reassign users");
-    await db.transaction(async (tx) => {
-      await tx.delete(scenarioShares).where(and(eq(scenarioShares.targetType, "group"), eq(scenarioShares.targetId, id)));
-      await tx.update(users).set({ userGroupId: defaultGroup.id, updatedAt: new Date() }).where(eq(users.userGroupId, id));
-      await tx.delete(userGroups).where(eq(userGroups.id, id));
-    });
-  }
-
-  /** Assign a user to a group (or remove from a group by passing null). */
-  async assignUserToGroup(userId: number, groupId: number | null): Promise<User> {
-    const [user] = await db.update(users).set({ userGroupId: groupId, updatedAt: new Date() }).where(eq(users.id, userId)).returning();
-    return user;
-  }
-
   // ── Companies ───────────────────────────────────────────────
 
   /** List all companies alphabetically. Includes both management and SPV entities. */
@@ -216,32 +162,4 @@ export class AdminStorage {
     await db.delete(researchQuestions).where(eq(researchQuestions.id, id));
   }
 
-  // ── Group Property Visibility ───────────────────────────────
-
-  /**
-   * Get the property IDs a group is allowed to see.
-   * Returns an empty array if no restrictions are set (meaning: show all).
-   */
-  async getGroupPropertyIds(groupId: number): Promise<number[]> {
-    const rows = await db
-      .select({ propertyId: userGroupProperties.propertyId })
-      .from(userGroupProperties)
-      .where(eq(userGroupProperties.userGroupId, groupId));
-    return rows.map((r) => r.propertyId);
-  }
-
-  /**
-   * Replace the full set of visible properties for a group.
-   * Pass an empty array to remove all restrictions (show everything).
-   */
-  async setGroupProperties(groupId: number, propertyIds: number[]): Promise<void> {
-    await db.transaction(async (tx) => {
-      await tx.delete(userGroupProperties).where(eq(userGroupProperties.userGroupId, groupId));
-      if (propertyIds.length > 0) {
-        await tx.insert(userGroupProperties).values(
-          propertyIds.map((propertyId) => ({ userGroupId: groupId, propertyId }))
-        );
-      }
-    });
-  }
 }

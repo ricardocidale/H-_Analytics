@@ -380,10 +380,8 @@ export async function checkPropertyAccess(
   const property = await storage.getProperty(propertyId);
   if (!property) return false;
   if (property.userId === user.id) return true;
-  if (user.userGroupId) {
-    const allowedIds = await storage.getGroupPropertyIds(user.userGroupId);
-    if (allowedIds.includes(propertyId)) return true;
-  }
+  // All shared properties (userId=null) are visible to all authenticated users
+  if (property.userId === null) return true;
   return false;
 }
 
@@ -436,7 +434,6 @@ export async function seedAdminUser() {
     lastName?: string;
     company: string;
     title: string;
-    userGroupId?: number;
   }>;
 
   const defaultPassword = process.env.PASSWORD_DEFAULT || process.env.PASSWORD_ADMIN;
@@ -479,10 +476,6 @@ export async function seedAdminUser() {
       if (user.role !== seed.role) {
         await storage.updateUserRole(user.id, seed.role);
         logger.info(`User role corrected: ${seed.email} → ${seed.role}`, "auth");
-      }
-      if (seed.userGroupId && user.userGroupId !== seed.userGroupId) {
-        await storage.updateUserProfile(user.id, { userGroupId: seed.userGroupId });
-        logger.info(`User group corrected: ${seed.email} → group ${seed.userGroupId}`, "auth");
       }
     }
 
