@@ -104,8 +104,6 @@ export function AddPropertyDialog({
         taxRate: defaults.taxRate,
         costRateTaxes: defaults.costRateTaxes,
         countryRiskPremium: defaults.countryRiskPremium,
-        exitCapRate: defaults.exitCapRate,
-        adrGrowthRate: defaults.adrGrowthRate,
         inflationRate: defaults.inflationRate,
         depreciationYears: defaults.depreciationYears,
       }));
@@ -122,8 +120,6 @@ export function AddPropertyDialog({
         stateProvince: state,
         taxRate: defaults.taxRate,
         costRateTaxes: defaults.costRateTaxes,
-        exitCapRate: defaults.exitCapRate,
-        adrGrowthRate: defaults.adrGrowthRate,
       }));
     } else {
       setFormData(prev => ({ ...prev, stateProvince: state }));
