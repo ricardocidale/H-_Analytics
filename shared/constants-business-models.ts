@@ -75,7 +75,7 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
 
   vrbo: {
     costRateRooms: 0.30,        // 30% — per-turnover cleaning, guest supplies, laundry
-    costRateFB: 0,              // 0% — no F&B operations
+    costRateFB: 0.05,           // 5% — welcome baskets, catering, event F&B, cooking experiences
     costRateAdmin: 0.05,        // 5% — lighter admin
     costRateMarketing: 0.02,    // 2% — listing optimization, photography
     costRatePropertyOps: 0.06,  // 6% — handyman, landscaping, pool
@@ -85,10 +85,10 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     costRateFFE: 0.03,          // 3% — furniture refresh, appliances
     costRateOther: 0.03,        // 3% — supplies, consumables
     costRateInsurance: 0.025,   // 2.5% — higher STR insurance
-    revShareEvents: 0,          // 0% — no events
-    revShareFB: 0,              // 0% — no F&B
+    revShareEvents: 0.05,        // 5% — receptions, parties, creative experiences
+    revShareFB: 0.10,            // 10% — welcome baskets, catering, cooking experiences; all models must include F&B
     revShareOther: 0.03,        // 3% — cleaning fees charged to guests
-    cateringBoostPct: 0,        // 0% — no catering
+    cateringBoostPct: 0.05,     // 5% — event catering for guest-hosted receptions
     baseMgmtFeeRate: 0.25,      // 25% — all-in management fee
     incentiveMgmtFeeRate: 0,    // 0% — no incentive fee (all-in model)
     eventExpenseRate: 0,        // N/A
