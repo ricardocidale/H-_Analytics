@@ -65,7 +65,7 @@ export class ActivityStorage {
       .select({ total: count() })
       .from(verificationRuns);
     if (total > 50) {
-      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const cutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
       await db.delete(verificationRuns).where(lt(verificationRuns.createdAt, cutoff));
     }
     return run;
@@ -76,7 +76,7 @@ export class ActivityStorage {
    * field (which can be megabytes of JSON) to keep list queries fast.
    */
   async getVerificationRuns(limit = 20): Promise<Omit<VerificationRun, 'results'>[]> {
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const cutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
     const rows = await db
       .select({
         id: verificationRuns.id,
