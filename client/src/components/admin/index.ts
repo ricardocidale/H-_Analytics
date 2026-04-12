@@ -18,6 +18,4 @@ export { default as ActivityTab } from "./activity";
 export { default as VerificationTab } from "./verification";
 export { default as DatabaseTab } from "./DatabaseTab";
 export { default as AIAgentsTab } from "./AIAgentsTab";
-export { default as ResearchCenterTab } from "./ResearchCenterTab";
 export { default as ModelDefaultsTab } from "./ModelDefaultsTab";
-export { default as DesignTab } from "./DesignTab";
