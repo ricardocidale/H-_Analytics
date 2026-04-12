@@ -150,6 +150,11 @@ export const properties = pgTable("properties", {
   baseManagementFeeRate: real("base_management_fee_rate").notNull().default(DEFAULT_BASE_MANAGEMENT_FEE_RATE),
   incentiveManagementFeeRate: real("incentive_management_fee_rate").notNull().default(DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE),
 
+  // Owner's priority return and fee subordination
+  ownerPriorityReturn: real("owner_priority_return"),
+  feeSubordination: text("fee_subordination"),
+  performanceTestEnabled: boolean("performance_test_enabled").notNull().default(false),
+
   // Working capital
   arDays: integer("ar_days").notNull().default(DEFAULT_AR_DAYS),
   apDays: integer("ap_days").notNull().default(DEFAULT_AP_DAYS),
@@ -300,6 +305,9 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   refinanceYearsAfterAcquisition: true,
   baseManagementFeeRate: true,
   incentiveManagementFeeRate: true,
+  ownerPriorityReturn: true,
+  feeSubordination: true,
+  performanceTestEnabled: true,
   arDays: true,
   apDays: true,
   reinvestmentRate: true,

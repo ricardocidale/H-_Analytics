@@ -81,6 +81,10 @@ export interface PropertyInput {
   // Management company fee rates
   baseManagementFeeRate?: number;
   incentiveManagementFeeRate?: number;
+  // Owner's priority return and fee subordination
+  ownerPriorityReturn?: number | null;
+  feeSubordination?: string | null;
+  performanceTestEnabled?: boolean | null;
   // Service fee categories
   feeCategories?: { name: string; rate: number; isActive: boolean }[];
   // Working capital

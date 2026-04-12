@@ -101,6 +101,10 @@ export const globalAssumptions = pgTable("global_assumptions", {
   baseManagementFee: real("base_management_fee").notNull(),
   incentiveManagementFee: real("incentive_management_fee").notNull(),
   
+  // Owner's priority return and fee subordination defaults
+  defaultOwnerPriorityReturn: real("default_owner_priority_return"),
+  defaultFeeSubordination: text("default_fee_subordination").notNull().default("partial"),
+
   // Funding Instrument (column names use 'safe_' prefix for DB compatibility — do not rename)
   fundingSourceLabel: text("funding_source_label").notNull().default("Funding Vehicle"),
   safeTranche1Amount: real("safe_tranche1_amount").notNull().default(800000),
