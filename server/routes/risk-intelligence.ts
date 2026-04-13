@@ -5,14 +5,12 @@ import {
   generatePropertyRiskBrief,
 } from "../ai/risk-intelligence";
 import { fetchMacroRates } from "../ai/ambient/fetchers";
-import { db } from "../db";
-import { properties } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { storage } from "../storage";
 import { logger } from "../logger";
+import type { Property } from "@shared/schema";
 
 export const riskIntelligenceRoutes = Router();
 
-// GET /api/risk/portfolio-brief — full portfolio risk brief
 riskIntelligenceRoutes.get(
   "/api/risk/portfolio-brief",
   requireAuth,
@@ -24,10 +22,7 @@ riskIntelligenceRoutes.get(
 
     try {
       const includeLLM = req.query.includeLLM === "true";
-      const userProperties = await db
-        .select()
-        .from(properties)
-        .where(eq(properties.userId, userId));
+      const userProperties: Property[] = await storage.getAllProperties(userId);
 
       if (userProperties.length === 0) {
         return res.json({
@@ -40,18 +35,17 @@ riskIntelligenceRoutes.get(
       }
 
       const brief = await generatePortfolioRiskBrief(
-        userProperties as any,
+        userProperties,
         { includeLLM },
       );
       res.json(brief);
-    } catch (err) {
-      logger.error(`Portfolio risk brief failed: ${err}`, "risk-intelligence");
+    } catch (error: unknown) {
+      logger.error(`Portfolio risk brief failed: ${error}`, "risk-intelligence");
       res.status(500).json({ error: "Failed to generate risk brief" });
     }
   },
 );
 
-// GET /api/risk/property/:propertyId/brief — single property risk brief
 riskIntelligenceRoutes.get(
   "/api/risk/property/:propertyId/brief",
   requireAuth,
@@ -67,35 +61,28 @@ riskIntelligenceRoutes.get(
         return res.status(400).json({ error: "Invalid property ID" });
       }
 
-      const [property] = await db
-        .select()
-        .from(properties)
-        .where(eq(properties.id, propertyId));
+      const property = await storage.getProperty(propertyId);
 
       if (!property || property.userId !== userId) {
         return res.status(404).json({ error: "Property not found" });
       }
 
-      const allUserProperties = await db
-        .select()
-        .from(properties)
-        .where(eq(properties.userId, userId));
+      const allUserProperties: Property[] = await storage.getAllProperties(userId);
 
       const includeLLM = req.query.includeLLM === "true";
       const brief = await generatePropertyRiskBrief(
-        property as any,
-        allUserProperties as any,
+        property,
+        allUserProperties,
         { includeLLM },
       );
       res.json(brief);
-    } catch (err) {
-      logger.error(`Property risk brief failed: ${err}`, "risk-intelligence");
+    } catch (error: unknown) {
+      logger.error(`Property risk brief failed: ${error}`, "risk-intelligence");
       res.status(500).json({ error: "Failed to generate risk brief" });
     }
   },
 );
 
-// GET /api/risk/macro-context — current macro environment
 riskIntelligenceRoutes.get(
   "/api/risk/macro-context",
   requireAuth,
@@ -127,8 +114,8 @@ riskIntelligenceRoutes.get(
         snapshotCount: snapshots.length,
         errors: result.errors,
       });
-    } catch (err) {
-      logger.error(`Macro context failed: ${err}`, "risk-intelligence");
+    } catch (error: unknown) {
+      logger.error(`Macro context failed: ${error}`, "risk-intelligence");
       res.status(500).json({ error: "Failed to fetch macro context" });
     }
   },

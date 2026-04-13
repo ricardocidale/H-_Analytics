@@ -91,9 +91,9 @@ function estimateAnnualRevenue(p: Property): number {
   const daysPerYear = 365;
 
   // For per-property (VRBO) pricing use nightly rate instead
-  const isPricingPerProperty = (p as any).pricingModel === "per_property";
+  const isPricingPerProperty = p.pricingModel === "per_property";
   const nightlyRate = isPricingPerProperty
-    ? ((p as any).nightlyPropertyRate ?? adr)
+    ? (p.nightlyPropertyRate ?? adr)
     : 0;
 
   const roomRevenue = isPricingPerProperty
@@ -351,7 +351,7 @@ function scoreFinancialRisk(properties: Property[]): PortfolioRiskReport["financ
     const ltv = p.acquisitionLTV ?? 0;
     const loanAmount = (p.purchasePrice ?? 0) * ltv;
     const rate = (p.acquisitionInterestRate ?? 0.065) / 12;
-    const termMonths = ((p as any).acquisitionTermYears ?? 25) * 12;
+    const termMonths = (p.acquisitionTermYears ?? 25) * 12;
 
     let annualDebtService = 0;
     if (loanAmount > 0 && rate > 0 && termMonths > 0) {
@@ -590,7 +590,7 @@ function assignGrade(score: number): "A" | "B" | "C" | "D" | "F" {
  * Only active properties should be passed in (filter isActive before calling).
  */
 export function computePortfolioRiskScore(properties: Property[]): PortfolioRiskReport {
-  const active = properties.filter(p => (p as any).isActive !== false);
+  const active = properties.filter(p => p.isActive !== false);
 
   const concentration = scoreConcentrationRisk(active);
   const geographic = scoreGeographicRisk(active);

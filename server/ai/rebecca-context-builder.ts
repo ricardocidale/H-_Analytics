@@ -201,10 +201,10 @@ export async function buildRebeccaContext(
     const templates = await storage.getAllServiceTemplates();
     const templateData = templates.map(t => ({
       name: t.name ?? "",
-      defaultRate: (t as any).defaultRate ?? 0,
-      serviceModel: (t as any).serviceModel ?? "direct",
-      serviceMarkup: (t as any).serviceMarkup ?? 0,
-      isActive: (t as any).isActive !== false,
+      defaultRate: t.defaultRate ?? 0,
+      serviceModel: t.serviceModel ?? "direct",
+      serviceMarkup: t.serviceMarkup ?? 0,
+      isActive: t.isActive !== false,
     }));
     const pack = buildCompanyContextPack(ga, allProperties, templateData);
     entitySummary = buildCompanySummary(pack);

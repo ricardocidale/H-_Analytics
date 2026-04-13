@@ -57,9 +57,9 @@ export class ReplitStorageProvider implements StorageProvider {
     try {
       await this.service.getObjectEntityFile(key);
       return true;
-    } catch (err) {
-      if (err instanceof ObjectNotFoundError) return false;
-      throw err;
+    } catch (error: unknown) {
+      if (error instanceof ObjectNotFoundError) return false;
+      throw error;
     }
   }
 

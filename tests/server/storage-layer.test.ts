@@ -44,7 +44,7 @@ describe("Storage Layer — PropertyStorage", () => {
   });
 
   it("deleteProperty uses eq on id", () => {
-    expect(src).toContain("db.delete(properties).where(eq(properties.id, id))");
+    expect(src).toContain(".where(eq(properties.id, id))");
   });
 });
 

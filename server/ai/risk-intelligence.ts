@@ -95,9 +95,9 @@ function estimateAnnualRevenue(p: Property): number {
   const roomCount = p.roomCount ?? 1;
   const adr = p.startAdr ?? 0;
   const occupancy = p.maxOccupancy ?? 0.7;
-  const isPricingPerProperty = (p as any).pricingModel === "per_property";
+  const isPricingPerProperty = p.pricingModel === "per_property";
   const nightlyRate = isPricingPerProperty
-    ? ((p as any).nightlyPropertyRate ?? adr)
+    ? (p.nightlyPropertyRate ?? adr)
     : 0;
   const roomRevenue = isPricingPerProperty
     ? nightlyRate * occupancy * 365
@@ -119,7 +119,7 @@ function estimateAnnualDebtService(p: Property): number {
   const ltv = p.acquisitionLTV ?? 0;
   const loanAmount = (p.purchasePrice ?? 0) * ltv;
   const rate = (p.acquisitionInterestRate ?? 0.065) / 12;
-  const termMonths = ((p as any).acquisitionTermYears ?? 25) * 12;
+  const termMonths = (p.acquisitionTermYears ?? 25) * 12;
   if (loanAmount <= 0 || rate <= 0 || termMonths <= 0) return 0;
   const monthlyPayment = loanAmount * (rate * Math.pow(1 + rate, termMonths)) / (Math.pow(1 + rate, termMonths) - 1);
   return monthlyPayment * 12;
@@ -235,7 +235,7 @@ function generateAssumptionChallengeInsights(properties: Property[]): RiskInsigh
   for (const p of properties) {
     const adr = p.startAdr ?? 0;
     const occupancy = p.maxOccupancy ?? 0.7;
-    const tier = (p as any).qualityTier ?? "upscale";
+    const tier = p.qualityTier ?? "upscale";
 
     // ADR challenge
     const adrBenchmark = tier === "luxury" ? BENCHMARKS.luxuryADR : BENCHMARKS.boutiqueADR;
@@ -552,7 +552,7 @@ function generateConcentrationInsights(properties: Property[]): RiskInsight[] {
     // Check state concentration for US
     const stateMap = new Map<string, Property[]>();
     for (const p of props) {
-      const state = (p as any).state || (p as any).stateProvince || "Unknown";
+      const state = p.stateProvince || "Unknown";
       const list = stateMap.get(state) ?? [];
       list.push(p);
       stateMap.set(state, list);
@@ -643,7 +643,7 @@ function generateStressTestInsights(properties: Property[]): RiskInsight[] {
       const stressedRate = currentRate + 0.02;
       const loanAmount = (p.purchasePrice ?? 0) * (p.acquisitionLTV ?? 0);
       const stressedMonthlyRate = stressedRate / 12;
-      const termMonths = ((p as any).acquisitionTermYears ?? 25) * 12;
+      const termMonths = (p.acquisitionTermYears ?? 25) * 12;
       const stressedMonthly = loanAmount > 0 && stressedMonthlyRate > 0
         ? loanAmount * (stressedMonthlyRate * Math.pow(1 + stressedMonthlyRate, termMonths)) / (Math.pow(1 + stressedMonthlyRate, termMonths) - 1)
         : 0;
