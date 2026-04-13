@@ -85,6 +85,106 @@ AI_INTEGRATIONS_OPENAI_API_KEY=      # Optional
 
 ---
 
+## Complete Environment Variable Reference
+
+All environment variables organized by the source registry categories. The app starts without optional vars but features degrade gracefully.
+
+### Core (Required)
+
+| Variable | Service | Purpose |
+|----------|---------|---------|
+| `DATABASE_URL` | PostgreSQL (Neon) | Database connection string |
+| `ADMIN_PASSWORD` | Auth | Admin login credential |
+| `CHECKER_PASSWORD` | Auth | Checker/auditor login credential |
+
+### Server Configuration (Required)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `NODE_ENV` | `development` | Environment mode |
+| `PORT` | `5000` | HTTP server port |
+
+### AI Research Providers (at least one required)
+
+| Variable | Service | Category | Required? |
+|----------|---------|----------|-----------|
+| `AI_INTEGRATIONS_GEMINI_API_KEY` | Google Gemini | ai_research | Recommended (primary) |
+| `ANTHROPIC_API_KEY` | Anthropic Claude | ai_research | Optional (verification) |
+| `AI_INTEGRATIONS_OPENAI_API_KEY` | OpenAI | ai_research | Optional (cross-validation) |
+
+### Web Research (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `PERPLEXITY_API_KEY` | Perplexity Sonar | web_research |
+| `TAVILY_API_KEY` | Tavily Search | web_research |
+
+### Macro Economic Data (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `FRED_API_KEY` | FRED API | macro_economic |
+
+Note: Frankfurter ECB FX Rates requires no API key.
+
+### Market Data (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `RAPIDAPI_KEY` | RapidAPI Slot 1 | market_data |
+| `RAPIDAPI_KEY_2` | RapidAPI Slot 2 | market_data |
+| `RAPIDAPI_KEY_3` | RapidAPI Slot 3 | market_data |
+| `COSTAR_API_KEY` | CoStar Analytics | market_data |
+
+### Geospatial (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `GOOGLE_MAPS_API_KEY` | Google Maps | geospatial |
+| `WALK_SCORE_API_KEY` | Walk Score | geospatial |
+
+### Vector Search (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `PINECONE_API_KEY` | Pinecone Vector DB | vector_search |
+
+### Communication (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `RESEND_API_KEY` | Resend Email | communication |
+
+### Observability (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `SENTRY_DSN` | Sentry | observability |
+| `POSTHOG_KEY` | PostHog | observability |
+
+### Caching (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis | caching |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis | caching |
+
+### Image Generation (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `REPLICATE_API_TOKEN` | Replicate Images | image_gen |
+
+### Web Scraping (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `APIFY_API_TOKEN` | Apify Scrapers | scraping |
+
+**Total: 24 environment variables across 11 service categories.** The source registry in `server/seeds/source-registry.ts` maps each `apiKeyRef` to its service. Health checks verify which keys are configured at runtime.
+
+---
+
 ## Running the App
 
 ```bash

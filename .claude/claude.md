@@ -63,7 +63,7 @@ docs/            Architecture, developer guide, research, planning
 
 ## Context Loading Protocol
 
-With 168 skill files across 17 domains, **never load all skills at once**. Use `.claude/skills/_index.md` for the master catalog.
+With 170 skill files across 17 domains, **never load all skills at once**. Use `.claude/skills/_index.md` for the master catalog.
 
 Quick rules:
 - **Financial calc** → specific finance skill + `rules/audit-persona.md` + `proof-system/SKILL.md`
@@ -80,7 +80,7 @@ Quick rules:
 |--------|-----------|---------------|
 | Skill Index | `.claude/skills/_index.md` | Master catalog of all 168 skills by domain |
 | Architecture | `.claude/skills/architecture/SKILL.md` | Tech stack, two-entity model, file organization |
-| Architecture extras | `.claude/skills/architecture/*.md` | Codebase map, multi-tenancy, server finance, tool schemas, source map, API routes |
+| Architecture extras | `.claude/skills/architecture/*.md` | Codebase map, multi-tenancy, server finance, tool schemas, source map, API routes, property lifecycle, source health |
 | Business Model | `.claude/skills/business-model/SKILL.md` | Dual-entity model, revenue streams, USALI waterfall, management fees, SAFE funding |
 | Finance (25 skills) | `.claude/skills/finance/` | IS, CF, BS, IRR, DCF, fees, funding, scenarios, constants, diagnostics |
 | Research (29 skills) | `.claude/skills/research/` | Market, ADR, occupancy, cap rate, ICP, STR properties, property finder, market intelligence |
@@ -191,6 +191,10 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 - **Settings placement** — Two surfaces: Company Assumptions (entity config), Admin panel (system config)
 - **ICP = Profile + Research Center** — two separate pages
 - **Resend replaces SendGrid** for all transactional email
+- **Properties NEVER hard deleted** -- soft delete via archivedAt. Admin can archive/restore. See `docs/architecture/property-portfolio-model.md`.
+- **Property listing uses userDefaultProperties** -- users see assigned properties, not just created ones. Admin assigns via toggles.
+- **Source health before research** -- research prompts only reference healthy sources. `getHealthySources()` before prompt building.
+- **Defaults cascade** -- model -> country -> quality tier -> scale adjustment. `computePropertyDefaults()` in engine/helpers/.
 
 ---
 
@@ -259,6 +263,16 @@ npm run test:file -- <path>  # Single test file
 ---
 
 ## Recent Changes (April 13, 2026)
+
+**Source Verification & Property Portfolio (April 13, 2026):**
+- Soft delete for properties (archivedAt, never hard delete)
+- Property listing via userDefaultProperties join (admin assigns to users)
+- Source registry: 21 sources seeded, health checker with EMA success rate
+- Source-aware prompts: dynamic source block, confidence degradation
+- computePropertyDefaults: 4-layer cascade (model -> country -> tier -> scale)
+- computeStressScenarios: 5 deterministic stress tests with DSCR breach detection
+- Risk intelligence engine: deterministic + LLM investor-grade narratives
+- Domain preamble in all research prompts (boutique hospitality, fundraising context)
 
 **MASTER-PLAN Phases 0-7 Complete.** Key highlights from the final sprint:
 - F&B revenue model changed from "% of room revenue" to "% of total revenue"

@@ -1,10 +1,10 @@
 # Skill Catalog
 
-Master index of all 168 skill files across 17 domains. Use this to find the right skill for any task.
+Master index of all 170 skill files across 17 domains. Use this to find the right skill for any task.
 
 ---
 
-## Architecture (9 files)
+## Architecture (11 files)
 
 | File | Description |
 |------|-------------|
@@ -13,7 +13,9 @@ Master index of all 168 skill files across 17 domains. Use this to find the righ
 | `architecture/codebase.md` | Client folder structure, barrel files, UI component catalog |
 | `architecture/multi-tenancy.md` | Multi-tenant branding, user groups, logos |
 | `architecture/project-description.md` | Full project description, domain areas, quality standards |
+| `architecture/property-lifecycle.md` | Property portfolio management — soft delete, user assignment, scenario overrides, admin controls |
 | `architecture/server-finance.md` | Server-authoritative finance engine (re-export pattern) |
+| `architecture/source-health.md` | Data source registry, health checking, trust scoring, source-aware research prompts |
 | `architecture/source-map.md` | Comprehensive file-by-file source reference for every layer |
 | `architecture/storage-facade.md` | IStorage interface and 11 specialized storage classes |
 | `architecture/tool-schemas.md` | Tool schema definitions |

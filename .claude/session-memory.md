@@ -16,6 +16,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - Replit→standalone migration documented: PostgreSQL (trivial), Auth (medium), Object Storage (medium), AI keys (easy), Domains (easy).
 - Phase 8.1 DONE: Created `server/providers/` (storage + auth + config). Rewired 12 consumer files. Zero direct Replit imports in business logic. App runs unchanged on Replit. To move: set `STORAGE_PROVIDER=s3`, `AUTH_PROVIDER=local`, fill S3 stub, deploy. Full checklist in `docs/developer/migration-from-replit.md`.
 
+## Session: April 13, 2026 — Source Verification & Property Portfolio
+- Fixed CRITICAL bug: property hard delete -> soft delete (archivedAt). No data ever destroyed.
+- Fixed property listing: now uses userDefaultProperties join. Admin-seeded properties visible to assigned users.
+- Source registry: 21 sources seeded, health checker with per-source strategies, EMA success rate, trust scores.
+- Source-aware prompts: dynamic source block only lists healthy sources, confidence degrades when critical sources down.
+- computePropertyDefaults: pure function, 4-layer cascade (model -> country -> tier -> scale), provenance tracking.
+- computeStressScenarios: 5 deterministic stress tests, DSCR breach detection, severity classification, narratives.
+- Domain preamble: all research prompts now identify as boutique hospitality conversion specialist.
+
 ## Session: April 13, 2026 — Phase 9 Research Engine Excellence
 - DB-backed hospitality benchmarks (21 metrics, admin CRUD, research engine reads from DB with hardcoded fallback). New `hospitality_benchmarks` table.
 - Country expansion 11→17: UK, Greece, Costa Rica, Dominican Republic, Uruguay, Peru. 6 new FX pairs + CRP seeds.
