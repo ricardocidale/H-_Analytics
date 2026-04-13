@@ -55,12 +55,22 @@ export async function indexResearchResult(params: {
   summary: string;
   keyMetrics?: Record<string, number>;
   completedAt: string;
+  // Phase 3 entity-aware fields for better semantic retrieval
+  qualityTier?: string;
+  pricingModel?: string;
+  country?: string;
+  marketTier?: string;
+  locationType?: string;
 }): Promise<void> {
   if (!isPineconeAvailable()) return;
 
   const bm = params.businessModel ?? "hotel";
+  const qt = params.qualityTier ?? "";
+  const pm = params.pricingModel ?? "per_room";
   const id   = `research:${params.type}:${params.location.toLowerCase().replace(/\s+/g, "-")}:${Date.now()}`;
-  const text = `${params.location} ${params.propertyType} ${bm} ${params.type} research\n\n${params.summary}`;
+  // Enriched text for better embedding — includes entity context
+  const entityContext = [qt, bm, pm, params.country, params.marketTier, params.locationType].filter(Boolean).join(" ");
+  const text = `${params.location} ${params.propertyType} ${entityContext} ${params.type} research\n\n${params.summary}`;
 
   const metricFields: Record<string, number> = {};
   for (const [k, v] of Object.entries(params.keyMetrics ?? {})) {
@@ -76,6 +86,11 @@ export async function indexResearchResult(params: {
       location:     params.location,
       propertyType: params.propertyType,
       businessModel: bm,
+      qualityTier:  qt,
+      pricingModel: pm,
+      country:      params.country ?? "",
+      marketTier:   params.marketTier ?? "",
+      locationType: params.locationType ?? "",
       type:         params.type,
       completedAt:  params.completedAt,
       summary:      params.summary.slice(0, 2_000),

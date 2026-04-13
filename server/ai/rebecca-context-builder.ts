@@ -60,6 +60,28 @@ const FIELD_LABELS: Record<string, string> = {
   companyTaxRate: "Company Tax Rate",
   costOfEquity: "Cost of Equity",
   inflationRate: "Inflation Rate",
+  // Phase 3 engine fields
+  pricingModel: "Pricing Model",
+  nightlyPropertyRate: "Nightly Property Rate",
+  maxGuests: "Maximum Guest Capacity",
+  seasonalityProfile: "Seasonality Profile",
+  occupancyRampCurve: "Occupancy Ramp Curve",
+  ownerPriorityReturn: "Owner Priority Return",
+  feeSubordination: "Fee Subordination",
+  // Property descriptors
+  qualityTier: "Quality Tier",
+  serviceLevel: "Service Level",
+  locationType: "Location Type",
+  marketTier: "Market Tier",
+  fbVenues: "F&B Venues",
+  fbSeats: "F&B Seating Capacity",
+  eventSpaceSqft: "Event Space (sq ft)",
+  totalPropertyAcreage: "Total Acreage",
+  totalBuildingSqft: "Total Building (sq ft)",
+  yearBuilt: "Year Built",
+  lastRenovationYear: "Last Renovation",
+  businessModel: "Business Model",
+  managementType: "Management Type",
 };
 
 function getFieldLabel(fieldKey: string): string {
@@ -82,7 +104,7 @@ function formatGuidanceValue(val: number | null | undefined, fieldKey: string): 
   return val.toString();
 }
 
-function buildPropertySummary(pack: PropertyContextPack): string {
+function buildPropertySummary(pack: PropertyContextPack, property?: Record<string, any>): string {
   const parts: string[] = [];
   parts.push(`${pack.identity.name} is a ${pack.classification.compositeLabel} located at ${pack.location.display}.`);
   parts.push(`It has ${pack.physicalCharacter.roomCount} rooms.`);
@@ -94,6 +116,55 @@ function buildPropertySummary(pack: PropertyContextPack): string {
   parts.push(`Costs: ${pack.costProfile.narrative}.`);
   parts.push(`Capital: ${pack.capitalStructure.narrative}.`);
   parts.push(pack.icpAlignment.narrative);
+
+  // Phase 3 entity-aware context for Rebecca
+  if (property) {
+    const extras: string[] = [];
+    if (property.qualityTier) extras.push(`quality tier: ${property.qualityTier}`);
+    if (property.pricingModel === "per_property") {
+      extras.push(`luxury rental pricing at $${property.nightlyPropertyRate}/night (whole property)`);
+      if (property.maxGuests) extras.push(`${property.maxGuests} guest capacity`);
+    }
+    if (property.ownerPriorityReturn && property.ownerPriorityReturn > 0) {
+      extras.push(`${(property.ownerPriorityReturn * 100).toFixed(0)}% owner priority return hurdle`);
+    }
+    if (property.feeSubordination && property.feeSubordination !== "none") {
+      extras.push(`${property.feeSubordination} fee subordination`);
+    }
+    if (property.seasonalityProfile && Array.isArray(property.seasonalityProfile)) {
+      const factors = property.seasonalityProfile as number[];
+      if (factors.some((f: number) => f !== 1)) {
+        const peak = Math.max(...factors);
+        const trough = Math.min(...factors);
+        extras.push(`seasonal market (${(peak * 100).toFixed(0)}% peak / ${(trough * 100).toFixed(0)}% trough)`);
+      }
+    }
+    if (property.occupancyRampCurve && Array.isArray(property.occupancyRampCurve) && property.occupancyRampCurve.length > 0) {
+      const curve = property.occupancyRampCurve as number[];
+      extras.push(`${curve.length}-year ramp curve (Year 1: ${(curve[0] * 100).toFixed(0)}% of stabilized)`);
+    }
+    if (property.fbVenues) extras.push(`${property.fbVenues} F&B venue(s)`);
+    if (property.eventSpaceSqft) extras.push(`${property.eventSpaceSqft.toLocaleString()} sq ft event space`);
+    if (property.totalPropertyAcreage) extras.push(`${property.totalPropertyAcreage} acres`);
+    if (extras.length > 0) {
+      parts.push(`Additional context: ${extras.join(", ")}.`);
+    }
+
+    // Proactive anomaly detection for Rebecca suggestions
+    const anomalies: string[] = [];
+    const fbShare = property.revShareFB;
+    if (fbShare != null && fbShare < 0.20 && pack.amenityProfile.hasFB) {
+      anomalies.push(`F&B revenue share is only ${(fbShare * 100).toFixed(0)}% of total — research suggests 25-35% for properties with F&B programs. Consider running research to validate.`);
+    }
+    const eventsShare = property.revShareEvents;
+    if (eventsShare != null && eventsShare < 0.10 && pack.amenityProfile.hasEvents && property.eventSpaceSqft && property.eventSpaceSqft > 2000) {
+      anomalies.push(`Events share is ${(eventsShare * 100).toFixed(0)}% but property has ${property.eventSpaceSqft.toLocaleString()} sq ft event space — comparable properties with this capacity average 15-20%.`);
+    }
+    if (anomalies.length > 0) {
+      parts.push(`\n⚠️ Observations: ${anomalies.join(" ")}`);
+    }
+  }
+
   return parts.join(" ");
 }
 
@@ -121,7 +192,7 @@ export async function buildRebeccaContext(
     const ga = await storage.getGlobalAssumptions(userId);
     const icpConfig = (ga as any)?.icpConfig as IcpConfig ?? null;
     const pack = buildPropertyContextPack(property, ga ?? null, icpConfig);
-    entitySummary = buildPropertySummary(pack);
+    entitySummary = buildPropertySummary(pack, property as Record<string, any>);
     entityName = pack.identity.name;
   } else {
     const ga = await storage.getGlobalAssumptions(userId);

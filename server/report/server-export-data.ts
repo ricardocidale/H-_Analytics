@@ -100,6 +100,13 @@ function buildIncomeStatement(yearly: YearlyPropertyFinancials[], years: string[
     row("Depreciation", yearlyValues(yearly, "depreciationExpense"), { indent: 1 }),
     row("Income Tax", yearlyValues(yearly, "incomeTax"), { indent: 1 }),
     row("Net Income", yearlyValues(yearly, "netIncome"), { isBold: true }),
+
+    // Phase 3: Deferred fees (fee subordination)
+    ...(yearly.some(y => (y as any).deferredFees > 0) ? [
+      row("Fee Subordination", [], { isHeader: true }),
+      row("Deferred Fees (this period)", yearly.map(y => (y as any).deferredFees ?? 0), { indent: 1 }),
+      row("Cumulative Deferred Fees", yearly.map(y => (y as any).cumulativeDeferredFees ?? 0), { indent: 1 }),
+    ] : []),
   ];
 
   return { title: "Income Statement", years, rows, includeTable: true, includeChart: true };
@@ -461,7 +468,33 @@ export async function buildPropertyExportData(
   incomeStatement.title = `${property.name} — Income Statement`;
   cashFlowStatement.title = `${property.name} — Cash Flow Statement`;
 
-  const allStatements: StatementSection[] = [incomeStatement, cashFlowStatement];
+  // Property profile section with Phase 3 descriptors
+  const profileRows: ExportRow[] = [
+    row("Property Profile", [], { isHeader: true }),
+    row("Name", [property.name ?? ""], { indent: 1 }),
+    row("Business Model", [(property as any).businessModel ?? "hotel"], { indent: 1 }),
+    ...((property as any).pricingModel === "per_property" ? [
+      row("Pricing", [`Per-property at $${(property as any).nightlyPropertyRate ?? 0}/night`], { indent: 1 }),
+      row("Max Guests", [String((property as any).maxGuests ?? "N/A")], { indent: 1 }),
+    ] : []),
+    ...((property as any).qualityTier ? [row("Quality Tier", [(property as any).qualityTier], { indent: 1 })] : []),
+    ...((property as any).serviceLevel ? [row("Service Level", [(property as any).serviceLevel], { indent: 1 })] : []),
+    ...((property as any).locationType ? [row("Location Type", [(property as any).locationType], { indent: 1 })] : []),
+    ...((property as any).marketTier ? [row("Market Tier", [(property as any).marketTier], { indent: 1 })] : []),
+    row("Rooms", [String(property.roomCount)], { indent: 1 }),
+    ...((property as any).fbVenues ? [row("F&B Venues", [String((property as any).fbVenues)], { indent: 1 })] : []),
+    ...((property as any).eventSpaceSqft ? [row("Event Space", [`${(property as any).eventSpaceSqft.toLocaleString()} sq ft`], { indent: 1 })] : []),
+    ...((property as any).totalPropertyAcreage ? [row("Acreage", [String((property as any).totalPropertyAcreage)], { indent: 1 })] : []),
+    ...((property as any).ownerPriorityReturn && (property as any).ownerPriorityReturn > 0 ? [
+      row("Owner Priority Return", [`${((property as any).ownerPriorityReturn * 100).toFixed(0)}%`], { indent: 1 }),
+    ] : []),
+    ...((property as any).feeSubordination && (property as any).feeSubordination !== "none" ? [
+      row("Fee Subordination", [(property as any).feeSubordination], { indent: 1 }),
+    ] : []),
+  ];
+  const profileSection: StatementSection = { title: `${property.name} — Property Profile`, years: ["Value"], rows: profileRows };
+
+  const allStatements: StatementSection[] = [profileSection, incomeStatement, cashFlowStatement];
   const statements = selectStatements(allStatements, scope);
   const metrics = buildMetrics(result.yearly, 1);
   const allRows = statements.flatMap(s => s.rows);
