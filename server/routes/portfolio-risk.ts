@@ -13,6 +13,7 @@ import { storage } from "../storage";
 import { computePortfolioRiskScore } from "../ai/portfolio-risk-scorer";
 import { checkScenarioAccess } from "./scenario-helpers";
 import { logger } from "../logger";
+import { logActivity } from "./helpers";
 import { UserRole } from "@shared/constants";
 
 export function register(app: Express): void {
@@ -31,6 +32,7 @@ export function register(app: Express): void {
       }
 
       const report = computePortfolioRiskScore(active);
+      logActivity(req, "generate-portfolio-risk", "portfolio", null, `${active.length} properties`, { propertyCount: active.length, overallScore: (report as any).overallScore });
       return res.json(report);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Portfolio risk score computation failed";
@@ -80,6 +82,7 @@ export function register(app: Express): void {
       }
 
       const report = computePortfolioRiskScore(active);
+      logActivity(req, "generate-scenario-risk", "scenario", scenarioId, scenario.name, { propertyCount: active.length });
       return res.json({ scenarioId, ...report });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Scenario risk score computation failed";

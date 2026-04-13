@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, getAuthUser } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, logActivity } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { buildPropertyContextPack } from "../../ai/context-pack/property-pack";
@@ -161,6 +161,7 @@ export function registerQaRoutes(app: Express) {
         previousKeyHash,
         notes: body.data.notes ?? null,
       });
+      logActivity(req, "rotate-api-key", "integration", null, parsed.data, { notes: body.data.notes });
       res.json({ success: true, rotatedAt: rotation.rotatedAt, id: rotation.id });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to rotate key", error);
@@ -242,6 +243,7 @@ export function registerQaRoutes(app: Express) {
       const costPerMillionTokens = 3.0;
       const estimatedCost = (tokenEstimate / 1_000_000) * costPerMillionTokens;
 
+      logActivity(req, "run-live-qa-test", "qa_test", entityId ?? null, entityName, { entityType, tier, vendor: resolved.vendor, model: resolved.model, durationMs });
       res.json({
         entityType,
         entityId,

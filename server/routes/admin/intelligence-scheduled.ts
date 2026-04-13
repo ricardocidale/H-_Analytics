@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, logActivity } from "../helpers";
 import { insertScheduledResearchWorkflowSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { executeScheduledWorkflow } from "../../ai/ambient/research-scheduler";
@@ -23,6 +23,7 @@ export function registerScheduledResearchRoutes(app: Express) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
       const workflow = await storage.upsertScheduledResearchWorkflow(validation.data);
+      logActivity(req, "create-scheduled-workflow", "scheduled_research", workflow.id, workflow.name);
       res.json(workflow);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to create scheduled research workflow", error);
@@ -49,6 +50,7 @@ export function registerScheduledResearchRoutes(app: Express) {
         );
       }
       const workflow = await storage.upsertScheduledResearchWorkflow(data as any);
+      logActivity(req, "update-scheduled-workflow", "scheduled_research", id, workflow.name);
       res.json(workflow);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update scheduled research workflow", error);
@@ -60,6 +62,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       const id = parseInt(req.params.id as string, 10);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
       await storage.deleteScheduledResearchWorkflow(id);
+      logActivity(req, "delete-scheduled-workflow", "scheduled_research", id);
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete scheduled research workflow", error);
@@ -83,6 +86,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       };
 
       sendSSE("phase", { phase: "starting", message: `Starting: ${workflow.name}` });
+      logActivity(req, "execute-scheduled-workflow", "scheduled_research", id, workflow.name);
 
       await storage.updateScheduledWorkflowRun(workflow.id, {
         lastRunAt: new Date(),
@@ -154,6 +158,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       };
 
       sendSSE("phase", { phase: "starting", message: `Starting: ${workflow.name}` });
+      logActivity(req, "execute-scheduled-workflow", "scheduled_research", id, workflow.name);
 
       await storage.updateScheduledWorkflowRun(workflow.id, {
         lastRunAt: new Date(),

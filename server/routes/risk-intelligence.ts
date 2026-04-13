@@ -7,6 +7,7 @@ import {
 import { fetchMacroRates } from "../ai/ambient/fetchers";
 import { storage } from "../storage";
 import { logger } from "../logger";
+import { logActivity } from "./helpers";
 import type { Property } from "@shared/schema";
 
 export const riskIntelligenceRoutes = Router();
@@ -38,6 +39,7 @@ riskIntelligenceRoutes.get(
         userProperties,
         { includeLLM },
       );
+      logActivity(req, "generate-risk-brief", "portfolio", null, `Portfolio brief (${userProperties.length} properties)`, { includeLLM, propertyCount: userProperties.length });
       res.json(brief);
     } catch (error: unknown) {
       logger.error(`Portfolio risk brief failed: ${error}`, "risk-intelligence");
@@ -75,6 +77,7 @@ riskIntelligenceRoutes.get(
         allUserProperties,
         { includeLLM },
       );
+      logActivity(req, "generate-risk-brief", "property", propertyId, property.name, { includeLLM });
       res.json(brief);
     } catch (error: unknown) {
       logger.error(`Property risk brief failed: ${error}`, "risk-intelligence");

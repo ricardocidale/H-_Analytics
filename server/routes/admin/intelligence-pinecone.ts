@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, getAuthUser } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, logActivity } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { isPineconeAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type PineconeNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/pinecone-service";
@@ -34,6 +34,7 @@ export function registerPineconeRoutes(app: Express) {
       const existing = await storage.getEngineSuggestedLineById(id);
       if (!existing) return res.status(404).json({ error: "Suggestion not found" });
       const updated = await storage.approveEngineSuggestedLine(id, user.id);
+      logActivity(req, "approve-financial-line", "financial_line_suggestion", id, existing.lineName);
 
       if (updated) {
         try {
@@ -67,6 +68,7 @@ export function registerPineconeRoutes(app: Express) {
       const existing = await storage.getEngineSuggestedLineById(id);
       if (!existing) return res.status(404).json({ error: "Suggestion not found" });
       const updated = await storage.rejectEngineSuggestedLine(id, user.id, body.data.reason);
+      logActivity(req, "reject-financial-line", "financial_line_suggestion", id, existing.lineName, { reason: body.data.reason });
       res.json(updated);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to reject financial line suggestion", error);
@@ -115,6 +117,7 @@ export function registerPineconeRoutes(app: Express) {
         return res.status(400).json({ error: "Embedding service not available" });
       }
       const result = await indexAllAssets();
+      logActivity(_req, "index-assets", "pinecone", null, "knowledge-base", { indexed: result });
       res.json({ success: true, indexed: result });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to index assets", error);
@@ -245,6 +248,7 @@ export function registerPineconeRoutes(app: Express) {
         result.message = `Namespace "${ns}" cleared. Data will be re-indexed as new items are created.`;
       }
 
+      logActivity(req, "reindex-pinecone", "pinecone", null, ns, result as Record<string, unknown>);
       logger.info(`Admin re-indexed Pinecone namespace "${ns}": ${JSON.stringify(result)}`, "pinecone");
       res.json({ success: true, ...result });
     } catch (error: unknown) {
@@ -262,6 +266,7 @@ export function registerPineconeRoutes(app: Express) {
         return res.status(400).json({ error: "Pinecone not configured" });
       }
       await deleteNamespace(ns);
+      logActivity(req, "clear-pinecone", "pinecone", null, ns);
       logger.info(`Admin cleared Pinecone namespace "${ns}"`, "pinecone");
       res.json({ success: true, namespace: ns, cleared: true });
     } catch (error: unknown) {

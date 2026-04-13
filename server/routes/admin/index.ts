@@ -10,6 +10,7 @@ import { registerUserDefaultRoutes } from "./user-defaults";
 import { registerRequiredFieldsRoutes } from "./required-fields";
 import { registerHospitalityBenchmarkRoutes } from "./hospitality-benchmarks";
 import { registerSourceHealthRoutes } from "./source-health";
+import { registerTestBatteryRoutes } from "./test-batteries";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -23,4 +24,5 @@ export function register(app: Express) {
   registerRequiredFieldsRoutes(app);
   registerHospitalityBenchmarkRoutes(app);
   registerSourceHealthRoutes(app);
+  registerTestBatteryRoutes(app);
 }

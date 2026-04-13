@@ -689,6 +689,7 @@ export function register(app: Express) {
       ranking.sort((a, b) => b.totalNoi - a.totalNoi);
       ranking.forEach((r, i) => { r.rank = i + 1; });
 
+      logActivity(req, "compare-batch", "scenario", baseId, baseScenario.name, { scenarioCount: scenarioIds.length });
       res.json({
         baseScenario: { id: baseId, name: baseScenario.name, tags: baseTags },
         comparisons,

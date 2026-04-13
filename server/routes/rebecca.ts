@@ -4,6 +4,7 @@ import { requireAuth, requireAdmin, getAuthUser } from "../auth";
 import { storage } from "../storage";
 import { sendNotificationEmail } from "../integrations/resend";
 import { logger } from "../logger";
+import { logActivity } from "./helpers";
 import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/pinecone-service";
 
@@ -65,6 +66,7 @@ export function register(app: Express) {
         sentAt: new Date(),
       });
 
+      logActivity(req, "send-rebecca-email", "rebecca_conversation", conversationId, recipientEmail, { subject });
       logger.info(`Rebecca email sent to ${recipientEmail} for conversation ${conversationId}`, "rebecca");
       return res.json({ success: true, emailId: email.id });
     } catch (err: unknown) {
@@ -96,6 +98,7 @@ export function register(app: Express) {
         conversationContext: conversationContext ?? null,
       });
 
+      logActivity(req, "submit-rebecca-feedback", "rebecca_conversation", conversationId, category, { category, notes: notes?.slice(0, 100) });
       logger.info(`Rebecca feedback submitted: ${category} for conversation ${conversationId}`, "rebecca");
       return res.json({ success: true, feedbackId: feedback.id });
     } catch (err: unknown) {
@@ -156,6 +159,7 @@ export function register(app: Express) {
       if (!updated) {
         return res.status(404).json({ error: "Feedback not found" });
       }
+      logActivity(req, "update-rebecca-feedback", "rebecca_feedback", feedbackId, parsed.data.status);
       logger.info(`Rebecca feedback ${feedbackId} status updated to ${parsed.data.status}`, "rebecca");
       return res.json(updated);
     } catch (err: unknown) {
@@ -181,6 +185,7 @@ export function register(app: Express) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
       const guardrail = await storage.createRebeccaGuardrail(parsed.data);
+      logActivity(req, "create-guardrail", "rebecca_guardrail", guardrail.id, guardrail.label);
       logger.info(`Rebecca guardrail created: ${guardrail.label}`, "rebecca");
       return res.json(guardrail);
     } catch (err: unknown) {
@@ -204,6 +209,7 @@ export function register(app: Express) {
       if (!updated) {
         return res.status(404).json({ error: "Guardrail not found" });
       }
+      logActivity(req, "update-guardrail", "rebecca_guardrail", id, updated.label);
       logger.info(`Rebecca guardrail ${id} updated`, "rebecca");
       return res.json(updated);
     } catch (err: unknown) {
@@ -222,6 +228,7 @@ export function register(app: Express) {
       if (!deleted) {
         return res.status(404).json({ error: "Guardrail not found" });
       }
+      logActivity(req, "delete-guardrail", "rebecca_guardrail", id);
       logger.info(`Rebecca guardrail ${id} deleted`, "rebecca");
       return res.json({ success: true });
     } catch (err: unknown) {
@@ -261,6 +268,7 @@ export function register(app: Express) {
       }
       const entry = await storage.createRebeccaKBEntry(parsed.data);
       syncKBEntryToPinecone(entry.id, entry.title, entry.content, entry.category);
+      logActivity(req, "create-kb-entry", "rebecca_kb", entry.id, entry.title, { category: entry.category });
       logger.info(`KB entry created: ${entry.title}`, "rebecca");
       return res.json(entry);
     } catch (err: unknown) {
@@ -290,6 +298,7 @@ export function register(app: Express) {
           logger.warn(`Pinecone delete failed for KB ${updated.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
         );
       }
+      logActivity(req, "update-kb-entry", "rebecca_kb", id, updated.title, { category: updated.category });
       logger.info(`KB entry ${id} updated by ${user.email}`, "rebecca");
       return res.json(updated);
     } catch (err: unknown) {
@@ -309,6 +318,7 @@ export function register(app: Express) {
       deleteVectors("knowledge-base", [`admin-kb:${id}`]).catch(e =>
         logger.warn(`Pinecone delete failed for KB ${id}: ${e instanceof Error ? e.message : e}`, "rebecca")
       );
+      logActivity(req, "delete-kb-entry", "rebecca_kb", id);
       logger.info(`KB entry ${id} deleted`, "rebecca");
       return res.json({ success: true });
     } catch (err: unknown) {
@@ -347,6 +357,7 @@ export function register(app: Express) {
           logger.warn(`Pinecone delete failed for KB ${restored.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
         );
       }
+      logActivity(req, "rollback-kb-entry", "rebecca_kb", entryId, restored.title, { historyId });
       logger.info(`KB entry ${entryId} rolled back to history ${historyId} by ${user.email}`, "rebecca");
       return res.json(restored);
     } catch (err: unknown) {

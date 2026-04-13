@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, getAuthUser } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, logActivity } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { registerSourceRoutes } from "./intelligence-sources";
@@ -220,6 +220,7 @@ export function registerIntelligenceRoutes(app: Express) {
         ...parsed.data,
       });
 
+      logActivity(req, "update-pipeline-policy", "pipeline_policy", null, policyKey, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update pipeline policy", error);

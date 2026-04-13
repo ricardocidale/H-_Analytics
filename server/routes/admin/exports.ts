@@ -2,7 +2,7 @@ import { type Express } from "express";
 import { z } from "zod";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, logActivity } from "../helpers";
 
 const categoryFormatSchema = {
   allowLandscape: z.boolean(),
@@ -134,6 +134,7 @@ export function registerExportConfigRoutes(app: Express) {
         analysis: { ...current.analysis, ...(incoming.analysis ?? {}) },
       };
       await storage.patchGlobalAssumptions(ga.id, { exportConfig: merged });
+      logActivity(req, "update-export-config", "settings", ga.id, "Export Config");
       res.json(merged);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to save export config", error);

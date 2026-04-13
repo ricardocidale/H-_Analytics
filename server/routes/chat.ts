@@ -19,6 +19,7 @@ import { retrieveRelevantChunks } from "../ai/knowledge-base";
 import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
 import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERLAY, detectLanguage, generateFollowUpChips, deriveContextType, deriveContextKey } from "./chat-prompts";
 import { registerInsightRoute } from "./chat-insight";
+import { logActivity } from "./helpers";
 import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH } from "../constants";
 
 const fieldContextSchema = z.object({
@@ -358,6 +359,7 @@ export function register(app: Express) {
             propertyId: propertyId ?? undefined,
           });
           conversationId = conv.id;
+          logActivity(req, "start-rebecca-conversation", "rebecca_conversation", conv.id, contextType, { contextKey, propertyId });
         } else {
           const conv = await storage.getOrCreateConversation(
             userId,

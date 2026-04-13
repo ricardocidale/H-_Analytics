@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { requireAdmin } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, logActivity } from "../helpers";
 import { storage } from "../../storage";
 import { checkAllSources, checkSourceHealth } from "../../ai/source-health-checker";
 import { z } from "zod";
@@ -16,9 +16,11 @@ export function registerSourceHealthRoutes(app: Express) {
   app.post("/api/admin/sources/health-check", requireAdmin, async (_req, res) => {
     try {
       const results = await checkAllSources();
+      const healthy = results.filter(r => r.healthy).length;
+      logActivity(_req, "health-check-sources", "system", null, `Checked ${results.length} sources, ${healthy} healthy`);
       res.json({
         total: results.length,
-        healthy: results.filter(r => r.healthy).length,
+        healthy,
         unhealthy: results.filter(r => !r.healthy).length,
         results,
       });
@@ -32,6 +34,7 @@ export function registerSourceHealthRoutes(app: Express) {
     try {
       const serviceKey = String(req.params.serviceKey);
       const result = await checkSourceHealth(serviceKey);
+      logActivity(req, "health-check-source", "source", null, serviceKey, { healthy: result.healthy });
       res.json(result);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to run health check", error);
@@ -69,6 +72,7 @@ export function registerSourceHealthRoutes(app: Express) {
         return res.status(404).json({ error: "Source not found" });
       }
 
+      logActivity(req, "update-source", "source", source.id, serviceKey, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update source", error);

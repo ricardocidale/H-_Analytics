@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, logActivity } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -35,6 +35,7 @@ export function registerSourceRoutes(app: Express) {
       const parsed = bodySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
       const created = await storage.createSourceRegistryEntry(parsed.data);
+      logActivity(req, "create-source", "source_registry", created.id, created.name);
       res.status(201).json(created);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to create source registry entry", error);
@@ -65,6 +66,7 @@ export function registerSourceRoutes(app: Express) {
 
       const updated = await storage.updateSourceRegistryEntry(id, parsed.data);
       if (!updated) return res.status(404).json({ error: "Source not found" });
+      logActivity(req, "update-source", "source_registry", id, updated.name, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update source registry entry", error);
@@ -79,6 +81,7 @@ export function registerSourceRoutes(app: Express) {
       if (typeof isActive !== "boolean") return res.status(400).json({ error: "isActive must be a boolean" });
       const updated = await storage.updateSourceRegistryEntry(id, { isActive });
       if (!updated) return res.status(404).json({ error: "Source not found" });
+      logActivity(req, "toggle-source", "source_registry", id, updated.name, { isActive });
       res.json(updated);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to toggle source", error);
@@ -92,6 +95,7 @@ export function registerSourceRoutes(app: Express) {
       const existing = await storage.getSourceRegistryEntry(id);
       if (!existing) return res.status(404).json({ error: "Source not found" });
       await storage.deleteSourceRegistryEntry(id);
+      logActivity(req, "delete-source", "source_registry", id, existing.name);
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete source", error);
@@ -191,6 +195,7 @@ export function registerSourceRoutes(app: Express) {
         errorMessage: errorMsg ?? null,
       });
 
+      logActivity(req, "test-source", "source_registry", id, source.name, { healthy, latencyMs });
       res.json({ healthy, latencyMs, error: errorMsg });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to test source connectivity", error);

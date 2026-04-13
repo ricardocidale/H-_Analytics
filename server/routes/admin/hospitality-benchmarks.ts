@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, requireAuth } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, logActivity } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { getAuthUser } from "../../auth";
@@ -59,6 +59,7 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
       });
 
       if (!updated) return res.status(404).json({ error: "Benchmark not found" });
+      logActivity(req, "update-benchmark", "benchmark", id, existing.metricLabel ?? `Benchmark ${id}`, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update hospitality benchmark", error);
