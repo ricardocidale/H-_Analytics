@@ -2,6 +2,7 @@ import {
   assumptionGuidance, researchRuns, benchmarkSnapshots, relaxationTraces,
   guidanceDecisions, coverageSnapshots, sourceRegistry, sourceCallLogs, engineSuggestedLines,
   integrationKeyRotations, pipelinePolicies, scheduledResearchWorkflows,
+  hospitalityBenchmarks,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type ResearchRun, type InsertResearchRun,
   type BenchmarkSnapshot, type InsertBenchmarkSnapshot,
@@ -14,6 +15,7 @@ import {
   type IntegrationKeyRotation, type InsertIntegrationKeyRotation,
   type PipelinePolicy, type InsertPipelinePolicy,
   type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
+  type HospitalityBenchmark, type InsertHospitalityBenchmark,
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, lte, sql, isNull } from "drizzle-orm";
@@ -421,6 +423,75 @@ export class IntelligenceV2Storage {
     }
     counts.total = counts.pending + counts.approved + counts.rejected;
     return counts;
+  }
+
+  // ── Hospitality Benchmarks ──────────────────────────────────────────
+  async getHospitalityBenchmarks(filters?: {
+    category?: string;
+    segment?: string;
+    country?: string;
+    isActive?: boolean;
+  }): Promise<HospitalityBenchmark[]> {
+    const conditions = [];
+    if (filters?.category) conditions.push(eq(hospitalityBenchmarks.category, filters.category));
+    if (filters?.segment) conditions.push(eq(hospitalityBenchmarks.segment, filters.segment));
+    if (filters?.country) conditions.push(eq(hospitalityBenchmarks.country, filters.country));
+    if (filters?.isActive !== undefined) conditions.push(eq(hospitalityBenchmarks.isActive, filters.isActive));
+
+    if (conditions.length > 0) {
+      return db.select().from(hospitalityBenchmarks)
+        .where(and(...conditions))
+        .orderBy(hospitalityBenchmarks.category, hospitalityBenchmarks.segment, hospitalityBenchmarks.metricKey);
+    }
+    return db.select().from(hospitalityBenchmarks)
+      .orderBy(hospitalityBenchmarks.category, hospitalityBenchmarks.segment, hospitalityBenchmarks.metricKey);
+  }
+
+  async getHospitalityBenchmarksByCategory(category: string): Promise<HospitalityBenchmark[]> {
+    return db.select().from(hospitalityBenchmarks)
+      .where(and(
+        eq(hospitalityBenchmarks.category, category),
+        eq(hospitalityBenchmarks.isActive, true),
+      ))
+      .orderBy(hospitalityBenchmarks.segment, hospitalityBenchmarks.metricKey);
+  }
+
+  async upsertHospitalityBenchmark(data: InsertHospitalityBenchmark): Promise<HospitalityBenchmark> {
+    const country = data.country ?? "US";
+    const [existing] = await db.select().from(hospitalityBenchmarks)
+      .where(and(
+        eq(hospitalityBenchmarks.metricKey, data.metricKey),
+        eq(hospitalityBenchmarks.country, country),
+        eq(hospitalityBenchmarks.sourceYear, data.sourceYear),
+      ))
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await db.update(hospitalityBenchmarks)
+        .set({ ...data, country, updatedAt: new Date() })
+        .where(eq(hospitalityBenchmarks.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [inserted] = await db.insert(hospitalityBenchmarks)
+      .values({ ...data, country } as typeof hospitalityBenchmarks.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  async getHospitalityBenchmarkById(id: number): Promise<HospitalityBenchmark | undefined> {
+    const [row] = await db.select().from(hospitalityBenchmarks)
+      .where(eq(hospitalityBenchmarks.id, id)).limit(1);
+    return row;
+  }
+
+  async updateHospitalityBenchmark(id: number, data: Partial<InsertHospitalityBenchmark>): Promise<HospitalityBenchmark | undefined> {
+    const [updated] = await db.update(hospitalityBenchmarks)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(hospitalityBenchmarks.id, id))
+      .returning();
+    return updated;
   }
 }
 

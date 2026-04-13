@@ -140,6 +140,54 @@ const RATE_DEFINITIONS: RateDefinition[] = [
     maxStalenessHours: 24,
     displayValue: "USD/BRL",
   },
+  {
+    rateKey: "usd_gbp",
+    source: "frankfurter",
+    seriesId: "GBP",
+    sourceUrl: "https://frankfurter.dev",
+    maxStalenessHours: 24,
+    displayValue: "USD/GBP",
+  },
+  {
+    rateKey: "usd_eur",
+    source: "frankfurter",
+    seriesId: "EUR",
+    sourceUrl: "https://frankfurter.dev",
+    maxStalenessHours: 24,
+    displayValue: "USD/EUR",
+  },
+  {
+    rateKey: "usd_crc",
+    source: "frankfurter",
+    seriesId: "CRC",
+    sourceUrl: "https://frankfurter.dev",
+    maxStalenessHours: 24,
+    displayValue: "USD/CRC",
+  },
+  {
+    rateKey: "usd_dop",
+    source: "frankfurter",
+    seriesId: "DOP",
+    sourceUrl: "https://frankfurter.dev",
+    maxStalenessHours: 24,
+    displayValue: "USD/DOP",
+  },
+  {
+    rateKey: "usd_uyu",
+    source: "frankfurter",
+    seriesId: "UYU",
+    sourceUrl: "https://frankfurter.dev",
+    maxStalenessHours: 24,
+    displayValue: "USD/UYU",
+  },
+  {
+    rateKey: "usd_pen",
+    source: "frankfurter",
+    seriesId: "PEN",
+    sourceUrl: "https://frankfurter.dev",
+    maxStalenessHours: 24,
+    displayValue: "USD/PEN",
+  },
 
   // --- Admin-Maintained (no auto-fetch) ---
   {
@@ -218,6 +266,38 @@ const RATE_DEFINITIONS: RateDefinition[] = [
     displayValue: "Country Risk Premium — Costa Rica",
   },
   {
+    rateKey: "crp_united_kingdom",
+    source: "damodaran",
+    seriesId: "United Kingdom",
+    sourceUrl: "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/ctryprem.html",
+    maxStalenessHours: 2160, // 90 days
+    displayValue: "Country Risk Premium — United Kingdom",
+  },
+  {
+    rateKey: "crp_greece",
+    source: "damodaran",
+    seriesId: "Greece",
+    sourceUrl: "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/ctryprem.html",
+    maxStalenessHours: 2160, // 90 days
+    displayValue: "Country Risk Premium — Greece",
+  },
+  {
+    rateKey: "crp_dominican_republic",
+    source: "damodaran",
+    seriesId: "Dominican Republic",
+    sourceUrl: "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/ctryprem.html",
+    maxStalenessHours: 2160, // 90 days
+    displayValue: "Country Risk Premium — Dominican Republic",
+  },
+  {
+    rateKey: "crp_uruguay",
+    source: "damodaran",
+    seriesId: "Uruguay",
+    sourceUrl: "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/ctryprem.html",
+    maxStalenessHours: 2160, // 90 days
+    displayValue: "Country Risk Premium — Uruguay",
+  },
+  {
     rateKey: "erp_mature_market",
     source: "damodaran",
     seriesId: "ERP",
@@ -243,6 +323,10 @@ const DAMODARAN_SEED_VALUES: Record<string, { value: number; display: string }> 
   crp_chile: { value: 1.10, display: "1.10%" },
   crp_peru: { value: 2.07, display: "2.07%" },
   crp_costa_rica: { value: 3.24, display: "3.24%" },
+  crp_united_kingdom: { value: 0, display: "0.00%" },
+  crp_greece: { value: 1.50, display: "1.50%" },
+  crp_dominican_republic: { value: 3.50, display: "3.50%" },
+  crp_uruguay: { value: 2.00, display: "2.00%" },
   erp_mature_market: { value: 4.23, display: "4.23%" },
   cost_of_equity_hospitality: { value: 18, display: "18.0%" },
 };
@@ -258,7 +342,7 @@ function getSeedValue(def: RateDefinition): { value: number | null; displayValue
   return { value: null, displayValue: def.displayValue };
 }
 
-const RETIRED_RATE_KEYS = ["usd_crc"];
+const RETIRED_RATE_KEYS: string[] = [];
 
 export async function seedMarketRates(): Promise<void> {
   for (const key of RETIRED_RATE_KEYS) {

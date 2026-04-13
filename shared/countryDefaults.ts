@@ -35,7 +35,11 @@ export interface CountryDefaults {
   countryRiskPremium: number;
   inflationRate: number;
   depreciationYears: number;
+  depreciationMethod: "straight_line";
   depreciationAuthority: string;
+  capitalGainsRate: number;
+  currency: string;
+  currencySymbol: string;
 }
 
 export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
@@ -45,7 +49,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0000,
     inflationRate: 0.03,
     depreciationYears: 39, // Nonresidential real property (hotels) — MACRS
+    depreciationMethod: "straight_line",
     depreciationAuthority: "IRS Publication 946, IRC §168(e)(2)(A)",
+    capitalGainsRate: 0.20,   // Federal long-term capital gains (top bracket)
+    currency: "USD",
+    currencySymbol: "$",
   },
   "Canada": {
     taxRate: 0.265,        // Federal 15% + avg provincial ~11.5%
@@ -53,7 +61,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0049,
     inflationRate: 0.03,
     depreciationYears: 25, // CCA Class 1 non-residential buildings (4% declining → ~25yr SL equivalent)
+    depreciationMethod: "straight_line",
     depreciationAuthority: "CRA Income Tax Regulations, CCA Class 1",
+    capitalGainsRate: 0.2667, // 50% inclusion rate × top marginal rate ~53.3%
+    currency: "CAD",
+    currencySymbol: "CA$",
   },
   "France": {
     taxRate: 0.25,
@@ -61,7 +73,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0070,
     inflationRate: 0.03,
     depreciationYears: 25, // Commercial buildings — Plan Comptable Général
+    depreciationMethod: "straight_line",
     depreciationAuthority: "Code Général des Impôts, Art. 39-1-2°",
+    capitalGainsRate: 0.25,   // Standard corporate rate applies to gains
+    currency: "EUR",
+    currencySymbol: "€",
   },
   "Spain": {
     taxRate: 0.25,
@@ -69,7 +85,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0110,
     inflationRate: 0.03,
     depreciationYears: 50, // Commercial buildings — max coeficiente 2%
+    depreciationMethod: "straight_line",
     depreciationAuthority: "Ley del Impuesto sobre Sociedades, Art. 12.1, Tabla de Amortización",
+    capitalGainsRate: 0.25,   // Included in corporate tax base
+    currency: "EUR",
+    currencySymbol: "€",
   },
   "Italy": {
     taxRate: 0.279,        // IRES 24% + IRAP 3.9%
@@ -77,7 +97,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0168,
     inflationRate: 0.03,
     depreciationYears: 33, // Hotel buildings — coefficiente 3%
+    depreciationMethod: "straight_line",
     depreciationAuthority: "DM 31/12/1988, Gruppo XVII — Alberghi",
+    capitalGainsRate: 0.24,   // IRES rate on corporate capital gains
+    currency: "EUR",
+    currencySymbol: "€",
   },
   "Portugal": {
     taxRate: 0.21,         // NHR regime benefits; standard 21%
@@ -85,7 +109,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0110,
     inflationRate: 0.03,
     depreciationYears: 50, // Commercial buildings — Decreto Regulamentar
+    depreciationMethod: "straight_line",
     depreciationAuthority: "Decreto Regulamentar n.º 25/2009, Tabela II",
+    capitalGainsRate: 0.21,   // Standard IRC rate on corporate gains
+    currency: "EUR",
+    currencySymbol: "€",
   },
   "Mexico": {
     taxRate: 0.30,
@@ -93,7 +121,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0246,
     inflationRate: 0.04,
     depreciationYears: 20, // Hotel buildings — 5% annual deduction
+    depreciationMethod: "straight_line",
     depreciationAuthority: "Ley del ISR, Art. 34 Fracción I-c (inmuebles para hospedaje)",
+    capitalGainsRate: 0.30,   // Gains taxed as ordinary corporate income
+    currency: "MXN",
+    currencySymbol: "MX$",
   },
   "Colombia": {
     taxRate: 0.35,
@@ -101,7 +133,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0285,
     inflationRate: 0.04,
     depreciationYears: 20, // Commercial buildings — vida útil fiscal
+    depreciationMethod: "straight_line",
     depreciationAuthority: "Estatuto Tributario, Art. 137, Decreto 3019 de 1989",
+    capitalGainsRate: 0.15,   // Ganancia ocasional rate (Art. 313 ET)
+    currency: "COP",
+    currencySymbol: "COL$",
   },
   "Brazil": {
     taxRate: 0.34,         // IRPJ 25% + CSLL 9%
@@ -109,7 +145,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     countryRiskPremium: 0.0324,
     inflationRate: 0.05,
     depreciationYears: 25, // Commercial buildings — 4% annual rate
+    depreciationMethod: "straight_line",
     depreciationAuthority: "RIR/2018, Art. 311 (Instrução Normativa SRF 162/1998)",
+    capitalGainsRate: 0.34,   // Corporate gains taxed at combined IRPJ+CSLL rate
+    currency: "BRL",
+    currencySymbol: "R$",
   },
   "Argentina": {
     taxRate: 0.35,
@@ -118,7 +158,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     // USD inflation — luxury hospitality is dollar-priced; local peso inflation irrelevant
     inflationRate: 0.03,
     depreciationYears: 50, // Commercial buildings — 2% annual rate
+    depreciationMethod: "straight_line",
     depreciationAuthority: "Ley de Impuesto a las Ganancias, Art. 84, Decreto 862/2019",
+    capitalGainsRate: 0.15,   // Cedular tax on real property capital gains
+    currency: "ARS",
+    currencySymbol: "AR$",
   },
   "El Salvador": {
     taxRate: 0.30,
@@ -127,7 +171,11 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     // Officially dollarized — USD inflation applies
     inflationRate: 0.03,
     depreciationYears: 20, // Commercial buildings — 5% annual rate
+    depreciationMethod: "straight_line",
     depreciationAuthority: "Ley del Impuesto sobre la Renta, Art. 30",
+    capitalGainsRate: 0.10,   // 10% on capital gains (Art. 14 LISR)
+    currency: "USD",
+    currencySymbol: "$",
   },
   "Panama": {
     taxRate: 0.25,
@@ -136,7 +184,83 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
     // Effectively dollarized (Balboa = USD) — USD inflation applies
     inflationRate: 0.03,
     depreciationYears: 30, // Commercial buildings — Código Fiscal
+    depreciationMethod: "straight_line",
     depreciationAuthority: "Código Fiscal de Panamá, Art. 697, Decreto 170/1993",
+    capitalGainsRate: 0.10,   // 10% on real property gains (Art. 701 CF)
+    currency: "USD",
+    currencySymbol: "$",
+  },
+  "United Kingdom": {
+    taxRate: 0.25,         // Corporation Tax Act 2010, main rate (2024)
+    costRateTaxes: 0.012,  // Council Tax / Business Rates (~1.2% of revenue equivalent)
+    countryRiskPremium: 0.0000,
+    inflationRate: 0.03,
+    depreciationYears: 50, // HMRC Capital Allowances — structures & buildings (2% SL)
+    depreciationMethod: "straight_line",
+    depreciationAuthority: "HMRC Capital Allowances Act 2001, Structures and Buildings Allowance (SBA)",
+    capitalGainsRate: 0.25,   // Corporation tax rate applies to corporate gains
+    currency: "GBP",
+    currencySymbol: "£",
+  },
+  "Greece": {
+    taxRate: 0.22,
+    costRateTaxes: 0.008,  // ENFIA (Unified Property Tax) ~0.8%
+    countryRiskPremium: 0.0150,
+    inflationRate: 0.03,
+    depreciationYears: 40, // Commercial buildings — 2.5% SL rate
+    depreciationMethod: "straight_line",
+    depreciationAuthority: "Greek Income Tax Code (L.4172/2013), Art. 24",
+    capitalGainsRate: 0.22,   // Corporate gains taxed at standard corporate rate
+    currency: "EUR",
+    currencySymbol: "€",
+  },
+  "Costa Rica": {
+    taxRate: 0.30,
+    costRateTaxes: 0.0025, // Municipal property tax (Impuesto de Bienes Inmuebles) ~0.25%
+    countryRiskPremium: 0.0300,
+    inflationRate: 0.04,
+    depreciationYears: 50, // Commercial buildings — 2% SL rate
+    depreciationMethod: "straight_line",
+    depreciationAuthority: "Ley del Impuesto sobre la Renta (Ley 7092), Art. 8 inciso f",
+    capitalGainsRate: 0.15,   // 15% on capital gains (Ley 9635, 2018 reform)
+    currency: "CRC",
+    currencySymbol: "₡",
+  },
+  "Dominican Republic": {
+    taxRate: 0.27,
+    costRateTaxes: 0.010,  // IPI (Impuesto al Patrimonio Inmobiliario) ~1.0%
+    countryRiskPremium: 0.0350,
+    inflationRate: 0.04,
+    depreciationYears: 20, // Commercial buildings — 5% SL rate
+    depreciationMethod: "straight_line",
+    depreciationAuthority: "Código Tributario (Ley 11-92), Art. 287",
+    capitalGainsRate: 0.27,   // Gains taxed as ordinary income at corporate rate
+    currency: "DOP",
+    currencySymbol: "RD$",
+  },
+  "Uruguay": {
+    taxRate: 0.25,         // IRAE (Impuesto a la Renta de las Actividades Económicas)
+    costRateTaxes: 0.015,  // Contribución Inmobiliaria ~1.5%
+    countryRiskPremium: 0.0200,
+    inflationRate: 0.04,
+    depreciationYears: 50, // Commercial buildings — 2% SL rate
+    depreciationMethod: "straight_line",
+    depreciationAuthority: "Título 4, Texto Ordenado 1996 (IRAE), Art. 30",
+    capitalGainsRate: 0.25,   // Corporate gains taxed at IRAE rate
+    currency: "UYU",
+    currencySymbol: "$U",
+  },
+  "Peru": {
+    taxRate: 0.295,        // 29.5% corporate income tax rate
+    costRateTaxes: 0.010,  // Impuesto Predial ~1.0%
+    countryRiskPremium: 0.0250,
+    inflationRate: 0.04,
+    depreciationYears: 33, // Commercial buildings — 3% SL rate (Art. 39 LIR)
+    depreciationMethod: "straight_line",
+    depreciationAuthority: "Ley del Impuesto a la Renta, Art. 39 (Decreto Supremo 179-2004-EF)",
+    capitalGainsRate: 0.295,  // Corporate gains taxed at standard rate
+    currency: "PEN",
+    currencySymbol: "S/",
   },
 };
 

@@ -1,4 +1,4 @@
-import { pgTable, text, real, integer, timestamp, jsonb, boolean, index, unique, date } from "drizzle-orm/pg-core";
+import { pgTable, text, real, integer, timestamp, jsonb, boolean, index, unique, date, doublePrecision, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./auth";
@@ -436,3 +436,37 @@ export const insertRebeccaGuardrailSchema = createInsertSchema(rebeccaGuardrails
 });
 export type RebeccaGuardrail = typeof rebeccaGuardrails.$inferSelect;
 export type InsertRebeccaGuardrail = z.infer<typeof insertRebeccaGuardrailSchema>;
+
+// ---------------------------------------------------------------------------
+// Hospitality Benchmarks — admin-editable, DB-backed industry data
+// ---------------------------------------------------------------------------
+export const hospitalityBenchmarks = pgTable("hospitality_benchmarks", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  category: text("category").notNull(),          // e.g., "adr", "occupancy", "revpar", "cap_rate", "cost_rate"
+  segment: text("segment").notNull(),             // e.g., "us_all", "us_luxury", "us_boutique", "us_economy", "global"
+  metricKey: text("metric_key").notNull(),        // e.g., "us_hotel_adr", "luxury_adr", "cap_rate_full_service"
+  metricLabel: text("metric_label").notNull(),    // Human-readable: "US Hotel Average ADR"
+  value: doublePrecision("value").notNull(),      // The benchmark value
+  unit: text("unit").notNull(),                   // "usd", "percent", "ratio", "years"
+  sourceYear: integer("source_year").notNull(),   // 2024
+  sourceName: text("source_name"),                // "STR/CoStar", "CBRE", "HVS", "PKF"
+  sourceUrl: text("source_url"),                  // Link to source report
+  country: text("country").default("US"),         // Country code
+  notes: text("notes"),                           // Context or methodology notes
+  isActive: boolean("is_active").default(true).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
+}, (table) => [
+  unique("hospitality_benchmarks_metric_country_year").on(table.metricKey, table.country, table.sourceYear),
+  index("hospitality_benchmarks_category_idx").on(table.category),
+  index("hospitality_benchmarks_segment_idx").on(table.segment),
+  index("hospitality_benchmarks_active_idx").on(table.isActive),
+]);
+
+export const insertHospitalityBenchmarkSchema = createInsertSchema(hospitalityBenchmarks).pick({
+  category: true, segment: true, metricKey: true, metricLabel: true,
+  value: true, unit: true, sourceYear: true, sourceName: true,
+  sourceUrl: true, country: true, notes: true, isActive: true, updatedBy: true,
+});
+export type HospitalityBenchmark = typeof hospitalityBenchmarks.$inferSelect;
+export type InsertHospitalityBenchmark = z.infer<typeof insertHospitalityBenchmarkSchema>;

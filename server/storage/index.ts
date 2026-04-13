@@ -335,6 +335,13 @@ export class DatabaseStorage implements IStorage {
   updateScheduledWorkflowRun = this.intelligenceV2.updateScheduledWorkflowRun.bind(this.intelligenceV2);
   deleteScheduledResearchWorkflow = this.intelligenceV2.deleteScheduledResearchWorkflow.bind(this.intelligenceV2);
 
+  // Hospitality Benchmarks
+  getHospitalityBenchmarks = this.intelligenceV2.getHospitalityBenchmarks.bind(this.intelligenceV2);
+  getHospitalityBenchmarksByCategory = this.intelligenceV2.getHospitalityBenchmarksByCategory.bind(this.intelligenceV2);
+  upsertHospitalityBenchmark = this.intelligenceV2.upsertHospitalityBenchmark.bind(this.intelligenceV2);
+  getHospitalityBenchmarkById = this.intelligenceV2.getHospitalityBenchmarkById.bind(this.intelligenceV2);
+  updateHospitalityBenchmark = this.intelligenceV2.updateHospitalityBenchmark.bind(this.intelligenceV2);
+
   // Rebecca Guardrails
   getRebeccaGuardrails = this.rebecca.getRebeccaGuardrails.bind(this.rebecca);
   getActiveRebeccaGuardrails = this.rebecca.getActiveRebeccaGuardrails.bind(this.rebecca);

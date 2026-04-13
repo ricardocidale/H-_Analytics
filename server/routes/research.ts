@@ -23,6 +23,7 @@ import { extractGuidance } from "../ai/guidance/extractor";
 import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 import { indexAssumptionGuidance, retrieveSimilarGuidance, isPineconeAvailable } from "../ai/pinecone-service";
 import { registerResearchMetaRoutes } from "./research-meta";
+import { detectStaleness } from "../ai/staleness-detector";
 
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -85,6 +86,18 @@ export function register(app: Express) {
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch research status", error);
+    }
+  });
+
+  // Research staleness report — surfaces stale/missing assumption guidance
+  app.get("/api/research/staleness", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthUser(req);
+      const thresholdDays = req.query.thresholdDays ? Number(req.query.thresholdDays) : undefined;
+      const report = await detectStaleness(user.id, thresholdDays);
+      res.json(report);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to compute staleness report", error);
     }
   });
 

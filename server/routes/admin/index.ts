@@ -8,6 +8,7 @@ import { registerAdminScenarioRoutes } from "./scenarios";
 import { registerIntelligenceRoutes } from "./intelligence";
 import { registerUserDefaultRoutes } from "./user-defaults";
 import { registerRequiredFieldsRoutes } from "./required-fields";
+import { registerHospitalityBenchmarkRoutes } from "./hospitality-benchmarks";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -19,4 +20,5 @@ export function register(app: Express) {
   registerIntelligenceRoutes(app);
   registerUserDefaultRoutes(app);
   registerRequiredFieldsRoutes(app);
+  registerHospitalityBenchmarkRoutes(app);
 }
