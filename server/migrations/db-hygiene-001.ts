@@ -77,8 +77,6 @@ export async function cleanOrphanedLogos() {
         AND id NOT IN (
           SELECT logo_id FROM companies WHERE logo_id IS NOT NULL
           UNION
-          SELECT logo_id FROM user_groups WHERE logo_id IS NOT NULL
-          UNION
           SELECT company_logo_id FROM global_assumptions WHERE company_logo_id IS NOT NULL
           UNION
           SELECT asset_logo_id FROM global_assumptions WHERE asset_logo_id IS NOT NULL

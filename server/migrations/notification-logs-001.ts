@@ -21,7 +21,6 @@ export async function runNotificationLogs001(): Promise<void> {
     `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS "user_id" integer`,
     `DO $$ BEGIN ALTER TABLE conversations ADD CONSTRAINT conversations_user_id_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `CREATE INDEX IF NOT EXISTS conversations_user_id_idx ON conversations (user_id)`,
-    `UPDATE user_groups SET theme_id = NULL WHERE theme_id IS NOT NULL AND theme_id NOT IN (SELECT id FROM design_themes)`,
     `DO $$ BEGIN ALTER TABLE alert_rules RENAME COLUMN "enabled" TO "is_active"; EXCEPTION WHEN undefined_column THEN NULL; END $$`,
     `ALTER TABLE alert_rules DROP COLUMN IF EXISTS "channels"`,
     `ALTER TABLE alert_rules DROP COLUMN IF EXISTS "created_by"`,
@@ -33,12 +32,8 @@ export async function runNotificationLogs001(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS notification_prefs_user_id_idx ON notification_preferences (user_id)`,
     `DO $$ BEGIN ALTER TABLE companies ADD CONSTRAINT companies_logo_id_fk FOREIGN KEY (logo_id) REFERENCES logos(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE companies ADD CONSTRAINT companies_theme_id_fk FOREIGN KEY (theme_id) REFERENCES design_themes(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
-    `DO $$ BEGIN ALTER TABLE users ADD CONSTRAINT users_user_group_id_fk FOREIGN KEY (user_group_id) REFERENCES user_groups(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE users ADD CONSTRAINT users_selected_theme_id_fk FOREIGN KEY (selected_theme_id) REFERENCES design_themes(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE users ADD CONSTRAINT users_company_id_fk FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
-    `DO $$ BEGIN ALTER TABLE user_groups ADD CONSTRAINT user_groups_asset_description_id_fk FOREIGN KEY (asset_description_id) REFERENCES asset_descriptions(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
-    `DO $$ BEGIN ALTER TABLE user_groups ADD CONSTRAINT user_groups_logo_id_fk FOREIGN KEY (logo_id) REFERENCES logos(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
-    `DO $$ BEGIN ALTER TABLE user_groups ADD CONSTRAINT user_groups_theme_id_fk FOREIGN KEY (theme_id) REFERENCES design_themes(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE notification_preferences ADD CONSTRAINT notification_preferences_user_id_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE alert_rules ADD CONSTRAINT alert_rules_property_id_fk FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE property_fee_categories ADD CONSTRAINT property_fee_categories_property_id_fk FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
@@ -46,8 +41,6 @@ export async function runNotificationLogs001(): Promise<void> {
     `DO $$ BEGIN ALTER TABLE property_photos ADD CONSTRAINT property_photos_before_photo_id_fk FOREIGN KEY (before_photo_id) REFERENCES property_photos(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE global_assumptions ADD CONSTRAINT ga_asset_logo_id_fk FOREIGN KEY (asset_logo_id) REFERENCES logos(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     `DO $$ BEGIN ALTER TABLE global_assumptions ADD CONSTRAINT ga_company_logo_id_fk FOREIGN KEY (company_logo_id) REFERENCES logos(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
-    `DO $$ BEGIN ALTER TABLE user_group_properties ADD CONSTRAINT ugp_user_group_id_fk FOREIGN KEY (user_group_id) REFERENCES user_groups(id) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
-    `DO $$ BEGIN ALTER TABLE user_group_properties ADD CONSTRAINT ugp_property_id_fk FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
   ];
 
   for (const ddl of alterStatements) {
