@@ -16,6 +16,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - Replit→standalone migration documented: PostgreSQL (trivial), Auth (medium), Object Storage (medium), AI keys (easy), Domains (easy).
 - Phase 8.1 DONE: Created `server/providers/` (storage + auth + config). Rewired 12 consumer files. Zero direct Replit imports in business logic. App runs unchanged on Replit. To move: set `STORAGE_PROVIDER=s3`, `AUTH_PROVIDER=local`, fill S3 stub, deploy. Full checklist in `docs/developer/migration-from-replit.md`.
 
+## Session: April 13, 2026 — Phase 9 Research Engine Excellence
+- DB-backed hospitality benchmarks (21 metrics, admin CRUD, research engine reads from DB with hardcoded fallback). New `hospitality_benchmarks` table.
+- Country expansion 11→17: UK, Greece, Costa Rica, Dominican Republic, Uruguay, Peru. 6 new FX pairs + CRP seeds.
+- Staleness detector: classifies guidance as fresh/stale/missing, flags critical fields, `GET /api/research/staleness`.
+- Confidence scoring: 6-factor 0-100 score (comps, quality, recency, relaxation, cross-validation, coverage). Exposed in guidance API responses + dedicated `/confidence` endpoint.
+- Web research: Perplexity sonar + Tavily advanced search, entity-aware query builders for 7 research types, `POST /api/research/web-search`.
+- Web-enriched comparables: auto-supplements DB/Pinecone comps when <3 found, 50% evidence weight, separate rendering in prompts.
+- Regulatory data: 18-country structured profiles (licensing, zoning, building codes, foreign investment, labor). US state overrides (NY, UT). Injected into research prompts.
+
 ## Session: April 10, 2026 — Repo Optimization & Photo Migration
 - Git gc: .git 701MB→267MB. Removed 26 unused npm deps (121→105). Installed 6 targeted d3 sub-packages replacing monolithic `d3`.
 - Removed 7 tracked junk/artifact files (COST-MONITOR docs, memory.md, skills-lock.json, broken command file). Updated .gitignore.
