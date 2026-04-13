@@ -81,6 +81,7 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                     badgeProps={{ value: rv?.display }}
                     onApplyValue={() => rv && onFeeCategoryChange(idx, "rate", rv.mid / 100)}
                     guidanceContext={gc(assumptionKey, cat.name)}
+                    currentValue={cat.rate} isPercent
                   />
                   <div className="flex items-center gap-2">
                     <EditableValue

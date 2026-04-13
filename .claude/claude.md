@@ -115,6 +115,12 @@ With 191 skill files, **never load all skills at once**. Use `.claude/skills/con
 
 ---
 
+## Recent Changes (April 13, 2026)
+
+- **Range Badge UX (Task 4)** — `RangeIndicator` component (`client/src/components/research/RangeIndicator.tsx`) shows green/yellow/red badge when the current field value is within/near/outside the AI-recommended research range. Integrated into `ResearchContextFieldLabel` via `currentValue`/`isPercent` props. Wired across all assumption input sections: RevenueAssumptionsSection (ADR, ADR growth, occupancy, revenue shares), ManagementFeesSection (base fees, incentive fee), OperatingCostRatesSection (all 10 cost categories), CapitalStructureSection (land value, LTV, interest rate).
+- **Per-User Default Properties (Task 2)** — `userDefaultProperties` table (userId + propertyId composite key) in `shared/schema/auth.ts`. Storage methods `getUserDefaultPropertyIds`/`setUserDefaultPropertyIds` in `server/storage/user-storage.ts`. API routes `GET/PUT /api/admin/users/:userId/default-properties` in `server/routes/admin/user-defaults.ts`. `DefaultPropertiesDialog.tsx` UI with toggle switches per property, triggered by Home icon button in `UserCardGrid`.
+- **Required Fields Configuration (Task 3)** — `RequiredFieldsConfig` type + `requiredFieldsConfig` JSONB column on `global_assumptions` table. API routes `GET/PUT /api/admin/required-fields` in `server/routes/admin/required-fields.ts`. `RequiredFieldsTab.tsx` toggle UI added as new tab in Model Defaults admin section.
+
 ## Recent Changes (April 10, 2026)
 
 - **Technical Debt Cleanup Sprint** — Hardcoded hex colors replaced in `StarRatingInput.tsx` (uses `currentColor` + CSS class) and `RebeccaAnalyticsTab.tsx` (extracted H+ brand colors to `HP_NAVY`, `HP_TEAL`, `HP_GOLD`; remaining chart colors use `hsl(var(--chart-N))`). Domain boundary violations fixed in `server/notifications/engine.ts` (4 direct db calls → storage facade, added `getActiveAlertRulesForProperty()` to `NotificationStorage`) and `server/integrations/geospatial.ts` (2 direct db calls → storage facade). 87 unnecessary `(XLSX as any)` casts removed across 5 Excel export files (count 207 → 120). `tests/proof/hardcoded-detection.test.ts` updated to follow `export * from './constants-xxx'` re-exports. `.lintstagedrc.json` fixed (tsc pre-commit hook needs `bash -c` wrapper).

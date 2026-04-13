@@ -98,6 +98,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               badgeProps={{ entry: researchValues.landValue }}
               onApplyValue={() => researchValues.landValue && onChange("landValuePercent", researchValues.landValue.mid / 100)}
               guidanceContext={gc("landValue", "Land Value")}
+              currentValue={draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT} isPercent
             />
             <div className="space-y-2">
               <div className="flex justify-between items-center">
@@ -273,6 +274,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     badgeProps={{ entry: researchValues.acqLtv, sourceType: researchValues.acqLtv?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqLtv as any)?.sourceName }}
                     onApplyValue={() => researchValues.acqLtv && onChange("acquisitionLTV", researchValues.acqLtv.mid / 100)}
                     guidanceContext={gc("acqLtv", "Acquisition LTV")}
+                    currentValue={draft.acquisitionLTV || DEFAULT_LTV} isPercent
                   />
                   <EditableValue
                     value={(draft.acquisitionLTV || DEFAULT_LTV) * 100}
@@ -298,6 +300,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     badgeProps={{ entry: researchValues.acqRate, sourceType: researchValues.acqRate?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqRate as any)?.sourceName }}
                     onApplyValue={() => researchValues.acqRate && onChange("acquisitionInterestRate", researchValues.acqRate.mid / 100)}
                     guidanceContext={gc("acqRate", "Acquisition Interest Rate")}
+                    currentValue={draft.acquisitionInterestRate || DEFAULT_INTEREST_RATE} isPercent
                   />
                   <EditableValue
                     value={(draft.acquisitionInterestRate || DEFAULT_INTEREST_RATE) * 100}

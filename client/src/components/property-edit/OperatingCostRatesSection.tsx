@@ -96,6 +96,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costHousekeeping }}
                         onApplyValue={() => researchValues.costHousekeeping && onChange("costRateRooms", researchValues.costHousekeeping.mid / 100)}
                         guidanceContext={gc("costHousekeeping", "Housekeeping")}
+                        currentValue={draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS) * 100}
@@ -121,6 +122,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costFB }}
                         onApplyValue={() => researchValues.costFB && onChange("costRateFB", researchValues.costFB.mid / 100)}
                         guidanceContext={gc("costFB", "F&B Cost")}
+                        currentValue={draft.costRateFB ?? DEFAULT_COST_RATE_FB} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateFB ?? DEFAULT_COST_RATE_FB) * 100}
@@ -152,6 +154,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costAdmin }}
                         onApplyValue={() => researchValues.costAdmin && onChange("costRateAdmin", researchValues.costAdmin.mid / 100)}
                         guidanceContext={gc("costAdmin", "Admin & General")}
+                        currentValue={draft.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN) * 100}
@@ -177,6 +180,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costPropertyOps }}
                         onApplyValue={() => researchValues.costPropertyOps && onChange("costRatePropertyOps", researchValues.costPropertyOps.mid / 100)}
                         guidanceContext={gc("costPropertyOps", "Property Ops")}
+                        currentValue={draft.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS} isPercent
                       />
                       <EditableValue
                         value={(draft.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS) * 100}
@@ -202,6 +206,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costUtilities }}
                         onApplyValue={() => researchValues.costUtilities && onChange("costRateUtilities", researchValues.costUtilities.mid / 100)}
                         guidanceContext={gc("costUtilities", "Utilities")}
+                        currentValue={draft.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES) * 100}
@@ -246,6 +251,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costFFE }}
                         onApplyValue={() => researchValues.costFFE && onChange("costRateFFE", researchValues.costFFE.mid / 100)}
                         guidanceContext={gc("costFFE", "FF&E Reserve")}
+                        currentValue={draft.costRateFFE ?? DEFAULT_COST_RATE_FFE} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateFFE ?? DEFAULT_COST_RATE_FFE) * 100}
@@ -271,6 +277,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costOther }}
                         onApplyValue={() => researchValues.costOther && onChange("costRateOther", researchValues.costOther.mid / 100)}
                         guidanceContext={gc("costOther", "Other Costs")}
+                        currentValue={draft.costRateOther ?? DEFAULT_COST_RATE_OTHER} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateOther ?? DEFAULT_COST_RATE_OTHER) * 100}
@@ -296,6 +303,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costMarketing }}
                         onApplyValue={() => researchValues.costMarketing && onChange("costRateMarketing", researchValues.costMarketing.mid / 100)}
                         guidanceContext={gc("costMarketing", "Marketing")}
+                        currentValue={draft.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING) * 100}
@@ -321,6 +329,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costIT }}
                         onApplyValue={() => researchValues.costIT && onChange("costRateIT", researchValues.costIT.mid / 100)}
                         guidanceContext={gc("costIT", "IT")}
+                        currentValue={draft.costRateIT ?? DEFAULT_COST_RATE_IT} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateIT ?? DEFAULT_COST_RATE_IT) * 100}
@@ -353,6 +362,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costPropertyTaxes }}
                         onApplyValue={() => researchValues.costPropertyTaxes && onChange("costRateTaxes", researchValues.costPropertyTaxes.mid / 100)}
                         guidanceContext={gc("costPropertyTaxes", "Property Taxes")}
+                        currentValue={draft.costRateTaxes ?? DEFAULT_COST_RATE_TAXES} isPercent
                       />
                       <EditableValue
                         value={(draft.costRateTaxes ?? DEFAULT_COST_RATE_TAXES) * 100}
