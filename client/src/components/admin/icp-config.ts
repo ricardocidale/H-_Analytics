@@ -44,11 +44,11 @@ export function generateIcpEssay(c: IcpConfig, d: IcpDescriptive, propertyLabel:
   paragraphs.push(
     `Food and beverage operations are rated at ${c.fbRating} out of 5, reflecting ${fbDesc}. ` +
     `The dining area should seat ${c.diningCapacityMin} to ${c.diningCapacityMax} guests. ` +
-    `F&B revenue is targeted at ${c.fbShareMin}% to ${c.fbShareMax}% of room revenue, ` +
+    `F&B revenue is targeted at ${c.fbShareMin}% to ${c.fbShareMax}% of total revenue, ` +
     `with events contributing ${c.eventsShareMin}% to ${c.eventsShareMax}%, ` +
     `spa and wellness at ${c.spaShareMin}% to ${c.spaShareMax}%, ` +
     `and other ancillary services at ${c.otherShareMin}% to ${c.otherShareMax}%. ` +
-    `Total ancillary revenue should reach ${c.totalAncillaryMin}% to ${c.totalAncillaryMax}% of room revenue.`
+    `Total ancillary revenue should reach ${c.totalAncillaryMin}% to ${c.totalAncillaryMax}% of total revenue.`
   );
 
   paragraphs.push(

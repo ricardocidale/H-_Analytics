@@ -152,7 +152,7 @@ globalAssumptions.exitCapRate
 | `defaultStartAdr` | ADR is purely per-property; no company-level ADR concept |
 | `defaultRoomCount` | Room count is per-property only |
 | `defaultOccupancyRampMonths` | Ramp period is per-property only |
-| `defaultCateringBoostPct` | Catering boost is per-property only |
+| `defaultCateringBoostPct` | DEPRECATED — catering boost no longer used in revenue calc |
 
 **Rule: When in doubt about whether a field needs dual-residence, it probably does.** Nearly all financial parameters that affect property calculations also have a company-level interpretation. Only fields that are purely physical property attributes (room count, ADR) are seed-only.
 
@@ -193,7 +193,7 @@ Global economic context — not entity-specific.
 
 ### Admin > Model Defaults > Property Underwriting
 Templates for new properties — copied at creation, then independent.
-- Revenue defaults (ADR, occupancy, ramp, revenue shares, catering boost)
+- Revenue defaults (ADR, occupancy, ramp, revenue shares as % of total revenue)
 - USALI operating cost rates (11 rates across departmental, undistributed, fixed charges)
 - Revenue stream expense rates (event, other, utilities split)
 - Acquisition financing defaults (LTV, rate, term, closing costs)

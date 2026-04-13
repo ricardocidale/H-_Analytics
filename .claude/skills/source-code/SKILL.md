@@ -359,8 +359,8 @@ The heart of the simulation. Generates 120 months (10 years) of property-level f
 
 **Monthly calculation flow:**
 1. Room revenue = rooms × ADR × occupancy × 30.5 days/month
-2. Event/F&B/Other revenue via configurable revenue shares
-3. Catering boost applied to F&B revenue
+2. Total revenue = roomRevenue / (1 - eventsShare - fbShare - otherShare)
+3. Event/F&B/Other revenue = totalRevenue × respective share
 4. USALI-standard departmental expenses (rooms, F&B, admin, marketing, etc.)
 5. Management fees (base + incentive) as percentage of revenue/GOP
 6. NOI = Revenue - Expenses - Fees
@@ -447,8 +447,8 @@ Returns: `VerificationResults` with pass/fail counts, critical/material issues, 
 
 #### `shared/constants.ts` — Single source of truth
 Shared between client and server. All `DEFAULT_*` values for:
-- Revenue shares (events: 43%, F&B: 22%, other: 7%)
-- Catering boost (30%)
+- Revenue shares (events: 18%, F&B: 30%, other: 3%) — as % of total revenue
+- Catering boost (deprecated, defaults to 0%)
 - USALI cost rates (rooms: 36%, F&B: 32%, admin: 8%, etc.)
 - Exit/sale (cap rate: 8.5%, tax: 25%, commission: 5%)
 - Land value (25%, IRS Pub 946)

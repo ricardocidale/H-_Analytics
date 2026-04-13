@@ -133,10 +133,10 @@ function buildLocationSection(loc: IcpLocation, index: number, c: IcpConfig, d: 
   lines.push(`6. EVENT & F&B MARKET`);
   lines.push(`   • Wedding and social event demand in the area`);
   lines.push(`   • Corporate retreat/team-building market potential`);
-  lines.push(`   • F&B revenue opportunity (target: ${c.fbShareMin}%–${c.fbShareMax}% of room revenue)`);
-  lines.push(`   • Events revenue potential (target: ${c.eventsShareMin}%–${c.eventsShareMax}% of room revenue)`);
+  lines.push(`   • F&B revenue opportunity (target: ${c.fbShareMin}%–${c.fbShareMax}% of total revenue)`);
+  lines.push(`   • Events revenue potential (target: ${c.eventsShareMin}%–${c.eventsShareMax}% of total revenue)`);
   if (c.spa !== "no") {
-    lines.push(`   • Spa & wellness market demand (target: ${c.spaShareMin}%–${c.spaShareMax}% of room revenue)`);
+    lines.push(`   • Spa & wellness market demand (target: ${c.spaShareMin}%–${c.spaShareMax}% of total revenue)`);
   }
   lines.push(`   • Local F&B scene quality and farm-to-table sourcing availability`);
   lines.push(``);
@@ -311,12 +311,12 @@ export function generateIcpPrompt(c: IcpConfig, d: IcpDescriptive, propertyLabel
     `• Stabilized occupancy: ${c.occupancyMin}%–${c.occupancyMax}% (${c.occupancyRampMonths}-month ramp)`,
     `• RevPAR target: $${c.revParMin}–$${c.revParMax}/night`,
     ``,
-    `Revenue Mix (as % of Room Revenue):`,
+    `Revenue Mix (as % of Total Revenue):`,
     `• Food & Beverage: ${c.fbShareMin}%–${c.fbShareMax}%`,
     `• Events (weddings, retreats, corporate): ${c.eventsShareMin}%–${c.eventsShareMax}%`,
     `• Spa & Wellness: ${c.spaShareMin}%–${c.spaShareMax}%`,
     `• Other (activities, tours, retail): ${c.otherShareMin}%–${c.otherShareMax}%`,
-    `• Total ancillary target: ${c.totalAncillaryMin}%–${c.totalAncillaryMax}% of room revenue`,
+    `• Total ancillary target: ${c.totalAncillaryMin}%–${c.totalAncillaryMax}% of total revenue`,
     ``,
     `Fee Structure & Returns:`,
     `• Base management fee: ${c.baseMgmtFeeMin}%–${c.baseMgmtFeeMax}% of total revenue`,

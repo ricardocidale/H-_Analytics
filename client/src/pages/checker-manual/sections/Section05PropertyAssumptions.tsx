@@ -103,10 +103,10 @@ import { SectionCard } from "@/components/ui/section-card";
         <ManualTable
           headers={["Variable", "Description", "Default", "Unit"]}
           rows={[
-            ["revShareEvents", "Event revenue as % of Room Revenue", "43%", "%"],
-            ["revShareFB", "F&B revenue as % of Room Revenue", "22%", "%"],
-            ["revShareOther", "Other revenue as % of Room Revenue", "7%", "%"],
-            ["cateringBoostPercent", "Uplift applied to base F&B revenue", "30%", "%"],
+            ["revShareEvents", "Event revenue as % of Total Revenue", "18%", "%"],
+            ["revShareFB", "F&B revenue as % of Total Revenue", "30%", "%"],
+            ["revShareOther", "Other revenue as % of Total Revenue", "3%", "%"],
+            ["cateringBoostPercent", "Deprecated — catering boost no longer used in revenue calc", "0%", "%"],
             ["costRateRooms", "Rooms Department expense", "36%", "% of Revenue"],
             ["costRateFB", "F&B Department expense", "32%", "% of Revenue"],
             ["costRateAdmin", "Administrative & General", "8%", "% of Revenue"],

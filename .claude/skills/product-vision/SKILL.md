@@ -198,9 +198,9 @@ Revenue is modeled using industry-standard hospitality metrics:
 | Stream | Driver | Default |
 |--------|--------|---------|
 | **Room Revenue** | ADR × Occupancy × Rooms × 30.5 | Primary revenue source |
-| **Food & Beverage** | % of Room Revenue + Catering Boost | ~18% of room rev |
-| **Events & Functions** | % of Room Revenue | ~30% of room rev |
-| **Other / Ancillary** | % of Room Revenue | ~5% of room rev |
+| **Food & Beverage** | % of Total Revenue | ~30% of total rev |
+| **Events & Functions** | % of Total Revenue | ~18% of total rev |
+| **Other / Ancillary** | % of Total Revenue | ~3% of total rev |
 
 **ICP Variables** (Ideal Customer Profile) define the target profile for property acquisition: ADR range, occupancy range, RevPAR range, room count, property type (boutique hotel, resort, B&B), amenity priorities (must-have, major plus, nice-to-have, exclude), and financial targets (IRR, equity multiple, purchase price range).
 

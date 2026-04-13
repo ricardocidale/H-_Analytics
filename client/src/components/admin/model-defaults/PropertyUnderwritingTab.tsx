@@ -130,7 +130,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
         />
         <PctField
           label="Other Revenue Share"
-          tooltip="Miscellaneous revenue (spa, parking, retail) as a percentage of room revenue."
+          tooltip="Miscellaneous revenue (spa, parking, retail) as a percentage of total revenue."
           value={draft.defaultRevShareOther}
           fallback={DEFAULT_REV_SHARE_OTHER}
           onChange={(_, v) => onChange("defaultRevShareOther", v)}

@@ -5,7 +5,7 @@
  *   • Basic info (name, location, status, photo)
  *   • Timeline (acquisition date, operations start, stabilization period)
  *   • Capital structure (purchase price, building improvements, reserves, loan terms)
- *   • Revenue assumptions (ADR, occupancy ramp, growth rates, catering boost)
+ *   • Revenue assumptions (ADR, occupancy ramp, growth rates, revenue shares)
  *   • Operating cost rates (housekeeping, F&B, marketing, utilities, etc.)
  *   • Management fees (per-property fee categories with custom rates)
  *   • Other assumptions (exit cap rate, tax rate, land-value allocation)

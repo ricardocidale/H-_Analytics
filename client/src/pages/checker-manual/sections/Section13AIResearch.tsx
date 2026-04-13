@@ -26,7 +26,7 @@ export default function Section13AIResearch({ expanded, onToggle, sectionRef }: 
           ["ADR Analysis", "Market ADR benchmarks, competitive set comparison, growth trends", "Starting ADR, ADR Annual Growth (3–5%)"],
           ["Occupancy Analysis", "Seasonal patterns, market penetration rates, ramp-up timelines", "Starting Occupancy, Occupancy Growth Step (4–6%)"],
           ["Cap Rate Analysis", "Market cap rates by location and property type", "Exit Cap Rate"],
-          ["Revenue Mix", "F&B, events, and other revenue benchmarks for the market", "Events Share (20–35%), F&B Share (15–25%), Other Share (3–8%)"],
+          ["Revenue Mix", "F&B, events, and other revenue benchmarks for the market", "Events Share (15–20%), F&B Share (25–35%), Other Share (2–5%)"],
           ["Disposition", "Sale commission norms by market", "Sale Commission (4–6%)"],
         ]}
       />

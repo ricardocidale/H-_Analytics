@@ -43,10 +43,10 @@ rampSteps = floor(monthsSinceOps / occupancyRampMonths)
 | `occupancyRampMonths` | Speed of occupancy ramp |
 | `occupancyGrowthStep` | Size of each occupancy increase |
 | `roomCount` | Available Rooms → capacity |
-| `revShareFB` | F&B Revenue as % of Room Revenue |
-| `revShareEvents` | Events Revenue as % of Room Revenue |
-| `revShareOther` | Other Revenue as % of Room Revenue |
-| `cateringBoostPercent` | F&B multiplier for catering |
+| `revShareFB` | F&B Revenue as % of Total Revenue |
+| `revShareEvents` | Events Revenue as % of Total Revenue |
+| `revShareOther` | Other Revenue as % of Total Revenue |
+| `cateringBoostPercent` | DEPRECATED — retained for backward compat, defaults to 0 |
 
 ---
 

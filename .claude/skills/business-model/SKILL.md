@@ -65,7 +65,7 @@ Management fees paid by SPVs cancel against fee revenue received by ManCo on con
 **ALL property models must include F&B revenue.** Even the luxury rental has F&B from events, welcome baskets, catering, experience programming.
 
 - Target: **50% rooms / 50% F&B** (Ennismore/Accor model, Obra Pía Cartagena)
-- Current DEFAULT_REV_SHARE_FB = 0.18 (18% of room revenue ≈ 12% of total) is **WAY too low**
+- DEFAULT_REV_SHARE_FB = 0.30 (30% of total revenue) targets the 50/50 rooms/F&B split
 - To achieve 50/50: F&B must attract non-hotel guests (destination dining, events, local community)
 - All-inclusive or MAP packaging captures 3 meals/day from in-house guests
 - Event/banquet revenue from estate properties can be 20-30% of total

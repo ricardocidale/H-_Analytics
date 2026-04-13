@@ -16,11 +16,11 @@ export default function CateringSection() {
           Catering Revenue Model
         </h3>
         <p className="text-sm text-muted-foreground">
-          Catering is modeled as a percentage boost applied to each property's F&B revenue. The catering boost percentage is configured per property on the Property Assumptions page. There are no systemwide catering assumptions.
+          Catering boost is deprecated. F&B share now directly represents the target percentage of total revenue. Revenue shares are configured per property on the Property Assumptions page. There are no systemwide catering assumptions.
         </p>
         <div className="p-3 bg-primary/10 rounded-lg text-sm text-foreground">
           <p className="font-medium mb-1">Formula:</p>
-          <p>Total F&B Revenue = Room Revenue × F&B % × (1 + Catering Boost %)</p>
+          <p>Total F&B Revenue = Total Revenue × F&B Share (catering boost is deprecated — F&B share directly represents target mix)</p>
         </div>
       </div>
     </div></div>

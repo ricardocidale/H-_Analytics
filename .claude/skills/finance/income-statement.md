@@ -64,15 +64,16 @@ Revenue is recognized when the performance obligation is satisfied (guest occupi
 ```
 REVENUE
   Room Revenue                    = Sold Rooms × ADR
-  Food & Beverage Revenue         = Room Revenue × revShareFB × (1 + cateringBoost)
-  Events & Conference Revenue     = Room Revenue × revShareEvents
-  Other Revenue                   = Room Revenue × revShareOther
+  Total Revenue                   = Room Revenue / (1 - revShareEvents - revShareFB - revShareOther)
+  Food & Beverage Revenue         = Total Revenue × revShareFB
+  Events & Conference Revenue     = Total Revenue × revShareEvents
+  Other Revenue                   = Total Revenue × revShareOther
   ─────────────────────────────────────────────────
-  TOTAL REVENUE                   = Sum of all revenue lines
+  TOTAL REVENUE                   = Room Revenue + F&B + Events + Other
 ```
 
 **USALI Rules:**
-- Room Revenue is the primary revenue driver; all other revenues are expressed as ratios to Room Revenue for boutique hotels
+- Room Revenue is the primary revenue driver; ancillary revenues are expressed as percentages of total revenue
 - F&B Revenue combines Food and Beverage per USALI 10th+ editions (single line on Summary Operating Statement)
 - Revenue is reported GROSS (not net of commissions) per USALI guidance on gross vs. net reporting
 - Available Rooms = Room Count × 30.5 days/month (industry standard)

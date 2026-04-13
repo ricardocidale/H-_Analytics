@@ -108,10 +108,10 @@ if (research?.content) {
 | Initial Occupancy | `startOccupancy` | `"30%–45%"` | — |
 | Ramp-Up Months | `rampMonths` | `"12–24 mo"` | — |
 | Cap Rate | `capRate` | `"6.5%–8.5%"` | — |
-| Catering Boost | `catering` | `"25%–35%"` | — |
+| Catering Boost (DEPRECATED) | `catering` | `"0%"` | — |
 | Land Value | `landValue` | `"15%–25%"` | — |
 | Housekeeping | `costHousekeeping` | `"15%–22%"` | Room Revenue |
-| F&B CoS | `costFB` | `"7%–12%"` | Room Revenue |
+| F&B CoS | `costFB` | `"7%–12%"` | F&B Revenue |
 | Admin & General | `costAdmin` | `"4%–7%"` | Total Revenue |
 | Property Ops | `costPropertyOps` | `"3%–5%"` | Total Revenue |
 | Utilities | `costUtilities` | `"2.9%–4.0%"` | Total Revenue |

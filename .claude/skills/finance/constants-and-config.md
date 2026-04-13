@@ -59,9 +59,9 @@ Used as fallbacks when no user-configured value exists:
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `DEFAULT_REV_SHARE_EVENTS` | 0.43 (43%) | Event revenue as % of room revenue |
-| `DEFAULT_REV_SHARE_FB` | 0.22 (22%) | F&B revenue as % of room revenue |
-| `DEFAULT_REV_SHARE_OTHER` | 0.07 (7%) | Other revenue as % of room revenue |
+| `DEFAULT_REV_SHARE_EVENTS` | 0.18 (18%) | Event revenue as % of total revenue |
+| `DEFAULT_REV_SHARE_FB` | 0.30 (30%) | F&B revenue as % of total revenue |
+| `DEFAULT_REV_SHARE_OTHER` | 0.03 (3%) | Other revenue as % of total revenue |
 
 ### Default Operational Constants
 
@@ -70,7 +70,7 @@ Used as fallbacks when no user-configured value exists:
 | `DEFAULT_EVENT_EXPENSE_RATE` | 0.65 (65%) | Event operating expense rate |
 | `DEFAULT_OTHER_EXPENSE_RATE` | 0.60 (60%) | Other revenue expense rate |
 | `DEFAULT_UTILITIES_VARIABLE_SPLIT` | 0.60 (60%) | Utilities: % that is variable vs fixed |
-| `DEFAULT_CATERING_BOOST_PCT` | 0.30 (30%) | Blended catering boost applied to F&B revenue (property-level) |
+| `DEFAULT_CATERING_BOOST_PCT` | 0.00 (0%) | DEPRECATED — catering boost no longer used in revenue calc |
 
 ### Default Property Constants
 

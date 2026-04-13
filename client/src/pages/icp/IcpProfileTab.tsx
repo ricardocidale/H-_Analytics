@@ -147,10 +147,10 @@ export function IcpProfileTab({
       <Card className="border border-border rounded-lg p-5 space-y-4">
         <SectionHeading icon={IconDollarSign} title="Revenue Mix Targets" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="criteria-icp-revenue">
-          <DataCard label="F&B Share" value={`${icpConfig.fbShareMin}%–${icpConfig.fbShareMax}% of room revenue`} />
-          <DataCard label="Events Share" value={`${icpConfig.eventsShareMin}%–${icpConfig.eventsShareMax}% of room revenue`} />
-          <DataCard label="Spa & Wellness" value={`${icpConfig.spaShareMin}%–${icpConfig.spaShareMax}% of room revenue`} />
-          <DataCard label="Other Ancillary" value={`${icpConfig.otherShareMin}%–${icpConfig.otherShareMax}% of room revenue`} />
+          <DataCard label="F&B Share" value={`${icpConfig.fbShareMin}%–${icpConfig.fbShareMax}% of total revenue`} />
+          <DataCard label="Events Share" value={`${icpConfig.eventsShareMin}%–${icpConfig.eventsShareMax}% of total revenue`} />
+          <DataCard label="Spa & Wellness" value={`${icpConfig.spaShareMin}%–${icpConfig.spaShareMax}% of total revenue`} />
+          <DataCard label="Other Ancillary" value={`${icpConfig.otherShareMin}%–${icpConfig.otherShareMax}% of total revenue`} />
           <DataCard label="Total Ancillary Target" value={`${icpConfig.totalAncillaryMin}%–${icpConfig.totalAncillaryMax}%`} />
         </div>
       </Card>

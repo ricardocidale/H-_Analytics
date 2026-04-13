@@ -162,7 +162,7 @@ analyze_occupancy            → Occupancy patterns, seasonal, ramp-up timeline
 analyze_event_demand         → Wellness retreat, corporate, wedding demand
 analyze_cap_rates            → Investment cap rates, transaction comps
 analyze_competitive_set      → 4–6 comparable properties with metrics
-analyze_catering             → F&B catering boost, event catering revenue
+analyze_catering             → DEPRECATED — catering boost no longer used in revenue calc
 analyze_land_value           → IRS land allocation for depreciation basis
 analyze_operating_costs      → USALI-aligned departmental cost benchmarks
 analyze_property_value_costs → Insurance rates, property tax rates
@@ -272,7 +272,7 @@ interface ResearchBadgeEntry {
 | `startOccupancy` | Initial Occupancy | — | `30%–45%` |
 | `rampMonths` | Ramp-Up Months | — | `12–24 mo` |
 | `capRate` | Exit Cap Rate | — | `6.5%–8.5%` |
-| `catering` | Catering Boost | — | `25%–35%` |
+| `catering` | Catering Boost (DEPRECATED) | — | `0%` |
 | `landValue` | Land Value % | — | `15%–25%` |
 | `costHousekeeping` | Housekeeping | Room Revenue | `15%–22%` |
 | `costFB` | F&B Cost | F&B Revenue | `7%–12%` |
@@ -381,7 +381,7 @@ Every recommended metric includes a `confidence` field:
 - ADR: $50–$2,000/night
 - Occupancy: 20%–100%
 - Cap rate: 3%–15%
-- Catering boost: 5%–80%
+- Catering boost: DEPRECATED (should be 0%)
 - Cost rates: 0.5%–50% of revenue
 - Service fee rates: 0.5%–10% per category
 

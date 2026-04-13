@@ -4,137 +4,119 @@ This skill documents the rules, formulas, and constraints governing Food & Bever
 
 ## Core Principle
 
-All revenue categories in this model are expressed as **percentages of Room Revenue**, not percentages of total revenue. This is critical for AI research, financial engine calculations, and data entry.
+All revenue categories in this model are expressed as **percentages of Total Revenue**. The engine derives total revenue algebraically: `totalRevenue = roomRevenue / (1 - eventsShare - fbShare - otherShare)`. This is critical for AI research, financial engine calculations, and data entry.
 
 ## Revenue Architecture
 
-### Revenue Categories (all as % of Room Revenue)
+### Revenue Categories (all as % of Total Revenue)
 
 | Category | Schema Field | Default | Description |
 |----------|-------------|---------|-------------|
-| Room Revenue | (base) | 100% | ADR × Occupancy × 30.5 days |
-| F&B Revenue | `revShareFB` | 22% | Base food & beverage share |
-| Event Revenue | `revShareEvents` | 43% | Events, conferences, retreats |
-| Other Revenue | `revShareOther` | 7% | Spa, parking, sundries |
+| Room Revenue | (remainder) | ~49% | ADR x Occupancy x 30.5 days. Equals totalRevenue minus all shares |
+| F&B Revenue | `revShareFB` | 30% | Food & beverage share of total revenue |
+| Event Revenue | `revShareEvents` | 18% | Events, conferences, retreats |
+| Other Revenue | `revShareOther` | 3% | Spa, parking, sundries |
 
-### Catering Boost
+### Catering Boost (DEPRECATED)
 
-The **catering boost** is an additional uplift applied to base F&B revenue, representing the blended effect of catered events (weddings, corporate dinners, retreat meal programs) across all event types.
+The **catering boost** field (`cateringBoostPercent`) is retained in the schema for backward compatibility but is **no longer used in revenue calculations**. It defaults to 0.
 
-**Schema field:** `cateringBoostPercent` (per property)
-**Default:** 30% (but should be set per property based on AI market research)
-**Constant:** `DEFAULT_CATERING_BOOST_PCT` in `client/src/lib/constants.ts`
+Previously, catering boost was an uplift multiplier applied to base F&B revenue. In the current model, the F&B share directly represents the target percentage of total revenue, making a separate catering boost unnecessary.
 
 ## Formulas
 
-### F&B Revenue Calculation
+### Revenue Calculation (Current Model)
 
 ```
-Base F&B = Room Revenue × revShareFB
-Catering Uplift = Base F&B × cateringBoostPercent
-Total F&B Revenue = Base F&B × (1 + cateringBoostPercent)
+totalRevenue = roomRevenue / (1 - revShareEvents - revShareFB - revShareOther)
+F&B Revenue = totalRevenue x revShareFB
+Event Revenue = totalRevenue x revShareEvents
+Other Revenue = totalRevenue x revShareOther
 ```
 
 **Example:**
-- Room Revenue = $100,000/month
-- revShareFB = 22% → Base F&B = $22,000
-- cateringBoostPercent = 30% → Catering Uplift = $6,600
-- Total F&B = $22,000 × 1.30 = $28,600
+- roomRevenue = $100,000/month
+- revShareFB = 30%, revShareEvents = 18%, revShareOther = 3%
+- totalRevenue = $100,000 / (1 - 0.18 - 0.30 - 0.03) = $100,000 / 0.49 = $204,082
+- F&B Revenue = $204,082 x 0.30 = $61,224
+- Event Revenue = $204,082 x 0.18 = $36,735
+- Other Revenue = $204,082 x 0.03 = $6,122
 
 ### F&B Cost Calculation
 
 ```
-F&B Expense = Total F&B Revenue × costRateFB
+F&B Expense = F&B Revenue x costRateFB
 ```
 
 **Schema field:** `costRateFB` (per property)
-**Default:** 32% (of F&B revenue) — USALI standard 28-35% for full-service boutique
+**Default:** 32% (of F&B revenue) -- USALI standard 28-35% for full-service boutique
 **Constant:** `DEFAULT_COST_RATE_FB` in `shared/constants.ts` (re-exported via `client/src/lib/constants.ts`)
 
 ### Total Revenue Composition
 
 ```
-Total Revenue = Room Revenue + Total F&B Revenue + Event Revenue + Other Revenue
-             = Room Revenue × (1 + revShareFB × (1 + cateringBoostPercent) + revShareEvents + revShareOther)
+Total Revenue = Room Revenue + F&B Revenue + Event Revenue + Other Revenue
+             = roomRevenue / (1 - revShareEvents - revShareFB - revShareOther)
 ```
+
+**Constraint:** revShareEvents + revShareFB + revShareOther must be < 1.0 (the remainder is the implicit room revenue share).
 
 ## Financial Engine Implementation
 
-Located in `client/src/lib/financial/property-engine.ts`:
+Located in `engine/property/property-engine.ts`:
 
-```typescript
-const cateringBoostPct = property.cateringBoostPercent ?? DEFAULT_CATERING_BOOST_PCT;
-const cateringBoostMultiplier = 1 + cateringBoostPct;
-const baseMonthlyFBRev = baseMonthlyRoomRev * revShareFB * cateringBoostMultiplier;
-```
-
-The catering boost multiplier is applied in two places:
-1. **Monthly ramp-up period**: `baseMonthlyFBRev` calculation
-2. **Post-stabilization period**: `revenueFB = baseFB * cateringBoostMultiplier`
+The engine calculates total revenue from room revenue and the revenue shares, then derives each ancillary stream as its share of total revenue. Catering boost is not used.
 
 ## Rules & Constraints
 
-### 1. Property-Level Only
-The catering boost is defined **per property**, not systemwide. There are no global catering assumptions. Each property's market research determines its appropriate boost.
+### 1. Revenue Shares Sum < 100%
+The sum of all revenue shares (events + F&B + other) must be strictly less than 100%. The remainder is the implicit room revenue share.
 
 ### 2. Research-Driven Values
-Catering boost values should come from AI market research for each property. The `analyze_catering` tool in `.claude/tools/analyze-catering.json` and its handler in `server/aiResearch.ts` are responsible for generating market-specific recommendations.
+Revenue share values should come from AI market research for each property. Research tools analyze local market conditions to recommend appropriate share targets.
 
-### 3. Percentage-of-Room-Revenue Conversion
-When AI research or market data provides total revenue breakdowns (e.g., "F&B is 35% of total revenue"), it must be converted:
-
-```
-If total revenue splits are:
-  Rooms = 55% of total
-  F&B = 30% of total
-
-Then F&B as % of room revenue = 30/55 ≈ 54.5%
-Since base revShareFB = 22%, the implied catering boost = (54.5 - 22) / 22 ≈ 148%
-
-This would be unreasonably high, suggesting the market data includes
-event catering as part of F&B. Adjust accordingly.
-```
+### 3. Percentage-of-Total-Revenue Convention
+When AI research or market data provides revenue breakdowns (e.g., "F&B is 30% of total revenue"), the value maps directly to `revShareFB = 0.30`. No conversion is needed.
 
 ### 4. Typical Ranges
 
-| Property Type | Catering Boost Range | Key Driver |
-|--------------|---------------------|------------|
-| Urban boutique, strong local dining scene | 15% - 25% | Guests dine off-site frequently |
-| Suburban/rural estate, moderate events | 25% - 35% | Mixed catering penetration |
-| Mountain/resort, full-catering capable | 30% - 45% | Multi-day retreats, limited alternatives |
-| Remote estate, wedding destination | 35% - 50% | High full-catering penetration |
+| Revenue Stream | Range | Notes |
+|---------------|-------|-------|
+| F&B Share | 25% - 35% | Higher for destination dining, resort properties |
+| Events Share | 15% - 20% | Higher for wedding venues, retreat centers |
+| Other Share | 2% - 5% | Spa, parking, retail, experiences |
+| Room Revenue (implicit) | 40% - 58% | Remainder after all shares |
 
-### 5. Event Mix Breakdown
-Research should provide the event mix that drives the boost:
-- **Fully catered** (weddings, galas, corporate dinners with all meals)
-- **Partially catered** (retreats with some meals, meetings with lunch)
-- **No catering** (room-only bookings, self-catered gatherings)
-
-### 6. Cost Rate Independence
-The `costRateFB` (default 32%) applies to **Total F&B Revenue** (after catering boost). It does not change based on the catering boost percentage. The cost rate represents the blended cost-of-goods for all F&B operations.
+### 5. Cost Rate Independence
+The `costRateFB` (default 32%) applies to F&B Revenue. It does not change based on the revenue share percentage. The cost rate represents the blended cost-of-goods for all F&B operations.
 
 ## Data Flow
 
 ```
-AI Research (analyze_catering tool)
-  → cateringAnalysis.recommendedBoostPercent in research output
-  → User reviews on Property Market Research page
-  → User adjusts cateringBoostPercent in Property Edit page
-  → Financial Engine uses value for monthly projections
-  → Income Statement, Cash Flow, Balance Sheet reflect F&B revenue
+AI Research (revenue mix analysis)
+  -> Recommended revenue shares in research output
+  -> User reviews on Property Market Research page
+  -> User adjusts revShareFB, revShareEvents, revShareOther in Property Edit page
+  -> Financial Engine uses values for monthly projections
+  -> Income Statement, Cash Flow, Balance Sheet reflect revenue streams
 ```
 
 ## Schema Reference
 
 ### Properties Table (`shared/schema.ts`)
 ```typescript
-cateringBoostPercent: real("catering_boost_percent").notNull().default(0.30)
+revShareFB: real("rev_share_fb").notNull().default(0.30)
+revShareEvents: real("rev_share_events").notNull().default(0.18)
+revShareOther: real("rev_share_other").notNull().default(0.03)
+cateringBoostPercent: real("catering_boost_percent").notNull().default(0.00)  // DEPRECATED
 ```
 
-### Constants (`client/src/lib/constants.ts`)
+### Constants (`shared/constants.ts`)
 ```typescript
-DEFAULT_REV_SHARE_FB = 0.22      // Base F&B as % of room revenue
-DEFAULT_CATERING_BOOST_PCT = 0.30 // Default catering uplift
+DEFAULT_REV_SHARE_FB = 0.30       // F&B as % of total revenue
+DEFAULT_REV_SHARE_EVENTS = 0.18   // Events as % of total revenue
+DEFAULT_REV_SHARE_OTHER = 0.03    // Other as % of total revenue
+DEFAULT_CATERING_BOOST_PCT = 0.00 // DEPRECATED - retained for backward compat
 DEFAULT_COST_RATE_FB = 0.32       // F&B cost rate (USALI: 28-35% for full-service boutique)
 ```
 
@@ -142,22 +124,18 @@ DEFAULT_COST_RATE_FB = 0.32       // F&B cost rate (USALI: 28-35% for full-servi
 
 | File | Role |
 |------|------|
-| `client/src/lib/financial/property-engine.ts` | Property pro-forma engine (F&B revenue calculation) |
-| `client/src/lib/constants.ts` | Default values |
-| `client/src/pages/PropertyEdit.tsx` | User edits catering boost |
-| `client/src/pages/Portfolio.tsx` | Displays property catering boost |
-| `server/calculationChecker.ts` | Validates F&B calculations |
+| `engine/property/property-engine.ts` | Property pro-forma engine (revenue calculation) |
+| `shared/constants.ts` | Default values |
+| `client/src/pages/PropertyEdit.tsx` | User edits revenue shares |
+| `client/src/pages/Portfolio.tsx` | Displays property revenue shares |
+| `server/calculationChecker.ts` | Validates calculations |
 | `server/aiResearch.ts` | AI research tool handler |
-| `.claude/tools/analyze-catering.json` | Tool definition for AI |
-| `.claude/skills/research/property-market-research.md` | Research output schema |
-| `client/src/pages/PropertyMarketResearch.tsx` | Displays catering research |
-| `client/src/pages/Methodology.tsx` | Documents F&B methodology (User Manual page) |
 
 ## Anti-Patterns to Avoid
 
-1. **Never express F&B as % of total revenue** in the model — always % of room revenue
-2. **Never use systemwide catering assumptions** — always per-property
-3. **Never hardcode catering boost** — use research-recommended values, stored per property
-4. **Never separate full/partial catering levels** — use single blended boost percentage
-5. **Never apply catering boost to event revenue** — only to F&B revenue
-6. **Never confuse revShareFB with costRateFB** — one is revenue share, the other is cost rate
+1. **Never use catering boost in revenue calculations** -- it is deprecated (set to 0)
+2. **Never use systemwide revenue share assumptions** -- always per-property
+3. **Never confuse revShareFB with costRateFB** -- one is revenue share, the other is cost rate
+4. **Revenue shares are % of total revenue**, not % of room revenue
+5. **Revenue shares must sum to < 100%** -- the remainder is the implicit room revenue share
+6. **Housekeeping expense IS based on room revenue** -- do not change expense base references

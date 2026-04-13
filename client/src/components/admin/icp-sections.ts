@@ -151,13 +151,13 @@ export const PARAMETER_SECTIONS: ParameterSection[] = [
     ],
   },
   {
-    title: "Revenue Mix (% of Room Revenue)",
+    title: "Revenue Mix (% of Total Revenue)",
     fields: [
-      { key: "fbShareMin", label: "Food & Beverage", type: "number", suffix: "%", pair: "fbShareMax", pairLabel: "to", defaultPriority: "must", help: "F&B revenue as a percentage of room revenue. Includes restaurant, bar, room service, catering." },
-      { key: "eventsShareMin", label: "Events", type: "number", suffix: "%", pair: "eventsShareMax", pairLabel: "to", defaultPriority: "must", help: "Event revenue from weddings, corporate retreats, and private functions as % of room revenue." },
-      { key: "spaShareMin", label: "Spa & Wellness", type: "number", suffix: "%", pair: "spaShareMax", pairLabel: "to", defaultPriority: "nice", help: "Spa and wellness service revenue as % of room revenue. Includes treatments, memberships." },
+      { key: "fbShareMin", label: "Food & Beverage", type: "number", suffix: "%", pair: "fbShareMax", pairLabel: "to", defaultPriority: "must", help: "F&B revenue as a percentage of total revenue. Includes restaurant, bar, room service, catering." },
+      { key: "eventsShareMin", label: "Events", type: "number", suffix: "%", pair: "eventsShareMax", pairLabel: "to", defaultPriority: "must", help: "Event revenue from weddings, corporate retreats, and private functions as % of total revenue." },
+      { key: "spaShareMin", label: "Spa & Wellness", type: "number", suffix: "%", pair: "spaShareMax", pairLabel: "to", defaultPriority: "nice", help: "Spa and wellness service revenue as % of total revenue. Includes treatments, memberships." },
       { key: "otherShareMin", label: "Other services", type: "number", suffix: "%", pair: "otherShareMax", pairLabel: "to", defaultPriority: "nice", help: "Other ancillary revenue: activities, tours, retail, equestrian, experiences." },
-      { key: "totalAncillaryMin", label: "Total ancillary", type: "number", suffix: "%", pair: "totalAncillaryMax", pairLabel: "to", defaultPriority: "must", help: "Sum of all non-room revenue as % of room revenue. Higher = more diversified income." },
+      { key: "totalAncillaryMin", label: "Total ancillary", type: "number", suffix: "%", pair: "totalAncillaryMax", pairLabel: "to", defaultPriority: "must", help: "Sum of all non-room revenue as % of total revenue. Higher = more diversified income." },
     ],
   },
   {
