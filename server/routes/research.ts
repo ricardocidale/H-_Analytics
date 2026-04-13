@@ -227,6 +227,36 @@ export function register(app: Express) {
               const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
               propertyContextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
 
+              // Task 4.5: Enrich propertyContext with entity-aware fields from DB property
+              if (params.propertyContext) {
+                const p = property as Record<string, any>;
+                params.propertyContext = {
+                  ...params.propertyContext,
+                  qualityTier: p.qualityTier ?? undefined,
+                  businessModel: p.businessModel ?? undefined,
+                  pricingModel: p.pricingModel ?? undefined,
+                  nightlyPropertyRate: p.nightlyPropertyRate ?? undefined,
+                  maxGuests: p.maxGuests ?? undefined,
+                  serviceLevel: p.serviceLevel ?? undefined,
+                  locationType: p.locationType ?? undefined,
+                  marketTier: p.marketTier ?? undefined,
+                  fbVenues: p.fbVenues ?? undefined,
+                  fbSeats: p.fbSeats ?? undefined,
+                  eventSpaceSqft: p.eventSpaceSqft ?? undefined,
+                  totalPropertyAcreage: p.totalPropertyAcreage ?? undefined,
+                  totalBuildingSqft: p.totalBuildingSqft ?? undefined,
+                  yearBuilt: p.yearBuilt ?? undefined,
+                  lastRenovationYear: p.lastRenovationYear ?? undefined,
+                  revShareFB: p.revShareFB ?? undefined,
+                  revShareEvents: p.revShareEvents ?? undefined,
+                  depreciationYears: p.depreciationYears ?? undefined,
+                  country: p.country ?? undefined,
+                  seasonalityProfile: p.seasonalityProfile ?? undefined,
+                  ownerPriorityReturn: p.ownerPriorityReturn ?? undefined,
+                  feeSubordination: p.feeSubordination ?? undefined,
+                };
+              }
+
               // Retrieve prior assumption guidance from similar properties (non-blocking)
               let priorGuidanceStr: string | undefined;
               try {

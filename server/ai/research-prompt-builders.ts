@@ -13,6 +13,29 @@ export interface ResearchParams {
     maxOccupancy: number;
     type: string;
     purchasePrice?: number;
+    // Entity-aware context (Task 4.5) — all optional for backward compatibility
+    qualityTier?: string;           // luxury, upper_upscale, upscale, etc.
+    businessModel?: string;         // hotel, lodge, vrbo
+    pricingModel?: string;          // per_room, per_property
+    nightlyPropertyRate?: number;   // for per_property pricing
+    maxGuests?: number;             // capacity for luxury rental
+    serviceLevel?: string;          // full_service, select_service, etc.
+    locationType?: string;          // urban, suburban, resort, rural
+    marketTier?: string;            // primary, secondary, tertiary
+    fbVenues?: number;              // number of F&B outlets
+    fbSeats?: number;               // total F&B seating capacity
+    eventSpaceSqft?: number;        // event space in sqft
+    totalPropertyAcreage?: number;  // total land area
+    totalBuildingSqft?: number;     // total building area
+    yearBuilt?: number;
+    lastRenovationYear?: number;
+    revShareFB?: number;            // current F&B share of total revenue
+    revShareEvents?: number;        // current events share of total revenue
+    depreciationYears?: number;     // country-specific depreciation
+    country?: string;               // for country-specific research context
+    seasonalityProfile?: number[];  // monthly multipliers if set
+    ownerPriorityReturn?: number;   // investor protection context
+    feeSubordination?: string;      // none, partial, full
   };
   assetDefinition: {
     minRooms: number;
@@ -240,20 +263,77 @@ function buildMarketIntelligenceBlock(mi?: MarketIntelligence): string {
   return block;
 }
 
+/**
+ * Build entity-aware context block from extended property fields (Task 4.5).
+ * Only includes fields that have values — keeps prompts clean when context is sparse.
+ */
+function buildEntityContext(pc: NonNullable<ResearchParams["propertyContext"]>): string {
+  const lines: string[] = [];
+
+  // Classification & positioning
+  if (pc.qualityTier) lines.push(`- Quality Tier: ${pc.qualityTier}`);
+  if (pc.businessModel) lines.push(`- Business Model: ${pc.businessModel}`);
+  if (pc.pricingModel === "per_property") {
+    lines.push(`- Pricing: Whole-property rental at $${pc.nightlyPropertyRate}/night (luxury rental model)`);
+    if (pc.maxGuests) lines.push(`- Guest Capacity: ${pc.maxGuests} guests`);
+  }
+  if (pc.serviceLevel) lines.push(`- Service Level: ${pc.serviceLevel}`);
+
+  // Location context
+  if (pc.locationType) lines.push(`- Location Type: ${pc.locationType}`);
+  if (pc.marketTier) lines.push(`- Market Tier: ${pc.marketTier}`);
+  if (pc.country && pc.country !== "United States") lines.push(`- Country: ${pc.country} (use country-specific benchmarks, regulations, and tax rates)`);
+
+  // Physical property
+  if (pc.totalPropertyAcreage) lines.push(`- Total Acreage: ${pc.totalPropertyAcreage} acres`);
+  if (pc.totalBuildingSqft) lines.push(`- Building: ${pc.totalBuildingSqft.toLocaleString()} sq ft`);
+  if (pc.yearBuilt) lines.push(`- Year Built: ${pc.yearBuilt}${pc.lastRenovationYear ? `, last renovated ${pc.lastRenovationYear}` : ""}`);
+
+  // F&B capacity (critical for revenue mix research)
+  if (pc.fbVenues || pc.fbSeats) {
+    const fbParts = [];
+    if (pc.fbVenues) fbParts.push(`${pc.fbVenues} venue(s)`);
+    if (pc.fbSeats) fbParts.push(`${pc.fbSeats} total seats`);
+    lines.push(`- F&B Program: ${fbParts.join(", ")}`);
+  }
+  if (pc.revShareFB != null) lines.push(`- Current F&B Revenue Share: ${(pc.revShareFB * 100).toFixed(0)}% of total revenue`);
+  if (pc.revShareEvents != null) lines.push(`- Current Events Revenue Share: ${(pc.revShareEvents * 100).toFixed(0)}% of total revenue`);
+
+  // Events capacity
+  if (pc.eventSpaceSqft) lines.push(`- Event Space: ${pc.eventSpaceSqft.toLocaleString()} sq ft`);
+
+  // Financial structure context for research
+  if (pc.depreciationYears) lines.push(`- Depreciation: ${pc.depreciationYears}-year straight-line`);
+  if (pc.ownerPriorityReturn) lines.push(`- Owner Priority Return: ${(pc.ownerPriorityReturn * 100).toFixed(0)}% (incentive fees deferred until met)`);
+  if (pc.feeSubordination && pc.feeSubordination !== "none") lines.push(`- Fee Subordination: ${pc.feeSubordination} (fees deferred when cash < debt service)`);
+
+  // Seasonality hint for research
+  if (pc.seasonalityProfile && pc.seasonalityProfile.some(f => f !== 1)) {
+    const peak = Math.max(...pc.seasonalityProfile);
+    const trough = Math.min(...pc.seasonalityProfile);
+    lines.push(`- Seasonality: ${(peak * 100).toFixed(0)}% peak / ${(trough * 100).toFixed(0)}% trough (seasonal market)`);
+  }
+
+  if (lines.length === 0) return "";
+  return "\nEntity Context (use for comp set selection and benchmark calibration):\n" + lines.join("\n");
+}
+
 export function buildUserPrompt(params: ResearchParams): string {
   const { type, propertyContext, assetDefinition: bd, propertyLabel: pl, eventConfig: ec } = params;
   const label = pl || "boutique hotel";
 
   if (type === "property" && propertyContext) {
+    const pc = propertyContext;
     let prompt = `Analyze the market for this ${label.toLowerCase()} property:
-- Property: ${propertyContext.name}
-- Location: ${propertyContext.location}
-- Market: ${propertyContext.market}
-- Room Count: ${propertyContext.roomCount}
-- Current ADR: $${propertyContext.startAdr}
-- Target Occupancy: ${(propertyContext.maxOccupancy * 100).toFixed(0)}%
-- Property Type: ${propertyContext.type}
-${propertyContext.purchasePrice ? `- Purchase Price: $${propertyContext.purchasePrice.toLocaleString()}` : ""}
+- Property: ${pc.name}
+- Location: ${pc.location}
+- Market: ${pc.market}
+- Room Count: ${pc.roomCount}
+- Current ADR: $${pc.startAdr}
+- Target Occupancy: ${(pc.maxOccupancy * 100).toFixed(0)}%
+- Property Type: ${pc.type}
+${pc.purchasePrice ? `- Purchase Price: $${pc.purchasePrice.toLocaleString()}` : ""}
+${buildEntityContext(pc)}
 
 ${formatAssetDefinition(bd, label)}
 
