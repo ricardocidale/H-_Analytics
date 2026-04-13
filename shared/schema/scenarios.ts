@@ -43,6 +43,7 @@ export const scenarios = pgTable("scenarios", {
   lastOutputHash: text("last_output_hash"),
   lastComputedAt: timestamp("last_computed_at"),
   lastEngineVersion: text("last_engine_version"),
+  tags: jsonb("tags").$type<string[]>().default([]),
   kind: text("kind").notNull().default("manual"),
   isLocked: boolean("is_locked").notNull().default(false),
   deletedAt: timestamp("deleted_at"),
@@ -144,6 +145,7 @@ export const insertScenarioSchema = createInsertSchema(scenarios).pick({
   computeHash: true,
   version: true,
   baseSnapshotHash: true,
+  tags: true,
   kind: true,
   isLocked: true,
 });
@@ -160,6 +162,7 @@ export const insertScenarioPropertyOverrideSchema = createInsertSchema(scenarioP
 export const updateScenarioSchema = z.object({
   name: z.string().min(1).max(60).optional(),
   description: z.string().nullable().optional(),
+  tags: z.array(z.string().min(1).max(50)).max(20).optional(),
 });
 
 export const selectScenarioSchema = createSelectSchema(scenarios);

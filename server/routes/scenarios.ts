@@ -1,11 +1,12 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireManagementAccess, requireAuth , getAuthUser } from "../auth";
+import { requireManagementAccess, requireAuth , getAuthUser, isApiRateLimited } from "../auth";
 import { updateScenarioSchema } from "@shared/schema";
 import type {
   ScenarioGlobalAssumptionsSnapshot,
   ScenarioPropertySnapshot,
   ScenarioFeeCategorySnapshot,
+  Scenario,
 } from "@shared/schema";
 
 import { fromZodError } from "zod-validation-error";
@@ -16,6 +17,9 @@ import { invalidateComputeCache } from "../finance/cache";
 import { sendScenarioShareNotification, sendAdminShareNotification } from "../integrations/resend";
 import { getAppUrl } from "../providers/config";
 import { UserRole } from "@shared/constants";
+import { compareScenarios as compareScenarioMetrics } from "@calc/analysis/scenario-compare";
+import type { ScenarioMetrics } from "@calc/analysis/scenario-compare";
+import { computePortfolioProjection } from "../finance/service";
 import {
   requireScenarioPermission,
   importScenarioSchema,
@@ -33,6 +37,52 @@ import {
 } from "./scenario-helpers";
 import { registerScenarioAccessRoutes } from "./scenarios-access";
 
+// --- Batch comparison helpers ---
+
+const compareBatchSchema = z.object({
+  scenarioIds: z.array(z.number().int().positive()).min(2).max(10),
+  baseScenarioId: z.number().int().positive().optional(),
+  metrics: z.array(z.string()).optional(),
+});
+
+const updateTagsSchema = z.object({
+  tags: z.array(z.string().min(1).max(50)).max(20),
+});
+
+/**
+ * Extract key financial metrics from a scenario's computed results or by
+ * recomputing if needed. Returns the ScenarioMetrics shape expected by
+ * the calc/analysis compare engine.
+ */
+function extractMetricsFromScenario(scenario: Scenario): ScenarioMetrics | null {
+  try {
+    const { propertyInputs, globalInput, projYears } = extractScenarioComputeInputs(
+      { globalAssumptions: scenario.globalAssumptions, properties: scenario.properties }
+    );
+    const result = computePortfolioProjection({
+      properties: propertyInputs,
+      globalAssumptions: globalInput,
+      projectionYears: projYears,
+    });
+
+    const yearly = result.consolidatedYearly || [];
+    return {
+      total_revenue: yearly.map(y => y.revenueTotal ?? 0),
+      noi: yearly.map(y => y.noi ?? 0),
+      net_income: yearly.map(y => y.netIncome ?? 0),
+      ending_cash: yearly.map(y => y.endingCash ?? 0),
+      gop: yearly.map(y => y.gop ?? 0),
+      agop: yearly.map(y => y.agop ?? 0),
+      anoi: yearly.map(y => y.anoi ?? 0),
+      irr: 0,              // will be derived from cash flows
+      equity_multiple: 0,
+      exit_value: 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function register(app: Express) {
   app.get("/api/scenarios", requireAuth, async (req, res) => {
     try {
@@ -42,7 +92,18 @@ export function register(app: Express) {
 
       const userVisible = owned.filter(s => s.kind === "manual");
       const ownedWithAccess = userVisible.map(s => ({ ...s, accessType: "owned" as const, sharedByUserId: null, sharedByName: null }));
-      res.json([...ownedWithAccess, ...shared]);
+      let results = [...ownedWithAccess, ...shared];
+
+      // Filter by tag if query parameter is provided
+      const tagFilter = req.query.tag as string | undefined;
+      if (tagFilter) {
+        results = results.filter(s => {
+          const tags = (s as Record<string, unknown>).tags as string[] | undefined;
+          return Array.isArray(tags) && tags.includes(tagFilter);
+        });
+      }
+
+      res.json(results);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scenarios", error);
     }
@@ -489,6 +550,179 @@ export function register(app: Express) {
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to query across scenarios", error);
+    }
+  });
+
+  // --- Batch scenario comparison ---
+  app.post("/api/scenarios/compare-batch", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthUser(req);
+
+      // Rate limit: 3 requests per minute (compute-heavy)
+      if (isApiRateLimited(user.id, "scenarios-compare-batch", 3)) {
+        return res.status(429).json({ error: "Rate limit exceeded. Maximum 3 batch comparisons per minute." });
+      }
+
+      const validation = compareBatchSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+
+      const { scenarioIds, baseScenarioId } = validation.data;
+
+      // Fetch all requested scenarios
+      const scenarioPromises = scenarioIds.map(id => storage.getScenario(id));
+      const scenariosRaw = await Promise.all(scenarioPromises);
+
+      // Validate all exist and user has access
+      const scenarioMap = new Map<number, Scenario>();
+      for (let i = 0; i < scenarioIds.length; i++) {
+        const s = scenariosRaw[i];
+        if (!s) {
+          return res.status(404).json({ error: `Scenario ${scenarioIds[i]} not found` });
+        }
+        if (s.userId !== user.id) {
+          // Check shared access
+          const shared = await storage.getScenariosSharedWithUser(user.id);
+          const hasAccess = shared.some(sh => sh.id === s.id);
+          if (!hasAccess) {
+            return res.status(403).json({ error: `Access denied for scenario ${s.id}` });
+          }
+        }
+        scenarioMap.set(s.id, s);
+      }
+
+      // Determine base scenario
+      const baseId = baseScenarioId ?? scenarioIds[0];
+      const baseScenario = scenarioMap.get(baseId);
+      if (!baseScenario) {
+        return res.status(400).json({ error: `Base scenario ${baseId} is not in the scenarioIds list` });
+      }
+
+      // Compute metrics for all scenarios
+      const metricsMap = new Map<number, ScenarioMetrics>();
+      for (const [id, scenario] of Array.from(scenarioMap.entries())) {
+        const metrics = extractMetricsFromScenario(scenario);
+        if (!metrics) {
+          return res.status(422).json({ error: `Failed to compute metrics for scenario "${scenario.name}" (ID ${id})` });
+        }
+        metricsMap.set(id, metrics);
+      }
+
+      const baseMetrics = metricsMap.get(baseId)!;
+      const baseTags = (baseScenario.tags as string[] | null) ?? [];
+
+      // Build pairwise comparisons against the base
+      const comparisons: Array<{
+        scenario: { id: number; name: string; tags: string[] };
+        vsBase: {
+          irrDelta: number;
+          equityMultipleDelta: number;
+          cumulativeNoiDelta: number;
+          exitValueDelta: number;
+          totalRevenueDelta: number;
+          yearlyDeltas: Array<{
+            year: number;
+            revenueDelta: number;
+            noiDelta: number;
+            cashFlowDelta: number;
+          }>;
+        };
+        riskFlags: string[];
+      }> = [];
+
+      for (const [id, scenario] of Array.from(scenarioMap.entries())) {
+        if (id === baseId) continue;
+        const altMetrics = metricsMap.get(id)!;
+        const tags = (scenario.tags as string[] | null) ?? [];
+
+        const result = compareScenarioMetrics({
+          baseline_label: baseScenario.name,
+          alternative_label: scenario.name,
+          baseline_metrics: baseMetrics,
+          alternative_metrics: altMetrics,
+        });
+
+        const totalBaseRevenue = (baseMetrics.total_revenue ?? []).reduce((a, b) => a + b, 0);
+        const totalAltRevenue = (altMetrics.total_revenue ?? []).reduce((a, b) => a + b, 0);
+
+        comparisons.push({
+          scenario: { id, name: scenario.name, tags },
+          vsBase: {
+            irrDelta: result.summary.irr_delta,
+            equityMultipleDelta: result.summary.equity_multiple_delta,
+            cumulativeNoiDelta: result.summary.cumulative_noi_delta,
+            exitValueDelta: result.summary.exit_value_delta,
+            totalRevenueDelta: Math.round((totalAltRevenue - totalBaseRevenue) * 100) / 100,
+            yearlyDeltas: result.yearly_deltas.map(yd => ({
+              year: yd.year,
+              revenueDelta: yd.revenue_delta,
+              noiDelta: yd.noi_delta,
+              cashFlowDelta: yd.cash_delta,
+            })),
+          },
+          riskFlags: result.risk_flags,
+        });
+      }
+
+      // Build ranking sorted by cumulative NOI descending (IRR is 0 placeholder,
+      // so use NOI as the primary ranking metric)
+      const ranking = Array.from(scenarioMap.entries()).map(([id, scenario]) => {
+        const metrics = metricsMap.get(id)!;
+        const totalNoi = metrics.noi.reduce((a, b) => a + b, 0);
+        const totalRevenue = (metrics.total_revenue ?? []).reduce((a, b) => a + b, 0);
+        const tags = (scenario.tags as string[] | null) ?? [];
+        return {
+          scenarioId: id,
+          scenarioName: scenario.name,
+          tags,
+          irr: metrics.irr,
+          equityMultiple: metrics.equity_multiple ?? 0,
+          totalNoi: Math.round(totalNoi * 100) / 100,
+          totalRevenue: Math.round(totalRevenue * 100) / 100,
+          exitValue: metrics.exit_value ?? 0,
+          rank: 0,
+        };
+      });
+
+      // Sort by total NOI descending, then assign ranks
+      ranking.sort((a, b) => b.totalNoi - a.totalNoi);
+      ranking.forEach((r, i) => { r.rank = i + 1; });
+
+      res.json({
+        baseScenario: { id: baseId, name: baseScenario.name, tags: baseTags },
+        comparisons,
+        ranking,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to batch compare scenarios", error);
+    }
+  });
+
+  // --- Tag management ---
+  app.patch("/api/scenarios/:id/tags", requireManagementAccess, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await storage.getScenario(id);
+      if (!existing) return res.status(404).json({ error: "Scenario not found" });
+      if (existing.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
+
+      if (existing.isLocked) {
+        return res.status(403).json({ error: "This scenario is locked and cannot be edited" });
+      }
+
+      const validation = updateTagsSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+
+      const scenario = await storage.updateScenario(id, { tags: validation.data.tags });
+      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+
+      logActivity(req, "update_tags", "scenario", id, scenario.name);
+      res.json(scenario);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update scenario tags", error);
     }
   });
 
