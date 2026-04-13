@@ -237,6 +237,12 @@ export const properties = pgTable("properties", {
   
   lastAssumptionChangeAt: timestamp("last_assumption_change_at"),
 
+  // Soft-delete: null = active, non-null = archived (never hard-delete properties)
+  archivedAt: timestamp("archived_at"),
+  archivedBy: integer("archived_by").references(() => users.id),
+  // Tracks who originally created/seeded this property
+  createdBy: integer("created_by").references(() => users.id),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -367,6 +373,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   researchValues: true,
   sourceUrls: true,
   isActive: true,
+  createdBy: true,
 });
 
 export const HOSPITALITY_TYPES = ["hotel", "resort", "boutique_hotel", "business_hotel", "wellness_resort", "conference_hotel", "extended_stay", "vrbo", "lodge"] as const;

@@ -1,6 +1,6 @@
-import { properties, type Property, type InsertProperty, type UpdateProperty } from "@shared/schema";
+import { properties, userDefaultProperties, type Property, type InsertProperty, type UpdateProperty } from "@shared/schema";
 import { db } from "../db";
-import { eq, or, isNull, sql } from "drizzle-orm";
+import { eq, or, and, isNull, inArray, sql } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
 import { indexPropertyProfile } from "../ai/pinecone-service";
 import { logger } from "../logger";
@@ -27,17 +27,64 @@ async function _indexPropertyAsync(property: Property): Promise<void> {
 
 export class PropertyStorage {
   /**
-   * Get all properties visible to a user. This includes properties they own
-   * (userId matches) AND shared/seed properties (userId is null). Shared
-   * properties are the initial portfolio that all users can see.
+   * Get all properties visible to a user. First checks the userDefaultProperties
+   * join table for assigned properties. Falls back to legacy userId filter if no
+   * assignments exist. Shared/seed properties (userId is null) are included in
+   * the fallback path. Archived properties are always excluded.
    */
   async getAllProperties(userId?: number): Promise<Property[]> {
     if (userId) {
+      // Try assigned properties via userDefaultProperties join table
+      const assignedPropertyIds = await db
+        .select({ propertyId: userDefaultProperties.propertyId })
+        .from(userDefaultProperties)
+        .where(
+          and(
+            eq(userDefaultProperties.userId, userId),
+            eq(userDefaultProperties.isActive, true)
+          )
+        );
+
+      if (assignedPropertyIds.length > 0) {
+        const ids = assignedPropertyIds.map(r => r.propertyId);
+        return db
+          .select()
+          .from(properties)
+          .where(
+            and(
+              inArray(properties.id, ids),
+              isNull(properties.archivedAt)
+            )
+          )
+          .orderBy(properties.createdAt);
+      }
+
+      // Fallback: legacy behavior — properties owned by user directly + shared/seed
       return await db.select().from(properties)
-        .where(or(eq(properties.userId, userId), isNull(properties.userId)))
+        .where(
+          and(
+            or(eq(properties.userId, userId), isNull(properties.userId)),
+            isNull(properties.archivedAt)
+          )
+        )
         .orderBy(properties.createdAt);
     }
-    return await db.select().from(properties).orderBy(properties.createdAt);
+    // Admin path: all non-archived properties
+    return await db.select().from(properties)
+      .where(isNull(properties.archivedAt))
+      .orderBy(properties.createdAt);
+  }
+
+  /**
+   * Admin method to get ALL properties, optionally including archived ones.
+   */
+  async getAllPropertiesAdmin(includeArchived: boolean = false): Promise<Property[]> {
+    if (includeArchived) {
+      return db.select().from(properties).orderBy(properties.name);
+    }
+    return db.select().from(properties)
+      .where(isNull(properties.archivedAt))
+      .orderBy(properties.name);
   }
 
   /** Fetch a single property by ID. Returns undefined if not found. */
@@ -68,9 +115,18 @@ export class PropertyStorage {
     return property || undefined;
   }
 
-  /** Remove a property from the portfolio. Fee categories cascade-delete via FK. */
-  async deleteProperty(id: number): Promise<void> {
-    await db.delete(properties).where(eq(properties.id, id));
+  /** Soft-delete: archive a property instead of permanently destroying data. */
+  async deleteProperty(id: number, archivedByUserId?: number): Promise<void> {
+    await db.update(properties)
+      .set({ archivedAt: new Date(), archivedBy: archivedByUserId ?? null })
+      .where(eq(properties.id, id));
+  }
+
+  /** Restore an archived property back to active status. */
+  async restoreProperty(id: number): Promise<void> {
+    await db.update(properties)
+      .set({ archivedAt: null, archivedBy: null })
+      .where(eq(properties.id, id));
   }
 
   async getDistinctPropertyLocations(): Promise<{ country: string; stateProvince: string; city: string }[]> {
@@ -78,6 +134,7 @@ export class PropertyStorage {
       SELECT DISTINCT country, state_province, city
       FROM properties
       WHERE country IS NOT NULL AND country != ''
+        AND archived_at IS NULL
       ORDER BY country, state_province, city
     `);
     return (rows.rows as any[]).map((r) => ({

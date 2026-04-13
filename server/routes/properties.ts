@@ -220,20 +220,34 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Property not found" });
       }
       
-      await storage.deleteProperty(id);
+      const user = getAuthUser(req);
+      await storage.deleteProperty(id, user.id);
       invalidateComputeCache();
-      logActivity(req, "delete", "property", id, property.name);
-
-      try {
-        const { cleanupPropertyVectors } = await import("../ai/pinecone-service");
-        await cleanupPropertyVectors(id);
-      } catch (err: unknown) {
-        logger.warn(`Pinecone cleanup failed for property ${id}: ${err instanceof Error ? err.message : err}`, "properties");
-      }
+      logActivity(req, "archive", "property", id, property.name);
 
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete property", error);
+    }
+  });
+
+  // Admin: restore an archived property
+  app.post("/api/admin/properties/:id/restore", requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const property = await storage.getProperty(id);
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+      if (!property.archivedAt) {
+        return res.status(400).json({ error: "Property is not archived" });
+      }
+      await storage.restoreProperty(id);
+      invalidateComputeCache();
+      logActivity(req, "restore", "property", id, property.name);
+      res.json({ success: true });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to restore property", error);
     }
   });
 

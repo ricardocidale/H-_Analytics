@@ -110,10 +110,12 @@ export class DatabaseStorage implements IStorage {
 
   // Properties
   getAllProperties = this.properties.getAllProperties.bind(this.properties);
+  getAllPropertiesAdmin = this.properties.getAllPropertiesAdmin.bind(this.properties);
   getProperty = this.properties.getProperty.bind(this.properties);
   createProperty = this.properties.createProperty.bind(this.properties);
   updateProperty = this.properties.updateProperty.bind(this.properties);
   deleteProperty = this.properties.deleteProperty.bind(this.properties);
+  restoreProperty = this.properties.restoreProperty.bind(this.properties);
   getDistinctPropertyLocations = this.properties.getDistinctPropertyLocations.bind(this.properties);
 
   // Scenarios
