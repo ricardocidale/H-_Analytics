@@ -312,10 +312,7 @@ export function registerTestBatteryRoutes(app: Express) {
   });
 
   // ── Source verification (health + staleness) ────────────────────────
-  app.post(
-    "/api/admin/tests/source-verification",
-    requireAdmin,
-    async (req, res) => {
+  app.post("/api/admin/tests/source-verification", requireAdmin, async (req, res) => {
       try {
         if (isApiRateLimited(getAuthUser(req).id, "source-verification", 1)) {
           return res
@@ -372,14 +369,10 @@ export function registerTestBatteryRoutes(app: Express) {
       } catch (error: unknown) {
         logAndSendError(res, "Source verification failed", error);
       }
-    },
-  );
+  });
 
   // ── Financial verification (verify:summary) ─────────────────────────
-  app.post(
-    "/api/admin/tests/financial-verify",
-    requireAdmin,
-    async (req, res) => {
+  app.post("/api/admin/tests/financial-verify", requireAdmin, async (req, res) => {
       try {
         if (isApiRateLimited(getAuthUser(req).id, "financial-verify", 1)) {
           return res
@@ -424,6 +417,5 @@ export function registerTestBatteryRoutes(app: Express) {
       } catch (error: unknown) {
         logAndSendError(res, "Financial verification failed", error);
       }
-    },
-  );
+  });
 }

@@ -512,6 +512,7 @@ export function register(app: Express) {
 
       const totalMessages = dbHistory.length + 2;
       const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
+      logActivity(req, "rebecca-chat", "rebecca_conversation", conversationId, null, { responseMode, detectedLanguage, totalMessages });
 
       res.json({
         response: responseText,
