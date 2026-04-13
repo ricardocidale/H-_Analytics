@@ -22,7 +22,38 @@ export async function generatePptxFromReport(report: ReportDefinition): Promise<
   for (const section of report.sections) {
     const slide = pres.addSlide();
 
-    if (section.kind === "kpi") {
+    const isProfileSection = section.kind === "table" && section.years.length === 1 && section.years[0] === "Value";
+
+    if (isProfileSection && section.kind === "table") {
+      slide.addText(section.title, {
+        x: 0.5, y: 0.2, w: 8, h: 0.4,
+        fontSize: 20, fontFace: "Arial", color: strip(t.accent), bold: true,
+      });
+      slide.addShape("rect", { x: 0.5, y: 0.65, w: 12, h: 0.02, fill: { color: strip(t.secondary) } });
+
+      const kvRows: Array<Array<{ text: string; options: Record<string, unknown> }>> = [];
+      kvRows.push([
+        { text: "Attribute", options: { fill: { color: strip(t.secondary) }, fontFace: "Arial", fontSize: 9, color: strip(t.white), bold: true } },
+        { text: "Value", options: { fill: { color: strip(t.secondary) }, fontFace: "Arial", fontSize: 9, color: strip(t.white), bold: true } },
+      ]);
+
+      section.rows.forEach((row, ri) => {
+        if (row.type === "header") return;
+        const bg = ri % 2 === 0 ? strip(t.muted) : strip(t.white);
+        kvRows.push([
+          { text: row.category || "", options: { fontFace: "Arial", fontSize: 9, color: strip(t.foreground), bold: true, fill: { color: bg } } },
+          { text: row.values[0]?.text || "\u2014", options: { fontFace: "Arial", fontSize: 9, color: strip(t.foreground), fill: { color: bg } } },
+        ]);
+      });
+
+      if (kvRows.length > 1) {
+        slide.addTable(kvRows, {
+          x: 0.5, y: 0.9, w: 6,
+          colW: [2.5, 3.5],
+          rowH: 0.3, autoPage: true,
+        });
+      }
+    } else if (section.kind === "kpi") {
       slide.addText(section.title, {
         x: 0.5, y: 0.2, w: 8, h: 0.4,
         fontSize: 20, fontFace: "Arial", color: strip(t.accent), bold: true,
@@ -122,17 +153,17 @@ export async function generatePptxFromReport(report: ReportDefinition): Promise<
           strip(s.color || t.chart[si % t.chart.length])
         );
 
-        slide.addChart("line", chartData, {
+        const isBarChart = section.title.toLowerCase().includes("seasonality");
+        slide.addChart(isBarChart ? "bar" : "line", chartData, {
           x: 0.5, y: 0.9, w: 12, h: 5.5,
           showLegend: true,
           legendPos: "b",
           legendFontSize: 9,
           catAxisLabelFontSize: 9,
           valAxisLabelFontSize: 9,
-          lineDataSymbol: "circle",
-          lineDataSymbolSize: 6,
+          ...(isBarChart ? {} : { lineDataSymbol: "circle", lineDataSymbolSize: 6 }),
           chartColors,
-          showValue: false,
+          showValue: isBarChart,
           catAxisOrientation: "minMax",
         });
       }

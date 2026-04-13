@@ -36,6 +36,7 @@ export interface ServerExportData {
   outputHash: string;
   engineVersion: string;
   projectionYears: number;
+  seasonalityProfile?: number[];
 }
 
 function yearLabels(projectionYears: number): string[] {
@@ -443,7 +444,7 @@ export interface BuildPropertyExportDataInput {
 export async function buildPropertyExportData(
   input: BuildPropertyExportDataInput,
 ): Promise<ServerExportData> {
-  const { propertyInputs, globalAssumptions } = await loadUserContext(input.userId, [input.propertyId]);
+  const { propertyInputs, globalAssumptions, allProperties } = await loadUserContext(input.userId, [input.propertyId]);
   const summaryOnly = input.version === "short";
   const scope = input.reportScope ?? "all";
 
@@ -452,6 +453,7 @@ export async function buildPropertyExportData(
   }
 
   const property = propertyInputs[0];
+  const rawProperty = allProperties.find(p => p.id === input.propertyId);
   const projYears = input.projectionYears ?? Number(globalAssumptions.projectionYears ?? 10);
   const globalInput = buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears);
 
@@ -499,6 +501,12 @@ export async function buildPropertyExportData(
   const metrics = buildMetrics(result.yearly, 1);
   const allRows = statements.flatMap(s => s.rows);
 
+  const seasonality = rawProperty ? (rawProperty as Record<string, unknown>).seasonalityProfile : undefined;
+  const seasonalityProfile = Array.isArray(seasonality) && seasonality.length === 12
+    && seasonality.every((v: unknown) => typeof v === "number" && Number.isFinite(v))
+    ? seasonality as number[]
+    : undefined;
+
   return {
     statements,
     metrics,
@@ -507,6 +515,7 @@ export async function buildPropertyExportData(
     outputHash: result.outputHash,
     engineVersion: result.engineVersion,
     projectionYears: projYears,
+    seasonalityProfile,
   };
 }
 

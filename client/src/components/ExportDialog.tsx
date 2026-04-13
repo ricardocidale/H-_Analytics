@@ -10,6 +10,19 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { USE_SERVER_EXPORTS } from "@shared/constants";
 
+type ReportScope = "all" | "income" | "cashflow" | "balance" | "overview" | "investment";
+
+const SCOPE_OPTIONS: { value: ReportScope; label: string; description: string }[] = [
+  { value: "all", label: "Full Report", description: "All financial statements and analysis" },
+  { value: "income", label: "Income Statement", description: "Revenue, expenses, and net income" },
+  { value: "cashflow", label: "Cash Flow", description: "Operating, investing, and financing flows" },
+  { value: "balance", label: "Balance Sheet", description: "Assets, liabilities, and equity position" },
+  { value: "overview", label: "Portfolio Overview", description: "High-level performance summary" },
+  { value: "investment", label: "Investment Analysis", description: "Returns, IRR, and equity multiples" },
+];
+
+const SCOPE_STORAGE_KEY = "export-report-scope";
+
 export type ExportVersion = "short" | "extended";
 export type PremiumFormat = "xlsx" | "pptx" | "pdf" | "docx";
 export type ServerExportFormat = "pdf" | "xlsx" | "pptx" | "docx" | "csv";
@@ -337,19 +350,24 @@ export function ExportDialog({ open, onClose, onExport, title, showVersionOption
   const [isPremium, setIsPremium] = useState(getStoredPremium);
   const [step, setStep] = useState<DialogStep>("options");
   const [isSaving, setIsSaving] = useState(false);
+  const [reportScope, setReportScope] = useState<ReportScope>(() => {
+    try {
+      const v = localStorage.getItem(SCOPE_STORAGE_KEY);
+      if (v && SCOPE_OPTIONS.some(o => o.value === v)) return v as ReportScope;
+    } catch { /* ignore */ }
+    return "all";
+  });
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       setOrientation(getStoredOrientation());
       const storedVer = getStoredVersion();
-      // Auto-correct version when only one option is available
       const resolvedVer: ExportVersion =
         !allowShort && allowExtended ? "extended" :
         allowShort && !allowExtended ? "short" :
         storedVer;
       setVersion(resolvedVer);
-      // DOCX has no client-side generator — always use premium mode
       setIsPremium(premiumFormat === "docx" ? true : getStoredPremium());
       setStep("options");
       setIsSaving(false);
@@ -366,6 +384,12 @@ export function ExportDialog({ open, onClose, onExport, title, showVersionOption
     const val = v as ExportVersion;
     setVersion(val);
     try { localStorage.setItem(VERSION_KEY, val); } catch { /* ignore */ }
+  };
+
+  const handleScopeChange = (v: string) => {
+    const val = v as ReportScope;
+    setReportScope(val);
+    try { localStorage.setItem(SCOPE_STORAGE_KEY, val); } catch { /* ignore */ }
   };
 
   const handlePremiumToggle = (checked: boolean) => {
@@ -390,7 +414,8 @@ export function ExportDialog({ open, onClose, onExport, title, showVersionOption
       setStep("generating");
       try {
         const serverFormat = premiumFormat as ServerExportFormat;
-        const { blob, serverFilename } = await generateServerExport(serverExportConfig!, serverFormat, orientation, version);
+        const configWithScope = { ...serverExportConfig!, reportScope: reportScope as ServerExportConfig["reportScope"] };
+        const { blob, serverFilename } = await generateServerExport(configWithScope, serverFormat, orientation, version);
         setIsSaving(true);
         try {
           const { saveFile } = await import("@/lib/exports/saveFile");
@@ -488,16 +513,33 @@ export function ExportDialog({ open, onClose, onExport, title, showVersionOption
                 </RadioGroup>
               </div>
 
+              {useServerPath && (
+                <div className="border-t pt-4">
+                  <Label className="text-sm font-medium mb-3 block">Report Sections</Label>
+                  <RadioGroup value={reportScope} onValueChange={handleScopeChange}>
+                    {SCOPE_OPTIONS.map((opt) => (
+                      <div key={opt.value} className="flex items-start space-x-2 mb-2" data-testid={`scope-option-${opt.value}`}>
+                        <RadioGroupItem value={opt.value} id={`scope-${opt.value}`} className="mt-0.5" />
+                        <div className="grid gap-0.5 leading-none">
+                          <Label htmlFor={`scope-${opt.value}`} className="cursor-pointer text-sm font-medium">{opt.label}</Label>
+                          <p className="text-xs text-muted-foreground">{opt.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
+
               {showVersionOption && allowShort && allowExtended && (
                 <div className="border-t pt-4">
-                  <Label className="text-sm font-medium mb-3 block">Report Version</Label>
+                  <Label className="text-sm font-medium mb-3 block">Detail Level</Label>
                   <RadioGroup value={version} onValueChange={handleVersionChange}>
                     {allowShort && (
                       <div className="flex items-start space-x-2 mb-3">
                         <RadioGroupItem value="short" id="version-short" className="mt-0.5" />
                         <div className="grid gap-1 leading-none">
-                          <Label htmlFor="version-short" className="cursor-pointer text-sm font-medium">Short</Label>
-                          <p className="text-xs text-muted-foreground">Summary view with top-level figures only</p>
+                          <Label htmlFor="version-short" className="cursor-pointer text-sm font-medium">Executive Summary</Label>
+                          <p className="text-xs text-muted-foreground">Top-level figures and key metrics</p>
                         </div>
                       </div>
                     )}
@@ -505,8 +547,8 @@ export function ExportDialog({ open, onClose, onExport, title, showVersionOption
                       <div className="flex items-start space-x-2">
                         <RadioGroupItem value="extended" id="version-extended" className="mt-0.5" />
                         <div className="grid gap-1 leading-none">
-                          <Label htmlFor="version-extended" className="cursor-pointer text-sm font-medium">Extended</Label>
-                          <p className="text-xs text-muted-foreground">Expanded sections with line-item breakdowns</p>
+                          <Label htmlFor="version-extended" className="cursor-pointer text-sm font-medium">Full Detail</Label>
+                          <p className="text-xs text-muted-foreground">Complete line-item breakdowns</p>
                         </div>
                       </div>
                     )}

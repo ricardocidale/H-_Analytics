@@ -112,3 +112,50 @@ export function renderChartSvg(
   parts.push("</svg>");
   return parts.join("\n");
 }
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+export function renderSeasonalityBarSvg(
+  profile: number[],
+  tokens: DesignTokens,
+  opts?: { width?: number; height?: number },
+): string {
+  if (!profile || profile.length !== 12) return "";
+
+  const svgW = opts?.width ?? 600;
+  const svgH = opts?.height ?? 220;
+  const padL = 50, padR = 20, padT = 20, padB = 40;
+  const plotW = svgW - padL - padR;
+  const plotH = svgH - padT - padB;
+
+  const maxVal = Math.max(...profile) * 1.15;
+  const minVal = Math.min(0, Math.min(...profile));
+  const range = maxVal - minVal || 1;
+  const barW = plotW / 12 - 4;
+
+  const parts: string[] = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}">`);
+
+  const baseline = 1.0;
+  const baselineY = padT + plotH - ((baseline - minVal) / range) * plotH;
+  parts.push(`<line x1="${padL}" y1="${baselineY}" x2="${svgW - padR}" y2="${baselineY}" stroke="${tokens.border}" stroke-width="0.8" stroke-dasharray="4,3"/>`);
+  parts.push(`<text x="${padL - 6}" y="${baselineY + 3}" font-size="8" text-anchor="end" fill="${tokens.border}">1.0×</text>`);
+
+  parts.push(`<line x1="${padL}" y1="${padT + plotH}" x2="${svgW - padR}" y2="${padT + plotH}" stroke="${tokens.border}" stroke-width="1"/>`);
+  parts.push(`<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="${tokens.border}" stroke-width="0.5"/>`);
+
+  for (let i = 0; i < 12; i++) {
+    const x = padL + (i / 12) * plotW + 2;
+    const val = profile[i];
+    const barH = ((val - minVal) / range) * plotH;
+    const y = padT + plotH - barH;
+    const color = val >= baseline ? tokens.chart[0] : tokens.chart[1] || tokens.border;
+
+    parts.push(`<rect x="${x}" y="${y}" width="${barW}" height="${barH}" fill="${color}" rx="2" opacity="0.85"/>`);
+    parts.push(`<text x="${x + barW / 2}" y="${y - 4}" font-size="7" text-anchor="middle" fill="${tokens.foreground}" font-weight="600">${val.toFixed(2)}×</text>`);
+    parts.push(`<text x="${x + barW / 2}" y="${padT + plotH + 14}" font-size="8" text-anchor="middle" fill="${tokens.border}">${esc(MONTH_LABELS[i])}</text>`);
+  }
+
+  parts.push("</svg>");
+  return parts.join("\n");
+}

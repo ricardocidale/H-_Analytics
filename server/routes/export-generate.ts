@@ -11,6 +11,7 @@ import { generateExcelFromReport } from "./format-generators/excel-generator";
 import { generatePptxFromReport } from "./format-generators/pptx-generator";
 import { generateDocxFromReport } from "./format-generators/docx-generator";
 import { generateCsvFromExportData } from "../exports/csv-generator";
+import { renderSeasonalityBarSvg } from "../report/svg-charts";
 
 const generateExportSchema = z.object({
   entityType: z.enum(["portfolio", "property", "company"]),
@@ -125,6 +126,41 @@ export function register(app: Express) {
         };
 
         const report = compileReport(compileInput);
+
+        if (exportData.seasonalityProfile) {
+          const profileIdx = report.sections.findIndex(s => s.kind === "table" && s.title.includes("Profile"));
+          if (profileIdx < 0) {
+            logger.info("[server-export] Skipping seasonality chart — profile section not in scope", "server-export");
+          } else {
+            const insertIdx = profileIdx + 1;
+            if (format === "pdf") {
+              const seasonSvg = renderSeasonalityBarSvg(exportData.seasonalityProfile, report.tokens);
+              if (seasonSvg) {
+                const svgBase64 = Buffer.from(seasonSvg).toString("base64");
+                const dataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+                report.sections.splice(insertIdx, 0, {
+                  kind: "image",
+                  title: "Seasonality Profile",
+                  dataUrl,
+                  aspectRatio: 600 / 220,
+                });
+              }
+            } else if (format === "pptx") {
+              const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+              report.sections.splice(insertIdx, 0, {
+                kind: "chart",
+                title: "Seasonality Profile",
+                years: months,
+                series: [{
+                  label: "Seasonal Factor",
+                  values: exportData.seasonalityProfile,
+                  color: report.tokens.chart[0],
+                }],
+              });
+            }
+          }
+        }
+
         logger.info(`[server-export] Compiled report: ${report.sections.length} sections`, "server-export");
 
         switch (format) {

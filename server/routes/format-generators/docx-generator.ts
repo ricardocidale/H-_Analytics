@@ -38,7 +38,47 @@ export async function generateDocxFromReport(report: ReportDefinition): Promise<
   }));
 
   for (const section of report.sections) {
-    if (section.kind === "kpi") {
+    const isProfileSection = section.kind === "table" && section.years.length === 1 && section.years[0] === "Value";
+
+    if (isProfileSection && section.kind === "table") {
+      children.push(new Paragraph({
+        text: section.title,
+        heading: docxLib.HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 },
+      }));
+
+      const headerCells = ["Attribute", "Value"].map((h) => new TableCell({
+        children: [new Paragraph({
+          children: [new TextRun({ text: h, bold: true, size: 18, color: strip(t.white), font: "Arial" })],
+        })],
+        shading: { type: ShadingType.SOLID, color: strip(t.secondary) },
+      }));
+
+      const dataRows = section.rows
+        .filter(row => row.type !== "header")
+        .map((row, ri) => new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: row.category || "", bold: true, size: 18, font: "Arial" })],
+              })],
+              shading: ri % 2 === 1 ? { type: ShadingType.SOLID, color: strip(t.muted) } : undefined,
+            }),
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: row.values[0]?.text || "\u2014", size: 18, font: "Arial" })],
+              })],
+              shading: ri % 2 === 1 ? { type: ShadingType.SOLID, color: strip(t.muted) } : undefined,
+            }),
+          ],
+        }));
+
+      children.push(new Table({
+        rows: [new TableRow({ children: headerCells }), ...dataRows],
+        width: { size: 100, type: WidthType.PERCENTAGE },
+      }));
+      children.push(new Paragraph({ spacing: { after: 200 } }));
+    } else if (section.kind === "kpi") {
       children.push(new Paragraph({
         text: section.title,
         heading: docxLib.HeadingLevel.HEADING_1,
