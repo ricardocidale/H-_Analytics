@@ -10,6 +10,7 @@ import { MarketMacroTab } from "./model-defaults/MarketMacroTab";
 import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTab";
 import { LlmDefaultsTab } from "./model-defaults/LlmDefaultsTab";
 import { CompanyTab } from "./model-defaults/CompanyTab";
+import { RequiredFieldsTab } from "./model-defaults/RequiredFieldsTab";
 
 interface ModelDefaultsTabProps {
   onSaveStateChange?: (state: AdminSaveState | null) => void;
@@ -99,6 +100,7 @@ export default function ModelDefaultsTab({ onSaveStateChange }: ModelDefaultsTab
           <TabsTrigger value="market-macro" data-testid="tab-market-macro">Market & Macro</TabsTrigger>
           <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
           <TabsTrigger value="llm-defaults" data-testid="tab-llm-defaults">LLM Defaults</TabsTrigger>
+          <TabsTrigger value="required-fields" data-testid="tab-required-fields">Required Fields</TabsTrigger>
         </TabsList>
 
         <TabsContent value="company">
@@ -115,6 +117,10 @@ export default function ModelDefaultsTab({ onSaveStateChange }: ModelDefaultsTab
 
         <TabsContent value="llm-defaults">
           <LlmDefaultsTab />
+        </TabsContent>
+
+        <TabsContent value="required-fields">
+          <RequiredFieldsTab />
         </TabsContent>
       </Tabs>
     </div>

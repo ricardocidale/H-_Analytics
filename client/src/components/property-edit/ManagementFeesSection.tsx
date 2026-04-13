@@ -126,6 +126,7 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                   badgeProps={{ entry: researchValues.incentiveFee }}
                   onApplyValue={() => researchValues.incentiveFee && onChange("incentiveManagementFeeRate", researchValues.incentiveFee.mid / 100)}
                   guidanceContext={gc("incentiveFee", "Incentive Fee")}
+                  currentValue={draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE} isPercent
                 />
                 <EditableValue
                   value={(draft.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE) * 100}

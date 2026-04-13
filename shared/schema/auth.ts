@@ -77,3 +77,14 @@ export const sessions = pgTable("sessions", {
 
 export type Session = typeof sessions.$inferSelect;
 
+export const userDefaultProperties = pgTable("user_default_properties", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  propertyId: integer("property_id").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+}, (table) => [
+  unique("uq_user_default_property").on(table.userId, table.propertyId),
+  index("user_default_properties_user_id_idx").on(table.userId),
+]);
+
+export type UserDefaultProperty = typeof userDefaultProperties.$inferSelect;

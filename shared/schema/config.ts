@@ -4,7 +4,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { logos } from "./core";
 import { users } from "./auth";
-import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition } from "./types/jsonb-shapes";
+import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition, RequiredFieldsConfig } from "./types/jsonb-shapes";
 import {
   DEFAULT_SAFE_VALUATION_CAP,
   DEFAULT_SAFE_DISCOUNT_RATE,
@@ -186,6 +186,20 @@ export const globalAssumptions = pgTable("global_assumptions", {
   icpConfig: jsonb("icp_config").$type<IcpConfig>(),
 
   exportConfig: jsonb("export_config").$type<ExportConfig>(),
+
+  requiredFieldsConfig: jsonb("required_fields_config").$type<RequiredFieldsConfig>().default({
+    name: true,
+    location: true,
+    roomCount: true,
+    startAdr: true,
+    purchasePrice: true,
+    country: false,
+    startOccupancy: false,
+    qualityTier: false,
+    businessModel: false,
+    serviceLevel: false,
+    locationType: false,
+  }),
 
   // Asset Definition
   assetDefinition: jsonb("asset_definition").notNull().$type<AssetDefinition>().default({

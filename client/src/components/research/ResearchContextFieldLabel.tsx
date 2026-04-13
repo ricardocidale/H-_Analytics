@@ -1,5 +1,6 @@
 import * as React from "react";
 import { ResearchBadgePopover } from "./ResearchBadgePopover";
+import { RangeIndicator } from "./RangeIndicator";
 import { cn } from "@/lib/utils";
 import { Lock, AlertCircle } from "lucide-react";
 import type { GuidanceContext } from "@/lib/panel-manager";
@@ -18,6 +19,8 @@ interface ResearchContextFieldLabelProps {
   isPinned?: boolean;
   className?: string;
   children?: React.ReactNode;
+  currentValue?: number | null;
+  isPercent?: boolean;
   "data-testid"?: string;
 }
 
@@ -32,6 +35,8 @@ function ResearchContextFieldLabel({
   isPinned,
   className,
   children,
+  currentValue,
+  isPercent,
   ...props
 }: ResearchContextFieldLabelProps) {
   const state = getState(updatedAt, isPinned, badgeProps);
@@ -89,6 +94,14 @@ function ResearchContextFieldLabel({
           <span className="text-[10px] text-muted-foreground/50 italic" data-testid="state-no-research">
             No research
           </span>
+        )}
+
+        {currentValue != null && badgeProps?.entry && (
+          <RangeIndicator
+            currentValue={currentValue}
+            entry={badgeProps.entry}
+            isPercent={isPercent}
+          />
         )}
       </div>
 

@@ -94,6 +94,8 @@ export class DatabaseStorage implements IStorage {
   updateUserGoogleId = this.users.updateUserGoogleId.bind(this.users);
   updateUserGoogleTokens = this.users.updateUserGoogleTokens.bind(this.users);
   getDecryptedGoogleTokens = this.users.getDecryptedGoogleTokens.bind(this.users);
+  getUserDefaultPropertyIds = this.users.getUserDefaultPropertyIds.bind(this.users);
+  setUserDefaultPropertyIds = this.users.setUserDefaultPropertyIds.bind(this.users);
 
   // Sessions
   createSession = this.users.createSession.bind(this.users);

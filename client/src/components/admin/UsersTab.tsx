@@ -36,6 +36,7 @@ import PasswordDialog from "./users/PasswordDialog";
 import ResetAllDialog from "./users/ResetAllDialog";
 import { InlineCompanyDialog } from "./users/InlineCreateDialogs";
 import InviteUsersDialog from "./users/InviteUsersDialog";
+import DefaultPropertiesDialog from "./users/DefaultPropertiesDialog";
 
 export default function UsersTab() {
   const { toast } = useToast();
@@ -62,6 +63,8 @@ export default function UsersTab() {
   const [resetAllDialogOpen, setResetAllDialogOpen] = useState(false);
   const [showResetAllPassword, setShowResetAllPassword] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [defaultsDialogOpen, setDefaultsDialogOpen] = useState(false);
+  const [defaultsUser, setDefaultsUser] = useState<User | null>(null);
 
   const { data: users, isLoading: usersLoading } = useAdminUsers();
   const { data: adminLogos } = useAdminLogos();
@@ -368,6 +371,7 @@ export default function UsersTab() {
             onToggleScenarios={(userId, value) => {
               editMutation.mutate({ id: userId, data: { canManageScenarios: value } });
             }}
+            onManageDefaults={(user) => { setDefaultsUser(user); setDefaultsDialogOpen(true); }}
           />
         )}
       </CardContent>
@@ -443,6 +447,15 @@ export default function UsersTab() {
       onOpenChange={setInviteOpen}
       companiesList={companiesList}
     />
+
+    {defaultsUser && (
+      <DefaultPropertiesDialog
+        open={defaultsDialogOpen}
+        onOpenChange={setDefaultsDialogOpen}
+        userId={defaultsUser.id}
+        userName={defaultsUser.name || defaultsUser.email}
+      />
+    )}
     </>
   );
 }

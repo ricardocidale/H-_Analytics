@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "@/components/icons/themed-icons";
-import { IconPeople, IconTrash, IconKey, IconPencil, IconShield, IconUserCog, IconBuilding2 } from "@/components/icons";
+import { IconPeople, IconTrash, IconKey, IconPencil, IconShield, IconUserCog, IconBuilding2, IconHome } from "@/components/icons";
 import defaultLogo from "@/assets/logo.png";
 import type { User } from "../types";
 import { UserRole } from "@shared/constants";
@@ -22,6 +22,7 @@ interface UserCardGridProps {
   onPasswordUser: (user: User) => void;
   onDeleteUser: (id: number) => void;
   onToggleScenarios?: (userId: number, value: boolean) => void;
+  onManageDefaults?: (user: User) => void;
 }
 
 function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
@@ -42,6 +43,7 @@ export default function UserCardGrid({
   onPasswordUser,
   onDeleteUser,
   onToggleScenarios,
+  onManageDefaults,
 }: UserCardGridProps) {
   return (
     <>
@@ -109,6 +111,14 @@ export default function UserCardGrid({
                     aria-label={`Reset password for ${user.name || user.email}`}>
                     <IconKey className="w-4 h-4" />
                   </Button>
+                  {onManageDefaults && (
+                    <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8 p-0"
+                      onClick={() => onManageDefaults(user)}
+                      data-testid={`button-defaults-user-${user.id}`}
+                      aria-label={`Manage default properties for ${user.name || user.email}`}>
+                      <IconHome className="w-4 h-4" />
+                    </Button>
+                  )}
                   {user.role !== UserRole.ADMIN && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

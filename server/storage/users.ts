@@ -1,4 +1,4 @@
-import { users, sessions, type User, type InsertUser, type Session } from "@shared/schema";
+import { users, sessions, userDefaultProperties, type User, type InsertUser, type Session } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, gt, lt } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
@@ -194,5 +194,22 @@ export class UserStorage {
   async deleteExpiredSessions(): Promise<number> {
     const result = await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning();
     return result.length;
+  }
+
+  async getUserDefaultPropertyIds(userId: number): Promise<number[]> {
+    const rows = await db.select().from(userDefaultProperties)
+      .where(and(eq(userDefaultProperties.userId, userId), eq(userDefaultProperties.isActive, true)));
+    return rows.map(r => r.propertyId);
+  }
+
+  async setUserDefaultPropertyIds(userId: number, propertyIds: number[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(userDefaultProperties).where(eq(userDefaultProperties.userId, userId));
+      if (propertyIds.length > 0) {
+        await tx.insert(userDefaultProperties).values(
+          propertyIds.map(pid => ({ userId, propertyId: pid, isActive: true }))
+        );
+      }
+    });
   }
 }

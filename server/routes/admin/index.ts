@@ -6,6 +6,8 @@ import { registerResearchConfigRoutes } from "./research";
 import { registerExportConfigRoutes } from "./exports";
 import { registerAdminScenarioRoutes } from "./scenarios";
 import { registerIntelligenceRoutes } from "./intelligence";
+import { registerUserDefaultRoutes } from "./user-defaults";
+import { registerRequiredFieldsRoutes } from "./required-fields";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -15,4 +17,6 @@ export function register(app: Express) {
   registerExportConfigRoutes(app);
   registerAdminScenarioRoutes(app);
   registerIntelligenceRoutes(app);
+  registerUserDefaultRoutes(app);
+  registerRequiredFieldsRoutes(app);
 }

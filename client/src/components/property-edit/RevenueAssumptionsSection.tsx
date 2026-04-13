@@ -60,6 +60,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 badgeProps={{ entry: researchValues.adr }}
                 onApplyValue={() => researchValues.adr && onChange("startAdr", researchValues.adr.mid)}
                 guidanceContext={gc("adr", "Starting ADR")}
+                currentValue={draft.startAdr}
               />
               <EditableValue
                 value={draft.startAdr}
@@ -86,6 +87,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 badgeProps={{ entry: researchValues.adrGrowth }}
                 onApplyValue={() => researchValues.adrGrowth && onChange("adrGrowthRate", researchValues.adrGrowth.mid / 100)}
                 guidanceContext={gc("adrGrowth", "ADR Annual Growth")}
+                currentValue={draft.adrGrowthRate} isPercent
               />
               <EditableValue
                 value={draft.adrGrowthRate * 100}
@@ -114,6 +116,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 badgeProps={{ entry: researchValues.startOccupancy }}
                 onApplyValue={() => researchValues.startOccupancy && onChange("startOccupancy", researchValues.startOccupancy.mid / 100)}
                 guidanceContext={gc("startOccupancy", "Starting Occupancy")}
+                currentValue={draft.startOccupancy} isPercent
               />
               <EditableValue
                 value={draft.startOccupancy * 100}
@@ -140,6 +143,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 badgeProps={{ entry: researchValues.occupancy }}
                 onApplyValue={() => researchValues.occupancy && onChange("maxOccupancy", researchValues.occupancy.mid / 100)}
                 guidanceContext={gc("occupancy", "Stabilized Occupancy")}
+                currentValue={draft.maxOccupancy} isPercent
               />
               <EditableValue
                 value={draft.maxOccupancy * 100}
@@ -194,6 +198,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 badgeProps={{ entry: researchValues.occupancyStep }}
                 onApplyValue={() => researchValues.occupancyStep && onChange("occupancyGrowthStep", researchValues.occupancyStep.mid / 100)}
                 guidanceContext={gc("occupancyStep", "Occupancy Growth Step")}
+                currentValue={draft.occupancyGrowthStep} isPercent
               />
               <EditableValue
                 value={draft.occupancyGrowthStep * 100}
@@ -228,6 +233,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   badgeProps={{ entry: researchValues.revShareEvents }}
                   onApplyValue={() => researchValues.revShareEvents && onChange("revShareEvents", researchValues.revShareEvents.mid / 100)}
                   guidanceContext={gc("revShareEvents", "Events")}
+                  currentValue={draft.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS} isPercent
                 />
                 <EditableValue
                   value={(draft.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS) * 100}
@@ -255,6 +261,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   badgeProps={{ entry: researchValues.revShareFB }}
                   onApplyValue={() => researchValues.revShareFB && onChange("revShareFB", researchValues.revShareFB.mid / 100)}
                   guidanceContext={gc("revShareFB", "F&B")}
+                  currentValue={draft.revShareFB ?? DEFAULT_REV_SHARE_FB} isPercent
                 />
                 <EditableValue
                   value={(draft.revShareFB ?? DEFAULT_REV_SHARE_FB) * 100}
@@ -282,6 +289,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   badgeProps={{ entry: researchValues.revShareOther }}
                   onApplyValue={() => researchValues.revShareOther && onChange("revShareOther", researchValues.revShareOther.mid / 100)}
                   guidanceContext={gc("revShareOther", "Other Revenue")}
+                  currentValue={draft.revShareOther ?? DEFAULT_REV_SHARE_OTHER} isPercent
                 />
                 <EditableValue
                   value={(draft.revShareOther ?? DEFAULT_REV_SHARE_OTHER) * 100}
