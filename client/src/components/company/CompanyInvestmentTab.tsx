@@ -16,6 +16,7 @@ interface CompanyInvestmentTabProps {
   yearlyChartData: CompanyChartDataPoint[];
   propertyFinancials: { property: { isActive?: boolean }; financials: { noi: number }[] }[];
   global: { companyOpsStartDate?: string; safeTranche1Date?: string; safeTranche1Amount?: number; safeTranche2Amount?: number; companyName?: string };
+  fundingLabel: string;
   tableRef?: React.RefObject<HTMLDivElement | null>;
   activeTab?: string;
 }
@@ -39,6 +40,7 @@ export default function CompanyInvestmentTab({
   yearlyChartData,
   propertyFinancials,
   global,
+  fundingLabel,
   tableRef,
   activeTab,
 }: CompanyInvestmentTabProps) {
@@ -158,7 +160,7 @@ export default function CompanyInvestmentTab({
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="investment-kpi-cards">
         <KPICard
-          label="Total SAFE Funding"
+          label={`Total ${fundingLabel} Funding`}
           value={formatMoney(totalSafeFunding)}
           sub="All tranches received"
           testId="kpi-total-safe-funding"
@@ -208,7 +210,7 @@ export default function CompanyInvestmentTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              <FinRow label="SAFE Funding Received" values={yearlyChartData.map(yd => yd.Funding)} testId="row-safe-funding" />
+              <FinRow label={`${fundingLabel} Funding Received`} values={yearlyChartData.map(yd => yd.Funding)} testId="row-safe-funding" />
               <FinRow label="Monthly Burn Rate" values={yearlyBurn} testId="row-monthly-burn" />
               <RunwayRow label="Months of Runway" yearlyChartData={yearlyChartData} yearlyBurn={yearlyBurn} testId="row-months-runway" />
               <FinRow label="Ending Cash Balance" values={yearlyChartData.map(yd => yd.EndingCash)} bold testId="row-ending-cash" />
@@ -264,13 +266,13 @@ export default function CompanyInvestmentTab({
                 ))}
               </TableRow>
               <TableRow>
-                <TableCell className="font-medium">SAFE Return Multiple</TableCell>
+                <TableCell className="font-medium">{fundingLabel} Return Multiple</TableCell>
                 {valuationScenarios.map((s, i) => (
                   <TableCell key={i} className="text-right font-mono">{s.safeReturn.toFixed(1)}x</TableCell>
                 ))}
               </TableRow>
               <TableRow>
-                <TableCell className="font-medium">Implied SAFE IRR</TableCell>
+                <TableCell className="font-medium">Implied {fundingLabel} IRR</TableCell>
                 {valuationScenarios.map((s, i) => (
                   <TableCell key={i} className={`text-right font-mono ${s.safeIRR !== null && s.safeIRR > 0.2 ? "text-positive" : s.safeIRR !== null && s.safeIRR < 0 ? "text-negative" : ""}`}>
                     {s.safeIRR !== null ? pct(s.safeIRR) : "N/A"}
@@ -281,7 +283,7 @@ export default function CompanyInvestmentTab({
           </Table>
           <div className="mt-3 text-xs text-muted-foreground">
             Based on Year {projectionYears} stabilized revenue of {formatMoney(stabilizedRevenue)} and EBITDA of {formatMoney(stabilizedEBITDA)}.
-            Total SAFE invested: {formatMoney(totalSafeFunding)}.
+            Total {fundingLabel} invested: {formatMoney(totalSafeFunding)}.
           </div>
         </ExpandableTable>
       </div>

@@ -441,6 +441,7 @@ export default function Company() {
               yearlyChartData={yearlyChartData}
               propertyFinancials={propertyFinancials}
               global={global}
+              fundingLabel={fundingLabel}
               tableRef={tableRef}
               activeTab={activeTab}
             />
