@@ -137,6 +137,18 @@ The app uses a comprehensive research methodology. Key architectural principles:
 - **Per-User Default Properties**: Admin can assign default properties to each user via `userDefaultProperties` table. UI in Admin > Users with toggle switches per property.
 - **Required Fields Configuration**: Admin can configure which property fields are required via `requiredFieldsConfig` JSONB on `global_assumptions`. Toggle UI in Admin > Model Defaults.
 
+## E2E Testing Authentication
+
+The app uses Google OAuth for login, which blocks automated browser testing. To authenticate in e2e tests, use the **dev login shortcut**: on the Login page (`/login`), click the spinning 3D logo (the `SpinningLogo3D` component). This triggers `POST /api/auth/dev-login` which logs in as the admin user without OAuth. Include this step at the start of every `runTest()` test plan:
+
+```
+1. [Browser] Navigate to /login
+2. [Browser] Click the spinning logo/brand image at the top of the login form
+3. [Verify] Assert redirect to dashboard or authenticated page
+```
+
+Do NOT pass `authConfig` credentials — they trigger the OAuth flow which is blocked.
+
 ## Quick Commands
 
 ```bash
