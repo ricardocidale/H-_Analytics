@@ -15,6 +15,7 @@ import { logger } from "../logger";
 import { WalkScoreService } from "../services/WalkScoreService";
 import { suggestStarRating } from "../ai/context-pack/star-rating";
 import { registerPropertyUrlRoutes } from "./properties-urls";
+import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -462,6 +463,97 @@ Rewritten description:`;
       return res.json(scores);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch Walk Score", error);
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // STRESS TEST ENDPOINTS
+  // Deterministic stress scenarios for property financial resilience
+  // ────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/properties/:id/stress-test
+   * Returns StressResult[] for an existing property (authenticated).
+   * Reads property assumptions from DB and runs the stress engine.
+   */
+  app.get("/api/properties/:id/stress-test", requireAuth, async (req, res) => {
+    try {
+      const property = await storage.getProperty(Number(req.params.id));
+      if (!property) return res.status(404).json({ error: "Property not found" });
+
+      const assumptions: StressAssumptions = {
+        roomCount: property.roomCount,
+        startAdr: property.startAdr,
+        startOccupancy: property.startOccupancy,
+        maxOccupancy: property.maxOccupancy,
+        revShareFB: property.revShareFB ?? 0.30,
+        revShareEvents: property.revShareEvents ?? 0.18,
+        revShareOther: property.revShareOther ?? 0.03,
+        costRateRooms: property.costRateRooms ?? 0.20,
+        costRateAdmin: property.costRateAdmin ?? 0.08,
+        costRateMarketing: property.costRateMarketing ?? 0.01,
+        costRatePropertyOps: property.costRatePropertyOps ?? 0.04,
+        costRateUtilities: property.costRateUtilities ?? 0.05,
+        baseFeePercent: property.baseManagementFeeRate ?? 0.085,
+        incentiveFeePercent: property.incentiveManagementFeeRate ?? 0.12,
+        purchasePrice: property.purchasePrice,
+      };
+
+      // Add financing info if property is financed
+      if (property.type === "Financed") {
+        const ltv = property.acquisitionLTV ?? 0.75;
+        const totalValue = property.purchasePrice + (property.buildingImprovements ?? 0);
+        assumptions.loanAmount = totalValue * ltv;
+        assumptions.interestRate = property.acquisitionInterestRate ?? 0.09;
+        assumptions.loanTermYears = property.acquisitionTermYears ?? 25;
+      }
+
+      const results = computeStressScenarios(assumptions);
+      res.json(results);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to compute stress scenarios", error);
+    }
+  });
+
+  /**
+   * POST /api/properties/stress-test
+   * Accepts property assumptions in body, returns StressResult[].
+   * For scenario what-if analysis without saving to DB.
+   */
+  app.post("/api/properties/stress-test", requireAuth, async (req, res) => {
+    try {
+      const body = req.body;
+      if (!body || typeof body.roomCount !== "number" || typeof body.startAdr !== "number") {
+        return res.status(400).json({
+          error: "Invalid request body. Required: roomCount, startAdr, startOccupancy, maxOccupancy, purchasePrice, and cost rate fields.",
+        });
+      }
+
+      const assumptions: StressAssumptions = {
+        roomCount: body.roomCount,
+        startAdr: body.startAdr,
+        startOccupancy: body.startOccupancy ?? 0.70,
+        maxOccupancy: body.maxOccupancy ?? 0.85,
+        revShareFB: body.revShareFB ?? 0.30,
+        revShareEvents: body.revShareEvents ?? 0.18,
+        revShareOther: body.revShareOther ?? 0.03,
+        costRateRooms: body.costRateRooms ?? 0.20,
+        costRateAdmin: body.costRateAdmin ?? 0.08,
+        costRateMarketing: body.costRateMarketing ?? 0.01,
+        costRatePropertyOps: body.costRatePropertyOps ?? 0.04,
+        costRateUtilities: body.costRateUtilities ?? 0.05,
+        baseFeePercent: body.baseFeePercent ?? 0.085,
+        incentiveFeePercent: body.incentiveFeePercent ?? 0.12,
+        purchasePrice: body.purchasePrice ?? 0,
+        loanAmount: body.loanAmount,
+        interestRate: body.interestRate,
+        loanTermYears: body.loanTermYears,
+      };
+
+      const results = computeStressScenarios(assumptions);
+      res.json(results);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to compute stress scenarios", error);
     }
   });
 }

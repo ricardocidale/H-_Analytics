@@ -235,15 +235,15 @@ The "reasoning" field for each section must show your chain-of-thought (anchor â
 Do not output any text outside the JSON code block.`;
 }
 
-function buildSynthesisUserPrompt(
+async function buildSynthesisUserPrompt(
   params: ResearchParams,
   panelA: AnalystPanel,
   panelB: AnalystPanel,
   validation: ApiValidationResult,
   priorResearch: Awaited<ReturnType<typeof retrieveSimilarResearch>>,
   v2Prompt?: string,
-): string {
-  const base = v2Prompt ?? buildUserPrompt(params);
+): Promise<string> {
+  const base = v2Prompt ?? await buildUserPrompt(params);
 
   return `${base}
 
@@ -377,7 +377,7 @@ export async function* orchestrateResearch(
   yield { type: "phase", data: `Synthesizing with ${SYNTHESIS_MODEL}â€¦` };
 
   const systemPrompt = buildSynthesisSystemPrompt(params, singlePanelMode);
-  const baseUserPrompt = buildSynthesisUserPrompt(params, panelA, panelB, validation, priorResearch, v2Prompt);
+  const baseUserPrompt = await buildSynthesisUserPrompt(params, panelA, panelB, validation, priorResearch, v2Prompt);
   const userPrompt = propertyUrlContext ? baseUserPrompt + propertyUrlContext : baseUserPrompt;
 
   const anthropic = getAnthropicClient();

@@ -14,3 +14,5 @@ export * from './debt/amortization';
 export * from './debt/equityCalculations';
 export * from './funding/funding-predictor';
 export * from './helpers/portfolio-helpers';
+export * from './helpers/default-resolver';
+export * from './helpers/stress-scenarios';

@@ -113,7 +113,7 @@ export function register(app: Express) {
       }));
 
       // Compute entity-level confidence summary
-      const confidenceSummary = computeConfidenceBreakdown(guidance, entityType);
+      const confidenceSummary = await computeConfidenceBreakdown(guidance, entityType);
 
       res.json({
         records: enrichedGuidance,
@@ -140,7 +140,7 @@ export function register(app: Express) {
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
-      const confidenceBreakdown = computeConfidenceBreakdown(guidance, entityType);
+      const confidenceBreakdown = await computeConfidenceBreakdown(guidance, entityType);
 
       res.json(confidenceBreakdown);
     } catch (error: unknown) {

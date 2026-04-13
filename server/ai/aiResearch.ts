@@ -22,7 +22,7 @@ export async function* generateResearchWithToolsStream(
     ? allTools.filter((t) => enabledTools.includes(t.name))
     : allTools;
   const tools = filteredTools.length > 0 ? filteredTools : allTools;
-  const userPrompt = v2Prompt ?? buildUserPrompt(params);
+  const userPrompt = v2Prompt ?? await buildUserPrompt(params);
 
   let messages: unknown[] = [
     { role: "user", content: userPrompt }

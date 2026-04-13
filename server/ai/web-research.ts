@@ -10,6 +10,7 @@
 import { getPerplexityClient } from "./clients";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
+import { getHealthySources } from "./source-health-checker";
 
 // ── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -288,27 +289,49 @@ export async function searchWithTavily(
 /**
  * Run both Perplexity and Tavily in parallel. Returns all successful results.
  * If both fail, returns an empty array (never throws).
+ * Source-health-aware: skips providers that are known to be unhealthy.
  */
 export async function conductWebResearch(
   request: WebResearchRequest,
 ): Promise<WebResearchResult[]> {
-  const [perplexityResult, tavilyResult] = await Promise.allSettled([
-    searchWithPerplexity(request),
-    searchWithTavily(request),
-  ]);
-
-  const results: WebResearchResult[] = [];
-
-  if (perplexityResult.status === "fulfilled" && perplexityResult.value) {
-    results.push(perplexityResult.value);
-  } else if (perplexityResult.status === "rejected") {
-    logger.warn(`Perplexity rejected: ${perplexityResult.reason}`, "web-research");
+  // Check source health before dispatching — skip unhealthy providers
+  let healthySources: string[] = [];
+  try {
+    healthySources = await getHealthySources("web_research");
+  } catch {
+    // If health check fails, attempt both providers (optimistic fallback)
+    healthySources = ["perplexity", "tavily"];
   }
 
-  if (tavilyResult.status === "fulfilled" && tavilyResult.value) {
-    results.push(tavilyResult.value);
-  } else if (tavilyResult.status === "rejected") {
-    logger.warn(`Tavily rejected: ${tavilyResult.reason}`, "web-research");
+  const usePerplexity = healthySources.includes("perplexity");
+  const useTavily = healthySources.includes("tavily");
+
+  if (!usePerplexity && !useTavily) {
+    logger.warn("All web research providers unhealthy — skipping web research", "web-research");
+    return [];
+  }
+
+  const promises: Promise<WebResearchResult | null>[] = [];
+  if (usePerplexity) {
+    promises.push(searchWithPerplexity(request));
+  } else {
+    logger.info("Perplexity marked unhealthy — skipping", "web-research");
+  }
+  if (useTavily) {
+    promises.push(searchWithTavily(request));
+  } else {
+    logger.info("Tavily marked unhealthy — skipping", "web-research");
+  }
+
+  const settled = await Promise.allSettled(promises);
+
+  const results: WebResearchResult[] = [];
+  for (const outcome of settled) {
+    if (outcome.status === "fulfilled" && outcome.value) {
+      results.push(outcome.value);
+    } else if (outcome.status === "rejected") {
+      logger.warn(`Web research provider rejected: ${outcome.reason}`, "web-research");
+    }
   }
 
   if (results.length > 0) {

@@ -1,5 +1,6 @@
 import type { MarketIntelligence } from "../../shared/market-intelligence";
 import { buildRegulatoryContextBlock } from "../../shared/regulatory-data";
+import { getHealthySources } from "./source-health-checker";
 
 export interface ResearchParams {
   type: "property" | "company" | "global";
@@ -88,10 +89,90 @@ const REQUIRED_SOURCES = [
   { name: "Xotelo", category: "Live OTA Hotel Rates (Booking.com, Expedia, Hotels.com, Agoda — real-time ADR benchmarks)", url: "https://xotelo.com" },
 ];
 
-/** Build the curated source block appended to all prompt types. */
-function buildSourceRegistryBlock(ecSources?: any[], rvSources?: any[]): string {
+/**
+ * Service key → human-readable source mapping for dynamic source blocks.
+ * Grouped by category for the prompt.
+ */
+const SOURCE_DISPLAY_MAP: Record<string, { name: string; description: string; category: "macro" | "market_data" | "web_research" }> = {
+  fred:                    { name: "Federal Reserve Economic Data (FRED)", description: "current macro rates", category: "macro" },
+  frankfurter:             { name: "Frankfurter Exchange Rates", description: "live FX rates", category: "macro" },
+  tavily:                  { name: "Tavily Web Search", description: "real-time hospitality market data", category: "web_research" },
+  perplexity:              { name: "Perplexity AI Search", description: "web synthesis with citations", category: "web_research" },
+  hospitality_benchmarks:  { name: "H+ Benchmark Database", description: "hospitality metrics by segment", category: "market_data" },
+  pinecone:                { name: "Pinecone Vector Store", description: "similar past research retrieval", category: "market_data" },
+  costar:                  { name: "CoStar Group / STR", description: "RevPAR, ADR, occupancy, supply pipeline", category: "market_data" },
+  anthropic:               { name: "Claude (Anthropic)", description: "primary LLM analyst", category: "market_data" },
+  openai:                  { name: "OpenAI GPT", description: "secondary LLM analyst", category: "market_data" },
+  google_ai:               { name: "Google Gemini", description: "quantitative LLM analyst", category: "market_data" },
+};
+
+/** Critical sources whose absence degrades research quality significantly. */
+const CRITICAL_SOURCE_KEYS = ["fred", "anthropic", "tavily"];
+
+/**
+ * Build a dynamic source availability block by checking live source health.
+ * Falls back gracefully if health check fails.
+ */
+async function buildDynamicSourceBlock(ecSources?: any[], rvSources?: any[]): Promise<string> {
   const userSources = ecSources?.length ? ecSources : rvSources?.length ? rvSources : [];
 
+  let healthySources: string[] = [];
+  try {
+    healthySources = await getHealthySources();
+  } catch {
+    // If health check fails, fall back to static block
+    return buildStaticSourceBlock(userSources);
+  }
+
+  const healthySet = new Set(healthySources);
+  const categories: Record<string, string[]> = {
+    macro: [],
+    market_data: [],
+    web_research: [],
+  };
+  const unavailable: string[] = [];
+
+  for (const [key, info] of Object.entries(SOURCE_DISPLAY_MAP)) {
+    if (healthySet.has(key)) {
+      categories[info.category].push(`- ${info.name} — ${info.description} (verified ✓)`);
+    } else if (CRITICAL_SOURCE_KEYS.includes(key)) {
+      unavailable.push(`- [${info.name} unavailable — skip ${info.description}]`);
+    }
+  }
+
+  let block = "\n\nAVAILABLE DATA SOURCES:\n";
+
+  if (categories.macro.length > 0) {
+    block += "\nMacro Economic Data:\n" + categories.macro.join("\n") + "\n";
+  }
+  if (categories.market_data.length > 0) {
+    block += "\nMarket Data & Benchmarks:\n" + categories.market_data.join("\n") + "\n";
+  }
+  if (categories.web_research.length > 0) {
+    block += "\nWeb Research:\n" + categories.web_research.join("\n") + "\n";
+  }
+  if (unavailable.length > 0) {
+    block += "\nTemporarily Unavailable:\n" + unavailable.join("\n") + "\n";
+  }
+
+  // Always include the curated reference sources
+  block += "\nRequired Reference Sources (always cite when relevant):\n";
+  REQUIRED_SOURCES.forEach((s) => {
+    block += `- ${s.name} (${s.category})${s.url ? `: ${s.url}` : ""}\n`;
+  });
+
+  if (userSources.length > 0) {
+    block += "\nAdditional Curated Sources (also prioritize):\n";
+    userSources.forEach((s: any) => {
+      block += `- ${s.name} (${s.category})${s.url ? `: ${s.url}` : ""}\n`;
+    });
+  }
+
+  return block;
+}
+
+/** Static fallback when health check is unavailable. */
+function buildStaticSourceBlock(userSources: any[]): string {
   let suffix = "\n\nRequired Data Sources (always reference these):\n";
   REQUIRED_SOURCES.forEach((s) => {
     suffix += `- ${s.name} (${s.category})${s.url ? `: ${s.url}` : ""}\n`;
@@ -319,7 +400,7 @@ function buildEntityContext(pc: NonNullable<ResearchParams["propertyContext"]>):
   return "\nEntity Context (use for comp set selection and benchmark calibration):\n" + lines.join("\n");
 }
 
-export function buildUserPrompt(params: ResearchParams): string {
+export async function buildUserPrompt(params: ResearchParams): Promise<string> {
   const { type, propertyContext, assetDefinition: bd, propertyLabel: pl, eventConfig: ec } = params;
   const label = pl || "boutique hotel";
 
@@ -343,7 +424,7 @@ Use the available tools to gather data on each analysis dimension, then synthesi
 IMPORTANT: For every recommended metric, include a "confidence" field with EXACTLY one of: "high" (multiple sources agree, strong comps), "medium" (single reliable source, moderate coverage), or "low" (sparse data, high uncertainty). Do NOT use "conservative", "moderate", or "aggressive" — those describe positioning, not evidence quality. This applies to adrAnalysis, occupancyAnalysis, capRateAnalysis, cateringAnalysis, landValueAllocation, incomeTaxAnalysis, and every cost category in operatingCostAnalysis, propertyValueCostAnalysis, and managementServiceFeeAnalysis.${buildEventConfigSuffix(ec)}`;
 
     prompt += buildMarketIntelligenceBlock(params.marketIntelligence);
-    prompt += buildSourceRegistryBlock(ec?.customSources, params.researchVariables?.customSources);
+    prompt += await buildDynamicSourceBlock(ec?.customSources, params.researchVariables?.customSources);
     return prompt;
   }
 
@@ -376,7 +457,7 @@ Focus specifically on management companies specializing in ${label.toLowerCase()
     For each vertical, include estimated addressable market size, trailing and projected growth rates, typical ADR premiums vs. standard boutique operations, and key success factors for management companies entering each segment.${buildEventConfigSuffix(ec)}`;
 
     prompt += buildMarketIntelligenceBlock(params.marketIntelligence);
-    prompt += buildSourceRegistryBlock(ec?.customSources, params.researchVariables?.customSources);
+    prompt += await buildDynamicSourceBlock(ec?.customSources, params.researchVariables?.customSources);
     return prompt;
   }
 
@@ -439,7 +520,7 @@ Focus specifically on management companies specializing in ${label.toLowerCase()
   }
 
   prompt += buildMarketIntelligenceBlock(params.marketIntelligence);
-  prompt += buildSourceRegistryBlock(ec?.customSources, rv?.customSources);
+  prompt += await buildDynamicSourceBlock(ec?.customSources, rv?.customSources);
 
   return prompt;
 }

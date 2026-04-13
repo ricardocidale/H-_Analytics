@@ -11,6 +11,7 @@
 
 import type { AssumptionGuidance } from "@shared/schema/intelligence-v2";
 import { PROPERTY_ASSUMPTION_KEYS, COMPANY_ASSUMPTION_KEYS } from "./guidance/schemas";
+import { getHealthySources } from "./source-health-checker";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +27,7 @@ export interface ConfidenceBreakdown {
     relaxationLevel: number;     // 0-100, lower relaxation = higher score
     crossValidation: number;     // 0-100, do multiple sources agree?
     fieldCoverage: number;       // 0-100, % of key fields with guidance
+    sourceAvailability: number;  // 0-100, critical data sources online
   };
   explanation: string;           // Human-readable explanation
   recommendations: string[];    // What would improve confidence
@@ -138,12 +140,13 @@ function scoreFieldCoverage(
 // ---------------------------------------------------------------------------
 
 const WEIGHTS = {
-  comparableCount: 0.25,
-  comparableQuality: 0.25,
-  sourceRecency: 0.15,
-  relaxationLevel: 0.15,
+  comparableCount: 0.22,
+  comparableQuality: 0.22,
+  sourceRecency: 0.13,
+  relaxationLevel: 0.13,
   crossValidation: 0.10,
   fieldCoverage: 0.10,
+  sourceAvailability: 0.10,
 };
 
 function overallLabel(score: number): "high" | "medium" | "low" | "none" {
@@ -318,12 +321,24 @@ function avgRelaxation(records: AssumptionGuidance[]): number {
  * Compute a full confidence breakdown for a set of guidance records
  * belonging to a single entity.
  */
-export function computeConfidenceBreakdown(
+export async function computeConfidenceBreakdown(
   records: AssumptionGuidance[],
   entityType: string,
-): ConfidenceBreakdown {
+): Promise<ConfidenceBreakdown> {
   const compCount = extractMaxCompCount(records);
   const evidenceScore = extractAvgEvidenceScore(records);
+
+  // Source availability factor — check if critical data sources are online
+  const criticalSources = ["fred", "anthropic", "pinecone"];
+  let healthySources: string[] = [];
+  try {
+    healthySources = await getHealthySources();
+  } catch {
+    // If health check fails, assume sources are available (optimistic fallback)
+    healthySources = [...criticalSources];
+  }
+  const downCritical = criticalSources.filter(s => !healthySources.includes(s));
+  const sourceAvailability = downCritical.length === 0 ? 100 : Math.max(0, 100 - downCritical.length * 30);
 
   const factors: ConfidenceBreakdown["factors"] = {
     comparableCount: scoreComparableCount(compCount),
@@ -332,6 +347,7 @@ export function computeConfidenceBreakdown(
     relaxationLevel: avgRelaxation(records),
     crossValidation: scoreCrossValidation(records),
     fieldCoverage: scoreFieldCoverage(records, entityType),
+    sourceAvailability,
   };
 
   const overallScore = Math.round(
@@ -340,12 +356,18 @@ export function computeConfidenceBreakdown(
     factors.sourceRecency * WEIGHTS.sourceRecency +
     factors.relaxationLevel * WEIGHTS.relaxationLevel +
     factors.crossValidation * WEIGHTS.crossValidation +
-    factors.fieldCoverage * WEIGHTS.fieldCoverage,
+    factors.fieldCoverage * WEIGHTS.fieldCoverage +
+    factors.sourceAvailability * WEIGHTS.sourceAvailability,
   );
 
   const overall = overallLabel(overallScore);
   const explanation = buildExplanation(overall, factors, records);
   const recommendations = buildRecommendations(factors, records, entityType);
+
+  // Add recommendation if critical sources are down
+  if (downCritical.length > 0) {
+    recommendations.push(`Data quality reduced: ${downCritical.join(", ")} unavailable`);
+  }
 
   return {
     overall,
