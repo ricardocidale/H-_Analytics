@@ -5,6 +5,7 @@
 - [Developer Setup](developer/setup.md)
 - [Migration from Replit](developer/migration-from-replit.md)
 - [Master Plan v2](planning/MASTER-PLAN-V2.md)
+- [Manual Update Checklist](planning/MANUAL-UPDATE-CHECKLIST.md)
 
 ## Documentation Structure
 
@@ -12,10 +13,10 @@
 |-----------|----------|
 | `architecture/` | System design, data flow, entity model |
 | `developer/` | Setup guide, conventions, migration |
-| `user-guide/` | End-user documentation |
+| `user-guide/` | End-user documentation (in-app manual is at `client/src/pages/user-manual/`) |
 | `research/` | Domain research (hospitality benchmarks, APIs, fee structures) |
 | `audits/` | Historical code audit reports |
-| `planning/` | Product roadmap and planning docs |
+| `planning/` | Product roadmap, planning docs, update checklists |
 
 ## AI Knowledge Base
 

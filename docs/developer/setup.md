@@ -103,6 +103,8 @@ All environment variables organized by the source registry categories. The app s
 |----------|---------|---------|
 | `NODE_ENV` | `development` | Environment mode |
 | `PORT` | `5000` | HTTP server port |
+| `STORAGE_PROVIDER` | `replit` | File storage provider (`replit`, `s3`, or `local`) |
+| `AUTH_PROVIDER` | `replit` | Authentication provider (`replit` or `local`) |
 
 ### AI Research Providers (at least one required)
 
@@ -125,7 +127,13 @@ All environment variables organized by the source registry categories. The app s
 |----------|---------|----------|
 | `FRED_API_KEY` | FRED API | macro_economic |
 
-Note: Frankfurter ECB FX Rates requires no API key.
+Note: Frankfurter ECB FX Rates and World Bank API require no API key.
+
+### FX Rates (Optional)
+
+| Variable | Service | Category |
+|----------|---------|----------|
+| `OPEN_EXCHANGE_RATES_APP_ID` | Open Exchange Rates | fx_rates |
 
 ### Market Data (Optional)
 
@@ -181,7 +189,7 @@ Note: Frankfurter ECB FX Rates requires no API key.
 |----------|---------|----------|
 | `APIFY_API_TOKEN` | Apify Scrapers | scraping |
 
-**Total: 24 environment variables across 11 service categories.** The source registry in `server/seeds/source-registry.ts` maps each `apiKeyRef` to its service. Health checks verify which keys are configured at runtime.
+**Total: 26 environment variables across 12 service categories.** The source registry in `server/seeds/source-registry.ts` maps each `apiKeyRef` to its 25 services. Health checks verify which keys are configured at runtime.
 
 ---
 
