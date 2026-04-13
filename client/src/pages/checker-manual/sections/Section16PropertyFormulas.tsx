@@ -51,6 +51,48 @@ import { SectionCard } from "@/components/ui/section-card";
             ["F-P-19", "Cash from Financing (CFF)", "equityInjection + loanProceeds − principalRepayment − distributions", "ASC 230 financing activities"],
           ]}
         />
+        <h3 className="text-foreground text-sm font-semibold mt-6 mb-2">Revenue Model — Ancillary Share Derivation</h3>
+        <Callout>
+          Total Revenue = Room Revenue / (1 − eventsShare − fbShare − otherShare). Each non-room stream
+          is a percentage of TOTAL revenue, not room revenue. Room revenue is the anchor; ancillary shares
+          are solved algebraically so that Events + F&B + Other + Rooms = 100% of Total Revenue.
+        </Callout>
+        <ManualTable
+          headers={["Ref ID", "Name", "Formula / Logic", "Industry Basis"]}
+          rows={[
+            ["F-P-07a", "Ancillary Share", "ancillaryShare = revShareEvents + revShareFB + revShareOther", "USALI 12th Ed.; ancillary typically 30–50% for boutique/wellness"],
+            ["F-P-07b", "Room Share (derived)", "roomShare = 1 − ancillaryShare", "Remainder after ancillary allocation"],
+            ["F-P-07c", "Total Revenue (expanded)", "roomRevenue / roomShare = roomRevenue / (1 − ancillaryShare)", "Ensures all shares sum to exactly 100%"],
+          ]}
+        />
+        <h3 className="text-foreground text-sm font-semibold mt-6 mb-2">Seasonality Adjustments</h3>
+        <Callout>
+          Monthly financials apply seasonality multipliers to both occupancy (capped at maxOccupancy) and
+          ADR (uncapped). A multiplier of 1.0 means no adjustment; values below 1.0 reduce and above 1.0
+          increase the metric for that month.
+        </Callout>
+        <ManualTable
+          headers={["Ref ID", "Name", "Formula / Logic", "Industry Basis"]}
+          rows={[
+            ["F-P-20", "Seasonal Occupancy", "min(baseOccupancy × seasonalMultiplier[month], maxOccupancy)", "STR seasonal patterns; capped to prevent >100% occupancy"],
+            ["F-P-21", "Seasonal ADR", "baseADR × seasonalMultiplier[month]", "STR seasonal patterns; no cap — peak seasons can exceed base ADR"],
+            ["F-P-22", "Seasonal Room Revenue", "availableRooms × seasonalOccupancy × seasonalADR", "Derived from F-P-20 and F-P-21"],
+          ]}
+        />
+        <h3 className="text-foreground text-sm font-semibold mt-6 mb-2">Fee Subordination Rules</h3>
+        <Callout>
+          Fee subordination determines whether management fees are deferred when cash flow cannot cover
+          debt service. This protects lenders and aligns management incentives with debt covenants.
+        </Callout>
+        <ManualTable
+          headers={["Ref ID", "Name", "Formula / Logic", "Industry Basis"]}
+          rows={[
+            ["F-P-23", "Fee Subordination (Full)", "If feeSubordination = 'full': when preliminaryCash < monthlyDebtPayment, defer ALL management fees (base + incentive). Deferred fees accrue and are paid when cash recovers.", "Common in leveraged hospitality acquisitions; protects DSCR covenant"],
+            ["F-P-24", "Fee Subordination (Partial)", "If feeSubordination = 'partial': when preliminaryCash < monthlyDebtPayment, defer ONLY incentive management fees. Base fee is always charged.", "HVS 2024: partial subordination is the most common structure"],
+            ["F-P-25", "Fee Subordination (None)", "If feeSubordination = 'none': all fees charged regardless of cash position. No deferral mechanism.", "Default for unlevered or low-leverage properties"],
+            ["F-P-26", "Owner Priority Return", "Incentive fees only charged when cumulative owner cash flow > (hurdleRate × equityInvested). Tracks cumulative shortfall.", "PE waterfall structures; typical hurdle 6–10%"],
+          ]}
+        />
       </SectionCard>
     );
   }

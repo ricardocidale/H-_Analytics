@@ -171,7 +171,32 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             <p className="text-xs"><span className="font-medium text-foreground">Yellow pill badge:</span> <span className="text-muted-foreground">Shows the AI-recommended range (e.g., "55%–70%"). Hover for source and date, click to auto-fill the recommended value.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Blue GAAP badge:</span> <span className="text-muted-foreground">Shows the GAAP or IRS rule governing this field. Hover to see the accounting standard and its implications. Always visible.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Guidance arrow:</span> <span className="text-muted-foreground">Click the arrow icon next to any badge to open the Guidance Side Sheet with full details — P25/P50/P75 ranges, peer comparisons, methodology trail, and impact analysis.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Gray badge:</span> <span className="text-muted-foreground">No research data is available for this field yet. Run Regenerate Intelligence to populate it.</span></p>
           </div>
+          <h5 className="font-medium text-foreground text-xs mt-3">Range Badge Colors</h5>
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 mt-1">
+            <p className="text-xs"><span className="font-medium text-foreground">Green:</span> <span className="text-muted-foreground">Your current value falls within the AI-researched range — your assumption is well-supported by market data.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Yellow:</span> <span className="text-muted-foreground">Your value is near the edge of the researched range — consider reviewing against comparable properties.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Red:</span> <span className="text-muted-foreground">Your value falls outside the researched range — this assumption may need adjustment or additional justification.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Gray:</span> <span className="text-muted-foreground">No research data available for this field. Press Regenerate Intelligence to populate.</span></p>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Confidence Indicators</h4>
+          <p className="mb-3">
+            Each range badge includes a <span className="font-medium text-foreground">confidence level</span> (High, Medium, or Low)
+            based on three factors:
+          </p>
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5">
+            <p className="text-xs"><span className="font-medium text-foreground">Comparable count:</span> <span className="text-muted-foreground">More matching properties in the comp set increases confidence.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Data freshness:</span> <span className="text-muted-foreground">Recent data from the last 30 days scores higher than older benchmarks.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Source quality:</span> <span className="text-muted-foreground">Primary industry sources (STR, CBRE, HVS) carry more weight than secondary or scraped data.</span></p>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            The confidence level helps you gauge how much to trust the recommended range. High confidence means
+            strong market evidence; Low confidence means the recommendation is based on limited or extrapolated data.
+          </p>
         </div>
 
         <div>
@@ -203,6 +228,12 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             assumption pages shows the overall freshness state at a glance — green when all research is current,
             amber when some results are stale, red when research is missing, and blue when research is actively running.
           </p>
+          <h5 className="font-medium text-foreground text-xs mt-3">Staleness Thresholds</h5>
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 mt-1">
+            <p className="text-xs"><span className="font-medium text-foreground">0–30 days:</span> <span className="text-muted-foreground">Research is current (green). No action needed.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">30–90 days:</span> <span className="text-muted-foreground">Research is stale (amber). Market conditions may have shifted — consider pressing Regenerate Intelligence to refresh.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">90+ days:</span> <span className="text-muted-foreground">Research is very stale (red). Data is likely outdated and should be refreshed before making investment decisions.</span></p>
+          </div>
         </div>
 
         <div>

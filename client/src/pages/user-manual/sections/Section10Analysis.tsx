@@ -128,6 +128,28 @@ export default function Section10Analysis({ expanded, onToggle, sectionRef }: Se
         />
       </div>
 
+      {/* Risk Analysis */}
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Portfolio Risk Grade</h4>
+        <p className="text-sm text-muted-foreground mb-3">
+          The Dashboard Overview shows an overall portfolio risk grade (A through F) based on four dimensions:
+        </p>
+        <ManualTable
+          variant="light"
+          headers={["Dimension", "What It Measures"]}
+          rows={[
+            ["Concentration Risk", "Revenue dependency on any single property or market — diversification reduces risk"],
+            ["Geographic Diversity", "Spread across distinct markets and regions — wider geographic spread improves the grade"],
+            ["Financial Leverage", "Weighted average LTV and DSCR across the portfolio — lower leverage improves the grade"],
+            ["Operational Metrics", "Average occupancy, revenue growth stability, and expense control across properties"],
+          ]}
+        />
+        <p className="text-sm text-muted-foreground mt-2">
+          The portfolio grade updates automatically whenever property data or scenarios change. Use it as a
+          quick health check before investor presentations.
+        </p>
+      </div>
+
       <Callout variant="light">
         All four tabs support full exports: PDF, Excel, CSV, PowerPoint, Chart PNG, and Table PNG via the Export button in the top-right corner of each tab.
       </Callout>

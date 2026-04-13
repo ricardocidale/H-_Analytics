@@ -116,6 +116,66 @@ export default function Section05PropertyDetails({ expanded, onToggle, sectionRe
         />
       </div>
 
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Seasonality Profile</h4>
+        <p className="text-sm text-muted-foreground">
+          Set monthly multipliers (0.5–1.5) to model seasonal occupancy and ADR variations. Occupancy is
+          capped at your max occupancy; ADR can exceed the base. A flat profile (all 1.0) means no seasonal
+          adjustment. Seasonality profiles are assigned per property and apply to every projection year.
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Occupancy Ramp Curve</h4>
+        <p className="text-sm text-muted-foreground">
+          Define year-by-year occupancy ramp as percentages of stabilized occupancy. This overrides the
+          default step-function ramp. For example, [0.60, 0.75, 0.85, 0.92, 1.0] ramps the property
+          from 60% to 100% of its stabilized occupancy over 5 years. Each entry represents one operating
+          year; once the array is exhausted, the property stays at stabilized occupancy.
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Regenerate Intelligence</h4>
+        <p className="text-sm text-muted-foreground">
+          After entering base property info (address, rooms, quality tier), press <strong>Regenerate Intelligence</strong> to
+          run AI research. Gold badges appear next to every assumption field showing recommended ranges.
+          Adjust your assumptions based on these ranges. Research results are cached — you only need to
+          regenerate when property characteristics change or data becomes stale.
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Risk Insights</h4>
+        <p className="text-sm text-muted-foreground mb-2">
+          A collapsible <strong>Risk Insights</strong> panel on the Property Edit page shows the property's risk grade
+          (A through F), top risks with severity badges, and strengths. The panel summarizes:
+        </p>
+        <ul className="text-sm text-muted-foreground space-y-1">
+          <li>&#8226; Overall risk grade based on financial, market, and operational factors</li>
+          <li>&#8226; Top risks ranked by severity (Critical, High, Medium, Low)</li>
+          <li>&#8226; Key strengths that mitigate risk for the property</li>
+        </ul>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Stress Scenarios</h4>
+        <p className="text-sm text-muted-foreground mb-2">
+          Five deterministic stress tests show the impact of adverse conditions on property performance:
+        </p>
+        <ManualTable
+          variant="light"
+          headers={["Scenario", "Shock Applied", "Key Outputs"]}
+          rows={[
+            ["Occupancy Stress", "Occupancy −15%", "NOI and DSCR impact"],
+            ["Rate Stress", "ADR −10%", "Revenue and NOI impact"],
+            ["Interest Rate Stress", "Rates +200 basis points", "Debt service and DSCR impact"],
+            ["Cost Stress", "Operating costs +20%", "GOP and NOI impact"],
+            ["Combined Stress", "All four shocks simultaneously", "Worst-case NOI and DSCR"],
+          ]}
+        />
+      </div>
+
       <Callout variant="light">
         All financial calculations are deterministic — computed by the financial engine, never estimated or
         approximated. Click any "Formula" chevron to see exactly how a value was derived.

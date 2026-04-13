@@ -150,6 +150,30 @@ import { SectionCard } from "@/components/ui/section-card";
             ["ffEReserveRate", "Annual FF&E reserve accrual", "4%", "%", "Properties"],
           ]}
         />
+        <h3 className="text-foreground text-sm font-semibold mt-4 mb-2">Seasonality & Ramp Curves</h3>
+        <ManualTable
+          headers={["Variable", "Description", "Default", "Unit", "Affects"]}
+          rows={[
+            ["seasonalityProfile", "Array of 12 monthly multipliers (0.5–1.5) for occupancy and ADR", "[1.0 × 12]", "multiplier[]", "Properties"],
+            ["rampCurve", "Array of year-by-year occupancy ramp as fractions of stabilized occupancy", "null (uses step-function)", "fraction[]", "Properties"],
+            ["maxOccupancy", "Hard cap on seasonal occupancy (prevents >100%)", "95%", "%", "Properties"],
+          ]}
+        />
+        <Callout>
+          Verification: Seasonality multipliers must have exactly 12 entries. Each must be between 0.5 and 1.5.
+          The average of all 12 multipliers should approximate 1.0 (tolerance ±0.15) to avoid systematically
+          inflating or deflating annual projections. Ramp curve entries must be between 0.0 and 1.0, and the
+          final entry should be 1.0 (fully stabilized).
+        </Callout>
+        <h3 className="text-foreground text-sm font-semibold mt-4 mb-2">Fee Subordination & Priority Return</h3>
+        <ManualTable
+          headers={["Variable", "Description", "Default", "Unit", "Affects"]}
+          rows={[
+            ["feeSubordination", "Controls fee deferral when cash < debt service: 'full', 'partial', or 'none'", "none", "enum", "Properties"],
+            ["ownerPriorityReturn", "Hurdle rate on equity before incentive fees are charged", "0%", "%", "Properties"],
+            ["cumulativeOwnerCashFlow", "Running total of owner distributions (tracked by engine)", "computed", "$", "Properties"],
+          ]}
+        />
         <h3 className="text-foreground text-sm font-semibold mt-4 mb-2">Asset Definition</h3>
         <ManualTable
           headers={["Variable", "Description", "Default", "Unit"]}

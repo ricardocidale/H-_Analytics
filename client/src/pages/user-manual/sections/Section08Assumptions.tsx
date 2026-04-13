@@ -72,6 +72,48 @@ export default function Section08Assumptions({ expanded, onToggle, sectionRef }:
         </p>
       </Callout>
 
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Owner's Priority Return</h4>
+        <p className="text-sm text-muted-foreground">
+          Set a hurdle rate (e.g., 8%) that the owner must earn on their equity before incentive management
+          fees are charged. Cumulative owner cash flow must exceed hurdle rate multiplied by equity invested
+          before incentive fees begin accruing. This protects investor returns and aligns management
+          compensation with performance.
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Fee Subordination</h4>
+        <p className="text-sm text-muted-foreground mb-2">
+          Controls what happens when cash flow cannot cover debt service. Three modes are available:
+        </p>
+        <ul className="text-sm text-muted-foreground space-y-2">
+          <li>&#8226; <strong>Full</strong> — Defers ALL management fees (base + incentive) when preliminary cash flow is less than the monthly debt payment. Fees accrue and are paid when cash flow recovers.</li>
+          <li>&#8226; <strong>Partial</strong> — Defers only incentive management fees. Base management fees are always charged regardless of cash position.</li>
+          <li>&#8226; <strong>None</strong> — Fees are always charged regardless of cash position. This is the default for properties without debt constraints.</li>
+        </ul>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Seasonality Profile Assignment</h4>
+        <p className="text-sm text-muted-foreground">
+          Assign a seasonality profile to each property from the Assumptions page. The profile defines 12
+          monthly multipliers (0.5–1.5) applied to both occupancy and ADR. Occupancy is capped at max
+          occupancy; ADR can exceed the base rate. Properties without a profile use flat seasonality (all 1.0).
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Ramp Curve Configuration</h4>
+        <p className="text-sm text-muted-foreground">
+          Configure the occupancy ramp curve to define how quickly a new property reaches stabilized occupancy.
+          Enter an array of percentages representing each operating year's occupancy as a fraction of
+          the stabilized rate. For example, [0.60, 0.75, 0.85, 0.92, 1.0] means 60% of stabilized
+          occupancy in year 1, ramping to 100% by year 5. If no custom ramp is set, the default
+          step-function ramp from the stabilization period is used.
+        </p>
+      </div>
+
       <Callout variant="light">
         Individual properties can override any systemwide assumption with property-specific values.
         When a property-level value is not set, the systemwide default is used automatically.

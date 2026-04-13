@@ -58,6 +58,33 @@ export default function Section09Scenarios({ expanded, onToggle, sectionRef }: S
       </div>
 
       <div className="bg-muted/50 rounded-lg p-4 mt-4">
+        <h4 className="font-semibold mb-2">Scenario Tags</h4>
+        <p className="text-sm text-muted-foreground mb-2">
+          Tag scenarios to organize and filter them in the list view. Common tags include:
+        </p>
+        <ul className="text-sm text-muted-foreground space-y-1">
+          <li>&#8226; <strong>base_case</strong> — The primary operating scenario with expected assumptions</li>
+          <li>&#8226; <strong>bull_case</strong> — Optimistic scenario with favorable market conditions</li>
+          <li>&#8226; <strong>bear_case</strong> — Conservative scenario with adverse conditions</li>
+          <li>&#8226; <strong>stress_test</strong> — Extreme downside scenario for risk assessment</li>
+        </ul>
+        <p className="text-sm text-muted-foreground mt-2">
+          Use the tag filter at the top of the Scenarios page to quickly find scenarios by category.
+          Tags are free-form — you can create custom tags beyond the standard set.
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4 mt-4">
+        <h4 className="font-semibold mb-2">Batch Comparison</h4>
+        <p className="text-sm text-muted-foreground">
+          Compare up to 10 scenarios at once to see IRR, NOI, and equity multiple deltas ranked side by side.
+          Select multiple scenarios using the checkboxes in the list view, then click <strong>Compare Selected</strong>.
+          The comparison view highlights the best and worst performers for each metric, making it easy to
+          identify which set of assumptions produces the strongest investor returns.
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4 mt-4">
         <h4 className="font-semibold mb-2">Admin Scenario Governance</h4>
         <p className="text-sm text-muted-foreground">
           Administrators have full control over all scenarios platform-wide. They can create scenarios for any user,
