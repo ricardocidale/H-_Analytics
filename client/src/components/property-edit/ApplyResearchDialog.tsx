@@ -4,7 +4,7 @@
  * Shows a confirmation dialog listing all fields that would change (current vs.
  * research-recommended), with per-field checkboxes for selective application.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -112,15 +112,13 @@ export function ApplyResearchDialog({ open, onOpenChange, draft, researchValues,
     return result;
   }, [draft, researchValues, dirtyFields]);
 
-  const autoSelectableFields = diffs.filter(d => !d.isUserEdited).map(d => d.propertyField);
-  const [selected, setSelected] = useState<Set<string>>(new Set(autoSelectableFields));
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const diffKey = diffs.map(d => d.propertyField).join(",");
-  const [prevDiffKey, setPrevDiffKey] = useState(diffKey);
-  if (diffKey !== prevDiffKey) {
-    setPrevDiffKey(diffKey);
-    setSelected(new Set(diffs.filter(d => !d.isUserEdited).map(d => d.propertyField)));
-  }
+  useEffect(() => {
+    if (open) {
+      setSelected(new Set(diffs.filter(d => !d.isUserEdited).map(d => d.propertyField)));
+    }
+  }, [open, diffs]);
 
   const toggleField = (field: string) => {
     setSelected(prev => {

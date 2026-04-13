@@ -35,11 +35,11 @@ export function computeFreshnessStatus(opts: {
     return { status: "stale", reason: "Assumptions changed since last research — press Regenerate to update ranges", daysAgo };
   }
 
-  if (daysAgo > VERY_STALE_THRESHOLD_DAYS) {
+  if (daysAgo >= VERY_STALE_THRESHOLD_DAYS) {
     return { status: "very_stale", reason: `Intelligence is ${daysAgo} days old — press Regenerate to update ranges`, daysAgo };
   }
 
-  if (daysAgo > STALE_THRESHOLD_DAYS) {
+  if (daysAgo >= STALE_THRESHOLD_DAYS) {
     return { status: "stale", reason: "Intelligence is outdated — press Regenerate to update ranges", daysAgo };
   }
 
