@@ -22,7 +22,7 @@ H+ Analytics is a **fundraising and capital-raising tool**, NOT a business opera
 - Commands higher fees over time because the brand delivers — good value, real experiences
 - **The competitive advantage:** Most small vertical-focused hotels charge premium prices but deliver mediocre experiences. This brand delivers better quality at fair prices.
 - Single brand for now. Architecture must support multiple brands in future (use `business_brand` entity).
-- SAFE is just ONE of many funding vehicles for ManCo. Properties are funded separately.
+- SAFE is just ONE of many funding vehicles for ManCo (also: convertible notes, equity rounds, revenue-based financing). Admin sets the label via `fundingSourceLabel` in global_assumptions. NEVER hardcode "SAFE" in UI — use `global.fundingSourceLabel` or generic "funding." Properties are funded separately (debt + equity per SPV).
 
 ### Business 2: Each Property (SPV)
 - Each property has its OWN set of investors operating under a **Special Purpose Vehicle (SPV)**

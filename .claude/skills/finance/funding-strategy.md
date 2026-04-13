@@ -1,13 +1,25 @@
 ---
 name: funding-strategy
-description: Capital strategy and SAFE funding analysis. Covers tranche modeling, cash runway projection, investor thesis generation, and FRED market rate integration. Load when working on FundingPredictor page or funding-predictor engine.
+description: Management company capital strategy. Covers funding vehicle modeling (SAFE is ONE option — also convertible notes, equity rounds, revenue-based financing), tranche sizing, cash runway projection, and investor thesis generation.
 ---
 
-# Funding Strategy & SAFE Tranche Modeling
+# Funding Strategy & Capital Structure
+
+## CRITICAL RULE
+
+**SAFE is only ONE type of funding vehicle for the management company.** The app supports ANY funding source — the admin sets the label via `fundingSourceLabel` in global_assumptions. Other options include:
+- SAFE (Simple Agreement for Future Equity)
+- Convertible Notes
+- Equity Rounds (Series Seed, A, B)
+- Revenue-Based Financing
+- Bridge Loans
+- Any custom label the admin defines
+
+**NEVER hardcode "SAFE" in UI labels or narratives.** Use `global.fundingSourceLabel` or the generic term "funding" instead.
 
 ## Purpose
 
-Documents the capital strategy system that models how the management company funds pre-profitability operations via SAFE (Simple Agreement for Future Equity) tranches, projects cash runway, and generates investor-facing narratives calibrated to live market rates.
+Documents the capital strategy system that models how the management company funds pre-profitability operations via configurable funding tranches, projects cash runway, and generates investor-facing narratives calibrated to live market rates.
 
 ## Key Files
 
