@@ -9,7 +9,7 @@ import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBa
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconBanknote, IconFileStack, IconMap, IconGlobe } from "@/components/icons";
+import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconBanknote, IconFileStack, IconMap, IconGlobe, IconInvestment } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import { calculateLoanParams, LoanParams, GlobalLoanParams, PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
@@ -30,6 +30,7 @@ import {
   PropertyHeader,
   BenchmarkPanel,
   ReconciliationTab,
+  InvestmentReturnsTab,
 } from "@/components/property-detail";
 const PropertyMap = lazy(() => import("@/components/PropertyMap"));
 import DocumentExtractionPanel from "@/components/DocumentExtractionPanel";
@@ -338,6 +339,7 @@ export default function PropertyDetail() {
               tabs={[
                 { value: 'income', label: 'Income Statement', icon: IconIncomeStatement },
                 { value: 'cashflow', label: 'Cash Flows', icon: IconCashFlow },
+                { value: 'investment', label: 'Investment Analysis', icon: IconInvestment },
                 { value: 'balance', label: 'Balance Sheet', icon: IconBalanceSheet },
                 { value: 'ppe', label: 'PP&E / Cost Basis', icon: IconPPE },
                 { value: 'reconciliation', label: 'Reconciliation', icon: IconBanknote },
@@ -406,6 +408,18 @@ export default function PropertyDetail() {
               startYear={startYear}
               cashFlowChartRef={cashFlowChartRef}
               cashFlowTableRef={cashFlowTableRef}
+            />
+          </TabsContent>
+
+          <TabsContent value="investment" className="mt-6">
+            <InvestmentReturnsTab
+              property={property}
+              global={global}
+              financials={financials}
+              cashFlowData={cashFlowDataMemo}
+              projectionYears={projectionYears}
+              startYear={startYear}
+              getFiscalYear={getFiscalYear}
             />
           </TabsContent>
 
