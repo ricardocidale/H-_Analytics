@@ -88,7 +88,14 @@ export const properties = pgTable("properties", {
   occupancyRampMonths: integer("occupancy_ramp_months").notNull(),
   occupancyGrowthStep: real("occupancy_growth_step").notNull(),
   stabilizationMonths: integer("stabilization_months").notNull().default(DEFAULT_STABILIZATION_MONTHS),
-  
+
+  pricingModel: text("pricing_model").$type<"per_room" | "per_property">(),
+  nightlyPropertyRate: real("nightly_property_rate"),
+  maxGuests: integer("max_guests"),
+
+  seasonalityProfile: jsonb("seasonality_profile").$type<number[]>(),
+  occupancyRampCurve: jsonb("occupancy_ramp_curve").$type<number[]>(),
+
   type: text("type").notNull(),
   
   // Financing fields (for Financed type)
@@ -272,6 +279,11 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   maxOccupancy: true,
   occupancyRampMonths: true,
   occupancyGrowthStep: true,
+  pricingModel: true,
+  nightlyPropertyRate: true,
+  maxGuests: true,
+  seasonalityProfile: true,
+  occupancyRampCurve: true,
   type: true,
   acquisitionLTV: true,
   acquisitionInterestRate: true,
@@ -374,6 +386,11 @@ const starRatingRefinement = z.object({
   hospitalityType: z.enum(HOSPITALITY_TYPES).optional(),
   businessModel: z.enum(BUSINESS_MODEL_TYPES).optional(),
   sourceUrls: z.array(z.string().url()).max(20).nullable().optional(),
+  pricingModel: z.enum(["per_room", "per_property"]).nullable().optional(),
+  nightlyPropertyRate: z.number().nullable().optional(),
+  maxGuests: z.number().int().nullable().optional(),
+  seasonalityProfile: z.array(z.number()).length(12).nullable().optional(),
+  occupancyRampCurve: z.array(z.number()).nullable().optional(),
 }).partial();
 
 export const updatePropertySchema = insertPropertySchema.partial().merge(starRatingRefinement);

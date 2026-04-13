@@ -23,7 +23,10 @@
  * All rates use sliders with EditableValue for precise entry. Research Badges
  * show AI benchmarks when available.
  */
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
@@ -35,6 +38,7 @@ import {
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
 } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function RevenueAssumptionsSection({ draft, onChange, researchValues }: PropertyEditSectionProps) {
@@ -327,7 +331,153 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
             </div>
           </div>
         </div>
+
+        <SeasonalityProfileEditor draft={draft} onChange={onChange} />
+
+        <OccupancyRampCurveEditor draft={draft} onChange={onChange} />
       </div>
+    </div>
+  );
+}
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DEFAULT_PROFILE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+
+function SeasonalityProfileEditor({ draft, onChange }: { draft: any; onChange: PropertyEditSectionProps["onChange"] }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const profile: number[] = draft.seasonalityProfile || DEFAULT_PROFILE;
+
+  return (
+    <div className="border-t border-primary/20 pt-4">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between hover:bg-muted/50 transition-colors text-left py-2"
+        data-testid="toggle-seasonality-profile"
+      >
+        <div className="flex items-center gap-2">
+          <Label className="label-text text-foreground cursor-pointer">Seasonality Profile</Label>
+          <InfoTooltip text="Monthly multipliers applied to occupancy and ADR. 1.0 = normal, 1.5 = 50% above normal (peak season), 0.5 = 50% below (trough). Research engines suggest profiles based on location and property type." />
+        </div>
+        <div className="flex items-center gap-2">
+          {!isOpen && (
+            <span className="text-xs text-muted-foreground font-mono">
+              {profile.every(v => v === 1) ? "Flat (1.0)" : "Custom"}
+            </span>
+          )}
+          <svg className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        </div>
+      </button>
+      {isOpen && (
+        <div className="pt-2 space-y-3">
+          <div className="grid grid-cols-6 gap-2">
+            {MONTH_LABELS.map((label, i) => (
+              <div key={i} className="text-center">
+                <Label className="text-xs text-muted-foreground">{label}</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="2"
+                  className="text-center text-sm bg-card border-primary/30"
+                  value={profile[i]}
+                  onChange={(e) => {
+                    const newProfile = [...profile];
+                    const parsed = parseFloat(e.target.value);
+                    newProfile[i] = isNaN(parsed) ? 1 : parsed;
+                    onChange("seasonalityProfile", newProfile);
+                  }}
+                  data-testid={`input-seasonality-${i}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => onChange("seasonalityProfile", [...DEFAULT_PROFILE])} data-testid="btn-reset-seasonality">
+              Reset to Flat
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OccupancyRampCurveEditor({ draft, onChange }: { draft: any; onChange: PropertyEditSectionProps["onChange"] }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const curve: number[] = draft.occupancyRampCurve || [];
+
+  return (
+    <div className="border-t border-primary/20 pt-4">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between hover:bg-muted/50 transition-colors text-left py-2"
+        data-testid="toggle-occupancy-ramp-curve"
+      >
+        <div className="flex items-center gap-2">
+          <Label className="label-text text-foreground cursor-pointer">Occupancy Ramp Curve</Label>
+          <InfoTooltip text="Annual percentages of stabilized occupancy. Year 1 = 55% means occupancy is 55% of your max in year 1. Overrides the step-function ramp when set. Leave empty to use the default step function." />
+        </div>
+        <div className="flex items-center gap-2">
+          {!isOpen && (
+            <span className="text-xs text-muted-foreground font-mono">
+              {curve.length === 0 ? "Default step function" : `${curve.length} years`}
+            </span>
+          )}
+          <svg className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        </div>
+      </button>
+      {isOpen && (
+        <div className="pt-2 space-y-3">
+          {curve.length === 0 && (
+            <p className="text-xs text-muted-foreground">No custom ramp defined. Using default step function based on occupancy growth step and ramp months.</p>
+          )}
+          <div className="space-y-2">
+            {curve.map((val, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground w-16 shrink-0">Year {i + 1}</span>
+                <Input
+                  type="number"
+                  step="0.05"
+                  min="0"
+                  max="1"
+                  value={val}
+                  onChange={(e) => {
+                    const c = [...curve];
+                    c[i] = parseFloat(e.target.value) || 0;
+                    onChange("occupancyRampCurve", c);
+                  }}
+                  className="w-24 bg-card border-primary/30 text-sm"
+                  data-testid={`input-ramp-year-${i}`}
+                />
+                <span className="text-sm text-muted-foreground font-mono w-12">{(val * 100).toFixed(0)}%</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive h-7 w-7 p-0"
+                  onClick={() => {
+                    const c = curve.filter((_, j) => j !== i);
+                    onChange("occupancyRampCurve", c.length > 0 ? c : null);
+                  }}
+                  data-testid={`btn-remove-ramp-year-${i}`}
+                >
+                  ×
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onChange("occupancyRampCurve", [...curve, curve.length === 0 ? 0.55 : 1.0])}
+            data-testid="btn-add-ramp-year"
+          >
+            + Add Year
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

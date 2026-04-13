@@ -257,8 +257,157 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               onChange={(v) => onChange("businessModel", v)}
             />
           </div>
+
+          {draft.businessModel === "vrbo" && (
+            <div className="sm:col-span-2 border border-primary/20 rounded-xl p-4 space-y-4">
+              <p className="text-sm font-medium text-foreground label-text">Pricing Model</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground flex items-center gap-1.5">Pricing Model<InfoTooltip text="Per Room uses hotel-style ADR × room count. Per Property charges a single nightly rate for the entire property (luxury rental model)." /></Label>
+                  <Select value={draft.pricingModel || "per_room"} onValueChange={(v) => onChange("pricingModel", v)}>
+                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-pricing-model"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="per_room">Per Room (hotel-style ADR × rooms)</SelectItem>
+                      <SelectItem value="per_property">Per Property (whole-property nightly rate)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {draft.pricingModel === "per_property" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="label-text text-foreground flex items-center gap-1.5">Nightly Property Rate ($)<InfoTooltip text="The per-night rate for renting the entire property. Revenue = rate × days × occupancy. Room count is tracked for capacity only." /></Label>
+                      <Input type="number" value={draft.nightlyPropertyRate || ""} onChange={(e) => onNumberChange("nightlyPropertyRate", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-nightly-property-rate" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="label-text text-foreground flex items-center gap-1.5">Max Guests<InfoTooltip text="Maximum guest capacity for the whole property. Used by research engines to calibrate comparable properties." /></Label>
+                      <Input type="number" step="1" value={draft.maxGuests || ""} onChange={(e) => { const v = parseInt(e.target.value, 10); onChange("maxGuests", isNaN(v) ? null : v); }} className="bg-card border-primary/30 text-foreground" data-testid="input-max-guests" />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        <PropertyDescriptorsSection draft={draft} onChange={onChange} onNumberChange={onNumberChange} />
       </div>
+    </div>
+  );
+}
+
+function PropertyDescriptorsSection({ draft, onChange, onNumberChange }: { draft: any; onChange: PropertyEditSectionProps["onChange"]; onNumberChange: PropertyEditSectionProps["onNumberChange"] }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="mt-6 border border-primary/20 rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors text-left"
+        data-testid="toggle-property-descriptors"
+      >
+        <div>
+          <p className="text-sm font-medium text-foreground label-text">Property Details</p>
+          <p className="text-xs text-muted-foreground">Classification, physical attributes, and F&B capacity</p>
+        </div>
+        <svg className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {isOpen && (
+        <div className="p-4 pt-0 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Quality Tier<InfoTooltip text="STR chain scale classification. Drives comp set matching and benchmark selection for research engines." /></Label>
+              <Select value={draft.qualityTier || ""} onValueChange={(v) => onChange("qualityTier", v)}>
+                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-quality-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="luxury">Luxury</SelectItem>
+                  <SelectItem value="upper_upscale">Upper Upscale</SelectItem>
+                  <SelectItem value="upscale">Upscale</SelectItem>
+                  <SelectItem value="upper_midscale">Upper Midscale</SelectItem>
+                  <SelectItem value="midscale">Midscale</SelectItem>
+                  <SelectItem value="economy">Economy</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Service Level<InfoTooltip text="Determines staffing model and expense structure. Full Service includes concierge, room service, and F&B. Limited Service operates with minimal on-site staff." /></Label>
+              <Select value={draft.serviceLevel || ""} onValueChange={(v) => onChange("serviceLevel", v)}>
+                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-service-level"><SelectValue placeholder="Select level" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full_service">Full Service</SelectItem>
+                  <SelectItem value="select_service">Select Service</SelectItem>
+                  <SelectItem value="limited_service">Limited Service</SelectItem>
+                  <SelectItem value="all_inclusive">All Inclusive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Location Type<InfoTooltip text="Geographic classification affecting seasonality patterns, ADR benchmarks, and expense ratios." /></Label>
+              <Select value={draft.locationType || ""} onValueChange={(v) => onChange("locationType", v)}>
+                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-location-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="urban">Urban</SelectItem>
+                  <SelectItem value="suburban">Suburban</SelectItem>
+                  <SelectItem value="resort">Resort</SelectItem>
+                  <SelectItem value="rural">Rural</SelectItem>
+                  <SelectItem value="airport">Airport</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Market Tier<InfoTooltip text="MSA classification. Primary = Top 25 metro areas with highest hotel demand. Secondary and tertiary markets have different risk/return profiles." /></Label>
+              <Select value={draft.marketTier || ""} onValueChange={(v) => onChange("marketTier", v)}>
+                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-market-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="primary">Primary (Top 25 MSA)</SelectItem>
+                  <SelectItem value="secondary">Secondary</SelectItem>
+                  <SelectItem value="tertiary">Tertiary</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="border-t border-primary/10 pt-4">
+            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">F&B & Events Capacity</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="label-text text-foreground text-sm">F&B Venues</Label>
+                <Input type="number" value={draft.fbVenues ?? ""} onChange={(e) => onNumberChange("fbVenues", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-fb-venues" />
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground text-sm">F&B Seats (total)</Label>
+                <Input type="number" value={draft.fbSeats ?? ""} onChange={(e) => onNumberChange("fbSeats", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-fb-seats" />
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground text-sm">Event Space (sq ft)</Label>
+                <Input type="number" value={draft.eventSpaceSqft ?? ""} onChange={(e) => onNumberChange("eventSpaceSqft", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-event-space" />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-primary/10 pt-4">
+            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Physical Attributes</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="label-text text-foreground text-sm">Total Acreage</Label>
+                <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground text-sm">Building (sq ft)</Label>
+                <Input type="number" value={draft.totalBuildingSqft ?? ""} onChange={(e) => onNumberChange("totalBuildingSqft", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-building-sqft" />
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground text-sm">Year Built</Label>
+                <Input type="number" value={draft.yearBuilt ?? ""} onChange={(e) => onNumberChange("yearBuilt", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-year-built" />
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground text-sm">Last Renovated</Label>
+                <Input type="number" value={draft.lastRenovationYear ?? ""} onChange={(e) => onNumberChange("lastRenovationYear", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-last-renovated" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

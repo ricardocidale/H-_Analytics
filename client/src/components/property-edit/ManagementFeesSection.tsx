@@ -19,7 +19,9 @@
  * income statement. This dual-entity structure is central to the platform.
  */
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
@@ -141,6 +143,41 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                 max={25}
                 step={1}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">
+                Owner Priority Return (%)
+                <InfoTooltip text="Minimum annual return on equity the owner must receive before incentive fees are charged. Industry standard investor protection. Set to 0 to disable." />
+              </Label>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                max="50"
+                value={(draft.ownerPriorityReturn || 0) * 100}
+                onChange={(e) => onChange("ownerPriorityReturn", parseFloat(e.target.value) / 100 || 0)}
+                className="bg-card border-primary/30 text-foreground"
+                data-testid="input-owner-priority-return"
+              />
+              <p className="text-xs text-muted-foreground">Hurdle rate before incentive fees apply</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">
+                Fee Subordination
+                <InfoTooltip text="When cash flow cannot cover debt service: 'Full' defers all management fees. 'Partial' defers only incentive fees. 'None' means fees are always charged." />
+              </Label>
+              <Select value={draft.feeSubordination || "none"} onValueChange={(v) => onChange("feeSubordination", v)}>
+                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-fee-subordination">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (fees always charged)</SelectItem>
+                  <SelectItem value="partial">Partial (defer incentive fee only)</SelectItem>
+                  <SelectItem value="full">Full (defer all fees when cash &lt; debt service)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
