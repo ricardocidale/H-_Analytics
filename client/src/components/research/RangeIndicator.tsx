@@ -8,8 +8,9 @@ import {
 
 interface RangeIndicatorProps {
   currentValue: number | null | undefined;
-  entry?: { display: string; mid: number; source?: string; sourceName?: string; sourceDate?: string } | null;
+  entry?: { display: string; mid: number; source?: string; sourceName?: string; sourceDate?: string; confidence?: string | null } | null;
   isPercent?: boolean;
+  showConfidence?: boolean;
   className?: string;
   "data-testid"?: string;
 }
@@ -51,7 +52,24 @@ const STATUS_LABEL: Record<RangeStatus, string> = {
   unknown: "No comparison available",
 };
 
-function RangeIndicator({ currentValue, entry, isPercent, className, ...props }: RangeIndicatorProps) {
+type ConfidenceLevel = "high" | "medium" | "low";
+
+function normalizeConfidence(raw?: string | null): ConfidenceLevel | null {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (lower.includes("high")) return "high";
+  if (lower.includes("med")) return "medium";
+  if (lower.includes("low")) return "low";
+  return null;
+}
+
+const CONFIDENCE_STYLES: Record<ConfidenceLevel, { dot: string; label: string }> = {
+  high:   { dot: "bg-emerald-500", label: "High" },
+  medium: { dot: "bg-amber-500",   label: "Med" },
+  low:    { dot: "bg-red-400",     label: "Low" },
+};
+
+function RangeIndicator({ currentValue, entry, isPercent, showConfidence = true, className, ...props }: RangeIndicatorProps) {
   if (!entry || !entry.display) return null;
 
   const range = parseRange(entry.display);
@@ -63,9 +81,12 @@ function RangeIndicator({ currentValue, entry, isPercent, className, ...props }:
     ? getRangeStatus(compareValue, range.low, range.high)
     : "unknown";
 
+  const confidence = normalizeConfidence(entry.confidence ?? entry.source);
+
   const tooltipParts: string[] = [`Research suggests ${entry.display}, mid ${isPercent ? `${entry.mid}%` : entry.mid}`];
   if (entry.sourceName) tooltipParts.push(`Source: ${entry.sourceName}`);
-  if (entry.source) tooltipParts.push(`Confidence: ${entry.source}`);
+  if (confidence) tooltipParts.push(`Confidence: ${CONFIDENCE_STYLES[confidence].label}`);
+  else if (entry.source) tooltipParts.push(`Confidence: ${entry.source}`);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -81,6 +102,13 @@ function RangeIndicator({ currentValue, entry, isPercent, className, ...props }:
           >
             <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", STATUS_DOT[status])} />
             {STATUS_LABEL[status]}
+            {showConfidence && confidence && (
+              <>
+                <span className="text-muted-foreground/40 mx-0.5">·</span>
+                <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", CONFIDENCE_STYLES[confidence].dot)} data-testid="confidence-indicator" />
+                <span className="opacity-75">{CONFIDENCE_STYLES[confidence].label}</span>
+              </>
+            )}
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs max-w-72">

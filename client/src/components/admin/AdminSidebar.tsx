@@ -28,7 +28,7 @@ export type AdminSection =
   | "companies" | "groups" | "scenarios"
   | "brand" | "exports"
   | "ai-agents" | "knowledge-base" | "conversations"
-  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines"
+  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines" | "benchmarks"
   | "navigation" | "notifications" | "verification" | "database"
   // Legacy aliases (redirect to canonical)
   | "icp" | "logos" | "themes" | "icons"
@@ -138,6 +138,7 @@ function buildNavGroups(): NavGroup[] {
         { value: "llm-config",         label: "LLM Configuration",    icon: IconLayers },
         { value: "engine-health",      label: "Engine Health",        icon: IconGauge },
         { value: "scheduled-research", label: "Scheduled Research",   icon: IconTimer },
+        { value: "benchmarks",         label: "Hospitality Benchmarks", icon: IconResearch },
       ],
     },
     {

@@ -58,6 +58,8 @@ import {
   PropertyLinksSection,
   ApplyResearchDialog,
 } from "@/components/property-edit";
+import RiskInsightsPanel from "@/components/property-edit/RiskInsightsPanel";
+import RegulatoryNotesPanel from "@/components/property-edit/RegulatoryNotesPanel";
 
 export default function PropertyEdit() {
   const [, params] = useRoute("/property/:id/edit");
@@ -575,6 +577,9 @@ export default function PropertyEdit() {
           totalServiceFeeRate={totalServiceFeeRate}
         />
         <OtherAssumptionsSection {...sectionProps} exitYear={exitYear} />
+
+        <RiskInsightsPanel propertyId={propertyId} />
+        <RegulatoryNotesPanel countryCode={draft.country} />
 
         <div className="flex justify-end pb-8">
           <SaveButton 

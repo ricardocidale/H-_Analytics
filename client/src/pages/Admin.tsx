@@ -31,6 +31,7 @@ const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSo
 const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
 const KnowledgeBaseTab = lazy(() => import("@/components/admin/KnowledgeBaseTab"));
 const FinancialLinesTab = lazy(() => import("@/components/admin/intelligence/FinancialLinesTab"));
+const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
 
 export type { AdminSaveState };
 
@@ -52,6 +53,7 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "qa-sandbox":          { title: "QA Sandbox",               subtitle: "Preview context packs and prompts before running research" },
   "scheduled-research":  { title: "Scheduled Research",       subtitle: "Automated research workflows that keep intelligence fresh" },
   "financial-lines":     { title: "Financial Lines",           subtitle: "Engine-suggested calculation additions for financial statements" },
+  benchmarks:            { title: "Hospitality Benchmarks",    subtitle: "Industry benchmark values powering AI research ranges" },
   notifications:         { title: "Notifications",            subtitle: "Email channels, alert rules, and delivery tracking" },
   navigation:            { title: "Navigation",               subtitle: "Control which sidebar pages are visible to users" },
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
@@ -123,6 +125,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "qa-sandbox":       return <QASandbox />;
     case "scheduled-research": return <ScheduledResearchPanel />;
     case "financial-lines":  return <FinancialLinesTab />;
+    case "benchmarks":       return <HospitalityBenchmarksTab />;
     case "notifications":    return <NotificationsTab />;
     case "navigation":       return <NavigationTab />;
     case "verification":     return <VerificationTab />;

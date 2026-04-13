@@ -132,7 +132,8 @@ The app uses a comprehensive research methodology. Key architectural principles:
 - **STR chain scale equivalence**: Independent/boutique properties are classified into equivalent STR tiers (Luxury/Upper Upscale/Upscale/etc.) based on ADR and star rating for industry-standard benchmarking.
 - **Post-improvement targeting**: Research targets the property's planned operating state after improvements, not acquisition state.
 - **N+1 synthesis pipeline**: Parallel analyst panels (Gemini + Claude) → API validation → Opus synthesis with attribution.
-- **Badge system**: Gold/amber `accent-pop` badges near every guidable assumption input field, showing AI-recommended ranges with source attribution. `RangeIndicator` component shows green/yellow/red status when current field value is within/near/outside the recommended range.
+- **Badge system**: Gold/amber `accent-pop` badges near every guidable assumption input field, showing AI-recommended ranges with source attribution. `RangeIndicator` component shows green/yellow/red status when current field value is within/near/outside the recommended range, plus inline confidence indicator (High/Med/Low dot).
+- **Intelligence Workflow**: Regenerate Intelligence button with staleness dot (green/amber/red), IntelligenceStatusBar with 30/90-day freshness thresholds, ApplyResearchDialog with dirty-field tracking and user-edit badges, RiskInsightsPanel (collapsible property risk grade + top risks), RegulatoryNotesPanel (non-US country regulatory context), PortfolioRiskGradeSection on OverviewTab, and HospitalityBenchmarksTab in Admin > AI Research Engines.
 - **Per-User Default Properties**: Admin can assign default properties to each user via `userDefaultProperties` table. UI in Admin > Users with toggle switches per property.
 - **Required Fields Configuration**: Admin can configure which property fields are required via `requiredFieldsConfig` JSONB on `global_assumptions`. Toggle UI in Admin > Model Defaults.
 

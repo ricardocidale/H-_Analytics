@@ -1,4 +1,5 @@
 import React, { useRef, useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useExportSave } from "@/hooks/useExportSave";
 import { Button } from "@/components/ui/button";
 import { type Insight } from "@/components/graphics";
@@ -9,9 +10,12 @@ import { formatMoney, getFiscalYearForModelYear } from "@/lib/financialEngine";
 import { DEFAULT_EXIT_CAP_RATE } from "@/lib/constants";
 import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Accordion } from "@/components/ui/accordion";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { IconShield } from "@/components/icons";
+import { cn } from "@/lib/utils";
 import { PIE_COLORS, buildWaterfallData, calculateIRR, truncName, type ChartMode } from "./overview-helpers";
 import { InvestmentPerformanceSection } from "./OverviewPerformanceSection";
 import { PortfolioCompositionSection, PortfolioInsightsSection, MarketStatusSection, WaterfallSection } from "./OverviewCompositionSections";
@@ -46,6 +50,50 @@ function ChartModeToggle({ mode, onChange }: { mode: ChartMode; onChange: (m: Ch
         Line
       </Button>
     </div>
+  );
+}
+
+const RISK_GRADE_COLORS: Record<string, string> = {
+  A: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  B: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  C: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  D: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  F: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+};
+
+function PortfolioRiskGradeSection() {
+  const { data: brief } = useQuery<{ riskGrade: string; riskScore: number; summary?: string }>({
+    queryKey: ["/api/risk/portfolio-brief"],
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (!brief) return null;
+
+  const gradeColor = RISK_GRADE_COLORS[brief.riskGrade?.[0]] ?? RISK_GRADE_COLORS.C;
+
+  return (
+    <AccordionItem value="riskGrade" className="border-none">
+      <div className="flex items-center gap-2 py-3 px-1">
+        <AccordionTrigger className="hover:no-underline p-0">
+          <span className="text-sm font-semibold text-foreground tracking-wide uppercase">Portfolio Risk</span>
+        </AccordionTrigger>
+        <Badge variant="secondary" className={cn("text-xs font-bold", gradeColor)} data-testid="text-portfolio-risk-grade">
+          {brief.riskGrade} · {brief.riskScore}/100
+        </Badge>
+      </div>
+      <AccordionContent className="pt-2 pb-4">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <IconShield className="w-5 h-5 text-primary" />
+            <h3 className="text-base font-semibold text-foreground font-display">Risk Assessment</h3>
+          </div>
+          {brief.summary && (
+            <p className="text-sm text-muted-foreground">{brief.summary}</p>
+          )}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
   );
 }
 
@@ -318,6 +366,8 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
             propertyIRRData={propertyIRRData}
             insights={insights}
           />
+
+          <PortfolioRiskGradeSection />
 
           <MarketStatusSection
             totalProperties={totalProperties}
