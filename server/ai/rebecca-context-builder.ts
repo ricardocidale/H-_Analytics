@@ -82,6 +82,30 @@ const FIELD_LABELS: Record<string, string> = {
   lastRenovationYear: "Last Renovation",
   businessModel: "Business Model",
   managementType: "Management Type",
+  // Source/research fields
+  confidenceScore: "Research Confidence Score",
+  stalenessStatus: "Research Data Freshness",
+  sourceHealth: "Data Source Health Status",
+  // Risk fields
+  riskGrade: "Portfolio Risk Grade",
+  concentrationRisk: "Revenue Concentration Risk",
+  geographicRisk: "Geographic Diversification Risk",
+  financialRisk: "Financial Leverage Risk",
+  operationalRisk: "Operational Risk Score",
+  // Stress test fields
+  stressOccupancy: "Occupancy Stress (-15%)",
+  stressAdr: "ADR Stress (-10%)",
+  stressRates: "Interest Rate Stress (+200bps)",
+  stressCosts: "Operating Cost Stress (+20%)",
+  stressCombined: "Combined Stress Scenario",
+  // Benchmark fields
+  benchmarkAdr: "Industry Benchmark ADR",
+  benchmarkOccupancy: "Industry Benchmark Occupancy",
+  benchmarkCapRate: "Industry Benchmark Cap Rate",
+  // Regulatory
+  regulatoryProfile: "Country Regulatory Profile",
+  foreignOwnership: "Foreign Ownership Rules",
+  licensingRequirements: "Hospitality Licensing Requirements",
 };
 
 function getFieldLabel(fieldKey: string): string {

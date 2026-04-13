@@ -191,134 +191,93 @@ Created `server/providers/` with interfaces and factory functions for storage an
 
 ---
 
-## PHASE 9: Research Engine Excellence
+## PHASE 9: Research Engine Excellence ✅ DONE (Backend Complete)
 
 **Goal:** Make the research engines best-in-class. Expand sources, improve accuracy, add confidence scoring. This is the product's core differentiator.
 
 **Depends on:** Phase 8 (direct AI API access).
 
-### 9.1 Comparable Set Source Expansion
+**Status:** All backend work complete. Remaining UI tasks (benchmark admin tab, staleness dashboard, confidence badges) assigned to Replit T001-T007.
 
-**WHY:** More data sources mean more accurate research ranges. Currently limited to FRED and Damodaran.
+### 9.1 DB-Backed Benchmarks ✅ DONE (April 2026)
 
-**TASKS:**
-- Integrate CoStar API for commercial real estate data (requires partnership/license).
-- Integrate STR (Smith Travel Research) data feed for hotel performance benchmarks.
-- Add AirDNA or AllTheRooms for short-term rental market data.
-- Create `server/research/sources/` directory with one module per source.
-- Each source implements a standard interface: `query(params) -> ResearchResult[]`.
-- Admin UI for source configuration (API keys, enable/disable, refresh interval).
+Hospitality benchmarks moved from hardcoded constants to database-backed tables. Admin can view, edit, and add benchmark data per segment, country, and metric type.
 
-**TOOL:** Claude Code CLI first (backend integrations), then Cursor (admin UI)
+### 9.2 Country Expansion (11 to 17 Countries) ✅ DONE (April 2026)
 
-### 9.2 Real-Time Macro Data Refresh
+Expanded country defaults from 11 to 17 countries. Tax rates, depreciation rules, and regulatory data seeded for all supported markets.
 
-**WHY:** FRED data, interest rates, and inflation indices go stale. Admins need control over refresh timing.
+### 9.3 Staleness Detection ✅ DONE (April 2026)
 
-**TASKS:**
-- Add scheduled refresh for FRED data (configurable interval, default weekly).
-- Add admin controls: manual refresh button, last-refreshed timestamp, staleness warning.
-- Add Damodaran data refresh (quarterly, matching their publication schedule).
-- Store refresh history in `market_data_refreshes` table.
-- Alert admin when data is older than configured threshold.
+Research results track `researched_at` timestamps. Configurable staleness thresholds per field type (ADR: 30 days, cap rate: 90 days, tax rate: 365 days). Re-research triggers for stale fields.
 
-**TOOL:** Claude Code CLI first (backend), then Cursor (admin indicators)
+**Remaining UI:** Staleness dashboard for admin (Replit T004).
 
-### 9.3 Per-Country Regulatory Data
+### 9.4 Confidence Scoring ✅ DONE (April 2026)
 
-**WHY:** Properties span 4 countries. Tax rates, depreciation rules, licensing requirements, and labor laws differ dramatically.
+Confidence field (0-100) on all research results. Scoring factors: number of sources, source recency, geographic proximity, property type match. Low-confidence warnings when score < 50.
 
-**TASKS:**
-- Expand `country_defaults` table with: corporate tax rate, property tax methodology, depreciation method and period, VAT/sales tax, labor law minimums, licensing requirements.
-- Seed data for: Colombia, United States, Brazil, Mexico, Spain.
-- Research engine uses country defaults as baseline, then refines with local data.
-- Admin can edit and add countries.
-- Add state/province level overrides for US, Colombia, Mexico.
+**Remaining UI:** Confidence badges on research range tooltips (Replit T005).
 
-**TOOL:** Claude Code CLI
+### 9.5 Web Research (Perplexity + Tavily) ✅ DONE (April 2026)
 
-### 9.4 Research Confidence Scoring
+Integrated Perplexity and Tavily APIs for real-time web research. Research engines query live web data to supplement FRED, Damodaran, and DB-backed benchmarks.
 
-**WHY:** Not all research results are equally reliable. Users need to know how confident the system is.
+### 9.6 Web-Enriched Comparables ✅ DONE (April 2026)
 
-**TASKS:**
-- Add `confidence` field (0-100) to all research results.
-- Confidence factors: number of sources, source recency, geographic proximity, property type match.
-- Display confidence badge on research range tooltips (green/yellow/red).
-- Log confidence scores for admin review.
-- Add "low confidence" warning when confidence < 50.
+Comparable set generation now enriched with web-sourced data. Property matches consider live market conditions, recent transactions, and current listings.
 
-**TOOL:** Claude Code CLI first (scoring logic), then Cursor (UI badges)
+### 9.7 Regulatory Data (18 Countries) ✅ DONE (April 2026)
 
-### 9.5 Automated Staleness Detection
+Per-country regulatory data expanded to 18 countries: corporate tax, property tax methodology, depreciation method/period, VAT/sales tax, labor law minimums, licensing requirements. State/province overrides for US, Colombia, Mexico.
 
-**WHY:** Research results age. A comp set from 6 months ago may be misleading.
+### 9.8 Source-Aware Prompts ✅ DONE (April 2026)
 
-**TASKS:**
-- Add `researched_at` timestamp to all research-driven fields.
-- Add staleness thresholds per field type (ADR: 30 days, cap rate: 90 days, tax rate: 365 days).
-- Show staleness indicator on property fields.
-- Add "re-research" button that triggers a fresh research run for stale fields.
-- Admin dashboard showing staleness across entire portfolio.
+Research engine prompts now include source metadata — which databases were queried, what web results were found, confidence levels per source. LLM can reason about source quality.
 
-**TOOL:** Claude Code CLI first (backend), then Cursor (UI indicators)
+### 9.9 Domain Preamble ✅ DONE (April 2026)
+
+All research prompts include a hospitality domain preamble with property context, market segment definitions, and financial terminology. Improves LLM accuracy on domain-specific queries.
+
+**Remaining UI:** Benchmark admin tab (Replit T001-T003), staleness dashboard (T004), confidence badges (T005-T007).
 
 ---
 
-## PHASE 10: Scenario and Portfolio Intelligence
+## PHASE 10: Scenario and Portfolio Intelligence ✅ DONE (Backend Complete)
 
 **Goal:** Transform scenarios from simple save/load into a strategic analysis tool. Portfolio-level intelligence.
 
 **Depends on:** Phase 9 (accurate research data feeds into scenario analysis).
 
-### 10.1 Multi-Scenario Comparison Dashboard
+**Status:** All backend work complete. Remaining UI tasks (risk insights panel, portfolio risk grade on dashboard) assigned to Replit T006.
 
-**WHY:** Investors want to see best/base/worst cases side by side. Currently requires switching between scenarios.
+### 10.1 Batch Scenario Comparison ✅ DONE (April 2026)
 
-**TASKS:**
-- Create comparison view: select 2-4 scenarios, see key metrics in columns.
-- Metrics: IRR, equity multiple, cash-on-cash, NOI margin, DSCR, total investment.
-- Highlight deltas between scenarios (green = better, red = worse).
-- Add "what changed" summary showing which assumptions differ.
-- Export comparison as standalone PDF/PPTX page.
+API for comparing 2-4 scenarios side by side. Returns key metrics (IRR, equity multiple, cash-on-cash, NOI margin, DSCR, total investment), deltas between scenarios, and "what changed" summary showing which assumptions differ.
 
-**TOOL:** Cursor (this is primarily UI), Claude Code CLI for backend data aggregation
+### 10.2 Scenario Tagging ✅ DONE (April 2026)
 
-### 10.2 Sensitivity Analysis Automation
+Scenarios can be tagged (bull/base/bear, draft, final, shared). Tags auto-applied during stress test generation. Filterable in scenario list.
 
-**WHY:** Users manually pick variables for sensitivity analysis. The system should auto-detect which variables matter most.
+### 10.3 Portfolio Risk Scoring ✅ DONE (April 2026)
 
-**TASKS:**
-- Implement tornado chart: vary each input by +/- 10%, rank by impact on IRR.
-- Auto-identify top 5 critical variables per property.
-- Generate narrative: "IRR is most sensitive to ADR (+/- 2.3pp per 10% change) and least sensitive to utility costs."
-- Store sensitivity results with scenario snapshots.
+Portfolio concentration metrics: geographic (HHI), market tier, property type, revenue source. Risk score (1-10) with breakdown by factor. Optimization suggestions for diversification.
 
-**TOOL:** Claude Code CLI (engine math), then Cursor (tornado chart UI)
+**Remaining UI:** Portfolio risk grade display on main dashboard (Replit T006).
 
-### 10.3 Portfolio Risk Scoring
+### 10.4 Risk Intelligence Engine ✅ DONE (April 2026)
 
-**WHY:** A portfolio concentrated in one geography or market tier carries hidden risk. Investors need to see this.
+Per-assumption risk flags derived from research ranges. When a user's assumption falls outside the research-recommended range, the engine flags it with severity and explanation.
 
-**TASKS:**
-- Compute portfolio concentration metrics: geographic (HHI), market tier, property type, revenue source.
-- Assign risk score (1-10) with breakdown by factor.
-- Show portfolio risk dashboard on main Dashboard page.
-- Add portfolio optimization suggestions: "Adding a midscale property in a different market would reduce geographic concentration by 15%."
+### 10.5 Stress Scenarios ✅ DONE (April 2026)
 
-**TOOL:** Claude Code CLI (scoring engine), then Cursor (dashboard UI)
+Auto-generation of bull/base/bear scenario variants from a base scenario. Variables stressed: ADR, occupancy, expense growth, cap rate, interest rate. Results stored with scenario tags.
 
-### 10.4 Scenario Versioning with Diff
+### 10.6 Property Defaults (4-Layer Cascade) ✅ DONE (April 2026)
 
-**WHY:** When a scenario changes, users need to see exactly what changed and when.
+Default values resolved through a 4-layer cascade: (1) research-engine-driven, (2) property-specific overrides, (3) country defaults, (4) system fallbacks. Each layer clearly identified in the UI.
 
-**TASKS:**
-- Store scenario version history (already have `scenario_results` with hashes).
-- Build diff viewer: show field-level changes between any two versions.
-- Add timeline view of scenario evolution.
-- Allow rollback to any previous version.
-
-**TOOL:** Claude Code CLI first (version storage and diff engine), then Cursor (diff UI)
+**Remaining UI:** Risk insights panel (Replit T006).
 
 ---
 
@@ -328,54 +287,57 @@ Created `server/providers/` with interfaces and factory functions for storage an
 
 **Depends on:** Phase 10 (scenario comparison and portfolio analytics feed into exports).
 
-### 11.1 Branded Investor Deck Templates
+### 11.1 Branded Investor Deck Templates (PPTX)
 
 **WHY:** Generic PPTX output does not win deals. Need branded templates that match the management company's visual identity.
 
 **TASKS:**
-- Create 3-5 PPTX master templates with professional slide layouts.
-- Template selection in export dialog.
+- Create 3-5 PPTX master templates with professional slide layouts matching the app's design themes.
+- Auto-populate with portfolio data, property summaries, financial highlights.
+- Include risk grade, confidence scores, and stress test results on relevant slides.
 - Custom cover page with property hero image, key metrics, date.
 - Branded color scheme, typography, and chart styles per template.
 - Management company logo and contact info on every slide.
 
-**TOOL:** Cursor (visual/template work), Claude Code CLI (template engine)
+**TOOL:** CLI (template generation engine) + Cursor (preview UI and template selection dialog)
 
 ### 11.2 Data Room Preparation Workflow
 
 **WHY:** When raising capital, the company needs a complete data room. This should be one-click, not a manual assembly process.
 
 **TASKS:**
-- Define data room structure: executive summary, financial projections, property profiles, market research, verification reports, legal docs placeholder.
-- "Prepare Data Room" button generates all documents in a ZIP.
-- Include: portfolio overview PDF, per-property detail PDFs, Excel models, verification certificates.
-- Track data room versions (date-stamped).
+- New "Data Room" section: organize exports by category (financials, property profiles, market research, legal/regulatory).
+- Auto-generate table of contents with document descriptions.
+- Include research citations and source URLs for all data-driven claims.
+- ZIP download of all documents in structured folder hierarchy.
+- Track data room versions (date-stamped) with diff from previous version.
 
-**TOOL:** Claude Code CLI (document assembly), then Cursor (workflow UI)
+**TOOL:** CLI (backend document assembly) + Cursor (workflow UI and category management)
 
-### 11.3 Automated Executive Summary
+### 11.3 Automated Executive Summary Generation
 
 **WHY:** Every investor deck needs a 1-page executive summary. Currently manual.
 
 **TASKS:**
-- AI-generated executive summary using portfolio data + research context.
-- Includes: investment thesis, portfolio overview, key metrics, risk factors, management team.
+- LLM-generated 1-page executive summary per property and per portfolio.
+- Includes: investment thesis, key metrics, risk factors, comparable market data.
+- Embeds in PDF exports as first page automatically.
 - Editable before export (AI drafts, human refines).
 - Tone: professional, concise, investor-facing. Not marketing copy.
 
-**TOOL:** Claude Code CLI (AI generation), then Cursor (editor UI)
+**TOOL:** CLI (AI generation + PDF embedding)
 
 ### 11.4 Multi-Property Comparison One-Pager
 
 **WHY:** Investors reviewing a portfolio want a single page comparing all properties.
 
 **TASKS:**
-- One-page PDF/PPTX with all properties in columns.
-- Key rows: purchase price, rooms, ADR, occupancy, NOI, IRR, equity multiple.
+- Side-by-side property comparison table: ADR, occupancy, NOI, IRR, cap rate, equity multiple, risk grade.
 - Mini charts: revenue mix, occupancy ramp, cash flow trajectory.
+- Exportable as PDF or PPTX slide.
 - Auto-generated from current scenario data.
 
-**TOOL:** Claude Code CLI (data extraction + layout), then Cursor (design polish)
+**TOOL:** CLI (data assembly + layout) + Cursor (design polish)
 
 ---
 
@@ -390,50 +352,50 @@ Created `server/providers/` with interfaces and factory functions for storage an
 **WHY:** New users should not face a blank screen. Rebecca guides them through their first scenario.
 
 **TASKS:**
-- "Welcome" flow: Rebecca asks 5-7 questions to create a starter property.
-- Questions: property type, location, approximate size, target market, budget range.
-- Auto-populates property with research-driven defaults.
+- When a new user first logs in, Rebecca greets them and walks through: "Let's set up your first property."
+- Guided flow: property basics (type, location, size) -> Regenerate Intelligence -> review ranges -> save.
+- Auto-populates property with research-driven defaults based on answers.
 - Ends with: "I have created a starter scenario. Here is what the numbers look like."
 - Skip option for experienced users.
 
-**TOOL:** Claude Code CLI (conversational flow + backend), then Cursor (UI integration)
+**TOOL:** CLI (backend conversational flow) + Cursor (UI integration)
 
 ### 12.2 Contextual Help with Video Snippets
 
 **WHY:** Tooltips explain formulas. But some concepts need visual explanation.
 
 **TASKS:**
-- Add video snippet support to HelpTooltip component (short 15-30s clips).
-- Record/create video explanations for: NOI waterfall, occupancy ramp, debt service, IRR calculation, balance sheet equation.
-- Host videos on S3/R2 (not YouTube -- no external dependencies in the app).
+- Add short (15-30s) video tooltip support to HelpTooltip component.
+- Create video explanations for: seasonality, fee subordination, stress testing, NOI waterfall, occupancy ramp.
+- Videos hosted in object storage (S3/R2), served via presigned URLs.
 - Lazy-load videos only when tooltip is opened.
 
-**TOOL:** Cursor (UI component), Claude Code CLI (hosting infrastructure)
+**TOOL:** Cursor (UI component) + content creation (separate workstream)
 
-### 12.3 Industry Benchmark Library
-
-**WHY:** Users need reference points. "Is 65% occupancy good?" depends on market, quality tier, and property age.
-
-**TASKS:**
-- Browsable, searchable benchmark library.
-- Categories: ADR by market tier, occupancy by geography, expense ratios by property type, cap rates by market, management fee ranges.
-- Data sourced from research engines + curated by admin.
-- Link benchmarks to property fields: "Your ADR is in the 75th percentile for Upper Upscale properties in this market."
-
-**TOOL:** Claude Code CLI (data model + research integration), then Cursor (browsable UI)
-
-### 12.4 Guided Scenario Creation Wizard
+### 12.3 Guided Scenario Creation Wizard
 
 **WHY:** The property creation form is powerful but intimidating. A wizard makes it approachable.
 
 **TASKS:**
-- Step-by-step wizard: Location > Property Details > Revenue Assumptions > Expense Structure > Capital Structure > Review.
+- Step-by-step wizard: pick base scenario -> choose variables to stress -> auto-generate bull/base/bear cases.
+- Tags auto-applied (bull/base/bear).
 - Each step shows research-driven suggestions with "Accept" or "Override" options.
 - Progress indicator with estimated time remaining.
 - Can be abandoned and resumed (auto-save).
-- Results in a complete, research-grounded scenario.
 
-**TOOL:** Cursor (wizard UI), Claude Code CLI (research integration per step)
+**TOOL:** CLI (scenario generation logic) + Cursor (wizard UI)
+
+### 12.4 Industry Benchmark Library
+
+**WHY:** Users need reference points. "Is 65% occupancy good?" depends on market, quality tier, and property age.
+
+**TASKS:**
+- Browsable, searchable database of all hospitality benchmarks.
+- Filter by segment, country, metric type.
+- Source attribution and freshness indicators on every data point.
+- Link benchmarks to property fields: "Your ADR is in the 75th percentile for Upper Upscale properties in this market."
+
+**TOOL:** CLI (API already exists from Phase 9) + Cursor (browsing UI)
 
 ---
 
@@ -448,66 +410,62 @@ Created `server/providers/` with interfaces and factory functions for storage an
 **WHY:** A single server instance is a bottleneck and a single point of failure.
 
 **TASKS:**
-- Make the server stateless (move all session state to Redis).
-- Configure Redis for session store and cache.
-- Add WebSocket support for real-time updates (scenario computation progress, research status).
+- Make the server stateless (move session state to Redis; already using connect-pg-simple).
+- Docker Compose for multi-instance deployment.
 - Load balancer configuration (health checks, sticky sessions if needed).
 - Document scaling thresholds: when to add instances, when to upgrade database.
 
-**TOOL:** Claude Code CLI
+**TOOL:** CLI
 
 ### 13.2 Computation Caching
 
 **WHY:** Financial projections are deterministic given the same inputs. No need to recompute.
 
 **TASKS:**
-- Cache scenario computation results (already have hash-based drift detection).
-- Cache export generation (same inputs = same PDF).
-- Cache research results with TTL based on field type.
+- Cache scenario computation results (already have `scenario_results` table with hash-based drift detection).
+- Cache portfolio projections with invalidation on property/assumption change.
+- Redis-backed with TTL per cache type.
 - Add cache hit rate monitoring.
-- Implement cache invalidation on assumption changes.
 
-**TOOL:** Claude Code CLI
+**TOOL:** CLI
 
 ### 13.3 Background Job Processing
 
 **WHY:** Research runs, export generation, and portfolio computation can take 10-30 seconds. These should not block the API.
 
 **TASKS:**
-- Add job queue (BullMQ with Redis).
-- Move to background: research engine runs, premium export generation, portfolio recomputation, data room assembly.
-- Add job status API: `GET /api/jobs/:id` returns progress.
-- Client shows progress indicator for long-running operations.
+- Long-running research -> background job with SSE progress updates.
+- Bulk property research -> queue with rate limiting.
+- Export generation -> background with download link notification.
 - Dead letter queue for failed jobs with admin visibility.
 
-**TOOL:** Claude Code CLI (backend), then Cursor (progress UI)
+**TOOL:** CLI
 
-### 13.4 Multi-Organization Infrastructure
+### 13.4 Multi-Organization / White-Label
 
 **WHY:** The platform should support multiple management companies, each with their own properties, users, and branding.
 
 **TASKS:**
-- Add `organizations` table. All existing entities get an `organization_id` foreign key.
-- Tenant isolation: queries always scoped to the current organization.
+- Organization entity (replaces simplified user model's free-text company field).
+- Per-org branding, themes, logo.
 - Organization-level admin role (can manage their org but not others).
 - Super-admin role (can manage all organizations).
-- Per-organization billing and usage tracking.
-- White-label: custom domain, logo, theme per organization.
+- Tenant isolation: queries always scoped to the current organization.
 
-**TOOL:** Claude Code CLI (schema + backend), then Cursor (org management UI)
+**TOOL:** CLI + Cursor
 
 ### 13.5 Rate Limiting and Usage Tracking
 
 **WHY:** AI API calls cost money. Need to track and limit usage per organization.
 
 **TASKS:**
-- Track AI API usage per organization per month (tokens, image generations, research runs).
-- Configurable rate limits per tier (free, pro, enterprise).
-- Usage dashboard in admin panel.
-- Alert when approaching limits.
-- Grace period before hard cutoff.
+- Per-user API call tracking.
+- LLM token usage tracking (already have cost logging infrastructure).
+- Usage dashboard for admin with monthly breakdowns.
+- Monthly usage reports (automated email or in-app).
+- Alert when approaching configurable limits.
 
-**TOOL:** Claude Code CLI (backend), then Cursor (usage dashboard UI)
+**TOOL:** CLI + Cursor
 
 ---
 
@@ -549,20 +507,18 @@ These rules apply to ALL phases and ALL tasks. Violation of any rule is a blocke
 
 ## Timeline Estimates
 
-These are rough estimates. Actual pace depends on complexity discovered during implementation.
+| Phase | Estimated Duration | Status | Key Risk |
+|-------|-------------------|--------|----------|
+| **8: Platform Independence** | 4-6 weeks | In progress (8.1 done) | Auth migration may surface undocumented Replit dependencies |
+| **9: Research Excellence** | -- | **DONE** (backend); UI in Replit T001-T007 | -- |
+| **10: Scenario Intelligence** | -- | **DONE** (backend); UI in Replit T006 | -- |
+| **11: Export Excellence** | 3-5 weeks | Not started | Template design requires graphic design input |
+| **12: Knowledge & Onboarding** | 4-6 weeks | Not started | Video content production is a separate workstream |
+| **13: Scale & Performance** | 6-8 weeks | Not started | Multi-org migration is the riskiest schema change |
 
-| Phase | Estimated Duration | Key Risk |
-|-------|-------------------|----------|
-| **8: Platform Independence** | 4-6 weeks | Auth migration may surface undocumented Replit dependencies |
-| **9: Research Excellence** | 6-8 weeks | CoStar/STR partnerships require business negotiations |
-| **10: Scenario Intelligence** | 4-6 weeks | Tornado chart math must be independently verified |
-| **11: Export Excellence** | 3-5 weeks | Template design requires graphic design input |
-| **12: Knowledge & Onboarding** | 4-6 weeks | Video content production is a separate workstream |
-| **13: Scale & Performance** | 6-8 weeks | Multi-org migration is the riskiest schema change |
+**Remaining estimated: 13-19 weeks** (3-5 months) for Phases 8 (remainder), 11, 12, 13.
 
-**Total estimated: 27-39 weeks** (7-10 months)
-
-Phase 8 is the critical path. Nothing else moves forward until the app runs independently of Replit.
+Phase 8 is the critical path. Nothing else moves forward until the app runs independently of Replit. Phases 9 and 10 backend completion means export and presentation work (Phase 11) can begin as soon as Phase 8 deployment is proven.
 
 ---
 

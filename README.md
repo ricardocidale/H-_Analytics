@@ -13,6 +13,7 @@ A financial modeling and portfolio management platform for boutique hospitality.
 - [Financial Engine](#financial-engine)
 - [Calculation Methodology](#calculation-methodology)
 - [Verification and Proof System](#verification-and-proof-system)
+- [Intelligence & Risk Analysis](#intelligence--risk-analysis)
 - [GAAP Standards Referenced](#gaap-standards-referenced)
 - [Role-Based Access](#role-based-access)
 - [AI Capabilities](#ai-capabilities)
@@ -282,7 +283,7 @@ Verified every month across every property — any imbalance triggers a critical
 
 ## Verification and Proof System
 
-The system provides **independent three-tier verification** of all financial calculations, backed by **4,536+ automated tests** across 187+ test files with a 15-phase verification pipeline.
+The system provides **independent three-tier verification** of all financial calculations, backed by **4,694+ automated tests** across 187+ test files with a 15-phase verification pipeline.
 
 ### Tier 1: Server-Side Independent Recalculation
 
@@ -327,6 +328,28 @@ Two toggles in **Settings > Other** control whether formula explanations (? tool
 - `showPropertyCalculationDetails` — Property reports
 
 When ON (default), every financial line item shows a help icon explaining its formula and meaning. When OFF, the view is clean and investor-ready.
+
+---
+
+## Intelligence & Risk Analysis
+
+### Research Intelligence
+- **Regenerate Intelligence**: One-button AI research using N+1 multi-LLM pipeline with entity-aware context
+- **Range Badges**: Gold/amber badges next to every assumption field showing researched min-max ranges
+- **Confidence Scoring**: 7-factor weighted score (0-100) per field and per entity
+- **25 Data Sources**: FRED, Perplexity, Tavily, Pinecone, 3 RapidAPI slots, Google Maps, Walk Score, and more — all health-checked
+- **18-Country Regulatory Data**: Licensing, zoning, building codes, foreign investment, labor for all supported markets
+
+### Risk Analysis
+- **Portfolio Risk Scoring**: 5-factor analysis (concentration, geographic, market tier, financial, operational) with A-F grade
+- **Stress Scenarios**: 5 deterministic tests (occupancy -15%, ADR -10%, rates +200bps, costs +20%, combined) with DSCR breach detection
+- **Risk Intelligence Engine**: Deterministic insights + optional LLM-generated investor narratives
+- **Property Defaults**: 4-layer cascade (business model → country → quality tier → scale) for intelligent assumption defaults
+
+### Property Portfolio Management
+- **Soft Delete**: Properties are never permanently deleted — archived with timestamp, restorable by admin
+- **Portfolio Assignment**: Admin assigns properties to users via toggles. Users see only their assigned portfolio.
+- **Scenario Overrides**: Users customize assumptions per scenario without changing the base property record
 
 ---
 
@@ -576,7 +599,7 @@ npm run exports:check  # Find unused exports
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 4,536+ across 187+ test files |
+| **Total Tests** | 4,694+ across 187+ test files |
 | **Verification Pipeline** | 15-phase verification pipeline |
 | **Test Coverage** | Revenue, expenses, depreciation, loan amortization, balance sheet, cash flow, management fees, scenarios, refinancing, IRR, sensitivity analysis, seasonality, luxury rentals |
 | **Verification Opinion** | UNQUALIFIED (clean — 0 critical, 0 material issues) |
