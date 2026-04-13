@@ -25,7 +25,8 @@ export interface CostEntry {
     | "resend"
     | "document-ai"
     | "google-maps"
-    | "perplexity";
+    | "perplexity"
+    | "tavily";
   model?: string;
   operation: string;
   inputTokens?: number;

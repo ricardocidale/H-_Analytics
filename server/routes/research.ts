@@ -24,6 +24,7 @@ import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 import { indexAssumptionGuidance, retrieveSimilarGuidance, isPineconeAvailable } from "../ai/pinecone-service";
 import { registerResearchMetaRoutes } from "./research-meta";
 import { detectStaleness } from "../ai/staleness-detector";
+import { conductWebResearch, isWebResearchAvailable, type WebResearchResult, type WebResearchRequest } from "../ai/web-research";
 
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -199,15 +200,48 @@ export function register(app: Express) {
       };
 
       let marketIntelligence;
+      let webResearchResults: WebResearchResult[] = [];
       try {
         const aggregator = getMarketIntelligenceAggregator();
-        marketIntelligence = await aggregator.gather({
-          location: propertyContext?.location || propertyContext?.market,
-          propertyType: assetDefinition?.level || "boutique hotel",
-          propertyId: propertyId || undefined,
-        });
+
+        // Build web research request from property context (runs in parallel with MI)
+        const webResearchRequest: WebResearchRequest | null =
+          isWebResearchAvailable() && propertyContext?.location
+            ? {
+                propertyContext: {
+                  name: propertyContext.name || "Property",
+                  location: propertyContext.location || propertyContext.market || "",
+                  qualityTier: propertyContext.qualityTier,
+                  roomCount: propertyContext.roomCount,
+                  businessModel: propertyContext.businessModel,
+                },
+                researchType: "market_adr",
+                country: propertyContext.country,
+              }
+            : null;
+
+        const [miResult, wrResult] = await Promise.allSettled([
+          aggregator.gather({
+            location: propertyContext?.location || propertyContext?.market,
+            propertyType: assetDefinition?.level || "boutique hotel",
+            propertyId: propertyId || undefined,
+          }),
+          webResearchRequest ? conductWebResearch(webResearchRequest) : Promise.resolve([]),
+        ]);
+
+        if (miResult.status === "fulfilled") {
+          marketIntelligence = miResult.value;
+        } else {
+          logger.warn(`Market intelligence fetch failed (non-blocking): ${miResult.reason}`, "research");
+        }
+
+        if (wrResult.status === "fulfilled") {
+          webResearchResults = wrResult.value;
+        } else {
+          logger.warn(`Web research failed (non-blocking): ${wrResult.reason}`, "research");
+        }
       } catch (err: unknown) {
-        logger.warn(`Market intelligence fetch failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
+        logger.warn(`Market intelligence / web research fetch failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
       }
 
       const params: import("../ai/research-prompt-builders").ResearchParams = {
@@ -577,6 +611,18 @@ export function register(app: Express) {
           };
         }
 
+        // Attach web research citations alongside market intelligence
+        if (webResearchResults.length > 0) {
+          parsed._webSources = webResearchResults.map((wr) => ({
+            source: wr.source,
+            query: wr.query,
+            summary: wr.summary,
+            citations: wr.citations,
+            retrievedAt: wr.retrievedAt.toISOString(),
+            tokenCost: wr.tokenCost ?? null,
+          }));
+        }
+
         if (parsed.rawResponse && type === "property") {
           logger.warn(`Skipping market_research storage for property ${propertyId} — AI returned unparseable response`, "research");
         } else {
@@ -624,6 +670,79 @@ export function register(app: Express) {
       logger.error(`Research generation error: ${error instanceof Error ? error.message : error}`, "research");
       res.write(`data: ${JSON.stringify({ type: "error", message: "Generation failed" })}\n\n`);
       res.end();
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // STANDALONE WEB RESEARCH — quick targeted lookups via
+  // Perplexity + Tavily without running the full LLM pipeline
+  // ────────────────────────────────────────────────────────────
+
+  app.post("/api/research/web-search", requireAuth, async (req, res) => {
+    try {
+      const { propertyId, researchType, focusField } = req.body ?? {};
+
+      if (!propertyId || !researchType) {
+        return res.status(400).json({ error: "propertyId and researchType are required" });
+      }
+
+      const validTypes = [
+        "market_adr", "market_occupancy", "cap_rates", "operating_costs",
+        "comparable_properties", "regulatory", "market_trends",
+      ];
+      if (!validTypes.includes(researchType)) {
+        return res.status(400).json({ error: `Invalid researchType. Must be one of: ${validTypes.join(", ")}` });
+      }
+
+      if (!(await checkPropertyAccess(getAuthUser(req), Number(propertyId)))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Rate limit: 10 req/min/user
+      if (isApiRateLimited(getAuthUser(req).id, "web-search", 10)) {
+        return res.status(429).json({ error: "Rate limit exceeded (10 requests per minute). Please wait." });
+      }
+
+      if (!isWebResearchAvailable()) {
+        return res.status(503).json({ error: "No web research providers configured (set PERPLEXITY_API_KEY or TAVILY_API_KEY)" });
+      }
+
+      const property = await storage.getProperty(Number(propertyId));
+      if (!property) {
+        return res.status(404).json({ error: "Property not found" });
+      }
+
+      const webRequest: WebResearchRequest = {
+        propertyContext: {
+          name: property.name || "Property",
+          location: property.location || "",
+          qualityTier: (property as any).qualityTier ?? undefined,
+          roomCount: property.roomCount ?? undefined,
+          businessModel: (property as any).businessModel ?? undefined,
+        },
+        researchType,
+        country: (property as any).country ?? undefined,
+        focusField: focusField ?? undefined,
+      };
+
+      const results = await conductWebResearch(webRequest);
+
+      logActivity(req, "web-search", "market_research", Number(propertyId), property.name, {
+        researchType,
+        focusField: focusField ?? null,
+        sources: results.map((r) => r.source),
+      });
+
+      res.json(results.map((wr) => ({
+        source: wr.source,
+        query: wr.query,
+        summary: wr.summary,
+        citations: wr.citations,
+        retrievedAt: wr.retrievedAt.toISOString(),
+        tokenCost: wr.tokenCost ?? null,
+      })));
+    } catch (error: unknown) {
+      logAndSendError(res, "Web research failed", error);
     }
   });
 

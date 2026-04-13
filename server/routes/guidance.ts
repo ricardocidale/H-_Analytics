@@ -12,6 +12,7 @@ import { generateResearchWithToolsStream, parseResearchJSON } from "../ai/aiRese
 import { createResearchClient, resolveVendorFromModel } from "../ai/research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "../ai/clients";
 import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
+import { computeConfidenceBreakdown, computePerFieldConfidence } from "../ai/confidence-scorer";
 import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 
 const VALID_ENTITY_TYPES = ["property", "company"] as const;
@@ -104,9 +105,46 @@ export function register(app: Express) {
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
-      res.json(guidance);
+
+      // Enrich each record with a per-field numeric confidence score
+      const enrichedGuidance = guidance.map(g => ({
+        ...g,
+        confidenceScore: computePerFieldConfidence(g),
+      }));
+
+      // Compute entity-level confidence summary
+      const confidenceSummary = computeConfidenceBreakdown(guidance, entityType);
+
+      res.json({
+        records: enrichedGuidance,
+        confidenceSummary,
+      });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch guidance", error);
+    }
+  });
+
+  // Lightweight confidence-only endpoint for badges / indicators
+  app.get("/api/guidance/:entityType/:entityId/confidence", requireAuth, async (req, res) => {
+    try {
+      const params = entityParamsSchema.safeParse(req.params);
+      if (!params.success) return res.status(400).json({ error: fromZodError(params.error).message });
+
+      const { entityType, entityId } = params.data;
+      if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const query = guidanceQuerySchema.safeParse(req.query);
+      if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
+
+      const scenarioId = query.data.scenarioId ?? null;
+      const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
+      const confidenceBreakdown = computeConfidenceBreakdown(guidance, entityType);
+
+      res.json(confidenceBreakdown);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to compute confidence", error);
     }
   });
 
@@ -127,7 +165,14 @@ export function register(app: Express) {
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
       const match = guidance.find(g => g.assumptionKey === assumptionKey);
-      res.json(match ?? null);
+      if (!match) {
+        res.json(null);
+        return;
+      }
+      res.json({
+        ...match,
+        confidenceScore: computePerFieldConfidence(match),
+      });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch guidance for key", error);
     }
