@@ -176,6 +176,22 @@ Created `server/providers/` with interfaces and factory functions for storage an
 
 **TOOL:** Claude Code CLI
 
+### 8.6 Migrate Pinecone → pgvector ⬜ TODO (do after owning Neon instance)
+
+**WHY:** Eliminates $70+/mo Pinecone dependency. pgvector is included free in Neon. Current vector dataset is tiny (~2-5K vectors across 7 namespaces) — pgvector handles this trivially. Cannot do this while on Replit's managed Neon (no control over PostgreSQL extensions). Must own the Neon project first.
+
+**TASKS:**
+- Enable pgvector extension on own Neon instance: `CREATE EXTENSION vector`
+- Create `embeddings` table: `id, namespace, content_hash, embedding vector(1536), metadata jsonb, created_at`
+- Create `VectorProvider` interface (like storage/auth providers)
+- Implement `PineconeVectorProvider` (wrap current code) and `PgVectorProvider`
+- Switch via `VECTOR_PROVIDER=pgvector` env var
+- Migrate data from all 7 Pinecone namespaces (knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties)
+- Verify Rebecca RAG quality matches Pinecone baseline
+- Remove `@pinecone-database/pinecone` dependency and `PINECONE_API_KEY`
+
+**TOOL:** Claude Code CLI | **Effort:** 2-3 days | **Prerequisite:** Phase 8.2 (own Neon instance)
+
 ### 8.7 Database Migration Strategy
 
 **WHY:** Need to move data from Replit-managed Neon to a self-managed database.
