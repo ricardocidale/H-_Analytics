@@ -669,6 +669,7 @@ describe("Client-side financial calculation gate (T016)", () => {
     "overviewExportData.ts",
     "DCFAnalysis.tsx",
     "InvestmentAnalysis.tsx",
+    "CompanyInvestmentTab.tsx",
   ]);
 
   const FINANCIAL_CALC_PATTERNS = [

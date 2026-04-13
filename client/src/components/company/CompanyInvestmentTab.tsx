@@ -24,9 +24,12 @@ function pct(v: number): string {
   return `${(v * 100).toFixed(1)}%`;
 }
 
-function calculateSafeIRR(cashFlows: number[]): number {
+function calculateSafeIRR(cashFlows: number[]): number | null {
+  const hasPositive = cashFlows.some(cf => cf > 0);
+  const hasNegative = cashFlows.some(cf => cf < 0);
+  if (!hasPositive || !hasNegative) return null;
   const result = computeIRR(cashFlows, 1);
-  return result.irr_periodic ?? 0;
+  return result.irr_periodic ?? null;
 }
 
 export default function CompanyInvestmentTab({
@@ -55,16 +58,19 @@ export default function CompanyInvestmentTab({
   const totalSafeFunding = (global.safeTranche1Amount ?? 0) + (global.safeTranche2Amount ?? 0);
 
   const breakevenMonth = useMemo(() => {
-    let foundNegative = false;
+    const SUSTAINED_MONTHS = 3;
     for (let i = 0; i < financials.length; i++) {
       const m = financials[i];
-      if (m.endingCash < 0 || m.cashFlow < 0) foundNegative = true;
-      if (foundNegative && m.endingCash > 0) {
-        return i + 1;
+      if (m.endingCash > 0 && m.netIncome >= 0) {
+        let sustained = true;
+        for (let j = i + 1; j < Math.min(i + SUSTAINED_MONTHS, financials.length); j++) {
+          if (financials[j].endingCash <= 0 || financials[j].netIncome < 0) {
+            sustained = false;
+            break;
+          }
+        }
+        if (sustained) return i + 1;
       }
-    }
-    if (!foundNegative && financials.length > 0 && financials[0].endingCash > 0) {
-      return 1;
     }
     return null;
   }, [financials]);
@@ -142,7 +148,7 @@ export default function CompanyInvestmentTab({
       Revenue: yd.Revenue,
       NetIncome: yd.NetIncome,
       EndingCash: yd.EndingCash,
-      SAFEFunding: yd.Funding,
+      Funding: yd.Funding,
     }));
   }, [yearlyChartData]);
 
@@ -180,7 +186,7 @@ export default function CompanyInvestmentTab({
 
       <FinancialChart
         data={chartData as unknown as Record<string, unknown>[]}
-        series={["revenue", "netIncome", "endingCash", "sAFEFunding"]}
+        series={["revenue", "netIncome", "endingCash", "funding"]}
         title={`${companyName} Investment Overview (${projectionYears}-Year)`}
         id="company-investment-chart"
       />
@@ -266,8 +272,8 @@ export default function CompanyInvestmentTab({
               <TableRow>
                 <TableCell className="font-medium">Implied SAFE IRR</TableCell>
                 {valuationScenarios.map((s, i) => (
-                  <TableCell key={i} className={`text-right font-mono ${s.safeIRR > 0.2 ? "text-positive" : s.safeIRR < 0 ? "text-negative" : ""}`}>
-                    {pct(s.safeIRR)}
+                  <TableCell key={i} className={`text-right font-mono ${s.safeIRR !== null && s.safeIRR > 0.2 ? "text-positive" : s.safeIRR !== null && s.safeIRR < 0 ? "text-negative" : ""}`}>
+                    {s.safeIRR !== null ? pct(s.safeIRR) : "N/A"}
                   </TableCell>
                 ))}
               </TableRow>
