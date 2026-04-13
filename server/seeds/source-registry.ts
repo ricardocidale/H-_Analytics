@@ -219,6 +219,19 @@ const SOURCE_SEEDS: SourceSeed[] = [
     description: "Tertiary RapidAPI key — subscribed to Airbnb (InsideBnB), Hotels.com, Google Hotels, Google Maps Reviews, Zillow, Alpha Vantage, Skyscanner, Realtor Search. Primary key for STR comp-set scraping.",
   },
 
+  // ── Hotel Pricing Data ──────────────────────────────────────────────────
+  {
+    serviceKey: "amadeus",
+    name: "Amadeus Hotel API",
+    sourceType: "api",
+    category: "market_data",
+    endpoint: "https://api.amadeus.com",
+    apiKeyRef: "AMADEUS_CLIENT_ID",
+    rateLimitPerMin: 10,
+    isActive: true,
+    description: "Live hotel pricing data across 770K+ properties. Free tier: 2-10K req/month. Provides comp-set analysis and market rate intelligence for competitive positioning.",
+  },
+
   // ── Enterprise Market Data (aspirational — code exists, not yet subscribed) ──
   {
     serviceKey: "costar",

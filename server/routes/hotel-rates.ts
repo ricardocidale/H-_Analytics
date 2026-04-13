@@ -3,6 +3,7 @@ import { requireAuth } from "../auth";
 import { logAndSendError } from "./helpers";
 import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceAggregator";
 import { aiRateLimit } from "../middleware/rate-limit";
+import { storage } from "../storage";
 import { z } from "zod";
 
 const searchSchema = z.object({
@@ -87,6 +88,72 @@ export function register(app: Express) {
       res.json({ snapshot });
     } catch (error: unknown) {
       logAndSendError(res, "Market snapshot failed", error);
+    }
+  });
+
+  // ── Amadeus Hotel API endpoints ──────────────────────────────────────────
+  // Stricter rate limit: 10 req/min to preserve free tier quota (2-10K/month)
+  const amadeusLimiter = aiRateLimit(10, 60_000);
+
+  const amadeusCompSetSchema = z.object({
+    propertyId: z.coerce.number().int().positive(),
+  });
+
+  const amadeusMarketSchema = z.object({
+    cityCode: z.string().length(3).toUpperCase(),
+    chk_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    chk_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  });
+
+  app.get("/api/hotel-rates/amadeus/comp-set/:propertyId", requireAuth, amadeusLimiter, async (req: Request, res: Response) => {
+    try {
+      const parsed = amadeusCompSetSchema.safeParse(req.params);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid property ID" });
+
+      const amadeus = getMarketIntelligenceAggregator().getAmadeusService();
+      if (!amadeus.isAvailable()) {
+        return res.status(503).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET." });
+      }
+
+      // Load property to get lat/lng and quality tier
+      const property = await storage.getProperty(parsed.data.propertyId);
+      if (!property) return res.status(404).json({ error: "Property not found" });
+
+      const latitude = property.latitude ? parseFloat(String(property.latitude)) : null;
+      const longitude = property.longitude ? parseFloat(String(property.longitude)) : null;
+      if (!latitude || !longitude) {
+        return res.status(400).json({ error: "Property is missing latitude/longitude coordinates" });
+      }
+
+      const compSet = await amadeus.searchCompSet({
+        name: property.name,
+        latitude,
+        longitude,
+        qualityTier: (property as any).qualityTier,
+        location: property.location ?? undefined,
+      });
+
+      res.json({ compSet });
+    } catch (error: unknown) {
+      logAndSendError(res, "Amadeus comp-set search failed", error);
+    }
+  });
+
+  app.get("/api/hotel-rates/amadeus/market/:cityCode", requireAuth, amadeusLimiter, async (req: Request, res: Response) => {
+    try {
+      const parsed = amadeusMarketSchema.safeParse({ ...req.params, ...req.query });
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid parameters. Requires cityCode (3-letter IATA), chk_in, chk_out (YYYY-MM-DD)." });
+
+      const amadeus = getMarketIntelligenceAggregator().getAmadeusService();
+      if (!amadeus.isAvailable()) {
+        return res.status(503).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET." });
+      }
+
+      const { cityCode, chk_in, chk_out } = parsed.data;
+      const marketRates = await amadeus.getMarketRates(cityCode, chk_in, chk_out);
+      res.json({ marketRates });
+    } catch (error: unknown) {
+      logAndSendError(res, "Amadeus market rates failed", error);
     }
   });
 }

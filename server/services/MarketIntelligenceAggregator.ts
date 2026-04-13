@@ -12,6 +12,7 @@ import { OpenExchangeRatesService } from "./OpenExchangeRatesService";
 import { WorldBankService } from "./WorldBankService";
 import { FinancialNewsService } from "./FinancialNewsService";
 import { AlphaVantageService } from "./AlphaVantageService";
+import { AmadeusService } from "./AmadeusService";
 import { cache } from "../cache";
 import { storage } from "../storage";
 import type { MarketIntelligence, FREDRateData, HospitalityBenchmarks, GroundedSearchResult, MoodysRiskData, SPGlobalMarketData, CoStarMarketData, XoteloMarketData, ApifyMarketData, RapidApiCompSetData, WeatherData, FxRates, WorldBankCountryData, FinancialNewsData, AlphaVantageData, DataPoint, DataRecencyWarning } from "../../shared/market-intelligence";
@@ -105,6 +106,7 @@ export class MarketIntelligenceAggregator {
   private worldBank: WorldBankService;
   private financialNews: FinancialNewsService;
   private alphaVantage: AlphaVantageService;
+  private amadeus: AmadeusService;
 
   constructor() {
     this.fred = new FREDService();
@@ -121,6 +123,7 @@ export class MarketIntelligenceAggregator {
     this.worldBank = new WorldBankService();
     this.financialNews = new FinancialNewsService();
     this.alphaVantage  = new AlphaVantageService();
+    this.amadeus = new AmadeusService();
   }
 
   async gather(query: AggregatorQuery): Promise<MarketIntelligence> {
@@ -408,6 +411,10 @@ export class MarketIntelligenceAggregator {
 
   getXoteloService(): XoteloService {
     return this.xotelo;
+  }
+
+  getAmadeusService(): AmadeusService {
+    return this.amadeus;
   }
 }
 

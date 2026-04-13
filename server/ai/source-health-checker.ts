@@ -178,6 +178,7 @@ const ENV_ONLY_SOURCES: Record<string, string> = {
   costar: "COSTAR_API_KEY",
   replicate: "REPLICATE_API_TOKEN",
   apify: "APIFY_API_TOKEN",
+  amadeus: "AMADEUS_CLIENT_ID",
 };
 
 export async function checkSourceHealth(serviceKey: string): Promise<HealthCheckResult> {
