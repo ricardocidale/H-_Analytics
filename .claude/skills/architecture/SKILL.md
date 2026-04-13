@@ -9,7 +9,7 @@ description: Project architecture, tech stack, and two-entity financial model. U
 
 Hospitality Business Group is a GAAP-compliant financial simulation platform for boutique hospitality management. It models a management company alongside individual property SPVs, producing monthly and yearly financial projections with full three-statement output (Income Statement, Balance Sheet, Cash Flow Statement).
 
-The platform enforces ASC 230, ASC 360, and ASC 470 compliance, applies IRS depreciation rules (straight-line and MACRS), and includes a built-in audit and verification engine. The test suite contains 3,022 tests across 135 files (500 golden reference tests) covering calculation accuracy, GAAP identity checks, and golden-file reconciliation. Hosted on Replit.
+The platform enforces ASC 230, ASC 360, and ASC 470 compliance, applies IRS depreciation rules (straight-line and MACRS), and includes a built-in audit and verification engine. The test suite contains 4,536+ tests across 187+ files (500 golden reference tests) covering calculation accuracy, GAAP identity checks, and golden-file reconciliation. Hosted on Replit.
 
 ## Tech Stack
 

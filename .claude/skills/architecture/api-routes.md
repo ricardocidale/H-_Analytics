@@ -166,7 +166,7 @@ Branding priority: user-level overrides (assignedLogoId, assignedThemeId, assign
   "startAdr": 330,
   "purchasePrice": 2300000,
   "type": "Full Equity",
-  "cateringBoostPercent": 0.30,
+  "cateringBoostPercent": 0,  // DEPRECATED — catering boost is no longer used in revenue calculations
   "costRateRooms": 0.36,
   "costRateFB": 0.15
 }

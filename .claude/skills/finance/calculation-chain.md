@@ -16,10 +16,11 @@ Any code change to the financial engine MUST be cross-referenced against this do
 | Sold Rooms | `availableRooms × occupancy` | STR methodology |
 | Room Revenue | `soldRooms × ADR` | STR: ADR = Total Room Revenue ÷ Rooms Sold |
 | RevPAR | `ADR × occupancy` or `roomRevenue ÷ availableRooms` | STR: both methods must agree |
-| F&B Revenue | `roomRevenue × revShareFB × (1 + cateringBoostPercent)` | Hospitality Business model |
-| Events Revenue | `roomRevenue × revShareEvents` | Hospitality Business model |
-| Other Revenue | `roomRevenue × revShareOther` | Hospitality Business model |
-| Total Revenue | `roomRevenue + fbRevenue + eventsRevenue + otherRevenue` | USALI Summary Statement |
+| F&B Revenue | `totalRevenue × revShareFB` | Hospitality Business model |
+| Events Revenue | `totalRevenue × revShareEvents` | Hospitality Business model |
+| Other Revenue | `totalRevenue × revShareOther` | Hospitality Business model |
+| ~~F&B Revenue (DEPRECATED)~~ | ~~`roomRevenue × revShareFB × (1 + cateringBoostPercent)`~~ | ~~Old formula — catering boost removed, revenue shares now % of total~~ |
+| Total Revenue | `roomRevenue / (1 - revShareFB - revShareEvents - revShareOther)` | USALI Summary Statement (algebraic derivation) |
 
 ### ADR Growth
 ```

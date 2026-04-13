@@ -34,9 +34,9 @@ Room Revenue = Room Count × 30.5 × ADR × Occupancy
 
 | Revenue Stream | Boutique Hotel Default | STR Typical Setting |
 |---------------|----------------------|-------------------|
-| F&B (% of Room Rev) | 18% | 0–2% |
-| Events & Functions (% of Room Rev) | 30% | 0% |
-| Other / Ancillary (% of Room Rev) | 5% | 3–8% (cleaning fees, etc.) |
+| F&B (% of Total Revenue) | 18% | 0–2% |
+| Events & Functions (% of Total Revenue) | 30% | 0% |
+| Other / Ancillary (% of Total Revenue) | 5% | 3–8% (cleaning fees, etc.) |
 
 STR properties typically generate revenue from cleaning fees and add-on services (early check-in, late check-out, local experiences). These are captured in the Other/Ancillary revenue stream.
 

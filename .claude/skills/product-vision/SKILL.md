@@ -172,7 +172,7 @@ Each hotel property is held in its own independent legal entity. Properties are 
 
 **STR vs. Hotel model differences the engine must respect:**
 - STR properties typically have **lower or zero F&B and Events revenue** — those ancillary percentage assumptions should be set near 0
-- STR properties have **platform distribution fees** (Airbnb/VRBO fees, typically 3–5% of room revenue) that appear as an operating expense — modeled under Other Operating Expenses
+- STR properties have **platform distribution fees** (Airbnb/VRBO fees, typically 3–5% of total revenue) that appear as an operating expense — modeled under Other Operating Expenses
 - STR properties have **lower departmental labor costs** — no front desk, no restaurant staff; housekeeping is often contracted per-turn
 - STR properties may have **higher cleaning fee revenue** offset by cleaning cost expenses
 - STR properties rely on **dynamic pricing tools** (e.g., PriceLabs, Wheelhouse) rather than traditional RevPAR management — ADR volatility is higher and seasonal variation more pronounced

@@ -16,9 +16,9 @@ Comprehensive checklist for major releases. Covers all 7 audit dimensions plus i
 
 ### Revenue
 - [ ] Room revenue = roomCount × ADR × occupancy × 30.5
-- [ ] Event revenue = roomRevenue × revShareEvents
-- [ ] F&B revenue = roomRevenue × revShareFB × (1 + cateringBoostPercent)
-- [ ] Other revenue = roomRevenue × revShareOther
+- [ ] Event revenue = totalRevenue × revShareEvents
+- [ ] F&B revenue = totalRevenue × revShareFB
+- [ ] Other revenue = totalRevenue × revShareOther
 - [ ] Total revenue = sum of all 4 streams
 - [ ] Revenue = 0 before operationsStartDate
 
