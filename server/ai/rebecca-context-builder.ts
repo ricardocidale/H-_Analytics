@@ -161,7 +161,7 @@ function buildPropertySummary(pack: PropertyContextPack, property?: Record<strin
       anomalies.push(`Events share is ${(eventsShare * 100).toFixed(0)}% but property has ${property.eventSpaceSqft.toLocaleString()} sq ft event space — comparable properties with this capacity average 15-20%.`);
     }
     if (anomalies.length > 0) {
-      parts.push(`\n⚠️ Observations: ${anomalies.join(" ")}`);
+      parts.push(`\n⚠️ Observations: ${anomalies.join(" | ")}`);
     }
   }
 

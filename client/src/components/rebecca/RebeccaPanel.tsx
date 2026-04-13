@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { usePanelManager } from "@/lib/panel-manager";
@@ -6,7 +7,7 @@ import { RebeccaContextCard } from "./RebeccaContextCard";
 import { RebeccaAvatar } from "./RebeccaAvatar";
 import { RebeccaTypingIndicator } from "./RebeccaTypingIndicator";
 import { RebeccaMarkdown } from "./RebeccaMarkdown";
-import { RebeccaInsightBanner } from "./RebeccaInsightBanner";
+import { RebeccaInsightBanner, useRebeccaInsightStore } from "./RebeccaInsightBanner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -76,9 +77,39 @@ interface RebeccaPanelProps {
   displayName?: string;
 }
 
+function derivePageLabel(pathname: string): string {
+  if (pathname.startsWith("/property/") && pathname.endsWith("/edit")) return "property-edit";
+  if (pathname.startsWith("/property/") && pathname.endsWith("/research")) return "property-research";
+  if (pathname.startsWith("/property/") && pathname.endsWith("/photos")) return "property-photos";
+  if (pathname.startsWith("/property/")) return "property-detail";
+  if (pathname.startsWith("/scenarios")) return "scenario-comparison";
+  if (pathname.startsWith("/company")) return "company-settings";
+  if (pathname.startsWith("/admin")) return "admin";
+  if (pathname.startsWith("/icp")) return "icp-studio";
+  if (pathname.startsWith("/profile")) return "profile";
+  if (pathname === "/" || pathname === "/dashboard") return "dashboard";
+  return "dashboard";
+}
+
+function parseObservationField(obs: string): { message: string; fieldKey?: string } | null {
+  if (!obs || obs.length < 10) return null;
+
+  let fieldKey: string | undefined;
+  if (obs.toLowerCase().includes("f&b revenue share") || obs.toLowerCase().includes("f&b share")) {
+    fieldKey = "revShareFB";
+  } else if (obs.toLowerCase().includes("events share") || obs.toLowerCase().includes("event space")) {
+    fieldKey = "revShareEvents";
+  }
+
+  return { message: obs, fieldKey };
+}
+
 export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const { activePanel, rebeccaContext, closeAll } = usePanelManager();
   const isOpen = activePanel === "rebecca";
+  const [location] = useLocation();
+  const currentPage = rebeccaContext?.currentPage ?? derivePageLabel(location);
+  const addInsight = useRebeccaInsightStore(s => s.addInsight);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -175,6 +206,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           : `Tell me about this ${rebeccaContext.entityType}.`,
         history: [],
         responseMode,
+        currentPage,
         fieldContext: {
           entityType: rebeccaContext.entityType,
           entityId: rebeccaContext.entityId,
@@ -203,12 +235,27 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         content: greeting,
         assets: data.assets,
       }]);
+      if (data.observations?.length) {
+        for (const obs of data.observations as string[]) {
+          const parsed = parseObservationField(obs);
+          if (parsed) {
+            const hash = `obs-${rebeccaContext?.entityId}-${parsed.fieldKey ?? obs.slice(0, 30)}`;
+            addInsight({
+              message: parsed.message,
+              type: "observation",
+              context: parsed.fieldKey
+                ? `Tell me more about ${parsed.fieldKey === "revShareFB" ? "F&B revenue share" : "events revenue share"} for this property`
+                : undefined,
+            }, hash);
+          }
+        }
+      }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return;
     } finally {
       setLoading(false);
     }
-  }, [rebeccaContext, conversationId, responseMode]);
+  }, [rebeccaContext, conversationId, responseMode, currentPage, addInsight]);
 
   const sendMessage = useCallback(
     async (text?: string) => {
@@ -235,6 +282,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           message: trimmed,
           history: [],
           responseMode,
+          currentPage,
         };
 
         if (forceNewRef.current) {
@@ -276,6 +324,22 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             detectedLanguage: data.detectedLanguage,
           },
         ]);
+
+        if (data.observations?.length) {
+          for (const obs of data.observations as string[]) {
+            const parsed = parseObservationField(obs);
+            if (parsed) {
+              const hash = `obs-${rebeccaContext?.entityId}-${parsed.fieldKey ?? obs.slice(0, 30)}`;
+              addInsight({
+                message: parsed.message,
+                type: "observation",
+                context: parsed.fieldKey
+                  ? `Tell me more about ${parsed.fieldKey === "revShareFB" ? "F&B revenue share" : "events revenue share"} for this property`
+                  : undefined,
+              }, hash);
+            }
+          }
+        }
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setMessages((prev) => [
@@ -291,7 +355,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         setLoading(false);
       }
     },
-    [input, loading, messages, rebeccaContext, conversationId, responseMode]
+    [input, loading, messages, rebeccaContext, conversationId, responseMode, currentPage, addInsight]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

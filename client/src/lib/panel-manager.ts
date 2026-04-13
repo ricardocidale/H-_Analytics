@@ -23,6 +23,7 @@ interface RebeccaContext {
   scenarioId?: number | null;
   fieldKey?: string;
   conversationId?: number | null;
+  currentPage?: string;
 }
 
 interface PanelManagerState {

@@ -12,6 +12,8 @@ import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@shared/schema";
 import { buildRebeccaContext } from "../ai/rebecca-context-builder";
+import { PAGE_LABELS, VALID_PAGE_KEYS, OBSERVATION_DELIMITER } from "@shared/rebecca-pages";
+import type { PageKey } from "@shared/rebecca-pages";
 import { retrieveDocumentContext, multiNamespaceQuery } from "../ai/pinecone-service";
 import { retrieveRelevantChunks } from "../ai/knowledge-base";
 import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
@@ -40,6 +42,7 @@ const chatRequestSchema = z.object({
   conversationId: z.number().int().positive().optional(),
   newConversation: z.boolean().optional(),
   responseMode: responseModeSchema,
+  currentPage: z.string().max(60).optional(),
 });
 
 export function register(app: Express) {
@@ -99,7 +102,7 @@ export function register(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
-      const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation, responseMode } = parsed.data;
+      const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation, responseMode, currentPage } = parsed.data;
       const modeConfig = RESPONSE_MODE_CONFIG[responseMode ?? "standard"] ?? RESPONSE_MODE_CONFIG.standard;
 
       const authUser = getAuthUser(req);
@@ -135,6 +138,11 @@ export function register(app: Express) {
       const baseFee = ga?.baseManagementFee ?? 0;
       const incentiveFee = ga?.incentiveManagementFee ?? 0;
 
+      const validPage = currentPage && (VALID_PAGE_KEYS as readonly string[]).includes(currentPage)
+        ? (currentPage as PageKey)
+        : null;
+      const pageDescription = validPage ? PAGE_LABELS[validPage] : "Unknown";
+
       const userContextLines: string[] = [
         "CURRENT USER:",
         `Name: ${userName}`,
@@ -142,6 +150,7 @@ export function register(app: Express) {
         `Role: ${authUser.role}`,
         `Company: ${authUser.company ?? "N/A"}`,
         `Title: ${authUser.title ?? "N/A"}`,
+        `Currently viewing: ${pageDescription}`,
       ];
 
       let scenarioContextBlock = "";
@@ -285,6 +294,7 @@ export function register(app: Express) {
 
       let rebeccaFieldBlock = "";
       let autoGreeting: string | null = null;
+      let observations: string[] = [];
       if (fieldCtx) {
         try {
           if (fieldCtx.entityType === "property") {
@@ -308,6 +318,15 @@ export function register(app: Express) {
           }
           rebeccaFieldBlock = fieldParts.join("\n");
           autoGreeting = ctxPayload.autoGreeting;
+
+          const obsMarker = "⚠️ Observations:";
+          const obsIdx = ctxPayload.entitySummary.indexOf(obsMarker);
+          if (obsIdx !== -1) {
+            const obsText = ctxPayload.entitySummary.slice(obsIdx + obsMarker.length).trim();
+            observations = obsText.split(OBSERVATION_DELIMITER)
+              .map(s => s.trim())
+              .filter(s => s.length > 10);
+          }
         } catch (err: unknown) {
           logger.warn(`Failed to build Rebecca field context: ${(err instanceof Error ? err.message : String(err))}`, "chat");
         }
@@ -499,6 +518,7 @@ export function register(app: Express) {
         detectedLanguage,
         ...(autoGreeting ? { autoGreeting } : {}),
         ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
+        ...(observations.length > 0 ? { observations } : {}),
       });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
