@@ -51,6 +51,7 @@ const CompanyIncomeTab = lazy(() => import("@/components/company/CompanyIncomeTa
 const CompanyCashFlowTab = lazy(() => import("@/components/company/CompanyCashFlowTab").then(m => ({ default: m.default })));
 const CompanyBalanceSheet = lazy(() => import("@/components/company/CompanyBalanceSheet").then(m => ({ default: m.default })));
 const CompanyBenchmarkPanel = lazy(() => import("@/components/company/CompanyBenchmarkPanel").then(m => ({ default: m.default })));
+const CompanyInvestmentTab = lazy(() => import("@/components/company/CompanyInvestmentTab").then(m => ({ default: m.default })));
 import { 
   generateCompanyIncomeData, 
   generateCompanyCashFlowData, 
@@ -273,7 +274,7 @@ export default function Company() {
     }
   };
 
-  const tabLabel = activeTab === "income" ? "Income Statement" : activeTab === "cashflow" ? "Cash Flow" : "Balance Sheet";
+  const tabLabel = activeTab === "income" ? "Income Statement" : activeTab === "cashflow" ? "Cash Flow" : activeTab === "investment" ? "Investment" : "Balance Sheet";
 
   const exportMenuNode = (
     <ExportMenu
@@ -429,6 +430,19 @@ export default function Company() {
               tableRef={tableRef}
               activeTab={activeTab}
               yearlyChartData={yearlyChartData}
+            />
+          </TabsContent>
+
+          <TabsContent value="investment" className="mt-6">
+            <CompanyInvestmentTab
+              financials={financials}
+              projectionYears={projectionYears}
+              getFiscalYear={getFiscalYear}
+              yearlyChartData={yearlyChartData}
+              propertyFinancials={propertyFinancials}
+              global={global}
+              tableRef={tableRef}
+              activeTab={activeTab}
             />
           </TabsContent>
           </Suspense>

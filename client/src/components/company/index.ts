@@ -20,4 +20,5 @@ export { default as CompanyBalanceSheet } from "./CompanyBalanceSheet";
 export { default as CompanyHeader } from "./CompanyHeader";
 export { default as CompanyProfileTab } from "./CompanyProfileTab";
 export { default as CompanyBenchmarkPanel } from "./CompanyBenchmarkPanel";
+export { default as CompanyInvestmentTab } from "./CompanyInvestmentTab";
 export type { CompanyTabProps, CompanyBalanceSheetProps, CompanyHeaderProps, CompanyChartDataPoint, CompanyCashAnalysis } from "./types";
