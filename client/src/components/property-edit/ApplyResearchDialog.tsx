@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight } from "@/components/icons/themed-icons";
 import { IconWand2 } from "@/components/icons";
+import { cn } from "@/lib/utils";
 
 /**
  * Maps research value keys to property field names, labels, and divisors.
@@ -70,6 +71,7 @@ interface ApplyResearchDialogProps {
   draft: Record<string, any>;
   researchValues: Record<string, { display: string; mid: number; source?: string }>;
   onChange: (key: string, value: number | null) => void;
+  dirtyFields?: Set<string>;
 }
 
 interface FieldDiff {
@@ -81,9 +83,10 @@ interface FieldDiff {
   convertedValue: number;
   format: "percent" | "currency" | "number";
   changed: boolean;
+  isUserEdited: boolean;
 }
 
-export function ApplyResearchDialog({ open, onOpenChange, draft, researchValues, onChange }: ApplyResearchDialogProps) {
+export function ApplyResearchDialog({ open, onOpenChange, draft, researchValues, onChange, dirtyFields }: ApplyResearchDialogProps) {
   const diffs = useMemo(() => {
     const result: FieldDiff[] = [];
     for (const mapping of RESEARCH_TO_PROPERTY_MAP) {
@@ -92,6 +95,8 @@ export function ApplyResearchDialog({ open, onOpenChange, draft, researchValues,
       const converted = rv.mid / mapping.divisor;
       const current = draft[mapping.propertyField];
       const changed = current == null || Math.abs(current - converted) > 0.0001;
+      if (!changed) continue;
+      const isUserEdited = dirtyFields?.has(mapping.propertyField) ?? false;
       result.push({
         researchKey: mapping.researchKey,
         propertyField: mapping.propertyField,
@@ -101,19 +106,20 @@ export function ApplyResearchDialog({ open, onOpenChange, draft, researchValues,
         convertedValue: converted,
         format: mapping.format,
         changed,
+        isUserEdited,
       });
     }
-    return result.filter(d => d.changed);
-  }, [draft, researchValues]);
+    return result;
+  }, [draft, researchValues, dirtyFields]);
 
-  const [selected, setSelected] = useState<Set<string>>(new Set(diffs.map(d => d.propertyField)));
+  const autoSelectableFields = diffs.filter(d => !d.isUserEdited).map(d => d.propertyField);
+  const [selected, setSelected] = useState<Set<string>>(new Set(autoSelectableFields));
 
-  // Reset selections when diffs change
   const diffKey = diffs.map(d => d.propertyField).join(",");
   const [prevDiffKey, setPrevDiffKey] = useState(diffKey);
   if (diffKey !== prevDiffKey) {
     setPrevDiffKey(diffKey);
-    setSelected(new Set(diffs.map(d => d.propertyField)));
+    setSelected(new Set(diffs.filter(d => !d.isUserEdited).map(d => d.propertyField)));
   }
 
   const toggleField = (field: string) => {
@@ -175,7 +181,10 @@ export function ApplyResearchDialog({ open, onOpenChange, draft, researchValues,
             {diffs.map((diff) => (
               <label
                 key={diff.propertyField}
-                className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                className={cn(
+                  "flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted cursor-pointer transition-colors",
+                  diff.isUserEdited && "opacity-60"
+                )}
                 data-testid={`apply-field-${diff.propertyField}`}
               >
                 <Checkbox
@@ -183,7 +192,14 @@ export function ApplyResearchDialog({ open, onOpenChange, draft, researchValues,
                   onCheckedChange={() => toggleField(diff.propertyField)}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{diff.label}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{diff.label}</p>
+                    {diff.isUserEdited && (
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" data-testid={`edited-badge-${diff.propertyField}`}>
+                        Edited
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>{formatValue(diff.currentValue, diff.format)}</span>
                     <ArrowRight className="w-3 h-3 text-primary" />

@@ -3,9 +3,10 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type FreshnessStatus = "current" | "stale" | "missing" | "running";
+export type FreshnessStatus = "current" | "stale" | "very_stale" | "missing" | "running";
 
-const STALE_THRESHOLD_DAYS = 7;
+const STALE_THRESHOLD_DAYS = 30;
+const VERY_STALE_THRESHOLD_DAYS = 90;
 
 function safeTimestamp(val: string | Date | null | undefined): number | null {
   if (!val) return null;
@@ -24,18 +25,22 @@ export function computeFreshnessStatus(opts: {
 
   const updatedAt = safeTimestamp(opts.researchUpdatedAt);
   if (updatedAt === null) {
-    return { status: "missing", reason: "No research has been generated yet", daysAgo: null };
+    return { status: "missing", reason: "Press Regenerate Intelligence to get AI-recommended ranges for all assumptions", daysAgo: null };
   }
 
   const daysAgo = Math.max(0, Math.floor((Date.now() - updatedAt) / (1000 * 60 * 60 * 24)));
 
   const assumptionTs = safeTimestamp(opts.lastAssumptionChangeAt);
   if (assumptionTs !== null && assumptionTs > updatedAt) {
-    return { status: "stale", reason: "Assumptions changed since last research", daysAgo };
+    return { status: "stale", reason: "Assumptions changed since last research — press Regenerate to update ranges", daysAgo };
+  }
+
+  if (daysAgo > VERY_STALE_THRESHOLD_DAYS) {
+    return { status: "very_stale", reason: `Intelligence is ${daysAgo} days old — press Regenerate to update ranges`, daysAgo };
   }
 
   if (daysAgo > STALE_THRESHOLD_DAYS) {
-    return { status: "stale", reason: `Research is ${daysAgo} days old`, daysAgo };
+    return { status: "stale", reason: "Intelligence is outdated — press Regenerate to update ranges", daysAgo };
   }
 
   return { status: "current", reason: "Intelligence is up to date", daysAgo };
@@ -53,7 +58,7 @@ const STATUS_CONFIG: Record<FreshnessStatus, {
     border: "border-emerald-500/30",
     text: "text-emerald-700 dark:text-emerald-400",
     icon: IconCheckCircle,
-    label: "Current",
+    label: "Fresh",
   },
   stale: {
     bg: "bg-amber-500/10",
@@ -62,12 +67,19 @@ const STATUS_CONFIG: Record<FreshnessStatus, {
     icon: IconClock,
     label: "Stale",
   },
-  missing: {
+  very_stale: {
     bg: "bg-red-500/10",
     border: "border-red-500/30",
     text: "text-red-700 dark:text-red-400",
     icon: IconAlertTriangle,
-    label: "Missing",
+    label: "Very Stale",
+  },
+  missing: {
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/30",
+    text: "text-blue-700 dark:text-blue-400",
+    icon: IconAlertTriangle,
+    label: "No Research",
   },
   running: {
     bg: "bg-blue-500/10",
@@ -130,7 +142,7 @@ export function IntelligenceStatusBar({
           {timeLabel && status !== "missing" && ` · Last run ${timeLabel}`}
         </span>
       </div>
-      {status !== "running" && status !== "current" && (
+      {(status === "stale" || status === "very_stale" || status === "missing") && (
         <Button
           size="sm"
           variant="ghost"

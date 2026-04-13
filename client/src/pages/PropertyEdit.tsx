@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertTriangle, IconWand2, IconPlay, IconEye } from "@/components/icons";
+import { IconAlertTriangle, IconWand2, IconEye, IconSparkles } from "@/components/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -77,6 +77,8 @@ export default function PropertyEdit() {
   const [feeDraft, setFeeDraft] = useState<FeeCategoryResponse[] | null>(null);
   const { markDirty: markGlobalDirty, clearDirty: clearGlobalDirty } = useScenarioDirtyState();
   const [showApplyDialog, setShowApplyDialog] = useState(false);
+  const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
+  const wasGeneratingRef = useRef(false);
   const { data: marketRates } = useMarketRates();
 
   const { isGenerating, streamedContent, generateResearch } = useResearchStream({
@@ -103,11 +105,18 @@ export default function PropertyEdit() {
       lastAssumptionChangeAt: propertyLastAssumptionChangeAt,
       isGenerating: false,
     });
-    if (status === "stale" || status === "missing") {
+    if (status === "stale" || status === "very_stale" || status === "missing") {
       autoRefreshFired.current = true;
       generateResearch();
     }
   }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isDirty, isGenerating, freshnessMeta]);
+
+  useEffect(() => {
+    if (wasGeneratingRef.current && !isGenerating && research?.content) {
+      setShowApplyDialog(true);
+    }
+    wasGeneratingRef.current = isGenerating;
+  }, [isGenerating, research]);
 
   useEffect(() => {
     if (feeCategories && !feeDraft) {
@@ -360,6 +369,7 @@ export default function PropertyEdit() {
   const handleChange = (key: string, value: string | number | boolean | number[] | null) => {
     setDraft({ ...draft, [key]: value });
     setIsDirty(true);
+    setDirtyFields(prev => new Set(prev).add(key));
     markGlobalDirty();
   };
 
@@ -368,6 +378,7 @@ export default function PropertyEdit() {
     if (!isNaN(numValue)) {
       setDraft({ ...draft, [key]: numValue });
       setIsDirty(true);
+      setDirtyFields(prev => new Set(prev).add(key));
       markGlobalDirty();
     }
   };
@@ -449,31 +460,44 @@ export default function PropertyEdit() {
                     variant="default"
                     onClick={generateResearch}
                     disabled={isGenerating}
-                    data-testid="button-run-research"
+                    data-testid="button-regenerate-intelligence"
                   >
                     <span className="relative">
                       {isGenerating ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <IconPlay className="w-4 h-4" />
+                        <IconSparkles className="w-4 h-4" />
                       )}
                       {!isGenerating && (() => {
                         const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
                         return (
                           <span
                             className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                              status === "current" ? "bg-primary/80" :
-                              status === "stale" ? "bg-accent-pop/80" : "bg-muted-foreground"
+                              status === "current" ? "bg-emerald-500" :
+                              status === "stale" ? "bg-amber-500" :
+                              status === "very_stale" ? "bg-red-500" :
+                              status === "missing" ? "bg-muted-foreground" : "bg-muted-foreground"
                             }`}
                           />
                         );
                       })()}
                     </span>
-                    {isGenerating ? "Analyzing…" : "Run Research"}
+                    {isGenerating ? "Analyzing…" : "Regenerate Intelligence"}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-[260px] text-center">
-                  Run market research to see what comparable properties are achieving — good practice before finalizing your assumptions.
+                  {researchUpdatedAt
+                    ? `Last researched ${(() => {
+                        const ms = Date.now() - new Date(researchUpdatedAt).getTime();
+                        const mins = Math.floor(ms / 60000);
+                        if (mins < 1) return "just now";
+                        if (mins < 60) return `${mins}m ago`;
+                        const hrs = Math.floor(mins / 60);
+                        if (hrs < 24) return `${hrs}h ago`;
+                        return `${Math.floor(hrs / 24)}d ago`;
+                      })()} · `
+                    : ""}
+                  Run AI research to get market-backed ranges for all assumptions.
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
@@ -568,6 +592,7 @@ export default function PropertyEdit() {
         onOpenChange={setShowApplyDialog}
         draft={draft}
         researchValues={researchValues}
+        dirtyFields={dirtyFields}
         onChange={(key, value) => {
           handleChange(key, value);
         }}
