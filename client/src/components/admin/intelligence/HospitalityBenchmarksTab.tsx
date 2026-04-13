@@ -57,7 +57,7 @@ export default function HospitalityBenchmarksTab() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  const { data: benchmarks = [], isLoading } = useQuery<Benchmark[]>({
+  const { data: benchmarks = [], isLoading, isError } = useQuery<Benchmark[]>({
     queryKey: ["/api/hospitality-benchmarks"],
   });
 
@@ -100,6 +100,15 @@ export default function HospitalityBenchmarksTab() {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-12">
+        <IconAlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">Failed to load benchmarks. Please try again later.</p>
       </div>
     );
   }

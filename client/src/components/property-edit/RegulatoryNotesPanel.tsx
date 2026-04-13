@@ -25,7 +25,7 @@ export default function RegulatoryNotesPanel({ countryCode }: { countryCode: str
 
   const enabled = !!countryCode && countryCode !== "US";
 
-  const { data: profile, isLoading } = useQuery<RegulatoryProfile>({
+  const { data: profile, isLoading, isError } = useQuery<RegulatoryProfile>({
     queryKey: [`/api/regulatory/${countryCode}`],
     enabled,
     retry: false,
@@ -45,12 +45,12 @@ export default function RegulatoryNotesPanel({ countryCode }: { countryCode: str
     );
   }
 
-  if (!profile || !profile.sections?.length) return null;
+  if (isError || !profile || !profile.sections?.length) return null;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="bg-card border-border" data-testid="regulatory-notes-panel">
-        <CollapsibleTrigger className="w-full text-left">
+        <CollapsibleTrigger className="w-full text-left" data-testid="trigger-regulatory-notes">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <div className="flex items-center gap-3">
               <IconGlobe className="w-5 h-5 text-primary" />

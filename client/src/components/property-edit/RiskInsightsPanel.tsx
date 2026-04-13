@@ -43,7 +43,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 export default function RiskInsightsPanel({ propertyId }: { propertyId: number }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: brief, isLoading } = useQuery<RiskBrief>({
+  const { data: brief, isLoading, isError } = useQuery<RiskBrief>({
     queryKey: [`/api/risk/property/${propertyId}/brief`],
     enabled: !!propertyId,
     retry: false,
@@ -61,14 +61,14 @@ export default function RiskInsightsPanel({ propertyId }: { propertyId: number }
     );
   }
 
-  if (!brief) return null;
+  if (isError || !brief) return null;
 
   const gradeColor = GRADE_COLORS[brief.riskGrade?.[0]] ?? GRADE_COLORS.C;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="bg-card border-border" data-testid="risk-insights-panel">
-        <CollapsibleTrigger className="w-full text-left">
+        <CollapsibleTrigger className="w-full text-left" data-testid="trigger-risk-insights">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <div className="flex items-center gap-3">
               <IconShield className="w-5 h-5 text-primary" />
