@@ -3,6 +3,7 @@ import type { Property } from "@shared/schema";
 import type { InsertRelaxationTrace } from "@shared/schema/intelligence-v2";
 import { ComparableQueryBuilder, type RelaxLevel, type ComparableCriteria } from "./query-builder";
 import { queryChunks, isPineconeAvailable, type QueryMatch } from "../pinecone-service";
+import { enrichComparablesFromWeb, type WebComparable } from "./web-enricher";
 import { storage } from "../../storage";
 import { logger } from "../../logger";
 
@@ -30,6 +31,8 @@ export interface RelaxationResult {
   comps: ComparableProperty[];
   evidenceScore: number;
   traces: InsertRelaxationTrace[];
+  /** Web-sourced comparables (supplements DB comps when few local matches). Always tagged confidence: "web_sourced". */
+  webComparables?: WebComparable[];
 }
 
 interface PolicyThresholds {
@@ -356,17 +359,59 @@ export async function progressiveRelax(options: {
     }
   }
 
+  // ── Web enrichment (post-processing, additive only) ──────────────────────
+  // If DB/Pinecone search yielded fewer than the minimum comp count, attempt
+  // to supplement with web-sourced comparables. These are kept separate from
+  // DB comps and receive a lower evidence-score weight (50%).
+  let webComparables: WebComparable[] | undefined;
+
+  if (bestComps.length < policy.minCompCount) {
+    try {
+      webComparables = await enrichComparablesFromWeb(
+        {
+          propertyName: contextPack.identity.name,
+          location: contextPack.location.display,
+          qualityTier: contextPack.classification.compositeLabel,
+          roomCount: contextPack.physicalCharacter.roomCount,
+          businessModel: contextPack.classification.businessModel ?? "hotel",
+          country: contextPack.location.country ?? undefined,
+        },
+        bestComps.length,
+        policy.minCompCount,
+      );
+
+      // Adjust evidence score: web comps contribute at 50% weight of DB comps
+      if (webComparables && webComparables.length > 0) {
+        const webCountContribution = webComparables.length * 0.5;
+        const effectiveCount = bestComps.length + webCountContribution;
+        const webCountScore = Math.min(effectiveCount / policy.minCompCount, 1);
+        // Blend: keep 80% of DB-based score, add 20% from web-adjusted count score
+        bestScore = 0.80 * bestScore + 0.20 * webCountScore;
+        logger.info(
+          `Web enrichment added ${webComparables.length} web comps, adjusted evidence score to ${bestScore.toFixed(3)}`,
+          "relaxation",
+        );
+      }
+    } catch (err: unknown) {
+      logger.warn(
+        `Web enrichment post-processing failed: ${err instanceof Error ? err.message : err}`,
+        "relaxation",
+      );
+    }
+  }
+
   return {
     selectedLevel,
     criteria: bestCriteria,
     comps: bestComps,
     evidenceScore: bestScore,
     traces,
+    webComparables,
   };
 }
 
 export function formatCompsForPrompt(result: RelaxationResult): string {
-  if (result.comps.length === 0) {
+  if (result.comps.length === 0 && (!result.webComparables || result.webComparables.length === 0)) {
     return `## COMPARABLE SET\nNo comparables found after ${result.selectedLevel + 1} relaxation levels. Rely on general market benchmarks.`;
   }
 
@@ -374,11 +419,30 @@ export function formatCompsForPrompt(result: RelaxationResult): string {
     `${i + 1}. ${c.name} — ${c.starRating ?? "?"}★ ${c.hospitalityType}, ${c.roomCount} rooms, $${c.adr} ADR, ${c.city ?? c.state ?? c.country ?? "unknown"} (${c.source}, score: ${c.score.toFixed(2)})`
   );
 
-  return `## COMPARABLE SET (L${result.selectedLevel} relaxation, evidence: ${result.evidenceScore.toFixed(2)})
+  let output = `## COMPARABLE SET (L${result.selectedLevel} relaxation, evidence: ${result.evidenceScore.toFixed(2)})
 
 ${compLines.join("\n")}
 
 Relaxation trail: ${result.traces.map(t => `L${t.level}: ${t.compsFound} comps (${(t.evidenceScore ?? 0).toFixed(2)})`).join(" → ")}
 Criteria retained: ${result.criteria.retained.join(", ")}
 ${result.criteria.relaxed.length > 0 ? `Criteria relaxed: ${result.criteria.relaxed.join(", ")}` : ""}`;
+
+  // Append web-sourced comparables if present
+  if (result.webComparables && result.webComparables.length > 0) {
+    const webLines = result.webComparables.slice(0, 6).map((wc, i) => {
+      const parts = [wc.propertyName ?? "Unknown"];
+      if (wc.adr) parts.push(`$${wc.adr} ADR`);
+      if (wc.occupancy) parts.push(`${(wc.occupancy * 100).toFixed(0)}% occ`);
+      if (wc.revpar) parts.push(`$${wc.revpar} RevPAR`);
+      if (wc.capRate) parts.push(`${(wc.capRate * 100).toFixed(1)}% cap`);
+      if (wc.roomCount) parts.push(`${wc.roomCount} rooms`);
+      parts.push(`(${wc.source}, web_sourced)`);
+      return `  ${i + 1}. ${parts.join(" — ")}`;
+    });
+
+    output += `\n\n### WEB-SOURCED SUPPLEMENTS (lower confidence — verify independently)
+${webLines.join("\n")}`;
+  }
+
+  return output;
 }

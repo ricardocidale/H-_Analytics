@@ -1,4 +1,5 @@
 import type { MarketIntelligence } from "../../shared/market-intelligence";
+import { buildRegulatoryContextBlock } from "../../shared/regulatory-data";
 
 export interface ResearchParams {
   type: "property" | "company" | "global";
@@ -333,7 +334,7 @@ export function buildUserPrompt(params: ResearchParams): string {
 - Target Occupancy: ${(pc.maxOccupancy * 100).toFixed(0)}%
 - Property Type: ${pc.type}
 ${pc.purchasePrice ? `- Purchase Price: $${pc.purchasePrice.toLocaleString()}` : ""}
-${buildEntityContext(pc)}
+${buildEntityContext(pc)}${pc.country ? buildRegulatoryContextBlock(pc.country) : ""}
 
 ${formatAssetDefinition(bd, label)}
 
