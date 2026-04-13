@@ -5,7 +5,7 @@ import { logActivity, logAndSendError } from "./helpers";
 import { DocumentAIService } from "../integrations/document-ai";
 import { mapExtractionToFields, getConfidenceLevel } from "../document-ai/field-mapper";
 import { DOCUMENT_TEMPLATES, renderTemplate } from "../document-ai/templates";
-import { objectStorageClient, ObjectStorageService } from "../replit_integrations/object_storage";
+import { getStorageProvider } from "../providers/storage";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -14,8 +14,6 @@ import { MAX_DOC_SIZE } from "../constants";
 const documentAIService = new DocumentAIService();
 
 const fieldStatusSchema = z.object({ status: z.enum(["approved", "rejected"]) });
-
-const sharedObjectStorageService = new ObjectStorageService();
 
 const ALLOWED_DOC_TYPES = [
   "application/pdf",
@@ -70,19 +68,9 @@ export function register(app: Express) {
         return res.status(400).json({ error: "No file data received" });
       }
 
-      const objectStorageService = sharedObjectStorageService;
-      const privateDir = objectStorageService.getPrivateObjectDir();
+      const storageProvider = getStorageProvider();
       const objectId = randomUUID();
-      const fullPath = `${privateDir}/documents/${objectId}`;
-      const parts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
-      const bucketName = parts[0];
-      const objectName = parts.slice(1).join("/");
-
-      const bucket = objectStorageClient.bucket(bucketName);
-      const file = bucket.file(objectName);
-      await file.save(body, { contentType });
-
-      const objectPath = `/objects/documents/${objectId}`;
+      const objectPath = await storageProvider.uploadBuffer(`documents/${objectId}`, body, contentType);
 
       const extraction = await storage.createDocumentExtraction({
         propertyId,

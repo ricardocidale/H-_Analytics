@@ -24,7 +24,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import compression from "compression";
 import { registerRoutes } from "./routes";
+// TODO: Move image routes out of replit_integrations/ — they're not Replit-specific (they use OpenAI/Gemini directly). Blocked because they depend on ObjectStorageService from replit_integrations/object_storage.
 import { registerImageRoutes } from "./replit_integrations/image";
+import { getAuthProvider } from "./providers/auth";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { authMiddleware, requireAuth, seedAdminUser, cleanupRateLimitMaps } from "./auth";
@@ -81,6 +83,16 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 app.use(authMiddleware);
+
+// Wire the auth provider abstraction (Replit OIDC or local password-based,
+// selected by AUTH_PROVIDER env var, defaults to 'replit').
+// setupSession adds provider-specific session middleware (e.g. Passport + OIDC).
+// registerRoutes adds provider-specific auth endpoints (e.g. /api/login, /api/callback).
+// The custom authMiddleware above handles our own cookie-based sessions and runs
+// regardless of provider — both systems coexist.
+const authProvider = getAuthProvider();
+authProvider.setupSession(app);
+authProvider.registerRoutes(app);
 
 // Default-deny: require authentication on all /api/ routes unless explicitly public
 const PUBLIC_API_PATHS = new Set([

@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { requireAuth, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
-import { objectStorageClient, ObjectStorageService } from "../replit_integrations/object_storage";
+import { getStorageProvider } from "../providers/storage";
 import { logActivity, logAndSendError, uploadRequestSchema, processImageSchema, bulkProcessPhotosSchema } from "./helpers";
 import { fromZodError } from "zod-validation-error";
 import { randomUUID } from "crypto";
@@ -11,7 +11,6 @@ import { MAX_UPLOAD_BYTES } from "../constants";
 import { logger } from "../logger";
 import { isBlockedHostResolved } from "./ssrf-guard";
 
-const sharedObjectStorageService = new ObjectStorageService();
 const ALLOWED_CONTENT_TYPES = [
   "image/png", "image/jpeg", "image/jpg", "image/gif",
   "image/webp", "image/svg+xml", "image/bmp", "image/tiff",
@@ -31,9 +30,8 @@ export function register(app: Express) {
       }
       const { name, size, contentType, entityType, entityId } = validation.data;
 
-      const objectStorageService = sharedObjectStorageService;
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      const storageProvider = getStorageProvider();
+      const { url: uploadURL, objectPath } = await storageProvider.getUploadUrl(name);
 
       logActivity(req, "upload-request", entityType || "asset", entityId, name, { objectPath });
 
@@ -80,20 +78,9 @@ export function register(app: Express) {
         return res.status(400).json({ error: "No file data received" });
       }
 
-      const objectStorageService = sharedObjectStorageService;
-      const privateDir = objectStorageService.getPrivateObjectDir();
+      const storageProvider = getStorageProvider();
       const objectId = randomUUID();
-      const fullPath = `${privateDir}/uploads/${objectId}`;
-
-      const parts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
-      const bucketName = parts[0];
-      const objectName = parts.slice(1).join("/");
-
-      const bucket = objectStorageClient.bucket(bucketName);
-      const file = bucket.file(objectName);
-      await file.save(body, { contentType });
-
-      const objectPath = `/objects/uploads/${objectId}`;
+      const objectPath = await storageProvider.uploadBuffer(`uploads/${objectId}`, body, contentType);
       logActivity(req, "upload-direct", "asset", undefined, objectId, { objectPath, contentType, size: body.length });
 
       res.json({ objectPath });
@@ -127,15 +114,10 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Photo not found for this property" });
       }
 
-      let buffer: Buffer;
-      let contentType = "image/jpeg";
-
-      const objectStorageService = sharedObjectStorageService;
-      const file = await objectStorageService.getObjectEntityFile(imageUrl);
-      const [contents] = await file.download();
-      buffer = contents;
-      const [metadata] = await file.getMetadata();
-      contentType = metadata.contentType || "image/jpeg";
+      const storageProvider = getStorageProvider();
+      const downloaded = await storageProvider.downloadBuffer(imageUrl);
+      let buffer: Buffer = downloaded.buffer;
+      let contentType = downloaded.contentType || "image/jpeg";
 
       if (!IMAGE_PROCESSABLE_TYPES.includes(contentType.split(";")[0].trim())) {
         return res.json({ variants: null, message: "Image type not processable" });
@@ -206,12 +188,10 @@ export function register(app: Express) {
           let contentType = "image/jpeg";
 
           if (photo.imageUrl.startsWith("/objects/")) {
-            const objectStorageService = sharedObjectStorageService;
-            const file = await objectStorageService.getObjectEntityFile(photo.imageUrl);
-            const [contents] = await file.download();
-            buffer = contents;
-            const [metadata] = await file.getMetadata();
-            contentType = metadata.contentType || "image/jpeg";
+            const storageProvider = getStorageProvider();
+            const downloaded = await storageProvider.downloadBuffer(photo.imageUrl);
+            buffer = downloaded.buffer;
+            contentType = downloaded.contentType || "image/jpeg";
           } else if (photo.imageUrl.startsWith("https://")) {
             const parsed = new URL(photo.imageUrl);
             if (await isBlockedHostResolved(parsed.hostname)) {

@@ -14,6 +14,7 @@ import { logActivity, logAndSendError, createScenarioSchema, MAX_SCENARIOS_PER_U
 import { logger } from "../logger";
 import { invalidateComputeCache } from "../finance/cache";
 import { sendScenarioShareNotification, sendAdminShareNotification } from "../integrations/resend";
+import { getAppUrl } from "../providers/config";
 import { UserRole } from "@shared/constants";
 import {
   requireScenarioPermission,
@@ -418,9 +419,7 @@ export function register(app: Express) {
         res.status(201).json({ shares, recipientName: recipientDisplayName });
       }
 
-      const portalUrl = process.env.REPLIT_DOMAINS
-        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}/scenarios`
-        : undefined;
+      const portalUrl = `${getAppUrl()}/scenarios`;
 
       sendScenarioShareNotification({
         to: recipient.email,

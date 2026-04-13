@@ -1,10 +1,7 @@
 import sharp from "sharp";
 import { IMAGE_VARIANTS, buildVariantPath, buildOriginalPath, type ImageVariants, type VariantSpec } from "./variants";
-import { objectStorageClient, ObjectStorageService } from "../replit_integrations/object_storage";
+import { getStorageProvider } from "../providers/storage";
 import { logger } from "../logger";
-
-// Singleton — avoid creating a new instance per image operation
-const sharedObjectStorageService = new ObjectStorageService();
 
 export interface CropRegion {
   left: number;
@@ -49,19 +46,8 @@ async function uploadToObjectStorage(
   path: string,
   contentType: string,
 ): Promise<string> {
-  const objectStorageService = sharedObjectStorageService;
-  const privateDir = objectStorageService.getPrivateObjectDir();
-  const fullPath = `${privateDir}/${path}`;
-
-  const parts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
-  const bucketName = parts[0];
-  const objectName = parts.slice(1).join("/");
-
-  const bucket = objectStorageClient.bucket(bucketName);
-  const file = bucket.file(objectName);
-  await file.save(buffer, { contentType });
-
-  return `/objects/${path}`;
+  const storageProvider = getStorageProvider();
+  return storageProvider.uploadBuffer(path, buffer, contentType);
 }
 
 async function generateVariant(
@@ -163,12 +149,10 @@ export async function processExistingPhoto(
     let contentType = "image/jpeg";
 
     if (imageUrl.startsWith("/objects/")) {
-      const objectStorageService = sharedObjectStorageService;
-      const file = await objectStorageService.getObjectEntityFile(imageUrl);
-      const [contents] = await file.download();
-      buffer = contents;
-      const [metadata] = await file.getMetadata();
-      contentType = metadata.contentType || "image/jpeg";
+      const storageProvider = getStorageProvider();
+      const downloaded = await storageProvider.downloadBuffer(imageUrl);
+      buffer = downloaded.buffer;
+      contentType = downloaded.contentType || "image/jpeg";
     } else if (imageUrl.startsWith("http")) {
       const response = await fetch(imageUrl);
       if (!response.ok) return null;

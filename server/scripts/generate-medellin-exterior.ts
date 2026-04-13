@@ -13,12 +13,12 @@ import { db } from "../db";
 import { properties, propertyPhotos } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { replicateService } from "../integrations/replicate";
-import { ObjectStorageService } from "../replit_integrations/object_storage";
+import { getStorageProvider } from "../providers/storage";
 import { storage } from "../storage";
 import { logger } from "../logger";
+import { randomUUID } from "crypto";
 
 const PROPERTY_NAME = "Medellin Duplex";
-const objectStorageService = new ObjectStorageService();
 
 const EXTERIOR_PROMPT = [
   "contemporary luxury 16-story residential tower in El Poblado Medellín Colombia",
@@ -64,14 +64,8 @@ async function run() {
 
   logger.info(`Generated ${buffer.length} bytes, uploading...`, "exterior-script");
 
-  const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-  const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-  const uploadRes = await fetch(uploadURL, {
-    method: "PUT",
-    body: buffer,
-    headers: { "Content-Type": "image/png" },
-  });
-  if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
+  const storageProvider = getStorageProvider();
+  const objectPath = await storageProvider.uploadBuffer(`renders/${randomUUID()}`, buffer, "image/png");
 
   const nextSort = existing.length;
   const photo = await storage.addPropertyPhoto({

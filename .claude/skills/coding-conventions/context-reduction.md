@@ -38,4 +38,4 @@ After any significant refactor or feature addition, verify:
 2. Shared types are extracted (not duplicated across files)
 3. Helper functions are in shared locations (not inline)
 4. The context-loading skill (`context-loading/SKILL.md`) maps to the new skills
-5. `claude.md` and `replit.md` reference the new structure
+5. `claude.md` references the new structure

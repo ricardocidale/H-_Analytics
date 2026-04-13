@@ -37,7 +37,7 @@ Step-by-step interactive tour explaining the recommended workflow for new users.
 - **9 steps**: Welcome → Properties → Company → Assumptions → Scenarios → Analysis → Help → Search → Notifications
 - **Store**: `useWalkthroughStore` (Zustand, localStorage `walkthrough-store`) — fields: `shownThisSession`, `tourActive`, `promptVisible`
 - **API**: `PATCH /api/profile/tour-prompt` with `{ hide: boolean }` persists "Do not show again"
-- **Marcela gating**: Widget hidden when `tourActive || promptVisible` (enforced in `MarcelaWidgetGated` in Layout.tsx)
+- **Rebecca gating**: Chat panel hidden when `tourActive || promptVisible`
 - **Restartable**: Help page → Guided Tour tab
 
 ---

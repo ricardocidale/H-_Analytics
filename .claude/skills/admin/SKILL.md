@@ -23,7 +23,7 @@ Documents the Admin Settings page architecture — refactored from a 3,235-line 
 - `client/src/pages/Admin.tsx` — shell (tab navigation only)
 - `client/src/components/admin/` — 13 tab components + barrel export + shared types
 - `server/routes/admin/index.ts` — Admin router (registers all sub-routers)
-- `server/routes/admin/marcela.ts` — AI Agent admin API + ConvAI proxy endpoints
+- `server/routes/admin/marcela.ts` — AI Agent admin API (DB column names keep `marcela_*`)
 - `server/routes/admin/research.ts` — Research config GET/PUT endpoints
 
 ## Tabs (13)
@@ -32,9 +32,8 @@ Users, Groups, Activity, Branding, Themes, Logos, Navigation, Companies, Service
 ## Research Tab
 Per-event control over AI research: enable/disable, focus areas, regions, time horizon, custom instructions, custom questions, deterministic tool selection. Config stored in `global_assumptions.researchConfig` (JSONB). See `rules/research-precision.md`.
 
-## AI Agent Tab (7 sub-tabs)
-The AI Agent tab is a comprehensive dashboard with its own sub-navigation:
-General, Prompt, Voice & Audio, LLM, Tools, Knowledge Base, Telephony
+## AI Agent Tab
+The AI Agent tab manages Rebecca chatbot configuration.
 
 See `ai-agent-admin.md` for full architecture.
 

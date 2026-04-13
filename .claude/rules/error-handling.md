@@ -66,7 +66,7 @@ pool.on("error", (err) => {
 - Never display raw error strings to users
 - Log client-side errors with context (component name, action attempted)
 
-### External API Calls (AI, Stripe, ElevenLabs, etc.)
+### External API Calls (AI, Stripe, etc.)
 
 - Always set timeouts on external API calls
 - Implement graceful degradation — if an AI call fails, show a meaningful message, not a blank page

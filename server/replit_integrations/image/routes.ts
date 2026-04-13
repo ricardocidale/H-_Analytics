@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { openai, generateImageBuffer, getGeminiClient } from "./client";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../../auth";
-import { ObjectStorageService } from "../object_storage";
+import { getStorageProvider } from "../../providers/storage";
 import { replicateService, getAvailableStyles, type ReplicateStyleKey } from "../../integrations/replicate";
 import { z } from "zod";
 import { logApiCost, estimateCost, unitCost } from "../../middleware/cost-logger";
@@ -9,9 +9,6 @@ import { storage } from "../../storage";
 import { resolveLlm, getVendorService } from "../../ai/resolve-llm";
 import type { ResearchConfig } from "@shared/schema";
 import { logger } from "../../logger";
-
-// Singleton — avoid creating a new instance per image generation request
-const sharedObjectStorageService = new ObjectStorageService();
 
 const generatePropertyImageSchema = z.object({
   prompt: z.string().optional().default(""),
@@ -111,19 +108,12 @@ export function registerImageRoutes(app: Express): void {
         try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
       }
 
-      const objectStorageService = sharedObjectStorageService;
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
-        body: imageBuffer,
-        headers: { "Content-Type": "image/png" },
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error("Failed to upload generated image to object storage");
-      }
+      const storageProvider = getStorageProvider();
+      const objectPath = await storageProvider.uploadBuffer(
+        `generated/${Date.now()}`,
+        imageBuffer,
+        "image/png",
+      );
 
       // Include base64 so callers can persist the image binary in Neon PostgreSQL
       // via the imageData field on property_photos (storage-independent persistence).

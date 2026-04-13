@@ -5,9 +5,9 @@ description: External service integrations for HBG Portal. Covers AI providers, 
 
 # Integrations Infrastructure
 
-Every external service the HBG Portal connects to, how it connects, and its boundaries. Covers AI providers, voice AI, financial services, geospatial, document intelligence, communication, image generation, observability, storage, and authentication. Use this skill when working on integrations, external API calls, or service configuration.
+Every external service the HBG Portal connects to, how it connects, and its boundaries. Covers AI providers, geospatial, document intelligence, communication, image generation, observability, storage, and authentication. Use this skill when working on integrations, external API calls, or service configuration.
 
-**Related skills:** `marcela-ai/` (AI agent using these services), `architecture/` (server routes that call services), `product-vision/` (future integration direction)
+**Related skills:** `rebecca-chatbot/` (AI chatbot), `architecture/` (server routes that call services), `product-vision/` (future integration direction)
 
 ---
 
@@ -36,28 +36,13 @@ All AI clients use a **lazy-singleton factory** pattern in `server/ai/clients.ts
 ### Google Gemini
 | Aspect | Detail |
 |--------|--------|
-| **Use cases** | General AI client, Marcela default LLM (via ElevenLabs) |
+| **Use cases** | General AI client, Rebecca chatbot LLM |
 | **Env vars** | `AI_INTEGRATIONS_GEMINI_API_KEY` |
 | **Base URL** | Optional override: `AI_INTEGRATIONS_GEMINI_BASE_URL` |
 | **File** | `server/ai/clients.ts` → `getGeminiClient()` |
 | **Connector** | Replit AI Integration (javascript_gemini_ai_integrations) |
 
-**Admin configuration:** LLM provider selection is configurable via the admin panel — the system can switch which provider handles research, exports, or Marcela.
-
----
-
-## Voice AI: ElevenLabs + Convai (Marcela)
-
-| Aspect | Detail |
-|--------|--------|
-| **Use cases** | Real-time voice interaction with Marcela AI assistant |
-| **Architecture** | WebSocket streaming for real-time audio STT + TTS pipeline |
-| **Features** | Knowledge base sync, signed URL generation, agent configuration |
-| **Env vars** | `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID` |
-| **Files** | `server/integrations/elevenlabs.ts`, `server/integrations/elevenlabs-audio.ts` |
-| **Connector** | Replit Integration (elevenlabs) |
-
-See the `marcela-ai/` skill for the full Marcela architecture.
+**Admin configuration:** LLM provider selection is configurable via the admin panel — the system can switch which provider handles research, exports, or Rebecca.
 
 ---
 
@@ -84,15 +69,6 @@ See the `marcela-ai/` skill for the full Marcela architecture.
 ---
 
 ## Communication
-
-### Twilio (SMS)
-| Aspect | Detail |
-|--------|--------|
-| **Use cases** | SMS notifications for financial alerts (DSCR breach, occupancy warnings) |
-| **Env vars** | Via Replit Connector |
-| **Files** | `server/integrations/twilio.ts` |
-| **Routes** | `server/routes/twilio.ts` (HTTP + WebSocket) |
-| **Connector** | Replit Integration (twilio) |
 
 ### Resend (Email)
 | Aspect | Detail |
@@ -195,10 +171,8 @@ See the `marcela-ai/` skill for the full Marcela architecture.
 | Anthropic | `server/ai/clients.ts` | `server/routes/research.ts` | `ANTHROPIC_API_KEY` |
 | OpenAI | `server/ai/clients.ts` | `server/routes/ai.ts` | `AI_INTEGRATIONS_OPENAI_API_KEY` |
 | Gemini | `server/ai/clients.ts` | `server/routes/ai.ts` | `AI_INTEGRATIONS_GEMINI_API_KEY` |
-| ElevenLabs | `server/integrations/elevenlabs.ts` | `server/routes/admin/marcela.ts` | `ELEVENLABS_API_KEY` |
 | Google Maps | `server/integrations/geospatial.ts` | `server/routes/geospatial.ts` | `GOOGLE_MAPS_API_KEY` |
 | Document AI | `server/integrations/document-ai.ts` | `server/routes/documents.ts` | Google Cloud credentials |
-| Twilio | `server/integrations/twilio.ts` | `server/routes/twilio.ts` | Replit Connector |
 | Resend | `server/integrations/resend.ts` | — | `RESEND_API_KEY` |
 | Replicate | `server/integrations/replicate.ts` | — | `REPLICATE_API_TOKEN` |
 | Sentry | `client/src/lib/sentry.ts` | — | `SENTRY_DSN` |

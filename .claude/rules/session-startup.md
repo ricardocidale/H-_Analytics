@@ -4,7 +4,7 @@
 
 Before ANY work — coding, planning, reviewing, auditing — the agent MUST:
 
-1. Read `replit.md` (loaded automatically)
+1. Read `.claude/claude.md` (loaded automatically)
 2. Read `.claude/session-memory.md` — recent session context
 3. Scan rule file names (`ls .claude/rules/`) and load rules relevant to the current task
 4. Check if the user's question relates to something already discussed in session memory
@@ -26,7 +26,7 @@ For audits and reviews, load all rules — they require full context.
 
 ## On Architect Calls
 
-Every architect invocation MUST include all `.claude/rules/*.md` files plus `replit.md` in `relevant_files`. Additionally include relevant skill files based on task context (use `.claude/skills/context-loading/` to identify which).
+Every architect invocation MUST include all `.claude/rules/*.md` files plus `claude.md` in `relevant_files`. Additionally include relevant skill files based on task context (use `.claude/skills/context-loading/` to identify which).
 
 ## Why
 

@@ -1,12 +1,20 @@
 # Session Memory
 
-**Read this file + `replit.md` at session start. Update at session end.**
+**Read this file + `claude.md` at session start. Update at session end.**
 **Older sessions archived in `.claude/archive/session-memory-archive.md`.**
 
 ## Format Rule
 Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sessions older than the last two on every session end.
 
 ---
+
+## Session: April 13, 2026 — Codebase Reorganization & Documentation Overhaul
+- Archived `.agents/skills/` (55 Replit-specific skills → `.claude/archive/agents-skills-snapshot/`). Deleted `.claude/tools/marcela/` (20 dead ElevenLabs schemas). Moved stale plans to archive.
+- Merged 28 satellite skill directories into 17 consolidated domains (45→17 dirs, 170→169 files). Scrubbed Marcela/ElevenLabs/Twilio/Replit refs across 22 files.
+- Created: Master Plan V2 (Phases 8-13), `docs/architecture/system-overview.md`, `docs/developer/setup.md`, `docs/developer/migration-from-replit.md`, `docs/README.md`, `.claude/skills/_index.md` (master catalog).
+- Rewrote `README.md` (de-Replitified, updated revenue model, standalone infrastructure). Rewrote `claude.md` (removed Replit, updated skill paths, added core differentiators).
+- Replit→standalone migration documented: PostgreSQL (trivial), Auth (medium), Object Storage (medium), AI keys (easy), Domains (easy).
+- Phase 8.1 DONE: Created `server/providers/` (storage + auth + config). Rewired 12 consumer files. Zero direct Replit imports in business logic. App runs unchanged on Replit. To move: set `STORAGE_PROVIDER=s3`, `AUTH_PROVIDER=local`, fill S3 stub, deploy. Full checklist in `docs/developer/migration-from-replit.md`.
 
 ## Session: April 10, 2026 — Repo Optimization & Photo Migration
 - Git gc: .git 701MB→267MB. Removed 26 unused npm deps (121→105). Installed 6 targeted d3 sub-packages replacing monolithic `d3`.
@@ -85,12 +93,9 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **3-level accordion** for consolidated statements (total → formula → per-property)
 - **Zero re-aggregation** in render paths — helpers accept precomputed arrays
 - **`parseLocalDate()`** for all client-side date string parsing
-- **ElevenLabs UI** = voice/agent components only (Orb, Waveform, ConversationBar); general UI stays shadcn
 - **`captureChartAsImage`** exported from `@/lib/exports/pngExport`; `downloadCSV(content, filename)` takes 2 args
 - **`ExportMenu` variant**: `"glass" | "light" | undefined` only
 - **`admin/marcela/` DB columns** keep `marcela_*` names; only UI labels use dynamic `aiAgentName`
-- **`AgentState` name collision** in `features/ai-agent/components/index.ts` — use explicit `export { Orb }` not `export *`
-- **`VoiceChatBar`** uses signed URL (not bare `agentId`) — fetched on mount via `useAdminSignedUrl()`
 - **Next.js → Vite**: remove `"use client"`, replace server actions with Express endpoints, `<style jsx>` → `<style>`
 - **Company unprofitable with 1 small property** — correct behavior, not a bug (partner comp $45K > fee rev ~$19K)
 - **Golden scenario design**: 0% growth/inflation for traceability, hand-values at file top, test both values + identities

@@ -101,18 +101,12 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 | ICP definition / research | `icp-research/SKILL.md` | Property-level research |
 | Any research change | **Always also load**: `research/SKILL.md` (master) | — |
 
-#### Marcela AI & Voice
+#### Rebecca Chatbot
 | Task | Load These Skills | Skip |
 |------|------------------|------|
-| Web voice pipeline | `marcela-ai/audio-pipeline.md` | Twilio skills, finance |
-| Marcela architecture / prompts | `marcela-ai/marcela-architecture.md` | UI skills, finance |
-| Twilio voice / phone calls | `twilio-telephony/twilio-integration.md` | Web voice skills, finance |
-| SMS inbound/outbound | `twilio-telephony/twilio-integration.md` | Voice skills, finance |
-| Voice UX (widget states) | `marcela-ai/voice-ux-patterns.md` | Twilio, finance |
-| Admin Marcela tab config | `admin/admin-refactor-map.md`, `marcela-ai/marcela-architecture.md` | Finance skills |
-| RAG knowledge base | `marcela-ai/marcela-architecture.md` | Voice, Twilio skills |
-| Rebecca chatbot / text chat | `rebecca-chatbot/SKILL.md` | Marcela voice skills |
-| Any Marcela change | **Always also load**: `marcela-ai/marcela-architecture.md` | — |
+| Rebecca chatbot / text chat | `rebecca-chatbot/SKILL.md` | Finance skills |
+| Admin Rebecca tab config | `admin/admin-refactor-map.md`, `rebecca-chatbot/SKILL.md` | Finance skills |
+| RAG knowledge base | `rebecca-chatbot/SKILL.md` | Finance skills |
 
 #### Admin Page Refactoring
 | Task | Load These Skills | Skip |
@@ -128,7 +122,6 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 |------|------------------|------|
 | Barrel files / import paths | `codebase-architecture/SKILL.md` | Finance, research |
 | UI component lookup | `codebase-architecture/SKILL.md` § UI Component Catalog | Finance, research |
-| ElevenLabs architecture | `codebase-architecture/SKILL.md` § ElevenLabs | Finance, research |
 | Module boundaries / re-exports | `codebase-architecture/SKILL.md` | Finance, research |
 | Tooltip system | `codebase-architecture/SKILL.md` § Tooltips, `admin-components/SKILL.md` § Tooltip Explainers | Finance |
 
@@ -190,7 +183,7 @@ User asks for verification, release prep, or comprehensive review.
 
 ## Session Start Checklist
 
-1. Read `claude.md` (auto-loaded via `replit.md`)
+1. Read `claude.md` (auto-loaded)
 2. Identify the task type from the user's request
 3. Look up the minimum skill set in the table above
 4. Load only those skills

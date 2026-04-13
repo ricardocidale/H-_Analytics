@@ -9,10 +9,10 @@ This project is a business simulation portal for Hospitality Business Group, des
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
-- Skills live in both `.agents/skills/` (primary, Agent Skills spec-compliant) and `.claude/skills/` (legacy, still active). All skills must have YAML frontmatter with `name` and `description` fields per the [Agent Skills specification](https://agentskills.io/specification).
+- Skills live in `.claude/skills/` (17 domains, 169 files). See `.claude/skills/_index.md` for the master catalog.
 - Company name is "Hospitality Business Group" (or "Hospitality Business" for short).
 - Update skills and manuals after every feature change.
-- **Doc Harmony Rule:** `replit.md` and `.claude/claude.md` must stay in sync. Both are standalone, comprehensive project docs — neither is a "pointer" to the other. When updating one, update the other. The health check enforces matching test counts and stats across both files.
+- **Documentation:** `.claude/claude.md` is the primary AI context file. `replit.md` is kept for Replit Agent compatibility. When in doubt, `claude.md` is authoritative.
 - All UI components must reference a theme via the theme engine.
 - New UI features get their own skill file in `.claude/skills/ui/`.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
@@ -21,7 +21,7 @@ This project is a business simulation portal for Hospitality Business Group, des
 - **Every page must be graphics-rich** — charts, animations, visual elements required.
 - **Context reduction is mandatory.** Every refactor must produce skills, helpers, scripts. See `skills/coding-conventions/context-reduction.md`.
 - **Premium design, always.** $50K+ bespoke financial platform feel. See `rules/design-standards.md`.
-- **Always update replit.md and claude.md after every task.** Mandatory — no exceptions.
+- **Always update claude.md after every task.** Mandatory — no exceptions.
 - **Always update memory.md after every task.** Track decisions, architecture changes, industry knowledge, test counts, and session state. This file persists across sessions and must reflect the current project state.
 
 ## System Architecture
@@ -93,7 +93,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 | Multi-Tenancy | `.claude/skills/multi-tenancy/SKILL.md` |
 | Exports | `.claude/skills/exports/SKILL.md` |
 | Admin (16 sections) | `.claude/skills/admin/SKILL.md` |
-| Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md`, `.agents/skills/rebecca-chatbot/SKILL.md` |
+| Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md` |
 | Finance (22 skills) | `.claude/skills/finance/` |
 | Research (23 skills) | `.claude/skills/research/` |
 | UI (45 skills) | `.claude/skills/ui/` |
@@ -108,7 +108,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Rebecca must NEVER compute financial values** — all data from the calculation engine
 - **Rebecca Proactive Insights:** Two-tier insight system after portfolio compute. Tier 1: instant deterministic analysis (`client/src/lib/rebecca-insights.ts`) for immediate feedback. Tier 2: RAG-powered LLM insight via `POST /api/rebecca/insight` — queries Pinecone `comparables`, `assumption-guidance`, and `research-history` namespaces, then generates a context-aware observation using the chatbot LLM. Uses `useRebeccaInsightStore` Zustand store with hash-based deduplication. Insights get smarter as research accumulates.
 - **Rebecca Rich Blocks**: 5 visual block types (stat/compare/timeline/insight/kpi) via `:::blockType ... :::` syntax. Max 1 block per response. Parser in `rich-block-parser.ts`, renderers in `RichBlockRenderers.tsx`.
-- **Rebecca Knowledge Base**: Admin CRUD with Pinecone sync (active entries upserted, inactive deleted). Version history with rollback. See `.agents/skills/rebecca-chatbot/SKILL.md`.
+- **Rebecca Knowledge Base**: Admin CRUD with Pinecone sync (active entries upserted, inactive deleted). Version history with rollback. See `.claude/skills/rebecca-chatbot/SKILL.md`.
 - **Rebecca Guardrails**: Admin-configured response rules injected into system prompt at runtime. CRUD via `/api/rebecca/guardrails`.
 - **Engine chain**: `gop = revenue − opex`, `agop = gop − feeBase − feeIncentive`, `noi = agop − expenseTaxes`, `anoi = noi − expenseFFE`
 - **Balance Sheet Identity**: A = L + E must hold within $1
@@ -125,7 +125,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 
 ## Research Intelligence System
 
-The app uses a comprehensive research methodology documented in `.agents/skills/research-methodology/SKILL.md`. Key architectural principles:
+The app uses a comprehensive research methodology. Key architectural principles:
 
 - **Auto-derived research profiles**: Properties derive their research profile from existing assumptions (starRating + ADR + hospitalityType + location). No separate ICP definition needed per property.
 - **Business model types**: `businessModel` field on properties: "hotel" (default) | "vrbo". Determines applicable expense categories, revenue streams, fee structures, and research approaches.

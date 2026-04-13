@@ -31,7 +31,7 @@ The in-app User Manual is split into lazy-loaded per-section files for performan
 | 10 | `Section10Analysis.tsx` | `analysis` | Analysis Tools |
 | 11 | `Section11PropertyFinder.tsx` | `property-finder` | Property Finder |
 | 12 | `Section12Exports.tsx` | `exports` | Exports & Reports |
-| 13 | `Section13Marcela.tsx` | `marcela` | Marcela AI Assistant |
+| 13 | `Section13AIResearch.tsx` | `ai-research` | AI Research |
 | 14 | `Section14Profile.tsx` | `profile` | My Profile |
 | 15 | `Section15Branding.tsx` | `branding` | Branding & Themes |
 | 16 | `Section16Admin.tsx` | `admin` | Admin Settings |

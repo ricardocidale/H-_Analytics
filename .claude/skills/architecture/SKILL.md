@@ -140,7 +140,7 @@ server/
 ├── calculationChecker.ts         # Server-side financial verification
 ├── seed.ts                       # Database seed data
 ├── aiResearch.ts                 # AI-powered market research
-├── integrations/                 # Stripe, Gmail, Google Sheets, Twilio, etc.
+├── integrations/                 # Stripe, Gmail, Google Sheets, etc.
 └── replit_integrations/          # Auth, object storage, chat, image, audio
 
 calc/

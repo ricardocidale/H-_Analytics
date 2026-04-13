@@ -1,68 +1,14 @@
 import type { Express } from "express";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { getStorageProvider } from "../../providers/storage";
 import { logger } from "../../logger";
 
 /**
- * Register object storage routes for file uploads.
+ * Register object storage routes for file serving.
  *
- * This provides example routes for the presigned URL upload flow:
- * 1. POST /api/uploads/request-url - Get a presigned URL for uploading
- * 2. The client then uploads directly to the presigned URL
- *
- * IMPORTANT: These are example routes. Customize based on your use case:
- * - Add authentication middleware for protected uploads
- * - Add file metadata storage (save to database after upload)
- * - Add ACL policies for access control
+ * The presigned-URL upload endpoint lives in server/routes/uploads.ts (with auth).
+ * This module only registers the GET /objects/* route for serving stored files.
  */
 export function registerObjectStorageRoutes(app: Express): void {
-  const objectStorageService = new ObjectStorageService();
-
-  /**
-   * Request a presigned URL for file upload.
-   *
-   * Request body (JSON):
-   * {
-   *   "name": "filename.jpg",
-   *   "size": 12345,
-   *   "contentType": "image/jpeg"
-   * }
-   *
-   * Response:
-   * {
-   *   "uploadURL": "https://storage.googleapis.com/...",
-   *   "objectPath": "/objects/uploads/uuid"
-   * }
-   *
-   * IMPORTANT: The client should NOT send the file to this endpoint.
-   * Send JSON metadata only, then upload the file directly to uploadURL.
-   */
-  app.post("/api/uploads/request-url", async (req, res) => {
-    try {
-      const { name, size, contentType } = req.body;
-
-      if (!name) {
-        return res.status(400).json({
-          error: "Missing required field: name",
-        });
-      }
-
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-
-      // Extract object path from the presigned URL for later reference
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-
-      res.json({
-        uploadURL,
-        objectPath,
-        // Echo back the metadata for client convenience
-        metadata: { name, size, contentType },
-      });
-    } catch (error: unknown) {
-      logger.error(`Error generating upload URL: ${error instanceof Error ? error.message : error}`, "object-storage");
-      res.status(500).json({ error: "Failed to generate upload URL" });
-    }
-  });
-
   /**
    * Serve uploaded objects.
    *
@@ -73,11 +19,18 @@ export function registerObjectStorageRoutes(app: Express): void {
    */
   app.get("/objects/{*path}", async (req, res) => {
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      await objectStorageService.downloadObject(objectFile, res);
+      const storageProvider = getStorageProvider();
+      await storageProvider.downloadToResponse(req.path, res);
     } catch (error: unknown) {
       logger.error(`Error serving object: ${error instanceof Error ? error.message : error}`, "object-storage");
-      if (error instanceof ObjectNotFoundError) {
+      // Check for "not found" in the error message since ObjectNotFoundError
+      // is an implementation detail of the Replit provider
+      const isNotFound = error instanceof Error && (
+        error.constructor.name === "ObjectNotFoundError" ||
+        error.message.includes("not found") ||
+        error.message.includes("Not Found")
+      );
+      if (isNotFound) {
         return res.status(404).json({ error: "Object not found" });
       }
       return res.status(500).json({ error: "Failed to serve object" });

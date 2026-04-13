@@ -1,4 +1,4 @@
-import { objectStorageClient, ObjectStorageService } from "../replit_integrations/object_storage";
+import { getStorageProvider } from "../providers/storage";
 import { BaseIntegrationService, type IntegrationHealth } from "./base";
 import { logApiCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
@@ -24,18 +24,11 @@ export interface DocumentAIResult {
   }>;
 }
 
-// Module-level singleton for object storage
-const sharedObjectStorageService = new ObjectStorageService();
-
 export class DocumentAIService extends BaseIntegrationService {
   readonly serviceName = "document-ai";
   private projectId: string;
   private location: string;
   private processorId: string;
-
-  private getObjectStorageService() {
-    return sharedObjectStorageService;
-  }
 
   constructor() {
     super();
@@ -88,9 +81,8 @@ export class DocumentAIService extends BaseIntegrationService {
 
     try {
       return await this.execute("processDocument", async () => {
-        const objectService = this.getObjectStorageService();
-        const file = await objectService.getObjectEntityFile(objectPath);
-        const [fileBuffer] = await file.download();
+        const storageProvider = getStorageProvider();
+        const { buffer: fileBuffer } = await storageProvider.downloadBuffer(objectPath);
 
         const endpoint = `https://${this.location}-documentai.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/processors/${this.processorId}:process`;
 

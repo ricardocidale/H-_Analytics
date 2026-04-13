@@ -9,7 +9,7 @@ The application is organized into independent domains. Each domain owns its stor
 | Domain | Storage | Routes | Integrations | May Read From |
 |--------|---------|--------|--------------|---------------|
 | **Financial Engine** | FinancialStorage | calculations, global-assumptions | None | — |
-| **AI Agents** | (reads only) | ai, chat, twilio, marcela-tools | ElevenLabs, Twilio, Anthropic, Gemini, OpenAI | Financial (read-only via `buildPropertyContext`) |
+| **AI Agents** | (reads only) | ai, chat | Anthropic, Gemini, OpenAI | Financial (read-only via `buildPropertyContext`) |
 | **Photos/Media** | PhotoStorage | property-photos, uploads | Replicate, Gemini | Properties (hero sync denormalization) |
 | **Research** | ResearchStorage | research | Anthropic, calc/research tools | Financial (validation only, non-destructive) |
 | **Documents** | DocumentStorage | documents | Document AI | Properties (field mapping, read-only) |
@@ -27,7 +27,7 @@ The application is organized into independent domains. Each domain owns its stor
 
 ## Prohibited Crossings
 
-- Financial engine must never import from AI/ElevenLabs/Twilio
+- Financial engine must never import from AI agents
 - Photos must never import from financial engine or scenarios
 - Notifications must never import from financial engine
 - Documents must never import from AI agents or research
