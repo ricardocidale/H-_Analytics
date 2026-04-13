@@ -20,10 +20,11 @@ import type { VerificationResult, SuiteId, SuiteRunResult } from "./types";
 
 const HealthCheckDashboard = lazy(() => import("./HealthCheckDashboard"));
 const CalcAuditViewer = lazy(() => import("./CalcAuditViewer"));
+const TestingDashboard = lazy(() => import("./TestingDashboard"));
 
 export default function VerificationTab() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"results" | "history" | "identities" | "ai" | "pipeline" | "calc-audit">("results");
+  const [activeTab, setActiveTab] = useState<"results" | "history" | "identities" | "ai" | "pipeline" | "calc-audit" | "testing">("results");
   const [verificationResults, setVerificationResults] = useState<VerificationResult | null>(null);
   const [aiReview, setAiReview] = useState<string>("");
   const [aiReviewLoading, setAiReviewLoading] = useState(false);
@@ -465,6 +466,10 @@ export default function VerificationTab() {
                 <IconFileDown className="w-3.5 h-3.5 mr-1.5" />
                 Calc Audit
               </TabsTrigger>
+              <TabsTrigger value="testing" data-testid="tab-verification-testing">
+                <IconCheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                Testing
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="results" className="min-h-[300px]">
@@ -561,6 +566,12 @@ export default function VerificationTab() {
             <TabsContent value="calc-audit" className="min-h-[300px]">
               <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
                 <CalcAuditViewer />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="testing" className="min-h-[300px]">
+              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+                <TestingDashboard />
               </Suspense>
             </TabsContent>
           </Tabs>

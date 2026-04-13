@@ -30,6 +30,29 @@ interface HealthCheckResult {
 let lastHealthCheck: HealthCheckResult | null = null;
 let healthCheckRunning = false;
 
+interface TestingDashboardResult {
+  timestamp: string;
+  durationMs: number;
+  codebase: {
+    totalFiles: number;
+    totalLines: number;
+    breakdown: { label: string; files: number; lines: number }[];
+  };
+  tests: {
+    totalTests: number;
+    totalFiles: number;
+    testLines: number;
+  };
+  audit: {
+    findings: { label: string; count: number; severity: "critical" | "warning" | "info"; samples: string[] }[];
+    asAnyBudget: { server: number; client: number; total: number; limit: number };
+    hasCritical: boolean;
+  };
+}
+
+let lastTestingDashboard: TestingDashboardResult | null = null;
+let testingDashboardRunning = false;
+
 function stripAnsiCodes(str: string): string {
   return str.replace(/\u001b\[[0-9;]*m/g, "");
 }
@@ -188,6 +211,104 @@ export function registerToolRoutes(app: Express) {
     } catch (error: unknown) {
       healthCheckRunning = false;
       logAndSendError(res, "Health check failed", error);
+    }
+  });
+
+  app.get("/api/admin/testing-dashboard/last", requireAdmin, (_req, res) => {
+    if (!lastTestingDashboard) return res.status(404).json({ error: "No testing dashboard results yet" });
+    res.json(lastTestingDashboard);
+  });
+
+  app.post("/api/admin/testing-dashboard/run", requireAdmin, async (req, res) => {
+    try {
+      if (testingDashboardRunning) {
+        return res.status(429).json({ error: "Testing dashboard scan already running" });
+      }
+      if (isApiRateLimited(getAuthUser(req).id, "testing-dashboard-run", 1)) {
+        return res.status(429).json({ error: "Testing dashboard rate-limited to 1 run per minute" });
+      }
+      testingDashboardRunning = true;
+      logActivity(req, "run-testing-dashboard", "verification");
+      const startTime = Date.now();
+
+      const [statsOutput, auditOutput] = await Promise.all([
+        runCommand("npx", ["tsx", "script/stats.ts"], 30_000),
+        runCommand("npx", ["tsx", "script/audit-quick.ts"], 30_000),
+      ]);
+
+      const statsClean = stripAnsiCodes(statsOutput);
+      const auditClean = stripAnsiCodes(auditOutput);
+
+      const breakdown: { label: string; files: number; lines: number }[] = [];
+      const breakdownLabels = ["client/", "server/", "calc/", "shared/"];
+      for (const lbl of breakdownLabels) {
+        const re = new RegExp(`${lbl.replace("/", "/")}\\s+(\\d+)\\s+files\\s+([\\d,]+)\\s+lines`);
+        const m = statsClean.match(re);
+        if (m) {
+          breakdown.push({ label: lbl, files: parseInt(m[1], 10), lines: parseInt(m[2].replace(/,/g, ""), 10) });
+        }
+      }
+
+      const sourceMatch = statsClean.match(/Source\s+(\d+)\s+files\s+([\d,]+)\s+lines/);
+      const totalFiles = sourceMatch ? parseInt(sourceMatch[1], 10) : breakdown.reduce((s, b) => s + b.files, 0);
+      const totalLines = sourceMatch ? parseInt(sourceMatch[2].replace(/,/g, ""), 10) : breakdown.reduce((s, b) => s + b.lines, 0);
+
+      const testsMatch = statsClean.match(/Tests\s+(\d+)\s+files\s+([\d,]+)\s+lines\s+\(~(\d+)\s+tests\s+in\s+(\d+)\s+files\)/);
+      const testLines = testsMatch ? parseInt(testsMatch[2].replace(/,/g, ""), 10) : 0;
+      const totalTests = testsMatch ? parseInt(testsMatch[3], 10) : 0;
+      const totalTestFiles = testsMatch ? parseInt(testsMatch[4], 10) : 0;
+
+      const findings: TestingDashboardResult["audit"]["findings"] = [];
+      const auditLines = auditClean.split("\n");
+      const findingPattern = /^\s*[✓✗!·]\s+(.+?)\s{2,}(\d+)\s*$/;
+      for (const line of auditLines) {
+        const m = line.match(findingPattern);
+        if (m) {
+          const label = m[1].replace(/`/g, "").trim();
+          const count = parseInt(m[2], 10);
+          const trimmed = line.trimStart();
+          const isCriticalMark = trimmed.startsWith("✗");
+          const isWarnMark = trimmed.startsWith("!");
+          const severity = isCriticalMark && count > 0 ? "critical" as const :
+            count === 0 ? "info" as const :
+            (isWarnMark || label.toLowerCase().includes("files over")) ? "warning" as const :
+            "info" as const;
+          const samples: string[] = [];
+          const idx = auditLines.indexOf(line);
+          for (let i = idx + 1; i < Math.min(idx + 6, auditLines.length); i++) {
+            const sl = auditLines[i];
+            if (!sl || sl.match(findingPattern) || sl.includes("────")) break;
+            if (sl.trim().startsWith("client/") || sl.trim().startsWith("server/") || sl.trim().startsWith("calc/")) {
+              samples.push(sl.trim().slice(0, 120));
+            }
+          }
+          findings.push({ label, count, severity, samples });
+        }
+      }
+
+      const asAnyMatch = auditClean.match(/`as any` budget \(server:\s*(\d+),\s*client:\s*(\d+)\)\s+(\d+)/);
+      const asAnyBudget = asAnyMatch
+        ? { server: parseInt(asAnyMatch[1], 10), client: parseInt(asAnyMatch[2], 10), total: parseInt(asAnyMatch[3], 10), limit: 100 }
+        : { server: 0, client: 0, total: 0, limit: 100 };
+
+      const hasCritical = findings.some(f => f.severity === "critical" && f.count > 0);
+
+      const durationMs = Date.now() - startTime;
+
+      const result: TestingDashboardResult = {
+        timestamp: new Date().toISOString(),
+        durationMs,
+        codebase: { totalFiles, totalLines, breakdown },
+        tests: { totalTests, totalFiles: totalTestFiles, testLines },
+        audit: { findings, asAnyBudget, hasCritical },
+      };
+
+      lastTestingDashboard = result;
+      testingDashboardRunning = false;
+      res.json(result);
+    } catch (error: unknown) {
+      testingDashboardRunning = false;
+      logAndSendError(res, "Testing dashboard scan failed", error);
     }
   });
 
