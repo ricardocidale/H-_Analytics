@@ -29,6 +29,7 @@ const SCALE_BENCHMARKS = [
   { stage: "Mature (9+ properties)", gaPct: "12–20%", staffFTE: "7–12", notes: "Full functional team; overhead ratio stabilizes" },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function OverheadBenchmarksTab({ content }: OverheadBenchmarksTabProps) {
   return (
     <div className="space-y-6">

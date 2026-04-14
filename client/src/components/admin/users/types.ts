@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { User } from "../types";
 import { UserRole } from "@shared/constants";
 

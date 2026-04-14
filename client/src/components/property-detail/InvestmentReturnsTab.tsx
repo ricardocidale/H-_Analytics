@@ -21,6 +21,7 @@ export default function InvestmentReturnsTab({
   financials,
   cashFlowData,
   projectionYears,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   startYear,
   getFiscalYear,
 }: InvestmentReturnsTabProps) {

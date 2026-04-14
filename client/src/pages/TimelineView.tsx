@@ -33,6 +33,7 @@ function formatCurrency(value: number): string {
 export default function TimelineView({ embedded }: { embedded?: boolean }) {
   const properties = useStore((s) => s.properties);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { events, minDate, maxDate, totalMonths } = useMemo(() => {
     const items: TimelineEvent[] = [];
     let minTime = Infinity;

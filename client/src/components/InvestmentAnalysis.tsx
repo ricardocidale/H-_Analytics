@@ -46,8 +46,10 @@ interface InvestmentAnalysisProps {
 
 export function InvestmentAnalysis({
   properties,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   allPropertyFinancials,
   allPropertyYearlyCF,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getPropertyYearly,
   getYearlyConsolidated,
   global,

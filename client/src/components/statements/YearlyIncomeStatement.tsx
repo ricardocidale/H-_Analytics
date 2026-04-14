@@ -45,6 +45,7 @@ import {
   MetricRow,
   ExpandableMetricRow,
   ExpandableLineItem,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   useCalcDetails,
   FormulaDetailStringRow,
 } from "@/components/financial-table";

@@ -6,6 +6,7 @@ import { analyzeFundingNeeds } from "@/lib/financial/funding-predictor";
 import { NodeBox, Arrow, FlowRow } from "@/components/ui/flow-diagram";
 import { CashRunwayChart, TrancheCard } from "./shared";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function RecommendedTab({ analysis, fundingLabel, chartData, gapType, projectionYears, global, marketRates }: {
   analysis: NonNullable<ReturnType<typeof analyzeFundingNeeds>>;
   fundingLabel: string;

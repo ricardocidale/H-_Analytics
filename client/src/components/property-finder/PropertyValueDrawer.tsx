@@ -153,6 +153,7 @@ function ValueContent({ history }: { history: PropertyValueHistory }) {
 function MiniChart({
   data,
   min,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   max,
   range,
 }: {

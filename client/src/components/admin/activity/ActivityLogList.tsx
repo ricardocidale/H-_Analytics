@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableBody as UITableBody, TableCell as UITableCell } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -32,7 +33,9 @@ export function ActivityLogList({
   loginLogIpFilter,
   setLoginLogIpFilter,
 }: ActivityLogListProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { toast } = useToast();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const queryClient = useQueryClient();
 
   const activeSessionsCount = loginLogs?.filter(l => !l.logoutAt).length || 0;

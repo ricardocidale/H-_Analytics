@@ -9,6 +9,7 @@ import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from "@/lib/constant
 import { DEFAULT_SAFE_VALUATION_CAP, DEFAULT_SAFE_DISCOUNT_RATE, DEFAULT_TRANCHE_BUFFER_MULTIPLIER, DEFAULT_EARLY_STAGE_CAP_DISCOUNT, DEFAULT_EARLY_STAGE_DISCOUNT_PREMIUM, DEFAULT_FUNDING_ROUNDING_INCREMENT } from "@shared/constants";
 import { StatRow } from "./shared";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ResearchTab({ analysis, fundingLabel, marketRates, global, navigate }: {
   analysis: NonNullable<ReturnType<typeof analyzeFundingNeeds>>;
   fundingLabel: string;

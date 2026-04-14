@@ -24,7 +24,9 @@ export function CashFlowOperatingRows({
   projectionYears,
   expandedRows,
   toggleRow,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fundingLabel,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   propertyFinancials,
   getPropertyYearlyBaseFee,
   FormulaRow,

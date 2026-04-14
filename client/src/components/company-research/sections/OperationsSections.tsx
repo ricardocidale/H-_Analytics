@@ -95,6 +95,7 @@ export function RevenueFees({ content, hasData, onGenerate }: { content: any; ha
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function CostStructure({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
   if (!hasData) return <EmptyState title="Cost Structure Analysis" description="Generate research to see overhead allocation and staffing benchmarks." onGenerate={onGenerate} />;
 
@@ -151,6 +152,7 @@ export function CostStructure({ content, hasData, onGenerate }: { content: any; 
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function VendorIntelligence({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
   if (!hasData) return <EmptyState title="Vendor Intelligence" description="Generate research to see make-vs-buy analysis and vendor benchmarks." onGenerate={onGenerate} />;
 
@@ -228,6 +230,7 @@ export function VendorIntelligence({ content, hasData, onGenerate }: { content: 
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function CompetitivePosition({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
   if (!hasData) return <EmptyState title="Competitive Positioning" description="Generate research to see competitive landscape analysis." onGenerate={onGenerate} />;
 

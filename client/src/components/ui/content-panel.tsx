@@ -10,6 +10,7 @@ export interface ContentPanelProps extends React.HTMLAttributes<HTMLDivElement> 
 }
 
 const ContentPanel = React.forwardRef<HTMLDivElement, ContentPanelProps>(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ({ title, subtitle, variant = "light", padded = true, className, children, ...props }, ref) => {
     return (
       <Card

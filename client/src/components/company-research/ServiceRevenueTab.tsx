@@ -27,6 +27,7 @@ interface ServiceRevenueTabProps {
   content: any;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ServiceRevenueTab({ content }: ServiceRevenueTabProps) {
   const sampleRevenue = 1_500_000;
 

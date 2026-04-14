@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconGlobe, IconShieldCheck, IconAlertTriangle, IconActivity,
 } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";

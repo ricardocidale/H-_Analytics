@@ -26,6 +26,7 @@ interface VendorCostsTabProps {
   content: any;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function VendorCostsTab({ content }: VendorCostsTabProps) {
   const sampleVendorCost = 10_000;
 

@@ -3,6 +3,7 @@ import { Property } from "@shared/schema";
 import { MonthlyFinancials } from "@/lib/financialEngine";
 import { propertyEquityInvested, acquisitionYearIndex } from "@/lib/financial/equityCalculations";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { GlobalResponse } from "@/lib/api";
 
 export interface YearlyPerPropertyBS {
@@ -58,6 +59,7 @@ export function useBalanceSheetData(
       let totalDebt = 0;
       let totalEquityInvested = 0;
       let totalRetained = 0;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       let totalPreOpening = 0;
 
       const perPropThisYear: Map<number, YearlyPerPropertyBS> = new Map();

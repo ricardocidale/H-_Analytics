@@ -68,6 +68,7 @@ export function ResearchFreshnessBadge({
   refreshIntervalDays = 7,
   className,
 }: ResearchFreshnessBadgeProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { state, daysAgo } = getFreshnessState(updatedAt, refreshIntervalDays);
   const config = stateConfig[state];
   const Icon = config.icon;

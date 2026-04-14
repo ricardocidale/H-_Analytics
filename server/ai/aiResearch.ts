@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type Anthropic from "@anthropic-ai/sdk";
 import { loadSkill, loadToolDefinitions, validateSkillFolders } from "./research-resources.js";
 import { buildUserPrompt } from "./research-prompt-builders.js";

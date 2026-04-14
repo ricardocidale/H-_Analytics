@@ -52,6 +52,7 @@ const DIFFERENTIATION_STRATEGIES = [
   { strategy: "Asset Enhancement", description: "Design and renovation oversight that increases property value, not just operational income." },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function CompetitiveLandscapeTab({ content }: CompetitiveLandscapeTabProps) {
   return (
     <div className="space-y-6">

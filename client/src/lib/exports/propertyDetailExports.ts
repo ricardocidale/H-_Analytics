@@ -120,6 +120,7 @@ export async function exportChartPNG(ctx: PropertyExportContext, orientation: 'l
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function exportTablePNG(ctx: PropertyExportContext, orientation: 'landscape' | 'portrait' = 'landscape', customFilename?: string) {
   const tableContainer = ctx.activeTab === "cashflow" ? ctx.cashFlowTableRef.current : ctx.incomeTableRef.current;
   if (!tableContainer) return;
@@ -255,6 +256,7 @@ export function handleExport(ctx: PropertyExportContext, exportType: string, ori
 }
 
 export function buildPremiumExportPayload(ctx: PropertyExportContext, version: ExportVersion): PremiumExportPayload {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { property, global, yearlyDetails, cashFlowData, yearlyChartData, years, projectionYears } = ctx;
   const { loan, acqYear, totalPropertyCost } = getLoanCalcs(ctx);
   const depYears = resolveExportDepreciationYears(ctx);

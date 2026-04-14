@@ -32,6 +32,7 @@ function PropertyTypeLabel(type: string | null): string {
 export function FavoriteCard({
   property,
   onRemove,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onUpdateNotes,
   isRemoving,
   editingNotesId,

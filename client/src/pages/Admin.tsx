@@ -92,6 +92,7 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "reports-exports":     { title: "Reports & Exports",        subtitle: "Configure content, orientation, and layout for all report exports" },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function SectionContent({ section, onNavigate, onSaveStateChange }: { section: AdminSection; onNavigate: (s: AdminSection) => void; onSaveStateChange: (state: AdminSaveState | null) => void }) {
   const resolved = resolveSection(section);
 

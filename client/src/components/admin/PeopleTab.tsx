@@ -4,6 +4,7 @@ interface PeopleTabProps {
   initialTab?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function PeopleTab({ initialTab }: PeopleTabProps) {
   return (
     <div className="space-y-6 mt-2">

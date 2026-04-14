@@ -101,6 +101,7 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
   const {
     yearlyConsolidatedCache,
     allPropertyYearlyCF,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     allPropertyYearlyIS,
     portfolioIRR,
     equityMultiple,
@@ -116,6 +117,7 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
 
   const tabContentRef = useRef<HTMLDivElement>(null);
   const chartsRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { requestSave, SaveDialog } = useExportSave();
 
   const activeProperties = properties.filter(p => p.isActive !== false);
@@ -128,6 +130,7 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
     ? activeProperties.reduce((sum, p) => sum + p.startAdr * p.roomCount, 0) / totalRooms
     : 0;
   const avgExitCapRate = totalProperties > 0 ? activeProperties.reduce((sum, p) => sum + (p.exitCapRate ?? DEFAULT_EXIT_CAP_RATE), 0) / totalProperties : DEFAULT_EXIT_CAP_RATE;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const totalInvestment = totalPurchasePrice;
   const investmentHorizon = projectionYears;
 

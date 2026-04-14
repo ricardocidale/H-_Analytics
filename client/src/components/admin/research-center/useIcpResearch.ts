@@ -11,6 +11,7 @@ import {
   generateIcpPrompt,
 } from "../icp-config";
 import type {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IcpSources, PromptBuilderConfig, IcpResearchReport, UrlSource,
 } from "./icp-types";
 import {

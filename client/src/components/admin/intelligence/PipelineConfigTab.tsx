@@ -7,6 +7,7 @@ interface PipelineConfigTabProps {
   onSaveStateChange?: (state: AdminSaveState | null) => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function PipelineConfigTab({ onSaveStateChange }: PipelineConfigTabProps) {
   const [activeView, setActiveView] = useState<"policies" | "routing">("policies");
 

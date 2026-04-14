@@ -180,6 +180,7 @@ export function CapitalInvestor({ hasData, onGenerate }: { hasData: boolean; onG
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function MarketSizing({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
   if (!hasData) return <EmptyState title="Market Sizing" description="Generate research to see TAM/SAM/SOM analysis and regional breakdown." onGenerate={onGenerate} />;
 

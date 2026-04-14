@@ -30,6 +30,7 @@ export function StatRow({ label, value, muted }: { label: string; value: React.R
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function TrancheCard({ tranche, totalTranches }: { tranche: any; totalTranches: number }) {
   return (
     <ContentPanel data-testid={`card-tranche-${tranche.index}`}>

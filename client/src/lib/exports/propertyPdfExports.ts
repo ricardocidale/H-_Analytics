@@ -66,6 +66,7 @@ export async function exportCashFlowPDF(ctx: PropertyExportContext, orientation:
   const { default: autoTable } = await import("jspdf-autotable");
   const { PAGE_DIMS } = await import("@/lib/exports/exportStyles");
   const brand = getBrand(ctx);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { property, global, yearlyChartData, cashFlowData, projectionYears, years, startYear, activeTab } = ctx;
   const { loan, acqYear, totalPropertyCost } = getLoanCalcs(ctx);
   const dims = orientation === "landscape"

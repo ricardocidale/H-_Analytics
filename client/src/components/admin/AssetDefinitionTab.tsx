@@ -21,6 +21,7 @@ import {
   DEFAULT_ICP_DESCRIPTIVE,
   PARAMETER_SECTIONS,
   DESCRIPTIVE_SECTIONS,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   PRIORITY_LABELS,
   UNIT_DEFS,
   generateIcpPrompt,

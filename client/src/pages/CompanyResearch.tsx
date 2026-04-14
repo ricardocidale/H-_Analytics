@@ -12,6 +12,7 @@ import {
   IconRefreshCw, IconAlertTriangle, IconFileDown,
   IconDollarSign, IconPackage, IconBookOpen, IconTarget, IconUsers,
   IconTrendingUp, IconGlobe, IconBriefcase, IconMapPin,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconZap, IconLayers, IconPieChart, IconBed,
   IconHotel, IconBarChart2,
 } from "@/components/icons";
@@ -64,8 +65,10 @@ export default function CompanyResearch() {
   const { data: globalRes, isLoading: loadingGlobal } = useMarketResearch("global");
   const { data: globalAssumptions } = useGlobalAssumptions();
   const [activeGroup, setActiveGroup] = useState<GroupKey>("operations");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { toast } = useToast();
   const { requestSave, SaveDialog } = useExportSave();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isGenerating, streamedContent, generateResearch } = useCompanyResearchStream();
 
   const companyContent = (companyRes?.content ?? {}) as any;

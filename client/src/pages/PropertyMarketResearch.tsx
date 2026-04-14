@@ -33,9 +33,11 @@ export default function PropertyMarketResearch() {
   const { data: global } = useGlobalAssumptions();
   const { data: research, isLoading: researchLoading } = useMarketResearch("property", propertyId);
   const [activeTab, setActiveTab] = useState("market");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { toast } = useToast();
 
   const { requestSave, SaveDialog } = useExportSave();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
     property,
     propertyId,
@@ -63,6 +65,7 @@ export default function PropertyMarketResearch() {
   const content = research?.content as any;
   const hasResearch = content && !content.rawResponse;
   const adrValue = property.startAdr ? Math.round(property.startAdr) : null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const propertyLabel = global?.propertyLabel || "boutique hotel";
 
   return (

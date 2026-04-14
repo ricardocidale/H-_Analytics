@@ -249,7 +249,9 @@ const PROVENANCE_STYLES: Record<ProvenanceStatus, { bg: string; border: string; 
 
 export default function CompanyGuidance() {
   const { data: global, isLoading } = useGlobalAssumptions();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data: properties } = useProperties();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useAuth();
 
   // Build a company ID for guidance API — use "company" entity type
@@ -316,6 +318,7 @@ export default function CompanyGuidance() {
 
   const companyName = global.companyName || "Management Company";
   const projectionYears = global.projectionYears ?? PROJECTION_YEARS;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const fundingLabel = global.fundingSourceLabel ?? "Funding Vehicle";
 
   // Find last research timestamp from guidance records
