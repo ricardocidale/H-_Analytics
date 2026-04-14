@@ -208,8 +208,11 @@ export function analyzeFundingNeeds(
     ? Math.abs(burnMonths.reduce((sum, m) => sum + m.netIncome, 0)) / burnMonths.length
     : 0;
 
-  const totalRaiseRaw = Math.abs(peakCashDeficit) + OPERATING_RESERVE_BUFFER + COMPANY_FUNDING_BUFFER;
-  const totalRaiseNeeded = Math.ceil(totalRaiseRaw / DEFAULT_FUNDING_ROUNDING_INCREMENT) * DEFAULT_FUNDING_ROUNDING_INCREMENT;
+  const rawDeficit = Number.isFinite(peakCashDeficit) ? Math.abs(peakCashDeficit) : 0;
+  const totalRaiseRaw = rawDeficit + OPERATING_RESERVE_BUFFER + COMPANY_FUNDING_BUFFER;
+  const totalRaiseNeeded = Number.isFinite(totalRaiseRaw)
+    ? Math.ceil(totalRaiseRaw / DEFAULT_FUNDING_ROUNDING_INCREMENT) * DEFAULT_FUNDING_ROUNDING_INCREMENT
+    : OPERATING_RESERVE_BUFFER + COMPANY_FUNDING_BUFFER;
 
   const currentFunding = (global.safeTranche1Amount ?? 0) + (global.safeTranche2Amount ?? 0);
   const fundingGap = totalRaiseNeeded - currentFunding;
@@ -321,7 +324,8 @@ function buildTranches(
   }
 
   const midpoint = operationsStartIdx + Math.floor(periodLength * DEFAULT_TRANCHE1_PERIOD_RATIO);
-  const lowestCashToMid = Math.min(...cashWithoutFunding.slice(operationsStartIdx, midpoint + 1));
+  const sliceToMid = cashWithoutFunding.slice(operationsStartIdx, midpoint + 1);
+  const lowestCashToMid = sliceToMid.length > 0 ? Math.min(...sliceToMid) : 0;
   const tranche1Raw = Math.abs(lowestCashToMid) * DEFAULT_TRANCHE_BUFFER_MULTIPLIER + OPERATING_RESERVE_BUFFER;
   const tranche1Amount = Math.ceil(Math.min(tranche1Raw, totalRaise * DEFAULT_TRANCHE1_MAX_ALLOCATION) / DEFAULT_FUNDING_ROUNDING_INCREMENT) * DEFAULT_FUNDING_ROUNDING_INCREMENT;
   const tranche2Amount = Math.max(0, totalRaise - tranche1Amount);

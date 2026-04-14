@@ -124,11 +124,16 @@ export class OpenAIResearchClient implements ResearchClient {
 
     const textBlocks = message.content ? [message.content] : [];
     const rawToolCalls = message.tool_calls ?? [];
-    const toolCalls: ToolCall[] = rawToolCalls.map((tc: any) => ({
-      id: tc.id,
-      name: tc.function.name,
-      input: JSON.parse(tc.function.arguments),
-    }));
+    const toolCalls: ToolCall[] = rawToolCalls.map((tc: any) => {
+      let input: Record<string, any> = {};
+      try {
+        input = JSON.parse(tc.function.arguments);
+      } catch {
+        // Model returned malformed JSON for tool arguments — pass empty object
+        input = { _parseError: true, rawArguments: String(tc.function.arguments).slice(0, 500) };
+      }
+      return { id: tc.id, name: tc.function.name, input };
+    });
 
     const stopReason = choice.finish_reason === "tool_calls" ? "tool_use" : "end_turn";
 

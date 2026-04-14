@@ -105,8 +105,31 @@ const singlePropertyComputeSchema = z.object({
   projectionYears: z.number().int().positive().max(30).optional(),
 });
 
+/**
+ * Recursively replace NaN and Infinity with null so JSON.stringify
+ * doesn't silently drop them or produce invalid JSON.
+ */
+function sanitizeNumbers(obj: unknown): unknown {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === "number") {
+    return Number.isFinite(obj) ? obj : null;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeNumbers);
+  }
+  if (typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      result[key] = sanitizeNumbers(value);
+    }
+    return result;
+  }
+  return obj;
+}
+
 function sendSuperjson(res: Response, data: unknown): void {
-  const serialized = superjson.serialize(data);
+  const safe = sanitizeNumbers(data);
+  const serialized = superjson.serialize(safe);
   res.setHeader("X-Superjson", "true");
   res.json(serialized);
 }

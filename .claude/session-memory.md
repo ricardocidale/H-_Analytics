@@ -8,6 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 14, 2026 — Codebase Audit + Vocabulary Skill
+- **Deep audit**: 36 files fixed (574 insertions). Critical: IDOR on property read, prototype pollution in document extraction, 4 unguarded JSON.parse crashes, PMT overflow in 4 files. High: NaN/Infinity in API output, timer leaks in both schedulers, N+1 query in shared scenarios, floating-point === 0 guards. Medium: parseRouteId on 50+ routes, pagination caps, allowlists on z.record() endpoints.
+- **Vocabulary skill created**: `.claude/skills/vocabulary/SKILL.md` — 18th domain, single source of truth for all user-facing terms. Key decisions: AI features use colleague language ("Ask the Analysts", "Analyst Note", "Conviction: High/Moderate/Developing"), never machine language ("Generate", "Run", "Confidence Score"). 7 canonical terminology changes. 13 forbidden terms.
+- **Propagated to all agents**: Updated `claude.md`, `replit.md`, `rules/ui-patterns.md`, `session-memory.md`, `_index.md`. Both Claude and Replit agents instructed to read vocabulary skill before writing any UI text.
+- **Conviction tiers replace confidence scores**: High (75-100), Moderate (50-74), Developing (0-49). Never show numeric % to users. "Developing" not "Low" — implies still gathering info, not failure.
+- **Navigation canonical names decided**: "Management Co." (mobile+desktop), "Simulation" (not Analysis/Sensitivity), "Scenarios" (not "My Scenarios").
+
 ## Session: April 14, 2026 — Icon Hardcoding, AI Animations, Skill Cleanup
 - Hardcoded Lucide as sole icon set. Removed Phosphor/Material switching: deleted `IconSetContext.tsx`, `IconCustomizationTab.tsx`, simplified `themed-icons.tsx`. Replaced `react-icons/md` imports in 3 files with Lucide equivalents.
 - Created `ai-loader.tsx` (6 premium framer-motion components). Upgraded ResearchLoadingOverlay, RebeccaTypingIndicator, ResearchTheater, IntelligenceStatusBar with new loaders. Skeleton uses CSS shimmer.

@@ -102,7 +102,7 @@ function scoreCrossValidation(records: AssumptionGuidance[]): number {
 
   for (const r of records) {
     if (r.valueLow == null || r.valueHigh == null || r.valueMid == null) continue;
-    if (r.valueMid === 0) continue;
+    if (Math.abs(r.valueMid) < 1e-6) continue;
     const rangeSpread = Math.abs(r.valueHigh - r.valueLow) / Math.abs(r.valueMid);
     checked++;
     // Tight spread means sources agree

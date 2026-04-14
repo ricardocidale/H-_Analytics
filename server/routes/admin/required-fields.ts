@@ -18,7 +18,8 @@ const DEFAULT_REQUIRED_FIELDS = {
   locationType: false,
 };
 
-const requiredFieldsSchema = z.record(z.string(), z.boolean());
+const VALID_REQUIRED_FIELD_KEYS = Object.keys(DEFAULT_REQUIRED_FIELDS) as [string, ...string[]];
+const requiredFieldsSchema = z.record(z.enum(VALID_REQUIRED_FIELD_KEYS), z.boolean());
 
 export function registerRequiredFieldsRoutes(app: Express) {
   app.get("/api/admin/required-fields", requireAdmin, async (_req, res) => {

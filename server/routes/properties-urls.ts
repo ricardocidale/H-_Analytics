@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess, getAuthUser } from "../auth";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
-import { logActivity, logAndSendError } from "./helpers";
+import { logActivity, logAndSendError, parseRouteId } from "./helpers";
 import { logger } from "../logger";
 
 const httpUrlSchema = z.string().url().max(2048).refine(
@@ -115,7 +115,8 @@ export function registerPropertyUrlRoutes(app: Express) {
 
   app.get("/api/properties/:id/urls", requireAuth, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -128,7 +129,8 @@ export function registerPropertyUrlRoutes(app: Express) {
 
   app.post("/api/properties/:id/urls", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -154,11 +156,12 @@ export function registerPropertyUrlRoutes(app: Express) {
 
   app.patch("/api/properties/:id/urls/:urlId", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      const urlId = parseRouteId(req.params.urlId);
+      if (!propertyId || !urlId) return res.status(400).json({ error: "Invalid ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const urlId = Number(req.params.urlId);
       const existing = await storage.getPropertyUrlById(urlId);
       if (!existing || existing.propertyId !== propertyId) {
         return res.status(404).json({ error: "URL not found" });
@@ -183,11 +186,12 @@ export function registerPropertyUrlRoutes(app: Express) {
 
   app.delete("/api/properties/:id/urls/:urlId", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      const urlId = parseRouteId(req.params.urlId);
+      if (!propertyId || !urlId) return res.status(400).json({ error: "Invalid ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const urlId = Number(req.params.urlId);
       const existing = await storage.getPropertyUrlById(urlId);
       if (!existing || existing.propertyId !== propertyId) {
         return res.status(404).json({ error: "URL not found" });
@@ -210,13 +214,11 @@ export function registerPropertyUrlRoutes(app: Express) {
 
   app.post("/api/properties/:id/urls/validate-all", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
-      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      const property = await storage.getProperty(propertyId);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
-        return res.status(404).json({ error: "Property not found" });
+        return res.status(403).json({ error: "Access denied" });
       }
       const urls = await storage.getPropertyUrls(propertyId);
       if (urls.length === 0) {

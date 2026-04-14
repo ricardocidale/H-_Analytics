@@ -4,7 +4,7 @@ import { requireAuth, requireAdmin , getAuthUser } from "../auth";
 import { insertLogoSchema, insertDesignThemeSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { logger } from "../logger";
-import { fullName, logAndSendError } from "./helpers";
+import { fullName, logAndSendError, parseRouteId } from "./helpers";
 import { z } from "zod";
 
 function generateLetterLogoSvg(letter: string, companyName: string): string {
@@ -130,7 +130,8 @@ export function register(app: Express) {
 
   app.delete("/api/logos/:id", requireAdmin, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid logo ID" });
       const logo = await storage.getLogo(id);
       if (logo?.isDefault) {
         return res.status(400).json({ error: "Cannot delete the management company default logo" });
@@ -147,7 +148,9 @@ export function register(app: Express) {
 
   app.patch("/api/logos/:id/default", requireAdmin, async (req, res) => {
     try {
-      await storage.setDefaultLogo(Number(req.params.id));
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid logo ID" });
+      await storage.setDefaultLogo(id);
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to set default logo", error);
@@ -249,7 +252,8 @@ export function register(app: Express) {
 
   app.patch("/api/admin/design-themes/:id", requireAdmin, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid theme ID" });
       const existing = await storage.getDesignTheme(id);
       const parsed = updateDesignThemeSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -268,7 +272,8 @@ export function register(app: Express) {
 
   app.delete("/api/admin/design-themes/:id", requireAdmin, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid theme ID" });
       const theme = await storage.getDesignTheme(id);
       if (theme?.isDefault) {
         return res.status(400).json({ error: "Cannot delete the default theme" });

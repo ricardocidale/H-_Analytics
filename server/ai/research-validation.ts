@@ -55,7 +55,7 @@ function extractDeep(obj: Record<string, unknown>, dotPath: string): number | un
 
 function divergencePct(a: number, b: number): number {
   const avg = (Math.abs(a) + Math.abs(b)) / 2;
-  if (avg === 0) return 0;
+  if (avg < 1e-6) return 0;
   return Math.abs(a - b) / avg;
 }
 

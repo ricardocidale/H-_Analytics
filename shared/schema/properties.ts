@@ -402,7 +402,10 @@ const starRatingRefinement = z.object({
   occupancyRampCurve: z.array(z.number()).nullable().optional(),
 }).partial();
 
-export const updatePropertySchema = insertPropertySchema.partial().merge(starRatingRefinement);
+export const updatePropertySchema = insertPropertySchema
+  .omit({ userId: true, createdBy: true })
+  .partial()
+  .merge(starRatingRefinement);
 
 export const selectPropertySchema = createSelectSchema(properties);
 

@@ -21,12 +21,13 @@ export class DocumentStorage {
       .orderBy(desc(documentExtractions.createdAt));
   }
 
-  async updateDocumentExtraction(id: number, data: Partial<DocumentExtraction>): Promise<DocumentExtraction> {
+  async updateDocumentExtraction(id: number, data: Partial<DocumentExtraction>): Promise<DocumentExtraction | undefined> {
     const { id: _id, ...updateData } = data;
     const [updated] = await db.update(documentExtractions)
       .set(updateData)
       .where(eq(documentExtractions.id, id))
       .returning();
+    if (!updated) return undefined;
 
     // Index completed extractions to Pinecone for semantic retrieval (fire-and-forget)
     if (updated.status === "completed" && updated.rawExtractionData) {
@@ -81,7 +82,7 @@ export class DocumentStorage {
       .orderBy(desc(extractionFields.confidence));
   }
 
-  async updateExtractionFieldStatus(id: number, status: string): Promise<ExtractionField> {
+  async updateExtractionFieldStatus(id: number, status: string): Promise<ExtractionField | undefined> {
     const [updated] = await db.update(extractionFields)
       .set({ status })
       .where(eq(extractionFields.id, id))

@@ -26,6 +26,12 @@ function envSet(varName: string): boolean {
   return !!process.env[varName];
 }
 
+/** Strip API keys / tokens from error messages to prevent leaking credentials in health check responses. */
+function sanitizeError(message: string): string {
+  // Replace common URL query parameter patterns: api_key=..., app_id=..., key=..., token=...
+  return message.replace(/([?&])(api_key|app_id|key|token|apikey|access_token|client_secret)=[^&\s]*/gi, "$1$2=***REDACTED***");
+}
+
 async function checkLLMProvider(serviceKey: string, envVar: string): Promise<HealthCheckResult> {
   const start = Date.now();
   const checkedAt = new Date();
@@ -64,7 +70,7 @@ async function checkLLMProvider(serviceKey: string, envVar: string): Promise<Hea
       serviceKey,
       healthy: false,
       latencyMs: Date.now() - start,
-      error: err instanceof Error ? err.message : String(err),
+      error: sanitizeError(err instanceof Error ? err.message : String(err)),
       checkedAt,
     };
   }
@@ -87,7 +93,7 @@ async function checkFred(): Promise<HealthCheckResult> {
     }
     return { serviceKey: "fred", healthy: true, latencyMs: Date.now() - start, checkedAt };
   } catch (err: unknown) {
-    return { serviceKey: "fred", healthy: false, latencyMs: Date.now() - start, error: err instanceof Error ? err.message : String(err), checkedAt };
+    return { serviceKey: "fred", healthy: false, latencyMs: Date.now() - start, error: sanitizeError(err instanceof Error ? err.message : String(err)), checkedAt };
   }
 }
 
@@ -104,7 +110,7 @@ async function checkFrankfurter(): Promise<HealthCheckResult> {
     }
     return { serviceKey: "frankfurter", healthy: true, latencyMs: Date.now() - start, checkedAt };
   } catch (err: unknown) {
-    return { serviceKey: "frankfurter", healthy: false, latencyMs: Date.now() - start, error: err instanceof Error ? err.message : String(err), checkedAt };
+    return { serviceKey: "frankfurter", healthy: false, latencyMs: Date.now() - start, error: sanitizeError(err instanceof Error ? err.message : String(err)), checkedAt };
   }
 }
 
@@ -117,6 +123,8 @@ function checkEnvOnly(serviceKey: string, envVar: string): HealthCheckResult {
   return { serviceKey, healthy: true, latencyMs: Date.now() - start, checkedAt };
 }
 
+let _redisClient: { ping(): Promise<string> } | null = null;
+
 async function checkRedis(): Promise<HealthCheckResult> {
   const start = Date.now();
   const checkedAt = new Date();
@@ -128,12 +136,15 @@ async function checkRedis(): Promise<HealthCheckResult> {
   }
 
   try {
-    const { Redis } = await import("@upstash/redis");
-    const redis = new Redis({ url, token });
-    await redis.ping();
+    if (!_redisClient) {
+      const { Redis } = await import("@upstash/redis");
+      _redisClient = new Redis({ url, token });
+    }
+    await _redisClient.ping();
     return { serviceKey: "upstash_redis", healthy: true, latencyMs: Date.now() - start, checkedAt };
   } catch (err: unknown) {
-    return { serviceKey: "upstash_redis", healthy: false, latencyMs: Date.now() - start, error: err instanceof Error ? err.message : String(err), checkedAt };
+    _redisClient = null; // Reset on failure so next check creates a fresh client
+    return { serviceKey: "upstash_redis", healthy: false, latencyMs: Date.now() - start, error: sanitizeError(err instanceof Error ? err.message : String(err)), checkedAt };
   }
 }
 
@@ -149,7 +160,46 @@ async function checkHospitalityBenchmarksDB(): Promise<HealthCheckResult> {
     }
     return { serviceKey: "hospitality_benchmarks", healthy: false, latencyMs: Date.now() - start, error: "No benchmark rows found", checkedAt };
   } catch (err: unknown) {
-    return { serviceKey: "hospitality_benchmarks", healthy: false, latencyMs: Date.now() - start, error: err instanceof Error ? err.message : String(err), checkedAt };
+    return { serviceKey: "hospitality_benchmarks", healthy: false, latencyMs: Date.now() - start, error: sanitizeError(err instanceof Error ? err.message : String(err)), checkedAt };
+  }
+}
+
+async function checkWorldBank(): Promise<HealthCheckResult> {
+  const start = Date.now();
+  const checkedAt = new Date();
+
+  try {
+    const res = await fetch("https://api.worldbank.org/v2/country/US/indicator/NY.GDP.MKTP.CD?format=json&per_page=1", {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      return { serviceKey: "world_bank", healthy: false, latencyMs: Date.now() - start, error: `HTTP ${res.status}`, checkedAt };
+    }
+    return { serviceKey: "world_bank", healthy: true, latencyMs: Date.now() - start, checkedAt };
+  } catch (err: unknown) {
+    return { serviceKey: "world_bank", healthy: false, latencyMs: Date.now() - start, error: sanitizeError(err instanceof Error ? err.message : String(err)), checkedAt };
+  }
+}
+
+async function checkOpenExchangeRates(): Promise<HealthCheckResult> {
+  const start = Date.now();
+  const checkedAt = new Date();
+  const appId = process.env.OPEN_EXCHANGE_RATES_APP_ID;
+
+  if (!appId) {
+    return { serviceKey: "open_exchange_rates", healthy: false, latencyMs: Date.now() - start, error: "API key not configured", checkedAt };
+  }
+
+  try {
+    const res = await fetch(`https://openexchangerates.org/api/latest.json?app_id=${appId}&symbols=EUR`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+      return { serviceKey: "open_exchange_rates", healthy: false, latencyMs: Date.now() - start, error: `HTTP ${res.status}`, checkedAt };
+    }
+    return { serviceKey: "open_exchange_rates", healthy: true, latencyMs: Date.now() - start, checkedAt };
+  } catch (err: unknown) {
+    return { serviceKey: "open_exchange_rates", healthy: false, latencyMs: Date.now() - start, error: sanitizeError(err instanceof Error ? err.message : String(err)), checkedAt };
   }
 }
 
@@ -194,6 +244,10 @@ export async function checkSourceHealth(serviceKey: string): Promise<HealthCheck
     result = await checkRedis();
   } else if (serviceKey === "hospitality_benchmarks") {
     result = await checkHospitalityBenchmarksDB();
+  } else if (serviceKey === "world_bank") {
+    result = await checkWorldBank();
+  } else if (serviceKey === "open_exchange_rates") {
+    result = await checkOpenExchangeRates();
   } else if (ENV_ONLY_SOURCES[serviceKey]) {
     result = checkEnvOnly(serviceKey, ENV_ONLY_SOURCES[serviceKey]);
   } else {
@@ -206,14 +260,20 @@ export async function checkSourceHealth(serviceKey: string): Promise<HealthCheck
     };
   }
 
-  // Update source_registry row
+  // Update source_registry row with EWMA success rate and derived trust score
   try {
+    // Trust score derived from the EWMA success rate, not a single check:
+    //   ≥ 0.95 → "verified"  |  ≥ 0.70 → "degraded"  |  < 0.70 → "unreliable"
     await db.update(sourceRegistry)
       .set({
         lastHealthCheck: result.checkedAt,
         avgLatencyMs: result.latencyMs,
         successRate: sql`COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${result.healthy ? 1 : 0} * 0.1`,
-        trustScore: result.healthy ? "verified" : "unreliable",
+        trustScore: sql`CASE
+          WHEN COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${result.healthy ? 1 : 0} * 0.1 >= 0.95 THEN 'verified'
+          WHEN COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${result.healthy ? 1 : 0} * 0.1 >= 0.70 THEN 'degraded'
+          ELSE 'unreliable'
+        END`,
       })
       .where(eq(sourceRegistry.serviceKey, serviceKey));
   } catch (err: unknown) {
@@ -228,6 +288,8 @@ export async function checkAllSources(): Promise<HealthCheckResult[]> {
     ...Object.keys(LLM_SOURCES),
     "fred",
     "frankfurter",
+    "world_bank",
+    "open_exchange_rates",
     "upstash_redis",
     "hospitality_benchmarks",
     ...Object.keys(ENV_ONLY_SOURCES),
@@ -259,13 +321,16 @@ export async function checkAllSources(): Promise<HealthCheckResult[]> {
 }
 
 export async function getHealthySources(category?: string): Promise<string[]> {
+  // Only return sources that have been health-checked and passed.
+  // 'unverified' (never checked) is excluded — we don't know if they work.
+  // 'degraded' (EWMA 0.70-0.95) is included — still usable, just less reliable.
   const rows = await db.select({
     serviceKey: sourceRegistry.serviceKey,
   }).from(sourceRegistry)
     .where(
       category
-        ? sql`${sourceRegistry.isActive} = true AND ${sourceRegistry.category} = ${category} AND ${sourceRegistry.trustScore} IN ('verified', 'unverified')`
-        : sql`${sourceRegistry.isActive} = true AND ${sourceRegistry.trustScore} IN ('verified', 'unverified')`
+        ? sql`${sourceRegistry.isActive} = true AND ${sourceRegistry.category} = ${category} AND ${sourceRegistry.trustScore} IN ('verified', 'degraded')`
+        : sql`${sourceRegistry.isActive} = true AND ${sourceRegistry.trustScore} IN ('verified', 'degraded')`
     );
 
   return rows.map(r => r.serviceKey);

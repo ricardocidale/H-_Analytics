@@ -1,10 +1,10 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess , getAuthUser } from "../auth";
-import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions } from "@shared/schema";
+import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess, checkPropertyEditAccess, getAuthUser } from "../auth";
+import { insertPropertySchema, updatePropertySchema, updateFeeCategorySchema, type GlobalAssumptions } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
-import { logActivity, logAndSendError } from "./helpers";
+import { logActivity, logAndSendError, parseRouteId } from "./helpers";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
 import { processNotificationEvent, evaluateAlertRules } from "../notifications/engine";
 import { createEvent } from "../notifications/events";
@@ -55,7 +55,9 @@ export function register(app: Express) {
 
   app.get("/api/properties/:id", requireAuth, async (req, res) => {
     try {
-      const property = await storage.getProperty(Number(req.params.id));
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid property ID" });
+      const property = await checkPropertyAccess(getAuthUser(req), id);
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
       }
@@ -134,8 +136,15 @@ export function register(app: Express) {
           }
         }
 
-        // Store provenance metadata so the UI can show where defaults came from
-        mergedData._defaultSources = smartDefaults.sources;
+        // Store provenance metadata in researchValues so the UI can show where defaults came from
+        // (cannot go on mergedData directly — _defaultSources is not a DB column)
+        if (smartDefaults.sources && Object.keys(smartDefaults.sources).length > 0) {
+          const existingRV = (mergedData.researchValues ?? {}) as Record<string, unknown>;
+          mergedData.researchValues = {
+            ...existingRV,
+            _defaultSources: smartDefaults.sources,
+          };
+        }
 
         logger.info(
           `Smart defaults applied: tier=${qualityTier}, model=${businessModel}, country=${country}, rooms=${roomCount}`,
@@ -157,16 +166,24 @@ export function register(app: Express) {
 
       const property = await storage.createProperty(createData);
 
-      // Seed default fee categories for the new property
-      await storage.seedDefaultFeeCategories(property.id);
+      // Post-creation initialization — these are best-effort; a failure here
+      // should NOT orphan the property response (property already exists in DB)
+      try {
+        await storage.seedDefaultFeeCategories(property.id);
+      } catch (feeErr: unknown) {
+        logger.warn(`Failed to seed fee categories for property ${property.id} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`, "properties");
+      }
 
-      // Create initial photo album entry from property image
       if (property.imageUrl) {
-        await storage.addPropertyPhoto({
-          propertyId: property.id,
-          imageUrl: property.imageUrl,
-          isHero: true,
-        });
+        try {
+          await storage.addPropertyPhoto({
+            propertyId: property.id,
+            imageUrl: property.imageUrl,
+            isHero: true,
+          });
+        } catch (photoErr: unknown) {
+          logger.warn(`Failed to create hero photo for property ${property.id} (non-blocking): ${photoErr instanceof Error ? photoErr.message : photoErr}`, "properties");
+        }
       }
 
       invalidateComputeCache();
@@ -187,7 +204,8 @@ export function register(app: Express) {
 
   app.patch("/api/properties/:id/coords", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
       const hasAccess = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!hasAccess) {
         return res.status(403).json({ error: "Access denied" });
@@ -233,10 +251,11 @@ export function register(app: Express) {
 
   app.patch("/api/properties/:id", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
-      const hasAccess = await checkPropertyAccess(getAuthUser(req), propertyId);
-      if (!hasAccess) {
-        return res.status(403).json({ error: "Access denied" });
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      const existingProp = await checkPropertyEditAccess(getAuthUser(req), propertyId);
+      if (!existingProp) {
+        return res.status(403).json({ error: "Shared properties can only be edited by admin. Use scenario overrides for your own adjustments." });
       }
 
       const validation = updatePropertySchema.safeParse(req.body);
@@ -244,8 +263,6 @@ export function register(app: Express) {
         const error = fromZodError(validation.error);
         return res.status(400).json({ error: error.message });
       }
-      
-      const existingProp = await storage.getProperty(propertyId);
       const merged = { ...existingProp, ...validation.data };
       const suggestion = suggestStarRating(merged as any);
       const updateData: Record<string, unknown> = { ...validation.data, starRatingSuggested: suggestion.rating };
@@ -291,15 +308,11 @@ export function register(app: Express) {
 
   app.delete("/api/properties/:id", requireManagementAccess, async (req, res) => {
     try {
-      const id = Number(req.params.id);
-      const hasAccess = await checkPropertyAccess(getAuthUser(req), id);
-      if (!hasAccess) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-
-      const property = await storage.getProperty(id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid property ID" });
+      const property = await checkPropertyAccess(getAuthUser(req), id);
       if (!property) {
-        return res.status(404).json({ error: "Property not found" });
+        return res.status(403).json({ error: "Access denied" });
       }
       
       const user = getAuthUser(req);
@@ -316,7 +329,8 @@ export function register(app: Express) {
   // Admin: restore an archived property
   app.post("/api/admin/properties/:id/restore", requireAdmin, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid property ID" });
       const property = await storage.getProperty(id);
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
@@ -335,14 +349,11 @@ export function register(app: Express) {
 
   app.post("/api/properties/:id/seed-research", requireManagementAccess, async (req, res) => {
     try {
-      const id = Number(req.params.id);
-      const hasAccess = await checkPropertyAccess(getAuthUser(req), id);
-      if (!hasAccess) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      const property = await storage.getProperty(id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid property ID" });
+      const property = await checkPropertyAccess(getAuthUser(req), id);
       if (!property) {
-        return res.status(404).json({ error: "Property not found" });
+        return res.status(403).json({ error: "Access denied" });
       }
 
       const seededValues = generateLocationAwareResearchValues({
@@ -368,7 +379,8 @@ export function register(app: Express) {
   // Fee categories for a property
   app.get("/api/properties/:id/fee-categories", requireAuth, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -389,9 +401,10 @@ export function register(app: Express) {
 
   app.put("/api/properties/:id/fee-categories", requireAuth, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
-      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!(await checkPropertyEditAccess(getAuthUser(req), propertyId))) {
+        return res.status(403).json({ error: "Access denied — use scenario overrides for shared properties" });
       }
       const parsed = feeCategoryBatchSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -442,14 +455,11 @@ export function register(app: Express) {
 
   app.post("/api/properties/:id/rewrite-description", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
-      const hasAccess = await checkPropertyAccess(getAuthUser(req), propertyId);
-      if (!hasAccess) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      const property = await storage.getProperty(propertyId);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
-        return res.status(404).json({ error: "Property not found" });
+        return res.status(403).json({ error: "Access denied" });
       }
       const parsed = rewriteDescriptionSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -515,11 +525,10 @@ Rewritten description:`;
   app.get("/api/properties/:id/walk-score", requireAuth, async (req, res) => {
     try {
       const propertyId = parseInt(String(req.params.id));
-      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+      const property = await checkPropertyAccess(getAuthUser(req), propertyId);
+      if (!property) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const property = await storage.getProperty(propertyId);
-      if (!property) return res.status(404).json({ error: "Property not found" });
 
       if (!property.latitude || !property.longitude) {
         return res.status(422).json({ error: "Property has no coordinates — cannot fetch Walk Score" });
@@ -559,7 +568,9 @@ Rewritten description:`;
    */
   app.get("/api/properties/:id/stress-test", requireAuth, async (req, res) => {
     try {
-      const property = await storage.getProperty(Number(req.params.id));
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid property ID" });
+      const property = await storage.getProperty(id);
       if (!property) return res.status(404).json({ error: "Property not found" });
 
       const assumptions: StressAssumptions = {

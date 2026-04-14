@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { requireAuth , getAuthUser } from "../auth";
 import { insertProspectivePropertySchema, insertSavedSearchSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { logActivity, logAndSendError, prospectiveNotesSchema } from "./helpers";
+import { logActivity, logAndSendError, prospectiveNotesSchema, parseRouteId } from "./helpers";
 import { z } from "zod";
 import { logger } from "../logger";
 import { aiRateLimit } from "../middleware/rate-limit";
@@ -210,7 +210,9 @@ export function register(app: Express) {
 
   app.delete("/api/property-finder/prospective/:id", requireAuth, async (req, res) => {
     try {
-      await storage.deleteProspectiveProperty(Number(req.params.id), getAuthUser(req).id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      await storage.deleteProspectiveProperty(id, getAuthUser(req).id);
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete prospective property", error);
@@ -223,8 +225,10 @@ export function register(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
       const property = await storage.updateProspectivePropertyNotes(
-        Number(req.params.id),
+        id,
         getAuthUser(req).id,
         parsed.data.notes ?? ""
       );
@@ -402,7 +406,9 @@ export function register(app: Express) {
 
   app.delete("/api/property-finder/saved-searches/:id", requireAuth, async (req, res) => {
     try {
-      await storage.deleteSavedSearch(Number(req.params.id), getAuthUser(req).id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      await storage.deleteSavedSearch(id, getAuthUser(req).id);
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete saved search", error);

@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { requireAuth, requireManagementAccess, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
-import { geocodeSchema, logAndSendError } from "./helpers";
+import { geocodeSchema, logAndSendError, parseRouteId } from "./helpers";
 import { fromZodError } from "zod-validation-error";
 import {
   geocodeAddress,
@@ -36,7 +36,8 @@ export function register(app: Express) {
 
   app.post("/api/geocode/property/:id", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -92,7 +93,7 @@ export function register(app: Express) {
         ? (typesParam.split(",") as POIType[])
         : ["hotel", "airport", "convention_center", "tourist_attraction"] as POIType[];
 
-      const radius = parseFloat(req.query.radius as string) || 10;
+      const radius = Math.min(parseFloat(req.query.radius as string) || 10, 100);
 
       const pois = await nearbyPOISearch(lat, lng, types, radius);
       res.json(pois);

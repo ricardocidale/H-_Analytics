@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { requireAuth, requireAdmin , getAuthUser } from "../auth";
-import { logAndSendError } from "./helpers";
+import { logAndSendError, parseRouteId } from "./helpers";
 import { insertAlertRuleSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
@@ -37,7 +37,9 @@ export function register(app: Express) {
       if (!validation.success) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
-      const rule = await storage.updateAlertRule(Number(req.params.id), validation.data);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid rule ID" });
+      const rule = await storage.updateAlertRule(id, validation.data);
       if (!rule) return res.status(404).json({ error: "Rule not found" });
       res.json(rule);
     } catch (error: unknown) {
@@ -47,7 +49,9 @@ export function register(app: Express) {
 
   app.delete("/api/notifications/alert-rules/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteAlertRule(Number(req.params.id));
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid rule ID" });
+      await storage.deleteAlertRule(id);
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete alert rule", error);
@@ -57,7 +61,7 @@ export function register(app: Express) {
   // --- Notification Logs ---
   app.get("/api/notifications/logs", requireAdmin, async (req, res) => {
     try {
-      const limit = Number(req.query.limit) || 100;
+      const limit = Math.min(Number(req.query.limit) || 100, 500);
       const logs = await storage.getNotificationLogs(limit);
       res.json(logs);
     } catch (error: unknown) {
@@ -81,11 +85,21 @@ export function register(app: Express) {
 
   app.put("/api/notifications/settings", requireAdmin, async (req, res) => {
     try {
+      const ALLOWED_SETTING_KEYS = new Set([
+        "emailEnabled", "emailFrequency", "emailRecipients",
+        "slackEnabled", "slackWebhookUrl", "slackChannel",
+        "alertOnSourceDown", "alertOnResearchComplete", "alertOnEngineError",
+        "digestEnabled", "digestFrequency", "digestRecipients",
+      ]);
       const validation = z.record(z.string(), z.string().nullable()).safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
       const updates = validation.data;
+      const invalidKeys = Object.keys(updates).filter(k => !ALLOWED_SETTING_KEYS.has(k));
+      if (invalidKeys.length > 0) {
+        return res.status(400).json({ error: `Unknown setting keys: ${invalidKeys.join(", ")}` });
+      }
       for (const [key, value] of Object.entries(updates)) {
         await storage.setNotificationSetting(key, value);
       }

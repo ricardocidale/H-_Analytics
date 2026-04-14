@@ -1,5 +1,8 @@
 # UI Patterns
 
+> **Before writing any user-facing text**, read `.claude/skills/vocabulary/SKILL.md`.
+> It is the single source of truth for every term, label, and the AI-as-colleague voice.
+
 ## Button Labels
 
 - **Always "Save"** for create/update actions — never "Update"
@@ -7,6 +10,7 @@
 - Create: "Add [Entity]" or "New [Entity]" with Plus icon
 - Delete: "Delete" with Trash2 icon, always with confirmation dialog
 - Cancel: "Cancel" with no icon
+- Research: **"Ask the Analysts"** (main button) or **"Consult"** (secondary) — never "Generate", "Run", or "Regenerate"
 - Disabled when: form empty, no changes, mutation pending. Show Loader2 spinner when pending.
 
 ## Accordion Summaries

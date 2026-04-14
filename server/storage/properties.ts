@@ -1,7 +1,7 @@
 import { properties, userDefaultProperties, type Property, type InsertProperty, type UpdateProperty } from "@shared/schema";
 import { db } from "../db";
 import { eq, or, and, isNull, inArray, sql } from "drizzle-orm";
-import { stripAutoFields } from "./utils";
+import { stripAutoFields, stripToColumns } from "./utils";
 import { indexPropertyProfile } from "../ai/pinecone-service";
 import { logger } from "../logger";
 
@@ -95,18 +95,22 @@ export class PropertyStorage {
 
   /** Insert a new property into the portfolio. Returns the created record with generated ID. */
   async createProperty(data: InsertProperty): Promise<Property> {
+    // Defense-in-depth: strip any non-column keys that may have leaked through
+    // `as any` casts from callers (syncHelpers, route handlers, etc.)
+    const safeData = stripToColumns(properties, data as Record<string, unknown>);
     const [property] = await db
       .insert(properties)
-      .values(data as typeof properties.$inferInsert)
+      .values(safeData as typeof properties.$inferInsert)
       .returning();
     _indexPropertyAsync(property).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
     return property;
   }
 
   async updateProperty(id: number, data: UpdateProperty): Promise<Property | undefined> {
+    const safeData = stripToColumns(properties, { ...(data as Record<string, unknown>), updatedAt: new Date() });
     const [property] = await db
       .update(properties)
-      .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
+      .set(safeData)
       .where(eq(properties.id, id))
       .returning();
     if (property) {

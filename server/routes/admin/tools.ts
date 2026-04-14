@@ -557,8 +557,8 @@ export function registerToolRoutes(app: Express) {
         entityType: entityType as string,
         from: from ? new Date(from as string) : undefined,
         to: to ? new Date(to as string) : undefined,
-        limit: limit ? Number(limit) : 50,
-        offset: offset ? Number(offset) : 0,
+        limit: Math.min(limit ? Number(limit) : 50, 500),
+        offset: Math.min(offset ? Number(offset) : 0, 50000),
       });
       res.json(logs.map((l: any) => ({
         ...l,
@@ -583,8 +583,8 @@ export function registerToolRoutes(app: Express) {
         actions: SHARING_ACTIONS,
         from: from ? new Date(from as string) : undefined,
         to: to ? new Date(to as string) : undefined,
-        limit: limit ? Number(limit) : 100,
-        offset: offset ? Number(offset) : 0,
+        limit: Math.min(limit ? Number(limit) : 100, 500),
+        offset: Math.min(offset ? Number(offset) : 0, 50000),
       });
       res.json(logs.map((l: any) => ({
         ...l,

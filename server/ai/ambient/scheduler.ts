@@ -1,8 +1,10 @@
 import { storage } from "../../storage";
 import { fetchAllBenchmarks } from "./fetchers";
+import { checkAllSources } from "../source-health-checker";
 import { log } from "../../logger";
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
+let startupTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRunning = false;
 
 async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }> {
@@ -31,6 +33,15 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
       log(`Refresh complete: ${upserted} benchmarks upserted`, "ambient-scheduler");
     }
 
+    // Run source health checks after data refresh (non-blocking)
+    try {
+      const healthResults = await checkAllSources();
+      const healthy = healthResults.filter(r => r.healthy).length;
+      log(`Source health check: ${healthy}/${healthResults.length} healthy`, "ambient-scheduler");
+    } catch (healthErr: unknown) {
+      log(`Source health check failed (non-blocking): ${healthErr instanceof Error ? healthErr.message : String(healthErr)}`, "ambient-scheduler", "warn");
+    }
+
     return { upserted, errors: result.errors };
   } finally {
     isRunning = false;
@@ -43,7 +54,8 @@ const STARTUP_DELAY_MS = 10 * 1000;
 export function startAmbientScheduler(): void {
   log(`Starting — initial refresh in ${STARTUP_DELAY_MS / 1000}s, then every ${REFRESH_INTERVAL_MS / 3600000}h`, "ambient-scheduler");
 
-  setTimeout(async () => {
+  startupTimeout = setTimeout(async () => {
+    startupTimeout = null;
     try {
       await runRefreshCycle();
     } catch (err: unknown) {
@@ -61,11 +73,15 @@ export function startAmbientScheduler(): void {
 }
 
 export function stopAmbientScheduler(): void {
+  if (startupTimeout) {
+    clearTimeout(startupTimeout);
+    startupTimeout = null;
+  }
   if (schedulerInterval) {
     clearInterval(schedulerInterval);
     schedulerInterval = null;
-    log("Stopped", "ambient-scheduler");
   }
+  log("Stopped", "ambient-scheduler");
 }
 
 export { runRefreshCycle };

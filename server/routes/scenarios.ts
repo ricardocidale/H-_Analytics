@@ -11,7 +11,7 @@ import type {
 
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
-import { logActivity, logAndSendError, createScenarioSchema, MAX_SCENARIOS_PER_USER, fullName } from "./helpers";
+import { logActivity, logAndSendError, createScenarioSchema, MAX_SCENARIOS_PER_USER, fullName, parseRouteId } from "./helpers";
 import { logger } from "../logger";
 import { invalidateComputeCache } from "../finance/cache";
 import { sendScenarioShareNotification, sendAdminShareNotification } from "../integrations/resend";
@@ -239,7 +239,8 @@ export function register(app: Express) {
 
   app.patch("/api/scenarios/:id", requireManagementAccess, requireScenarioPermission, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
       const existing = await storage.getScenario(id);
       if (!existing) return res.status(404).json({ error: "Scenario not found" });
       if (existing.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
@@ -266,7 +267,8 @@ export function register(app: Express) {
   app.post("/api/scenarios/:id/load", requireManagementAccess, async (req, res) => {
     try {
       const user = getAuthUser(req);
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
       if (!scenario) return res.status(404).json({ error: "Scenario not found" });
 
@@ -322,7 +324,8 @@ export function register(app: Express) {
 
   app.delete("/api/scenarios/:id", requireManagementAccess, requireScenarioPermission, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
       if (!scenario) return res.status(404).json({ error: "Scenario not found" });
       if (scenario.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
@@ -342,7 +345,8 @@ export function register(app: Express) {
 
   app.post("/api/scenarios/:id/clone", requireManagementAccess, requireScenarioPermission, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
       if (!scenario) return res.status(404).json({ error: "Scenario not found" });
       if (scenario.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
@@ -362,7 +366,8 @@ export function register(app: Express) {
 
   app.get("/api/scenarios/:id/export", requireAuth, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
       if (!scenario) return res.status(404).json({ error: "Scenario not found" });
       if (scenario.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
@@ -417,8 +422,9 @@ export function register(app: Express) {
 
   app.get("/api/scenarios/:id1/compare/:id2", requireAuth, async (req, res) => {
     try {
-      const id1 = Number(req.params.id1);
-      const id2 = Number(req.params.id2);
+      const id1 = parseRouteId(req.params.id1);
+      const id2 = parseRouteId(req.params.id2);
+      if (!id1 || !id2) return res.status(400).json({ error: "Invalid scenario ID" });
       const [s1, s2] = await Promise.all([
         storage.getScenario(id1),
         storage.getScenario(id2),
@@ -512,7 +518,8 @@ export function register(app: Express) {
 
   app.get("/api/scenarios/:id/preview", requireAuth, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
       if (!scenario) return res.status(404).json({ error: "Scenario not found" });
 
@@ -701,7 +708,8 @@ export function register(app: Express) {
   // --- Tag management ---
   app.patch("/api/scenarios/:id/tags", requireManagementAccess, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
       const existing = await storage.getScenario(id);
       if (!existing) return res.status(404).json({ error: "Scenario not found" });
       if (existing.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });

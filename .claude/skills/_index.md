@@ -1,6 +1,6 @@
 # Skill Catalog
 
-Master index of all 170 skill files across 17 domains. Use this to find the right skill for any task.
+Master index of all 171 skill files across 18 domains. Use this to find the right skill for any task.
 
 ---
 
@@ -246,6 +246,12 @@ Master index of all 170 skill files across 17 domains. Use this to find the righ
 | File | Description |
 |------|-------------|
 | `rebecca-chatbot/SKILL.md` | Rebecca AI assistant: Super Conversations, RAG/Pinecone, knowledge base, guardrails, rich messages |
+
+## Vocabulary (1 file)
+
+| File | Description |
+|------|-------------|
+| `vocabulary/SKILL.md` | Canonical terminology for all user-facing text. Entity names, AI personality vocabulary, action verbs, navigation labels, financial terms, conviction tiers, forbidden terms. Read before writing any UI copy. |
 
 ## Component Library (1 file)
 

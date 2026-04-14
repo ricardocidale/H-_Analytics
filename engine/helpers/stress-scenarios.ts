@@ -56,12 +56,19 @@ function annualDebtService(
   termYears: number,
 ): number {
   if (loanAmount <= 0 || termYears <= 0) return 0;
-  const monthlyRate = annualRate / MONTHS_PER_YEAR;
+  // Cap annual rate at 50% to prevent exponentiation overflow
+  const safeRate = Math.min(annualRate, 0.50);
+  const monthlyRate = safeRate / MONTHS_PER_YEAR;
   const totalPayments = termYears * MONTHS_PER_YEAR;
   if (monthlyRate === 0) return loanAmount / totalPayments * MONTHS_PER_YEAR;
   const factor = (1 + monthlyRate) ** totalPayments;
+  // Guard against Infinity from extreme exponentiation
+  if (!Number.isFinite(factor) || factor <= 1) {
+    // Fallback: interest-only approximation
+    return loanAmount * safeRate;
+  }
   const monthlyPayment = (loanAmount * monthlyRate * factor) / (factor - 1);
-  return monthlyPayment * MONTHS_PER_YEAR;
+  return Number.isFinite(monthlyPayment) ? monthlyPayment * MONTHS_PER_YEAR : loanAmount * safeRate;
 }
 
 /** Compute annual revenue, opex, fees, and NOI from assumptions. */
@@ -84,7 +91,8 @@ function computeAnnualFinancials(
 
   // Monthly room revenue → annual
   const monthlyRoomRev = a.roomCount * effectiveAdr * effectiveOccupancy * DAYS_PER_MONTH;
-  const ancillaryShare = a.revShareFB + a.revShareEvents + a.revShareOther;
+  // Clamp ancillary share to [0, 0.95] so roomShareOfTotal is always ≥ 0.05
+  const ancillaryShare = Math.min(a.revShareFB + a.revShareEvents + a.revShareOther, 0.95);
   const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
   const monthlyTotalRev = monthlyRoomRev / roomShareOfTotal;
   const annualRevenue = monthlyTotalRev * MONTHS_PER_YEAR;
@@ -118,7 +126,7 @@ function computeAnnualFinancials(
     ? annualDebtService(a.loanAmount!, effectiveRate, a.loanTermYears ?? 25)
     : 0;
 
-  const dscr = ads > 0 ? noi / ads : 0;
+  const dscr = Math.abs(ads) > 1e-6 ? noi / ads : 0;
   const cashFlow = noi - ads;
 
   return { annualRevenue, annualOpex, managementFees, noi, ads, dscr, cashFlow, gopMargin };
@@ -157,7 +165,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
   {
     const stressed = computeAnnualFinancials(assumptions, { occupancyMultiplier: 0.85 });
     const noiChange = stressed.noi - base.noi;
-    const noiPctChange = base.noi !== 0 ? noiChange / Math.abs(base.noi) : 0;
+    const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
     const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
 
@@ -188,7 +196,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
   {
     const stressed = computeAnnualFinancials(assumptions, { adrMultiplier: 0.90 });
     const noiChange = stressed.noi - base.noi;
-    const noiPctChange = base.noi !== 0 ? noiChange / Math.abs(base.noi) : 0;
+    const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
     const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
 
@@ -245,7 +253,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
   {
     const stressed = computeAnnualFinancials(assumptions, { costMultiplier: 1.20 });
     const noiChange = stressed.noi - base.noi;
-    const noiPctChange = base.noi !== 0 ? noiChange / Math.abs(base.noi) : 0;
+    const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
     const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
 
@@ -275,7 +283,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       costMultiplier: 1.10,
     });
     const noiChange = stressed.noi - base.noi;
-    const noiPctChange = base.noi !== 0 ? noiChange / Math.abs(base.noi) : 0;
+    const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
     const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
 

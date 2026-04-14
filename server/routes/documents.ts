@@ -13,6 +13,20 @@ import { MAX_DOC_SIZE } from "../constants";
 
 const documentAIService = new DocumentAIService();
 
+/** Allowlist of property columns that document extraction can write to.
+ *  Prevents prototype pollution and arbitrary column writes from AI output. */
+const WRITABLE_EXTRACTION_FIELDS = new Set([
+  "startAdr", "startOccupancy", "maxOccupancy", "exitCapRate", "taxRate",
+  "costRateRooms", "costRateFB", "costRateAdmin", "costRateMarketing",
+  "costRatePropertyOps", "costRateUtilities", "costRateTaxes", "costRateIT",
+  "costRateFFE", "costRateOther", "costRateInsurance",
+  "revShareEvents", "revShareFB", "revShareOther", "adrGrowthRate",
+  "dispositionCommission", "baseManagementFeeRate", "incentiveManagementFeeRate",
+  "cateringBoostPercent", "roomCount", "purchasePrice", "renovationBudget",
+  "name", "city", "stateProvince", "country", "streetAddress",
+  "propertyType", "qualityTier", "businessModel",
+]);
+
 const fieldStatusSchema = z.object({ status: z.enum(["approved", "rejected"]) });
 
 const ALLOWED_DOC_TYPES = [
@@ -44,11 +58,8 @@ export function register(app: Express) {
         return res.status(400).json({ error: `Unsupported file type: ${contentType}. Supported: PDF, PNG, JPEG, TIFF, WebP` });
       }
 
-      const property = await storage.getProperty(propertyId);
+      const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
-        return res.status(404).json({ error: "Property not found" });
-      }
-      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -201,10 +212,11 @@ export function register(app: Express) {
       }
 
       const updated = await storage.updateExtractionFieldStatus(fieldId, status);
+      if (!updated) return res.status(404).json({ error: "Field not found" });
 
       if (status === "approved" && updated.mappedPropertyField) {
         const extraction = ownerExtraction;
-        if (extraction) {
+        if (extraction && WRITABLE_EXTRACTION_FIELDS.has(updated.mappedPropertyField)) {
           const numericValue = parseFloat(updated.extractedValue.replace(/[$,%]/g, ""));
           if (!isNaN(numericValue)) {
             const updateData: Record<string, any> = {};
@@ -271,7 +283,7 @@ export function register(app: Express) {
           ];
 
           for (const field of fields) {
-            if (field.mappedPropertyField && field.status === "pending") {
+            if (field.mappedPropertyField && field.status === "pending" && WRITABLE_EXTRACTION_FIELDS.has(field.mappedPropertyField)) {
               const numericValue = parseFloat(field.extractedValue.replace(/[$,%]/g, ""));
               if (!isNaN(numericValue)) {
                 let finalValue = numericValue;
@@ -319,11 +331,8 @@ export function register(app: Express) {
 
       const data = schema.parse(req.body);
 
-      const property = await storage.getProperty(data.propertyId);
+      const property = await checkPropertyAccess(getAuthUser(req), data.propertyId);
       if (!property) {
-        return res.status(404).json({ error: "Property not found" });
-      }
-      if (!(await checkPropertyAccess(getAuthUser(req), data.propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
 

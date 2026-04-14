@@ -42,7 +42,8 @@ const researchRunsQuerySchema = z.object({
 
 async function checkEntityAccess(user: Express.User, entityType: EntityType, entityId: number): Promise<boolean> {
   if (entityType === "property") {
-    return checkPropertyAccess(user, entityId);
+    const property = await checkPropertyAccess(user, entityId);
+    return property !== null;
   }
   if (entityType === "company") {
     const authUser = user as { role?: string };

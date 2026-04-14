@@ -390,17 +390,46 @@ export function getAuthUser(req: Request): Express.User {
   return req.user;
 }
 
+/**
+ * Check if user has READ access to a property.
+ * Returns the property if access is granted (avoids redundant DB fetches in callers),
+ * or null if access is denied or the property doesn't exist.
+ */
 export async function checkPropertyAccess(
   user: Express.User,
   propertyId: number
-): Promise<boolean> {
-  if (isAdminRole(user.role)) return true;
+): Promise<import("@shared/schema").Property | null> {
   const property = await storage.getProperty(propertyId);
-  if (!property) return false;
-  if (property.userId === user.id) return true;
+  if (!property) return null;
+  if (isAdminRole(user.role)) return property;
+  if (property.userId === user.id) return property;
   // All shared properties (userId=null) are visible to all authenticated users
-  if (property.userId === null) return true;
-  return false;
+  if (property.userId === null) return property;
+  return null;
+}
+
+/**
+ * Stricter check for editing BASE assumptions on a property.
+ * Shared properties (userId=null) can only be edited by admin or the original creator.
+ * Users should use scenarioPropertyOverrides for their own adjustments.
+ *
+ * Returns the property if access is granted (avoiding a redundant DB fetch in the caller),
+ * or null if access is denied or the property doesn't exist.
+ */
+export async function checkPropertyEditAccess(
+  user: Express.User,
+  propertyId: number
+): Promise<import("@shared/schema").Property | null> {
+  const property = await storage.getProperty(propertyId);
+  if (!property) return null;
+  if (isAdminRole(user.role)) return property;
+  // Owner can always edit their own property
+  if (property.userId === user.id) return property;
+  // Creator can edit shared properties they originally created
+  if (property.createdBy === user.id) return property;
+  // Shared properties (admin-seeded) are NOT editable by regular users —
+  // they should use scenario overrides instead
+  return null;
 }
 
 /**

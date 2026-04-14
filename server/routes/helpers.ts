@@ -9,6 +9,17 @@ export function sendError(res: Response, status: number, message: string) {
   return res.status(status).json({ error: message });
 }
 
+/**
+ * Parse and validate a numeric route parameter (e.g. req.params.id).
+ * Returns null if the value is not a finite positive integer — callers
+ * should respond with 400 when null is returned.
+ */
+export function parseRouteId(raw: string | string[] | undefined): number | null {
+  if (Array.isArray(raw)) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 && Number.isInteger(n) ? n : null;
+}
+
 /** Log an error to console and send a 500 JSON response. */
 export function logAndSendError(res: Response, message: string, error: unknown, domain?: string) {
   const source = domain || "routes";

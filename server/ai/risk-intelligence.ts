@@ -121,8 +121,10 @@ function estimateAnnualDebtService(p: Property): number {
   const rate = (p.acquisitionInterestRate ?? 0.065) / 12;
   const termMonths = (p.acquisitionTermYears ?? 25) * 12;
   if (loanAmount <= 0 || rate <= 0 || termMonths <= 0) return 0;
-  const monthlyPayment = loanAmount * (rate * Math.pow(1 + rate, termMonths)) / (Math.pow(1 + rate, termMonths) - 1);
-  return monthlyPayment * 12;
+  const factor = Math.pow(1 + rate, termMonths);
+  if (!Number.isFinite(factor) || factor <= 1) return loanAmount * rate * 12;
+  const monthlyPayment = loanAmount * (rate * factor) / (factor - 1);
+  return Number.isFinite(monthlyPayment) ? monthlyPayment * 12 : loanAmount * rate * 12;
 }
 
 function propertyEntity(p: Property): { type: "property"; id: number; name: string } {
@@ -644,9 +646,16 @@ function generateStressTestInsights(properties: Property[]): RiskInsight[] {
       const loanAmount = (p.purchasePrice ?? 0) * (p.acquisitionLTV ?? 0);
       const stressedMonthlyRate = stressedRate / 12;
       const termMonths = (p.acquisitionTermYears ?? 25) * 12;
-      const stressedMonthly = loanAmount > 0 && stressedMonthlyRate > 0
-        ? loanAmount * (stressedMonthlyRate * Math.pow(1 + stressedMonthlyRate, termMonths)) / (Math.pow(1 + stressedMonthlyRate, termMonths) - 1)
-        : 0;
+      let stressedMonthly = 0;
+      if (loanAmount > 0 && stressedMonthlyRate > 0) {
+        const sFactor = Math.pow(1 + stressedMonthlyRate, termMonths);
+        if (Number.isFinite(sFactor) && sFactor > 1) {
+          const pm = loanAmount * (stressedMonthlyRate * sFactor) / (sFactor - 1);
+          stressedMonthly = Number.isFinite(pm) ? pm : loanAmount * stressedMonthlyRate;
+        } else {
+          stressedMonthly = loanAmount * stressedMonthlyRate;
+        }
+      }
       const stressedDebtService = stressedMonthly * 12;
       const debtServiceIncrease = stressedDebtService - debtService;
       const stressedCash = baseNOI - stressedDebtService;
@@ -841,7 +850,13 @@ Rules:
     const textBlock = response.content.find(b => b.type === "text");
     if (!textBlock || textBlock.type !== "text") return null;
 
-    const parsed = JSON.parse(textBlock.text);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(textBlock.text);
+    } catch {
+      logger.warn("LLM returned malformed JSON for risk enhancement — using unenhanced briefs", "risk-intelligence");
+      return null;
+    }
 
     // Enhance property briefs with LLM content
     const enhancedBriefs = propertyBriefs.map(brief => {

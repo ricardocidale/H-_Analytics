@@ -28,6 +28,7 @@ Fundraising intelligence platform for **Hospitality Business Group**. Models a b
 - Update skills and manuals after every feature change.
 - All UI components must reference a theme via the theme engine.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
+- **Vocabulary:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md`. It defines every canonical term, forbidden alternative, and the AI-as-colleague voice. All AI coders (Claude, Replit) must follow it.
 - **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
 - **Every financial line item** should have a ? tooltip (HelpTooltip or InfoTooltip).
 - **Every page must be graphics-rich** — charts, animations, visual elements required.
@@ -63,7 +64,7 @@ docs/            Architecture, developer guide, research, planning
 
 ## Context Loading Protocol
 
-With 170 skill files across 17 domains, **never load all skills at once**. Use `.claude/skills/_index.md` for the master catalog.
+With 171 skill files across 18 domains, **never load all skills at once**. Use `.claude/skills/_index.md` for the master catalog.
 
 Quick rules:
 - **Financial calc** → specific finance skill + `rules/audit-persona.md` + `proof-system/SKILL.md`
@@ -96,6 +97,7 @@ Quick rules:
 | Component Library | `.claude/skills/component-library/SKILL.md` | PageHeader, GlassButton, ExportMenu |
 | Coding Conventions | `.claude/skills/coding-conventions/SKILL.md` | Naming, formatting, context reduction, error handling, type contracts |
 | Product Vision | `.claude/skills/product-vision/SKILL.md` | Product identity, design tenets, workflow, navigation, roles |
+| Vocabulary | `.claude/skills/vocabulary/SKILL.md` | Canonical terms, AI-as-colleague voice, forbidden words. **Read before writing any UI text.** |
 | Rules (22) | `.claude/rules/` | All behavioral constraints |
 
 ---

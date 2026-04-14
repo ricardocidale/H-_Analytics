@@ -40,6 +40,15 @@ export class FinancialSharingStorage {
       .innerJoin(users, eq(scenarios.userId, users.id))
       .orderBy(desc(scenarios.updatedAt));
 
+    // Push filters into SQL rather than loading all rows into memory
+    const conditions = [];
+    if (filters?.userId) {
+      conditions.push(eq(scenarios.userId, filters.userId));
+    }
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
+    }
+
     const rows = await query;
     let result = rows.map(r => ({
       id: r.id,
@@ -71,9 +80,7 @@ export class FinancialSharingStorage {
       ownerName: [r.ownerFirstName, r.ownerLastName].filter(Boolean).join(" ") || null,
     }));
 
-    if (filters?.userId) {
-      result = result.filter(r => r.userId === filters.userId);
-    }
+    // userId filter is now in SQL above
 
     if (filters?.groupId) {
       const matchingShares = await db.select({ scenarioId: scenarioShares.scenarioId })
@@ -174,8 +181,8 @@ export class FinancialSharingStorage {
   }
 
   async getScenarioCountByUser(userId: number): Promise<number> {
-    const result = await db.select().from(scenarios).where(and(eq(scenarios.userId, userId), isNull(scenarios.deletedAt)));
-    return result.length;
+    const [{ total }] = await db.select({ total: sql<number>`count(*)::int` }).from(scenarios).where(and(eq(scenarios.userId, userId), isNull(scenarios.deletedAt)));
+    return total;
   }
 
   async getScenariosSharedWithUser(userId: number): Promise<(Scenario & { accessType: string; sharedByUserId: number | null; sharedByName: string | null })[]> {
@@ -382,16 +389,24 @@ export class FinancialSharingStorage {
       results.push({ ...row.scenario, accessType: "shared", sharedByUserId: row.ownerId, sharedByName: ownerName });
     }
 
-    for (const grant of allGrantRows) {
-      const ownerScenarios = await db.select().from(scenarios)
-        .where(and(eq(scenarios.userId, grant.ownerId), isNull(scenarios.deletedAt), eq(scenarios.kind, "manual")));
-      const ownerName = grant.ownerFirstName || grant.ownerLastName
-        ? [grant.ownerFirstName, grant.ownerLastName].filter(Boolean).join(" ")
-        : grant.ownerEmail ?? null;
-      for (const s of ownerScenarios) {
+    // Batch query: fetch all scenarios for all "grant all" owners in one query
+    if (allGrantRows.length > 0) {
+      const ownerIds = allGrantRows.map(g => g.ownerId);
+      const allOwnerScenarios = await db.select().from(scenarios)
+        .where(and(inArray(scenarios.userId, ownerIds), isNull(scenarios.deletedAt), eq(scenarios.kind, "manual")));
+
+      const ownerNameMap = new Map<number, string | null>();
+      for (const grant of allGrantRows) {
+        const ownerName = grant.ownerFirstName || grant.ownerLastName
+          ? [grant.ownerFirstName, grant.ownerLastName].filter(Boolean).join(" ")
+          : grant.ownerEmail ?? null;
+        ownerNameMap.set(grant.ownerId, ownerName);
+      }
+
+      for (const s of allOwnerScenarios) {
         if (seen.has(s.id)) continue;
         seen.add(s.id);
-        results.push({ ...s, accessType: "shared", sharedByUserId: grant.ownerId, sharedByName: ownerName });
+        results.push({ ...s, accessType: "shared", sharedByUserId: s.userId, sharedByName: ownerNameMap.get(s.userId) ?? null });
       }
     }
 

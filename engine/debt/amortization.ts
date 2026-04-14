@@ -28,7 +28,7 @@ export function outstandingBalance(
   if (monthsPaid <= 0) return initialBalance;
   const remaining = totalPayments - monthsPaid;
   if (remaining <= 0) return 0;
-  if (rate === 0) return initialBalance - payment * monthsPaid;
+  if (Math.abs(rate) < 1e-10) return initialBalance - payment * monthsPaid;
   return dDiv(payment * (1 - dPow(1 + rate, -remaining)), rate);
 }
 

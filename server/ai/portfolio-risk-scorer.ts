@@ -345,7 +345,9 @@ function scoreFinancialRisk(properties: Property[]): PortfolioRiskReport["financ
       (p.costRateMarketing ?? 0) + (p.costRatePropertyOps ?? 0) + (p.costRateUtilities ?? 0) +
       (p.costRateTaxes ?? 0) + (p.costRateIT ?? 0) + (p.costRateFFE ?? 0) + (p.costRateOther ?? 0) +
       (p.costRateInsurance ?? 0);
-    const noi = revenue * (1 - totalCostRate);
+    // Sanity: if all cost rates are null/zero, use a conservative 60% cost assumption
+    const safeCostRate = totalCostRate > 0.01 ? totalCostRate : 0.60;
+    const noi = revenue * (1 - safeCostRate);
     totalNOI += noi;
 
     const ltv = p.acquisitionLTV ?? 0;
@@ -355,9 +357,15 @@ function scoreFinancialRisk(properties: Property[]): PortfolioRiskReport["financ
 
     let annualDebtService = 0;
     if (loanAmount > 0 && rate > 0 && termMonths > 0) {
-      // Standard amortizing mortgage payment
-      const monthlyPayment = loanAmount * (rate * Math.pow(1 + rate, termMonths)) / (Math.pow(1 + rate, termMonths) - 1);
-      annualDebtService = monthlyPayment * 12;
+      // Standard amortizing mortgage payment — guard against overflow from extreme rates
+      const factor = Math.pow(1 + rate, termMonths);
+      if (Number.isFinite(factor) && factor > 1) {
+        const monthlyPayment = loanAmount * (rate * factor) / (factor - 1);
+        annualDebtService = Number.isFinite(monthlyPayment) ? monthlyPayment * 12 : loanAmount * rate * 12;
+      } else {
+        // Fallback: interest-only approximation
+        annualDebtService = loanAmount * rate * 12;
+      }
     }
     totalDebtService += annualDebtService;
 

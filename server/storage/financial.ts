@@ -1,8 +1,8 @@
 import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, scenarioAccess, propertyFeeCategories, companyServiceTemplates, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type InsertScenarioResult, type InsertFeeCategory, type UpdateFeeCategory, properties } from "@shared/schema";
 import { db } from "../db";
-import { eq, desc, isNull, or, sql, and } from "drizzle-orm";
-import { stripAutoFields } from "./utils";
-import { type PropertyDiff } from "../scenarios/diff-engine";
+import { eq, desc, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
+import { stripAutoFields, stripToColumns } from "./utils";
+import { computeFullDiff, reconstructScenarioProperties, type PropertyDiff } from "../scenarios/diff-engine";
 import { USE_STABLE_SCENARIO_LOAD } from "@shared/constants";
 import { indexScenarioSummary } from "../ai/pinecone-service";
 import { logger } from "../logger";
@@ -33,11 +33,13 @@ async function stableLoadProperties(tx: DbOrTx, userId: number, savedProperties:
     if (stableKey && liveByStableKey.has(stableKey)) {
       const liveProp = liveByStableKey.get(stableKey)!;
       snapshotStableKeys.add(stableKey);
-      await tx.update(properties).set({ ...propData, userId, isActive: (prop.isActive as boolean) ?? true, updatedAt: new Date() } as typeof properties.$inferInsert)
+      const safeUpdate = stripToColumns(properties, { ...propData, userId, isActive: (prop.isActive as boolean) ?? true, updatedAt: new Date() });
+      await tx.update(properties).set(safeUpdate as typeof properties.$inferInsert)
         .where(eq(properties.id, liveProp.id));
       resolvedProperties.push({ id: liveProp.id, name: prop.name as string, stableKey });
     } else {
-      const insertData: typeof properties.$inferInsert = { ...propData, userId, isActive: (prop.isActive as boolean) ?? true } as typeof properties.$inferInsert;
+      const safeInsert = stripToColumns(properties, { ...propData, userId, isActive: (prop.isActive as boolean) ?? true });
+      const insertData: typeof properties.$inferInsert = safeInsert as typeof properties.$inferInsert;
       if (stableKey) {
         insertData.stableKey = stableKey;
         snapshotStableKeys.add(stableKey);
@@ -62,8 +64,8 @@ async function destructiveLoadProperties(tx: DbOrTx, userId: number, savedProper
 
   const resolvedProperties: ResolvedProperty[] = [];
   for (const prop of savedProperties) {
-    const propData = stripAutoFields(prop);
-    const insertData: typeof properties.$inferInsert = { ...propData, userId } as typeof properties.$inferInsert;
+    const safeData = stripToColumns(properties, { ...prop, userId });
+    const insertData: typeof properties.$inferInsert = safeData as typeof properties.$inferInsert;
     const [inserted] = await tx.insert(properties).values(insertData).returning();
     resolvedProperties.push({ id: inserted.id, name: prop.name as string, stableKey: (prop.stableKey as string) || null });
   }
@@ -93,12 +95,14 @@ async function syncFeeCategories(
 
       const existing = liveByName.get(catName);
       if (existing) {
+        const safeUpdate = stripToColumns(propertyFeeCategories, { ...catData, propertyId: prop.id });
         await tx.update(propertyFeeCategories)
-          .set({ ...catData, propertyId: prop.id } as typeof propertyFeeCategories.$inferInsert)
+          .set(safeUpdate as typeof propertyFeeCategories.$inferInsert)
           .where(eq(propertyFeeCategories.id, existing.id));
       } else {
+        const safeInsert = stripToColumns(propertyFeeCategories, { ...catData, propertyId: prop.id });
         await tx.insert(propertyFeeCategories)
-          .values({ ...catData, propertyId: prop.id } as typeof propertyFeeCategories.$inferInsert);
+          .values(safeInsert as typeof propertyFeeCategories.$inferInsert);
       }
     }
 
@@ -125,12 +129,14 @@ async function syncServiceTemplates(
     const { id: _id, createdAt: _created, ...tmplData } = tmpl;
     const existing = liveByName.get(name);
     if (existing) {
+      const safeUpdate = stripToColumns(companyServiceTemplates, tmplData);
       await tx.update(companyServiceTemplates)
-        .set(stripAutoFields(tmplData) as typeof companyServiceTemplates.$inferInsert)
+        .set(safeUpdate as typeof companyServiceTemplates.$inferInsert)
         .where(eq(companyServiceTemplates.id, existing.id));
     } else {
+      const safeInsert = stripToColumns(companyServiceTemplates, tmplData);
       await tx.insert(companyServiceTemplates)
-        .values(stripAutoFields(tmplData) as typeof companyServiceTemplates.$inferInsert);
+        .values(safeInsert as typeof companyServiceTemplates.$inferInsert);
     }
   }
 
@@ -232,9 +238,10 @@ export class FinancialStorage {
    * patches (e.g., Rebecca config) where a full upsert is unnecessary.
    */
   async patchGlobalAssumptions(id: number, patch: Record<string, unknown>): Promise<GlobalAssumptions> {
+    const safePatch = stripToColumns(globalAssumptions, { ...patch, updatedAt: new Date() });
     const [updated] = await db
       .update(globalAssumptions)
-      .set({ ...patch, updatedAt: new Date() })
+      .set(safePatch)
       .where(eq(globalAssumptions.id, id))
       .returning();
     return updated;

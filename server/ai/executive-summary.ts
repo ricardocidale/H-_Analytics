@@ -136,8 +136,10 @@ function estimateAnnualDebtService(p: Property): number {
   const rate = (p.acquisitionInterestRate ?? 0.065) / 12;
   const termMonths = (p.acquisitionTermYears ?? 25) * 12;
   if (loanAmount <= 0 || rate <= 0 || termMonths <= 0) return 0;
-  const monthlyPayment = loanAmount * (rate * Math.pow(1 + rate, termMonths)) / (Math.pow(1 + rate, termMonths) - 1);
-  return monthlyPayment * 12;
+  const factor = Math.pow(1 + rate, termMonths);
+  if (!Number.isFinite(factor) || factor <= 1) return loanAmount * rate * 12; // interest-only fallback
+  const monthlyPayment = loanAmount * (rate * factor) / (factor - 1);
+  return Number.isFinite(monthlyPayment) ? monthlyPayment * 12 : loanAmount * rate * 12;
 }
 
 function computeEquityInvested(p: Property): number {

@@ -8,6 +8,7 @@ import { DEFAULT_RESEARCH_MODEL } from "../resolve-llm";
 import type { ResearchConfig, LlmVendor, ScheduledResearchWorkflow } from "@shared/schema";
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
+let startupTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRunning = false;
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000;
@@ -388,7 +389,8 @@ export function startResearchScheduler(): void {
     "research-scheduler",
   );
 
-  setTimeout(async () => {
+  startupTimeout = setTimeout(async () => {
+    startupTimeout = null;
     try {
       await runScheduledCheckCycle();
     } catch (err: unknown) {
@@ -406,9 +408,13 @@ export function startResearchScheduler(): void {
 }
 
 export function stopResearchScheduler(): void {
+  if (startupTimeout) {
+    clearTimeout(startupTimeout);
+    startupTimeout = null;
+  }
   if (schedulerInterval) {
     clearInterval(schedulerInterval);
     schedulerInterval = null;
-    logger.info("Stopped", "research-scheduler");
   }
+  logger.info("Stopped", "research-scheduler");
 }

@@ -9,13 +9,14 @@ This project is a business simulation portal for Hospitality Business Group, des
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
-- Skills live in `.claude/skills/` (17 domains, 169 files). See `.claude/skills/_index.md` for the master catalog.
+- Skills live in `.claude/skills/` (18 domains, 171 files). See `.claude/skills/_index.md` for the master catalog.
 - Company name is "Hospitality Business Group" (or "Hospitality Business" for short).
 - Update skills and manuals after every feature change.
 - **Documentation:** `.claude/claude.md` is the primary AI context file. `replit.md` is kept for Replit Agent compatibility. When in doubt, `claude.md` is authoritative.
 - All UI components must reference a theme via the theme engine.
 - New UI features get their own skill file in `.claude/skills/ui/`.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
+- **Vocabulary is LAW:** Before writing ANY user-facing text (button labels, tooltips, headings, error messages, toasts, help text), read `.claude/skills/vocabulary/SKILL.md`. It defines every canonical term and forbidden alternative. Key rules: AI features use colleague language ("Ask the Analysts", "Analyst Note", "Conviction: High"), never machine language ("Generate", "Run", "Confidence Score: 78%"). See the skill for the full dictionary.
 - **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
 - **Every financial line item** should have a ? tooltip (HelpTooltip or InfoTooltip).
 - **Every page must be graphics-rich** — charts, animations, visual elements required.
@@ -95,6 +96,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 | Exports | `.claude/skills/exports/SKILL.md` |
 | Admin (16 sections) | `.claude/skills/admin/SKILL.md` |
 | Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md` |
+| **Vocabulary** | **`.claude/skills/vocabulary/SKILL.md`** — **Read before writing any UI text** |
 | Finance (22 skills) | `.claude/skills/finance/` |
 | Research (23 skills) | `.claude/skills/research/` |
 | UI (45 skills) | `.claude/skills/ui/` |

@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { requireAuth, requireManagementAccess, requireAdmin, checkPropertyAccess , getAuthUser } from "../auth";
 import { insertPropertyPhotoSchema, updatePropertyPhotoSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { logAndSendError } from "./helpers";
+import { logAndSendError, parseRouteId } from "./helpers";
 import { z } from "zod";
 import { processExistingPhoto, processImage } from "../image/pipeline";
 import { logger } from "../logger";
@@ -85,7 +85,8 @@ export function register(app: Express) {
   // persistent and independent of Replit Object Storage.
   app.get("/api/property-photos/:id/image", requireAuth, async (req, res) => {
     try {
-      const photoId = Number(req.params.id);
+      const photoId = parseRouteId(req.params.id);
+      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
       const photo = await storage.getPhotoById(photoId);
       if (!photo || !photo.imageData) {
         return res.status(404).json({ error: "Image not found in database" });
@@ -108,7 +109,8 @@ export function register(app: Express) {
   // GET /api/properties/:id/photos — list all photos for a property
   app.get("/api/properties/:id/photos", requireAuth, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -122,12 +124,12 @@ export function register(app: Express) {
   // POST /api/properties/:id/photos — add a photo to the album
   app.post("/api/properties/:id/photos", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
-      if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      const property = await checkPropertyAccess(getAuthUser(req), propertyId);
+      if (!property) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const property = await storage.getProperty(propertyId);
-      if (!property) return res.status(404).json({ error: "Property not found" });
 
       const parsed = insertPropertyPhotoSchema.safeParse({
         ...req.body,
@@ -172,11 +174,12 @@ export function register(app: Express) {
   // PATCH /api/properties/:id/photos/:photoId — update caption or sort order
   app.patch("/api/properties/:id/photos/:photoId", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      const photoId = parseRouteId(req.params.photoId);
+      if (!propertyId || !photoId) return res.status(400).json({ error: "Invalid ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const photoId = Number(req.params.photoId);
       const parsed = updatePropertyPhotoSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
@@ -197,12 +200,12 @@ export function register(app: Express) {
 
   app.delete("/api/properties/:id/photos/:photoId", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      const photoId = parseRouteId(req.params.photoId);
+      if (!propertyId || !photoId) return res.status(400).json({ error: "Invalid ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
-
-      const photoId = Number(req.params.photoId);
       const existingPhoto = await storage.getPhotoById(photoId);
       if (!existingPhoto || existingPhoto.propertyId !== propertyId) {
         return res.status(404).json({ error: "Photo not found for this property" });
@@ -224,11 +227,12 @@ export function register(app: Express) {
   // POST /api/properties/:id/photos/:photoId/set-hero — set as hero image
   app.post("/api/properties/:id/photos/:photoId/set-hero", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      const photoId = parseRouteId(req.params.photoId);
+      if (!propertyId || !photoId) return res.status(400).json({ error: "Invalid ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const photoId = Number(req.params.photoId);
       await storage.setHeroPhoto(propertyId, photoId);
       res.json({ success: true });
     } catch (error: unknown) {
@@ -239,7 +243,8 @@ export function register(app: Express) {
   // PUT /api/properties/:id/photos/reorder — bulk reorder photos
   app.put("/api/properties/:id/photos/reorder", requireManagementAccess, async (req, res) => {
     try {
-      const propertyId = Number(req.params.id);
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -260,7 +265,8 @@ export function register(app: Express) {
 
   app.get("/api/property-photos/:id/enhanced-image", requireAuth, async (req, res) => {
     try {
-      const photoId = Number(req.params.id);
+      const photoId = parseRouteId(req.params.id);
+      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
         return res.status(404).json({ error: "Photo not found" });
@@ -285,7 +291,8 @@ export function register(app: Express) {
 
   app.get("/api/property-photos/:id/enhanced-preview", requireAuth, async (req, res) => {
     try {
-      const photoId = Number(req.params.id);
+      const photoId = parseRouteId(req.params.id);
+      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
       const pending = pendingEnhancements.get(photoId);
       if (!pending) {
         return res.status(404).json({ error: "No pending enhancement preview" });
@@ -311,7 +318,8 @@ export function register(app: Express) {
 
   app.post("/api/property-photos/:id/enhance", requireManagementAccess, async (req, res) => {
     try {
-      const photoId = Number(req.params.id);
+      const photoId = parseRouteId(req.params.id);
+      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
       const user = getAuthUser(req);
 
       if (isApiRateLimited(user.id, "enhance-photo", 3)) {
@@ -379,7 +387,8 @@ export function register(app: Express) {
 
   app.post("/api/property-photos/:id/enhance/accept", requireManagementAccess, async (req, res) => {
     try {
-      const photoId = Number(req.params.id);
+      const photoId = parseRouteId(req.params.id);
+      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
       const user = getAuthUser(req);
 
       const photo = await storage.getPhotoById(photoId);
@@ -422,7 +431,8 @@ export function register(app: Express) {
 
   app.post("/api/property-photos/:id/enhance/reject", requireManagementAccess, async (req, res) => {
     try {
-      const photoId = Number(req.params.id);
+      const photoId = parseRouteId(req.params.id);
+      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
       const user = getAuthUser(req);
 
       const photo = await storage.getPhotoById(photoId);
@@ -443,7 +453,8 @@ export function register(app: Express) {
 
   app.delete("/api/property-photos/:id/enhanced", requireManagementAccess, async (req, res) => {
     try {
-      const photoId = Number(req.params.id);
+      const photoId = parseRouteId(req.params.id);
+      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
         return res.status(404).json({ error: "Photo not found" });

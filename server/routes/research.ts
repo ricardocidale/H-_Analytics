@@ -97,7 +97,8 @@ export function register(app: Express) {
   app.get("/api/research/staleness", requireAuth, async (req, res) => {
     try {
       const user = getAuthUser(req);
-      const thresholdDays = req.query.thresholdDays ? Number(req.query.thresholdDays) : undefined;
+      const rawDays = req.query.thresholdDays ? Number(req.query.thresholdDays) : undefined;
+      const thresholdDays = rawDays && Number.isFinite(rawDays) && rawDays > 0 ? Math.min(rawDays, 365) : undefined;
       const report = await detectStaleness(user.id, thresholdDays);
       res.json(report);
     } catch (error: unknown) {
@@ -108,13 +109,17 @@ export function register(app: Express) {
   app.get("/api/market-research", requireAuth, async (req, res) => {
     try {
       const { type, propertyId } = req.query;
-      if (propertyId && !(await checkPropertyAccess(getAuthUser(req), Number(propertyId)))) {
+      const parsedPropId = propertyId ? Number(propertyId) : undefined;
+      if (parsedPropId !== undefined && (!Number.isFinite(parsedPropId) || parsedPropId <= 0)) {
+        return res.status(400).json({ error: "Invalid property ID" });
+      }
+      if (parsedPropId && !(await checkPropertyAccess(getAuthUser(req), parsedPropId))) {
         return res.status(403).json({ error: "Access denied" });
       }
       const research = await storage.getMarketResearch(
         type as string,
         getAuthUser(req).id,
-        propertyId ? Number(propertyId) : undefined
+        parsedPropId
       );
       res.json(research || null);
     } catch (error: unknown) {
@@ -159,6 +164,9 @@ export function register(app: Express) {
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
 
       // ── Minimum-info gate: ensure enough context for meaningful research ──
+      // Pre-fetch company properties once (reused later for context pack + data injection)
+      let _companyProperties: Awaited<ReturnType<typeof storage.getAllProperties>> | undefined;
+
       if (type === "company") {
         if (!ga) {
           return res.status(400).json({
@@ -171,10 +179,10 @@ export function register(app: Express) {
           });
         }
         const reqUser = getAuthUser(req);
-        const propCount = isAdminRole(reqUser.role)
-          ? (await storage.getAllProperties()).length
-          : (await storage.getAllProperties(reqUser.id)).length;
-        if (propCount === 0) {
+        _companyProperties = isAdminRole(reqUser.role)
+          ? await storage.getAllProperties()
+          : await storage.getAllProperties(reqUser.id);
+        if (_companyProperties.length === 0) {
           return res.status(400).json({
             error: "Add at least one property to your portfolio before generating company intelligence. The AI needs portfolio data to calibrate management fee benchmarks, staffing models, and overhead assumptions.",
           });
@@ -415,10 +423,12 @@ export function register(app: Express) {
               }
             }
           } else if (type === "company" && ga) {
-            const reqUser = getAuthUser(req);
-            const properties = isAdminRole(reqUser.role)
-              ? await storage.getAllProperties()
-              : await storage.getAllProperties(reqUser.id);
+            // Reuse properties fetched in the minimum-info gate above
+            const properties = _companyProperties ?? (
+              isAdminRole(getAuthUser(req).role)
+                ? await storage.getAllProperties()
+                : await storage.getAllProperties(getAuthUser(req).id)
+            );
             const serviceTemplates = await storage.getAllServiceTemplates();
             const companyPack = buildCompanyContextPack(
               ga,

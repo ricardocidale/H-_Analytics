@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, getAuthUser } from "../auth";
-import { researchQuestionCreateSchema, researchQuestionPatchSchema, logAndSendError } from "./helpers";
+import { researchQuestionCreateSchema, researchQuestionPatchSchema, logAndSendError, parseRouteId } from "./helpers";
 import { fromZodError } from "zod-validation-error";
 import type { ResearchConfig } from "@shared/schema";
 
@@ -141,7 +141,9 @@ export function registerResearchMetaRoutes(app: Express) {
     try {
       const validation = researchQuestionPatchSchema.safeParse(req.body);
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
-      const q = await storage.updateResearchQuestion(Number(req.params.id), validation.data.question);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      const q = await storage.updateResearchQuestion(id, validation.data.question);
       res.json(q);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update research question", error);
@@ -150,7 +152,9 @@ export function registerResearchMetaRoutes(app: Express) {
 
   app.delete("/api/research-questions/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteResearchQuestion(Number(req.params.id));
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      await storage.deleteResearchQuestion(id);
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete research question", error);

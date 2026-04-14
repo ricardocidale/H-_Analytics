@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { requireChecker, requireAuth , getAuthUser } from "../auth";
 import { isAdminRole } from "@shared/constants";
 import { runVerificationWithEngine } from "../calculationChecker";
-import { logActivity, logAndSendError } from "./helpers";
+import { logActivity, logAndSendError, parseRouteId } from "./helpers";
 import { logger } from "../logger";
 import * as calcSchemas from "../../calc/shared/schemas";
 import { computeDCF } from "../../calc/returns/dcf-npv";
@@ -78,7 +78,9 @@ export function register(app: Express) {
 
   app.get("/api/verification/runs/:id", requireChecker, async (req, res) => {
     try {
-      const run = await storage.getVerificationRun(Number(req.params.id));
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid run ID" });
+      const run = await storage.getVerificationRun(id);
       if (!run) return res.status(404).json({ error: "Run not found" });
       res.json(run);
     } catch (error: unknown) {
