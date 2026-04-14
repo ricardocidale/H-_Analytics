@@ -9,7 +9,7 @@ import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBa
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { Loader2, ChevronDown } from "@/components/icons/themed-icons";
-import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconBanknote, IconFileStack, IconMap, IconGlobe, IconInvestment } from "@/components/icons";
+import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconFileStack, IconMap, IconGlobe, IconInvestment } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import { calculateLoanParams, LoanParams, GlobalLoanParams, PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
@@ -29,7 +29,6 @@ import {
   CashFlowTab,
   PropertyHeader,
   BenchmarkPanel,
-  ReconciliationTab,
   InvestmentReturnsTab,
 } from "@/components/property-detail";
 const PropertyMap = lazy(() => import("@/components/PropertyMap"));
@@ -357,7 +356,6 @@ export default function PropertyDetail() {
                 { value: 'investment', label: 'Investment Analysis', icon: IconInvestment },
                 { value: 'balance', label: 'Balance Sheet', icon: IconBalanceSheet },
                 { value: 'ppe', label: 'PP&E / Cost Basis', icon: IconPPE },
-                { value: 'reconciliation', label: 'Reconciliation', icon: IconBanknote },
                 { value: 'documents', label: 'Documents', icon: IconFileStack }
               ]}
               activeTab={activeTab}
@@ -464,15 +462,6 @@ export default function PropertyDetail() {
 
           <TabsContent value="ppe" className="mt-6">
             <PPECostBasisSchedule property={property} global={global} />
-          </TabsContent>
-
-          <TabsContent value="reconciliation" className="mt-6">
-            <ReconciliationTab
-              propertyId={propertyId}
-              financials={financials}
-              startYear={startYear}
-              projectionYears={projectionYears}
-            />
           </TabsContent>
 
           <TabsContent value="documents" className="mt-6">
