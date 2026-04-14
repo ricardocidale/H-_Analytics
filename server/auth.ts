@@ -36,6 +36,7 @@ import { storage } from "./storage";
 import type { User, ScenarioGlobalAssumptionsSnapshot, ScenarioPropertySnapshot } from "@shared/schema";
 import { logger } from "./logger";
 import { UserRole, isAdminRole } from "@shared/constants";
+import { DEV_SKIP_AUTH } from "./dev-flags";
 
 declare global {
   namespace Express {
@@ -240,6 +241,25 @@ export function generateSessionId(): string {
  * @returns {Promise<void>}
  */
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (DEV_SKIP_AUTH && process.env.NODE_ENV !== "production") {
+    if (!req.user) {
+      try {
+        const seedConfig = await import("./seed-users.json", { with: { type: "json" } });
+        const adminSeed = seedConfig.default.users.find((u: { role: string }) => isAdminRole(u.role));
+        if (adminSeed) {
+          const user = await storage.getUserByEmail(adminSeed.email);
+          if (user) {
+            req.user = user;
+            req.sessionId = "dev-bypass";
+          }
+        }
+      } catch (error: unknown) {
+        logger.error(`Dev auth bypass error: ${error instanceof Error ? error.message : error}`, "auth");
+      }
+    }
+    return next();
+  }
+
   const sessionId = req.cookies?.[SESSION_COOKIE];
   
   if (!sessionId) {
