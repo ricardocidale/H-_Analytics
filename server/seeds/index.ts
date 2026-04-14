@@ -6,6 +6,7 @@ import { seedDefaultLogos, seedCompanies } from "./branding";
 import { seedMissingMarketResearch, getHudsonEstateResearch, getEdenSummitResearch, getAustinHillsideResearch, getCasaMedellinResearch, getBlueRidgeResearch } from "./research";
 import { seedServiceTemplates } from "./services";
 import { seedHospitalityBenchmarks } from "./hospitality-benchmarks";
+import { seedMarketDataTables } from "./market-data-tables";
 import { seedSourceRegistry } from "./source-registry";
 import { seedPropertyPhotos } from "./photos";
 import { indexPropertyProfile } from "../ai/pinecone-service";
@@ -115,6 +116,8 @@ export async function seed() {
 
     await seedHospitalityBenchmarks();
 
+    await seedMarketDataTables();
+
     await seedSourceRegistry();
 
     await indexAllPropertiesToPinecone();
@@ -163,6 +166,7 @@ async function indexAllPropertiesToPinecone() {
 export {
   seedSourceRegistry,
   seedHospitalityBenchmarks,
+  seedMarketDataTables,
   seedMissingMarketResearch,
   seedDefaultLogos,
   seedCompanies,

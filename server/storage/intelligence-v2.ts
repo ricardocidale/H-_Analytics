@@ -3,6 +3,7 @@ import {
   guidanceDecisions, coverageSnapshots, sourceRegistry, sourceCallLogs, engineSuggestedLines,
   integrationKeyRotations, pipelinePolicies, scheduledResearchWorkflows,
   hospitalityBenchmarks,
+  marketAdrIndex, seasonalCalendars, eventCalendars, airportDistances, laborRates, fbBenchmarks,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type ResearchRun, type InsertResearchRun,
   type BenchmarkSnapshot, type InsertBenchmarkSnapshot,
@@ -16,6 +17,12 @@ import {
   type PipelinePolicy, type InsertPipelinePolicy,
   type ScheduledResearchWorkflow, type InsertScheduledResearchWorkflow,
   type HospitalityBenchmark, type InsertHospitalityBenchmark,
+  type MarketAdrIndex, type InsertMarketAdrIndex,
+  type SeasonalCalendar, type InsertSeasonalCalendar,
+  type EventCalendar, type InsertEventCalendar,
+  type AirportDistance, type InsertAirportDistance,
+  type LaborRate, type InsertLaborRate,
+  type FbBenchmark, type InsertFbBenchmark,
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, lte, sql, isNull } from "drizzle-orm";
@@ -492,6 +499,163 @@ export class IntelligenceV2Storage {
       .where(eq(hospitalityBenchmarks.id, id))
       .returning();
     return updated;
+  }
+
+  // ── Market ADR Index ───────────────────────────────────────────────────
+  async getMarketAdrIndex(market: string, quarter?: string): Promise<MarketAdrIndex[]> {
+    const conditions = [eq(marketAdrIndex.market, market)];
+    if (quarter) conditions.push(eq(marketAdrIndex.quarter, quarter));
+    return db.select().from(marketAdrIndex)
+      .where(and(...conditions))
+      .orderBy(desc(marketAdrIndex.quarter));
+  }
+
+  async upsertMarketAdrIndex(data: InsertMarketAdrIndex): Promise<MarketAdrIndex> {
+    const [existing] = await db.select().from(marketAdrIndex)
+      .where(and(eq(marketAdrIndex.market, data.market), eq(marketAdrIndex.quarter, data.quarter)))
+      .limit(1);
+    if (existing) {
+      const [updated] = await db.update(marketAdrIndex)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(marketAdrIndex.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(marketAdrIndex)
+      .values(data as typeof marketAdrIndex.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  // ── Seasonal Calendars ─────────────────────────────────────────────────
+  async getSeasonalCalendar(market: string): Promise<SeasonalCalendar[]> {
+    return db.select().from(seasonalCalendars)
+      .where(eq(seasonalCalendars.market, market))
+      .orderBy(seasonalCalendars.month);
+  }
+
+  async upsertSeasonalCalendar(data: InsertSeasonalCalendar): Promise<SeasonalCalendar> {
+    const [existing] = await db.select().from(seasonalCalendars)
+      .where(and(eq(seasonalCalendars.market, data.market), eq(seasonalCalendars.month, data.month)))
+      .limit(1);
+    if (existing) {
+      const [updated] = await db.update(seasonalCalendars)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(seasonalCalendars.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(seasonalCalendars)
+      .values(data as typeof seasonalCalendars.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  // ── Event Calendars ────────────────────────────────────────────────────
+  async getEventCalendar(market: string): Promise<EventCalendar[]> {
+    return db.select().from(eventCalendars)
+      .where(eq(eventCalendars.market, market))
+      .orderBy(eventCalendars.startMonth);
+  }
+
+  async upsertEventCalendar(data: InsertEventCalendar): Promise<EventCalendar> {
+    const [existing] = await db.select().from(eventCalendars)
+      .where(and(eq(eventCalendars.market, data.market), eq(eventCalendars.eventName, data.eventName)))
+      .limit(1);
+    if (existing) {
+      const [updated] = await db.update(eventCalendars)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(eventCalendars.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(eventCalendars)
+      .values(data as typeof eventCalendars.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  // ── Airport Distances ──────────────────────────────────────────────────
+  async getAirportDistances(propertyId: number): Promise<AirportDistance[]> {
+    return db.select().from(airportDistances)
+      .where(eq(airportDistances.propertyId, propertyId))
+      .orderBy(airportDistances.distanceKm);
+  }
+
+  async upsertAirportDistance(data: InsertAirportDistance): Promise<AirportDistance> {
+    const [existing] = await db.select().from(airportDistances)
+      .where(and(
+        eq(airportDistances.propertyId, data.propertyId),
+        eq(airportDistances.airportCode, data.airportCode),
+      ))
+      .limit(1);
+    if (existing) {
+      const [updated] = await db.update(airportDistances)
+        .set({ ...data, computedAt: new Date() })
+        .where(eq(airportDistances.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(airportDistances)
+      .values(data as typeof airportDistances.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  // ── Labor Rates ────────────────────────────────────────────────────────
+  async getLaborRates(market: string, country?: string): Promise<LaborRate[]> {
+    const conditions = [eq(laborRates.market, market)];
+    if (country) conditions.push(eq(laborRates.country, country));
+    return db.select().from(laborRates)
+      .where(and(...conditions))
+      .orderBy(laborRates.role);
+  }
+
+  async upsertLaborRate(data: InsertLaborRate): Promise<LaborRate> {
+    const [existing] = await db.select().from(laborRates)
+      .where(and(
+        eq(laborRates.market, data.market),
+        eq(laborRates.role, data.role),
+        eq(laborRates.employmentType, data.employmentType ?? "fte"),
+      ))
+      .limit(1);
+    if (existing) {
+      const [updated] = await db.update(laborRates)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(laborRates.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(laborRates)
+      .values(data as typeof laborRates.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  // ── F&B Benchmarks ─────────────────────────────────────────────────────
+  async getFbBenchmarks(market: string, propertyType?: string): Promise<FbBenchmark[]> {
+    const conditions = [eq(fbBenchmarks.market, market)];
+    if (propertyType) conditions.push(eq(fbBenchmarks.propertyType, propertyType));
+    return db.select().from(fbBenchmarks)
+      .where(and(...conditions))
+      .orderBy(fbBenchmarks.propertyType);
+  }
+
+  async upsertFbBenchmark(data: InsertFbBenchmark): Promise<FbBenchmark> {
+    const [existing] = await db.select().from(fbBenchmarks)
+      .where(and(eq(fbBenchmarks.market, data.market), eq(fbBenchmarks.propertyType, data.propertyType)))
+      .limit(1);
+    if (existing) {
+      const [updated] = await db.update(fbBenchmarks)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(fbBenchmarks.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(fbBenchmarks)
+      .values(data as typeof fbBenchmarks.$inferInsert)
+      .returning();
+    return inserted;
   }
 }
 

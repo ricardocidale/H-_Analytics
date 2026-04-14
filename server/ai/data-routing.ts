@@ -102,6 +102,7 @@ export const DATA_ROUTING_TABLE: Record<string, DataRoute[]> = {
   // ── Revenue assumptions ──────────────────────────────────────────────────
 
   startAdr: [
+    { service: "market-adr-index", method: "lookup", priority: 0, description: "H+ pre-collected market ADR index" },
     { service: "amadeus", method: "searchCompSet", priority: 1, description: "Live hotel pricing from 770K+ hotels" },
     { service: "costar", method: "fetchMarketData", priority: 2, description: "CoStar ADR benchmarks" },
     { service: "rapidapi-booking", method: "fetchCompSetData", priority: 3, description: "Booking.com rates" },
@@ -111,12 +112,14 @@ export const DATA_ROUTING_TABLE: Record<string, DataRoute[]> = {
   ],
 
   startOccupancy: [
+    { service: "market-adr-index", method: "lookup", priority: 0, description: "H+ pre-collected market occupancy data" },
     { service: "costar", method: "fetchMarketData", priority: 1, description: "CoStar occupancy rates" },
     { service: "hospitality-benchmarks", method: "fetchBenchmarks", priority: 2, description: "STR occupancy benchmarks" },
     { service: "fred", method: "fetchRate", priority: 3, description: "FRED hotel occupancy index" },
   ],
 
   adrGrowthRate: [
+    { service: "seasonal-calendars", method: "lookup", priority: 0, description: "H+ pre-collected seasonal demand multipliers" },
     { service: "fred", method: "fetchRate", priority: 1, description: "CPI hotel component for inflation baseline" },
     { service: "costar", method: "fetchMarketData", priority: 2, description: "CoStar rent growth YoY" },
     { service: "hospitality-benchmarks", method: "fetchBenchmarks", priority: 3, description: "Historical ADR growth rates" },
@@ -140,6 +143,7 @@ export const DATA_ROUTING_TABLE: Record<string, DataRoute[]> = {
   ],
 
   costRateFB: [
+    { service: "fb-benchmarks", method: "lookup", priority: 0, description: "H+ pre-collected F&B cost benchmarks" },
     { service: "hospitality-benchmarks", method: "fetchBenchmarks", priority: 1, description: "USALI F&B department cost ratio" },
   ],
 
@@ -202,6 +206,7 @@ export const DATA_ROUTING_TABLE: Record<string, DataRoute[]> = {
   // ── Staffing ─────────────────────────────────────────────────────────────
 
   staffCompensation: [
+    { service: "labor-rates", method: "lookup", priority: 0, description: "H+ pre-collected hospitality labor rates" },
     { service: "fred", method: "fetchRate", priority: 1, description: "BLS hospitality wage data" },
     { service: "grounded-research", method: "search", priority: 2, description: "Web research on hospitality salaries" },
   ],
@@ -213,6 +218,7 @@ export const DATA_ROUTING_TABLE: Record<string, DataRoute[]> = {
   ],
 
   distanceToAirport: [
+    { service: "airport-distances", method: "lookup", priority: 0, description: "H+ pre-computed airport distances" },
     { service: "grounded-research", method: "search", priority: 1, description: "Web research on airport proximity" },
   ],
 
@@ -224,6 +230,7 @@ export const DATA_ROUTING_TABLE: Record<string, DataRoute[]> = {
   ],
 
   avgTicketFB: [
+    { service: "fb-benchmarks", method: "lookup", priority: 0, description: "H+ pre-collected F&B ticket benchmarks" },
     { service: "grounded-research", method: "search", priority: 1, description: "Average F&B spend per guest in market" },
     { service: "apify-tripadvisor", method: "fetchCompSetData", priority: 2, description: "TripAdvisor restaurant pricing" },
   ],
@@ -290,6 +297,13 @@ function getServiceRegistry(): Record<string, { instance: any; isAvailable: () =
     // Country defaults and regulatory data are always available (in-memory / DB)
     "country-defaults":        { instance: null,           isAvailable: () => true },
     "regulatory-data":         { instance: null,           isAvailable: () => true },
+    // Pre-collected market data tables — always available (DB-backed, priority 0)
+    "market-adr-index":        { instance: null,           isAvailable: () => true },
+    "seasonal-calendars":      { instance: null,           isAvailable: () => true },
+    "event-calendars":         { instance: null,           isAvailable: () => true },
+    "airport-distances":       { instance: null,           isAvailable: () => true },
+    "labor-rates":             { instance: null,           isAvailable: () => true },
+    "fb-benchmarks":           { instance: null,           isAvailable: () => true },
   };
 
   return _services;
@@ -337,6 +351,12 @@ const SERVICE_TO_INTEGRATION_KEY: Record<string, string> = {
   "us-real-estate": "rapidapi-hotels",
   "country-defaults": "__always__",
   "regulatory-data": "__always__",
+  "market-adr-index": "__always__",
+  "seasonal-calendars": "__always__",
+  "event-calendars": "__always__",
+  "airport-distances": "__always__",
+  "labor-rates": "__always__",
+  "fb-benchmarks": "__always__",
 };
 
 async function isServiceEnabled(serviceKey: string): Promise<boolean> {

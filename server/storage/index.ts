@@ -344,6 +344,20 @@ export class DatabaseStorage implements IStorage {
   getHospitalityBenchmarkById = this.intelligenceV2.getHospitalityBenchmarkById.bind(this.intelligenceV2);
   updateHospitalityBenchmark = this.intelligenceV2.updateHospitalityBenchmark.bind(this.intelligenceV2);
 
+  // Market Data Tables (pre-collected)
+  getMarketAdrIndex = this.intelligenceV2.getMarketAdrIndex.bind(this.intelligenceV2);
+  upsertMarketAdrIndex = this.intelligenceV2.upsertMarketAdrIndex.bind(this.intelligenceV2);
+  getSeasonalCalendar = this.intelligenceV2.getSeasonalCalendar.bind(this.intelligenceV2);
+  upsertSeasonalCalendar = this.intelligenceV2.upsertSeasonalCalendar.bind(this.intelligenceV2);
+  getEventCalendar = this.intelligenceV2.getEventCalendar.bind(this.intelligenceV2);
+  upsertEventCalendar = this.intelligenceV2.upsertEventCalendar.bind(this.intelligenceV2);
+  getAirportDistances = this.intelligenceV2.getAirportDistances.bind(this.intelligenceV2);
+  upsertAirportDistance = this.intelligenceV2.upsertAirportDistance.bind(this.intelligenceV2);
+  getLaborRates = this.intelligenceV2.getLaborRates.bind(this.intelligenceV2);
+  upsertLaborRate = this.intelligenceV2.upsertLaborRate.bind(this.intelligenceV2);
+  getFbBenchmarks = this.intelligenceV2.getFbBenchmarks.bind(this.intelligenceV2);
+  upsertFbBenchmark = this.intelligenceV2.upsertFbBenchmark.bind(this.intelligenceV2);
+
   // Rebecca Guardrails
   getRebeccaGuardrails = this.rebecca.getRebeccaGuardrails.bind(this.rebecca);
   getActiveRebeccaGuardrails = this.rebecca.getActiveRebeccaGuardrails.bind(this.rebecca);

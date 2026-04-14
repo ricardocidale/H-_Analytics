@@ -470,3 +470,173 @@ export const insertHospitalityBenchmarkSchema = createInsertSchema(hospitalityBe
 });
 export type HospitalityBenchmark = typeof hospitalityBenchmarks.$inferSelect;
 export type InsertHospitalityBenchmark = z.infer<typeof insertHospitalityBenchmarkSchema>;
+
+// ---------------------------------------------------------------------------
+// Market ADR Index — quarterly ADR by major market
+// ---------------------------------------------------------------------------
+export const marketAdrIndex = pgTable("market_adr_index", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  market: text("market").notNull(),
+  country: text("country").notNull(),
+  quarter: text("quarter").notNull(),
+  avgAdr: real("avg_adr"),
+  luxuryAdr: real("luxury_adr"),
+  upscaleAdr: real("upscale_adr"),
+  midscaleAdr: real("midscale_adr"),
+  economyAdr: real("economy_adr"),
+  boutiqueAdr: real("boutique_adr"),
+  avgOccupancy: real("avg_occupancy"),
+  avgRevpar: real("avg_revpar"),
+  source: text("source"),
+  sourceUrl: text("source_url"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  unique("uq_market_adr_quarter").on(table.market, table.quarter),
+]);
+
+export const insertMarketAdrIndexSchema = createInsertSchema(marketAdrIndex).pick({
+  market: true, country: true, quarter: true,
+  avgAdr: true, luxuryAdr: true, upscaleAdr: true, midscaleAdr: true, economyAdr: true, boutiqueAdr: true,
+  avgOccupancy: true, avgRevpar: true, source: true, sourceUrl: true,
+});
+export type MarketAdrIndex = typeof marketAdrIndex.$inferSelect;
+export type InsertMarketAdrIndex = z.infer<typeof insertMarketAdrIndexSchema>;
+
+// ---------------------------------------------------------------------------
+// Seasonal Calendars — peak/trough/shoulder by market and month
+// ---------------------------------------------------------------------------
+export const seasonalCalendars = pgTable("seasonal_calendars", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  market: text("market").notNull(),
+  country: text("country").notNull(),
+  month: integer("month").notNull(),
+  seasonType: text("season_type").notNull(),
+  demandMultiplier: real("demand_multiplier").notNull().default(1.0),
+  avgAdrMultiplier: real("avg_adr_multiplier").default(1.0),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  unique("uq_seasonal_market_month").on(table.market, table.month),
+]);
+
+export const insertSeasonalCalendarSchema = createInsertSchema(seasonalCalendars).pick({
+  market: true, country: true, month: true, seasonType: true,
+  demandMultiplier: true, avgAdrMultiplier: true, notes: true,
+});
+export type SeasonalCalendar = typeof seasonalCalendars.$inferSelect;
+export type InsertSeasonalCalendar = z.infer<typeof insertSeasonalCalendarSchema>;
+
+// ---------------------------------------------------------------------------
+// Event Calendars — demand-driving events by market
+// ---------------------------------------------------------------------------
+export const eventCalendars = pgTable("event_calendars", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  market: text("market").notNull(),
+  country: text("country").notNull(),
+  eventName: text("event_name").notNull(),
+  startMonth: integer("start_month"),
+  endMonth: integer("end_month"),
+  specificDate: text("specific_date"),
+  demandImpact: text("demand_impact").notNull(),
+  isRecurring: boolean("is_recurring").notNull().default(true),
+  category: text("category"),
+  estimatedAttendees: integer("estimated_attendees"),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertEventCalendarSchema = createInsertSchema(eventCalendars).pick({
+  market: true, country: true, eventName: true,
+  startMonth: true, endMonth: true, specificDate: true,
+  demandImpact: true, isRecurring: true, category: true,
+  estimatedAttendees: true, notes: true,
+});
+export type EventCalendar = typeof eventCalendars.$inferSelect;
+export type InsertEventCalendar = z.infer<typeof insertEventCalendarSchema>;
+
+// ---------------------------------------------------------------------------
+// Airport Distances — pre-computed per property
+// ---------------------------------------------------------------------------
+export const airportDistances = pgTable("airport_distances", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  propertyId: integer("property_id").notNull(),
+  airportCode: text("airport_code").notNull(),
+  airportName: text("airport_name").notNull(),
+  distanceKm: real("distance_km"),
+  driveMinutes: integer("drive_minutes"),
+  isInternational: boolean("is_international").default(false),
+  computedAt: timestamp("computed_at").defaultNow().notNull(),
+}, (table) => [
+  unique("uq_airport_property").on(table.propertyId, table.airportCode),
+  index("idx_airport_property_id").on(table.propertyId),
+]);
+
+export const insertAirportDistanceSchema = createInsertSchema(airportDistances).pick({
+  propertyId: true, airportCode: true, airportName: true,
+  distanceKm: true, driveMinutes: true, isInternational: true,
+});
+export type AirportDistance = typeof airportDistances.$inferSelect;
+export type InsertAirportDistance = z.infer<typeof insertAirportDistanceSchema>;
+
+// ---------------------------------------------------------------------------
+// Labor Rates — hospitality staffing costs by market
+// ---------------------------------------------------------------------------
+export const laborRates = pgTable("labor_rates", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  market: text("market").notNull(),
+  country: text("country").notNull(),
+  role: text("role").notNull(),
+  hourlyRate: real("hourly_rate"),
+  annualSalary: real("annual_salary"),
+  currency: text("currency").notNull().default("USD"),
+  employmentType: text("employment_type").notNull().default("fte"),
+  source: text("source"),
+  sourceUrl: text("source_url"),
+  sourceYear: integer("source_year"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  unique("uq_labor_market_role").on(table.market, table.role, table.employmentType),
+]);
+
+export const insertLaborRateSchema = createInsertSchema(laborRates).pick({
+  market: true, country: true, role: true,
+  hourlyRate: true, annualSalary: true, currency: true,
+  employmentType: true, source: true, sourceUrl: true, sourceYear: true,
+});
+export type LaborRate = typeof laborRates.$inferSelect;
+export type InsertLaborRate = z.infer<typeof insertLaborRateSchema>;
+
+// ---------------------------------------------------------------------------
+// F&B Benchmarks — food and beverage operating metrics
+// ---------------------------------------------------------------------------
+export const fbBenchmarks = pgTable("fb_benchmarks", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  market: text("market").notNull(),
+  country: text("country").notNull(),
+  propertyType: text("property_type").notNull(),
+  avgTicketPerPerson: real("avg_ticket_per_person"),
+  avgBreakfastTicket: real("avg_breakfast_ticket"),
+  avgLunchTicket: real("avg_lunch_ticket"),
+  avgDinnerTicket: real("avg_dinner_ticket"),
+  avgBarRevenuePerGuest: real("avg_bar_revenue_per_guest"),
+  coversPerRoomNight: real("covers_per_room_night"),
+  cateringCostPerEvent: real("catering_cost_per_event"),
+  fbCostOfGoodsPercent: real("fb_cost_of_goods_percent"),
+  fbLaborCostPercent: real("fb_labor_cost_percent"),
+  source: text("source"),
+  sourceUrl: text("source_url"),
+  sourceYear: integer("source_year"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  unique("uq_fb_market_type").on(table.market, table.propertyType),
+])
+
+export const insertFbBenchmarkSchema = createInsertSchema(fbBenchmarks).pick({
+  market: true, country: true, propertyType: true,
+  avgTicketPerPerson: true, avgBreakfastTicket: true, avgLunchTicket: true, avgDinnerTicket: true,
+  avgBarRevenuePerGuest: true, coversPerRoomNight: true, cateringCostPerEvent: true,
+  fbCostOfGoodsPercent: true, fbLaborCostPercent: true,
+  source: true, sourceUrl: true, sourceYear: true,
+});
+export type FbBenchmark = typeof fbBenchmarks.$inferSelect;
+export type InsertFbBenchmark = z.infer<typeof insertFbBenchmarkSchema>;
