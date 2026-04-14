@@ -320,19 +320,20 @@ export function extractCheckerManualContent(): KBChunk[] {
 
   chunks.push({
     title: "Checker Manual: Application Overview",
-    content: `The Hospitality Business Group platform is a financial simulation portal for boutique hotel investment analysis. It models two entities: a Management Company that earns management fees, and individual Property SPVs (Special Purpose Vehicles) that hold and operate hotel assets.
+    content: `H+ Analytics by Norfolk AI is a GAAP-compliant financial analytics portal for boutique hotel investment analysis. It models two entities: a Management Company that earns management fees, and individual Property SPVs (Special Purpose Vehicles) that hold and operate hotel assets.
 
 The platform provides:
 - Multi-year financial projections (income statement, cash flow, balance sheet)
 - Property-level and portfolio-level analysis
-- Scenario management for what-if analysis
+- Scenario management for what-if analysis (per-user scenario access control)
 - AI-powered market research calibration
-- GAAP-compliant financial reporting
+- GAAP-compliant, USALI-compliant financial reporting
 - Independent verification system with audit opinions
+- Closed registration — only admin-approved users can access the system
 
-Navigation: Dashboard (consolidated view), Properties (individual SPVs), Management Company (fee revenue), Settings (assumptions), Scenarios (what-if), Help (manuals and guided tour).
+Navigation: Dashboard (consolidated view), Properties (individual SPVs), Management Company (fee revenue), Settings (assumptions), Scenarios (what-if), ICP (portfolio intelligence), Help (manuals and guided tour).
 
-User Roles: Admin (full access), Partner (management access), Checker (verification tools), Investor (limited view — Dashboard, Properties, Profile, Help only).`,
+User Roles: Super Admin (full access, cannot be modified by anyone), Admin (full access, manages users), User (standard portfolio access), Checker (verification tools), Partner (external partner access), Investor (read-only — Dashboard, Properties, Profile, Help only).`,
     source: "Checker Manual",
     category: "manual",
   });
@@ -436,9 +437,9 @@ Scenarios: Save, load, and compare different assumption sets. Useful for stress 
 
 Help: User Manual (17 chapters — role-filtered so users only see sections relevant to their access level), Checker Manual (21 sections, visible to checkers and admins), and Interactive Guided Tour.
 
-Administration (Admin only): Users, Companies, Activity, Verification, User Groups, Logos, Themes, Navigation, Database, AI Assistant Settings, ICP Management Co, Research Center, Integrations.
+Administration (Admin only): Users (create, invite, edit, assign roles, reset passwords, control scenario access, set default properties), Activity, Verification, Logos, Branding, Themes, Navigation, Database, Rebecca AI (knowledge base, guardrails, analytics), ICP, Research Center, Integrations. The portal is a closed system — no public sign-up. Every user must be added or invited by an admin.
 
-Role-based access: Investors see read-only dashboards and property details. Management users can edit properties, assumptions, scenarios, and run analysis. Checkers can access verification tools. Admins have full system access including user management and AI configuration.`,
+Role-based access: Investors see read-only dashboards and property details. Management users can edit properties, assumptions, scenarios, and run analysis. Checkers can access verification tools. Admins have full system access including user management and AI configuration. Super admins have full admin access but cannot be modified by anyone. Per-user scenario management can be toggled on or off by admins.`,
     source: "Platform Guide",
     category: "guide",
   });
