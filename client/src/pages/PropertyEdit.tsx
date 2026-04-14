@@ -646,24 +646,24 @@ export default function PropertyEdit() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconSparkles className="w-5 h-5 text-primary" />
-              Update Market Intelligence?
+              Intelligence Refresh Available
             </DialogTitle>
             <DialogDescription>
               {(() => {
                 const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
-                if (status === "missing") return "This property has never had its market intelligence generated. Running it now will provide AI-recommended ranges for all your assumptions based on current market data.";
-                if (status === "very_stale") return "Market intelligence for this property is significantly outdated. Regenerating will update all AI-recommended ranges with the latest market data.";
-                return "Assumptions have changed since the last intelligence run. Regenerating will align AI-recommended ranges with your current inputs.";
+                if (status === "missing") return "This property doesn't have AI guidance yet. Regenerating Intelligence will analyze market data and provide recommended ranges for all your assumptions.";
+                if (status === "very_stale") return "AI guidance for this property is significantly outdated. Regenerating will refresh all recommended ranges with the latest market intelligence.";
+                return "Assumptions have changed since the last intelligence run. Regenerating will align AI guidance with your current inputs.";
               })()}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:justify-end">
             <Button variant="outline" onClick={handleIntelligenceLater} data-testid="button-intelligence-later">
-              Do It Later
+              Later
             </Button>
             <Button onClick={handleIntelligenceNow} data-testid="button-intelligence-now">
               <IconSparkles className="w-4 h-4 mr-1" />
-              Update Now
+              Regenerate Intelligence
             </Button>
           </DialogFooter>
         </DialogContent>
