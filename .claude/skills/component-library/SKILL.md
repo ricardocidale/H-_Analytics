@@ -65,6 +65,21 @@ Quick reference:
 - Dark glass for dashboards/entity views; light for assumptions/research/discovery
 - Playfair Display for headings, Inter for UI/data text
 
+## AI Processing Loaders
+
+6 premium framer-motion components in `client/src/components/ui/ai-loader.tsx`. Use instead of `Loader2 animate-spin` for AI/research states.
+
+| Component | Import | Use For |
+|-----------|--------|---------|
+| `OrbitalDots` | `@/components/ui/ai-loader` | General AI processing |
+| `NeuralGlow` | `@/components/ui/ai-loader` | Deep analysis / LLM thinking |
+| `StreamPulse` | `@/components/ui/ai-loader` | Data streaming states |
+| `BreathingDots` | `@/components/ui/ai-loader` | Chat typing indicators |
+| `ThinkingRing` | `@/components/ui/ai-loader` | Compact spinners (replaces Loader2) |
+| `DataFlowDots` | `@/components/ui/ai-loader` | Data pipeline visualization |
+
+All accept `size?: "sm" | "md" | "lg"` and `className?` props.
+
 ## Special Effects (Magic UI)
 
 9 special-effects components from Magic UI. All in `client/src/components/ui/`. Full reference: `.claude/skills/ui/magic-ui.md`

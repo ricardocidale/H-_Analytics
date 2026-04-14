@@ -126,6 +126,37 @@ Nine special-effects components from [Magic UI](https://magicui.design) are avai
 
 Full usage examples → `.claude/skills/ui/magic-ui.md`
 
+## AI Processing Loaders (`@/components/ui/ai-loader`)
+
+Six premium framer-motion components for AI/research processing states. Use these instead of `Loader2 animate-spin`.
+
+| Component | Visual | Best For |
+|-----------|--------|---------|
+| `OrbitalDots` | 3 dots orbiting a center | General AI processing |
+| `NeuralGlow` | Pulsing orb with neural network dots | Deep analysis, LLM thinking |
+| `StreamPulse` | 3 bars with staggered wave animation | Data streaming, real-time processing |
+| `BreathingDots` | 3 dots with blur/scale breathing | Chat typing indicators (Rebecca) |
+| `ThinkingRing` | SVG arc spinning smoothly | Compact spinners (replaces `Loader2`) |
+| `DataFlowDots` | Dots flowing left-to-right | Data pipeline visualization |
+
+All accept `size?: "sm" | "md" | "lg"` (default "md") and `className?` props.
+
+```tsx
+import { ThinkingRing, BreathingDots } from "@/components/ui/ai-loader";
+
+<ThinkingRing size="sm" />
+<BreathingDots size="md" />
+```
+
+**Usage rules:**
+- Replace `Loader2 animate-spin` → `ThinkingRing` for all new AI processing states
+- Replace bouncing dots → `BreathingDots` for chat typing indicators
+- Replace waveform bars → `StreamPulse` for data streaming indicators
+
+## Skeleton Shimmer
+
+The `Skeleton` component uses a CSS shimmer animation (gradient sweep) instead of `animate-pulse`. Class `skeleton-shimmer` is defined in `index.css` with `@keyframes shimmer`.
+
 ## Performance Notes
 
 - `AnimatedPage` uses `will-change: auto` — safe for all pages

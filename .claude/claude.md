@@ -262,7 +262,17 @@ npm run test:file -- <path>  # Single test file
 
 ---
 
-## Recent Changes (April 13, 2026)
+## Recent Changes (April 14, 2026)
+
+**Icon Set Hardcoding & AI Animation Upgrade (April 14, 2026):**
+- Hardcoded Lucide as the sole icon set. Removed 3-way icon switching (Phosphor/Material/Lucide). Deleted `IconSetContext.tsx`, `IconCustomizationTab.tsx`. Simplified `themed-icons.tsx` to direct Lucide re-exports.
+- Removed all `react-icons/md` imports from 3 remaining files (ScheduledResearchOverlay, SystemIntelligenceStatus, ScheduledResearchPanel) — replaced with Lucide equivalents.
+- Created `ai-loader.tsx` with 6 premium framer-motion components: `OrbitalDots`, `NeuralGlow`, `StreamPulse`, `BreathingDots`, `ThinkingRing`, `DataFlowDots`. Use instead of `Loader2 animate-spin`.
+- Upgraded `ResearchLoadingOverlay` PulsingOrb (dual conic-gradient rotation), replaced Loader2 with ThinkingRing in 3 components, upgraded RebeccaTypingIndicator with BreathingDots.
+- Skeleton component uses CSS shimmer animation (`skeleton-shimmer` class) instead of `animate-pulse`.
+- Added Cookie Policy page at `/cookies`, `DEV_SKIP_AUTH` flag in `server/dev-flags.ts`, bullet entity cleanup.
+
+## Previous Changes (April 13, 2026)
 
 **Source Verification & Property Portfolio (April 13, 2026):**
 - Soft delete for properties (archivedAt, never hard delete)

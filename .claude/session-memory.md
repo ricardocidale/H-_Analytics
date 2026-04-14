@@ -8,6 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 14, 2026 — Icon Hardcoding, AI Animations, Skill Cleanup
+- Hardcoded Lucide as sole icon set. Removed Phosphor/Material switching: deleted `IconSetContext.tsx`, `IconCustomizationTab.tsx`, simplified `themed-icons.tsx`. Replaced `react-icons/md` imports in 3 files with Lucide equivalents.
+- Created `ai-loader.tsx` (6 premium framer-motion components). Upgraded ResearchLoadingOverlay, RebeccaTypingIndicator, ResearchTheater, IntelligenceStatusBar with new loaders. Skeleton uses CSS shimmer.
+- Added Cookie Policy page (`/cookies`), `DEV_SKIP_AUTH` flag (`server/dev-flags.ts`), replaced `&#8226;` HTML bullets with `list-disc pl-5`.
+- Updated skills: `animation-patterns.md` (AI loaders + shimmer), `component-library/SKILL.md` (AI loader table), `claude.md` (April 14 entry), `session-memory.md`, `replit.md` (Lucide-only refs), `memory.md`.
+
 ## Session: April 13, 2026 — Codebase Reorganization & Documentation Overhaul
 - Archived `.agents/skills/` (55 Replit-specific skills → `.claude/archive/agents-skills-snapshot/`). Deleted `.claude/tools/marcela/` (20 dead ElevenLabs schemas). Moved stale plans to archive.
 - Merged 28 satellite skill directories into 17 consolidated domains (45→17 dirs, 170→169 files). Scrubbed Marcela/ElevenLabs/Twilio/Replit refs across 22 files.
