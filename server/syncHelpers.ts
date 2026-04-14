@@ -4,7 +4,7 @@ import { DEFAULT_FEE_CATEGORIES, SEED_SYNC_PROPERTIES } from "./seeds/properties
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { db } from "./db";
-import { seedDefaults } from "@shared/schema";
+import { seedDefaults, type InsertProperty, type UpdateProperty } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
@@ -117,7 +117,7 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
   } else {
     const updates = fillMissingFields(existingAssumptions as Record<string, unknown>, SEED_GLOBAL_ASSUMPTIONS);
     if (Object.keys(updates).length > 0) {
-      await storage.upsertGlobalAssumptions({ ...existingAssumptions, ...updates } as typeof existingAssumptions);
+      await storage.upsertGlobalAssumptions({ ...existingAssumptions, ...updates } as Parameters<typeof storage.upsertGlobalAssumptions>[0]);
       results.globalAssumptions.filled++;
     } else {
       results.globalAssumptions.skipped++;
@@ -421,7 +421,7 @@ export async function runSmartSync(
   const existingGA = await storage.getGlobalAssumptions();
   if (!existingGA) {
     if (!dryRun) {
-      await storage.upsertGlobalAssumptions(manifest.entities.globalAssumptions.fields as typeof existingGA);
+      await storage.upsertGlobalAssumptions(manifest.entities.globalAssumptions.fields as Parameters<typeof storage.upsertGlobalAssumptions>[0]);
       await writeShadowDefaults("globalAssumptions", "singleton", manifest.entities.globalAssumptions.fields);
     }
     results.globalAssumptions.created = true;
@@ -433,7 +433,7 @@ export async function runSmartSync(
     );
     results.globalAssumptions.fields = fieldResults.filter(f => f.action !== "unchanged");
     if (!dryRun && Object.keys(updates).length > 0) {
-      await storage.upsertGlobalAssumptions({ ...existingGA, ...updates } as typeof existingGA);
+      await storage.upsertGlobalAssumptions({ ...existingGA, ...updates } as Parameters<typeof storage.upsertGlobalAssumptions>[0]);
     }
     if (!dryRun) {
       await writeShadowDefaults("globalAssumptions", "singleton", manifest.entities.globalAssumptions.fields);

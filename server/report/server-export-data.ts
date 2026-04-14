@@ -102,10 +102,10 @@ function buildIncomeStatement(yearly: YearlyPropertyFinancials[], years: string[
     row("Income Tax", yearlyValues(yearly, "incomeTax"), { indent: 1 }),
     row("Net Income", yearlyValues(yearly, "netIncome"), { isBold: true }),
 
-    ...(yearly.some(y => (y as Record<string, number>).deferredFees > 0) ? [
+    ...(yearly.some(y => (y as unknown as Record<string, number>).deferredFees > 0) ? [
       row("Fee Subordination", [], { isHeader: true }),
-      row("Deferred Fees (this period)", yearly.map(y => (y as Record<string, number>).deferredFees ?? 0), { indent: 1 }),
-      row("Cumulative Deferred Fees", yearly.map(y => (y as Record<string, number>).cumulativeDeferredFees ?? 0), { indent: 1 }),
+      row("Deferred Fees (this period)", yearly.map(y => (y as unknown as Record<string, number>).deferredFees ?? 0), { indent: 1 }),
+      row("Cumulative Deferred Fees", yearly.map(y => (y as unknown as Record<string, number>).cumulativeDeferredFees ?? 0), { indent: 1 }),
     ] : []),
   ];
 

@@ -17,9 +17,9 @@ async function _indexPropertyAsync(property: Property): Promise<void> {
       starRating: (rec.starRating ?? rec.star_rating ?? null) as number | null,
       status: String(rec.status ?? "active"),
       purchasePrice: (rec.purchasePrice ?? rec.purchase_price ?? null) as number | null,
-      market: (rec.market ?? null) as string | null,
-      description: (rec.description ?? null) as string | null,
-      streetAddress: (rec.streetAddress ?? rec.street_address ?? null) as string | null,
+      market: (rec.market as string) || undefined,
+      description: (rec.description as string) || undefined,
+      streetAddress: (rec.streetAddress ?? rec.street_address ?? undefined) as string | undefined,
     });
   } catch (err: unknown) {
     logger.warn(`Async property index failed: ${err instanceof Error ? err.message : err}`, "pinecone");
