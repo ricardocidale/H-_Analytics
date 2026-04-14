@@ -60,7 +60,7 @@ export function LlmDefaultsTab() {
         Default LLM vendor and model for each functional area. Individual cards on the LLMs page can override these. Resolution order: card-level explicit → tab default → system hardcoded default.
       </TabBanner>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         {LLM_TAB_ITEMS.map((tab) => {
           const def = tabDefaults[tab.key] || {};
           const vendor = def.llmVendor;

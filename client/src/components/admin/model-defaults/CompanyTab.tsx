@@ -18,7 +18,7 @@ export function CompanyTab({ draft, onChange }: { draft: Draft; onChange: (field
         Core company identity and financial structure defaults. These apply organization-wide and seed the management company model. Changes do not affect existing properties.
       </TabBanner>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         <Section title="Identity" description="The management company name and projection horizon used throughout the platform.">
           <div className="space-y-4">
             <div className="space-y-2" data-testid="field-companyName">
@@ -92,7 +92,7 @@ export function CompanyTab({ draft, onChange }: { draft: Draft; onChange: (field
         </Section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         <Section title="Financial Defaults" description="Tax and return assumptions for the management company model.">
           <PctField
             label="Company Income Tax Rate"

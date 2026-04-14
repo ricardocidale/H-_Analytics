@@ -13,7 +13,7 @@ export function MarketMacroTab({ draft, onChange }: { draft: Draft; onChange: (f
         Global economic assumptions that affect all projections across the platform. Changes here recalculate every property and the management company model.
       </TabBanner>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         <Section grid title="Economic Environment" description="Core macroeconomic rates used in DCF, NPV, and cost escalation calculations.">
           <PctField
             label="Macro Inflation Rate"

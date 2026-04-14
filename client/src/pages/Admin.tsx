@@ -74,7 +74,7 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "system-intelligence": { title: "Engine Dashboard",         subtitle: "System intelligence status" },
   research:              { title: "Engine Dashboard",         subtitle: "Research center" },
   // New 10-block navigation entries
-  "financial-defaults":  { title: "Financial Defaults",       subtitle: "Default financial parameters and seed values for new entities" },
+  "financial-defaults":  { title: "Defaults",                 subtitle: "Management company default financial parameters and seed values" },
   "services-fees":       { title: "Services & Fees",          subtitle: "Management company service categories and fee templates" },
   "company-profile":     { title: "Company Profile",          subtitle: "Management company identity and settings" },
   "hotel-defaults":      { title: "Hotel Model Defaults",     subtitle: "Default parameters for hotel property financial models" },

@@ -111,11 +111,11 @@ function buildNavGroups(): NavGroup[] {
       id: "management-company",
       label: "Management Company",
       icon: IconBriefcase,
-      description: "Financial defaults, services & fees",
+      description: "Services, fees, statement lines & defaults",
       sections: [
-        { value: "financial-defaults", label: "Financial Defaults",        icon: IconSliders },
         { value: "services-fees",      label: "Services & Fees",           icon: IconBriefcase },
         { value: "financial-lines",    label: "Financial Statement Lines", icon: IconCalculator },
+        { value: "financial-defaults", label: "Defaults",                  icon: IconSliders },
       ],
     },
     {
