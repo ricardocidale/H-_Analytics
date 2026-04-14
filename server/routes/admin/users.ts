@@ -51,7 +51,7 @@ export function registerUserRoutes(app: Express) {
         return res.status(400).json({ error: "User already exists" });
       }
 
-      const { email, password, role, firstName, lastName, company, companyId, title } = validation.data;
+      const { email, password, role, firstName, lastName, company, title } = validation.data;
 
       if (role === UserRole.SUPER_ADMIN) {
         const caller = req.user as { role?: string };
@@ -69,7 +69,6 @@ export function registerUserRoutes(app: Express) {
         firstName,
         lastName,
         company,
-        companyId,
         title,
       });
 
@@ -85,7 +84,6 @@ export function registerUserRoutes(app: Express) {
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     company: z.string().nullable().optional(),
-    companyId: z.number().nullable().optional(),
     title: z.string().nullable().optional(),
     role: roleSchema.optional(),
     canManageScenarios: z.boolean().optional(),
@@ -100,7 +98,7 @@ export function registerUserRoutes(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
-      const { email, firstName, lastName, company, companyId, title, role, canManageScenarios } = parsed.data;
+      const { email, firstName, lastName, company, title, role, canManageScenarios } = parsed.data;
 
       if (role !== undefined) {
         const roleResult = roleSchema.safeParse(role);
@@ -128,7 +126,6 @@ export function registerUserRoutes(app: Express) {
       if (firstName !== undefined) profileData.firstName = firstName;
       if (lastName !== undefined) profileData.lastName = lastName;
       if (company !== undefined) profileData.company = company;
-      if (companyId !== undefined) profileData.companyId = companyId;
       if (title !== undefined) profileData.title = title;
       if (canManageScenarios !== undefined) profileData.canManageScenarios = canManageScenarios;
 
@@ -268,7 +265,6 @@ export function registerUserRoutes(app: Express) {
     emails: z.array(z.string().email()).min(1).max(50),
     role: roleSchema.optional().default("user"),
     message: z.string().max(500).optional(),
-    companyId: z.number().nullable().optional(),
   });
 
   app.post("/api/admin/invitations", requireAdmin, async (req, res) => {
@@ -278,7 +274,7 @@ export function registerUserRoutes(app: Express) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
 
-      const { emails, role, message, companyId } = validation.data;
+      const { emails, role, message } = validation.data;
       const adminUser = getAuthUser(req);
       const adminProfile = await storage.getUserById(adminUser.id);
       const inviterName = adminProfile
@@ -307,7 +303,6 @@ export function registerUserRoutes(app: Express) {
             firstName: null,
             lastName: null,
             company: null,
-            companyId: companyId ?? null,
             title: null,
           });
 

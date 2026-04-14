@@ -192,12 +192,6 @@ export class DatabaseStorage implements IStorage {
 
   getAllAssetDescriptions = this.admin.getAllAssetDescriptions.bind(this.admin);
 
-  getAllCompanies = this.admin.getAllCompanies.bind(this.admin);
-  getCompany = this.admin.getCompany.bind(this.admin);
-  createCompany = this.admin.createCompany.bind(this.admin);
-  updateCompany = this.admin.updateCompany.bind(this.admin);
-  deleteCompany = this.admin.deleteCompany.bind(this.admin);
-
   getAllResearchQuestions = this.admin.getAllResearchQuestions.bind(this.admin);
   createResearchQuestion = this.admin.createResearchQuestion.bind(this.admin);
   updateResearchQuestion = this.admin.updateResearchQuestion.bind(this.admin);

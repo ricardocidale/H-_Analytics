@@ -12,7 +12,6 @@ import { useAdminSection } from "@/lib/admin-nav";
 import type { AdminSaveState } from "@/components/admin/save-state";
 import { Loader2 } from "@/components/icons/themed-icons";
 
-const CompaniesTab = lazy(() => import("@/components/admin").then(m => ({ default: m.CompaniesTab })));
 const ActivityTab = lazy(() => import("@/components/admin").then(m => ({ default: m.ActivityTab })));
 const VerificationTab = lazy(() => import("@/components/admin").then(m => ({ default: m.VerificationTab })));
 const DatabaseTab = lazy(() => import("@/components/admin").then(m => ({ default: m.DatabaseTab })));
@@ -100,7 +99,6 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} />;
     case "users":            return <PeopleTab />;
     case "activity":         return <ActivityTab />;
-    case "companies":        return <CompaniesTab />;
     case "scenarios":        return <ScenariosTab />;
     case "brand":            return <BrandTab />;
     case "exports":          return <ExportsTab />;

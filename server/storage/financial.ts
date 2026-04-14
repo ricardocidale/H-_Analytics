@@ -507,7 +507,7 @@ export class FinancialStorage {
   async deleteFeeCategory(id: number, propertyId: number) { return _fees.deleteFeeCategory(id, propertyId); }
   async seedDefaultFeeCategories(propertyId: number) { return _fees.seedDefaultFeeCategories(propertyId); }
 
-  async getAllScenarios(filters?: { userId?: number; groupId?: number; companyId?: number }) { return _sharing.getAllScenarios(filters); }
+  async getAllScenarios(filters?: { userId?: number; groupId?: number }) { return _sharing.getAllScenarios(filters); }
   async createScenarioForUser(userId: number, data: { name: string; description?: string | null; kind?: string }) { return _sharing.createScenarioForUser(userId, data); }
   async getScenarioSharesForScenario(scenarioId: number) { return _sharing.getScenarioSharesForScenario(scenarioId); }
   async getAllScenarioShares() { return _sharing.getAllScenarioShares(); }

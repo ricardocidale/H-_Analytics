@@ -591,16 +591,15 @@ export function register(app: Express) {
           }
         }
 
-        const authCompanyId = (getAuthUser(req) as { companyId?: number | null }).companyId;
-        if (type === "company" && !parsed.rawResponse && ga && authCompanyId) {
+        if (type === "company" && !parsed.rawResponse && ga) {
           try {
             const guidanceResult = extractGuidance(parsed as Record<string, unknown>, 1, "company");
             if (guidanceResult.records.length > 0) {
-              const companyId = authCompanyId;
+              const ownerUserId = getAuthUser(req).id;
               const runRecord = await storage.createResearchRun({
                 userId: getAuthUser(req).id,
                 entityType: "company",
-                entityId: companyId,
+                entityId: ownerUserId,
                 scenarioId: null,
                 tier: 1,
                 status: "completed",
@@ -618,7 +617,7 @@ export function register(app: Express) {
                 await storage.upsertAssumptionGuidance({
                   researchRunId: runRecord.id,
                   entityType: "company",
-                  entityId: companyId,
+                  entityId: ownerUserId,
                   scenarioId: null,
                   assumptionKey: rec.assumptionKey,
                   valueLow: rec.valueLow ?? null,
@@ -634,7 +633,7 @@ export function register(app: Express) {
                 // Index to Pinecone for cross-entity retrieval (fire-and-forget)
                 indexAssumptionGuidance({
                   entityType: "company",
-                  entityId: companyId,
+                  entityId: ownerUserId,
                   location: ga?.companyName ?? "Management Company",
                   propertyType: "management company",
                   assumptionKey: rec.assumptionKey,
@@ -646,7 +645,7 @@ export function register(app: Express) {
                 }).catch(err => logger.warn(`Failed to index company guidance to Pinecone: ${err}`, "research"));
               }
 
-              logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for company ${companyId} (run ${runRecord.id})`, "research");
+              logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for company entity (user ${ownerUserId}, run ${runRecord.id})`, "research");
             }
             if (guidanceResult.errors.length > 0) {
               logger.warn(`RI v2 company extraction errors: ${guidanceResult.errors.join("; ")}`, "research");

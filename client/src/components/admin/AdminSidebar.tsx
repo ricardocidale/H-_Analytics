@@ -25,7 +25,7 @@ export type AdminSection =
   // Canonical sections (have real components)
   | "model-defaults"
   | "users" | "activity"
-  | "companies" | "groups" | "scenarios"
+  | "companies" | "groups" | "scenarios" // companies kept as alias → redirects to users
   | "brand" | "exports"
   | "ai-agents" | "knowledge-base" | "conversations"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines" | "benchmarks"
@@ -65,12 +65,13 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "research": "engine-dashboard",
   "sources": "data-sources",
   "conversations": "ai-agents",
-  // Groups removed in Phase 1.4 — redirect to users in the meantime
+  // Groups and companies removed — redirect to users
   "groups": "users",
+  "companies": "users",
   // New 10-block aliases → canonical sections
   "financial-defaults": "model-defaults",
-  "services-fees": "companies",
-  "company-profile": "companies",
+  "services-fees": "users",
+  "company-profile": "users",
   "hotel-defaults": "model-defaults",
   "rental-defaults": "model-defaults",
   "required-fields": "model-defaults",

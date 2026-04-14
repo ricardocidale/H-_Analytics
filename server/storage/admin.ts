@@ -1,4 +1,4 @@
-import { designThemes, logos, assetDescriptions, companies, researchQuestions, users, scenarioShares, type DesignTheme, type InsertDesignTheme, type Logo, type InsertLogo, type AssetDescription, type Company, type InsertCompany, type ResearchQuestion, type InsertResearchQuestion } from "@shared/schema";
+import { designThemes, logos, assetDescriptions, researchQuestions, type DesignTheme, type InsertDesignTheme, type Logo, type InsertLogo, type AssetDescription, type ResearchQuestion, type InsertResearchQuestion } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, isNull, inArray } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
@@ -113,43 +113,6 @@ export class AdminStorage {
   /** List all asset descriptions, ordered by creation date. */
   async getAllAssetDescriptions(): Promise<AssetDescription[]> {
     return await db.select().from(assetDescriptions).orderBy(assetDescriptions.createdAt);
-  }
-
-  // ── Companies ───────────────────────────────────────────────
-
-  /** List all companies alphabetically. Includes both management and SPV entities. */
-  async getAllCompanies(): Promise<Company[]> {
-    return db.select().from(companies).orderBy(companies.name);
-  }
-
-  /** Fetch a single company by ID. */
-  async getCompany(id: number): Promise<Company | undefined> {
-    const [company] = await db.select().from(companies).where(eq(companies.id, id));
-    return company || undefined;
-  }
-
-  /** Register a new company (management company or SPV). */
-  async createCompany(data: InsertCompany): Promise<Company> {
-    const [company] = await db.insert(companies).values(data).returning();
-    return company;
-  }
-
-  /** Update company details (name, type, description, logo). */
-  async updateCompany(id: number, data: Partial<InsertCompany>): Promise<Company> {
-    const [company] = await db.update(companies).set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() } as unknown as typeof companies.$inferInsert).where(eq(companies.id, id)).returning();
-    return company;
-  }
-
-  /**
-   * Delete a company. First unlinks any users who belong to it (sets companyId
-   * to null) so the foreign key doesn't block the delete.
-   */
-  async deleteCompany(id: number): Promise<void> {
-    await db.transaction(async (tx) => {
-      await tx.delete(scenarioShares).where(and(eq(scenarioShares.targetType, "company"), eq(scenarioShares.targetId, id)));
-      await tx.update(users).set({ companyId: null, updatedAt: new Date() }).where(eq(users.companyId, id));
-      await tx.delete(companies).where(eq(companies.id, id));
-    });
   }
 
   // ── Research Questions ──────────────────────────────────────

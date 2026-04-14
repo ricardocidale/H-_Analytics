@@ -17,7 +17,6 @@ export interface User {
   lastName: string | null;
   name: string | null;
   company: string | null;
-  companyId: number | null;
   title: string | null;
   role: string;
   canManageScenarios: boolean;
@@ -45,18 +44,7 @@ export interface LoginLog {
   userName: string | null;
 }
 
-export interface AdminCompany {
-  id: number;
-  name: string;
-  type: string;
-  description: string | null;
-  logoId: number | null;
-  themeId: number | null;
-  isActive: boolean;
-  createdAt: string;
-}
-
-export type AdminView = "users" | "companies" | "activity" | "verification" | "themes" | "branding" | "sidebar" | "database" | "logos";
+export type AdminView = "users" | "activity" | "verification" | "themes" | "branding" | "sidebar" | "database" | "logos";
 export type ActivitySubView = "login" | "feed" | "sharing" | "checker";
 
 export interface ActivityLogEntry {

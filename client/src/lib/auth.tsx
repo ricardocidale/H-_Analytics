@@ -36,8 +36,6 @@ interface User {
   lastName: string | null;
   name: string | null;
   company: string | null;
-  companyId: number | null;
-  companyName: string | null;
   title: string | null;
   role: string;
   hideTourPrompt: boolean;

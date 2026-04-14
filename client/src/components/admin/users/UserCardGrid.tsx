@@ -16,8 +16,6 @@ interface UserCardGridProps {
   sortField: SortField;
   sortDir: SortDir;
   toggleSort: (field: SortField) => void;
-  companyNameMap: Record<number, string>;
-  companiesList: { id: number; name: string }[] | undefined;
   currentUserRole?: string;
   onEditUser: (user: User) => void;
   onPasswordUser: (user: User) => void;
@@ -86,7 +84,6 @@ export default function UserCardGrid({
   sortField,
   sortDir,
   toggleSort,
-  companyNameMap,
   currentUserRole,
   onEditUser,
   onPasswordUser,
@@ -114,15 +111,13 @@ export default function UserCardGrid({
 
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
         {sortedUsers.map((user, idx, arr) => {
-          const currentCompany = user.companyId ? companyNameMap[user.companyId] || "Unknown Company" : "No Company";
-          const prevCompany = idx > 0
-            ? (arr[idx - 1].companyId ? companyNameMap[arr[idx - 1].companyId!] || "Unknown Company" : "No Company")
-            : null;
+          const currentCompany = user.company || "No Company";
+          const prevCompany = idx > 0 ? (arr[idx - 1].company || "No Company") : null;
           const sectionLabel = sortField === "company" ? currentCompany : null;
           const prevLabel = sortField === "company" ? prevCompany : null;
           const showHeader = sectionLabel !== null && sectionLabel !== prevLabel;
           const initials = getInitials(user.name, user.email);
-          const companyName = user.companyId ? companyNameMap[user.companyId] : null;
+          const companyName = user.company || null;
 
           return (
             <React.Fragment key={user.id}>

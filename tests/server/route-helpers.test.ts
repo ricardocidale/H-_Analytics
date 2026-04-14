@@ -122,7 +122,6 @@ describe("userResponse", () => {
     firstName: "Jane",
     lastName: "Smith",
     company: "Acme Corp",
-    companyId: 7,
     title: "CFO",
     role: "user",
     passwordHash: "supersecret_hash_should_not_appear",
@@ -137,7 +136,6 @@ describe("userResponse", () => {
     expect(result.lastName).toBe("Smith");
     expect(result.name).toBe("Jane Smith");
     expect(result.company).toBe("Acme Corp");
-    expect(result.companyId).toBe(7);
     expect(result.title).toBe("CFO");
     expect(result.role).toBe("user");
     expect(result.hideTourPrompt).toBe(true);

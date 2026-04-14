@@ -100,7 +100,7 @@ function Router() {
   useEffect(() => {
     if (user) {
       setClientUser({ id: user.id, email: user.email, role: user.role });
-      identifyUser({ id: user.id, email: user.email, role: user.role, companyId: user.companyId });
+      identifyUser({ id: user.id, email: user.email, role: user.role });
       if (!prevUserRef.current) trackUserLogin(user.role);
     }
   }, [user]);

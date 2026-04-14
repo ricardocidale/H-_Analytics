@@ -53,17 +53,12 @@ export function register(app: Express) {
       let financialSummary: string | undefined;
       if (promptBuilder.context?.financialResults) {
         try {
-          const companies = await storage.getAllCompanies();
-          const mgmtCompany = companies.find((c: any) => c.type === "management");
           const icpUser = getAuthUser(req);
           const props = isAdminRole(icpUser.role)
             ? await storage.getAllProperties()
             : await storage.getAllProperties(icpUser.id);
-          const managedProps = mgmtCompany
-            ? props.filter((p: any) => p.companyId === mgmtCompany.id)
-            : props;
 
-          financialSummary = buildFinancialSummary(ga, mgmtCompany, managedProps);
+          financialSummary = buildFinancialSummary(ga, null, props);
         } catch (err: unknown) {
           logger.warn(`Failed to gather financial context: ${err instanceof Error ? err.message : err}`, "icp-research");
           res.write(`data: ${JSON.stringify({ type: "status", message: "Warning: Could not load financial data — continuing without financial context." })}\n\n`);

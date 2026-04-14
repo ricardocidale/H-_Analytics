@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, real, integer, timestamp, jsonb, boolean, index, serial, unique, check, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { companies, designThemes } from "./core";
+import { designThemes } from "./core";
 
 // --- USERS TABLE ---
 // Every person who can log in. Roles control what they can see and do:
@@ -10,16 +10,15 @@ import { companies, designThemes } from "./core";
 //   - "user": general access — can edit properties and assumptions
 //   - "checker": independent auditor — read-only access plus verification tools
 //   - "investor": limited view — sees dashboard and reports but cannot edit
-// Each user optionally belongs to a company (SPV).
+// Company is a free-text field for organizational display purposes.
 export const users = pgTable("users", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash"),
-  role: text("role").notNull().default("user"), // "admin", "user", "checker", "investor"
+  role: text("role").notNull().default("user"),
   firstName: text("first_name"),
   lastName: text("last_name"),
   company: text("company"),
-  companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }),
   title: text("title"),
   selectedThemeId: integer("selected_theme_id").references(() => designThemes.id, { onDelete: "set null" }),
   phoneNumber: text("phone_number"),
@@ -36,7 +35,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("users_company_id_idx").on(table.companyId),
   index("users_phone_number_idx").on(table.phoneNumber),
 ]);
 
@@ -50,7 +48,6 @@ export const insertUserSchema = z.object({
   firstName: z.string().nullable().optional(),
   lastName: z.string().nullable().optional(),
   company: z.string().nullable().optional(),
-  companyId: z.number().nullable().optional(),
   title: z.string().nullable().optional(),
   phoneNumber: z.string().nullable().optional(),
   googleId: z.string().nullable().optional(),

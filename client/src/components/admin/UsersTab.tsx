@@ -1,22 +1,3 @@
-/**
- * UsersTab.tsx — User management panel for platform administrators.
- *
- * Provides full CRUD for user accounts:
- *   • List all registered users with search/filter
- *   • Create new users with username, password, and role assignment
- *   • Edit user details (name, email, role)
- *   • Reset passwords (generates a temporary password)
- *   • Delete users (with confirmation dialog)
- *   • Assign users to a company
- *
- * Roles:
- *   • "admin"   – full platform access including this admin panel
- *   • "user"    – standard access to portfolio and financial views
- *   • "checker" – read-only access for financial verification/audit
- *
- * User data is fetched via TanStack Query from GET /api/admin/users
- * and mutations go to POST/PATCH/DELETE /api/admin/users.
- */
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,18 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconKey, IconUserPlus, IconSend } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { useAdminLogos, useAdminUsers, useAdminCompanies, useAdminThemes, useAdminAssetDescriptions } from "./hooks";
+import { useAdminUsers } from "./hooks";
 import { useAuth } from "@/lib/auth";
 import { UserRole } from "@shared/constants";
 import type { User } from "./types";
 import type { SortField, SortDir } from "./users/types";
-import { defaultNewUser, defaultEditUser, defaultInlineCompanyForm } from "./users/types";
+import { defaultNewUser, defaultEditUser } from "./users/types";
 import UserCardGrid from "./users/UserCardGrid";
 import CreateUserDialog from "./users/CreateUserDialog";
 import EditUserDialog from "./users/EditUserDialog";
 import PasswordDialog from "./users/PasswordDialog";
 import ResetAllDialog from "./users/ResetAllDialog";
-import { InlineCompanyDialog } from "./users/InlineCreateDialogs";
 import InviteUsersDialog from "./users/InviteUsersDialog";
 import DefaultPropertiesDialog from "./users/DefaultPropertiesDialog";
 
@@ -55,9 +35,6 @@ export default function UsersTab() {
   const [originalEmail, setOriginalEmail] = useState("");
   const [showNewUserPassword, setShowNewUserPassword] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [inlineCompanyOpen, setInlineCompanyOpen] = useState(false);
-  const [inlineCompanyForm, setInlineCompanyForm] = useState(defaultInlineCompanyForm);
-  const [inlineCompanyTarget, setInlineCompanyTarget] = useState<"new" | "edit">("new");
   const [sortField, setSortField] = useState<SortField>("company");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [resetAllPassword, setResetAllPassword] = useState("");
@@ -69,37 +46,6 @@ export default function UsersTab() {
   const [defaultsUser, setDefaultsUser] = useState<User | null>(null);
 
   const { data: users, isLoading: usersLoading } = useAdminUsers();
-  const { data: adminLogos } = useAdminLogos();
-  const { data: companiesList } = useAdminCompanies();
-  const { data: allThemes } = useAdminThemes();
-  const { data: assetDescriptions } = useAdminAssetDescriptions();
-
-  const companyLogoMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    if (!companiesList || !adminLogos) return map;
-    const logoUrlMap: Record<number, string> = {};
-    adminLogos.forEach(l => { logoUrlMap[l.id] = l.url; });
-    companiesList.forEach(c => {
-      if (c.logoId && logoUrlMap[c.logoId]) {
-        map[c.id] = logoUrlMap[c.logoId];
-      }
-    });
-    return map;
-  }, [companiesList, adminLogos]);
-
-  const companyNameMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    companiesList?.forEach(c => { map[c.id] = c.name; });
-    return map;
-  }, [companiesList]);
-
-  const generalLogoUrl = useMemo(() => {
-    if (!companiesList || !adminLogos) return null;
-    const generalCompany = companiesList.find(c => c.name === "General");
-    if (!generalCompany?.logoId) return null;
-    const logo = adminLogos.find(l => l.id === generalCompany.logoId);
-    return logo?.url ?? null;
-  }, [companiesList, adminLogos]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -122,8 +68,8 @@ export default function UsersTab() {
           cmp = a.role.localeCompare(b.role);
           break;
         case "company": {
-          const ca = (a.companyId ? companyNameMap[a.companyId] : "") || "";
-          const cb = (b.companyId ? companyNameMap[b.companyId] : "") || "";
+          const ca = a.company || "";
+          const cb = b.company || "";
           cmp = ca.localeCompare(cb);
           if (cmp === 0) cmp = (a.name || a.email).localeCompare(b.name || b.email);
           break;
@@ -131,33 +77,10 @@ export default function UsersTab() {
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [users, sortField, sortDir, companyNameMap]);
-
-  const inlineCreateCompanyMutation = useMutation({
-    mutationFn: async (data: { name: string; type: string; description?: string | null; logoId?: number | null; themeId?: number | null }) => {
-      const res = await fetch("/api/companies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data), credentials: "include" });
-      if (!res.ok) throw new Error("Failed to create company");
-      return res.json();
-    },
-    onSuccess: (newCompany) => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "companies"] });
-      queryClient.invalidateQueries({ queryKey: ["companies"] });
-      setInlineCompanyOpen(false);
-      setInlineCompanyForm(defaultInlineCompanyForm);
-      if (inlineCompanyTarget === "new") {
-        setNewUser(prev => ({ ...prev, companyId: newCompany.id }));
-      } else {
-        setEditUser(prev => ({ ...prev, companyId: newCompany.id }));
-      }
-      toast({ title: "Company Created", description: `"${newCompany.name}" has been created and selected.` });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
+  }, [users, sortField, sortDir]);
 
   const createMutation = useMutation({
-    mutationFn: async (data: { email: string; password?: string; firstName?: string; lastName?: string; companyId?: number | null; title?: string; role?: string }) => {
+    mutationFn: async (data: { email: string; password?: string; firstName?: string; lastName?: string; company?: string; title?: string; role?: string }) => {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -250,7 +173,7 @@ export default function UsersTab() {
   });
 
   const editMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: { email?: string; firstName?: string; lastName?: string; companyId?: number | null; title?: string; role?: string; canManageScenarios?: boolean } }) => {
+    mutationFn: async ({ id, data }: { id: number; data: { email?: string; firstName?: string; lastName?: string; company?: string; title?: string; role?: string; canManageScenarios?: boolean } }) => {
       const res = await fetch(`/api/admin/users/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -285,7 +208,7 @@ export default function UsersTab() {
       email: user.email,
       firstName: user.firstName || "",
       lastName: user.lastName || "",
-      companyId: user.companyId ?? null,
+      company: user.company || "",
       title: user.title || "",
       role: user.role || UserRole.USER,
       password: "",
@@ -306,10 +229,10 @@ export default function UsersTab() {
 
   const handleEditSubmit = () => {
     if (!selectedUser) return;
-    const data: { email?: string; firstName?: string; lastName?: string; companyId?: number | null; title?: string; role?: string; canManageScenarios?: boolean } = {
+    const data: { email?: string; firstName?: string; lastName?: string; company?: string; title?: string; role?: string; canManageScenarios?: boolean } = {
       firstName: editUser.firstName,
       lastName: editUser.lastName,
-      companyId: editUser.companyId,
+      company: editUser.company,
       title: editUser.title,
       canManageScenarios: editUser.canManageScenarios,
     };
@@ -363,8 +286,6 @@ export default function UsersTab() {
             sortField={sortField}
             sortDir={sortDir}
             toggleSort={toggleSort}
-            companyNameMap={companyNameMap}
-            companiesList={companiesList}
             currentUserRole={user?.role}
             onEditUser={handleEditUser}
             onPasswordUser={handlePasswordUser}
@@ -398,11 +319,8 @@ export default function UsersTab() {
       setNewUser={setNewUser}
       showPassword={showNewUserPassword}
       setShowPassword={setShowNewUserPassword}
-      companiesList={companiesList}
-      companyLogoMap={companyLogoMap}
       isPending={createMutation.isPending}
       onSubmit={handleCreateSubmit}
-      onAddCompany={() => { setInlineCompanyTarget("new"); setInlineCompanyForm({ ...defaultInlineCompanyForm }); setInlineCompanyOpen(true); }}
     />
 
     <PasswordDialog
@@ -425,28 +343,13 @@ export default function UsersTab() {
       setEditUser={setEditUser}
       showEditPassword={showEditPassword}
       setShowEditPassword={setShowEditPassword}
-      companiesList={companiesList}
-      companyLogoMap={companyLogoMap}
       isPending={editMutation.isPending}
       onSubmit={handleEditSubmit}
-      onAddCompany={() => { setInlineCompanyTarget("edit"); setInlineCompanyForm({ ...defaultInlineCompanyForm }); setInlineCompanyOpen(true); }}
-    />
-
-    <InlineCompanyDialog
-      open={inlineCompanyOpen}
-      onOpenChange={setInlineCompanyOpen}
-      form={inlineCompanyForm}
-      setForm={setInlineCompanyForm}
-      adminLogos={adminLogos}
-      allThemes={allThemes}
-      isPending={inlineCreateCompanyMutation.isPending}
-      onSubmit={() => inlineCreateCompanyMutation.mutate({ ...inlineCompanyForm, type: "spv", description: inlineCompanyForm.description || null })}
     />
 
     <InviteUsersDialog
       open={inviteOpen}
       onOpenChange={setInviteOpen}
-      companiesList={companiesList}
     />
 
     {defaultsUser && (

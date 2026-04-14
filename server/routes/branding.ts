@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin , getAuthUser } from "../auth";
-import { insertLogoSchema, insertCompanySchema, insertDesignThemeSchema } from "@shared/schema";
+import { insertLogoSchema, insertDesignThemeSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { logger } from "../logger";
 import { fullName, logAndSendError } from "./helpers";
@@ -50,20 +50,6 @@ export function register(app: Express) {
       let logoUrl: string | null = null;
       let userName = fullName(u) || u.email;
 
-      if (u.companyId) {
-        const comp = await storage.getCompany(u.companyId);
-        if (comp) {
-          companyName = comp.name;
-          if (comp.logoId) {
-            const logo = await storage.getLogo(comp.logoId);
-            if (logo) {
-              logoUrl = logo.url;
-              if (logo.companyName) companyName = logo.companyName;
-            }
-          }
-        }
-      }
-
       if (!logoUrl) {
         const defaultLogo = await storage.getDefaultLogo();
         if (defaultLogo) logoUrl = defaultLogo.url;
@@ -94,19 +80,7 @@ export function register(app: Express) {
         resolvedTheme = await storage.getDesignTheme(u.selectedThemeId);
       }
 
-      // 2. Company-level logo
-      if (u.companyId) {
-        const comp = await storage.getCompany(u.companyId);
-        if (comp?.logoId) {
-          const logo = await storage.getLogo(comp.logoId);
-          if (logo) {
-            logoUrl = logo.url;
-            if (logo.companyName) groupCompanyName = logo.companyName;
-          }
-        }
-      }
-
-      // 3. System default theme
+      // 2. System default theme
       if (!resolvedTheme) {
         resolvedTheme = await storage.getDefaultDesignTheme();
       }
@@ -229,80 +203,6 @@ export function register(app: Express) {
     res.setHeader("Content-Type", "image/svg+xml");
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     res.send(generateLetterLogoSvg(letter, name));
-  });
-
-  // Companies CRUD
-  app.get("/api/companies", requireAuth, async (req, res) => {
-    try {
-      const companies = await storage.getAllCompanies();
-      res.json(companies);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch companies", error);
-    }
-  });
-
-  app.post("/api/companies", requireAdmin, async (req, res) => {
-    try {
-      const validation = insertCompanySchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
-      }
-      const data = { ...validation.data };
-      if (!data.themeId) {
-        const defaultTheme = await storage.getDefaultDesignTheme();
-        if (defaultTheme) data.themeId = defaultTheme.id;
-      }
-      const company = await storage.createCompany(data);
-      if (!data.logoId) {
-        const defaultLogo = await storage.getDefaultLogo();
-        if (defaultLogo) {
-          await storage.updateCompany(company.id, { logoId: defaultLogo.id });
-          company.logoId = defaultLogo.id;
-        }
-      }
-      res.status(201).json(company);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to create company", error);
-    }
-  });
-
-  const updateCompanySchema = z.object({
-    name: z.string().min(1).optional(),
-    type: z.enum(["management", "spv"]).optional(),
-    description: z.string().nullable().optional(),
-    logoId: z.number().nullable().optional(),
-    themeId: z.number().nullable().optional(),
-    isActive: z.boolean().optional(),
-  });
-
-  app.patch("/api/companies/:id", requireAdmin, async (req, res) => {
-    try {
-      const parsed = updateCompanySchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      const existing = await storage.getCompany(Number(req.params.id));
-      if (existing?.name === "General" && parsed.data.name && parsed.data.name !== "General") {
-        return res.status(400).json({ error: "The General company cannot be renamed" });
-      }
-      const company = await storage.updateCompany(Number(req.params.id), parsed.data);
-      res.json(company);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to update company", error);
-    }
-  });
-
-  app.delete("/api/companies/:id", requireAdmin, async (req, res) => {
-    try {
-      const existing = await storage.getCompany(Number(req.params.id));
-      if (existing?.name === "General") {
-        return res.status(400).json({ error: "The General company cannot be deleted" });
-      }
-      await storage.deleteCompany(Number(req.params.id));
-      res.json({ success: true });
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete company", error);
-    }
   });
 
   // Design Themes CRUD

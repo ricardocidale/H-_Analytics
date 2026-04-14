@@ -129,7 +129,6 @@ export function log(message: string, source = "express") {
 const CACHEABLE_PATHS = new Set([
   "/api/logos",
   "/api/design-themes",
-  "/api/companies",
   "/api/documents/templates",
 ]);
 app.use((req, res, next) => {
@@ -472,6 +471,12 @@ async function runSchemaMigrations() {
     await runAppLogo001();
     await markMigrationApplied("app_logo_001");
   }
+
+  if (!(await isMigrationApplied("drop_company_fk_001"))) {
+    const { run: runDropCompanyFk } = await import("./migrations/drop-company-fk-001");
+    await runDropCompanyFk(drizzleDb);
+    await markMigrationApplied("drop_company_fk_001");
+  }
 }
 
 async function runSeeds() {
@@ -479,8 +484,6 @@ async function runSeeds() {
 
   const { seedMissingMarketResearch, seedDefaultLogos, seedCompanies, seedFeeCategories, seedServiceTemplates, seedPropertyPhotos, seedGlobalAssumptions, seedMedellinDuplex, seedMedellinDuplexPhotos } = await import("./seed");
   const { seedMarketRates } = await import("./seeds/market-rates");
-  const { seedUserCompanyAssignments } = await import("./seeds/users");
-
   await Promise.all([
     seedMissingMarketResearch(),
     seedMarketRates(),
@@ -492,7 +495,6 @@ async function runSeeds() {
   ]);
 
   await seedCompanies();
-  await seedUserCompanyAssignments();
 
   await seedMedellinDuplex();
   await seedMedellinDuplexPhotos();

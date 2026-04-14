@@ -32,7 +32,6 @@ export function userResponse(u: any, extra?: Record<string, any>) {
     lastName: u.lastName, 
     name: fullName(u), 
     company: u.company, 
-    companyId: u.companyId, 
     title: u.title, 
     role: u.role,
     hideTourPrompt: u.hideTourPrompt ?? false,
@@ -81,7 +80,6 @@ export const createUserSchema = z.object({
   firstName: z.string().max(50).optional(),
   lastName: z.string().max(50).optional(),
   company: z.string().max(100).optional(),
-  companyId: z.number().nullable().optional(),
   title: z.string().max(100).optional(),
   role: z.enum(VALID_USER_ROLES).optional().default("user"),
 });

@@ -24,8 +24,7 @@ export function registerAdminScenarioRoutes(app: Express) {
     try {
       const userIdFilter = req.query.userId ? Number(req.query.userId) : undefined;
       const groupIdFilter = req.query.groupId ? Number(req.query.groupId) : undefined;
-      const companyIdFilter = req.query.companyId ? Number(req.query.companyId) : undefined;
-      const allScenarios = await storage.getAllScenarios({ userId: userIdFilter, groupId: groupIdFilter, companyId: companyIdFilter });
+      const allScenarios = await storage.getAllScenarios({ userId: userIdFilter, groupId: groupIdFilter });
       const allShares = await storage.getAllScenarioShares();
 
       const sharesByScenario: Record<number, Array<{ id: number; targetType: string; targetId: number; grantedBy: number; createdAt: string }>> = {};
@@ -219,9 +218,6 @@ export function registerAdminScenarioRoutes(app: Express) {
       if (targetType === "user") {
         const targetUser = await storage.getUserById(targetId);
         if (!targetUser) return res.status(404).json({ error: "Target user not found" });
-      } else if (targetType === "company") {
-        const targetCompany = await storage.getCompany(targetId);
-        if (!targetCompany) return res.status(404).json({ error: "Target company not found" });
       }
 
       const share = await storage.addScenarioAccess(id, targetType, targetId, getAuthUser(req).id);

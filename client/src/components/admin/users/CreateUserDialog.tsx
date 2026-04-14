@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconEye, IconEyeOff, IconSave, IconPeople, IconKey, IconShield, IconMail, IconUserCog, IconProperties, IconPlus } from "@/components/icons";
+import { IconEye, IconEyeOff, IconSave, IconPeople, IconKey, IconShield, IconMail, IconProperties } from "@/components/icons";
 import { UserRole } from "@shared/constants";
 import type { NewUserForm } from "./types";
 
@@ -16,11 +16,8 @@ interface CreateUserDialogProps {
   setNewUser: React.Dispatch<React.SetStateAction<NewUserForm>>;
   showPassword: boolean;
   setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
-  companiesList: { id: number; name: string; logoId: number | null; isActive: boolean }[] | undefined;
-  companyLogoMap: Record<number, string>;
   isPending: boolean;
   onSubmit: () => void;
-  onAddCompany: () => void;
 }
 
 export default function CreateUserDialog({
@@ -30,11 +27,8 @@ export default function CreateUserDialog({
   setNewUser,
   showPassword,
   setShowPassword,
-  companiesList,
-  companyLogoMap,
   isPending,
   onSubmit,
-  onAddCompany,
 }: CreateUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
@@ -63,24 +57,7 @@ export default function CreateUserDialog({
           </div>
           <div className="space-y-2">
             <Label className="flex items-center gap-2"><IconProperties className="w-4 h-4 text-muted-foreground" />Company</Label>
-            <Select value={newUser.companyId != null ? String(newUser.companyId) : "none"} onValueChange={(v) => {
-              if (v === "__add_new__") { onAddCompany(); return; }
-              setNewUser(prev => ({ ...prev, companyId: v === "none" ? null : parseInt(v) }));
-            }} data-testid="select-new-user-company">
-              <SelectTrigger data-testid="select-new-user-company"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Company</SelectItem>
-                {companiesList?.filter(c => c.isActive).map(c => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    <span className="flex items-center gap-2">
-                      {companyLogoMap[c.id] && <img src={companyLogoMap[c.id]} alt="" className="w-5 h-5 rounded object-contain" />}
-                      {c.name}
-                    </span>
-                  </SelectItem>
-                ))}
-                <SelectItem value="__add_new__"><span className="flex items-center gap-2 text-primary"><IconPlus className="w-4 h-4" />Add New Company</span></SelectItem>
-              </SelectContent>
-            </Select>
+            <Input value={newUser.company || ""} onChange={(e) => setNewUser(prev => ({ ...prev, company: e.target.value }))} placeholder="Company name" data-testid="input-new-user-company" />
           </div>
           <div className="space-y-2"><Label className="flex items-center gap-2"><IconShield className="w-4 h-4 text-muted-foreground" />Title</Label><Input value={newUser.title} onChange={(e) => setNewUser(prev => ({ ...prev, title: e.target.value }))} placeholder="Job title" data-testid="input-new-user-title" /></div>
           <div className="space-y-2">

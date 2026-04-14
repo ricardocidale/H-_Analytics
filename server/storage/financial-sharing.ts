@@ -4,7 +4,7 @@ import { db } from "../db";
 import { eq, desc, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
 
 export class FinancialSharingStorage {
-  async getAllScenarios(filters?: { userId?: number; groupId?: number; companyId?: number }): Promise<(Scenario & { ownerEmail: string; ownerName: string | null })[]> {
+  async getAllScenarios(filters?: { userId?: number; groupId?: number }): Promise<(Scenario & { ownerEmail: string; ownerName: string | null })[]> {
     let query = db
       .select({
         id: scenarios.id,
@@ -75,21 +75,10 @@ export class FinancialSharingStorage {
       result = result.filter(r => r.userId === filters.userId);
     }
 
-    if (filters?.groupId || filters?.companyId) {
-      const conditions = [];
-      if (filters.groupId) {
-        conditions.push(
-          and(eq(scenarioShares.targetType, "group"), eq(scenarioShares.targetId, filters.groupId))
-        );
-      }
-      if (filters.companyId) {
-        conditions.push(
-          and(eq(scenarioShares.targetType, "company"), eq(scenarioShares.targetId, filters.companyId))
-        );
-      }
+    if (filters?.groupId) {
       const matchingShares = await db.select({ scenarioId: scenarioShares.scenarioId })
         .from(scenarioShares)
-        .where(conditions.length > 1 ? or(...conditions) : conditions[0]!);
+        .where(and(eq(scenarioShares.targetType, "group"), eq(scenarioShares.targetId, filters.groupId)));
       const matchingIds = new Set(matchingShares.map(s => s.scenarioId));
       result = result.filter(r => matchingIds.has(r.id));
     }
@@ -194,9 +183,6 @@ export class FinancialSharingStorage {
     if (!user) return [];
 
     const conditions = [and(eq(scenarioShares.targetType, "user"), eq(scenarioShares.targetId, userId))];
-    if (user.companyId) {
-      conditions.push(and(eq(scenarioShares.targetType, "company"), eq(scenarioShares.targetId, user.companyId)));
-    }
 
     const granterAlias = aliasedTable(users, "granter");
     const rows = await db

@@ -256,17 +256,6 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
   const defaultTheme = await storage.getDefaultDesignTheme();
   const fallbackThemeId = lbBrandThemeId ?? defaultTheme?.id;
 
-  // Assign system default theme to ALL companies (idempotent)
-  const canonicalDefaultThemeId = defaultTheme?.id;
-  if (canonicalDefaultThemeId) {
-    const allCompanies = await storage.getAllCompanies();
-    for (const company of allCompanies) {
-      if (company.themeId !== canonicalDefaultThemeId) {
-        await storage.updateCompany(company.id, { themeId: canonicalDefaultThemeId });
-      }
-    }
-  }
-
   // Seed service templates (idempotent — seedServiceTemplates skips if any exist)
   try {
     await seedServiceTemplates();

@@ -35,7 +35,6 @@ export class UserStorage {
         firstName: data.firstName,
         lastName: data.lastName,
         company: data.company,
-        companyId: data.companyId,
         title: data.title,
       })
       .returning();
@@ -58,8 +57,7 @@ export class UserStorage {
     });
   }
 
-  /** Update a user's profile fields (name, email, company, title). Timestamps the update. */
-  async updateUserProfile(id: number, data: { firstName?: string; lastName?: string; email?: string; company?: string; companyId?: number | null; title?: string; canManageScenarios?: boolean }): Promise<User> {
+  async updateUserProfile(id: number, data: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; canManageScenarios?: boolean }): Promise<User> {
     const [user] = await db
       .update(users)
       .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
@@ -159,7 +157,6 @@ export class UserStorage {
           firstName: users.firstName,
           lastName: users.lastName,
           company: users.company,
-          companyId: users.companyId,
           title: users.title,
           selectedThemeId: users.selectedThemeId,
           phoneNumber: users.phoneNumber,

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconEye, IconEyeOff, IconCalendar, IconSave, IconPeople, IconKey, IconShield, IconMail, IconUserCog, IconProperties, IconPlus, IconFileStack } from "@/components/icons";
+import { IconEye, IconEyeOff, IconCalendar, IconSave, IconPeople, IconKey, IconShield, IconMail, IconProperties, IconFileStack } from "@/components/icons";
 import { Switch } from "@/components/ui/switch";
 import { UserRole } from "@shared/constants";
 import { formatDateTime } from "@/lib/formatters";
@@ -20,11 +20,8 @@ interface EditUserDialogProps {
   setEditUser: React.Dispatch<React.SetStateAction<EditUserForm>>;
   showEditPassword: boolean;
   setShowEditPassword: React.Dispatch<React.SetStateAction<boolean>>;
-  companiesList: { id: number; name: string; logoId: number | null; isActive: boolean }[] | undefined;
-  companyLogoMap: Record<number, string>;
   isPending: boolean;
   onSubmit: () => void;
-  onAddCompany: () => void;
 }
 
 export default function EditUserDialog({
@@ -35,11 +32,8 @@ export default function EditUserDialog({
   setEditUser,
   showEditPassword,
   setShowEditPassword,
-  companiesList,
-  companyLogoMap,
   isPending,
   onSubmit,
-  onAddCompany,
 }: EditUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
@@ -62,26 +56,9 @@ export default function EditUserDialog({
           </div>
           <div className="space-y-2">
             <Label className="flex items-center gap-2"><IconProperties className="w-4 h-4 text-muted-foreground" />Company</Label>
-            <Select value={editUser.companyId != null ? String(editUser.companyId) : "none"} onValueChange={(v) => {
-              if (v === "__add_new__") { onAddCompany(); return; }
-              setEditUser(prev => ({ ...prev, companyId: v === "none" ? null : parseInt(v) }));
-            }} data-testid="select-edit-company">
-              <SelectTrigger data-testid="select-edit-company"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Company</SelectItem>
-                {companiesList?.filter(c => c.isActive).map(c => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    <span className="flex items-center gap-2">
-                      {companyLogoMap[c.id] && <img src={companyLogoMap[c.id]} alt="" className="w-5 h-5 rounded object-contain" />}
-                      {c.name}
-                    </span>
-                  </SelectItem>
-                ))}
-                <SelectItem value="__add_new__"><span className="flex items-center gap-2 text-primary"><IconPlus className="w-4 h-4" />Add New Company</span></SelectItem>
-              </SelectContent>
-            </Select>
+            <Input value={editUser.company || ""} onChange={(e) => setEditUser(prev => ({ ...prev, company: e.target.value }))} placeholder="Company name" data-testid="input-edit-company" />
           </div>
-          <div className="space-y-2"><Label className="flex items-center gap-2"><IconShield className="w-4 h-4 text-muted-foreground" />Title</Label><Input value={editUser.title} onChange={(e) => setEditUser(prev => ({ ...prev, title: e.target.value }))} data-testid="input-edit-title" /></div>
+          <div className="space-y-2"><Label className="flex items-center gap-2"><IconShield className="w-4 h-4 text-muted-foreground" />Title</Label><Input value={editUser.title} onChange={(e) => setEditUser(prev => ({ ...prev, title: e.target.value }))} placeholder="Job title" data-testid="input-edit-title" /></div>
           <div className="space-y-2">
             <Label className="flex items-center gap-2"><IconShield className="w-4 h-4 text-muted-foreground" />Role</Label>
             <Select value={editUser.role} onValueChange={(v) => setEditUser(prev => ({ ...prev, role: v }))} data-testid="select-edit-user-role">

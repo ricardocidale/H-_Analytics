@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconPlus, IconTrash, IconPeople, IconBuilding2 } from "@/components/icons";
+import { IconPlus, IconTrash, IconPeople } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -27,27 +27,18 @@ interface ScenarioAccessDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   scenario: ScenarioForAccess | null;
-  companies: Array<{ id: number; name: string }> | undefined;
   users: Array<{ id: number; email: string; name: string | null }> | undefined;
 }
 
-function getGrantBadgeVariant(targetType: string): "default" | "secondary" | "outline" {
-  if (targetType === "company") return "secondary";
-  return "outline";
-}
-
-export function ScenarioAccessDialog({ open, onOpenChange, scenario, companies, users }: ScenarioAccessDialogProps) {
+export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: ScenarioAccessDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [grantForm, setGrantForm] = useState({ targetType: "company" as string, targetId: "" });
+  const [grantForm, setGrantForm] = useState({ targetId: "" });
 
-  const companyNameMap: Record<number, string> = {};
-  companies?.forEach(c => { companyNameMap[c.id] = c.name; });
   const userNameMap: Record<number, string> = {};
   users?.forEach(u => { userNameMap[u.id] = u.name || u.email; });
 
   const getGrantLabel = (targetType: string, targetId: number) => {
-    if (targetType === "company") return companyNameMap[targetId] || `Company #${targetId}`;
     if (targetType === "user") return userNameMap[targetId] || `User #${targetId}`;
     return `${targetType} #${targetId}`;
   };
@@ -68,7 +59,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, companies, 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
-      setGrantForm({ targetType: "company", targetId: "" });
+      setGrantForm({ targetId: "" });
       toast({ title: "Access Granted" });
     },
     onError: (err: Error) => {
@@ -120,7 +111,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, companies, 
         <DialogHeader>
           <DialogTitle>Manage Access — {scenario?.name}</DialogTitle>
           <DialogDescription>
-            Grant or revoke access for companies or individual users.
+            Grant or revoke access for individual users.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -131,7 +122,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, companies, 
                 {scenario.accessGrants.map(grant => (
                   <div key={grant.id} className="flex items-center justify-between bg-muted/50 rounded px-3 py-2">
                     <span className="text-sm">
-                      <Badge variant={getGrantBadgeVariant(grant.targetType)} className="mr-2 text-xs">
+                      <Badge variant="outline" className="mr-2 text-xs">
                         {grant.targetType}
                       </Badge>
                       {getGrantLabel(grant.targetType, grant.targetId)}
@@ -178,31 +169,16 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, companies, 
           )}
 
           <div className="border-t pt-4 space-y-3">
-            <Label>Add Access</Label>
+            <Label>Add User Access</Label>
             <div className="flex items-end gap-2">
               <div className="flex-1 space-y-1">
-                <Label className="text-xs">Type</Label>
-                <Select value={grantForm.targetType} onValueChange={v => setGrantForm(f => ({ ...f, targetType: v, targetId: "" }))}>
-                  <SelectTrigger data-testid="select-grant-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="company">Company</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1 space-y-1">
-                <Label className="text-xs">Target</Label>
-                <Select value={grantForm.targetId} onValueChange={v => setGrantForm(f => ({ ...f, targetId: v }))}>
+                <Label className="text-xs">User</Label>
+                <Select value={grantForm.targetId} onValueChange={v => setGrantForm({ targetId: v })}>
                   <SelectTrigger data-testid="select-grant-target">
-                    <SelectValue placeholder="Select..." />
+                    <SelectValue placeholder="Select user..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {grantForm.targetType === "company" && companies?.map(c => (
-                      <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                    ))}
-                    {grantForm.targetType === "user" && users?.map(u => (
+                    {users?.map(u => (
                       <SelectItem key={u.id} value={String(u.id)}>{u.name || u.email}</SelectItem>
                     ))}
                   </SelectContent>
@@ -214,7 +190,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, companies, 
                   if (!scenario || !grantForm.targetId) return;
                   addAccessMutation.mutate({
                     scenarioId: scenario.id,
-                    targetType: grantForm.targetType,
+                    targetType: "user",
                     targetId: Number(grantForm.targetId),
                   });
                 }}

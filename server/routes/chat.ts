@@ -304,7 +304,7 @@ export function register(app: Express) {
               return res.status(403).json({ error: "Entity not found or access denied" });
             }
           } else if (fieldCtx.entityType === "company") {
-            if (authUser.companyId !== fieldCtx.entityId) {
+            if (!isAdminRole(authUser.role)) {
               return res.status(403).json({ error: "Entity not found or access denied" });
             }
           }

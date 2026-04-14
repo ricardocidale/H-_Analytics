@@ -21,13 +21,11 @@ export function identifyUser(user: {
   id: number;
   email: string;
   role?: string;
-  companyId?: number | null;
 }) {
   if (!initialized) return;
   posthog.identify(String(user.id), {
     email: user.email,
     role: user.role,
-    companyId: user.companyId,
   });
 }
 

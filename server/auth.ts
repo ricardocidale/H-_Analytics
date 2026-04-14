@@ -47,7 +47,6 @@ declare global {
       firstName: string | null;
       lastName: string | null;
       company: string | null;
-      companyId: number | null;
       title: string | null;
       selectedThemeId: number | null;
       phoneNumber: string | null;

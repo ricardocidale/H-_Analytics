@@ -53,8 +53,7 @@ export async function checkScenarioAccess(scenarioId: number, userId: number, sc
   // Check legacy scenarioShares table
   const shares = await storage.getScenarioSharesForScenario(scenarioId);
   const hasLegacyAccess = shares.some(s =>
-    (s.targetType === "user" && s.targetId === userId) ||
-    (s.targetType === "company" && user.companyId != null && s.targetId === user.companyId)
+    (s.targetType === "user" && s.targetId === userId)
   );
   if (hasLegacyAccess) return true;
 

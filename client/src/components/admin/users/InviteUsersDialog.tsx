@@ -28,28 +28,24 @@ interface InviteSummary {
 interface InviteUsersDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  companiesList?: { id: number; name: string }[];
 }
 
 export default function InviteUsersDialog({
   open,
   onOpenChange,
-  companiesList,
 }: InviteUsersDialogProps) {
   const queryClient = useQueryClient();
   const [emails, setEmails] = useState<string[]>([]);
   const [currentEmail, setCurrentEmail] = useState("");
   const [role, setRole] = useState<string>("user");
   const [message, setMessage] = useState("");
-  const [companyId, setCompanyId] = useState<string>("none");
-  const [groupId, setGroupId] = useState<string>("none");
   const [results, setResults] = useState<InviteResult[] | null>(null);
   const [summary, setSummary] = useState<InviteSummary | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const sendInvitations = useMutation({
-    mutationFn: async (data: { emails: string[]; role: string; message?: string; companyId?: number | null }) => {
+    mutationFn: async (data: { emails: string[]; role: string; message?: string }) => {
       const res = await fetch("/api/admin/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,7 +112,6 @@ export default function InviteUsersDialog({
       emails: allEmails,
       role,
       message: message.trim() || undefined,
-      companyId: companyId !== "none" ? Number(companyId) : null,
     });
   };
 
@@ -126,8 +121,6 @@ export default function InviteUsersDialog({
       setCurrentEmail("");
       setRole("user");
       setMessage("");
-      setCompanyId("none");
-      setGroupId("none");
       setResults(null);
       setSummary(null);
       setShowSuccess(false);
@@ -303,36 +296,19 @@ export default function InviteUsersDialog({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="label-text font-semibold mb-2 block">Role</Label>
-                    <Select value={role} onValueChange={setRole}>
-                      <SelectTrigger data-testid="select-invite-role">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={UserRole.USER}>User</SelectItem>
-                        <SelectItem value={UserRole.CHECKER}>Checker</SelectItem>
-                        <SelectItem value={UserRole.INVESTOR}>Investor</SelectItem>
-                        <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="label-text font-semibold mb-2 block">Company</Label>
-                    <Select value={companyId} onValueChange={setCompanyId}>
-                      <SelectTrigger data-testid="select-invite-company">
-                        <SelectValue placeholder="None" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {companiesList?.map(c => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label className="label-text font-semibold mb-2 block">Role</Label>
+                  <Select value={role} onValueChange={setRole}>
+                    <SelectTrigger data-testid="select-invite-role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UserRole.USER}>User</SelectItem>
+                      <SelectItem value={UserRole.CHECKER}>Checker</SelectItem>
+                      <SelectItem value={UserRole.INVESTOR}>Investor</SelectItem>
+                      <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>

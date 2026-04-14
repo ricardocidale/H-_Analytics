@@ -136,17 +136,17 @@ export default function CompanyAssumptions() {
   const { markDirty: markGlobalDirty, clearDirty: clearGlobalDirty } = useScenarioDirtyState();
   const { data: research } = useMarketResearch("company");
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
-  const companyId = user?.companyId ?? 1;
+  const entityId = user?.id ?? 1;
 
   // Fetch structured guidance records extracted by the server after research runs
   const { data: guidanceRecords = [] } = useQuery<GuidanceRecord[]>({
-    queryKey: ["guidance", "company", companyId],
+    queryKey: ["guidance", "company", entityId],
     queryFn: async () => {
-      const res = await fetch(`/api/guidance/enriched/company/${companyId}`);
+      const res = await fetch(`/api/guidance/enriched/company/${entityId}`);
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!companyId,
+    enabled: !!entityId,
     refetchOnWindowFocus: false,
   });
 

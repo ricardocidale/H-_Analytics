@@ -45,9 +45,9 @@ async function checkEntityAccess(user: Express.User, entityType: EntityType, ent
     return checkPropertyAccess(user, entityId);
   }
   if (entityType === "company") {
-    const authUser = user as { companyId?: number | null; role?: string };
+    const authUser = user as { role?: string };
     if (authUser.role && isAdminRole(authUser.role)) return true;
-    return authUser.companyId === entityId;
+    return false;
   }
   return false;
 }

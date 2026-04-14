@@ -151,10 +151,6 @@ export default function DatabaseTab() {
                   <p className="text-2xl font-bold text-muted-foreground">{syncResults.summary?.userGroups ?? "—"}</p>
                   <p className="text-xs text-muted-foreground mt-1">User Groups</p>
                 </div>
-                <div className="bg-muted rounded-xl p-4 text-center" data-testid="stat-companies-count">
-                  <p className="text-2xl font-bold text-muted-foreground">{syncResults.summary?.companies ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Companies</p>
-                </div>
                 <div className="bg-muted rounded-xl p-4 text-center" data-testid="stat-logos-count">
                   <p className="text-2xl font-bold text-muted-foreground">{syncResults.summary?.logos ?? "—"}</p>
                   <p className="text-xs text-muted-foreground mt-1">Logos</p>

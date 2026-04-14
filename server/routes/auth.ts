@@ -133,13 +133,8 @@ export function register(app: Express) {
 
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     const u = getAuthUser(req);
-    let companyName: string | null = null;
-    if (u.companyId) {
-      const comp = await storage.getCompany(u.companyId);
-      if (comp) companyName = comp.name;
-    }
     res.json({
-      user: userResponse(u, { companyName })
+      user: userResponse(u)
     });
   });
 

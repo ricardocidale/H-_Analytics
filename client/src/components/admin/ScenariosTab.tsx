@@ -9,7 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconPlus } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { useAdminUsers, useAdminCompanies, adminFetch } from "./hooks";
+import { useAdminUsers, adminFetch } from "./hooks";
 import { ScenarioCard, type AdminScenario } from "./scenarios/ScenarioCard";
 import { ScenarioAccessDialog } from "./scenarios/ScenarioAccessDialog";
 import { DeletedScenariosSection, DefaultScenariosSection } from "./ScenariosTabSections";
@@ -21,7 +21,6 @@ export default function ScenariosTab() {
   const [search, setSearch] = useState("");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -35,7 +34,6 @@ export default function ScenariosTab() {
   });
 
   const { data: users } = useAdminUsers();
-  const { data: companies } = useAdminCompanies();
 
   const createMutation = useMutation({
     mutationFn: async (data: { userId: number; name: string; description?: string }) => {
@@ -116,12 +114,6 @@ export default function ScenariosTab() {
     }
   }, [scenarios]);
 
-  const companyNameMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    companies?.forEach(c => { map[c.id] = c.name; });
-    return map;
-  }, [companies]);
-
   const userNameMap = useMemo(() => {
     const map: Record<number, string> = {};
     users?.forEach(u => { map[u.id] = u.name || u.email; });
@@ -136,13 +128,11 @@ export default function ScenariosTab() {
         s.ownerEmail.toLowerCase().includes(search.toLowerCase()) ||
         (s.ownerName && s.ownerName.toLowerCase().includes(search.toLowerCase()));
       const matchesOwner = ownerFilter === "all" || s.userId === Number(ownerFilter);
-      const matchesCompany = companyFilter === "all" || s.accessGrants.some(g => g.targetType === "company" && g.targetId === Number(companyFilter));
-      return matchesSearch && matchesOwner && matchesCompany;
+      return matchesSearch && matchesOwner;
     });
-  }, [scenarios, search, ownerFilter, companyFilter]);
+  }, [scenarios, search, ownerFilter]);
 
   const getGrantLabel = (targetType: string, targetId: number) => {
-    if (targetType === "company") return companyNameMap[targetId] || `Company #${targetId}`;
     if (targetType === "user") return userNameMap[targetId] || `User #${targetId}`;
     return `${targetType} #${targetId}`;
   };
@@ -175,19 +165,6 @@ export default function ScenariosTab() {
               {users?.map(u => (
                 <SelectItem key={u.id} value={String(u.id)}>
                   {u.name || u.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={companyFilter} onValueChange={setCompanyFilter}>
-            <SelectTrigger className="w-[180px]" data-testid="select-company-filter">
-              <SelectValue placeholder="All companies" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All companies</SelectItem>
-              {companies?.map(c => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {c.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -357,7 +334,6 @@ export default function ScenariosTab() {
         open={accessOpen}
         onOpenChange={setAccessOpen}
         scenario={selectedScenario}
-        companies={companies}
         users={users}
       />
     </div>
