@@ -139,15 +139,19 @@ The app uses a comprehensive research methodology. Key architectural principles:
 
 ## E2E Testing Authentication
 
-The app uses Google OAuth for login, which blocks automated browser testing. To authenticate in e2e tests, use the **dev login shortcut**: on the Login page (`/login`), click the spinning 3D logo (the `SpinningLogo3D` component). This triggers `POST /api/auth/dev-login` which logs in as the admin user without OAuth. Include this step at the start of every `runTest()` test plan:
+**CRITICAL RULE — NEVER navigate to /login or click any login button.** The login page has a Google OAuth button; if the testing agent clicks it, the entire session is permanently blocked by an external OAuth redirect.
+
+Instead, authenticate via a direct API call BEFORE any browser navigation:
 
 ```
-1. [Browser] Navigate to /login
-2. [Browser] Click the spinning logo/brand image at the top of the login form
-3. [Verify] Assert redirect to dashboard or authenticated page
+1. [New Context] Create a fresh browser context
+2. [API] POST /api/auth/dev-login with body {} and Content-Type: application/json — this auto-logs in as admin and sets a session cookie
+3. [Browser] Navigate directly to the target page (e.g., /dashboard, /admin?tab=brand)
 ```
 
-Do NOT pass `authConfig` credentials — they trigger the OAuth flow which is blocked.
+- Always use `[API]` step first, never `[Browser]` to /login
+- Do NOT pass `authConfig` credentials — they trigger the OAuth flow which is blocked
+- Do NOT click any Google sign-in button, spinning logo, or any element on the login page
 
 ## Quick Commands
 
