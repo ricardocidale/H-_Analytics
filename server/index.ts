@@ -177,6 +177,9 @@ app.use((req, res, next) => {
     serverLog("Pinecone: not configured (PINECONE_API_KEY not set)", "startup", "warn");
   }
 
+  const { initStorageProvider } = await import("./providers/storage");
+  await initStorageProvider();
+
   registerImageRoutes(app);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);

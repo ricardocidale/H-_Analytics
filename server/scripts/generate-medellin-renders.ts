@@ -26,7 +26,7 @@ import { db } from "../db";
 import { properties, propertyPhotos } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { replicateService } from "../integrations/replicate";
-import { getStorageProvider } from "../providers/storage";
+import { getStorageProviderAsync } from "../providers/storage";
 import { storage } from "../storage";
 import { logger } from "../logger";
 import { randomUUID } from "crypto";
@@ -35,7 +35,7 @@ const PROPERTY_NAME = "Medellin Duplex";
 const BASE_URL = process.env.BASE_URL ?? "https://partner-portal-landb.replit.app";
 
 async function uploadBuffer(buffer: Buffer): Promise<string> {
-  const storageProvider = getStorageProvider();
+  const storageProvider = await getStorageProviderAsync();
   return storageProvider.uploadBuffer(`renders/${randomUUID()}`, buffer, "image/png");
 }
 

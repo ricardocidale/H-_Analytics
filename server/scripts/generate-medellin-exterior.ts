@@ -13,7 +13,7 @@ import { db } from "../db";
 import { properties, propertyPhotos } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { replicateService } from "../integrations/replicate";
-import { getStorageProvider } from "../providers/storage";
+import { getStorageProviderAsync } from "../providers/storage";
 import { storage } from "../storage";
 import { logger } from "../logger";
 import { randomUUID } from "crypto";
@@ -64,7 +64,7 @@ async function run() {
 
   logger.info(`Generated ${buffer.length} bytes, uploading...`, "exterior-script");
 
-  const storageProvider = getStorageProvider();
+  const storageProvider = await getStorageProviderAsync();
   const objectPath = await storageProvider.uploadBuffer(`renders/${randomUUID()}`, buffer, "image/png");
 
   const nextSort = existing.length;

@@ -49,7 +49,21 @@ export class ReplitStorageProvider implements StorageProvider {
 
   async downloadToResponse(key: string, res: Response): Promise<void> {
     const file = await this.service.getObjectEntityFile(key);
-    await this.service.downloadObject(file, res);
+    const [metadata] = await file.getMetadata();
+    const contentType = metadata.contentType || "application/octet-stream";
+
+    const isPrivate = key.includes(".private") || key.includes("private/");
+    const cacheControl = isPrivate
+      ? "private, no-store"
+      : "public, max-age=3600";
+
+    res.set({
+      "Content-Type": contentType,
+      "Cache-Control": cacheControl,
+    });
+
+    const stream = file.createReadStream();
+    stream.pipe(res);
   }
 
   // ----------------------------------------------------------------- exists
