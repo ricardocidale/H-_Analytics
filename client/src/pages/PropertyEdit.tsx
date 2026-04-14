@@ -30,6 +30,7 @@ import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch
 import { useMarketRates } from "@/lib/api/market-rates";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconWand2, IconEye, IconSparkles } from "@/components/icons";
@@ -79,6 +80,9 @@ export default function PropertyEdit() {
   const [feeDraft, setFeeDraft] = useState<FeeCategoryResponse[] | null>(null);
   const { markDirty: markGlobalDirty, clearDirty: clearGlobalDirty } = useScenarioDirtyState();
   const [showApplyDialog, setShowApplyDialog] = useState(false);
+  const [showIntelligencePrompt, setShowIntelligencePrompt] = useState(false);
+  const [intelligenceClicked, setIntelligenceClicked] = useState(false);
+  const intelligencePromptShown = useRef(false);
   const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
   const wasGeneratingRef = useRef(false);
   const { data: marketRates } = useMarketRates();
@@ -92,27 +96,6 @@ export default function PropertyEdit() {
   const researchUpdatedAt = research?.updatedAt ?? null;
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
 
-  const autoRefreshFired = useRef(false);
-  const { data: freshnessMeta } = useQuery<{ avgDurationMs: number | null }>({
-    queryKey: ["/api/research/avg-duration"],
-    enabled: !autoRefreshFired.current,
-  });
-  useEffect(() => {
-    if (autoRefreshFired.current || isDirty || isGenerating) return;
-    if (!property) return;
-    const estimatedMs = freshnessMeta?.avgDurationMs ?? null;
-    if (estimatedMs === null || estimatedMs > 30_000) return;
-    const { status } = computeFreshnessStatus({
-      researchUpdatedAt,
-      lastAssumptionChangeAt: propertyLastAssumptionChangeAt,
-      isGenerating: false,
-    });
-    if (status === "stale" || status === "very_stale" || status === "missing") {
-      autoRefreshFired.current = true;
-      generateResearch();
-    }
-  }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isDirty, isGenerating, freshnessMeta]);
-
   useEffect(() => {
     if (wasGeneratingRef.current && !isGenerating && research?.content) {
       setShowApplyDialog(true);
@@ -125,6 +108,31 @@ export default function PropertyEdit() {
       setFeeDraft([...feeCategories]);
     }
   }, [feeCategories]);
+
+  useEffect(() => {
+    if (intelligencePromptShown.current || !property || isGenerating) return;
+    const hasBasicInfo = !!(property.name && property.location && property.roomCount && property.startAdr);
+    if (!hasBasicInfo) return;
+    const { status } = computeFreshnessStatus({
+      researchUpdatedAt,
+      lastAssumptionChangeAt: propertyLastAssumptionChangeAt,
+      isGenerating: false,
+    });
+    if (status === "missing" || status === "stale" || status === "very_stale") {
+      intelligencePromptShown.current = true;
+      setShowIntelligencePrompt(true);
+    }
+  }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isGenerating]);
+
+  const handleIntelligenceNow = () => {
+    setShowIntelligencePrompt(false);
+    setIntelligenceClicked(true);
+    generateResearch();
+  };
+
+  const handleIntelligenceLater = () => {
+    setShowIntelligencePrompt(false);
+  };
 
   // Build the merged research values used by assumption input fields.
   // Three layers are combined (lowest priority first):
@@ -470,8 +478,12 @@ export default function PropertyEdit() {
                 <TooltipTrigger asChild>
                   <Button
                     variant="default"
-                    onClick={generateResearch}
+                    onClick={() => { setIntelligenceClicked(true); generateResearch(); }}
                     disabled={isGenerating}
+                    className={!intelligenceClicked && !isGenerating && (() => {
+                      const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
+                      return status !== "current";
+                    })() ? "animate-intelligence-pulse" : ""}
                     data-testid="button-regenerate-intelligence"
                   >
                     <span className="relative">
@@ -601,6 +613,34 @@ export default function PropertyEdit() {
           </SaveButton>
         </div>
       </div>
+
+      <Dialog open={showIntelligencePrompt} onOpenChange={setShowIntelligencePrompt}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IconSparkles className="w-5 h-5 text-primary" />
+              Update Market Intelligence?
+            </DialogTitle>
+            <DialogDescription>
+              {(() => {
+                const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
+                if (status === "missing") return "This property has never had its market intelligence generated. Running it now will provide AI-recommended ranges for all your assumptions based on current market data.";
+                if (status === "very_stale") return "Market intelligence for this property is significantly outdated. Regenerating will update all AI-recommended ranges with the latest market data.";
+                return "Assumptions have changed since the last intelligence run. Regenerating will align AI-recommended ranges with your current inputs.";
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button variant="outline" onClick={handleIntelligenceLater} data-testid="button-intelligence-later">
+              Do It Later
+            </Button>
+            <Button onClick={handleIntelligenceNow} data-testid="button-intelligence-now">
+              <IconSparkles className="w-4 h-4 mr-1" />
+              Update Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ApplyResearchDialog
         open={showApplyDialog}

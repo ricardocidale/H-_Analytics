@@ -746,6 +746,18 @@
   box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1);
 }
 
+@keyframes intelligence-pulse {
+  0%, 100% {
+    box-shadow: 0 0 4px 0 hsl(var(--primary) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px hsl(var(--primary) / 0.6), 0 0 32px 8px hsl(var(--primary) / 0.2);
+  }
+}
+.animate-intelligence-pulse {
+  animation: intelligence-pulse 2s ease-in-out infinite;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
