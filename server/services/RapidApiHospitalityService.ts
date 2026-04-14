@@ -271,7 +271,7 @@ export class RapidApiHospitalityService extends BaseIntegrationService {
 
   // ─── Shared helpers ───────────────────────────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- external API responses are untyped
+   
   private async get(url: string, label: string, slot: RapidApiSlot): Promise<any> {
     try {
       const host = new URL(url).hostname;

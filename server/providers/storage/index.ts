@@ -17,13 +17,13 @@ export function getStorageProvider(): StorageProvider {
     const provider = process.env.STORAGE_PROVIDER || "replit";
     switch (provider) {
       case "replit": {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+         
         const { ReplitStorageProvider } = require("./replit-storage");
         _instance = new ReplitStorageProvider();
         break;
       }
       case "s3": {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+         
         const { S3StorageProvider } = require("./s3-storage");
         _instance = new S3StorageProvider();
         break;

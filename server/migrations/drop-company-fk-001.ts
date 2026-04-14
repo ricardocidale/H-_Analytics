@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { logger } from "../logger";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export async function run(db: NodePgDatabase<any>) {
   const TAG = "[migration] drop-company-fk-001";
 
