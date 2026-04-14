@@ -13,12 +13,10 @@ import crypto from "crypto";
 
 const roleSchema = z.enum(VALID_USER_ROLES);
 
-async function guardSuperAdmin(targetId: number, req: Request, res: Response): Promise<boolean> {
-  const caller = getAuthUser(req);
-  if (caller.role === UserRole.SUPER_ADMIN) return false;
+async function guardSuperAdmin(targetId: number, _req: Request, res: Response): Promise<boolean> {
   const target = await storage.getUserById(targetId);
   if (target && target.role === UserRole.SUPER_ADMIN) {
-    res.status(403).json({ error: "Only a super admin can modify another super admin" });
+    res.status(403).json({ error: "Super admin accounts cannot be modified" });
     return true;
   }
   return false;
@@ -227,39 +225,6 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
-  app.post("/api/admin/reset-all-passwords", requireAdmin, async (req, res) => {
-    try {
-      const parsed = z.object({
-        password: z.string().min(6),
-        confirm: z.string(),
-      }).safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      const { password, confirm } = parsed.data;
-      if (confirm.trim() !== "RESET ALL PASSWORDS") {
-        return res.status(400).json({ error: "Confirmation phrase required" });
-      }
-      const pwValidation = validatePassword(password);
-      if (!pwValidation.valid) {
-        return res.status(400).json({ error: pwValidation.message });
-      }
-      const allUsers = await storage.getAllUsers();
-      const newHash = await hashPassword(password);
-      const caller = req.user as { role?: string };
-      const isSuperAdmin = caller.role === UserRole.SUPER_ADMIN;
-      let count = 0;
-      for (const u of allUsers) {
-        if (!isSuperAdmin && u.role === UserRole.SUPER_ADMIN) continue;
-        await storage.updateUserPassword(u.id, newHash);
-        count++;
-      }
-      logActivity(req, "reset-all-passwords", "user", null, null, { usersAffected: count });
-      res.json({ success: true, message: `Reset passwords for ${count} users` });
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to reset passwords", error);
-    }
-  });
 
   const invitationSchema = z.object({
     emails: z.array(z.string().email()).min(1).max(50),

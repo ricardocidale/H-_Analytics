@@ -173,6 +173,7 @@ export default function UserCardGrid({
                     <Switch
                       checked={user.canManageScenarios ?? true}
                       onCheckedChange={(checked) => onToggleScenarios?.(user.id, checked)}
+                      disabled={user.role === UserRole.SUPER_ADMIN}
                       data-testid={`switch-scenarios-${user.id}`}
                       className="scale-75"
                     />
