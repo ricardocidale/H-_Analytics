@@ -102,11 +102,10 @@ function buildIncomeStatement(yearly: YearlyPropertyFinancials[], years: string[
     row("Income Tax", yearlyValues(yearly, "incomeTax"), { indent: 1 }),
     row("Net Income", yearlyValues(yearly, "netIncome"), { isBold: true }),
 
-    // Phase 3: Deferred fees (fee subordination)
-    ...(yearly.some(y => (y as any).deferredFees > 0) ? [
+    ...(yearly.some(y => (y as Record<string, number>).deferredFees > 0) ? [
       row("Fee Subordination", [], { isHeader: true }),
-      row("Deferred Fees (this period)", yearly.map(y => (y as any).deferredFees ?? 0), { indent: 1 }),
-      row("Cumulative Deferred Fees", yearly.map(y => (y as any).cumulativeDeferredFees ?? 0), { indent: 1 }),
+      row("Deferred Fees (this period)", yearly.map(y => (y as Record<string, number>).deferredFees ?? 0), { indent: 1 }),
+      row("Cumulative Deferred Fees", yearly.map(y => (y as Record<string, number>).cumulativeDeferredFees ?? 0), { indent: 1 }),
     ] : []),
   ];
 
@@ -470,28 +469,28 @@ export async function buildPropertyExportData(
   incomeStatement.title = `${property.name} — Income Statement`;
   cashFlowStatement.title = `${property.name} — Cash Flow Statement`;
 
-  // Property profile section with Phase 3 descriptors
+  const p = rawProperty as unknown as Record<string, unknown>;
   const profileRows: ExportRow[] = [
     row("Property Profile", [], { isHeader: true }),
     row("Name", [property.name ?? ""], { indent: 1 }),
-    row("Business Model", [(property as any).businessModel ?? "hotel"], { indent: 1 }),
-    ...((property as any).pricingModel === "per_property" ? [
-      row("Pricing", [`Per-property at $${(property as any).nightlyPropertyRate ?? 0}/night`], { indent: 1 }),
-      row("Max Guests", [String((property as any).maxGuests ?? "N/A")], { indent: 1 }),
+    row("Business Model", [String(p.businessModel ?? "hotel")], { indent: 1 }),
+    ...(p.pricingModel === "per_property" ? [
+      row("Pricing", [`Per-property at $${p.nightlyPropertyRate ?? 0}/night`], { indent: 1 }),
+      row("Max Guests", [String(p.maxGuests ?? "N/A")], { indent: 1 }),
     ] : []),
-    ...((property as any).qualityTier ? [row("Quality Tier", [(property as any).qualityTier], { indent: 1 })] : []),
-    ...((property as any).serviceLevel ? [row("Service Level", [(property as any).serviceLevel], { indent: 1 })] : []),
-    ...((property as any).locationType ? [row("Location Type", [(property as any).locationType], { indent: 1 })] : []),
-    ...((property as any).marketTier ? [row("Market Tier", [(property as any).marketTier], { indent: 1 })] : []),
+    ...(p.qualityTier ? [row("Quality Tier", [String(p.qualityTier)], { indent: 1 })] : []),
+    ...(p.serviceLevel ? [row("Service Level", [String(p.serviceLevel)], { indent: 1 })] : []),
+    ...(p.locationType ? [row("Location Type", [String(p.locationType)], { indent: 1 })] : []),
+    ...(p.marketTier ? [row("Market Tier", [String(p.marketTier)], { indent: 1 })] : []),
     row("Rooms", [String(property.roomCount)], { indent: 1 }),
-    ...((property as any).fbVenues ? [row("F&B Venues", [String((property as any).fbVenues)], { indent: 1 })] : []),
-    ...((property as any).eventSpaceSqft ? [row("Event Space", [`${(property as any).eventSpaceSqft.toLocaleString()} sq ft`], { indent: 1 })] : []),
-    ...((property as any).totalPropertyAcreage ? [row("Acreage", [String((property as any).totalPropertyAcreage)], { indent: 1 })] : []),
-    ...((property as any).ownerPriorityReturn && (property as any).ownerPriorityReturn > 0 ? [
-      row("Owner Priority Return", [`${((property as any).ownerPriorityReturn * 100).toFixed(0)}%`], { indent: 1 }),
+    ...(p.fbVenues ? [row("F&B Venues", [String(p.fbVenues)], { indent: 1 })] : []),
+    ...(p.eventSpaceSqft ? [row("Event Space", [`${Number(p.eventSpaceSqft).toLocaleString()} sq ft`], { indent: 1 })] : []),
+    ...(p.totalPropertyAcreage ? [row("Acreage", [String(p.totalPropertyAcreage)], { indent: 1 })] : []),
+    ...(p.ownerPriorityReturn && Number(p.ownerPriorityReturn) > 0 ? [
+      row("Owner Priority Return", [`${(Number(p.ownerPriorityReturn) * 100).toFixed(0)}%`], { indent: 1 }),
     ] : []),
-    ...((property as any).feeSubordination && (property as any).feeSubordination !== "none" ? [
-      row("Fee Subordination", [(property as any).feeSubordination], { indent: 1 }),
+    ...(p.feeSubordination && p.feeSubordination !== "none" ? [
+      row("Fee Subordination", [String(p.feeSubordination)], { indent: 1 }),
     ] : []),
   ];
   const profileSection: StatementSection = { title: `${property.name} — Property Profile`, years: ["Value"], rows: profileRows };

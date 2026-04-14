@@ -212,10 +212,7 @@ router.get(
 
 // ─── POST /api/executive-summary/property/:propertyId/regenerate ──────────────
 
-router.post(
-  "/api/executive-summary/property/:propertyId/regenerate",
-  requireAuth,
-  async (req, res) => {
+router.post("/api/executive-summary/property/:propertyId/regenerate", requireAuth, async (req, res) => {
     const userId = getAuthUser(req).id;
 
     // Rate limit: 3 req/min (shared with GET)

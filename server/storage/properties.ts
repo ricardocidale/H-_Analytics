@@ -7,18 +7,19 @@ import { logger } from "../logger";
 
 async function _indexPropertyAsync(property: Property): Promise<void> {
   try {
+    const rec = property as unknown as Record<string, unknown>;
     await indexPropertyProfile({
       propertyId: property.id,
       name: property.name ?? "Unnamed Property",
       location: [property.city, property.stateProvince, property.country].filter(Boolean).join(", "),
-      propertyType: (property as any).propertyType ?? (property as any).property_type ?? "hotel",
-      roomCount: (property as any).roomCount ?? (property as any).room_count ?? null,
-      starRating: (property as any).starRating ?? (property as any).star_rating ?? null,
-      status: (property as any).status ?? "active",
-      purchasePrice: (property as any).purchasePrice ?? (property as any).purchase_price ?? null,
-      market: (property as any).market ?? null,
-      description: (property as any).description ?? null,
-      streetAddress: (property as any).streetAddress ?? (property as any).street_address ?? null,
+      propertyType: String(rec.propertyType ?? rec.property_type ?? "hotel"),
+      roomCount: (rec.roomCount ?? rec.room_count ?? null) as number | null,
+      starRating: (rec.starRating ?? rec.star_rating ?? null) as number | null,
+      status: String(rec.status ?? "active"),
+      purchasePrice: (rec.purchasePrice ?? rec.purchase_price ?? null) as number | null,
+      market: (rec.market ?? null) as string | null,
+      description: (rec.description ?? null) as string | null,
+      streetAddress: (rec.streetAddress ?? rec.street_address ?? null) as string | null,
     });
   } catch (err: unknown) {
     logger.warn(`Async property index failed: ${err instanceof Error ? err.message : err}`, "pinecone");
@@ -141,10 +142,10 @@ export class PropertyStorage {
         AND archived_at IS NULL
       ORDER BY country, state_province, city
     `);
-    return (rows.rows as any[]).map((r) => ({
-      country: r.country as string,
-      stateProvince: (r.state_province as string) || "",
-      city: (r.city as string) || "",
+    return (rows.rows as Array<Record<string, string>>).map((r) => ({
+      country: r.country,
+      stateProvince: r.state_province || "",
+      city: r.city || "",
     }));
   }
 }

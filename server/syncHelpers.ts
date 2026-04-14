@@ -115,9 +115,9 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
     await storage.upsertGlobalAssumptions(SEED_GLOBAL_ASSUMPTIONS);
     results.globalAssumptions.created++;
   } else {
-    const updates = fillMissingFields(existingAssumptions as any, SEED_GLOBAL_ASSUMPTIONS);
+    const updates = fillMissingFields(existingAssumptions as Record<string, unknown>, SEED_GLOBAL_ASSUMPTIONS);
     if (Object.keys(updates).length > 0) {
-      await storage.upsertGlobalAssumptions({ ...existingAssumptions, ...updates } as any);
+      await storage.upsertGlobalAssumptions({ ...existingAssumptions, ...updates } as typeof existingAssumptions);
       results.globalAssumptions.filled++;
     } else {
       results.globalAssumptions.skipped++;
@@ -130,7 +130,7 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
   for (const propData of SEED_PROPERTIES) {
     const existing = existingByName.get(propData.name);
     if (!existing) {
-      let researchValues: any = null;
+      let researchValues: Record<string, unknown> | null = null;
       if (generateResearchValues) {
         researchValues = generateResearchValues({
           location: propData.location,
@@ -140,12 +140,12 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
           market: propData.market,
         });
       }
-      await storage.createProperty({ ...propData, researchValues, userId: null } as any);
+      await storage.createProperty({ ...propData, researchValues, userId: null } as InsertProperty);
       results.properties.created++;
     } else {
-      const updates = fillMissingFields(existing as any, propData, ["id", "createdAt", "updatedAt", "userId", "name"]);
+      const updates = fillMissingFields(existing as Record<string, unknown>, propData, ["id", "createdAt", "updatedAt", "userId", "name"]);
       if (!existing.researchValues && generateResearchValues) {
-        (updates as any).researchValues = generateResearchValues({
+        (updates as Record<string, unknown>).researchValues = generateResearchValues({
           location: existing.location,
           streetAddress: existing.streetAddress,
           city: existing.city,
@@ -154,7 +154,7 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
         });
       }
       if (Object.keys(updates).length > 0) {
-        await storage.updateProperty(existing.id, updates as any);
+        await storage.updateProperty(existing.id, updates as UpdateProperty);
         results.properties.filled++;
       } else {
         results.properties.skipped++;
@@ -421,7 +421,7 @@ export async function runSmartSync(
   const existingGA = await storage.getGlobalAssumptions();
   if (!existingGA) {
     if (!dryRun) {
-      await storage.upsertGlobalAssumptions(manifest.entities.globalAssumptions.fields as any);
+      await storage.upsertGlobalAssumptions(manifest.entities.globalAssumptions.fields as typeof existingGA);
       await writeShadowDefaults("globalAssumptions", "singleton", manifest.entities.globalAssumptions.fields);
     }
     results.globalAssumptions.created = true;
@@ -433,7 +433,7 @@ export async function runSmartSync(
     );
     results.globalAssumptions.fields = fieldResults.filter(f => f.action !== "unchanged");
     if (!dryRun && Object.keys(updates).length > 0) {
-      await storage.upsertGlobalAssumptions({ ...existingGA, ...updates } as any);
+      await storage.upsertGlobalAssumptions({ ...existingGA, ...updates } as typeof existingGA);
     }
     if (!dryRun) {
       await writeShadowDefaults("globalAssumptions", "singleton", manifest.entities.globalAssumptions.fields);
@@ -448,7 +448,7 @@ export async function runSmartSync(
     const existing = propByName.get(propManifest.key);
     if (!existing) {
       if (!dryRun) {
-        await storage.createProperty({ ...propManifest.fields, userId: null } as any);
+        await storage.createProperty({ ...propManifest.fields, userId: null } as InsertProperty);
         await writeShadowDefaults("property", propManifest.key, propManifest.fields);
       }
       results.properties.push({ key: propManifest.key, created: true, fields: [] });
@@ -464,7 +464,7 @@ export async function runSmartSync(
         fields: fieldResults.filter(f => f.action !== "unchanged"),
       });
       if (!dryRun && Object.keys(updates).length > 0) {
-        await storage.updateProperty(existing.id, updates as any);
+        await storage.updateProperty(existing.id, updates as UpdateProperty);
       }
       if (!dryRun) {
         await writeShadowDefaults("property", propManifest.key, propManifest.fields);
