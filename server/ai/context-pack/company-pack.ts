@@ -1,5 +1,6 @@
 import type { Property, GlobalAssumptions } from "@shared/schema";
 import type { CompanyContextPack } from "./types";
+import { buildFullIcpNarrative } from "../icp-intelligence";
 
 function pct(v: number | null | undefined): string {
   if (v == null) return "not set";
@@ -105,8 +106,17 @@ function buildStaffingNarrative(ga: GlobalAssumptions): string {
 }
 
 function buildIcpNarrative(ga: GlobalAssumptions): string {
-  const icp = ga.icpConfig;
-  if (!icp || typeof icp !== "object") return "No ICP configuration defined";
+  const icp = (ga as any).icpConfig;
+  const descriptive = (ga as any).icpDescriptive;
+  const companyName = ga.companyName || "Management Company";
+
+  // Use the full ICP narrative builder if there's a generated ICP
+  if (icp && typeof icp === "object" && icp._generated) {
+    return buildFullIcpNarrative(icp, descriptive || {}, companyName);
+  }
+
+  // Legacy fallback: basic fields only
+  if (!icp || typeof icp !== "object") return "No ICP configuration defined. Run 'Generate ICP' from the ICP Definition page to auto-build from your portfolio.";
 
   const asNum = (v: unknown): number | null => typeof v === "number" ? v : null;
 
@@ -124,7 +134,7 @@ function buildIcpNarrative(ga: GlobalAssumptions): string {
   if (ga.assetDescription) parts.push(`description: "${ga.assetDescription}"`);
   if (ga.propertyLabel) parts.push(`property label: ${ga.propertyLabel}`);
 
-  return parts.length > 0 ? `ICP targeting: ${parts.join("; ")}` : "ICP configured but no specific criteria set";
+  return parts.length > 0 ? `ICP targeting: ${parts.join("; ")}` : "ICP configured but no specific criteria set. Run 'Generate ICP' from the ICP Definition page.";
 }
 
 function buildFinancialScaleNarrative(ga: GlobalAssumptions, properties: Property[]): string {

@@ -24,7 +24,7 @@
  * On save, the entire formData object is POSTed to the global-assumptions
  * endpoint, and all financial queries are invalidated for full recalculation.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
@@ -64,6 +64,59 @@ import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligenc
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
+/** Structured guidance record from /api/guidance/enriched/company/:id */
+interface GuidanceRecord {
+  assumptionKey: string;
+  valueLow: number | null;
+  valueMid: number | null;
+  valueHigh: number | null;
+  confidence: "high" | "medium" | "low" | null;
+  sourceName: string | null;
+  sourceDate: string | null;
+  reasoning: string | null;
+  confidenceScore?: number;
+}
+
+/** Dollar-valued fields where low/mid/high are in absolute dollars (not percentages) */
+const DOLLAR_FIELDS = new Set([
+  "staffSalary", "partnerComp", "officeLease", "professionalServices",
+  "techInfra", "businessInsurance", "travelCost", "itLicense",
+]);
+
+/** Convert a guidance record to the { display, mid } format badges expect */
+function guidanceToDisplayValue(rec: GuidanceRecord): { display: string; mid: number; sourceName?: string; sourceDate?: string; confidence?: string } | null {
+  if (rec.valueMid == null) return null;
+  const isDollar = DOLLAR_FIELDS.has(rec.assumptionKey);
+
+  let display: string;
+  if (rec.valueLow != null && rec.valueHigh != null) {
+    if (isDollar) {
+      display = `$${formatDollar(rec.valueLow)}–$${formatDollar(rec.valueHigh)}`;
+    } else {
+      display = `${fmtNum(rec.valueLow)}%–${fmtNum(rec.valueHigh)}%`;
+    }
+  } else {
+    display = isDollar ? `$${formatDollar(rec.valueMid)}` : `${fmtNum(rec.valueMid)}%`;
+  }
+
+  return {
+    display,
+    mid: rec.valueMid,
+    sourceName: rec.sourceName ?? undefined,
+    sourceDate: rec.sourceDate ?? undefined,
+    confidence: rec.confidence ?? undefined,
+  };
+}
+
+function formatDollar(v: number): string {
+  if (v >= 1000) return `${Math.round(v / 1000)}K`;
+  return String(Math.round(v));
+}
+
+function fmtNum(v: number): string {
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
 export default function CompanyAssumptions() {
   const [, setLocation] = useLocation();
   const { data: global, isLoading, isError, refetch } = useGlobalAssumptions();
@@ -82,6 +135,19 @@ export default function CompanyAssumptions() {
   const { markDirty: markGlobalDirty, clearDirty: clearGlobalDirty } = useScenarioDirtyState();
   const { data: research } = useMarketResearch("company");
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
+  const companyId = user?.companyId ?? 1;
+
+  // Fetch structured guidance records extracted by the server after research runs
+  const { data: guidanceRecords = [] } = useQuery<GuidanceRecord[]>({
+    queryKey: ["guidance", "company", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/guidance/enriched/company/${companyId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!companyId,
+    refetchOnWindowFocus: false,
+  });
 
   const { autoRefresh, setAutoRefresh } = useAutoRefreshIntelligence({
     entityKey: "company",
@@ -93,7 +159,9 @@ export default function CompanyAssumptions() {
     generateResearch,
   });
 
-  const researchValues = (() => {
+  // Three-tier cascade: structured guidance → raw JSON parsing → industry defaults
+  const researchValues = useMemo(() => {
+    // Tier 3: Industry defaults (always available, lowest priority)
     const COMPANY_DEFAULTS: Record<string, { display: string; mid: number }> = {
       staffSalary: { display: "$65K–$90K", mid: 75000 },
       partnerComp: { display: "$120K–$250K", mid: 180000 },
@@ -123,69 +191,74 @@ export default function CompanyAssumptions() {
       utilitiesVariableSplit: { display: "50%–70%", mid: 60 },
     };
 
-    if (!research?.content) return COMPANY_DEFAULTS;
-    const c = research.content;
-    const parsePctRange = (str: string | undefined): { display: string; mid: number } | null => {
-      if (!str) return null;
-      const nums = str.replace(/[^0-9.,\-–]/g, ' ').split(/[\s–\-]+/).map(s => parseFloat(s.replace(/,/g, ''))).filter(n => !isNaN(n));
-      if (nums.length >= 2) return { display: str, mid: (nums[0] + nums[1]) / 2 };
-      if (nums.length === 1) return { display: str, mid: nums[0] };
-      return null;
-    };
-    const parseDollarRange = (str: string | undefined): { display: string; mid: number } | null => {
-      if (!str) return null;
-      const nums = str.replace(/[^0-9.,\-–kK]/g, ' ').replace(/[kK]/g, '000').split(/[\s–\-]+/).map(s => parseFloat(s.replace(/,/g, ''))).filter(n => !isNaN(n));
-      if (nums.length >= 2) return { display: str, mid: Math.round((nums[0] + nums[1]) / 2) };
-      if (nums.length === 1) return { display: str, mid: nums[0] };
-      return null;
-    };
-
-    const baseManagementFee = parsePctRange(c.managementFees?.baseFee?.recommended || c.managementFees?.baseFee?.boutiqueRange);
-    const incentiveManagementFee = parsePctRange(c.managementFees?.incentiveFee?.recommended || c.managementFees?.incentiveFee?.industryRange);
-
-    const svcCategories = c.managementFees?.serviceCategories || c.serviceCategories;
-    const findSvcFee = (keyword: string) => {
-      if (!svcCategories || !Array.isArray(svcCategories)) return null;
-      const match = (svcCategories as Array<{ name?: string; category?: string; rate?: string; range?: string }>).find(
-        s => (s.name || s.category || "").toLowerCase().includes(keyword.toLowerCase())
-      );
-      return match ? parsePctRange(match.rate || match.range) : null;
-    };
-    const svcFeeMarketing = findSvcFee("marketing");
-    const svcFeeTechRes = findSvcFee("tech") || findSvcFee("reservations");
-    const svcFeeAccounting = findSvcFee("accounting") || findSvcFee("finance");
-    const svcFeeRevMgmt = findSvcFee("revenue");
-    const svcFeeGeneralMgmt = findSvcFee("general") || findSvcFee("management");
-    const svcFeeProcurement = findSvcFee("procurement") || findSvcFee("purchasing");
-
-    const opExRatios = c.industryBenchmarks?.operatingExpenseRatios as Array<{ category: string; range: string }> | undefined;
-    const findRatio = (keyword: string) => {
-      if (!opExRatios) return null;
-      const match = opExRatios.find(r => r.category?.toLowerCase().includes(keyword.toLowerCase()));
-      return match ? parsePctRange(match.range) : null;
-    };
-
-    const eventExpense = findRatio("event") || findRatio("banquet") || findRatio("catering");
-    const marketingRate = findRatio("marketing") || findRatio("sales & marketing") || findRatio("franchise");
-
-    const compBenchmarks = c.compensationBenchmarks;
-    const staffSalary = compBenchmarks?.manager ? parseDollarRange(compBenchmarks.manager) : null;
-    const partnerComp = compBenchmarks?.partner ? parseDollarRange(compBenchmarks.partner) : null;
-
-    const costOfEquity = parsePctRange(c.costOfEquity?.recommendedRate);
-
     const merged = { ...COMPANY_DEFAULTS };
-    const aiOverrides: Record<string, { display: string; mid: number } | null> = {
-      baseManagementFee, incentiveManagementFee, eventExpense, marketingRate,
-      staffSalary, partnerComp, costOfEquity,
-      svcFeeMarketing, svcFeeTechRes, svcFeeAccounting, svcFeeRevMgmt,
-      svcFeeGeneralMgmt, svcFeeProcurement,
-    };
-    for (const [key, val] of Object.entries(aiOverrides)) {
-      if (val) merged[key] = val;
+
+    // Tier 2: Raw research JSON parsing (legacy fallback when guidance records not yet extracted)
+    if (research?.content) {
+      const c = research.content;
+      const parsePctRange = (str: string | undefined): { display: string; mid: number } | null => {
+        if (!str) return null;
+        const nums = str.replace(/[^0-9.,\-–]/g, ' ').split(/[\s–\-]+/).map(s => parseFloat(s.replace(/,/g, ''))).filter(n => !isNaN(n));
+        if (nums.length >= 2) return { display: str, mid: (nums[0] + nums[1]) / 2 };
+        if (nums.length === 1) return { display: str, mid: nums[0] };
+        return null;
+      };
+      const parseDollarRange = (str: string | undefined): { display: string; mid: number } | null => {
+        if (!str) return null;
+        const nums = str.replace(/[^0-9.,\-–kK]/g, ' ').replace(/[kK]/g, '000').split(/[\s–\-]+/).map(s => parseFloat(s.replace(/,/g, ''))).filter(n => !isNaN(n));
+        if (nums.length >= 2) return { display: str, mid: Math.round((nums[0] + nums[1]) / 2) };
+        if (nums.length === 1) return { display: str, mid: nums[0] };
+        return null;
+      };
+
+      const baseManagementFee = parsePctRange(c.managementFees?.baseFee?.recommended || c.managementFees?.baseFee?.boutiqueRange);
+      const incentiveManagementFee = parsePctRange(c.managementFees?.incentiveFee?.recommended || c.managementFees?.incentiveFee?.industryRange);
+
+      const svcCategories = c.managementFees?.serviceCategories || c.serviceCategories;
+      const findSvcFee = (keyword: string) => {
+        if (!svcCategories || !Array.isArray(svcCategories)) return null;
+        const match = (svcCategories as Array<{ name?: string; category?: string; rate?: string; range?: string }>).find(
+          s => (s.name || s.category || "").toLowerCase().includes(keyword.toLowerCase())
+        );
+        return match ? parsePctRange(match.rate || match.range) : null;
+      };
+
+      const opExRatios = c.industryBenchmarks?.operatingExpenseRatios as Array<{ category: string; range: string }> | undefined;
+      const findRatio = (keyword: string) => {
+        if (!opExRatios) return null;
+        const match = opExRatios.find(r => r.category?.toLowerCase().includes(keyword.toLowerCase()));
+        return match ? parsePctRange(match.range) : null;
+      };
+
+      const rawOverrides: Record<string, { display: string; mid: number } | null> = {
+        baseManagementFee, incentiveManagementFee,
+        eventExpense: findRatio("event") || findRatio("banquet") || findRatio("catering"),
+        marketingRate: findRatio("marketing") || findRatio("sales & marketing") || findRatio("franchise"),
+        staffSalary: c.compensationBenchmarks?.manager ? parseDollarRange(c.compensationBenchmarks.manager) : null,
+        partnerComp: c.compensationBenchmarks?.partner ? parseDollarRange(c.compensationBenchmarks.partner) : null,
+        costOfEquity: parsePctRange(c.costOfEquity?.recommendedRate),
+        svcFeeMarketing: findSvcFee("marketing"),
+        svcFeeTechRes: findSvcFee("tech") || findSvcFee("reservations"),
+        svcFeeAccounting: findSvcFee("accounting") || findSvcFee("finance"),
+        svcFeeRevMgmt: findSvcFee("revenue"),
+        svcFeeGeneralMgmt: findSvcFee("general") || findSvcFee("management"),
+        svcFeeProcurement: findSvcFee("procurement") || findSvcFee("purchasing"),
+      };
+      for (const [key, val] of Object.entries(rawOverrides)) {
+        if (val) merged[key] = val;
+      }
     }
+
+    // Tier 1: Structured guidance records (highest priority — from server-side extraction)
+    if (guidanceRecords.length > 0) {
+      for (const rec of guidanceRecords) {
+        const val = guidanceToDisplayValue(rec);
+        if (val) merged[rec.assumptionKey] = val;
+      }
+    }
+
     return merged;
-  })();
+  }, [research, guidanceRecords]);
 
   useEffect(() => {
     if (global) {

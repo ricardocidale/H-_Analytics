@@ -37,6 +37,7 @@ import * as regulatoryRoutes from "./routes/regulatory";
 import * as portfolioRiskRoutes from "./routes/portfolio-risk";
 import { riskIntelligenceRoutes } from "./routes/risk-intelligence";
 import * as executiveSummaryRoutes from "./routes/executive-summary";
+import * as icpIntelligenceRoutes from "./routes/icp-intelligence";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -81,6 +82,7 @@ export async function registerRoutes(
   portfolioRiskRoutes.register(app);
   app.use(riskIntelligenceRoutes);
   executiveSummaryRoutes.register(app);
+  icpIntelligenceRoutes.register(app);
 
   return httpServer;
 }
