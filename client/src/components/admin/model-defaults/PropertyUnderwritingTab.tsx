@@ -59,7 +59,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="$150–$500"
         />
         <PctField
-          label="ADR Growth Rate"
+          label="ADR Annual Growth"
           tooltip="Annual rate at which ADR increases year-over-year, typically tracking inflation plus market premiums."
           value={draft.defaultAdrGrowthRate}
           fallback={DEFAULT_ADR_GROWTH_RATE}
@@ -79,7 +79,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="50%–65%"
         />
         <PctField
-          label="Max (Stabilized) Occupancy"
+          label="Stabilized Occupancy"
           tooltip="Target occupancy after ramp-up period. Luxury boutique hotels typically stabilize at 75-85%."
           value={draft.defaultMaxOccupancy}
           fallback={DEFAULT_MAX_OCCUPANCY}
@@ -89,7 +89,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="70%–85%"
         />
         <NumberField
-          label="Occupancy Ramp Months"
+          label="Occupancy Ramp"
           tooltip="Number of months to ramp from starting occupancy to stabilized occupancy. Typically 3-12 months for boutique properties."
           value={draft.defaultOccupancyRampMonths}
           fallback={DEFAULT_OCCUPANCY_RAMP_MONTHS}
@@ -99,7 +99,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="3–12 mo"
         />
         <NumberField
-          label="Default Room Count"
+          label="Room Count"
           tooltip="Number of keys (rooms) for a new property. Boutique hotels are typically 10-100 rooms."
           value={draft.defaultRoomCount}
           fallback={DEFAULT_ROOM_COUNT}
@@ -152,7 +152,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
 
       <Section grid title="USALI Operating Cost Rates" description="Uniform System of Accounts for the Lodging Industry — expense rates as a percentage of total revenue.">
         <PctField
-          label="Rooms Department"
+          label="Housekeeping"
           tooltip="Housekeeping, front desk, guest supplies, linens. USALI Dept 1."
           value={draft.defaultCostRateRooms}
           fallback={DEFAULT_COST_RATE_ROOMS}
@@ -162,7 +162,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="18%–25%"
         />
         <PctField
-          label="Food & Beverage"
+          label="F&B"
           tooltip="F&B cost of goods sold plus labor. USALI Dept 2."
           value={draft.defaultCostRateFb}
           fallback={DEFAULT_COST_RATE_FB}
@@ -172,7 +172,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="5%–12%"
         />
         <PctField
-          label="Administrative & General"
+          label="Admin & General"
           tooltip="General & Administrative expenses — accounting, HR, legal, office supplies. USALI undistributed."
           value={draft.defaultCostRateAdmin}
           fallback={DEFAULT_COST_RATE_ADMIN}
@@ -182,7 +182,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="7%–10%"
         />
         <PctField
-          label="Sales & Marketing"
+          label="Marketing"
           tooltip="Advertising, OTA commissions, sales team costs, loyalty programs."
           value={draft.defaultCostRateMarketing}
           fallback={DEFAULT_COST_RATE_MARKETING}
@@ -192,7 +192,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="5%–8%"
         />
         <PctField
-          label="Property Operations & Maintenance"
+          label="Property Ops"
           tooltip="Building maintenance, grounds, engineering, repairs. USALI POM."
           value={draft.defaultCostRatePropertyOps}
           fallback={DEFAULT_COST_RATE_PROPERTY_OPS}
@@ -222,7 +222,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="2%–4%"
         />
         <PctField
-          label="Information Technology"
+          label="IT"
           tooltip="PMS, POS, WiFi infrastructure, IT support, cybersecurity."
           value={draft.defaultCostRateIt}
           fallback={DEFAULT_COST_RATE_IT}
@@ -252,7 +252,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="1%–2%"
         />
         <PctField
-          label="Other Operating Expenses"
+          label="Other"
           tooltip="Miscellaneous operating costs not captured in other categories."
           value={draft.defaultCostRateOther}
           fallback={DEFAULT_COST_RATE_OTHER}
@@ -275,7 +275,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="40%–60%"
         />
         <PctField
-          label="Other Expense Rate"
+          label="Other Revenue Expense Rate"
           tooltip="Cost ratio for miscellaneous other revenue streams."
           value={draft.otherExpenseRate}
           fallback={0.3}
@@ -298,7 +298,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
 
       <Section grid title="Acquisition Financing" description="Default loan terms applied when adding a new financed property.">
         <PctField
-          label="Default LTV"
+          label="LTV"
           tooltip="Loan-to-value ratio for acquisition debt."
           value={debt.acqLTV}
           fallback={0.75}
@@ -318,7 +318,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="6%–10%"
         />
         <NumberField
-          label="Term (Years)"
+          label="Loan Term"
           tooltip="Loan amortization period in years."
           value={debt.amortizationYears}
           fallback={25}
@@ -328,7 +328,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="20–30 yrs"
         />
         <PctField
-          label="Closing Cost Rate"
+          label="Closing Costs"
           tooltip="Transaction costs as a percentage of purchase price."
           value={debt.acqClosingCostRate}
           fallback={0.02}
@@ -341,7 +341,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
 
       <Section grid title="Refinance Terms" description="Default terms applied when modeling a property refinance event.">
         <PctField
-          label="Refi LTV"
+          label="Refinance LTV"
           tooltip="Loan-to-value ratio for refinanced debt."
           value={debt.refiLTV}
           fallback={0.75}
@@ -351,7 +351,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="60%–80%"
         />
         <PctField
-          label="Refi Interest Rate"
+          label="Refinance Interest Rate"
           tooltip="Annual interest rate for refinanced loans."
           value={debt.refiInterestRate}
           fallback={0.09}
@@ -361,7 +361,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="5%–9%"
         />
         <NumberField
-          label="Refi Term (Years)"
+          label="Refinance Term"
           tooltip="Amortization period for refinanced loans."
           value={debt.refiAmortizationYears}
           fallback={25}
@@ -371,7 +371,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="20–30 yrs"
         />
         <PctField
-          label="Refi Closing Cost Rate"
+          label="Refinance Closing Costs"
           tooltip="Transaction costs for refinancing as a percentage of new loan amount."
           value={debt.refiClosingCostRate}
           fallback={0.02}
@@ -411,7 +411,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           </GovernedFieldWrapper>
         </div>
         <PctField
-          label="Default Property Income Tax Rate"
+          label="Property Income Tax Rate"
           tooltip="Income tax rate applied to gain on property sale and operating income. This is NOT the real estate/ad valorem property tax — that is modeled as a USALI operating expense (costRateTaxes)."
           value={draft.defaultPropertyTaxRate}
           fallback={DEFAULT_PROPERTY_TAX_RATE}
@@ -421,7 +421,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="20%–30%"
         />
         <PctField
-          label="Land Value Percentage"
+          label="Land Value (%)"
           tooltip="Portion of total property value attributed to land (non-depreciable). IRS guidelines suggest 15-30% for commercial real estate."
           value={draft.defaultLandValuePercent}
           fallback={DEFAULT_LAND_VALUE_PERCENT}
@@ -431,7 +431,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           researchRange="15%–30%"
         />
         <PctField
-          label="Default Property Inflation Rate"
+          label="Property Inflation Rate"
           tooltip="Annual cost and revenue inflation rate applied at the property level. Drives expense escalation and ADR growth when no property-specific rate is set. Typically tracks CPI (1%–4%)."
           value={draft.inflationRate}
           fallback={DEFAULT_PROPERTY_INFLATION_RATE}

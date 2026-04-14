@@ -107,7 +107,7 @@ export function CompanyTab({ draft, onChange }: { draft: Draft; onChange: (field
             researchRange="21%–35%"
           />
           <PctField
-            label="Cost of Equity (Re)"
+            label="Cost of Equity"
             tooltip="The equity investor's required annual return, used as the Re component in WACC and DCF calculations. This is the hurdle rate — the minimum return needed to justify the investment risk."
             value={draft.costOfEquity}
             fallback={DEFAULT_COST_OF_EQUITY}
@@ -122,7 +122,7 @@ export function CompanyTab({ draft, onChange }: { draft: Draft; onChange: (field
 
         <Section title="Exit Assumptions" description="Default valuation and sale parameters applied at property exit.">
           <PctField
-            label="Default Exit Cap Rate"
+            label="Exit Cap Rate"
             tooltip="Capitalization rate used to value properties at sale. A lower cap rate implies a higher exit price. Applied to projected NOI in the exit year to calculate terminal value."
             value={draft.exitCapRate}
             fallback={DEFAULT_EXIT_CAP_RATE}
@@ -134,7 +134,7 @@ export function CompanyTab({ draft, onChange }: { draft: Draft; onChange: (field
             researchRange="5%–9%"
           />
           <PctField
-            label="Default Sales Commission"
+            label="Sales Commission"
             tooltip="Broker commission as a percentage of gross sale price, applied at property exit. New properties inherit this default but can set their own rate on the assumptions page."
             value={draft.salesCommissionRate}
             fallback={0.05}
