@@ -1,39 +1,134 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useExportSave } from "@/hooks/useExportSave";
 import Layout from "@/components/Layout";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
-import { useGlobalAssumptions, useUpdateAdminConfig, useMarketResearch, useProperties } from "@/lib/api";
+import { useGlobalAssumptions, useUpdateAdminConfig, useProperties } from "@/lib/api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  IconSettings, IconGlobe, IconAlertCircle, IconTarget, IconBuilding, IconUsers, IconMapPin, IconInfo,
+  IconCheck, IconInfo, IconPencil,
 } from "@/components/icons";
-import { Loader2 } from "@/components/icons/themed-icons";
+import { Loader2, ChevronDown } from "@/components/icons/themed-icons";
 import { ExportMenu, pdfAction, pptxAction } from "@/components/ui/export-toolbar";
-import type { ResearchConfig, ResearchEventConfig } from "@shared/schema";
-import { DEFAULT_ANTHROPIC_MODEL } from "@shared/constants";
 import {
   type IcpConfig, type IcpDescriptive,
-  DEFAULT_ICP_CONFIG, DEFAULT_ICP_DESCRIPTIVE, generateIcpEssay,
+  DEFAULT_ICP_CONFIG, DEFAULT_ICP_DESCRIPTIVE,
 } from "@/components/admin/icp-config";
 import { useToast } from "@/hooks/use-toast";
-import { IcpProfileTab } from "./icp/IcpProfileTab";
-import { IcpMarketContextTab } from "./icp/IcpMarketContextTab";
-import { IcpIndustryStandardsTab } from "./icp/IcpIndustryStandardsTab";
-import { IcpDataSourcesTab } from "./icp/IcpDataSourcesTab";
+
+const AMENITY_LABELS: Record<string, string> = {
+  pool: "Pool", spa: "Spa", sauna: "Sauna", steamRoom: "Steam Room", coldPlunge: "Cold Plunge",
+  yogaStudio: "Yoga Studio", gym: "Gym", tennis: "Tennis", pickleball: "Pickleball",
+  hikingTrails: "Hiking Trails", garden: "Garden", vineyard: "Vineyard", casitas: "Casitas",
+  barn: "Barn", glamping: "Glamping", firePit: "Fire Pit", wineCellar: "Wine Cellar",
+  outdoorKitchen: "Outdoor Kitchen", hotTub: "Hot Tub", horseFacilities: "Horse Facilities",
+};
+
+const AMENITY_KEYS = Object.keys(AMENITY_LABELS);
+
+const DESCRIPTIVE_SECTIONS = [
+  { key: "propertyTypes", label: "Property Types" },
+  { key: "fbLevel", label: "F&B Operations" },
+  { key: "locationCharacteristics", label: "Location Characteristics" },
+  { key: "locationDetails", label: "Target Markets" },
+  { key: "conditionNotes", label: "Condition Requirements" },
+  { key: "groundsTopography", label: "Grounds & Topography" },
+  { key: "vendorServices", label: "Vendor Services" },
+  { key: "regulatoryNotes", label: "Regulatory Notes" },
+  { key: "exclusions", label: "Exclusions" },
+];
+
+function formatCurrency(val: number | null | undefined): string {
+  if (val == null) return "—";
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
+  return `$${val.toFixed(0)}`;
+}
+
+function formatNumber(val: number | null | undefined): string {
+  if (val == null) return "—";
+  return val.toLocaleString();
+}
+
+function RangeValue({ min, max, median, prefix = "", suffix = "" }: { min?: number | null; max?: number | null; median?: number | null; prefix?: string; suffix?: string }) {
+  if (min == null && max == null) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span>
+      {prefix}{formatNumber(min)}{suffix}–{prefix}{formatNumber(max)}{suffix}
+      {median != null && <span className="text-muted-foreground text-xs ml-1">(median {prefix}{formatNumber(median)}{suffix})</span>}
+    </span>
+  );
+}
+
+function StatCard({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 text-center" data-testid={`stat-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-lg font-semibold text-foreground">{children}</p>
+    </div>
+  );
+}
+
+function ParamCard({ title, items }: { title: string; items: { label: string; value: React.ReactNode }[] }) {
+  return (
+    <Card className="p-4 space-y-3">
+      <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+        {items.map(item => (
+          <div key={item.label} className="flex justify-between text-sm">
+            <span className="text-muted-foreground">{item.label}</span>
+            <span className="font-medium text-foreground">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function AmenityChips({ icpConfig }: { icpConfig: IcpConfig }) {
+  const priorityColors: Record<string, string> = {
+    must: "bg-green-100 text-green-800 border-green-200",
+    major: "bg-blue-100 text-blue-800 border-blue-200",
+    nice: "bg-gray-100 text-gray-700 border-gray-200",
+  };
+
+  const amenities = AMENITY_KEYS
+    .map(key => ({ key, label: AMENITY_LABELS[key], priority: (icpConfig as any)[key] as string | undefined }))
+    .filter(a => a.priority && a.priority !== "no");
+
+  if (amenities.length === 0) return <p className="text-sm text-muted-foreground">No amenity priorities set.</p>;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {amenities.map(a => (
+        <span key={a.key} className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${priorityColors[a.priority!] || priorityColors.nice}`}>
+          {a.label}
+          <span className="ml-1 opacity-60">({a.priority})</span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function CompanyIcpDefinition() {
+  const queryClient = useQueryClient();
   const { data: global, isLoading } = useGlobalAssumptions();
   const updateMutation = useUpdateAdminConfig();
-  const { data: companyResearch } = useMarketResearch("company");
   const { data: properties = [] } = useProperties();
-  const [activeTab, setActiveTab] = useState("icp-profile");
-  const [defEditing, setDefEditing] = useState(false);
-  const [defDraft, setDefDraft] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { requestSave, SaveDialog } = useExportSave();
+
+  const [generating, setGenerating] = useState<"quick" | "ai" | null>(null);
+  const [defEditing, setDefEditing] = useState(false);
+  const [defDraft, setDefDraft] = useState("");
+  const [paramsOpen, setParamsOpen] = useState(false);
 
   const icpConfig: IcpConfig = useMemo(() => ({
     ...DEFAULT_ICP_CONFIG,
@@ -45,105 +140,70 @@ export default function CompanyIcpDefinition() {
     ...((global as any)?.icpDescriptive && typeof (global as any).icpDescriptive === "object" ? (global as any).icpDescriptive : {}),
   }), [global]);
 
-  const propertyLabel = global?.propertyLabel ?? "Boutique Hotel";
-  const savedDefinition = (global as any)?.icpConfig?._definition as string | undefined;
+  const companyName = global?.companyName ?? "Hospitality Business";
+  const meta = (icpConfig as any);
+  const isGenerated = !!meta._generated;
+  const generatedAt = meta._generatedAt ? new Date(meta._generatedAt) : null;
+  const source: string = meta._source ?? "";
+  const definition: string = meta._definition ?? "";
+  const portfolio = meta._portfolioAnalysis ?? {};
 
-  const essay = useMemo(
-    () => generateIcpEssay(icpConfig, icpDescriptive, propertyLabel),
-    [icpConfig, icpDescriptive, propertyLabel]
-  );
+  useEffect(() => {
+    if (!global || properties.length === 0) return;
+    const ga = (global as any)?.icpConfig?._generatedAt;
+    if (!ga) {
+      fetch("/api/icp/generate-quick", { method: "POST", credentials: "include" })
+        .then(r => r.json())
+        .then(() => queryClient.invalidateQueries({ queryKey: ["global-assumptions"] }))
+        .catch(() => {});
+    }
+  }, [global, properties.length, queryClient]);
 
-  const icpConfigWith = useCallback((overrides: Record<string, any>) => {
-    return { ...((global as any)?.icpConfig as Record<string, any> || {}), ...overrides };
-  }, [global]);
-
-  const handleGenerateDefinition = () => {
-    const md = generateIcpEssay(icpConfig, icpDescriptive, propertyLabel);
-    updateMutation.mutate(
-      { icpConfig: icpConfigWith({ _definition: md }) } as any,
-      {
-        onSuccess: () => { setDefEditing(false); toast({ title: "Generated", description: "ICP definition updated from current profile." }); },
-        onError: () => { toast({ title: "Error", description: "Failed to generate. Please try again.", variant: "destructive" }); },
-      }
-    );
-  };
+  const handleGenerate = useCallback(async (mode: "quick" | "ai") => {
+    setGenerating(mode);
+    try {
+      const endpoint = mode === "quick" ? "/api/icp/generate-quick" : "/api/icp/generate";
+      const res = await fetch(endpoint, { method: "POST", credentials: "include" });
+      if (!res.ok) throw new Error("Generation failed");
+      await res.json();
+      await queryClient.invalidateQueries({ queryKey: ["global-assumptions"] });
+      toast({ title: mode === "quick" ? "Quick ICP Generated" : "AI ICP Generated", description: "ICP updated from your portfolio." });
+    } catch {
+      toast({ title: "Generation failed", description: "Could not generate ICP. Please try again.", variant: "destructive" });
+    } finally {
+      setGenerating(null);
+    }
+  }, [queryClient, toast]);
 
   const handleSaveDefinition = useCallback(() => {
+    const existing = (global as any)?.icpConfig ?? {};
     updateMutation.mutate(
-      { icpConfig: icpConfigWith({ _definition: defDraft }) } as any,
+      { icpConfig: { ...existing, _definition: defDraft } } as any,
       {
         onSuccess: () => { setDefEditing(false); toast({ title: "Saved", description: "ICP definition saved." }); },
-        onError: () => { toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" }); },
+        onError: () => { toast({ title: "Error", description: "Failed to save.", variant: "destructive" }); },
       }
     );
-  }, [icpConfigWith, defDraft, updateMutation, toast]);
+  }, [global, defDraft, updateMutation, toast]);
 
-  const handleEditDefinition = () => {
-    setDefDraft(savedDefinition || essay || "");
-    setDefEditing(true);
-  };
-
-  if (isLoading) {
-    return (<Layout><div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>);
-  }
-
-  if (!global) {
-    return (<Layout><div className="flex flex-col items-center justify-center h-[60vh]"><p className="text-muted-foreground">Failed to load company data.</p></div></Layout>);
-  }
-
-  const researchConfig = ((global as any)?.researchConfig as ResearchConfig) ?? {};
-  const eventConfig: Partial<ResearchEventConfig> = (researchConfig as any).company ?? {};
-  const companyName = global.companyName ?? "Hospitality Business";
-  const assetDef = global.assetDefinition as any;
-  const icpQualitative: Record<string, string> = (global as any).icpQualitative ?? {};
-
-  const focusAreas = eventConfig.focusAreas?.length ? eventConfig.focusAreas : [
-    "Management fee structures (ASC 606)", "Incentive management fee (IMF) triggers",
-    "GAAP-compliant fee recognition", "USALI operating expense ratios",
-    "Compensation benchmarks", "Contract terms and duration",
-    "Company income tax rates", "Cost of equity / WACC inputs",
-  ];
-  const regions = eventConfig.regions?.length ? eventConfig.regions : [];
-  const customInstructions = eventConfig.customInstructions?.trim() || null;
-  const enabledTools = eventConfig.enabledTools?.length ? eventConfig.enabledTools : [];
-  const customSources = researchConfig.customSources?.length ? researchConfig.customSources : [];
-  const timeHorizon = eventConfig.timeHorizon || null;
-  const preferredLlm = researchConfig.preferredLlm || (global as any).preferredLlm || DEFAULT_ANTHROPIC_MODEL;
-
-  const companyInputs = [
-    { label: "Company Name", value: companyName },
-    { label: "Property Label", value: propertyLabel },
-    { label: "Asset Level", value: assetDef?.level || "Luxury" },
-  ];
-  if (assetDef?.minRooms != null && assetDef?.maxRooms != null) companyInputs.push({ label: "Room Range", value: `${assetDef.minRooms}–${assetDef.maxRooms}` });
-  if (assetDef?.hasFB) companyInputs.push({ label: "F&B Operations", value: "Included" });
-  if (assetDef?.hasEvents) companyInputs.push({ label: "Event Hosting", value: "Included" });
-  if (assetDef?.hasWellness) companyInputs.push({ label: "Wellness Programming", value: "Included" });
-  if (global.modelStartDate) companyInputs.push({ label: "Model Start", value: new Date(global.modelStartDate).toLocaleDateString() });
-
-  const qualitativeSections = [
-    { key: "investmentThesis", label: "Investment Thesis", icon: IconTarget },
-    { key: "targetProperty", label: "Target Property Character", icon: IconBuilding },
-    { key: "guestExperience", label: "Guest Experience Vision", icon: IconUsers },
-    { key: "geographicStrategy", label: "Geographic Strategy", icon: IconMapPin },
-    { key: "competitiveEdge", label: "Competitive Edge", icon: IconTarget },
-    { key: "brandIdentity", label: "Brand Identity", icon: IconTarget },
-  ].filter(s => icpQualitative[s.key]?.trim());
-
-  const researchContent = companyResearch?.content as any;
-  const researchSources = researchContent?.sources || researchContent?.references || [];
-  const researchMeta = {
-    model: companyResearch?.llmModel || null,
-    timestamp: companyResearch?.updatedAt ? new Date(companyResearch.updatedAt).toLocaleString() : null,
-    tokenCount: researchContent?.tokenCount || researchContent?._meta?.tokenCount || null,
-  };
-
-  const exportData = {
-    companyName, propertyLabel, companyInputs, icpConfig, icpDescriptive, icpQualitative,
-    icpDefinition: savedDefinition || essay,
-    qualitativeSections: qualitativeSections.map(s => ({ ...s, content: icpQualitative[s.key] })),
-    amenityItems: [], focusAreas, regions, customInstructions, enabledTools, customSources, timeHorizon, preferredLlm,
-  };
+  const exportData = useMemo(() => ({
+    companyName,
+    propertyLabel: global?.propertyLabel ?? "Boutique Hotel",
+    companyInputs: [],
+    icpConfig,
+    icpDescriptive,
+    icpQualitative: {},
+    icpDefinition: definition,
+    qualitativeSections: [],
+    amenityItems: [],
+    focusAreas: [],
+    regions: [],
+    customInstructions: null,
+    enabledTools: [],
+    customSources: [],
+    timeHorizon: null,
+    preferredLlm: null,
+  }), [companyName, global, icpConfig, icpDescriptive, definition]);
 
   const handleExportPDF = async (customFilename?: string) => {
     try {
@@ -185,96 +245,271 @@ export default function CompanyIcpDefinition() {
     }
   };
 
+  if (isLoading) {
+    return (<Layout><div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>);
+  }
+
+  if (!global) {
+    return (<Layout><div className="flex flex-col items-center justify-center h-[60vh]"><p className="text-muted-foreground">Failed to load company data.</p></div></Layout>);
+  }
+
+  const noProperties = properties.length === 0;
+
   return (
     <Layout>
       {SaveDialog}
       <AnimatedPage>
         <div className="space-y-6 max-w-5xl" ref={contentRef}>
           <PageHeader
-            title="ICP Definition"
-            subtitle={`${companyName} Co. — Ideal Customer Profile & Research Parameters`}
+            title={`ICP Definition — ${companyName}`}
+            subtitle="Auto-generated from your portfolio"
             variant="dark"
             backLink="/company/assumptions"
             actions={
-              <ExportMenu actions={[pdfAction(() => requestSave(`${companyName} ICP Definition`, ".pdf", (f) => handleExportPDF(f))), pptxAction(() => requestSave(`${companyName} ICP Definition`, ".pptx", (f) => handleExportPPTX(f)))]} />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGenerate("quick")}
+                  disabled={noProperties || generating !== null}
+                  data-testid="button-quick-generate"
+                >
+                  {generating === "quick" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                  Quick Generate
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleGenerate("ai")}
+                  disabled={noProperties || generating !== null}
+                  data-testid="button-ai-generate"
+                >
+                  {generating === "ai" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                  Generate with AI
+                </Button>
+                <ExportMenu actions={[pdfAction(() => requestSave(`${companyName} ICP Definition`, ".pdf", (f) => handleExportPDF(f))), pptxAction(() => requestSave(`${companyName} ICP Definition`, ".pptx", (f) => handleExportPPTX(f)))]} />
+              </div>
             }
           />
 
-          <Card className="bg-primary/5 border-primary/20 p-4" data-testid="icp-advisory-notice">
-            <div className="flex gap-3">
-              <IconInfo className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">How company research uses your data</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  The AI researcher uses your company profile, ICP definition, and asset class
-                  parameters to find relevant management company benchmarks — fee structures,
-                  compensation norms, GAAP standards, and operating ratios. Your ICP plays a central
-                  role: it tells the AI <span className="font-medium text-foreground">who your target
-                  clients are</span>, the property types you manage, and the markets you operate in,
-                  so it can accurately size your addressable market and benchmark against comparable
-                  management companies.
+          {noProperties && (
+            <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 p-4" data-testid="no-properties-warning">
+              <div className="flex gap-3">
+                <IconInfo className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">Add at least one property first to generate your ICP.</p>
+              </div>
+            </Card>
+          )}
+
+          {isGenerated ? (
+            <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 p-4" data-testid="status-generated">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                  <IconCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                    ICP generated from {portfolio.propertyCount ?? "—"} properties
+                  </p>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {generatedAt && (
+                      <span className="text-xs text-green-600 dark:text-green-400">
+                        {generatedAt.toLocaleDateString()} at {generatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      {source === "portfolio+ai" ? "Portfolio + AI" : "Portfolio Only"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="bg-primary/5 border-primary/20 p-4" data-testid="status-not-generated">
+              <div className="flex gap-3">
+                <IconInfo className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  ICP has not been generated yet. Click Generate to build from your portfolio.
                 </p>
               </div>
+            </Card>
+          )}
+
+          <section className="space-y-3" data-testid="section-investment-thesis">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-display font-semibold text-foreground">Investment Thesis</h2>
+              {!defEditing ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setDefDraft(definition || ""); setDefEditing(true); }}
+                  data-testid="button-edit-thesis"
+                >
+                  <IconPencil className="w-4 h-4 mr-1.5" />
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setDefEditing(false)} data-testid="button-cancel-thesis">
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSaveDefinition} disabled={updateMutation.isPending} data-testid="button-save-thesis">
+                    {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                    Save
+                  </Button>
+                </div>
+              )}
             </div>
-          </Card>
+            <Card className="p-6">
+              {defEditing ? (
+                <Textarea
+                  value={defDraft}
+                  onChange={e => setDefDraft(e.target.value)}
+                  rows={12}
+                  className="font-serif text-base leading-relaxed resize-y"
+                  data-testid="textarea-thesis"
+                />
+              ) : definition ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none font-serif text-base leading-relaxed whitespace-pre-wrap" data-testid="text-thesis-content">
+                  {definition}
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic text-center py-8" data-testid="text-thesis-placeholder">
+                  Click &ldquo;Generate with AI&rdquo; to create an investor-ready ICP narrative
+                </p>
+              )}
+            </Card>
+          </section>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="icp-profile" data-testid="tab-icp-profile">
-                <IconTarget className="w-3.5 h-3.5 mr-1.5" />
-                ICP Profile
-              </TabsTrigger>
-              <TabsTrigger value="market-context" data-testid="tab-market-context">
-                <IconBuilding className="w-3.5 h-3.5 mr-1.5" />
-                Market Context
-              </TabsTrigger>
-              <TabsTrigger value="industry-standards" data-testid="tab-industry-standards">
-                <IconSettings className="w-3.5 h-3.5 mr-1.5" />
-                Industry Standards
-              </TabsTrigger>
-              <TabsTrigger value="data-sources" data-testid="tab-data-sources">
-                <IconGlobe className="w-3.5 h-3.5 mr-1.5" />
-                Data Sources
-              </TabsTrigger>
-            </TabsList>
+          {isGenerated && portfolio && (
+            <section className="space-y-4" data-testid="section-portfolio-snapshot">
+              <h2 className="text-xl font-display font-semibold text-foreground">Portfolio Snapshot</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <StatCard label="Properties">
+                  {formatNumber(portfolio.propertyCount)}
+                </StatCard>
+                <StatCard label="Rooms">
+                  <RangeValue min={portfolio.rooms?.min} max={portfolio.rooms?.max} median={portfolio.rooms?.median} />
+                </StatCard>
+                <StatCard label="ADR">
+                  <RangeValue min={portfolio.adr?.min} max={portfolio.adr?.max} median={portfolio.adr?.median} prefix="$" />
+                </StatCard>
+                <StatCard label="Acquisition">
+                  {portfolio.purchasePrice ? (
+                    <span>{formatCurrency(portfolio.purchasePrice.min)}–{formatCurrency(portfolio.purchasePrice.max)}</span>
+                  ) : "—"}
+                </StatCard>
+                <StatCard label="Quality">
+                  <span>{portfolio.dominantQualityTier || "—"}</span>
+                  {portfolio.qualityTiers && Object.keys(portfolio.qualityTiers).length > 1 && (
+                    <span className="text-xs text-muted-foreground block mt-0.5">
+                      {Object.entries(portfolio.qualityTiers).map(([tier, count]) => `${tier}: ${count}`).join(", ")}
+                    </span>
+                  )}
+                </StatCard>
+                <StatCard label="F&B Rating">
+                  {portfolio.fbRating != null ? `${portfolio.fbRating}/5` : "—"}
+                </StatCard>
+              </div>
 
-            <TabsContent value="icp-profile">
-              <IcpProfileTab
-                icpConfig={icpConfig} icpDescriptive={icpDescriptive} icpQualitative={icpQualitative}
-                savedDefinition={savedDefinition} essay={essay}
-                defEditing={defEditing} defDraft={defDraft} setDefDraft={setDefDraft}
-                onGenerate={handleGenerateDefinition} onEdit={handleEditDefinition}
-                onSave={handleSaveDefinition} onCancelEdit={() => setDefEditing(false)}
-                isPending={updateMutation.isPending} qualitativeSections={qualitativeSections}
-              />
-            </TabsContent>
+              {(portfolio.regions?.length > 0 || portfolio.businessModels) && (
+                <div className="flex flex-wrap gap-4">
+                  {portfolio.regions?.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Regions</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {portfolio.regions.map((r: string) => (
+                          <Badge key={r} variant="secondary" className="text-xs">{r}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {portfolio.businessModels && Object.keys(portfolio.businessModels).length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Business Models</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(portfolio.businessModels).map(([model, count]) => (
+                          <Badge key={model} variant="outline" className="text-xs">{model}: {count as number}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
 
-            <TabsContent value="market-context">
-              <IcpMarketContextTab global={global} properties={properties} companyInputs={companyInputs} focusAreas={focusAreas} />
-            </TabsContent>
+          <Collapsible open={paramsOpen} onOpenChange={setParamsOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-2 w-full text-left" data-testid="trigger-key-parameters">
+                <h2 className="text-xl font-display font-semibold text-foreground">Key Parameters</h2>
+                <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${paramsOpen ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ParamCard title="Target Property" items={[
+                  { label: "Rooms", value: `${icpConfig.roomsMin ?? "—"}–${icpConfig.roomsMax ?? "—"}` },
+                  { label: "Sweet Spot", value: `${(icpConfig as any).roomsSweetSpotMin ?? "—"}–${(icpConfig as any).roomsSweetSpotMax ?? "—"}` },
+                  { label: "Land (acres)", value: `${icpConfig.landAcresMin ?? "—"}–${icpConfig.landAcresMax ?? "—"}` },
+                  { label: "Built SqFt", value: `${formatNumber(icpConfig.builtSqFtMin)}–${formatNumber(icpConfig.builtSqFtMax)}` },
+                  { label: "ADR", value: `$${icpConfig.adrMin ?? "—"}–$${icpConfig.adrMax ?? "—"}` },
+                  { label: "Occupancy", value: `${icpConfig.occupancyMin ?? "—"}%–${icpConfig.occupancyMax ?? "—"}%` },
+                  { label: "F&B Rating", value: `${icpConfig.fbRating ?? "—"}/5` },
+                ]} />
 
-            <TabsContent value="industry-standards">
-              <IcpIndustryStandardsTab
-                preferredLlm={preferredLlm} timeHorizon={timeHorizon} regions={regions}
-                enabledTools={enabledTools} customInstructions={customInstructions} icpDescriptive={icpDescriptive}
-              />
-            </TabsContent>
+                <ParamCard title="Financial Targets" items={[
+                  { label: "Acquisition", value: `${formatCurrency(icpConfig.acquisitionMin)}–${formatCurrency(icpConfig.acquisitionMax)}` },
+                  { label: "Target Acq.", value: `${formatCurrency((icpConfig as any).acquisitionTargetMin)}–${formatCurrency((icpConfig as any).acquisitionTargetMax)}` },
+                  { label: "Total Investment", value: `${formatCurrency((icpConfig as any).totalInvestmentMin)}–${formatCurrency((icpConfig as any).totalInvestmentMax)}` },
+                  { label: "Renovation", value: `${formatCurrency((icpConfig as any).renovationMin)}–${formatCurrency((icpConfig as any).renovationMax)}` },
+                  { label: "Target IRR", value: `${(icpConfig as any).targetIrr ?? "—"}%` },
+                  { label: "Equity Multiple", value: `${(icpConfig as any).equityMultipleMin ?? "—"}x–${(icpConfig as any).equityMultipleMax ?? "—"}x` },
+                  { label: "Hold Years", value: `${icpConfig.holdYearsMin ?? "—"}–${icpConfig.holdYearsMax ?? "—"}` },
+                  { label: "Exit Cap Rate", value: `${(icpConfig as any).exitCapRateMin ?? "—"}%–${(icpConfig as any).exitCapRateMax ?? "—"}%` },
+                ]} />
 
-            <TabsContent value="data-sources">
-              <IcpDataSourcesTab customSources={customSources} researchSources={researchSources} researchMeta={researchMeta} />
-            </TabsContent>
-          </Tabs>
+                <ParamCard title="Revenue Mix" items={[
+                  { label: "F&B Share", value: `${(icpConfig as any).fbShareMin ?? "—"}%–${(icpConfig as any).fbShareMax ?? "—"}%` },
+                  { label: "Events Share", value: `${(icpConfig as any).eventsShareMin ?? "—"}%–${(icpConfig as any).eventsShareMax ?? "—"}%` },
+                  { label: "Total Ancillary", value: `${(icpConfig as any).totalAncillaryMin ?? "—"}%–${(icpConfig as any).totalAncillaryMax ?? "—"}%` },
+                  { label: "Base Mgmt Fee", value: `${(icpConfig as any).baseMgmtFeeMin ?? "—"}%–${(icpConfig as any).baseMgmtFeeMax ?? "—"}%` },
+                  { label: "Incentive Fee", value: `${(icpConfig as any).incentiveFeeMin ?? "—"}%–${(icpConfig as any).incentiveFeeMax ?? "—"}%` },
+                ]} />
 
-          <Card className="bg-muted/30 border-border p-4" data-testid="criteria-readonly-notice">
-            <div className="flex gap-3">
-              <IconAlertCircle className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                The ICP Definition can be generated and edited above. Other tabs are read-only —
-                to change the ICP profile parameters, visit the ICP Studio in the Admin panel.
-                To adjust the research configuration, update the settings in the Research Center.
-              </p>
-            </div>
-          </Card>
+                <Card className="p-4 space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground">Amenities</h4>
+                  <AmenityChips icpConfig={icpConfig} />
+                </Card>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <section className="space-y-2" data-testid="section-qualitative">
+            <h2 className="text-xl font-display font-semibold text-foreground">Qualitative Sections</h2>
+            <Accordion type="multiple" className="space-y-1">
+              {DESCRIPTIVE_SECTIONS.map(({ key, label }) => {
+                const content = (icpDescriptive as any)[key] as string | undefined;
+                return (
+                  <AccordionItem key={key} value={key} className="border rounded-lg px-4">
+                    <AccordionTrigger className="text-sm font-medium" data-testid={`accordion-${key}`}>
+                      {label}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {content?.trim() ? (
+                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap" data-testid={`text-${key}`}>
+                          {content}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic" data-testid={`text-${key}-empty`}>
+                          Generate ICP to populate.
+                        </p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </section>
         </div>
       </AnimatedPage>
     </Layout>
