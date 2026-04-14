@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
 
-let currentSection: AdminSection = "services-fees";
+let currentSection: AdminSection = "financial-lines";
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
