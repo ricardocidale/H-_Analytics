@@ -31,20 +31,21 @@ export default function CompanyHeader({
   chartRef,
   exportMenuNode,
   isAdmin,
-  onOpenModelInputs,
 }: CompanyHeaderProps) {
   const assumptionsButton = isAdmin ? (
     <Link href="/company/assumptions" className="text-inherit no-underline">
       <Button variant="outline">
         <IconSettings className="w-4 h-4" />
-        Assumptions
+        Configure Assumptions
       </Button>
     </Link>
   ) : (
-    <Button variant="outline" onClick={onOpenModelInputs}>
-      <IconSettings className="w-4 h-4" />
-      Model Inputs
-    </Button>
+    <Link href="/company/guidance" className="text-inherit no-underline">
+      <Button variant="outline">
+        <IconSettings className="w-4 h-4" />
+        View AI Guidance
+      </Button>
+    </Link>
   );
 
   return (

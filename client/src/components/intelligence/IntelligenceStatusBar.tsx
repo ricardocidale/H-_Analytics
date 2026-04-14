@@ -25,22 +25,22 @@ export function computeFreshnessStatus(opts: {
 
   const updatedAt = safeTimestamp(opts.researchUpdatedAt);
   if (updatedAt === null) {
-    return { status: "missing", reason: "Press Regenerate Intelligence to get AI-recommended ranges for all assumptions", daysAgo: null };
+    return { status: "missing", reason: "Intelligence not yet generated — press Regenerate Intelligence to get AI guidance for all assumptions", daysAgo: null };
   }
 
   const daysAgo = Math.max(0, Math.floor((Date.now() - updatedAt) / (1000 * 60 * 60 * 24)));
 
   const assumptionTs = safeTimestamp(opts.lastAssumptionChangeAt);
   if (assumptionTs !== null && assumptionTs > updatedAt) {
-    return { status: "stale", reason: "Assumptions changed since last research — press Regenerate to update ranges", daysAgo };
+    return { status: "stale", reason: "Assumptions changed — intelligence refresh available", daysAgo };
   }
 
   if (daysAgo >= VERY_STALE_THRESHOLD_DAYS) {
-    return { status: "very_stale", reason: `Intelligence is ${daysAgo} days old — press Regenerate to update ranges`, daysAgo };
+    return { status: "very_stale", reason: `Intelligence is ${daysAgo} days old — refresh available`, daysAgo };
   }
 
   if (daysAgo >= STALE_THRESHOLD_DAYS) {
-    return { status: "stale", reason: "Intelligence is outdated — press Regenerate to update ranges", daysAgo };
+    return { status: "stale", reason: "Intelligence refresh available — guidance may be outdated", daysAgo };
   }
 
   return { status: "current", reason: "Intelligence is up to date", daysAgo };
@@ -79,7 +79,7 @@ const STATUS_CONFIG: Record<FreshnessStatus, {
     border: "border-blue-500/30",
     text: "text-blue-700 dark:text-blue-400",
     icon: IconAlertTriangle,
-    label: "No Research",
+    label: "No Intelligence",
   },
   running: {
     bg: "bg-blue-500/10",

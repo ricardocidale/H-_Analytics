@@ -23,7 +23,7 @@
  * All statement data is pre-generated in lib/company-data.ts to keep this
  * page free of inline financial logic.
  */
-import React, { useState, useRef, useMemo, useCallback, lazy, Suspense } from "react";
+import React, { useState, useRef, useMemo, lazy, Suspense } from "react";
 import { ExportDialog, type ExportVersion, type PremiumExportPayload } from "@/components/ExportDialog";
 import { loadExportConfig } from "@/lib/exportConfig";
 import { useQuery } from "@tanstack/react-query";
@@ -37,8 +37,7 @@ import { useServerCompanyFinancials } from "@/hooks/useServerFinancials";
 import { useAuth } from "@/lib/auth";
 import { PROJECTION_YEARS } from "@/lib/constants";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
+import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconCheckCircle } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { CalcDetailsProvider } from "@/components/financial-table";
@@ -85,16 +84,7 @@ export default function Company() {
   const tableRef = useRef<HTMLDivElement>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportType, setExportType] = useState<"pdf" | "xlsx" | "pptx" | "docx" | "chart">("pdf");
-  const [modelInputsOpen, setModelInputsOpen] = useState(false);
   const { requestSave, SaveDialog } = useExportSave();
-  const modelInputsRef = useRef<HTMLDivElement>(null);
-
-  const handleOpenModelInputs = useCallback(() => {
-    setModelInputsOpen(true);
-    setTimeout(() => {
-      modelInputsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-  }, []);
 
   const fundingLabel = global?.fundingSourceLabel ?? "Funding Vehicle";
 
@@ -376,7 +366,6 @@ export default function Company() {
             chartRef={chartRef}
             exportMenuNode={exportMenuNode}
             isAdmin={isAdmin}
-            onOpenModelInputs={handleOpenModelInputs}
           />
           
           <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
@@ -448,66 +437,6 @@ export default function Company() {
           </TabsContent>
           </Suspense>
 
-          {!isAdmin && (
-            <div ref={modelInputsRef} className="mt-6" data-testid="panel-model-inputs">
-              <Card className="bg-card border-border shadow-sm">
-                <CardHeader
-                  className="cursor-pointer select-none"
-                  onClick={() => setModelInputsOpen(!modelInputsOpen)}
-                  data-testid="button-toggle-model-inputs"
-                >
-                  <CardTitle className="flex items-center gap-2 text-base font-display">
-                    {modelInputsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    Model Inputs
-                    <span className="text-xs font-normal text-muted-foreground ml-1">(read-only)</span>
-                  </CardTitle>
-                </CardHeader>
-                {modelInputsOpen && (
-                  <CardContent className="space-y-5">
-                    <ModelInputGroup label="Revenue">
-                      <ModelInputItem label="Base Fee" value={`${((global?.baseManagementFee ?? 0) * 100).toFixed(1)}%`} testId="mi-base-fee" />
-                      <ModelInputItem label="Incentive Fee" value={`${((global?.incentiveManagementFee ?? 0) * 100).toFixed(1)}%`} testId="mi-incentive-fee" />
-                    </ModelInputGroup>
-
-                    <ModelInputGroup label="Funding">
-                      <ModelInputItem label="Funding Source" value={fundingLabel} testId="mi-funding-source" />
-                      <ModelInputItem label="SAFE Tranche 1" value={formatMoney(global?.safeTranche1Amount ?? 0)} testId="mi-safe-t1" />
-                      <ModelInputItem label="SAFE Tranche 2" value={formatMoney(global?.safeTranche2Amount ?? 0)} testId="mi-safe-t2" />
-                    </ModelInputGroup>
-
-                    <ModelInputGroup label="People">
-                      <ModelInputItem label="Partners (Year 1)" value={String(global?.partnerCountYear1 ?? 3)} testId="mi-partner-count" />
-                      <ModelInputItem label="Staff Salary" value={formatMoney(global?.staffSalary ?? 0)} testId="mi-staff-salary" />
-                      <ModelInputItem label="Tier 1 FTE" value={`${global?.staffTier1Fte ?? 0} (≤${global?.staffTier1MaxProperties ?? 0} properties)`} testId="mi-staff-fte-t1" />
-                      <ModelInputItem label="Tier 2 FTE" value={`${global?.staffTier2Fte ?? 0} (≤${global?.staffTier2MaxProperties ?? 0} properties)`} testId="mi-staff-fte-t2" />
-                      <ModelInputItem label="Tier 3 FTE" value={String(global?.staffTier3Fte ?? 0)} testId="mi-staff-fte-t3" />
-                    </ModelInputGroup>
-
-                    <ModelInputGroup label="Overhead">
-                      <ModelInputItem label="Office Lease" value={`${formatMoney(global?.officeLeaseStart ?? 0)}/yr`} testId="mi-office-lease" />
-                      <ModelInputItem label="Professional Services" value={`${formatMoney(global?.professionalServicesStart ?? 0)}/yr`} testId="mi-prof-services" />
-                      <ModelInputItem label="Tech Infrastructure" value={`${formatMoney(global?.techInfraStart ?? 0)}/yr`} testId="mi-tech-infra" />
-                      <ModelInputItem label="Escalation Rate" value={`${((global?.fixedCostEscalationRate ?? 0) * 100).toFixed(1)}%`} testId="mi-escalation-rate" />
-                    </ModelInputGroup>
-
-                    <ModelInputGroup label="Tax & General">
-                      <ModelInputItem label="Company Tax Rate" value={`${((global?.companyTaxRate ?? 0) * 100).toFixed(0)}%`} testId="mi-tax-rate" />
-                      <ModelInputItem label="Inflation Rate" value={`${((global?.inflationRate ?? 0) * 100).toFixed(1)}%`} testId="mi-inflation" />
-                      <ModelInputItem label="Projection Years" value={String(projectionYears)} testId="mi-projection-years" />
-                    </ModelInputGroup>
-
-                    <div className="pt-2 border-t border-border/60">
-                      <p className="text-xs text-muted-foreground" data-testid="text-edit-assumptions-hint">
-                        These values are configured by an administrator on the{" "}
-                        <span className="font-medium text-foreground">Company Assumptions</span> page.
-                      </p>
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            </div>
-          )}
-
           {!cashAnalysis.isAdequate ? (
             <div className="flex items-start gap-2 text-sm text-muted-foreground mt-4" data-testid="banner-company-cash-warning">
               <IconAlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
@@ -541,22 +470,4 @@ export default function Company() {
   );
 }
 
-function ModelInputGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2" data-testid={`mi-group-${label.toLowerCase().replace(/\s+/g, '-')}`}>{label}</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ModelInputItem({ label, value, testId }: { label: string; value: string; testId: string }) {
-  return (
-    <div className="rounded-lg bg-muted/50 border border-border/60 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</p>
-      <p className="text-sm font-semibold text-foreground mt-0.5" data-testid={testId}>{value}</p>
-    </div>
-  );
-}
+/* ModelInputGroup and ModelInputItem removed — non-admin users now navigate to /company/guidance */

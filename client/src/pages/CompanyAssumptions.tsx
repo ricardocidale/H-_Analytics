@@ -28,6 +28,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconPlay, IconAlertTriangle, IconTarget } from "@/components/icons";
@@ -383,7 +384,7 @@ export default function CompanyAssumptions() {
                   ) : (
                     <IconPlay className="w-4 h-4" />
                   )}
-                  {isGenerating ? "Analyzing…" : "Run Research"}
+                  {isGenerating ? "Analyzing…" : "Regenerate Intelligence"}
                 </Button>
                 {(() => {
                   const { status } = computeFreshnessStatus({ researchUpdatedAt: companyResearchUpdatedAt, lastAssumptionChangeAt: global.lastAssumptionChangeAt, isGenerating: false });

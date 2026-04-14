@@ -82,5 +82,4 @@ export interface CompanyHeaderProps {
   chartRef: React.RefObject<HTMLDivElement | null>;
   exportMenuNode: React.ReactNode;
   isAdmin?: boolean;
-  onOpenModelInputs?: () => void;
 }

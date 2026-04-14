@@ -77,6 +77,7 @@ const PropertyResearchCriteria = lazy(
 );
 const CompanyResearch = lazy(() => import("@/pages/CompanyResearch"));
 const CompanyIcpDefinition = lazy(() => import("@/pages/CompanyIcpDefinition"));
+const CompanyGuidance = lazy(() => import("@/pages/CompanyGuidance"));
 const ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const Logos = lazy(() => import("@/pages/Logos"));
@@ -194,6 +195,9 @@ function Router() {
           <FinancialErrorBoundary>
             <AdminRoute component={CompanyAssumptions} redirectTo="/company" />
           </FinancialErrorBoundary>
+        </Route>
+        <Route path="/company/guidance">
+          <ProtectedRoute component={CompanyGuidance} />
         </Route>
         <Route path="/portfolio">
           <FinancialErrorBoundary>
