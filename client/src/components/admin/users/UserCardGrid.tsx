@@ -112,7 +112,7 @@ export default function UserCardGrid({
         </Button>
       </div>
 
-      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
         {sortedUsers.map((user, idx, arr) => {
           const currentCompany = user.companyId ? companyNameMap[user.companyId] || "Unknown Company" : "No Company";
           const prevCompany = idx > 0
