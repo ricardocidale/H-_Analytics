@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconKey, IconUserPlus, IconSend } from "@/components/icons";
+import { IconUserPlus, IconSend } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminUsers } from "./hooks";
 import { useAuth } from "@/lib/auth";
@@ -15,7 +15,6 @@ import UserCardGrid from "./users/UserCardGrid";
 import CreateUserDialog from "./users/CreateUserDialog";
 import EditUserDialog from "./users/EditUserDialog";
 import PasswordDialog from "./users/PasswordDialog";
-import ResetAllDialog from "./users/ResetAllDialog";
 import InviteUsersDialog from "./users/InviteUsersDialog";
 import DefaultPropertiesDialog from "./users/DefaultPropertiesDialog";
 
@@ -37,10 +36,6 @@ export default function UsersTab() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [sortField, setSortField] = useState<SortField>("company");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [resetAllPassword, setResetAllPassword] = useState("");
-  const [resetAllConfirm, setResetAllConfirm] = useState("");
-  const [resetAllDialogOpen, setResetAllDialogOpen] = useState(false);
-  const [showResetAllPassword, setShowResetAllPassword] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [defaultsDialogOpen, setDefaultsDialogOpen] = useState(false);
   const [defaultsUser, setDefaultsUser] = useState<User | null>(null);
@@ -146,32 +141,6 @@ export default function UsersTab() {
     },
   });
 
-  const resetAllPasswordsMutation = useMutation({
-    mutationFn: async ({ password, confirm }: { password: string; confirm: string }) => {
-      const res = await fetch("/api/admin/reset-all-passwords", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, confirm }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to reset passwords");
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setResetAllDialogOpen(false);
-      setResetAllPassword("");
-      setResetAllConfirm("");
-      setShowResetAllPassword(false);
-      toast({ title: "Passwords Reset", description: data.message });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
   const editMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: { email?: string; firstName?: string; lastName?: string; company?: string; title?: string; role?: string; canManageScenarios?: boolean } }) => {
       const res = await fetch(`/api/admin/users/${id}`, {
@@ -260,10 +229,6 @@ export default function UsersTab() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" disabled={resetAllPasswordsMutation.isPending} data-testid="button-reset-all-passwords" onClick={() => setResetAllDialogOpen(true)}>
-              {resetAllPasswordsMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconKey className="w-4 h-4" />}
-              Reset All Passwords
-            </Button>
             <Button variant="outline" onClick={() => setInviteOpen(true)} data-testid="button-invite-users">
               <IconSend className="w-4 h-4" />
               Invite Users
@@ -298,19 +263,6 @@ export default function UsersTab() {
         )}
       </CardContent>
     </Card>
-
-    <ResetAllDialog
-      open={resetAllDialogOpen}
-      onOpenChange={setResetAllDialogOpen}
-      password={resetAllPassword}
-      setPassword={setResetAllPassword}
-      confirm={resetAllConfirm}
-      setConfirm={setResetAllConfirm}
-      showPassword={showResetAllPassword}
-      setShowPassword={setShowResetAllPassword}
-      isPending={resetAllPasswordsMutation.isPending}
-      onSubmit={() => resetAllPasswordsMutation.mutate({ password: resetAllPassword, confirm: resetAllConfirm })}
-    />
 
     <CreateUserDialog
       open={dialogOpen}

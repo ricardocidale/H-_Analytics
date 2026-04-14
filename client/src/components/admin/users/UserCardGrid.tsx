@@ -92,7 +92,7 @@ export default function UserCardGrid({
   onManageDefaults,
 }: UserCardGridProps) {
   const canModifyUser = (user: User) => {
-    if (user.role === UserRole.SUPER_ADMIN && currentUserRole !== UserRole.SUPER_ADMIN) return false;
+    if (user.role === UserRole.SUPER_ADMIN) return false;
     return true;
   };
   return (
