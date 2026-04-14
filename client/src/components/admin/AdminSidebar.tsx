@@ -271,7 +271,11 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
 
             <div className="space-y-0.5">
               {group.sections.map((section) => {
-                const isActive = resolved === resolveSection(section.value);
+                const sectionResolved = resolveSection(section.value);
+                const isAlias = section.value !== sectionResolved;
+                const isActive = isAlias
+                  ? activeSection === section.value
+                  : resolved === sectionResolved;
                 const Icon = section.icon;
                 return (
                   <Button

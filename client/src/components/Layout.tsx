@@ -268,7 +268,12 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   const isActiveLink = (href: string) => {
     if (href.startsWith("#admin-")) {
       const section = href.replace("#admin-", "") as AdminSection;
-      return resolveSection(adminSection) === resolveSection(section);
+      const sectionResolved = resolveSection(section);
+      const isAlias = section !== sectionResolved;
+      if (isAlias) {
+        return adminSection === section;
+      }
+      return resolveSection(adminSection) === sectionResolved;
     }
     return location === href ||
       (href === "/portfolio" && location.startsWith("/property/")) ||
