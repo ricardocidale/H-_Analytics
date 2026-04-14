@@ -27,6 +27,7 @@ import { indexAssumptionGuidance, retrieveSimilarGuidance, isPineconeAvailable }
 import { registerResearchMetaRoutes } from "./research-meta";
 import { detectStaleness } from "../ai/staleness-detector";
 import { conductWebResearch, isWebResearchAvailable, type WebResearchResult, type WebResearchRequest } from "../ai/web-research";
+import { buildCompanyDataInjection } from "../ai/company-data-injector";
 
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -435,6 +436,16 @@ export function register(app: Express) {
               entityType: "company",
               ambientData: ambientDataStr,
             });
+
+            // Inject verified company data (FRED rates, country defaults, benchmarks, portfolio stats)
+            try {
+              const companyDataBlock = await buildCompanyDataInjection(properties);
+              if (companyDataBlock && v2Prompt) {
+                v2Prompt += companyDataBlock;
+              }
+            } catch (err: unknown) {
+              logger.warn(`Company data injection failed (non-blocking): ${err instanceof Error ? err.message : err}`, "data-router");
+            }
           }
         } catch (err: unknown) {
           logger.warn(`Research prompt assembly failed: ${err instanceof Error ? err.message : err}`, "research");

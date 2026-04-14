@@ -195,6 +195,26 @@ Include source citations and reasoning for every recommendation.
 Do not output any text outside the JSON code block.`;
 }
 
+/** Domain preamble — establishes the analyst's expertise and the fundraising context. */
+function buildDomainPreamble(): string {
+  return `# ROLE & DOMAIN CONTEXT
+
+You are a hospitality investment analyst specializing in:
+- **Boutique hotel conversions** — transforming large residential estates into intimate 5–20 room properties with distinctive character
+- **Vertical community hospitality** — wellness retreats, corporate offsites, experiential lodging, and practitioner-led programming
+- **Management company brand economics** — properties hire the brand for marketing, operations, and revenue management under a fee structure
+- **Small-scale luxury** — NOT 200-room urban hotels. Think intimate, high-ADR, experience-driven properties in compelling locations
+
+## Critical Context
+This is a **fundraising context**. The user is building an investor pitch for a hospitality management company. Every number you provide must be:
+1. **Defensible to a skeptical LP** — cite real sources, use industry-standard benchmarks
+2. **Calibrated to the specific segment** — boutique/lifestyle, not chain-scale or convention hotels
+3. **Conservative where data is thin** — widen ranges and lower confidence rather than guess
+4. **Internally consistent** — if you recommend ADR $350, occupancy must match that tier; RevPAR must be ADR × occupancy
+
+When in doubt, reference CBRE Hotels, STR/CoStar, HVS, JLL Hotels, PKF Hospitality, or USALI standards. For management company economics, reference Horwath HTL, HVS Management Contract Database, or comparable boutique management platforms.`;
+}
+
 export function assembleResearchPrompt(
   contextPack: PropertyContextPack | CompanyContextPack,
   options: AssemblePromptOptions,
@@ -202,6 +222,9 @@ export function assembleResearchPrompt(
   const { tier, entityType, assumptionKeys, ambientData, priorResearch, adminInstructions } = options;
 
   const sections: string[] = [];
+
+  // Domain preamble goes first — sets the frame for all analysis
+  sections.push(buildDomainPreamble());
 
   if ("identity" in contextPack) {
     sections.push(buildPropertyContextSection(contextPack));
