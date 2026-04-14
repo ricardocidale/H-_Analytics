@@ -10,6 +10,7 @@ export interface PropertyContextPack {
   location: {
     display: string;
     streetAddress: string | null;
+    streetAddress2: string | null;
     city: string | null;
     stateProvince: string | null;
     zipPostalCode: string | null;

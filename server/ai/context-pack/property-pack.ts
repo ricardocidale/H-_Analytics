@@ -25,7 +25,7 @@ function detectAmenities(p: Property): { hasFB: boolean; hasEvents: boolean; has
 }
 
 function buildLocationDisplay(p: Property): string {
-  const parts = [p.streetAddress, p.city, p.stateProvince, p.zipPostalCode, p.country].filter(Boolean);
+  const parts = [p.streetAddress, p.streetAddress2, p.city, p.stateProvince, p.zipPostalCode, p.country].filter(Boolean);
   if (parts.length > 0) return parts.join(", ");
   return p.location ?? "Unknown location";
 }
@@ -254,6 +254,7 @@ export function buildPropertyContextPack(
     location: {
       display: locationDisplay,
       streetAddress: p.streetAddress,
+      streetAddress2: p.streetAddress2,
       city: p.city,
       stateProvince: p.stateProvince,
       zipPostalCode: p.zipPostalCode,
