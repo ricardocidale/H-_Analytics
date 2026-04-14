@@ -74,7 +74,7 @@ export default function CompanyHeader({
             { value: 'income', label: 'Income Statement', icon: IconIncomeStatement },
             { value: 'cashflow', label: 'Cash Flows', icon: IconCashFlow },
             { value: 'balance', label: 'Balance Sheet', icon: IconBalanceSheet },
-            { value: 'investment', label: 'Investment', icon: IconInvestment }
+            { value: 'investment', label: 'Financial Analysis', icon: IconInvestment }
           ]}
           activeTab={activeTab}
           onTabChange={setActiveTab}

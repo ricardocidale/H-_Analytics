@@ -353,8 +353,8 @@ export default function PropertyDetail() {
               tabs={[
                 { value: 'income', label: 'Income Statement', icon: IconIncomeStatement },
                 { value: 'cashflow', label: 'Cash Flows', icon: IconCashFlow },
-                { value: 'investment', label: 'Investment Analysis', icon: IconInvestment },
                 { value: 'balance', label: 'Balance Sheet', icon: IconBalanceSheet },
+                { value: 'investment', label: 'Financial Analysis', icon: IconInvestment },
                 { value: 'ppe', label: 'PP&E / Cost Basis', icon: IconPPE },
                 { value: 'documents', label: 'Documents', icon: IconFileStack }
               ]}
