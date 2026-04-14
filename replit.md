@@ -60,7 +60,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Caching:** Upstash Redis
 - **AI/LLM Providers:** `@anthropic-ai/sdk`, Gemini
 - **Vector DB:** Pinecone — fully integrated across 7 namespaces: knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties. Multi-namespace RAG powers Rebecca's chat. Admin dashboard provides per-namespace stats, re-indexing, and clearing. Region configurable via `PINECONE_REGION` env var.
-- **Icons:** Lucide, @phosphor-icons/react, react-icons (Material Design)
+- **Icons:** Lucide (hardcoded — Phosphor/Material removed)
 - **Email:** Resend
 - **Research/Data APIs:** RapidAPI (RealtyService, USRealEstateService, XoteloService), FREDService, HospitalityBenchmarkService, MoodysService, SPGlobalService, Perplexity SDK, Tavily
 - **Spreadsheet/Presentation:** xlsx, pptxgenjs
@@ -72,7 +72,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 | Frontend | React 18, TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, framer-motion |
 | Backend | Express 5, TypeScript, Drizzle ORM |
 | Database | PostgreSQL |
-| Icons | Lucide (default), Phosphor, Material Design (via react-icons/md) |
+| Icons | Lucide (hardcoded, single icon set) |
 | AI/LLM | Anthropic SDK, Gemini |
 | PDF | jsPDF, @react-pdf/renderer |
 | Exports | xlsx, pptxgenjs |

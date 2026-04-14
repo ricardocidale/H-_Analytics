@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { MdOutlineAutorenew, MdOutlineCheckCircle, MdOutlineSkipNext } from "react-icons/md";
+import { RefreshCw, CheckCircle2, SkipForward } from "lucide-react";
 
 interface StaleWorkflow {
   id: number;
@@ -117,14 +117,14 @@ function WorkflowProgressItem({
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
-            <MdOutlineCheckCircle className="w-5 h-5 text-emerald-500" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
           </motion.div>
         ) : status === "running" ? (
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
           >
-            <MdOutlineAutorenew className="w-5 h-5 text-primary" />
+            <RefreshCw className="w-5 h-5 text-primary" />
           </motion.div>
         ) : status === "failed" ? (
           <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -304,7 +304,7 @@ export function ScheduledResearchOverlay({
           <div className="flex items-center justify-center gap-3">
             {allDone ? (
               <Button onClick={onDismiss} className="gap-2" data-testid="button-close-overlay">
-                <MdOutlineCheckCircle className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4" />
                 Continue ({autoCloseTimer}s)
               </Button>
             ) : (
@@ -315,7 +315,7 @@ export function ScheduledResearchOverlay({
                 className="text-muted-foreground hover:text-foreground gap-1.5"
                 data-testid="button-skip-overlay"
               >
-                <MdOutlineSkipNext className="w-4 h-4" />
+                <SkipForward className="w-4 h-4" />
                 Skip — research will continue in background
               </Button>
             )}

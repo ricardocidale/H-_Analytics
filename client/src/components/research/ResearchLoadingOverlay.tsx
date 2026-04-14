@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Loader2, TrendingUp, BarChart3, Building2, Search, Database, Brain, Globe, Zap } from "lucide-react";
+import { ThinkingRing, StreamPulse } from "@/components/ui/ai-loader";
 
 const RESEARCH_TIPS = [
   { icon: TrendingUp, text: "Analyzing market trends and comparable properties..." },
@@ -44,44 +45,40 @@ function PulsingOrb() {
   return (
     <div className="relative w-16 h-16">
       <motion.div
-        className="absolute inset-0 rounded-full bg-primary/20"
-        animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.1, 0.3] }}
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: "conic-gradient(from 0deg, hsl(var(--primary) / 0), hsl(var(--primary) / 0.3), hsl(var(--primary) / 0))",
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: "conic-gradient(from 180deg, hsl(var(--primary) / 0), hsl(var(--primary) / 0.15), hsl(var(--primary) / 0))",
+        }}
+        animate={{ rotate: -360 }}
+        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.div
+        className="absolute inset-1 rounded-full bg-primary/10"
+        animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.15, 0.4] }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="absolute inset-2 rounded-full bg-card" />
+      <motion.div
+        className="absolute inset-3 rounded-full bg-primary/15 flex items-center justify-center"
+        animate={{ scale: [0.95, 1.08, 0.95] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute inset-2 rounded-full bg-primary/30"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.2, 0.5] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-      />
-      <motion.div
-        className="absolute inset-4 rounded-full bg-primary/50 flex items-center justify-center"
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Brain className="w-4 h-4 text-primary-foreground" />
+        <Brain className="w-5 h-5 text-primary" />
       </motion.div>
     </div>
   );
 }
 
-function WaveformBar({ delay }: { delay: number }) {
-  return (
-    <motion.div
-      className="w-1 rounded-full bg-primary/40"
-      animate={{ height: [8, 24, 12, 20, 8] }}
-      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay }}
-    />
-  );
-}
-
 function Waveform() {
-  return (
-    <div className="flex items-end gap-0.5 h-6">
-      {[0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((d) => (
-        <WaveformBar key={d} delay={d} />
-      ))}
-    </div>
-  );
+  return <StreamPulse />;
 }
 
 export function ResearchLoadingOverlay({
@@ -114,14 +111,14 @@ export function ResearchLoadingOverlay({
         )}
         data-testid="research-loading-compact"
       >
-        <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+        <ThinkingRing size={16} className="shrink-0" />
         <AnimatePresence mode="wait">
           <motion.span
             key={displayMessage}
-            initial={{ opacity: 0, x: 8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -8 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, filter: "blur(4px)", x: 8 }}
+            animate={{ opacity: 1, filter: "blur(0px)", x: 0 }}
+            exit={{ opacity: 0, filter: "blur(4px)", x: -8 }}
+            transition={{ duration: 0.35 }}
             className="text-sm text-foreground/80 truncate"
           >
             {displayMessage}

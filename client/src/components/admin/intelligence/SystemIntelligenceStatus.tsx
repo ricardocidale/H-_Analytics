@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MdOutlineMemory, MdOutlineCloud, MdOutlineWarning, MdOutlineCheckCircle, MdOutlineError, MdRefresh, MdDeleteOutline } from "react-icons/md";
+import { Cpu, Cloud, AlertTriangle, CheckCircle2, XCircle, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface LlmVendorStatus {
@@ -135,7 +135,7 @@ export default function SystemIntelligenceStatus() {
     return (
       <Card className="border-destructive/50" data-testid="system-intelligence-error">
         <CardContent className="p-6 text-center text-destructive">
-          <MdOutlineError className="w-8 h-8 mx-auto mb-2" />
+          <XCircle className="w-8 h-8 mx-auto mb-2" />
           Failed to load system intelligence status
         </CardContent>
       </Card>
@@ -159,7 +159,7 @@ export default function SystemIntelligenceStatus() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <MdOutlineCloud className="w-4 h-4 text-primary" />
+              <Cloud className="w-4 h-4 text-primary" />
               LLM Vendors
             </CardTitle>
           </CardHeader>
@@ -169,11 +169,11 @@ export default function SystemIntelligenceStatus() {
                 <span className="text-foreground">{vendorLabels[v.vendor] || v.vendor}</span>
                 {v.available ? (
                   <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800">
-                    <MdOutlineCheckCircle className="w-3 h-3 mr-1" /> Ready
+                    <CheckCircle2 className="w-3 h-3 mr-1" /> Ready
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800">
-                    <MdOutlineError className="w-3 h-3 mr-1" /> Unavailable
+                    <XCircle className="w-3 h-3 mr-1" /> Unavailable
                   </Badge>
                 )}
               </div>
@@ -188,7 +188,7 @@ export default function SystemIntelligenceStatus() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <MdOutlineMemory className="w-4 h-4 text-primary" />
+              <Cpu className="w-4 h-4 text-primary" />
               Knowledge Learning
             </CardTitle>
           </CardHeader>
@@ -220,7 +220,7 @@ export default function SystemIntelligenceStatus() {
             <div className="pt-2 border-t border-border/50">
               {data.knowledgeBase.learningActive ? (
                 <div className="flex items-center gap-1.5 text-xs text-emerald-600">
-                  <MdOutlineCheckCircle className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3.5 h-3.5" />
                   Research knowledge is being accumulated
                 </div>
               ) : (
@@ -234,7 +234,7 @@ export default function SystemIntelligenceStatus() {
           <Card className="border-amber-300/50 dark:border-amber-700/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                <MdOutlineWarning className="w-4 h-4" />
+                <AlertTriangle className="w-4 h-4" />
                 Missing API Keys
               </CardTitle>
             </CardHeader>
@@ -257,7 +257,7 @@ export default function SystemIntelligenceStatus() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <MdOutlineMemory className="w-4 h-4 text-primary" />
+                <Cpu className="w-4 h-4 text-primary" />
                 Pinecone Namespaces — Vector Index
               </CardTitle>
               <Button
@@ -267,7 +267,7 @@ export default function SystemIntelligenceStatus() {
                 className="h-7 text-xs"
                 data-testid="btn-refresh-pinecone-stats"
               >
-                <MdRefresh className="w-3.5 h-3.5 mr-1" /> Refresh
+                <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
               </Button>
             </div>
           </CardHeader>
@@ -312,7 +312,7 @@ export default function SystemIntelligenceStatus() {
                               onClick={() => reindexMutation.mutate(ns)}
                               data-testid={`btn-reindex-${ns}`}
                             >
-                              <MdRefresh className={`w-3 h-3 mr-1 ${isReindexing ? "animate-spin" : ""}`} />
+                              <RefreshCw className={`w-3 h-3 mr-1 ${isReindexing ? "animate-spin" : ""}`} />
                               {isReindexing ? "Indexing..." : "Re-index"}
                             </Button>
                             <Button
@@ -327,7 +327,7 @@ export default function SystemIntelligenceStatus() {
                               }}
                               data-testid={`btn-clear-${ns}`}
                             >
-                              <MdDeleteOutline className="w-3 h-3 mr-1" />
+                              <Trash2 className="w-3 h-3 mr-1" />
                               {isClearing ? "Clearing..." : "Clear"}
                             </Button>
                           </div>

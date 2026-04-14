@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { MdOutlineSchedule, MdOutlinePlayArrow, MdOutlineEdit, MdOutlineDelete, MdOutlineAdd, MdOutlineCheckCircle, MdOutlineError, MdOutlineAccessTime, MdOutlinePending } from "react-icons/md";
+import { Calendar, Play, Pencil, Trash2, Plus, CheckCircle2, XCircle, Clock, Hourglass } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface ScheduledWorkflow {
@@ -82,11 +82,11 @@ function formatRelativeTime(dateStr: string | null): string {
 }
 
 function StatusBadge({ status }: { status: string | null }) {
-  const config: Record<string, { className: string; icon: typeof MdOutlineCheckCircle }> = {
-    completed: { className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: MdOutlineCheckCircle },
-    running: { className: "bg-blue-500/10 text-blue-600 border-blue-500/20 animate-pulse", icon: MdOutlineAccessTime },
-    failed: { className: "bg-red-500/10 text-red-600 border-red-500/20", icon: MdOutlineError },
-    pending: { className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: MdOutlinePending },
+  const config: Record<string, { className: string; icon: typeof CheckCircle2 }> = {
+    completed: { className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: CheckCircle2 },
+    running: { className: "bg-blue-500/10 text-blue-600 border-blue-500/20 animate-pulse", icon: Clock },
+    failed: { className: "bg-red-500/10 text-red-600 border-red-500/20", icon: XCircle },
+    pending: { className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Hourglass },
   };
   const c = config[status ?? "pending"] ?? config.pending;
   const Icon = c.icon;
@@ -201,7 +201,7 @@ export default function ScheduledResearchPanel() {
     <div className="space-y-6" data-testid="scheduled-research-panel">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <MdOutlineSchedule className="w-5 h-5 text-primary" />
+          <Calendar className="w-5 h-5 text-primary" />
           <div>
             <h3 className="text-sm font-semibold text-foreground">
               {workflows.length} Workflow{workflows.length !== 1 ? "s" : ""}
@@ -212,7 +212,7 @@ export default function ScheduledResearchPanel() {
           </div>
         </div>
         <Button size="sm" onClick={openCreate} className="gap-1.5" data-testid="button-create-workflow">
-          <MdOutlineAdd className="w-4 h-4" />
+          <Plus className="w-4 h-4" />
           Add Workflow
         </Button>
       </div>
@@ -289,7 +289,7 @@ export default function ScheduledResearchPanel() {
                       {isRunning ? (
                         <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
                       ) : (
-                        <MdOutlinePlayArrow className="w-4 h-4" />
+                        <Play className="w-4 h-4" />
                       )}
                     </Button>
                     <Button
@@ -299,7 +299,7 @@ export default function ScheduledResearchPanel() {
                       onClick={() => openEdit(w)}
                       data-testid={`button-edit-${w.id}`}
                     >
-                      <MdOutlineEdit className="w-4 h-4" />
+                      <Pencil className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -308,7 +308,7 @@ export default function ScheduledResearchPanel() {
                       onClick={() => setDeleteTarget(w)}
                       data-testid={`button-delete-${w.id}`}
                     >
-                      <MdOutlineDelete className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -320,7 +320,7 @@ export default function ScheduledResearchPanel() {
         {workflows.length === 0 && (
           <Card className="border-dashed">
             <CardContent className="py-8 text-center">
-              <MdOutlineSchedule className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+              <Calendar className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No scheduled research workflows</p>
               <p className="text-xs text-muted-foreground/60 mt-1">
                 Create workflows to automatically keep your intelligence fresh

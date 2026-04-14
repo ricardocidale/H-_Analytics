@@ -758,6 +758,21 @@
   animation: intelligence-pulse 2s ease-in-out infinite;
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary) / 0.06) 0%,
+    hsl(var(--primary) / 0.15) 40%,
+    hsl(var(--primary) / 0.06) 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

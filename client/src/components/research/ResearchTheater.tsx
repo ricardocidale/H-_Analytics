@@ -9,7 +9,8 @@ import {
   IconClock,
   IconDollarSign,
 } from "@/components/icons";
-import { Loader2, X } from "@/components/icons/themed-icons";
+import { X } from "@/components/icons/themed-icons";
+import { ThinkingRing } from "@/components/ui/ai-loader";
 import { cn } from "@/lib/utils";
 
 interface ResearchJob {
@@ -29,7 +30,7 @@ interface ResearchTheaterProps {
 
 const statusIcons: Record<ResearchJob["status"], React.ReactNode> = {
   pending: <span className="text-muted-foreground text-sm">{"\u25CB"}</span>,
-  generating: <Loader2 className="h-4 w-4 animate-spin text-primary" />,
+  generating: <ThinkingRing size={16} />,
   complete: <IconCheckCircle className="h-4 w-4 text-primary" />,
   error: <IconXCircle className="h-4 w-4 text-destructive" />,
 };
