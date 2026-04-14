@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   IconCheckCircle,
   IconXCircle,
-  IconAlertCircle,
-  IconClock,
   IconDollarSign,
 } from "@/components/icons";
 import { X } from "@/components/icons/themed-icons";

@@ -13,7 +13,7 @@ import { X } from "@/components/icons/themed-icons";
 import { useGlobalAssumptions, useUpdateAdminConfig } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import type { IcpLocation, IcpLocationCity } from "./icp-config";
+import type { IcpLocation } from "./icp-config";
 
 interface GeoCountry {
   name: string;

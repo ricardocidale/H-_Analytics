@@ -5,7 +5,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconTrendingUp, IconPercent, IconCheckCircle, IconXCircle } from "@/components/icons";
 import { formatMoney } from "@/lib/financialEngine";
 import { InsightPanel } from "@/components/graphics";
-import { InputField, formatPct, formatRatio } from "./InputField";
+import { InputField, formatPct } from "./InputField";
 
 export function DebtYieldTab() {
   const [noi, setNoi] = useState("500000");

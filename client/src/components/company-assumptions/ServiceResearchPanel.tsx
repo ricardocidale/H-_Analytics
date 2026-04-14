@@ -1,4 +1,4 @@
-import { InfoTooltip } from "@/components/ui/info-tooltip";
+
 import { IconBookOpen } from "@/components/icons";
 import { computeServiceFee } from "@calc/research/service-fee";
 import { computeMarkupWaterfall } from "@calc/research/markup-waterfall";

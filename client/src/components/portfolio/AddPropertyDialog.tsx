@@ -17,7 +17,7 @@
  *
  * Exports AddPropertyFormData — the shape of the form's validated output.
  */
-import { PropertyStatus, PROPERTY_STATUS_VALUES } from "@shared/constants";
+import { PROPERTY_STATUS_VALUES } from "@shared/constants";
 import {
   getCountryDefaults,
   getUsStateDefaults,

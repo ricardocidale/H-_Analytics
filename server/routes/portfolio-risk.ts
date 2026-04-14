@@ -14,7 +14,7 @@ import { computePortfolioRiskScore } from "../ai/portfolio-risk-scorer";
 import { checkScenarioAccess } from "./scenario-helpers";
 import { logger } from "../logger";
 import { logActivity } from "./helpers";
-import { UserRole, isAdminRole } from "@shared/constants";
+import { isAdminRole } from "@shared/constants";
 
 export function register(app: Express): void {
   // ── Portfolio-wide risk score ──────────────────────────────────────────────

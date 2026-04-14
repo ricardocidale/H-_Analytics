@@ -40,7 +40,7 @@ export async function generateExcelFromReport(report: ReportDefinition): Promise
   return Buffer.from(buf);
 }
 
-export async function generateExcelBuffer(aiResult: any, data: { companyName?: string; entityName: string; years?: string[] }): Promise<Buffer> {
+export async function generateExcelBuffer(aiResult: any, _data: { companyName?: string; entityName: string; years?: string[] }): Promise<Buffer> {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
 

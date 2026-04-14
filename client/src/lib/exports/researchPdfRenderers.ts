@@ -420,6 +420,7 @@ async function buildResearchDoc(options: ResearchExportOptions) {
   } else if (options.type === "company") {
     y = renderCompanyResearch(doc, autoTable, options.content, y, pageW, brand);
   }
+  void y;
 
   const totalPages = (doc as any).internal.getNumberOfPages();
   const pageH = doc.internal.pageSize.getHeight();

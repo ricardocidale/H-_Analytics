@@ -3,9 +3,8 @@ import { motion } from "framer-motion";
 import { differenceInCalendarDays, parseISO, format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import {
-  IconActivity,
   IconRefreshCw,
   IconBookOpen,
   IconTrendingUp,

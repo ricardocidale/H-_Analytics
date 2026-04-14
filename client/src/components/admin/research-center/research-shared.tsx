@@ -10,7 +10,7 @@ import { X, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import {
   IconPlus, IconLink, IconGlobe, IconExternalLink,
 } from "@/components/icons";
-import type { ResearchEventConfig, ResearchSourceEntry, ResearchConfig, AiModelEntry, ContextLlmConfig, LlmVendor, LlmMode } from "@shared/schema";
+import type { ResearchEventConfig, ResearchSourceEntry, ResearchConfig, AiModelEntry, ContextLlmConfig, LlmVendor } from "@shared/schema";
 
 export const DETERMINISTIC_TOOLS = [
   { name: "compute_property_metrics",    description: "RevPAR, room revenue, GOP, NOI margin" },

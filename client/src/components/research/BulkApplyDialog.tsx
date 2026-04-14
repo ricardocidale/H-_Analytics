@@ -118,7 +118,7 @@ function BulkApplyDialog({
   }, [selected, onApply, onOpenChange, toast, onUndo]);
 
   const allSelected = selected.size === allFilteredKeys.size && allFilteredKeys.size > 0;
-  const someSelected = selected.size > 0 && selected.size < allFilteredKeys.size;
+  const _someSelected = selected.size > 0 && selected.size < allFilteredKeys.size;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

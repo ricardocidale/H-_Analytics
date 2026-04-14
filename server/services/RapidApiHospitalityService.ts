@@ -21,7 +21,7 @@ import { rapidApiHeaders, isRapidApiAvailable, type RapidApiSlot } from "./rapid
 import type { RapidApiCompSetData, StrListingSnapshot, DataPoint } from "../../shared/market-intelligence";
 
 const CACHE_TTL_SECONDS = 12 * 60 * 60;
-const MAX_RESULTS = 15;
+const _MAX_RESULTS = 15;
 
 const HOSTS = {
   airbnb:      "airbnb13.p.rapidapi.com",

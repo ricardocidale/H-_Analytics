@@ -1,8 +1,8 @@
-import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, scenarioAccess, propertyFeeCategories, propertyPhotos, scenarioResults, companyServiceTemplates, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type ScenarioShare, type ScenarioAccess, type ScenarioResult, type InsertScenarioResult, type FeeCategory, type InsertFeeCategory, type UpdateFeeCategory, properties, users } from "@shared/schema";
+import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, scenarioAccess, propertyFeeCategories, companyServiceTemplates, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type InsertScenarioResult, type InsertFeeCategory, type UpdateFeeCategory, properties } from "@shared/schema";
 import { db } from "../db";
-import { eq, desc, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
+import { eq, desc, isNull, or, sql, and } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
-import { computeFullDiff, reconstructScenarioProperties, type PropertyDiff } from "../scenarios/diff-engine";
+import { type PropertyDiff } from "../scenarios/diff-engine";
 import { USE_STABLE_SCENARIO_LOAD } from "@shared/constants";
 import { indexScenarioSummary } from "../ai/pinecone-service";
 import { logger } from "../logger";

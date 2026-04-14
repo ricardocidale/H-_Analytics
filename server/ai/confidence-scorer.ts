@@ -10,7 +10,7 @@
  */
 
 import type { AssumptionGuidance } from "@shared/schema/intelligence-v2";
-import { PROPERTY_ASSUMPTION_KEYS, COMPANY_ASSUMPTION_KEYS } from "./guidance/schemas";
+
 import { getHealthySources } from "./source-health-checker";
 
 // ---------------------------------------------------------------------------

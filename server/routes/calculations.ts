@@ -19,7 +19,7 @@ import { consolidateStatements } from "../../calc/analysis/consolidation";
 import { compareScenarios } from "../../calc/analysis/scenario-compare";
 import { computeBreakEven } from "../../calc/analysis/break-even";
 import { fromZodError } from "zod-validation-error";
-import { z } from "zod";
+
 import { DEFAULT_ROUNDING } from "../../calc/shared/utils";
 import { getOpenAIClient } from "../ai/clients";
 import { DEFAULT_OPENAI_MODEL } from "../ai/resolve-llm";
@@ -97,7 +97,7 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Verification run not found" });
       }
 
-      const globalAssumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
+      const _globalAssumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
       const llmModel = DEFAULT_OPENAI_MODEL;
 
       const openai = getOpenAIClient();
@@ -187,7 +187,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = computeDCF({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "DCF calculation failed" });
     }
   });
@@ -198,7 +198,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = buildIRRVector(validation.data);
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "IRR calculation failed" });
     }
   });
@@ -209,7 +209,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = computeEquityMultiple({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json({ equityMultiple: result });
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Equity multiple calculation failed" });
     }
   });
@@ -220,7 +220,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = computeExitValuation({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Exit valuation failed" });
     }
   });
@@ -231,7 +231,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = validateFinancialIdentities({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Identity validation failed" });
     }
   });
@@ -242,7 +242,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = checkFundingGates(validation.data);
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Funding gate check failed" });
     }
   });
@@ -253,7 +253,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = reconcileSchedule(validation.data);
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Schedule reconciliation failed" });
     }
   });
@@ -264,7 +264,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = checkAssumptionConsistency(validation.data);
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Consistency check failed" });
     }
   });
@@ -275,7 +275,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = verifyExport(validation.data);
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Export verification failed" });
     }
   });
@@ -286,7 +286,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = consolidateStatements({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Consolidation failed" });
     }
   });
@@ -297,7 +297,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = compareScenarios(validation.data);
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Scenario comparison failed" });
     }
   });
@@ -308,7 +308,7 @@ export function register(app: Express) {
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
       const result = computeBreakEven(validation.data);
       res.json(result);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       res.status(500).json({ error: "Break-even analysis failed" });
     }
   });

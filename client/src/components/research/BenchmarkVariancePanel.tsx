@@ -46,7 +46,7 @@ function getPercentileColor(value: number, p25: number, p50: number): string {
   return "text-red-600 dark:text-red-400";
 }
 
-function getBarColor(value: number, p25: number, p50: number): string {
+function _getBarColor(value: number, p25: number, p50: number): string {
   if (value >= p50) return "bg-green-500/20";
   if (value >= p25) return "bg-amber-500/20";
   return "bg-red-500/20";

@@ -178,7 +178,7 @@ export default function DocumentExtractionPanel({ propertyId }: { propertyId: nu
 
   const pendingFields = fields.filter((f) => f.status === "pending" && f.mappedPropertyField);
   const unmappedFields = fields.filter((f) => !f.mappedPropertyField);
-  const processedFields = fields.filter((f) => f.status !== "pending");
+  const _processedFields = fields.filter((f) => f.status !== "pending");
 
   return (
     <div className="space-y-4">

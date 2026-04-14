@@ -22,7 +22,7 @@ export function registerIntelligenceRoutes(app: Express) {
       if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
 
       const scenarioId = query.data.scenarioId ?? null;
-      const user = getAuthUser(_req);
+      const _user = getAuthUser(_req);
       const allPropsRaw = await storage.getAllProperties();
       const allProps = allPropsRaw
         .map(p => ({ id: p.id, name: p.name, starRating: p.starRating }))

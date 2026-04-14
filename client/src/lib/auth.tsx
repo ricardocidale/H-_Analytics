@@ -24,7 +24,7 @@
  * The auth state is cached for 5 minutes (staleTime) to avoid redundant network
  * calls on every page navigation.
  */
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserRole, isAdminRole } from "@shared/constants";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";

@@ -14,7 +14,6 @@ import {
   IconCpu,
   IconExternalLink,
 } from "@/components/icons";
-import { cn } from "@/lib/utils";
 
 interface ResearchCriteriaTabProps {
   type: "property" | "operations" | "marketing" | "industry";

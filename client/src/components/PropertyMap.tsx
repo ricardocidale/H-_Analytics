@@ -94,7 +94,7 @@ interface PropertyMapProps {
   propertyId: number;
 }
 
-export default function PropertyMap({ latitude, longitude, propertyName, propertyId }: PropertyMapProps) {
+export default function PropertyMap({ latitude, longitude, propertyName }: PropertyMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [showLegend, setShowLegend] = useState(true);

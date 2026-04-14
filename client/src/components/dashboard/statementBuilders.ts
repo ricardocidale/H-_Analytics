@@ -1,13 +1,11 @@
 import type { DashboardFinancials } from "./types";
 import type { Property } from "@shared/schema";
 import type { YearlyPropertyFinancials } from "@/lib/financial/yearlyAggregator";
-import type { YearlyCashFlowResult } from "@/lib/financial/loanCalculations";
+import type { } from "@/lib/financial/loanCalculations";
 import type { MonthlyFinancials } from "@/lib/financialEngine";
 import { propertyEquityInvested, acquisitionYearIndex } from "@/lib/financial/equityCalculations";
 import { yearEndSlice, sumMonthlyField, propertyPPE } from "@/lib/financial/portfolio-helpers";
-import { computeIRR } from "@analytics/returns/irr.js";
-import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_TAX_RATE, DEFAULT_INTEREST_RATE } from "@/lib/constants";
-import { DEFAULT_COST_OF_EQUITY, DEFAULT_SAFE_DISCOUNT_RATE } from "@shared/constants";
+
 import { generatePortfolioCashFlowData } from "./statement-builders/cash-flow";
 import { generatePortfolioInvestmentData } from "./statement-builders/investment";
 

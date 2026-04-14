@@ -1,14 +1,14 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess , getAuthUser } from "../auth";
-import { insertPropertySchema, updatePropertySchema, updateFeeCategorySchema, type GlobalAssumptions } from "@shared/schema";
+import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 import { logActivity, logAndSendError } from "./helpers";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
 import { processNotificationEvent, evaluateAlertRules } from "../notifications/engine";
 import { createEvent } from "../notifications/events";
-import { UserRole, isAdminRole } from "@shared/constants";
+import { isAdminRole } from "@shared/constants";
 import { invalidateComputeCache } from "../finance/cache";
 import { buildPropertyDefaultsFromRegistry } from "@shared/field-registry";
 import { logger } from "../logger";

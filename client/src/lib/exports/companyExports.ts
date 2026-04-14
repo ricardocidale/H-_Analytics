@@ -7,9 +7,6 @@ import { saveFile, saveDataUrl } from "@/lib/exports/saveFile";
 import { buildFinancialTableConfig, addFooters, drawTitle, drawSubtitle, drawSubtitleRow } from "@/lib/exports/pdfHelpers";
 import { PAGE_DIMS, type ThemeColor, buildBrandPalette } from "@/lib/exports/exportStyles";
 import {
-  exportCompanyIncomeStatement,
-  exportCompanyCashFlow,
-  exportCompanyBalanceSheet
 } from "@/lib/exports/excelExport";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 

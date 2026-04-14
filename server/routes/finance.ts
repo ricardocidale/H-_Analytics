@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import superjson from "superjson";
-import { computePortfolioProjection, computePortfolioProjectionWithAudit, computeSingleProperty, computeCompanyProjection } from "../finance/service";
+import { computePortfolioProjectionWithAudit, computeSingleProperty, computeCompanyProjection } from "../finance/service";
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../auth";

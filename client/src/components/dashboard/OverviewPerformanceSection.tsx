@@ -2,7 +2,7 @@ import React from "react";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { ResponsiveContainer, BarChart, Bar, XAxis, CartesianGrid, LabelList } from "recharts";
+import { BarChart, Bar, XAxis, CartesianGrid, LabelList } from "recharts";
 import { RadialGauge } from "@/lib/charts";
 import { formatMoney } from "@/lib/financialEngine";
 

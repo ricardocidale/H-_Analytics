@@ -1,9 +1,9 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireAdmin, isApiRateLimited, checkPropertyAccess , getAuthUser } from "../auth";
-import { researchGenerateSchema, researchQuestionCreateSchema, researchQuestionPatchSchema, logActivity, logAndSendError } from "./helpers";
+import { requireAuth, isApiRateLimited, checkPropertyAccess , getAuthUser } from "../auth";
+import { researchGenerateSchema, logActivity, logAndSendError } from "./helpers";
 import { fromZodError } from "zod-validation-error";
-import { generateResearchWithToolsStream, buildUserPrompt, parseResearchJSON, extractResearchValues } from "../ai/aiResearch";
+import { generateResearchWithToolsStream, parseResearchJSON, extractResearchValues } from "../ai/aiResearch";
 import { orchestrateResearch, isOrchestratorAvailable, type OrchestratorModelOverrides } from "../ai/research-orchestrator";
 import { validateResearchValues } from "../../calc/research/validate-research";
 import { processNotificationEvent } from "../notifications/engine";

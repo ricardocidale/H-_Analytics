@@ -7,8 +7,6 @@ import { ArrowLeft, Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle } from "@/components/icons";
 import { Link, useRoute } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Label } from "@/components/ui/label";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 export default function PropertyPhotos() {
   const [, params] = useRoute("/property/:id/photos");

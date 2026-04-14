@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useExportSave } from "@/hooks/useExportSave";
 import { useStore } from "@/lib/store";
-import { AnimatedPage, ScrollReveal, KPIGrid, InsightPanel, DonutChart, formatCompact, formatPercent } from "@/components/graphics";
+import { AnimatedPage, ScrollReveal, KPIGrid, InsightPanel, DonutChart } from "@/components/graphics";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from "recharts";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction } from "@/components/ui/export-toolbar";
 import { exportTablePNG, captureChartAsImage } from "@/lib/exports/pngExport";

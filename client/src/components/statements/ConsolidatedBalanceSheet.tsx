@@ -37,7 +37,7 @@ interface Props {
 }
 
 export function ConsolidatedBalanceSheet({ properties, global, allProFormas, year, propertyIndex }: Props) {
-  const projectionYears = global?.projectionYears ?? PROJECTION_YEARS;
+  const _projectionYears = global?.projectionYears ?? PROJECTION_YEARS;
   const fiscalYearStartMonth = global.fiscalYearStartMonth ?? 1;
   const displayYear = global.modelStartDate
     ? getFiscalYearForModelYear(global.modelStartDate, fiscalYearStartMonth, year)

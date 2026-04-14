@@ -12,7 +12,7 @@
  */
 import React from "react";
 import { Link } from "wouter";
-import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
+import { CurrentThemeTab } from "@/components/ui/tabs";
 import { IconSettings, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconInvestment } from "@/components/icons";import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { FinancialChart } from "@/components/ui/financial-chart";

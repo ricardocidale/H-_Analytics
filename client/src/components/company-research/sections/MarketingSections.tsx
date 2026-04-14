@@ -3,12 +3,11 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell,
 } from "recharts";
-import {
-  IconDollarSign, IconLayers, IconTrendingUp, IconUsers, IconTarget,
+import { IconLayers, IconTrendingUp, IconUsers, IconTarget,
   IconBriefcase, IconMapPin, IconStar, IconShield, IconPieChart,
   IconGlobe, IconHotel, IconHeart, IconMountain, IconBed,
 } from "@/components/icons";
-import { EmptyState, MetricCard, SectionTitle, CustomTooltip, stagger, PIE_COLORS } from "../shared";
+import { EmptyState, MetricCard, SectionTitle, CustomTooltip, stagger } from "../shared";
 
 export function GuestPersonas({ hasData, onGenerate }: { hasData: boolean; onGenerate: () => void }) {
   if (!hasData) return <EmptyState title="Guest Personas" description="Generate research to see guest persona segmentation and seasonal patterns." onGenerate={onGenerate} />;

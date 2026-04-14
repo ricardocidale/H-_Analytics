@@ -16,7 +16,7 @@ import { logger } from "../logger";
 import { invalidateComputeCache } from "../finance/cache";
 import { sendScenarioShareNotification, sendAdminShareNotification } from "../integrations/resend";
 import { getAppUrl } from "../providers/config";
-import { UserRole, isAdminRole } from "@shared/constants";
+import { isAdminRole } from "@shared/constants";
 import { compareScenarios as compareScenarioMetrics } from "@calc/analysis/scenario-compare";
 import type { ScenarioMetrics } from "@calc/analysis/scenario-compare";
 import { computePortfolioProjection } from "../finance/service";
@@ -24,8 +24,6 @@ import {
   requireScenarioPermission,
   importScenarioSchema,
   shareScenarioSchema,
-  scenarioIdSchema,
-  checkScenarioAccess,
   extractScenarioComputeInputs,
   buildCreateSnapshotData,
   tryComputeResults,

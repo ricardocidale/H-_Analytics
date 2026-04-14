@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireManagementAccess, requireAuth, getAuthUser } from "../auth";
+import { requireAuth, getAuthUser } from "../auth";
 import type { ComputedResultsSnapshot } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";

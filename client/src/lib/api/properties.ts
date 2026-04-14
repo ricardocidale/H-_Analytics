@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Property, InsertProperty, UpdateProperty } from "@shared/schema";
+import type { InsertProperty, UpdateProperty } from "@shared/schema";
 import { PropertyResponse, FeeCategoryResponse } from "./types";
 
 const ALL_FINANCIAL_QUERY_KEYS = [

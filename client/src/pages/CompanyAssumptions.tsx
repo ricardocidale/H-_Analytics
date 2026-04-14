@@ -24,7 +24,7 @@
  * On save, the entire formData object is POSTed to the global-assumptions
  * endpoint, and all financial queries are invalidated for full recalculation.
  */
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
@@ -56,7 +56,7 @@ import {
   SummaryFooter,
 } from "@/components/company-assumptions";
 import { GovernedFieldWrapper } from "@/components/ui/governed-field";
-import { UserRole, isAdminRole, GOVERNED_FIELDS, DEPRECIATION_YEARS, DAYS_PER_MONTH } from "@shared/constants";
+import { isAdminRole, GOVERNED_FIELDS, DEPRECIATION_YEARS, DAYS_PER_MONTH } from "@shared/constants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
@@ -120,7 +120,7 @@ function fmtNum(v: number): string {
 
 export default function CompanyAssumptions() {
   const [, setLocation] = useLocation();
-  const { data: global, isLoading, isError, refetch } = useGlobalAssumptions();
+  const { data: global, isLoading, isError } = useGlobalAssumptions();
   const { data: properties = [] } = useProperties();
   const { data: allFeeCategories = [] } = useAllFeeCategories();
   const updateMutation = useUpdateGlobalAssumptions();

@@ -148,7 +148,7 @@ Use the entity context above to determine the EXACT comparable set. Do not guess
 For every recommended metric, include a "confidence" field with one of: "high" (strong data support), "medium" (reasonable extrapolation), or "low" (limited data, significant uncertainty).`;
 }
 
-function buildTier2Instructions(assumptionKeys: string[], entityType: "property" | "company"): string {
+function buildTier2Instructions(assumptionKeys: string[], _entityType: "property" | "company"): string {
   return `## RESEARCH INSTRUCTIONS (Tier 2 — Single Assumption Deep-Dive)
 
 Focus ONLY on the following assumption${assumptionKeys.length > 1 ? "s" : ""}:

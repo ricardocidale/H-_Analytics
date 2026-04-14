@@ -22,7 +22,7 @@
  */
 import { useState } from "react";
 import { formatMoney } from "@/lib/financialEngine";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { IconInfo } from "@/components/icons";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -71,7 +71,7 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
   const revShareFB = property.revShareFB ?? DEFAULT_REV_SHARE_FB;
   const revShareOther = property.revShareOther ?? DEFAULT_REV_SHARE_OTHER;
   const cateringBoostPct = property.cateringBoostPercent ?? DEFAULT_CATERING_BOOST_PCT;
-  const cateringBoostMultiplier = 1 + cateringBoostPct;
+  const _cateringBoostMultiplier = 1 + cateringBoostPct;
 
   // Base monthly room revenue = rooms × days/month × nightly rate × occupancy
   const resolvedDaysPerMonth = global.daysPerMonth ?? DAYS_PER_MONTH;

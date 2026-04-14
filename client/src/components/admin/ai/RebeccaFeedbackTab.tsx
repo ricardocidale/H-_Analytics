@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { IconAlertCircle, IconCheckCircle, IconClock, IconAlertTriangle, IconEye } from "@/components/icons";
+import { IconAlertCircle, IconCheckCircle, IconAlertTriangle, IconEye } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";

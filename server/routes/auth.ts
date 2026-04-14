@@ -13,7 +13,7 @@ import {
   hashPassword,
   getAuthUser
 } from "../auth";
-import { loginSchema, adminLoginSchema, userResponse, fullName, logAndSendError } from "./helpers";
+import { loginSchema, adminLoginSchema, userResponse, logAndSendError } from "./helpers";
 import { ensureDefaultScenario } from "./scenario-helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";

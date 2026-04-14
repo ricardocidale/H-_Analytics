@@ -31,7 +31,7 @@
  * available from the tab bar. Data generators live in dashboardExports.ts.
  */
 import { APP_BRAND_NAME, USE_SERVER_EXPORTS } from "@shared/constants";
-import React, { useState, useRef, useCallback, useMemo, lazy, Suspense } from "react";
+import React, { useState, useRef, useCallback, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useExportSave } from "@/hooks/useExportSave";
 import Layout from "@/components/Layout";
@@ -129,7 +129,7 @@ export default function Dashboard() {
     }
   }, [activeTab, requestSave]);
 
-  const handleExportChartPNG = useCallback(async (customFilename?: string) => {
+  const _handleExportChartPNG = useCallback(async (customFilename?: string) => {
     if (!tabContentRef.current) return;
     try {
       const label = TAB_LABELS[activeTab] || "Portfolio Dashboard";

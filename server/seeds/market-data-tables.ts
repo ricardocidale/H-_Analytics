@@ -10,7 +10,7 @@
 import { db } from "../db";
 import {
   marketAdrIndex, seasonalCalendars, eventCalendars,
-  airportDistances, laborRates, fbBenchmarks,
+  laborRates, fbBenchmarks,
 } from "@shared/schema";
 import { and, eq } from "drizzle-orm";
 import { logger } from "../logger";

@@ -20,12 +20,9 @@
  * Phase events keep the client alive during the parallel wait.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicClient, getGeminiClient, getOpenAIClient } from "./clients";
 import { generateResearchWithTools } from "./aiResearch";
 import {
-  AnthropicResearchClient,
-  GeminiResearchClient,
   createResearchClient,
 } from "./research-client";
 import { buildUserPrompt, type ResearchParams } from "./research-prompt-builders";

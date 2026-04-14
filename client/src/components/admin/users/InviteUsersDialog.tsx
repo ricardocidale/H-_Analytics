@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconMail, IconSend, IconTrash, IconPlus } from "@/components/icons";
+import { IconMail, IconSend, IconTrash } from "@/components/icons";
 import { UserRole } from "@shared/constants";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";

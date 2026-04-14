@@ -16,7 +16,7 @@
 import "dotenv/config";
 import { db } from "../db";
 import { propertyPhotos, properties } from "@shared/schema";
-import { eq, isNull, like } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { logger } from "../logger";
 
 const BASE_URL = process.env.BASE_URL ?? "https://partner-portal-landb.replit.app";

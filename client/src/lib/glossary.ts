@@ -6,7 +6,7 @@ interface GlossaryEntry {
   category?: string;
 }
 
-const GLOSSARY: Record<string, GlossaryEntry> = {
+const _GLOSSARY: Record<string, GlossaryEntry> = {
   "ADR": {
     term: "ADR (Average Daily Rate)",
     definition: "Average revenue earned per occupied room per day.",

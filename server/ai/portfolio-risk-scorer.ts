@@ -11,7 +11,7 @@
  */
 
 import type { Property } from "@shared/schema";
-import { COUNTRY_DEFAULTS, getCountryDefaults } from "@shared/countryDefaults";
+import { getCountryDefaults } from "@shared/countryDefaults";
 
 // ─── Public Interface ──────────────────────────────────────────────────────────
 

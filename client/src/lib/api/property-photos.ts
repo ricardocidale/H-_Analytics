@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { PropertyPhoto, InsertPropertyPhoto, UpdatePropertyPhoto } from "@shared/schema";
+import type { PropertyPhoto, UpdatePropertyPhoto } from "@shared/schema";
 import { invalidateAllFinancialQueries } from "./properties";
 
 // --- Fetch helpers ---

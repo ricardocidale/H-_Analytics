@@ -135,7 +135,7 @@ const TornadoDiagram = forwardRef<TornadoDiagramRef, TornadoDiagramProps>(
             .attr("rx", 3)
             .attr("fill", COLORS.upside)
             .style("cursor", "pointer")
-            .on("mouseenter", function (event) {
+            .on("mouseenter", function (_event) {
               select(this).attr("opacity", 0.85);
               tooltip
                 .style("opacity", "1")
@@ -164,7 +164,7 @@ const TornadoDiagram = forwardRef<TornadoDiagramRef, TornadoDiagramProps>(
             .attr("rx", 3)
             .attr("fill", COLORS.downside)
             .style("cursor", "pointer")
-            .on("mouseenter", function (event) {
+            .on("mouseenter", function (_event) {
               select(this).attr("opacity", 0.85);
               tooltip
                 .style("opacity", "1")

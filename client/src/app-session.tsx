@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";

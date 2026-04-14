@@ -227,7 +227,7 @@ export async function searchWithTavily(
   }
 
   const query = buildMarketQuery(request);
-  const startTime = Date.now();
+  const _startTime = Date.now();
 
   try {
     const response = await fetch("https://api.tavily.com/search", {

@@ -4,8 +4,7 @@ import type { GlobalResponse } from "@/lib/api";
 import { USE_SERVER_COMPUTE } from "@shared/constants";
 import { useServerFinancials } from "@/hooks/useServerFinancials";
 import { 
-  generatePropertyProForma, 
-  getFiscalYearForModelYear 
+  generatePropertyProForma 
 } from "@/lib/financialEngine";
 import {
   PROJECTION_YEARS,
@@ -16,7 +15,6 @@ import {
   GlobalLoanParams 
 } from "@/lib/financial/loanCalculations";
 import {
-  aggregatePropertyByYear,
   aggregateUnifiedByYear,
   YearlyPropertyFinancials
 } from "@/lib/financial/yearlyAggregator";

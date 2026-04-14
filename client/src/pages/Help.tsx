@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
-import { IconHelp, IconFileCheck, IconShield, IconActivity } from "@/components/icons";
+import { IconFileCheck, IconShield, IconActivity } from "@/components/icons";
 import { Share2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 type HelpTab = "user-manual" | "checker-manual" | "guided-tour" | "architecture";
 
 export default function Help() {
-  const { user, isAdmin, isChecker: authIsChecker } = useAuth();
+  const { isAdmin, isChecker: authIsChecker } = useAuth();
   const isChecker = isAdmin || authIsChecker;
   const [tab, setTab] = useState<HelpTab>("user-manual");
   const { setTourActive, setShownThisSession } = useWalkthroughStore();

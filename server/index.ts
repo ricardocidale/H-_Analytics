@@ -32,7 +32,7 @@ import { createServer } from "http";
 import { authMiddleware, requireAuth, seedAdminUser, cleanupRateLimitMaps } from "./auth";
 import { storage } from "./storage";
 import { log as serverLog } from "./logger";
-import { initSentry, sentryRequestHandler, sentryErrorHandler, setupSentryExpressErrorHandler } from "./sentry";
+import { initSentry, sentryRequestHandler, setupSentryExpressErrorHandler } from "./sentry";
 import {
   COMPRESSION_THRESHOLD_BYTES,
   CACHE_MAX_AGE_SECONDS,

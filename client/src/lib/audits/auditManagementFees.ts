@@ -44,7 +44,7 @@ export function auditManagementFees(
       });
     }
     
-    const expectedIncentiveFee = m.gop > 0 ? Math.max(0, m.gop * incentiveFeeRate) : 0;
+    const _expectedIncentiveFee = m.gop > 0 ? Math.max(0, m.gop * incentiveFeeRate) : 0;
     if (m.feeIncentive < 0) {
       findings.push({
         category: "Management Fees",

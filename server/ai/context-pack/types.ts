@@ -1,4 +1,4 @@
-import type { Property, HospitalityType } from "@shared/schema";
+import type { } from "@shared/schema";
 
 export interface PropertyContextPack {
   identity: {

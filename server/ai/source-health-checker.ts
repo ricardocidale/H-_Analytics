@@ -6,7 +6,7 @@
  * Updates the source_registry row with latency, trust score, and success rate.
  */
 import { db } from "../db";
-import { sourceRegistry, hospitalityBenchmarks } from "@shared/schema";
+import { sourceRegistry } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { logger } from "../logger";
 

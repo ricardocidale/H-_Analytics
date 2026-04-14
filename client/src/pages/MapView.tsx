@@ -8,11 +8,7 @@ import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import Supercluster from "supercluster";
 import {
   resolveCoords,
-  formatMoney,
-  formatLocation,
   getPerformanceTier,
-  statusColor,
-  getMarketColorInternational,
   MAP_STYLES,
   type GeoProperty,
   type ColorMode,

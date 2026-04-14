@@ -17,7 +17,7 @@ import { UserRole, isAdminRole } from "@shared/constants";
 import { Link } from "wouter";
 import type { ColorMode, BgAnimation, FontPreference, AppearanceDefaults } from "@/lib/theme/appearance";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
-import { Sun, Moon, Monitor, Type, Sparkles } from "lucide-react";
+import { Sun, Moon, Monitor, Sparkles } from "lucide-react";
 
 export default function Profile() {
   const { toast } = useToast();
@@ -200,7 +200,7 @@ export default function Profile() {
 
   const handleSave = () => {
     if (user && isAdminRole(user.role)) {
-      const { email, ...rest } = formData;
+      const { ...rest } = formData;
       updateMutation.mutate(rest);
     } else {
       updateMutation.mutate(formData);

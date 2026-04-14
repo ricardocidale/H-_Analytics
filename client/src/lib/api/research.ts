@@ -9,7 +9,6 @@ import {
   MarketContextResponse,
   PropertyValueHistory,
 } from "./types";
-import { invalidateAllFinancialQueries } from "./properties";
 
 export function useResearchStatus() {
   return useQuery<any>({

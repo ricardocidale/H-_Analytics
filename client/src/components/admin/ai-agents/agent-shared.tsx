@@ -89,7 +89,7 @@ export function AgentCard({
   type,
   description,
   icon: Icon,
-  isActive,
+  
   isEnabled,
   isSelected,
   onToggle,

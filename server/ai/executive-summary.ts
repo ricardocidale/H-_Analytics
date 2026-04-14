@@ -16,7 +16,7 @@ import { getCountryDefaults } from "@shared/countryDefaults";
 import { getRegulatoryProfile } from "@shared/regulatory-data";
 import { computeStressScenarios, type StressAssumptions } from "../../engine/helpers/stress-scenarios";
 import { computePortfolioRiskScore } from "./portfolio-risk-scorer";
-import { computeConfidenceBreakdown, type ConfidenceBreakdown } from "./confidence-scorer";
+import { computeConfidenceBreakdown } from "./confidence-scorer";
 import { getAnthropicClient } from "./clients";
 import { logger } from "../logger";
 

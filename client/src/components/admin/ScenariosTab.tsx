@@ -20,7 +20,7 @@ export default function ScenariosTab() {
 
   const [search, setSearch] = useState("");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
-  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [_groupFilter, _setGroupFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);

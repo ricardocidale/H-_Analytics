@@ -24,7 +24,7 @@ interface PropertyPhotoUploadProps {
   onUploadComplete?: (newImageUrl: string) => void;
 }
 
-export function PropertyPhotoUpload({ propertyId, currentImageUrl, onUploadComplete }: PropertyPhotoUploadProps) {
+export function PropertyPhotoUpload({ propertyId, onUploadComplete }: PropertyPhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const updateProperty = useUpdateProperty();

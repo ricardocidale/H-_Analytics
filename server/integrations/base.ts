@@ -1,6 +1,6 @@
 import { cache } from "../cache";
 import { logger } from "../logger";
-import { startSpanAsync, captureException } from "../sentry";
+import { startSpanAsync } from "../sentry";
 import {
   CIRCUIT_BREAKER_FAILURE_THRESHOLD,
   CIRCUIT_BREAKER_WINDOW_MS,

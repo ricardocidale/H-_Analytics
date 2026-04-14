@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,9 +41,9 @@ export function RebeccaConfig({
   onDisplayNameChange,
   onSystemPromptChange,
   onChatEngineChange,
-  onSave,
-  isSaving,
-  isDirty,
+  
+  
+  
 }: RebeccaConfigProps) {
   return (
     <motion.div

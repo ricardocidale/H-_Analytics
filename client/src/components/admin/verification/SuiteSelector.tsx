@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { IconCheckCircle2, IconXCircle, IconAlertTriangle, IconPlayCircle } from "@/components/icons";
+import { IconCheckCircle2, IconXCircle, IconAlertTriangle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Server, Calculator, Shield, GitCompare, Scale, Sparkles, FlaskConical } from "@/components/icons/themed-icons";
 import type { SuiteId, SuiteDefinition, SuiteRunResult } from "./types";

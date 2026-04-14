@@ -1,5 +1,5 @@
 import { type Express, type Request, type Response } from "express";
-import { requireAuth, getAuthUser } from "../auth";
+import { requireAuth } from "../auth";
 import { z } from "zod";
 import { logger } from "../logger";
 import { storage } from "../storage";

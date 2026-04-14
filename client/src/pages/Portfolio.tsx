@@ -82,14 +82,14 @@ type PortfolioTab = "properties" | "map";
 
 export default function Portfolio() {
   const { data: properties, isLoading, isError } = useProperties();
-  const { data: global } = useGlobalAssumptions();
+  const { data: _global } = useGlobalAssumptions();
   const { data: allPropertyUrls = [] } = useAllPropertyUrls();
   const deleteProperty = useDeleteProperty();
   const createProperty = useCreateProperty();
   const updateProperty = useUpdateProperty();
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<PortfolioTab>("properties");
+  const [_activeTab, _setActiveTab] = useState<PortfolioTab>("properties");
   const [formData, setFormData] = useState<AddPropertyFormData>({ ...INITIAL_FORM_DATA });
 
   const handleAcquisitionDateChange = (date: string) => {

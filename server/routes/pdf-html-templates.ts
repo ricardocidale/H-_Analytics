@@ -190,8 +190,8 @@ export interface PdfSection {
 export function buildPdfHtml(aiResult: { sections?: PdfSection[] }, data: PdfTemplateData): string {
   const sections = aiResult.sections || [];
   const isL = data.orientation === "landscape";
-  const pageW = isL ? "406.4mm" : "215.9mm";
-  const pageH = isL ? "228.6mm" : "279.4mm";
+  const _pageW = isL ? "406.4mm" : "215.9mm";
+  const _pageH = isL ? "228.6mm" : "279.4mm";
 
   const parts: string[] = [];
   for (const section of sections) {

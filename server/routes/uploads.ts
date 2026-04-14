@@ -6,7 +6,7 @@ import { fromZodError } from "zod-validation-error";
 import { randomUUID } from "crypto";
 import { processImage, type CropRegion } from "../image/pipeline";
 import { storage } from "../storage";
-import { UserRole, isAdminRole } from "@shared/constants";
+import { isAdminRole } from "@shared/constants";
 import { MAX_UPLOAD_BYTES } from "../constants";
 import { logger } from "../logger";
 import { isBlockedHostResolved } from "./ssrf-guard";

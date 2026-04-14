@@ -6,8 +6,8 @@ import { CityCombobox } from "@/components/ui/city-combobox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
-import { IconPhone, IconGlobe, IconHash, IconCalendar, IconProperties, IconMail, IconMapPin, IconPercent } from "@/components/icons";
-import defaultLogo from "@/assets/logo.png";
+import { IconPhone, IconGlobe, IconHash, IconCalendar, IconMail, IconMapPin, IconPercent } from "@/components/icons";
+
 import { PROJECTION_YEARS } from "@/lib/constants";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import LogoSelector from "@/components/admin/LogoSelector";

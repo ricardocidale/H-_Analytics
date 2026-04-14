@@ -172,7 +172,7 @@ export function runIndependentVerification(
 
     const midYear = Math.floor(projectionYears / 2);
     const serverYear1    = aggregateYearMetrics(engineCalc.slice(0, MONTHS_PER_YEAR));
-    const serverMidYear  = aggregateYearMetrics(engineCalc.slice(midYear * MONTHS_PER_YEAR, (midYear + 1) * MONTHS_PER_YEAR));
+    const _serverMidYear  = aggregateYearMetrics(engineCalc.slice(midYear * MONTHS_PER_YEAR, (midYear + 1) * MONTHS_PER_YEAR));
     const serverLastYear = aggregateYearMetrics(engineCalc.slice((projectionYears - 1) * MONTHS_PER_YEAR, projectionMonths));
 
     if (serverYear1.revenue > 0 && serverLastYear.revenue > 0) {

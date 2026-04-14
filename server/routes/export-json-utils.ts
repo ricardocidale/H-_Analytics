@@ -7,7 +7,7 @@ export function repairTruncatedJson(str: string): string {
 
   let inString = false;
   let escape = false;
-  let lastValidPos = s.length;
+  let _lastValidPos = s.length;
   const stack: string[] = [];
 
   for (let i = 0; i < s.length; i++) {
@@ -19,7 +19,7 @@ export function repairTruncatedJson(str: string): string {
     if (ch === "{" || ch === "[") stack.push(ch);
     else if (ch === "}") { if (stack.length && stack[stack.length - 1] === "{") stack.pop(); }
     else if (ch === "]") { if (stack.length && stack[stack.length - 1] === "[") stack.pop(); }
-    lastValidPos = i + 1;
+    _lastValidPos = i + 1;
   }
 
   if (inString) {

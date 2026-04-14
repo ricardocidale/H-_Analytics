@@ -65,7 +65,7 @@ export async function exportDashboardComprehensivePDF(params: ComprehensiveDashb
   const pageH = PAGE_DIMS.LANDSCAPE_H;
   const years = Array.from({ length: projectionYears }, (_, i) => getFiscalYear(i));
   const entityTag = `${companyName} \u2014 Consolidated Portfolio`;
-  const dateStr = format(new Date(), "MMMM d, yyyy");
+  const _dateStr = format(new Date(), "MMMM d, yyyy");
   const projRange = `${years[0]} \u2013 ${years[years.length - 1]}`;
 
   const cfg = loadExportConfig();

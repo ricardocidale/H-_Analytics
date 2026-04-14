@@ -9,7 +9,6 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowDownRight,
   ArrowUpRight,
-  BarChart3,
   Clock,
   FileText,
   RefreshCw,

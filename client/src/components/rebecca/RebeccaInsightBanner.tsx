@@ -69,7 +69,7 @@ const TYPE_STYLES = {
   tip: "border-emerald-400/30 bg-emerald-50/50 dark:bg-emerald-950/20",
 } as const;
 
-const TYPE_ICONS = {
+const _TYPE_ICONS = {
   observation: Lightbulb,
   warning: Lightbulb,
   tip: Lightbulb,

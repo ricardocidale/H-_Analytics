@@ -23,7 +23,7 @@ const EMBED_MODEL    = "text-embedding-3-small";
 const EMBED_DIMS     = 1536;
 const EMBED_BATCH    = 20;
 const PINECONE_REGION = process.env.PINECONE_REGION || "us-east-1";
-const DOC_MAX_CHARS  = 100_000;
+const _DOC_MAX_CHARS  = 100_000;
 
 let _embeddingClient: OpenAI | null = null;
 let _embeddingAvailable: boolean | null = null;

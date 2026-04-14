@@ -1,7 +1,6 @@
 import { formatMoney } from "@/lib/financialEngine";
 import {
   SectionHeader,
-  SubtotalRow,
   LineItem,
   ExpandableLineItem,
   ExpandableMetricRow,

@@ -37,7 +37,7 @@ const RESEARCH_DOMAINS: DomainEntry[] = [
   { key: "market", label: "Market & Industry", icon: IconTrendingUp, configField: "marketLlm" },
 ];
 
-const REBECCA_DOMAIN: DomainEntry = { key: "chatbot", label: "Rebecca", icon: IconMessageCircle, configField: "chatbotLlm" };
+const _REBECCA_DOMAIN: DomainEntry = { key: "chatbot", label: "Rebecca", icon: IconMessageCircle, configField: "chatbotLlm" };
 
 function getModelDisplay(config: ResearchConfig | undefined, configField: string): { vendor: string; model: string } | null {
   if (!config) return null;

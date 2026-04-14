@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { useProperties, useGlobalAssumptions } from "@/lib/api";
-import { generatePropertyProForma, formatMoney } from "@/lib/financialEngine";
+import { generatePropertyProForma } from "@/lib/financialEngine";
 import { PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, DEFAULT_PROPERTY_INFLATION_RATE, DEFAULT_COST_RATE_INSURANCE, MONTHS_PER_YEAR } from "@/lib/constants";
 import { computeIRR } from "@analytics/returns/irr.js";
 import type { SensitivityResponse } from "@shared/sensitivity-types";
@@ -138,7 +138,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
   // ── Server-side static analysis (39 runs: 14 tornado + 25 heatmap) ────────────
   // Runs once on page load. Client keeps only the 2 interactive slider runs above.
   const propertyIdParam = selectedPropertyId === "all" ? "all" : Number(selectedPropertyId);
-  const { data: serverData, isLoading: serverLoading } = useQuery<SensitivityResponse>({
+  const { data: serverData, isLoading: _serverLoading } = useQuery<SensitivityResponse>({
     queryKey: ["sensitivity", propertyIdParam],
     queryFn: async () => {
       const res = await fetch("/api/finance/sensitivity", {

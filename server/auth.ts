@@ -33,7 +33,7 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { storage } from "./storage";
-import type { User, ScenarioGlobalAssumptionsSnapshot, ScenarioPropertySnapshot } from "@shared/schema";
+import type { ScenarioGlobalAssumptionsSnapshot, ScenarioPropertySnapshot } from "@shared/schema";
 import { logger } from "./logger";
 import { UserRole, isAdminRole } from "@shared/constants";
 import { DEV_SKIP_AUTH } from "./dev-flags";

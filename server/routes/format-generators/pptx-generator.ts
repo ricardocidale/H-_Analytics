@@ -142,7 +142,7 @@ export async function generatePptxFromReport(report: ReportDefinition): Promise<
       });
       slide.addShape("rect", { x: 0.5, y: 0.65, w: 12, h: 0.02, fill: { color: strip(t.secondary) } });
 
-      const chartData = section.series.map((s, si) => ({
+      const chartData = section.series.map((s, _si) => ({
         name: s.label,
         labels: section.years,
         values: s.values,

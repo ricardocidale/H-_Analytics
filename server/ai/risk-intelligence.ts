@@ -12,8 +12,8 @@
  */
 
 import type { Property } from "@shared/schema";
-import { getCountryDefaults, type CountryDefaults } from "@shared/countryDefaults";
-import { getRegulatoryProfile, type RegulatoryProfile } from "@shared/regulatory-data";
+import { getCountryDefaults } from "@shared/countryDefaults";
+import { getRegulatoryProfile } from "@shared/regulatory-data";
 import { computePortfolioRiskScore, type PortfolioRiskReport } from "./portfolio-risk-scorer";
 import { fetchMacroRates } from "./ambient/fetchers";
 import { getAnthropicClient } from "./clients";

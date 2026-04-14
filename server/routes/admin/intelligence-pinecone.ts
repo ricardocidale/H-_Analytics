@@ -3,7 +3,7 @@ import { storage } from "../../storage";
 import { requireAdmin, getAuthUser } from "../../auth";
 import { logAndSendError, logActivity } from "../helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+
 import { isPineconeAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type PineconeNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/pinecone-service";
 import { mapCategoryToKpis } from "../../ai/pinecone-indexing";
 import { indexAllAssets } from "../../ai/asset-intelligence";

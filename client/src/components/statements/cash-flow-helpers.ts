@@ -1,4 +1,4 @@
-import { MonthlyFinancials, formatMoney } from "@/lib/financialEngine";
+import { MonthlyFinancials } from "@/lib/financialEngine";
 import {
   LoanParams,
   GlobalLoanParams,

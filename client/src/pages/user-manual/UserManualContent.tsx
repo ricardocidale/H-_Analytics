@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo } from "react";
+import { Suspense, lazy } from "react";
 import type { UserManualSection } from "./constants";
 
 const sectionMap: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {

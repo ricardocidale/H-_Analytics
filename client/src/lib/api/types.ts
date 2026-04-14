@@ -1,4 +1,4 @@
-import { Property, InsertProperty, UpdateProperty } from "@shared/schema";
+import { Property } from "@shared/schema";
 
 export type PropertyResponse = Property & {
   id: number;

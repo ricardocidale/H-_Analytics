@@ -1,4 +1,4 @@
-import { IconActivity, IconDashboard, IconProperties, IconBriefcase, IconSettings, IconScenarios, IconAnalysis, IconPropertyFinder, IconExport, IconBot, IconProfile, IconSwatchBook, IconShield, IconVerify, IconImage, IconInvestment, IconPanelLeft, IconBookOpen } from "@/components/icons";import type { ComponentType, SVGAttributes } from "react";
+import { IconActivity, IconDashboard, IconProperties, IconBriefcase, IconSettings, IconScenarios, IconAnalysis, IconPropertyFinder, IconExport, IconProfile, IconSwatchBook, IconShield, IconVerify, IconImage, IconInvestment, IconPanelLeft, IconBookOpen } from "@/components/icons";import type { ComponentType, SVGAttributes } from "react";
 
 export type AccessLevel = "all" | "management" | "admin";
 

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Layout from "@/components/Layout";
-import { AnimatedPage } from "@/components/graphics";
+
 import { PageHeader } from "@/components/ui/page-header";
-import { IconAnalysis, IconCalculator, IconCompare, IconTimeline, IconSliders, IconWallet } from "@/components/icons";
+import { IconCalculator, IconCompare, IconTimeline, IconSliders, IconWallet } from "@/components/icons";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
 import SensitivityAnalysis from "./SensitivityAnalysis";

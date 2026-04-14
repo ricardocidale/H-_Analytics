@@ -93,7 +93,7 @@ export class AlphaVantageService extends BaseIntegrationService {
     );
 
     return results
-      .map((r, i) => r.status === "fulfilled" && r.value ? r.value : null)
+      .map((r, _i) => r.status === "fulfilled" && r.value ? r.value : null)
       .filter((r): r is ReitSnapshot => r !== null);
   }
 

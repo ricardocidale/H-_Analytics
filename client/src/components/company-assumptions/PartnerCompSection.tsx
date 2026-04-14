@@ -15,7 +15,7 @@
  * The model start year is passed in so column headers show actual calendar
  * years (e.g. 2025, 2026, 2027…) rather than abstract "Year 1, Year 2…".
  */
-import { Label } from "@/components/ui/label";
+
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";

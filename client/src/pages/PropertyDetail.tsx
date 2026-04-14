@@ -56,7 +56,7 @@ export default function PropertyDetail() {
   const cashFlowTableRef = useRef<HTMLDivElement>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportType, setExportType] = useState<"pdf" | "xlsx" | "pptx" | "docx" | "chart">("pdf");
-  const [incomeAllExpanded, setIncomeAllExpanded] = useState(false);
+  const [incomeAllExpanded] = useState(false);
   const { requestSave, SaveDialog } = useExportSave();
   
   const { data: property, isLoading: propertyLoading, isError: propertyError } = useProperty(propertyId);

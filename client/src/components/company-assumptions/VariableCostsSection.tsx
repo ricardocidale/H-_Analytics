@@ -16,7 +16,7 @@
  * Research Badges display AI-benchmarked industry averages for marketing
  * spend and travel budgets when available.
  */
-import { Label } from "@/components/ui/label";
+
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";

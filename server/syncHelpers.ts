@@ -1,11 +1,11 @@
 import type { IStorage } from "./storage";
 import { seedServiceTemplates } from "./seeds/services";
-import { SEED_PROPERTY_DEFAULTS, DEFAULT_FEE_CATEGORIES, SEED_SYNC_PROPERTIES } from "./seeds/properties";
+import { DEFAULT_FEE_CATEGORIES, SEED_SYNC_PROPERTIES } from "./seeds/properties";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { db } from "./db";
 import { seedDefaults } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -187,7 +187,7 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
   const SEED_THEMES = [
     {
       name: "L+B Brand",
-      description: "The native application color system. Derived directly from the app's CSS custom properties — sage green primary, forest green secondary, warm cream backgrounds, and a charcoal sidebar. Earthy, natural, and trustworthy.",
+      description: "The native application color system. Derived directly from the app's CSS custom properties — sage green primary, forest green secondary, warm cream backgrounds a charcoal sidebar. Earthy, natural, and trustworthy.",
       isDefault: true,
       colors: [
         { name: "Sage Green",   rank: 1, hexCode: "#9FBCA4", description: "PALETTE: Primary brand color. Drives action buttons, active nav items, focus rings, and key highlights. CSS: --primary (hsl 131 18% 68%)" },
@@ -254,7 +254,7 @@ export async function runFillOnlySync(storage: IStorage, generateResearchValues?
   }
 
   const defaultTheme = await storage.getDefaultDesignTheme();
-  const fallbackThemeId = lbBrandThemeId ?? defaultTheme?.id;
+  const _fallbackThemeId = lbBrandThemeId ?? defaultTheme?.id;
 
   // Seed service templates (idempotent — seedServiceTemplates skips if any exist)
   try {

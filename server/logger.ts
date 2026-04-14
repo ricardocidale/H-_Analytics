@@ -3,6 +3,7 @@ export type LogLevel = "info" | "warn" | "error" | "debug";
 export function log(message: string, source = "server", level: LogLevel = "info") {
   const timestamp = new Date().toISOString();
   const levelUpper = level.toUpperCase();
+  // eslint-disable-next-line no-console
   console.log(`${timestamp} [${levelUpper}] [${source}] ${message}`);
 }
 

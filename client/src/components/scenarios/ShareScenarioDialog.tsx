@@ -34,7 +34,7 @@ export function ShareScenarioDialog({
   const [recipientName, setRecipientName] = useState<string | null>(null);
   const shareScenario = useShareScenario();
   const { data: grants, isLoading: grantsLoading } = useScenarioAccess();
-  const grantAccess = useGrantScenarioAccess();
+  const _grantAccess = useGrantScenarioAccess();
   const revokeAccess = useRevokeScenarioAccess();
   const { toast } = useToast();
 

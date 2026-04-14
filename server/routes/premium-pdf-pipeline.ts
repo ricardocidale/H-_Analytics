@@ -1,5 +1,5 @@
 import { BRAND } from "./premium-export-prompts";
-import { logger } from "../logger";
+
 import { type ThemeColorMap, resolveThemeColors } from "../theme-resolver";
 import { type PdfSection } from "./pdf-html-templates";
 import { filterFormulaRows } from "./format-generators/excel-generator";

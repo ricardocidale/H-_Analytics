@@ -1,6 +1,6 @@
 import { type Express } from "express";
 import { storage } from "../../storage";
-import { requireAdmin, requireAuth, requireChecker, isApiRateLimited , getAuthUser } from "../../auth";
+import { requireAdmin, requireChecker, isApiRateLimited , getAuthUser } from "../../auth";
 import { runFillOnlySync, runSmartSync } from "../../syncHelpers";
 import { logAndSendError, logActivity } from "../helpers";
 import { readFile } from "fs/promises";
@@ -133,7 +133,7 @@ async function checkDocHarmonyServer(verifyOutput: string): Promise<{ passed: bo
 
     const unique = Array.from(new Set(stale));
     return { passed: unique.length === 0, summary: unique.length === 0 ? "PASS" : `FAIL — ${unique[0]}` };
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
     return { passed: true, summary: "PASS (skipped — files not readable)" };
   }
 }

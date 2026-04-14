@@ -22,7 +22,7 @@ export default function EditableValue({
   format,
   min,
   max,
-  step,
+  
 }: {
   value: number;
   onChange: (v: number) => void;

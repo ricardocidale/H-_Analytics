@@ -24,7 +24,7 @@
 import "dotenv/config";
 import { db } from "../db";
 import { properties, propertyPhotos } from "@shared/schema";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { replicateService } from "../integrations/replicate";
 import { getStorageProvider } from "../providers/storage";
 import { storage } from "../storage";

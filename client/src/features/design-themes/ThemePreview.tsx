@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Check, X, Search, ChevronDown, Star, AlertTriangle } from "@/components/icons/themed-icons";
+import { Check, X, Search, Star, AlertTriangle } from "@/components/icons/themed-icons";
 import { IconEye, IconBell, IconStar, IconTrendingUp, IconUsers, IconDollarSign, IconAlertCircle } from "@/components/icons";
 import { BarChartCard } from "@/lib/charts/BarChartCard";
 import { LineChartMulti } from "@/lib/charts/LineChartMulti";

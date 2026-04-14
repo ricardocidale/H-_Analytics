@@ -61,7 +61,7 @@ export default function PropertyFinder() {
     searchParams ? searchParams.location : null,
     searchState
   );
-  const { data: savedSearches = [], isLoading: isSavedSearchesLoading } = useSavedSearches();
+  const { data: savedSearches = [], isLoading: _isSavedSearchesLoading } = useSavedSearches();
   const saveFavorite = useSaveFavorite();
   const deleteFavorite = useDeleteFavorite();
   const updateNotes = useUpdateFavoriteNotes();

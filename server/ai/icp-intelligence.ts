@@ -375,7 +375,7 @@ export function buildIcpConfigFromPortfolio(
     return { lo: fallbackMin, hi: fallbackMax };
   }
 
-  function fromAggSingle(agg: { mean: number } | null, fallback: number): number {
+  function _fromAggSingle(agg: { mean: number } | null, fallback: number): number {
     if (agg && agg.mean > 0) { fromPortfolio++; return Math.round(agg.mean); }
     fromDefaults++;
     return fallback;

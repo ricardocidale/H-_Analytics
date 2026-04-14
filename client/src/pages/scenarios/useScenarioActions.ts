@@ -66,7 +66,7 @@ export function useScenarioActions() {
       setNewScenarioName("");
       setNewScenarioDescription("");
       setIsCreating(false);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       toast({ title: "Error", description: "Failed to save scenario", variant: "destructive" });
     }
   };
@@ -78,7 +78,7 @@ export function useScenarioActions() {
       useScenarioDirtyState.getState().clearDirty();
       toast({ title: "Success", description: `Scenario "${name}" loaded successfully` });
       setLoadSharedWarning(null);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       toast({ title: "Error", description: "Failed to load scenario", variant: "destructive" });
     }
   };
@@ -93,7 +93,7 @@ export function useScenarioActions() {
       });
       toast({ title: "Success", description: "Scenario updated successfully" });
       setEditingScenario(null);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       toast({ title: "Error", description: "Failed to update scenario", variant: "destructive" });
     }
   };
@@ -102,7 +102,7 @@ export function useScenarioActions() {
     try {
       await deleteScenario.mutateAsync(id);
       toast({ title: "Success", description: `Scenario "${name}" deleted` });
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       toast({ title: "Error", description: "Failed to delete scenario", variant: "destructive" });
     }
   };
@@ -119,7 +119,7 @@ export function useScenarioActions() {
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: "Exported", description: `"${name}" downloaded as JSON` });
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       toast({ title: "Error", description: "Failed to export scenario", variant: "destructive" });
     }
   };
@@ -131,7 +131,7 @@ export function useScenarioActions() {
       queryClient.invalidateQueries({ queryKey: ["/api/scenarios"] });
       queryClient.invalidateQueries({ queryKey: ["scenarios"] });
       toast({ title: "Cloned", description: `"${name} (Copy)" created` });
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       toast({ title: "Error", description: "Failed to clone scenario", variant: "destructive" });
     }
   };
@@ -179,7 +179,7 @@ export function useScenarioActions() {
       const data: ScenarioCompareResult = await res.json();
       setCompareResult(data);
       setCompareDialogOpen(true);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       toast({ title: "Error", description: "Failed to compare scenarios", variant: "destructive" });
     } finally {
       setCompareLoading(false);

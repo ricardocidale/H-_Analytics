@@ -1,6 +1,6 @@
 import { BaseIntegrationService } from "./BaseIntegrationService";
 import { cache } from "../cache";
-import type { FREDRateData, DataPoint } from "../../shared/market-intelligence";
+import type { FREDRateData } from "../../shared/market-intelligence";
 
 interface FredObservation {
   date: string;

@@ -23,7 +23,7 @@ export function auditBalanceSheet(
   const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
   const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS;
   const depreciableBasis = (property.purchasePrice || 0) * (1 - landPct) + (property.buildingImprovements || 0);
-  const monthlyDepreciation = depreciableBasis / effectiveDepYears / MONTHS_PER_YEAR;
+  const _monthlyDepreciation = depreciableBasis / effectiveDepYears / MONTHS_PER_YEAR;
   const landValue = (property.purchasePrice || 0) * landPct;
 
   let failedPropertyValue = 0;

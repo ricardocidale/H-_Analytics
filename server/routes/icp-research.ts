@@ -38,7 +38,7 @@ export function register(app: Express) {
       const propertyLabel = ga.propertyLabel || "Hotel";
       const researchCfg = (ga.researchConfig as import("@shared/schema").ResearchConfig) ?? {};
       const model = normalizeModelId(researchCfg.companyLlm?.primaryLlm || researchCfg.preferredLlm || ga.preferredLlm || DEFAULT_RESEARCH_MODEL);
-      const secondaryModel = researchCfg.companyLlm?.llmMode === "dual" && researchCfg.companyLlm.secondaryLlm ? normalizeModelId(researchCfg.companyLlm.secondaryLlm) : undefined;
+      const _secondaryModel = researchCfg.companyLlm?.llmMode === "dual" && researchCfg.companyLlm.secondaryLlm ? normalizeModelId(researchCfg.companyLlm.secondaryLlm) : undefined;
 
       const promptBuilder = (bodyValidation.data.promptBuilder || icpConfig._promptBuilder || {}) as PromptBuilderConfig;
 

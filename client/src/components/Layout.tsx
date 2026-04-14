@@ -8,8 +8,8 @@ import { APP_BRAND_NAME, BRAND_ACCENT_HEX, BRAND_ACCENT_PREFIX } from "@shared/c
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconResearch, IconTarget, IconHome, IconCompass, IconMessageCircle } from "@/components/icons";
+
+import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconHome, IconCompass, IconMessageCircle } from "@/components/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -148,7 +148,7 @@ function SidebarNav({ groups, isActiveLink, onNavigate }: { groups: NavGroupDef[
 
 export default function Layout({ children, darkMode }: { children: React.ReactNode; darkMode?: boolean }) {
   const [location] = useLocation();
-  const { user, isAdmin, isInvestor, hasManagementAccess, requestLogout } = useAuth();
+  const { user, isAdmin, hasManagementAccess, requestLogout } = useAuth();
   const { data: global } = useGlobalAssumptions();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -172,7 +172,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     enabled: !!user,
   });
 
-  const companyName = global?.companyName || "Hospitality Business";
+  const _companyName = global?.companyName || "Hospitality Business";
   const companyLogo = global?.companyLogoUrl || global?.companyLogo || defaultLogo;
 
   useEffect(() => {

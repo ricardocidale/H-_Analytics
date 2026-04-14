@@ -233,7 +233,7 @@ export function crossValidateFinancingCalculators(
   let niErrors = 0;
   for (const m of monthlyData) {
     const taxableIncome = m.anoi - m.interestExpense - (m.depreciationExpense || 0);
-    const expectedTax = taxableIncome > 0 ? taxableIncome * (m.incomeTax / Math.max(taxableIncome, 0.01)) : 0;
+    const _expectedTax = taxableIncome > 0 ? taxableIncome * (m.incomeTax / Math.max(taxableIncome, 0.01)) : 0;
     const expectedNI = m.anoi - m.interestExpense - (m.depreciationExpense || 0) - m.incomeTax;
     if (!withinTolerance(m.netIncome, expectedNI)) {
       niErrors++;
@@ -335,7 +335,7 @@ export function crossValidateFinancingCalculators(
     const landValue = property.purchasePrice * landPct;
     const buildingValue = property.purchasePrice * (1 - landPct) + (property.buildingImprovements ?? 0);
     const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS;
-    const monthlyDep = buildingValue / effectiveDepYears / MONTHS_PER_YEAR;
+    const _monthlyDep = buildingValue / effectiveDepYears / MONTHS_PER_YEAR;
 
     for (let i = 0; i < operatingMonths.length; i++) {
       const m = operatingMonths[i];

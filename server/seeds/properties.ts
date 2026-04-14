@@ -21,9 +21,7 @@ import {
   DEFAULT_EXIT_CAP_RATE,
 } from "@shared/constants";
 import {
-  SEED_PROPERTY_DEFAULTS,
   SEED_INITIAL_PROPERTIES,
-  SEED_SYNC_PROPERTIES,
   SEED_MEDELLIN_DUPLEX,
   SEED_MEDELLIN_DUPLEX_PHOTOS,
 } from "./property-data";

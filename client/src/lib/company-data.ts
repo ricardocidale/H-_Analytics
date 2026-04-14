@@ -1,4 +1,4 @@
-import { CompanyMonthlyFinancials, formatMoney } from "./financialEngine";
+import { CompanyMonthlyFinancials } from "./financialEngine";
 
 export function generateCompanyIncomeData(
   financials: CompanyMonthlyFinancials[],
@@ -403,7 +403,7 @@ export function generateCompanyBalanceData(
   financials: CompanyMonthlyFinancials[],
   years: number[],
   fundingLabel: string,
-  summaryOnly?: boolean
+  _summaryOnly?: boolean
 ) {
   const rows: { category: string; values: number[]; isHeader?: boolean; indent?: number }[] = [];
   

@@ -6,7 +6,7 @@
  * renderers so they all consume a single well-typed source of truth.
  */
 import { computeIRR } from "@analytics/returns/irr.js";
-import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
+
 import { DEFAULT_EXIT_CAP_RATE } from "@/lib/constants";
 import type { DashboardFinancials } from "./types";
 import type { Property } from "@shared/schema";

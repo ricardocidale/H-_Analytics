@@ -1,7 +1,5 @@
 import {
-  MonthlyFinancials,
-  CompanyMonthlyFinancials,
-  getFiscalYearForModelYear
+  MonthlyFinancials
 } from "@/lib/financialEngine";
 import {
   LoanParams,
@@ -10,7 +8,6 @@ import {
   getAcquisitionYear,
 } from "@/lib/financial/loanCalculations";
 import {
-  PROJECTION_YEARS,
   MONTHS_PER_YEAR,
 } from "@/lib/constants";
 import { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";

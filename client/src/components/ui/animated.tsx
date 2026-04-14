@@ -9,7 +9,7 @@
  *
  * These components ensure consistent motion design throughout the app.
  */
-import { motion, type Variants, useMotionValue, useTransform, animate, AnimatePresence } from "framer-motion";
+import { motion, type Variants, useMotionValue, useTransform, animate } from "framer-motion";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 const fadeInUp: Variants = {

@@ -1,6 +1,6 @@
 import { marketResearch, prospectiveProperties, savedSearches, globalAssumptions, type MarketResearch, type InsertMarketResearch, type ProspectiveProperty, type InsertProspectiveProperty, type SavedSearch, type InsertSavedSearch } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, desc, isNull, or, sql } from "drizzle-orm";
+import { eq, and, desc, isNull, or } from "drizzle-orm";
 
 export class ResearchStorage {
   // ── Market Research ──────────────────────────────────────────────

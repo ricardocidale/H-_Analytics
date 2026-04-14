@@ -22,7 +22,7 @@ export async function fetchBranding(): Promise<BrandingData> {
   try {
     const res = await fetch("/api/branding", { credentials: "include" });
     if (res.ok) return await res.json();
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
     /* branding fetch optional - fallback to defaults */
   }
   return { userName: "", companyName: "", logoUrl: null };

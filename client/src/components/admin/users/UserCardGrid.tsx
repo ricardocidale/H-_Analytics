@@ -94,7 +94,7 @@ export default function UserCardGrid({
   sortField,
   sortDir,
   toggleSort,
-  currentUserRole,
+  
   onEditUser,
   onPasswordUser,
   onDeleteUser,

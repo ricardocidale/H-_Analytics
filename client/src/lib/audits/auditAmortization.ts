@@ -84,8 +84,8 @@ export function auditLoanAmortization(
   }
 
   let runningBalance = loanAmount;
-  let totalInterestPaid = 0;
-  let totalPrincipalPaid = 0;
+  let _totalInterestPaid = 0;
+  let _totalPrincipalPaid = 0;
   let refinanced = false;
 
   for (let i = 0; i < acqMonthIndex && i < monthlyData.length; i++) {
@@ -208,8 +208,8 @@ export function auditLoanAmortization(
     if (m.debtOutstanding !== undefined && m.debtOutstanding > 0) {
       runningBalance = m.debtOutstanding;
     }
-    totalInterestPaid += expectedInterest;
-    totalPrincipalPaid += expectedPrincipal;
+    _totalInterestPaid += expectedInterest;
+    _totalPrincipalPaid += expectedPrincipal;
   }
   
   const passed = findings.filter(f => f.passed).length;

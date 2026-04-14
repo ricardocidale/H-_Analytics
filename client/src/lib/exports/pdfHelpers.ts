@@ -12,7 +12,7 @@
  *   addFooters(doc, "My Company");   // call LAST — iterates all pages
  */
 
-import { BRAND, PAGE_DIMS, type BrandPalette, type ThemeColor, type ExportRowMeta, classifyRow, indentLabel, formatFull, formatByType, normalizeCaps, buildBrandPalette } from "./exportStyles";
+import { BRAND, PAGE_DIMS, type BrandPalette, type ExportRowMeta, classifyRow, indentLabel, formatByType, normalizeCaps } from "./exportStyles";
 
 export function drawBrandedHeader(doc: any, pageW: number, height = 28, brand: BrandPalette = BRAND) {
   doc.setFillColor(...brand.PRIMARY_RGB);

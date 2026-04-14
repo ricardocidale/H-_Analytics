@@ -8,7 +8,6 @@ import type {
   TableRow,
   FormattedValue,
   KpiMetric,
-  ChartSeries,
   CoverMeta,
 } from "./types";
 import { type ThemeColorMap, resolveThemeColors } from "../theme-resolver";
@@ -146,7 +145,7 @@ function buildTableRows(
   }));
 }
 
-function buildInvestmentKpi(stmt: StatementBlock): KpiSection | null {
+function _buildInvestmentKpi(stmt: StatementBlock): KpiSection | null {
   const investmentMetrics: KpiMetric[] = [];
   const summaryRows = stmt.rows.filter((r) => {
     const cat = (r.category || "").toLowerCase();

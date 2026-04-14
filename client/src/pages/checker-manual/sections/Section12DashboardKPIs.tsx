@@ -1,6 +1,6 @@
 import { SectionCard } from "@/components/ui/section-card";
   import { ManualTable } from "@/components/ui/manual-table";
-  import { Callout } from "@/components/ui/callout";
+
   import { IconDashboard } from "@/components/icons";interface SectionProps {
     expanded: boolean;
     onToggle: () => void;

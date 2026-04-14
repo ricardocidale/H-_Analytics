@@ -1,4 +1,4 @@
-import type { ExportRow, ExportData } from "./statementBuilders";
+import type { ExportData } from "./statementBuilders";
 import type { OverviewExportData } from "./overviewExportData";
 
 export async function exportPortfolioExcel(

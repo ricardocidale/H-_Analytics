@@ -38,7 +38,7 @@ import {
   ProtectedRoute,
   AdminRoute,
   ManagementRoute,
-  CheckerRoute,
+  CheckerRoute as _CheckerRoute,
   IcpRedirect,
 } from "./app-guards";
 import {
@@ -78,7 +78,7 @@ const PropertyResearchCriteria = lazy(
 const CompanyResearch = lazy(() => import("@/pages/CompanyResearch"));
 const CompanyIcpDefinition = lazy(() => import("@/pages/CompanyIcpDefinition"));
 const CompanyGuidance = lazy(() => import("@/pages/CompanyGuidance"));
-const ResearchHub = lazy(() => import("@/pages/ResearchHub"));
+const _ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const Logos = lazy(() => import("@/pages/Logos"));
 const Scenarios = lazy(() => import("@/pages/Scenarios"));
@@ -87,7 +87,7 @@ const Analysis = lazy(() => import("@/pages/Analysis"));
 const Help = lazy(() => import("@/pages/Help"));
 const MapView = lazy(() => import("@/pages/MapView"));
 const IcpStudio = lazy(() => import("@/pages/IcpStudio"));
-const Icp = lazy(() => import("@/pages/Icp"));
+const _Icp = lazy(() => import("@/pages/Icp"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("@/pages/CookiePolicy"));

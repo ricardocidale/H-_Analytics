@@ -18,7 +18,7 @@
  * applied to ALL data gathering.
  */
 
-import { FREDService, type FREDSeriesKey } from "../services/FREDService";
+import { FREDService } from "../services/FREDService";
 import { HospitalityBenchmarkService } from "../services/HospitalityBenchmarkService";
 import { GroundedResearchService } from "../services/GroundedResearchService";
 import { CoStarService } from "../services/CoStarService";
@@ -816,7 +816,7 @@ async function callServiceForField(
       // ── Realty Service ─────────────────────────────────────────────
       case "realty": {
         if (!rCtx.location) return null;
-        const realty: RealtyService = svc.instance;
+        const _realty: RealtyService = svc.instance;
         // Realty service requires specific search params; defer to the service
         return null;
       }

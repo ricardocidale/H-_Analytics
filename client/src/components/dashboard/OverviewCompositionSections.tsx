@@ -11,7 +11,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTo
 import { InsightPanel, type Insight } from "@/components/graphics";
 import { Link } from "wouter";
 import { formatMoney } from "@/lib/financialEngine";
-import { STATUSES, STATUS_COLORS, PIE_COLORS, formatCompact, type WaterfallItem } from "./overview-helpers";
+import { STATUSES, STATUS_COLORS, formatCompact, type WaterfallItem } from "./overview-helpers";
 
 function WaterfallTooltipContent({ active, payload }: any) {
   if (!active || !payload?.length) return null;
