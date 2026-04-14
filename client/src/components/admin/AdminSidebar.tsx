@@ -70,10 +70,9 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Groups and companies removed — redirect to users
   "groups": "users",
   "companies": "users",
-  // New 10-block aliases → canonical sections
+  "services-fees": "model-defaults",
+  "company-profile": "model-defaults",
   "financial-defaults": "model-defaults",
-  "services-fees": "users",
-  "company-profile": "users",
   "hotel-defaults": "model-defaults",
   "rental-defaults": "model-defaults",
   "required-fields": "model-defaults",
