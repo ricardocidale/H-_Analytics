@@ -24,10 +24,9 @@
  * On save, the entire formData object is POSTed to the global-assumptions
  * endpoint, and all financial queries are invalidated for full recalculation.
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
-import { useQuery } from "@tanstack/react-query";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -61,6 +60,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
+import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export default function CompanyAssumptions() {
   const [, setLocation] = useLocation();
@@ -81,27 +83,15 @@ export default function CompanyAssumptions() {
   const { data: research } = useMarketResearch("company");
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
 
-  const autoRefreshFired = useRef(false);
-  const { data: freshnessMeta } = useQuery<{ avgDurationMs: number | null }>({
-    queryKey: ["/api/research/avg-duration", "company"],
-    queryFn: () => fetch("/api/research/avg-duration?entityType=company").then(r => r.json()),
-    enabled: !autoRefreshFired.current,
+  const { autoRefresh, setAutoRefresh } = useAutoRefreshIntelligence({
+    entityKey: "company",
+    entityReady: !!global && !isLoading,
+    isGenerating,
+    isDirty,
+    researchUpdatedAt: companyResearchUpdatedAt,
+    lastAssumptionChangeAt: global?.lastAssumptionChangeAt ?? null,
+    generateResearch,
   });
-  useEffect(() => {
-    if (autoRefreshFired.current || isDirty || isGenerating || isLoading) return;
-    if (!global) return;
-    const estimatedMs = freshnessMeta?.avgDurationMs ?? null;
-    if (estimatedMs === null || estimatedMs > 30_000) return;
-    const { status } = computeFreshnessStatus({
-      researchUpdatedAt: companyResearchUpdatedAt,
-      lastAssumptionChangeAt: global.lastAssumptionChangeAt ?? null,
-      isGenerating: false,
-    });
-    if (status === "stale" || status === "missing") {
-      autoRefreshFired.current = true;
-      generateResearch();
-    }
-  }, [global, companyResearchUpdatedAt, isDirty, isGenerating, isLoading, freshnessMeta]);
 
   const researchValues = (() => {
     const COMPANY_DEFAULTS: Record<string, { display: string; mid: number }> = {
@@ -335,6 +325,21 @@ export default function CompanyAssumptions() {
                   );
                 })()}
               </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5" data-testid="toggle-auto-refresh-company">
+                    <Switch
+                      checked={autoRefresh}
+                      onCheckedChange={setAutoRefresh}
+                      className="scale-75"
+                    />
+                    <span className="text-[10px] font-medium text-muted-foreground leading-tight whitespace-nowrap">Auto</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                  When enabled, intelligence refreshes automatically whenever you open an assumptions page with outdated data.
+                </TooltipContent>
+              </Tooltip>
               <Link href="/company/icp-definition" className="text-inherit no-underline">
                 <Button variant="outline" data-testid="button-icp-definition">
                   <IconTarget className="w-4 h-4" />

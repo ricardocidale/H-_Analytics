@@ -42,6 +42,8 @@ import { useState, useEffect, useRef } from "react";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
+import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
+import { Switch } from "@/components/ui/switch";
 import {
   PROJECTION_YEARS,
   DEFAULT_MODEL_START_DATE,
@@ -96,6 +98,16 @@ export default function PropertyEdit() {
   const researchUpdatedAt = research?.updatedAt ?? null;
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
 
+  const { autoRefresh, setAutoRefresh } = useAutoRefreshIntelligence({
+    entityKey: `property-${propertyId}`,
+    entityReady: !!property && !!(property.name && property.location && property.roomCount && property.startAdr),
+    isGenerating,
+    isDirty,
+    researchUpdatedAt,
+    lastAssumptionChangeAt: propertyLastAssumptionChangeAt,
+    generateResearch,
+  });
+
   useEffect(() => {
     if (wasGeneratingRef.current && !isGenerating && research?.content) {
       setShowApplyDialog(true);
@@ -110,7 +122,7 @@ export default function PropertyEdit() {
   }, [feeCategories]);
 
   useEffect(() => {
-    if (intelligencePromptShown.current || !property || isGenerating) return;
+    if (autoRefresh || intelligencePromptShown.current || !property || isGenerating) return;
     const hasBasicInfo = !!(property.name && property.location && property.roomCount && property.startAdr);
     if (!hasBasicInfo) return;
     const { status } = computeFreshnessStatus({
@@ -122,7 +134,7 @@ export default function PropertyEdit() {
       intelligencePromptShown.current = true;
       setShowIntelligencePrompt(true);
     }
-  }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isGenerating]);
+  }, [autoRefresh, property, researchUpdatedAt, propertyLastAssumptionChangeAt, isGenerating]);
 
   const handleIntelligenceNow = () => {
     setShowIntelligencePrompt(false);
@@ -522,6 +534,21 @@ export default function PropertyEdit() {
                       })()} · `
                     : ""}
                   Run AI research to get market-backed ranges for all assumptions.
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5" data-testid="toggle-auto-refresh">
+                    <Switch
+                      checked={autoRefresh}
+                      onCheckedChange={setAutoRefresh}
+                      className="scale-75"
+                    />
+                    <span className="text-[10px] font-medium text-muted-foreground leading-tight whitespace-nowrap">Auto</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                  When enabled, intelligence refreshes automatically whenever you open an assumptions page with outdated data.
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
