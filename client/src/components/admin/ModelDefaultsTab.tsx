@@ -14,9 +14,10 @@ import { RequiredFieldsTab } from "./model-defaults/RequiredFieldsTab";
 
 interface ModelDefaultsTabProps {
   onSaveStateChange?: (state: AdminSaveState | null) => void;
+  initialTab?: string;
 }
 
-export default function ModelDefaultsTab({ onSaveStateChange }: ModelDefaultsTabProps) {
+export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: ModelDefaultsTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -94,7 +95,7 @@ export default function ModelDefaultsTab({ onSaveStateChange }: ModelDefaultsTab
 
   return (
     <div data-testid="admin-app-defaults">
-      <Tabs defaultValue="company" className="space-y-4">
+      <Tabs defaultValue={initialTab ?? "company"} key={initialTab} className="space-y-4">
         <TabsList className="bg-muted/50 border border-border/60">
           <TabsTrigger value="company" data-testid="tab-company">Company</TabsTrigger>
           <TabsTrigger value="market-macro" data-testid="tab-market-macro">Market & Macro</TabsTrigger>

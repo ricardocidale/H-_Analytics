@@ -92,12 +92,23 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "reports-exports":     { title: "Reports & Exports",        subtitle: "Configure content, orientation, and layout for all report exports" },
 };
 
+/** Map sidebar alias → ModelDefaultsTab internal sub-tab value */
+const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
+  "model-defaults":      "company",
+  "financial-defaults":  "company",
+  "company-profile":     "company",
+  "services-fees":       "company",       // services live inside the Company sub-tab
+  "hotel-defaults":      "property-underwriting",
+  "rental-defaults":     "property-underwriting",
+  "required-fields":     "required-fields",
+};
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function SectionContent({ section, onNavigate, onSaveStateChange }: { section: AdminSection; onNavigate: (s: AdminSection) => void; onSaveStateChange: (state: AdminSaveState | null) => void }) {
   const resolved = resolveSection(section);
 
   switch (resolved) {
-    case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} />;
+    case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={MODEL_DEFAULTS_SUB_TAB[section]} />;
     case "users":            return <PeopleTab />;
     case "activity":         return <ActivityTab />;
     case "scenarios":        return <ScenariosTab />;
