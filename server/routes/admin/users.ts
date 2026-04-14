@@ -1,16 +1,28 @@
-import { type Express } from "express";
+import { type Express, type Request, type Response } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, validatePassword , getAuthUser, sanitizeEmail } from "../../auth";
 import { userResponse, createUserSchema, logAndSendError, logActivity, parseParamId } from "../helpers";
 import { fromZodError } from "zod-validation-error";
 import { hashPassword } from "../../auth";
 import { VALID_USER_ROLES } from "../../../shared/schema/index.js";
+import { UserRole, isAdminRole } from "@shared/constants";
 import { z } from "zod";
 import { sendInvitationEmail } from "../../integrations/resend";
 import { logger } from "../../logger";
 import crypto from "crypto";
 
 const roleSchema = z.enum(VALID_USER_ROLES);
+
+async function guardSuperAdmin(targetId: number, req: Request, res: Response): Promise<boolean> {
+  const caller = getAuthUser(req);
+  if (caller.role === UserRole.SUPER_ADMIN) return false;
+  const target = await storage.getUserById(targetId);
+  if (target && target.role === UserRole.SUPER_ADMIN) {
+    res.status(403).json({ error: "Only a super admin can modify another super admin" });
+    return true;
+  }
+  return false;
+}
 
 export function registerUserRoutes(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -40,6 +52,14 @@ export function registerUserRoutes(app: Express) {
       }
 
       const { email, password, role, firstName, lastName, company, companyId, title } = validation.data;
+
+      if (role === UserRole.SUPER_ADMIN) {
+        const caller = req.user as { role?: string };
+        if (caller.role !== UserRole.SUPER_ADMIN) {
+          return res.status(403).json({ error: "Only super admins can create super admin accounts" });
+        }
+      }
+
       const passwordHash = password ? await hashPassword(password) : null;
 
       const user = await storage.createUser({
@@ -75,6 +95,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const id = parseParamId(req.params.id, res, "user ID");
       if (id === null) return;
+      if (await guardSuperAdmin(id, req, res)) return;
       const parsed = updateUserSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
@@ -85,6 +106,9 @@ export function registerUserRoutes(app: Express) {
         const roleResult = roleSchema.safeParse(role);
         if (!roleResult.success) {
           return res.status(400).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}` });
+        }
+        if (role === UserRole.SUPER_ADMIN && getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
+          return res.status(403).json({ error: "Only a super admin can assign the super admin role" });
         }
         if (id === getAuthUser(req).id) {
           return res.status(400).json({ error: "You cannot change your own role" });
@@ -133,6 +157,10 @@ export function registerUserRoutes(app: Express) {
 
       const id = parseParamId(req.params.id, res, "user ID");
       if (id === null) return;
+      if (await guardSuperAdmin(id, req, res)) return;
+      if (roleResult.data === UserRole.SUPER_ADMIN && getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
+        return res.status(403).json({ error: "Only a super admin can assign the super admin role" });
+      }
 
       if (id === getAuthUser(req).id) {
         return res.status(400).json({ error: "You cannot change your own role" });
@@ -150,6 +178,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const id = parseParamId(req.params.id, res, "user ID");
       if (id === null) return;
+      if (await guardSuperAdmin(id, req, res)) return;
       if (id === getAuthUser(req).id) {
         return res.status(400).json({ error: "You cannot delete yourself" });
       }
@@ -166,6 +195,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const id = parseParamId(req.params.id, res, "user ID");
       if (id === null) return;
+      if (await guardSuperAdmin(id, req, res)) return;
       const parsed = z.object({ password: z.string().min(6) }).safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
@@ -219,11 +249,12 @@ export function registerUserRoutes(app: Express) {
       }
       const allUsers = await storage.getAllUsers();
       const newHash = await hashPassword(password);
-      // Update all passwords — if any fails, partial state is acceptable since
-      // all passwords are being set to the same value. The admin can retry.
+      const caller = req.user as { role?: string };
+      const isSuperAdmin = caller.role === UserRole.SUPER_ADMIN;
       let count = 0;
-      for (const user of allUsers) {
-        await storage.updateUserPassword(user.id, newHash);
+      for (const u of allUsers) {
+        if (!isSuperAdmin && u.role === UserRole.SUPER_ADMIN) continue;
+        await storage.updateUserPassword(u.id, newHash);
         count++;
       }
       logActivity(req, "reset-all-passwords", "user", null, null, { usersAffected: count });

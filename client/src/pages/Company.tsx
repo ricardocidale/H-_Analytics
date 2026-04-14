@@ -28,7 +28,7 @@ import { ExportDialog, type ExportVersion, type PremiumExportPayload } from "@/c
 import { loadExportConfig } from "@/lib/exportConfig";
 import { useQuery } from "@tanstack/react-query";
 import { useExportSave } from "@/hooks/useExportSave";
-import { UserRole, APP_BRAND_NAME, USE_SERVER_COMPUTE, USE_SERVER_EXPORTS } from "@shared/constants";
+import { UserRole, isAdminRole, APP_BRAND_NAME, USE_SERVER_COMPUTE, USE_SERVER_EXPORTS } from "@shared/constants";
 import Layout from "@/components/Layout";
 import { useProperties, useGlobalAssumptions } from "@/lib/api";
 import { generateCompanyProForma, generatePropertyProForma, formatMoney, getFiscalYearForModelYear } from "@/lib/financialEngine";
@@ -77,7 +77,7 @@ export default function Company() {
   });
   const { data: serviceTemplates } = useServiceTemplates();
   const { user } = useAuth();
-  const isAdmin = user?.role === UserRole.ADMIN;
+  const isAdmin = user ? isAdminRole(user.role) : false;
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("income");
   const [bsExpanded, setBsExpanded] = useState<Record<string, boolean>>({});

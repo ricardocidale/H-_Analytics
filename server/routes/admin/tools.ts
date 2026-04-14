@@ -5,7 +5,7 @@ import { runFillOnlySync, runSmartSync } from "../../syncHelpers";
 import { logAndSendError, logActivity } from "../helpers";
 import { readFile } from "fs/promises";
 import { resolve } from "path";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 import { execFile } from "child_process";
 import { VERIFY_PHASES, allProofFilePaths } from "../../../script/lib/verify-phases.js";
 
@@ -315,7 +315,7 @@ export function registerToolRoutes(app: Express) {
   app.get("/api/admin/checker-activity", requireAdmin, async (_req, res) => {
     try {
       const allUsers = await storage.getAllUsers();
-      const checkerUsers = allUsers.filter((u: any) => u.role === UserRole.CHECKER || u.role === UserRole.ADMIN);
+      const checkerUsers = allUsers.filter((u: any) => u.role === UserRole.CHECKER || isAdminRole(u.role));
       let totalActions = 0, verificationRuns = 0, manualViews = 0, exports = 0, pageVisits = 0, roleChanges = 0;
       const recentActivity: any[] = [];
 

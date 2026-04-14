@@ -17,7 +17,7 @@ import { loginSchema, adminLoginSchema, userResponse, fullName, logAndSendError 
 import { ensureDefaultScenario } from "./scenario-helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 import seedUsersConfig from "../seed-users.json" with { type: "json" };
 
 export function register(app: Express) {
@@ -76,7 +76,7 @@ export function register(app: Express) {
 
   app.post("/api/auth/admin-login", async (req, res) => {
     try {
-      const adminSeed = seedUsersConfig.users.find(u => u.role === UserRole.ADMIN);
+      const adminSeed = seedUsersConfig.users.find(u => isAdminRole(u.role));
       if (!adminSeed) {
         return res.status(401).json({ error: "No admin user configured" });
       }
@@ -96,7 +96,7 @@ export function register(app: Express) {
       if (process.env.NODE_ENV === "production") {
         return res.status(403).json({ error: "Dev login disabled in production" });
       }
-      const adminSeed = seedUsersConfig.users.find(u => u.role === UserRole.ADMIN);
+      const adminSeed = seedUsersConfig.users.find(u => isAdminRole(u.role));
       if (!adminSeed) {
         return res.status(401).json({ error: "No admin user configured" });
       }
@@ -170,7 +170,7 @@ export function register(app: Express) {
       if (validation.data.lastName !== undefined) updates.lastName = validation.data.lastName.trim();
       if (validation.data.email !== undefined) {
         const protectedEmails = seedUsersConfig.users
-          .filter(u => u.role === UserRole.ADMIN || u.role === UserRole.CHECKER)
+          .filter(u => isAdminRole(u.role) || u.role === UserRole.CHECKER)
           .map(u => u.email.toLowerCase());
         if (protectedEmails.includes(getAuthUser(req).email.toLowerCase())) {
           return res.status(403).json({ error: "System account emails cannot be changed" });

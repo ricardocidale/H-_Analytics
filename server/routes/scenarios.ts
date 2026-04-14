@@ -16,7 +16,7 @@ import { logger } from "../logger";
 import { invalidateComputeCache } from "../finance/cache";
 import { sendScenarioShareNotification, sendAdminShareNotification } from "../integrations/resend";
 import { getAppUrl } from "../providers/config";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 import { compareScenarios as compareScenarioMetrics } from "@calc/analysis/scenario-compare";
 import type { ScenarioMetrics } from "@calc/analysis/scenario-compare";
 import { computePortfolioProjection } from "../finance/service";
@@ -492,9 +492,9 @@ export function register(app: Express) {
         portalUrl,
       }).catch(err => logger.warn(`Failed to send share notification to recipient: ${err instanceof Error ? err.message : String(err)}`, "scenarios"));
 
-      if (sharer.role !== UserRole.ADMIN) {
+      if (!isAdminRole(sharer.role)) {
         const allUsers = await storage.getAllUsers();
-        const admins = allUsers.filter(u => u.role === UserRole.ADMIN && u.email !== sharer.email);
+        const admins = allUsers.filter(u => isAdminRole(u.role) && u.email !== sharer.email);
         for (const admin of admins) {
           sendAdminShareNotification({
             to: admin.email,

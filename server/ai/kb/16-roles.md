@@ -1,8 +1,10 @@
 User Roles and Permissions
 
-There are four user roles in the portal:
+There are five user roles in the portal:
 
-Admin — Full access to everything. Can manage users, configure settings, edit any property, access verification, and manage the AI agent. Ricardo Cidale is the sole admin.
+Super Admin — The highest privilege level. Has all admin powers plus exclusive protections: regular admins cannot edit, delete, change the role, or reset the password of a super admin. Only another super admin can modify super admin accounts. Ricardo Cidale is the super admin.
+
+Admin — Full access to everything. Can manage users, configure settings, edit any property, access verification, and manage the AI agent. Admins cannot modify super admin accounts.
 
 User — Can view the full portfolio, edit property assumptions, run scenarios, and use analysis tools. Users are the primary users of the financial model.
 

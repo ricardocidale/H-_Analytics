@@ -35,7 +35,7 @@ import crypto from "crypto";
 import { storage } from "./storage";
 import type { User, ScenarioGlobalAssumptionsSnapshot, ScenarioPropertySnapshot } from "@shared/schema";
 import { logger } from "./logger";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 
 declare global {
   namespace Express {
@@ -288,7 +288,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ error: "Authentication required" });
   }
-  if (req.user.role !== UserRole.ADMIN) {
+  if (!isAdminRole(req.user.role)) {
     return res.status(403).json({ error: "Admin access required" });
   }
   next();
@@ -307,7 +307,7 @@ export function requireChecker(req: Request, res: Response, next: NextFunction) 
   if (!req.user) {
     return res.status(401).json({ error: "Authentication required" });
   }
-  if (req.user.role !== UserRole.ADMIN && req.user.role !== UserRole.CHECKER) {
+  if (!isAdminRole(req.user.role) && req.user.role !== UserRole.CHECKER) {
     return res.status(403).json({ error: "Checker or admin access required" });
   }
   next();
@@ -375,7 +375,7 @@ export async function checkPropertyAccess(
   user: Express.User,
   propertyId: number
 ): Promise<boolean> {
-  if (user.role === UserRole.ADMIN) return true;
+  if (isAdminRole(user.role)) return true;
   const property = await storage.getProperty(propertyId);
   if (!property) return false;
   if (property.userId === user.id) return true;

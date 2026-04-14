@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireChecker, requireAuth , getAuthUser } from "../auth";
+import { isAdminRole } from "@shared/constants";
 import { runVerificationWithEngine } from "../calculationChecker";
 import { logActivity, logAndSendError } from "./helpers";
 import { logger } from "../logger";
@@ -33,7 +34,7 @@ export function register(app: Express) {
   app.post("/api/verification/run", requireChecker, async (req, res) => {
     try {
       const calcUser = getAuthUser(req);
-      const allProperties = calcUser.role === "admin"
+      const allProperties = isAdminRole(calcUser.role)
         ? await storage.getAllProperties()
         : await storage.getAllProperties(calcUser.id);
       // Only verify active properties — inactive ones are excluded from all calculations

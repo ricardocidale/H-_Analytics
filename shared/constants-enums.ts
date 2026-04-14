@@ -12,12 +12,17 @@ export type PropertyStatusValue = (typeof PropertyStatus)[keyof typeof PropertyS
 export const PROPERTY_STATUS_VALUES = Object.values(PropertyStatus);
 
 export const UserRole = {
+  SUPER_ADMIN: "super_admin",
   ADMIN: "admin",
   USER: "user",
   CHECKER: "checker",
   PARTNER: "partner",
   INVESTOR: "investor",
 } as const;
+
+export function isAdminRole(role: string): boolean {
+  return role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
+}
 
 export type UserRoleValue = (typeof UserRole)[keyof typeof UserRole];
 

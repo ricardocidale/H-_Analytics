@@ -40,7 +40,7 @@ export const users = pgTable("users", {
   index("users_phone_number_idx").on(table.phoneNumber),
 ]);
 
-export const VALID_USER_ROLES = ["admin", "user", "checker", "investor"] as const;
+export const VALID_USER_ROLES = ["super_admin", "admin", "user", "checker", "investor"] as const;
 export type UserRole = typeof VALID_USER_ROLES[number];
 
 export const insertUserSchema = z.object({

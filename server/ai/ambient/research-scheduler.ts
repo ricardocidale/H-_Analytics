@@ -1,6 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { storage } from "../../storage";
 import { logger } from "../../logger";
+import { isAdminRole } from "@shared/constants";
 import { createResearchClient, resolveVendorFromModel } from "../research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient, normalizeModelId } from "../clients";
 import { DEFAULT_RESEARCH_MODEL } from "../resolve-llm";
@@ -45,7 +46,7 @@ export async function executeScheduledWorkflow(
 
   try {
     const users = await storage.getAllUsers();
-    const adminUser = users.find(u => u.role === "admin") ?? users[0];
+    const adminUser = users.find(u => isAdminRole(u.role)) ?? users[0];
     if (!adminUser) {
       throw new Error("No admin user found to run scheduled research");
     }
@@ -183,7 +184,7 @@ async function processPendingBatches(): Promise<void> {
   try { anthropic = getAnthropicClient(); } catch { return; }
 
   const users = await storage.getAllUsers();
-  const adminUser = users.find(u => u.role === "admin") ?? users[0];
+  const adminUser = users.find(u => isAdminRole(u.role)) ?? users[0];
   if (!adminUser) return;
 
   for (const [batchId, workflows] of Array.from(batchGroups)) {
@@ -282,7 +283,7 @@ async function runScheduledCheckCycle(): Promise<void> {
     );
 
     const users = await storage.getAllUsers();
-    const adminUser = users.find(u => u.role === "admin") ?? users[0];
+    const adminUser = users.find(u => isAdminRole(u.role)) ?? users[0];
     if (!adminUser) return;
 
     const ga = await storage.getGlobalAssumptions(adminUser.id);

@@ -12,7 +12,7 @@ import { getAnthropicClient, getOpenAIClient, getGeminiClient, normalizeModelId 
 import { createResearchClient, resolveVendorFromModel } from "../ai/research-client";
 import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
 import type { ResearchConfig, ResearchEventConfig, LlmVendor } from "@shared/schema";
-import { DEFAULT_RESEARCH_EVENT_CONFIG, DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS, DEFAULT_ROOM_COUNT, DEFAULT_START_ADR, DEFAULT_MAX_OCCUPANCY } from "../../shared/constants";
+import { DEFAULT_RESEARCH_EVENT_CONFIG, DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS, DEFAULT_ROOM_COUNT, DEFAULT_START_ADR, DEFAULT_MAX_OCCUPANCY, isAdminRole } from "../../shared/constants";
 import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceAggregator";
 import { fetchMultipleFields, getRoutableFields, type RoutingContext, type DataRouteResult } from "../ai/data-routing";
 import { buildPromptInjectionBlock } from "../ai/research-data-injector";
@@ -40,7 +40,7 @@ export function register(app: Express) {
     try {
       const user = getAuthUser(req);
       const allResearch = await storage.getAllMarketResearch(user.id);
-      const allProperties = user.role === "admin"
+      const allProperties = isAdminRole(user.role)
         ? await storage.getAllProperties()
         : await storage.getAllProperties(user.id);
 
@@ -392,7 +392,7 @@ export function register(app: Express) {
             }
           } else if (type === "company" && ga) {
             const reqUser = getAuthUser(req);
-            const properties = reqUser.role === "admin"
+            const properties = isAdminRole(reqUser.role)
               ? await storage.getAllProperties()
               : await storage.getAllProperties(reqUser.id);
             const serviceTemplates = await storage.getAllServiceTemplates();

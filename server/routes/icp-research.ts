@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, isApiRateLimited , getAuthUser } from "../auth";
+import { isAdminRole } from "@shared/constants";
 import { logActivity, logAndSendError, icpGenerateSchema, icpExportSchema } from "./helpers";
 import { fromZodError } from "zod-validation-error";
 import { getAnthropicClient, normalizeModelId } from "../ai/clients";
@@ -55,7 +56,7 @@ export function register(app: Express) {
           const companies = await storage.getAllCompanies();
           const mgmtCompany = companies.find((c: any) => c.type === "management");
           const icpUser = getAuthUser(req);
-          const props = icpUser.role === "admin"
+          const props = isAdminRole(icpUser.role)
             ? await storage.getAllProperties()
             : await storage.getAllProperties(icpUser.id);
           const managedProps = mgmtCompany

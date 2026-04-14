@@ -14,14 +14,14 @@ import { computePortfolioRiskScore } from "../ai/portfolio-risk-scorer";
 import { checkScenarioAccess } from "./scenario-helpers";
 import { logger } from "../logger";
 import { logActivity } from "./helpers";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 
 export function register(app: Express): void {
   // ── Portfolio-wide risk score ──────────────────────────────────────────────
   app.get("/api/portfolio/risk-score", requireAuth, async (req: Request, res: Response) => {
     try {
       const user = getAuthUser(req);
-      const allProperties = user.role === UserRole.ADMIN
+      const allProperties = isAdminRole(user.role)
         ? await storage.getAllProperties()
         : await storage.getAllProperties(user.id);
 
@@ -62,7 +62,7 @@ export function register(app: Express): void {
       }
 
       // Check access: admin sees all, otherwise scenario must belong to user or be shared
-      if (user.role !== UserRole.ADMIN && scenario.userId !== user.id) {
+      if (!isAdminRole(user.role) && scenario.userId !== user.id) {
         const hasAccess = await checkScenarioAccess(scenarioId, user.id, scenario);
         if (!hasAccess) {
           return res.status(403).json({ error: "Access denied to this scenario." });

@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 import { Link } from "wouter";
 import type { ColorMode, BgAnimation, FontPreference, AppearanceDefaults } from "@/lib/theme/appearance";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
@@ -199,7 +199,7 @@ export default function Profile() {
   });
 
   const handleSave = () => {
-    if (user?.role === UserRole.ADMIN) {
+    if (user && isAdminRole(user.role)) {
       const { email, ...rest } = formData;
       updateMutation.mutate(rest);
     } else {
@@ -250,7 +250,7 @@ export default function Profile() {
           }
         />
 
-        {(user.role === UserRole.ADMIN || user.role === UserRole.CHECKER) && (
+        {(isAdminRole(user.role) || user.role === UserRole.CHECKER) && (
           <Card className="bg-card border-border shadow-sm">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
@@ -296,7 +296,7 @@ export default function Profile() {
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-foreground">Email (User ID)</Label>
-                  {user.role === UserRole.ADMIN ? (
+                  {isAdminRole(user.role) ? (
                     <Input
                       id="email"
                       type="text"

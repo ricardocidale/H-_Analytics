@@ -6,7 +6,7 @@ import { fromZodError } from "zod-validation-error";
 import { randomUUID } from "crypto";
 import { processImage, type CropRegion } from "../image/pipeline";
 import { storage } from "../storage";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 import { MAX_UPLOAD_BYTES } from "../constants";
 import { logger } from "../logger";
 import { isBlockedHostResolved } from "./ssrf-guard";
@@ -155,7 +155,7 @@ export function register(app: Express) {
   app.post("/api/admin/bulk-process-photos", requireAuth, async (req, res) => {
     try {
       const user = req.user;
-      if (!user || user.role !== UserRole.ADMIN) {
+      if (!user || !isAdminRole(user.role)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -170,7 +170,7 @@ export function register(app: Express) {
       if (propertyId) {
         photos = await storage.getPropertyPhotos(propertyId);
       } else {
-        const allProperties = user.role === "admin"
+        const allProperties = isAdminRole(user.role)
           ? await storage.getAllProperties()
           : await storage.getAllProperties(user.id);
         // Bulk fetch all photos in a single query instead of N queries

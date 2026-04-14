@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, getAuthUser, checkPropertyAccess } from "../auth";
+import { isAdminRole } from "@shared/constants";
 import { logAndSendError, logActivity } from "./helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -45,7 +46,7 @@ async function checkEntityAccess(user: Express.User, entityType: EntityType, ent
   }
   if (entityType === "company") {
     const authUser = user as { companyId?: number | null; role?: string };
-    if (authUser.role === "admin") return true;
+    if (authUser.role && isAdminRole(authUser.role)) return true;
     return authUser.companyId === entityId;
   }
   return false;
@@ -269,7 +270,7 @@ export function register(app: Express) {
           ambientData: ambientDataStr,
         });
       } else if (ga) {
-        const properties = user.role === "admin"
+        const properties = isAdminRole(user.role)
           ? await storage.getAllProperties()
           : await storage.getAllProperties(user.id);
         const serviceTemplates = await storage.getAllServiceTemplates();

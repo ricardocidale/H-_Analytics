@@ -3,7 +3,7 @@
     {
       "email": "ricardo.cidale@norfolkgroup.io",
       "envVar": "PASSWORD_ADMIN",
-      "role": "admin",
+      "role": "super_admin",
       "firstName": "Ricardo",
       "lastName": "Cidale",
       "company": "The Norfolk AI Group",

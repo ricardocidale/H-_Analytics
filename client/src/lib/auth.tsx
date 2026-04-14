@@ -26,7 +26,7 @@
  */
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
 interface User {
@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const user = data ?? null;
-  const isAdmin = user?.role === UserRole.ADMIN;
+  const isAdmin = user ? isAdminRole(user.role) : false;
   const isChecker = user?.role === UserRole.CHECKER;
   const isUser = user?.role === UserRole.USER;
   const isInvestor = user?.role === UserRole.INVESTOR;

@@ -5,7 +5,7 @@ import { aiRateLimit } from "../middleware/rate-limit";
 import { storage } from "../storage";
 import { buildPropertyContext } from "../ai/buildPropertyContext.js";
 import { z } from "zod";
-import { DEFAULT_PROJECTION_YEARS, DEFAULT_PROPERTY_INFLATION_RATE } from "@shared/constants";
+import { DEFAULT_PROJECTION_YEARS, DEFAULT_PROPERTY_INFLATION_RATE, isAdminRole } from "@shared/constants";
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
@@ -108,7 +108,7 @@ export function register(app: Express) {
 
       const authUser = getAuthUser(req);
       const userId = authUser.id;
-      const isAdmin = authUser.role === "admin";
+      const isAdmin = isAdminRole(authUser.role);
       const userName = [authUser.firstName, authUser.lastName].filter(Boolean).join(" ") || authUser.email;
 
       const ga = await storage.getGlobalAssumptions(userId);

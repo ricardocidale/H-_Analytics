@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ArrowUp, ArrowDown, ArrowUpDown } from "@/components/icons/themed-icons";
 import { IconPeople, IconTrash, IconKey, IconPencil, IconBuilding2, IconHome } from "@/components/icons";
 import type { User } from "../types";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 import type { SortField, SortDir } from "./types";
 
 interface UserCardGridProps {
@@ -18,6 +18,7 @@ interface UserCardGridProps {
   toggleSort: (field: SortField) => void;
   companyNameMap: Record<number, string>;
   companiesList: { id: number; name: string }[] | undefined;
+  currentUserRole?: string;
   onEditUser: (user: User) => void;
   onPasswordUser: (user: User) => void;
   onDeleteUser: (id: number) => void;
@@ -40,6 +41,7 @@ function getInitials(name: string | null | undefined, email: string): string {
 }
 
 function roleBadgeVariant(role: string): "default" | "secondary" | "outline" {
+  if (role === UserRole.SUPER_ADMIN) return "default";
   if (role === UserRole.ADMIN) return "default";
   if (role === UserRole.CHECKER) return "secondary";
   return "outline";
@@ -77,12 +79,17 @@ export default function UserCardGrid({
   sortDir,
   toggleSort,
   companyNameMap,
+  currentUserRole,
   onEditUser,
   onPasswordUser,
   onDeleteUser,
   onToggleScenarios,
   onManageDefaults,
 }: UserCardGridProps) {
+  const canModifyUser = (user: User) => {
+    if (user.role === UserRole.SUPER_ADMIN && currentUserRole !== UserRole.SUPER_ADMIN) return false;
+    return true;
+  };
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex items-center gap-4 mb-4 px-1">
@@ -169,57 +176,59 @@ export default function UserCardGrid({
                   </div>
                 </div>
 
-                <div className="border-t border-border/50 px-3 py-1.5 flex items-center justify-end gap-0.5 opacity-70 group-hover:opacity-100 transition-opacity">
-                  <ActionButton
-                    icon={<IconPencil className="w-3.5 h-3.5" />}
-                    label="Edit"
-                    onClick={() => onEditUser(user)}
-                    testId={`button-edit-user-${user.id}`}
-                  />
-                  <ActionButton
-                    icon={<IconKey className="w-3.5 h-3.5" />}
-                    label="Reset password"
-                    onClick={() => onPasswordUser(user)}
-                    testId={`button-password-user-${user.id}`}
-                  />
-                  {onManageDefaults && (
+                {canModifyUser(user) && (
+                  <div className="border-t border-border/50 px-3 py-1.5 flex items-center justify-end gap-0.5 opacity-70 group-hover:opacity-100 transition-opacity">
                     <ActionButton
-                      icon={<IconHome className="w-3.5 h-3.5" />}
-                      label="Default properties"
-                      onClick={() => onManageDefaults(user)}
-                      testId={`button-defaults-user-${user.id}`}
+                      icon={<IconPencil className="w-3.5 h-3.5" />}
+                      label="Edit"
+                      onClick={() => onEditUser(user)}
+                      testId={`button-edit-user-${user.id}`}
                     />
-                  )}
-                  {user.role !== UserRole.ADMIN && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                          data-testid={`button-delete-user-${user.id}`}
-                          aria-label={`Delete ${user.name || user.email}`}
-                        >
-                          <IconTrash className="w-3.5 h-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete User</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{user.email}"? This will permanently remove the user and all their data, including any scenarios they own and all associated access grants. This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDeleteUser(user.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
+                    <ActionButton
+                      icon={<IconKey className="w-3.5 h-3.5" />}
+                      label="Reset password"
+                      onClick={() => onPasswordUser(user)}
+                      testId={`button-password-user-${user.id}`}
+                    />
+                    {onManageDefaults && (
+                      <ActionButton
+                        icon={<IconHome className="w-3.5 h-3.5" />}
+                        label="Default properties"
+                        onClick={() => onManageDefaults(user)}
+                        testId={`button-defaults-user-${user.id}`}
+                      />
+                    )}
+                    {!isAdminRole(user.role) && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                            data-testid={`button-delete-user-${user.id}`}
+                            aria-label={`Delete ${user.name || user.email}`}
+                          >
+                            <IconTrash className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete User</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{user.email}"? This will permanently remove the user and all their data, including any scenarios they own and all associated access grants. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDeleteUser(user.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                )}
               </div>
             </React.Fragment>
           );

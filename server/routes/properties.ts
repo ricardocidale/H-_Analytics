@@ -8,7 +8,7 @@ import { logActivity, logAndSendError } from "./helpers";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
 import { processNotificationEvent, evaluateAlertRules } from "../notifications/engine";
 import { createEvent } from "../notifications/events";
-import { UserRole } from "@shared/constants";
+import { UserRole, isAdminRole } from "@shared/constants";
 import { invalidateComputeCache } from "../finance/cache";
 import { buildPropertyDefaultsFromRegistry } from "@shared/field-registry";
 import { logger } from "../logger";
@@ -33,7 +33,7 @@ export function register(app: Express) {
   app.get("/api/properties", requireAuth, async (req, res) => {
     try {
       const user = getAuthUser(req);
-      const props = user.role === UserRole.ADMIN
+      const props = isAdminRole(user.role)
         ? await storage.getAllProperties()
         : await storage.getAllProperties(user.id);
       const allCats = await storage.getAllFeeCategories();
@@ -91,7 +91,7 @@ export function register(app: Express) {
       const createData = {
         ...validation.data,
         ...mergedData,
-        userId: user.role === UserRole.ADMIN ? null : user.id,
+        userId: isAdminRole(user.role) ? null : user.id,
         researchValues: (validation.data as any).researchValues ?? {},
       };
       const suggestion = suggestStarRating(createData as any);

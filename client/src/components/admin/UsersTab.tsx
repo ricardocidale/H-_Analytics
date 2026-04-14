@@ -25,6 +25,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconKey, IconUserPlus, IconSend } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminLogos, useAdminUsers, useAdminCompanies, useAdminThemes, useAdminAssetDescriptions } from "./hooks";
+import { useAuth } from "@/lib/auth";
 import { UserRole } from "@shared/constants";
 import type { User } from "./types";
 import type { SortField, SortDir } from "./users/types";
@@ -41,6 +42,7 @@ import DefaultPropertiesDialog from "./users/DefaultPropertiesDialog";
 export default function UsersTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -363,6 +365,7 @@ export default function UsersTab() {
             toggleSort={toggleSort}
             companyNameMap={companyNameMap}
             companiesList={companiesList}
+            currentUserRole={user?.role}
             onEditUser={handleEditUser}
             onPasswordUser={handlePasswordUser}
             onDeleteUser={(id) => deleteMutation.mutate(id)}
