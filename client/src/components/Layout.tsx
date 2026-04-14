@@ -357,6 +357,10 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
         <Link href="/terms" onClick={() => setMobileOpen(false)}>
           <span className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors">Terms</span>
         </Link>
+        <span className="text-[11px] text-muted-foreground/30">&middot;</span>
+        <Link href="/cookies" onClick={() => setMobileOpen(false)}>
+          <span className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors">Cookies</span>
+        </Link>
       </div>
     </div>
   );

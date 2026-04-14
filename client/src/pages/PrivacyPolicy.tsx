@@ -121,6 +121,8 @@ function PrivacyContent() {
               <p className="text-muted-foreground leading-relaxed">
                 We use session cookies to authenticate your identity and maintain your login state. These are essential for the Service to function
                 and cannot be disabled. We do not use advertising or third-party tracking cookies.
+                For full details on the cookies we use, please see our{" "}
+                <Link href="/cookies" className="text-primary underline underline-offset-2 hover:text-primary/80">Cookie Policy</Link>.
               </p>
             </section>
 

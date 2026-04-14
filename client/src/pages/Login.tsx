@@ -274,6 +274,8 @@ export default function Login() {
             <a href="/privacy" className="hover:text-foreground transition-colors underline underline-offset-2">Privacy Policy</a>
             {" · "}
             <a href="/terms" className="hover:text-foreground transition-colors underline underline-offset-2">Terms of Service</a>
+            {" · "}
+            <a href="/cookies" className="hover:text-foreground transition-colors underline underline-offset-2">Cookie Policy</a>
           </p>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/50 font-medium">Powered by</span>
