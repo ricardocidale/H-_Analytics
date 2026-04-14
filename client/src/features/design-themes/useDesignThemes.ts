@@ -20,7 +20,7 @@ export function useCreateTheme(callbacks?: { onSuccess?: () => void }) {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: { name: string; description: string; colors: DesignColor[]; iconSet?: string }) => {
+    mutationFn: async (data: { name: string; description: string; colors: DesignColor[] }) => {
       const res = await fetch("/api/admin/design-themes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,7 +43,7 @@ export function useUpdateTheme(callbacks?: { onSuccess?: () => void }) {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<{ name: string; description: string; colors: DesignColor[]; iconSet: string; isDefault: boolean }> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Partial<{ name: string; description: string; colors: DesignColor[]; isDefault: boolean }> }) => {
       const res = await fetch(`/api/admin/design-themes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

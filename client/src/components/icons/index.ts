@@ -1,5 +1,4 @@
 export { type IconProps } from "./brand-icons";
-export { IconSetProvider, useIconSet } from "./IconSetContext";
 export {
   IconActivity,
   IconAlertCircle,

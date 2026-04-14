@@ -32,8 +32,6 @@ import { usePanelManager } from "@/lib/panel-manager";
 import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } from "@/lib/theme";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
 import type { ColorMode, FontPreference, BgAnimation, AppearanceDefaults } from "@/lib/theme/appearance";
-import { IconSetProvider } from "@/components/icons/IconSetContext";
-import type { IconSetType } from "@/features/design-themes/types";
 import { useAdminSection } from "@/lib/admin-nav";
 import { buildNavGroups, resolveSection } from "@/components/admin/AdminSidebar";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
@@ -154,7 +152,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   const { data: global } = useGlobalAssumptions();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { data: myBranding } = useQuery<{ logoUrl: string | null; themeName: string | null; themeColors: DesignColor[] | null; groupCompanyName: string | null; iconSet?: string }>({
+  const { data: myBranding } = useQuery<{ logoUrl: string | null; themeName: string | null; themeColors: DesignColor[] | null; groupCompanyName: string | null }>({
     queryKey: ["my-branding"],
     queryFn: async () => {
       const res = await fetch("/api/my-branding", { credentials: "include" });
@@ -365,10 +363,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     </div>
   );
 
-  const activeIconSet: IconSetType = (myBranding?.iconSet === "phosphor" ? "phosphor" : myBranding?.iconSet === "material" ? "material" : "lucide");
-
   return (
-    <IconSetProvider value={activeIconSet}>
     <div className="flex min-h-svh w-full">
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-svh sticky top-0">
         {sidebarHeader}
@@ -474,6 +469,5 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
         <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
       )}
     </div>
-    </IconSetProvider>
   );
 }

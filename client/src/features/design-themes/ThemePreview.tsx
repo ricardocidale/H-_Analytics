@@ -4,34 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Check, X, Search, ChevronDown } from "@/components/icons/themed-icons";
+import { Check, X, Search, ChevronDown, Star, AlertTriangle } from "@/components/icons/themed-icons";
 import { IconEye, IconBell, IconStar, IconTrendingUp, IconUsers, IconDollarSign, IconAlertCircle } from "@/components/icons";
 import { BarChartCard } from "@/lib/charts/BarChartCard";
 import { LineChartMulti } from "@/lib/charts/LineChartMulti";
 import type { ChartConfig } from "@/components/ui/chart";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { IconSetProvider } from "@/components/icons/IconSetContext";
-import type { IconSetType } from "@/features/design-themes/types";
-import {
-  Star as LucideStar,
-  Bell as LucideBell,
-  Search as LucideSearch,
-  Check as LucideCheck,
-  AlertTriangle as LucideAlert,
-} from "lucide-react";
-import {
-  Star as PhosphorStar,
-  Bell as PhosphorBell,
-  MagnifyingGlass as PhosphorSearch,
-  Check as PhosphorCheck,
-  Warning as PhosphorAlert,
-} from "@phosphor-icons/react";
-import {
-  MdOutlineStarOutline as MaterialStar, MdOutlineNotifications as MaterialBell,
-  MdOutlineSearch as MaterialSearch, MdOutlineCheck as MaterialCheck,
-  MdOutlineWarningAmber as MaterialAlert,
-} from "react-icons/md";
 
 const barChartData = [
   { name: "Q1", value: 320, fill: "var(--color-q1)" },
@@ -71,10 +50,9 @@ const lineChartSeries = [
 
 interface ThemePreviewProps {
   themeName?: string;
-  iconSet?: IconSetType;
 }
 
-export function ThemePreview({ themeName, iconSet = "lucide" }: ThemePreviewProps) {
+export function ThemePreview({ themeName }: ThemePreviewProps) {
   const [previewOpen, setPreviewOpen] = useState(true);
 
   if (!previewOpen) {
@@ -112,43 +90,14 @@ export function ThemePreview({ themeName, iconSet = "lucide" }: ThemePreviewProp
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <IconSetProvider value={iconSet}>
         <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Icon Set — {iconSet === "material" ? "Material" : iconSet === "phosphor" ? "Phosphor" : "Lucide"}</p>
-          <div className="flex gap-6" data-testid="preview-icon-set">
-            <div className="space-y-2">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Lucide</p>
-              <div className="flex gap-2">
-                <LucideStar className="w-5 h-5 text-foreground" />
-                <LucideBell className="w-5 h-5 text-foreground" />
-                <LucideSearch className="w-5 h-5 text-foreground" />
-                <LucideCheck className="w-5 h-5 text-foreground" />
-                <LucideAlert className="w-5 h-5 text-foreground" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Phosphor</p>
-              <div className="flex gap-2">
-                <PhosphorStar className="w-5 h-5 text-foreground" size={20} />
-                <PhosphorBell className="w-5 h-5 text-foreground" size={20} />
-                <PhosphorSearch className="w-5 h-5 text-foreground" size={20} />
-                <PhosphorCheck className="w-5 h-5 text-foreground" size={20} />
-                <PhosphorAlert className="w-5 h-5 text-foreground" size={20} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Material</p>
-              <div className="flex gap-2">
-                <MaterialStar className="w-5 h-5 text-foreground" />
-                <MaterialBell className="w-5 h-5 text-foreground" />
-                <MaterialSearch className="w-5 h-5 text-foreground" />
-                <MaterialCheck className="w-5 h-5 text-foreground" />
-                <MaterialAlert className="w-5 h-5 text-foreground" />
-              </div>
-            </div>
-          </div>
-          <div className="mt-2 px-2 py-1 rounded bg-muted inline-block">
-            <span className="text-xs font-medium text-foreground">Active: {iconSet === "material" ? "Material" : iconSet === "phosphor" ? "Phosphor" : "Lucide"}</span>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Icons — Lucide</p>
+          <div className="flex gap-2" data-testid="preview-icon-set">
+            <Star className="w-5 h-5 text-foreground" />
+            <IconBell className="w-5 h-5 text-foreground" />
+            <Search className="w-5 h-5 text-foreground" />
+            <Check className="w-5 h-5 text-foreground" />
+            <AlertTriangle className="w-5 h-5 text-foreground" />
           </div>
         </div>
 
@@ -397,7 +346,6 @@ export function ThemePreview({ themeName, iconSet = "lucide" }: ThemePreviewProp
             ))}
           </div>
         </div>
-        </IconSetProvider>
       </CardContent>
     </Card>
   );

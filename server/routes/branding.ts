@@ -85,11 +85,9 @@ export function register(app: Express) {
         resolvedTheme = await storage.getDefaultDesignTheme();
       }
 
-      let iconSet: string = "lucide";
       if (resolvedTheme) {
         themeName = resolvedTheme.name;
         themeColors = resolvedTheme.colors as object[];
-        iconSet = resolvedTheme.iconSet ?? "lucide";
       }
 
       if (!logoUrl) {
@@ -100,10 +98,10 @@ export function register(app: Express) {
       const ga = await storage.getGlobalAssumptions(u.id);
       const companyName = ga?.companyName || null;
 
-      res.json({ logoUrl, themeName, themeColors, groupCompanyName, companyName, selectedThemeId: u.selectedThemeId ?? null, iconSet });
+      res.json({ logoUrl, themeName, themeColors, groupCompanyName, companyName, selectedThemeId: u.selectedThemeId ?? null });
     } catch (error: unknown) {
       logger.error(`Error fetching my-branding: ${error instanceof Error ? error.message : error}`, "branding");
-      res.json({ logoUrl: null, themeName: null, themeColors: null, groupCompanyName: null, companyName: null, selectedThemeId: null, iconSet: "lucide" });
+      res.json({ logoUrl: null, themeName: null, themeColors: null, groupCompanyName: null, companyName: null, selectedThemeId: null });
     }
   });
 
@@ -209,7 +207,7 @@ export function register(app: Express) {
   app.get("/api/available-themes", requireAuth, async (req, res) => {
     try {
       const themes = await storage.getAllDesignThemes();
-      res.json(themes.map(t => ({ id: t.id, name: t.name, description: t.description, isDefault: t.isDefault, isSystem: t.isSystem, colors: t.colors, iconSet: t.iconSet })));
+      res.json(themes.map(t => ({ id: t.id, name: t.name, description: t.description, isDefault: t.isDefault, isSystem: t.isSystem, colors: t.colors })));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch themes", error);
     }
@@ -246,7 +244,6 @@ export function register(app: Express) {
       hexCode: z.string(),
       description: z.string(),
     })).optional(),
-    iconSet: z.enum(["lucide", "phosphor", "material"]).optional(),
     isDefault: z.boolean().optional(),
   });
 

@@ -5,20 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, Lock, Star } from "@/components/icons/themed-icons";
 import { IconPlus, IconTrash, IconPencil, IconPalette } from "@/components/icons";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useDesignThemes, useCreateTheme, useUpdateTheme, useDeleteTheme } from "./useDesignThemes";
 import { ThemePreview } from "./ThemePreview";
 import type { DesignTheme } from "./types";
-import {
-  Star as LucideStar, Bell as LucideBell, Search as LucideSearch, Home as LucideHome,
-} from "lucide-react";
-import {
-  Star as PhStar, Bell as PhBell, MagnifyingGlass as PhSearch, House as PhHome,
-} from "@phosphor-icons/react";
-import {
-  MdOutlineStarOutline as MdStar, MdOutlineNotifications as MdBell,
-  MdOutlineSearch as MdSearch, MdOutlineHome as MdHome,
-} from "react-icons/md";
 import { AppearanceDefaultsSection } from "./AppearanceDefaultsSection";
 import { ThemeFormDialog, DeleteConfirmDialog, BLANK_THEME, type NewThemeState } from "./ThemeFormDialog";
 
@@ -159,7 +148,7 @@ export function ThemeManager() {
     )}
 
     <div className="mb-6">
-      <ThemePreview themeName={activeTheme?.name} iconSet={activeTheme?.iconSet} />
+      <ThemePreview themeName={activeTheme?.name} />
     </div>
 
     <AppearanceDefaultsSection />
@@ -285,40 +274,6 @@ export function ThemeManager() {
                     </div>
                   )}
 
-                  {/* Icon set selector */}
-                  <div className="flex items-center gap-3" data-testid={`inline-icon-set-selector-${theme.id}`}>
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Icons</span>
-                    <RadioGroup
-                      value={theme.iconSet}
-                      onValueChange={(val: string) => {
-                        if (!theme.isSystem) {
-                          updateThemeMutation.mutate({ id: theme.id, data: { iconSet: val } });
-                        }
-                      }}
-                      className="flex items-center gap-2"
-                      disabled={theme.isSystem}
-                    >
-                      <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border ${theme.iconSet === "lucide" ? "border-primary/40 bg-primary/5" : "border-border/50 bg-muted/40"} ${theme.isSystem ? "opacity-60" : ""}`}>
-                        <RadioGroupItem value="lucide" id={`lucide-${theme.id}`} className="h-3 w-3" data-testid={`radio-lucide-${theme.id}`} disabled={theme.isSystem} />
-                        <Label htmlFor={`lucide-${theme.id}`} className="text-[10px] cursor-pointer flex items-center gap-0.5">
-                          <LucideStar className="w-3 h-3" /><LucideBell className="w-3 h-3" /><LucideSearch className="w-3 h-3" /><LucideHome className="w-3 h-3" />
-                        </Label>
-                      </div>
-                      <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border ${theme.iconSet === "phosphor" ? "border-primary/40 bg-primary/5" : "border-border/50 bg-muted/40"} ${theme.isSystem ? "opacity-60" : ""}`}>
-                        <RadioGroupItem value="phosphor" id={`phosphor-${theme.id}`} className="h-3 w-3" data-testid={`radio-phosphor-${theme.id}`} disabled={theme.isSystem} />
-                        <Label htmlFor={`phosphor-${theme.id}`} className="text-[10px] cursor-pointer flex items-center gap-0.5">
-                          <PhStar className="w-3 h-3" size={12} /><PhBell className="w-3 h-3" size={12} /><PhSearch className="w-3 h-3" size={12} /><PhHome className="w-3 h-3" size={12} />
-                        </Label>
-                      </div>
-                      <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border ${theme.iconSet === "material" ? "border-primary/40 bg-primary/5" : "border-border/50 bg-muted/40"} ${theme.isSystem ? "opacity-60" : ""}`}>
-                        <RadioGroupItem value="material" id={`material-${theme.id}`} className="h-3 w-3" data-testid={`radio-material-${theme.id}`} disabled={theme.isSystem} />
-                        <Label htmlFor={`material-${theme.id}`} className="text-[10px] cursor-pointer flex items-center gap-0.5">
-                          <MdStar className="w-3 h-3" /><MdBell className="w-3 h-3" /><MdSearch className="w-3 h-3" /><MdHome className="w-3 h-3" />
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
                   {/* Color swatches */}
                   <div className="flex flex-wrap gap-x-6 gap-y-3">
                     {theme.colors.filter(c => c.description?.startsWith('PALETTE:')).length > 0 && (
@@ -388,7 +343,7 @@ export function ThemeManager() {
       setThemeForForm={setThemeForForm}
       onSave={() => {
         if (editingTheme) {
-          updateThemeMutation.mutate({ id: editingTheme.id, data: { name: editingTheme.name, description: editingTheme.description, colors: editingTheme.colors, iconSet: editingTheme.iconSet } });
+          updateThemeMutation.mutate({ id: editingTheme.id, data: { name: editingTheme.name, description: editingTheme.description, colors: editingTheme.colors } });
         } else {
           createThemeMutation.mutate(newTheme);
         }

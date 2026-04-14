@@ -6,16 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ChevronUp, ChevronDown, AlertTriangle } from "@/components/icons/themed-icons";
 import { IconPlus, IconTrash, IconPalette, IconActivity, IconSparkles, IconType, IconSave } from "@/components/icons";
 import { ColorPicker } from "@/components/ui/color-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { DesignTheme, DesignColor, IconSetType } from "./types";
+import type { DesignTheme, DesignColor } from "./types";
 
-export type NewThemeState = { name: string; description: string; colors: DesignColor[]; iconSet: IconSetType };
+export type NewThemeState = { name: string; description: string; colors: DesignColor[] };
 
 export const BLANK_THEME: NewThemeState = {
   name: "",
   description: "",
   colors: [{ rank: 1, name: "", hexCode: "#000000", description: "" }],
-  iconSet: "lucide",
 };
 
 function softenHex(hex: string, factor = 0.75): string {
@@ -64,23 +62,6 @@ export function ThemeFormDialog({ open, onOpenChange, editingTheme, themeForForm
               onChange={e => setThemeForForm({ ...themeForForm, description: e.target.value })}
               placeholder="Describe the design philosophy and inspiration..."
             />
-          </div>
-
-          <div>
-            <Label className="flex items-center gap-2 mb-1"><IconPalette className="w-4 h-4 text-muted-foreground" />Icon Set</Label>
-            <Select
-              value={themeForForm.iconSet}
-              onValueChange={(val: IconSetType) => setThemeForForm({ ...themeForForm, iconSet: val })}
-            >
-              <SelectTrigger data-testid="select-icon-set">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="lucide">Lucide (default)</SelectItem>
-                <SelectItem value="phosphor">Phosphor</SelectItem>
-                <SelectItem value="material">Material Design</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="p-4 rounded-lg border-2 border-primary/30 bg-primary/5">

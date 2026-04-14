@@ -2,14 +2,12 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import LogosTab from "./LogosTab";
 import ThemesTab from "./ThemesTab";
-import IconCustomizationTab from "./IconCustomizationTab";
 
-type BrandSubTab = "logos" | "themes" | "icons";
+type BrandSubTab = "logos" | "themes";
 
 const SUB_TABS: { value: BrandSubTab; label: string }[] = [
   { value: "logos", label: "Logos" },
   { value: "themes", label: "Themes" },
-  { value: "icons", label: "Icons" },
 ];
 
 export default function BrandTab() {
@@ -38,7 +36,6 @@ export default function BrandTab() {
       <div>
         {activeTab === "logos" && <LogosTab />}
         {activeTab === "themes" && <ThemesTab />}
-        {activeTab === "icons" && <IconCustomizationTab />}
       </div>
     </div>
   );
