@@ -160,8 +160,9 @@ export class AmadeusService extends BaseIntegrationService {
           // Step 2: Get pricing for the first 20 hotels (API limit)
           const hotelIds = hotelData.slice(0, 20).map((h: any) => h.hotelId).filter(Boolean);
           return this.getHotelPricing(hotelIds, checkIn, checkOut);
-        } catch (error: any) {
-          const errMsg = error?.response?.result?.errors?.[0]?.detail ?? error?.message ?? String(error);
+        } catch (error: unknown) {
+          const err = error as Record<string, any>;
+          const errMsg = err?.response?.result?.errors?.[0]?.detail ?? (error instanceof Error ? error.message : String(error));
           this.warn(`Hotel geo search failed: ${errMsg}`);
           return [];
         }
@@ -224,8 +225,9 @@ export class AmadeusService extends BaseIntegrationService {
               boardType: offer?.boardType,
             };
           });
-        } catch (error: any) {
-          const errMsg = error?.response?.result?.errors?.[0]?.detail ?? error?.message ?? String(error);
+        } catch (error: unknown) {
+          const err = error as Record<string, any>;
+          const errMsg = err?.response?.result?.errors?.[0]?.detail ?? (error instanceof Error ? error.message : String(error));
           this.warn(`Hotel pricing failed: ${errMsg}`);
           return [];
         }
@@ -285,8 +287,9 @@ export class AmadeusService extends BaseIntegrationService {
             currency,
             fetchedAt: new Date().toISOString(),
           };
-        } catch (error: any) {
-          const errMsg = error?.response?.result?.errors?.[0]?.detail ?? error?.message ?? String(error);
+        } catch (error: unknown) {
+          const err = error as Record<string, any>;
+          const errMsg = err?.response?.result?.errors?.[0]?.detail ?? (error instanceof Error ? error.message : String(error));
           this.warn(`Market rates failed for ${cityCode}: ${errMsg}`);
           return null;
         }
@@ -367,8 +370,8 @@ export class AmadeusService extends BaseIntegrationService {
             },
             fetchedAt: new Date().toISOString(),
           };
-        } catch (error: any) {
-          this.warn(`Comp-set search failed for ${name}: ${error?.message ?? String(error)}`);
+        } catch (error: unknown) {
+          this.warn(`Comp-set search failed for ${name}: ${error instanceof Error ? error.message : String(error)}`);
           return null;
         }
       },
@@ -402,8 +405,8 @@ export class AmadeusService extends BaseIntegrationService {
         provenance: "cited",
         confidence: compSet.marketStats.sampleSize >= 5 ? "medium" : "low",
       };
-    } catch (error: any) {
-      this.warn(`ADR benchmark failed: ${error?.message ?? String(error)}`);
+    } catch (error: unknown) {
+      this.warn(`ADR benchmark failed: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     }
   }
