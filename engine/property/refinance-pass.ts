@@ -18,7 +18,6 @@ import {
   DEFAULT_TERM_YEARS,
   DEFAULT_REFI_LTV,
   DEFAULT_REFI_CLOSING_COST_RATE,
-  DEFAULT_EXIT_CAP_RATE,
 } from '@/lib/constants';
 import { NOL_UTILIZATION_CAP, MONTHS_PER_YEAR } from '@shared/constants';
 import { PropertyInput, GlobalInput, MonthlyFinancials } from '../types';
@@ -61,15 +60,7 @@ export function applyRefinancePostProcessing(
   }
 
   const refiLTV = property.refinanceLTV ?? DEFAULT_REFI_LTV;
-  const refiExitCap = property.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
-  const rawRefiYearNOI = yearlyNOI[refiYear] ?? 0;
-  if (Number.isNaN(rawRefiYearNOI)) throw new Error(`yearlyNOI[${refiYear}] is NaN`);
-  const refiYearOpsMonths = yearlyOperationalMonths[refiYear] || MONTHS_PER_YEAR;
-  const stabilizedNOI = refiYearOpsMonths >= MONTHS_PER_YEAR
-    ? rawRefiYearNOI
-    : refiYearOpsMonths > 0
-      ? (rawRefiYearNOI / refiYearOpsMonths) * MONTHS_PER_YEAR
-      : 0;
+  const costBasisValue = (property.purchasePrice ?? 0) + (property.buildingImprovements ?? 0);
   const refiRate = property.refinanceInterestRate ?? DEFAULT_INTEREST_RATE;
   const refiTermYears = property.refinanceTermYears ?? DEFAULT_TERM_YEARS;
   const closingCostRate = property.refinanceClosingCostRate ?? DEFAULT_REFI_CLOSING_COST_RATE;
@@ -78,7 +69,7 @@ export function applyRefinancePostProcessing(
   const refiOutput = computeRefinance({
     refinance_date: property.refinanceDate!,
     current_loan_balance: existingDebt,
-    valuation: { method: "noi_cap", stabilized_noi: stabilizedNOI, cap_rate: refiExitCap },
+    valuation: { method: "direct", property_value_at_refi: costBasisValue },
     ltv_max: refiLTV,
     closing_cost_pct: closingCostRate,
     prepayment_penalty: { type: "none", value: 0 },

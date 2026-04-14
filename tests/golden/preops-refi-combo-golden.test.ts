@@ -168,14 +168,8 @@ const H_ORIG_AMORT = buildOrigAmortSchedule(36); // only need 36 months of origi
 // Existing debt at month 35 (end of month 35 = start of month 36)
 const H_EXISTING_DEBT_AT_REFI = H_ORIG_AMORT[35].balance;
 
-// Refi year = floor(36 / 12) = 3 → year slice is months 36-47
-// But in Pass 1, months 36-47 are operational (ops started month 6), so all 12 months operational
-// Stabilized NOI = yearlyNOI[3] (sum of months 36-47 NOI from Pass 1)
-// In Pass 1, all operational months have the same NOI, so yearlyNOI[3] = H_NOI × 12
-const H_STABILIZED_NOI = H_NOI * 12;
-
-// Property valuation = stabilized NOI / exit cap rate
-const H_REFI_PROPERTY_VALUE = H_STABILIZED_NOI / 0.085;
+// Property valuation uses cost basis (purchase price + building improvements)
+const H_REFI_PROPERTY_VALUE = 2_000_000 + 0; // purchasePrice + buildingImprovements
 
 // New loan = min(LTV-based, DSCR-based) — no DSCR constraint in our setup
 const H_NEW_LOAN_GROSS = Math.round((H_REFI_PROPERTY_VALUE * 0.55) * 100) / 100;

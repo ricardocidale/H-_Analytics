@@ -313,8 +313,8 @@ describe("calculateRefinanceParams", () => {
 
     expect(refi.refiYear).toBe(3);
 
-    // propertyValue = NOI / exitCapRate = 400,000 / 0.085
-    const propertyValue = 400_000 / 0.085;
+    // propertyValue = purchasePrice + buildingImprovements (cost-basis approach)
+    const propertyValue = 2_000_000 + 100_000;
     const expectedRefiLoan = propertyValue * 0.65;
     expect(refi.refiLoanAmount).toBeCloseTo(expectedRefiLoan, 0);
 
