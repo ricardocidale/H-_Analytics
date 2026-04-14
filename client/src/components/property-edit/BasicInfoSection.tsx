@@ -250,7 +250,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               onChange={(v) => onChange("hospitalityType", v)}
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 sm:col-start-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Business Model<InfoTooltip text="Determines the financial framework: Hotel uses USALI with departmental expenses (F&B, Events), management fees (2-5% base + incentive). Lodge is a large whole-property rental with premium amenities and guest meals but no events department, management fees (15-25%). VRBO/STR uses platform fees (Airbnb 15.5%, VRBO 8%), per-turnover cleaning, and all-in management fees (20-35%)." /></Label>
             <BusinessModelSelector
               value={draft.businessModel || "hotel"}
