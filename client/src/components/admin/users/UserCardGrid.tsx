@@ -47,6 +47,14 @@ function roleBadgeVariant(role: string): "default" | "secondary" | "outline" {
   return "outline";
 }
 
+function roleAvatarColors(role: string): string {
+  if (role === UserRole.SUPER_ADMIN) return "bg-amber-100 text-amber-800 border-amber-300";
+  if (role === UserRole.ADMIN) return "bg-sky-100 text-sky-800 border-sky-300";
+  if (role === UserRole.CHECKER) return "bg-emerald-100 text-emerald-800 border-emerald-300";
+  if (role === UserRole.INVESTOR) return "bg-violet-100 text-violet-800 border-violet-300";
+  return "bg-slate-100 text-slate-700 border-slate-300";
+}
+
 function ActionButton({ icon, label, onClick, testId, variant = "ghost" }: {
   icon: React.ReactNode;
   label: string;
@@ -104,7 +112,7 @@ export default function UserCardGrid({
         </Button>
       </div>
 
-      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
         {sortedUsers.map((user, idx, arr) => {
           const currentCompany = user.companyId ? companyNameMap[user.companyId] || "Unknown Company" : "No Company";
           const prevCompany = idx > 0
@@ -133,8 +141,8 @@ export default function UserCardGrid({
                 data-testid={`row-user-${user.id}`}
               >
                 <div className="p-4 flex items-start gap-3">
-                  <Avatar className="h-10 w-10 shrink-0 border border-border/50">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  <Avatar className={`h-10 w-10 shrink-0 border ${roleAvatarColors(user.role)}`}>
+                    <AvatarFallback className={`text-sm font-semibold ${roleAvatarColors(user.role)}`}>
                       {initials}
                     </AvatarFallback>
                   </Avatar>
