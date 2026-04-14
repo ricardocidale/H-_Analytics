@@ -90,13 +90,18 @@ export function register(app: Express) {
         themeColors = resolvedTheme.colors as object[];
       }
 
+      const ga = await storage.getGlobalAssumptions(u.id);
+      const companyName = ga?.companyName || null;
+
+      if (!logoUrl && ga?.companyLogoId) {
+        const companyLogo = await storage.getLogo(ga.companyLogoId);
+        if (companyLogo) logoUrl = companyLogo.url;
+      }
+
       if (!logoUrl) {
         const defaultLogo = await storage.getDefaultLogo();
         if (defaultLogo) logoUrl = defaultLogo.url;
       }
-
-      const ga = await storage.getGlobalAssumptions(u.id);
-      const companyName = ga?.companyName || null;
 
       res.json({ logoUrl, themeName, themeColors, groupCompanyName, companyName, selectedThemeId: u.selectedThemeId ?? null });
     } catch (error: unknown) {

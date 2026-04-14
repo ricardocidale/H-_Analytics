@@ -38,7 +38,7 @@ export default function Logos() {
   const { data: logos, isLoading } = useQuery<Logo[]>({
     queryKey: ["admin", "logos"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/logos", { credentials: "include" });
+      const res = await fetch("/api/logos", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch logos");
       return res.json();
     },
@@ -46,7 +46,7 @@ export default function Logos() {
 
   const createLogoMutation = useMutation({
     mutationFn: async (data: { name: string; companyName: string; url: string }) => {
-      const res = await fetch("/api/admin/logos", {
+      const res = await fetch("/api/logos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -69,7 +69,7 @@ export default function Logos() {
 
   const deleteLogoMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/admin/logos/${id}`, { method: "DELETE", credentials: "include" });
+      const res = await fetch(`/api/logos/${id}`, { method: "DELETE", credentials: "include" });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Failed to delete logo");
@@ -108,7 +108,7 @@ export default function Logos() {
 
     setUploadingFile(true);
     try {
-      const res = await fetch("/api/admin/logos/upload", {
+      const res = await fetch("/api/uploads/request-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),

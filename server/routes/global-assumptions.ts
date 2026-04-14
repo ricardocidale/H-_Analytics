@@ -24,7 +24,12 @@ export function register(app: Express) {
   app.get("/api/global-assumptions", requireAuth, async (req, res) => {
     try {
       const assumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      res.json({ ...assumptions, rebeccaV2: flag("REBECCA_V2") });
+      let companyLogoUrl: string | null = null;
+      if (assumptions?.companyLogoId) {
+        const logo = await storage.getLogo(assumptions.companyLogoId);
+        if (logo) companyLogoUrl = logo.url;
+      }
+      res.json({ ...assumptions, companyLogoUrl, rebeccaV2: flag("REBECCA_V2") });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch global assumptions", error);
     }
