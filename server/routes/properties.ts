@@ -16,6 +16,7 @@ import { WalkScoreService } from "../services/WalkScoreService";
 import { suggestStarRating } from "../ai/context-pack/star-rating";
 import { registerPropertyUrlRoutes } from "./properties-urls";
 import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
+import { computePropertyDefaults } from "@engine/helpers/default-resolver";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -87,6 +88,63 @@ export function register(app: Express) {
         }
       }
 
+      // Layer 2: Smart defaults from quality tier, business model, country, room count
+      // These override GA defaults when the property has enough classification info
+      const inputData = validation.data as Record<string, unknown>;
+      const qualityTier = (inputData.qualityTier as string) || "Upscale";
+      const businessModel = (inputData.businessModel as string) || "hotel";
+      const country = (inputData.country as string) || "United States";
+      const roomCount = (inputData.roomCount as number) || 10;
+      const stateProvince = (inputData.stateProvince as string) || undefined;
+
+      try {
+        const smartDefaults = computePropertyDefaults(
+          qualityTier, businessModel, country, roomCount, stateProvince,
+        );
+
+        // Smart defaults fill in anything not already set by the user or GA
+        const smartFields: Record<string, unknown> = {
+          startAdr: smartDefaults.startAdr,
+          adrGrowthRate: smartDefaults.adrGrowthRate,
+          startOccupancy: smartDefaults.startOccupancy,
+          maxOccupancy: smartDefaults.maxOccupancy,
+          revShareFB: smartDefaults.revShareFB,
+          revShareEvents: smartDefaults.revShareEvents,
+          revShareOther: smartDefaults.revShareOther,
+          costRateRooms: smartDefaults.costRateRooms,
+          costRateFB: smartDefaults.costRateFB,
+          costRateAdmin: smartDefaults.costRateAdmin,
+          costRateMarketing: smartDefaults.costRateMarketing,
+          costRatePropertyOps: smartDefaults.costRatePropertyOps,
+          costRateUtilities: smartDefaults.costRateUtilities,
+          costRateIT: smartDefaults.costRateIT,
+          costRateFFE: smartDefaults.costRateFFE,
+          depreciationYears: smartDefaults.depreciationYears,
+          incomeTaxRate: smartDefaults.incomeTaxRate,
+          propertyTaxRate: smartDefaults.propertyTaxRate,
+        };
+
+        for (const [key, smartValue] of Object.entries(smartFields)) {
+          const userValue = inputData[key];
+          const gaValue = mergedData[key];
+          // Smart defaults only fill in when user didn't set it AND GA didn't override it
+          if ((userValue === undefined || userValue === null) &&
+              (gaValue === undefined || gaValue === null)) {
+            mergedData[key] = smartValue;
+          }
+        }
+
+        // Store provenance metadata so the UI can show where defaults came from
+        mergedData._defaultSources = smartDefaults.sources;
+
+        logger.info(
+          `Smart defaults applied: tier=${qualityTier}, model=${businessModel}, country=${country}, rooms=${roomCount}`,
+          "properties",
+        );
+      } catch (err: unknown) {
+        logger.warn(`Smart defaults computation failed (non-blocking): ${err instanceof Error ? err.message : err}`, "properties");
+      }
+
       const user = getAuthUser(req);
       const createData = {
         ...validation.data,
@@ -147,6 +205,29 @@ export function register(app: Express) {
       res.json({ latitude: updated.latitude, longitude: updated.longitude });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update coordinates", error);
+    }
+  });
+
+  /**
+   * GET /api/properties/defaults/preview
+   * Preview smart defaults for a property before creating it.
+   * Query params: qualityTier, businessModel, country, roomCount, stateProvince
+   */
+  app.get("/api/properties/defaults/preview", requireAuth, async (req, res) => {
+    try {
+      const qualityTier = (req.query.qualityTier as string) || "Upscale";
+      const businessModel = (req.query.businessModel as string) || "hotel";
+      const country = (req.query.country as string) || "United States";
+      const roomCount = Number(req.query.roomCount) || 10;
+      const stateProvince = (req.query.stateProvince as string) || undefined;
+
+      const defaults = computePropertyDefaults(
+        qualityTier, businessModel, country, roomCount, stateProvince,
+      );
+
+      res.json(defaults);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to compute defaults preview", error);
     }
   });
 
