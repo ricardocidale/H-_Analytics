@@ -460,4 +460,69 @@ export function register(app: Express) {
       logAndSendError(res, "Failed to remove enhanced photo", error);
     }
   });
+
+  app.post("/api/admin/batch-enhance", requireAdmin, async (_req, res) => {
+    try {
+      const properties = await storage.getAllPropertiesAdmin();
+      const queue: Array<{ photoId: number; imageUrl: string; imageData: string | null; propertyId: number }> = [];
+
+      for (const prop of properties) {
+        const photos = await storage.getPropertyPhotos(prop.id);
+        for (const photo of photos) {
+          if (!photo.enhancedImageData) {
+            queue.push({
+              photoId: photo.id,
+              imageUrl: photo.imageUrl,
+              imageData: photo.imageData,
+              propertyId: prop.id,
+            });
+          }
+        }
+      }
+
+      logger.info(`Batch enhance: ${queue.length} photos queued for processing`, "property-photos");
+
+      res.json({
+        success: true,
+        queued: queue.length,
+        message: `Processing ${queue.length} photos in background`,
+      });
+
+      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+      (async () => {
+        let completed = 0;
+        let failed = 0;
+        const maxRetries = 2;
+        for (let i = 0; i < queue.length; i++) {
+          const item = queue[i];
+          let success = false;
+          for (let attempt = 0; attempt <= maxRetries && !success; attempt++) {
+            try {
+              if (attempt > 0) {
+                logger.info(`Batch enhance: retrying photo ${item.photoId} (attempt ${attempt + 1})`, "property-photos");
+                await delay(15_000);
+              }
+              await autoEnhancePhoto(item.photoId, item.imageUrl, item.imageData, item.propertyId);
+              completed++;
+              success = true;
+              logger.info(`Batch enhance: ${completed}/${queue.length} done (photo ${item.photoId})`, "property-photos");
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : String(err);
+              if (attempt === maxRetries) {
+                failed++;
+                logger.error(`Batch enhance: photo ${item.photoId} failed after ${maxRetries + 1} attempts: ${msg}`, "property-photos");
+              }
+            }
+          }
+          if (i < queue.length - 1) {
+            await delay(12_000);
+          }
+        }
+        logger.info(`Batch enhance complete: ${completed} succeeded, ${failed} failed out of ${queue.length}`, "property-photos");
+      })();
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to start batch enhancement", error);
+    }
+  });
 }

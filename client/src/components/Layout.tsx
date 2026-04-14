@@ -32,7 +32,6 @@ import { usePanelManager } from "@/lib/panel-manager";
 import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } from "@/lib/theme";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
 import type { ColorMode, FontPreference, BgAnimation, AppearanceDefaults } from "@/lib/theme/appearance";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { IconSetProvider } from "@/components/icons/IconSetContext";
 import type { IconSetType } from "@/features/design-themes/types";
 import { useAdminSection } from "@/lib/admin-nav";
@@ -330,17 +329,9 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       )}
       <Separator className="my-2" />
       {user && (
-        <div className="flex items-center gap-2 px-3 py-1.5" data-testid="sidebar-user-info">
-          <UserAvatar
-            firstName={user.firstName}
-            lastName={user.lastName}
-            name={user.name}
-            email={user.email}
-            logoUrl={myBranding?.logoUrl}
-            size="sm"
-          />
+        <div className="flex items-center px-3 py-1.5" data-testid="sidebar-user-info">
           <span className="text-[12px] text-muted-foreground/80 truncate" data-testid="sidebar-user-firstname">
-            {user.firstName || (user.name ? user.name.trim().split(/\s+/)[0] : "")}
+            {user.name || user.firstName || user.email}
           </span>
         </div>
       )}
