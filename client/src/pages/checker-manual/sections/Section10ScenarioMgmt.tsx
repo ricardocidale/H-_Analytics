@@ -29,9 +29,9 @@ import { SectionCard } from "@/components/ui/section-card";
         <Callout>Save a baseline scenario before any testing. Create separate test scenarios for each verification round.</Callout>
 
         <div className="bg-muted/50 rounded-lg p-4 mt-4">
-          <h4 className="font-semibold mb-2">Admin Scenario Governance</h4>
+          <h4 className="font-semibold mb-2">Scenario Governance</h4>
           <p className="text-sm text-muted-foreground mb-3">
-            Administrators have full control over all scenarios across the platform via the Admin &gt; Scenarios section.
+            Administrators have full control over all scenarios across the platform.
           </p>
           <ManualTable
             headers={["Capability", "Description"]}

@@ -288,11 +288,11 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             {[
               { q: "How often should I refresh research?", a: "For active properties, monthly refreshes keep your assumptions current. Tier 2 refreshes are quick and cost-effective for routine updates." },
               { q: "Can research overwrite my manual edits?", a: "No. Research values appear as suggested badges on assumption fields. You always choose whether to accept them. Manual values are never overwritten automatically." },
-              { q: "What data sources does the AI use?", a: "The system considers property characteristics, location data, comparable hotel sets, industry benchmarks, STR data, and any custom sources your admin has configured in the Source Registry." },
-              { q: "Why do some assumptions show as 'stale'?", a: "Research becomes stale when it exceeds the configured freshness threshold (set by your admin in Pipeline Policies). A stale badge means the data may be outdated and should be refreshed." },
+              { q: "What data sources does the AI use?", a: "The system considers property characteristics, location data, comparable hotel sets, industry benchmarks, STR data, and any additional sources configured for your organization." },
+              { q: "Why do some assumptions show as 'stale'?", a: "Research becomes stale when it exceeds the configured freshness threshold. A stale badge means the data may be outdated and should be refreshed." },
               { q: "What does the relaxation trail mean?", a: "The relaxation trail shows how the AI widened its search when exact comparables weren't available. Each step records what criteria was relaxed (geography, property type, or size range) so you can judge how closely the data matches your property." },
               { q: "Why is my property rated lower than others?", a: "Star ratings reflect data availability, not property quality. A property in a less-documented market may receive fewer stars because there are fewer comparable data points available, even though the research is still valuable." },
-              { q: "Can I see the raw AI prompt?", a: "Admins can preview the full prompt and context pack in the QA Sandbox (Admin > QA Sandbox) before running research. This helps verify that the AI receives the right information." },
+              { q: "Can I see the raw AI prompt?", a: "The full prompt and context pack can be previewed before running research to verify the AI receives the right information. Contact your administrator for access." },
             ].map((item, i) => (
               <div key={i} className="rounded-lg border border-border/40 bg-card/50 p-3">
                 <p className="font-medium text-xs text-foreground mb-1">{item.q}</p>

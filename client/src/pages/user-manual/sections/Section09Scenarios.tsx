@@ -53,7 +53,7 @@ export default function Section09Scenarios({ expanded, onToggle, sectionRef }: S
           <li>&#8226; If your group or company has been granted access to a scenario, it appears on your Scenarios page as a shared scenario.</li>
           <li>&#8226; Shared scenarios are <strong>read-only</strong> unless you are the owner.</li>
           <li>&#8226; When your group or company assignment changes, your visible shared scenarios update automatically.</li>
-          <li>&#8226; Administrators manage scenario access from the Admin &gt; Scenarios section.</li>
+          <li>&#8226; Scenario access is managed by your administrator. Contact them to request changes.</li>
         </ul>
       </div>
 

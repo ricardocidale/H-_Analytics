@@ -219,12 +219,12 @@ export default function PropertyResearchCriteria() {
               <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50">
                 <div className="flex items-center gap-2">
                   <IconSettings className="h-4 w-4 shrink-0 text-primary" />
-                  <span className="font-medium text-sm">Admin Research Configuration</span>
+                  <span className="font-medium text-sm">Research Configuration</span>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
                 <p className="text-xs text-muted-foreground mb-3">
-                  These settings are managed by your administrator in the Research Center and shape how the AI conducts its analysis.
+                  These settings shape how the AI conducts its analysis. Contact your administrator to request changes.
                 </p>
                 {hasAdminConfig ? (
                   <div className="space-y-4">
@@ -330,9 +330,8 @@ export default function PropertyResearchCriteria() {
             <div className="flex gap-3">
               <IconAlertCircle className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground leading-relaxed">
-                These criteria are read-only. To change the research configuration, 
-                ask your administrator to update the settings in the Research Center 
-                section of the Admin panel.
+                These criteria are read-only. To request changes to the research configuration, 
+                contact your administrator.
               </p>
             </div>
           </Card>

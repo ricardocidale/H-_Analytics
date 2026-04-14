@@ -38,7 +38,7 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
           <div className="flex flex-col gap-2">
             <Label className="flex items-center text-foreground label-text">
               Company Logo
-              <InfoTooltip text="The company logo displayed in the navigation. Upload logos via Admin > Logos." />
+              <InfoTooltip text="The company logo displayed in the navigation sidebar and reports." />
             </Label>
             <LogoSelector
               label=""

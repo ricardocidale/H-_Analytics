@@ -18,7 +18,7 @@ export default function Section15Branding({ expanded, onToggle, sectionRef }: Se
     >
       <p className="text-sm text-muted-foreground">
         The portal supports customizable branding including logos, color themes, and design elements.
-        Branding is managed by the Administrator and can be configured at the system level or per user group.
+        Branding is managed by your administrator. Contact them to request changes to logos, themes, or design elements.
       </p>
 
       <div className="bg-muted/50 rounded-lg p-4">

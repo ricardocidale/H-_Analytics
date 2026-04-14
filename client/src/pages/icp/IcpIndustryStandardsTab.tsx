@@ -35,8 +35,8 @@ export function IcpIndustryStandardsTab({
       </Card>
 
       <Card className="border border-border rounded-lg p-5 space-y-4">
-        <SectionHeading icon={IconSettings} title="Admin Research Configuration" />
-        <p className="text-xs text-muted-foreground">These settings are managed by your administrator in the Research Center and shape how the AI conducts its company-level analysis.</p>
+        <SectionHeading icon={IconSettings} title="Research Configuration" />
+        <p className="text-xs text-muted-foreground">These settings shape how the AI conducts its company-level analysis. Contact your administrator to request changes.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <DataCard label="Preferred LLM" value={preferredLlm} />
