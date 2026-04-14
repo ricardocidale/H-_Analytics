@@ -87,8 +87,10 @@ export class AdminStorage {
   async setDefaultLogo(id: number): Promise<void> {
     const [target] = await db.select({ id: logos.id }).from(logos).where(eq(logos.id, id));
     if (!target) throw new Error("Logo not found");
-    await db.update(logos).set({ isDefault: false }).where(eq(logos.isDefault, true));
-    await db.update(logos).set({ isDefault: true }).where(eq(logos.id, id));
+    await db.transaction(async (tx) => {
+      await tx.update(logos).set({ isDefault: false }).where(eq(logos.isDefault, true));
+      await tx.update(logos).set({ isDefault: true }).where(eq(logos.id, id));
+    });
   }
 
   async getAppLogo(): Promise<Logo | undefined> {
@@ -99,8 +101,10 @@ export class AdminStorage {
   async setAppLogo(id: number): Promise<void> {
     const [target] = await db.select({ id: logos.id }).from(logos).where(eq(logos.id, id));
     if (!target) throw new Error("Logo not found");
-    await db.update(logos).set({ isAppLogo: false }).where(eq(logos.isAppLogo, true));
-    await db.update(logos).set({ isAppLogo: true }).where(eq(logos.id, id));
+    await db.transaction(async (tx) => {
+      await tx.update(logos).set({ isAppLogo: false }).where(eq(logos.isAppLogo, true));
+      await tx.update(logos).set({ isAppLogo: true }).where(eq(logos.id, id));
+    });
   }
 
   /** Remove a logo. The default logo is protected by the route handler, not here. */

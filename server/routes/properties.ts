@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess, checkPropertyEditAccess, getAuthUser } from "../auth";
-import { insertPropertySchema, updatePropertySchema, updateFeeCategorySchema, type GlobalAssumptions } from "@shared/schema";
+import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 import { logActivity, logAndSendError, parseRouteId } from "./helpers";

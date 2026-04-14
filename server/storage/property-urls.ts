@@ -22,7 +22,8 @@ export class PropertyUrlStorage {
 
   async getAllPropertyUrls(): Promise<PropertyUrl[]> {
     return await db.select().from(propertyUrls)
-      .orderBy(asc(propertyUrls.propertyId), asc(propertyUrls.createdAt));
+      .orderBy(asc(propertyUrls.propertyId), asc(propertyUrls.createdAt))
+      .limit(5000);
   }
 
   async getPropertyUrlById(id: number): Promise<PropertyUrl | undefined> {

@@ -11,7 +11,7 @@ import {
   type RebeccaKBHistory,
 } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, desc, isNull, sql } from "drizzle-orm";
+import { eq, and, desc, gte, isNull, sql } from "drizzle-orm";
 
 export class IntelligenceRebeccaStorage {
 
@@ -108,12 +108,15 @@ export class IntelligenceRebeccaStorage {
   }
 
   async getAllRebeccaMessageStats(): Promise<Array<{ conversationId: number; role: string; createdAt: Date; metadata: Record<string, unknown> | null }>> {
+    const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
     const rows = await db.select({
       conversationId: rebeccaMessages.conversationId,
       role: rebeccaMessages.role,
       createdAt: rebeccaMessages.createdAt,
       metadata: rebeccaMessages.metadata,
-    }).from(rebeccaMessages);
+    }).from(rebeccaMessages)
+      .where(gte(rebeccaMessages.createdAt, cutoff))
+      .limit(10000);
     return rows;
   }
 

@@ -61,11 +61,17 @@ export function register(app: Express) {
   app.put("/api/global-assumptions", requireAdmin, async (req, res) => {
     try {
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      const merged = { ...(current ?? {}), ...req.body };
-      delete merged.id;
-      delete merged.createdAt;
-      delete merged.updatedAt;
-      delete merged.companyLogoUrl;
+      // Validate req.body first, then merge with current — prevents prototype pollution
+      const bodyValidation = insertGlobalAssumptionsSchema.partial().safeParse(req.body);
+      if (!bodyValidation.success) {
+        const error = fromZodError(bodyValidation.error);
+        return res.status(400).json({ error: error.message });
+      }
+      const merged = { ...(current ?? {}), ...bodyValidation.data };
+      delete (merged as Record<string, unknown>).id;
+      delete (merged as Record<string, unknown>).createdAt;
+      delete (merged as Record<string, unknown>).updatedAt;
+      delete (merged as Record<string, unknown>).companyLogoUrl;
 
       const validation = insertGlobalAssumptionsSchema.safeParse(merged);
       if (!validation.success) {

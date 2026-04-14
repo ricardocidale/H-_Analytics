@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { requireAuth, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
+import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
 import { getStorageProvider } from "../providers/storage";
 import { logActivity, logAndSendError, uploadRequestSchema, processImageSchema, bulkProcessPhotosSchema } from "./helpers";
 import { fromZodError } from "zod-validation-error";
@@ -152,12 +152,8 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/admin/bulk-process-photos", requireAuth, async (req, res) => {
+  app.post("/api/admin/bulk-process-photos", requireAdmin, async (req, res) => {
     try {
-      const user = req.user;
-      if (!user || !isAdminRole(user.role)) {
-        return res.status(403).json({ error: "Admin access required" });
-      }
 
       const parsed = bulkProcessPhotosSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -170,9 +166,8 @@ export function register(app: Express) {
       if (propertyId) {
         photos = await storage.getPropertyPhotos(propertyId);
       } else {
-        const allProperties = isAdminRole(user.role)
-          ? await storage.getAllProperties()
-          : await storage.getAllProperties(user.id);
+        // requireAdmin guarantees admin role — fetch all properties
+        const allProperties = await storage.getAllProperties();
         // Bulk fetch all photos in a single query instead of N queries
         const photosByPropId = await storage.getPhotosByProperties(allProperties.map(p => p.id));
         photos = Object.values(photosByPropId).flat();

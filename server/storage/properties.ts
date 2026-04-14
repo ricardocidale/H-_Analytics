@@ -1,7 +1,7 @@
 import { properties, userDefaultProperties, type Property, type InsertProperty, type UpdateProperty } from "@shared/schema";
 import { db } from "../db";
 import { eq, or, and, isNull, inArray, sql } from "drizzle-orm";
-import { stripAutoFields, stripToColumns } from "./utils";
+import { stripToColumns } from "./utils";
 import { indexPropertyProfile } from "../ai/pinecone-service";
 import { logger } from "../logger";
 

@@ -1,8 +1,8 @@
 import { globalAssumptions, scenarios, scenarioShares, scenarioPropertyOverrides, scenarioAccess, propertyFeeCategories, companyServiceTemplates, type GlobalAssumptions, type InsertGlobalAssumptions, type Scenario, type InsertScenario, type UpdateScenario, type InsertScenarioResult, type InsertFeeCategory, type UpdateFeeCategory, properties } from "@shared/schema";
 import { db } from "../db";
-import { eq, desc, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
+import { eq, desc, isNull, or, sql, and } from "drizzle-orm";
 import { stripAutoFields, stripToColumns } from "./utils";
-import { computeFullDiff, reconstructScenarioProperties, type PropertyDiff } from "../scenarios/diff-engine";
+import { type PropertyDiff } from "../scenarios/diff-engine";
 import { USE_STABLE_SCENARIO_LOAD } from "@shared/constants";
 import { indexScenarioSummary } from "../ai/pinecone-service";
 import { logger } from "../logger";
@@ -412,11 +412,13 @@ export class FinancialStorage {
   async softDeleteScenario(id: number, userId: number): Promise<void> {
     const now = new Date();
     const purge = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    await db.update(scenarios)
-      .set({ deletedAt: now, deletedBy: userId, purgeAfter: purge, updatedAt: now })
-      .where(eq(scenarios.id, id));
-    await db.delete(scenarioShares).where(eq(scenarioShares.scenarioId, id));
-    await db.delete(scenarioAccess).where(eq(scenarioAccess.scenarioId, id));
+    await db.transaction(async (tx) => {
+      await tx.update(scenarios)
+        .set({ deletedAt: now, deletedBy: userId, purgeAfter: purge, updatedAt: now })
+        .where(eq(scenarios.id, id));
+      await tx.delete(scenarioShares).where(eq(scenarioShares.scenarioId, id));
+      await tx.delete(scenarioAccess).where(eq(scenarioAccess.scenarioId, id));
+    });
   }
 
   async hardDeleteScenario(id: number): Promise<void> {
