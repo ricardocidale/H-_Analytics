@@ -23,35 +23,35 @@ export default function Section06PropertyImages({ expanded, onToggle, sectionRef
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Photo Album</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Open the property edit page and scroll to the <strong>Photo Album</strong> section below the main image picker.</li>
-          <li>&#8226; The album displays all photos in a responsive grid with the hero photo marked by a <strong>gold star</strong>.</li>
-          <li>&#8226; Click the gold star on any photo to set it as the hero. The hero image automatically syncs to the property card and header.</li>
-          <li>&#8226; Add an optional caption to any photo by clicking the text area below it.</li>
-          <li>&#8226; Delete a photo by clicking the trash icon. If you delete the hero, the next photo is automatically promoted.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Open the property edit page and scroll to the <strong>Photo Album</strong> section below the main image picker.</li>
+          <li>The album displays all photos in a responsive grid with the hero photo marked by a <strong>gold star</strong>.</li>
+          <li>Click the gold star on any photo to set it as the hero. The hero image automatically syncs to the property card and header.</li>
+          <li>Add an optional caption to any photo by clicking the text area below it.</li>
+          <li>Delete a photo by clicking the trash icon. If you delete the hero, the next photo is automatically promoted.</li>
         </ul>
       </div>
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Uploading Images</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Click <strong>"Upload"</strong> in the album header to open the upload dialog.</li>
-          <li>&#8226; Drag and drop files or click to browse. Supports JPEG, PNG, and WebP formats.</li>
-          <li>&#8226; Upload multiple files at once — each gets its own progress indicator.</li>
-          <li>&#8226; Add a caption to each photo before or after uploading.</li>
-          <li>&#8226; The first photo uploaded to an empty album is automatically set as the hero.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Click <strong>"Upload"</strong> in the album header to open the upload dialog.</li>
+          <li>Drag and drop files or click to browse. Supports JPEG, PNG, and WebP formats.</li>
+          <li>Upload multiple files at once — each gets its own progress indicator.</li>
+          <li>Add a caption to each photo before or after uploading.</li>
+          <li>The first photo uploaded to an empty album is automatically set as the hero.</li>
         </ul>
       </div>
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">AI Image Generation</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Click <strong>"Generate"</strong> in the album header to create a photorealistic rendering using AI.</li>
-          <li>&#8226; The system auto-builds a prompt from the property name, location, room count, and type.</li>
-          <li>&#8226; Edit the prompt to customize the result, then click <strong>"Generate Image"</strong>.</li>
-          <li>&#8226; Preview the generated image. Click <strong>"Add to Album"</strong> to save it to the property.</li>
-          <li>&#8226; Optionally check <strong>"Set as hero"</strong> to make it the main property image immediately.</li>
-          <li>&#8226; Generate as many images as you like without closing the dialog.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Click <strong>"Generate"</strong> in the album header to create a photorealistic rendering using AI.</li>
+          <li>The system auto-builds a prompt from the property name, location, room count, and type.</li>
+          <li>Edit the prompt to customize the result, then click <strong>"Generate Image"</strong>.</li>
+          <li>Preview the generated image. Click <strong>"Add to Album"</strong> to save it to the property.</li>
+          <li>Optionally check <strong>"Set as hero"</strong> to make it the main property image immediately.</li>
+          <li>Generate as many images as you like without closing the dialog.</li>
         </ul>
       </div>
 

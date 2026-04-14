@@ -87,10 +87,10 @@ export default function Section08Assumptions({ expanded, onToggle, sectionRef }:
         <p className="text-sm text-muted-foreground mb-2">
           Controls what happens when cash flow cannot cover debt service. Three modes are available:
         </p>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; <strong>Full</strong> — Defers ALL management fees (base + incentive) when preliminary cash flow is less than the monthly debt payment. Fees accrue and are paid when cash flow recovers.</li>
-          <li>&#8226; <strong>Partial</strong> — Defers only incentive management fees. Base management fees are always charged regardless of cash position.</li>
-          <li>&#8226; <strong>None</strong> — Fees are always charged regardless of cash position. This is the default for properties without debt constraints.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li><strong>Full</strong> — Defers ALL management fees (base + incentive) when preliminary cash flow is less than the monthly debt payment. Fees accrue and are paid when cash flow recovers.</li>
+          <li><strong>Partial</strong> — Defers only incentive management fees. Base management fees are always charged regardless of cash position.</li>
+          <li><strong>None</strong> — Fees are always charged regardless of cash position. This is the default for properties without debt constraints.</li>
         </ul>
       </div>
 

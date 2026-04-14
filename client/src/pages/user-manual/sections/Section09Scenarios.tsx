@@ -23,20 +23,20 @@ export default function Section09Scenarios({ expanded, onToggle, sectionRef }: S
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Saving a Scenario</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Go to the <strong>Scenarios</strong> page from the sidebar.</li>
-          <li>&#8226; Click <strong>"Save Current Scenario"</strong>.</li>
-          <li>&#8226; Give it a descriptive name (e.g., "Base Case", "Conservative", "Aggressive Growth").</li>
-          <li>&#8226; All current systemwide and property-level assumptions are captured in the snapshot.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Go to the <strong>Scenarios</strong> page from the sidebar.</li>
+          <li>Click <strong>"Save Current Scenario"</strong>.</li>
+          <li>Give it a descriptive name (e.g., "Base Case", "Conservative", "Aggressive Growth").</li>
+          <li>All current systemwide and property-level assumptions are captured in the snapshot.</li>
         </ul>
       </div>
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Loading a Scenario</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Select a previously saved scenario from the list.</li>
-          <li>&#8226; Click <strong>"Load"</strong> to restore all assumptions from that snapshot.</li>
-          <li>&#8226; The entire portfolio recalculates with the loaded assumptions.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Select a previously saved scenario from the list.</li>
+          <li>Click <strong>"Load"</strong> to restore all assumptions from that snapshot.</li>
+          <li>The entire portfolio recalculates with the loaded assumptions.</li>
         </ul>
       </div>
 
@@ -49,11 +49,11 @@ export default function Section09Scenarios({ expanded, onToggle, sectionRef }: S
         <p className="text-sm text-muted-foreground mb-2">
           Administrators can share scenarios with user groups, companies, or individual users.
         </p>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; If your group or company has been granted access to a scenario, it appears on your Scenarios page as a shared scenario.</li>
-          <li>&#8226; Shared scenarios are <strong>read-only</strong> unless you are the owner.</li>
-          <li>&#8226; When your group or company assignment changes, your visible shared scenarios update automatically.</li>
-          <li>&#8226; Scenario access is managed by your administrator. Contact them to request changes.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>If your group or company has been granted access to a scenario, it appears on your Scenarios page as a shared scenario.</li>
+          <li>Shared scenarios are <strong>read-only</strong> unless you are the owner.</li>
+          <li>When your group or company assignment changes, your visible shared scenarios update automatically.</li>
+          <li>Scenario access is managed by your administrator. Contact them to request changes.</li>
         </ul>
       </div>
 
@@ -62,11 +62,11 @@ export default function Section09Scenarios({ expanded, onToggle, sectionRef }: S
         <p className="text-sm text-muted-foreground mb-2">
           Tag scenarios to organize and filter them in the list view. Common tags include:
         </p>
-        <ul className="text-sm text-muted-foreground space-y-1">
-          <li>&#8226; <strong>base_case</strong> — The primary operating scenario with expected assumptions</li>
-          <li>&#8226; <strong>bull_case</strong> — Optimistic scenario with favorable market conditions</li>
-          <li>&#8226; <strong>bear_case</strong> — Conservative scenario with adverse conditions</li>
-          <li>&#8226; <strong>stress_test</strong> — Extreme downside scenario for risk assessment</li>
+        <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+          <li><strong>base_case</strong> — The primary operating scenario with expected assumptions</li>
+          <li><strong>bull_case</strong> — Optimistic scenario with favorable market conditions</li>
+          <li><strong>bear_case</strong> — Conservative scenario with adverse conditions</li>
+          <li><strong>stress_test</strong> — Extreme downside scenario for risk assessment</li>
         </ul>
         <p className="text-sm text-muted-foreground mt-2">
           Use the tag filter at the top of the Scenarios page to quickly find scenarios by category.

@@ -98,10 +98,10 @@ export default function Section03Dashboard({ expanded, onToggle, sectionRef }: S
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Charts & Visualizations</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; <strong>Revenue & ANOI Trend</strong> — year-over-year revenue and ANOI across the portfolio</li>
-          <li>&#8226; <strong>Cash Flow Waterfall</strong> — visualizes how cash flows from revenue to distributions</li>
-          <li>&#8226; <strong>Property Comparison</strong> — side-by-side metrics for each property</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li><strong>Revenue & ANOI Trend</strong> — year-over-year revenue and ANOI across the portfolio</li>
+          <li><strong>Cash Flow Waterfall</strong> — visualizes how cash flows from revenue to distributions</li>
+          <li><strong>Property Comparison</strong> — side-by-side metrics for each property</li>
         </ul>
       </div>
 

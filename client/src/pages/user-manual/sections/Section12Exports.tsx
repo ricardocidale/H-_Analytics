@@ -37,10 +37,10 @@ export default function Section12Exports({ expanded, onToggle, sectionRef }: Sec
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Export Types</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; <strong>Property-level exports</strong> — available on each property detail page.</li>
-          <li>&#8226; <strong>Portfolio-level exports</strong> — available on the Dashboard for consolidated reports.</li>
-          <li>&#8226; <strong>Executive Summary</strong> — a one-page overview combining key metrics from all properties.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li><strong>Property-level exports</strong> — available on each property detail page.</li>
+          <li><strong>Portfolio-level exports</strong> — available on the Dashboard for consolidated reports.</li>
+          <li><strong>Executive Summary</strong> — a one-page overview combining key metrics from all properties.</li>
         </ul>
       </div>
     </SectionCard>

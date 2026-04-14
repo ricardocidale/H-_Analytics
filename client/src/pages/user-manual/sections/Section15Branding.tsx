@@ -23,10 +23,10 @@ export default function Section15Branding({ expanded, onToggle, sectionRef }: Se
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Branding Hierarchy</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; <strong>User-level</strong> — if a user has specific branding, it takes priority.</li>
-          <li>&#8226; <strong>User Group-level</strong> — if the user belongs to a group with custom branding, that applies.</li>
-          <li>&#8226; <strong>System Default</strong> — the fallback branding when no overrides exist.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li><strong>User-level</strong> — if a user has specific branding, it takes priority.</li>
+          <li><strong>User Group-level</strong> — if the user belongs to a group with custom branding, that applies.</li>
+          <li><strong>System Default</strong> — the fallback branding when no overrides exist.</li>
         </ul>
       </div>
     </SectionCard>

@@ -185,24 +185,26 @@ export default function UserCardGrid({
                       <span className="text-[11px] text-muted-foreground">{companyName}</span>
                     )}
                   </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1.5 cursor-help">
-                        <span className="text-[11px] text-muted-foreground">Scenarios</span>
-                        <HelpCircle className="w-3 h-3 text-muted-foreground/50" />
-                        <Switch
-                          checked={user.canManageScenarios ?? true}
-                          onCheckedChange={(checked) => onToggleScenarios?.(user.id, checked)}
-                          disabled={user.role === UserRole.SUPER_ADMIN}
-                          data-testid={`switch-scenarios-${user.id}`}
-                          className="scale-75"
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs max-w-[240px]">
-                      When ON, this user can create, edit, duplicate, and delete their own scenarios. When OFF, they can only view scenarios shared with them. Admins always have full scenario access regardless of this setting.
-                    </TooltipContent>
-                  </Tooltip>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground">Scenarios</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="inline-flex cursor-help" aria-label="Scenario help">
+                          <HelpCircle className="w-3 h-3 text-muted-foreground/50" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs max-w-[220px]">
+                        When ON, this user can create, edit, duplicate, and delete their own scenarios. When OFF, they can only view scenarios shared with them.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Switch
+                      checked={user.canManageScenarios ?? true}
+                      onCheckedChange={(checked) => onToggleScenarios?.(user.id, checked)}
+                      disabled={user.role === UserRole.SUPER_ADMIN}
+                      data-testid={`switch-scenarios-${user.id}`}
+                      className="scale-75"
+                    />
+                  </div>
                 </div>
 
                 {canModifyUser(user) && (

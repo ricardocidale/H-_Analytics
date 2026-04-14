@@ -22,11 +22,11 @@ export default function Section11PropertyFinder({ expanded, onToggle, sectionRef
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">How to Use</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Enter a city or region to search for boutique hotel opportunities.</li>
-          <li>&#8226; AI-powered research analyzes market conditions, comparable properties, and local demand drivers.</li>
-          <li>&#8226; Review the results including suggested ADR ranges, occupancy rates, and cap rates.</li>
-          <li>&#8226; Save promising prospects to revisit later or add them directly to your portfolio.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Enter a city or region to search for boutique hotel opportunities.</li>
+          <li>AI-powered research analyzes market conditions, comparable properties, and local demand drivers.</li>
+          <li>Review the results including suggested ADR ranges, occupancy rates, and cap rates.</li>
+          <li>Save promising prospects to revisit later or add them directly to your portfolio.</li>
         </ul>
       </div>
     </SectionCard>

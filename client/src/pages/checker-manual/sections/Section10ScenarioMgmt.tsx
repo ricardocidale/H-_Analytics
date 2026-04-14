@@ -48,11 +48,11 @@ import { SectionCard } from "@/components/ui/section-card";
 
         <div className="bg-muted/50 rounded-lg p-4 mt-4">
           <h4 className="font-semibold mb-2">Sharing Model</h4>
-          <ul className="text-sm text-muted-foreground space-y-2">
-            <li>&#8226; Admins can share scenarios with <strong>user groups</strong>, <strong>companies</strong>, or <strong>individual users</strong>.</li>
-            <li>&#8226; Users who belong to a group or company with access will see shared scenarios as read-only.</li>
-            <li>&#8226; Deleting a user cascades to remove their owned scenarios and all associated access grants.</li>
-            <li>&#8226; Admin access bypasses the per-user <strong>canManageScenarios</strong> flag.</li>
+          <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+            <li>Admins can share scenarios with <strong>user groups</strong>, <strong>companies</strong>, or <strong>individual users</strong>.</li>
+            <li>Users who belong to a group or company with access will see shared scenarios as read-only.</li>
+            <li>Deleting a user cascades to remove their owned scenarios and all associated access grants.</li>
+            <li>Admin access bypasses the per-user <strong>canManageScenarios</strong> flag.</li>
           </ul>
         </div>
       </SectionCard>

@@ -24,19 +24,19 @@ export default function Section04Properties({ expanded, onToggle, sectionRef }: 
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Adding a Property</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Click the <strong>"Add Property"</strong> button on the Properties page.</li>
-          <li>&#8226; Fill in the property details: name, location, room count, purchase price, and operating assumptions.</li>
-          <li>&#8226; Click <strong>"Save"</strong> to create the property. All financial projections are calculated immediately.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Click the <strong>"Add Property"</strong> button on the Properties page.</li>
+          <li>Fill in the property details: name, location, room count, purchase price, and operating assumptions.</li>
+          <li>Click <strong>"Save"</strong> to create the property. All financial projections are calculated immediately.</li>
         </ul>
       </div>
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Editing a Property</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Click on a property card to open its detail page, then click <strong>"Edit"</strong>.</li>
-          <li>&#8226; Modify any assumptions — ADR, occupancy, expense rates, financing terms, etc.</li>
-          <li>&#8226; When you click <strong>"Save"</strong>, the entire portfolio is recalculated to reflect your changes.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Click on a property card to open its detail page, then click <strong>"Edit"</strong>.</li>
+          <li>Modify any assumptions — ADR, occupancy, expense rates, financing terms, etc.</li>
+          <li>When you click <strong>"Save"</strong>, the entire portfolio is recalculated to reflect your changes.</li>
         </ul>
       </div>
 

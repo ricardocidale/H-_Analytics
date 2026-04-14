@@ -22,10 +22,10 @@ export default function Section14Profile({ expanded, onToggle, sectionRef }: Sec
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Available Settings</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; <strong>Display Name</strong> — how your name appears across the portal.</li>
-          <li>&#8226; <strong>Email</strong> — your contact email address.</li>
-          <li>&#8226; <strong>Password</strong> — change your password at any time.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li><strong>Display Name</strong> — how your name appears across the portal.</li>
+          <li><strong>Email</strong> — your contact email address.</li>
+          <li><strong>Password</strong> — change your password at any time.</li>
         </ul>
       </div>
     </SectionCard>

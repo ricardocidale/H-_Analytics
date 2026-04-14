@@ -25,10 +25,10 @@ export default function Section01GettingStarted({ expanded, onToggle, sectionRef
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Logging In</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; Navigate to the portal URL and enter your username and password.</li>
-          <li>&#8226; If you forget your password, contact the Administrator to have it reset.</li>
-          <li>&#8226; After logging in, you will be taken to the Dashboard.</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li>Navigate to the portal URL and enter your username and password.</li>
+          <li>If you forget your password, contact the Administrator to have it reset.</li>
+          <li>After logging in, you will be taken to the Dashboard.</li>
         </ul>
       </div>
 

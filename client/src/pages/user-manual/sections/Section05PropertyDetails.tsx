@@ -151,10 +151,10 @@ export default function Section05PropertyDetails({ expanded, onToggle, sectionRe
           A collapsible <strong>Risk Insights</strong> panel on the Property Edit page shows the property's risk grade
           (A through F), top risks with severity badges, and strengths. The panel summarizes:
         </p>
-        <ul className="text-sm text-muted-foreground space-y-1">
-          <li>&#8226; Overall risk grade based on financial, market, and operational factors</li>
-          <li>&#8226; Top risks ranked by severity (Critical, High, Medium, Low)</li>
-          <li>&#8226; Key strengths that mitigate risk for the property</li>
+        <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+          <li>Overall risk grade based on financial, market, and operational factors</li>
+          <li>Top risks ranked by severity (Critical, High, Medium, Low)</li>
+          <li>Key strengths that mitigate risk for the property</li>
         </ul>
       </div>
 

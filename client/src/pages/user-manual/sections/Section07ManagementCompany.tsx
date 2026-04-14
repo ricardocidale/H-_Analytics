@@ -36,11 +36,11 @@ export default function Section07ManagementCompany({ expanded, onToggle, section
 
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Expenses</h4>
-        <ul className="text-sm text-muted-foreground space-y-2">
-          <li>&#8226; <strong>Partner Compensation</strong> — configurable per-year schedule</li>
-          <li>&#8226; <strong>Staff Compensation</strong> — based on headcount that scales with property count</li>
-          <li>&#8226; <strong>Fixed Costs</strong> — office lease, professional services, tech infrastructure</li>
-          <li>&#8226; <strong>Variable Costs</strong> — travel, IT licensing, marketing, miscellaneous (scale with portfolio size)</li>
+        <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+          <li><strong>Partner Compensation</strong> — configurable per-year schedule</li>
+          <li><strong>Staff Compensation</strong> — based on headcount that scales with property count</li>
+          <li><strong>Fixed Costs</strong> — office lease, professional services, tech infrastructure</li>
+          <li><strong>Variable Costs</strong> — travel, IT licensing, marketing, miscellaneous (scale with portfolio size)</li>
         </ul>
       </div>
 
