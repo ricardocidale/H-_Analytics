@@ -355,7 +355,7 @@ export default function PropertyEdit() {
     );
   }
 
-  if (!property || !draft) {
+  if (!property) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
@@ -363,6 +363,16 @@ export default function PropertyEdit() {
           <Link href="/portfolio">
             <Button>Return to Portfolio</Button>
           </Link>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!draft) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </Layout>
     );
