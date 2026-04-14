@@ -36,6 +36,7 @@ import * as calcAuditRoutes from "./routes/calc-audit";
 import * as regulatoryRoutes from "./routes/regulatory";
 import * as portfolioRiskRoutes from "./routes/portfolio-risk";
 import { riskIntelligenceRoutes } from "./routes/risk-intelligence";
+import * as executiveSummaryRoutes from "./routes/executive-summary";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -79,6 +80,7 @@ export async function registerRoutes(
   regulatoryRoutes.register(app);
   portfolioRiskRoutes.register(app);
   app.use(riskIntelligenceRoutes);
+  executiveSummaryRoutes.register(app);
 
   return httpServer;
 }
