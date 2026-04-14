@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, lazy, Suspense } from "react";
+import { useMemo, useState, useRef, lazy, Suspense, useCallback } from "react";
 import { DEPRECIATION_YEARS, USE_SERVER_COMPUTE, USE_SERVER_EXPORTS } from "@shared/constants";
 import Layout from "@/components/Layout";
 import { useProperty, useGlobalAssumptions } from "@/lib/api";
@@ -8,7 +8,7 @@ import { generatePropertyProForma, getFiscalYearForModelYear } from "@/lib/finan
 import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBalanceSheet";
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
-import { Loader2 } from "@/components/icons/themed-icons";
+import { Loader2, ChevronDown } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconBanknote, IconFileStack, IconMap, IconGlobe, IconInvestment } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
@@ -48,6 +48,8 @@ export default function PropertyDetail() {
   const [, params] = useRoute("/property/:id");
   const propertyId = params?.id ? parseInt(params.id) : 0;
   const [activeTab, setActiveTab] = useState("income");
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const toggleMap = useCallback(() => setMapExpanded(prev => !prev), []);
   const queryClient = useQueryClient();
   const incomeChartRef = useRef<HTMLDivElement>(null);
   const cashFlowChartRef = useRef<HTMLDivElement>(null);
@@ -272,59 +274,72 @@ export default function PropertyDetail() {
           ) : null;
         })()}
 
-        <ScrollReveal>
-          {hasCoordinates(property) && (() => {
-            const links = buildLocationLinks(property.latitude!, property.longitude!, property.name);
-            return (
-              <>
-                <div className="flex items-center gap-3 mb-3" data-testid="location-links">
+        {hasCoordinates(property) && (
+          <div className="rounded-lg border border-border/50 bg-card overflow-hidden" data-testid="map-collapsible">
+            <button
+              onClick={toggleMap}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/30 transition-colors"
+              data-testid="button-toggle-map"
+            >
+              <span className="flex items-center gap-2">
+                <IconMap className="w-4 h-4 text-primary/70" />
+                Location &amp; Maps
+              </span>
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${mapExpanded ? "rotate-180" : ""}`} />
+            </button>
+            {mapExpanded && (() => {
+              const links = buildLocationLinks(property.latitude!, property.longitude!, property.name);
+              return (
+                <div className="px-4 pb-4 space-y-3 border-t border-border/30">
+                  <div className="flex items-center gap-3 pt-3" data-testid="location-links">
+                    <a
+                      href={links.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                      data-testid="link-detail-map"
+                    >
+                      <IconMap className="w-3.5 h-3.5" />
+                      Google Maps
+                    </a>
+                    <a
+                      href={links.googleEarth3dUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                      data-testid="link-detail-3d"
+                    >
+                      <IconGlobe className="w-3.5 h-3.5" />
+                      3D Flyover
+                    </a>
+                  </div>
                   <a
                     href={links.googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-                    data-testid="link-detail-map"
+                    className="block rounded-lg overflow-hidden border border-border/50 hover:border-primary/30 transition-colors"
+                    data-testid="static-map-thumbnail"
                   >
-                    <IconMap className="w-3.5 h-3.5" />
-                    Google Maps
+                    <img
+                      src={links.staticMapUrl}
+                      alt={`Satellite view of ${property.name}`}
+                      className="w-full h-[200px] object-cover"
+                      loading="lazy"
+                    />
                   </a>
-                  <a
-                    href={links.googleEarth3dUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-                    data-testid="link-detail-3d"
-                  >
-                    <IconGlobe className="w-3.5 h-3.5" />
-                    3D Flyover
-                  </a>
+                  <Suspense fallback={<div className="flex items-center justify-center p-8 text-muted-foreground text-sm">Loading map…</div>}>
+                    <PropertyMap
+                      latitude={property.latitude}
+                      longitude={property.longitude}
+                      propertyName={property.name}
+                      propertyId={propertyId}
+                    />
+                  </Suspense>
                 </div>
-                <a
-                  href={links.googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block mb-3 rounded-lg overflow-hidden border border-border/50 hover:border-primary/30 transition-colors"
-                  data-testid="static-map-thumbnail"
-                >
-                  <img
-                    src={links.staticMapUrl}
-                    alt={`Satellite view of ${property.name}`}
-                    className="w-full h-[200px] object-cover"
-                    loading="lazy"
-                  />
-                </a>
-              </>
-            );
-          })()}
-          <Suspense fallback={<div className="flex items-center justify-center p-8 text-muted-foreground text-sm">Loading map…</div>}>
-            <PropertyMap
-              latitude={property.latitude}
-              longitude={property.longitude}
-              propertyName={property.name}
-              propertyId={propertyId}
-            />
-          </Suspense>
-        </ScrollReveal>
+              );
+            })()}
+          </div>
+        )}
 
         <BenchmarkPanel
           property={property}

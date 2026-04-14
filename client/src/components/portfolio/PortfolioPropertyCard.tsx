@@ -2,7 +2,7 @@
  * PortfolioPropertyCard.tsx — Summary card for one property on the portfolio dashboard.
  *
  * Displays a compact overview of a hotel property:
- *   • Hero image carousel (cycles through all photos when multiple exist)
+ *   • Single hero image (chosen by user/admin via set-hero)
  *   • Property name and location
  *   • Room count and key financial snapshot (ADR, purchase price)
  *   • Active/Inactive toggle — excludes property from all portfolio calculations when OFF
@@ -10,7 +10,7 @@
  *   • Delete button (with confirmation) to remove from the portfolio
  *   • Right-click context menu for quick actions
  */
-import { useState, useEffect, useCallback, memo } from "react";
+import { memo } from "react";
 import { PropertyStatus } from "@shared/constants";
 import { formatMoney } from "@/lib/financialEngine";
 import { ArrowRight } from "@/components/icons/themed-icons";
@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { StaggerItem, TiltCard } from "@/components/ui/animated";
 import { AnimatedGridItem } from "@/components/graphics";
 import type { Property, PropertyUrl } from "@shared/schema";
@@ -48,44 +47,15 @@ export const PortfolioPropertyCard = memo(function PortfolioPropertyCard({ prope
   const isActive = property.isActive !== false;
   const { data: photos = [] } = usePropertyPhotos(property.id);
   const heroPhoto = photos.find(p => p.isHero);
-  const heroSrc = heroPhoto?.enhancedImageData
-    ? `/api/property-photos/${heroPhoto.id}/enhanced-image`
+  const heroSrc = heroPhoto
+    ? (heroPhoto.enhancedImageData
+      ? `/api/property-photos/${heroPhoto.id}/enhanced-image`
+      : heroPhoto.imageUrl)
     : property.imageUrl;
   const isEnhanced = !!heroPhoto?.enhancedImageData;
   const visibleLinks = propertyUrls.filter(l => l.isValid === true && l.isRelevant === true);
   const validLinks = visibleLinks.slice(0, 3);
   const [, navigate] = useLocation();
-
-  // Carousel state (used when multiple photos exist)
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  const hasMultiplePhotos = photos.length > 1;
-
-  const onCarouselSelect = useCallback(() => {
-    if (!carouselApi) return;
-    setCurrentSlide(carouselApi.selectedScrollSnap());
-  }, [carouselApi]);
-
-  useEffect(() => {
-    if (!carouselApi) return;
-    onCarouselSelect();
-    carouselApi.on("select", onCarouselSelect);
-    return () => { carouselApi.off("select", onCarouselSelect); };
-  }, [carouselApi, onCarouselSelect]);
-
-  // Auto-advance every 4s when multiple photos
-  useEffect(() => {
-    if (!carouselApi || !hasMultiplePhotos) return;
-    const timer = setInterval(() => { carouselApi.scrollNext(); }, 4000);
-    return () => clearInterval(timer);
-  }, [carouselApi, hasMultiplePhotos]);
-
-  // Build ordered photo list: hero first, then rest
-  const orderedPhotos = [
-    ...photos.filter(p => p.isHero),
-    ...photos.filter(p => !p.isHero),
-  ];
 
   return (
     <ContextMenu>
@@ -98,116 +68,6 @@ export const PortfolioPropertyCard = memo(function PortfolioPropertyCard({ prope
           !isActive && "opacity-60 saturate-50"
         )}>
           <div className="relative">
-            {hasMultiplePhotos ? (
-              /* ── Multi-photo carousel ── */
-              <div className="relative overflow-hidden rounded-t-lg" style={{ aspectRatio: "16 / 10" }}>
-                <Carousel
-                  setApi={setCarouselApi}
-                  opts={{ loop: true, align: "start" }}
-                  className="w-full h-full"
-                >
-                  <CarouselContent className="-ml-0 h-full">
-                    {orderedPhotos.map((photo) => {
-                      const src = photo.enhancedImageData
-                        ? `/api/property-photos/${photo.id}/enhanced-image`
-                        : photo.imageUrl;
-                      return (
-                        <CarouselItem key={photo.id} className="pl-0">
-                          <HeroImage
-                            src={src}
-                            alt={photo.caption || property.name}
-                            aspectRatio="16/10"
-                            overlay="none"
-                            animate={false}
-                            className="rounded-none"
-                            variants={null}
-                          />
-                        </CarouselItem>
-                      );
-                    })}
-                  </CarouselContent>
-                </Carousel>
-
-                {/* Dot indicators */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10 pointer-events-auto">
-                  {orderedPhotos.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => carouselApi?.scrollTo(i)}
-                      aria-label={`Go to photo ${i + 1}`}
-                      className={cn(
-                        "rounded-full transition-all duration-300 bg-white/80 shadow-sm",
-                        i === currentSlide ? "w-4 h-1.5" : "w-1.5 h-1.5 opacity-60"
-                      )}
-                    />
-                  ))}
-                </div>
-
-                {/* Photo count badge */}
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
-                  <span className="px-2 py-0.5 rounded-full bg-black/50 text-white text-[10px] font-medium backdrop-blur-sm border border-white/10 tabular-nums">
-                    {currentSlide + 1} / {orderedPhotos.length}
-                  </span>
-                </div>
-
-                {/* Gradient fade at bottom */}
-                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent pointer-events-none" />
-
-                {/* Enhanced badge */}
-                {isEnhanced && (
-                  <div className="absolute bottom-5 right-3 z-10">
-                    <span className="px-1.5 py-0.5 rounded-full bg-primary/70 text-white text-[9px] font-medium backdrop-blur-sm border border-white/15" data-testid={`badge-enhanced-hero-${property.id}`}>
-                      Enhanced
-                    </span>
-                  </div>
-                )}
-
-                {/* Property number */}
-                <div className="absolute bottom-3 left-3 z-10">
-                  <span className="w-7 h-7 flex items-center justify-center rounded-full bg-foreground/40 text-white/80 text-xs font-mono font-semibold border border-white/15">
-                    {propertyNumber}
-                  </span>
-                </div>
-
-                {/* Type badge */}
-                <div className="absolute top-3 left-3 z-10">
-                  <span
-                    data-testid={`badge-type-${property.id}`}
-                    className={`px-3 py-1 rounded-full text-xs font-medium label-text ${
-                      property.type === "Financed"
-                        ? "bg-secondary text-secondary-foreground border border-white/20"
-                        : "bg-primary text-primary-foreground border border-white/20"
-                    }`}
-                  >
-                    {property.type}
-                  </span>
-                </div>
-
-                {/* Status badge */}
-                <div className="absolute top-3 right-3 z-10">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border border-white/20 label-text ${
-                    property.status === PropertyStatus.OPERATING ? "bg-primary text-white" :
-                    property.status === PropertyStatus.IMPROVEMENTS ? "bg-accent-pop text-white" :
-                    property.status === PropertyStatus.ACQUIRED ? "bg-chart-1 text-white" :
-                    property.status === PropertyStatus.PLANNED ? "bg-chart-1 text-white" :
-                    property.status === PropertyStatus.IN_NEGOTIATION ? "bg-chart-3 text-white" :
-                    property.status === PropertyStatus.PIPELINE ? "bg-muted0 text-white" : "bg-card/20 text-white"
-                  }`}>
-                    {property.status}
-                  </span>
-                </div>
-
-                {/* Inactive overlay */}
-                {!isActive && (
-                  <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <span className="bg-black/60 text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20 label-text">
-                      Excluded from portfolio
-                    </span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* ── Single hero image ── */
               <HeroImage
                 src={heroSrc}
                 alt={property.name}
@@ -261,7 +121,6 @@ export const PortfolioPropertyCard = memo(function PortfolioPropertyCard({ prope
                   </div>
                 )}
               </HeroImage>
-            )}
 
             <div className="p-5">
               <div className="flex items-center gap-2 flex-wrap">

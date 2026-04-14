@@ -9,6 +9,76 @@ import { processExistingPhoto, processImage } from "../image/pipeline";
 import { logger } from "../logger";
 import { isApiRateLimited } from "../auth";
 
+async function autoEnhancePhoto(photoId: number, imageUrl: string, imageDataBase64: string | null, propertyId?: number) {
+  let sourceBuffer: Buffer;
+  if (imageDataBase64) {
+    sourceBuffer = Buffer.from(imageDataBase64, "base64");
+  } else if (imageUrl.startsWith("https://")) {
+    const url = new URL(imageUrl);
+    const allowedHosts = ["objectstorage.replit.com", "replitusercontent.com", "storage.googleapis.com"];
+    const isAllowed = allowedHosts.some(h => url.hostname === h || url.hostname.endsWith(`.${h}`));
+    if (!isAllowed) {
+      logger.warn(`Auto-enhance: blocked fetch to untrusted host ${url.hostname} for photo ${photoId}`, "property-photos");
+      return;
+    }
+    const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(30_000) });
+    if (!imgRes.ok) {
+      logger.warn(`Auto-enhance: could not fetch source image for photo ${photoId}`, "property-photos");
+      return;
+    }
+    const contentLength = Number(imgRes.headers.get("content-length") || 0);
+    if (contentLength > 20 * 1024 * 1024) {
+      logger.warn(`Auto-enhance: image too large (${contentLength} bytes) for photo ${photoId}`, "property-photos");
+      return;
+    }
+    sourceBuffer = Buffer.from(await imgRes.arrayBuffer());
+  } else {
+    logger.info(`Auto-enhance: skipping photo ${photoId} — no resolvable source`, "property-photos");
+    return;
+  }
+
+  const sharp = (await import("sharp")).default;
+  const metadata = await sharp(sourceBuffer).metadata();
+  const maxDim = 2048;
+  let resizedBuffer = sourceBuffer;
+  if ((metadata.width && metadata.width > maxDim) || (metadata.height && metadata.height > maxDim)) {
+    resizedBuffer = await sharp(sourceBuffer)
+      .resize({ width: maxDim, height: maxDim, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
+  }
+
+  const base64Source = resizedBuffer.toString("base64");
+  const dataUri = `data:image/png;base64,${base64Source}`;
+
+  const { replicateService } = await import("../integrations/replicate");
+
+  const enhancedBuffer = await replicateService.generateImage(
+    "photo-upscale",
+    "luxury real estate photography, professional color correction, perfect exposure, sharp details, HDR quality, ultra photo realistic architectural render",
+    dataUri
+  );
+
+  const enhancedBase64 = enhancedBuffer.toString("base64");
+
+  let variantsUpdate: Record<string, unknown> = {};
+  try {
+    const result = await processImage(enhancedBuffer, { propertyId: propertyId ?? 0, photoId }, "image/png");
+    if (result) {
+      variantsUpdate = { variants: result.variants };
+    }
+  } catch (e: unknown) {
+    logger.warn(`Auto-enhance: failed to regenerate variants for photo ${photoId}: ${e instanceof Error ? e.message : String(e)}`, "property-photos");
+  }
+
+  await storage.updatePropertyPhoto(photoId, {
+    enhancedImageData: enhancedBase64,
+    ...variantsUpdate,
+  });
+
+  logger.info(`Auto-enhance completed for photo ${photoId}`, "property-photos");
+}
+
 export function register(app: Express) {
   // GET /api/property-photos/:id/image — serve image binary stored in Neon DB.
   // imageUrl is set to this path when imageData is present, making images
@@ -70,17 +140,28 @@ export function register(app: Express) {
       const photo = await storage.addPropertyPhoto(parsed.data);
 
       const shouldProcess = !req.body.skipProcessing;
-      if (shouldProcess) {
-        processExistingPhoto(photo.imageUrl, propertyId, photo.id)
-          .then(async (result) => {
+      const shouldAutoEnhance = !req.body.skipEnhancement;
+
+      (async () => {
+        if (shouldProcess) {
+          try {
+            const result = await processExistingPhoto(photo.imageUrl, propertyId, photo.id);
             if (result) {
               await storage.updatePropertyPhoto(photo.id, { variants: result.variants });
             }
-          })
-          .catch((err) => {
-            logger.error(`Background image processing failed for photo ${photo.id}: ${err instanceof Error ? err.message : err}`, "property-photos");
-          });
-      }
+          } catch (err: unknown) {
+            logger.error(`Background image processing failed for photo ${photo.id}: ${err instanceof Error ? err.message : String(err)}`, "property-photos");
+          }
+        }
+
+        if (shouldAutoEnhance) {
+          try {
+            await autoEnhancePhoto(photo.id, photo.imageUrl, photo.imageData ?? null, propertyId);
+          } catch (err: unknown) {
+            logger.error(`Auto-enhance failed for photo ${photo.id}: ${err instanceof Error ? err.message : String(err)}`, "property-photos");
+          }
+        }
+      })();
 
       res.status(201).json(photo);
     } catch (error: unknown) {
