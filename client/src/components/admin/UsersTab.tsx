@@ -362,8 +362,6 @@ export default function UsersTab() {
             sortDir={sortDir}
             toggleSort={toggleSort}
             companyNameMap={companyNameMap}
-            companyLogoMap={companyLogoMap}
-            generalLogoUrl={generalLogoUrl}
             companiesList={companiesList}
             onEditUser={handleEditUser}
             onPasswordUser={handlePasswordUser}
