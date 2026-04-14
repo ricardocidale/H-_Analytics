@@ -153,6 +153,18 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                   stateBias={stateForBias}
                 />
               </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label className="label-text text-muted-foreground text-sm">
+                  Address Line 2
+                </Label>
+                <Input
+                  value={draft.streetAddress2 || ""}
+                  onChange={(e) => onChange("streetAddress2", e.target.value || null)}
+                  placeholder="Apt, suite, unit, floor, etc."
+                  className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground"
+                  data-testid="input-street-address-2"
+                />
+              </div>
               <div className="space-y-2">
                 <Label className="label-text text-muted-foreground text-sm flex items-center gap-1.5">
                   Country

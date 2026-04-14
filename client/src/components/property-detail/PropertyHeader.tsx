@@ -94,7 +94,7 @@ export default function PropertyHeader({ property, propertyId, heroCaption, onPh
           
           <div className="flex items-center gap-2 flex-wrap">
             {(() => {
-              const addressParts = [property.streetAddress, property.city, property.stateProvince, property.zipPostalCode, property.country].filter(Boolean);
+              const addressParts = [property.streetAddress, property.streetAddress2, property.city, property.stateProvince, property.zipPostalCode, property.country].filter(Boolean);
               const hasAddress = addressParts.length > 0;
               const mapQuery = hasAddress ? addressParts.join(", ") : "";
               const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
