@@ -466,6 +466,12 @@ async function runSchemaMigrations() {
     await runScenarioServiceTemplates001();
     await markMigrationApplied("scenario_service_templates_001");
   }
+
+  if (!(await isMigrationApplied("app_logo_001"))) {
+    const { runAppLogo001 } = await import("./migrations/app-logo-001");
+    await runAppLogo001();
+    await markMigrationApplied("app_logo_001");
+  }
 }
 
 async function runSeeds() {

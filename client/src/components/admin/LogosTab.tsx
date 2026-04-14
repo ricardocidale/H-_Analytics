@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
-import { useAdminLogos, useCreateLogo, useDeleteLogo, useEnhanceLogoPrompt, useGenerateLogoImage } from "./hooks";
+import { useAdminLogos, useCreateLogo, useDeleteLogo, useSetDefaultLogo, useAppBranding, useUpdateAppBranding, useEnhanceLogoPrompt, useGenerateLogoImage } from "./hooks";
 import defaultLogo from "@/assets/logo.png";
 
 type LogoMode = "generate" | "import" | "url";
@@ -40,9 +40,14 @@ export default function LogosTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState("");
 
+  const [selectedAppLogoId, setSelectedAppLogoId] = useState<number | null>(null);
+
   const { data: adminLogos } = useAdminLogos();
   const createLogoMutation = useCreateLogo();
   const deleteLogoMutation = useDeleteLogo();
+  const setDefaultLogoMutation = useSetDefaultLogo();
+  const { data: appBranding } = useAppBranding();
+  const updateAppBrandingMutation = useUpdateAppBranding();
   const { enhance, isEnhancing } = useEnhanceLogoPrompt();
   const { generate, isGenerating } = useGenerateLogoImage();
 
@@ -134,6 +139,14 @@ export default function LogosTab() {
     }
   };
 
+  const handleSaveAppBranding = () => {
+    const logoId = selectedAppLogoId ?? appBranding?.appLogoId;
+    if (!logoId) return;
+    updateAppBrandingMutation.mutate({ appLogoId: logoId }, {
+      onSuccess: () => setSelectedAppLogoId(null),
+    });
+  };
+
   const modeBtn = (mode: LogoMode, active: boolean) =>
     `flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border ${
       active
@@ -143,15 +156,21 @@ export default function LogosTab() {
 
   const isBusy = isGenerating || isEnhancing || isUploadingFile || createLogoMutation.isPending;
 
+  const effectiveAppLogoId = selectedAppLogoId ?? appBranding?.appLogoId;
+  const effectiveAppLogoUrl = selectedAppLogoId
+    ? adminLogos?.find(l => l.id === selectedAppLogoId)?.url ?? appBranding?.appLogoUrl
+    : appBranding?.appLogoUrl ?? "/logos/h-logo-glass.png";
+  const appBrandingDirty = selectedAppLogoId !== null;
+
   return (
     <>
-    <div className="space-y-6">
-      <Card className="bg-card border border-border/80 shadow-sm">
+    <div className="grid gap-6 xl:grid-cols-3">
+      <Card className="xl:col-span-2 bg-card border border-border/80 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2"><IconImage className="w-4 h-4 text-muted-foreground" /> Logo Management</CardTitle>
-              <CardDescription className="label-text">Company logos used across the platform. Users inherit their company's logo. Users without a company use the General logo.</CardDescription>
+              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2"><IconImage className="w-4 h-4 text-muted-foreground" /> Management Company Logos</CardTitle>
+              <CardDescription className="label-text">Logo pool for your management company. The default logo is used when no specific logo is assigned.</CardDescription>
             </div>
             <Button variant="outline" onClick={() => { resetLogoForm(); setLogoDialogOpen(true); }} className="flex items-center gap-2" data-testid="button-add-logo">
               <IconPlus className="w-4 h-4" /> Add Logo
@@ -166,7 +185,7 @@ export default function LogosTab() {
               <p className="text-sm">Click "Add Logo" to upload or create your first logo.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {[...adminLogos].sort((a, b) => {
                 if (a.isDefault && !b.isDefault) return -1;
                 if (!a.isDefault && b.isDefault) return 1;
@@ -189,14 +208,32 @@ export default function LogosTab() {
                             {logo.companyName}
                           </p>
                         </div>
-                        {!logo.isDefault && (
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteLogoConfirmId(logo.id)} className="text-destructive/80 hover:text-destructive hover:bg-destructive/10 flex-shrink-0 h-6 w-6 p-0" data-testid={`button-delete-logo-${logo.id}`}>
-                            <IconTrash className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          {!logo.isDefault && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDefaultLogoMutation.mutate(logo.id)}
+                              disabled={setDefaultLogoMutation.isPending}
+                              className="text-muted-foreground hover:text-accent-pop hover:bg-accent-pop/10 h-6 w-6 p-0"
+                              title="Set as default"
+                              data-testid={`button-set-default-${logo.id}`}
+                            >
+                              <IconStar className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                          {!logo.isDefault && !logo.isAppLogo && (
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteLogoConfirmId(logo.id)} className="text-destructive/80 hover:text-destructive hover:bg-destructive/10 h-6 w-6 p-0" data-testid={`button-delete-logo-${logo.id}`}>
+                              <IconTrash className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {logo.isDefault && (
                         <span className="inline-block text-[10px] bg-accent-pop/20 text-accent-pop px-1.5 py-0.5 rounded">Default</span>
+                      )}
+                      {logo.isAppLogo && !logo.isDefault && (
+                        <span className="inline-block text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">App Logo</span>
                       )}
                     </div>
                   </CardContent>
@@ -204,6 +241,63 @@ export default function LogosTab() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="xl:col-span-1 bg-card border border-border/80 shadow-sm h-fit">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+            <IconSparkles className="w-4 h-4 text-muted-foreground" /> App Identity
+          </CardTitle>
+          <CardDescription className="label-text">
+            Platform logo and name displayed in the sidebar, login page, and headers.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-24 h-24 rounded-xl border-2 border-border bg-gradient-to-br from-primary/5 to-primary/10 p-2 flex items-center justify-center">
+              <img
+                src={effectiveAppLogoUrl}
+                alt="App Logo"
+                className="w-full h-full object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).src = defaultLogo; }}
+                data-testid="img-app-logo-preview"
+              />
+            </div>
+            <p className="text-sm font-medium text-foreground">{appBranding?.appName ?? "H+ Analytics"}</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-foreground text-sm">Select App Logo</Label>
+            <div className="grid grid-cols-3 gap-2 max-h-[240px] overflow-y-auto">
+              {adminLogos?.map(logo => (
+                <button
+                  key={logo.id}
+                  type="button"
+                  onClick={() => setSelectedAppLogoId(logo.id)}
+                  className={`aspect-square rounded-lg border-2 p-1.5 transition-all ${
+                    effectiveAppLogoId === logo.id
+                      ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                      : "border-border hover:border-primary/40 bg-muted/20"
+                  }`}
+                  data-testid={`btn-select-app-logo-${logo.id}`}
+                >
+                  <img src={logo.url} alt={logo.name} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).src = defaultLogo; }} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            variant="default"
+            className="w-full"
+            disabled={!appBrandingDirty || updateAppBrandingMutation.isPending}
+            onClick={handleSaveAppBranding}
+            data-testid="button-save-app-branding"
+          >
+            {updateAppBrandingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconSave className="w-4 h-4 mr-2" />}
+            Save App Identity
+          </Button>
         </CardContent>
       </Card>
     </div>
@@ -299,7 +393,6 @@ export default function LogosTab() {
                       Generate Logo
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground text-center">Powered by Norfolk AI</p>
                 </>
               )}
 
@@ -312,7 +405,7 @@ export default function LogosTab() {
                     <Loader2 className="w-16 h-16 text-accent-pop animate-spin absolute -top-2 -left-2" />
                   </div>
                   <p className="text-sm font-medium text-foreground">Enhancing your description...</p>
-                  <p className="text-xs text-muted-foreground">Norfolk AI is crafting a better prompt</p>
+                  <p className="text-xs text-muted-foreground">AI is crafting a better prompt</p>
                 </div>
               )}
 
@@ -349,7 +442,7 @@ export default function LogosTab() {
                     <Loader2 className="w-16 h-16 text-muted-foreground/40 animate-spin absolute -top-2 -left-2" />
                   </div>
                   <p className="text-sm font-medium text-foreground">Generating your logo...</p>
-                  <p className="text-xs text-muted-foreground">Norfolk AI is creating your design</p>
+                  <p className="text-xs text-muted-foreground">AI is creating your design</p>
                 </div>
               )}
             </div>
@@ -427,18 +520,9 @@ export default function LogosTab() {
       </DialogContent>
     </Dialog>
 
-    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} data-testid="file-input-logo" />
-
+    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
     {pendingImage && (
-      <ImageCropDialog
-        open={cropDialogOpen}
-        onOpenChange={handleCropDialogClose}
-        imageSrc={pendingImage.src}
-        fileName={pendingImage.name}
-        fileType={pendingImage.type}
-        aspectRatio={1}
-        onCropComplete={handleCropComplete}
-      />
+      <ImageCropDialog open={cropDialogOpen} onOpenChange={handleCropDialogClose} imageSrc={pendingImage.src} fileName={pendingImage.name} fileType={pendingImage.type} onCropComplete={handleCropComplete} aspectRatio={1} />
     )}
     </>
   );

@@ -105,6 +105,61 @@ export function useDeleteLogo() {
   });
 }
 
+export function useSetDefaultLogo() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/logos/${id}/default`, { method: "PATCH", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to set default logo");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "logos"] });
+      queryClient.invalidateQueries({ queryKey: ["my-branding"] });
+      toast({ title: "Default Updated", description: "Management company default logo has been updated." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to set default logo.", variant: "destructive" });
+    },
+  });
+}
+
+export function useAppBranding() {
+  return useQuery<{ appName: string; appLogoUrl: string; appLogoId: number | null }>({
+    queryKey: ["app-branding"],
+    queryFn: adminFetch("/api/app-branding", "Failed to fetch app branding"),
+  });
+}
+
+export function useUpdateAppBranding() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { appLogoId: number }) => {
+      const res = await fetch("/api/app-branding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to update app branding");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["app-branding"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "logos"] });
+      queryClient.invalidateQueries({ queryKey: ["my-branding"] });
+      toast({ title: "App Branding Updated", description: "Platform identity has been updated." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update app branding.", variant: "destructive" });
+    },
+  });
+}
+
 export function useEnhanceLogoPrompt() {
   const [isEnhancing, setIsEnhancing] = useState(false);
 

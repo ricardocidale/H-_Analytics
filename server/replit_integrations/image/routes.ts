@@ -150,7 +150,7 @@ export function registerImageRoutes(app: Express): void {
 
       const ga = await storage.getGlobalAssumptions(req.user?.id);
       const rc = (ga?.researchConfig as ResearchConfig) ?? {};
-      const resolved = resolveLlm(rc, "graphicsLlm");
+      const resolved = resolveLlm(rc, "aiUtilityLlm");
       const gemini = getGeminiClient();
       const startTime = Date.now();
       const response = await gemini.models.generateContent({

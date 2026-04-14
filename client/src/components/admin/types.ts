@@ -30,6 +30,7 @@ export interface Logo {
   companyName: string;
   url: string;
   isDefault: boolean;
+  isAppLogo: boolean;
   createdAt: string;
 }
 

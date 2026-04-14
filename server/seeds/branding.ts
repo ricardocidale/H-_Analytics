@@ -27,27 +27,28 @@ export async function seedDefaultLogos() {
       companyName: "H+ Analytics",
       url: "/logos/h-logo-glass.png",
       isDefault: true,
+      isAppLogo: true,
     },
     {
-      name: "Norfolk AI - Blue",
-      companyName: SEED_COMPANY_IDENTITY.companyName,
+      name: "Boutique Elegance",
+      companyName: "Boutique Hotel Group",
       url: "/logos/norfolk-ai-blue.png",
       isDefault: false,
     },
     {
-      name: "Norfolk AI - Yellow",
-      companyName: SEED_COMPANY_IDENTITY.companyName,
+      name: "Classic Hospitality",
+      companyName: "Hospitality Management Co.",
       url: "/logos/norfolk-ai-yellow.png",
       isDefault: false,
     },
     {
-      name: "Norfolk AI - Wireframe",
-      companyName: SEED_COMPANY_IDENTITY.companyName,
+      name: "Modern Resort",
+      companyName: "Resort Partners",
       url: "/logos/norfolk-ai-wireframe.png",
       isDefault: false,
     },
   ]);
-  logger.info("Seeded default logos: H+ Analytics (default) + 3 Norfolk AI", "seed");
+  logger.info("Seeded default logos: H+ Analytics (default + app) + 3 generic", "seed");
 }
 
 export async function seedCompanies() {
@@ -65,12 +66,8 @@ export async function seedCompanies() {
       logger.info("Re-created required 'General' company", "seed");
     }
   } else {
-    // First-time setup: seed initial companies (informational only, no property relationship)
     const companiesToSeed = [
-      { name: "Hospitality Business Group", type: "management" as const, description: "Management company overseeing all hotel SPVs" },
       { name: SEED_COMPANY_IDENTITY.companyName, type: "management" as const, description: "AI-powered hospitality technology and management group based in Norfolk, VA" },
-      { name: "KIT Capital", type: "management" as const, description: "Investment and capital management firm" },
-      { name: "Numeratti Endeavors", type: "management" as const, description: "Strategic investment ventures" },
       { name: "General", type: "spv" as const, description: "Default catch-all company" },
     ];
 

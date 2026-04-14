@@ -186,6 +186,9 @@ export class DatabaseStorage implements IStorage {
   getDefaultLogo = this.admin.getDefaultLogo.bind(this.admin);
   createLogo = this.admin.createLogo.bind(this.admin);
   deleteLogo = this.admin.deleteLogo.bind(this.admin);
+  setDefaultLogo = this.admin.setDefaultLogo.bind(this.admin);
+  getAppLogo = this.admin.getAppLogo.bind(this.admin);
+  setAppLogo = this.admin.setAppLogo.bind(this.admin);
 
   getAllAssetDescriptions = this.admin.getAllAssetDescriptions.bind(this.admin);
 

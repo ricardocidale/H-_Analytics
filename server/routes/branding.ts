@@ -158,10 +158,57 @@ export function register(app: Express) {
 
   app.delete("/api/logos/:id", requireAdmin, async (req, res) => {
     try {
-      await storage.deleteLogo(Number(req.params.id));
+      const id = Number(req.params.id);
+      const logo = await storage.getLogo(id);
+      if (logo?.isDefault) {
+        return res.status(400).json({ error: "Cannot delete the management company default logo" });
+      }
+      if (logo?.isAppLogo) {
+        return res.status(400).json({ error: "Cannot delete the app logo — assign a different app logo first" });
+      }
+      await storage.deleteLogo(id);
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete logo", error);
+    }
+  });
+
+  app.patch("/api/logos/:id/default", requireAdmin, async (req, res) => {
+    try {
+      await storage.setDefaultLogo(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to set default logo", error);
+    }
+  });
+
+  app.get("/api/app-branding", requireAuth, async (req, res) => {
+    try {
+      const appLogo = await storage.getAppLogo();
+      res.json({
+        appName: appLogo?.companyName ?? "H+ Analytics",
+        appLogoUrl: appLogo?.url ?? "/logos/h-logo-glass.png",
+        appLogoId: appLogo?.id ?? null,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch app branding", error);
+    }
+  });
+
+  app.patch("/api/app-branding", requireAdmin, async (req, res) => {
+    try {
+      const schema = z.object({
+        appLogoId: z.number(),
+        appName: z.string().min(1).optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      await storage.setAppLogo(parsed.data.appLogoId);
+      res.json({ success: true });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update app branding", error);
     }
   });
 

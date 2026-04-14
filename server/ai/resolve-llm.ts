@@ -25,7 +25,7 @@ const DOMAIN_DEFAULTS: Record<LlmDomain, { vendor: LlmVendor; model: string }> =
   chatbotLlm:        { vendor: "google",    model: DEFAULT_GEMINI_MODEL },
   premiumExportLlm:  { vendor: "google",    model: DEFAULT_GEMINI_MODEL },
   aiUtilityLlm:      { vendor: "google",    model: DEFAULT_GEMINI_MODEL },
-  graphicsLlm:       { vendor: "google",    model: DEFAULT_GEMINI_MODEL },
+  graphicsLlm:       { vendor: "openai",    model: "gpt-image-1" },
 };
 
 const DOMAIN_TAB: Record<LlmDomain, string> = {

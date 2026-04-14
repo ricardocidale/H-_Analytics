@@ -45,6 +45,7 @@ export const logos = pgTable("logos", {
   companyName: text("company_name").notNull().default("Hospitality Business Group"),
   url: text("url").notNull(),
   isDefault: boolean("is_default").notNull().default(false),
+  isAppLogo: boolean("is_app_logo").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -53,6 +54,7 @@ export const insertLogoSchema = z.object({
   companyName: z.string(),
   url: z.string(),
   isDefault: z.boolean().optional(),
+  isAppLogo: z.boolean().optional(),
 });
 
 export type Logo = typeof logos.$inferSelect;
