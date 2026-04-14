@@ -14,6 +14,8 @@ import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
 import type { ResearchConfig, ResearchEventConfig, LlmVendor } from "@shared/schema";
 import { DEFAULT_RESEARCH_EVENT_CONFIG, DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS, DEFAULT_ROOM_COUNT, DEFAULT_START_ADR, DEFAULT_MAX_OCCUPANCY } from "../../shared/constants";
 import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceAggregator";
+import { fetchMultipleFields, getRoutableFields, type RoutingContext, type DataRouteResult } from "../ai/data-routing";
+import { buildPromptInjectionBlock } from "../ai/research-data-injector";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
 import { buildPropertyContextPack } from "../ai/context-pack/property-pack";
@@ -244,6 +246,57 @@ export function register(app: Express) {
         logger.warn(`Market intelligence / web research fetch failed (non-blocking): ${err instanceof Error ? err.message : err}`, "research");
       }
 
+      // ── Smart Data Router: targeted field-level data gathering ──────────
+      // Runs in parallel with (or after) the shotgun MI aggregator.
+      // Fetches ONLY the specific services needed for each assumption field,
+      // with progressive relaxation if exact matches return nothing.
+      let smartRouterResults: Map<string, DataRouteResult> = new Map();
+      let smartRouterInjection = "";
+      try {
+        if (type === "property" && propertyContext) {
+          const routingCtx: RoutingContext = {
+            location: propertyContext.location || propertyContext.market,
+            city: propertyContext.location?.split(",")[0]?.trim(),
+            state: undefined, // extracted from location if available
+            country: propertyContext.country,
+            qualityTier: propertyContext.qualityTier,
+            businessModel: propertyContext.businessModel,
+            roomCount: propertyContext.roomCount,
+            latitude: undefined,  // populated from property DB record below
+            longitude: undefined,
+            propertyType: assetDefinition?.level || "boutique hotel",
+            propertyId: propertyId || undefined,
+          };
+
+          // Try to extract state from location string (e.g., "Catskills, NY" -> "NY")
+          if (propertyContext.location) {
+            const parts = propertyContext.location.split(",").map((s: string) => s.trim());
+            if (parts.length >= 2) {
+              routingCtx.state = parts[parts.length - 1];
+            }
+          }
+
+          // Fetch targeted data for all routable assumption fields
+          const fieldsToFetch = getRoutableFields();
+          smartRouterResults = await fetchMultipleFields(fieldsToFetch, routingCtx);
+
+          // Build the prompt injection block
+          smartRouterInjection = buildPromptInjectionBlock(smartRouterResults, fieldsToFetch);
+
+          if (smartRouterResults.size > 0) {
+            logger.info(
+              `Smart data router: ${smartRouterResults.size} fields verified for property research`,
+              "research",
+            );
+          }
+        }
+      } catch (err: unknown) {
+        logger.warn(
+          `Smart data router failed (non-blocking, falling back to MI aggregator): ${err instanceof Error ? err.message : err}`,
+          "research",
+        );
+      }
+
       const params: import("../ai/research-prompt-builders").ResearchParams = {
         type,
         propertyId: propertyId || undefined,
@@ -331,6 +384,11 @@ export function register(app: Express) {
                 ambientData: ambientDataStr,
                 priorResearch: priorGuidanceStr,
               });
+
+              // Inject smart data router results into the prompt
+              if (smartRouterInjection) {
+                v2Prompt += smartRouterInjection;
+              }
             }
           } else if (type === "company" && ga) {
             const reqUser = getAuthUser(req);
