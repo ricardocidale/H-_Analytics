@@ -373,19 +373,32 @@ export default function CompanyAssumptions() {
           actions={
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Button
-                  variant="default"
-                  onClick={generateResearch}
-                  disabled={isGenerating}
-                  data-testid="button-run-company-research"
-                >
-                  {isGenerating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <IconPlay className="w-4 h-4" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        variant="default"
+                        onClick={generateResearch}
+                        disabled={isGenerating || !formData.companyName || properties.length === 0}
+                        data-testid="button-run-company-research"
+                      >
+                        {isGenerating ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <IconPlay className="w-4 h-4" />
+                        )}
+                        {isGenerating ? "Analyzing…" : "Regenerate Intelligence"}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {(!formData.companyName || properties.length === 0) && (
+                    <TooltipContent side="bottom" className="max-w-[280px] text-center">
+                      {!formData.companyName
+                        ? "Set a company name before generating intelligence."
+                        : "Add at least one property to your portfolio first."}
+                    </TooltipContent>
                   )}
-                  {isGenerating ? "Analyzing…" : "Regenerate Intelligence"}
-                </Button>
+                </Tooltip>
                 {(() => {
                   const { status } = computeFreshnessStatus({ researchUpdatedAt: companyResearchUpdatedAt, lastAssumptionChangeAt: global.lastAssumptionChangeAt, isGenerating: false });
                   return (

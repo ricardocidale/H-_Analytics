@@ -156,7 +156,30 @@ export function register(app: Express) {
       }
 
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      
+
+      // ── Minimum-info gate: ensure enough context for meaningful research ──
+      if (type === "company") {
+        if (!ga) {
+          return res.status(400).json({
+            error: "Company assumptions not configured yet. Set up your company name and basic assumptions before generating intelligence.",
+          });
+        }
+        if (!ga.companyName) {
+          return res.status(400).json({
+            error: "Company name is required before generating intelligence. Set it on the Company Assumptions page.",
+          });
+        }
+        const reqUser = getAuthUser(req);
+        const propCount = isAdminRole(reqUser.role)
+          ? (await storage.getAllProperties()).length
+          : (await storage.getAllProperties(reqUser.id)).length;
+        if (propCount === 0) {
+          return res.status(400).json({
+            error: "Add at least one property to your portfolio before generating company intelligence. The AI needs portfolio data to calibrate management fee benchmarks, staffing models, and overhead assumptions.",
+          });
+        }
+      }
+
       // Resolve admin-configured event config for this research type
       const researchConfig = (ga?.researchConfig as ResearchConfig) ?? {};
       const contextKey = type === "property" ? "propertyLlm" : type === "global" ? "marketLlm" : "companyLlm";
