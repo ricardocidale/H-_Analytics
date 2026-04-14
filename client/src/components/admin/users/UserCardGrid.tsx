@@ -7,9 +7,19 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "@/components/icons/themed-icons";
 import { IconPeople, IconTrash, IconKey, IconPencil, IconBuilding2, IconHome } from "@/components/icons";
+import { HelpCircle } from "lucide-react";
 import type { User } from "../types";
 import { UserRole, isAdminRole } from "@shared/constants";
 import type { SortField, SortDir } from "./types";
+
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  [UserRole.SUPER_ADMIN]: "Full system access. Cannot be edited or deleted by anyone.",
+  [UserRole.ADMIN]: "Manages users, settings, and all portfolio data. Full read/write access.",
+  [UserRole.CHECKER]: "Auditor role. Can review financials and run verification checks.",
+  [UserRole.USER]: "Standard user. Can view properties and work with scenarios they have access to.",
+  [UserRole.PARTNER]: "External partner. Similar to a standard user with limited access.",
+  [UserRole.INVESTOR]: "Read-only access. Can view reports and shared scenarios but cannot edit data.",
+};
 
 interface UserCardGridProps {
   sortedUsers: User[];
@@ -160,44 +170,59 @@ export default function UserCardGrid({
 
                 <div className="px-4 pb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={roleBadgeVariant(user.role)} className="text-[11px] px-2 py-0"
-                      data-testid={`badge-role-${user.id}`}>
-                      {user.role}
-                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant={roleBadgeVariant(user.role)} className="text-[11px] px-2 py-0 cursor-help"
+                          data-testid={`badge-role-${user.id}`}>
+                          {user.role}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                        {ROLE_DESCRIPTIONS[user.role] || user.role}
+                      </TooltipContent>
+                    </Tooltip>
                     {companyName && (
                       <span className="text-[11px] text-muted-foreground">{companyName}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-muted-foreground">Scenarios</span>
-                    <Switch
-                      checked={user.canManageScenarios ?? true}
-                      onCheckedChange={(checked) => onToggleScenarios?.(user.id, checked)}
-                      disabled={user.role === UserRole.SUPER_ADMIN}
-                      data-testid={`switch-scenarios-${user.id}`}
-                      className="scale-75"
-                    />
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1.5 cursor-help">
+                        <span className="text-[11px] text-muted-foreground">Scenarios</span>
+                        <HelpCircle className="w-3 h-3 text-muted-foreground/50" />
+                        <Switch
+                          checked={user.canManageScenarios ?? true}
+                          onCheckedChange={(checked) => onToggleScenarios?.(user.id, checked)}
+                          disabled={user.role === UserRole.SUPER_ADMIN}
+                          data-testid={`switch-scenarios-${user.id}`}
+                          className="scale-75"
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs max-w-[240px]">
+                      When ON, this user can create, edit, duplicate, and delete their own scenarios. When OFF, they can only view scenarios shared with them. Admins always have full scenario access regardless of this setting.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
 
                 {canModifyUser(user) && (
                   <div className="border-t border-border/50 px-3 py-1.5 flex items-center justify-end gap-0.5 opacity-70 group-hover:opacity-100 transition-opacity">
                     <ActionButton
                       icon={<IconPencil className="w-3.5 h-3.5" />}
-                      label="Edit"
+                      label="Edit name, email, role, and company"
                       onClick={() => onEditUser(user)}
                       testId={`button-edit-user-${user.id}`}
                     />
                     <ActionButton
                       icon={<IconKey className="w-3.5 h-3.5" />}
-                      label="Reset password"
+                      label="Set a new password for this user"
                       onClick={() => onPasswordUser(user)}
                       testId={`button-password-user-${user.id}`}
                     />
                     {onManageDefaults && (
                       <ActionButton
                         icon={<IconHome className="w-3.5 h-3.5" />}
-                        label="Default properties"
+                        label="Choose which properties this user sees by default"
                         onClick={() => onManageDefaults(user)}
                         testId={`button-defaults-user-${user.id}`}
                       />

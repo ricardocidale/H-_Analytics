@@ -2,8 +2,10 @@ import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconUserPlus, IconSend } from "@/components/icons";
+import { HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminUsers } from "./hooks";
 import { useAuth } from "@/lib/auth";
@@ -218,25 +220,50 @@ export default function UsersTab() {
   };
 
   return (
+    <TooltipProvider delayDuration={300}>
     <>
     <Card className="bg-card border border-border/80 shadow-sm">
       <CardHeader className="relative">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-base font-semibold text-foreground">User Management</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold text-foreground">User Management</CardTitle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="w-4 h-4 text-muted-foreground/50 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs max-w-[280px]">
+                  Only users listed here can log in. There is no public sign-up — every user must be added or invited by an admin. Hover over role badges and icons on each card to learn what they do.
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <CardDescription className="label-text">
               {users?.length || 0} registered users
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setInviteOpen(true)} data-testid="button-invite-users">
-              <IconSend className="w-4 h-4" />
-              Invite Users
-            </Button>
-            <Button variant="default" onClick={() => setDialogOpen(true)} data-testid="button-add-user">
-              <IconUserPlus className="w-4 h-4" />
-              Add User
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => setInviteOpen(true)} data-testid="button-invite-users">
+                  <IconSend className="w-4 h-4" />
+                  Invite Users
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs max-w-[240px]">
+                Send email invitations to one or more people. The system creates their account with a temporary password and emails them login instructions.
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="default" onClick={() => setDialogOpen(true)} data-testid="button-add-user">
+                  <IconUserPlus className="w-4 h-4" />
+                  Add User
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs max-w-[240px]">
+                Manually create a user account. You set their email, password, and role. Share the credentials with them directly.
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </CardHeader>
@@ -313,5 +340,6 @@ export default function UsersTab() {
       />
     )}
     </>
+    </TooltipProvider>
   );
 }
