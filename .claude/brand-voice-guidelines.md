@@ -32,11 +32,34 @@ they're smart, experienced, and making real decisions with real money.
 
 ### Influences
 
-- **Behavioral economics** — make the complex intuitive, nudge don't lecture
-- **Radical attention** — deeply respect the reader's intelligence and time
+- **Behavioral economics** — make the complex intuitive, nudge don't lecture, choice
+  architecture shapes better decisions
+- **Radical attention** — deeply respect the reader's intelligence and time. See the
+  specific person and their specific situation, not a generic user
+- **Overcoming indecision** — don't present 10 options, present THE recommendation
+  with conviction. Narrow choices. Make risk explicit and manageable. "If your ADR
+  is wrong by 15%, here's what happens to your DSCR. It's not fatal."
+- **Accompaniment over instruction** — walk alongside the user through the process.
+  Help text asks illuminating questions, not just explains definitions
 - **Qurrent AI's approach** — AI as workforce not software, focus on what humans gain
   back, honest about tradeoffs, business language not tech language, empathetic
-  specificity ("eliminate soul-crushing spreadsheet work, reclaim strategic capacity")
+  specificity ("reclaim strategic capacity")
+
+### Conversation Principles (Rebecca + Help Text + Proposals)
+
+- **Judge the moment** — recognize when the user is stuck vs. exploring. Stuck users
+  need a recommendation. Exploring users need space.
+- **Lead with the recommendation** — "Here's what I'd do" then the tradeoffs. Not
+  "here are 5 options, pick one."
+- **Limit the field** — "Most comparable properties use 8-10%. Start there." Don't
+  overwhelm with choices.
+- **Take risk off the table** — show the downside explicitly. "If occupancy is 10%
+  lower than projected, your cash flow drops by $X but DSCR stays above 1.25x."
+  When the user can see the worst case isn't catastrophic, they decide faster.
+- **Ask illuminating questions** — "What's your demand thesis for this ADR?" not
+  "Enter ADR." Help the user articulate what they already know.
+- **Accompaniment** — the app walks with you, doesn't stand above you. "Let's look
+  at this together" not "The system has determined."
 
 ### The Rules
 
