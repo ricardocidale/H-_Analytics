@@ -114,7 +114,7 @@ function buildNavGroups(): NavGroup[] {
       id: "management-company",
       label: "Management Company",
       icon: IconBriefcase,
-      description: "Services, fees & statement lines",
+      description: "Services, fees & financial statement lines",
       sections: [
         { value: "services-fees",      label: "Services & Fees",           icon: IconBriefcase },
         { value: "financial-lines",    label: "Financial Statement Lines", icon: IconCalculator },
@@ -124,11 +124,10 @@ function buildNavGroups(): NavGroup[] {
       id: "properties",
       label: "Properties",
       icon: IconProperties,
-      description: "Property model defaults and configuration",
+      description: "Property defaults, required fields & photos",
       sections: [
-        { value: "hotel-defaults",  label: "Hotel Model Defaults",         icon: IconDashboard },
-        { value: "rental-defaults", label: "Luxury Rental Defaults",       icon: IconGlobe },
-        { value: "required-fields", label: "Required Fields Config",       icon: IconFileCheck },
+        { value: "hotel-defaults",  label: "Defaults",                     icon: IconSliders },
+        { value: "required-fields", label: "Required Fields",              icon: IconFileCheck },
         { value: "photos-renders",  label: "Photos & Renders",             icon: IconImage },
       ],
     },

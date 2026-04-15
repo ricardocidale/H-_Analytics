@@ -244,6 +244,100 @@ export async function indexBenchmarkSnapshot(params: {
   }
 }
 
+// ── Pre-collected Market Data Indexing ───────────────────────────────────────
+// These index rows from the 6 pre-collected tables into Pinecone for RAG access.
+// Dual access: relational DB for exact tool lookups, Pinecone vectors for semantic search.
+
+export async function indexMarketAdrData(params: {
+  market: string; country: string; quarter: string;
+  avgAdr: number | null; luxuryAdr: number | null; boutiqueAdr: number | null;
+  avgOccupancy: number | null; avgRevpar: number | null;
+  source: string | null;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+  try {
+    const id = `market-adr:${params.market.toLowerCase().replace(/\s+/g, "-")}:${params.quarter}`;
+    const parts = [`${params.market} ${params.country} hotel market data ${params.quarter}`];
+    if (params.avgAdr) parts.push(`average ADR $${params.avgAdr}`);
+    if (params.luxuryAdr) parts.push(`luxury ADR $${params.luxuryAdr}`);
+    if (params.boutiqueAdr) parts.push(`boutique ADR $${params.boutiqueAdr}`);
+    if (params.avgOccupancy) parts.push(`occupancy ${params.avgOccupancy}%`);
+    if (params.avgRevpar) parts.push(`RevPAR $${params.avgRevpar}`);
+
+    await upsertChunks("comparables", [{ id, text: parts.join(", "), metadata: {
+      market: params.market, country: params.country, quarter: params.quarter,
+      adr: params.avgAdr ?? 0, occupancy: params.avgOccupancy ?? 0,
+      revpar: params.avgRevpar ?? 0, source: params.source ?? "", isBenchmark: true,
+    }}]);
+  } catch (err: unknown) {
+    logger.warn(`Failed to index market ADR: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
+export async function indexSeasonalCalendar(params: {
+  market: string; country: string;
+  months: Array<{ month: number; seasonType: string; demandMultiplier: number }>;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+  try {
+    const peak = params.months.reduce((best, m) => m.demandMultiplier > best.demandMultiplier ? m : best);
+    const trough = params.months.reduce((best, m) => m.demandMultiplier < best.demandMultiplier ? m : best);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const id = `seasonal:${params.market.toLowerCase().replace(/\s+/g, "-")}`;
+    const text = `${params.market} ${params.country} seasonal demand pattern. Peak: ${monthNames[peak.month - 1]} (${peak.demandMultiplier.toFixed(2)}x). Trough: ${monthNames[trough.month - 1]} (${trough.demandMultiplier.toFixed(2)}x).`;
+
+    await upsertChunks("research-history", [{ id, text, metadata: {
+      market: params.market, country: params.country, type: "seasonal",
+      peakMonth: peak.month, troughMonth: trough.month,
+    }}]);
+  } catch (err: unknown) {
+    logger.warn(`Failed to index seasonal calendar: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
+export async function indexEventCalendar(params: {
+  market: string; country: string;
+  events: Array<{ name: string; startMonth: number | null; impact: string; category: string | null; attendees: number | null }>;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+  try {
+    const id = `events:${params.market.toLowerCase().replace(/\s+/g, "-")}`;
+    const eventList = params.events.map(e =>
+      `${e.name} (${e.impact} impact${e.attendees ? `, ~${(e.attendees / 1000).toFixed(0)}K attendees` : ""})`
+    ).join("; ");
+    const text = `${params.market} ${params.country} demand-driving events: ${eventList}`;
+
+    await upsertChunks("research-history", [{ id, text, metadata: {
+      market: params.market, country: params.country, type: "events",
+      eventCount: params.events.length,
+      highImpactCount: params.events.filter(e => e.impact === "high").length,
+    }}]);
+  } catch (err: unknown) {
+    logger.warn(`Failed to index event calendar: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
+export async function indexLaborRates(params: {
+  market: string; country: string;
+  roles: Array<{ role: string; annualSalary: number | null; currency: string }>;
+}): Promise<void> {
+  if (!isPineconeAvailable()) return;
+  try {
+    const id = `labor:${params.market.toLowerCase().replace(/\s+/g, "-")}`;
+    const roleList = params.roles.map(r =>
+      `${r.role}: ${r.annualSalary ? `$${r.annualSalary.toLocaleString("en-US")}` : "N/A"}/yr`
+    ).join("; ");
+    const text = `${params.market} ${params.country} hospitality labor rates: ${roleList}`;
+
+    await upsertChunks("research-history", [{ id, text, metadata: {
+      market: params.market, country: params.country, type: "labor",
+      roleCount: params.roles.length,
+    }}]);
+  } catch (err: unknown) {
+    logger.warn(`Failed to index labor rates: ${err instanceof Error ? err.message : err}`, "pinecone");
+  }
+}
+
 export async function indexDocumentExtraction(params: {
   extractionId: number;
   propertyId: number;

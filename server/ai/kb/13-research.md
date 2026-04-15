@@ -1,9 +1,22 @@
-Market Research
+Research Intelligence
 
-The portal includes AI-powered market research to help set realistic assumptions for properties.
+You have a team of analysts built into the platform. They review your property assumptions against real market data — comparable hotels, seasonal patterns, labor costs, cap rate transactions, and industry benchmarks.
 
-At the property level, you can run research that analyzes the local market — what comparable hotels charge (ADR), what occupancy levels look like, what cap rates are in the area, and who the competitive set is.
+When you click "Ask the Analysts" on a property or company page, your analysts start working immediately. You'll see what's happening in real time: "Studying the Medellín luxury market...", "Cross-referencing industry benchmarks...", "Getting a second opinion from independent sources..." Each step is real — your analysts are pulling data from multiple verified sources.
 
-At the industry level, you can generate broader research covering market trends, the debt market, labor conditions, supply pipeline, and other factors that affect hotel investments.
+The results appear as Analyst Notes — small badges next to each assumption field showing the range your analysts recommend. Each note includes a conviction level:
+- High conviction means strong market evidence from multiple sources that agree
+- Moderate conviction means data exists but sources disagree or the data is older
+- Developing means limited data — the recommendation is based on broader benchmarks while your analysts gather more
 
-One important thing to know: research values are just recommendations. The financial engine never uses AI-generated numbers directly. You have to review the research and explicitly accept any recommendation before it changes your assumptions. This keeps the model honest — no AI output enters the financial calculations without a human choosing to use it.
+Your numbers are always yours. Analyst Notes never change your assumptions automatically. You review what your analysts suggest and decide. The financial engine only uses numbers you've explicitly approved.
+
+The platform gets smarter with every property you add. When your analysts discover market data during a research run, that data gets stored locally. Next time a property in the same market needs research, the data is already there — faster, cheaper, higher conviction.
+
+The review status bar tells you how current your analyst review is:
+- Up to date — your analysts reviewed recently and nothing has changed
+- Due for review — you changed assumptions or time has passed since the last review
+- Overdue — it's been more than 90 days, market conditions may have shifted
+- Not yet reviewed — your analysts haven't looked at these assumptions yet
+
+You can ask the analysts again anytime — they'll check for updated data and refresh their view.
