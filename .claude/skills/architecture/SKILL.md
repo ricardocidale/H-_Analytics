@@ -100,6 +100,7 @@ Enforced across all scenarios. See `.claude/manuals/user-manual/skills/02-busine
 
 | File | Purpose |
 |------|---------|
+| `app-architecture.md` | **Unified architecture map** — navigation, all 86+ property fields, 107 global assumptions, file injection points, 30+ external dependencies, codebase health trends, intelligence pipeline |
 | `api-routes.md` | API endpoint reference (all `/api/` routes) — now in `.claude/rules/` |
 | `storage-facade.md` | IStorage facade pattern, 8 specialized storage classes |
 

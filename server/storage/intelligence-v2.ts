@@ -269,6 +269,35 @@ export class IntelligenceV2Storage {
     await db.delete(sourceRegistry).where(eq(sourceRegistry.id, id));
   }
 
+  /** Update source health check metrics with EWMA success rate and derived trust score. */
+  async updateSourceHealthCheck(serviceKey: string, healthy: boolean, latencyMs: number, checkedAt: Date): Promise<void> {
+    await db.update(sourceRegistry)
+      .set({
+        lastHealthCheck: checkedAt,
+        avgLatencyMs: latencyMs,
+        successRate: sql`COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${healthy ? 1 : 0} * 0.1`,
+        trustScore: sql`CASE
+          WHEN COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${healthy ? 1 : 0} * 0.1 >= 0.95 THEN 'verified'
+          WHEN COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${healthy ? 1 : 0} * 0.1 >= 0.70 THEN 'degraded'
+          ELSE 'unreliable'
+        END`,
+      })
+      .where(eq(sourceRegistry.serviceKey, serviceKey));
+  }
+
+  /** Get service keys of sources that are active and have been verified or degraded trust. */
+  async getHealthySourceKeys(category?: string): Promise<string[]> {
+    const rows = await db.select({
+      serviceKey: sourceRegistry.serviceKey,
+    }).from(sourceRegistry)
+      .where(
+        category
+          ? sql`${sourceRegistry.isActive} = true AND ${sourceRegistry.category} = ${category} AND ${sourceRegistry.trustScore} IN ('verified', 'degraded')`
+          : sql`${sourceRegistry.isActive} = true AND ${sourceRegistry.trustScore} IN ('verified', 'degraded')`
+      );
+    return rows.map(r => r.serviceKey);
+  }
+
   async createSourceCallLog(data: InsertSourceCallLog): Promise<SourceCallLog> {
     const [log] = await db.insert(sourceCallLogs)
       .values(data as typeof sourceCallLogs.$inferInsert)

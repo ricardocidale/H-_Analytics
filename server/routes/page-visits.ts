@@ -9,9 +9,19 @@
  */
 
 import type { Express } from "express";
+import { z } from "zod";
 import { requireAuth, getAuthUser } from "../auth";
 import { storage } from "../storage";
 import { logger } from "../logger";
+
+const visitBodySchema = z.object({
+  entityType: z.string().max(100).optional(),
+  entityId: z.coerce.number().int().positive().optional(),
+}).optional().default({});
+
+const saveBodySchema = z.object({
+  compulsoryFieldsComplete: z.boolean().optional().default(false),
+}).optional().default({});
 
 export function register(app: Express) {
   // Get visit record for current user + page
@@ -32,7 +42,8 @@ export function register(app: Express) {
     try {
       const user = getAuthUser(req);
       const pageKey = decodeURIComponent(String(req.params.pageKey));
-      const { entityType, entityId } = req.body ?? {};
+      const parsed = visitBodySchema.safeParse(req.body);
+      const { entityType, entityId } = parsed.success ? parsed.data : {};
       const visit = await storage.recordVisit(user.id, pageKey, entityType, entityId);
       res.json(visit);
     } catch (error: unknown) {
@@ -46,8 +57,9 @@ export function register(app: Express) {
     try {
       const user = getAuthUser(req);
       const pageKey = decodeURIComponent(String(req.params.pageKey));
-      const { compulsoryFieldsComplete } = req.body ?? {};
-      const visit = await storage.recordSave(user.id, pageKey, compulsoryFieldsComplete ?? false);
+      const parsed = saveBodySchema.safeParse(req.body);
+      const compulsoryFieldsComplete = parsed.success ? parsed.data.compulsoryFieldsComplete : false;
+      const visit = await storage.recordSave(user.id, pageKey, compulsoryFieldsComplete);
       res.json(visit);
     } catch (error: unknown) {
       logger.error(`Failed to record save: ${error instanceof Error ? error.message : error}`, "page-visits");

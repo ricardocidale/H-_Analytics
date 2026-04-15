@@ -1,5 +1,6 @@
 import { BaseIntegrationService, type IntegrationHealth } from "./base";
 import { logger } from "../logger";
+import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -185,11 +186,10 @@ export class ReplicateService extends BaseIntegrationService {
   async healthCheck(): Promise<IntegrationHealth> {
     const start = Date.now();
     try {
-      const res = await fetch("https://api.replicate.com/v1/models", {
+      const res = await fetchWithTimeout("https://api.replicate.com/v1/models", {
         method: "GET",
         headers: { Authorization: `Bearer ${this.apiToken}` },
-        signal: AbortSignal.timeout(10_000),
-      });
+      }, 10_000);
       return {
         name: this.serviceName,
         healthy: res.ok,
@@ -223,12 +223,11 @@ export class ReplicateService extends BaseIntegrationService {
         ? "https://api.replicate.com/v1/predictions"
         : `https://api.replicate.com/v1/models/${owner_model}/predictions`;
 
-      const res = await fetch(endpoint, {
+      const res = await fetchWithTimeout(endpoint, {
         method: "POST",
         headers: this.headers,
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(15_000),
-      });
+      }, 15_000);
 
       if (!res.ok) {
         const errBody = await res.text();
@@ -241,11 +240,10 @@ export class ReplicateService extends BaseIntegrationService {
 
   async getPrediction(id: string): Promise<ReplicatePrediction> {
     return this.execute("getPrediction", async () => {
-      const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+      const res = await fetchWithTimeout(`https://api.replicate.com/v1/predictions/${id}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${this.apiToken}` },
-        signal: AbortSignal.timeout(10_000),
-      });
+      }, 10_000);
 
       if (!res.ok) {
         throw new Error(`Failed to get prediction ${id}: ${res.status}`);
@@ -329,7 +327,7 @@ export class ReplicateService extends BaseIntegrationService {
     }
 
     const imageBuffer = await this.execute("downloadOutput", async () => {
-      const imageRes = await fetch(outputUrl, { signal: AbortSignal.timeout(30_000) });
+      const imageRes = await fetchWithTimeout(outputUrl, {}, 30_000);
       if (!imageRes.ok) {
         throw new Error(`Failed to download Replicate output image: ${imageRes.status}`);
       }

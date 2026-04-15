@@ -2,12 +2,13 @@ import type { Express } from "express";
 import { requireAuth, getAuthUser } from "../auth";
 import { storage } from "../storage";
 import { z } from "zod";
+import { parseRouteId } from "./helpers";
 
 export function register(app: Express): void {
   app.get("/api/calc-audit/:scenarioId", requireAuth, async (req, res) => {
     try {
-      const scenarioId = parseInt(String(req.params.scenarioId), 10);
-      if (isNaN(scenarioId)) {
+      const scenarioId = parseRouteId(req.params.scenarioId);
+      if (!scenarioId) {
         return res.status(400).json({ error: "Invalid scenario ID" });
       }
 
@@ -28,8 +29,8 @@ export function register(app: Express): void {
 
   app.get("/api/calc-audit/detail/:id", requireAuth, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) {
+      const id = parseRouteId(req.params.id);
+      if (!id) {
         return res.status(400).json({ error: "Invalid audit log ID" });
       }
 
@@ -47,8 +48,8 @@ export function register(app: Express): void {
 
   app.patch("/api/calc-audit/:id/note", requireAuth, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) {
+      const id = parseRouteId(req.params.id);
+      if (!id) {
         return res.status(400).json({ error: "Invalid audit log ID" });
       }
 

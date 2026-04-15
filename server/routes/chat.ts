@@ -19,7 +19,7 @@ import { retrieveRelevantChunks } from "../ai/knowledge-base";
 import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
 import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERLAY, detectLanguage, generateFollowUpChips, deriveContextType, deriveContextKey } from "./chat-prompts";
 import { registerInsightRoute } from "./chat-insight";
-import { logActivity } from "./helpers";
+import { logActivity, parseRouteId } from "./helpers";
 import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH } from "../constants";
 
 const fieldContextSchema = z.object({
@@ -68,8 +68,8 @@ export function register(app: Express) {
 
   app.get("/api/chat/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
     try {
-      const conversationId = parseInt(req.params.id as string, 10);
-      if (isNaN(conversationId) || conversationId < 1) {
+      const conversationId = parseRouteId(req.params.id);
+      if (!conversationId) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
 

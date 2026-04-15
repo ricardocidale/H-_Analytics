@@ -20,7 +20,7 @@ import {
 } from "../ai/executive-summary";
 import { storage } from "../storage";
 import { logger } from "../logger";
-import { logActivity } from "./helpers";
+import { logActivity, parseRouteId } from "./helpers";
 import type { Property } from "@shared/schema";
 
 const router = Router();
@@ -77,8 +77,8 @@ router.get(
     }
 
     try {
-      const propertyId = parseInt(String(req.params.propertyId), 10);
-      if (isNaN(propertyId)) {
+      const propertyId = parseRouteId(req.params.propertyId);
+      if (!propertyId) {
         return res.status(400).json({ error: "Invalid property ID" });
       }
 
@@ -221,8 +221,8 @@ router.post("/api/executive-summary/property/:propertyId/regenerate", requireAut
     }
 
     try {
-      const propertyId = parseInt(String(req.params.propertyId), 10);
-      if (isNaN(propertyId)) {
+      const propertyId = parseRouteId(req.params.propertyId);
+      if (!propertyId) {
         return res.status(400).json({ error: "Invalid property ID" });
       }
 

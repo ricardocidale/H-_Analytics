@@ -14,12 +14,7 @@
  * whether to fall back to external APIs or report "Developing" conviction.
  */
 
-import { db } from "../db";
-import {
-  marketAdrIndex, seasonalCalendars, eventCalendars,
-  laborRates, fbBenchmarks, hospitalityBenchmarks,
-} from "@shared/schema";
-import { eq, and, desc, ilike } from "drizzle-orm";
+import { storage } from "../storage";
 import { logger } from "../logger";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -87,11 +82,9 @@ export interface AssumptionValidation {
 /** Look up ADR/occupancy benchmarks for a market. Returns latest quarter. */
 export async function lookupMarketAdr(market: string): Promise<AdrLookupResult | null> {
   try {
-    const [row] = await db.select().from(marketAdrIndex)
-      .where(ilike(marketAdrIndex.market, market))
-      .orderBy(desc(marketAdrIndex.quarter))
-      .limit(1);
-    if (!row) return null;
+    const rows = await storage.getMarketAdrIndex(market);
+    if (rows.length === 0) return null;
+    const row = rows[0]; // Already sorted by quarter desc
     return {
       market: row.market,
       quarter: row.quarter,
@@ -113,9 +106,7 @@ export async function lookupMarketAdr(market: string): Promise<AdrLookupResult |
 /** Look up 12-month seasonal demand curve for a market. */
 export async function lookupSeasonalCurve(market: string): Promise<SeasonalCurveResult | null> {
   try {
-    const rows = await db.select().from(seasonalCalendars)
-      .where(ilike(seasonalCalendars.market, market))
-      .orderBy(seasonalCalendars.month);
+    const rows = await storage.getSeasonalCalendar(market);
     if (rows.length === 0) return null;
 
     const months = rows.map(r => ({
@@ -138,8 +129,7 @@ export async function lookupSeasonalCurve(market: string): Promise<SeasonalCurve
 /** Look up demand-driving events for a market. */
 export async function lookupEventCalendar(market: string): Promise<EventCalendarResult | null> {
   try {
-    const rows = await db.select().from(eventCalendars)
-      .where(ilike(eventCalendars.market, market));
+    const rows = await storage.getEventCalendar(market);
     if (rows.length === 0) return null;
     return {
       market,
@@ -162,30 +152,11 @@ export async function lookupEventCalendar(market: string): Promise<EventCalendar
 /** Look up hospitality labor costs for a market or country. */
 export async function lookupLaborCosts(market: string, country?: string): Promise<LaborCostResult | null> {
   try {
-    const rows = await db.select().from(laborRates)
-      .where(ilike(laborRates.market, market));
-
-    // If no market-specific data, try country-level ("US General", etc.)
-    if (rows.length === 0 && country) {
-      const fallback = await db.select().from(laborRates)
-        .where(ilike(laborRates.market, `${country} General`));
-      if (fallback.length === 0) return null;
-      return {
-        market: `${country} General`,
-        country: fallback[0].country,
-        roles: fallback.map(r => ({
-          role: r.role,
-          hourlyRate: r.hourlyRate,
-          annualSalary: r.annualSalary,
-          currency: r.currency,
-          source: r.source,
-        })),
-      };
-    }
-
+    const rows = await storage.getLaborRates(market, country);
     if (rows.length === 0) return null;
+
     return {
-      market,
+      market: rows[0].market,
       country: rows[0].country,
       roles: rows.map(r => ({
         role: r.role,
@@ -204,13 +175,9 @@ export async function lookupLaborCosts(market: string, country?: string): Promis
 /** Look up F&B operating benchmarks for a market and property type. */
 export async function lookupFbBenchmarks(market: string, propertyType?: string): Promise<FbBenchmarkResult | null> {
   try {
-    const conditions = [ilike(fbBenchmarks.market, market)];
-    if (propertyType) conditions.push(eq(fbBenchmarks.propertyType, propertyType));
-
-    const [row] = await db.select().from(fbBenchmarks)
-      .where(and(...conditions))
-      .limit(1);
-    if (!row) return null;
+    const rows = await storage.getFbBenchmarks(market, propertyType);
+    if (rows.length === 0) return null;
+    const row = rows[0];
     return {
       market: row.market,
       propertyType: row.propertyType,
@@ -233,13 +200,11 @@ export async function lookupBenchmark(
   country?: string,
 ): Promise<BenchmarkRange | null> {
   try {
-    const conditions = [ilike(hospitalityBenchmarks.category, category)];
-    if (segment) conditions.push(ilike(hospitalityBenchmarks.segment, segment));
-    if (country) conditions.push(ilike(hospitalityBenchmarks.country, country));
-
-    const rows = await db.select().from(hospitalityBenchmarks)
-      .where(and(...conditions))
-      .limit(10);
+    const rows = await storage.getHospitalityBenchmarks({
+      category,
+      segment: segment || undefined,
+      country: country || undefined,
+    });
     if (rows.length === 0) return null;
 
     const values = rows.map(r => r.value).filter((v): v is number => v != null);

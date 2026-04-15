@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import { requireAdmin } from "../auth";
 import { cache } from "../cache";
 import { type CircuitState } from "../integrations/base";
@@ -6,7 +7,7 @@ import { getResendHealthCheck } from "../integrations/resend";
 import { getGeospatialHealthCheck } from "../integrations/geospatial";
 import { getDocumentAIHealthCheck } from "../integrations/document-ai";
 import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceAggregator";
-import { logActivity, cachePatternSchema } from "./helpers";
+import { logActivity, cachePatternSchema, parseRouteId } from "./helpers";
 import { fromZodError } from "zod-validation-error";
 import { insertExternalIntegrationSchema, updateExternalIntegrationSchema } from "@shared/schema";
 import { storage } from "../storage";
@@ -222,8 +223,8 @@ export function register(app: Express) {
 
   app.patch("/api/admin/ext-integrations/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
       const parsed = updateExternalIntegrationSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
       const row = await storage.updateExternalIntegration(id, parsed.data);
@@ -237,10 +238,11 @@ export function register(app: Express) {
 
   app.patch("/api/admin/ext-integrations/:id/toggle", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
-      const { isEnabled } = req.body;
-      if (typeof isEnabled !== "boolean") return res.status(400).json({ error: "isEnabled must be a boolean" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      const toggleParsed = z.object({ isEnabled: z.boolean() }).safeParse(req.body);
+      if (!toggleParsed.success) return res.status(400).json({ error: "isEnabled must be a boolean" });
+      const { isEnabled } = toggleParsed.data;
       const row = await storage.toggleExternalIntegration(id, isEnabled);
       if (!row) return res.status(404).json({ error: "Integration not found" });
       logActivity(req, isEnabled ? "enable-integration" : "disable-integration", "integration", row.id, row.name);
@@ -252,8 +254,8 @@ export function register(app: Express) {
 
   app.delete("/api/admin/ext-integrations/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
       const existing = await storage.getExternalIntegration(id);
       if (!existing) return res.status(404).json({ error: "Integration not found" });
       await storage.deleteExternalIntegration(id);

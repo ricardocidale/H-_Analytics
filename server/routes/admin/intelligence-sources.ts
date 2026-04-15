@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
-import { logAndSendError, logActivity } from "../helpers";
+import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -44,8 +44,8 @@ export function registerSourceRoutes(app: Express) {
 
   app.patch("/api/admin/source-registry/:id", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
 
       const bodySchema = z.object({
         name: z.string().min(1).max(200).optional(),
@@ -75,10 +75,11 @@ export function registerSourceRoutes(app: Express) {
 
   app.patch("/api/admin/source-registry/:id/toggle", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
-      const { isActive } = req.body;
-      if (typeof isActive !== "boolean") return res.status(400).json({ error: "isActive must be a boolean" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      const toggleParsed = z.object({ isActive: z.boolean() }).safeParse(req.body);
+      if (!toggleParsed.success) return res.status(400).json({ error: "isActive must be a boolean" });
+      const { isActive } = toggleParsed.data;
       const updated = await storage.updateSourceRegistryEntry(id, { isActive });
       if (!updated) return res.status(404).json({ error: "Source not found" });
       logActivity(req, "toggle-source", "source_registry", id, updated.name, { isActive });
@@ -90,8 +91,8 @@ export function registerSourceRoutes(app: Express) {
 
   app.delete("/api/admin/source-registry/:id", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
       const existing = await storage.getSourceRegistryEntry(id);
       if (!existing) return res.status(404).json({ error: "Source not found" });
       await storage.deleteSourceRegistryEntry(id);
@@ -104,8 +105,8 @@ export function registerSourceRoutes(app: Express) {
 
   app.get("/api/admin/source-registry/:id/logs", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
       const source = await storage.getSourceRegistryEntry(id);
       if (!source) return res.status(404).json({ error: "Source not found" });
       const logs = await storage.getSourceCallLogs(id, 50);
@@ -117,8 +118,8 @@ export function registerSourceRoutes(app: Express) {
 
   app.post("/api/admin/source-registry/:id/test", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
       const source = await storage.getSourceRegistryEntry(id);
       if (!source) return res.status(404).json({ error: "Source not found" });
 

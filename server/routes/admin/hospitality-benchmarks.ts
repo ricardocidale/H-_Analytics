@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, requireAuth } from "../../auth";
-import { logAndSendError, logActivity } from "../helpers";
+import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { getAuthUser } from "../../auth";
@@ -43,8 +43,8 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
   // ── Admin: update a benchmark ───────────────────────────────────────
   app.put("/api/admin/hospitality-benchmarks/:id", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
 
       const parsed = updateBenchmarkSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });

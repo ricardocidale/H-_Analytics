@@ -1,20 +1,35 @@
 import { describe, it, expect } from "vitest";
-import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 
-function grepServer(pattern: string, searchPath = "server/"): string[] {
-  try {
-    const out = execSync(
-      `rg -n -e ${JSON.stringify(pattern)} ${searchPath} --glob '*.ts' -g '!*.test.*' 2>/dev/null`,
-      { encoding: "utf-8", timeout: 10_000 }
-    );
-    return out.trim().split("\n").filter(Boolean);
-  } catch (e: unknown) {
-    const err = e as { status?: number; message?: string };
-    if (err.status === 1) return [];
-    throw new Error(`grep command failed (exit ${err.status}): ${err.message}`);
+function scanPath(target: string, regex: RegExp): string[] {
+  const results: string[] = [];
+  if (!fs.existsSync(target)) return results;
+  const stat = fs.statSync(target);
+  if (stat.isFile()) {
+    const norm = target.replace(/\\/g, "/");
+    const lines = fs.readFileSync(target, "utf-8").split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      if (regex.test(lines[i])) results.push(`${norm}:${i + 1}:${lines[i]}`);
+    }
+    return results;
   }
+  for (const entry of fs.readdirSync(target, { withFileTypes: true })) {
+    const full = path.join(target, entry.name);
+    const norm = full.replace(/\\/g, "/");
+    if (entry.isDirectory()) results.push(...scanPath(full, regex));
+    else if (entry.name.endsWith(".ts") && !entry.name.includes(".test.")) {
+      const lines = fs.readFileSync(full, "utf-8").split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (regex.test(lines[i])) results.push(`${norm}:${i + 1}:${lines[i]}`);
+      }
+    }
+  }
+  return results;
+}
+
+function grepServer(pattern: string, searchPath = "server/"): string[] {
+  return scanPath(searchPath, new RegExp(pattern));
 }
 
 function grepRoutes(pattern: string): string[] {

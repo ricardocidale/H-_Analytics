@@ -5,9 +5,7 @@
  * Verifies env vars, client initialization, and (for select APIs) reachability.
  * Updates the source_registry row with latency, trust score, and success rate.
  */
-import { db } from "../db";
-import { sourceRegistry } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { storage } from "../storage";
 import { logger } from "../logger";
 import { sanitizeError } from "../lib/sanitize-error";
 
@@ -148,9 +146,8 @@ async function checkHospitalityBenchmarksDB(): Promise<HealthCheckResult> {
   const checkedAt = new Date();
 
   try {
-    const rows = await db.execute(sql`SELECT count(*)::int AS count FROM hospitality_benchmarks`);
-    const count = ((rows.rows ?? [])[0] as { count: number } | undefined)?.count ?? 0;
-    if (count > 0) {
+    const benchmarks = await storage.getHospitalityBenchmarks({ isActive: true });
+    if (benchmarks.length > 0) {
       return { serviceKey: "hospitality_benchmarks", healthy: true, latencyMs: Date.now() - start, checkedAt };
     }
     return { serviceKey: "hospitality_benchmarks", healthy: false, latencyMs: Date.now() - start, error: "No benchmark rows found", checkedAt };
@@ -259,18 +256,7 @@ export async function checkSourceHealth(serviceKey: string): Promise<HealthCheck
   try {
     // Trust score derived from the EWMA success rate, not a single check:
     //   ≥ 0.95 → "verified"  |  ≥ 0.70 → "degraded"  |  < 0.70 → "unreliable"
-    await db.update(sourceRegistry)
-      .set({
-        lastHealthCheck: result.checkedAt,
-        avgLatencyMs: result.latencyMs,
-        successRate: sql`COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${result.healthy ? 1 : 0} * 0.1`,
-        trustScore: sql`CASE
-          WHEN COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${result.healthy ? 1 : 0} * 0.1 >= 0.95 THEN 'verified'
-          WHEN COALESCE(${sourceRegistry.successRate}, 1.0) * 0.9 + ${result.healthy ? 1 : 0} * 0.1 >= 0.70 THEN 'degraded'
-          ELSE 'unreliable'
-        END`,
-      })
-      .where(eq(sourceRegistry.serviceKey, serviceKey));
+    await storage.updateSourceHealthCheck(serviceKey, result.healthy, result.latencyMs, result.checkedAt);
   } catch (err: unknown) {
     logger.warn(`Failed to update source_registry for ${serviceKey}: ${err instanceof Error ? err.message : String(err)}`, "health-checker");
   }
@@ -319,14 +305,5 @@ export async function getHealthySources(category?: string): Promise<string[]> {
   // Only return sources that have been health-checked and passed.
   // 'unverified' (never checked) is excluded — we don't know if they work.
   // 'degraded' (EWMA 0.70-0.95) is included — still usable, just less reliable.
-  const rows = await db.select({
-    serviceKey: sourceRegistry.serviceKey,
-  }).from(sourceRegistry)
-    .where(
-      category
-        ? sql`${sourceRegistry.isActive} = true AND ${sourceRegistry.category} = ${category} AND ${sourceRegistry.trustScore} IN ('verified', 'degraded')`
-        : sql`${sourceRegistry.isActive} = true AND ${sourceRegistry.trustScore} IN ('verified', 'degraded')`
-    );
-
-  return rows.map(r => r.serviceKey);
+  return storage.getHealthySourceKeys(category);
 }

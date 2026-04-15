@@ -2,6 +2,7 @@ import { getStorageProvider } from "../providers/storage";
 import { BaseIntegrationService, type IntegrationHealth } from "./base";
 import { logApiCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
+import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 
 export interface DocumentAIResult {
   text: string;
@@ -87,17 +88,16 @@ export class DocumentAIService extends BaseIntegrationService {
         const endpoint = `https://${this.location}-documentai.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/processors/${this.processorId}:process`;
 
         const startTime = Date.now();
-        const response = await fetch(endpoint, {
+        const response = await fetchWithTimeout(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          signal: AbortSignal.timeout(30_000),
           body: JSON.stringify({
             rawDocument: {
               content: fileBuffer.toString("base64"),
               mimeType: contentType,
             },
           }),
-        });
+        }, 30_000);
 
         if (!response.ok) {
           throw new Error(`Document AI API error: ${response.status} ${response.statusText}`);
