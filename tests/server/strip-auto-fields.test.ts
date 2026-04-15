@@ -107,8 +107,8 @@ describe("Storage Layer — all update methods use stripAutoFields", () => {
     const src = readStorageFile("financial.ts");
     const feesSrc = readStorageFile("financial-fees.ts");
 
-    it("imports stripAutoFields", () => {
-      expect(src).toContain('import { stripAutoFields } from "./utils"');
+    it("imports strip utility from utils", () => {
+      expect(src).toMatch(/import\s*\{[^}]*strip(AutoFields|ToColumns)[^}]*\}\s*from\s*"\.\/utils"/);
     });
 
     it("upsertGlobalAssumptions uses stripAutoFields in update path", () => {
@@ -145,15 +145,15 @@ describe("Storage Layer — all update methods use stripAutoFields", () => {
   describe("properties.ts", () => {
     const src = readStorageFile("properties.ts");
 
-    it("imports stripAutoFields", () => {
-      expect(src).toContain('import { stripAutoFields } from "./utils"');
+    it("imports strip utility from utils", () => {
+      expect(src).toMatch(/import\s*\{[^}]*strip(AutoFields|ToColumns)[^}]*\}\s*from\s*"\.\/utils"/);
     });
 
-    it("updateProperty uses stripAutoFields", () => {
+    it("updateProperty uses strip utility", () => {
       const methodStart = src.indexOf("async updateProperty(");
       const methodEnd = src.indexOf("async deleteProperty(");
       const body = src.slice(methodStart, methodEnd);
-      expect(body).toContain("stripAutoFields(");
+      expect(body).toMatch(/strip(AutoFields|ToColumns)\(/);
     });
   });
 
