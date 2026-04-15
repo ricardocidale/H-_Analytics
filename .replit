@@ -1,10 +1,10 @@
-modules = ["nodejs-20", "web", "javascript", "postgresql-16"]
+modules = ["nodejs-20", "web", "javascript", "postgresql-16", "python-3.12"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["glib", "nss", "nspr", "at-spi2-atk", "cups", "dbus", "libdrm", "expat", "libxkbcommon", "pango", "cairo", "alsa-lib", "mesa", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb", "gtk3", "chromium"]
+packages = ["alsa-lib", "at-spi2-atk", "cairo", "chromium", "cups", "dbus", "expat", "fontconfig", "ghostscript", "glib", "gtk3", "harfbuzz", "libdrm", "libxkbcommon", "mesa", "nspr", "nss", "pango", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb"]
 
 [env]
 PORT = "5000"
