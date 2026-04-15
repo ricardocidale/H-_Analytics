@@ -8,6 +8,16 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 15, 2026 — Master Remediation (Tasks 1-6)
+- **Task 1 DONE**: 11 engine calc bugs fixed. Negative exit valuation floored, FF&E double-count removed, hold-vs-sell basis clamped, cost seg >100% clamped, depreciation=0 guarded, refinance-before-acquisition rejected, NOL reset fixed, partner comp ops-year, annualization fixed. 2,122 tests pass.
+- **Task 2 DONE**: 7 external service bugs. 429 retried (not circuit-broken), timeouts on all Maps/DocAI/Replicate fetches, fake DocAI fallback removed, Apify token to Auth header, GroundedResearch 4h cache.
+- **Task 3 DONE**: Dead "partner" role removed, 5 CRP values synced (UK/Greece/Costa Rica/Uruguay/Peru).
+- **Task 4 DONE**: Canonical PMT hardened. Overflow guard + epsilon zero check.
+- **Task 5 DONE**: 3 audit guard tests (79 tests): vocabulary-compliance, no-raw-number-params, no-fetch-without-timeout.
+- **Task 6 DONE**: Updated claude.md, replit.md, finance/SKILL.md, integrations/SKILL.md, coding-conventions/SKILL.md, session-memory.md.
+- **Task 7 PENDING**: Replit brief for 11 client-side fixes + admin restructuring.
+- **Master plan**: `.claude/plans/master-remediation-plan.md`
+
 ## Session: April 14, 2026 — Codebase Audit + Vocabulary Skill
 - **Deep audit**: 36 files fixed (574 insertions). Critical: IDOR on property read, prototype pollution in document extraction, 4 unguarded JSON.parse crashes, PMT overflow in 4 files. High: NaN/Infinity in API output, timer leaks in both schedulers, N+1 query in shared scenarios, floating-point === 0 guards. Medium: parseRouteId on 50+ routes, pagination caps, allowlists on z.record() endpoints.
 - **Vocabulary skill created**: `.claude/skills/vocabulary/SKILL.md` — 18th domain, single source of truth for all user-facing terms. Key decisions: AI features use colleague language ("Ask the Analysts", "Analyst Note", "Conviction: High/Moderate/Developing"), never machine language ("Generate", "Run", "Confidence Score"). 7 canonical terminology changes. 13 forbidden terms.

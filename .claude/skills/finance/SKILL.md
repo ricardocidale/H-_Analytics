@@ -53,6 +53,17 @@ Documents the financial calculation engine — GAAP-compliant (ASC 230, ASC 360,
 - `client/src/lib/audits/` — 9-module audit system
 - `client/src/lib/financialAuditor.ts` — Audit orchestrator
 
+## Critical Rules (April 2026 Remediation)
+
+- **PMT:** Only `calc/shared/pmt.ts` is the canonical PMT function. It has overflow guards, epsilon zero-rate check, and interest-only fallback. Other files have copies that should eventually be replaced with imports from here.
+- **Exit Valuation:** `annualizedNOI` must be > 0 before dividing by exitCapRate. Negative NOI = exit value 0 (walk away, not negative sale price).
+- **FF&E in Cash Flow:** FF&E is excluded from CFO and placed in CFI. FCF = CFO - acquisition capex. Do NOT deduct FF&E from FCF again.
+- **Cost Segregation:** If `pct5 + pct7 + pctLong > 1.0`, clamp proportionally. Total depreciation must never exceed building value.
+- **Depreciation Years:** If 0, default to DEPRECIATION_YEARS constant. Never allow division by zero.
+- **Refinance:** Reject if refinance date is before acquisition date. NOL at month 0 reads from financials[0], not hardcoded 0.
+- **Partner Comp:** Index to operations year (`companyOpsYear`), not model year. Year 1 comp applies to the first year of actual operations.
+- **Annualization:** Only count months with `revenueTotal > 0` as operational. Pre-ops expense months must not distort exit valuation.
+
 ## Related Rules
 - `rules/financial-engine.md` — Engine architecture and calculation rules
 - `rules/audit-persona.md` — Audit doctrine

@@ -21,6 +21,17 @@ description: Coding standards, naming conventions, and development rules for the
 - All entity card grids → EntityCard system from `@/components/ui/entity-card`
 - Inline or ad-hoc styling is not permitted — use the shared component library
 
+## Route Handler Rules (enforced by `tests/audit/no-raw-number-params.test.ts`)
+- **All route params** must use `parseRouteId(req.params.id)` from `./helpers`. Never use raw `Number(req.params.*)`.
+- **All error messages** sent to clients must use generic messages, not raw `error.message`. Use `logAndSendError()` helper.
+- **All mutation endpoints** must have auth middleware (`requireAuth`, `requireAdmin`, `requireManagementAccess`).
+- **All write endpoints** for shared properties must use `checkPropertyEditAccess`, not `checkPropertyAccess`.
+
+## External Service Rules (enforced by `tests/audit/no-fetch-without-timeout.test.ts`)
+- **All `fetch()` calls** in `server/integrations/` must include `signal: AbortSignal.timeout(N)`.
+- **All API tokens** in `Authorization` header, never in URL query strings.
+- **All DB insert/update** operations on user-controlled data must use `stripToColumns()` or Zod validation before reaching the DB.
+
 ## Finance Code Rules
 - Before modifying finance code, state the Active Skill being used
 - Consult relevant `.claude/skills/finance/` skill file(s) before making changes

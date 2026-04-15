@@ -106,6 +106,17 @@ All AI clients use a **lazy-singleton factory** pattern in `server/ai/clients.ts
 
 ---
 
+## Critical Rules (April 2026 Remediation)
+
+- **All external fetch() calls MUST include `signal: AbortSignal.timeout(N)`**. No bare `fetch()` in `server/integrations/`. The `tests/audit/no-fetch-without-timeout.test.ts` enforces this on every commit.
+- **HTTP 429 is transient** — `isTransientError()` in `base.ts` returns `true` for 429. Rate limits are retried with backoff, NOT circuit-broken.
+- **No API tokens in URL query strings** — use `Authorization` header. Tokens in URLs leak via logs, error messages, and HTTP Referer headers.
+- **No fake fallback data** — if an external service fails, return empty results with a `simulated: true` flag. Never return hardcoded fake financial numbers.
+- **GroundedResearchService has a 4h TTL cache** — avoid duplicate paid API calls for the same queries.
+- **Credentials**: Most service keys are read at startup (singleton pattern). Rotation requires restart. Exceptions: Resend and Replicate read per-call (rotatable without restart).
+
+---
+
 ## Storage
 
 ### Replit Object Storage

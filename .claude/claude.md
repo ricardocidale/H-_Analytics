@@ -260,11 +260,22 @@ npm run test:file -- <path>  # Single test file
 | Migration Guide | `docs/developer/migration-from-replit.md` | Replit → standalone |
 | Master Plan V2 | `docs/planning/MASTER-PLAN-V2.md` | Product roadmap (Phases 8-13) |
 | Research Docs | `docs/research/` | Hospitality benchmarks, APIs, fee structures |
-| Skill Catalog | `.claude/skills/_index.md` | All 168 skills indexed by domain |
+| Skill Catalog | `.claude/skills/_index.md` | All 171 skills indexed by domain |
+| Master Remediation | `.claude/plans/master-remediation-plan.md` | Domain-by-domain bug fix + prevention plan |
 
 ---
 
-## Recent Changes (April 14, 2026)
+## Recent Changes (April 15, 2026)
+
+**Master Remediation — Deep Codebase Audit + Prevention (April 14-15, 2026):**
+- 11 engine calculation bugs fixed (negative exit valuation, FF&E double-count, cost seg > 100%, depreciation=0 guard, refinance-before-acquisition rejection, partner comp ops-year indexing, hold-vs-sell edge cases). All 2,122 engine tests pass.
+- 7 external service fixes (429 now retried not circuit-broken, timeouts on all Google Maps/Document AI/Replicate fetches, fake Document AI fallback removed, Apify token moved to Auth header, GroundedResearch 4h cache added).
+- Schema cleanup: dead "partner" role removed, 5 country CRP values synced to Damodaran Jan 2026 source.
+- Canonical PMT in `calc/shared/pmt.ts` hardened with overflow guards.
+- 3 automated guard tests added to `tests/audit/`: vocabulary-compliance (2 tests), no-raw-number-params (72 tests), no-fetch-without-timeout (5 tests). These block future regressions on every commit.
+- Deep security audit: IDOR on property read, prototype pollution in document extraction, 4 unguarded JSON.parse, NaN/Infinity in API output, timer leaks in schedulers, N+1 query batching, floating-point epsilon guards, parseRouteId on 50+ routes, pagination caps, revenue share clamping.
+- Vocabulary skill created (`.claude/skills/vocabulary/SKILL.md`): AI-as-colleague voice, "Ask the Analysts" / "Analyst Note" / "Conviction" terminology, 13 forbidden terms. Applied to 14+ UI files.
+- CI fixed: ripgrep installed in test runner, test-summary exit code bug resolved, strip-auto-fields tests updated.
 
 **Icon Set Hardcoding & AI Animation Upgrade (April 14, 2026):**
 - Hardcoded Lucide as the sole icon set. Removed 3-way icon switching (Phosphor/Material/Lucide). Deleted `IconSetContext.tsx`, `IconCustomizationTab.tsx`. Simplified `themed-icons.tsx` to direct Lucide re-exports.
