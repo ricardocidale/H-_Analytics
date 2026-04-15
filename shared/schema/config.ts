@@ -51,6 +51,14 @@ import {
   DEFAULT_ALERT_COOLDOWN_MINUTES,
   DEFAULT_STAFF_TIER1_MAX_PROPERTIES,
   DEFAULT_STAFF_TIER2_MAX_PROPERTIES,
+  DEFAULT_STAFF_SALARY,
+  DEFAULT_OFFICE_LEASE_START,
+  DEFAULT_PROFESSIONAL_SERVICES_START,
+  DEFAULT_TECH_INFRA_START,
+  DEFAULT_TRAVEL_COST_PER_CLIENT,
+  DEFAULT_IT_LICENSE_PER_CLIENT,
+  DEFAULT_MARKETING_RATE,
+  DEFAULT_MISC_OPS_RATE,
 } from "../constants";
 
 // --- GLOBAL ASSUMPTIONS TABLE ---
@@ -99,8 +107,8 @@ export const globalAssumptions = pgTable("global_assumptions", {
   companyInflationRate: real("company_inflation_rate"),
   
   // Revenue variables
-  baseManagementFee: real("base_management_fee").notNull(),
-  incentiveManagementFee: real("incentive_management_fee").notNull(),
+  baseManagementFee: real("base_management_fee").notNull().default(DEFAULT_BASE_MANAGEMENT_FEE_RATE),
+  incentiveManagementFee: real("incentive_management_fee").notNull().default(DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE),
   
   // Owner's priority return and fee subordination defaults
   defaultOwnerPriorityReturn: real("default_owner_priority_return"),
@@ -140,7 +148,7 @@ export const globalAssumptions = pgTable("global_assumptions", {
   partnerCountYear9: integer("partner_count_year9").notNull().default(3),
   partnerCountYear10: integer("partner_count_year10").notNull().default(3),
   
-  staffSalary: real("staff_salary").notNull(),
+  staffSalary: real("staff_salary").notNull().default(DEFAULT_STAFF_SALARY),
   
   // Staffing tiers - FTE headcount based on portfolio size
   staffTier1MaxProperties: integer("staff_tier1_max_properties").notNull().default(DEFAULT_STAFF_TIER1_MAX_PROPERTIES),
@@ -150,16 +158,16 @@ export const globalAssumptions = pgTable("global_assumptions", {
   staffTier3Fte: real("staff_tier3_fte").notNull().default(7.0),
   
   // Cost variables - Fixed overhead
-  officeLeaseStart: real("office_lease_start").notNull(),
-  professionalServicesStart: real("professional_services_start").notNull(),
-  techInfraStart: real("tech_infra_start").notNull(),
+  officeLeaseStart: real("office_lease_start").notNull().default(DEFAULT_OFFICE_LEASE_START),
+  professionalServicesStart: real("professional_services_start").notNull().default(DEFAULT_PROFESSIONAL_SERVICES_START),
+  techInfraStart: real("tech_infra_start").notNull().default(DEFAULT_TECH_INFRA_START),
   businessInsuranceStart: real("business_insurance_start").notNull().default(DEFAULT_BUSINESS_INSURANCE_START),
   
   // Cost variables - Variable costs
-  travelCostPerClient: real("travel_cost_per_client").notNull(),
-  itLicensePerClient: real("it_license_per_client").notNull(),
-  marketingRate: real("marketing_rate").notNull(),
-  miscOpsRate: real("misc_ops_rate").notNull(),
+  travelCostPerClient: real("travel_cost_per_client").notNull().default(DEFAULT_TRAVEL_COST_PER_CLIENT),
+  itLicensePerClient: real("it_license_per_client").notNull().default(DEFAULT_IT_LICENSE_PER_CLIENT),
+  marketingRate: real("marketing_rate").notNull().default(DEFAULT_MARKETING_RATE),
+  miscOpsRate: real("misc_ops_rate").notNull().default(DEFAULT_MISC_OPS_RATE),
   
   // Portfolio — acquisition-side broker commission (applied during portfolio modeling)
   commissionRate: real("commission_rate").notNull().default(DEFAULT_COMMISSION_RATE),
@@ -321,6 +329,7 @@ export const globalAssumptions = pgTable("global_assumptions", {
 ]);
 
 export const insertGlobalAssumptionsSchema = createInsertSchema(globalAssumptions, {
+  fiscalYearStartMonth: z.number().int().min(1).max(12).default(1),
   standardAcqPackage: z.object({
     purchasePrice: z.number(),
     buildingImprovements: z.number(),
