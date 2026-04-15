@@ -15,6 +15,7 @@ import type { AssumptionGuidance } from "@shared/schema/intelligence-v2";
 import { getCountryDefaults } from "@shared/countryDefaults";
 import { getRegulatoryProfile } from "@shared/regulatory-data";
 import { computeStressScenarios, type StressAssumptions } from "../../engine/helpers/stress-scenarios";
+import { pmt } from "../../calc/shared/pmt";
 import { computePortfolioRiskScore } from "./portfolio-risk-scorer";
 import { computeConfidenceBreakdown } from "./confidence-scorer";
 import { getAnthropicClient } from "./clients";
@@ -133,13 +134,10 @@ function estimateNOI(p: Property): number {
 function estimateAnnualDebtService(p: Property): number {
   const ltv = p.acquisitionLTV ?? 0;
   const loanAmount = (p.purchasePrice ?? 0) * ltv;
-  const rate = (p.acquisitionInterestRate ?? 0.065) / 12;
+  const monthlyRate = (p.acquisitionInterestRate ?? 0.065) / 12;
   const termMonths = (p.acquisitionTermYears ?? 25) * 12;
-  if (loanAmount <= 0 || rate <= 0 || termMonths <= 0) return 0;
-  const factor = Math.pow(1 + rate, termMonths);
-  if (!Number.isFinite(factor) || factor <= 1) return loanAmount * rate * 12; // interest-only fallback
-  const monthlyPayment = loanAmount * (rate * factor) / (factor - 1);
-  return Number.isFinite(monthlyPayment) ? monthlyPayment * 12 : loanAmount * rate * 12;
+  if (loanAmount <= 0 || monthlyRate <= 0 || termMonths <= 0) return 0;
+  return pmt(loanAmount, monthlyRate, termMonths) * 12;
 }
 
 function computeEquityInvested(p: Property): number {

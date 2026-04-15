@@ -12,6 +12,7 @@
 
 import type { Property } from "@shared/schema";
 import { getCountryDefaults } from "@shared/countryDefaults";
+import { pmt } from "../../calc/shared/pmt";
 
 // ─── Public Interface ──────────────────────────────────────────────────────────
 
@@ -357,15 +358,7 @@ function scoreFinancialRisk(properties: Property[]): PortfolioRiskReport["financ
 
     let annualDebtService = 0;
     if (loanAmount > 0 && rate > 0 && termMonths > 0) {
-      // Standard amortizing mortgage payment — guard against overflow from extreme rates
-      const factor = Math.pow(1 + rate, termMonths);
-      if (Number.isFinite(factor) && factor > 1) {
-        const monthlyPayment = loanAmount * (rate * factor) / (factor - 1);
-        annualDebtService = Number.isFinite(monthlyPayment) ? monthlyPayment * 12 : loanAmount * rate * 12;
-      } else {
-        // Fallback: interest-only approximation
-        annualDebtService = loanAmount * rate * 12;
-      }
+      annualDebtService = pmt(loanAmount, rate, termMonths) * 12;
     }
     totalDebtService += annualDebtService;
 

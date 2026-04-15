@@ -16,6 +16,7 @@ import { getCountryDefaults } from "@shared/countryDefaults";
 import { getRegulatoryProfile } from "@shared/regulatory-data";
 import { computePortfolioRiskScore, type PortfolioRiskReport } from "./portfolio-risk-scorer";
 import { fetchMacroRates } from "./ambient/fetchers";
+import { pmt } from "../../calc/shared/pmt";
 import { getAnthropicClient } from "./clients";
 import { logger } from "../logger";
 
@@ -118,13 +119,10 @@ function estimateNOI(p: Property): number {
 function estimateAnnualDebtService(p: Property): number {
   const ltv = p.acquisitionLTV ?? 0;
   const loanAmount = (p.purchasePrice ?? 0) * ltv;
-  const rate = (p.acquisitionInterestRate ?? 0.065) / 12;
+  const monthlyRate = (p.acquisitionInterestRate ?? 0.065) / 12;
   const termMonths = (p.acquisitionTermYears ?? 25) * 12;
-  if (loanAmount <= 0 || rate <= 0 || termMonths <= 0) return 0;
-  const factor = Math.pow(1 + rate, termMonths);
-  if (!Number.isFinite(factor) || factor <= 1) return loanAmount * rate * 12;
-  const monthlyPayment = loanAmount * (rate * factor) / (factor - 1);
-  return Number.isFinite(monthlyPayment) ? monthlyPayment * 12 : loanAmount * rate * 12;
+  if (loanAmount <= 0 || monthlyRate <= 0 || termMonths <= 0) return 0;
+  return pmt(loanAmount, monthlyRate, termMonths) * 12;
 }
 
 function propertyEntity(p: Property): { type: "property"; id: number; name: string } {
@@ -646,16 +644,9 @@ function generateStressTestInsights(properties: Property[]): RiskInsight[] {
       const loanAmount = (p.purchasePrice ?? 0) * (p.acquisitionLTV ?? 0);
       const stressedMonthlyRate = stressedRate / 12;
       const termMonths = (p.acquisitionTermYears ?? 25) * 12;
-      let stressedMonthly = 0;
-      if (loanAmount > 0 && stressedMonthlyRate > 0) {
-        const sFactor = Math.pow(1 + stressedMonthlyRate, termMonths);
-        if (Number.isFinite(sFactor) && sFactor > 1) {
-          const pm = loanAmount * (stressedMonthlyRate * sFactor) / (sFactor - 1);
-          stressedMonthly = Number.isFinite(pm) ? pm : loanAmount * stressedMonthlyRate;
-        } else {
-          stressedMonthly = loanAmount * stressedMonthlyRate;
-        }
-      }
+      const stressedMonthly = (loanAmount > 0 && stressedMonthlyRate > 0)
+        ? pmt(loanAmount, stressedMonthlyRate, termMonths)
+        : 0;
       const stressedDebtService = stressedMonthly * 12;
       const debtServiceIncrease = stressedDebtService - debtService;
       const stressedCash = baseNOI - stressedDebtService;
