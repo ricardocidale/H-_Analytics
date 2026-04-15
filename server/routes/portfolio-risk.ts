@@ -13,7 +13,7 @@ import { storage } from "../storage";
 import { computePortfolioRiskScore } from "../ai/portfolio-risk-scorer";
 import { checkScenarioAccess } from "./scenario-helpers";
 import { logger } from "../logger";
-import { logActivity } from "./helpers";
+import { logActivity, parseRouteId } from "./helpers";
 import { isAdminRole } from "@shared/constants";
 
 export function register(app: Express): void {
@@ -48,8 +48,8 @@ export function register(app: Express): void {
   // ── Scenario-specific risk score ───────────────────────────────────────────
   app.get("/api/scenarios/:id/risk-score", requireAuth, async (req: Request, res: Response) => {
     try {
-      const scenarioId = Number(req.params.id);
-      if (!Number.isFinite(scenarioId) || scenarioId <= 0) {
+      const scenarioId = parseRouteId(req.params.id);
+      if (!scenarioId) {
         return res.status(400).json({ error: "Invalid scenario ID." });
       }
 

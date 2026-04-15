@@ -32,9 +32,14 @@ export function pmt(
   totalPayments: number,
 ): number {
   if (principal === 0 || totalPayments === 0) return 0;
-  if (monthlyRate === 0) return dDiv(principal, totalPayments);
-  const factor = dPow(1 + monthlyRate, totalPayments);
-  return dDiv(dMul(principal, dMul(monthlyRate, factor)), factor - 1);
+  if (Math.abs(monthlyRate) < 1e-10) return dDiv(principal, totalPayments);
+  // Cap rate to prevent exponentiation overflow (50% annual = ~4.17% monthly)
+  const safeRate = Math.min(monthlyRate, 0.05);
+  const factor = dPow(1 + safeRate, totalPayments);
+  // Guard against Infinity from extreme exponentiation
+  if (!Number.isFinite(factor) || factor <= 1) return principal * safeRate; // interest-only fallback
+  const payment = dDiv(dMul(principal, dMul(safeRate, factor)), factor - 1);
+  return Number.isFinite(payment) ? payment : principal * safeRate;
 }
 
 /**

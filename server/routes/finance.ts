@@ -7,6 +7,7 @@ import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKe
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../auth";
 import { logger } from "../logger";
 import { storage } from "../storage";
+import { parseRouteId } from "./helpers";
 import type { PropertyInput, GlobalInput } from "@engine/types";
 import type { AuditTrailPerProperty } from "../finance/service";
 
@@ -240,8 +241,8 @@ export function registerFinanceRoutes(router: Router): void {
 
   router.post("/api/finance/property/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      const routeId = Number(req.params.id);
-      if (!Number.isFinite(routeId) || routeId <= 0) {
+      const routeId = parseRouteId(req.params.id);
+      if (!routeId) {
         return res.status(400).json({ error: "Invalid property ID in route" });
       }
 

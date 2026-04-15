@@ -175,7 +175,7 @@ class GeospatialIntegration extends BaseIntegrationService {
       for (const poiType of types) {
         const googleType = POI_TYPE_MAP[poiType];
         const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusMeters}&type=${googleType}&key=${GOOGLE_MAPS_API_KEY}`;
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
         const data = await response.json();
 
         if (data.status === "OK" && data.results) {
