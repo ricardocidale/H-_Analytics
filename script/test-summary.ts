@@ -23,7 +23,10 @@ const result = parseTestOutput(raw);
 
 if (result.passed) {
   console.log(result.summary);
-} else {
+  process.exit(0);
+}
+
+{
   const clean = stripAnsi(raw);
   const lines = clean.split("\n");
 
