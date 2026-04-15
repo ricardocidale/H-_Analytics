@@ -102,7 +102,7 @@ export default function PropertyEdit() {
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
 
   const pageVisitKey = propertyId ? `property:${propertyId}:edit` : "";
-  const { isFirstVisit, isAnalystStale, recordSave: recordPageSave, recordAnalystRun } = usePageVisit(
+  const { isFirstVisit, isAnalystStale: _isAnalystStale, recordSave: _recordPageSave, recordAnalystRun: _recordAnalystRun } = usePageVisit(
     pageVisitKey, "property", propertyId
   );
 

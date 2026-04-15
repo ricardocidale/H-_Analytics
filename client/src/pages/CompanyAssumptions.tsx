@@ -133,7 +133,7 @@ export default function CompanyAssumptions() {
 
   const { isGenerating, streamedContent, generateResearch } = useCompanyResearchStream();
 
-  const { isFirstVisit, isAnalystStale, recordSave: recordPageSave, recordAnalystRun } = usePageVisit("company:assumptions");
+  const { isFirstVisit, isAnalystStale: _isAnalystStale, recordSave: _recordPageSave, recordAnalystRun: _recordAnalystRun } = usePageVisit("company:assumptions");
 
   const [formData, setFormData] = useState<Partial<GlobalResponse>>({});
   const [isDirty, setIsDirty] = useState(false);

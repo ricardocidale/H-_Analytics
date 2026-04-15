@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { openai, generateImageBuffer, getGeminiClient } from "./client";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../../auth";
 import { getStorageProvider } from "../../providers/storage";
-import { replicateService, getAvailableStyles, getAvailableStylesFromDb, isStyleEnabled, getAdminRateLimit, getDefaultImageSize, type ReplicateStyleKey } from "../../integrations/replicate";
+import { replicateService, getAvailableStylesFromDb, isStyleEnabled, getAdminRateLimit, getDefaultImageSize, type ReplicateStyleKey } from "../../integrations/replicate";
 import { z } from "zod";
 import { logApiCost, estimateCost, unitCost } from "../../middleware/cost-logger";
 import { storage } from "../../storage";

@@ -17,7 +17,7 @@
 import { db } from "../db";
 import {
   marketAdrIndex, seasonalCalendars, eventCalendars,
-  laborRates, fbBenchmarks, airportDistances, hospitalityBenchmarks,
+  laborRates, fbBenchmarks, hospitalityBenchmarks,
 } from "@shared/schema";
 import { eq, and, desc, ilike } from "drizzle-orm";
 import { logger } from "../logger";
@@ -463,7 +463,7 @@ export function computeDataQuality(params: {
   // Range spread as % of mid — tighter = better
   let rangeSpreadPct: number | null = null;
   let convergeScore = 12; // default: unknown
-  const sourcesConverge = params.sourcesConverge ?? false;
+  const _sourcesConverge = params.sourcesConverge ?? false;
 
   if (valueLow != null && valueHigh != null && valueMid != null && Math.abs(valueMid) > 1e-6) {
     rangeSpreadPct = Math.round(((valueHigh - valueLow) / Math.abs(valueMid)) * 100);
