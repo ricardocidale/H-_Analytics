@@ -75,8 +75,9 @@ describe("Property Photos Routes — validation", () => {
     expect(routesSrc).toContain("z.array(z.number())");
   });
 
-  it("POST returns 404 for non-existent property", () => {
-    expect(routesSrc).toContain('res.status(404).json({ error: "Property not found" })');
+  it("POST denies access for invalid property", () => {
+    // checkPropertyAccess returns 403 for both non-existent and unauthorized — no info leakage
+    expect(routesSrc).toContain('res.status(403).json({ error: "Access denied" })');
   });
 
   it("PATCH returns 404 for non-existent photo", () => {
