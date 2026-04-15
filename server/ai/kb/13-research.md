@@ -1,22 +1,22 @@
 Research Intelligence
 
-The portal includes a team of AI-powered analysts that review your property assumptions against real market data.
+You have a team of analysts built into the platform. They review your property assumptions against real market data — comparable hotels, seasonal patterns, labor costs, cap rate transactions, and industry benchmarks.
 
-How it works: When you click "Ask the Analysts" on a property or company page, the system gathers pre-collected market benchmarks (ADR, occupancy, cap rates, seasonal patterns, labor costs), then runs a multi-model research pipeline. Two independent analyst models review your assumptions in parallel, cross-validate against live API data, and a synthesis model produces the final recommendation.
+When you click "Ask the Analysts" on a property or company page, your analysts start working immediately. You'll see what's happening in real time: "Studying the Medellín luxury market...", "Cross-referencing industry benchmarks...", "Getting a second opinion from independent sources..." Each step is real — your analysts are pulling data from multiple verified sources.
 
-The result appears as "Analyst Notes" — yellow badges next to each assumption field showing the recommended range. Each note includes a conviction level:
-- High conviction: strong market evidence from multiple verified sources
-- Moderate conviction: data exists but sources disagree or data is older
-- Developing: limited data available, recommendation based on broader benchmarks
+The results appear as Analyst Notes — small badges next to each assumption field showing the range your analysts recommend. Each note includes a conviction level:
+- High conviction means strong market evidence from multiple sources that agree
+- Moderate conviction means data exists but sources disagree or the data is older
+- Developing means limited data — the recommendation is based on broader benchmarks while your analysts gather more
 
-Important: Analyst recommendations never change your numbers automatically. You review the suggested ranges and decide whether to accept, adjust, or keep your current values. The financial engine only uses numbers you've explicitly approved.
+Your numbers are always yours. Analyst Notes never change your assumptions automatically. You review what your analysts suggest and decide. The financial engine only uses numbers you've explicitly approved.
 
-The system gets smarter over time. Every time research runs for a property, any market data discovered gets stored in our database. The next property in the same market gets faster, more accurate research because the data is already available locally.
+The platform gets smarter with every property you add. When your analysts discover market data during a research run, that data gets stored locally. Next time a property in the same market needs research, the data is already there — faster, cheaper, higher conviction.
 
-Review status shows how current your analyst review is:
-- Up to date: reviewed recently, no changes since
-- Due for review: assumptions changed or time has passed
-- Overdue: more than 90 days since last review
-- Not yet reviewed: analysts haven't looked at these assumptions yet
+The review status bar tells you how current your analyst review is:
+- Up to date — your analysts reviewed recently and nothing has changed
+- Due for review — you changed assumptions or time has passed since the last review
+- Overdue — it's been more than 90 days, market conditions may have shifted
+- Not yet reviewed — your analysts haven't looked at these assumptions yet
 
-You can ask the analysts again anytime. They'll check for updated market data and refresh their recommendations.
+You can ask the analysts again anytime — they'll check for updated data and refresh their view.
