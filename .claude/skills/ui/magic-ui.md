@@ -85,7 +85,7 @@ import { Meteors } from "@/components/ui/meteors"
 
 ### AuroraText — Hero Heading
 ```tsx
-<AuroraText>Hospitality Business Group</AuroraText>
+<AuroraText>H+ Analytics by Norfolk AI</AuroraText>
 ```
 
 ### Ripple — Loading / Idle State

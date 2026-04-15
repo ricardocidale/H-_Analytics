@@ -1,6 +1,6 @@
-# Skill Catalog
+# Skill Catalog — H+ Analytics by Norfolk AI
 
-Master index of all 171 skill files across 18 domains. Use this to find the right skill for any task.
+Master index of skill files across 18 domains. Use this to find the right skill for any task.
 
 ---
 

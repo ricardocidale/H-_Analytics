@@ -1,8 +1,8 @@
-# Hospitality Business Group — User Manual
+# H+ Analytics by Norfolk AI — User Manual
 
 ## About This Manual
 
-The User Manual provides end-user documentation for the Hospitality Business Group portal. It covers navigation, property management, financial analysis tools, exports, and AI assistant usage. The manual is accessible to all user roles via the Help page.
+The User Manual provides end-user documentation for the H+ Analytics by Norfolk AI portal. It covers navigation, property management, financial analysis tools, exports, and AI assistant usage. The manual is accessible to all user roles via the Help page.
 
 ## File Structure
 

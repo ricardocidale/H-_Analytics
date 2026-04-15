@@ -1,11 +1,11 @@
 ---
 name: Source Code Documentation
-description: Comprehensive reference for every layer of the Hospitality Business Group simulation portal.
+description: Comprehensive reference for every layer of the H+ Analytics by Norfolk AI simulation portal.
 ---
 
 # Source Code Documentation
 
-Comprehensive reference for every layer of the Hospitality Business Group simulation portal.
+Comprehensive reference for every layer of the H+ Analytics by Norfolk AI simulation portal.
 
 ---
 

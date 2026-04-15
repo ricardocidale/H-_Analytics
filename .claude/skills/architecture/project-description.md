@@ -1,4 +1,4 @@
-# Project Description — Hospitality Business Group Financial Modeling Portal
+# Project Description — H+ Analytics by Norfolk AI Financial Modeling Portal
 
 ## Overview
 

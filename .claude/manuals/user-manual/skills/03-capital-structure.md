@@ -1,6 +1,6 @@
 # Chapter 3: Capital Structure and Investor Returns
 
-Understanding how capital flows into and out of the business is central to evaluating investment performance. The Hospitality Business Group model tracks three distinct sources of capital and provides a clear path for how investors realize returns at each stage of the investment lifecycle.
+Understanding how capital flows into and out of the business is central to evaluating investment performance. The H+ Analytics by Norfolk AI model tracks three distinct sources of capital and provides a clear path for how investors realize returns at each stage of the investment lifecycle.
 
 ## Sources of Capital
 

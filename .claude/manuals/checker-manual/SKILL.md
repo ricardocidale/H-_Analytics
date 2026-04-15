@@ -1,8 +1,8 @@
-# Hospitality Business Group — Verification Manual
+# H+ Analytics by Norfolk AI — Verification Manual
 
 ## About This Manual
 
-This manual serves as the authoritative reference guide for verification officers and financial auditors tasked with validating the Hospitality Business Group Business Simulation Portal. It provides comprehensive guidance on the platform's financial modeling architecture, calculation methodologies, and the structured verification procedures required to certify the accuracy of all financial outputs.
+This manual serves as the authoritative reference guide for verification officers and financial auditors tasked with validating the H+ Analytics by Norfolk AI Business Simulation Portal. It provides comprehensive guidance on the platform's financial modeling architecture, calculation methodologies, and the structured verification procedures required to certify the accuracy of all financial outputs.
 
 The portal is a full-stack financial modeling platform built for a boutique hotel management company. It performs real-time financial simulation, multi-year projection, and scenario analysis across a portfolio of luxury boutique hotels in North America and Latin America. Every financial calculation in the system is deterministic — identical inputs always produce identical outputs — making systematic verification both feasible and essential.
 

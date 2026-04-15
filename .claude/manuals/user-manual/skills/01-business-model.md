@@ -1,6 +1,6 @@
 # Chapter 1: Business Model Overview
 
-The Hospitality Business Group platform models a boutique hotel investment business built on two distinct but interconnected entities. Understanding this two-entity structure is essential to interpreting the financial projections and reports throughout the platform.
+The H+ Analytics by Norfolk AI platform models a boutique hotel investment business built on two distinct but interconnected entities. Understanding this two-entity structure is essential to interpreting the financial projections and reports throughout the platform.
 
 ## The Management Company
 

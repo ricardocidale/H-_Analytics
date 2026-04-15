@@ -1,6 +1,6 @@
 {
   "name": "get_financial_standards_authority",
-  "description": "Return the authoritative GAAP (ASC) and USALI ruleset and scope for the Hospitality Business Group financial model. Use this as the single source of truth for statement structure, classification, eliminations, and ambiguity handling.",
+  "description": "Return the authoritative GAAP (ASC) and USALI ruleset and scope for the H+ Analytics by Norfolk AI financial model. Use this as the single source of truth for statement structure, classification, eliminations, and ambiguity handling.",
   "input_schema": {
     "type": "object",
     "properties": {

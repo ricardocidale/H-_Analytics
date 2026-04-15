@@ -229,7 +229,7 @@ The Admin user (email: `admin`) belongs to the **Norfolk Group** user group, not
 | `kit@kitcapital.com` | Dov Tuzman | KIT Group | (via KIT logo) → KIT Capital Hospitality | partner |
 | `lemazniku@icloud.com` | Lea Mazniku | KIT Group | (via KIT logo) → KIT Capital Hospitality | partner |
 
-**Admin in Norfolk Group:** The admin user sees "Norfolk Group" branding (company name, logo, theme, asset description) throughout the portal, not the default "Hospitality Business Group" branding. This is intentional — the admin operates under the Norfolk Group identity.
+**Admin in Norfolk Group:** The admin user sees "Norfolk Group" branding (company name, logo, theme, asset description) throughout the portal, not the default the default branding branding. This is intentional — the admin operates under the Norfolk Group identity.
 
 **Important:** The admin's branding is determined by their user group, not by their role. If the admin is reassigned to a different group, their branding changes accordingly. The admin role only grants administrative privileges (managing groups, themes, users); it does not confer special branding.
 

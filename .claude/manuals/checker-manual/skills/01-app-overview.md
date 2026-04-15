@@ -1,8 +1,8 @@
 # Chapter 1: Application Overview
 
-## The Hospitality Business Group Business Simulation Portal
+## The H+ Analytics by Norfolk AI Business Simulation Portal
 
-The Hospitality Business Group Business Simulation Portal is a full-stack financial modeling platform purpose-built for a boutique hotel management company. It enables real-time financial simulation, multi-year projection, and scenario analysis for hospitality business planning across a portfolio of luxury boutique hotels in North America and Latin America.
+The H+ Analytics by Norfolk AI Business Simulation Portal is a full-stack financial modeling platform purpose-built for a boutique hotel management company. It enables real-time financial simulation, multi-year projection, and scenario analysis for hospitality business planning across a portfolio of luxury boutique hotels in North America and Latin America.
 
 The platform provides the following core capabilities:
 

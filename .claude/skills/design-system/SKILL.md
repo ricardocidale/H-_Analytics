@@ -1,7 +1,7 @@
 ---
 name: design-system
 description: >
-  Hospitality Business Group UI design system. Use when building or modifying pages,
+  H+ Analytics by Norfolk AI UI design system. Use when building or modifying pages,
   creating components, or ensuring visual consistency. Covers exact CSS classes
   (production-audited), color palette, typography, component catalog, shared
   financial table components, layout patterns, and migration guides.

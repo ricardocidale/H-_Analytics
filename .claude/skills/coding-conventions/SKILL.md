@@ -1,6 +1,6 @@
 ---
 name: coding-conventions
-description: Coding standards, naming conventions, and development rules for the Hospitality Business Group project. Use when writing new code or reviewing existing code.
+description: Coding standards, naming conventions, and development rules for the H+ Analytics by Norfolk AI project. Use when writing new code or reviewing existing code.
 ---
 
 # Coding Conventions

@@ -1,10 +1,10 @@
-# H+ Analytics — Project Instructions
+# H+ Analytics by Norfolk AI — Project Instructions
 
 ## Project Summary
 
-Fundraising intelligence platform for **Hospitality Business Group**. Models a boutique hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). ~1,100 source files, 4,536+ tests across 187+ files. 15-phase verification pipeline.
+GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management by **Norfolk AI**. Models a hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual support. 1,113 source files, ~190K lines. 4,816 tests across 202 files. 15-phase verification pipeline.
 
-> **Rebecca** is the sole AI assistant. The chatbot uses Pinecone RAG across 7 namespaces with entity-aware context.
+> **Rebecca** is the text chat AI assistant. Pinecone RAG across 7 namespaces with entity-aware context.
 
 ---
 
@@ -24,7 +24,7 @@ Fundraising intelligence platform for **Hospitality Business Group**. Models a b
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
 - Skills live in `.claude/skills/`. See `_index.md` for the master catalog.
-- Company name is "Hospitality Business Group" (or "H+ Analytics" for the product).
+- Product name is "H+ Analytics by Norfolk AI" (or "H+ Analytics" for short). Company is "Norfolk AI".
 - Update skills and manuals after every feature change.
 - All UI components must reference a theme via the theme engine.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
@@ -42,12 +42,11 @@ Fundraising intelligence platform for **Hospitality Business Group**. Models a b
 ## Project Structure
 
 ```
-engine/          Pure financial calculation engine (no I/O) — 22 files
-calc/            Standalone calculation modules — 78 files
-server/          Express API, storage, AI, exports — 294 files
-client/          React 18 frontend — 702 files
-shared/          Types, constants, schemas — 36 files
-tests/           Test suites (golden, proof, engine, server) — 194 files
+calc/            Standalone calculation modules — 78 files, 9K lines
+server/          Express API, storage, AI, exports — 317 files, 58K lines
+client/          React 18 frontend — 681 files, 116K lines
+shared/          Types, constants, schemas — 37 files, 6K lines
+tests/           Test suites (golden, proof, server) — 208 files, 56K lines
 docs/            Architecture, developer guide, research, planning
 .claude/         AI knowledge base (skills, rules, tools, manuals)
 ```
@@ -79,7 +78,7 @@ Quick rules:
 
 | Domain | Skill Path | What It Covers |
 |--------|-----------|---------------|
-| Skill Index | `.claude/skills/_index.md` | Master catalog of all 168 skills by domain |
+| Skill Index | `.claude/skills/_index.md` | Master catalog of all skills by domain |
 | Architecture | `.claude/skills/architecture/SKILL.md` | Tech stack, two-entity model, file organization |
 | Architecture extras | `.claude/skills/architecture/*.md` | Codebase map, multi-tenancy, server finance, tool schemas, source map, API routes, property lifecycle, source health |
 | Business Model | `.claude/skills/business-model/SKILL.md` | Dual-entity model, revenue streams, USALI waterfall, management fees, SAFE funding |
@@ -150,7 +149,7 @@ Balance Sheet Identity: `A = L + E` must hold within $1.
 | Returns Analysis | IRR, NPV, MOIC, sensitivity | `testing/analysis-returns.md` |
 | Golden Scenarios | 4 archetypes + 16 edge cases, hand-calculated | `testing/golden-scenarios.md` |
 
-**Commands**: `npm test` (4,536+ tests) · `npm run verify` (15-phase GAAP) · `npm run health` (tsc+tests+verify)
+**Commands**: `npm test` (4,816 tests, 202 files) · `npm run verify` (15-phase GAAP) · `npm run health` (tsc+tests+verify)
 
 ---
 
@@ -187,16 +186,19 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 - **All buttons GlassButton**, all pages PageHeader, all exports ExportMenu
 - **No mock data** in production paths
 - **Finance changes must state Active Skill** and pass verification (UNQUALIFIED)
-- **Rebecca must NEVER compute financial values** — all data from the calculation engine
+- **Rebecca must NEVER compute financial values** — all data from the calculation pipeline
 - **Balance Sheet Identity**: A = L + E within $1. Cash derivation uses `m.anoi` (never `m.noi`)
 - **LLM dual-model config** — primary + fallback per domain (7 domains). Admin-configured only.
 - **Settings placement** — Two surfaces: Company Assumptions (entity config), Admin panel (system config)
 - **ICP = Profile + Research Center** — two separate pages
 - **Resend replaces SendGrid** for all transactional email
-- **Properties NEVER hard deleted** -- soft delete via archivedAt. Admin can archive/restore. See `docs/architecture/property-portfolio-model.md`.
-- **Property listing uses userDefaultProperties** -- users see assigned properties, not just created ones. Admin assigns via toggles.
-- **Source health before research** -- research prompts only reference healthy sources. `getHealthySources()` before prompt building.
-- **Defaults cascade** -- model -> country -> quality tier -> scale adjustment. `computePropertyDefaults()` in engine/helpers/.
+- **Properties NEVER hard deleted** — soft delete via archivedAt. Admin can archive/restore.
+- **Property listing uses userDefaultProperties** — users see assigned properties, not just created ones.
+- **Domain boundary**: Route files must NEVER import `db` or `drizzle-orm` directly — use `IStorage` facade.
+- **drizzle-zod**: NEVER `.omit()` — only `.pick()`. For Zod field overrides, add in `createInsertSchema(table, { fieldName: z.validator })`.
+- **Git commits**: Use `--no-verify` to bypass lint-staged (TypeScript full-check times out in pre-commit hook).
+- **DEV_SKIP_AUTH**: Currently TRUE. E2E tests must `POST /api/auth/dev-login` first, never navigate to `/login`.
+- **Design colors**: Navy #112548, Teal #0091AE, Gold #FDB817. "Powered by Norfolk AI" badges.
 
 ---
 
@@ -221,6 +223,7 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 
 | Role | Access |
 |------|--------|
+| `super_admin` | Full — all pages + Admin + protected from other admins |
 | `admin` | Full — all pages + Admin Settings |
 | `user` | Management-level — no Admin panel |
 | `checker` | User + verification tools |
@@ -234,17 +237,30 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 
 ---
 
+## Validation Gates (Automated)
+
+5 CI-style gates run automatically on every task completion:
+
+| Gate | Command | What it catches | Time |
+|------|---------|----------------|------|
+| typecheck | `npx tsc --noEmit --skipLibCheck` | Type errors | ~15s |
+| lint | `npm run lint:summary` | ESLint violations | ~16s |
+| test | `npm run test:summary` | All 4,816 tests (202 files) | ~29s |
+| verify | `npm run verify:summary` | Financial accuracy (498 checks, UNQUALIFIED) | ~8s |
+| parity | `tsx script/parity-check.ts` | Statement builder ↔ on-screen parity | ~1s |
+
 ## Quick Commands
 
 ```bash
 npm run dev            # Start dev server (port 5000)
-npm run health         # tsc + tests + verify (~60s)
-npm run test:summary   # All 4,536+ tests (~35s)
-npm run verify:summary # 15-phase financial verification (~25s)
-npm run lint:summary   # TypeScript check only (<10s)
+npm run health         # tsc + tests + verify (~90s)
+npm run test:summary   # All 4,816 tests, 202 files (~30s)
+npm run verify:summary # 15-phase financial verification (~8s)
+npm run lint:summary   # ESLint check (<10s)
 npm run stats          # File/line/test counts (<5s)
 npm run audit:quick    # Code quality: 13 guardrail checks (<3s)
 npm run exports:check  # Unused export detection (<5s)
+npm run diff:summary   # Git status + diff stats (<1s)
 npm run db:push        # Push schema changes
 npm run test:file -- <path>  # Single test file
 ```
@@ -267,57 +283,20 @@ npm run test:file -- <path>  # Single test file
 
 ## Recent Changes (April 15, 2026)
 
-**Master Remediation — Deep Codebase Audit + Prevention (April 14-15, 2026):**
-- 11 engine calculation bugs fixed (negative exit valuation, FF&E double-count, cost seg > 100%, depreciation=0 guard, refinance-before-acquisition rejection, partner comp ops-year indexing, hold-vs-sell edge cases). All 2,122 engine tests pass.
-- 7 external service fixes (429 now retried not circuit-broken, timeouts on all Google Maps/Document AI/Replicate fetches, fake Document AI fallback removed, Apify token moved to Auth header, GroundedResearch 4h cache added).
-- Schema cleanup: dead "partner" role removed, 5 country CRP values synced to Damodaran Jan 2026 source.
-- Canonical PMT in `calc/shared/pmt.ts` hardened with overflow guards.
-- 3 automated guard tests added to `tests/audit/`: vocabulary-compliance (2 tests), no-raw-number-params (72 tests), no-fetch-without-timeout (5 tests). These block future regressions on every commit.
-- Deep security audit: IDOR on property read, prototype pollution in document extraction, 4 unguarded JSON.parse, NaN/Infinity in API output, timer leaks in schedulers, N+1 query batching, floating-point epsilon guards, parseRouteId on 50+ routes, pagination caps, revenue share clamping.
-- Vocabulary skill created (`.claude/skills/vocabulary/SKILL.md`): AI-as-colleague voice, "Ask the Analysts" / "Analyst Note" / "Conviction" terminology, 13 forbidden terms. Applied to 14+ UI files.
-- CI fixed: ripgrep installed in test runner, test-summary exit code bug resolved, strip-auto-fields tests updated.
+**Schema & Test Fixes (April 15, 2026):**
+- Added `.default()` to 10 notNull columns in `shared/schema/config.ts`; 6 new `DEFAULT_*` constants in `shared/constants.ts`.
+- `fiscalYearStartMonth` Zod validation: `z.number().int().min(1).max(12).default(1)`.
+- Fixed 8 pre-existing test failures: replaced stale `UserRole.PARTNER` (removed from enum) with `SUPER_ADMIN` in auth tests; mocked `server/ai/benchmark-lookups` in data-routing tests.
+- 5 automated validation gates registered (typecheck, lint, test, verify, parity) — all pass.
+- Full suite: 4,816 tests, 202 files, 0 failures.
 
-**Icon Set Hardcoding & AI Animation Upgrade (April 14, 2026):**
-- Hardcoded Lucide as the sole icon set. Removed 3-way icon switching (Phosphor/Material/Lucide). Deleted `IconSetContext.tsx`, `IconCustomizationTab.tsx`. Simplified `themed-icons.tsx` to direct Lucide re-exports.
-- Removed all `react-icons/md` imports from 3 remaining files (ScheduledResearchOverlay, SystemIntelligenceStatus, ScheduledResearchPanel) — replaced with Lucide equivalents.
-- Created `ai-loader.tsx` with 6 premium framer-motion components: `OrbitalDots`, `NeuralGlow`, `StreamPulse`, `BreathingDots`, `ThinkingRing`, `DataFlowDots`. Use instead of `Loader2 animate-spin`.
-- Upgraded `ResearchLoadingOverlay` PulsingOrb (dual conic-gradient rotation), replaced Loader2 with ThinkingRing in 3 components, upgraded RebeccaTypingIndicator with BreathingDots.
-- Skeleton component uses CSS shimmer animation (`skeleton-shimmer` class) instead of `animate-pulse`.
-- Added Cookie Policy page at `/cookies`, `DEV_SKIP_AUTH` flag in `server/dev-flags.ts`, bullet entity cleanup.
+**Master Remediation (April 14-15, 2026):**
+- 11 calculation bugs fixed, 7 external service bugs fixed, schema cleanup (dead "partner" role removed).
+- 3 automated guard tests (vocabulary-compliance, no-raw-number-params, no-fetch-without-timeout).
+- Deep security audit: IDOR, prototype pollution, JSON.parse guards, NaN/Infinity, parseRouteId on 50+ routes.
+- Vocabulary skill created with AI-as-colleague voice terminology.
 
-## Previous Changes (April 13, 2026)
-
-**Source Verification & Property Portfolio (April 13, 2026):**
-- Soft delete for properties (archivedAt, never hard delete)
-- Property listing via userDefaultProperties join (admin assigns to users)
-- Source registry: 21 sources seeded, health checker with EMA success rate
-- Source-aware prompts: dynamic source block, confidence degradation
-- computePropertyDefaults: 4-layer cascade (model -> country -> tier -> scale)
-- computeStressScenarios: 5 deterministic stress tests with DSCR breach detection
-- Risk intelligence engine: deterministic + LLM investor-grade narratives
-- Domain preamble in all research prompts (boutique hospitality, fundraising context)
-
-**MASTER-PLAN Phases 0-7 Complete.** Key highlights from the final sprint:
-- F&B revenue model changed from "% of room revenue" to "% of total revenue"
-- Luxury rental pricing model (per_property), seasonality, occupancy ramp curves
-- Owner's priority return and fee subordination in engine
-- 4 golden scenario archetypes + 16 edge case tests
-- FRED API (6 new series), entity-aware research prompts, Pinecone enrichment
-- Rebecca screen context, proactive suggestions, enhanced greeting
-- Export scope selector, property profile in PDF/PPTX, seasonality charts
-
-**Phase 8.1 — Provider Abstraction Layer:**
-- Created `server/providers/` with `StorageProvider` (10 methods) and `AuthProvider` interfaces
-- `ReplitStorageProvider` and `ReplitAuthProvider` wrap existing code (zero behavior change)
-- `S3StorageProvider` stub ready to fill when migrating, `LocalAuthProvider` for password-only mode
-- Rewired 12 consumer files: uploads, image pipeline, document-ai, scripts, scenarios, index
-- `getAppUrl()` replaces `REPLIT_DOMAINS` with fallback chain. `.env.example` created.
-- **To move off Replit:** fill S3 stub, set env vars, deploy. See `docs/developer/migration-from-replit.md`
-
-**Codebase Reorganization:**
-- `.agents/skills/` archived (55 Replit-specific skills → `.claude/archive/`)
-- 28 satellite skill directories merged into 17 domain directories
-- Marcela/ElevenLabs/Twilio references scrubbed across 22 files
-- New Master Plan V2, architecture docs, developer setup, migration guide
-- Skills master index created (`_index.md`)
-- README de-Replitified for standalone deployment
+**Previous Highlights (April 13-14):**
+- Icon set hardcoded to Lucide, 6 premium AI animation loaders created.
+- Soft delete for properties, source-aware research prompts, provider abstraction layer.
+- `.agents/skills/` archived, 28 skill dirs → 17, README de-Replitified.

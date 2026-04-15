@@ -1,6 +1,6 @@
 # Glossary of Terms — Real Estate & Hospitality Finance
 
-This glossary defines every financial and operational term used in the Hospitality Business Group Business Simulation Portal. Terms are organized alphabetically, with each entry categorized by its functional area within the platform. Verification officers should consult this glossary whenever encountering unfamiliar terminology in the financial statements, assumption fields, or verification procedures described throughout this manual.
+This glossary defines every financial and operational term used in the H+ Analytics by Norfolk AI Business Simulation Portal. Terms are organized alphabetically, with each entry categorized by its functional area within the platform. Verification officers should consult this glossary whenever encountering unfamiliar terminology in the financial statements, assumption fields, or verification procedures described throughout this manual.
 
 ---
 

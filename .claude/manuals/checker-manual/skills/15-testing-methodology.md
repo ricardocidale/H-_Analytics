@@ -1,6 +1,6 @@
 # Chapter 15: Testing Methodology — The 7-Phase Verification Workflow
 
-This chapter defines the structured, phased approach that checkers must follow to verify the correctness of all financial calculations, data flows, and system behaviors in the Hospitality Business Group Business Simulation Portal. It is the core of this verification manual.
+This chapter defines the structured, phased approach that checkers must follow to verify the correctness of all financial calculations, data flows, and system behaviors in the H+ Analytics by Norfolk AI Business Simulation Portal. It is the core of this verification manual.
 
 ---
 

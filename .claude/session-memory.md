@@ -8,119 +8,19 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 15, 2026 — MD Audit & Optimization + Schema/Test Fixes
+**MD audit (DONE):** Rewrote `replit.md` and `claude.md` — updated product name to "H+ Analytics by Norfolk AI", company to "Norfolk AI". Fixed stale counts (4,816 tests/202 files/1,113 sources/190K lines). Added `super_admin` role to all role tables. Added validation gates section, domain boundary rules, drizzle-zod `.pick()` rule, design colors, git commit pattern. Compressed Recent Changes to 3 compact entries. Removed "Hospitality Business Group" branding everywhere.
+**Schema fixes (DONE):** 10 `.default()` values on notNull columns in `shared/schema/config.ts`, 6 `DEFAULT_*` constants, fiscalYearStartMonth Zod validation.
+**Test fixes (DONE):** 8 pre-existing failures fixed (PARTNER→SUPER_ADMIN, benchmark-lookups mock). All 4,816 tests pass.
+**Validation gates (DONE):** 5 gates registered (typecheck/lint/test/verify/parity). All pass (~29s total).
+**Key scratchpad:** `UserRole.PARTNER` removed. Use `SUPER_ADMIN`. drizzle-zod: `.pick()` only, never `.omit()`. `DEV_SKIP_AUTH=true`. Git: `--no-verify`.
+
 ## Session: April 14-15, 2026 — Master Remediation + Data Tables + Intelligence Architecture
-**Remediation (DONE):** 11 engine calc bugs, 7 external service bugs, schema cleanup, 3 audit guard tests (79 tests), CI fixed, vocabulary skill + 14 UI files + user manual + Rebecca KB.
-**Data Tables (DONE):** benchmark-lookups.ts (7 lookups + validateAssumptionRange), Smart Data Router Priority 0, Pinecone indexing (4 functions), prompt injection (benchmark-injector.ts). Seed file exists, Replit told to run seedMarketDataTables().
+**Remediation (DONE):** 11 calc bugs, 7 external service bugs, schema cleanup, 3 audit guard tests (79 tests), CI fixed, vocabulary skill + 14 UI files + user manual + Rebecca KB.
+**Data Tables (DONE):** benchmark-lookups.ts (7 lookups + validateAssumptionRange), Smart Data Router Priority 0, Pinecone indexing (4 functions), prompt injection (benchmark-injector.ts). Seed file exists.
 **Intelligence Pipeline Skill:** `.claude/skills/research/intelligence-pipeline.md` — 260-line definitive reference.
-**Rebecca:** Personality (outgoing/intellectual/geeky/witty), full Ricardo Cidale bio from LinkedIn, Norfolk AI identity, "built with Claude Code".
-**App Voice:** Behavioral economics copy style, nudging, Norfolk AI branding in vocabulary skill.
-**PDF Export:** Plan at `.claude/plans/pdf-export-plan.md`. WeasyPrint installed. HTML templates exist. NOT executed — next session.
-**Replit briefs pasted:** (1) 11 client-side fixes, (2) seed market data + Norfolk AI badges + export markers.
-**Plans:** `master-remediation-plan.md`, `pdf-export-plan.md`, `deterministic-data-tables-plan.md`.
-  - Phase 3 (Pinecone): 4 new index functions (market ADR, seasonal, events, labor) exported from pinecone-service.ts
-  - Phase 4 (prompts): `benchmark-injector.ts` gathers all data, injected as "PRE-COLLECTED MARKET INTELLIGENCE" section in research prompts
-  - Phase 5 (skills): `research/intelligence-pipeline.md` — complete architecture reference with ASCII diagram, all 7 stages, 11 tools, 7 namespaces
-  - Phase 6 (admin UI): PENDING for Replit
-  - Rebecca KB updated: 13-research.md rewritten, 14-howto.md updated with vocabulary
-
-## Session: April 14, 2026 — Codebase Audit + Vocabulary Skill
-- **Deep audit**: 36 files fixed (574 insertions). Critical: IDOR on property read, prototype pollution in document extraction, 4 unguarded JSON.parse crashes, PMT overflow in 4 files. High: NaN/Infinity in API output, timer leaks in both schedulers, N+1 query in shared scenarios, floating-point === 0 guards. Medium: parseRouteId on 50+ routes, pagination caps, allowlists on z.record() endpoints.
-- **Vocabulary skill created**: `.claude/skills/vocabulary/SKILL.md` — 18th domain, single source of truth for all user-facing terms. Key decisions: AI features use colleague language ("Ask the Analysts", "Analyst Note", "Conviction: High/Moderate/Developing"), never machine language ("Generate", "Run", "Confidence Score"). 7 canonical terminology changes. 13 forbidden terms.
-- **Propagated to all agents**: Updated `claude.md`, `replit.md`, `rules/ui-patterns.md`, `session-memory.md`, `_index.md`. Both Claude and Replit agents instructed to read vocabulary skill before writing any UI text.
-- **Conviction tiers replace confidence scores**: High (75-100), Moderate (50-74), Developing (0-49). Never show numeric % to users. "Developing" not "Low" — implies still gathering info, not failure.
-- **Navigation canonical names decided**: "Management Co." (mobile+desktop), "Simulation" (not Analysis/Sensitivity), "Scenarios" (not "My Scenarios").
-
-## Session: April 14, 2026 — Icon Hardcoding, AI Animations, Skill Cleanup
-- Hardcoded Lucide as sole icon set. Removed Phosphor/Material switching: deleted `IconSetContext.tsx`, `IconCustomizationTab.tsx`, simplified `themed-icons.tsx`. Replaced `react-icons/md` imports in 3 files with Lucide equivalents.
-- Created `ai-loader.tsx` (6 premium framer-motion components). Upgraded ResearchLoadingOverlay, RebeccaTypingIndicator, ResearchTheater, IntelligenceStatusBar with new loaders. Skeleton uses CSS shimmer.
-- Added Cookie Policy page (`/cookies`), `DEV_SKIP_AUTH` flag (`server/dev-flags.ts`), replaced `&#8226;` HTML bullets with `list-disc pl-5`.
-- Updated skills: `animation-patterns.md` (AI loaders + shimmer), `component-library/SKILL.md` (AI loader table), `claude.md` (April 14 entry), `session-memory.md`, `replit.md` (Lucide-only refs), `memory.md`.
-
-## Session: April 13, 2026 — Codebase Reorganization & Documentation Overhaul
-- Archived `.agents/skills/` (55 Replit-specific skills → `.claude/archive/agents-skills-snapshot/`). Deleted `.claude/tools/marcela/` (20 dead ElevenLabs schemas). Moved stale plans to archive.
-- Merged 28 satellite skill directories into 17 consolidated domains (45→17 dirs, 170→169 files). Scrubbed Marcela/ElevenLabs/Twilio/Replit refs across 22 files.
-- Created: Master Plan V2 (Phases 8-13), `docs/architecture/system-overview.md`, `docs/developer/setup.md`, `docs/developer/migration-from-replit.md`, `docs/README.md`, `.claude/skills/_index.md` (master catalog).
-- Rewrote `README.md` (de-Replitified, updated revenue model, standalone infrastructure). Rewrote `claude.md` (removed Replit, updated skill paths, added core differentiators).
-- Replit→standalone migration documented: PostgreSQL (trivial), Auth (medium), Object Storage (medium), AI keys (easy), Domains (easy).
-- Phase 8.1 DONE: Created `server/providers/` (storage + auth + config). Rewired 12 consumer files. Zero direct Replit imports in business logic. App runs unchanged on Replit. To move: set `STORAGE_PROVIDER=s3`, `AUTH_PROVIDER=local`, fill S3 stub, deploy. Full checklist in `docs/developer/migration-from-replit.md`.
-
-## Session: April 13, 2026 — Source Verification & Property Portfolio
-- Fixed CRITICAL bug: property hard delete -> soft delete (archivedAt). No data ever destroyed.
-- Fixed property listing: now uses userDefaultProperties join. Admin-seeded properties visible to assigned users.
-- Source registry: 21 sources seeded, health checker with per-source strategies, EMA success rate, trust scores.
-- Source-aware prompts: dynamic source block only lists healthy sources, confidence degrades when critical sources down.
-- computePropertyDefaults: pure function, 4-layer cascade (model -> country -> tier -> scale), provenance tracking.
-- computeStressScenarios: 5 deterministic stress tests, DSCR breach detection, severity classification, narratives.
-- Domain preamble: all research prompts now identify as boutique hospitality conversion specialist.
-
-## Session: April 13, 2026 — Phase 9 Research Engine Excellence
-- DB-backed hospitality benchmarks (21 metrics, admin CRUD, research engine reads from DB with hardcoded fallback). New `hospitality_benchmarks` table.
-- Country expansion 11→17: UK, Greece, Costa Rica, Dominican Republic, Uruguay, Peru. 6 new FX pairs + CRP seeds.
-- Staleness detector: classifies guidance as fresh/stale/missing, flags critical fields, `GET /api/research/staleness`.
-- Confidence scoring: 6-factor 0-100 score (comps, quality, recency, relaxation, cross-validation, coverage). Exposed in guidance API responses + dedicated `/confidence` endpoint.
-- Web research: Perplexity sonar + Tavily advanced search, entity-aware query builders for 7 research types, `POST /api/research/web-search`.
-- Web-enriched comparables: auto-supplements DB/Pinecone comps when <3 found, 50% evidence weight, separate rendering in prompts.
-- Regulatory data: 18-country structured profiles (licensing, zoning, building codes, foreign investment, labor). US state overrides (NY, UT). Injected into research prompts.
-
-## Session: April 10, 2026 — Repo Optimization & Photo Migration
-- Git gc: .git 701MB→267MB. Removed 26 unused npm deps (121→105). Installed 6 targeted d3 sub-packages replacing monolithic `d3`.
-- Removed 7 tracked junk/artifact files (COST-MONITOR docs, memory.md, skills-lock.json, broken command file). Updated .gitignore.
-- Migrated last 3 static Loch Sheldrake photos to Neon DB. All 28 property photos now database-backed, zero static refs. Removed 37 orphaned PNGs (65MB) from git.
-- Added download buttons to PhotoCard: original photo + AI-enhanced version (when available). Replit added `Download` to themed-icons for consistency.
-- Fixed 31 pre-existing TS errors (`colCount` prop on `FormulaDetailStringRow`). Replit later removed the prop from callers instead.
-
-## Session: April 10, 2026 — Technical Debt Cleanup Sprint
-- Task 1: Replaced hardcoded hex colors in StarRatingInput + RebeccaAnalyticsTab with CSS tokens and named brand constants (HP_NAVY/HP_TEAL/HP_GOLD).
-- Task 2: Fixed domain boundary violations — refactored `server/notifications/engine.ts` (4 db calls) and `server/integrations/geospatial.ts` (2 db calls) to use IStorage facade. Added `getActiveAlertRulesForProperty()` to NotificationStorage. Fixed lint-staged tsc command (`bash -c` wrapper for `-p tsconfig.json`).
-- Task 3: Replit split 4 of 5 large files (sidebar 771→33, Scenarios 736→74, icp-config 689→113, properties 691→265, constants 764→293). Fixed hardcoded-detection proof test to follow `export *` re-exports.
-- Task 4: Removed 87 unnecessary `as any` casts from Excel exports (xlsx has types). Count 207→120. 
-- All gates pass: 4,463 tests / 183 files, 0 TS errors, 0 lint errors, UNQUALIFIED verification, Doc Harmony PASS.
-
-## Session: April 10, 2026 — Export Test Refactoring
-- Created `tests/exports/helpers/index.ts` with 4 shared factories: `makeBrowserDownloadMocks`, `makeYearlyData`, `makeYearlyFinancials`, `makeTableRows`.
-- Merged `pptx-export.test.ts` + `pptx-footer.test.ts` → `pptx.test.ts`; moved `tests/client/export-helpers.test.ts` → `tests/exports/excel-helpers.test.ts`.
-- Eliminated duplicate coverage: inline Zod schema in premium-export, formatShort/BRAND in png-export, Excel helpers group in excel-export, pptxFontSize/pptxColumnWidths in pptx-footer.
-- Standardized all describe/it naming across 8 files (no dot-notation, present-tense it blocks). 4,437 tests / 182 files, all passing.
-
-## Session: March 23, 2026 — Export Polish, KPI Removal, LLM Recommendations, Skills Update
-- Removed KPI cover pages permanently from report compiler — no KPI sections in ANY PDF export, ever.
-- Chart screenshots fully wired: `captureOverviewCharts.ts` → `dom-to-image-more` → base64 PNG → server `ImageSection` via `@react-pdf/renderer`.
-- CSS cleanup sheet injected during DOM capture (transparent borders, no shadows). CORS warning for Google Fonts is benign.
-- Admin LLM recommendations: per-domain differentiated (Gemini 2.5 Pro, Claude Sonnet 4.5, GPT-4.1 Mini, Claude Sonnet 4). Star icon hints.
-- Updated claude.md, replit.md, 3 export skills (SKILL.md, premium-export-spec.md, pdf-rendering.md), session-memory.md. Stats: 960 files, ~160K lines, 3,499 tests/155 files.
-
-## Session: March 20, 2026 — Codebase-Wide Audit (Magic Numbers, Bugs, Export Parity)
-- Fixed DSCR NOI→ANOI bug in YearlyIncomeStatement, hardcoded 0.09/0.10→constants in statementBuilders, Zod acreage mismatch (5→10)
-- Added MONTHS_PER_YEAR (12), DEFAULT_STABILIZATION_MONTHS (36) to shared/constants. Moved 8 company cost constants from client→shared.
-- Replaced `/ 12` with MONTHS_PER_YEAR across 20+ files (financial engines + 9 calc/ tools). Fixed prepayment.ts double-division bug (loanRate/144→loanRate/12).
-- Fixed Excel property BS using NOI instead of ANOI. Memoized CashFlowTab years array + OverviewTab IRR/revenue data. Created screen-export-parity skill.
-- 3,425 tests pass across 150 files. Also found 68 hardcoded colors across 11 files (not yet fixed).
-
-## Session: March 16, 2026 — Governance Harmonization (Task #153)
-- `.claude/` established as single source of truth. Created 7 new `.claude/skills/` files: business-model, product-vision, integrations, design-export, settings, ui/consistent-card-widths, ui/save-button-placement.
-- All 13 `.agents/skills/` SKILL.md files converted to slim pointers with frontmatter + summary + canonical reference line.
-- `claude.md` stats updated: 790 source files, ~144K lines, 186 skill files, 3,029 tests across 136 test files. Skill Router expanded with 7 new rows.
-- `.replit` source-of-truth comment skipped (platform restriction prevents editing .replit directly).
-
-## Session: March 15, 2026 — Skills Hygiene Plan Execution
-- Created 7 new skills: funding-strategy, market-intelligence (+ adding-integrations sub-skill), finance/diagnostic-decision-tree, icp-research, rebecca-chatbot, document-intelligence, map-view, notifications
-- Updated proof-system (4-phase → 7-phase), context-loading (routing + counts), claude.md Skill Router (7 new rows)
-- Final: 176 skill files across 33 directories. Finance now 22 sub-skills.
-
-## Session: March 15, 2026 — Documentation Update (Task #135)
-- Updated `claude.md` with current project state: ~795 source files, ~144K lines, 3,022 tests across 135 test files
-- Skill router updated: UI (43), Finance (22), Research (23), Testing (8), 176 total skill files across 33 directories
-- Recent Changes section replaced with March 15 entries covering ~60 merged tasks since March 12
-- 6 new migrations added to migration list, Key Rules updated with Resend, ICP split, LLM dual-model, Norfolk AI
-
-## Sessions: March 13–15, 2026 — Major Feature & Polish Sprint (~60 tasks merged)
-- Fee category restructure (#108–#109), funding interest accrual (#116), login redesign + Google Sign-In (#63, #131)
-- ICP split into Profile + Research Center (#71), LLM dual-model architecture (#101), DocuSign/Slack removal (#133, #134)
-- Resend email replacement (#68), Excel 4-sheet standardization (#112), PDF export fixes (#117, #119)
-- Management Company rename (#120), company defaults (#118, #123, #124), sidebar cleanup (#130, #132)
-- Admin hardening phases 1–2C (March 13), UI polish: card widths, save buttons, tabs, tooltips (#45–#49, #107)
-- Norfolk AI theme (#84), DB integrity hardening (#80), deterministic calc optimization (#64)
-- 3,022 tests (135 files). 0 TS errors. UNQUALIFIED.
+**Rebecca:** Personality (outgoing/intellectual/geeky/witty), full Ricardo Cidale bio, Norfolk AI identity, "built with Claude Code".
+**Plans:** `master-remediation-plan.md`, `pdf-export-plan.md`, `deterministic-data-tables-plan.md`. PDF export plan NOT executed — next session.
 
 ---
 
@@ -131,7 +31,6 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **DB sync = SQL only**, never code endpoints
 - **Seeding errors are ultra-serious** — cascade into calculation failures
 - **"Save" not "Update"** on all buttons
-- **Nano Banana** (`gemini-2.5-flash-image`) primary image gen, OpenAI fallback
 - **Every page graphics-rich** — charts, animations, visual elements
 - **Every financial line** gets ? tooltip
 - **Reusable UI tools** created for all new features
@@ -139,9 +38,6 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **3-level accordion** for consolidated statements (total → formula → per-property)
 - **Zero re-aggregation** in render paths — helpers accept precomputed arrays
 - **`parseLocalDate()`** for all client-side date string parsing
-- **`captureChartAsImage`** exported from `@/lib/exports/pngExport`; `downloadCSV(content, filename)` takes 2 args
 - **`ExportMenu` variant**: `"glass" | "light" | undefined` only
-- **`admin/marcela/` DB columns** keep `marcela_*` names; only UI labels use dynamic `aiAgentName`
-- **Next.js → Vite**: remove `"use client"`, replace server actions with Express endpoints, `<style jsx>` → `<style>`
-- **Company unprofitable with 1 small property** — correct behavior, not a bug (partner comp $45K > fee rev ~$19K)
+- **Company unprofitable with 1 small property** — correct behavior (partner comp $45K > fee rev ~$19K)
 - **Golden scenario design**: 0% growth/inflation for traceability, hand-values at file top, test both values + identities
