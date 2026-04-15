@@ -171,14 +171,14 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             <p className="text-xs"><span className="font-medium text-foreground">Yellow pill badge:</span> <span className="text-muted-foreground">Shows the AI-recommended range (e.g., "55%–70%"). Hover for source and date, click to auto-fill the recommended value.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Blue GAAP badge:</span> <span className="text-muted-foreground">Shows the GAAP or IRS rule governing this field. Hover to see the accounting standard and its implications. Always visible.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Guidance arrow:</span> <span className="text-muted-foreground">Click the arrow icon next to any badge to open the Guidance Side Sheet with full details — P25/P50/P75 ranges, peer comparisons, methodology trail, and impact analysis.</span></p>
-            <p className="text-xs"><span className="font-medium text-foreground">Gray badge:</span> <span className="text-muted-foreground">Not yet reviewed by your analysts. Press Ask the Analysts to get guidance for this field.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Gray badge:</span> <span className="text-muted-foreground">Not yet reviewed. Press Ask the Analyst to get guidance for this field.</span></p>
           </div>
           <h5 className="font-medium text-foreground text-xs mt-3">Range Badge Colors</h5>
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 mt-1">
             <p className="text-xs"><span className="font-medium text-foreground">Green:</span> <span className="text-muted-foreground">Your current value falls within the AI-researched range — your assumption is well-supported by market data.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Yellow:</span> <span className="text-muted-foreground">Your value is near the edge of the researched range — consider reviewing against comparable properties.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Red:</span> <span className="text-muted-foreground">Your value falls outside the researched range — this assumption may need adjustment or additional justification.</span></p>
-            <p className="text-xs"><span className="font-medium text-foreground">Gray:</span> <span className="text-muted-foreground">Not yet reviewed. Press Ask the Analysts to get guidance.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Gray:</span> <span className="text-muted-foreground">Not yet reviewed. Press Ask the Analyst to get guidance.</span></p>
           </div>
         </div>
 
@@ -216,22 +216,22 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             </div>
             <div className="flex items-start gap-2">
               <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-              <p className="text-xs"><span className="font-medium text-foreground">Not yet reviewed (red):</span> <span className="text-muted-foreground">Your analysts haven't reviewed these assumptions yet. Press Ask the Analysts to get guidance.</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Not yet reviewed (red):</span> <span className="text-muted-foreground">The Analyst hasn't reviewed these assumptions yet. Press Ask the Analyst to get guidance.</span></p>
             </div>
             <div className="flex items-start gap-2">
               <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
-              <p className="text-xs"><span className="font-medium text-foreground">Reviewing (blue):</span> <span className="text-muted-foreground">Your analysts are currently reviewing assumptions for this property. Results will appear automatically when complete.</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Reviewing (blue):</span> <span className="text-muted-foreground">The Analyst is currently reviewing assumptions for this property. Results will appear automatically when complete.</span></p>
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
             The <span className="font-medium text-foreground">Review Status Bar</span> at the top of property and company
             assumption pages shows the overall review status at a glance — green when all reviews are current,
-            amber when some reviews are due, red when assumptions haven't been reviewed yet, and blue when analysts are actively reviewing.
+            amber when some reviews are due, red when assumptions haven't been reviewed yet, and blue when The Analyst is actively reviewing.
           </p>
           <h5 className="font-medium text-foreground text-xs mt-3">Review Thresholds</h5>
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 mt-1">
             <p className="text-xs"><span className="font-medium text-foreground">0–30 days:</span> <span className="text-muted-foreground">Analyst review is current (green). No action needed.</span></p>
-            <p className="text-xs"><span className="font-medium text-foreground">30–90 days:</span> <span className="text-muted-foreground">Due for review (amber). Market conditions may have shifted — consider pressing Ask the Analysts to refresh.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">30–90 days:</span> <span className="text-muted-foreground">Due for review (amber). Market conditions may have shifted — consider pressing Ask the Analyst to refresh.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">90+ days:</span> <span className="text-muted-foreground">Overdue (red). Guidance is likely outdated and should be refreshed before making investment decisions.</span></p>
           </div>
         </div>

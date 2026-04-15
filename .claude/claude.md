@@ -28,7 +28,9 @@ GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio man
 - Update skills and manuals after every feature change.
 - All UI components must reference a theme via the theme engine.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
-- **Vocabulary:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md`. It defines every canonical term, forbidden alternative, and the AI-as-colleague voice. All AI coders (Claude, Replit) must follow it.
+- **Vocabulary:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md`. Non-negotiable.
+- **The Analyst + Rebecca:** Two AI Agents. The Analyst provides intelligence (ranges, convictions, risk flags). Rebecca answers questions and guides. See `rules/the-analyst-persona.md` and `rules/rebecca-persona.md`. Never use plural "analysts". Never say "the system" or "the AI".
+- **Branding:** App = "H+ Analytics" (editable). Company = "Hospitality Management Co" (editable). Technology = "Norfolk AI Engine". See `rules/branding-vocabulary-enforcement.md`.
 - **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
 - **Every financial line item** should have a ? tooltip (HelpTooltip or InfoTooltip).
 - **Every page must be graphics-rich** — charts, animations, visual elements required.

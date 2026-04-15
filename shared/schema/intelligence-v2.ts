@@ -21,6 +21,23 @@ export const assumptionGuidance = pgTable("assumption_guidance", {
   comparableSet: jsonb("comparable_set").$type<Record<string, unknown>>(),
   relaxationLevel: integer("relaxation_level").default(0),
   researchRunId: integer("research_run_id"),
+  /** Structured breakdown of range quality — explains WHY conviction is what it is */
+  dataQuality: jsonb("data_quality").$type<{
+    /** Number of independent sources that contributed to this range */
+    sourceCount: number;
+    /** Types of sources: "db_table" (pre-collected), "api" (live), "web" (Perplexity/Tavily), "estimated" (LLM) */
+    sourceTypes: Array<"db_table" | "api" | "web" | "estimated">;
+    /** Age of the most recent source data in days */
+    dataAgeDays: number | null;
+    /** How wide the range is as a percentage of the mid value — tighter = higher quality */
+    rangeSpreadPct: number | null;
+    /** Whether multiple sources agree on the range (true = converging, false = diverging) */
+    sourcesConverge: boolean;
+    /** 0-100 composite score: sourceCount × 25 + freshness × 25 + convergence × 25 + sourceType × 25 */
+    qualityScore: number;
+    /** Human-readable explanation */
+    qualityNarrative: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -33,7 +50,7 @@ export const insertAssumptionGuidanceSchema = createInsertSchema(assumptionGuida
   scenarioId: true, entityType: true, entityId: true, assumptionKey: true,
   valueLow: true, valueMid: true, valueHigh: true, confidence: true,
   sourceName: true, sourceDate: true, reasoning: true, comparableSet: true,
-  relaxationLevel: true, researchRunId: true,
+  relaxationLevel: true, researchRunId: true, dataQuality: true,
 });
 export type AssumptionGuidance = typeof assumptionGuidance.$inferSelect;
 export type InsertAssumptionGuidance = z.infer<typeof insertAssumptionGuidanceSchema>;

@@ -152,7 +152,7 @@ export function ResearchLoadingOverlay({
             <div className="flex flex-col items-center gap-4">
               <PulsingOrb />
               <div className="text-center space-y-1">
-                <h3 className="text-lg font-semibold">Your analysts are on it</h3>
+                <h3 className="text-lg font-semibold">The Analyst is on it</h3>
                 {elapsedSeconds >= 5 && (
                   <p className="text-sm text-muted-foreground">
                     {formatElapsed(elapsedSeconds)} elapsed

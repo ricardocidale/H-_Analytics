@@ -20,12 +20,12 @@ export function computeFreshnessStatus(opts: {
   isGenerating: boolean;
 }): { status: FreshnessStatus; reason: string; daysAgo: number | null } {
   if (opts.isGenerating) {
-    return { status: "running", reason: "Analysts are reviewing your assumptions", daysAgo: null };
+    return { status: "running", reason: "The Analyst is studying your assumptions", daysAgo: null };
   }
 
   const updatedAt = safeTimestamp(opts.researchUpdatedAt);
   if (updatedAt === null) {
-    return { status: "missing", reason: "Your analysts haven't reviewed these assumptions yet", daysAgo: null };
+    return { status: "missing", reason: "The Analyst hasn't reviewed these assumptions yet", daysAgo: null };
   }
 
   const daysAgo = Math.max(0, Math.floor((Date.now() - updatedAt) / (1000 * 60 * 60 * 24)));
@@ -151,7 +151,7 @@ export function IntelligenceStatusBar({
           data-testid="button-regenerate-research"
         >
           <IconRefreshCw className="w-3 h-3" />
-          Ask the Analysts
+          Ask the Analyst
         </Button>
       )}
     </div>

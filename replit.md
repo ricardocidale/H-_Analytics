@@ -18,7 +18,14 @@ H+ Analytics by Norfolk AI is a GAAP/USALI-compliant financial analytics portal 
 - All UI components must reference a theme via the theme engine.
 - New UI features get their own skill file in `.claude/skills/ui/`.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
-- **Vocabulary is LAW:** Before writing ANY user-facing text (button labels, tooltips, headings, error messages, toasts, help text), read `.claude/skills/vocabulary/SKILL.md`. It defines every canonical term and forbidden alternative. Key rules: AI features use colleague language ("Ask the Analysts", "Analyst Note", "Conviction: High"), never machine language ("Generate", "Run", "Confidence Score: 78%"). See the skill for the full dictionary.
+- **Vocabulary is LAW:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md`. Non-negotiable.
+- **The Analyst + Rebecca — TWO AI AGENTS:**
+  - **The Analyst** (singular, always capitalized): The intelligence agent. Conducts research, provides ranges, validates assumptions. The user sees Analyst Notes next to fields. NEVER plural. See `rules/the-analyst-persona.md`.
+  - **Rebecca**: The expert companion. Answers questions, guides tours, explains what The Analyst found. See `rules/rebecca-persona.md`.
+  - NEVER say "the system", "the AI", "the chatbot", "the assistant", "your analysts" (plural), "our analysts".
+  - Button: **"Ask the Analyst"** (singular). Status: "The Analyst is studying...", "The Analyst hasn't reviewed these yet".
+- **Branding:** App name = "H+ Analytics" (editable by super admin). Company name = "Hospitality Management Co" (editable by any user). Technology = "Norfolk AI Engine". See `rules/branding-vocabulary-enforcement.md`.
+- **Intelligence-First Pages:** Every page with inputs must: (1) nudge user to Ask the Analyst on first visit (glowing button), (2) require Save before leaving, (3) auto-save if user doesn't press Save, (4) block downstream fields until compulsory fields are completed, (5) compel regeneration if intelligence is old. Track first-visit per-user per-page in DB.
 - **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
 - **Every financial line item** should have a ? tooltip (HelpTooltip or InfoTooltip).
 - **Every page must be graphics-rich** — charts, animations, visual elements required.

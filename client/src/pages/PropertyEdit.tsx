@@ -518,7 +518,7 @@ export default function PropertyEdit() {
                         );
                       })()}
                     </span>
-                    {isGenerating ? "Consulting..." : "Ask the Analysts"}
+                    {isGenerating ? "Consulting..." : "Ask the Analyst"}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-[260px] text-center">
@@ -663,7 +663,7 @@ export default function PropertyEdit() {
             </Button>
             <Button onClick={handleIntelligenceNow} data-testid="button-intelligence-now">
               <IconSparkles className="w-4 h-4 mr-1" />
-              Ask the Analysts
+              Ask the Analyst
             </Button>
           </DialogFooter>
         </DialogContent>
