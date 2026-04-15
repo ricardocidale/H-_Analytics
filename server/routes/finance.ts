@@ -98,6 +98,7 @@ const computeRequestSchema = z.object({
   properties: z.array(propertyInputSchema).min(1),
   globalAssumptions: globalInputSchema,
   projectionYears: z.number().int().positive().max(30).optional(),
+  scenarioId: z.number().int().nonnegative().optional().default(0),
 });
 
 const singlePropertyComputeSchema = z.object({
@@ -208,7 +209,7 @@ export function registerFinanceRoutes(router: Router): void {
 
       if (wantAudit && auditTrails.length > 0) {
         const userId = getAuthUser(req).id;
-        const scenarioId = typeof req.body.scenarioId === "number" ? req.body.scenarioId : 0;
+        const scenarioId = validation.data.scenarioId ?? 0;
         const inputHash = computeCacheKey({
           properties: properties as PropertyInput[],
           globalAssumptions: globalAssumptions as GlobalInput,
