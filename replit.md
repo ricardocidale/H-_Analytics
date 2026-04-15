@@ -22,13 +22,14 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
 - All UI components must reference a theme via the theme engine.
 - New UI features get their own skill file in `.claude/skills/ui/`.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
-- **Vocabulary is LAW:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md` and `.claude/rules/branding-vocabulary-enforcement.md`. "The Analyst" (singular, capitalized) for intelligence. "Rebecca" for companion. Non-negotiable.
-- **The Analyst + Rebecca — TWO AI AGENTS:**
-  - **The Analyst** (singular, always capitalized): The intelligence agent. Conducts research, provides ranges, validates assumptions. The user sees Analyst Notes next to fields. NEVER plural. See `rules/the-analyst-persona.md`.
-  - **Rebecca**: The expert companion. Answers questions, guides tours, explains what The Analyst found. See `rules/rebecca-persona.md`.
-  - NEVER say "the system", "the AI", "the chatbot", "the assistant", "your analysts" (plural), "our analysts".
-  - Button: **"Ask the Analyst"** (singular). Status: "The Analyst is studying...", "The Analyst hasn't reviewed these yet".
-- **Branding:** App name = "H+ Analytics" (editable by super admin). Company name = "Hospitality Management Co" (editable by any user). Technology = "Norfolk AI Engine". See `rules/branding-vocabulary-enforcement.md`.
+- **Brand Voice is LAW:** Before writing ANY user-facing text, read `.claude/brand-voice-guidelines.md` — the SINGLE SOURCE OF TRUTH. It covers everything: identity (We Are / We Are Not), voice principles, The Analyst + Rebecca personas, tone-by-context matrix (10 contexts), conversation principles, vocabulary, visual identity, 10 before/after examples, and a 5-question quality checklist. Non-negotiable.
+- **Quick reference from the guidelines:**
+  - **The Analyst** (singular, capitalized): Intelligence agent. "Ask the Analyst" button. "The Analyst is studying..." status.
+  - **Rebecca**: Expert companion. Outgoing, intellectual, geeky, dry wit.
+  - NEVER: "the system", "the AI", "the chatbot", "your analysts" (plural), "Regenerate Intelligence", "Stale", "Fresh"
+  - App = "H+ Analytics". Company = "Hospitality Management Co". Technology = "Norfolk AI Engine".
+- **Enforcement:** `rules/branding-vocabulary-enforcement.md`, `rules/the-analyst-persona.md`, `rules/rebecca-persona.md`. Audit test blocks 8 forbidden terms on every commit.
+- **Communication skills** (reusable): `skills/communication/conversation-principles.md`, `skills/communication/ai-agent-voice.md`, `skills/communication/norfolk-brand-voice.md`.
 - **Intelligence-First Pages:** Every page with inputs must: (1) nudge user to Ask the Analyst on first visit (glowing button), (2) require Save before leaving, (3) auto-save if user doesn't press Save, (4) block downstream fields until compulsory fields are completed, (5) compel regeneration if intelligence is old. Track first-visit per-user per-page in DB.
 - **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
 - **Every financial line item** should have a ? tooltip (HelpTooltip or InfoTooltip).

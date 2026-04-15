@@ -32,7 +32,7 @@ GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio man
 - Update skills and manuals after every feature change.
 - All UI components must reference a theme via the theme engine.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
-- **Vocabulary:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md` and `.claude/rules/branding-vocabulary-enforcement.md`. "The Analyst" (singular) for intelligence, "Rebecca" for companion. Non-negotiable.
+- **Brand Voice:** Before writing ANY user-facing text, read `.claude/brand-voice-guidelines.md` — the single source of truth. 9 sections: identity, voice, personas, tone matrix, conversation principles, vocabulary, visual identity, examples, quality checklist. Non-negotiable.
 - **Save Behavior:** Every page with inputs/assumptions must follow `.claude/skills/ui/assumptions-save-behavior.md`. Auto-save on navigate away, first-visit tracking, compulsory fields, intelligence regeneration triggers save.
 - **The Analyst + Rebecca:** Two AI Agents. The Analyst provides intelligence (ranges, convictions, risk flags). Rebecca answers questions and guides. See `rules/the-analyst-persona.md` and `rules/rebecca-persona.md`. Never use plural "analysts". Never say "the system" or "the AI".
 - **Branding:** App = "H+ Analytics" (editable). Company = "Hospitality Management Co" (editable). Technology = "Norfolk AI Engine". See `rules/branding-vocabulary-enforcement.md`.
