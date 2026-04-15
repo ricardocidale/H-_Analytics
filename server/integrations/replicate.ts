@@ -59,9 +59,107 @@ export function getAvailableStyles(): Array<{ key: string; label: string }> {
   }));
 }
 
+export async function getAvailableStylesFromDb(): Promise<Array<{ key: string; label: string; enabled: boolean }>> {
+  try {
+    const { storage } = await import("../storage");
+    const dbSettings = await storage.getAllRenderSettings();
+    if (dbSettings.length > 0) {
+      return dbSettings.map((s) => ({ key: s.styleKey, label: s.label, enabled: s.isEnabled }));
+    }
+  } catch {
+    // fall through
+  }
+  return getAvailableStyles().map((s) => ({ ...s, enabled: true }));
+}
+
 export function getModelConfig(style: string): ReplicateModelConfig | undefined {
   const config = loadModelConfig();
   return config[style];
+}
+
+export async function getModelConfigFromDb(style: string): Promise<ReplicateModelConfig | undefined> {
+  try {
+    const { storage } = await import("../storage");
+    const dbSetting = await storage.getRenderSetting(style);
+    if (dbSetting) {
+      return {
+        model: dbSetting.model,
+        promptPrefix: dbSetting.promptPrefix,
+        promptSuffix: dbSetting.promptSuffix,
+        params: dbSetting.params,
+        isImg2Img: dbSetting.isImg2Img,
+        requiresSourceImage: dbSetting.requiresSourceImage,
+        promptOptional: dbSetting.promptOptional,
+      };
+    }
+  } catch {
+    // fall through to JSON
+  }
+  return getModelConfig(style);
+}
+
+export async function isStyleEnabled(style: string): Promise<boolean> {
+  try {
+    const { storage } = await import("../storage");
+    const dbSetting = await storage.getRenderSetting(style);
+    if (dbSetting) return dbSetting.isEnabled;
+  } catch {
+    // fall through
+  }
+  return true;
+}
+
+export async function getAdminRateLimit(): Promise<number> {
+  try {
+    const { storage } = await import("../storage");
+    const settings = await storage.getAllRenderSettings();
+    if (settings.length > 0) {
+      const limits = settings.map(s => s.rateLimitPerMinute);
+      return Math.min(...limits);
+    }
+  } catch {
+    // fall through
+  }
+  return 5;
+}
+
+export async function isAutoEnhanceEnabled(): Promise<boolean> {
+  try {
+    const { storage } = await import("../storage");
+    const settings = await storage.getAllRenderSettings();
+    if (settings.length > 0) {
+      return settings.every(s => s.autoEnhanceEnabled);
+    }
+  } catch {
+    // fall through
+  }
+  return true;
+}
+
+export async function getDefaultImageSize(): Promise<string> {
+  try {
+    const { storage } = await import("../storage");
+    const settings = await storage.getAllRenderSettings();
+    if (settings.length > 0 && settings[0].defaultImageSize) {
+      return settings[0].defaultImageSize;
+    }
+  } catch {
+    // fall through
+  }
+  return "1024x1024";
+}
+
+export async function getDefaultQuality(): Promise<number> {
+  try {
+    const { storage } = await import("../storage");
+    const settings = await storage.getAllRenderSettings();
+    if (settings.length > 0 && settings[0].defaultQuality) {
+      return settings[0].defaultQuality;
+    }
+  } catch {
+    // fall through
+  }
+  return 90;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -189,7 +287,7 @@ export class ReplicateService extends BaseIntegrationService {
     userPrompt: string,
     sourceImageUrl?: string
   ): Promise<Buffer> {
-    const modelConfig = getModelConfig(style);
+    const modelConfig = await getModelConfigFromDb(style) ?? getModelConfig(style);
     if (!modelConfig) {
       throw new Error(`Unknown Replicate style: ${style}`);
     }

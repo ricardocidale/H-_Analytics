@@ -7,10 +7,12 @@ export type GenerationStyle =
   | "renovation-concept"
   | "photo-upscale"
   | "virtual-staging"
-  | "background-remove";
+  | "background-remove"
+  | "photo-to-render";
 
 interface GenerateImageResult {
   objectPath: string;
+  imageData?: string;
   style: string;
   usedFallback: boolean;
   fallbackNotice?: string;

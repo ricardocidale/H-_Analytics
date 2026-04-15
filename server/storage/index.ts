@@ -42,6 +42,7 @@ import { IntegrationStorage } from "./integrations";
 import { IntelligenceV2Storage, IntelligenceRebeccaStorage } from "./intelligence-v2";
 import { PropertyUrlStorage } from "./property-urls";
 import { CalcAuditStorage, type ICalcAuditStorage } from "./calc-audit";
+import { RenderSettingsStorage } from "./render-settings";
 
 export interface IStorage extends
   UserStorage,
@@ -57,7 +58,8 @@ export interface IStorage extends
   IntegrationStorage,
   IntelligenceV2Storage,
   PropertyUrlStorage,
-  ICalcAuditStorage {
+  ICalcAuditStorage,
+  RenderSettingsStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -78,6 +80,7 @@ export class DatabaseStorage implements IStorage {
   private rebecca = new IntelligenceRebeccaStorage();
   private propertyUrlStore = new PropertyUrlStorage();
   private calcAudit = new CalcAuditStorage();
+  private renderSettingsStore = new RenderSettingsStorage();
 
   // Users
   getUserById = this.users.getUserById.bind(this.users);
@@ -253,6 +256,13 @@ export class DatabaseStorage implements IStorage {
   updateServiceTemplate = this.services.updateServiceTemplate.bind(this.services);
   deleteServiceTemplate = this.services.deleteServiceTemplate.bind(this.services);
   syncTemplatesToProperties = this.services.syncTemplatesToProperties.bind(this.services);
+
+  // Render Settings
+  getAllRenderSettings = this.renderSettingsStore.getAllRenderSettings.bind(this.renderSettingsStore);
+  getRenderSetting = this.renderSettingsStore.getRenderSetting.bind(this.renderSettingsStore);
+  upsertRenderSetting = this.renderSettingsStore.upsertRenderSetting.bind(this.renderSettingsStore);
+  updateRenderSetting = this.renderSettingsStore.updateRenderSetting.bind(this.renderSettingsStore);
+  seedFromJson = this.renderSettingsStore.seedFromJson.bind(this.renderSettingsStore);
 
   // Notifications
   getAllAlertRules = this.notifications.getAllAlertRules.bind(this.notifications);

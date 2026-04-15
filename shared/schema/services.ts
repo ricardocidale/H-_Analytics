@@ -153,3 +153,65 @@ export type PropertyPhoto = typeof propertyPhotos.$inferSelect;
 export type InsertPropertyPhoto = z.infer<typeof insertPropertyPhotoSchema>;
 export type UpdatePropertyPhoto = z.infer<typeof updatePropertyPhotoSchema>;
 
+
+// --- RENDER SETTINGS TABLE ---
+// Admin-configurable settings for the AI image generation pipeline.
+// Stores model configs per style, prompt templates, enabled/disabled flags,
+// auto-enhance toggle, and rate limit values. Replaces hardcoded replicate-models.json.
+export const renderSettings = pgTable("render_settings", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  styleKey: text("style_key").notNull().unique(),
+  label: text("label").notNull(),
+  model: text("model").notNull(),
+  promptPrefix: text("prompt_prefix").notNull().default(""),
+  promptSuffix: text("prompt_suffix").notNull().default(""),
+  params: jsonb("params").$type<Record<string, unknown>>().notNull().default({}),
+  isImg2Img: boolean("is_img2img").notNull().default(false),
+  requiresSourceImage: boolean("requires_source_image").notNull().default(false),
+  promptOptional: boolean("prompt_optional").notNull().default(false),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  autoEnhanceEnabled: boolean("auto_enhance_enabled").notNull().default(true),
+  rateLimitPerMinute: integer("rate_limit_per_minute").notNull().default(5),
+  defaultImageSize: text("default_image_size").notNull().default("1024x1024"),
+  defaultQuality: integer("default_quality").notNull().default(95),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRenderSettingSchema = createInsertSchema(renderSettings).pick({
+  styleKey: true,
+  label: true,
+  model: true,
+  promptPrefix: true,
+  promptSuffix: true,
+  params: true,
+  isImg2Img: true,
+  requiresSourceImage: true,
+  promptOptional: true,
+  isEnabled: true,
+  autoEnhanceEnabled: true,
+  rateLimitPerMinute: true,
+  defaultImageSize: true,
+  defaultQuality: true,
+});
+
+export const updateRenderSettingSchema = z.object({
+  label: z.string().optional(),
+  model: z.string().optional(),
+  promptPrefix: z.string().optional(),
+  promptSuffix: z.string().optional(),
+  params: z.record(z.unknown()).optional(),
+  isImg2Img: z.boolean().optional(),
+  requiresSourceImage: z.boolean().optional(),
+  promptOptional: z.boolean().optional(),
+  isEnabled: z.boolean().optional(),
+  autoEnhanceEnabled: z.boolean().optional(),
+  rateLimitPerMinute: z.number().min(1).optional(),
+  defaultImageSize: z.string().optional(),
+  defaultQuality: z.number().min(1).max(100).optional(),
+});
+
+export type RenderSetting = typeof renderSettings.$inferSelect;
+export type InsertRenderSetting = z.infer<typeof insertRenderSettingSchema>;
+export type UpdateRenderSetting = z.infer<typeof updateRenderSettingSchema>;
+

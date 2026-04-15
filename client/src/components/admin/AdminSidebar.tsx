@@ -32,6 +32,7 @@ export type AdminSection =
   | "ai-agents" | "knowledge-base" | "conversations"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines" | "benchmarks"
   | "navigation" | "notifications" | "verification" | "database"
+  | "photos-renders"
   // Legacy aliases (redirect to canonical)
   | "icp" | "logos" | "themes" | "icons"
   | "llms" | "sources" | "model-routing"
@@ -129,6 +130,7 @@ function buildNavGroups(): NavGroup[] {
         { value: "hotel-defaults",  label: "Hotel Model Defaults",         icon: IconDashboard },
         { value: "rental-defaults", label: "Luxury Rental Defaults",       icon: IconGlobe },
         { value: "required-fields", label: "Required Fields Config",       icon: IconFileCheck },
+        { value: "photos-renders",  label: "Photos & Renders",             icon: IconImage },
       ],
     },
     {

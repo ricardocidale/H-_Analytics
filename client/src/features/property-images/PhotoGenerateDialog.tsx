@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Sparkles, Loader2, Plus, Star, AlertTriangle, ImageIcon, ArrowUp, Images, Crop } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,6 +92,14 @@ const STYLE_META: Record<GenerationStyle, StyleMeta> = {
     promptOptional: true,
     sourcePhotoLabel: "Photo to Process",
   },
+  "photo-to-render": {
+    label: "Photo to Render",
+    description: "Transforms a photo into a photorealistic architectural render",
+    badge: "Img2Img",
+    needsSourcePhoto: true,
+    promptOptional: false,
+    sourcePhotoLabel: "Source Photo",
+  },
 };
 
 function buildAutoPrompt(
@@ -109,6 +118,14 @@ function buildAutoPrompt(
       "Furnished luxury boutique hotel room",
       location,
       "with premium furnishings and tasteful decor",
+    ].filter(Boolean).join(", ");
+  }
+  if (style === "photo-to-render") {
+    return [
+      "Photorealistic architectural visualization render",
+      name,
+      location,
+      "preserve room layout and furniture positions, CGI-quality lighting",
     ].filter(Boolean).join(", ");
   }
   const parts = [
@@ -141,6 +158,19 @@ export function PhotoGenerateDialog({
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
   const [generatedStyle, setGeneratedStyle] = useState<string | null>(null);
 
+  const { data: enabledStylesData } = useQuery<{ styles: Array<{ key: string; label: string; enabled: boolean }> }>({
+    queryKey: ["/api/replicate/styles"],
+    enabled: open,
+  });
+  const enabledStyleKeys = new Set(
+    enabledStylesData?.styles
+      ?.filter((s) => s.enabled)
+      .map((s) => s.key) ?? Object.keys(STYLE_META)
+  );
+  const visibleStyles = (Object.entries(STYLE_META) as [GenerationStyle, StyleMeta][]).filter(
+    ([key]) => enabledStyleKeys.has(key)
+  );
+
   const meta = STYLE_META[selectedStyle];
   const heroPhoto = existingPhotos.find((p) => p.isHero) ?? existingPhotos[0] ?? null;
 
@@ -157,10 +187,13 @@ export function PhotoGenerateDialog({
   const { toast } = useToast();
   const addPhoto = useAddPropertyPhoto();
 
+  const [generatedImageData, setGeneratedImageData] = useState<string | null>(null);
+
   const { generateImage, isGenerating, generationStatus } = useGenerateImage({
     onSuccess: (objectPath, result) => {
       setGeneratedUrl(objectPath);
       setGeneratedStyle(result.style);
+      setGeneratedImageData(result.imageData ?? null);
       if (result.usedFallback && result.fallbackNotice) {
         setFallbackNotice(result.fallbackNotice);
         toast({ title: "Fallback used", description: result.fallbackNotice });
@@ -202,6 +235,7 @@ export function PhotoGenerateDialog({
         caption: caption || undefined,
         generationStyle: generatedStyle || undefined,
         beforePhotoId: meta.needsSourcePhoto ? (sourcePhotoId ?? undefined) : undefined,
+        imageData: generatedImageData || undefined,
       });
       toast({ title: "Photo added to album" });
       setGeneratedUrl(null);
@@ -220,6 +254,7 @@ export function PhotoGenerateDialog({
     setSourcePhotoId(null);
     setFallbackNotice(null);
     setGeneratedStyle(null);
+    setGeneratedImageData(null);
     onOpenChange(false);
   };
 
@@ -254,7 +289,7 @@ export function PhotoGenerateDialog({
                 <SelectValue placeholder="Choose style..." />
               </SelectTrigger>
               <SelectContent>
-                {(Object.entries(STYLE_META) as [GenerationStyle, StyleMeta][]).map(([value, m]) => (
+                {visibleStyles.map(([value, m]) => (
                   <SelectItem key={value} value={value} data-testid={`style-option-${value}`}>
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col">

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { processExistingPhoto, processImage } from "../image/pipeline";
 import { logger } from "../logger";
 import { isApiRateLimited } from "../auth";
+import { isAutoEnhanceEnabled } from "../integrations/replicate";
 
 async function autoEnhancePhoto(photoId: number, imageUrl: string, imageDataBase64: string | null, propertyId?: number) {
   let sourceBuffer: Buffer;
@@ -157,6 +158,11 @@ export function register(app: Express) {
         }
 
         if (shouldAutoEnhance) {
+          const adminAutoEnhance = await isAutoEnhanceEnabled();
+          if (!adminAutoEnhance) {
+            logger.info(`Auto-enhance skipped for photo ${photo.id} — disabled by admin`, "property-photos");
+            return;
+          }
           try {
             await autoEnhancePhoto(photo.id, photo.imageUrl, photo.imageData ?? null, propertyId);
           } catch (err: unknown) {

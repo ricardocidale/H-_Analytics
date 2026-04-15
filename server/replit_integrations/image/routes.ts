@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { openai, generateImageBuffer, getGeminiClient } from "./client";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../../auth";
 import { getStorageProvider } from "../../providers/storage";
-import { replicateService, getAvailableStyles, type ReplicateStyleKey } from "../../integrations/replicate";
+import { replicateService, getAvailableStyles, getAvailableStylesFromDb, isStyleEnabled, getAdminRateLimit, getDefaultImageSize, type ReplicateStyleKey } from "../../integrations/replicate";
 import { z } from "zod";
 import { logApiCost, estimateCost, unitCost } from "../../middleware/cost-logger";
 import { storage } from "../../storage";
@@ -61,7 +61,7 @@ export function registerImageRoutes(app: Express): void {
 
   app.get("/api/replicate/styles", requireAuth, async (_req: Request, res: Response) => {
     try {
-      const styles = getAvailableStyles();
+      const styles = await getAvailableStylesFromDb();
       res.json({ styles });
     } catch (error: unknown) {
       logger.error(`Error fetching Replicate styles: ${error instanceof Error ? error.message : error}`, "image-gen");
@@ -71,7 +71,8 @@ export function registerImageRoutes(app: Express): void {
 
   app.post("/api/generate-property-image", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (isApiRateLimited(getAuthUser(req).id, "generate-image", 5)) {
+      const rateLimit = await getAdminRateLimit();
+      if (isApiRateLimited(getAuthUser(req).id, "generate-image", rateLimit)) {
         return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
       }
 
@@ -81,9 +82,18 @@ export function registerImageRoutes(app: Express): void {
       }
       const { prompt, style, beforeImageUrl } = parsed.data;
 
+      if (style && style !== "standard") {
+        const enabled = await isStyleEnabled(style);
+        if (!enabled) {
+          return res.status(400).json({ error: `Style "${style}" is currently disabled by admin` });
+        }
+      }
+
       const isReplicateStyle = style && style !== "standard";
       let imageBuffer: Buffer;
       let usedFallback = false;
+
+      const adminSize = await getDefaultImageSize() as "1024x1024" | "1024x1536" | "1536x1024" | "auto";
 
       const startTime = Date.now();
       if (isReplicateStyle) {
@@ -99,12 +109,12 @@ export function registerImageRoutes(app: Express): void {
             `Replicate generation failed, falling back to standard: ${replicateError instanceof Error ? replicateError.message : replicateError}`,
             "image-gen"
           );
-          imageBuffer = await generateImageBuffer(prompt, "1024x1024");
+          imageBuffer = await generateImageBuffer(prompt, adminSize);
           usedFallback = true;
           try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
         }
       } else {
-        imageBuffer = await generateImageBuffer(prompt, "1024x1024");
+        imageBuffer = await generateImageBuffer(prompt, adminSize);
         try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
       }
 

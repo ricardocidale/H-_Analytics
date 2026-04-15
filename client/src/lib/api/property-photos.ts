@@ -10,7 +10,7 @@ async function fetchPropertyPhotos(propertyId: number): Promise<PropertyPhoto[]>
   return res.json();
 }
 
-async function addPhoto(propertyId: number, data: { imageUrl: string; caption?: string; skipProcessing?: boolean; generationStyle?: string; beforePhotoId?: number }): Promise<PropertyPhoto> {
+async function addPhoto(propertyId: number, data: { imageUrl: string; caption?: string; skipProcessing?: boolean; generationStyle?: string; beforePhotoId?: number; imageData?: string }): Promise<PropertyPhoto> {
   const res = await fetch(`/api/properties/${propertyId}/photos`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -86,8 +86,8 @@ export function usePropertyPhotos(propertyId: number) {
 export function useAddPropertyPhoto() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ propertyId, imageUrl, caption, skipProcessing, generationStyle, beforePhotoId }: { propertyId: number; imageUrl: string; caption?: string; skipProcessing?: boolean; generationStyle?: string; beforePhotoId?: number }) =>
-      addPhoto(propertyId, { imageUrl, caption, skipProcessing, generationStyle, beforePhotoId }),
+    mutationFn: ({ propertyId, imageUrl, caption, skipProcessing, generationStyle, beforePhotoId, imageData }: { propertyId: number; imageUrl: string; caption?: string; skipProcessing?: boolean; generationStyle?: string; beforePhotoId?: number; imageData?: string }) =>
+      addPhoto(propertyId, { imageUrl, caption, skipProcessing, generationStyle, beforePhotoId, imageData }),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
       invalidateAllFinancialQueries(queryClient);

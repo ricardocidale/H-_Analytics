@@ -75,8 +75,7 @@ describe("Property Photos Routes — validation", () => {
     expect(routesSrc).toContain("z.array(z.number())");
   });
 
-  it("POST denies access for invalid property", () => {
-    // checkPropertyAccess returns 403 for both non-existent and unauthorized — no info leakage
+  it("POST denies access for invalid property (IDOR protection)", () => {
     expect(routesSrc).toContain('res.status(403).json({ error: "Access denied" })');
   });
 

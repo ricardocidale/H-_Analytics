@@ -31,6 +31,7 @@ const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/Pip
 // KnowledgeBaseTab is now rendered as a sub-tab inside AIAgentsTab/RebeccaAdminTabs
 const FinancialLinesTab = lazy(() => import("@/components/admin/intelligence/FinancialLinesTab"));
 const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
+const PhotosRendersTab = lazy(() => import("@/components/admin/PhotosRendersTab"));
 
 export type { AdminSaveState };
 
@@ -57,6 +58,8 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   navigation:            { title: "Navigation",               subtitle: "Control which sidebar pages are visible to users" },
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
+
+  "photos-renders":      { title: "Photos & Renders",          subtitle: "AI image generation models, prompt templates, and render settings" },
 
   icp:                   { title: "Engine Dashboard",         subtitle: "Unified intelligence observatory" },
   logos:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
@@ -146,6 +149,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "navigation":       return <NavigationTab />;
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
+    case "photos-renders":   return <PhotosRendersTab />;
     default:                 return null;
   }
 }
