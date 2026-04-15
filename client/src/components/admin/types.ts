@@ -30,6 +30,7 @@ export interface Logo {
   url: string;
   isDefault: boolean;
   isAppLogo: boolean;
+  visibility: "all" | "super_admin_only";
   createdAt: string;
 }
 

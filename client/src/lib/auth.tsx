@@ -50,6 +50,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isChecker: boolean;
   isUser: boolean;
   isInvestor: boolean;
@@ -147,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const user = data ?? null;
   const isAdmin = user ? isAdminRole(user.role) : false;
+  const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
   const isChecker = user?.role === UserRole.CHECKER;
   const isUser = user?.role === UserRole.USER;
   const isInvestor = user?.role === UserRole.INVESTOR;
@@ -158,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin, isChecker, isUser, isInvestor, hasManagementAccess, canManageScenarios, login, logout, requestLogout, logoutPending, confirmLogout, cancelLogout, refetch }}>
+    <AuthContext.Provider value={{ user, isLoading, isAdmin, isSuperAdmin, isChecker, isUser, isInvestor, hasManagementAccess, canManageScenarios, login, logout, requestLogout, logoutPending, confirmLogout, cancelLogout, refetch }}>
       {children}
     </AuthContext.Provider>
   );

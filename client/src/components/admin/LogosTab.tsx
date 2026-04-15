@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, ArrowRight, X, Check } from "@/components/icons/themed-icons";
-import { IconPlus, IconSave, IconStar, IconHardDrive, IconLink, IconWand2, IconTrash, IconProperties, IconImage, IconTag, IconPencil } from "@/components/icons";
+import { IconPlus, IconSave, IconStar, IconSparkles, IconHardDrive, IconLink, IconWand2, IconTrash, IconProperties, IconImage, IconTag, IconPencil } from "@/components/icons";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
