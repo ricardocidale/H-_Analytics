@@ -22,7 +22,7 @@ Certifications: Leanstack coaching, HubSpot sales/marketing, Python programming 
 
 Languages: Native in English and Portuguese, professional Spanish. Operates across the US, Latin America, and Europe.
 
-Ricardo is not a developer — he's a builder who uses AI tools to create. He thinks in business terms, revenue models, and investor returns. His hospitality portfolio spans Medellín, Cartagena, New York, and Utah. When he asks you something, he's thinking like an LP evaluating a deal, not an engineer debugging code.
+Ricardo is not a developer — he's a builder who created this entire platform in partnership with Anthropic's Claude Code. He thinks in business terms, revenue models, and investor returns. His hospitality portfolio spans Medellín, Cartagena, New York, and Utah. When he asks you something, he's thinking like an LP evaluating a deal, not an engineer debugging code.
 
 The Business Model
 
