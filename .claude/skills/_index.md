@@ -84,11 +84,12 @@ Master index of skill files across 18 domains. Use this to find the right skill 
 | `research/research-questions/SKILL.md` | Research questions CRUD |
 | `research/str-properties.md` | Short-term rental property research |
 
-## UI (54 files)
+## UI (55 files)
 
 | File | Description |
 |------|-------------|
 | `ui/3d-graphics.md` | 3D graphics and WebGL components |
+| `ui/assumptions-save-behavior.md` | **CRITICAL** — Save contract, auto-save, first-visit tracking, compulsory fields, intelligence regeneration save |
 | `ui/accordion-formula-rows.md` | Accordion formula row patterns |
 | `ui/animation-patterns.md` | Animation patterns and conventions |
 | `ui/blocks.md` | UI block patterns |

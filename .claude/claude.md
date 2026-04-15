@@ -2,9 +2,11 @@
 
 ## Project Summary
 
-GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management by **Norfolk AI**. Models a hospitality management company alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual support. 1,113 source files, ~190K lines. 4,816 tests across 202 files. 15-phase verification pipeline.
+GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by **Norfolk AI**. Models a hospitality management company (seed name: "Hospitality Management Co") alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual. 1,113 source files, ~190K lines. 4,816 tests across 202 files. 15-phase verification pipeline.
 
-> **Rebecca** is the text chat AI assistant. Pinecone RAG across 7 namespaces with entity-aware context.
+**Two AI Agents:**
+- **The Analyst** — singular intelligence agent. Conducts research, provides ranges with conviction levels, validates assumptions. Powered by Norfolk AI Engine. Always "The Analyst" (capitalized, singular, never plural).
+- **Rebecca** — expert companion agent. Answers questions, explains what The Analyst found, guides tours, offers contextual help. Pinecone RAG across 7 namespaces with entity-aware context.
 
 ---
 
@@ -24,11 +26,14 @@ GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio man
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
 - Skills live in `.claude/skills/`. See `_index.md` for the master catalog.
-- Product name is "H+ Analytics by Norfolk AI" (or "H+ Analytics" for short). Company is "Norfolk AI".
+- **App name**: "H+ Analytics" (seed/default). Editable by super admin in Admin > App Identity. Powered by Norfolk AI.
+- **Company name**: The hospitality management company name (seed: "Hospitality Management Co"). Editable by any user on Management Company page. NOT the app name.
+- **Norfolk AI**: The technology company that created and powers H+ Analytics.
 - Update skills and manuals after every feature change.
 - All UI components must reference a theme via the theme engine.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
-- **Vocabulary:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md`. Non-negotiable.
+- **Vocabulary:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md` and `.claude/rules/branding-vocabulary-enforcement.md`. "The Analyst" (singular) for intelligence, "Rebecca" for companion. Non-negotiable.
+- **Save Behavior:** Every page with inputs/assumptions must follow `.claude/skills/ui/assumptions-save-behavior.md`. Auto-save on navigate away, first-visit tracking, compulsory fields, intelligence regeneration triggers save.
 - **The Analyst + Rebecca:** Two AI Agents. The Analyst provides intelligence (ranges, convictions, risk flags). Rebecca answers questions and guides. See `rules/the-analyst-persona.md` and `rules/rebecca-persona.md`. Never use plural "analysts". Never say "the system" or "the AI".
 - **Branding:** App = "H+ Analytics" (editable). Company = "Hospitality Management Co" (editable). Technology = "Norfolk AI Engine". See `rules/branding-vocabulary-enforcement.md`.
 - **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
@@ -189,6 +194,8 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 - **No mock data** in production paths
 - **Finance changes must state Active Skill** and pass verification (UNQUALIFIED)
 - **Rebecca must NEVER compute financial values** — all data from the calculation pipeline
+- **The Analyst must NEVER have conversations** — The Analyst leaves intelligence (notes, ranges, flags). Rebecca answers questions.
+- **Save behavior is mandatory** — every page with inputs must auto-save on navigate away, track first visits, enforce compulsory fields. See `ui/assumptions-save-behavior.md`.
 - **Balance Sheet Identity**: A = L + E within $1. Cash derivation uses `m.anoi` (never `m.noi`)
 - **LLM dual-model config** — primary + fallback per domain (7 domains). Admin-configured only.
 - **Settings placement** — Two surfaces: Company Assumptions (entity config), Admin panel (system config)

@@ -2,9 +2,11 @@
 
 ## Overview
 
-H+ Analytics by Norfolk AI is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management. It models a hospitality management company and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP (ASC 230, ASC 360, ASC 470) and USALI 12th Edition standards. 1,113 source files, ~190K lines. The platform delivers a premium, bespoke financial experience enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
+H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by Norfolk AI. It models a hospitality management company (default seed name: "Hospitality Management Co") and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP (ASC 230, ASC 360, ASC 470) and USALI 12th Edition standards. 1,113 source files, ~190K lines. The platform delivers a premium, bespoke financial experience enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
 
-**Rebecca** is the text chat AI assistant — Pinecone RAG across 7 namespaces with entity-aware context.
+**Two AI Agents:**
+- **The Analyst** — the singular intelligence agent. Conducts research, provides ranges, conviction levels, and risk flags next to every assumption field. Always "The Analyst" (capitalized, singular). Powered by Norfolk AI Engine.
+- **Rebecca** — the expert companion agent. Answers questions, explains what The Analyst found, guides tours, offers help. Always available in the chat panel.
 
 ## User Preferences
 
@@ -12,13 +14,15 @@ H+ Analytics by Norfolk AI is a GAAP/USALI-compliant financial analytics portal 
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
 - Skills live in `.claude/skills/` (18 domains, ~170 files). See `.claude/skills/_index.md` for the master catalog.
-- Product name is "H+ Analytics by Norfolk AI" (or "H+ Analytics" for short). Company is "Norfolk AI".
+- **App name** is "H+ Analytics" (seed/default). Editable by super admin in Admin > App Identity. Powered by Norfolk AI.
+- **Company name** refers to the hospitality management company (seed/default: "Hospitality Management Co"). Editable by any user on the Management Company page. NOT the app name.
+- **Norfolk AI** is the technology company that created and powers H+ Analytics.
 - Update skills and manuals after every feature change.
 - **Documentation:** `.claude/claude.md` is the primary AI context file. `replit.md` is kept for Replit Agent compatibility. When in doubt, `claude.md` is authoritative.
 - All UI components must reference a theme via the theme engine.
 - New UI features get their own skill file in `.claude/skills/ui/`.
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
-- **Vocabulary is LAW:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md`. Non-negotiable.
+- **Vocabulary is LAW:** Before writing ANY user-facing text, read `.claude/skills/vocabulary/SKILL.md` and `.claude/rules/branding-vocabulary-enforcement.md`. "The Analyst" (singular, capitalized) for intelligence. "Rebecca" for companion. Non-negotiable.
 - **The Analyst + Rebecca — TWO AI AGENTS:**
   - **The Analyst** (singular, always capitalized): The intelligence agent. Conducts research, provides ranges, validates assumptions. The user sees Analyst Notes next to fields. NEVER plural. See `rules/the-analyst-persona.md`.
   - **Rebecca**: The expert companion. Answers questions, guides tours, explains what The Analyst found. See `rules/rebecca-persona.md`.

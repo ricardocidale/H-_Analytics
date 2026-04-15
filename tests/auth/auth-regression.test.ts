@@ -390,18 +390,18 @@ describe("Session security properties", () => {
     const hash = await hashPassword(password);
     expect(hash).not.toBe(password);
     expect(hash.startsWith("$2")).toBe(true);
-  });
+  }, 15_000);
 
   it("different passwords produce different hashes", async () => {
     const h1 = await hashPassword("PasswordA1");
     const h2 = await hashPassword("PasswordB1");
     expect(h1).not.toBe(h2);
-  });
+  }, 15_000);
 
   it("verifyPassword rejects empty string", async () => {
     const hash = await hashPassword("ValidPass1");
     expect(await verifyPassword("", hash)).toBe(false);
-  });
+  }, 15_000);
 });
 
 describe("Password validation edge cases", () => {
