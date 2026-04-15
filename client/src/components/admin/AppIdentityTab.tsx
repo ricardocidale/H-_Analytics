@@ -75,14 +75,17 @@ export default function AppIdentityTab() {
                   key={logo.id}
                   type="button"
                   onClick={() => setSelectedAppLogoId(logo.id)}
-                  className={`aspect-square rounded-lg border-2 p-1.5 transition-all ${
+                  className={`flex flex-col items-center gap-1 rounded-lg border-2 p-1.5 transition-all ${
                     effectiveAppLogoId === logo.id
                       ? "border-primary bg-primary/10 ring-1 ring-primary/30"
                       : "border-border hover:border-primary/40 bg-muted/20"
                   }`}
                   data-testid={`btn-select-app-logo-${logo.id}`}
                 >
-                  <img src={logo.url} alt={logo.name} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).src = defaultLogo; }} />
+                  <div className="aspect-square w-full">
+                    <img src={logo.url} alt={logo.name} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).src = defaultLogo; }} />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground truncate w-full text-center" data-testid={`text-logo-name-${logo.id}`}>{logo.name}</span>
                 </button>
               ))}
             </div>

@@ -46,6 +46,7 @@ export const logos = pgTable("logos", {
   url: text("url").notNull(),
   isDefault: boolean("is_default").notNull().default(false),
   isAppLogo: boolean("is_app_logo").notNull().default(false),
+  visibility: text("visibility").notNull().default("all"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -55,6 +56,7 @@ export const insertLogoSchema = z.object({
   url: z.string(),
   isDefault: z.boolean().optional(),
   isAppLogo: z.boolean().optional(),
+  visibility: z.enum(["all", "super_admin_only"]).optional(),
 });
 
 export type Logo = typeof logos.$inferSelect;

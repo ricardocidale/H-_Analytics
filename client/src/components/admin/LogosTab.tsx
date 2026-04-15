@@ -6,12 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, ArrowRight, X, Check } from "@/components/icons/themed-icons";
-import { IconPlus, IconSave, IconStar, IconSparkles, IconHardDrive, IconLink, IconWand2, IconTrash, IconProperties, IconImage, IconTag, IconPencil } from "@/components/icons";
+import { IconPlus, IconSave, IconStar, IconHardDrive, IconLink, IconWand2, IconTrash, IconProperties, IconImage, IconTag, IconPencil } from "@/components/icons";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
 import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
-import { useAdminLogos, useCreateLogo, useDeleteLogo, useSetDefaultLogo, useAppBranding, useUpdateAppBranding, useEnhanceLogoPrompt, useGenerateLogoImage } from "./hooks";
+import { useAdminLogos, useCreateLogo, useDeleteLogo, useSetDefaultLogo, useEnhanceLogoPrompt, useGenerateLogoImage } from "./hooks";
+import { useAuth } from "@/lib/auth";
 import defaultLogo from "@/assets/logo.png";
 
 type LogoMode = "generate" | "import" | "url";
@@ -20,6 +21,7 @@ type LogoStyle = "modern" | "neutral" | "traditional";
 
 export default function LogosTab() {
   const { toast } = useToast();
+  const { isSuperAdmin } = useAuth();
 
   const [logoDialogOpen, setLogoDialogOpen] = useState(false);
   const [logoName, setLogoName] = useState("");
@@ -40,15 +42,12 @@ export default function LogosTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState("");
 
-  const [selectedAppLogoId, setSelectedAppLogoId] = useState<number | null>(null);
-  const [editedAppName, setEditedAppName] = useState<string | null>(null);
 
   const { data: adminLogos } = useAdminLogos();
   const createLogoMutation = useCreateLogo();
   const deleteLogoMutation = useDeleteLogo();
   const setDefaultLogoMutation = useSetDefaultLogo();
-  const { data: appBranding } = useAppBranding();
-  const updateAppBrandingMutation = useUpdateAppBranding();
+
   const { enhance, isEnhancing } = useEnhanceLogoPrompt();
   const { generate, isGenerating } = useGenerateLogoImage();
 
@@ -140,17 +139,6 @@ export default function LogosTab() {
     }
   };
 
-  const handleSaveAppBranding = () => {
-    const logoId = selectedAppLogoId ?? appBranding?.appLogoId;
-    const payload: { appLogoId?: number; appName?: string } = {};
-    if (logoId) payload.appLogoId = logoId;
-    if (editedAppName !== null) payload.appName = editedAppName;
-    if (!payload.appLogoId && !payload.appName) return;
-    updateAppBrandingMutation.mutate(payload, {
-      onSuccess: () => { setSelectedAppLogoId(null); setEditedAppName(null); },
-    });
-  };
-
   const modeBtn = (mode: LogoMode, active: boolean) =>
     `flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border ${
       active
@@ -160,16 +148,12 @@ export default function LogosTab() {
 
   const isBusy = isGenerating || isEnhancing || isUploadingFile || createLogoMutation.isPending;
 
-  const effectiveAppLogoId = selectedAppLogoId ?? appBranding?.appLogoId;
-  const effectiveAppLogoUrl = selectedAppLogoId
-    ? adminLogos?.find(l => l.id === selectedAppLogoId)?.url ?? appBranding?.appLogoUrl
-    : appBranding?.appLogoUrl ?? "/logos/h-logo-glass.png";
-  const appBrandingDirty = selectedAppLogoId !== null || (editedAppName !== null && editedAppName !== (appBranding?.appName ?? ""));
+  const visibleLogos = adminLogos?.filter(l => isSuperAdmin || l.visibility !== "super_admin_only");
 
   return (
     <>
-    <div className="grid gap-6 xl:grid-cols-3">
-      <Card className="xl:col-span-2 bg-card border border-border/80 shadow-sm">
+    <div className="space-y-6">
+      <Card className="bg-card border border-border/80 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -182,7 +166,7 @@ export default function LogosTab() {
           </div>
         </CardHeader>
         <CardContent className="relative space-y-4">
-          {!adminLogos || adminLogos.length === 0 ? (
+          {!visibleLogos || visibleLogos.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <IconImage className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
               <p className="text-lg mb-1">No logos yet</p>
@@ -190,7 +174,7 @@ export default function LogosTab() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[...adminLogos].sort((a, b) => {
+              {[...visibleLogos].sort((a, b) => {
                 if (a.isDefault && !b.isDefault) return -1;
                 if (!a.isDefault && b.isDefault) return 1;
                 return a.name.localeCompare(b.name);
@@ -248,71 +232,6 @@ export default function LogosTab() {
         </CardContent>
       </Card>
 
-      <Card className="xl:col-span-1 bg-card border border-border/80 shadow-sm h-fit">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-            <IconSparkles className="w-4 h-4 text-muted-foreground" /> App Identity
-          </CardTitle>
-          <CardDescription className="label-text">
-            Platform logo and name displayed in the sidebar, login page, and headers.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-24 h-24 rounded-xl border-2 border-border bg-gradient-to-br from-primary/5 to-primary/10 p-2 flex items-center justify-center">
-              <img
-                src={effectiveAppLogoUrl}
-                alt="App Logo"
-                className="w-full h-full object-contain"
-                onError={(e) => { (e.target as HTMLImageElement).src = defaultLogo; }}
-                data-testid="img-app-logo-preview"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-foreground text-sm">App Name</Label>
-            <Input
-              value={editedAppName ?? appBranding?.appName ?? ""}
-              onChange={(e) => setEditedAppName(e.target.value)}
-              placeholder="e.g. H+ Analytics"
-              data-testid="input-app-name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-foreground text-sm">Select App Logo</Label>
-            <div className="grid grid-cols-3 gap-2 max-h-[240px] overflow-y-auto">
-              {adminLogos?.map(logo => (
-                <button
-                  key={logo.id}
-                  type="button"
-                  onClick={() => setSelectedAppLogoId(logo.id)}
-                  className={`aspect-square rounded-lg border-2 p-1.5 transition-all ${
-                    effectiveAppLogoId === logo.id
-                      ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                      : "border-border hover:border-primary/40 bg-muted/20"
-                  }`}
-                  data-testid={`btn-select-app-logo-${logo.id}`}
-                >
-                  <img src={logo.url} alt={logo.name} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).src = defaultLogo; }} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Button
-            variant="default"
-            className="w-full"
-            disabled={!appBrandingDirty || updateAppBrandingMutation.isPending}
-            onClick={handleSaveAppBranding}
-            data-testid="button-save-app-branding"
-          >
-            {updateAppBrandingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconSave className="w-4 h-4 mr-2" />}
-            Save App Identity
-          </Button>
-        </CardContent>
-      </Card>
     </div>
 
     <Dialog open={logoDialogOpen} onOpenChange={(open) => { if (!isBusy) { setLogoDialogOpen(open); if (!open) resetLogoForm(); } }}>
