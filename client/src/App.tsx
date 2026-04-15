@@ -80,7 +80,6 @@ const CompanyIcpDefinition = lazy(() => import("@/pages/CompanyIcpDefinition"));
 const CompanyGuidance = lazy(() => import("@/pages/CompanyGuidance"));
 const _ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
-// const Logos = lazy(() => import("@/pages/Logos"));
 const Scenarios = lazy(() => import("@/pages/Scenarios"));
 const PropertyFinder = lazy(() => import("@/pages/PropertyFinder"));
 const Analysis = lazy(() => import("@/pages/Analysis"));

@@ -44,7 +44,7 @@ export interface LoginLog {
   userName: string | null;
 }
 
-export type AdminView = "users" | "activity" | "verification" | "themes" | "branding" | "sidebar" | "database" | "logos";
+export type AdminView = "users" | "activity" | "verification" | "themes" | "branding" | "sidebar" | "database";
 export type ActivitySubView = "login" | "feed" | "sharing" | "checker";
 
 export interface ActivityLogEntry {

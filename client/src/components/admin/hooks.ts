@@ -195,7 +195,7 @@ export function useGenerateLogoImage() {
       const data = await res.json();
       return data.objectPath;
     } catch (error: unknown) {
-      console.error("Failed to enhance logo prompt:", error);
+      console.error("Failed to generate logo image:", error);
       return null;
     } finally {
       setIsGenerating(false);
