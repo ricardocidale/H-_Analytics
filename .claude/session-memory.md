@@ -15,7 +15,8 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **Task 4 DONE**: Canonical PMT hardened. Overflow guard + epsilon zero check.
 - **Task 5 DONE**: 3 audit guard tests (79 tests): vocabulary-compliance, no-raw-number-params, no-fetch-without-timeout.
 - **Task 6 DONE**: Updated claude.md, replit.md, finance/SKILL.md, integrations/SKILL.md, coding-conventions/SKILL.md, session-memory.md.
-- **Task 7 PENDING**: Replit brief for 11 client-side fixes + admin restructuring.
+- **Task 7 PENDING**: Replit brief for 11 client-side fixes + admin restructuring. Brief pasted into Replit.
+- **PDF Export Plan**: `.claude/plans/pdf-export-plan.md`. Key decisions: (1) Two problems, two solutions — HTML+WeasyPrint for financial tables, DOM capture for visual elements. (2) One statement per landscape page, chart follows on next page. (3) Short vs Extended user choice at export time. (4) AI design pass runs OFFLINE (admin triggers, stores DesignProfile in DB), not per-export. (5) WeasyPrint installed on Replit (v68.1). Phase 1 (wire WeasyPrint) ready to execute.
 - **Master plan**: `.claude/plans/master-remediation-plan.md`
 
 ## Session: April 14, 2026 — Codebase Audit + Vocabulary Skill
