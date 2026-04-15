@@ -4,7 +4,7 @@ import { requireAuth, requireAdmin, getAuthUser } from "../auth";
 import { storage } from "../storage";
 import { sendNotificationEmail } from "../integrations/resend";
 import { logger } from "../logger";
-import { logActivity } from "./helpers";
+import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/pinecone-service";
 
@@ -119,8 +119,8 @@ export function register(app: Express) {
 
   app.get("/api/rebecca/conversations/:id/messages", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      const conversationId = parseInt(req.params.id, 10);
-      if (isNaN(conversationId)) {
+      const conversationId = parseRouteId(req.params.id);
+      if (!conversationId) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       const messages = await storage.getRebeccaMessages(conversationId);
@@ -144,8 +144,8 @@ export function register(app: Express) {
 
   app.patch("/api/rebecca/feedback/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      const feedbackId = parseInt(req.params.id, 10);
-      if (isNaN(feedbackId)) {
+      const feedbackId = parseRouteId(req.params.id);
+      if (!feedbackId) {
         return res.status(400).json({ error: "Invalid feedback ID" });
       }
       const statusSchema = z.object({
@@ -196,8 +196,8 @@ export function register(app: Express) {
 
   app.patch("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (isNaN(id)) {
+      const id = parseRouteId(req.params.id);
+      if (!id) {
         return res.status(400).json({ error: "Invalid guardrail ID" });
       }
       const updateSchema = insertRebeccaGuardrailSchema.partial();
@@ -220,8 +220,8 @@ export function register(app: Express) {
 
   app.delete("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (isNaN(id)) {
+      const id = parseRouteId(req.params.id);
+      if (!id) {
         return res.status(400).json({ error: "Invalid guardrail ID" });
       }
       const deleted = await storage.deleteRebeccaGuardrail(id);
@@ -279,8 +279,8 @@ export function register(app: Express) {
 
   app.patch("/api/rebecca/kb/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid KB entry ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid KB entry ID" });
 
       const updateSchema = insertRebeccaKBSchema.partial();
       const parsed = updateSchema.safeParse(req.body);
@@ -309,8 +309,8 @@ export function register(app: Express) {
 
   app.delete("/api/rebecca/kb/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid KB entry ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid KB entry ID" });
 
       const deleted = await storage.deleteRebeccaKBEntry(id);
       if (!deleted) return res.status(404).json({ error: "KB entry not found" });
@@ -329,8 +329,8 @@ export function register(app: Express) {
 
   app.get("/api/rebecca/kb/:id/history", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      const entryId = parseInt(req.params.id, 10);
-      if (isNaN(entryId)) return res.status(400).json({ error: "Invalid KB entry ID" });
+      const entryId = parseRouteId(req.params.id);
+      if (!entryId) return res.status(400).json({ error: "Invalid KB entry ID" });
 
       const history = await storage.getRebeccaKBHistory(entryId);
       return res.json(history);
@@ -342,9 +342,9 @@ export function register(app: Express) {
 
   app.post("/api/rebecca/kb/:id/rollback/:historyId", requireAuth, requireAdmin, async (req: Request<{ id: string; historyId: string }>, res: Response) => {
     try {
-      const entryId = parseInt(req.params.id, 10);
-      const historyId = parseInt(req.params.historyId, 10);
-      if (isNaN(entryId) || isNaN(historyId)) return res.status(400).json({ error: "Invalid IDs" });
+      const entryId = parseRouteId(req.params.id);
+      const historyId = parseRouteId(req.params.historyId);
+      if (!entryId || !historyId) return res.status(400).json({ error: "Invalid IDs" });
 
       const user = getAuthUser(req);
       const restored = await storage.rollbackRebeccaKBEntry(entryId, historyId, user.email);

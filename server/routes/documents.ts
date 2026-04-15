@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { requireAuth, requireManagementAccess, isApiRateLimited, checkPropertyAccess , getAuthUser } from "../auth";
 import { storage } from "../storage";
-import { logActivity, logAndSendError } from "./helpers";
+import { logActivity, logAndSendError, parseRouteId } from "./helpers";
 import { DocumentAIService } from "../integrations/document-ai";
 import { mapExtractionToFields, getConfidenceLevel } from "../document-ai/field-mapper";
 import { DOCUMENT_TEMPLATES, renderTemplate } from "../document-ai/templates";
@@ -153,8 +153,8 @@ export function register(app: Express) {
 
   app.get("/api/documents/extractions/:propertyId", requireAuth, async (req, res) => {
     try {
-      const propertyId = parseInt(String(req.params.propertyId));
-      if (isNaN(propertyId)) {
+      const propertyId = parseRouteId(req.params.propertyId);
+      if (!propertyId) {
         return res.status(400).json({ error: "Invalid property ID" });
       }
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
@@ -170,8 +170,8 @@ export function register(app: Express) {
 
   app.get("/api/documents/extractions/:extractionId/fields", requireAuth, async (req, res) => {
     try {
-      const extractionId = parseInt(String(req.params.extractionId));
-      if (isNaN(extractionId)) {
+      const extractionId = parseRouteId(req.params.extractionId);
+      if (!extractionId) {
         return res.status(400).json({ error: "Invalid extraction ID" });
       }
 
@@ -195,7 +195,8 @@ export function register(app: Express) {
 
   app.patch("/api/documents/fields/:fieldId/status", requireManagementAccess, async (req, res) => {
     try {
-      const fieldId = parseInt(String(req.params.fieldId));
+      const fieldId = parseRouteId(req.params.fieldId);
+      if (!fieldId) return res.status(400).json({ error: "Invalid field ID" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
@@ -255,7 +256,8 @@ export function register(app: Express) {
 
   app.post("/api/documents/fields/:extractionId/bulk-status", requireManagementAccess, async (req, res) => {
     try {
-      const extractionId = parseInt(String(req.params.extractionId));
+      const extractionId = parseRouteId(req.params.extractionId);
+      if (!extractionId) return res.status(400).json({ error: "Invalid extraction ID" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: fromZodError(validation.error).message });

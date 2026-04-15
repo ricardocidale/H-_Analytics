@@ -7,7 +7,7 @@ import {
 import { fetchMacroRates } from "../ai/ambient/fetchers";
 import { storage } from "../storage";
 import { logger } from "../logger";
-import { logActivity } from "./helpers";
+import { logActivity, parseRouteId } from "./helpers";
 import type { Property } from "@shared/schema";
 
 export const riskIntelligenceRoutes = Router();
@@ -58,8 +58,8 @@ riskIntelligenceRoutes.get(
     }
 
     try {
-      const propertyId = parseInt(String(req.params.propertyId), 10);
-      if (isNaN(propertyId)) {
+      const propertyId = parseRouteId(req.params.propertyId);
+      if (!propertyId) {
         return res.status(400).json({ error: "Invalid property ID" });
       }
 

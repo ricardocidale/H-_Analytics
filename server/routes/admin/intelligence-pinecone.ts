@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, getAuthUser } from "../../auth";
-import { logAndSendError, logActivity } from "../helpers";
+import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { z } from "zod";
 
 import { isPineconeAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type PineconeNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/pinecone-service";
@@ -28,8 +28,8 @@ export function registerPineconeRoutes(app: Express) {
 
   app.patch("/api/admin/intelligence/financial-lines/:id/approve", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
       const user = getAuthUser(req);
       const existing = await storage.getEngineSuggestedLineById(id);
       if (!existing) return res.status(404).json({ error: "Suggestion not found" });
@@ -60,8 +60,8 @@ export function registerPineconeRoutes(app: Express) {
 
   app.patch("/api/admin/intelligence/financial-lines/:id/reject", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
       const body = z.object({ reason: z.string().min(1).max(500) }).safeParse(req.body);
       if (!body.success) return res.status(400).json({ error: "Rejection reason is required (1-500 chars)" });
       const user = getAuthUser(req);

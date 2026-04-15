@@ -524,7 +524,8 @@ Rewritten description:`;
   // Walk Score — property-level walkability, transit, and bike scores
   app.get("/api/properties/:id/walk-score", requireAuth, async (req, res) => {
     try {
-      const propertyId = parseInt(String(req.params.id));
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
         return res.status(403).json({ error: "Access denied" });

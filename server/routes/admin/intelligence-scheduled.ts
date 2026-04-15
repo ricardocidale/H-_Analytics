@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
-import { logAndSendError, logActivity } from "../helpers";
+import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { insertScheduledResearchWorkflowSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { executeScheduledWorkflow } from "../../ai/ambient/research-scheduler";
@@ -32,8 +32,8 @@ export function registerScheduledResearchRoutes(app: Express) {
 
   app.put("/api/admin/scheduled-research/:id", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id as string, 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid workflow ID" });
 
       const existing = await storage.getScheduledResearchWorkflowById(id);
       if (!existing) return res.status(404).json({ error: "Workflow not found" });
@@ -59,8 +59,8 @@ export function registerScheduledResearchRoutes(app: Express) {
 
   app.delete("/api/admin/scheduled-research/:id", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id as string, 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid workflow ID" });
       await storage.deleteScheduledResearchWorkflow(id);
       logActivity(req, "delete-scheduled-workflow", "scheduled_research", id);
       res.json({ success: true });
@@ -71,8 +71,8 @@ export function registerScheduledResearchRoutes(app: Express) {
 
   app.post("/api/admin/scheduled-research/:id/execute", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id as string, 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid workflow ID" });
 
       const workflow = await storage.getScheduledResearchWorkflowById(id);
       if (!workflow) return res.status(404).json({ error: "Workflow not found" });
@@ -142,8 +142,8 @@ export function registerScheduledResearchRoutes(app: Express) {
 
   app.post("/api/research/scheduled/:id/execute", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id as string, 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid workflow ID" });
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid workflow ID" });
 
       const workflow = await storage.getScheduledResearchWorkflowById(id);
       if (!workflow) return res.status(404).json({ error: "Workflow not found" });
