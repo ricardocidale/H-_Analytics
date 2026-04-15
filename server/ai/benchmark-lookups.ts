@@ -408,3 +408,105 @@ export async function validateAllAssumptions(
 
   return results;
 }
+
+// ── Data Quality Scoring ────────────────────────────────────────────────────
+
+export interface DataQuality {
+  sourceCount: number;
+  sourceTypes: Array<"db_table" | "api" | "web" | "estimated">;
+  dataAgeDays: number | null;
+  rangeSpreadPct: number | null;
+  sourcesConverge: boolean;
+  qualityScore: number;
+  qualityNarrative: string;
+}
+
+/**
+ * Compute a data quality score for a range recommendation.
+ * Answers: "How much should the user trust this range?"
+ *
+ * The score is a composite of 4 factors, each worth 25 points (max 100):
+ * - Source count: more independent sources = higher quality
+ * - Freshness: recent data scores higher
+ * - Convergence: sources agreeing = higher quality
+ * - Source type: verified DB/API > web research > LLM estimation
+ */
+export function computeDataQuality(params: {
+  sourceCount: number;
+  sourceTypes: Array<"db_table" | "api" | "web" | "estimated">;
+  dataAgeDays: number | null;
+  valueLow: number | null;
+  valueMid: number | null;
+  valueHigh: number | null;
+  sourcesConverge?: boolean;
+}): DataQuality {
+  const { sourceCount, sourceTypes, dataAgeDays, valueLow, valueMid, valueHigh } = params;
+
+  // Factor 1: Source count (25 pts)
+  // 0 sources = 0, 1 = 8, 2 = 15, 3 = 20, 4+ = 25
+  const countScore = sourceCount === 0 ? 0
+    : sourceCount === 1 ? 8
+    : sourceCount === 2 ? 15
+    : sourceCount === 3 ? 20
+    : 25;
+
+  // Factor 2: Freshness (25 pts)
+  // < 7 days = 25, < 30 = 20, < 90 = 12, < 365 = 5, older/unknown = 0
+  const freshScore = dataAgeDays == null ? 5
+    : dataAgeDays < 7 ? 25
+    : dataAgeDays < 30 ? 20
+    : dataAgeDays < 90 ? 12
+    : dataAgeDays < 365 ? 5
+    : 0;
+
+  // Factor 3: Source convergence (25 pts)
+  // Range spread as % of mid — tighter = better
+  let rangeSpreadPct: number | null = null;
+  let convergeScore = 12; // default: unknown
+  const sourcesConverge = params.sourcesConverge ?? false;
+
+  if (valueLow != null && valueHigh != null && valueMid != null && Math.abs(valueMid) > 1e-6) {
+    rangeSpreadPct = Math.round(((valueHigh - valueLow) / Math.abs(valueMid)) * 100);
+    if (rangeSpreadPct <= 10) convergeScore = 25;
+    else if (rangeSpreadPct <= 20) convergeScore = 20;
+    else if (rangeSpreadPct <= 30) convergeScore = 15;
+    else if (rangeSpreadPct <= 50) convergeScore = 8;
+    else convergeScore = 3;
+  }
+
+  // Factor 4: Source type quality (25 pts)
+  // db_table/api = 25, web = 15, estimated = 5, mixed = weighted average
+  const TYPE_WEIGHTS: Record<string, number> = { db_table: 25, api: 22, web: 15, estimated: 5 };
+  const typeScore = sourceTypes.length > 0
+    ? Math.round(sourceTypes.reduce((sum, t) => sum + (TYPE_WEIGHTS[t] ?? 10), 0) / sourceTypes.length)
+    : 5;
+
+  const qualityScore = Math.min(100, countScore + freshScore + convergeScore + typeScore);
+
+  // Narrative
+  const level = qualityScore >= 75 ? "high" : qualityScore >= 45 ? "moderate" : "developing";
+  let narrative: string;
+
+  if (level === "high") {
+    narrative = `High quality range — backed by ${sourceCount} verified source${sourceCount > 1 ? "s" : ""}${rangeSpreadPct != null ? `, ${rangeSpreadPct}% spread` : ""}. Defensible to investors.`;
+  } else if (level === "moderate") {
+    const gaps: string[] = [];
+    if (countScore < 15) gaps.push("limited sources");
+    if (freshScore < 12) gaps.push("older data");
+    if (convergeScore < 15) gaps.push("wide range");
+    if (typeScore < 15) gaps.push("web-sourced");
+    narrative = `Moderate quality — ${gaps.join(", ")}. Consider asking The Analyst to refresh with more market data.`;
+  } else {
+    narrative = `Developing — The Analyst is working with limited data for this market. Range will tighten as more properties are added and research accumulates.`;
+  }
+
+  return {
+    sourceCount,
+    sourceTypes,
+    dataAgeDays,
+    rangeSpreadPct,
+    sourcesConverge: convergeScore >= 20,
+    qualityScore,
+    qualityNarrative: narrative,
+  };
+}
