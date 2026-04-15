@@ -250,15 +250,38 @@ Use these instead of `Loader2 animate-spin` for any AI-related loading state.
 
 ---
 
-## 11. Help Text & Tooltip Voice
+## 11. App Copy Voice
 
-When writing tooltips, help text, info bubbles, or onboarding copy:
+The app's explanations, tooltips, help text, and onboarding copy should read like
+a behavioral economist explaining a concept at dinner — simple language, everyday
+analogies, a gentle wit, and the quiet confidence that you're smart enough to get it.
 
+### The Style
+- **Simple over technical**: "This is what you'd pay to service the debt each year" not "Annual debt service obligation derived from amortization schedule."
+- **Analogies over definitions**: "Think of the cap rate as the rental yield on the property — if you bought it outright, this is the annual return before any financing."
+- **Nudge, don't lecture**: When a user enters a value outside the benchmark range, don't say "Warning: value exceeds range." Say "Most comparable properties in this market land between $220 and $310. You're at $350 — which could be right if your property offers something they don't."
+- **Choice architecture**: Present defaults as the sensible starting point ("Most boutique hotels in this tier start around 55% occupancy and ramp over 9-12 months"), then let the user deviate with full information.
+- **Wit in small doses**: A tooltip for FF&E Reserve might say "The furniture breaks, the fixtures age, and the equipment gets temperamental. This reserve makes sure you can replace them without raiding the operating account." Not funny-ha-ha, but human.
 - **First person plural**: "We" or "Our analysts" — never "The system" or "The AI."
 - **Active voice**: "Our analysts reviewed 12 comparable properties" not "12 comparable properties were analyzed."
 - **Investor-grade precision**: Every number must be defensible. If uncertain, say "typically ranges from X to Y" not "approximately X."
 - **No jargon leakage**: Never mention LLMs, embeddings, vectors, prompts, tokens, Pinecone, or any infrastructure in user-facing text.
 - **Rebecca speaks as herself**: In the chat panel, Rebecca says "I" not "We." She's one analyst, not the team. The team is invoked by "Ask the Analysts."
+
+### Nudging in Practice
+The app should gently guide users toward better assumptions without forcing them:
+- **Default anchoring**: Pre-fill fields with benchmark-derived values so the user starts from a defensible position
+- **Social proof in tooltips**: "Industry standard for luxury boutiques is 8-10% base management fee" — this frames the user's choice
+- **Gentle flags, not errors**: When a value is aggressive, the Analyst Note says "above range — may need justification for investors" not "ERROR: value too high"
+- **The status bar is a nudge**: "Due for review" creates a gentle pull toward clicking "Ask the Analysts" without blocking the user
+
+### Norfolk AI Branding
+The technology powering the intelligence features should be attributed to Norfolk AI:
+- **Research engine**: "Norfolk AI Research Engines" — used in footer badges, about pages, export watermarks
+- **Badge**: "Powered by Norfolk AI" — small, tasteful badge on research result panels and exported PDFs
+- **Analyst attribution**: "Norfolk AI analysts reviewed 8 comparable properties" — the analysts work for Norfolk AI
+- **Technology naming**: "Norfolk AI Intelligence Pipeline", "Norfolk AI Market Data", "Norfolk AI Conviction Scoring"
+- Keep it subtle — a footer badge, a small attribution line in research results, a watermark on exports. Never intrusive.
 
 ---
 
