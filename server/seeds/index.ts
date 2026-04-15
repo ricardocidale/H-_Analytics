@@ -9,6 +9,7 @@ import { seedHospitalityBenchmarks } from "./hospitality-benchmarks";
 import { seedMarketDataTables } from "./market-data-tables";
 import { seedSourceRegistry } from "./source-registry";
 import { seedPropertyPhotos } from "./photos";
+import { seedKnowledgeBase } from "./knowledge-base-seeds";
 import { indexPropertyProfile } from "../ai/pinecone-service";
 import { logger } from "../logger";
 
@@ -122,6 +123,8 @@ export async function seed() {
 
     await indexAllPropertiesToPinecone();
 
+    await seedKnowledgeBase();
+
     logger.info("Database seed completed successfully!", "seed");
   } catch (err: unknown) {
     logger.error(`Seed failed — rolling back inserted data so --force re-run is safe: ${err instanceof Error ? err.message : String(err)}`, "seed");
@@ -174,4 +177,5 @@ export {
   seedPropertyPhotos,
   seedMedellinDuplex,
   seedMedellinDuplexPhotos,
+  seedKnowledgeBase,
 };
