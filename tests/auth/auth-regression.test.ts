@@ -223,8 +223,8 @@ describe("requireManagementAccess middleware", () => {
     expect(next).toHaveBeenCalled();
   });
 
-  it("calls next for partner role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.PARTNER }) });
+  it("calls next for super_admin role", () => {
+    const req = mockReq({ user: mockUser({ role: UserRole.SUPER_ADMIN }) });
     const res = mockRes();
     const next = mockNext();
     requireManagementAccess(req, res, next);
@@ -288,14 +288,14 @@ describe("cleanupRateLimitMaps", () => {
 });
 
 describe("Auth role access matrix", () => {
-  const roles = [UserRole.ADMIN, UserRole.USER, UserRole.CHECKER, UserRole.INVESTOR, UserRole.PARTNER] as const;
+  const roles = [UserRole.ADMIN, UserRole.USER, UserRole.CHECKER, UserRole.INVESTOR, UserRole.SUPER_ADMIN] as const;
 
   const expectedRequireAuth: Record<string, boolean> = {
     admin: true,
     user: true,
     checker: true,
     investor: true,
-    partner: true,
+    super_admin: true,
   };
 
   const expectedRequireAdmin: Record<string, boolean> = {
@@ -303,7 +303,7 @@ describe("Auth role access matrix", () => {
     user: false,
     checker: false,
     investor: false,
-    partner: false,
+    super_admin: true,
   };
 
   const expectedRequireChecker: Record<string, boolean> = {
@@ -311,7 +311,7 @@ describe("Auth role access matrix", () => {
     user: false,
     checker: true,
     investor: false,
-    partner: false,
+    super_admin: true,
   };
 
   const expectedManagementAccess: Record<string, boolean> = {
@@ -319,7 +319,7 @@ describe("Auth role access matrix", () => {
     user: true,
     checker: true,
     investor: false,
-    partner: true,
+    super_admin: true,
   };
 
   for (const role of roles) {

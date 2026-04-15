@@ -43,6 +43,20 @@ vi.mock("../../shared/regulatory-data", () => ({
   getRegulatoryProfile: (...args: unknown[]) => mockGetRegulatoryProfile(...args),
 }));
 
+// Mock benchmark-lookups (priority-0 pre-collected tables)
+const mockLookupMarketAdr = vi.fn().mockResolvedValue(null);
+const mockLookupSeasonalCurve = vi.fn().mockResolvedValue(null);
+const mockLookupEventCalendar = vi.fn().mockResolvedValue(null);
+const mockLookupLaborCosts = vi.fn().mockResolvedValue(null);
+const mockLookupFbBenchmarks = vi.fn().mockResolvedValue(null);
+vi.mock("../../server/ai/benchmark-lookups", () => ({
+  lookupMarketAdr: (...args: unknown[]) => mockLookupMarketAdr(...args),
+  lookupSeasonalCurve: (...args: unknown[]) => mockLookupSeasonalCurve(...args),
+  lookupEventCalendar: (...args: unknown[]) => mockLookupEventCalendar(...args),
+  lookupLaborCosts: (...args: unknown[]) => mockLookupLaborCosts(...args),
+  lookupFbBenchmarks: (...args: unknown[]) => mockLookupFbBenchmarks(...args),
+}));
+
 // Mock all service constructors to return controllable instances.
 // IMPORTANT: vi.mock factories must use `function` keyword for constructors,
 // not arrow functions, because `new` requires a proper constructor.
@@ -265,6 +279,13 @@ beforeEach(() => {
   mockWalkScoreFetchScores.mockResolvedValue(null);
   mockGetCountryDefaults.mockReturnValue(null);
   mockGetRegulatoryProfile.mockReturnValue(null);
+
+  // Pre-collected tables return null by default (tests mock specific services)
+  mockLookupMarketAdr.mockResolvedValue(null);
+  mockLookupSeasonalCurve.mockResolvedValue(null);
+  mockLookupEventCalendar.mockResolvedValue(null);
+  mockLookupLaborCosts.mockResolvedValue(null);
+  mockLookupFbBenchmarks.mockResolvedValue(null);
 });
 
 afterEach(() => {
