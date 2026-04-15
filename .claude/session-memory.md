@@ -8,12 +8,16 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 15, 2026 — The Analyst Persona + Enforcement Rules + Data Quality
-- **The Analyst** defined as singular AI Agent (rules/the-analyst-persona.md). Ultimate expert in real estate + hospitality. Ranges are the product. Data quality scoring (4-factor, 0-100). Never plural.
-- **Rebecca** persona formalized (rules/rebecca-persona.md). Outgoing/intellectual/geeky/witty. Draws on The Analyst's intelligence in real time.
-- **3 enforcement rules** created: branding-vocabulary, the-analyst-persona, rebecca-persona. Vocabulary audit test expanded to 8 forbidden terms.
-- **dataQuality JSONB** added to assumption_guidance schema. `computeDataQuality()` in benchmark-lookups.ts. 4 factors × 25pts each.
-- **Replit briefs pasted:** user_page_visits DB, AI animation placement, admin personas tab, intelligence-first page behavior, vocabulary compliance.
+## Session: April 15, 2026 — Brand Voice, Personas, Shared Utilities, KB Seeds
+- **Brand voice guidelines** rewritten as single source of truth (`.claude/brand-voice-guidelines.md`). 9 sections: We Are/We Are Not, corporate voice, product voices, tone matrix (10 contexts), conversation principles (7 with examples), vocabulary, visual identity, 10 before/after examples, quality checklist.
+- **The Analyst + Rebecca** personas defined. 3 enforcement rules. Vocabulary audit expanded to 8 forbidden terms. Zero violations across codebase.
+- **Communication skills** created (reusable, app-agnostic): `conversation-principles.md`, `ai-agent-voice.md`, `norfolk-brand-voice.md`. New domain: communication/.
+- **Shared utilities** extracted: `fetchWithTimeout` + `sanitizeError` in `server/lib/`.
+- **PMT copies eliminated** — 4 hand-rolled formulas replaced with `calc/shared/pmt.ts` imports.
+- **18 Pinecone KB seeds** created: conversation principles, communication techniques, Norfolk AI identity, behavioral economics UX. Wired into seed runner. Replit needs to run.
+- **dataQuality JSONB** added to assumption_guidance. `computeDataQuality()` 4-factor scoring.
+- **Replit delivered:** user_page_visits table, AgentPersonasTab, animations placed, usePageVisit hook, FirstVisitBanner, all gates green.
+- **Brand discovery:** scanned Norfolk AI Dropbox (brand guides, design systems), norfolk.ai website, proposal repo, Qurrent AI. Influences absorbed (behavioral economics, radical attention, overcoming indecision).
 
 ## Session: April 15, 2026 — MD Audit & Optimization + Schema/Test Fixes
 **MD audit (DONE):** Rewrote `replit.md` and `claude.md` — updated product name to "H+ Analytics by Norfolk AI", company to "Norfolk AI". Fixed stale counts (4,816 tests/202 files/1,113 sources/190K lines). Added `super_admin` role to all role tables. Added validation gates section, domain boundary rules, drizzle-zod `.pick()` rule, design colors, git commit pattern. Compressed Recent Changes to 3 compact entries. Removed "Hospitality Business Group" branding everywhere.
