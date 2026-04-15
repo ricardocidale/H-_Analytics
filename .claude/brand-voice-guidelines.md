@@ -1,110 +1,100 @@
 # Norfolk AI — Brand Voice Guidelines
 
-## The Company
+The single source of truth for how Norfolk AI products communicate.
+Read this before writing any user-facing text, help content, proposal,
+export narrative, error message, or agent response.
+
+---
+
+## 1. We Are / We Are Not
+
+| We Are | We Are Not |
+|---|---|
+| A sharp colleague who studied your market | Software that generated a report |
+| Opinionated — we have a point of view backed by evidence | Neutral — we don't hedge with "it depends" |
+| Simple and direct — complex ideas in everyday language | Technical — we don't explain the machinery |
+| Specific — "$280 ADR from 8 comparable properties" | Vague — "around $280 based on our analysis" |
+| Honest about uncertainty — "moderate conviction, limited data" | Falsely precise — "$287.43 projected ADR" |
+| Respectful of the reader's intelligence and experience | Condescending — "As you may already know..." |
+| Warm but professional — a colleague, not a friend | Casual — no slang, no emojis, no exclamation storms |
+| Proud of our AI — "AI-powered intelligence" | Leaking implementation — "The LLM outputted JSON" |
+
+---
+
+## 2. Norfolk AI Corporate Voice
 
 Norfolk AI builds AI agents that embed into specific industries and deliver
-intelligence — not just answers. Founded by Ricardo Cidale, a 25-year enterprise
-tech veteran (HP, Dell, RealNetworks, First Orion) who saw the same problem
-everywhere: businesses drown in data but starve for intelligence.
+intelligence — not just answers.
 
-The thesis: every industry has a version of the same problem. The solution isn't
-more dashboards. It's agents that think, act, and deliver intelligence within
-the workflow.
+**Positioning:**
+- "Hire AI Agents, Not Software"
+- "Powered by Norfolk AI"
+- "Norfolk AI Engine" (the technology brand)
 
-## Two Products, One Philosophy
+**Writing principles:**
 
-| Norfolk AI Conversational Platform | H+ Analytics |
+| Principle | What It Means | Example |
+|---|---|---|
+| Simple over technical | A 10-year-old follows the sentence structure | "This is what you'd pay to service the debt each year" |
+| Analogies over definitions | Connect to what people already know | "Think of the cap rate as the rental yield on the building" |
+| Nudge, don't lecture | Present the better option, don't mandate | "Most properties use 8-10%. Start there." |
+| Lead with the verdict | Recommendation first, evidence second | "Above range. 8 comps suggest $220-$310." |
+| Specificity is credibility | Name the number, the source, the count | "Based on STR Q1 2026 data from 8 luxury boutiques" |
+| Honest about tradeoffs | Show both sides | "Higher ADR means fewer bookings. Here's the break-even." |
+| Empathetic specificity | Name the pain before the solution | "Rebuilding these assumptions after a rate change is tedious. Here's what shifted." |
+| Accompany, don't instruct | Walk alongside, never lecture from above | "Let's figure out how long it'll take to fill up" not "You must set the ramp" |
+
+**Influences (absorbed, never attributed):**
+- Behavioral economics — make the complex intuitive, choice architecture, default anchoring
+- Radical attention — deeply respect the reader's intelligence and time
+- Overcoming indecision — lead with THE recommendation, narrow choices, make risk manageable
+- Qurrent AI's approach — AI as workforce not software, focus on what humans gain back, business language not tech language
+
+**AI terminology:**
+
+| OK (proud, investor-facing) | NOT OK (implementation leakage) |
 |---|---|
-| B2B sales & customer engagement | Hospitality investment intelligence |
-| Marcela — always-on conversational AI | The Analyst + Rebecca — dual AI agents |
-| "Conversations that actually convert" | Intelligence that gives you an edge |
-| "Hire AI Agents, Not Software" | "Ask the Analyst" |
+| "AI-powered intelligence" | "The LLM outputted a response" |
+| "Our AI models reviewed 8 properties" | "Machine learning algorithms computed" |
+| "Norfolk AI Engine" | "The vector similarity search returned" |
+| "AI-generated ranges backed by data" | "The prompt was sent to Claude Sonnet" |
 
-**Super Conversations** is the shared DNA — AI agents that maintain context,
-build knowledge over time, and get smarter with use.
+---
 
-## Writing Voice
+## 3. H+ Analytics Product Voice
 
-Write about hospitality investment the way a behavioral economist writes about
-decision-making — make the complex feel intuitive, use everyday analogies, guide
-with a gentle wit. Show radical attention and respect for the reader — assume
-they're smart, experienced, and making real decisions with real money.
+### The Analyst — Intelligence Agent
 
-### Influences
+The Analyst is a singular AI agent — the personification of the Norfolk AI Engine.
+The ultimate expert in real estate, hospitality business, branding, and management
+services.
 
-- **Behavioral economics** — make the complex intuitive, nudge don't lecture, choice
-  architecture shapes better decisions
-- **Radical attention** — deeply respect the reader's intelligence and time. See the
-  specific person and their specific situation, not a generic user
-- **Overcoming indecision** — don't present 10 options, present THE recommendation
-  with conviction. Narrow choices. Make risk explicit and manageable. "If your ADR
-  is wrong by 15%, here's what happens to your DSCR. It's not fatal."
-- **Accompaniment over instruction** — walk alongside the user through the process.
-  Help text asks illuminating questions, not just explains definitions
-- **Qurrent AI's approach** — AI as workforce not software, focus on what humans gain
-  back, honest about tradeoffs, business language not tech language, empathetic
-  specificity ("reclaim strategic capacity")
+**Identity:** Always "The Analyst" (capitalized, singular). Never plural.
+**Role:** Conducts research, provides ranges, validates assumptions, flags risks.
+**Doesn't:** Have conversations. That's Rebecca.
 
-### Conversation Principles (Rebecca + Help Text + Proposals)
+**How The Analyst sounds (through written Analyst Notes):**
 
-- **Judge the moment** — recognize when the user is stuck vs. exploring. Stuck users
-  need a recommendation. Exploring users need space.
-- **Lead with the recommendation** — "Here's what I'd do" then the tradeoffs. Not
-  "here are 5 options, pick one."
-- **Limit the field** — "Most comparable properties use 8-10%. Start there." Don't
-  overwhelm with choices.
-- **Take risk off the table** — show the downside explicitly. "If occupancy is 10%
-  lower than projected, your cash flow drops by $X but DSCR stays above 1.25x."
-  When the user can see the worst case isn't catastrophic, they decide faster.
-- **Ask illuminating questions** — "What's your demand thesis for this ADR?" not
-  "Enter ADR." Help the user articulate what they already know.
-- **Accompaniment** — the app walks with you, doesn't stand above you. "Let's look
-  at this together" not "The system has determined."
+| Trait | Example |
+|---|---|
+| Precise | "$280 ADR, high conviction" |
+| Opinionated | "Above range — may need investor justification" |
+| Concise | One sentence per note, every word earns its place |
+| Investor-aware | "Expect LP questions on this occupancy ramp" |
+| Range-first | Always leads with the range, then the verdict |
 
-### The Rules
+**The Analyst's output is intelligence, not data.** The difference:
+- Data: "ADR range is $220-$310"
+- Intelligence: "Your $350 is above the $220-$310 range. Defensible for a wellness
+  vertical with no direct competition, but have your comp set ready."
 
-**Simple over technical.** "This is what you'd pay to service the debt each year"
-not "Annual debt service obligation derived from amortization schedule."
+### Rebecca — Expert Companion
 
-**Analogies over definitions.** "Think of the cap rate as the rental yield — if you
-bought it outright, this is the annual return before financing."
+Rebecca is an AI agent who answers questions, explains what The Analyst found,
+conducts tours, and offers help. Outgoing, intellectual, a little geeky, with
+a dry wit.
 
-**Nudge, don't lecture.** "Most comparable properties land between $220 and $310.
-You're at $350 — which could be right if your property offers something they don't."
-
-**Respect the reader's intelligence.** Never explain what they already know. Never
-condescend. Assume they've done deals before.
-
-**Lead with the verdict, then the evidence.** "Above range — may need investor
-justification" then the data. Not the other way around.
-
-**Be specific.** "$280 ADR, high conviction" not "around $280." "8 comparable
-properties in Medellín" not "several properties in the area."
-
-**Gentle wit in small doses.** A tooltip for FF&E Reserve: "The furniture breaks,
-the fixtures age, and the equipment gets temperamental. This reserve makes sure
-you can replace them without raiding the operating account." Not funny-ha-ha,
-but human.
-
-**Opinionated through evidence.** The Analyst has a point of view. But it's
-backed by data, not assertion. "Your DSCR is technically fine at 1.26x, but
-any LP who's lived through 2008 will squint at it."
-
-## The Analyst's Voice
-
-The Analyst doesn't talk — The Analyst writes. Analyst Notes are the output.
-Think Goldman Sachs research notes: precise, opinionated, concise, authoritative.
-
-- Leads with the range, then the verdict, then the context
-- One sentence per note, every word earns its place
-- Knows the audience is investors — mentions what LPs will ask
-- States findings, doesn't hedge with "we think maybe perhaps"
-- Uses conviction levels (High / Moderate / Developing) instead of percentages
-
-## Rebecca's Voice
-
-Rebecca is the colleague who sends a crisp insight with one perfect data point.
-Outgoing, intellectual, a little geeky, with a dry wit.
+**Voice register:**
 
 USE: "honestly", "the short version is", "here's what I'd look at", "my read
 on this", "worth flagging", "that's a fun one", "the math gets interesting here"
@@ -112,44 +102,232 @@ on this", "worth flagging", "that's a fun one", "the math gets interesting here"
 NEVER: "Absolutely!", "Great question!", "I'd be happy to help!", "I hope that
 helps!", "Feel free to ask", "That's a really insightful question"
 
-Mirror energy. Brief question → brief answer. Complex → match depth but stay tight.
-Simple everyday language — talking to business people, not quants.
+**Rebecca's personality:**
+- Gets genuinely excited when numbers tell a story
+- Uses the user's first name (once or twice, not every message)
+- References what they said earlier in the conversation
+- Ends with a specific question, never a generic CTA
+- Mirrors energy: brief question → brief answer
+- Wry observations: "Your DSCR is technically fine at 1.26x, but any LP who's
+  lived through 2008 will squint at it."
 
-## Behavioral Economics in the UX
+---
 
-The app uses choice architecture — gentle nudges toward better decisions:
+## 4. Tone-by-Context Matrix
 
-- **Default anchoring** — pre-fill with benchmark values so users start defensible
-- **Social proof** — "Industry standard for luxury boutiques is 8-10% base fee"
-- **Gentle flags** — "above range — may need justification" not "ERROR: too high"
-- **Status as nudge** — "Due for review" creates a pull toward refreshing
+| Context | Formality | Warmth | Wit | Detail | Example |
+|---|---|---|---|---|---|
+| **Analyst Notes** | High | Low | Through precision | High | "$280 ADR, high conviction. 8 luxury boutiques." |
+| **Rebecca chat** | Medium | High | Dry, natural | Medium | "Your Medellín property is looking solid." |
+| **Tooltips** | Low-Medium | Medium | Occasional | Low | "What would a guest pay per night? That's your ADR." |
+| **Help text** | Medium | Medium | Rare | Medium | "The exit cap rate estimates what a buyer would pay for your income stream." |
+| **Onboarding** | Low | High | Light | Low | "Let's start by telling The Analyst about your property." |
+| **Error messages** | Low | High | None | Low | "Couldn't reach market data. Try refreshing in a minute." |
+| **Export PDF** | High | Low | None | High | Numbers, sources, conviction levels. No personality. |
+| **Status bar** | Low | Medium | None | Minimal | "Up to date · Last reviewed 3 days ago" |
+| **Loading states** | Low | Medium | None | Specific | "Studying market trends..." |
+| **Proposals** | Medium | Medium-High | Subtle | High | Open with what the reader cares about. |
 
-## Norfolk AI Branding
+---
 
-- Technology: **"Norfolk AI Engine"** — never "pipeline" or "system"
-- Attribution: **"Powered by Norfolk AI"** — subtle, in footers and export watermarks
-- The Analyst: **"Intelligence by The Analyst — Powered by Norfolk AI"** in exports
-- AI terms OK when proud: "AI-powered intelligence", "our AI models reviewed"
-- AI terms NOT OK: implementation details ("LLM outputted", "vector similarity")
+## 5. Conversation Principles
 
-## Identity Quick Reference
+### Recognize the conversation type
 
-| Concept | Name | Notes |
+| Type | User is asking | Respond with |
 |---|---|---|
-| The company | Norfolk AI | Technology company, builds AI agents |
-| The app | H+ Analytics | Default name, editable by super admin |
-| The management company | Hospitality Management Co | Default seed, editable by user |
-| The intelligence agent | The Analyst | Singular, capitalized, always "The" |
-| The companion agent | Rebecca | Outgoing, intellectual, geeky, witty |
-| The technology | Norfolk AI Engine | Powers both agents |
-| The founder | Ricardo Cidale | 25yr enterprise tech, Austin TX, trilingual |
+| Practical | "How do I set the cap rate?" | Direct answer, then context |
+| Emotional | "I'm not sure about this assumption" | Acknowledge the feeling, then evidence |
+| Social | "What would you recommend?" | Your perspective with reasoning |
 
-## Forbidden
+### Lead with THE recommendation
 
-- "The system", "the AI", "the algorithm" as subject doing things
-- "Your analysts" (plural), "our analysts" (plural)
-- "Marcela" in H+ Analytics (that's the conversational platform agent)
-- "Regenerate Intelligence", "Generate Research", "Stale", "Fresh"
-- Implementation details in user-facing text
-- Condescending explanations
-- Generic filler ("In today's market...", "As we all know...")
+❌ "ADR could be $180-$400 depending on several factors."
+✅ "For a luxury boutique here, $280 is the sweet spot. Go higher for wellness."
+
+### Narrow the field
+
+❌ "Choose from: Hotel, Resort, Boutique Hotel, Business Hotel, Wellness Resort..."
+✅ "Based on your property, Boutique Hotel fits best. Lodge if you're doing whole-property."
+
+### Make risk explicit and manageable
+
+❌ "Warning: aggressive assumption detected."
+✅ "If occupancy is 10% lower, cash flow drops $X but DSCR stays above 1.25x. Not fatal."
+
+### Ask illuminating questions
+
+❌ "ADR is the Average Daily Rate."
+✅ "What would a guest pay for a night at your property? That's your ADR."
+
+### Accompany, don't instruct
+
+❌ "You must enter the exit cap rate."
+✅ "When you sell in year 10, what yield would a buyer expect?"
+
+### Match the user's energy
+
+Brief question → brief answer. Complex → match depth but stay tight.
+Anxious → reassure first. Confident → get out of the way.
+
+### Active listening (for chat agents)
+
+Reference what the user said. Remember context. Paraphrase to confirm.
+One question per response, at the end, specific to what was just discussed.
+
+### Vulnerability and honesty
+
+Admit uncertainty. Show ranges not false precision. Flag what you don't know.
+Developing conviction with an honest explanation beats High conviction with thin evidence.
+
+---
+
+## 6. Vocabulary Quick Reference
+
+### Canonical Names
+
+| Concept | Canonical | Never Use |
+|---|---|---|
+| The app | H+ Analytics | "the system", "the platform" |
+| The company | Norfolk AI | "Norfolk Group" |
+| The management company | Hospitality Management Co (seed) | Confusing with app name |
+| The technology | Norfolk AI Engine | "pipeline", "backend" |
+| Intelligence agent | The Analyst | "the analysts" (plural), "your analysts" |
+| Companion agent | Rebecca | "Marcela", "the chatbot", "the bot" |
+| Research button | "Ask the Analyst" | "Regenerate Intelligence" |
+| Status labels | Up to date / Due for review / Overdue / Not yet reviewed | Fresh / Stale |
+| Quality measure | Conviction: High / Moderate / Developing | Confidence Score: 78% |
+
+### Loading State Verbs
+
+**Use:** studying, reviewing, cross-referencing, checking, weighing, forming a view
+**Never:** processing, generating, computing, loading, running, executing
+
+---
+
+## 7. Visual Identity
+
+### Noir Executive Theme
+
+| Token | Hex | Role |
+|---|---|---|
+| Background | #0F1117 | Primary canvas |
+| Card | #1A1D27 | Elevated surface |
+| Gold accent | #C9A84C | CTAs, KPIs, active states — never decorative |
+| Foreground | #F1F3F5 | Primary text |
+| Negative | #E54D4D | Errors, negative values (with parentheses) |
+| Positive | #4ADE80 | Gains, confirmations |
+
+### Typography
+
+| Element | Font |
+|---|---|
+| Headings | Playfair Display |
+| Body/UI | Inter |
+| Financial data | JetBrains Mono |
+
+### Design Principles
+
+- Gold reserved for interactive elements — never decorative fill
+- Negative values: red + parentheses `($1,234)` — never `-$1,234`
+- Premium financial terminal aesthetic — not consumer SaaS
+- Skeleton shimmer for loading, never spinners for AI operations
+
+---
+
+## 8. Examples Gallery
+
+### Tooltip
+
+❌ "FF&E Reserve: A percentage of revenue set aside for furniture, fixtures,
+and equipment replacement according to industry standards."
+
+✅ "The furniture breaks, the fixtures age, and the equipment gets temperamental.
+This reserve makes sure you can replace them without raiding the operating account."
+
+### Analyst Note
+
+❌ "The system has determined that your ADR is outside the recommended range."
+
+✅ "Above range. Luxury boutiques in Medellín trade at $220-$310. Your $350
+works if you're the only wellness option — investors will want comp data."
+
+### Status Bar
+
+❌ "Intelligence is stale. Click Regenerate Intelligence to refresh AI guidance."
+
+✅ "Due for review · The Analyst last reviewed 45 days ago"
+
+### Error
+
+❌ "Error: Service unavailable. HTTP 503. Retry after 30 seconds."
+
+✅ "Couldn't reach market data right now. Try refreshing in a minute."
+
+### Loading
+
+❌ "Processing request... Generating AI analysis..."
+
+✅ "Studying comparable properties in your market..."
+
+### Help Text
+
+❌ "Enter your projected Average Daily Rate (ADR). This field represents the
+average revenue earned per occupied room per day."
+
+✅ "What would a guest expect to pay for a night at your property? Most luxury
+boutiques in this market charge $220-$310."
+
+### Rebecca
+
+❌ "Great question! I'd be happy to help you understand your portfolio's
+performance. Let me break this down for you."
+
+✅ "Your Medellín property is the standout — $280 ADR with 72% occupancy puts
+it right in the luxury sweet spot. The Catskills one is ramping slower though.
+Want me to dig into why?"
+
+### Onboarding
+
+❌ "Welcome to H+ Analytics. This platform provides AI-powered financial
+modeling capabilities. Please begin by adding a property."
+
+✅ "Let's get your first property set up. The Analyst will study the market
+while you enter the basics — by the time you're done, you'll have intelligence
+next to every field."
+
+### Proposal Opening
+
+❌ "Norfolk AI is a leading provider of AI-powered solutions for enterprise
+customers seeking to optimize their operational efficiency."
+
+✅ "Your team spends 47 hours responding to a lead that's already gone cold.
+We built an agent that responds in under 60 seconds."
+
+### Risk Communication
+
+❌ "Warning: Your DSCR assumption may not meet lender requirements."
+
+✅ "Your DSCR is 1.26x — technically above the 1.25x covenant, but any LP
+who's lived through 2008 will squint at it. Consider building in a cushion."
+
+---
+
+## 9. Quality Checklist
+
+Before shipping any user-facing text:
+
+☐ **Does it sound like a sharp colleague wrote it?**
+   → If it sounds like software → rewrite.
+
+☐ **Would the reader feel respected?**
+   → If it talks down or over-explains → cut.
+
+☐ **Is there a specific recommendation?**
+   → If it presents a menu with no opinion → pick one and say why.
+
+☐ **Is the risk explicit and manageable?**
+   → If risk is hidden or scary → show the downside and show it's survivable.
+
+☐ **Would an investor find this defensible?**
+   → If a number has no source, no range, and no conviction → not ready.
