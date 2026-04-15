@@ -215,11 +215,19 @@ This is a **fundraising context**. The user is building an investor pitch for a 
 When in doubt, reference CBRE Hotels, STR/CoStar, HVS, JLL Hotels, PKF Hospitality, or USALI standards. For management company economics, reference Horwath HTL, HVS Management Contract Database, or comparable boutique management platforms.`;
 }
 
+export interface BenchmarkInjection {
+  marketAdr?: string;
+  seasonalCurve?: string;
+  events?: string;
+  laborRates?: string;
+  fbBenchmarks?: string;
+}
+
 export function assembleResearchPrompt(
   contextPack: PropertyContextPack | CompanyContextPack,
-  options: AssemblePromptOptions,
+  options: AssemblePromptOptions & { benchmarkData?: BenchmarkInjection },
 ): string {
-  const { tier, entityType, assumptionKeys, ambientData, priorResearch, adminInstructions } = options;
+  const { tier, entityType, assumptionKeys, ambientData, priorResearch, adminInstructions, benchmarkData } = options;
 
   const sections: string[] = [];
 
@@ -234,6 +242,20 @@ export function assembleResearchPrompt(
 
   if (ambientData) {
     sections.push(`## VERIFIED MARKET DATA (use as ground truth)\n${ambientData}`);
+  }
+
+  // Inject pre-collected benchmark data — these are FACTS from our database,
+  // not web research. The LLM should treat them as primary sources.
+  if (benchmarkData) {
+    const bmParts: string[] = [];
+    if (benchmarkData.marketAdr) bmParts.push(benchmarkData.marketAdr);
+    if (benchmarkData.seasonalCurve) bmParts.push(benchmarkData.seasonalCurve);
+    if (benchmarkData.events) bmParts.push(benchmarkData.events);
+    if (benchmarkData.laborRates) bmParts.push(benchmarkData.laborRates);
+    if (benchmarkData.fbBenchmarks) bmParts.push(benchmarkData.fbBenchmarks);
+    if (bmParts.length > 0) {
+      sections.push(`## PRE-COLLECTED MARKET INTELLIGENCE (H+ database — use as primary source)\n\nThese benchmarks come from our verified database. Treat them as primary evidence when forming your recommendations. If your web research disagrees with these numbers, explain the discrepancy.\n\n${bmParts.join("\n\n")}`);
+    }
   }
 
   if (priorResearch) {
