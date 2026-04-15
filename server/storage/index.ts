@@ -26,7 +26,7 @@
  * by every route file in server/routes/.
  */
 import { db, pool } from "../db";
-import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, notificationPreferences, documentExtractions, conversations, calculationAuditLogs } from "@shared/schema";
+import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, notificationPreferences, documentExtractions, conversations, calculationAuditLogs, userPageVisits } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { UserStorage } from "./users";
 import { PropertyStorage } from "./properties";
@@ -400,6 +400,13 @@ export class DatabaseStorage implements IStorage {
   getCalcAuditLog = this.calcAudit.getCalcAuditLog.bind(this.calcAudit);
   updateCalcAuditLogNote = this.calcAudit.updateCalcAuditLogNote.bind(this.calcAudit);
 
+  // Page Visits
+  getPageVisit = this.pageVisitStore.getPageVisit.bind(this.pageVisitStore);
+  recordVisit = this.pageVisitStore.recordVisit.bind(this.pageVisitStore);
+  recordSave = this.pageVisitStore.recordSave.bind(this.pageVisitStore);
+  recordAnalystRun = this.pageVisitStore.recordAnalystRun.bind(this.pageVisitStore);
+  cleanupOldVisits = this.pageVisitStore.cleanupOldVisits.bind(this.pageVisitStore);
+
   /**
    * Delete a user and ALL related data in a single transaction.
    * Cascading deletes remove sessions, scenarios, research, properties,
@@ -425,6 +432,7 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(activityLogs).where(eq(activityLogs.userId, id));
       await tx.delete(verificationRuns).where(eq(verificationRuns.userId, id));
       await tx.delete(calculationAuditLogs).where(eq(calculationAuditLogs.userId, id));
+      await tx.delete(userPageVisits).where(eq(userPageVisits.userId, id));
       await tx.delete(users).where(eq(users.id, id));
     });
   }
