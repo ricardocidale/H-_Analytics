@@ -20,7 +20,7 @@ export function DonutChart({
     [data]
   );
 
-  const displayValue = centerValue ?? total.toLocaleString();
+  const displayValue = centerValue ?? total.toLocaleString("en-US");
   const displayLabel = centerLabel ?? "Total";
 
   return (

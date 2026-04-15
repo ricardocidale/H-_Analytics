@@ -48,7 +48,7 @@ export function BarChartInteractive({
             >
               <span className="text-xs text-muted-foreground">{s.label}</span>
               <span className="text-lg leading-none font-bold sm:text-3xl">
-                {totals[s.dataKey]?.toLocaleString()}
+                {totals[s.dataKey]?.toLocaleString("en-US")}
               </span>
             </Button>
           ))}

@@ -1,5 +1,6 @@
 import { type Express, type Request, type Response } from "express";
 import { requireAuth } from "../auth";
+import { isAdminRole } from "@shared/constants-enums";
 import { z } from "zod";
 import { logger } from "../logger";
 import { storage } from "../storage";
@@ -122,6 +123,10 @@ async function generateViaTemplatePipeline(
 export function register(app: Express) {
   app.post("/api/exports/premium", requireAuth, async (req: Request, res: Response) => {
     try {
+      if (!req.user?.role || !isAdminRole(req.user.role)) {
+        return res.status(403).json({ error: "Premium exports require admin access" });
+      }
+
       const parsed = premiumExportSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid export request", details: parsed.error.flatten() });

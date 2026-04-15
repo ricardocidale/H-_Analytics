@@ -57,7 +57,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
         category: "Total Rooms Available",
         values: years.map((_, i) => c(i)?.availableRooms ?? 0),
         indent: 1,
-        displayValues: years.map((_, i) => (c(i)?.availableRooms ?? 0).toLocaleString())
+        displayValues: years.map((_, i) => (c(i)?.availableRooms ?? 0).toLocaleString("en-US"))
       });
 
       const adrVals = years.map((_, i) => {
@@ -78,7 +78,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
         displayValues: years.map((_, i) => {
           const sold = c(i)?.soldRooms ?? 0;
           const rev = c(i)?.revenueRooms ?? 0;
-          return sold > 0 ? `${formatMoney(rev)} ÷ ${sold.toLocaleString()}` : "-";
+          return sold > 0 ? `${formatMoney(rev)} ÷ ${sold.toLocaleString("en-US")}` : "-";
         })
       });
 
@@ -101,7 +101,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
         displayValues: years.map((_, i) => {
           const sold = c(i)?.soldRooms ?? 0;
           const avail = c(i)?.availableRooms ?? 0;
-          return avail > 0 ? `${sold.toLocaleString()} ÷ ${avail.toLocaleString()}` : "-";
+          return avail > 0 ? `${sold.toLocaleString("en-US")} ÷ ${avail.toLocaleString("en-US")}` : "-";
         })
       });
 
@@ -124,7 +124,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
         displayValues: years.map((_, i) => {
           const rev = c(i)?.revenueRooms ?? 0;
           const avail = c(i)?.availableRooms ?? 0;
-          return avail > 0 ? `${formatMoney(rev)} ÷ ${avail.toLocaleString()}` : "-";
+          return avail > 0 ? `${formatMoney(rev)} ÷ ${avail.toLocaleString("en-US")}` : "-";
         })
       });
 
@@ -148,7 +148,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
         displayValues: years.map((_, i) => {
           const rev = c(i)?.revenueTotal ?? 0;
           const avail = c(i)?.availableRooms ?? 0;
-          return avail > 0 ? `${formatMoney(rev)} ÷ ${avail.toLocaleString()}` : "-";
+          return avail > 0 ? `${formatMoney(rev)} ÷ ${avail.toLocaleString("en-US")}` : "-";
         })
       });
 
@@ -172,7 +172,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
         displayValues: years.map((_, i) => {
           const gop = c(i)?.gop ?? 0;
           const avail = c(i)?.availableRooms ?? 0;
-          return avail > 0 ? `${formatMoney(gop)} ÷ ${avail.toLocaleString()}` : "-";
+          return avail > 0 ? `${formatMoney(gop)} ÷ ${avail.toLocaleString("en-US")}` : "-";
         })
       });
 

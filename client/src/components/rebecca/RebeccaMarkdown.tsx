@@ -106,11 +106,15 @@ const markdownComponents: Components = {
   hr: () => (
     <hr className="my-3 border-border/30" />
   ),
-  a: ({ href, children }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">
-      {children}
-    </a>
-  ),
+  a: ({ href, children }) => {
+    const isSafe = href && /^https?:\/\//i.test(href);
+    if (!isSafe) return <span className="text-primary">{children}</span>;
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">
+        {children}
+      </a>
+    );
+  },
   img: ({ src, alt }) => (
     <div className="mt-2 mb-2 rounded-lg overflow-hidden border border-border/50 bg-background/50">
       <img

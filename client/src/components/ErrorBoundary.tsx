@@ -46,7 +46,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <IconAlertTriangle className="w-12 h-12 text-accent-pop mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-foreground mb-2">Something went wrong</h2>
             <p className="text-muted-foreground mb-4 text-sm">
-              {this.state.error?.message || "An unexpected error occurred."}
+              Something went wrong. Please reload the page.
             </p>
             <Button onClick={() => window.location.reload()}>
               <IconRefreshCw className="w-4 h-4" />
@@ -168,8 +168,8 @@ export class FinancialErrorBoundary extends React.Component<ErrorBoundaryProps, 
           <p className="text-muted-foreground text-sm mb-4">
             A financial calculation failed. This may be caused by invalid property or assumption data.
           </p>
-          <p className="text-muted-foreground text-xs mb-4 font-mono">
-            {this.state.error?.message}
+          <p className="text-muted-foreground text-xs mb-4">
+            Something went wrong. Please reload the page.
           </p>
           <Button onClick={() => this.setState({ hasError: false, error: null })}>
             <IconRefreshCw className="w-4 h-4" />

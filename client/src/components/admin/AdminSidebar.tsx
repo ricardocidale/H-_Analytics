@@ -114,11 +114,10 @@ function buildNavGroups(): NavGroup[] {
       id: "management-company",
       label: "Management Company",
       icon: IconBriefcase,
-      description: "Services, fees, statement lines & defaults",
+      description: "Services, fees & statement lines",
       sections: [
         { value: "services-fees",      label: "Services & Fees",           icon: IconBriefcase },
         { value: "financial-lines",    label: "Financial Statement Lines", icon: IconCalculator },
-        { value: "financial-defaults", label: "Defaults",                  icon: IconSliders },
       ],
     },
     {
@@ -135,13 +134,13 @@ function buildNavGroups(): NavGroup[] {
     },
     {
       id: "ai-research",
-      label: "AI Research Engines",
+      label: "AI Research",
       icon: IconBrain,
-      description: "Sources, LLMs & engine health",
+      description: "Sources, LLMs & system health",
       sections: [
         { value: "sources-apis",       label: "Sources & APIs",       icon: IconGlobe },
         { value: "llm-config",         label: "LLM Configuration",    icon: IconLayers },
-        { value: "engine-health",      label: "Engine Health",        icon: IconGauge },
+        { value: "engine-health",      label: "System Health",        icon: IconGauge },
         { value: "scheduled-research", label: "Scheduled Research",   icon: IconTimer },
         { value: "benchmarks",         label: "Hospitality Benchmarks", icon: IconResearch },
       ],

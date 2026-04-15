@@ -165,7 +165,11 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     return false;
   }, []);
 
+  const loadConversationRef = useRef(loadConversation);
+  loadConversationRef.current = loadConversation;
+
   const prevContextRef = useRef<string | undefined>(undefined);
+  const sendAutoGreetingRef = useRef<((id?: number | null) => Promise<void>) | null>(null);
   useEffect(() => {
     const ctxKey = rebeccaContext
       ? `${rebeccaContext.entityType}-${rebeccaContext.entityId}-${rebeccaContext.fieldKey ?? ""}`
@@ -178,13 +182,13 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       setSuggestedChips([]);
 
       if (rebeccaContext?.conversationId) {
-        loadConversation(rebeccaContext.conversationId).then((loaded) => {
+        loadConversationRef.current(rebeccaContext.conversationId).then((loaded) => {
           if (!loaded) {
-            sendAutoGreeting(null);
+            sendAutoGreetingRef.current?.(null);
           }
         });
       } else {
-        sendAutoGreeting(null);
+        sendAutoGreetingRef.current?.(null);
       }
     }
     if (!isOpen) {
@@ -256,11 +260,13 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       setLoading(false);
     }
   }, [rebeccaContext, conversationId, responseMode, currentPage, addInsight]);
+  sendAutoGreetingRef.current = sendAutoGreeting;
 
   const sendMessage = useCallback(
     async (text?: string) => {
       const trimmed = (text ?? input).trim();
       if (!trimmed || loading) return;
+      setLoading(true);
 
       const userMsg: ChatMessage = {
         id: nextMsgId("user"),
@@ -271,7 +277,6 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       const currentMessages = [...messages, userMsg];
       setMessages(currentMessages);
       setInput("");
-      setLoading(true);
 
       abortRef.current?.abort();
       const controller = new AbortController();

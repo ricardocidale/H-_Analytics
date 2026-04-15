@@ -163,7 +163,7 @@ export default function PropertyMap({ latitude, longitude, propertyName }: Prope
                   <div style="font-family:system-ui;padding:4px;">
                     <strong style="font-size:13px;">${escapeHtml(poi.name)}</strong>
                     <br/><span style="color:hsl(var(--muted-foreground));font-size:11px;">${escapeHtml(poi.vicinity)}</span>
-                    <br/><span style="color:hsl(var(--muted-foreground) / 0.7);font-size:11px;">${poi.distance.toFixed(1)} mi away${poi.rating ? ` · ⭐ ${poi.rating}` : ""}</span>
+                    <br/><span style="color:hsl(var(--muted-foreground) / 0.7);font-size:11px;">${poi.distance.toFixed(1)} mi away${poi.rating ? ` · ⭐ ${escapeHtml(String(poi.rating))}` : ""}</span>
                   </div>
                 `)
             )

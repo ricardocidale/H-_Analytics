@@ -214,10 +214,14 @@ function Router() {
           <ProtectedRoute component={PropertyPhotos} />
         </Route>
         <Route path="/property/:id/research">
-          <ProtectedRoute component={PropertyMarketResearch} />
+          <FinancialErrorBoundary>
+            <ProtectedRoute component={PropertyMarketResearch} />
+          </FinancialErrorBoundary>
         </Route>
         <Route path="/property/:id/criteria">
-          <ProtectedRoute component={PropertyResearchCriteria} />
+          <FinancialErrorBoundary>
+            <ProtectedRoute component={PropertyResearchCriteria} />
+          </FinancialErrorBoundary>
         </Route>
         <Route path="/property/:id">
           <FinancialErrorBoundary>
@@ -243,7 +247,9 @@ function Router() {
           <Redirect to="/company/icp-definition" />
         </Route>
         <Route path="/company/research">
-          <ManagementRoute component={CompanyResearch} />
+          <FinancialErrorBoundary>
+            <ManagementRoute component={CompanyResearch} />
+          </FinancialErrorBoundary>
         </Route>
         <Route path="/global/research">
           <Redirect to="/company/research" />

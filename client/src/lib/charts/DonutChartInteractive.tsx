@@ -123,7 +123,7 @@ export function DonutChartInteractive({
                           y={viewBox.cy}
                           className="fill-foreground text-3xl font-bold"
                         >
-                          {activeValue.toLocaleString()}
+                          {activeValue.toLocaleString("en-US")}
                         </tspan>
                         <tspan
                           x={viewBox.cx}

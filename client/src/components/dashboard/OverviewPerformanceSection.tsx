@@ -110,7 +110,7 @@ export function InvestmentPerformanceSection({
                   cursor={false}
                   content={<ChartTooltipContent
                     hideLabel
-                    formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Equity']}
+                    formatter={(value) => { const num = Number(value); return [`$${Number.isFinite(num) ? num.toLocaleString("en-US") : "0"}`, 'Equity']; }}
                   />}
                 />
                 <Bar dataKey="investment" fill="var(--color-investment)" radius={8} maxBarSize={44}>
