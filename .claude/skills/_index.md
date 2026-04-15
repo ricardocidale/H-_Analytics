@@ -1,6 +1,6 @@
 # Skill Catalog — H+ Analytics by Norfolk AI
 
-Master index of skill files across 18 domains. Use this to find the right skill for any task.
+Master index of skill files across 19 domains. Use this to find the right skill for any task.
 
 ---
 
@@ -259,6 +259,14 @@ Master index of skill files across 18 domains. Use this to find the right skill 
 | File | Description |
 |------|-------------|
 | `component-library/SKILL.md` | Reusable UI component reference (shadcn primitives + custom) |
+
+## Communication (3 files) — REUSABLE across Norfolk AI products
+
+| File | Description |
+|------|-------------|
+| `communication/conversation-principles.md` | Universal conversation principles: 3 conversation types, lead with recommendation, narrow choices, make risk manageable, illuminating questions, accompaniment. App-agnostic. |
+| `communication/ai-agent-voice.md` | How AI agents should sound: voice characteristics, loading language, error communication, personality spectrum, forbidden patterns. App-agnostic. |
+| `communication/norfolk-brand-voice.md` | Norfolk AI corporate brand: positioning, writing principles, visual identity, per-product layers. Parent brand for all products. |
 
 ## Context Loading (1 file)
 
