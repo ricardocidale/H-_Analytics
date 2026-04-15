@@ -33,8 +33,9 @@ const relevantFiles = clientFiles.filter(f =>
 
 describe("Vocabulary Compliance — Forbidden Terms", () => {
   const FORBIDDEN = [
-    { term: "Regenerate Intelligence", replacement: "Ask the Analysts" },
+    { term: "Regenerate Intelligence", replacement: "Ask the Analyst" },
     { term: "No Intelligence", replacement: "Not yet reviewed" },
+    { term: "Ask the Analysts", replacement: "Ask the Analyst (singular)" },
   ];
 
   for (const { term, replacement } of FORBIDDEN) {

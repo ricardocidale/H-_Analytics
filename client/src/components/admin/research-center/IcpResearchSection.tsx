@@ -289,7 +289,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
             <div className="text-center py-12">
               <IconFlaskConical className="w-8 h-8 mx-auto mb-3 text-muted-foreground/40" />
               <p className="text-sm font-medium text-muted-foreground" data-testid="text-no-research">Not yet reviewed</p>
-              <p className="text-xs text-muted-foreground mt-1">Click <strong>Consult</strong> to get a market analysis from your analysts.</p>
+              <p className="text-xs text-muted-foreground mt-1">Click <strong>Consult</strong> to get a market analysis from The Analyst.</p>
             </div>
           )}
 

@@ -376,7 +376,7 @@ export function IndustryResearchTab() {
               ) : (
                 <>
                   <IconRefreshCw className="w-5 h-5 mr-2" />
-                  Ask the Analysts
+                  Ask the Analyst
                 </>
               )}
             </Button>

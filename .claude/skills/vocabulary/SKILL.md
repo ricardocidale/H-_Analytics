@@ -31,25 +31,24 @@ financial terms, or ask before inventing new language.
 
 ---
 
-## 2. Intelligence Vocabulary — AI as Colleague
+## 2. Intelligence Vocabulary — The Analyst & Rebecca
 
-These terms make the AI features feel like a team of analysts, not software.
+Two AI Agents run the app experience. See `product-vision/the-analyst.md` for the full identity.
 
 | Canonical Term | Replaces | Where Used | Why |
 |---|---|---|---|
-| **"Ask the Analysts"** | "Regenerate Intelligence" | Main research button on property edit, company assumptions | Implies a team reviewed your numbers. Plural because multiple LLMs cross-validate. |
-| **"Consult"** | "Generate Research" / "Run Research" | Research hub, company research tabs, ICP | A verb you'd use with a colleague. "Consult on market ADR." |
-| **"Analyst Note"** | "Research badge" / "AI suggestion" / "range tooltip" | Yellow badge next to assumption fields | A colleague left you a note, not a tooltip. |
-| **"Conviction"** | "Confidence Score" | Research results, guidance display | Investor language. Three tiers: **High** / **Moderate** / **Developing**. Never show a raw percentage to users. |
-| **"Last reviewed"** | "Staleness: stale/fresh/missing" | Guidance timestamps | "Last reviewed 3 days ago" or "Not yet reviewed." Never say "stale." |
-| **"Second opinion"** | "Cross-validation" / "Multi-source verification" | When explaining how ranges are derived | "We asked three independent sources for a second opinion on this rate." |
-| **"Analyst consensus"** | "Source agreement" / "Cross-validation score" | When multiple sources agree on a range | "Strong analyst consensus on this ADR range." |
+| **"Ask the Analyst"** | "Regenerate Intelligence" | Main research button on property edit, company assumptions | The Analyst is singular — one authoritative figure, not a team. |
+| **"Consult"** | "Generate Research" / "Run Research" | Research hub, company research tabs, ICP | A verb you'd use with a colleague. |
+| **"Analyst Note"** | "Research badge" / "AI suggestion" / "range tooltip" | Yellow badge next to assumption fields | The Analyst left you a note. |
+| **"Conviction"** | "Confidence Score" | Research results, guidance display | Investor language. Three tiers: **High** / **Moderate** / **Developing**. Never show raw percentages. |
+| **"Last reviewed"** | "Staleness: stale/fresh/missing" | Guidance timestamps | "The Analyst last reviewed 3 days ago" or "Not yet reviewed." |
+| **"The Analyst's view"** | "Source agreement" / "Cross-validation score" | When sources agree on a range | "The Analyst's view on this ADR is backed by multiple sources." |
 
 ### How to describe what the AI does (help text, tooltips, onboarding):
 
-**Good:** "Our analysts reviewed comparable properties and market data to suggest this range."
-**Good:** "Rebecca can walk you through the assumptions behind these numbers."
-**Good:** "Get a second opinion on any assumption by clicking Ask the Analysts."
+**Good:** "The Analyst reviewed comparable properties and market data to suggest this range."
+**Good:** "Rebecca can walk you through what The Analyst found."
+**Good:** "Ask the Analyst for a fresh review of any assumption."
 
 **Bad:** "The AI model generated a prediction based on training data."
 **Bad:** "Machine learning algorithms computed this range."

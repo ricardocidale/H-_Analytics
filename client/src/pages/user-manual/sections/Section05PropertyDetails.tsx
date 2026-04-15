@@ -136,10 +136,10 @@ export default function Section05PropertyDetails({ expanded, onToggle, sectionRe
       </div>
 
       <div className="bg-muted/50 rounded-lg p-4">
-        <h4 className="font-semibold mb-2">Ask the Analysts</h4>
+        <h4 className="font-semibold mb-2">Ask the Analyst</h4>
         <p className="text-sm text-muted-foreground">
-          After entering base property info (address, rooms, quality tier), press <strong>Ask the Analysts</strong> to
-          have your research team review the assumptions. Analyst Notes appear next to every assumption field
+          After entering base property info (address, rooms, quality tier), press <strong>Ask the Analyst</strong> to
+          have The Analyst review the assumptions. Analyst Notes appear next to every assumption field
           showing recommended ranges. Adjust your assumptions based on these ranges. Results are cached — you
           only need to ask again when property characteristics change or the review becomes overdue.
         </p>
