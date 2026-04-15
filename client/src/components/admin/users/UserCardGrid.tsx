@@ -17,7 +17,6 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
   [UserRole.ADMIN]: "Manages users, settings, and all portfolio data. Full read/write access.",
   [UserRole.CHECKER]: "Auditor role. Can review financials and run verification checks.",
   [UserRole.USER]: "Standard user. Can view properties and work with scenarios they have access to.",
-  [UserRole.PARTNER]: "External partner. Similar to a standard user with limited access.",
   [UserRole.INVESTOR]: "Read-only access. Can view reports and shared scenarios but cannot edit data.",
 };
 

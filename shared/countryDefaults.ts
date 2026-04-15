@@ -193,7 +193,7 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
   "United Kingdom": {
     taxRate: 0.25,         // Corporation Tax Act 2010, main rate (2024)
     costRateTaxes: 0.012,  // Council Tax / Business Rates (~1.2% of revenue equivalent)
-    countryRiskPremium: 0.0000,
+    countryRiskPremium: 0.0049, // Damodaran Jan 2026 — Aa3
     inflationRate: 0.03,
     depreciationYears: 50, // HMRC Capital Allowances — structures & buildings (2% SL)
     depreciationMethod: "straight_line",
@@ -205,7 +205,7 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
   "Greece": {
     taxRate: 0.22,
     costRateTaxes: 0.008,  // ENFIA (Unified Property Tax) ~0.8%
-    countryRiskPremium: 0.0150,
+    countryRiskPremium: 0.0207, // Damodaran Jan 2026 — Ba1
     inflationRate: 0.03,
     depreciationYears: 40, // Commercial buildings — 2.5% SL rate
     depreciationMethod: "straight_line",
@@ -217,7 +217,7 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
   "Costa Rica": {
     taxRate: 0.30,
     costRateTaxes: 0.0025, // Municipal property tax (Impuesto de Bienes Inmuebles) ~0.25%
-    countryRiskPremium: 0.0300,
+    countryRiskPremium: 0.0324, // Damodaran Jan 2026 — Ba3
     inflationRate: 0.04,
     depreciationYears: 50, // Commercial buildings — 2% SL rate
     depreciationMethod: "straight_line",
@@ -241,7 +241,7 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
   "Uruguay": {
     taxRate: 0.25,         // IRAE (Impuesto a la Renta de las Actividades Económicas)
     costRateTaxes: 0.015,  // Contribución Inmobiliaria ~1.5%
-    countryRiskPremium: 0.0200,
+    countryRiskPremium: 0.0207, // Damodaran Jan 2026 — Baa1
     inflationRate: 0.04,
     depreciationYears: 50, // Commercial buildings — 2% SL rate
     depreciationMethod: "straight_line",
@@ -253,7 +253,7 @@ export const COUNTRY_DEFAULTS: Record<string, CountryDefaults> = {
   "Peru": {
     taxRate: 0.295,        // 29.5% corporate income tax rate
     costRateTaxes: 0.010,  // Impuesto Predial ~1.0%
-    countryRiskPremium: 0.0250,
+    countryRiskPremium: 0.0207, // Damodaran Jan 2026 — Baa1
     inflationRate: 0.04,
     depreciationYears: 33, // Commercial buildings — 3% SL rate (Art. 39 LIR)
     depreciationMethod: "straight_line",
