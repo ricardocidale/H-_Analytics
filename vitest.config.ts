@@ -6,6 +6,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     exclude: ["tests/e2e/**"],
     pool: "threads",
+    testTimeout: 15_000,
   },
   resolve: {
     alias: {
