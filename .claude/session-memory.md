@@ -18,7 +18,14 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **Task 7 PENDING**: Replit brief for 11 client-side fixes + admin restructuring. Brief pasted into Replit.
 - **PDF Export Plan**: `.claude/plans/pdf-export-plan.md`. Key decisions: (1) Two problems, two solutions — HTML+WeasyPrint for financial tables, DOM capture for visual elements. (2) One statement per landscape page, chart follows on next page. (3) Short vs Extended user choice at export time. (4) AI design pass runs OFFLINE (admin triggers, stores DesignProfile in DB), not per-export. (5) WeasyPrint installed on Replit (v68.1). Phase 1 (wire WeasyPrint) ready to execute.
 - **Master plan**: `.claude/plans/master-remediation-plan.md`
-- **Data tables plan**: `.claude/plans/deterministic-data-tables-plan.md`. Key finding: seed file exists (475 lines, all markets covered) but was never run against live DB. Smart Data Router (`server/ai/data-routing.ts`) is the integration point — needs Priority 0 local DB lookup before external APIs. `validate_assumption_range` is the highest-value new tool. Ready to execute Phase 2 (build tools).
+- **Data tables — ALL PHASES DONE**:
+  - Phase 1 (seeds): 475-line seed file exists, needs `seedMarketDataTables()` run on Replit
+  - Phase 2 (tools): `benchmark-lookups.ts` built — 7 lookup functions + `validateAssumptionRange` + `validateAllAssumptions`. Wired into Smart Data Router as Priority 0.
+  - Phase 3 (Pinecone): 4 new index functions (market ADR, seasonal, events, labor) exported from pinecone-service.ts
+  - Phase 4 (prompts): `benchmark-injector.ts` gathers all data, injected as "PRE-COLLECTED MARKET INTELLIGENCE" section in research prompts
+  - Phase 5 (skills): `research/intelligence-pipeline.md` — complete architecture reference with ASCII diagram, all 7 stages, 11 tools, 7 namespaces
+  - Phase 6 (admin UI): PENDING for Replit
+  - Rebecca KB updated: 13-research.md rewritten, 14-howto.md updated with vocabulary
 
 ## Session: April 14, 2026 — Codebase Audit + Vocabulary Skill
 - **Deep audit**: 36 files fixed (574 insertions). Critical: IDOR on property read, prototype pollution in document extraction, 4 unguarded JSON.parse crashes, PMT overflow in 4 files. High: NaN/Infinity in API output, timer leaks in both schedulers, N+1 query in shared scenarios, floating-point === 0 guards. Medium: parseRouteId on 50+ routes, pagination caps, allowlists on z.record() endpoints.
