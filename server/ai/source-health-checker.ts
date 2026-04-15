@@ -9,6 +9,7 @@ import { db } from "../db";
 import { sourceRegistry } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { logger } from "../logger";
+import { sanitizeError } from "../lib/sanitize-error";
 
 export interface HealthCheckResult {
   serviceKey: string;
@@ -24,12 +25,6 @@ export interface HealthCheckResult {
 
 function envSet(varName: string): boolean {
   return !!process.env[varName];
-}
-
-/** Strip API keys / tokens from error messages to prevent leaking credentials in health check responses. */
-function sanitizeError(message: string): string {
-  // Replace common URL query parameter patterns: api_key=..., app_id=..., key=..., token=...
-  return message.replace(/([?&])(api_key|app_id|key|token|apikey|access_token|client_secret)=[^&\s]*/gi, "$1$2=***REDACTED***");
 }
 
 async function checkLLMProvider(serviceKey: string, envVar: string): Promise<HealthCheckResult> {
