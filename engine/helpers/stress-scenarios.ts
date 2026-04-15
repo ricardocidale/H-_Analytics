@@ -13,6 +13,7 @@
  */
 
 import { DAYS_PER_MONTH, MONTHS_PER_YEAR } from '@shared/constants';
+import { pmt } from '../../calc/shared/pmt';
 
 export interface StressResult {
   scenario: string;
@@ -49,26 +50,16 @@ export interface StressAssumptions {
 
 // ── Internal helpers ────────────────────────────────────────────────────────
 
-/** Compute annual debt service from loan parameters using standard PMT formula. */
+/** Compute annual debt service using the canonical PMT function. */
 function annualDebtService(
   loanAmount: number,
   annualRate: number,
   termYears: number,
 ): number {
   if (loanAmount <= 0 || termYears <= 0) return 0;
-  // Cap annual rate at 50% to prevent exponentiation overflow
-  const safeRate = Math.min(annualRate, 0.50);
-  const monthlyRate = safeRate / MONTHS_PER_YEAR;
+  const monthlyRate = annualRate / MONTHS_PER_YEAR;
   const totalPayments = termYears * MONTHS_PER_YEAR;
-  if (monthlyRate === 0) return loanAmount / totalPayments * MONTHS_PER_YEAR;
-  const factor = (1 + monthlyRate) ** totalPayments;
-  // Guard against Infinity from extreme exponentiation
-  if (!Number.isFinite(factor) || factor <= 1) {
-    // Fallback: interest-only approximation
-    return loanAmount * safeRate;
-  }
-  const monthlyPayment = (loanAmount * monthlyRate * factor) / (factor - 1);
-  return Number.isFinite(monthlyPayment) ? monthlyPayment * MONTHS_PER_YEAR : loanAmount * safeRate;
+  return pmt(loanAmount, monthlyRate, totalPayments) * MONTHS_PER_YEAR;
 }
 
 /** Compute annual revenue, opex, fees, and NOI from assumptions. */
