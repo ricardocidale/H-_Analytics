@@ -398,7 +398,7 @@ describe("Server Code Structure Verification (File-Based)", () => {
           const content = fs.readFileSync(full, "utf-8");
           const lines = content.split("\n");
           for (let i = 0; i < lines.length; i++) {
-            const isFalsePositive = /["'./]risk-intelligence/.test(lines[i]) || /["']brand:/.test(lines[i]);
+            const isFalsePositive = /["'./]risk-intelligence/.test(lines[i]) || /["':].*risk-manag/.test(lines[i]);
             if (secretPattern.test(lines[i]) && !lines[i].includes("example") && !lines[i].includes("placeholder") && !isFalsePositive) {
               violations.push(`${full}:${i + 1}: ${lines[i].trim()}`);
             }

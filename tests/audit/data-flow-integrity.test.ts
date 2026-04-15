@@ -246,19 +246,36 @@ describe("Engine Chain Identity Verification", () => {
 });
 
 describe("Data Flow Pipeline Structure Audit", () => {
-  function grepServer(pattern: string, path = "server/"): string[] {
-    try {
-      const { execSync } = require("child_process");
-      const out = execSync(
-        `rg -n -e ${JSON.stringify(pattern)} ${path} --glob '*.ts' -g '!*.test.*' 2>/dev/null`,
-        { encoding: "utf-8", timeout: 10_000 }
-      );
-      return out.trim().split("\n").filter(Boolean);
-    } catch (e: unknown) {
-      const err = e as { status?: number; message?: string };
-      if (err.status === 1) return [];
-      throw new Error(`grep command failed (exit ${err.status}): ${err.message}`);
+  function scanPath(target: string, regex: RegExp): string[] {
+    const results: string[] = [];
+    const fsLib = require("fs");
+    const pathLib = require("path");
+    if (!fsLib.existsSync(target)) return results;
+    const stat = fsLib.statSync(target);
+    if (stat.isFile()) {
+      const norm = target.replace(/\\/g, "/");
+      const lines = fsLib.readFileSync(target, "utf-8").split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (regex.test(lines[i])) results.push(`${norm}:${i + 1}:${lines[i]}`);
+      }
+      return results;
     }
+    for (const entry of fsLib.readdirSync(target, { withFileTypes: true })) {
+      const full = pathLib.join(target, entry.name);
+      const norm = full.replace(/\\/g, "/");
+      if (entry.isDirectory()) results.push(...scanPath(full, regex));
+      else if (entry.name.endsWith(".ts") && !entry.name.includes(".test.")) {
+        const lines = fsLib.readFileSync(full, "utf-8").split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          if (regex.test(lines[i])) results.push(`${norm}:${i + 1}:${lines[i]}`);
+        }
+      }
+    }
+    return results;
+  }
+
+  function grepServer(pattern: string, searchPath = "server/"): string[] {
+    return scanPath(searchPath, new RegExp(pattern));
   }
 
   it("finance compute endpoint imports computePortfolioProjection", () => {
