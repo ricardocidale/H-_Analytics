@@ -188,6 +188,7 @@ export class ReplicateService extends BaseIntegrationService {
       const res = await fetch("https://api.replicate.com/v1/models", {
         method: "GET",
         headers: { Authorization: `Bearer ${this.apiToken}` },
+        signal: AbortSignal.timeout(10_000),
       });
       return {
         name: this.serviceName,
@@ -226,6 +227,7 @@ export class ReplicateService extends BaseIntegrationService {
         method: "POST",
         headers: this.headers,
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15_000),
       });
 
       if (!res.ok) {
@@ -242,6 +244,7 @@ export class ReplicateService extends BaseIntegrationService {
       const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${this.apiToken}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!res.ok) {
@@ -326,7 +329,7 @@ export class ReplicateService extends BaseIntegrationService {
     }
 
     const imageBuffer = await this.execute("downloadOutput", async () => {
-      const imageRes = await fetch(outputUrl);
+      const imageRes = await fetch(outputUrl, { signal: AbortSignal.timeout(30_000) });
       if (!imageRes.ok) {
         throw new Error(`Failed to download Replicate output image: ${imageRes.status}`);
       }

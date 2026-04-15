@@ -87,7 +87,7 @@ class GeospatialIntegration extends BaseIntegrationService {
 
     return this.execute("geocodeAddress", async () => {
       const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`;
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
       const data = await response.json();
 
       if (data.status === "OK" && data.results?.length > 0) {
@@ -109,7 +109,7 @@ class GeospatialIntegration extends BaseIntegrationService {
       if (countryBias) {
         url += `&components=country:${encodeURIComponent(countryBias)}`;
       }
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
       const data = await response.json();
 
       if (data.status === "OK" && data.predictions) {
@@ -129,7 +129,7 @@ class GeospatialIntegration extends BaseIntegrationService {
 
     return this.execute("placeDetails", async () => {
       const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=geometry,formatted_address,address_components&key=${GOOGLE_MAPS_API_KEY}`;
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
       const data = await response.json();
 
       if (data.status === "OK" && data.result) {

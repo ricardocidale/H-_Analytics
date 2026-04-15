@@ -250,15 +250,17 @@ export class ApifyService extends BaseIntegrationService {
 
     const url = [
       `${APIFY_BASE_URL}/${encodeURIComponent(actorId)}/run-sync-get-dataset-items`,
-      `?token=${this.apiToken}`,
-      `&timeout=${ACTOR_TIMEOUT_SECONDS}`,
+      `?timeout=${ACTOR_TIMEOUT_SECONDS}`,
       `&memory=${ACTOR_MEMORY_MB}`,
     ].join("");
 
     try {
       const response = await this.fetchWithTimeout(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.apiToken}`,
+        },
         body: JSON.stringify(input),
       });
 

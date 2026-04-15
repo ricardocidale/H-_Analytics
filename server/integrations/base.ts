@@ -166,6 +166,7 @@ export abstract class BaseIntegrationService {
     if (!error) return false;
     const err = error as Record<string, unknown>;
     const status = (err.status ?? err.statusCode ?? err.code) as number | undefined;
+    if (typeof status === "number" && status === 429) return true; // Rate limited — retry with backoff
     if (typeof status === "number" && status >= 400 && status < 500) return false;
     if (typeof status === "number" && status >= 500) return true;
     const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();

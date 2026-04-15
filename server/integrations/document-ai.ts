@@ -90,6 +90,7 @@ export class DocumentAIService extends BaseIntegrationService {
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(30_000),
           body: JSON.stringify({
             rawDocument: {
               content: fileBuffer.toString("base64"),
@@ -109,8 +110,9 @@ export class DocumentAIService extends BaseIntegrationService {
         return result;
       });
     } catch (error: unknown) {
-      logger.error(`Document AI processing failed, falling back to simulation: ${error instanceof Error ? error.message : error}`, "document-ai");
-      return this.simulateExtraction(objectPath);
+      logger.error(`Document AI processing failed: ${error instanceof Error ? error.message : error}`, "document-ai");
+      // Return empty result instead of fake simulated data — caller should handle null/empty gracefully
+      return { text: "", pages: [], fields: [], tables: [], entities: [], keyValuePairs: [], simulated: true } as DocumentAIResult;
     }
   }
 

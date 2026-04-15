@@ -7,6 +7,10 @@ interface SearchQuery {
   focusSites?: string[];
 }
 
+// 4-hour TTL cache to avoid re-calling paid APIs for the same queries
+const searchCache = new Map<string, { result: GroundedSearchResult[]; expiry: number }>();
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+
 export class GroundedResearchService extends BaseIntegrationService {
   private apiKey: string | undefined;
   private provider: "perplexity" | "tavily";
@@ -31,14 +35,28 @@ export class GroundedResearchService extends BaseIntegrationService {
   async search(queries: SearchQuery[]): Promise<GroundedSearchResult[]> {
     if (!this.apiKey) return [];
 
+    // Check cache
+    const cacheKey = queries.map(q => q.query).sort().join("|");
+    const cached = searchCache.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.result;
+    }
+
     const results = await Promise.allSettled(
       queries.map((q) => this.executeSearch(q))
     );
 
-    return results
+    const filtered = results
       .filter((r): r is PromiseFulfilledResult<GroundedSearchResult | null> => r.status === "fulfilled")
       .map((r) => r.value)
       .filter((r): r is GroundedSearchResult => r !== null);
+
+    // Cache results
+    if (filtered.length > 0) {
+      searchCache.set(cacheKey, { result: filtered, expiry: Date.now() + CACHE_TTL_MS });
+    }
+
+    return filtered;
   }
 
   buildHospitalityQueries(location: string, propertyType: string): SearchQuery[] {
