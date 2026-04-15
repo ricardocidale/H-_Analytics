@@ -8,19 +8,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 15, 2026 — Master Remediation (Tasks 1-6)
-- **Task 1 DONE**: 11 engine calc bugs fixed. Negative exit valuation floored, FF&E double-count removed, hold-vs-sell basis clamped, cost seg >100% clamped, depreciation=0 guarded, refinance-before-acquisition rejected, NOL reset fixed, partner comp ops-year, annualization fixed. 2,122 tests pass.
-- **Task 2 DONE**: 7 external service bugs. 429 retried (not circuit-broken), timeouts on all Maps/DocAI/Replicate fetches, fake DocAI fallback removed, Apify token to Auth header, GroundedResearch 4h cache.
-- **Task 3 DONE**: Dead "partner" role removed, 5 CRP values synced (UK/Greece/Costa Rica/Uruguay/Peru).
-- **Task 4 DONE**: Canonical PMT hardened. Overflow guard + epsilon zero check.
-- **Task 5 DONE**: 3 audit guard tests (79 tests): vocabulary-compliance, no-raw-number-params, no-fetch-without-timeout.
-- **Task 6 DONE**: Updated claude.md, replit.md, finance/SKILL.md, integrations/SKILL.md, coding-conventions/SKILL.md, session-memory.md.
-- **Task 7 PENDING**: Replit brief for 11 client-side fixes + admin restructuring. Brief pasted into Replit.
-- **PDF Export Plan**: `.claude/plans/pdf-export-plan.md`. Key decisions: (1) Two problems, two solutions — HTML+WeasyPrint for financial tables, DOM capture for visual elements. (2) One statement per landscape page, chart follows on next page. (3) Short vs Extended user choice at export time. (4) AI design pass runs OFFLINE (admin triggers, stores DesignProfile in DB), not per-export. (5) WeasyPrint installed on Replit (v68.1). Phase 1 (wire WeasyPrint) ready to execute.
-- **Master plan**: `.claude/plans/master-remediation-plan.md`
-- **Data tables — ALL PHASES DONE**:
-  - Phase 1 (seeds): 475-line seed file exists, needs `seedMarketDataTables()` run on Replit
-  - Phase 2 (tools): `benchmark-lookups.ts` built — 7 lookup functions + `validateAssumptionRange` + `validateAllAssumptions`. Wired into Smart Data Router as Priority 0.
+## Session: April 14-15, 2026 — Master Remediation + Data Tables + Intelligence Architecture
+**Remediation (DONE):** 11 engine calc bugs, 7 external service bugs, schema cleanup, 3 audit guard tests (79 tests), CI fixed, vocabulary skill + 14 UI files + user manual + Rebecca KB.
+**Data Tables (DONE):** benchmark-lookups.ts (7 lookups + validateAssumptionRange), Smart Data Router Priority 0, Pinecone indexing (4 functions), prompt injection (benchmark-injector.ts). Seed file exists, Replit told to run seedMarketDataTables().
+**Intelligence Pipeline Skill:** `.claude/skills/research/intelligence-pipeline.md` — 260-line definitive reference.
+**Rebecca:** Personality (outgoing/intellectual/geeky/witty), full Ricardo Cidale bio from LinkedIn, Norfolk AI identity, "built with Claude Code".
+**App Voice:** Behavioral economics copy style, nudging, Norfolk AI branding in vocabulary skill.
+**PDF Export:** Plan at `.claude/plans/pdf-export-plan.md`. WeasyPrint installed. HTML templates exist. NOT executed — next session.
+**Replit briefs pasted:** (1) 11 client-side fixes, (2) seed market data + Norfolk AI badges + export markers.
+**Plans:** `master-remediation-plan.md`, `pdf-export-plan.md`, `deterministic-data-tables-plan.md`.
   - Phase 3 (Pinecone): 4 new index functions (market ADR, seasonal, events, labor) exported from pinecone-service.ts
   - Phase 4 (prompts): `benchmark-injector.ts` gathers all data, injected as "PRE-COLLECTED MARKET INTELLIGENCE" section in research prompts
   - Phase 5 (skills): `research/intelligence-pipeline.md` — complete architecture reference with ASCII diagram, all 7 stages, 11 tools, 7 namespaces
