@@ -5,14 +5,14 @@ import { Loader2, TrendingUp, BarChart3, Building2, Search, Database, Brain, Glo
 import { ThinkingRing, StreamPulse } from "@/components/ui/ai-loader";
 
 const RESEARCH_TIPS = [
-  { icon: TrendingUp, text: "Analyzing market trends and comparable properties..." },
-  { icon: BarChart3, text: "Cross-referencing industry benchmarks with your data..." },
-  { icon: Building2, text: "Evaluating property performance against peers..." },
-  { icon: Search, text: "Scanning recent transaction data and market reports..." },
-  { icon: Database, text: "Aggregating data from multiple intelligence sources..." },
-  { icon: Brain, text: "Running multi-model analysis for deeper insights..." },
-  { icon: Globe, text: "Checking macro-economic indicators and rates..." },
-  { icon: Zap, text: "Synthesizing findings into actionable recommendations..." },
+  { icon: TrendingUp, text: "Studying market trends and comparable properties..." },
+  { icon: BarChart3, text: "Cross-referencing industry benchmarks..." },
+  { icon: Building2, text: "Reviewing how similar properties perform..." },
+  { icon: Search, text: "Checking recent transactions in your market..." },
+  { icon: Database, text: "Weighing multiple data sources..." },
+  { icon: Brain, text: "Getting a second opinion from independent sources..." },
+  { icon: Globe, text: "Pulling current macro rates from FRED..." },
+  { icon: Zap, text: "Forming a view on your assumptions..." },
 ];
 
 interface ResearchLoadingOverlayProps {
@@ -92,7 +92,7 @@ export function ResearchLoadingOverlay({
   const currentTip = useRotatingTip(isVisible);
   const latestPhase = phases[phases.length - 1];
 
-  const displayMessage = latestPhase || currentTip?.text || "Preparing analysis...";
+  const displayMessage = latestPhase || currentTip?.text || "Pulling up the data...";
   const TipIcon = currentTip?.icon || Search;
 
   const elapsedSeconds = useElapsedTimer(isVisible);
@@ -152,7 +152,7 @@ export function ResearchLoadingOverlay({
             <div className="flex flex-col items-center gap-4">
               <PulsingOrb />
               <div className="text-center space-y-1">
-                <h3 className="text-lg font-semibold">Research in Progress</h3>
+                <h3 className="text-lg font-semibold">Your analysts are on it</h3>
                 {elapsedSeconds >= 5 && (
                   <p className="text-sm text-muted-foreground">
                     {formatElapsed(elapsedSeconds)} elapsed
@@ -239,7 +239,7 @@ export function ResearchLoadingOverlay({
         <PulsingOrb />
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold">Generating Research</h4>
+            <h4 className="text-sm font-semibold">Consulting sources</h4>
             <span className="text-xs text-muted-foreground">{formatElapsed(elapsedSeconds)}</span>
           </div>
           <AnimatePresence mode="wait">

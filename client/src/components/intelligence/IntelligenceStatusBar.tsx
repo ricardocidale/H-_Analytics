@@ -20,30 +20,30 @@ export function computeFreshnessStatus(opts: {
   isGenerating: boolean;
 }): { status: FreshnessStatus; reason: string; daysAgo: number | null } {
   if (opts.isGenerating) {
-    return { status: "running", reason: "Research is being generated", daysAgo: null };
+    return { status: "running", reason: "Analysts are reviewing your assumptions", daysAgo: null };
   }
 
   const updatedAt = safeTimestamp(opts.researchUpdatedAt);
   if (updatedAt === null) {
-    return { status: "missing", reason: "Intelligence not yet generated — press Regenerate Intelligence to get AI guidance for all assumptions", daysAgo: null };
+    return { status: "missing", reason: "Your analysts haven't reviewed these assumptions yet", daysAgo: null };
   }
 
   const daysAgo = Math.max(0, Math.floor((Date.now() - updatedAt) / (1000 * 60 * 60 * 24)));
 
   const assumptionTs = safeTimestamp(opts.lastAssumptionChangeAt);
   if (assumptionTs !== null && assumptionTs > updatedAt) {
-    return { status: "stale", reason: "Assumptions changed — intelligence refresh available", daysAgo };
+    return { status: "stale", reason: "Assumptions changed since last review", daysAgo };
   }
 
   if (daysAgo >= VERY_STALE_THRESHOLD_DAYS) {
-    return { status: "very_stale", reason: `Intelligence is ${daysAgo} days old — refresh available`, daysAgo };
+    return { status: "very_stale", reason: `Last reviewed ${daysAgo} days ago — overdue for review`, daysAgo };
   }
 
   if (daysAgo >= STALE_THRESHOLD_DAYS) {
-    return { status: "stale", reason: "Intelligence refresh available — guidance may be outdated", daysAgo };
+    return { status: "stale", reason: "Due for review — analyst guidance may be outdated", daysAgo };
   }
 
-  return { status: "current", reason: "Intelligence is up to date", daysAgo };
+  return { status: "current", reason: "Analyst review is current", daysAgo };
 }
 
 const STATUS_CONFIG: Record<FreshnessStatus, {
@@ -58,35 +58,35 @@ const STATUS_CONFIG: Record<FreshnessStatus, {
     border: "border-emerald-500/30",
     text: "text-emerald-700 dark:text-emerald-400",
     icon: IconCheckCircle,
-    label: "Fresh",
+    label: "Up to date",
   },
   stale: {
     bg: "bg-amber-500/10",
     border: "border-amber-500/30",
     text: "text-amber-700 dark:text-amber-400",
     icon: IconClock,
-    label: "Stale",
+    label: "Due for review",
   },
   very_stale: {
     bg: "bg-red-500/10",
     border: "border-red-500/30",
     text: "text-red-700 dark:text-red-400",
     icon: IconAlertTriangle,
-    label: "Very Stale",
+    label: "Overdue",
   },
   missing: {
     bg: "bg-blue-500/10",
     border: "border-blue-500/30",
     text: "text-blue-700 dark:text-blue-400",
     icon: IconAlertTriangle,
-    label: "No Intelligence",
+    label: "Not yet reviewed",
   },
   running: {
     bg: "bg-blue-500/10",
     border: "border-blue-500/30",
     text: "text-blue-700 dark:text-blue-400",
     icon: IconRefreshCw,
-    label: "Running",
+    label: "Reviewing",
   },
 };
 
@@ -139,7 +139,7 @@ export function IntelligenceStatusBar({
         </span>
         <span className="text-sm text-muted-foreground truncate">
           {reason}
-          {timeLabel && status !== "missing" && ` · Last run ${timeLabel}`}
+          {timeLabel && status !== "missing" && ` · Last reviewed ${timeLabel}`}
         </span>
       </div>
       {(status === "stale" || status === "very_stale" || status === "missing") && (
@@ -151,7 +151,7 @@ export function IntelligenceStatusBar({
           data-testid="button-regenerate-research"
         >
           <IconRefreshCw className="w-3 h-3" />
-          Regenerate
+          Ask the Analysts
         </Button>
       )}
     </div>

@@ -117,7 +117,7 @@ export function ResearchTheater({
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="font-display text-xl font-semibold text-foreground">
-                    Generating Research
+                    Consulting sources
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {completedCount} of {totalCount} complete

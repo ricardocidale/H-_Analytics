@@ -387,7 +387,7 @@ export default function CompanyAssumptions() {
                         ) : (
                           <IconPlay className="w-4 h-4" />
                         )}
-                        {isGenerating ? "Analyzing…" : "Regenerate Intelligence"}
+                        {isGenerating ? "Consulting..." : "Ask the Analysts"}
                       </Button>
                     </span>
                   </TooltipTrigger>

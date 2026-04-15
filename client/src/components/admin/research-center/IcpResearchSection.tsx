@@ -268,7 +268,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
             <div className="flex items-center gap-2">
               <Button size="sm" variant="default" onClick={h.handleGenerateResearch} disabled={h.isGenerating} className="text-xs h-8 gap-1.5" data-testid="button-generate-research">
                 {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
-                {h.isGenerating ? "Generating..." : h.report ? "Regenerate" : "Generate Research"}
+                {h.isGenerating ? "Consulting..." : h.report ? "Ask Again" : "Consult"}
               </Button>
             </div>
           </div>
@@ -288,8 +288,8 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
           {!h.isGenerating && !h.report && (
             <div className="text-center py-12">
               <IconFlaskConical className="w-8 h-8 mx-auto mb-3 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-muted-foreground" data-testid="text-no-research">No research report generated yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Click <strong>Generate Research</strong> to produce a market analysis.</p>
+              <p className="text-sm font-medium text-muted-foreground" data-testid="text-no-research">Not yet reviewed</p>
+              <p className="text-xs text-muted-foreground mt-1">Click <strong>Consult</strong> to get a market analysis from your analysts.</p>
             </div>
           )}
 

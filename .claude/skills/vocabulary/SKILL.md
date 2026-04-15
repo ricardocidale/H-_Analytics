@@ -198,7 +198,59 @@ Never show the numeric score to users. "Developing" instead of "Low" — it impl
 
 ---
 
-## 10. Help Text & Tooltip Voice
+## 10. Intelligence Animation Voice
+
+When the AI is working (research running, Rebecca thinking, data loading), the user
+sees animated status messages. These must feel like watching a colleague work, not
+reading a progress log.
+
+### Verbs to use in loading states
+**studying**, **reviewing**, **checking**, **weighing**, **considering**,
+**cross-referencing**, **pulling**, **forming a view**, **getting a second opinion**
+
+### Verbs to NEVER use in loading states
+**processing**, **generating**, **computing**, **loading**, **executing**,
+**running**, **aggregating**, **synthesizing**
+
+### Message format
+- Specific to what's actually happening: "Checking recent transactions in your market..."
+- Reference real data sources when possible: "Pulling current macro rates from FRED..."
+- Reference the actual entity: "Reviewing how similar properties perform..."
+- Short — one line, ends with "..."
+- Each message appears with a premium animation (BreathingDots, ThinkingRing, StreamPulse, etc.)
+
+### Standard rotating messages (ResearchLoadingOverlay)
+1. "Studying market trends and comparable properties..."
+2. "Cross-referencing industry benchmarks..."
+3. "Reviewing how similar properties perform..."
+4. "Checking recent transactions in your market..."
+5. "Weighing multiple data sources..."
+6. "Getting a second opinion from independent sources..."
+7. "Pulling current macro rates from FRED..."
+8. "Forming a view on your assumptions..."
+
+### Status bar labels (IntelligenceStatusBar)
+| Status | Label | Reason text |
+|---|---|---|
+| Current | "Up to date" | "Analyst review is current" |
+| Stale | "Due for review" | "Assumptions changed since last review" or "Due for review — analyst guidance may be outdated" |
+| Very stale | "Overdue" | "Last reviewed N days ago — overdue for review" |
+| Missing | "Not yet reviewed" | "Your analysts haven't reviewed these assumptions yet" |
+| Running | "Reviewing" | "Analysts are reviewing your assumptions" |
+
+### Rebecca typing phases
+1. "Searching portfolio data"
+2. "Analyzing benchmarks"
+3. "Composing response"
+
+### Animation components available (from ai-loader.tsx)
+`OrbitalDots`, `NeuralGlow`, `StreamPulse`, `BreathingDots`, `ThinkingRing`, `DataFlowDots`
+
+Use these instead of `Loader2 animate-spin` for any AI-related loading state.
+
+---
+
+## 11. Help Text & Tooltip Voice
 
 When writing tooltips, help text, info bubbles, or onboarding copy:
 

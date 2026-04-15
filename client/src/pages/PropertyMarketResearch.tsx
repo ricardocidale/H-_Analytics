@@ -157,7 +157,7 @@ export default function PropertyMarketResearch() {
                 className="gap-2 shadow-lg shadow-primary/20 hover:scale-[1.03] active:scale-[0.97] transition-transform"
               >
                 <IconRefreshCw className="w-4 h-4" />
-                Generate Research
+                Consult
               </Button>
             </div>
           )}

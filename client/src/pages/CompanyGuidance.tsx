@@ -190,7 +190,7 @@ function getProvenance(
     return {
       status: "awaiting",
       label: "Awaiting Validation",
-      description: "Intelligence not yet generated for this field. Regenerate Intelligence on the Assumptions page to get AI guidance.",
+      description: "Not yet reviewed. Ask the Analysts on the Assumptions page to get guidance for this field.",
     };
   }
 

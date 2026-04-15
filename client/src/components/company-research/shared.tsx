@@ -41,7 +41,7 @@ export function EmptyState({ title, description, onGenerate }: { title: string; 
       <h3 className="text-lg font-display text-foreground mb-2">{title}</h3>
       <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">{description}</p>
       <Button onClick={onGenerate} className="gap-2 shadow-lg shadow-primary/20 hover:scale-[1.03] active:scale-[0.97] transition-transform">
-        <IconRefreshCw className="w-4 h-4" /> Generate Research
+        <IconRefreshCw className="w-4 h-4" /> Consult
       </Button>
     </motion.div>
   );
