@@ -43,6 +43,7 @@ import { IntelligenceV2Storage, IntelligenceRebeccaStorage } from "./intelligenc
 import { PropertyUrlStorage } from "./property-urls";
 import { CalcAuditStorage, type ICalcAuditStorage } from "./calc-audit";
 import { RenderSettingsStorage } from "./render-settings";
+import { PageVisitStorage } from "./page-visits";
 
 export interface IStorage extends
   UserStorage,
@@ -59,7 +60,8 @@ export interface IStorage extends
   IntelligenceV2Storage,
   PropertyUrlStorage,
   ICalcAuditStorage,
-  RenderSettingsStorage {
+  RenderSettingsStorage,
+  PageVisitStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -81,6 +83,7 @@ export class DatabaseStorage implements IStorage {
   private propertyUrlStore = new PropertyUrlStorage();
   private calcAudit = new CalcAuditStorage();
   private renderSettingsStore = new RenderSettingsStorage();
+  private pageVisitStore = new PageVisitStorage();
 
   // Users
   getUserById = this.users.getUserById.bind(this.users);

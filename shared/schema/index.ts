@@ -13,4 +13,5 @@ export * from "./intelligence-v2";
 export * from "./engagement";
 export * from "./notifications";
 export * from "./integrations";
+export * from "./page-visits";
 export * from "./types/jsonb-shapes";
