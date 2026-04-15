@@ -13,7 +13,7 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
-- Skills live in `.claude/skills/` (18 domains, ~170 files). See `.claude/skills/_index.md` for the master catalog.
+- Skills live in `.claude/skills/` (19 domains, 178 files). See `.claude/skills/_index.md` for the master catalog.
 - **App name** is "H+ Analytics" (seed/default). Editable by super admin in Admin > App Identity. Powered by Norfolk AI.
 - **Company name** refers to the hospitality management company (seed/default: "Hospitality Management Co"). Editable by any user on the Management Company page. NOT the app name.
 - **Norfolk AI** is the technology company that created and powers H+ Analytics.
@@ -29,6 +29,7 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
   - NEVER: "the system", "the AI", "the chatbot", "your analysts" (plural), "Regenerate Intelligence", "Stale", "Fresh"
   - App = "H+ Analytics". Company = "Hospitality Management Co". Technology = "Norfolk AI Engine".
 - **Enforcement:** `rules/branding-vocabulary-enforcement.md`, `rules/the-analyst-persona.md`, `rules/rebecca-persona.md`. Audit test blocks 8 forbidden terms on every commit.
+- **CI Hygiene:** After pulling external code (Claude Code, other agents), run `npx tsx script/ci-hygiene.ts` to auto-fix ESLint unused vars/imports, secret scanner false positives, and TypeScript errors. See `.agents/skills/ci-hygiene/SKILL.md`.
 - **Communication skills** (reusable): `skills/communication/conversation-principles.md`, `skills/communication/ai-agent-voice.md`, `skills/communication/norfolk-brand-voice.md`.
 - **Intelligence-First Pages:** Every page with inputs must: (1) nudge user to Ask the Analyst on first visit (glowing button), (2) require Save before leaving, (3) auto-save if user doesn't press Save, (4) block downstream fields until compulsory fields are completed, (5) compel regeneration if intelligence is old. Track first-visit per-user per-page in DB.
 - **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
@@ -44,7 +45,7 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
 The application features a React 18 frontend with TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, and framer-motion. The backend is an Express 5 application utilizing Drizzle ORM and PostgreSQL.
 
 **Core Design Principles & Features:**
-- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (4,816 tests across 202 files, 15-phase verification pipeline), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
+- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (~4,191 tests across 204 files, 15-phase verification pipeline with 498 checks), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
 - **Modular Skill-Based Architecture:** Domain knowledge and context are managed through a skill-based system in `.claude/skills/`.
 - **Theming & UI/UX:** A robust theme engine provides consistent UI with 5 presets. All UI components are theme-compliant, and specific UI patterns are enforced.
 - **Shared Financial Calculation Layer (`calc/`):** Pure financial calculation logic in standalone modules. Both client and server import from `calc/`.
@@ -106,12 +107,13 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 | Proof System | `.claude/skills/proof-system/SKILL.md` |
 | Database | `.claude/skills/database/SKILL.md` |
 | Exports | `.claude/skills/exports/SKILL.md` |
-| Admin (16 sections) | `.claude/skills/admin/SKILL.md` |
+| Admin (19 sections) | `.claude/skills/admin/SKILL.md` |
 | Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md` |
 | **Vocabulary** | **`.claude/skills/vocabulary/SKILL.md`** — **Read before writing any UI text** |
+| Communication (3 skills) | `.claude/skills/communication/` |
 | Finance (25 skills) | `.claude/skills/finance/` |
 | Research (29 skills) | `.claude/skills/research/` |
-| UI (54 skills) | `.claude/skills/ui/` |
+| UI (55 skills) | `.claude/skills/ui/` |
 
 ## Key Rules
 
@@ -162,9 +164,9 @@ Instead, authenticate via a direct API call BEFORE any browser navigation:
 | Gate | Command | What it catches |
 |------|---------|----------------|
 | typecheck | `npx tsc --noEmit --skipLibCheck` | Type errors |
-| lint | `npm run lint:summary` | ESLint violations |
-| test | `npm run test:summary` | All 4,816 unit/integration tests |
-| verify | `npm run verify:summary` | Financial calculation accuracy (498 checks) |
+| lint | `npm run lint:summary` | ESLint violations (max-warnings 10) |
+| test | `npm run test:summary` | ~4,191 unit/integration tests (204 files) |
+| verify | `npm run verify:summary` | Financial calculation accuracy (498 checks, 15 phases) |
 | parity | `tsx script/parity-check.ts` | Statement builder ↔ on-screen parity |
 
 ## Quick Commands
@@ -172,12 +174,13 @@ Instead, authenticate via a direct API call BEFORE any browser navigation:
 ```bash
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify + doc harmony (~90s)
-npm run test:summary   # All 4,816 tests, 202 files (~30s)
-npm run verify:summary # 15-phase financial verification (~8s)
+npm run test:summary   # ~4,191 tests, 204 files (~30s)
+npm run verify:summary # 15-phase financial verification, 498 checks (~8s)
 npm run lint:summary   # ESLint check (<10s)
 npm run stats          # File/line/test counts (<5s)
 npm run audit:quick    # Code quality: 13 checks (<3s)
 npm run exports:check  # Unused export detection (<5s)
 npm run diff:summary   # Git status + diff stats (<1s)
 npm run db:push        # Push schema changes
+npx tsx script/ci-hygiene.ts  # Auto-fix CI failures after external pulls
 ```

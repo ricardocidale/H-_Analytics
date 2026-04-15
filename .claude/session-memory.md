@@ -8,30 +8,22 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 15, 2026 — Brand Voice, Personas, Shared Utilities, KB Seeds
-- **Brand voice guidelines** rewritten as single source of truth (`.claude/brand-voice-guidelines.md`). 9 sections: We Are/We Are Not, corporate voice, product voices, tone matrix (10 contexts), conversation principles (7 with examples), vocabulary, visual identity, 10 before/after examples, quality checklist.
-- **The Analyst + Rebecca** personas defined. 3 enforcement rules. Vocabulary audit expanded to 8 forbidden terms. Zero violations across codebase.
-- **Communication skills** created (reusable, app-agnostic): `conversation-principles.md`, `ai-agent-voice.md`, `norfolk-brand-voice.md`. New domain: communication/.
-- **Shared utilities** extracted: `fetchWithTimeout` + `sanitizeError` in `server/lib/`.
-- **PMT copies eliminated** — 4 hand-rolled formulas replaced with `calc/shared/pmt.ts` imports.
-- **18 Pinecone KB seeds** created: conversation principles, communication techniques, Norfolk AI identity, behavioral economics UX. Wired into seed runner. Replit needs to run.
-- **dataQuality JSONB** added to assumption_guidance. `computeDataQuality()` 4-factor scoring.
-- **Replit delivered:** user_page_visits table, AgentPersonasTab, animations placed, usePageVisit hook, FirstVisitBanner, all gates green.
-- **Brand discovery:** scanned Norfolk AI Dropbox (brand guides, design systems), norfolk.ai website, proposal repo, Qurrent AI. Influences absorbed (behavioral economics, radical attention, overcoming indecision).
+## Session: April 15, 2026 — CI Hygiene & Documentation Optimization
+- **CI hygiene script** (`script/ci-hygiene.ts`): auto-fixes ESLint unused vars/imports, secret scanner false positives, TypeScript errors. Replit Agent skill at `.agents/skills/ci-hygiene/SKILL.md`.
+- **All MD files updated**: test count corrected to ~4,191 (204 files), 178 skills across 19 domains, 25 rules, 498 verify checks. Stale "4,816 tests/202 files/171 skills/18 domains" references fixed across replit.md, claude.md, _index.md, session-memory.md.
+- **ESLint** warnings reduced 13→2. `vitest.config.ts` testTimeout: 15s. Health check timeout: 300s.
 
-## Session: April 15, 2026 — MD Audit & Optimization + Schema/Test Fixes
-**MD audit (DONE):** Rewrote `replit.md` and `claude.md` — updated product name to "H+ Analytics by Norfolk AI", company to "Norfolk AI". Fixed stale counts (4,816 tests/202 files/1,113 sources/190K lines). Added `super_admin` role to all role tables. Added validation gates section, domain boundary rules, drizzle-zod `.pick()` rule, design colors, git commit pattern. Compressed Recent Changes to 3 compact entries. Removed "Hospitality Business Group" branding everywhere.
-**Schema fixes (DONE):** 10 `.default()` values on notNull columns in `shared/schema/config.ts`, 6 `DEFAULT_*` constants, fiscalYearStartMonth Zod validation.
-**Test fixes (DONE):** 8 pre-existing failures fixed (PARTNER→SUPER_ADMIN, benchmark-lookups mock). All 4,816 tests pass.
-**Validation gates (DONE):** 5 gates registered (typecheck/lint/test/verify/parity). All pass (~29s total).
-**Key scratchpad:** `UserRole.PARTNER` removed. Use `SUPER_ADMIN`. drizzle-zod: `.pick()` only, never `.omit()`. `DEV_SKIP_AUTH=true`. Git: `--no-verify`.
+## Session: April 15, 2026 — Brand Voice, Personas, Intelligence-First
+- Brand voice guidelines (`.claude/brand-voice-guidelines.md`) — single source of truth. The Analyst + Rebecca personas, vocabulary enforcement.
+- Communication skills (reusable): conversation-principles, ai-agent-voice, norfolk-brand-voice. New domain: communication/.
+- Shared utilities: fetchWithTimeout, sanitizeError. PMT copies eliminated → `calc/shared/pmt.ts`.
+- user_page_visits table, usePageVisit hook, FirstVisitBanner, AgentPersonasTab.
+- 18 KB seeds, dataQuality JSONB on assumption_guidance.
 
-## Session: April 14-15, 2026 — Master Remediation + Data Tables + Intelligence Architecture
-**Remediation (DONE):** 11 calc bugs, 7 external service bugs, schema cleanup, 3 audit guard tests (79 tests), CI fixed, vocabulary skill + 14 UI files + user manual + Rebecca KB.
-**Data Tables (DONE):** benchmark-lookups.ts (7 lookups + validateAssumptionRange), Smart Data Router Priority 0, Pinecone indexing (4 functions), prompt injection (benchmark-injector.ts). Seed file exists.
-**Intelligence Pipeline Skill:** `.claude/skills/research/intelligence-pipeline.md` — 260-line definitive reference.
-**Rebecca:** Personality (outgoing/intellectual/geeky/witty), full Ricardo Cidale bio, Norfolk AI identity, "built with Claude Code".
-**Plans:** `master-remediation-plan.md`, `pdf-export-plan.md`, `deterministic-data-tables-plan.md`. PDF export plan NOT executed — next session.
+## Session: April 14-15, 2026 — Schema/Tests/Remediation (Archived)
+- 10 `.default()` values, 6 `DEFAULT_*` constants, 8 test fixes (PARTNER→SUPER_ADMIN).
+- 11 calc bugs, 7 service bugs, deep security audit (IDOR, prototype pollution, NaN guards).
+- 5 CI gates registered. Intelligence pipeline skill. Rebecca personality. PDF export plan (NOT executed).
 
 ---
 

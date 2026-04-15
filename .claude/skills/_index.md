@@ -1,6 +1,6 @@
 # Skill Catalog — H+ Analytics by Norfolk AI
 
-Master index of skill files across 19 domains. Use this to find the right skill for any task.
+Master index of 178 skill files across 19 domains. Use this to find the right skill for any task.
 
 ---
 
@@ -148,7 +148,7 @@ Master index of skill files across 19 domains. Use this to find the right skill 
 
 | File | Description |
 |------|-------------|
-| `testing/SKILL.md` | Master: 4,536+ test automated verification system |
+| `testing/SKILL.md` | Master: ~4,191 test automated verification system |
 | `testing/analysis-dcf-fcf.md` | DCF and FCF analysis tests |
 | `testing/analysis-returns.md` | Return metrics tests |
 | `testing/consolidated-statements.md` | Consolidated statement tests |
@@ -163,7 +163,7 @@ Master index of skill files across 19 domains. Use this to find the right skill 
 
 | File | Description |
 |------|-------------|
-| `admin/SKILL.md` | Master: 13-tab shell pattern, extraction guide, API routes |
+| `admin/SKILL.md` | Master: 19-section shell pattern, extraction guide, API routes |
 | `admin/admin-api-routes.md` | Complete list of admin API endpoints |
 | `admin/admin-refactor-map.md` | Post-refactor architecture (87-line shell + 10 tab components) |
 | `admin/admin-shell-template.md` | Target template for slim Admin.tsx shell |
@@ -209,7 +209,7 @@ Master index of skill files across 19 domains. Use this to find the right skill 
 
 | File | Description |
 |------|-------------|
-| `proof-system/SKILL.md` | Master: 3,547 tests, 153 files, 5 golden scenarios, 761 golden reference tests |
+| `proof-system/SKILL.md` | Master: ~4,191 tests, 204 files, 15-phase verification (498 checks), golden scenarios |
 | `proof-system/comprehensive-audit.md` | Comprehensive audit procedures |
 | `proof-system/release-audit-checklist.md` | Release audit checklist |
 | `proof-system/verification-system.md` | Three-tier verification system |

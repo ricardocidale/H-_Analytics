@@ -1,17 +1,17 @@
 ---
 name: Testing & Proof System
-description: Documents the full 4,536+-test automated verification system. Every financial statement, analysis, and engine calculation has dedicated tests that prove correctness without manual Excel verification.
+description: Documents the full ~4,191-test automated verification system (204 files). Every financial statement, analysis, and engine calculation has dedicated tests that prove correctness without manual Excel verification.
 ---
 
 # Testing & Proof System — Master Skill
 
 ## Purpose
-Documents the full 4,536+-test automated verification system (187+ files). Every financial statement, analysis, and engine calculation has dedicated tests that prove correctness without manual Excel verification.
+Documents the full ~4,191-test automated verification system (204 files). Every financial statement, analysis, and engine calculation has dedicated tests that prove correctness without manual Excel verification. 15-phase verification pipeline with 498 checks.
 
 ## Commands
 ```bash
-npm test                              # Run all 4,536+ tests
-npm run verify                        # Full 7-phase verification (UNQUALIFIED = pass)
+npm test                              # Run all ~4,191 tests
+npm run verify                        # Full 15-phase verification (UNQUALIFIED = pass)
 npx vitest run tests/statements/      # Statement tests only
 npx vitest run tests/analytics/       # Analytics/returns tests only
 npx vitest run tests/engine/          # Engine (property + company pro forma) tests only
@@ -19,12 +19,12 @@ npx vitest run tests/financing/       # Acquisition financing tests only
 npx vitest run tests/refinance/       # Refinancing tests only
 npx vitest run tests/funding/         # Funding instrument tests only
 npx vitest run tests/proof/           # Proof system (scenarios + hardcoded detection)
-npx vitest run tests/golden/          # Golden hand-calculated scenarios (207 tests, ~3s)
+npx vitest run tests/golden/          # Golden hand-calculated scenarios
 npx vitest run tests/calc/validation/ # Validation tests only
 npx vitest run tests/auth/            # Auth utility tests only
 ```
 
-## Test Suite Map (187+ files, 4,536+ tests)
+## Test Suite Map (204 files, ~4,191 tests)
 
 ### By Domain
 
@@ -87,10 +87,11 @@ npx vitest run tests/auth/            # Auth utility tests only
 
 ## Maintenance Rules
 
-1. **All 4,536+ tests must pass before any merge** — run `npm test`
-2. **New financial calculations require new tests** — add to the appropriate domain directory
-3. **New calculators require golden tests** — add hand-calculated reference values in `tests/golden/`
-4. **New constants go in `shared/constants.ts`** — never inline magic numbers
-5. **Hardcoded detection scans 8 finance files** — `proof/hardcoded-detection.test.ts`
-6. **Update this skill and sub-skills when adding test suites**
-7. **Only UNQUALIFIED audit opinion is acceptable** — run `npm run verify`
+1. **All ~4,191 tests must pass before any merge** — run `npm test`
+2. **15-phase verification must pass with UNQUALIFIED** — run `npm run verify`
+3. **New financial calculations require new tests** — add to the appropriate domain directory
+4. **New calculators require golden tests** — add hand-calculated reference values in `tests/golden/`
+5. **New constants go in `shared/constants.ts`** — never inline magic numbers
+6. **Hardcoded detection scans finance files** — `proof/hardcoded-detection.test.ts`
+7. **Update this skill and sub-skills when adding test suites**
+8. **Global test timeout: 15,000ms** — configured in `vitest.config.ts`

@@ -1,12 +1,12 @@
 ---
 name: admin
-description: Admin page architecture. 13-tab shell pattern, extraction guide, API routes, shared types, AI Agent dashboard, Services tab, Research configuration.
+description: Admin page architecture. 19-section shell pattern, extraction guide, API routes, shared types, AI Agent dashboard, Services tab, Research configuration.
 ---
 
 # Admin Page — Entry Point
 
 ## Purpose
-Documents the Admin Settings page architecture — refactored from a 3,235-line monolith into 13 standalone tab components + shell.
+Documents the Admin Settings page architecture — 19 sections with standalone tab components + shell.
 
 ## Sub-Skills
 | File | What It Covers |
