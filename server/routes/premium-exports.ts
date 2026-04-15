@@ -5,6 +5,10 @@ import { logger } from "../logger";
 import { storage } from "../storage";
 import { renderPremiumPdf } from "../pdf/render";
 import { compileReport } from "../report/compiler";
+import { isWeasyPrintAvailable, renderHtmlToPdf } from "../pdf/weasyprint-renderer";
+import { buildPdfSectionsFromData } from "./premium-pdf-pipeline";
+import { buildPdfHtml } from "./pdf-html-templates";
+import { resolveThemeColors } from "../theme-resolver";
 import { generateExcelFromReport } from "./format-generators/excel-generator";
 import { generatePptxFromReport } from "./format-generators/pptx-generator";
 import { generateDocxFromReport } from "./format-generators/docx-generator";
@@ -99,7 +103,33 @@ async function generateViaTemplatePipeline(
 
   switch (data.format) {
     case "pdf": {
-      logger.info(`[react-pdf] Generating PDF via @react-pdf/renderer...`, "premium-export");
+      // Try WeasyPrint first (HTML→PDF, Excel-quality tables), fall back to React-PDF
+      const weasyAvailable = await isWeasyPrintAvailable();
+      if (weasyAvailable) {
+        logger.info(`[weasyprint] Generating PDF via HTML templates + WeasyPrint...`, "premium-export");
+        try {
+          // Build sections from financial data — tables + charts only (no cover/TOC)
+          const sections = buildPdfSectionsFromData(data as any);
+          const financialSections = sections.filter(s =>
+            s.type === "financial_table" || s.type === "line_chart" || s.type === "metrics_dashboard"
+          );
+          const tc = resolveThemeColors(data.themeColors);
+          const html = buildPdfHtml({ sections: financialSections }, {
+            companyName: data.companyName ?? "H+ Analytics",
+            entityName: data.entityName ?? "",
+            reportTitle: data.statementType ?? "Financial Report",
+            orientation: data.orientation ?? "landscape",
+            sections: financialSections,
+            colors: tc,
+            densePagination: false, // one statement per page, not dense
+          });
+          return renderHtmlToPdf(html);
+        } catch (wpErr: unknown) {
+          logger.warn(`WeasyPrint failed, falling back to React-PDF: ${wpErr instanceof Error ? wpErr.message : String(wpErr)}`, "premium-export");
+          return renderPremiumPdf(report);
+        }
+      }
+      logger.info(`[react-pdf] Generating PDF via @react-pdf/renderer (WeasyPrint unavailable)...`, "premium-export");
       return renderPremiumPdf(report);
     }
     case "xlsx": {
