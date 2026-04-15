@@ -31,9 +31,12 @@ export function parseTestOutput(raw: string): { passed: boolean; summary: string
       clean,
     };
   }
-  // Fallback: check for any indication of success
-  const hasPass = clean.includes("passed") || clean.includes("PASS");
-  const hasFail = clean.includes("failed") || clean.includes("FAIL");
+  const summaryLines = clean.split("\n").filter((l) =>
+    /^\s*(Test Files|Tests)\s+\d+/.test(l) || /\d+\s+(passed|failed)/.test(l)
+  );
+  const summaryBlock = summaryLines.join(" ");
+  const hasPass = summaryBlock.includes("passed") || clean.includes("PASS");
+  const hasFail = /\b\d+\s+failed\b/.test(summaryBlock);
   return {
     passed: hasPass && !hasFail,
     summary: hasPass && !hasFail ? "PASS" : "FAIL (see npm test)",

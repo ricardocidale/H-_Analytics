@@ -113,14 +113,17 @@ try {
 
 // Phase 2: Tests (single vitest run — includes all proof tests)
 try {
-  testRawOutput = execSync("npx vitest run 2>&1", {
-    timeout: 180_000,
+  testRawOutput = execSync("npx vitest run", {
+    timeout: 300_000,
     encoding: "utf-8",
     maxBuffer: 10 * 1024 * 1024,
+    stdio: ["pipe", "pipe", "pipe"],
   });
 } catch (err: unknown) {
-  const e = err as { stdout?: string; stderr?: string };
-  testRawOutput = (e.stdout ?? "") + (e.stderr ?? "");
+  const e = err as { stdout?: string | Buffer; stderr?: string | Buffer };
+  const stdout = typeof e.stdout === "string" ? e.stdout : e.stdout?.toString("utf-8") ?? "";
+  const stderr = typeof e.stderr === "string" ? e.stderr : e.stderr?.toString("utf-8") ?? "";
+  testRawOutput = stdout + stderr;
 }
 
 const testResult = parseTestOutput(testRawOutput);
