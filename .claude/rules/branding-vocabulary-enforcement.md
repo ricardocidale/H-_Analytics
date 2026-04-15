@@ -33,10 +33,33 @@ These terms must NEVER appear in user-facing UI text. The audit test
 | Stale / Fresh | Due for review / Up to date |
 | Confidence Score (with %) | Conviction: High / Moderate / Developing |
 | Run / Execute / Generate (for AI actions) | The Analyst is studying / reviewing / cross-referencing |
-| Algorithm / Model / Engine (in UI) | The Analyst |
-| The system / The AI | The Analyst or Rebecca (by name) |
+| Algorithm (as explanation) | AI-powered intelligence |
+| The system (as subject doing things) | The Analyst or Rebecca (by name) |
 | Pipeline | Norfolk AI Engine |
 | Update (button label) | Save |
+| "The LLM outputted..." | "The Analyst reviewed..." |
+| "Machine learning algorithms" | "AI-powered" or "AI models" |
+
+## AI Terms — When They're OK
+
+"AI" is a feature to be proud of. Use it confidently:
+
+**OK (proud, investor-facing):**
+- "AI-powered intelligence"
+- "Our AI models reviewed 8 comparable properties"
+- "AI-generated ranges backed by market data"
+- "Powered by Norfolk AI"
+- "The Norfolk AI Engine uses multiple AI models to cross-validate"
+- "LLM-powered research" (in admin/technical contexts)
+
+**NOT OK (implementation leakage in user UI):**
+- "The LLM outputted a JSON response"
+- "Machine learning algorithms computed this range"
+- "The GPT model processed your embeddings"
+- "Vector similarity search returned 5 results"
+- "The prompt was sent to Claude Sonnet"
+
+The rule: **AI is what we do. How we do it is not the user's concern.**
 
 ## Loading State Language
 
