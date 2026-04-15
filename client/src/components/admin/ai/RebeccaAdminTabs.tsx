@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { IconSettings, IconMessageCircle, IconAlertCircle, IconShield, IconBrain, IconTrendingUp } from "@/components/icons";
+import { IconSettings, IconMessageCircle, IconAlertCircle, IconShield, IconBrain, IconTrendingUp, IconSparkles } from "@/components/icons";
 import { motion } from "framer-motion";
 import RebeccaConfigTab from "./RebeccaConfigTab";
 import RebeccaConversationsTab from "./RebeccaConversationsTab";
@@ -8,6 +8,7 @@ import RebeccaFeedbackTab from "./RebeccaFeedbackTab";
 import RebeccaAnalyticsTab from "./RebeccaAnalyticsTab";
 import GuardrailEditor from "./GuardrailEditor";
 import KnowledgeBaseEditor from "./KnowledgeBaseEditor";
+import AgentPersonasTab from "../AgentPersonasTab";
 import type { RebeccaConfigProps } from "./RebeccaConfigTab";
 
 interface RebeccaAdminTabsProps {
@@ -30,6 +31,10 @@ export default function RebeccaAdminTabs({ configProps, initialTab }: RebeccaAdm
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="bg-muted/40 border border-border/40" data-testid="rebecca-admin-tabs">
+          <TabsTrigger value="personas" className="gap-1.5 text-xs" data-testid="tab-personas">
+            <IconSparkles className="w-3.5 h-3.5" />
+            AI Agents
+          </TabsTrigger>
           <TabsTrigger value="configuration" className="gap-1.5 text-xs" data-testid="tab-configuration">
             <IconSettings className="w-3.5 h-3.5" />
             Configuration
@@ -55,6 +60,10 @@ export default function RebeccaAdminTabs({ configProps, initialTab }: RebeccaAdm
             Analytics
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="personas" className="mt-0">
+          <AgentPersonasTab />
+        </TabsContent>
 
         <TabsContent value="configuration" className="mt-0">
           <RebeccaConfigTab {...configProps} />

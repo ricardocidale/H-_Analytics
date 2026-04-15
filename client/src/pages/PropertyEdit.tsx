@@ -34,6 +34,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconWand2, IconEye, IconSparkles } from "@/components/icons";
+import { OrbitalDots } from "@/components/ui/ai-loader";
+import { usePageVisit } from "@/hooks/usePageVisit";
+import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -97,6 +100,11 @@ export default function PropertyEdit() {
 
   const researchUpdatedAt = research?.updatedAt ?? null;
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
+
+  const pageVisitKey = propertyId ? `property:${propertyId}:edit` : "";
+  const { isFirstVisit, isAnalystStale, recordSave: recordPageSave, recordAnalystRun } = usePageVisit(
+    pageVisitKey, "property", propertyId
+  );
 
   const { autoRefresh, setAutoRefresh } = useAutoRefreshIntelligence({
     entityKey: `property-${propertyId}`,
@@ -500,7 +508,7 @@ export default function PropertyEdit() {
                   >
                     <span className="relative">
                       {isGenerating ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <OrbitalDots size={18} />
                       ) : (
                         <IconSparkles className="w-4 h-4" />
                       )}
@@ -589,6 +597,13 @@ export default function PropertyEdit() {
           isGenerating={isGenerating}
           onRunResearch={generateResearch}
         />
+
+        {isFirstVisit && !isGenerating && (
+          <FirstVisitBanner
+            onAskAnalyst={() => { setIntelligenceClicked(true); generateResearch(); }}
+            isGenerating={isGenerating}
+          />
+        )}
 
         {isGenerating && (
           <Card className="bg-primary/5 border-primary/20 p-4">

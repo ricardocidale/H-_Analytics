@@ -8,7 +8,7 @@ import {
   IconDollarSign,
 } from "@/components/icons";
 import { X } from "@/components/icons/themed-icons";
-import { ThinkingRing } from "@/components/ui/ai-loader";
+import { ThinkingRing, DataFlowDots } from "@/components/ui/ai-loader";
 import { cn } from "@/lib/utils";
 
 interface ResearchJob {
@@ -207,8 +207,9 @@ export function ResearchTheater({
               {/* Streaming Preview */}
               {previewText && (
                 <div className="rounded-lg border border-border bg-muted/50 p-3 max-h-32 overflow-y-auto">
-                  <p className="label-text text-muted-foreground mb-1.5">
+                  <p className="label-text text-muted-foreground mb-1.5 flex items-center gap-2">
                     Live Output
+                    <DataFlowDots />
                   </p>
                   <pre className="text-xs text-foreground/80 font-mono whitespace-pre-wrap leading-relaxed">
                     {previewText}

@@ -1,5 +1,5 @@
 import { IconCheckCircle, IconAlertTriangle, IconClock, IconRefreshCw } from "@/components/icons";
-import { ThinkingRing } from "@/components/ui/ai-loader";
+import { ThinkingRing, NeuralGlow } from "@/components/ui/ai-loader";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -131,6 +131,8 @@ export function IntelligenceStatusBar({
       <div className="flex items-center gap-2.5 min-w-0">
         {status === "running" ? (
           <ThinkingRing size={16} className="flex-shrink-0" />
+        ) : status === "missing" ? (
+          <NeuralGlow size={20} className="flex-shrink-0" />
         ) : (
           <StatusIcon className={cn("w-4 h-4 flex-shrink-0", config.text)} />
         )}

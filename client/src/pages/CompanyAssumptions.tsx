@@ -32,6 +32,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconPlay, IconAlertTriangle, IconTarget } from "@/components/icons";
+import { OrbitalDots } from "@/components/ui/ai-loader";
+import { usePageVisit } from "@/hooks/usePageVisit";
+import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import type { GlobalResponse } from "@/lib/api";
@@ -129,6 +132,8 @@ export default function CompanyAssumptions() {
   const isAdmin = user ? isAdminRole(user.role) : false;
 
   const { isGenerating, streamedContent, generateResearch } = useCompanyResearchStream();
+
+  const { isFirstVisit, isAnalystStale, recordSave: recordPageSave, recordAnalystRun } = usePageVisit("company:assumptions");
 
   const [formData, setFormData] = useState<Partial<GlobalResponse>>({});
   const [isDirty, setIsDirty] = useState(false);
@@ -383,7 +388,7 @@ export default function CompanyAssumptions() {
                         data-testid="button-run-company-research"
                       >
                         {isGenerating ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <OrbitalDots size={18} />
                         ) : (
                           <IconPlay className="w-4 h-4" />
                         )}
@@ -448,6 +453,13 @@ export default function CompanyAssumptions() {
           isGenerating={isGenerating}
           onRunResearch={generateResearch}
         />
+
+        {isFirstVisit && !isGenerating && (
+          <FirstVisitBanner
+            onAskAnalyst={generateResearch}
+            isGenerating={isGenerating}
+          />
+        )}
 
         <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />
 
