@@ -66,8 +66,11 @@ export function makeGlobal(overrides?: Partial<BaseGlobal>): BaseGlobal {
 }
 
 export const financedProperty = makeProperty({
-  type: "Financed" as any,
+  type: "Financed",
   acquisitionLTV: 0.60,
   acquisitionInterestRate: 0.08,
   acquisitionTermYears: 25,
-} as any);
+} as Partial<BaseProperty>);
+
+// Re-export typed factories for new tests
+export { makePropertyInput, makeGlobalInput, makeFinancedProperty, makeLuxuryProperty } from "./factories";

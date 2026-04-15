@@ -22,7 +22,7 @@ describe("Golden Pro-Forma Edge Cases", () => {
       startAdr: 350,
       startOccupancy: 0.80,
       maxOccupancy: 0.80,
-      type: "Full Equity" as any,
+      type: "Full Equity",
       adrGrowthRate: 0,
       occupancyGrowthStep: 0,
       baseManagementFeeRate: 0.05,
@@ -87,7 +87,7 @@ describe("Golden Pro-Forma Edge Cases", () => {
     // 90% LTV, $2M purchase
     const property = makeProperty({
       purchasePrice: 2_000_000,
-      type: "Financed" as any,
+      type: "Financed",
       acquisitionLTV: 0.90,
       acquisitionInterestRate: 0.10,
       acquisitionTermYears: 20,
@@ -129,7 +129,7 @@ describe("Golden Pro-Forma Edge Cases", () => {
       startOccupancy: 0,
       maxOccupancy: 0,
       purchasePrice: 1_000_000,
-      type: "Financed" as any,
+      type: "Financed",
       acquisitionLTV: 0.50,
       acquisitionInterestRate: 0.05,
     });
@@ -156,7 +156,7 @@ describe("Golden Pro-Forma Edge Cases", () => {
       purchasePrice: 10_000_000, // High purchase price -> high depreciation
       roomCount: 5, // Low room count -> low revenue
       startAdr: 100,
-      type: "Financed" as any,
+      type: "Financed",
       acquisitionLTV: 0.80,
       acquisitionInterestRate: 0.12, // High interest
       taxRate: 0.25,
@@ -226,7 +226,7 @@ describe("Golden Pro-Forma Edge Cases", () => {
 
   describe("Scenario 7: Refinance Scenario", () => {
     const property = makeProperty({
-      type: "Financed" as any,
+      type: "Financed",
       acquisitionLTV: 0.50,
       purchasePrice: 2_000_000,
       willRefinance: "Yes",

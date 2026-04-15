@@ -28,13 +28,14 @@ import {
   DAYS_PER_MONTH, DEFAULT_LAND_VALUE_PERCENT,
 } from "../../shared/constants";
 import { BUSINESS_MODEL_DEFAULTS } from "../../shared/constants-business-models";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 const PENNY = 2; // toBeCloseTo precision
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SHARED GLOBAL (all scenarios)
 // ═══════════════════════════════════════════════════════════════════════════════
-function makeGlobal(overrides: Record<string, any> = {}) {
+function makeGlobal(overrides: Record<string, any> = {}): GlobalInput {
   return {
     modelStartDate: "2026-04-01",
     projectionYears: 2,
@@ -63,7 +64,7 @@ function makeGlobal(overrides: Record<string, any> = {}) {
     marketingRate: 0.05,
     miscOpsRate: 0.03,
     ...overrides,
-  } as any;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -71,7 +72,7 @@ function makeGlobal(overrides: Record<string, any> = {}) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("Golden Scenario 1: US Hotel (financed, 25% tax, 39yr depreciation)", () => {
-  const PROP = {
+  const PROP: PropertyInput = {
     id: 101, name: "Catskill Estate Hotel", type: "Financed",
     purchasePrice: 3_000_000, buildingImprovements: 0, preOpeningCosts: 0,
     roomCount: 25, startAdr: 220, startOccupancy: 0.70, maxOccupancy: 0.70,
@@ -83,7 +84,7 @@ describe("Golden Scenario 1: US Hotel (financed, 25% tax, 39yr depreciation)", (
     willRefinance: "No",
     depreciationYears: 39,
     landValuePercent: DEFAULT_LAND_VALUE_PERCENT,
-  } as any;
+  };
 
   const GLOBAL = makeGlobal();
   const MONTHS = 24;
@@ -190,7 +191,7 @@ describe("Golden Scenario 1: US Hotel (financed, 25% tax, 39yr depreciation)", (
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("Golden Scenario 2: Colombian Hotel (35% tax, 20yr depreciation)", () => {
-  const PROP = {
+  const PROP: PropertyInput = {
     id: 102, name: "Obra Pía Cartagena", type: "Full Equity",
     purchasePrice: 1_500_000, buildingImprovements: 0, preOpeningCosts: 0,
     roomCount: 12, startAdr: 180, startOccupancy: 0.65, maxOccupancy: 0.65,
@@ -202,7 +203,7 @@ describe("Golden Scenario 2: Colombian Hotel (35% tax, 20yr depreciation)", () =
     depreciationYears: 20,
     landValuePercent: DEFAULT_LAND_VALUE_PERCENT,
     countryRiskPremium: 0.0285,
-  } as any;
+  };
 
   const GLOBAL = makeGlobal();
   const MONTHS = 24;
@@ -300,7 +301,7 @@ describe("Golden Scenario 2: Colombian Hotel (35% tax, 20yr depreciation)", () =
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("Golden Scenario 3: Hotel with Refinancing", () => {
-  const PROP = {
+  const PROP: PropertyInput = {
     id: 103, name: "Hudson Valley Estate", type: "Financed",
     purchasePrice: 2_500_000, buildingImprovements: 0, preOpeningCosts: 0,
     roomCount: 18, startAdr: 200, startOccupancy: 0.65, maxOccupancy: 0.65,
@@ -317,7 +318,7 @@ describe("Golden Scenario 3: Hotel with Refinancing", () => {
     refinanceClosingCostRate: 0.03,
     depreciationYears: 39,
     landValuePercent: DEFAULT_LAND_VALUE_PERCENT,
-  } as any;
+  };
 
   const GLOBAL = makeGlobal({ modelStartDate: "2025-01-01", projectionYears: 5 });
   const MONTHS = 60;
@@ -404,7 +405,7 @@ describe("Golden Scenario 3: Hotel with Refinancing", () => {
 describe("Golden Scenario 4: VRBO Luxury Rental", () => {
   const vrbo = BUSINESS_MODEL_DEFAULTS.vrbo;
 
-  const PROP = {
+  const PROP: PropertyInput = {
     id: 104, name: "Medellín Luxury Duplex", type: "Full Equity",
     purchasePrice: 800_000, buildingImprovements: 0, preOpeningCosts: 0,
     // Per-property pricing: whole property rented at $350/night, 4 bedrooms for capacity tracking
@@ -438,7 +439,7 @@ describe("Golden Scenario 4: VRBO Luxury Rental", () => {
     baseManagementFeeRate: vrbo.baseMgmtFeeRate,
     incentiveManagementFeeRate: vrbo.incentiveMgmtFeeRate,
     platformFeeRate: vrbo.platformFeeRate,
-  } as any;
+  };
 
   const GLOBAL = makeGlobal({
     eventExpenseRate: vrbo.eventExpenseRate,
