@@ -171,21 +171,21 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             <p className="text-xs"><span className="font-medium text-foreground">Yellow pill badge:</span> <span className="text-muted-foreground">Shows the AI-recommended range (e.g., "55%–70%"). Hover for source and date, click to auto-fill the recommended value.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Blue GAAP badge:</span> <span className="text-muted-foreground">Shows the GAAP or IRS rule governing this field. Hover to see the accounting standard and its implications. Always visible.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Guidance arrow:</span> <span className="text-muted-foreground">Click the arrow icon next to any badge to open the Guidance Side Sheet with full details — P25/P50/P75 ranges, peer comparisons, methodology trail, and impact analysis.</span></p>
-            <p className="text-xs"><span className="font-medium text-foreground">Gray badge:</span> <span className="text-muted-foreground">No research data is available for this field yet. Run Regenerate Intelligence to populate it.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Gray badge:</span> <span className="text-muted-foreground">Not yet reviewed by your analysts. Press Ask the Analysts to get guidance for this field.</span></p>
           </div>
           <h5 className="font-medium text-foreground text-xs mt-3">Range Badge Colors</h5>
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 mt-1">
             <p className="text-xs"><span className="font-medium text-foreground">Green:</span> <span className="text-muted-foreground">Your current value falls within the AI-researched range — your assumption is well-supported by market data.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Yellow:</span> <span className="text-muted-foreground">Your value is near the edge of the researched range — consider reviewing against comparable properties.</span></p>
             <p className="text-xs"><span className="font-medium text-foreground">Red:</span> <span className="text-muted-foreground">Your value falls outside the researched range — this assumption may need adjustment or additional justification.</span></p>
-            <p className="text-xs"><span className="font-medium text-foreground">Gray:</span> <span className="text-muted-foreground">No research data available for this field. Press Regenerate Intelligence to populate.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">Gray:</span> <span className="text-muted-foreground">Not yet reviewed. Press Ask the Analysts to get guidance.</span></p>
           </div>
         </div>
 
         <div>
           <h4 className="font-semibold text-foreground mb-2">Confidence Indicators</h4>
           <p className="mb-3">
-            Each range badge includes a <span className="font-medium text-foreground">confidence level</span> (High, Medium, or Low)
+            Each range badge includes a <span className="font-medium text-foreground">conviction level</span> (High, Moderate, or Developing)
             based on three factors:
           </p>
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5">
@@ -194,45 +194,45 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             <p className="text-xs"><span className="font-medium text-foreground">Source quality:</span> <span className="text-muted-foreground">Primary industry sources (STR, CBRE, HVS) carry more weight than secondary or scraped data.</span></p>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            The confidence level helps you gauge how much to trust the recommended range. High confidence means
-            strong market evidence; Low confidence means the recommendation is based on limited or extrapolated data.
+            The conviction level helps you gauge how much to trust the recommended range. High conviction means
+            strong market evidence; Developing means the recommendation is based on limited or extrapolated data.
           </p>
         </div>
 
         <div>
-          <h4 className="font-semibold text-foreground mb-2">Freshness & Staleness</h4>
+          <h4 className="font-semibold text-foreground mb-2">Review Status</h4>
           <p className="mb-3">
-            Research data has a limited shelf life. The system tracks how old each research result is and signals
-            when it should be refreshed through a color-coded <span className="font-medium text-foreground">freshness indicator</span>.
+            Analyst guidance has a limited shelf life. The app tracks how recently each assumption was reviewed and signals
+            when it should be refreshed through a color-coded <span className="font-medium text-foreground">review status indicator</span>.
           </p>
           <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-2">
             <div className="flex items-start gap-2">
               <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
-              <p className="text-xs"><span className="font-medium text-foreground">Current (green):</span> <span className="text-muted-foreground">All research is up to date — generated or refreshed within the configured freshness threshold. No action needed.</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Up to date (green):</span> <span className="text-muted-foreground">Analyst review is current. No action needed.</span></p>
             </div>
             <div className="flex items-start gap-2">
               <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-              <p className="text-xs"><span className="font-medium text-foreground">Stale (amber):</span> <span className="text-muted-foreground">Some research has exceeded the freshness threshold and should be refreshed. Market conditions may have changed since it was generated.</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Due for review (amber):</span> <span className="text-muted-foreground">Assumptions have changed or time has passed since the last review. Market conditions may have shifted — consider asking the analysts again.</span></p>
             </div>
             <div className="flex items-start gap-2">
               <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-              <p className="text-xs"><span className="font-medium text-foreground">Missing (red):</span> <span className="text-muted-foreground">Research has not been generated for one or more assumption fields. Run the research pipeline to populate these fields with market intelligence.</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Not yet reviewed (red):</span> <span className="text-muted-foreground">Your analysts haven't reviewed these assumptions yet. Press Ask the Analysts to get guidance.</span></p>
             </div>
             <div className="flex items-start gap-2">
               <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
-              <p className="text-xs"><span className="font-medium text-foreground">Running (blue):</span> <span className="text-muted-foreground">The research pipeline is actively generating or refreshing intelligence for this property. Results will appear automatically when complete.</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Reviewing (blue):</span> <span className="text-muted-foreground">Your analysts are currently reviewing assumptions for this property. Results will appear automatically when complete.</span></p>
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            The <span className="font-medium text-foreground">Intelligence Status Bar</span> at the top of property and company
-            assumption pages shows the overall freshness state at a glance — green when all research is current,
-            amber when some results are stale, red when research is missing, and blue when research is actively running.
+            The <span className="font-medium text-foreground">Review Status Bar</span> at the top of property and company
+            assumption pages shows the overall review status at a glance — green when all reviews are current,
+            amber when some reviews are due, red when assumptions haven't been reviewed yet, and blue when analysts are actively reviewing.
           </p>
-          <h5 className="font-medium text-foreground text-xs mt-3">Staleness Thresholds</h5>
+          <h5 className="font-medium text-foreground text-xs mt-3">Review Thresholds</h5>
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 mt-1">
-            <p className="text-xs"><span className="font-medium text-foreground">0–30 days:</span> <span className="text-muted-foreground">Research is current (green). No action needed.</span></p>
-            <p className="text-xs"><span className="font-medium text-foreground">30–90 days:</span> <span className="text-muted-foreground">Research is stale (amber). Market conditions may have shifted — consider pressing Regenerate Intelligence to refresh.</span></p>
-            <p className="text-xs"><span className="font-medium text-foreground">90+ days:</span> <span className="text-muted-foreground">Research is very stale (red). Data is likely outdated and should be refreshed before making investment decisions.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">0–30 days:</span> <span className="text-muted-foreground">Analyst review is current (green). No action needed.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">30–90 days:</span> <span className="text-muted-foreground">Due for review (amber). Market conditions may have shifted — consider pressing Ask the Analysts to refresh.</span></p>
+            <p className="text-xs"><span className="font-medium text-foreground">90+ days:</span> <span className="text-muted-foreground">Overdue (red). Guidance is likely outdated and should be refreshed before making investment decisions.</span></p>
           </div>
         </div>
 

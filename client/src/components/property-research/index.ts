@@ -2,7 +2,7 @@
  * property-research/index.ts
  *
  * Barrel export for the AI-powered property market research feature.
- * When a user clicks "Generate Research" on a property, the system streams
+ * When a user clicks "Consult" on a property, the system streams
  * structured JSON from an LLM (via SSE) containing market data, ADR comps,
  * occupancy benchmarks, cap rates, competitive landscape, and risk factors.
  *

@@ -136,12 +136,12 @@ export default function Section05PropertyDetails({ expanded, onToggle, sectionRe
       </div>
 
       <div className="bg-muted/50 rounded-lg p-4">
-        <h4 className="font-semibold mb-2">Regenerate Intelligence</h4>
+        <h4 className="font-semibold mb-2">Ask the Analysts</h4>
         <p className="text-sm text-muted-foreground">
-          After entering base property info (address, rooms, quality tier), press <strong>Regenerate Intelligence</strong> to
-          run AI research. Gold badges appear next to every assumption field showing recommended ranges.
-          Adjust your assumptions based on these ranges. Research results are cached — you only need to
-          regenerate when property characteristics change or data becomes stale.
+          After entering base property info (address, rooms, quality tier), press <strong>Ask the Analysts</strong> to
+          have your research team review the assumptions. Analyst Notes appear next to every assumption field
+          showing recommended ranges. Adjust your assumptions based on these ranges. Results are cached — you
+          only need to ask again when property characteristics change or the review becomes overdue.
         </p>
       </div>
 
