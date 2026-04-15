@@ -110,7 +110,7 @@ describe("Non-Destructive Load — destructiveLoadProperties fallback", () => {
   });
 
   it("strips auto fields from properties", () => {
-    expect(destructiveBody).toContain("stripAutoFields(prop)");
+    expect(destructiveBody).toContain("stripToColumns(properties");
   });
 
   it("does NOT use stableKey matching", () => {
