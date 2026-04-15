@@ -62,8 +62,7 @@ export default function PropertyDetail() {
   const { data: property, isLoading: propertyLoading, isError: propertyError } = useProperty(propertyId);
   const { data: global, isLoading: globalLoading, isError: globalError } = useGlobalAssumptions();
   const { data: brandingData } = useQuery<{ themeColors: Array<{ rank: number; name: string; hexCode: string; description?: string }> | null }>({
-    queryKey: ["my-branding"],
-    queryFn: async () => { const res = await fetch("/api/my-branding", { credentials: "include" }); return res.json(); },
+    queryKey: ["/api/my-branding"],
     staleTime: 5 * 60_000,
   });
   const { data: photos } = usePropertyPhotos(propertyId);

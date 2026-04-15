@@ -52,6 +52,16 @@ vi.mock("@shared/schema", () => ({
   hospitalityBenchmarks: {},
 }));
 
+const mockGetHospitalityBenchmarks = vi.fn().mockResolvedValue([]);
+const mockGetHealthySourceKeys = vi.fn().mockResolvedValue([]);
+
+vi.mock("../../server/storage", () => ({
+  storage: {
+    getHospitalityBenchmarks: (...args: unknown[]) => mockGetHospitalityBenchmarks(...args),
+    getHealthySourceKeys: (...args: unknown[]) => mockGetHealthySourceKeys(...args),
+  },
+}));
+
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col: unknown, val: unknown) => ({ op: "eq", val })),
   sql: (() => {
@@ -122,7 +132,7 @@ describe("checkSourceHealth", () => {
 
   // 3. hospitality_benchmarks — DB count > 0 → healthy
   it("returns healthy=true for hospitality_benchmarks when DB has rows", async () => {
-    mockDbExecute.mockResolvedValue({ rows: [{ count: 42 }] });
+    mockGetHospitalityBenchmarks.mockResolvedValue([{ id: 1 }, { id: 2 }]);
     const result = await checkSourceHealth("hospitality_benchmarks");
 
     expect(result.serviceKey).toBe("hospitality_benchmarks");
@@ -131,7 +141,7 @@ describe("checkSourceHealth", () => {
 
   // 3b. hospitality_benchmarks — DB count = 0 → unhealthy
   it("returns healthy=false for hospitality_benchmarks when DB is empty", async () => {
-    mockDbExecute.mockResolvedValue({ rows: [{ count: 0 }] });
+    mockGetHospitalityBenchmarks.mockResolvedValue([]);
     const result = await checkSourceHealth("hospitality_benchmarks");
 
     expect(result.serviceKey).toBe("hospitality_benchmarks");
@@ -238,8 +248,8 @@ describe("checkAllSources", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("{}", { status: 200 }),
     );
-    // Mock DB for hospitality_benchmarks
-    mockDbExecute.mockResolvedValue({ rows: [{ count: 10 }] });
+    // Mock storage for hospitality_benchmarks
+    mockGetHospitalityBenchmarks.mockResolvedValue([{ id: 1 }]);
 
     // Mock LLM client imports to avoid real module loading
     vi.doMock("../../server/ai/clients", () => ({
@@ -276,13 +286,7 @@ describe("checkAllSources", () => {
 describe("getHealthySources", () => {
   // 7. filters correctly — returns only active, non-unreliable sources
   it("returns service keys from DB rows", async () => {
-    const mockRows = [
-      { serviceKey: "fred" },
-      { serviceKey: "frankfurter" },
-      { serviceKey: "anthropic" },
-    ];
-
-    mockSelectWhere.mockResolvedValue(mockRows);
+    mockGetHealthySourceKeys.mockResolvedValue(["fred", "frankfurter", "anthropic"]);
 
     const keys = await getHealthySources();
 
@@ -291,7 +295,7 @@ describe("getHealthySources", () => {
 
   // 8. category filter
   it("returns only sources matching a category filter", async () => {
-    mockSelectWhere.mockResolvedValue([{ serviceKey: "fred" }]);
+    mockGetHealthySourceKeys.mockResolvedValue(["fred"]);
 
     const keys = await getHealthySources("macro_economic");
 
@@ -300,7 +304,7 @@ describe("getHealthySources", () => {
 
   // empty result
   it("returns empty array when no healthy sources exist", async () => {
-    mockSelectWhere.mockResolvedValue([]);
+    mockGetHealthySourceKeys.mockResolvedValue([]);
 
     const keys = await getHealthySources();
 
