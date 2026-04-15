@@ -132,12 +132,12 @@ export function computeHoldVsSell(input: HoldVsSellInput): HoldVsSellOutput {
 
   const terminal_noi = projected_noi.length > 0
     ? r(projected_noi[projected_noi.length - 1] * (1 + input.noi_growth_rate))
-    : r(input.current_noi * (1 + input.noi_growth_rate));
+    : r(input.current_noi); // Zero hold period: use current NOI, no growth
 
   const terminal_value = futureExitCap > 0 ? r(terminal_noi / futureExitCap) : 0;
   const terminalCommission = r(terminal_value * commRate);
   const holdYearsDepreciation = r(accDepreciation + (costBasis / DEPRECIATION_YEARS) * input.remaining_hold_years);
-  const terminalAdjBasis = r(costBasis - holdYearsDepreciation);
+  const terminalAdjBasis = r(Math.max(0, costBasis - holdYearsDepreciation));
   const terminalGain = r(Math.max(0, terminal_value - terminalCommission - terminalAdjBasis));
   const terminalDepRecapTax = r(Math.min(terminalGain, holdYearsDepreciation) * depRecapRate);
   const terminalCapGain = r(Math.max(0, terminalGain - holdYearsDepreciation));

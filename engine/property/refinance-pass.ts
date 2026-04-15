@@ -49,6 +49,14 @@ export function applyRefinancePostProcessing(
     return;
   }
 
+  // Reject refinance before acquisition date
+  const acqDate = startOfMonth(parseLocalDate(property.acquisitionDate ?? ctx.modelStart.toISOString().slice(0, 10)));
+  const acqIdx = (acqDate.getFullYear() - ctx.modelStart.getFullYear()) * MONTHS_PER_YEAR +
+                 (acqDate.getMonth() - ctx.modelStart.getMonth());
+  if (refiMonthIndex < Math.max(0, acqIdx)) {
+    return;
+  }
+
   const refiYear = Math.floor(refiMonthIndex / MONTHS_PER_YEAR);
   const projectionYears = Math.ceil(months / MONTHS_PER_YEAR);
   const yearlyNOI: number[] = [];
@@ -93,7 +101,7 @@ export function applyRefinancePostProcessing(
   const acqMonthIdx = (ctx.acquisitionDate.getFullYear() - ctx.modelStart.getFullYear()) * MONTHS_PER_YEAR +
                       (ctx.acquisitionDate.getMonth() - ctx.modelStart.getMonth());
   let cumCash = 0;
-  let refiNolBalance = refiMonthIndex > 0 ? financials[refiMonthIndex - 1].nolBalance : 0;
+  let refiNolBalance = refiMonthIndex > 0 ? financials[refiMonthIndex - 1].nolBalance : financials[0].nolBalance;
   for (let i = 0; i < months; i++) {
     const m = financials[i];
 

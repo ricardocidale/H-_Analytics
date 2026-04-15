@@ -244,9 +244,9 @@ export function generateCompanyProForma(
     let miscOps = 0;
     
     if (hasStartedOps) {
-      const modelYear = year + 1;
-      const yearIndex = Math.min(modelYear - 1, DEFAULT_PARTNER_COMP.length - 1);
-      const totalPartnerCompForYear = yearlyPartnerComp[yearIndex];
+      // Use operations year (not model year) for partner comp lookup
+      const opsYearIndex = Math.min(companyOpsYear, yearlyPartnerComp.length - 1);
+      const totalPartnerCompForYear = yearlyPartnerComp[opsYearIndex];
       
       const staffFTE = activePropertyCount <= tier1Max ? tier1Fte
         : activePropertyCount <= tier2Max ? tier2Fte

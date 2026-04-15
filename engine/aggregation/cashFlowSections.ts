@@ -72,8 +72,10 @@ export function computeCashFlowSections(
     runningCash += net;
     closingCash.push(runningCash);
 
-    // Free Cash Flow = CFO - Capital Expenditures (FF&E)
-    const fcfVal = cfo - is.expenseFFE;
+    // Free Cash Flow = CFO - Capital Expenditures
+    // Note: FF&E is already excluded from CFO and placed in CFI.
+    // FCF capex here is only acquisition-year equity investment.
+    const fcfVal = cfo - (i === acquisitionYear ? loan.equityInvested : 0);
     fcf.push(fcfVal);
 
     // Free Cash Flow to Equity = FCF - Principal Payments

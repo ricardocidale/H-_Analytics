@@ -153,7 +153,7 @@ export function resolvePropertyAssumptions(
   const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
   const buildingValue = property.purchasePrice * (1 - landPct) + (property.buildingImprovements ?? 0);
 
-  const depreciationYears = property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS;
+  const depreciationYears = (property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS) || DEPRECIATION_YEARS;
   const daysPerMonth = global.daysPerMonth ?? DAYS_PER_MONTH;
 
   const costSegEnabled = property.costSegEnabled ?? false;
@@ -167,9 +167,17 @@ export function resolvePropertyAssumptions(
   let costSeg15yrBasis = 0;
   let costSegRestBasis = 0;
   if (costSegEnabled) {
-    const pct5 = property.costSeg5yrPct ?? DEFAULT_COST_SEG_5YR_PCT;
-    const pct7 = property.costSeg7yrPct ?? DEFAULT_COST_SEG_7YR_PCT;
-    const pctLong = property.costSeg15yrPct ?? DEFAULT_COST_SEG_15YR_PCT;
+    let pct5 = property.costSeg5yrPct ?? DEFAULT_COST_SEG_5YR_PCT;
+    let pct7 = property.costSeg7yrPct ?? DEFAULT_COST_SEG_7YR_PCT;
+    let pctLong = property.costSeg15yrPct ?? DEFAULT_COST_SEG_15YR_PCT;
+    // Clamp proportionally if percentages sum > 100%
+    const totalPct = pct5 + pct7 + pctLong;
+    if (totalPct > 1) {
+      const scale = 1 / totalPct;
+      pct5 *= scale;
+      pct7 *= scale;
+      pctLong *= scale;
+    }
     const pctRest = 1 - pct5 - pct7 - pctLong;
     costSeg5yrBasis = buildingValue * pct5;
     costSeg7yrBasis = buildingValue * pct7;

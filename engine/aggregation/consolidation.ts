@@ -57,6 +57,8 @@ function addPropertyYear(target: YearlyPropertyFinancials, src: YearlyPropertyFi
   target.accountsReceivable += src.accountsReceivable;
   target.accountsPayable += src.accountsPayable;
   target.workingCapitalChange += src.workingCapitalChange;
+  // NOL is entity-specific (per SPV) — not meaningful when summed across portfolio.
+  // Keep as sum for display purposes only; never use in portfolio-level tax calculations.
   target.nolBalance += src.nolBalance;
   target.cashFlow += src.cashFlow;
   target.operatingCashFlow += src.operatingCashFlow;

@@ -357,23 +357,19 @@ describe("Golden Scenario: Zero Occupancy (Failed Asset)", () => {
     });
   });
 
-  // ─── Exit Value (Negative Gross Value) ────────────────────────────────────
-  describe("Exit — Negative Gross Value from Negative NOI", () => {
+  // ─── Exit Value (Zero NOI → No Sale) ──────────────────────────────────────
+  describe("Exit — Zero Occupancy Property Cannot Be Sold at Negative Value", () => {
     it("annual NOI = 12 × monthly H_NOI", () => {
       expect(H_ANNUAL_NOI).toBeCloseTo(H_NOI * 12, 2);
     });
 
-    it("gross value = annual NOI / exit cap rate", () => {
-      expect(H_GROSS_VALUE).toBeCloseTo(H_ANNUAL_NOI / 0.085, 0);
+    it("annual NOI is negative (no revenue, only fixed costs)", () => {
+      expect(H_ANNUAL_NOI).toBeLessThan(0);
     });
 
-    it("exit value is negative (worthless asset)", () => {
-      expect(H_EXIT_VALUE).toBeLessThan(0);
-    });
-
-    it("engine exit value matches hand calculation", () => {
+    it("exit value is zero (cannot sell for negative — walk away)", () => {
       const lastYearCF = yearlyCF[9]; // Year 10 (index 9)
-      expect(lastYearCF.exitValue).toBeCloseTo(H_EXIT_VALUE, 0);
+      expect(lastYearCF.exitValue).toBe(0);
     });
   });
 });

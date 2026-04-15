@@ -351,7 +351,7 @@ export function aggregateUnifiedByYear(
           catFees[cat] = (catFees[cat] ?? 0) + val;
         }
       }
-      if (m.revenueTotal > 0 || m.noi !== 0) operationalMonthsInYear++;
+      if (m.revenueTotal > 0) operationalMonthsInYear++;
     }
 
     let cleanAdr = 0;
@@ -431,7 +431,7 @@ export function aggregateUnifiedByYear(
         ? (noi / operationalMonthsInYear) * MONTHS_PER_YEAR
         : 0;
     let exitValue = 0;
-    if (isLastYear && exitCapRate > 0) {
+    if (isLastYear && exitCapRate > 0 && annualizedNOI > 0) {
       const grossValue = annualizedNOI / exitCapRate;
       const commission = grossValue * commissionRate;
       const outstandingDebt = yearEnd > yearStart ? data[yearEnd - 1].debtOutstanding : 0;
