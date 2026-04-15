@@ -54,7 +54,6 @@ declare global {
       googleAccessToken: string | null;
       googleRefreshToken: string | null;
       googleTokenExpiry: Date | null;
-      googleDriveConnected: boolean;
       hideTourPrompt: boolean;
       canManageScenarios: boolean;
       createdAt: Date;

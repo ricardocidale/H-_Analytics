@@ -35,7 +35,6 @@ function mockUser(overrides: Partial<Express.User> = {}): Express.User {
     googleAccessToken: null,
     googleRefreshToken: null,
     googleTokenExpiry: null,
-    googleDriveConnected: false,
     hideTourPrompt: false,
     createdAt: new Date(),
     updatedAt: new Date(),

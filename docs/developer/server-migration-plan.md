@@ -741,7 +741,6 @@ Add `logActivity()` calls to:
 | `POST /api/geocode` | `geospatial.ts:15` | `z.object({ address: z.string().min(1).max(500) })` |
 | `PATCH /api/market-rates/:key` | `market-rates.ts:66` | `z.object({ value: z.number(), manualNote: z.string().max(500).optional() })` |
 | `POST /api/market-intelligence/gather` | `market-rates.ts:147` | `z.object({ location: z.string().max(200).optional() })` |
-| `POST /api/drive/folders` | `google-drive.ts:125` | `z.object({ name: z.string().min(1).max(255) })` |
 
 **Step 11.2 — Fix research fallback** (`server/routes/research.ts:234`):
 
