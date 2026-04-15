@@ -327,6 +327,8 @@ export class DatabaseStorage implements IStorage {
   createSourceRegistryEntry = this.intelligenceV2.createSourceRegistryEntry.bind(this.intelligenceV2);
   updateSourceRegistryEntry = this.intelligenceV2.updateSourceRegistryEntry.bind(this.intelligenceV2);
   deleteSourceRegistryEntry = this.intelligenceV2.deleteSourceRegistryEntry.bind(this.intelligenceV2);
+  updateSourceHealthCheck = this.intelligenceV2.updateSourceHealthCheck.bind(this.intelligenceV2);
+  getHealthySourceKeys = this.intelligenceV2.getHealthySourceKeys.bind(this.intelligenceV2);
   createSourceCallLog = this.intelligenceV2.createSourceCallLog.bind(this.intelligenceV2);
   getSourceCallLogs = this.intelligenceV2.getSourceCallLogs.bind(this.intelligenceV2);
   getEngineSuggestedLines = this.intelligenceV2.getEngineSuggestedLines.bind(this.intelligenceV2);
