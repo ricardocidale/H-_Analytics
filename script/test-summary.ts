@@ -9,16 +9,19 @@ import { stripAnsi, parseTestOutput } from "./lib/test-parser.js";
 
 let raw = "";
 try {
-  raw = execSync("npx vitest run 2>&1", {
+  raw = execSync("npx vitest run", {
     encoding: "utf-8",
     timeout: 180_000,
     maxBuffer: 10 * 1024 * 1024,
+    stdio: ["pipe", "pipe", "pipe"],
   });
 } catch (err: unknown) {
-  // vitest may exit non-zero even when all tests pass (e.g. DB warnings in CI).
-  // Always capture stdout so parseTestOutput can determine the real result.
-  const e = err as { stdout?: string; stderr?: string };
-  raw = (e.stdout ?? "") + (e.stderr ?? "");
+  // vitest may exit non-zero even when all tests pass (e.g. DB connection teardown in CI).
+  // execSync puts the captured output in err.stdout/stderr when the command fails.
+  const e = err as { stdout?: string | Buffer; stderr?: string | Buffer };
+  const stdout = typeof e.stdout === "string" ? e.stdout : e.stdout?.toString("utf-8") ?? "";
+  const stderr = typeof e.stderr === "string" ? e.stderr : e.stderr?.toString("utf-8") ?? "";
+  raw = stdout + stderr;
 }
 
 const result = parseTestOutput(raw);
