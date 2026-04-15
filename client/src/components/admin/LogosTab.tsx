@@ -41,6 +41,7 @@ export default function LogosTab() {
   const [urlInput, setUrlInput] = useState("");
 
   const [selectedAppLogoId, setSelectedAppLogoId] = useState<number | null>(null);
+  const [editedAppName, setEditedAppName] = useState<string | null>(null);
 
   const { data: adminLogos } = useAdminLogos();
   const createLogoMutation = useCreateLogo();
@@ -141,9 +142,12 @@ export default function LogosTab() {
 
   const handleSaveAppBranding = () => {
     const logoId = selectedAppLogoId ?? appBranding?.appLogoId;
-    if (!logoId) return;
-    updateAppBrandingMutation.mutate({ appLogoId: logoId }, {
-      onSuccess: () => setSelectedAppLogoId(null),
+    const payload: { appLogoId?: number; appName?: string } = {};
+    if (logoId) payload.appLogoId = logoId;
+    if (editedAppName !== null) payload.appName = editedAppName;
+    if (!payload.appLogoId && !payload.appName) return;
+    updateAppBrandingMutation.mutate(payload, {
+      onSuccess: () => { setSelectedAppLogoId(null); setEditedAppName(null); },
     });
   };
 
@@ -160,7 +164,7 @@ export default function LogosTab() {
   const effectiveAppLogoUrl = selectedAppLogoId
     ? adminLogos?.find(l => l.id === selectedAppLogoId)?.url ?? appBranding?.appLogoUrl
     : appBranding?.appLogoUrl ?? "/logos/h-logo-glass.png";
-  const appBrandingDirty = selectedAppLogoId !== null;
+  const appBrandingDirty = selectedAppLogoId !== null || (editedAppName !== null && editedAppName !== (appBranding?.appName ?? ""));
 
   return (
     <>
@@ -264,7 +268,16 @@ export default function LogosTab() {
                 data-testid="img-app-logo-preview"
               />
             </div>
-            <p className="text-sm font-medium text-foreground">{appBranding?.appName ?? "H+ Analytics"}</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-foreground text-sm">App Name</Label>
+            <Input
+              value={editedAppName ?? appBranding?.appName ?? ""}
+              onChange={(e) => setEditedAppName(e.target.value)}
+              placeholder="e.g. H+ Analytics"
+              data-testid="input-app-name"
+            />
           </div>
 
           <div className="space-y-2">

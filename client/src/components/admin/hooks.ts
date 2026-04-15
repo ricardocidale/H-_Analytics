@@ -131,7 +131,7 @@ export function useUpdateAppBranding() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { appLogoId: number }) => {
+    mutationFn: async (data: { appLogoId?: number; appName?: string }) => {
       const res = await fetch("/api/app-branding", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

@@ -81,6 +81,7 @@ export type { ResearchSourceEntry, ResearchSourceFile, ResearchEventConfig, AiMo
 export const globalAssumptions = pgTable("global_assumptions", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  appName: text("app_name"),
   companyName: text("company_name").notNull().default("Hospitality Business"),
   companyLogo: text("company_logo"), // Legacy URL fallback — branding chain: companyLogoId FK → companyLogo URL → default asset
   companyLogoId: integer("company_logo_id").references(() => logos.id, { onDelete: "set null" }), // Preferred: normalized FK to logos table

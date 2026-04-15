@@ -486,6 +486,12 @@ async function runSchemaMigrations() {
     await runRebeccaOptOut001();
     await markMigrationApplied("rebecca_opt_out_001");
   }
+
+  if (!(await isMigrationApplied("app_name_001"))) {
+    const { runAppName001 } = await import("./migrations/app-name-001");
+    await runAppName001();
+    await markMigrationApplied("app_name_001");
+  }
 }
 
 async function runSeeds() {

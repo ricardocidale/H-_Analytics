@@ -165,8 +165,9 @@ export function register(app: Express) {
   app.get("/api/app-branding", requireAuth, async (req, res) => {
     try {
       const appLogo = await storage.getAppLogo();
+      const ga = await storage.getGlobalAssumptions();
       res.json({
-        appName: appLogo?.companyName ?? "H+ Analytics",
+        appName: ga?.appName ?? appLogo?.companyName ?? "H+ Analytics",
         appLogoUrl: appLogo?.url ?? "/logos/h-logo-glass.png",
         appLogoId: appLogo?.id ?? null,
       });
@@ -178,14 +179,22 @@ export function register(app: Express) {
   app.patch("/api/app-branding", requireAdmin, async (req, res) => {
     try {
       const schema = z.object({
-        appLogoId: z.number(),
-        appName: z.string().min(1).optional(),
+        appLogoId: z.number().optional(),
+        appName: z.string().trim().min(1).optional(),
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
-      await storage.setAppLogo(parsed.data.appLogoId);
+      if (parsed.data.appLogoId) {
+        await storage.setAppLogo(parsed.data.appLogoId);
+      }
+      if (parsed.data.appName !== undefined) {
+        const ga = await storage.getGlobalAssumptions();
+        if (ga) {
+          await storage.patchGlobalAssumptions(ga.id, { appName: parsed.data.appName });
+        }
+      }
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update app branding", error);
