@@ -92,8 +92,7 @@ export default function Dashboard() {
 
   const { financials, isLoading: financialsLoading, isError: financialsError } = usePortfolioFinancials(properties, global);
   const { data: branding } = useQuery<{ themeColors: Array<{ rank: number; name: string; hexCode: string; description?: string }> | null }>({
-    queryKey: ["my-branding"],
-    queryFn: async () => { const res = await fetch("/api/my-branding", { credentials: "include" }); return res.json(); },
+    queryKey: ["/api/my-branding"],
     staleTime: 5 * 60_000,
   });
 

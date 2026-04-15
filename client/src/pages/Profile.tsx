@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -55,52 +56,28 @@ export default function Profile() {
   }
 
   const { data: availableThemes } = useQuery<AvailableTheme[]>({
-    queryKey: ["available-themes"],
-    queryFn: async () => {
-      const res = await fetch("/api/available-themes", { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
+    queryKey: ["/api/available-themes"],
     enabled: !!user,
   });
 
   const { data: myBranding } = useQuery<{ selectedThemeId: number | null }>({
-    queryKey: ["my-branding"],
-    queryFn: async () => {
-      const res = await fetch("/api/my-branding", { credentials: "include" });
-      if (!res.ok) return { selectedThemeId: null };
-      return res.json();
-    },
+    queryKey: ["/api/my-branding"],
     enabled: !!user,
   });
 
   const { data: appearanceDefaults } = useQuery<AppearanceDefaults>({
-    queryKey: ["appearance-defaults"],
-    queryFn: async () => {
-      const res = await fetch("/api/appearance-defaults", { credentials: "include" });
-      if (!res.ok) return { defaultColorMode: null, defaultBgAnimation: null, defaultFontPreference: null };
-      return res.json();
-    },
+    queryKey: ["/api/appearance-defaults"],
     enabled: !!user,
   });
 
   const themeMutation = useMutation({
     mutationFn: async (themeId: number | null) => {
-      const res = await fetch("/api/profile/theme", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ themeId }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update theme");
-      }
+      const res = await apiRequest("PATCH", "/api/profile/theme", { themeId });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-branding"] });
-      queryClient.invalidateQueries({ queryKey: ["available-themes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/my-branding"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/available-themes"] });
       toast({ title: "Theme Updated", description: "Your theme preference has been saved." });
     },
     onError: (error: Error) => {
@@ -110,16 +87,7 @@ export default function Profile() {
 
   const appearanceMutation = useMutation({
     mutationFn: async (data: { colorMode?: ColorMode | null; bgAnimation?: BgAnimation | null; fontPreference?: FontPreference | null }) => {
-      const res = await fetch("/api/profile/appearance", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update appearance");
-      }
+      const res = await apiRequest("PATCH", "/api/profile/appearance", data);
       return res.json();
     },
     onSuccess: (_data, variables) => {
@@ -144,16 +112,7 @@ export default function Profile() {
 
   const rebeccaToggleMutation = useMutation({
     mutationFn: async (optOut: boolean) => {
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rebeccaOptOut: optOut }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update preference");
-      }
+      const res = await apiRequest("PATCH", "/api/profile", { rebeccaOptOut: optOut });
       return res.json();
     },
     onSuccess: () => {
@@ -179,16 +138,7 @@ export default function Profile() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string }) => {
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update profile");
-      }
+      const res = await apiRequest("PATCH", "/api/profile", data);
       return res.json();
     },
     onSuccess: () => {
@@ -203,16 +153,7 @@ export default function Profile() {
 
   const passwordMutation = useMutation({
     mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
-      const res = await fetch("/api/profile/password", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update password");
-      }
+      const res = await apiRequest("PATCH", "/api/profile/password", data);
       return res.json();
     },
     onSuccess: () => {

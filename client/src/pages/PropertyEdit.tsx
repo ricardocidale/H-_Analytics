@@ -144,6 +144,18 @@ export default function PropertyEdit() {
     }
   }, [autoRefresh, property, researchUpdatedAt, propertyLastAssumptionChangeAt, isGenerating]);
 
+  useEffect(() => {
+    if (isFirstVisit && !isGenerating && !intelligenceClicked && property?.id) {
+      const hasBasicInfo = !!(property.name && property.location && property.roomCount && property.startAdr);
+      if (!hasBasicInfo) return;
+      const timer = setTimeout(() => {
+        setIntelligenceClicked(true);
+        generateResearch();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isFirstVisit, isGenerating, intelligenceClicked, property?.id, property?.name, property?.location, property?.roomCount, property?.startAdr, generateResearch]);
+
   const handleIntelligenceNow = () => {
     setShowIntelligencePrompt(false);
     setIntelligenceClicked(true);

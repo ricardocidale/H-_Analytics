@@ -134,6 +134,17 @@ export default function CompanyAssumptions() {
   const { isGenerating, streamedContent, generateResearch } = useCompanyResearchStream();
 
   const { isFirstVisit, isAnalystStale: _isAnalystStale, recordSave: _recordPageSave, recordAnalystRun: _recordAnalystRun } = usePageVisit("company:assumptions");
+  const [intelligenceClicked, setIntelligenceClicked] = useState(false);
+
+  useEffect(() => {
+    if (isFirstVisit && !isGenerating && !intelligenceClicked && global && !isLoading) {
+      const timer = setTimeout(() => {
+        setIntelligenceClicked(true);
+        generateResearch();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isFirstVisit, isGenerating, intelligenceClicked, global, isLoading, generateResearch]);
 
   const [formData, setFormData] = useState<Partial<GlobalResponse>>({});
   const [isDirty, setIsDirty] = useState(false);
