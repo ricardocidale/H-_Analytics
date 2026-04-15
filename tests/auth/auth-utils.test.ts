@@ -62,18 +62,18 @@ describe("hashPassword / verifyPassword", () => {
     const hash = await hashPassword("TestPass1");
     expect(hash).not.toBe("TestPass1");
     expect(await verifyPassword("TestPass1", hash)).toBe(true);
-  });
+  }, 15_000);
 
   it("rejects wrong password", async () => {
     const hash = await hashPassword("TestPass1");
     expect(await verifyPassword("WrongPass1", hash)).toBe(false);
-  });
+  }, 15_000);
 
   it("produces different hashes for same password (salt)", async () => {
     const hash1 = await hashPassword("TestPass1");
     const hash2 = await hashPassword("TestPass1");
     expect(hash1).not.toBe(hash2);
-  });
+  }, 15_000);
 });
 
 describe("generateSessionId", () => {

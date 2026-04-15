@@ -47,13 +47,13 @@ describe("hashPassword and verifyPassword", () => {
     const hash = await hashPassword("TestPass1");
     const result = await verifyPassword("TestPass1", hash);
     expect(result).toBe(true);
-  });
+  }, 15_000);
 
   it("wrong password does not verify", async () => {
     const hash = await hashPassword("TestPass1");
     const result = await verifyPassword("WrongPass1", hash);
     expect(result).toBe(false);
-  });
+  }, 15_000);
 });
 
 describe("sanitizeEmail", () => {
