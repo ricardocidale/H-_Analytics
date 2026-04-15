@@ -150,6 +150,7 @@ export function register(app: Express) {
     email: z.string().email().max(255).optional(),
     company: z.string().max(100).optional(),
     title: z.string().max(100).optional(),
+    rebeccaOptOut: z.boolean().optional(),
   });
 
   app.patch("/api/profile", requireAuth, async (req, res) => {
@@ -160,9 +161,10 @@ export function register(app: Express) {
         return res.status(400).json({ error: error.message });
       }
       
-      const updates: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string } = {};
+      const updates: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; rebeccaOptOut?: boolean } = {};
       if (validation.data.firstName !== undefined) updates.firstName = validation.data.firstName.trim();
       if (validation.data.lastName !== undefined) updates.lastName = validation.data.lastName.trim();
+      if (validation.data.rebeccaOptOut !== undefined) updates.rebeccaOptOut = validation.data.rebeccaOptOut;
       if (validation.data.email !== undefined) {
         const protectedEmails = seedUsersConfig.users
           .filter(u => isAdminRole(u.role) || u.role === UserRole.CHECKER)

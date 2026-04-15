@@ -20,9 +20,10 @@ import RebeccaAdminTabs from "./ai/RebeccaAdminTabs";
 
 interface AIAgentsTabProps {
   onSaveStateChange?: (state: import("@/components/admin/save-state").AdminSaveState | null) => void;
+  initialTab?: string;
 }
 
-export default function AIAgentsTab({ onSaveStateChange }: AIAgentsTabProps) {
+export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -264,6 +265,7 @@ export default function AIAgentsTab({ onSaveStateChange }: AIAgentsTabProps) {
       </motion.div>
 
       <RebeccaAdminTabs
+        initialTab={initialTab}
         configProps={{
           enabled: rebeccaEnabled,
           displayName: rebeccaDisplayName,

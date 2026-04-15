@@ -67,6 +67,7 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "research": "engine-dashboard",
   "sources": "data-sources",
   "conversations": "ai-agents",
+  "knowledge-base": "ai-agents",
   // Groups and companies removed — redirect to users
   "groups": "users",
   "companies": "users",

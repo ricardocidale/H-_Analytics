@@ -480,6 +480,12 @@ async function runSchemaMigrations() {
     await runDropCompanyFk(drizzleDb);
     await markMigrationApplied("drop_company_fk_001");
   }
+
+  if (!(await isMigrationApplied("rebecca_opt_out_001"))) {
+    const { runRebeccaOptOut001 } = await import("./migrations/rebecca-opt-out-001");
+    await runRebeccaOptOut001();
+    await markMigrationApplied("rebecca_opt_out_001");
+  }
 }
 
 async function runSeeds() {

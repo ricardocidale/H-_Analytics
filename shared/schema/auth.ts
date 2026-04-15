@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   googleTokenExpiry: timestamp("google_token_expiry"),
   hideTourPrompt: boolean("hide_tour_prompt").default(false).notNull(),
   canManageScenarios: boolean("can_manage_scenarios").default(true).notNull(),
+  rebeccaOptOut: boolean("rebecca_opt_out").default(false).notNull(),
   colorMode: text("color_mode"),
   bgAnimation: text("bg_animation"),
   fontPreference: text("font_preference"),

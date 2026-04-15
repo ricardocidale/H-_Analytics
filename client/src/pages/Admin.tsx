@@ -28,7 +28,7 @@ const BrandTab = lazy(() => import("@/components/admin/BrandTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
 const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
 const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
-const KnowledgeBaseTab = lazy(() => import("@/components/admin/KnowledgeBaseTab"));
+// KnowledgeBaseTab is now rendered as a sub-tab inside AIAgentsTab/RebeccaAdminTabs
 const FinancialLinesTab = lazy(() => import("@/components/admin/intelligence/FinancialLinesTab"));
 const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
 
@@ -97,10 +97,17 @@ const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "model-defaults":      "company",
   "financial-defaults":  "company",
   "company-profile":     "company",
-  "services-fees":       "company",       // services live inside the Company sub-tab
+  "services-fees":       "company",
   "hotel-defaults":      "property-underwriting",
   "rental-defaults":     "property-underwriting",
   "required-fields":     "required-fields",
+};
+
+const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {
+  "ai-agents":       "configuration",
+  "rebecca-config":  "configuration",
+  "knowledge-base":  "knowledge-base",
+  "conversations":   "conversations",
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -126,9 +133,8 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
             Reload page
           </Button>
         </div>
-      }><AIAgentsTab onSaveStateChange={onSaveStateChange} /></ErrorBoundary>
+      }><AIAgentsTab onSaveStateChange={onSaveStateChange} initialTab={REBECCA_SUB_TAB[section]} /></ErrorBoundary>
     );
-    case "knowledge-base":   return <KnowledgeBaseTab onSaveStateChange={onSaveStateChange} />;
     case "engine-dashboard": return <EngineDashboard />;
     case "data-sources":     return <DataSourcesTab />;
     case "pipeline-config":  return <PipelineConfigTab onSaveStateChange={onSaveStateChange} />;
@@ -157,7 +163,7 @@ export default function Admin() {
   }, []);
 
   const resolved = resolveSection(activeSection);
-  const meta = sectionMeta[resolved] ?? sectionMeta[activeSection];
+  const meta = sectionMeta[activeSection] ?? sectionMeta[resolved];
 
   return (
     <AnimatedPage>

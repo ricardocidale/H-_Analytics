@@ -80,13 +80,13 @@ const CompanyIcpDefinition = lazy(() => import("@/pages/CompanyIcpDefinition"));
 const CompanyGuidance = lazy(() => import("@/pages/CompanyGuidance"));
 const _ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
-const Logos = lazy(() => import("@/pages/Logos"));
+// const Logos = lazy(() => import("@/pages/Logos"));
 const Scenarios = lazy(() => import("@/pages/Scenarios"));
 const PropertyFinder = lazy(() => import("@/pages/PropertyFinder"));
 const Analysis = lazy(() => import("@/pages/Analysis"));
 const Help = lazy(() => import("@/pages/Help"));
 const MapView = lazy(() => import("@/pages/MapView"));
-const IcpStudio = lazy(() => import("@/pages/IcpStudio"));
+// const IcpStudio = lazy(() => import("@/pages/IcpStudio"));
 const _Icp = lazy(() => import("@/pages/Icp"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
@@ -253,10 +253,10 @@ function Router() {
           <AdminRoute component={Admin} />
         </Route>
         <Route path="/admin/logos">
-          <AdminRoute component={Logos} />
+          <Redirect to="/admin" />
         </Route>
         <Route path="/admin/icp-studio">
-          <AdminRoute component={IcpStudio} />
+          <Redirect to="/admin" />
         </Route>
         <Route path="/icp">
           <IcpRedirect />

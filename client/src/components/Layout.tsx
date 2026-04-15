@@ -419,7 +419,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             </Button>
             <ResearchQueueIndicator className="hidden sm:flex" />
             <NotificationCenter />
-            {!!global?.rebeccaEnabled && (
+            {!!global?.rebeccaEnabled && !user?.rebeccaOptOut && (
               global?.rebeccaV2
                 ? <RebeccaHeaderButton displayName={global?.rebeccaDisplayName || "Rebecca"} />
                 : <RebeccaChatbot displayName={global?.rebeccaDisplayName || "Rebecca"} />
@@ -470,7 +470,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       <CommandPalette />
       <GuidedWalkthrough />
       <GuidanceSideSheet />
-      {!!global?.rebeccaEnabled && !!global?.rebeccaV2 && (
+      {!!global?.rebeccaEnabled && !user?.rebeccaOptOut && !!global?.rebeccaV2 && (
         <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
       )}
     </div>

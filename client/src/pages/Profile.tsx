@@ -13,7 +13,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { useGlobalAssumptions } from "@/lib/api/admin";
 import { UserRole, isAdminRole } from "@shared/constants";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
 import type { ColorMode, BgAnimation, FontPreference, AppearanceDefaults } from "@/lib/theme/appearance";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
@@ -23,6 +25,7 @@ export default function Profile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, refetch } = useAuth();
+  const { data: global } = useGlobalAssumptions();
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -133,6 +136,29 @@ export default function Profile() {
         applyBgAnimation(resolveBgAnimation(variables.bgAnimation, appearanceDefaults?.defaultBgAnimation as BgAnimation | null));
       }
       toast({ title: "Appearance Updated", description: "Your preference has been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const rebeccaToggleMutation = useMutation({
+    mutationFn: async (optOut: boolean) => {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rebeccaOptOut: optOut }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update preference");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      refetch();
+      toast({ title: "Preference Saved", description: "Rebecca preference updated." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -616,6 +642,33 @@ export default function Profile() {
                 </form>
               </CardContent>
             </Card>
+
+            {!!global?.rebeccaEnabled && (
+              <Card className="bg-card border-border shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <IconClipboardCheck className="w-5 h-5 text-primary" />
+                    Rebecca AI Assistant
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Enable Rebecca for my account</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        When enabled, Rebecca appears in your toolbar and can answer questions about your portfolio using pre-computed metrics.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!user?.rebeccaOptOut}
+                      onCheckedChange={(checked) => rebeccaToggleMutation.mutate(!checked)}
+                      disabled={rebeccaToggleMutation.isPending}
+                      data-testid="switch-rebecca-opt-out"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

@@ -56,6 +56,7 @@ declare global {
       googleTokenExpiry: Date | null;
       hideTourPrompt: boolean;
       canManageScenarios: boolean;
+      rebeccaOptOut: boolean;
       createdAt: Date;
       updatedAt: Date;
     }

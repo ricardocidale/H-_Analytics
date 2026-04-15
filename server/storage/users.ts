@@ -57,7 +57,7 @@ export class UserStorage {
     });
   }
 
-  async updateUserProfile(id: number, data: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; canManageScenarios?: boolean }): Promise<User> {
+  async updateUserProfile(id: number, data: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; canManageScenarios?: boolean; rebeccaOptOut?: boolean }): Promise<User> {
     const [user] = await db
       .update(users)
       .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
@@ -166,6 +166,7 @@ export class UserStorage {
           googleTokenExpiry: users.googleTokenExpiry,
           hideTourPrompt: users.hideTourPrompt,
           canManageScenarios: users.canManageScenarios,
+          rebeccaOptOut: users.rebeccaOptOut,
           colorMode: users.colorMode,
           bgAnimation: users.bgAnimation,
           fontPreference: users.fontPreference,

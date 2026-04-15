@@ -40,6 +40,7 @@ interface User {
   role: string;
   hideTourPrompt: boolean;
   canManageScenarios: boolean;
+  rebeccaOptOut: boolean;
   colorMode: string | null;
   bgAnimation: string | null;
   fontPreference: string | null;

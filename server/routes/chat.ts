@@ -115,6 +115,9 @@ export function register(app: Express) {
       if (!ga?.rebeccaEnabled) {
         return res.status(403).json({ error: "Chat assistant is not enabled" });
       }
+      if (authUser.rebeccaOptOut) {
+        return res.status(403).json({ error: "Chat assistant is disabled in your profile settings" });
+      }
       const allProperties = isAdmin
         ? await storage.getAllProperties()
         : await storage.getAllProperties(userId);

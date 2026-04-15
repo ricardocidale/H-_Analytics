@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IconSettings, IconMessageCircle, IconAlertCircle, IconShield, IconBrain, IconTrendingUp } from "@/components/icons";
 import { motion } from "framer-motion";
@@ -12,10 +12,15 @@ import type { RebeccaConfigProps } from "./RebeccaConfigTab";
 
 interface RebeccaAdminTabsProps {
   configProps: RebeccaConfigProps;
+  initialTab?: string;
 }
 
-export default function RebeccaAdminTabs({ configProps }: RebeccaAdminTabsProps) {
-  const [activeTab, setActiveTab] = useState("configuration");
+export default function RebeccaAdminTabs({ configProps, initialTab }: RebeccaAdminTabsProps) {
+  const [activeTab, setActiveTab] = useState(initialTab || "configuration");
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   return (
     <motion.div
