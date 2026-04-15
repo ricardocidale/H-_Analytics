@@ -15,6 +15,8 @@ try {
     maxBuffer: 10 * 1024 * 1024,
   });
 } catch (err: unknown) {
+  // vitest may exit non-zero even when all tests pass (e.g. DB warnings in CI).
+  // Always capture stdout so parseTestOutput can determine the real result.
   const e = err as { stdout?: string; stderr?: string };
   raw = (e.stdout ?? "") + (e.stderr ?? "");
 }
@@ -23,17 +25,14 @@ const result = parseTestOutput(raw);
 
 if (result.passed) {
   console.log(result.summary);
-  process.exit(0);
-}
-
-{
+  process.exitCode = 0;
+} else {
   const clean = stripAnsi(raw);
   const lines = clean.split("\n");
 
   const failLines = lines.filter(
     (l: string) =>
       (l.includes("FAIL") && l.includes(".test.")) ||
-      l.includes("AssertionError") ||
       l.includes("AssertionError") ||
       (l.includes("Error:") && !l.includes("node_modules") && !l.includes("expected") && !l.includes("CSV download")),
   );
@@ -47,5 +46,8 @@ if (result.passed) {
   }
 
   console.log(result.summary);
-  process.exit(1);
+  process.exitCode = 1;
 }
+
+// Force exit — vitest/DB may leave dangling connections that prevent clean shutdown
+setTimeout(() => process.exit(process.exitCode ?? 0), 200);
