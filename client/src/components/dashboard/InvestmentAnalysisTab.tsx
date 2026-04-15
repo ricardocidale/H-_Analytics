@@ -38,6 +38,7 @@ export function InvestmentAnalysisTab({ financials, properties, projectionYears,
   return (
     <div className="space-y-6">
       {SaveDialog}
+      <div data-export-section="investment-analysis-chart">
       <FinancialChart
         data={chartData}
         series={[
@@ -49,12 +50,13 @@ export function InvestmentAnalysisTab({ financials, properties, projectionYears,
         title={`Investment Returns (${projectionYears}-Year Projection)`}
         id="dashboard-investment-chart"
       />
+      </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle>Investment Analysis</CardTitle>
         </CardHeader>
-        <CardContent ref={tabContentRef}>
+        <CardContent ref={tabContentRef} data-export-section="investment-analysis-table">
           <div className="space-y-6">
             <InvestmentAnalysis 
               properties={properties}

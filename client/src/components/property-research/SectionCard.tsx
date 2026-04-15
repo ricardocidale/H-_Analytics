@@ -22,6 +22,9 @@ export function SectionCard({ icon: Icon, title, color, children }: { icon: any;
       </div>
       <div className="p-6">
         {children}
+        <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-end">
+          <span className="text-[10px] tracking-wide text-muted-foreground/40 uppercase" data-testid="badge-norfolk-ai">Powered by Norfolk AI</span>
+        </div>
       </div>
     </div>
   );

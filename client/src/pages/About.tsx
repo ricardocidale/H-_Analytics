@@ -182,6 +182,9 @@ function AboutContent() {
             <p className="text-[11px] text-muted-foreground/50">
               {APP_FULL_BRAND} &middot; v{APP_VERSION}
             </p>
+            <p className="text-[10px] text-muted-foreground/40 pt-1" data-testid="text-about-norfolk-badge">
+              Powered by Norfolk AI Research
+            </p>
           </footer>
         </CardContent>
       </Card>

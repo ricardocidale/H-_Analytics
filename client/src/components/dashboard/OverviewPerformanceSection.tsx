@@ -57,7 +57,7 @@ export function InvestmentPerformanceSection({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 items-stretch gap-4 sm:gap-6 mb-6 sm:mb-10">
-          <div className="bg-card rounded-lg p-3 sm:p-6 border border-border shadow-sm flex flex-col" data-testid="gauge-portfolio-irr">
+          <div className="bg-card rounded-lg p-3 sm:p-6 border border-border shadow-sm flex flex-col" data-testid="gauge-portfolio-irr" data-export-section="kpi-portfolio-irr">
             <p className="text-xs font-medium tracking-widest text-foreground/60 uppercase mb-3 text-center label-text flex items-center justify-center gap-1">
               Portfolio IRR
               <InfoTooltip text="Internal Rate of Return — the annualized return that makes the net present value of all cash flows equal to zero." formula="NPV = Σ CFₜ / (1+IRR)ᵗ = 0" light side="bottom" />
@@ -80,7 +80,7 @@ export function InvestmentPerformanceSection({
             </div>
           </div>
 
-          <div ref={chartsRef} className="bg-card rounded-lg p-3 sm:p-6 border border-border shadow-sm flex flex-col" data-testid="chart-property-irr-comparison">
+          <div ref={chartsRef} className="bg-card rounded-lg p-3 sm:p-6 border border-border shadow-sm flex flex-col" data-testid="chart-property-irr-comparison" data-export-section="kpi-property-irr">
             <p className="text-xs font-medium tracking-widest text-foreground/60 uppercase mb-3 text-center label-text">Property IRR Comparison</p>
             <ChartContainer config={{ irr: { label: "IRR", color: "var(--chart-1)" } } satisfies ChartConfig} className="h-[180px] sm:h-[200px] w-full">
               <BarChart data={propertyIRRData} margin={{ top: 20, right: 5, left: 0, bottom: 30 }}>
@@ -100,7 +100,7 @@ export function InvestmentPerformanceSection({
             </ChartContainer>
           </div>
 
-          <div className="bg-card rounded-lg p-3 sm:p-6 border border-border shadow-sm flex flex-col" data-testid="chart-property-investment">
+          <div className="bg-card rounded-lg p-3 sm:p-6 border border-border shadow-sm flex flex-col" data-testid="chart-property-investment" data-export-section="kpi-equity-by-property">
             <p className="text-xs font-medium tracking-widest text-foreground/60 uppercase mb-3 text-center label-text">Equity by Property</p>
             <ChartContainer config={{ investment: { label: "Equity Invested", color: "var(--chart-2)" } } satisfies ChartConfig} className="h-[180px] sm:h-[200px] w-full">
               <BarChart data={propertyInvestmentData} margin={{ top: 20, right: 5, left: 0, bottom: 30 }}>
@@ -121,7 +121,7 @@ export function InvestmentPerformanceSection({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4" data-export-section="kpi-metrics-grid">
           <div className="bg-card rounded-lg p-3 sm:p-5 border border-border shadow-sm transition-all duration-300">
             <div className="flex items-center gap-2 sm:gap-4 mb-3">
               <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex-shrink-0">

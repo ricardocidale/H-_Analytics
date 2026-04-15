@@ -67,7 +67,7 @@ export function PortfolioCompositionSection({
         />
       </div>
       <AccordionContent className="pt-2 pb-4">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2" data-export-section="portfolio-composition">
         <div className="bg-card/80 rounded-lg p-6 border border-primary/10 shadow-[0_2px_8px_rgba(var(--primary-rgb,159,188,164),0.08)]">
           <h3 className="text-sm font-semibold text-foreground mb-5 font-display">Portfolio Composition</h3>
           <div className="space-y-4">
@@ -129,7 +129,7 @@ export function PortfolioInsightsSection({ properties, propertyIRRData, insights
         />
       </div>
       <AccordionContent className="pt-2 pb-4 space-y-4">
-      <div className="rounded-lg border border-border overflow-hidden" data-testid="portfolio-property-table">
+      <div className="rounded-lg border border-border overflow-hidden" data-testid="portfolio-property-table" data-export-section="portfolio-property-table">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -210,7 +210,7 @@ export function MarketStatusSection({ totalProperties, marketData, marketChartCo
         />
       </div>
       <AccordionContent className="pt-2 pb-4">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2" data-export-section="market-status-charts">
           <Card className="flex flex-col">
             <CardHeader className="items-center pb-0">
               <CardTitle className="text-sm font-semibold flex items-center gap-1.5">

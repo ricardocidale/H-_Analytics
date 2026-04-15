@@ -135,12 +135,14 @@ export function CashFlowTab({ financials, properties, projectionYears, getFiscal
 
   return (
     <div className="space-y-6">
+      <div data-export-section="cash-flow-chart">
       <FinancialChart
         data={chartData}
         series={["noi", "anoi", "cashFlow", "fcfe"]}
         title={`Cash Flow Trends (${projectionYears}-Year Projection)`}
         id="dashboard-cashflow-chart"
       />
+      </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -158,7 +160,7 @@ export function CashFlowTab({ financials, properties, projectionYears, getFiscal
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent data-export-section="cash-flow-table">
           <CalcDetailsProvider show={showCalcDetails}>
             <div className="rounded-md border overflow-hidden overflow-x-auto">
               <Table>

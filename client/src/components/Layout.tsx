@@ -365,6 +365,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           <span className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors">Cookies</span>
         </Link>
       </div>
+      <p className="text-center text-[10px] text-muted-foreground/30 pt-1 pb-2" data-testid="text-powered-by-norfolk">Powered by Norfolk AI</p>
     </div>
   );
 

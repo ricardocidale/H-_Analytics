@@ -70,6 +70,7 @@ export function BalanceSheetTab({ financials, properties, global, projectionYear
 
   return (
     <div className="space-y-6">
+      <div data-export-section="balance-sheet-chart">
       <FinancialChart
         data={chartData}
         series={[
@@ -80,6 +81,7 @@ export function BalanceSheetTab({ financials, properties, global, projectionYear
         title={`Balance Sheet Trends (${projectionYears}-Year Projection)`}
         id="dashboard-balance-chart"
       />
+      </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -97,7 +99,7 @@ export function BalanceSheetTab({ financials, properties, global, projectionYear
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent data-export-section="balance-sheet-table">
           <CalcDetailsProvider show={showCalcDetails}>
             <div className="rounded-md border overflow-hidden overflow-x-auto">
               <Table>

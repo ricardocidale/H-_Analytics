@@ -492,6 +492,12 @@ async function runSchemaMigrations() {
     await runAppName001();
     await markMigrationApplied("app_name_001");
   }
+
+  if (!(await isMigrationApplied("market_data_tables_001"))) {
+    const { runMarketDataTables001 } = await import("./migrations/market-data-tables-001");
+    await runMarketDataTables001();
+    await markMigrationApplied("market_data_tables_001");
+  }
 }
 
 async function runSeeds() {
@@ -499,9 +505,11 @@ async function runSeeds() {
 
   const { seedMissingMarketResearch, seedDefaultLogos, seedCompanies, seedFeeCategories, seedServiceTemplates, seedPropertyPhotos, seedGlobalAssumptions, seedMedellinDuplex, seedMedellinDuplexPhotos } = await import("./seed");
   const { seedMarketRates } = await import("./seeds/market-rates");
+  const { seedMarketDataTables } = await import("./seeds/market-data-tables");
   await Promise.all([
     seedMissingMarketResearch(),
     seedMarketRates(),
+    seedMarketDataTables(),
     seedDefaultLogos(),
     seedFeeCategories(),
     seedServiceTemplates(),

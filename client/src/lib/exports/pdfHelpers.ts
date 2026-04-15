@@ -366,6 +366,11 @@ export function addFooters(doc: any, companyName: string, opts?: { skipPages?: S
     doc.text(`${companyName} \u2014 Confidential`, 14, pageH - 6);
 
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.setTextColor(...brand.MUTED_RGB);
+    doc.text("Powered by Norfolk AI", pageW / 2, pageH - 6, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(...brand.MUTED_RGB);
     doc.text(`Page ${i} of ${totalPages}`, pageW - 14, pageH - 6, { align: "right" });

@@ -480,12 +480,14 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
 
   return (
     <div className="space-y-6">
+      <div data-export-section="income-statement-chart">
       <FinancialChart
         data={chartData}
         series={["revenue", "gop", "agop", "noi", "anoi"]}
         title={`Income Statement Trends (${projectionYears}-Year Projection)`}
         id="dashboard-income-chart"
       />
+      </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -503,7 +505,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
             </Button>
           </div>
         </CardHeader>
-        <CardContent ref={tabContentRef}>
+        <CardContent ref={tabContentRef} data-export-section="income-statement-table">
           <CalcDetailsProvider show={showCalcDetails}>
             <div className="rounded-md border overflow-hidden overflow-x-auto">
               <Table>
