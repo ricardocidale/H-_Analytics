@@ -6,7 +6,7 @@ import {
   IconBrain, IconTarget, IconProperties, IconTrendingUp,
   IconMessageCircle, IconFlaskConical, IconSparkles,
 } from "@/components/icons";
-import { useResearchConfig } from "@/lib/api/admin";
+import { useResearchConfig, useLlmRegistry, useRefreshLlmRegistry } from "@/lib/api/admin";
 import { cn } from "@/lib/utils";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
 import type { ResearchConfig, ContextLlmConfig } from "@shared/schema";
@@ -70,8 +70,20 @@ function VendorBadge({ vendor }: { vendor: string }) {
   );
 }
 
+function StatusDot({ status }: { status: "available" | "no_key" | "error" | "unknown" }) {
+  const colors: Record<string, string> = {
+    available: "bg-green-500",
+    no_key: "bg-amber-500",
+    error: "bg-red-500",
+    unknown: "bg-gray-400",
+  };
+  return <span className={cn("inline-block w-1.5 h-1.5 rounded-full shrink-0", colors[status] ?? colors.unknown)} />;
+}
+
 export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps) {
   const { data: config, isLoading } = useResearchConfig();
+  const { data: registry } = useLlmRegistry();
+  const refreshMutation = useRefreshLlmRegistry();
 
   if (isLoading) {
     return (
@@ -83,6 +95,38 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
 
   const rc = config as ResearchConfig | undefined;
   const isDual = rc?.llmMode === "dual";
+
+  const getVendorStatus = (vendor: string) => {
+    if (!registry?.vendorStatuses) return "unknown";
+    const vs = registry.vendorStatuses.find(v => v.vendor === vendor);
+    if (!vs) return "unknown";
+    return vs.available ? "available" : (vs.error?.includes("key") ? "no_key" : "error");
+  };
+
+  const isRecommended = (vendor: string, model: string) => {
+    if (!registry?.recommendations) return false;
+    return registry.recommendations.some(r => r.vendor === vendor && r.modelId === model);
+  };
+
+  const getRecommendationForDomain = (configField: string) => {
+    if (!registry?.recommendations) return null;
+    const fnMap: Record<string, string> = {
+      companyLlm: "research-deep",
+      propertyLlm: "research-deep",
+      marketLlm: "research-deep",
+      reportLlm: "research-fast",
+      chatbotLlm: "chat",
+      premiumExportLlm: "exports",
+      aiUtilityLlm: "operations",
+    };
+    const fn = fnMap[configField];
+    return fn ? registry.recommendations.find(r => r.function === fn) ?? null : null;
+  };
+
+  const hasIssue = (configField: string) => {
+    if (!registry?.adminIssues) return false;
+    return registry.adminIssues.some(i => i.domain === configField);
+  };
 
   const tiers: TierCard[] = [
     {
@@ -112,6 +156,7 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
   ];
 
   const rebeccaModel = getModelDisplay(rc, "chatbotLlm");
+  const rebeccaRec = getRecommendationForDomain("chatbotLlm");
 
   return (
     <div className="space-y-5" data-testid="model-routing-panel">
@@ -120,14 +165,64 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
           <Badge variant={isDual ? "default" : "secondary"} className="text-xs">
             {isDual ? "Dual Mode" : "Single Mode"}
           </Badge>
+          {registry?.status === "ready" && (
+            <Badge variant="outline" className="text-[10px] gap-1">
+              <StatusDot status="available" />
+              {registry.models.length} models probed
+            </Badge>
+          )}
+          {registry?.adminIssues && registry.adminIssues.length > 0 && (
+            <Badge variant="destructive" className="text-[10px]" data-testid="badge-llm-issues">
+              {registry.adminIssues.length} issue{registry.adminIssues.length > 1 ? "s" : ""}
+            </Badge>
+          )}
         </div>
-        {onNavigate && (
-          <Button variant="outline" size="sm" onClick={() => onNavigate("llms")} data-testid="button-goto-llms">
-            <IconBrain className="w-4 h-4 mr-1" />
-            Configure in LLMs
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refreshMutation.mutate()}
+            disabled={refreshMutation.isPending}
+            data-testid="button-refresh-registry"
+          >
+            {refreshMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconFlaskConical className="w-3.5 h-3.5" />}
+            <span className="ml-1 text-xs">Re-probe</span>
           </Button>
-        )}
+          {onNavigate && (
+            <Button variant="outline" size="sm" onClick={() => onNavigate("llms")} data-testid="button-goto-llms">
+              <IconBrain className="w-4 h-4 mr-1" />
+              Configure in LLMs
+            </Button>
+          )}
+        </div>
       </div>
+
+      {registry?.adminIssues && registry.adminIssues.length > 0 && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1" data-testid="llm-issues-banner">
+          <p className="text-xs font-medium text-destructive">The Analyst detected configuration issues:</p>
+          {registry.adminIssues.map((issue, i) => (
+            <p key={i} className="text-[11px] text-destructive/80">{issue.message}</p>
+          ))}
+        </div>
+      )}
+
+      {registry?.vendorStatuses && registry.vendorStatuses.length > 0 && (
+        <div className="flex flex-wrap gap-2" data-testid="vendor-status-bar">
+          {registry.vendorStatuses.map(vs => (
+            <div key={vs.vendor} className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full bg-muted/50">
+              <StatusDot status={vs.available ? "available" : (vs.error?.includes("key") ? "no_key" : "error")} />
+              <span className="font-medium capitalize">{vs.vendor}</span>
+              {vs.available && <span className="text-muted-foreground">{vs.modelCount}</span>}
+              {vs.avgLatencyMs && <span className="text-muted-foreground">{vs.avgLatencyMs}ms</span>}
+            </div>
+          ))}
+          {registry.probedAt && (
+            <span className="text-[10px] text-muted-foreground/60 self-center ml-1">
+              Last probed {new Date(registry.probedAt).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {tiers.map(tier => (
@@ -149,20 +244,30 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
                   {tier.domains.map(domain => {
                     const primary = getModelDisplay(rc, domain.configField);
                     const secondary = tier.tier === 1 && isDual ? getSecondaryModel(rc, domain.configField) : null;
+                    const rec = getRecommendationForDomain(domain.configField);
+                    const domainHasIssue = hasIssue(domain.configField);
                     return (
                       <div key={domain.key} className="space-y-1">
                         <div className="flex items-center gap-1.5">
                           <domain.icon className="w-3 h-3 text-muted-foreground shrink-0" />
                           <span className="text-[11px] font-medium truncate">{domain.label}</span>
+                          {domainHasIssue && <StatusDot status="error" />}
                         </div>
                         {primary ? (
                           <div className="ml-4.5 space-y-0.5">
                             <div className="flex items-center gap-1.5">
+                              <StatusDot status={getVendorStatus(primary.vendor) as "available" | "no_key" | "error" | "unknown"} />
                               <VendorBadge vendor={primary.vendor} />
                               <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid={`text-model-${tier.tier}-${domain.key}-primary`}>{primary.model}</span>
+                              {isRecommended(primary.vendor, primary.model) && (
+                                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200" data-testid={`badge-recommended-${domain.key}`}>
+                                  recommended
+                                </Badge>
+                              )}
                             </div>
                             {secondary && (
                               <div className="flex items-center gap-1.5">
+                                <StatusDot status={getVendorStatus(secondary.vendor) as "available" | "no_key" | "error" | "unknown"} />
                                 <VendorBadge vendor={secondary.vendor} />
                                 <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid={`text-model-${tier.tier}-${domain.key}-secondary`}>{secondary.model}</span>
                                 <span className="text-[9px] text-muted-foreground/60">fallback</span>
@@ -171,7 +276,18 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
                           </div>
                         ) : (
                           <div className="ml-4.5">
-                            <span className="text-[10px] text-muted-foreground/50 italic">using defaults</span>
+                            {rec ? (
+                              <div className="flex items-center gap-1.5">
+                                <StatusDot status="available" />
+                                <VendorBadge vendor={rec.vendor} />
+                                <span className="text-[10px] font-mono text-muted-foreground truncate">{rec.modelId}</span>
+                                <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
+                                  auto
+                                </Badge>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground/50 italic">using defaults</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -196,15 +312,33 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
               <div className="flex items-center gap-1.5">
                 <IconMessageCircle className="w-3 h-3 text-muted-foreground shrink-0" />
                 <span className="text-[11px] font-medium">Chat Model</span>
+                {hasIssue("chatbotLlm") && <StatusDot status="error" />}
               </div>
               {rebeccaModel ? (
                 <div className="ml-4.5 flex items-center gap-1.5">
+                  <StatusDot status={getVendorStatus(rebeccaModel.vendor) as "available" | "no_key" | "error" | "unknown"} />
                   <VendorBadge vendor={rebeccaModel.vendor} />
                   <span className="text-[10px] font-mono text-muted-foreground truncate" data-testid="text-model-rebecca">{rebeccaModel.model}</span>
+                  {isRecommended(rebeccaModel.vendor, rebeccaModel.model) && (
+                    <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
+                      recommended
+                    </Badge>
+                  )}
                 </div>
               ) : (
                 <div className="ml-4.5">
-                  <span className="text-[10px] text-muted-foreground/50 italic">using defaults</span>
+                  {rebeccaRec ? (
+                    <div className="flex items-center gap-1.5">
+                      <StatusDot status="available" />
+                      <VendorBadge vendor={rebeccaRec.vendor} />
+                      <span className="text-[10px] font-mono text-muted-foreground truncate">{rebeccaRec.modelId}</span>
+                      <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 text-green-700 border-green-200">
+                        auto
+                      </Badge>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/50 italic">using defaults</span>
+                  )}
                 </div>
               )}
             </div>

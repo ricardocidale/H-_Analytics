@@ -149,3 +149,69 @@ export function useRefreshAiModels() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-research-config"] }),
   });
 }
+
+export interface LlmRegistryModel {
+  vendor: string;
+  modelId: string;
+  label: string;
+  status: "available" | "deprecated" | "error" | "no_key";
+  latencyMs: number | null;
+  capabilities: string[];
+  errorMessage?: string;
+  probedAt: string;
+}
+
+export interface LlmRecommendation {
+  function: string;
+  vendor: string;
+  modelId: string;
+  label: string;
+  score: number;
+  reasoning: string;
+}
+
+export interface LlmAdminIssue {
+  domain: string;
+  currentVendor: string;
+  currentModel: string;
+  issue: "model_unavailable" | "vendor_down";
+  recommendation: LlmRecommendation | null;
+  message: string;
+}
+
+export interface LlmRegistryState {
+  models: LlmRegistryModel[];
+  recommendations: LlmRecommendation[];
+  adminIssues: LlmAdminIssue[];
+  vendorStatuses: { vendor: string; available: boolean; modelCount: number; avgLatencyMs: number | null; error?: string }[];
+  probedAt: string | null;
+  durationMs: number;
+  status: "ready" | "not_yet_probed";
+}
+
+export function useLlmRegistry() {
+  return useQuery<LlmRegistryState>({
+    queryKey: ["admin-llm-registry"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/llm-registry");
+      if (!res.ok) throw new Error("Failed to fetch LLM registry");
+      return res.json();
+    },
+    refetchInterval: 5 * 60 * 1000,
+  });
+}
+
+export function useRefreshLlmRegistry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<LlmRegistryState> => {
+      const res = await fetch("/api/admin/llm-registry/refresh", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to refresh LLM registry");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-llm-registry"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-research-config"] });
+    },
+  });
+}

@@ -44,7 +44,7 @@ const PROPERTY_DEFAULTS: PropertyInput = {
   costRateIT: 0.005,
   costRateFFE: 0.04,
   costRateOther: 0.05,
-  costRateInsurance: 0.02,
+  costRateInsurance: 0.015,
   revShareEvents: 0.43,
   revShareFB: 0.22,
   revShareOther: 0.07,

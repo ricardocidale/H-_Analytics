@@ -5,23 +5,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { IconSave } from "@/components/icons";
-import { useResearchConfig, useSaveResearchConfig } from "@/lib/api/admin";
+import { useResearchConfig, useSaveResearchConfig, useLlmRegistry } from "@/lib/api/admin";
 import { FALLBACK_MODELS, LLM_VENDORS } from "../research-center/research-shared";
 import type { LlmVendor, AiModelEntry, ResearchConfig } from "@shared/schema";
 import { Section, TabBanner } from "./FieldHelpers";
 
-const LLM_TAB_ITEMS: { key: string; label: string; description: string }[] = [
-  { key: "research", label: "Research", description: "Default vendor and model for all research domains (Company, Property, Market)." },
-  { key: "operations", label: "Operations", description: "Default vendor and model for AI utility tasks." },
-  { key: "assistants", label: "Assistants", description: "Default vendor and model for AI assistants (Rebecca)." },
-  { key: "exports", label: "Exports", description: "Default vendor and model for premium document exports." },
+const LLM_TAB_ITEMS: { key: string; label: string; description: string; fn: string }[] = [
+  { key: "research", label: "Research", description: "Default vendor and model for all research domains (Company, Property, Market).", fn: "research-deep" },
+  { key: "operations", label: "Operations", description: "Default vendor and model for AI utility tasks.", fn: "operations" },
+  { key: "assistants", label: "Assistants", description: "Default vendor and model for AI assistants (Rebecca).", fn: "chat" },
+  { key: "exports", label: "Exports", description: "Default vendor and model for premium document exports.", fn: "exports" },
 ];
 
 export function LlmDefaultsTab() {
   const { toast } = useToast();
   const { data: savedConfig, isLoading } = useResearchConfig();
   const saveMutation = useSaveResearchConfig();
+  const { data: registry } = useLlmRegistry();
 
   const [tabDefaults, setTabDefaults] = useState<Record<string, { llmVendor?: LlmVendor; primaryLlm?: string }>>({});
   const [initialized, setInitialized] = useState(false);
@@ -35,6 +37,11 @@ export function LlmDefaultsTab() {
   }, [savedConfig, initialized]);
 
   const models: AiModelEntry[] = (savedConfig?.cachedModels && savedConfig.cachedModels.length > 0) ? savedConfig.cachedModels : FALLBACK_MODELS;
+
+  const getRecommendation = (fn: string) => {
+    if (!registry?.recommendations) return null;
+    return registry.recommendations.find(r => r.function === fn) ?? null;
+  };
 
   const handleSave = () => {
     saveMutation.mutate({ ...savedConfig, tabDefaults } as ResearchConfig, {
@@ -58,6 +65,11 @@ export function LlmDefaultsTab() {
     <div className="space-y-5">
       <TabBanner>
         Default LLM vendor and model for each functional area. Individual cards on the LLMs page can override these. Resolution order: card-level explicit → tab default → system hardcoded default.
+        {registry?.status === "ready" && (
+          <span className="block mt-1 text-[11px] text-muted-foreground/70">
+            The Analyst has probed {registry.models.length} models and tagged recommendations below.
+          </span>
+        )}
       </TabBanner>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
@@ -66,9 +78,26 @@ export function LlmDefaultsTab() {
           const vendor = def.llmVendor;
           const vendorModels = vendor ? models.filter((m) => m.provider === vendor) : [];
           const model = def.primaryLlm || "";
+          const rec = getRecommendation(tab.fn);
+          const isAutoApplied = rec && !vendor && !model;
 
           return (
             <Section key={tab.key} title={tab.label} description={tab.description}>
+              {rec && (
+                <div className="mb-3 flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-500/10 text-green-700 border-green-200" data-testid={`badge-recommended-${tab.key}`}>
+                    recommended
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {rec.label}
+                  </span>
+                  {isAutoApplied && (
+                    <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-blue-500/10 text-blue-700 border-blue-200">
+                      auto-selected
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div data-testid={`field-llm-default-vendor-${tab.key}`}>
                   <Label className="flex items-center text-foreground label-text mb-1.5">
@@ -83,12 +112,22 @@ export function LlmDefaultsTab() {
                     }}
                   >
                     <SelectTrigger className="bg-card h-9" data-testid={`select-llm-default-vendor-${tab.key}`}>
-                      <SelectValue placeholder="Select vendor" />
+                      <SelectValue placeholder={rec ? `${rec.vendor} (auto)` : "Select vendor"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {LLM_VENDORS.map((v) => (
-                        <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
-                      ))}
+                      {LLM_VENDORS.map((v) => {
+                        const vendorStatus = registry?.vendorStatuses?.find(vs => vs.vendor === v.value);
+                        const isAvailable = vendorStatus?.available;
+                        return (
+                          <SelectItem key={v.value} value={v.value}>
+                            <span className="flex items-center gap-1.5">
+                              <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${isAvailable === true ? "bg-green-500" : isAvailable === false ? "bg-red-500" : "bg-gray-400"}`} />
+                              {v.label}
+                              {vendorStatus?.modelCount ? ` (${vendorStatus.modelCount})` : ""}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -106,21 +145,31 @@ export function LlmDefaultsTab() {
                       }}
                     >
                       <SelectTrigger className="bg-card h-9" data-testid={`select-llm-default-model-${tab.key}`}>
-                        <SelectValue placeholder="Select model" />
+                        <SelectValue placeholder={rec && rec.vendor === vendor ? `${rec.modelId} (auto)` : "Select model"} />
                       </SelectTrigger>
                       <SelectContent>
                         {model && !vendorModels.some((m) => m.id === model) && (
                           <SelectItem value={model}>{model} (current)</SelectItem>
                         )}
-                        {vendorModels.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
-                        ))}
+                        {vendorModels.map((m) => {
+                          const isRec = rec && rec.vendor === vendor && rec.modelId === m.id;
+                          return (
+                            <SelectItem key={m.id} value={m.id}>
+                              <span className="flex items-center gap-1.5">
+                                {m.label}
+                                {isRec && (
+                                  <span className="text-[9px] text-green-700 font-medium">recommended</span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   ) : (
                     <Select disabled>
                       <SelectTrigger className="bg-card h-9 opacity-50">
-                        <SelectValue placeholder="Select vendor first" />
+                        <SelectValue placeholder={rec ? `${rec.modelId} (auto)` : "Select vendor first"} />
                       </SelectTrigger>
                     </Select>
                   )}

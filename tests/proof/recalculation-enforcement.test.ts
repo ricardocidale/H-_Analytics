@@ -121,6 +121,7 @@ const NON_FINANCIAL_MUTATIONS = [
   "usePurgeExpiredScenarios",
   "useGrantScenarioAccess",
   "useRevokeScenarioAccess",
+  "useRefreshLlmRegistry",    // Admin LLM registry refresh — does not affect financial calculations
 ];
 
 describe("Recalculation Enforcement", () => {
@@ -235,6 +236,7 @@ describe("Recalculation Enforcement", () => {
         "admin-research-config",  // Admin research prompt config — does not affect financial calculations
         "admin",                  // Admin scenario management (deleted scenarios, restore) — does not affect financial calculations
         "propertyUrls",           // Property URL metadata — does not affect financial calculations
+        "admin-llm-registry",    // Admin LLM registry — does not affect financial calculations
       ]);
 
       for (const prefix of financialQueryPrefixes) {

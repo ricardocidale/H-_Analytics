@@ -35,6 +35,7 @@ export function getEventLabel(type: NotificationEventType): string {
     OCCUPANCY_BREACH: "Occupancy Threshold Breach",
     CAP_RATE_BREACH: "Cap Rate Threshold Breach",
     NOI_VARIANCE_BREACH: "NOI Variance Threshold Breach",
+    LLM_MODEL_ISSUE: "AI Model Configuration Issue",
   };
   return labels[type] || type;
 }

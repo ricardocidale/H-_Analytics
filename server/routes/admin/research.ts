@@ -7,6 +7,8 @@ import { type InsertGlobalAssumptions, type ResearchConfig, type ContextLlmConfi
 import { logAndSendError, logActivity } from "../helpers";
 import { logger } from "../../logger";
 import { fetchWithTimeout } from "../../lib/fetch-with-timeout";
+import { refreshLlmRegistry } from "../../ai/llm-registry-manager";
+import { getLastRegistryState } from "../../ai/llm-recommender";
 
 const researchSourceEntrySchema = z.object({
   id: z.string(),
@@ -372,6 +374,43 @@ export function registerResearchConfigRoutes(app: Express) {
       res.json(merged);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update research config", error);
+    }
+  });
+
+  app.get("/api/admin/llm-registry", requireAdmin, async (_req, res) => {
+    try {
+      const state = getLastRegistryState();
+      if (!state) {
+        return res.json({
+          models: [],
+          recommendations: [],
+          adminIssues: [],
+          vendorStatuses: [],
+          probedAt: null,
+          durationMs: 0,
+          status: "not_yet_probed",
+        });
+      }
+      res.json({ ...state, status: "ready" });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch LLM registry", error);
+    }
+  });
+
+  app.post("/api/admin/llm-registry/refresh", requireAdmin, async (req, res) => {
+    try {
+      if (isApiRateLimited(getAuthUser(req).id, "llm-registry-refresh", 1)) {
+        return res.status(429).json({ error: "LLM registry refresh rate-limited to 1 per minute" });
+      }
+      const state = await refreshLlmRegistry();
+      logActivity(req, "refresh-llm-registry", "intelligence", null, null, {
+        modelCount: state.models.length,
+        recommendationCount: state.recommendations.length,
+        issueCount: state.adminIssues.length,
+      });
+      res.json({ ...state, status: "ready" });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to refresh LLM registry", error);
     }
   });
 }

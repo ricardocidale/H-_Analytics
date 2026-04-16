@@ -1,6 +1,7 @@
 import { storage } from "../../storage";
 import { fetchAllBenchmarks } from "./fetchers";
 import { checkAllSources } from "../source-health-checker";
+import { refreshLlmRegistry } from "../llm-registry-manager";
 import { log } from "../../logger";
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
@@ -40,6 +41,14 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
       log(`Source health check: ${healthy}/${healthResults.length} healthy`, "ambient-scheduler");
     } catch (healthErr: unknown) {
       log(`Source health check failed (non-blocking): ${healthErr instanceof Error ? healthErr.message : String(healthErr)}`, "ambient-scheduler", "warn");
+    }
+
+    // LLM registry refresh — probe vendors, compute recommendations, alert admin (non-blocking)
+    try {
+      const registryState = await refreshLlmRegistry();
+      log(`LLM registry: ${registryState.models.length} models, ${registryState.recommendations.length} recommendations, ${registryState.adminIssues.length} issues`, "ambient-scheduler");
+    } catch (registryErr: unknown) {
+      log(`LLM registry refresh failed (non-blocking): ${registryErr instanceof Error ? registryErr.message : String(registryErr)}`, "ambient-scheduler", "warn");
     }
 
     // Cleanup old page visit records (rolling 12 months)

@@ -88,7 +88,7 @@ export const SEED_INITIAL_PROPERTIES = [
     revShareOther: 0.08,
     cateringBoostPercent: 0.25,
     exitCapRate: 0.10,
-    taxRate: 0.09,
+    taxRate: 0.35,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   },
