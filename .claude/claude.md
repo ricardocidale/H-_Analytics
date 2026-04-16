@@ -243,7 +243,11 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 
 ## Governed Model Constants (DB-Backed)
 
-`DEPRECIATION_YEARS` (39) and `DAYS_PER_MONTH` (30.5) are DB-backed with constant fallbacks. Cascade: `property.depreciationYears → global.depreciationYears → DEPRECIATION_YEARS constant (39)`. Editable in Company Assumptions under "Model Constants". The useful life varies by country (see `shared/countryDefaults.ts`). Calculation METHOD always follows US GAAP (ASC 360, straight-line); only the period changes.
+`DEPRECIATION_YEARS` (39) and `DAYS_PER_MONTH` (30.5) are DB-backed with constant fallbacks. Cascade: `property.depreciationYears → global.depreciationYears → DEPRECIATION_YEARS constant (39)`. The useful life varies by country (see `shared/countryDefaults.ts`). Calculation METHOD always follows US GAAP (ASC 360, straight-line); only the period changes.
+
+**Editing surfaces:**
+- `depreciationYears` — **Company Assumptions → Setup tab**, in a Card next to the Inflation Card (wrapped in `GovernedFieldWrapper`).
+- `daysPerMonth` — **Admin → App Defaults → Market & Macro tab** ONLY (single source of truth for this app-wide constant). The duplicate UI on Company Assumptions was removed April 2026.
 
 ---
 
