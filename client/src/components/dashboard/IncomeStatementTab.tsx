@@ -538,8 +538,10 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
                                 <span className="italic">Formula</span>
                               </div>
                             </TableCell>
-                            {row.values.map((_, vIdx) => (
-                              <TableCell key={vIdx} className="py-1" />
+                            {row.values.map((val, vIdx) => (
+                              <TableCell key={vIdx} className="text-right font-mono text-sm text-muted-foreground py-1">
+                                {row.displayValues?.[vIdx] ?? formatMoney(val)}
+                              </TableCell>
                             ))}
                           </TableRow>
                           {isOpen && (
