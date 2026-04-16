@@ -327,8 +327,19 @@ export async function validateAssumptionRange(
     };
   }
 
-  // Determine verdict
+  // Normalize: benchmarks store percentages as whole numbers (4.0 = 4%)
+  // but property fields store them as decimals (0.04 = 4%).
+  // Detect mismatch: if the user value is < 1 and the benchmark low is > 1,
+  // the benchmark is in whole-number format — divide by 100.
   const isPercent = mapping.unit === "percent";
+  if (isPercent && userValue < 1 && range.low > 1) {
+    range = {
+      ...range,
+      low: range.low / 100,
+      mid: range.mid / 100,
+      high: range.high / 100,
+    };
+  }
   const displayValue = isPercent ? `${(userValue * 100).toFixed(1)}%` : `$${userValue.toLocaleString("en-US")}`;
   const displayLow = isPercent ? `${(range.low * 100).toFixed(1)}%` : `$${range.low.toLocaleString("en-US")}`;
   const displayHigh = isPercent ? `${(range.high * 100).toFixed(1)}%` : `$${range.high.toLocaleString("en-US")}`;
@@ -474,4 +485,42 @@ export function computeDataQuality(params: {
     qualityScore,
     qualityNarrative: narrative,
   };
+}
+
+// ── Conviction Floor ──────────────────────────────────────────────────────
+
+/**
+ * The Analyst's conviction floor — the minimum data quality threshold
+ * below which The Analyst refuses to advise rather than risk being wrong.
+ *
+ * If qualityScore < CONVICTION_FLOOR or sourceCount < MIN_SOURCES,
+ * The Analyst shows "Insufficient data — needs research" instead of a range.
+ *
+ * This prevents The Analyst from embarrassing itself (and the user) by
+ * presenting guesses as intelligence.
+ */
+export const CONVICTION_FLOOR = 40;
+export const MIN_SOURCES_FOR_ADVICE = 1; // At least 1 verified source (db_table or api)
+
+/**
+ * Should The Analyst present this range to the user?
+ * Returns false if the data quality is too low to advise responsibly.
+ */
+export function meetsConvictionFloor(quality: DataQuality): boolean {
+  if (quality.qualityScore < CONVICTION_FLOOR) return false;
+  // Require at least one non-estimated source
+  const verifiedSources = quality.sourceTypes.filter(t => t !== "estimated");
+  if (verifiedSources.length < MIN_SOURCES_FOR_ADVICE) return false;
+  return true;
+}
+
+/**
+ * When conviction floor is not met, return this explanation.
+ */
+export function insufficientDataMessage(fieldName: string, quality: DataQuality): string {
+  const issues: string[] = [];
+  if (quality.qualityScore < CONVICTION_FLOOR) issues.push(`quality score ${quality.qualityScore}/100 is below threshold`);
+  if (quality.sourceTypes.every(t => t === "estimated")) issues.push("no verified data sources");
+  if (quality.sourceCount === 0) issues.push("no sources found");
+  return `The Analyst does not have enough reliable data to advise on ${fieldName} (${issues.join(", ")}). Run a full research pass to gather market intelligence.`;
 }
