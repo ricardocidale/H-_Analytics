@@ -245,7 +245,7 @@ function dominant(counts: Record<string, number>): string {
 }
 
 export function analyzePortfolio(properties: Property[]): PortfolioAnalysis {
-  const active = properties.filter(p => (p as any).archivedAt == null);
+  const active = properties.filter(p => p.archivedAt == null);
   if (active.length === 0) {
     return emptyPortfolioAnalysis();
   }
@@ -256,17 +256,17 @@ export function analyzePortfolio(properties: Property[]): PortfolioAnalysis {
   const maxOcc = aggregateNumeric(active.map(p => (p.maxOccupancy ?? 0)).filter(v => v > 0));
   const price = aggregateNumeric(active.map(p => p.purchasePrice ?? 0).filter(v => v > 0));
 
-  const acreage = aggregateNullable(active.map(p => (p as any).totalPropertyAcreage));
-  const sqft = aggregateNullable(active.map(p => (p as any).totalBuildingSqft));
-  const seats = aggregateNullable(active.map(p => (p as any).fbSeats));
-  const eventSqft = aggregateNullable(active.map(p => (p as any).eventSpaceSqft));
-  const venues = aggregateNullable(active.map(p => (p as any).fbVenues));
+  const acreage = aggregateNullable(active.map(p => p.totalPropertyAcreage));
+  const sqft = aggregateNullable(active.map(p => p.totalBuildingSqft));
+  const seats = aggregateNullable(active.map(p => p.fbSeats));
+  const eventSqft = aggregateNullable(active.map(p => p.eventSpaceSqft));
+  const venues = aggregateNullable(active.map(p => p.fbVenues));
 
-  const fbShares = active.map(p => (p as any).revShareFB).filter((v: any): v is number => v != null && v > 0);
-  const evtShares = active.map(p => (p as any).revShareEvents).filter((v: any): v is number => v != null && v > 0);
+  const fbShares = active.map(p => p.revShareFB).filter((v): v is number => v != null && v > 0);
+  const evtShares = active.map(p => p.revShareEvents).filter((v): v is number => v != null && v > 0);
 
-  const qualityTiers = countMap(active.map(p => (p as any).qualityTier as string));
-  const businessModels = countMap(active.map(p => (p as any).businessModel as string));
+  const qualityTiers = countMap(active.map(p => p.qualityTier));
+  const businessModels = countMap(active.map(p => p.businessModel));
   const countries = Array.from(new Set(active.map(p => p.country).filter((c): c is string => c != null)));
 
   const regions: string[] = [];
@@ -727,7 +727,7 @@ export async function generateIcp(
         };
         // Store the essay separately — it goes into icpConfig._definition
         if (parsed.icpEssay) {
-          (descriptive as any)._icpEssay = parsed.icpEssay;
+          (descriptive as unknown as Record<string, unknown>)._icpEssay = parsed.icpEssay;
         }
         fieldsFromAi = Object.keys(parsed).length;
         source = "portfolio+ai";
@@ -831,8 +831,10 @@ export function buildFullIcpNarrative(
   descriptive: GeneratedIcpDescriptive | Record<string, any>,
   companyName: string,
 ): string {
-  const c = config as any;
-  const d = descriptive as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic field access for narrative template
+  const c = config as Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic field access for narrative template
+  const d = descriptive as Record<string, any>;
 
   const sections: string[] = [];
 

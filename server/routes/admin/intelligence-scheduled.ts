@@ -3,6 +3,7 @@ import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
 import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { insertScheduledResearchWorkflowSchema } from "@shared/schema";
+import type { InsertScheduledResearchWorkflow } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { executeScheduledWorkflow } from "../../ai/ambient/research-scheduler";
 
@@ -43,13 +44,13 @@ export function registerScheduledResearchRoutes(app: Express) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
 
-      const data = { ...validation.data, workflowKey: existing.workflowKey };
+      const data: Record<string, unknown> = { ...validation.data, workflowKey: existing.workflowKey };
       if (validation.data.frequencyHours && validation.data.frequencyHours !== existing.frequencyHours) {
-        (data as any).nextRunAt = new Date(
+        data.nextRunAt = new Date(
           Date.now() + (validation.data.frequencyHours * 60 * 60 * 1000),
         );
       }
-      const workflow = await storage.upsertScheduledResearchWorkflow(data as any);
+      const workflow = await storage.upsertScheduledResearchWorkflow(data as InsertScheduledResearchWorkflow);
       logActivity(req, "update-scheduled-workflow", "scheduled_research", id, workflow.name);
       res.json(workflow);
     } catch (error: unknown) {

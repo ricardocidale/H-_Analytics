@@ -59,7 +59,7 @@ export function register(app: Express) {
       const result = await generateIcp(properties, ga ?? null);
 
       // Save to global_assumptions.icpConfig
-      const existingIcpConfig = (ga as any)?.icpConfig ?? {};
+      const existingIcpConfig = ga?.icpConfig ?? {};
       const updatedIcpConfig = {
         ...existingIcpConfig,
         ...result.config,
@@ -69,8 +69,9 @@ export function register(app: Express) {
         _portfolioAnalysis: result.portfolioAnalysis,
       };
 
-      // Save descriptive to icpDescriptive
-      const existingDescriptive = (ga as any)?.icpDescriptive ?? {};
+      // Save descriptive to icpDescriptive (JSONB field managed via patch)
+      const gaRecord = ga as Record<string, unknown> | null;
+      const existingDescriptive = (gaRecord?.icpDescriptive as Record<string, unknown>) ?? {};
       const updatedDescriptive = {
         ...existingDescriptive,
         ...result.descriptive,
@@ -80,7 +81,7 @@ export function register(app: Express) {
         await storage.patchGlobalAssumptions(ga.id, {
           icpConfig: updatedIcpConfig,
           icpDescriptive: updatedDescriptive,
-        } as any);
+        });
       }
 
       logger.info(`ICP quick-generated for user ${user.id}: ${result.fieldsFromPortfolio} from portfolio, ${result.fieldsFromDefaults} from defaults`, "icp");
@@ -123,15 +124,15 @@ export function register(app: Express) {
           max_tokens: 4096,
           messages: [{ role: "user", content: prompt }],
         });
-        const textBlock = response.content.find((b: any) => b.type === "text");
-        return textBlock ? (textBlock as any).text : "";
+        const textBlock = response.content.find((b) => b.type === "text");
+        return textBlock && "text" in textBlock ? textBlock.text : "";
       };
 
       const result = await generateIcp(properties, ga ?? null, { llmCallback });
 
       // Save to global_assumptions
-      const existingIcpConfig = (ga as any)?.icpConfig ?? {};
-      const updatedIcpConfig = {
+      const existingIcpConfig = ga?.icpConfig ?? {};
+      const updatedIcpConfig: Record<string, unknown> = {
         ...existingIcpConfig,
         ...result.config,
         _generated: true,
@@ -141,24 +142,26 @@ export function register(app: Express) {
       };
 
       // If AI generated an essay, save it as _definition
-      const aiEssay = (result.descriptive as any)._icpEssay;
+      const descriptiveRecord = result.descriptive as unknown as Record<string, unknown>;
+      const aiEssay = descriptiveRecord._icpEssay as string | undefined;
       if (aiEssay) {
         updatedIcpConfig._definition = aiEssay;
       }
 
-      const existingDescriptive = (ga as any)?.icpDescriptive ?? {};
-      const updatedDescriptive = {
+      const gaRecord2 = ga as Record<string, unknown> | null;
+      const existingDescriptive = (gaRecord2?.icpDescriptive as Record<string, unknown>) ?? {};
+      const updatedDescriptive: Record<string, unknown> = {
         ...existingDescriptive,
         ...result.descriptive,
       };
       // Clean internal field
-      delete (updatedDescriptive as any)._icpEssay;
+      delete updatedDescriptive._icpEssay;
 
       if (ga) {
         await storage.patchGlobalAssumptions(ga.id, {
           icpConfig: updatedIcpConfig,
           icpDescriptive: updatedDescriptive,
-        } as any);
+        });
       }
 
       logger.info(`ICP AI-generated for user ${user.id}: ${result.fieldsFromPortfolio} from portfolio, ${result.fieldsFromAi} from AI`, "icp");
@@ -184,8 +187,9 @@ export function register(app: Express) {
       const ga = await storage.getGlobalAssumptions(user.id);
       if (!ga) return res.status(404).json({ error: "No global assumptions found" });
 
-      const icpConfig = (ga as any)?.icpConfig ?? {};
-      const icpDescriptive = (ga as any)?.icpDescriptive ?? {};
+      const icpConfig = ga.icpConfig ?? {};
+      const gaRecord3 = ga as Record<string, unknown>;
+      const icpDescriptive = (gaRecord3.icpDescriptive as Record<string, unknown>) ?? {};
       const companyName = ga.companyName || "Management Company";
 
       const narrative = buildFullIcpNarrative(icpConfig, icpDescriptive, companyName);
