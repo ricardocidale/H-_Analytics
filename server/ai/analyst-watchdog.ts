@@ -1,27 +1,27 @@
 /**
- * seed-validator.ts — The Analyst's deterministic validation pass.
+ * analyst-watchdog.ts — The Analyst's always-on validation engine.
  *
- * Runs after properties are seeded or imported. Checks every financial
- * assumption against country_defaults and hospitality_benchmarks using
- * pure DB lookups (zero LLM cost, ~50ms per property).
+ * The Analyst is not a button you press. It watches everything:
  *
- * This is the gate that catches errors like Jano Grande's 9% tax rate
- * for Colombia (should be 35%). The Analyst doesn't need AI to know
- * that — it's a lookup.
+ * 1. SEED TIME: validates every assumption on every new property
+ * 2. DATA ENTRY: validates every field change in real time
+ * 3. IMPORT: validates document extraction results before applying
+ * 4. STALENESS: flags properties whose data is older than 30 days
+ * 5. CROSS-PROPERTY: catches inconsistencies across the portfolio
  *
- * Flow:
- *   1. Load property from DB
- *   2. Resolve country defaults
- *   3. Check hard-floor fields (tax, depreciation, inflation, CRP)
- *   4. Run validateAllAssumptions() against benchmarks
- *   5. Write assumption_guidance rows
- *   6. Update property validationStatus
- *   7. Log changes to assumption_change_log
+ * The Analyst uses two tiers:
+ *   - Tier 0: Deterministic DB lookups (country_defaults, benchmarks)
+ *             Zero LLM cost. ~50ms. Runs on every write.
+ *   - Tier 1: LLM-enhanced research (web search, comps, synthesis)
+ *             Runs on first visit, on demand, or when Tier 0 flags issues.
+ *
+ * This module handles Tier 0 — the always-on watchdog.
+ * For Tier 1, see research-prompt-builders.ts and the guidance routes.
  */
 
 import { storage } from "../storage";
 import { COUNTRY_DEFAULTS, type CountryDefaults } from "@shared/countryDefaults";
-import { validateAllAssumptions, type AssumptionValidation } from "./benchmark-lookups";
+import { validateAllAssumptions, validateAssumptionRange, type AssumptionValidation } from "./benchmark-lookups";
 import { logger } from "../logger";
 import type { Property } from "@shared/schema";
 
@@ -250,6 +250,205 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
 
   return results;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// REAL-TIME WATCHDOG — runs on every property update
+// ═══════════════════════════════════════════════════════════════════
+
+export interface FieldAlert {
+  field: string;
+  value: number;
+  expected: string;
+  verdict: "above" | "below";
+  severity: "warning" | "critical";
+  message: string;
+}
+
+/**
+ * Validate specific fields that just changed on a property.
+ * Called from the PATCH /api/properties/:id route — fire and forget.
+ * Returns alerts for any field that falls outside known ranges.
+ *
+ * This is The Analyst watching data entry in real time.
+ */
+export async function validateFieldChanges(
+  propertyId: number,
+  changedFields: Record<string, unknown>,
+): Promise<FieldAlert[]> {
+  const alerts: FieldAlert[] = [];
+
+  try {
+    const property = await storage.getProperty(propertyId);
+    if (!property) return alerts;
+
+    const countryName = property.country || "United States";
+    const countryDefaults = COUNTRY_DEFAULTS[countryName];
+
+    // Check each changed field against hard floors
+    for (const [field, rawValue] of Object.entries(changedFields)) {
+      if (typeof rawValue !== "number" || !Number.isFinite(rawValue)) continue;
+      const value = rawValue;
+
+      // Hard floor: country defaults
+      if (countryDefaults) {
+        const hardFloor = HARD_FLOOR_FIELDS.find(h => h.propertyField === field);
+        if (hardFloor) {
+          const expected = countryDefaults[hardFloor.field] as number;
+          if (expected != null) {
+            const deviation = Math.abs(value - expected) / Math.max(Math.abs(expected), 1e-6);
+            if (deviation > hardFloor.threshold) {
+              const severity = deviation > hardFloor.threshold * 2 ? "critical" : "warning";
+              alerts.push({
+                field,
+                value,
+                expected: `${hardFloor.label}: ${formatValue(field, expected)} (${countryName})`,
+                verdict: value < expected ? "below" : "above",
+                severity,
+                message: `The Analyst flags ${hardFloor.label}: ${formatValue(field, value)} deviates ${(deviation * 100).toFixed(0)}% from ${countryName} default of ${formatValue(field, expected)}.`,
+              });
+            }
+          }
+        }
+      }
+
+      // Benchmark range check
+      const market = property.city || property.stateProvince || countryName;
+      const tier = (property as Record<string, unknown>).qualityTier as string | undefined;
+      const validation = await validateAssumptionRange(field, value, market, tier, countryName);
+
+      if (validation.verdict === "above" || validation.verdict === "below") {
+        // Don't duplicate if already flagged by hard floor
+        if (!alerts.some(a => a.field === field)) {
+          const deviationPct = Math.abs(validation.deviationPercent ?? 0);
+          alerts.push({
+            field,
+            value,
+            expected: validation.benchmarkRange
+              ? `${formatValue(field, validation.benchmarkRange.low)}–${formatValue(field, validation.benchmarkRange.high)}`
+              : "unknown",
+            verdict: validation.verdict,
+            severity: deviationPct > 50 ? "critical" : "warning",
+            message: validation.explanation,
+          });
+        }
+      }
+    }
+
+    // Update property validation status if alerts found
+    if (alerts.length > 0) {
+      const currentFlags = property.flaggedFieldCount ?? 0;
+      await storage.updateProperty(propertyId, {
+        validationStatus: "flagged",
+        flaggedFieldCount: currentFlags + alerts.filter(a => a.severity === "critical").length,
+      });
+    }
+
+  } catch (err: unknown) {
+    logger.warn(`Analyst watchdog error for property ${propertyId}: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+  }
+
+  return alerts;
+}
+
+/**
+ * Check all properties for staleness. Run from ambient scheduler.
+ * Properties with lastValidatedAt > 30 days ago get marked "stale".
+ */
+export async function checkStaleness(): Promise<number> {
+  try {
+    const properties = await storage.getAllProperties();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    let staleCount = 0;
+
+    for (const prop of properties) {
+      if (prop.validationStatus === "validated" && prop.lastValidatedAt) {
+        const validatedAt = new Date(prop.lastValidatedAt);
+        if (validatedAt < thirtyDaysAgo) {
+          await storage.updateProperty(prop.id, { validationStatus: "stale" });
+          staleCount++;
+        }
+      }
+    }
+
+    if (staleCount > 0) {
+      logger.info(`Analyst staleness check: ${staleCount} properties marked stale`, "analyst-watchdog");
+    }
+
+    return staleCount;
+  } catch (err: unknown) {
+    logger.warn(`Analyst staleness check failed: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+    return 0;
+  }
+}
+
+/**
+ * Portfolio consistency check — catches cross-property anomalies.
+ * Run from ambient scheduler after staleness check.
+ */
+export async function checkPortfolioConsistency(): Promise<string[]> {
+  const warnings: string[] = [];
+
+  try {
+    const properties = await storage.getAllProperties();
+    if (properties.length < 2) return warnings;
+
+    // Check: same country, wildly different tax rates
+    const byCountry = new Map<string, Array<{ name: string; taxRate: number }>>();
+    for (const p of properties) {
+      const country = p.country || "Unknown";
+      const taxRate = p.taxRate;
+      if (taxRate != null) {
+        if (!byCountry.has(country)) byCountry.set(country, []);
+        byCountry.get(country)!.push({ name: p.name || `#${p.id}`, taxRate });
+      }
+    }
+
+    for (const [country, props] of Array.from(byCountry.entries())) {
+      if (props.length < 2) continue;
+      const rates = props.map((p: { taxRate: number }) => p.taxRate);
+      const min = Math.min(...rates);
+      const max = Math.max(...rates);
+      if (max - min > 0.10) { // >10pp spread in same country
+        warnings.push(
+          `Tax rate inconsistency in ${country}: ${props.map((p: { name: string; taxRate: number }) => `${p.name} (${(p.taxRate * 100).toFixed(0)}%)`).join(", ")}`
+        );
+      }
+    }
+
+    // Check: exit cap rate below 6% or above 15% (unrealistic)
+    for (const p of properties) {
+      const cap = p.exitCapRate;
+      if (cap != null && (cap < 0.06 || cap > 0.15)) {
+        warnings.push(
+          `${p.name || `#${p.id}`}: exit cap rate ${(cap * 100).toFixed(1)}% is outside reasonable range (6%–15%)`
+        );
+      }
+    }
+
+    // Check: ADR growth rate > inflation + 2% (aggressive)
+    for (const p of properties) {
+      const growth = p.adrGrowthRate;
+      if (growth != null && growth > 0.05) {
+        warnings.push(
+          `${p.name || `#${p.id}`}: ADR growth ${(growth * 100).toFixed(1)}%/yr exceeds 5% — The Analyst recommends justification`
+        );
+      }
+    }
+
+    if (warnings.length > 0) {
+      logger.info(`Analyst portfolio check: ${warnings.length} warnings`, "analyst-watchdog");
+    }
+
+  } catch (err: unknown) {
+    logger.warn(`Analyst portfolio check failed: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+  }
+
+  return warnings;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
 
 function formatValue(field: string, value: number): string {
   const pctFields = [

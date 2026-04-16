@@ -305,6 +305,20 @@ export function register(app: Express) {
         );
       }
 
+      // The Analyst watches every field change in real time
+      import("../ai/analyst-watchdog").then(({ validateFieldChanges }) =>
+        validateFieldChanges(propertyId, validation.data as Record<string, unknown>)
+          .then(alerts => {
+            if (alerts.length > 0) {
+              logger.info(
+                `Analyst flagged ${alerts.length} issue(s) on ${property.name}: ${alerts.map(a => a.message).join("; ")}`,
+                "analyst-watchdog",
+              );
+            }
+          })
+          .catch(err => logger.warn(`Analyst watchdog error: ${err instanceof Error ? err.message : err}`, "properties"))
+      ).catch(() => {});
+
       invalidateComputeCache();
       logActivity(req, "update", "property", property.id, property.name, { updates: req.body });
 

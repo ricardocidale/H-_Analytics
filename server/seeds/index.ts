@@ -127,7 +127,7 @@ export async function seed() {
 
     // The Analyst validates every seeded property — catches errors like wrong tax rates
     try {
-      const { validateAllProperties } = await import("../ai/seed-validator");
+      const { validateAllProperties } = await import("../ai/analyst-watchdog");
       const results = await validateAllProperties();
       const flagged = results.filter(r => r.status === "flagged");
       if (flagged.length > 0) {

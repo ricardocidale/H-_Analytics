@@ -51,6 +51,18 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
       log(`LLM registry refresh failed (non-blocking): ${registryErr instanceof Error ? registryErr.message : String(registryErr)}`, "ambient-scheduler", "warn");
     }
 
+    // The Analyst: staleness check + portfolio consistency (non-blocking)
+    try {
+      const { checkStaleness, checkPortfolioConsistency } = await import("../analyst-watchdog");
+      const staleCount = await checkStaleness();
+      const warnings = await checkPortfolioConsistency();
+      if (staleCount > 0 || warnings.length > 0) {
+        log(`Analyst watchdog: ${staleCount} stale properties, ${warnings.length} portfolio warnings`, "ambient-scheduler");
+      }
+    } catch (watchdogErr: unknown) {
+      log(`Analyst watchdog failed (non-blocking): ${watchdogErr instanceof Error ? watchdogErr.message : String(watchdogErr)}`, "ambient-scheduler", "warn");
+    }
+
     // Cleanup old page visit records (rolling 12 months)
     try {
       const cleaned = await storage.cleanupOldVisits(12);
