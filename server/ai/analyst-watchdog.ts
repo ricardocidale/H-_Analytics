@@ -21,7 +21,7 @@
 
 import { storage } from "../storage";
 import { COUNTRY_DEFAULTS, type CountryDefaults } from "@shared/countryDefaults";
-import { validateAllAssumptions, validateAssumptionRange, type AssumptionValidation } from "./benchmark-lookups";
+import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, meetsConvictionFloor, insufficientDataMessage, type AssumptionValidation } from "./benchmark-lookups";
 import { logger } from "../logger";
 import type { Property } from "@shared/schema";
 
@@ -181,20 +181,42 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
         source: result.benchmarkRange?.source ?? "hospitality_benchmarks",
       });
 
-      // Write assumption_guidance row
+      // Write assumption_guidance row — only if conviction floor is met
       if (result.benchmarkRange) {
-        await storage.upsertAssumptionGuidance({
-          entityType: "property",
-          entityId: propertyId,
-          assumptionKey: result.fieldName,
+        const quality = computeDataQuality({
+          sourceCount: 1,
+          sourceTypes: ["db_table"],
+          dataAgeDays: result.benchmarkRange.sourceYear
+            ? Math.round((Date.now() - new Date(`${result.benchmarkRange.sourceYear}-06-01`).getTime()) / 86400000)
+            : null,
           valueLow: result.benchmarkRange.low,
           valueMid: result.benchmarkRange.mid,
           valueHigh: result.benchmarkRange.high,
-          confidence: "moderate",
-          sourceName: result.benchmarkRange.source ?? "hospitality benchmarks",
-          sourceDate: result.benchmarkRange.sourceYear?.toString() ?? null,
-          reasoning: result.explanation,
         });
+
+        if (meetsConvictionFloor(quality)) {
+          await storage.upsertAssumptionGuidance({
+            entityType: "property",
+            entityId: propertyId,
+            assumptionKey: result.fieldName,
+            valueLow: result.benchmarkRange.low,
+            valueMid: result.benchmarkRange.mid,
+            valueHigh: result.benchmarkRange.high,
+            confidence: quality.qualityScore >= 75 ? "high" : "moderate",
+            sourceName: result.benchmarkRange.source ?? "hospitality benchmarks",
+            sourceDate: result.benchmarkRange.sourceYear?.toString() ?? null,
+            reasoning: result.explanation,
+            dataQuality: quality,
+          });
+        } else {
+          // Below conviction floor — log but don't present as advice
+          logger.info(
+            `Analyst withheld advice on ${result.fieldName} for property ${propertyId}: ${insufficientDataMessage(result.fieldName, quality)}`,
+            "analyst-watchdog",
+          );
+          noData++; // Count as no_data, not a flag
+          flags.pop(); // Remove the flag we just pushed — insufficient data to justify it
+        }
       }
     }
   }
