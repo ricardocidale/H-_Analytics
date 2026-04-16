@@ -113,6 +113,7 @@ export function register(app: Express) {
       const enrichedGuidance = guidance.map(g => ({
         ...g,
         confidenceScore: computePerFieldConfidence(g),
+        dataQuality: g.dataQuality ?? null,
       }));
 
       // Compute entity-level confidence summary

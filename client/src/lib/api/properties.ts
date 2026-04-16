@@ -142,6 +142,8 @@ export function useAllPropertyUrls() {
   });
 }
 
+import type { DataQualitySummary } from "@shared/analyst-conviction";
+
 export interface GuidanceRecord {
   id: number;
   assumptionKey: string;
@@ -152,6 +154,7 @@ export interface GuidanceRecord {
   reasoning: string | null;
   sourceName: string | null;
   confidenceScore?: number;
+  dataQuality?: DataQualitySummary | null;
 }
 
 export function usePropertyGuidance(propertyId: number) {

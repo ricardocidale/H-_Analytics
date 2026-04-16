@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  meetsConvictionFloor,
+  insufficientDataMessage,
+  type DataQualitySummary,
+} from "@shared/analyst-conviction";
 
 interface GuidanceRecord {
   assumptionKey: string;
@@ -9,6 +14,7 @@ interface GuidanceRecord {
   confidence: string | null;
   reasoning: string | null;
   sourceName: string | null;
+  dataQuality?: DataQualitySummary | null;
 }
 
 interface AnalystRangeIndicatorProps {
@@ -30,6 +36,28 @@ export function AnalystRangeIndicator({ fieldKey, currentValue, guidance, isPerc
 
   const record = guidance.find(g => g.assumptionKey === fieldKey);
   if (!record || record.valueLow == null || record.valueHigh == null) return null;
+
+  // Conviction floor: if quality is too low, withhold range and prompt for research
+  if (record.dataQuality && !meetsConvictionFloor(record.dataQuality)) {
+    const message = insufficientDataMessage(fieldKey, record.dataQuality);
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            data-testid={`analyst-insufficient-${fieldKey}`}
+            className="inline-flex items-center gap-1 text-[10px] font-medium rounded px-1.5 py-0.5 cursor-help bg-amber-500/10 text-amber-700 dark:text-amber-400"
+          >
+            <svg className="w-2.5 h-2.5" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a1 1 0 011 1v3a1 1 0 11-2 0V5a1 1 0 011-1zm0 8a1 1 0 100 2 1 1 0 000-2z" /></svg>
+            Insufficient data — needs research
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">
+          <p className="font-semibold mb-1">The Analyst is withholding advice</p>
+          <p className="text-muted-foreground">{message}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
 
   const low = record.valueLow;
   const high = record.valueHigh;
