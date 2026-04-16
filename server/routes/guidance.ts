@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { requireAuth, getAuthUser, checkPropertyAccess } from "../auth";
 import { isAdminRole } from "@shared/constants";
 import { logAndSendError, logActivity } from "./helpers";
+import { logger } from "../logger";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { buildPropertyContextPack } from "../ai/context-pack/property-pack";
@@ -203,6 +204,25 @@ export function register(app: Express) {
         previousValue: previousValue ?? null,
         newValue: newValue ?? null,
       });
+
+      // Log to assumption_change_log when user accepts/applies The Analyst's range
+      const isApplyAction = action === "accept" || action.startsWith("apply_") || action === "pin";
+      if (isApplyAction && guidanceRecord.assumptionKey) {
+        storage.logAssumptionChange({
+          entityType: guidanceRecord.entityType,
+          entityId: guidanceRecord.entityId,
+          scenarioId: guidanceRecord.scenarioId ?? undefined,
+          fieldName: guidanceRecord.assumptionKey,
+          previousValue: previousValue != null ? String(previousValue) : null,
+          newValue: newValue != null ? String(newValue) : null,
+          changeSource: "analyst",
+          reason: `Accepted Analyst range: ${guidanceRecord.valueLow}–${guidanceRecord.valueHigh} (${guidanceRecord.confidence})`,
+          userId: user.id,
+          researchRunId: guidanceRecord.researchRunId ?? undefined,
+        }).catch(err =>
+          logger.warn(`Failed to log guidance change: ${err instanceof Error ? err.message : err}`, "guidance")
+        );
+      }
 
       logActivity(req, "guidance-decision", "guidance", assumptionGuidanceId, action);
       res.status(201).json(decision);

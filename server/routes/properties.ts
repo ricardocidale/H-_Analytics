@@ -286,6 +286,25 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Property not found" });
       }
 
+      // Log field-level changes to assumption_change_log
+      const user = getAuthUser(req);
+      const changeEntries = Object.keys(validation.data)
+        .filter(k => existingProp && (existingProp as Record<string, unknown>)[k] !== (validation.data as Record<string, unknown>)[k])
+        .map(fieldName => ({
+          entityType: "property" as const,
+          entityId: propertyId,
+          fieldName,
+          previousValue: existingProp ? String((existingProp as Record<string, unknown>)[fieldName] ?? "") : null,
+          newValue: String((validation.data as Record<string, unknown>)[fieldName] ?? ""),
+          changeSource: "manual" as const,
+          userId: user.id,
+        }));
+      if (changeEntries.length > 0) {
+        storage.logAssumptionChanges(changeEntries).catch(err =>
+          logger.warn(`Failed to log assumption changes: ${err instanceof Error ? err.message : err}`, "properties")
+        );
+      }
+
       invalidateComputeCache();
       logActivity(req, "update", "property", property.id, property.name, { updates: req.body });
 
