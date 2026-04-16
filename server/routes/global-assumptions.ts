@@ -64,7 +64,7 @@ export function register(app: Express) {
     }
   });
 
-  app.put("/api/global-assumptions", requireAdmin, async (req, res) => {
+  app.put("/api/global-assumptions", requireManagementAccess, async (req, res) => {
     try {
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
       // Validate req.body first, then merge with current — prevents prototype pollution

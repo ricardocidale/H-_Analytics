@@ -194,7 +194,7 @@ function Router() {
         </Route>
         <Route path="/company/assumptions">
           <FinancialErrorBoundary>
-            <AdminRoute component={CompanyAssumptions} redirectTo="/company" />
+            <ManagementRoute component={CompanyAssumptions} />
           </FinancialErrorBoundary>
         </Route>
         <Route path="/company/guidance">
