@@ -148,6 +148,38 @@ export const insertGuidanceDecisionSchema = createInsertSchema(guidanceDecisions
 export type GuidanceDecision = typeof guidanceDecisions.$inferSelect;
 export type InsertGuidanceDecision = z.infer<typeof insertGuidanceDecisionSchema>;
 
+// ── Assumption Change Log ────────────────────────────────────────
+// Field-level audit trail for every property/company assumption change.
+// Answers: "What was the old value, who changed it, why, and was The Analyst involved?"
+
+export const assumptionChangeLog = pgTable("assumption_change_log", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  entityType: text("entity_type").notNull(),          // "property" | "company" | "scenario_override"
+  entityId: integer("entity_id").notNull(),
+  scenarioId: integer("scenario_id").references(() => scenarios.id, { onDelete: "set null" }),
+  fieldName: text("field_name").notNull(),             // "taxRate", "startAdr", "exitCapRate", etc.
+  previousValue: text("previous_value"),               // stored as text for flexibility (numbers, strings, null)
+  newValue: text("new_value"),
+  changeSource: text("change_source").notNull(),       // "seed" | "manual" | "analyst" | "document_extraction" | "admin_override" | "bulk_import"
+  reason: text("reason"),                              // human-readable explanation
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  researchRunId: integer("research_run_id").references(() => researchRuns.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("assumption_change_log_entity_idx").on(table.entityType, table.entityId),
+  index("assumption_change_log_field_idx").on(table.fieldName),
+  index("assumption_change_log_source_idx").on(table.changeSource),
+  index("assumption_change_log_created_idx").on(table.createdAt),
+]);
+
+export const insertAssumptionChangeLogSchema = createInsertSchema(assumptionChangeLog).pick({
+  entityType: true, entityId: true, scenarioId: true, fieldName: true,
+  previousValue: true, newValue: true, changeSource: true, reason: true,
+  userId: true, researchRunId: true,
+});
+export type AssumptionChangeLog = typeof assumptionChangeLog.$inferSelect;
+export type InsertAssumptionChangeLog = z.infer<typeof insertAssumptionChangeLogSchema>;
+
 export const rebeccaConversations = pgTable("rebecca_conversations", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),

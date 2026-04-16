@@ -2,9 +2,11 @@ import {
   assumptionGuidance, researchRuns, benchmarkSnapshots, relaxationTraces,
   guidanceDecisions, coverageSnapshots, sourceRegistry, sourceCallLogs, engineSuggestedLines,
   integrationKeyRotations, pipelinePolicies, scheduledResearchWorkflows,
+  assumptionChangeLog,
   hospitalityBenchmarks,
   marketAdrIndex, seasonalCalendars, eventCalendars, airportDistances, laborRates, fbBenchmarks,
   type AssumptionGuidance, type InsertAssumptionGuidance,
+  type AssumptionChangeLog, type InsertAssumptionChangeLog,
   type ResearchRun, type InsertResearchRun,
   type BenchmarkSnapshot, type InsertBenchmarkSnapshot,
   type RelaxationTrace, type InsertRelaxationTrace,
@@ -208,6 +210,42 @@ export class IntelligenceV2Storage {
     return db.select().from(guidanceDecisions)
       .where(eq(guidanceDecisions.assumptionGuidanceId, guidanceId))
       .orderBy(desc(guidanceDecisions.createdAt));
+  }
+
+  // ── Assumption Change Log ────────────────────────────────────────
+
+  async logAssumptionChange(data: InsertAssumptionChangeLog): Promise<AssumptionChangeLog> {
+    const [row] = await db.insert(assumptionChangeLog)
+      .values(data as typeof assumptionChangeLog.$inferInsert)
+      .returning();
+    return row;
+  }
+
+  async logAssumptionChanges(entries: InsertAssumptionChangeLog[]): Promise<void> {
+    if (entries.length === 0) return;
+    await db.insert(assumptionChangeLog)
+      .values(entries as Array<typeof assumptionChangeLog.$inferInsert>);
+  }
+
+  async getAssumptionHistory(entityType: string, entityId: number, fieldName?: string): Promise<AssumptionChangeLog[]> {
+    const conditions = [
+      eq(assumptionChangeLog.entityType, entityType),
+      eq(assumptionChangeLog.entityId, entityId),
+    ];
+    if (fieldName) conditions.push(eq(assumptionChangeLog.fieldName, fieldName));
+    return db.select().from(assumptionChangeLog)
+      .where(and(...conditions))
+      .orderBy(desc(assumptionChangeLog.createdAt));
+  }
+
+  async getUnvalidatedAssumptions(entityType: string): Promise<AssumptionChangeLog[]> {
+    // Fields set by seed that were never updated by analyst or manual override
+    return db.select().from(assumptionChangeLog)
+      .where(and(
+        eq(assumptionChangeLog.entityType, entityType),
+        eq(assumptionChangeLog.changeSource, "seed"),
+      ))
+      .orderBy(assumptionChangeLog.entityId, assumptionChangeLog.fieldName);
   }
 
   async createCoverageSnapshot(data: InsertCoverageSnapshot): Promise<CoverageSnapshot> {
