@@ -173,16 +173,9 @@ export function register(app: Express) {
             error: "Company assumptions not configured yet. Set up your company name and basic assumptions before generating intelligence.",
           });
         }
-        if (!ga.companyName) {
-          return res.status(400).json({
-            error: "Company name is required before generating intelligence. Set it on the Company Assumptions page.",
-          });
-        }
-        // Context gate — ensure minimum company info exists for meaningful research
-        // The admin sets these via Company Assumptions; regular users benefit from them
         if (!ga.companyName || !ga.modelStartDate) {
           return res.status(400).json({
-            error: "Company setup is incomplete. An administrator must configure the company name and start date before intelligence can run.",
+            error: "Company name and start date are required before generating intelligence. Set them on the Company Assumptions page.",
             code: "COMPANY_SETUP_INCOMPLETE",
           });
         }
