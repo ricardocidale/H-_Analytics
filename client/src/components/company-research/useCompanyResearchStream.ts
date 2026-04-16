@@ -134,5 +134,10 @@ export function useCompanyResearchStream() {
     }
   }, [queryClient, executeStream]);
 
-  return { isGenerating, streamedContent, phases, orchestratorMeta, generateResearch };
+  const abortResearch = useCallback(() => {
+    abortRef.current?.abort();
+    setIsGenerating(false);
+  }, []);
+
+  return { isGenerating, streamedContent, phases, orchestratorMeta, generateResearch, abortResearch };
 }

@@ -137,20 +137,14 @@ export default function CompanyAssumptions() {
   const { user } = useAuth();
   const isAdmin = user ? isAdminRole(user.role) : false;
 
-  const { isGenerating, streamedContent, generateResearch } = useCompanyResearchStream();
+  const { isGenerating, streamedContent, generateResearch, abortResearch } = useCompanyResearchStream();
 
   const { isFirstVisit, isAnalystStale: _isAnalystStale, recordSave: _recordPageSave, recordAnalystRun: _recordAnalystRun } = usePageVisit("company:assumptions");
-  const [intelligenceClicked, setIntelligenceClicked] = useState(false);
 
-  useEffect(() => {
-    if (isFirstVisit && !isGenerating && !intelligenceClicked && global && !isLoading) {
-      const timer = setTimeout(() => {
-        setIntelligenceClicked(true);
-        generateResearch();
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isFirstVisit, isGenerating, intelligenceClicked, global, isLoading, generateResearch]);
+  // The Analyst is an explicit, user-initiated action — never auto-fire on
+  // mount. The page shows a "first visit" banner nudging the user toward the
+  // header "Ask the Analyst" button; the Auto-refresh switch additionally
+  // gates scheduled refreshes on sufficient company context below.
 
   const [formData, setFormData] = useState<Partial<GlobalResponse>>({});
   const [isDirty, setIsDirty] = useState(false);
@@ -172,9 +166,18 @@ export default function CompanyAssumptions() {
     refetchOnWindowFocus: false,
   });
 
+  // The Analyst needs a minimum amount of company context before it can
+  // produce useful research. Without at least a name and a country we block
+  // auto-refresh so it doesn't burn an LLM call on an empty / seeded profile.
+  const companyContextReady = !!(
+    global &&
+    (global.companyName ?? "").trim().length > 0 &&
+    (global.companyCountry ?? "").trim().length > 0
+  );
+
   const { autoRefresh, setAutoRefresh } = useAutoRefreshIntelligence({
     entityKey: "company",
-    entityReady: !!global && !isLoading,
+    entityReady: !!global && !isLoading && companyContextReady,
     isGenerating,
     isDirty,
     researchUpdatedAt: companyResearchUpdatedAt,
@@ -403,6 +406,7 @@ export default function CompanyAssumptions() {
         jobs={researchJobs}
         streamingText={streamedContent}
         isVisible={isGenerating}
+        onCancel={abortResearch}
       />
       <AnimatedPage>
       <div className="space-y-6">
