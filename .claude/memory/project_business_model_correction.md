@@ -1,10 +1,16 @@
-# CRITICAL: HBG Business Model — Corrected Understanding
+# CRITICAL: Business Model — Corrected Understanding
 
 > THIS OVERRIDES ALL PREVIOUS ASSUMPTIONS. Read this before any work on properties, ICP, funding, or management company features.
 
-## What HBG IS
+## Three Distinct Entities
 
-HBG (the Norfolk AI Group's hospitality brand) is a **management company and brand**. It provides:
+1. **Norfolk AI** = the app developer. Builds H+ Analytics. NOT modeled in the app.
+2. **The Hospitality Management Company (HMC)** = the company being modeled. Name is admin-configured and seeded (currently "L+B Hospitality Co"). In code, refer to it as "the management company" or "HMC."
+3. **Property SPVs** = each property is an independent entity owned by its own investors.
+
+## What the HMC IS
+
+A **management company and brand** that property owners hire. It provides:
 - Brand identity and positioning
 - Hotel operations management
 - Marketing, reservations, and revenue management
@@ -14,54 +20,75 @@ HBG (the Norfolk AI Group's hospitality brand) is a **management company and bra
 - F&B program design and management
 - Event programming
 
-## What HBG is NOT
+## What the HMC is NOT
 
-- HBG does **NOT buy properties**
-- HBG does **NOT own real estate**
-- HBG does **NOT raise capital to acquire properties**
-- HBG is **NOT a REIT, fund, or investment vehicle for property acquisition**
+- Does **NOT buy properties**
+- Does **NOT own real estate**
+- Does **NOT raise capital to acquire properties**
+- Is **NOT a REIT, fund, or investment vehicle**
 
 ## Who owns the properties?
 
 **Property owners** — independent investors, families, or SPVs — own the real estate. They:
 1. Already own (or independently acquire) a large estate
 2. Decide to convert it into a boutique hospitality property
-3. **Hire HBG** to manage and brand the property
-4. Pay HBG management fees from property revenue
+3. **Hire the HMC** to manage and brand the property
+4. Pay management fees from property revenue
 5. Keep the property economics (NOI, appreciation, exit proceeds)
 
-## The ICP (Ideal Customer Profile)
+## What the HMC raises money for
 
-The ICP defines what **property owners and properties** HBG wants as clients. NOT what HBG wants to buy. It's a prospecting tool:
-- What kind of property converts well into the HBG brand?
-- What geographic markets does HBG want to operate in?
-- What size, quality, and character of estate fits the brand?
-- What kind of owner is a good management client?
-
-## What HBG raises money for
-
-HBG raises capital (via SAFE notes or similar) to fund **management company operations**:
+Capital (via SAFE notes or similar) funds **management company operations**:
 - Hiring the executive team
-- Building the technology platform (H+ Analytics)
+- Building the technology platform
 - Marketing the brand to attract property owners
 - Pre-opening support for new properties joining the brand
 - Working capital until fee revenue covers costs
 
-## The financial model in H+ Analytics
+## The ICP — Management Company Level
 
-The app models TWO entities:
-1. **Management Company** — HBG's P&L from management fees, minus its operating costs
-2. **Property SPVs** — each property's standalone financials (revenue, costs, NOI, returns)
+The ICP defines the types of properties the HMC works with — plus or minus, not too restrictive. It serves to:
+- **Size the management company** — how many properties, what scale of operations
+- **Define internal and external services** — what the HMC needs to deliver
+- **Shape revenue and expense models** — fee structure, staffing, overhead
 
-The Management Company's revenue = sum of fees charged to all properties.
-The Property's expense includes those same fees as a cost line.
-This is the **intercompany linkage**.
+The ICP is derived from the current portfolio (properties with switch ON). The Analyst should:
+1. Build the ICP from the existing property mix
+2. Allow the user to view the ICP used
+3. Allow the user to regenerate the ICP (= ask The Analyst to redo the analysis)
+4. A dedicated research engine for this task (only one HMC, run it well)
 
-## Language rules
+**CRITICAL RULE:** Basic HMC information (location, name, country) must be endorsed or edited by the user BEFORE any research engine runs. Running research with wrong base data (e.g., company HQ in Utah when it's actually in Colombia) produces garbage intelligence.
 
-- NEVER say "HBG acquires properties" or "acquisition pipeline"
+## Property Switches
+
+Properties with switch ON = in agreement to use the HMC for branding and services. Part of the current scenario, visible to the assigned user, included in all financial calculations.
+
+Switch OFF = not currently under management contract, hidden from calculations but NOT deleted.
+
+## People Cross Entities
+
+A single person can simultaneously be:
+- Principal/executive in the management company (earns salary)
+- Investor in one or more property SPVs (receives distributions)
+- Both at the same time — different hats, different financial flows
+
+The user system gives people access to both ManCo and property views based on role and assignments.
+
+## The Financial Model
+
+Two entities modeled:
+1. **Management Company** — P&L from management fees minus operating costs
+2. **Property SPVs** — each property's standalone financials
+
+Intercompany linkage: ManCo revenue from fees = Property expense for those same fees.
+
+## Language Rules
+
+- NEVER say "HMC acquires properties" or "acquisition pipeline"
 - SAY "properties that join the brand" or "new management contracts"
 - NEVER say "investment thesis for buying properties"
 - SAY "brand fit criteria" or "management client profile"
-- The ICP is about PROSPECTING for clients, not ACQUIRING assets
-- Property owners are HBG's CLIENTS, not HBG's investments
+- NEVER call Norfolk AI the management company — Norfolk AI builds the app
+- NEVER hardcode company names — always use the admin-configured name
+- The ICP is about PROSPECTING for management clients, not ACQUIRING assets
