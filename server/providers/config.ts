@@ -19,12 +19,16 @@ export function getAppUrl(): string {
 
 /** Get the storage provider name */
 export function getStorageProviderName(): 'replit' | 's3' | 'local' {
-  return (process.env.STORAGE_PROVIDER as any) || 'replit';
+  const val = process.env.STORAGE_PROVIDER;
+  if (val === 's3' || val === 'local') return val;
+  return 'replit';
 }
 
 /** Get the auth provider name */
 export function getAuthProviderName(): 'replit' | 'local' {
-  return (process.env.AUTH_PROVIDER as any) || 'replit';
+  const val = process.env.AUTH_PROVIDER;
+  if (val === 'local') return val;
+  return 'replit';
 }
 
 /** Check if running on Replit */
