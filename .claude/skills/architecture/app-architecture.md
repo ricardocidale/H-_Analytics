@@ -395,15 +395,11 @@ These are **Priority 0** in the Smart Data Router — checked before any externa
 - 40% justified (graceful fallback), 35% swallowed (bugs hiding), 25% fire-and-forget
 - **Fix**: Enforce `logAndSendError()` or `logger.warn()` in all server catches
 
-### Pattern: Storage Layer Bypass
-- **9 direct `db.` calls** outside storage abstraction
-- 7 in `benchmark-lookups.ts`, 2 in `source-health-checker.ts`
-- **Fix**: Move to storage layer with proper audit trail
+### Pattern: Storage Layer Bypass — FIXED
+- Was: 9 direct `db.` calls outside storage. Now: **0** (moved to storage layer April 15)
 
-### Pattern: Input Validation Gaps
-- **14 raw `parseInt(req.params)`** — 9 in `rebecca.ts`, rest scattered
-- **7 `req.body` without Zod** — page-visits, properties, research routes
-- **Fix**: Extend `parseRouteId()` and Zod middleware coverage
+### Pattern: Input Validation Gaps — FIXED
+- Was: 36 raw `parseInt(req.params)`, 7 `req.body` without Zod. Now: **0** (all use parseRouteId + Zod)
 
 ### Pattern: Frontend Debt
 - **119 `useEffect([], [])`** — potential stale closure risks in 72 files
@@ -413,7 +409,7 @@ These are **Priority 0** in the Smart Data Router — checked before any externa
 ### Root Cause
 "Local fixes without structural constraints." Developers add routes, reach for `as any`, skip Zod, and no automated gate catches it. The audit test infrastructure works — it needs broader coverage.
 
-### Automated Guards (10 test files, 209 tests)
+### Automated Guards (11 test files, 426 tests)
 | Test File | Checks |
 |-----------|--------|
 | `endpoint-security.test.ts` | All routes have auth middleware |
@@ -423,6 +419,7 @@ These are **Priority 0** in the Smart Data Router — checked before any externa
 | `typescript-safety.test.ts` | No `as any` in critical paths |
 | `vocabulary-compliance.test.ts` | No forbidden terms in UI |
 | `error-handling-audit.test.ts` | Server catches have logging |
+| `storage-boundary.test.ts` | No direct db imports outside storage layer + no parseInt in routes |
 | Plus 3 more | Various structural checks |
 
 ---
@@ -462,6 +459,10 @@ These are **Priority 0** in the Smart Data Router — checked before any externa
 5. **All models need F&B revenue** — Business rule, never optional
 6. **All properties need franchise fees** — Operating under the brand
 7. **Country-configurable everything** — Tax, depreciation, inflation, CRP per country
+8. **The Analyst validates everything** — No assumption reaches financials without validation (ADR-002)
+9. **Conviction floor** — The Analyst refuses to advise when data quality < 40 or no verified sources
+10. **Every change is logged** — `assumption_change_log` tracks who, what, old value, new value, source
+11. **LLM engine self-manages** — Auto-probes vendors, recommends models, alerts admin on issues (ADR-001)
 8. **Research = ranges, not answers** — The Analyst suggests ranges; user decides
 9. **Storage abstraction** — All DB access through `server/storage/` layer
 10. **Timeout everything** — All external calls use `fetchWithTimeout`
