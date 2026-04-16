@@ -1,9 +1,9 @@
 /**
- * PartnerCompSection.tsx — Partner / founder compensation schedule.
+ * PartnerCompSection.tsx — Management compensation schedule.
  *
- * Configures the annual compensation for founding partners of the management
- * company. Partner comp is a significant expense line, especially in early
- * years when fee revenue is low.
+ * Configures the annual compensation for the management team (founding
+ * partners, leadership). This is a significant expense line, especially
+ * in early years when fee revenue is low.
  *
  * Inputs:
  *   • Number of partners
@@ -32,26 +32,26 @@ export default function PartnerCompSection({ formData, onChange, global, modelSt
       <div className="space-y-4">
         <div>
           <ResearchContextFieldLabel
-            label={<>Partner Compensation Schedule <InfoTooltip text="Annual total partner compensation and partner count for each year. Individual partner compensation = Total ÷ Partner Count." manualSection="company-formulas" /></>}
-            badgeProps={{ value: researchValues.partnerComp?.display, sourceType: "industry", sourceName: "Hospitality comp benchmarks", "data-testid": "badge-partner-comp" }}
+            label={<>Management Compensation Schedule <InfoTooltip text="Annual total management compensation and headcount for each year. Individual compensation = Total ÷ Headcount." manualSection="company-formulas" /></>}
+            badgeProps={{ value: researchValues.partnerComp?.display, sourceType: "industry", sourceName: "Hospitality comp benchmarks", "data-testid": "badge-management-comp" }}
             onApplyValue={() => {
               if (researchValues.partnerComp) {
                 onChange("partnerCompYear1", researchValues.partnerComp.mid);
               }
             }}
-            guidanceContext={gc("partnerComp", "Partner Compensation")}
+            guidanceContext={gc("partnerComp", "Management Compensation")}
             className="text-lg font-display text-foreground"
           />
-          <p className="text-muted-foreground text-sm label-text">Configure total partner compensation and headcount by year</p>
+          <p className="text-muted-foreground text-sm label-text">Configure total management compensation and headcount by year</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-2 px-2 font-display text-foreground">Year</th>
-                <th className="text-right py-2 px-2 font-display text-foreground">Total Partner Comp</th>
-                <th className="text-center py-2 px-2 font-display text-foreground">Partner Count</th>
-                <th className="text-right py-2 px-2 font-display text-muted-foreground">Per Partner</th>
+                <th className="text-right py-2 px-2 font-display text-foreground">Total Mgmt Comp</th>
+                <th className="text-center py-2 px-2 font-display text-foreground">Headcount</th>
+                <th className="text-right py-2 px-2 font-display text-muted-foreground">Per Person</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +102,7 @@ export default function PartnerCompSection({ formData, onChange, global, modelSt
           </table>
         </div>
         <p className="text-xs text-muted-foreground mt-4">
-          Total Partner Comp is the annual budget (12 months). Actual spending is automatically prorated for years with fewer operating months (e.g., if operations start mid-year). Per Partner = Total ÷ Count.
+          Total Management Comp is the annual budget (12 months). Actual spending is automatically prorated for years with fewer operating months (e.g., if operations start mid-year). Per Person = Total ÷ Headcount.
         </p>
       </div>
     </div></div>

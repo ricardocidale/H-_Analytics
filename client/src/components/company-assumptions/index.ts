@@ -39,5 +39,7 @@ export { default as TaxSection } from "./TaxSection";
 export { default as ExitAssumptionsSection } from "./ExitAssumptionsSection";
 export { default as PropertyExpenseRatesSection } from "./PropertyExpenseRatesSection";
 export { default as PartnerCompSection } from "./PartnerCompSection";
+export { TabActions } from "./TabActions";
+export type { TabValidationWarning } from "./TabActions";
 export { default as SummaryFooter } from "./SummaryFooter";
 export type * from "./types";

@@ -11,7 +11,13 @@ import { fireResearchConfetti } from "@/lib/confetti";
 import { useResearchQueue, getBackoffDelay } from "@/lib/research-queue";
 import type { OrchestratorMeta } from "../property-research/useResearchStream";
 
-export function useCompanyResearchStream() {
+export interface ResearchStreamError {
+  message: string;
+  code?: string;
+  status?: number;
+}
+
+export function useCompanyResearchStream(onError?: (err: ResearchStreamError) => void) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
   const [phases, setPhases] = useState<string[]>([]);
@@ -45,7 +51,20 @@ export function useCompanyResearchStream() {
     }
 
     if (!response.ok) {
-      throw new Error(`Research request failed: ${response.status}`);
+      // Try to parse a structured error body so callers can branch on `code`
+      let errorCode: string | undefined;
+      let errorMessage = `Research request failed: ${response.status}`;
+      try {
+        const body = await response.clone().json();
+        if (body && typeof body === "object") {
+          if (typeof body.code === "string") errorCode = body.code;
+          if (typeof body.error === "string") errorMessage = body.error;
+        }
+      } catch { /* non-JSON body */ }
+      const err = new Error(errorMessage) as Error & { code?: string; status?: number };
+      if (errorCode) err.code = errorCode;
+      err.status = response.status;
+      throw err;
     }
 
     const reader = response.body?.getReader();
@@ -126,13 +145,18 @@ export function useCompanyResearchStream() {
       getQueue().markComplete(queueId);
     } catch (error: unknown) {
       if (!(error instanceof DOMException && error.name === "AbortError")) {
-        getQueue().markError(queueId, error instanceof Error ? error.message : "Research failed");
+        const msg = error instanceof Error ? error.message : "Research failed";
+        getQueue().markError(queueId, msg);
+        if (onError && error instanceof Error) {
+          const e = error as Error & { code?: string; status?: number };
+          onError({ message: e.message, code: e.code, status: e.status });
+        }
       }
     } finally {
       setIsGenerating(false);
       setTimeout(() => getQueue().clearCompleted(), 15000);
     }
-  }, [queryClient, executeStream]);
+  }, [queryClient, executeStream, onError]);
 
   const abortResearch = useCallback(() => {
     abortRef.current?.abort();

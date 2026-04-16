@@ -66,6 +66,8 @@ import {
   PropertyExpenseRatesSection,
   PartnerCompSection,
   SummaryFooter,
+  TabActions,
+  type TabValidationWarning,
 } from "@/components/company-assumptions";
 import { isAdminRole } from "@shared/constants";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
@@ -137,7 +139,42 @@ export default function CompanyAssumptions() {
   const { user } = useAuth();
   const isAdmin = user ? isAdminRole(user.role) : false;
 
-  const { isGenerating, streamedContent, generateResearch, abortResearch } = useCompanyResearchStream();
+  // Map server-returned error codes to actionable user-facing toasts.
+  const handleResearchError = (err: { message: string; code?: string; status?: number }) => {
+    if (err.code === "COMPANY_SETUP_INCOMPLETE") {
+      toast({
+        title: "Company setup incomplete",
+        description: "Company name and start date are required before The Analyst can work.",
+        variant: "destructive",
+        action: (
+          <button
+            onClick={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.set("tab", "setup");
+              window.history.replaceState({}, "", url.toString());
+              window.dispatchEvent(new Event("popstate"));
+            }}
+            className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
+            data-testid="toast-action-goto-setup"
+          >
+            Go to Setup
+          </button>
+        ) as never,
+      });
+      return;
+    }
+    if (err.code === "PROPERTIES_EXCLUDED") {
+      toast({
+        title: "Properties excluded by The Analyst",
+        description: err.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: "The Analyst couldn't run", description: err.message, variant: "destructive" });
+  };
+
+  const { isGenerating, streamedContent, generateResearch, abortResearch } = useCompanyResearchStream(handleResearchError);
 
   const { isFirstVisit, isAnalystStale: _isAnalystStale, recordSave: _recordPageSave, recordAnalystRun: _recordAnalystRun } = usePageVisit("company:assumptions");
 
@@ -309,6 +346,68 @@ export default function CompanyAssumptions() {
 
   const TAB_KEYS = ["setup", "funding", "revenue", "compensation", "overhead", "tax-exit", "property-defaults"] as const;
   type TabKey = typeof TAB_KEYS[number];
+
+  // Which form fields belong to which tab. Drives per-tab save + per-tab
+  // validation. Fields not listed in any tab are saved via the global header
+  // Save button (which sends the full dirty set).
+  const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
+    setup: [
+      "companyName", "companyCountry", "companyCity", "companyAddress",
+      "companyOpsStartDate", "modelStartDate", "projectionYears",
+      "companyInflationRate", "inflationRate", "depreciationYears",
+      "companyLogoId", "companyPhone", "companyEmail", "companyWebsite",
+      "companyRegistrationNumber", "companyTaxId",
+      "companyContactName", "companyContactTitle", "companyContactEmail", "companyContactPhone",
+    ] as unknown as Array<keyof GlobalResponse>,
+    funding: [
+      "safeNoteTranches", "safeNoteCapAmount", "safeNoteDiscount",
+    ] as unknown as Array<keyof GlobalResponse>,
+    revenue: [
+      "baseManagementFee", "incentiveManagementFee",
+      "svcFeeMarketing", "svcFeeTechRes", "svcFeeAccounting",
+      "svcFeeRevMgmt", "svcFeeGeneralMgmt", "svcFeeProcurement",
+    ] as unknown as Array<keyof GlobalResponse>,
+    compensation: [
+      "staffSalary",
+      "staffTier1MaxProperties", "staffTier1Fte",
+      "staffTier2MaxProperties", "staffTier2Fte", "staffTier3Fte",
+      "partnerCompYear1", "partnerCompYear2", "partnerCompYear3",
+      "partnerCompYear4", "partnerCompYear5", "partnerCompYear6",
+      "partnerCompYear7", "partnerCompYear8", "partnerCompYear9", "partnerCompYear10",
+      "partnerCountYear1", "partnerCountYear2", "partnerCountYear3",
+      "partnerCountYear4", "partnerCountYear5", "partnerCountYear6",
+      "partnerCountYear7", "partnerCountYear8", "partnerCountYear9", "partnerCountYear10",
+    ] as unknown as Array<keyof GlobalResponse>,
+    overhead: [
+      "officeLease", "professionalServices", "techInfra",
+      "businessInsurance", "travelCost", "itLicense",
+      "eventExpense", "marketingRate", "miscOps",
+    ] as unknown as Array<keyof GlobalResponse>,
+    "tax-exit": [
+      "companyTaxRate", "costOfEquity", "exitCapRate", "dispositionCommission",
+    ] as unknown as Array<keyof GlobalResponse>,
+    "property-defaults": [
+      "eventExpenseRate", "otherExpenseRate", "utilitiesVariableSplit",
+    ] as unknown as Array<keyof GlobalResponse>,
+  };
+
+  // Post-save validation warnings, keyed by tab. Populated after a tab save
+  // when saved values fall outside The Analyst's recommended range.
+  const [tabWarnings, setTabWarnings] = useState<Record<TabKey, TabValidationWarning[]>>({
+    setup: [], funding: [], revenue: [], compensation: [],
+    overhead: [], "tax-exit": [], "property-defaults": [],
+  });
+  const [savingTab, setSavingTab] = useState<TabKey | null>(null);
+
+  const TAB_LABELS: Record<TabKey, string> = {
+    setup: "Setup",
+    funding: "Funding",
+    revenue: "Revenue Model",
+    compensation: "Compensation",
+    overhead: "Overhead",
+    "tax-exit": "Tax & Exit",
+    "property-defaults": "Property Defaults",
+  };
   const getInitialTab = (): TabKey => {
     if (typeof window === "undefined") return "setup";
     const t = new URLSearchParams(window.location.search).get("tab");
@@ -352,6 +451,119 @@ export default function CompanyAssumptions() {
     markGlobalDirty();
   };
 
+
+  // Parse a "low–high" or "$X–$Y" display string into numeric bounds.
+  const parseRange = (display: string): { low: number; high: number } | null => {
+    if (!display) return null;
+    const nums = display
+      .replace(/[kK]/g, "000")
+      .replace(/[^0-9.,\-–]/g, " ")
+      .split(/[\s–\-]+/)
+      .map((s) => parseFloat(s.replace(/,/g, "")))
+      .filter((n) => !Number.isNaN(n));
+    if (nums.length >= 2) return { low: Math.min(nums[0], nums[1]), high: Math.max(nums[0], nums[1]) };
+    return null;
+  };
+
+  // Map a formData field key to the researchValues key (most are identical;
+  // partnerComp{Year,Count}* collapse to the single "partnerComp" entry).
+  const researchKeyFor = (field: keyof GlobalResponse): string | null => {
+    const f = String(field);
+    if (f.startsWith("partnerComp")) return "partnerComp";
+    return f in researchValues ? f : null;
+  };
+
+  const computeTabWarnings = (
+    keys: readonly (keyof GlobalResponse)[],
+    data: Partial<GlobalResponse>,
+  ): TabValidationWarning[] => {
+    const out: TabValidationWarning[] = [];
+    // De-duplicate multi-year fields (e.g., partnerCompYear1..10) that map to a
+    // single research key — one warning per research key, not per field.
+    const seenByResearchKey = new Set<string>();
+    for (const k of keys) {
+      const rk = researchKeyFor(k);
+      if (!rk) continue;
+      const rv = researchValues[rk];
+      if (!rv) continue;
+      const range = parseRange(rv.display);
+      if (!range) continue;
+      const raw = data[k];
+      const num = typeof raw === "number" ? raw : typeof raw === "string" ? parseFloat(raw) : NaN;
+      if (!Number.isFinite(num)) continue;
+      if (num < range.low || num > range.high) {
+        if (seenByResearchKey.has(rk)) continue;
+        seenByResearchKey.add(rk);
+        out.push({
+          fieldName: String(k),
+          fieldLabel: String(k),
+          currentValue: num,
+          rangeLow: range.low,
+          rangeHigh: range.high,
+          display: rv.display,
+        });
+      }
+    }
+    return out;
+  };
+
+  const handleSaveTab = async (tab: TabKey) => {
+    const keys = TAB_FIELDS[tab];
+    const touched = keys.filter((k) => dirtyFields.has(k));
+    if (touched.length === 0) {
+      toast({ title: "No changes in this tab", description: "Nothing to save." });
+      return;
+    }
+    const payload: Partial<GlobalResponse> = {};
+    for (const k of touched) (payload as Record<string, unknown>)[k as string] = formData[k];
+
+    setSavingTab(tab);
+    try {
+      await updateMutation.mutateAsync(payload);
+      // Remove saved keys from dirty set; update isDirty accordingly.
+      setDirtyFields((prev) => {
+        const next = new Set(prev);
+        for (const k of touched) next.delete(k);
+        if (next.size === 0) {
+          setIsDirty(false);
+          clearGlobalDirty();
+        }
+        return next;
+      });
+
+      // Post-save validation — flag fields outside The Analyst's range.
+      const warnings = computeTabWarnings(touched, formData);
+      setTabWarnings((prev) => ({ ...prev, [tab]: warnings }));
+
+      toast({
+        title: `${tab === "tax-exit" ? "Tax & Exit" : tab.replace(/-/g, " ")} saved`,
+        description: warnings.length > 0
+          ? `${warnings.length} value${warnings.length === 1 ? "" : "s"} outside The Analyst's range — review below.`
+          : "Changes take effect immediately.",
+      });
+    } catch (error: unknown) {
+      console.error(`Failed to save ${tab} tab:`, error);
+      toast({
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Failed to save changes.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingTab(null);
+    }
+  };
+
+  // Clear a tab's warnings when the user starts editing fields in that tab again.
+  useEffect(() => {
+    (Object.keys(TAB_FIELDS) as TabKey[]).forEach((tab) => {
+      if (tabWarnings[tab].length === 0) return;
+      const stillDirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
+      if (stillDirty) {
+        setTabWarnings((prev) => ({ ...prev, [tab]: [] }));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirtyFields]);
 
   const handleSave = async () => {
     try {
@@ -513,51 +725,78 @@ export default function CompanyAssumptions() {
             </TabsList>
           </div>
 
-          <TabsContent value="setup" className="mt-0 space-y-6" data-testid="tab-content-setup">
-            <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />
-          </TabsContent>
-
-          <TabsContent value="funding" className="mt-0 space-y-6" data-testid="tab-content-funding">
-            <FundingSection formData={formData} onChange={handleUpdate} global={global} />
-          </TabsContent>
-
-          <TabsContent value="revenue" className="mt-0 space-y-6" data-testid="tab-content-revenue">
-            <ManagementFeesSection formData={formData} onChange={handleUpdate} global={global} properties={properties} allFeeCategories={allFeeCategories} researchValues={researchValues} />
-          </TabsContent>
-
-          <TabsContent value="compensation" className="mt-0 space-y-6" data-testid="tab-content-compensation">
-            <CompensationSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-            <PartnerCompSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
-          </TabsContent>
-
-          <TabsContent value="overhead" className="mt-0 space-y-6" data-testid="tab-content-overhead">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <FixedOverheadSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
-              <VariableCostsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="tax-exit" className="mt-0 space-y-6" data-testid="tab-content-tax-exit">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <TaxSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-              <ExitAssumptionsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="property-defaults" className="mt-0 space-y-6" data-testid="tab-content-property-defaults">
-            <PropertyExpenseRatesSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-          </TabsContent>
+          {(TAB_KEYS).map((tab) => {
+            const renderBody = () => {
+              switch (tab) {
+                case "setup":
+                  return <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />;
+                case "funding":
+                  return <FundingSection formData={formData} onChange={handleUpdate} global={global} />;
+                case "revenue":
+                  return <ManagementFeesSection formData={formData} onChange={handleUpdate} global={global} properties={properties} allFeeCategories={allFeeCategories} researchValues={researchValues} />;
+                case "compensation":
+                  return (
+                    <>
+                      <CompensationSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+                      <PartnerCompSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
+                    </>
+                  );
+                case "overhead":
+                  return (
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <FixedOverheadSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
+                      <VariableCostsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+                    </div>
+                  );
+                case "tax-exit":
+                  return (
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <TaxSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+                      <ExitAssumptionsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+                    </div>
+                  );
+                case "property-defaults":
+                  return <PropertyExpenseRatesSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />;
+              }
+            };
+            const tabDirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
+            return (
+              <TabsContent
+                key={tab}
+                value={tab}
+                className="mt-0 space-y-6"
+                data-testid={`tab-content-${tab}`}
+              >
+                <TabActions
+                  tabLabel={TAB_LABELS[tab]}
+                  onAskAnalyst={generateResearch}
+                  isAnalystRunning={isGenerating}
+                  askAnalystDisabled={!formData.companyName || properties.length === 0}
+                  askAnalystDisabledReason={
+                    !formData.companyName
+                      ? "Set a company name before generating intelligence."
+                      : properties.length === 0
+                        ? "Add at least one property to your portfolio first."
+                        : undefined
+                  }
+                  onSave={() => handleSaveTab(tab)}
+                  isSaving={savingTab === tab && updateMutation.isPending}
+                  hasChanges={tabDirty}
+                  warnings={tabWarnings[tab]}
+                  onDismissWarning={(fieldName) =>
+                    setTabWarnings((prev) => ({
+                      ...prev,
+                      [tab]: prev[tab].filter((w) => w.fieldName !== fieldName),
+                    }))
+                  }
+                />
+                {renderBody()}
+              </TabsContent>
+            );
+          })}
         </Tabs>
 
         <SummaryFooter formData={formData} onChange={handleUpdate} global={global} />
-
-        <div className="flex justify-end pb-8">
-          <SaveButton 
-            onClick={handleSave} 
-            isPending={updateMutation.isPending}
-            hasChanges={isDirty}
-          />
-        </div>
       </div>
 
       </AnimatedPage>

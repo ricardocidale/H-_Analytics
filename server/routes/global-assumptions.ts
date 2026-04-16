@@ -127,6 +127,40 @@ export function register(app: Express) {
     }
   });
 
+  // ────────────────────────────────────────────────────────────
+  // ASSUMPTION CHANGE LOG
+  // POST used when a user keeps a value that's outside The Analyst's
+  // recommended range (change_source = "user_override"), so we have an
+  // audit trail of informed divergences from guidance.
+  // ────────────────────────────────────────────────────────────
+  const assumptionChangeLogSchema = z.object({
+    entityType: z.enum(["company", "property", "scenario"]),
+    entityId: z.number().int(),
+    fieldName: z.string().min(1),
+    previousValue: z.union([z.string(), z.number()]).optional(),
+    newValue: z.union([z.string(), z.number()]).optional(),
+    changeSource: z.enum(["user_override", "user_accepted_range", "manual_edit"]),
+    reason: z.string().optional(),
+  });
+  app.post("/api/assumption-change-log", requireManagementAccess, async (req, res) => {
+    try {
+      const parsed = assumptionChangeLogSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const { previousValue, newValue, ...rest } = parsed.data;
+      await storage.logAssumptionChange({
+        ...rest,
+        previousValue: previousValue != null ? String(previousValue) : undefined,
+        newValue: newValue != null ? String(newValue) : undefined,
+        userId: getAuthUser(req).id,
+      });
+      res.json({ ok: true });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to log assumption change", error);
+    }
+  });
+
   app.get("/api/appearance-defaults", requireAuth, async (req, res) => {
     try {
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
