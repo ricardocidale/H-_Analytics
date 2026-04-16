@@ -1,20 +1,28 @@
 /**
  * CompanyAssumptions.tsx — Editor for management-company-level financial assumptions.
  *
- * This page lets management-level users configure the inputs that drive the
- * company pro-forma (as opposed to individual property pro-formas). Sections:
- *   • Company Setup — name, model start date, projection years, inflation
- *   • Funding — SAFE note tranches (amount, date, valuation cap, discount rate)
- *   • Management Fees — base and incentive fee structures applied to properties
- *   • Compensation — partner comp schedule (by year) and staff salary assumptions
- *   • Fixed Overhead — office lease, professional services, tech start dates
- *   • Variable Costs — travel per client, IT licensing, marketing %, misc ops %
- *   • Tax — company income tax rate
- *   • Exit & Sale — exit cap rate, sales commission rate
- *   • Property Expense Rates — default cost-rate overrides for new properties
- *   • Catering — catering revenue boost percentage
- *   • Partner Comp — year-by-year partner count and compensation table
- *   • Summary Footer — visual summary of total expenses and breakeven point
+ * Layout: 7 horizontal tabs sit beneath a sticky header. A single shared
+ * `formData` + `handleSave` powers every tab — tabs are pure visual organization
+ * over the same form state. The active tab is mirrored to the URL via the
+ * `?tab=` query param so deep links and refreshes preserve location.
+ *
+ * Tabs:
+ *   1. Setup            — identity, contact, HQ, financial/regulatory,
+ *                          inflation rate, depreciation years (model constant)
+ *   2. Funding          — SAFE note tranches (amount, date, cap, discount, interest)
+ *   3. Revenue Model    — service categories + incentive fee + per-property summary
+ *   4. Compensation     — staff salary, staffing tiers, partner comp schedule
+ *   5. Overhead         — fixed overhead + variable costs (side-by-side)
+ *   6. Tax & Exit       — company income tax + exit/sale/valuation (side-by-side)
+ *   7. Property Defaults — cascading defaults for new properties
+ *
+ * Pinned outside tabs: PageHeader, IntelligenceStatusBar, FirstVisitBanner,
+ * ResearchTheater overlay, SummaryFooter (always visible totals), and the
+ * bottom Save Changes button.
+ *
+ * Days Per Month is intentionally NOT here — it lives in
+ * Admin → App Defaults → Market & Macro as the single source of truth for
+ * that app-wide constant.
  *
  * AI research integration:
  *   The page loads company-level market research and extracts recommended values
@@ -26,7 +34,8 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import Layout from "@/components/Layout";
-import { AnimatedPage, ScrollReveal } from "@/components/graphics";
+import { AnimatedPage } from "@/components/graphics";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -58,10 +67,7 @@ import {
   PartnerCompSection,
   SummaryFooter,
 } from "@/components/company-assumptions";
-import { GovernedFieldWrapper } from "@/components/ui/governed-field";
-import { isAdminRole, GOVERNED_FIELDS, DEPRECIATION_YEARS, DAYS_PER_MONTH } from "@shared/constants";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { isAdminRole } from "@shared/constants";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
@@ -298,6 +304,23 @@ export default function CompanyAssumptions() {
     ? new Date(global.modelStartDate).getFullYear() 
     : new Date(DEFAULT_MODEL_START_DATE).getFullYear();
 
+  const TAB_KEYS = ["setup", "funding", "revenue", "compensation", "overhead", "tax-exit", "property-defaults"] as const;
+  type TabKey = typeof TAB_KEYS[number];
+  const getInitialTab = (): TabKey => {
+    if (typeof window === "undefined") return "setup";
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "setup";
+  };
+  const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab);
+  const handleTabChange = (val: string) => {
+    setActiveTab(val as TabKey);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", val);
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
+
   if (isError) {
     return (
       <Layout>
@@ -474,102 +497,56 @@ export default function CompanyAssumptions() {
           />
         )}
 
-        <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />
-
-        <FundingSection formData={formData} onChange={handleUpdate} global={global} />
-
-        <ManagementFeesSection formData={formData} onChange={handleUpdate} global={global} properties={properties} allFeeCategories={allFeeCategories} researchValues={researchValues} />
-
-        <CompensationSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-
-        <ScrollReveal>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <FixedOverheadSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
-          <VariableCostsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-        </div>
-        </ScrollReveal>
-
-        <ScrollReveal>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <TaxSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-          <ExitAssumptionsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-        </div>
-        </ScrollReveal>
-
-        <ScrollReveal>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <PropertyExpenseRatesSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-        </div>
-        </ScrollReveal>
-
-        <ScrollReveal>
-        <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
-          <div className="relative">
-            <div className="space-y-4">
-              <h3 className="text-lg font-display text-foreground flex items-center gap-2">
-                Model Constants
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                These values are governed by external authorities and apply uniformly across all properties. Change with caution.
-              </p>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <GovernedFieldWrapper
-                  authority={GOVERNED_FIELDS.depreciationYears.authority}
-                  label={GOVERNED_FIELDS.depreciationYears.fieldName}
-                  helperText={GOVERNED_FIELDS.depreciationYears.helperText}
-                  referenceUrl={GOVERNED_FIELDS.depreciationYears.referenceUrl}
-                  data-testid="governed-field-depreciationYears"
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="depreciationYears" className="text-xs text-accent-pop dark:text-accent-pop">Years</Label>
-                    <Input
-                      id="depreciationYears"
-                      type="number"
-                      step="0.5"
-                      min="1"
-                      max="50"
-                      value={formData.depreciationYears ?? DEPRECIATION_YEARS}
-                      onChange={(e) => handleUpdate("depreciationYears", parseFloat(e.target.value) || DEPRECIATION_YEARS)}
-                      className="h-8 text-sm bg-white dark:bg-background border-accent-pop/30 dark:border-accent-pop/30"
-                      data-testid="input-depreciationYears"
-                    />
-                  </div>
-                </GovernedFieldWrapper>
-                <GovernedFieldWrapper
-                  authority={GOVERNED_FIELDS.daysPerMonth.authority}
-                  label={GOVERNED_FIELDS.daysPerMonth.fieldName}
-                  helperText={GOVERNED_FIELDS.daysPerMonth.helperText}
-                  referenceUrl={GOVERNED_FIELDS.daysPerMonth.referenceUrl}
-                  data-testid="governed-field-daysPerMonth"
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="daysPerMonth" className="text-xs text-accent-pop dark:text-accent-pop">Days</Label>
-                    <Input
-                      id="daysPerMonth"
-                      type="number"
-                      step="0.5"
-                      min="28"
-                      max="31"
-                      value={formData.daysPerMonth ?? DAYS_PER_MONTH}
-                      onChange={(e) => handleUpdate("daysPerMonth", parseFloat(e.target.value) || DAYS_PER_MONTH)}
-                      className="h-8 text-sm bg-white dark:bg-background border-accent-pop/30 dark:border-accent-pop/30"
-                      data-testid="input-daysPerMonth"
-                    />
-                  </div>
-                </GovernedFieldWrapper>
-              </div>
-            </div>
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <div className="sticky top-0 z-10 -mx-2 px-2 py-2 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+            <TabsList className="w-full justify-start flex-wrap h-auto gap-1" data-testid="tabs-company-assumptions">
+              <TabsTrigger value="setup" data-testid="tab-setup">Setup</TabsTrigger>
+              <TabsTrigger value="funding" data-testid="tab-funding">Funding</TabsTrigger>
+              <TabsTrigger value="revenue" data-testid="tab-revenue">Revenue Model</TabsTrigger>
+              <TabsTrigger value="compensation" data-testid="tab-compensation">Compensation</TabsTrigger>
+              <TabsTrigger value="overhead" data-testid="tab-overhead">Overhead</TabsTrigger>
+              <TabsTrigger value="tax-exit" data-testid="tab-tax-exit">Tax &amp; Exit</TabsTrigger>
+              <TabsTrigger value="property-defaults" data-testid="tab-property-defaults">Property Defaults</TabsTrigger>
+            </TabsList>
           </div>
-        </div>
-        </ScrollReveal>
 
-        <ScrollReveal>
-          <PartnerCompSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
-        </ScrollReveal>
+          <TabsContent value="setup" className="mt-0 space-y-6" data-testid="tab-content-setup">
+            <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />
+          </TabsContent>
 
-        <ScrollReveal>
-          <SummaryFooter formData={formData} onChange={handleUpdate} global={global} />
-        </ScrollReveal>
+          <TabsContent value="funding" className="mt-0 space-y-6" data-testid="tab-content-funding">
+            <FundingSection formData={formData} onChange={handleUpdate} global={global} />
+          </TabsContent>
+
+          <TabsContent value="revenue" className="mt-0 space-y-6" data-testid="tab-content-revenue">
+            <ManagementFeesSection formData={formData} onChange={handleUpdate} global={global} properties={properties} allFeeCategories={allFeeCategories} researchValues={researchValues} />
+          </TabsContent>
+
+          <TabsContent value="compensation" className="mt-0 space-y-6" data-testid="tab-content-compensation">
+            <CompensationSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+            <PartnerCompSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
+          </TabsContent>
+
+          <TabsContent value="overhead" className="mt-0 space-y-6" data-testid="tab-content-overhead">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <FixedOverheadSection formData={formData} onChange={handleUpdate} global={global} modelStartYear={modelStartYear} researchValues={researchValues} />
+              <VariableCostsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="tax-exit" className="mt-0 space-y-6" data-testid="tab-content-tax-exit">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <TaxSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+              <ExitAssumptionsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="property-defaults" className="mt-0 space-y-6" data-testid="tab-content-property-defaults">
+            <PropertyExpenseRatesSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+          </TabsContent>
+        </Tabs>
+
+        <SummaryFooter formData={formData} onChange={handleUpdate} global={global} />
 
         <div className="flex justify-end pb-8">
           <SaveButton 

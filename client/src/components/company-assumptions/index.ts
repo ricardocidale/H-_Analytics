@@ -2,10 +2,20 @@
  * company-assumptions/index.ts
  *
  * Barrel export for the Management Company assumptions editor sections.
- * These components appear on the "Management Company Assumptions" page and let
- * the user configure every input that drives the management company's
- * financial model — from company setup and funding through compensation,
- * overhead, variable costs, taxes, and exit assumptions.
+ * These components are mounted inside horizontal tabs on the
+ * "Company Assumptions" page (see client/src/pages/CompanyAssumptions.tsx).
+ *
+ * Tab → component mapping:
+ *   1. Setup            → CompanySetupSection (identity, contact, HQ,
+ *                          inflation, depreciation years)
+ *   2. Funding          → FundingSection
+ *   3. Revenue Model    → ManagementFeesSection
+ *   4. Compensation     → CompensationSection + PartnerCompSection
+ *   5. Overhead         → FixedOverheadSection + VariableCostsSection
+ *   6. Tax & Exit       → TaxSection + ExitAssumptionsSection
+ *   7. Property Defaults → PropertyExpenseRatesSection
+ *
+ * Always pinned beneath the tabs: SummaryFooter.
  *
  * Each section uses EditableValue (an inline-editable numeric display) and
  * shares a common props contract (see types.ts) that provides the form
