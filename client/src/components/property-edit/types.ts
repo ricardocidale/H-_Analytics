@@ -20,7 +20,7 @@
  * OtherAssumptionsSectionProps adds exitYear so the exit-related fields can
  * show which calendar year the disposition is modeled to occur.
  */
-import type { FeeCategoryResponse } from "@/lib/api";
+import type { FeeCategoryResponse, GuidanceRecord } from "@/lib/api";
 
 export interface PropertyEditSectionProps {
   draft: any;
@@ -28,6 +28,7 @@ export interface PropertyEditSectionProps {
   onNumberChange: (key: string, value: string) => void;
   globalAssumptions: any;
   researchValues: Record<string, { display: string; mid: number; source?: string; sourceName?: string; sourceDate?: string }>;
+  guidance?: GuidanceRecord[];
 }
 
 export interface ManagementFeesSectionProps extends PropertyEditSectionProps {

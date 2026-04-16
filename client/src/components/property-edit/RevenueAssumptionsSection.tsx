@@ -39,9 +39,10 @@ import {
   DEFAULT_CATERING_BOOST_PCT,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { AnalystRangeIndicator } from "@/components/analyst";
 import type { PropertyEditSectionProps } from "./types";
 
-export default function RevenueAssumptionsSection({ draft, onChange, researchValues }: PropertyEditSectionProps) {
+export default function RevenueAssumptionsSection({ draft, onChange, researchValues, guidance }: PropertyEditSectionProps) {
   const eid = draft.id as number | undefined;
   const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
 
@@ -71,14 +72,17 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 step={10}
               />
             </div>
-            <Slider 
-              value={[draft.startAdr]}
-              onValueChange={(vals: number[]) => onChange("startAdr", vals[0])}
-              min={100}
-              max={1200}
-              step={10}
-              className="[&_[role=slider]]:bg-primary"
-            />
+            <div className="flex items-center gap-2">
+              <Slider 
+                value={[draft.startAdr]}
+                onValueChange={(vals: number[]) => onChange("startAdr", vals[0])}
+                min={100}
+                max={1200}
+                step={10}
+                className="[&_[role=slider]]:bg-primary flex-1"
+              />
+              <AnalystRangeIndicator fieldKey="startAdr" currentValue={draft.startAdr} guidance={guidance} isCurrency />
+            </div>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">

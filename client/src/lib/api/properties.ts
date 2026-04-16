@@ -10,6 +10,7 @@ const ALL_FINANCIAL_QUERY_KEYS = [
   ["scenarios"],
   ["research"],
   ["serviceTemplates"],
+  ["guidance"],
 ] as const;
 
 export function invalidateAllFinancialQueries(queryClient: ReturnType<typeof useQueryClient>) {
@@ -138,6 +139,32 @@ export function useAllPropertyUrls() {
       return res.json();
     },
     staleTime: 5 * 60_000,
+  });
+}
+
+export interface GuidanceRecord {
+  id: number;
+  assumptionKey: string;
+  valueLow: number | null;
+  valueMid: number | null;
+  valueHigh: number | null;
+  confidence: string | null;
+  reasoning: string | null;
+  sourceName: string | null;
+  confidenceScore?: number;
+}
+
+export function usePropertyGuidance(propertyId: number) {
+  return useQuery({
+    queryKey: ["guidance", "property", propertyId],
+    queryFn: async (): Promise<GuidanceRecord[]> => {
+      const res = await fetch(`/api/guidance/property/${propertyId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.records ?? [];
+    },
+    enabled: !!propertyId,
+    staleTime: 60_000,
   });
 }
 

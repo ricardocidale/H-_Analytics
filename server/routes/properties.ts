@@ -339,6 +339,27 @@ export function register(app: Express) {
     }
   });
 
+  app.get("/api/properties/:id/validation-alerts", requireAuth, async (req, res) => {
+    try {
+      const propertyId = parseRouteId(req.params.id);
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      const property = await checkPropertyAccess(getAuthUser(req), propertyId);
+      if (!property) return res.status(403).json({ error: "Access denied" });
+
+      const { computeFieldAlerts } = await import("../ai/analyst-watchdog");
+      const numericFields: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(property as Record<string, unknown>)) {
+        if (typeof val === "number" && Number.isFinite(val)) {
+          numericFields[key] = val;
+        }
+      }
+      const alerts = await computeFieldAlerts(propertyId, numericFields);
+      res.json({ alerts });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch validation alerts", error);
+    }
+  });
+
   app.delete("/api/properties/:id", requireManagementAccess, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);

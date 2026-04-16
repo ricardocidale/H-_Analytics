@@ -45,9 +45,10 @@ import {
   DEFAULT_COST_RATE_OTHER,
   DEFAULT_COST_RATE_INSURANCE,
 } from "@/lib/constants";
+import { AnalystRangeIndicator } from "@/components/analyst";
 import type { PropertyEditSectionProps } from "./types";
 
-export default function OperatingCostRatesSection({ draft, onChange, globalAssumptions, researchValues }: PropertyEditSectionProps) {
+export default function OperatingCostRatesSection({ draft, onChange, globalAssumptions, researchValues, guidance }: PropertyEditSectionProps) {
   const eid = draft.id as number | undefined;
   const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
 
@@ -107,13 +108,17 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         step={1}
                       />
                     </div>
-                    <Slider 
-                      value={[(draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS) * 100]}
-                      onValueChange={(vals: number[]) => onChange("costRateRooms", vals[0] / 100)}
-                      min={0}
-                      max={50}
-                      step={1}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Slider 
+                        value={[(draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS) * 100]}
+                        onValueChange={(vals: number[]) => onChange("costRateRooms", vals[0] / 100)}
+                        min={0}
+                        max={50}
+                        step={1}
+                        className="flex-1"
+                      />
+                      <AnalystRangeIndicator fieldKey="costRateRooms" currentValue={draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS} guidance={guidance} isPercent />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
@@ -133,13 +138,17 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         step={1}
                       />
                     </div>
-                    <Slider 
-                      value={[(draft.costRateFB ?? DEFAULT_COST_RATE_FB) * 100]}
-                      onValueChange={(vals: number[]) => onChange("costRateFB", vals[0] / 100)}
-                      min={0}
-                      max={50}
-                      step={1}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Slider 
+                        value={[(draft.costRateFB ?? DEFAULT_COST_RATE_FB) * 100]}
+                        onValueChange={(vals: number[]) => onChange("costRateFB", vals[0] / 100)}
+                        min={0}
+                        max={50}
+                        step={1}
+                        className="flex-1"
+                      />
+                      <AnalystRangeIndicator fieldKey="costRateFB" currentValue={draft.costRateFB ?? DEFAULT_COST_RATE_FB} guidance={guidance} isPercent />
+                    </div>
                   </div>
                 </div>
               </div>

@@ -271,83 +271,92 @@ export interface FieldAlert {
  *
  * This is The Analyst watching data entry in real time.
  */
+export async function computeFieldAlerts(
+  propertyId: number,
+  fields: Record<string, unknown>,
+): Promise<FieldAlert[]> {
+  const alerts: FieldAlert[] = [];
+  const property = await storage.getProperty(propertyId);
+  if (!property) return alerts;
+
+  const countryName = property.country || "United States";
+  const countryDefaults = COUNTRY_DEFAULTS[countryName];
+
+  for (const [field, rawValue] of Object.entries(fields)) {
+    if (typeof rawValue !== "number" || !Number.isFinite(rawValue)) continue;
+    const value = rawValue;
+
+    if (countryDefaults) {
+      const hardFloor = HARD_FLOOR_FIELDS.find(h => h.propertyField === field);
+      if (hardFloor) {
+        const expected = countryDefaults[hardFloor.field] as number;
+        if (expected != null) {
+          const deviation = Math.abs(value - expected) / Math.max(Math.abs(expected), 1e-6);
+          if (deviation > hardFloor.threshold) {
+            const severity = deviation > hardFloor.threshold * 2 ? "critical" : "warning";
+            alerts.push({
+              field,
+              value,
+              expected: `${hardFloor.label}: ${formatValue(field, expected)} (${countryName})`,
+              verdict: value < expected ? "below" : "above",
+              severity,
+              message: `The Analyst flags ${hardFloor.label}: ${formatValue(field, value)} deviates ${(deviation * 100).toFixed(0)}% from ${countryName} default of ${formatValue(field, expected)}.`,
+            });
+          }
+        }
+      }
+    }
+
+    const market = property.city || property.stateProvince || countryName;
+    const tier = (property as Record<string, unknown>).qualityTier as string | undefined;
+    const validation = await validateAssumptionRange(field, value, market, tier, countryName);
+
+    if (validation.verdict === "above" || validation.verdict === "below") {
+      if (!alerts.some(a => a.field === field)) {
+        const deviationPct = Math.abs(validation.deviationPercent ?? 0);
+        alerts.push({
+          field,
+          value,
+          expected: validation.benchmarkRange
+            ? `${formatValue(field, validation.benchmarkRange.low)}–${formatValue(field, validation.benchmarkRange.high)}`
+            : "unknown",
+          verdict: validation.verdict,
+          severity: deviationPct > 50 ? "critical" : "warning",
+          message: validation.explanation,
+        });
+      }
+    }
+  }
+
+  return alerts;
+}
+
 export async function validateFieldChanges(
   propertyId: number,
   changedFields: Record<string, unknown>,
 ): Promise<FieldAlert[]> {
-  const alerts: FieldAlert[] = [];
-
   try {
-    const property = await storage.getProperty(propertyId);
-    if (!property) return alerts;
+    const alerts = await computeFieldAlerts(propertyId, changedFields);
 
-    const countryName = property.country || "United States";
-    const countryDefaults = COUNTRY_DEFAULTS[countryName];
-
-    // Check each changed field against hard floors
-    for (const [field, rawValue] of Object.entries(changedFields)) {
-      if (typeof rawValue !== "number" || !Number.isFinite(rawValue)) continue;
-      const value = rawValue;
-
-      // Hard floor: country defaults
-      if (countryDefaults) {
-        const hardFloor = HARD_FLOOR_FIELDS.find(h => h.propertyField === field);
-        if (hardFloor) {
-          const expected = countryDefaults[hardFloor.field] as number;
-          if (expected != null) {
-            const deviation = Math.abs(value - expected) / Math.max(Math.abs(expected), 1e-6);
-            if (deviation > hardFloor.threshold) {
-              const severity = deviation > hardFloor.threshold * 2 ? "critical" : "warning";
-              alerts.push({
-                field,
-                value,
-                expected: `${hardFloor.label}: ${formatValue(field, expected)} (${countryName})`,
-                verdict: value < expected ? "below" : "above",
-                severity,
-                message: `The Analyst flags ${hardFloor.label}: ${formatValue(field, value)} deviates ${(deviation * 100).toFixed(0)}% from ${countryName} default of ${formatValue(field, expected)}.`,
-              });
-            }
-          }
-        }
-      }
-
-      // Benchmark range check
-      const market = property.city || property.stateProvince || countryName;
-      const tier = (property as Record<string, unknown>).qualityTier as string | undefined;
-      const validation = await validateAssumptionRange(field, value, market, tier, countryName);
-
-      if (validation.verdict === "above" || validation.verdict === "below") {
-        // Don't duplicate if already flagged by hard floor
-        if (!alerts.some(a => a.field === field)) {
-          const deviationPct = Math.abs(validation.deviationPercent ?? 0);
-          alerts.push({
-            field,
-            value,
-            expected: validation.benchmarkRange
-              ? `${formatValue(field, validation.benchmarkRange.low)}–${formatValue(field, validation.benchmarkRange.high)}`
-              : "unknown",
-            verdict: validation.verdict,
-            severity: deviationPct > 50 ? "critical" : "warning",
-            message: validation.explanation,
-          });
-        }
-      }
-    }
-
-    // Update property validation status if alerts found
-    if (alerts.length > 0) {
-      const currentFlags = property.flaggedFieldCount ?? 0;
+    const flagCount = alerts.filter(a => a.severity === "critical").length + alerts.filter(a => a.severity === "warning").length;
+    if (flagCount > 0) {
       await storage.updateProperty(propertyId, {
         validationStatus: "flagged",
-        flaggedFieldCount: currentFlags + alerts.filter(a => a.severity === "critical").length,
+        flaggedFieldCount: flagCount,
+      });
+    } else {
+      await storage.updateProperty(propertyId, {
+        validationStatus: "validated",
+        flaggedFieldCount: 0,
+        lastValidatedAt: new Date(),
       });
     }
 
+    return alerts;
   } catch (err: unknown) {
     logger.warn(`Analyst watchdog error for property ${propertyId}: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+    return [];
   }
-
-  return alerts;
 }
 
 /**

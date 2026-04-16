@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { PropertyPhotoUpload } from "@/components/PropertyPhotoUpload";
 import { HeroImage } from "@/features/property-images";
 import type { PropertyHeaderProps } from "./types";
+import { ValidationStatusBadge } from "@/components/analyst";
 import { usePropertyPhotos } from "@/lib/api";
 
 export default function PropertyHeader({ property, propertyId, heroCaption, onPhotoUploadComplete }: PropertyHeaderProps) {
@@ -81,7 +82,10 @@ export default function PropertyHeader({ property, propertyId, heroCaption, onPh
               </Button>
             </Link>
             <div>
-              <h1 className="text-lg sm:text-2xl font-display text-foreground">{property.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-display text-foreground">{property.name}</h1>
+                <ValidationStatusBadge property={property} />
+              </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-foreground/70 text-sm mt-1 label-text">
                 <span className="flex items-center gap-1"><IconMapPin className="w-4 h-4 text-primary" /> {property.location}</span>
                 <span className="font-mono">{property.roomCount} Rooms</span>

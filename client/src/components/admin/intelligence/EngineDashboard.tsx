@@ -6,6 +6,7 @@ import type { Property } from "@shared/schema";
 import CoverageAnalyticsDashboard from "./CoverageAnalyticsDashboard";
 import SystemIntelligenceStatus from "./SystemIntelligenceStatus";
 import ApiDashboardGrid from "@/components/admin/system/ApiDashboardGrid";
+import FlaggedPropertiesPanel from "@/components/admin/FlaggedPropertiesPanel";
 
 interface FreshnessCounts {
   total: number;
@@ -294,6 +295,8 @@ export default function EngineDashboard() {
         <CoverageHeatmap />
         <PortfolioProfile />
       </div>
+
+      <FlaggedPropertiesPanel />
 
       <CoverageAnalyticsDashboard />
 

@@ -26,6 +26,7 @@ import type { Property, PropertyUrl } from "@shared/schema";
 import { HeroImage } from "@/features/property-images";
 import { cn } from "@/lib/utils";
 import { PropertyTypeBadge } from "@/components/research/PropertyTypeSelector";
+import { ValidationStatusBadge } from "@/components/analyst";
 import { usePropertyPhotos } from "@/lib/api";
 import { buildLocationLinks, hasCoordinates } from "@/lib/map-utils";
 
@@ -128,6 +129,7 @@ export const PortfolioPropertyCard = memo(function PortfolioPropertyCard({ prope
                 {(property.starRating || property.hospitalityType) && (
                   <PropertyTypeBadge type={property.hospitalityType || "hotel"} starRating={property.starRating} />
                 )}
+                <ValidationStatusBadge property={property} />
               </div>
               <div className="flex items-center text-foreground/60 text-sm mt-1 label-text">
                 <IconMapPin className="w-3 h-3 mr-1" />

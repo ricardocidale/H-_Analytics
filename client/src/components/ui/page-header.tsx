@@ -5,7 +5,7 @@ import { ChevronLeft } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 
 export interface PageHeaderProps {
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
   backLink?: string;
   actions?: React.ReactNode;

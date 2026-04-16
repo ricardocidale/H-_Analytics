@@ -26,8 +26,9 @@
 import Layout from "@/components/Layout";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 
-import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch, useFeeCategories, useUpdateFeeCategories, type FeeCategoryResponse } from "@/lib/api";
+import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch, useFeeCategories, useUpdateFeeCategories, usePropertyGuidance, type FeeCategoryResponse } from "@/lib/api";
 import { useMarketRates } from "@/lib/api/market-rates";
+import { ValidationStatusBadge, AnalystValidationBanner } from "@/components/analyst";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -76,6 +77,7 @@ export default function PropertyEdit() {
   const { data: globalAssumptions } = useGlobalAssumptions();
   const { data: research } = useMarketResearch("property", propertyId);
   const { data: feeCategories } = useFeeCategories(propertyId);
+  const { data: guidance } = usePropertyGuidance(propertyId);
   const updateProperty = useUpdateProperty();
   const updateFeeCategories = useUpdateFeeCategories();
   const { toast } = useToast();
@@ -446,26 +448,40 @@ export default function PropertyEdit() {
 
   const totalServiceFeeRate = feeDraft?.filter(c => c.isActive).reduce((sum, c) => sum + c.rate, 0) ?? 0;
 
+  const finishSave = async () => {
+    setIsDirty(false);
+    clearGlobalDirty();
+    toast({ title: "Saved", description: "Property assumptions updated successfully." });
+    try {
+      const res = await fetch(`/api/properties/${propertyId}/validation-alerts`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.alerts && data.alerts.length > 0) {
+          const flagCount = data.alerts.length;
+          toast({
+            title: `The Analyst flagged ${flagCount} field${flagCount !== 1 ? "s" : ""}`,
+            description: data.alerts.slice(0, 3).map((a: { field: string; message: string }) => `${a.field}: ${a.message}`).join(" · "),
+            variant: "destructive",
+            duration: 8000,
+          });
+        }
+      }
+    } catch {}
+    setLocation(`/property/${propertyId}`);
+  };
+
   const handleSave = () => {
     updateProperty.mutate({ id: propertyId, data: draft }, {
       onSuccess: () => {
         if (feeDraft) {
           updateFeeCategories.mutate({ propertyId, categories: feeDraft }, {
-            onSuccess: () => {
-              setIsDirty(false);
-              clearGlobalDirty();
-              toast({ title: "Saved", description: "Property assumptions updated successfully." });
-              setLocation(`/property/${propertyId}`);
-            },
+            onSuccess: () => { finishSave(); },
             onError: () => {
               toast({ title: "Error", description: "Failed to save fee categories.", variant: "destructive" });
             }
           });
         } else {
-          setIsDirty(false);
-          clearGlobalDirty();
-          toast({ title: "Saved", description: "Property assumptions updated successfully." });
-          setLocation(`/property/${propertyId}`);
+          finishSave();
         }
       },
       onError: () => {
@@ -493,14 +509,18 @@ export default function PropertyEdit() {
     });
   };
 
-  const sectionProps = { draft, onChange: handleChange, onNumberChange: handleNumberChange, globalAssumptions, researchValues };
+  const sectionProps = { draft, onChange: handleChange, onNumberChange: handleNumberChange, globalAssumptions, researchValues, guidance };
+
+  const handleAcceptRange = (key: string, value: number) => {
+    handleChange(key, value);
+  };
 
   return (
     <Layout>
       <AnimatedPage>
       <div className="space-y-6 max-w-4xl">
         <PageHeader
-          title="Property Assumptions"
+          title={<span className="flex items-center gap-2">Property Assumptions <ValidationStatusBadge property={property} size="md" /></span>}
           subtitle={property.name}
           variant="dark"
           backLink={`/property/${propertyId}`}
@@ -616,6 +636,14 @@ export default function PropertyEdit() {
             isGenerating={isGenerating}
           />
         )}
+
+        <AnalystValidationBanner
+          property={property}
+          guidance={guidance}
+          isGenerating={isGenerating}
+          onTriggerResearch={() => { setIntelligenceClicked(true); generateResearch(); }}
+          onAcceptRange={handleAcceptRange}
+        />
 
         {isGenerating && (
           <Card className="bg-primary/5 border-primary/20 p-4">
