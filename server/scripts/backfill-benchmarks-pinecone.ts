@@ -51,6 +51,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("[backfill] Fatal error:", err);
+  logger.error(`Fatal error: ${err instanceof Error ? err.message : err}`, "backfill");
   process.exit(1);
 });

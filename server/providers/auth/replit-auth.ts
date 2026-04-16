@@ -4,6 +4,7 @@ import {
   setupAuth,
   isAuthenticated,
 } from '../../replit_integrations/auth/replitAuth';
+import { logger } from '../../logger';
 
 /**
  * Auth provider that delegates to the existing Replit OIDC implementation.
@@ -37,7 +38,7 @@ export class ReplitAuthProvider implements AuthProvider {
     // the OIDC discovery call, which resolves well before any user hits
     // the login endpoint.
     setupAuth(app).catch((err) => {
-      console.error('[ReplitAuthProvider] Failed to initialise OIDC:', err);
+      logger.error(`Failed to initialise OIDC: ${err instanceof Error ? err.message : err}`, 'auth');
       process.exit(1);
     });
   }

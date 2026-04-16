@@ -6,6 +6,7 @@ import { requireAdmin, isApiRateLimited , getAuthUser } from "../../auth";
 import { type InsertGlobalAssumptions, type ResearchConfig, type ContextLlmConfig, type AiModelEntry } from "@shared/schema";
 import { logAndSendError, logActivity } from "../helpers";
 import { logger } from "../../logger";
+import { fetchWithTimeout } from "../../lib/fetch-with-timeout";
 
 const researchSourceEntrySchema = z.object({
   id: z.string(),
@@ -190,9 +191,9 @@ async function fetchXaiModels(): Promise<AiModelEntry[]> {
   try {
     const apiKey = process.env.XAI_API_KEY;
     if (!apiKey) return [];
-    const res = await fetch("https://api.x.ai/v1/models", {
+    const res = await fetchWithTimeout("https://api.x.ai/v1/models", {
       headers: { Authorization: `Bearer ${apiKey}` },
-    });
+    }, 10_000);
     if (!res.ok) throw new Error(`xAI API returned ${res.status}`);
     const body = await res.json() as { data: { id: string }[] };
     const models: AiModelEntry[] = [];
@@ -212,9 +213,9 @@ async function fetchDeepSeekModels(): Promise<AiModelEntry[]> {
   try {
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) return [];
-    const res = await fetch("https://api.deepseek.com/models", {
+    const res = await fetchWithTimeout("https://api.deepseek.com/models", {
       headers: { Authorization: `Bearer ${apiKey}` },
-    });
+    }, 10_000);
     if (!res.ok) throw new Error(`DeepSeek API returned ${res.status}`);
     const body = await res.json() as { data: { id: string }[] };
     const models: AiModelEntry[] = [];
@@ -234,9 +235,9 @@ async function fetchMetaModels(): Promise<AiModelEntry[]> {
   try {
     const apiKey = process.env.META_API_KEY;
     if (!apiKey) return [];
-    const res = await fetch("https://api.llama.com/v1/models", {
+    const res = await fetchWithTimeout("https://api.llama.com/v1/models", {
       headers: { Authorization: `Bearer ${apiKey}` },
-    });
+    }, 10_000);
     if (!res.ok) throw new Error(`Meta API returned ${res.status}`);
     const body = await res.json() as { data: { id: string }[] };
     const models: AiModelEntry[] = [];

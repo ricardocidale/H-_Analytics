@@ -7,7 +7,7 @@ import { getResendHealthCheck } from "../integrations/resend";
 import { getGeospatialHealthCheck } from "../integrations/geospatial";
 import { getDocumentAIHealthCheck } from "../integrations/document-ai";
 import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceAggregator";
-import { logActivity, cachePatternSchema, parseRouteId } from "./helpers";
+import { logActivity, logAndSendError, cachePatternSchema, parseRouteId } from "./helpers";
 import { fromZodError } from "zod-validation-error";
 import { insertExternalIntegrationSchema, updateExternalIntegrationSchema } from "@shared/schema";
 import { storage } from "../storage";
@@ -154,7 +154,7 @@ export function register(app: Express) {
 
       res.json(results);
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 
@@ -163,7 +163,7 @@ export function register(app: Express) {
       const stats = await cache.getStats();
       res.json(stats);
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 
@@ -184,7 +184,7 @@ export function register(app: Express) {
         res.json({ cleared: true });
       }
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 
@@ -195,7 +195,7 @@ export function register(app: Express) {
       const research = await cache.invalidate(`research:${propertyId}:*`);
       res.json({ deleted: projections + research, propertyId });
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 
@@ -205,7 +205,7 @@ export function register(app: Express) {
       const rows = await storage.getExternalIntegrations(kind);
       res.json(rows);
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 
@@ -217,7 +217,7 @@ export function register(app: Express) {
       logActivity(req, "create-integration", "integration", row.id, row.name);
       res.status(201).json(row);
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 
@@ -232,7 +232,7 @@ export function register(app: Express) {
       logActivity(req, "update-integration", "integration", row.id, row.name);
       res.json(row);
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 
@@ -248,7 +248,7 @@ export function register(app: Express) {
       logActivity(req, isEnabled ? "enable-integration" : "disable-integration", "integration", row.id, row.name);
       res.json(row);
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 
@@ -262,7 +262,7 @@ export function register(app: Express) {
       logActivity(req, "delete-integration", "integration", id, existing.name);
       res.json({ success: true });
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal error" });
+      logAndSendError(res, "Integration operation failed", error);
     }
   });
 }
