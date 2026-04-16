@@ -226,28 +226,28 @@ describe("isFieldEmpty", () => {
 
 describe("fillMissingFields", () => {
   it("fills null/undefined fields from defaults", () => {
-    const existing = { name: null, age: 25 } as any;
+    const existing: Record<string, unknown> = { name: null, age: 25 };
     const defaults = { name: "Default", age: 30 };
     const result = fillMissingFields(existing, defaults, []);
     expect(result).toEqual({ name: "Default" });
   });
 
   it("does not overwrite existing non-empty values", () => {
-    const existing = { name: "Alice", rate: 0.05 } as any;
+    const existing: Record<string, unknown> = { name: "Alice", rate: 0.05 };
     const defaults = { name: "Default", rate: 0.10 };
     const result = fillMissingFields(existing, defaults, []);
     expect(result).toEqual({});
   });
 
   it("preserves zero as a valid user value (does not fill)", () => {
-    const existing = { amount: 0 } as any;
+    const existing: Record<string, unknown> = { amount: 0 };
     const defaults = { amount: 1000 };
     const result = fillMissingFields(existing, defaults, []);
     expect(result).toEqual({});
   });
 
   it("excludes specified keys", () => {
-    const existing = { id: null, name: null } as any;
+    const existing: Record<string, unknown> = { id: null, name: null };
     const defaults = { id: 99, name: "Default" };
     const result = fillMissingFields(existing, defaults, ["id"]);
     expect(result).toEqual({ name: "Default" });

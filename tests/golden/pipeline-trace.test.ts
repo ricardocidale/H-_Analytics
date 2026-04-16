@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";
 import { generatePropertyProForma } from "../../client/src/lib/financialEngine";
-import { makeProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories";
 
 /**
  * Pipeline Trace Test — "Golden Lodge" Scenario
@@ -27,7 +27,7 @@ const goldenProperty = makeProperty({
   maxOccupancy: 0.70,
   occupancyGrowthStep: 0,
   adrGrowthRate: 0,
-  type: "Financed" as any,
+  type: "Financed",
   acquisitionLTV: 0.60,
   acquisitionInterestRate: 0.08,
   acquisitionTermYears: 25,
@@ -37,7 +37,7 @@ const goldenProperty = makeProperty({
   operatingReserve: 0,
   operationsStartDate: "2026-04-01",
   acquisitionDate: "2026-04-01",
-} as any);
+});
 
 const goldenGlobal = makeGlobal({
   modelStartDate: "2026-04-01",

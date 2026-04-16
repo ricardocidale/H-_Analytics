@@ -27,12 +27,13 @@ import {
   DEFAULT_EVENT_EXPENSE_RATE, DEFAULT_OTHER_EXPENSE_RATE, DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCENARIO INPUTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PROPERTY = {
+const PROPERTY: PropertyInput = {
   id: 1,
   name: "PreOps Refi Lodge",
   type: "Financed",
@@ -62,9 +63,9 @@ const PROPERTY = {
   refinanceInterestRate: 0.065,
   refinanceTermYears: 20,
   refinanceClosingCostRate: 0.03,
-} as any;
+} as PropertyInput;
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2025-01-01",
   projectionYears: 10,
   inflationRate: 0,
@@ -88,7 +89,7 @@ const GLOBAL = {
   itLicensePerClient: 3_000,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
-} as any;
+} as GlobalInput;
 
 const MONTHS = 120;
 

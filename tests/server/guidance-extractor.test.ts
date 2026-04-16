@@ -134,7 +134,7 @@ describe("extractGuidance", () => {
   });
 
   it("handles non-object AI response gracefully", () => {
-    const result = extractGuidance("raw text response" as any, 1, "property");
+    const result = extractGuidance("raw text response" as unknown as Record<string, unknown>, 1, "property");
     expect(result.records).toEqual([]);
   });
 

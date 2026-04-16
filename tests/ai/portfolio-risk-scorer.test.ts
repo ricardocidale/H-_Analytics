@@ -65,8 +65,6 @@ function makeProperty(overrides: Partial<Property> = {}): Property {
     yearBuilt: 2015,
     lastRenovationYear: 2022,
     isActive: true,
-    // Fields not consumed by the scorer — provide safe defaults
-    ...({} as any),
     ...overrides,
   } as Property;
 }

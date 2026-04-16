@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { generatePropertyProForma } from "../../client/src/lib/financialEngine";
 import { aggregateCashFlowByYear } from "../../client/src/lib/financial/cashFlowAggregator";
 import { computeIRR } from "../../analytics/returns/irr";
-import { makeProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -98,10 +98,10 @@ describe("Forensic IRR Test 3 — Refinance (Year 3 Cash-Out)", () => {
   });
 
   const refiMonthly = generatePropertyProForma(refiProperty, global, MONTHS);
-  const refiYearly = aggregateCashFlowByYear(refiMonthly, refiProperty as any, global as any, YEARS);
+  const refiYearly = aggregateCashFlowByYear(refiMonthly, refiProperty, global, YEARS);
 
   const noRefiMonthly = generatePropertyProForma(noRefiProperty, global, MONTHS);
-  const noRefiYearly = aggregateCashFlowByYear(noRefiMonthly, noRefiProperty as any, global as any, YEARS);
+  const noRefiYearly = aggregateCashFlowByYear(noRefiMonthly, noRefiProperty, global, YEARS);
 
   // ── Pre-Refi: Years 1-2 Are Identical ──────────────────────────────────────
 

@@ -33,7 +33,7 @@ import {
 } from "../../shared/constants.js";
 import { vendorCostFromFee } from "../../calc/services/margin-calculator.js";
 import type { ServiceTemplate } from "../../calc/services/types.js";
-import { makeProperty, makeGlobal } from "../fixtures/index.js";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories.js";
 
 // ── Service templates (all 6 default categories, with IDs) ──────────────
 const serviceTemplates: ServiceTemplate[] = DEFAULT_SERVICE_TEMPLATES.map((t, i) => ({
@@ -63,7 +63,7 @@ const propertyA = {
     occupancyRampMonths: 0,
     adrGrowthRate: 0,
     purchasePrice: 2_000_000,
-  } as any),
+  }),
   id: 1,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -80,7 +80,7 @@ const propertyB = {
     occupancyRampMonths: 0,
     adrGrowthRate: 0,
     purchasePrice: 1_500_000,
-  } as any),
+  }),
   id: 2,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,

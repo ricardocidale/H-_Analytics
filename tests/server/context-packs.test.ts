@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { buildPropertyContextPack } from "../../server/ai/context-pack/property-pack";
 import { buildCompanyContextPack } from "../../server/ai/context-pack/company-pack";
+import type { Property, GlobalAssumptions } from "../../shared/schema";
 
-const baseProperty = {
+const baseProperty: Partial<Property> = {
   id: 1,
   userId: 1,
   name: "Test Boutique Hotel",
@@ -65,9 +66,9 @@ const baseProperty = {
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
-} as any;
+} as Partial<Property>;
 
-const baseGa = {
+const baseGa: Partial<GlobalAssumptions> = {
   id: 1,
   userId: 1,
   companyName: "Hospitality Business Group",
@@ -99,11 +100,11 @@ const baseGa = {
   costOfEquity: 0.12,
   projectionYears: 10,
   icpConfig: null,
-} as any;
+} as Partial<GlobalAssumptions>;
 
 describe("PropertyContextPack builder", () => {
   it("returns all 10 categories + currentAssumptionsSummary", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack).toHaveProperty("identity");
     expect(pack).toHaveProperty("location");
     expect(pack).toHaveProperty("classification");
@@ -118,14 +119,14 @@ describe("PropertyContextPack builder", () => {
   });
 
   it("identity carries through id, name, stableKey", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.identity.id).toBe(1);
     expect(pack.identity.name).toBe("Test Boutique Hotel");
     expect(pack.identity.stableKey).toBe("test-boutique-hotel");
   });
 
   it("location is populated from property fields", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.location.city).toBe("Miami");
     expect(pack.location.stateProvince).toBe("Florida");
     expect(pack.location.country).toBe("US");
@@ -134,21 +135,21 @@ describe("PropertyContextPack builder", () => {
   });
 
   it("classification includes star rating and hospitality type", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.classification.starRating).toBe(4);
     expect(pack.classification.hospitalityType).toBe("boutique_hotel");
     expect(pack.classification.compositeLabel).toBeTruthy();
   });
 
   it("amenityProfile detects F&B and wellness from description", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.amenityProfile.hasFB).toBe(true);
     expect(pack.amenityProfile.hasWellness).toBe(true);
     expect(pack.amenityProfile.narrative).toBeTruthy();
   });
 
   it("revenueProfile includes ADR and revenue shares", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.revenueProfile.startAdr).toBe(450);
     expect(pack.revenueProfile.maxOccupancy).toBe(0.85);
     expect(pack.revenueProfile.revShareFB).toBe(0.30);
@@ -156,7 +157,7 @@ describe("PropertyContextPack builder", () => {
   });
 
   it("costProfile includes all cost rate fields", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.costProfile.costRateRooms).toBe(0.25);
     expect(pack.costProfile.costRateFB).toBe(0.35);
     expect(pack.costProfile.costRateAdmin).toBe(0.08);
@@ -164,7 +165,7 @@ describe("PropertyContextPack builder", () => {
   });
 
   it("capitalStructure includes purchase price and rates", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.capitalStructure.purchasePrice).toBe(8000000);
     expect(pack.capitalStructure.acquisitionLTV).toBe(0.65);
     expect(pack.capitalStructure.acquisitionInterestRate).toBe(0.055);
@@ -172,26 +173,26 @@ describe("PropertyContextPack builder", () => {
   });
 
   it("icpAlignment defaults to 0 score when no ICP configured", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.icpAlignment.matchScore).toBe(0);
     expect(pack.icpAlignment.narrative).toContain("No ICP");
   });
 
   it("fullNarrative is a coherent non-empty string", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(typeof pack.fullNarrative).toBe("string");
     expect(pack.fullNarrative.length).toBeGreaterThan(50);
     expect(pack.fullNarrative).toContain("Test Boutique Hotel");
   });
 
   it("handles null star rating gracefully", () => {
-    const pack = buildPropertyContextPack({ ...baseProperty, starRating: null }, baseGa, null);
+    const pack = buildPropertyContextPack({ ...baseProperty, starRating: null } as Property, baseGa as GlobalAssumptions, null);
     expect(pack.classification.starRating).toBeNull();
     expect(pack.classification.compositeLabel).toBeTruthy();
   });
 
   it("handles null global assumptions gracefully", () => {
-    const pack = buildPropertyContextPack(baseProperty, null, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, null, null);
     expect(pack).toBeTruthy();
     expect(pack.identity.name).toBe("Test Boutique Hotel");
   });
@@ -208,14 +209,14 @@ describe("PropertyContextPack builder", () => {
       purchasePrice: null,
       landValuePercent: null,
     };
-    const pack = buildPropertyContextPack(minimal, null, null);
+    const pack = buildPropertyContextPack(minimal as Property, null, null);
     expect(pack.location.city).toBeNull();
     expect(pack.classification.starRating).toBeNull();
     expect(pack.fullNarrative).toBeTruthy();
   });
 
   it("physicalCharacter includes room count and narrative", () => {
-    const pack = buildPropertyContextPack(baseProperty, baseGa, null);
+    const pack = buildPropertyContextPack(baseProperty as Property, baseGa as GlobalAssumptions, null);
     expect(pack.physicalCharacter.roomCount).toBe(25);
     expect(pack.physicalCharacter.narrative).toContain("25");
   });
@@ -232,7 +233,7 @@ describe("CompanyContextPack builder", () => {
   ];
 
   it("returns all 8 categories", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(pack).toHaveProperty("companyProfile");
     expect(pack).toHaveProperty("portfolioFootprint");
     expect(pack).toHaveProperty("serviceMenu");
@@ -244,33 +245,33 @@ describe("CompanyContextPack builder", () => {
   });
 
   it("companyProfile carries company name", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(pack.companyProfile.name).toBe("Hospitality Business Group");
     expect(pack.companyProfile.propertyLabel).toBe("Hotel");
   });
 
   it("portfolioFootprint counts properties and rooms correctly", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(pack.portfolioFootprint.propertyCount).toBe(2);
     expect(pack.portfolioFootprint.totalRooms).toBe(55);
     expect(pack.portfolioFootprint.averageRooms).toBe(28);
   });
 
   it("portfolioFootprint detects geographic spread", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(pack.portfolioFootprint.geographicSpread).toContain("US");
     expect(pack.portfolioFootprint.geographicSpread).toContain("CO");
   });
 
   it("portfolioFootprint calculates ADR range", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(pack.portfolioFootprint.adrRange.min).toBe(200);
     expect(pack.portfolioFootprint.adrRange.max).toBe(450);
     expect(pack.portfolioFootprint.averageAdr).toBe(325);
   });
 
   it("feeStructure includes management fees", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(pack.feeStructure.baseManagementFeeRate).toBe(0.03);
     expect(pack.feeStructure.incentiveManagementFeeRate).toBe(0.10);
     expect(pack.feeStructure.commissionRate).toBe(0.02);
@@ -278,33 +279,33 @@ describe("CompanyContextPack builder", () => {
   });
 
   it("serviceMenu lists active templates", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(pack.serviceMenu.templates.length).toBe(2);
     expect(pack.serviceMenu.templates[0].name).toBe("Marketing & Brand");
     expect(pack.serviceMenu.narrative).toContain("Marketing & Brand");
   });
 
   it("fullNarrative is a non-empty string mentioning company", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(typeof pack.fullNarrative).toBe("string");
     expect(pack.fullNarrative.length).toBeGreaterThan(50);
     expect(pack.fullNarrative).toContain("Hospitality Business Group");
   });
 
   it("handles empty property list", () => {
-    const pack = buildCompanyContextPack(baseGa, [], serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, [], serviceTemplates);
     expect(pack.portfolioFootprint.propertyCount).toBe(0);
     expect(pack.portfolioFootprint.totalRooms).toBe(0);
   });
 
   it("handles empty service templates", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, []);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], []);
     expect(pack.serviceMenu.templates).toEqual([]);
     expect(pack.serviceMenu.narrative).toContain("No service");
   });
 
   it("typeBreakdown counts property types correctly", () => {
-    const pack = buildCompanyContextPack(baseGa, properties as any, serviceTemplates);
+    const pack = buildCompanyContextPack(baseGa as GlobalAssumptions, properties as Property[], serviceTemplates);
     expect(pack.portfolioFootprint.typeBreakdown["boutique_hotel"]).toBe(2);
   });
 });

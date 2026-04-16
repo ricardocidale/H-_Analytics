@@ -28,12 +28,13 @@ import {
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_COMPANY_TAX_RATE, DEFAULT_BUSINESS_INSURANCE_START, DEFAULT_COST_RATE_INSURANCE,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════
 // PROPERTY DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════
 
-const PROP_A = {
+const PROP_A: PropertyInput = {
   id: 1, name: "Sunrise Inn", type: "Cash",
   purchasePrice: 1_500_000, buildingImprovements: 0, preOpeningCosts: 0,
   roomCount: 15, startAdr: 180, startOccupancy: 0.70, maxOccupancy: 0.70,
@@ -42,9 +43,9 @@ const PROP_A = {
   operationsStartDate: "2026-04-01", acquisitionDate: "2026-04-01",
   operatingReserve: 20_000, taxRate: 0.25,
   exitCapRate: 0.085, dispositionCommission: 0.05, willRefinance: "No",
-} as any;
+} as PropertyInput;
 
-const PROP_B = {
+const PROP_B: PropertyInput = {
   id: 2, name: "Idle Lodge", type: "Cash",
   purchasePrice: 800_000, buildingImprovements: 0, preOpeningCosts: 0,
   roomCount: 10, startAdr: 150, startOccupancy: 0, maxOccupancy: 0,
@@ -53,9 +54,9 @@ const PROP_B = {
   operationsStartDate: "2026-04-01", acquisitionDate: "2026-04-01",
   operatingReserve: 10_000, taxRate: 0.25,
   exitCapRate: 0.085, dispositionCommission: 0.05, willRefinance: "No",
-} as any;
+} as PropertyInput;
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01", projectionYears: 10, inflationRate: 0,
   fixedCostEscalationRate: 0, companyInflationRate: 0,
   companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
@@ -72,7 +73,7 @@ const GLOBAL = {
   officeLeaseStart: 36_000, professionalServicesStart: 24_000,
   travelCostPerClient: 12_000, itLicensePerClient: 3_000,
   marketingRate: 0.05, miscOpsRate: 0.03,
-} as any;
+} as GlobalInput;
 
 const MONTHS = 120; // 10 years
 

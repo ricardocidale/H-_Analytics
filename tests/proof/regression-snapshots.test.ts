@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { generatePropertyProForma } from "../../client/src/lib/financialEngine";
-import { baseProperty, makeProperty, makeGlobal, financedProperty } from "../fixtures";
+import { baseProperty, financedProperty } from "../fixtures";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories";
 import { stableHash } from "../../server/scenarios/stable-json";
 import { BUSINESS_MODEL_DEFAULTS } from "../../shared/constants";
 import {
@@ -165,7 +166,7 @@ describe("T012 — Deterministic Engine Regression Snapshots", () => {
       revShareFB: lodgeDefaults.revShareFB,
       revShareOther: lodgeDefaults.revShareOther,
       cateringBoostPercent: lodgeDefaults.cateringBoostPercent,
-    } as any);
+    });
     const result = generatePropertyProForma(lodge, global1Y, 12);
     const snapshot = extractSnapshot(result);
     const snapshotHash = stableHash(snapshot);
@@ -219,7 +220,7 @@ describe("T012 — Deterministic Engine Regression Snapshots", () => {
       revShareFB: 0,
       revShareOther: vrboDefaults.revShareOther,
       cateringBoostPercent: 0,
-    } as any);
+    });
     const result = generatePropertyProForma(vrbo, global1Y, 12);
     const snapshot = extractSnapshot(result);
     const snapshotHash = stableHash(snapshot);

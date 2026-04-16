@@ -50,56 +50,56 @@ describe("isFieldEmpty", () => {
 
 describe("fillMissingFields", () => {
   it("fills null fields with defaults", () => {
-    const existing = { a: null, b: "keep" } as any;
+    const existing: Record<string, unknown> = { a: null, b: "keep" };
     const defaults = { a: 42, b: "default" };
     const result = fillMissingFields(existing, defaults);
     expect(result).toEqual({ a: 42 });
   });
 
   it("fills undefined fields with defaults", () => {
-    const existing = { b: "keep" } as any;
+    const existing: Record<string, unknown> = { b: "keep" };
     const defaults = { a: 42, b: "default" };
     const result = fillMissingFields(existing, defaults);
     expect(result).toEqual({ a: 42 });
   });
 
   it("never overwrites 0", () => {
-    const existing = { rate: 0 } as any;
+    const existing: Record<string, unknown> = { rate: 0 };
     const defaults = { rate: 0.05 };
     const result = fillMissingFields(existing, defaults);
     expect(result).toEqual({});
   });
 
   it("never overwrites false", () => {
-    const existing = { enabled: false } as any;
+    const existing: Record<string, unknown> = { enabled: false };
     const defaults = { enabled: true };
     const result = fillMissingFields(existing, defaults);
     expect(result).toEqual({});
   });
 
   it("never overwrites non-empty strings", () => {
-    const existing = { name: "Custom" } as any;
+    const existing: Record<string, unknown> = { name: "Custom" };
     const defaults = { name: "Default" };
     const result = fillMissingFields(existing, defaults);
     expect(result).toEqual({});
   });
 
   it("fills empty strings with defaults", () => {
-    const existing = { name: "" } as any;
+    const existing: Record<string, unknown> = { name: "" };
     const defaults = { name: "Default" };
     const result = fillMissingFields(existing, defaults);
     expect(result).toEqual({ name: "Default" });
   });
 
   it("excludes id, createdAt, updatedAt, userId by default", () => {
-    const existing = { id: null, createdAt: null, name: null } as any;
+    const existing: Record<string, unknown> = { id: null, createdAt: null, name: null };
     const defaults = { id: 1, createdAt: "2026-01-01", name: "Test" };
     const result = fillMissingFields(existing, defaults);
     expect(result).toEqual({ name: "Test" });
   });
 
   it("respects custom excludeKeys", () => {
-    const existing = { a: null, b: null } as any;
+    const existing: Record<string, unknown> = { a: null, b: null };
     const defaults = { a: 1, b: 2 };
     const result = fillMissingFields(existing, defaults, ["a"]);
     expect(result).toEqual({ b: 2 });
@@ -121,10 +121,11 @@ describe("Seed constants shape", () => {
       "costRatePropertyOps", "costRateUtilities",
       "costRateTaxes", "costRateIT", "costRateFFE", "costRateOther",
     ];
+    const defaults = SEED_PROPERTY_DEFAULTS as Record<string, unknown>;
     for (const rate of rates) {
-      expect(typeof (SEED_PROPERTY_DEFAULTS as any)[rate]).toBe("number");
-      expect((SEED_PROPERTY_DEFAULTS as any)[rate]).toBeGreaterThan(0);
-      expect((SEED_PROPERTY_DEFAULTS as any)[rate]).toBeLessThan(1);
+      expect(typeof defaults[rate]).toBe("number");
+      expect(defaults[rate] as number).toBeGreaterThan(0);
+      expect(defaults[rate] as number).toBeLessThan(1);
     }
   });
 

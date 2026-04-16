@@ -3,7 +3,7 @@ import { generatePropertyProForma } from "../../client/src/lib/financialEngine";
 import { aggregateCashFlowByYear } from "../../client/src/lib/financial/cashFlowAggregator";
 import { pmt } from "../../calc/shared/pmt";
 import { computeIRR } from "../../analytics/returns/irr";
-import { makeProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories";
 import {
   DAYS_PER_MONTH,
   DEPRECIATION_YEARS,
@@ -62,7 +62,7 @@ describe("Forensic IRR Test 1 — The Accountant's Spreadsheet (10-Year)", () =>
     maxOccupancy: 0.70,
     occupancyGrowthStep: 0,
     adrGrowthRate: 0.0,
-    type: "Financed" as any,
+    type: "Financed",
     acquisitionLTV: 0.60,
     acquisitionInterestRate: 0.08,
     acquisitionTermYears: 25,
@@ -76,7 +76,7 @@ describe("Forensic IRR Test 1 — The Accountant's Spreadsheet (10-Year)", () =>
     cateringBoostPercent: 0,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  } as any);
+  });
 
   const global = makeGlobal({
     modelStartDate: "2026-04-01",
@@ -91,7 +91,7 @@ describe("Forensic IRR Test 1 — The Accountant's Spreadsheet (10-Year)", () =>
 
   // ── Run engine ─────────────────────────────────────────────────────────────
   const monthly = generatePropertyProForma(property, global, MONTHS);
-  const yearly = aggregateCashFlowByYear(monthly, property as any, global as any, YEARS);
+  const yearly = aggregateCashFlowByYear(monthly, property, global, YEARS);
 
   // ── Hand-calculated constants ──────────────────────────────────────────────
   const purchasePrice = 2_000_000;

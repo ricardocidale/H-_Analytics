@@ -236,6 +236,7 @@ describe("pptxgen slide API", () => {
     pres.addSlide();
     pres.addSlide();
     pres.addSlide();
-    expect((pres as any).slides).toHaveLength(3);
+    // pptxgenjs exposes slides array but it's not in the public type definitions
+    expect((pres as unknown as { slides: unknown[] }).slides).toHaveLength(3);
   });
 });

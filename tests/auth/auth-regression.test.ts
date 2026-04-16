@@ -249,7 +249,7 @@ describe("setSessionCookie", () => {
   it("sets maxAge to 7 days", () => {
     const res = mockRes();
     setSessionCookie(res, "test");
-    const call = (res.cookie as any).mock.calls[0];
+    const call = vi.mocked(res.cookie).mock.calls[0];
     const options = call[2];
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
     expect(options.maxAge).toBe(sevenDaysMs);

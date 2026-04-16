@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { generatePropertyProForma } from "../../client/src/lib/financialEngine";
 import { pmt } from "../../calc/shared/pmt";
-import { makeProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories";
 import {
   DAYS_PER_MONTH,
   DEPRECIATION_YEARS,
@@ -43,7 +43,7 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
     maxOccupancy: 0.70,
     occupancyGrowthStep: 0,
     adrGrowthRate: 0.0,
-    type: "Financed" as any,
+    type: "Financed",
     acquisitionLTV: 0.75,
     acquisitionInterestRate: 0.09,
     acquisitionTermYears: 20,
@@ -51,7 +51,7 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
     buildingImprovements: 0,
     taxRate: DEFAULT_PROPERTY_TAX_RATE, // 0.25
     operatingReserve: 0,
-  } as any);
+  });
 
   const global = makeGlobal({
     modelStartDate: "2026-04-01",

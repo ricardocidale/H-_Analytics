@@ -12,7 +12,7 @@ import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
 } from "../../shared/constants.js";
-import { makeProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories";
 
 const baseProperty = makeProperty({
   startAdr: 250,
@@ -20,7 +20,7 @@ const baseProperty = makeProperty({
   purchasePrice: 2_000_000,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-} as any);
+});
 
 const baseGlobal = makeGlobal({
   projectionYears: 10,
@@ -31,7 +31,7 @@ const baseGlobal = makeGlobal({
     refiLTV: 0.65,
     refiClosingCostRate: 0.03,
   },
-} as any);
+});
 
 describe("Proof Scenario 1: Cash Purchase (Full Equity, No Debt)", () => {
   const property = { ...baseProperty, type: "Full Equity" };

@@ -302,7 +302,7 @@ describe("Recalculation Enforcement", () => {
   describe("invalidateAllFinancialQueries function integrity", () => {
     it("iterates over ALL_FINANCIAL_QUERY_KEYS", () => {
       const propertiesContent = readApiFile("properties.ts");
-      const funcBody = extractHookBody(propertiesContent, "invalidateAllFinancialQueries" as any);
+      const funcBody = extractHookBody(propertiesContent, "invalidateAllFinancialQueries");
       // It's not a hook, so extract manually
       const funcStart = propertiesContent.indexOf("export function invalidateAllFinancialQueries");
       expect(funcStart).toBeGreaterThan(-1);

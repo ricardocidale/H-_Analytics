@@ -8,6 +8,7 @@ import {
 } from "../../client/src/components/dashboard/statementBuilders";
 import { generatePortfolioCashFlowData } from "../../client/src/components/dashboard/statement-builders/cash-flow";
 import { PropertyStatus } from "../../shared/constants";
+import type { Property } from "../../shared/schema/properties";
 
 const PENNY = 2;
 
@@ -270,7 +271,7 @@ describe("T009 — Parity Numeric Verification", () => {
 
   describe("Balance Sheet builder values are internally consistent", () => {
     const bsData = generatePortfolioBalanceSheetData(
-      [{ property: prop as any, financials: monthlyResults }],
+      [{ property: prop as unknown as Property, financials: monthlyResults }],
       2,
       getFiscalYear,
       new Date("2026-04-01"),
@@ -359,7 +360,7 @@ describe("T009 — Parity Numeric Verification", () => {
 
     it("all Balance Sheet numeric values are finite", () => {
       const bsData = generatePortfolioBalanceSheetData(
-        [{ property: prop as any, financials: monthlyResults }],
+        [{ property: prop as unknown as Property, financials: monthlyResults }],
         2, getFiscalYear, new Date("2026-04-01"),
       );
       for (const row of bsData.rows) {

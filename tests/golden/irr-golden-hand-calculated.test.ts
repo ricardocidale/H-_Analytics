@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { generatePropertyProForma } from "../../client/src/lib/financialEngine";
 import { pmt } from "../../calc/shared/pmt";
 import { computeIRR } from "../../analytics/returns/irr";
-import { makeProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories";
 import {
   DAYS_PER_MONTH,
   DEPRECIATION_YEARS,
@@ -58,7 +58,7 @@ describe("Golden Lodge — Hand-Calculated IRR Scenario", () => {
     maxOccupancy: 0.70,
     occupancyGrowthStep: 0,
     adrGrowthRate: 0.0,
-    type: "Financed" as any,
+    type: "Financed",
     acquisitionLTV: 0.60,
     acquisitionInterestRate: 0.08,
     acquisitionTermYears: 25,
@@ -72,7 +72,7 @@ describe("Golden Lodge — Hand-Calculated IRR Scenario", () => {
     cateringBoostPercent: 0,
     baseManagementFeeRate: 0.085,
     incentiveManagementFeeRate: 0.12,
-  } as any);
+  });
 
   const global = makeGlobal({
     modelStartDate: "2026-04-01",

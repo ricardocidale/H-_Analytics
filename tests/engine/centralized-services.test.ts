@@ -15,7 +15,7 @@ const baseProperty = {
     startAdr: 250,
     maxOccupancy: 0.85,
     purchasePrice: 2_000_000,
-  } as any),
+  }),
   id: 1,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,

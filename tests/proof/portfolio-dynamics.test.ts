@@ -4,7 +4,7 @@ import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE
 } from "../../shared/constants.js";
-import { makeProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories";
 
 const baseProperty = makeProperty({
   startAdr: 250,
@@ -16,7 +16,7 @@ const baseProperty = makeProperty({
   cateringBoostPercent: 0.22,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-} as any);
+});
 
 const baseGlobal = makeGlobal({
   companyOpsStartDate: "2026-04-01",
@@ -34,7 +34,7 @@ const baseGlobal = makeGlobal({
   travelCostPerClient: 12_000,
   itLicensePerClient: 3_000,
   partnerCompYear1: 540_000,
-} as any);
+});
 
 describe("Portfolio Dynamics Proof Tests", () => {
   

@@ -93,8 +93,8 @@ describe("T006 — Scenario Snapshot Integrity", () => {
     it("computeSnapshotHash is deterministic", () => {
       const assumptions = { inflationRate: 0.03, projectionYears: 5 };
       const properties = [{ ...baseProperty, name: "A" }];
-      const h1 = computeSnapshotHash(assumptions, properties as any[]);
-      const h2 = computeSnapshotHash(assumptions, properties as any[]);
+      const h1 = computeSnapshotHash(assumptions, properties as Array<Record<string, unknown>>);
+      const h2 = computeSnapshotHash(assumptions, properties as Array<Record<string, unknown>>);
       expect(h1).toBe(h2);
     });
   });

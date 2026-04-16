@@ -24,6 +24,7 @@ import {
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE, DAYS_PER_MONTH,
   DEFAULT_COMPANY_TAX_RATE,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ─── PROPERTIES ──────────────────────────────────────────────────────────
 const COMMON = {
@@ -34,27 +35,27 @@ const COMMON = {
   exitCapRate: 0.085, dispositionCommission: 0.05, willRefinance: "No",
 };
 
-const PROP_A = {
+const PROP_A: PropertyInput = {
   ...COMMON, id: 1, name: "Cash Inn", type: "Full Equity",
   purchasePrice: 800_000, roomCount: 8, startAdr: 180,
   operationsStartDate: "2026-04-01", acquisitionDate: "2026-04-01",
-} as any;
+} as PropertyInput;
 
-const PROP_B = {
+const PROP_B: PropertyInput = {
   ...COMMON, id: 2, name: "Lever Lodge", type: "Financed",
   purchasePrice: 2_000_000, roomCount: 20, startAdr: 200,
   acquisitionLTV: 0.65, acquisitionInterestRate: 0.08, acquisitionTermYears: 25,
   operationsStartDate: "2026-04-01", acquisitionDate: "2026-04-01",
-} as any;
+} as PropertyInput;
 
-const PROP_C = {
+const PROP_C: PropertyInput = {
   ...COMMON, id: 3, name: "Late Start", type: "Financed",
   purchasePrice: 3_000_000, roomCount: 30, startAdr: 220,
   acquisitionLTV: 0.60, acquisitionInterestRate: 0.07, acquisitionTermYears: 20,
   operationsStartDate: "2026-10-01", acquisitionDate: "2026-04-01",
-} as any;
+} as PropertyInput;
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01", projectionYears: 2, inflationRate: 0,
   fixedCostEscalationRate: 0, companyInflationRate: 0,
   companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
@@ -67,7 +68,7 @@ const GLOBAL = {
   officeLeaseStart: 36_000, professionalServicesStart: 24_000,
   travelCostPerClient: 12_000, itLicensePerClient: 3_000,
   marketingRate: 0.05, miscOpsRate: 0.03,
-} as any;
+} as GlobalInput;
 
 const MONTHS = 24;
 const ALL_PROPS = [PROP_A, PROP_B, PROP_C];

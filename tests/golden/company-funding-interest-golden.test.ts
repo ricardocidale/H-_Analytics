@@ -44,10 +44,11 @@ import {
   DEFAULT_COMPANY_TAX_RATE, DEFAULT_BUSINESS_INSURANCE_START,
   DAYS_PER_MONTH,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 const PENNY = 2;
 
-const PROPERTY = {
+const PROPERTY: PropertyInput = {
   id: 1,
   name: "Clearwater Inn",
   type: "Cash",
@@ -69,9 +70,9 @@ const PROPERTY = {
   exitCapRate: 0.08,
   dispositionCommission: 0.02,
   willRefinance: "No",
-} as any;
+} as PropertyInput;
 
-const makeGlobal = (overrides: Record<string, any> = {}) => ({
+const makeGlobal = (overrides: Partial<GlobalInput> = {}): GlobalInput => ({
   modelStartDate: "2026-01-01",
   projectionYears: 1,
   inflationRate: 0,
@@ -100,7 +101,7 @@ const makeGlobal = (overrides: Record<string, any> = {}) => ({
   fundingInterestRate: 0.08,
   fundingInterestPaymentFrequency: 'accrues_only',
   ...overrides,
-} as any);
+} as GlobalInput);
 
 const MONTHS = 12;
 

@@ -81,7 +81,7 @@ describe("downloadCSV", () => {
 
   it("returns false on error", async () => {
     const downloadCSV = await getDownloadCSV();
-    (document as any).createElement = () => { throw new Error("boom"); };
+    (document as unknown as { createElement: () => never }).createElement = () => { throw new Error("boom"); };
     const result = await downloadCSV("data", "file.csv");
     expect(result).toBe(false);
   });

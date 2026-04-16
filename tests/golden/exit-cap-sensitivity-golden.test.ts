@@ -34,12 +34,13 @@ import {
   DEFAULT_CATERING_BOOST_PCT, DEFAULT_BASE_MANAGEMENT_FEE_RATE, DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCENARIO INPUTS (shared across all 4 cap rate scenarios)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function makeProperty(exitCapRate: number) {
+function makeProperty(exitCapRate: number): PropertyInput {
   return {
     id: 1,
     name: "Cap Rate Sensitivity Lodge",
@@ -65,10 +66,10 @@ function makeProperty(exitCapRate: number) {
     exitCapRate,
     dispositionCommission: 0.05,
     willRefinance: "No",
-  } as any;
+  } as PropertyInput;
 }
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01",
   projectionYears: 10,
   inflationRate: 0,
@@ -80,7 +81,7 @@ const GLOBAL = {
   safeTranche1Amount: 800_000,
   safeTranche2Date: null,
   safeTranche2Amount: 0,
-} as any;
+} as GlobalInput;
 
 const MONTHS = 120;
 const YEARS = 10;
@@ -191,8 +192,8 @@ const scenarios = CAP_RATES.map((capRate) => {
   const yearlyProp = aggregatePropertyByYear(propFinancials, YEARS);
   const yearlyCF = aggregateCashFlowByYear(
     propFinancials,
-    { ...prop, preOpeningCosts: 0 } as any,
-    GLOBAL as any,
+    { ...prop, preOpeningCosts: 0 } as PropertyInput,
+    GLOBAL,
     YEARS,
   );
   return { capRate, prop, propFinancials, yearlyProp, yearlyCF };

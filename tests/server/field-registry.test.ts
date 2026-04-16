@@ -206,9 +206,9 @@ describe("buildPropertyDefaultsFromRegistry", () => {
 
   it("registry has at least one field per category", () => {
     const categories = new Set(FIELD_REGISTRY.map((f) => f.category));
-    const expected = ["exit", "revenue", "cost-rate", "management-fee", "operating", "debt-acquisition", "debt-refinance"];
+    const expected: FieldDefinition["category"][] = ["exit", "revenue", "cost-rate", "management-fee", "operating", "debt-acquisition", "debt-refinance"];
     for (const cat of expected) {
-      expect(categories.has(cat as any), `Missing category: ${cat}`).toBe(true);
+      expect(categories.has(cat), `Missing category: ${cat}`).toBe(true);
     }
   });
 });

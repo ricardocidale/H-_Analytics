@@ -23,11 +23,11 @@ import { DEPRECIATION_YEARS } from "../../shared/constants.js";
 const baseGlobal = makeGlobal({ projectionYears: 10 });
 
 const financedProperty = makeProperty({
-  type: "Financed" as any,
+  type: "Financed" as const,
   acquisitionLTV: 0.75,
   acquisitionInterestRate: 0.09,
   acquisitionTermYears: 25,
-} as any);
+} as Partial<ReturnType<typeof makeProperty>>);
 
 // ---------------------------------------------------------------------------
 // Helpers

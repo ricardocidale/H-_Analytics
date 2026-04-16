@@ -31,12 +31,13 @@ import {
   DEFAULT_COMPANY_TAX_RATE, DEFAULT_BUSINESS_INSURANCE_START,
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCENARIO INPUTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PROPERTY = {
+const PROPERTY: PropertyInput = {
   id: 1,
   name: "Clearwater Inn",
   type: "Cash",
@@ -58,9 +59,9 @@ const PROPERTY = {
   exitCapRate: 0.08,
   dispositionCommission: 0.02,
   willRefinance: "No",
-} as any;
+} as PropertyInput;
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-01-01",
   projectionYears: 2,
   inflationRate: 0,
@@ -87,7 +88,7 @@ const GLOBAL = {
   itLicensePerClient: 3_000,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
-} as any;
+} as GlobalInput;
 
 const MONTHS = 24;
 
@@ -206,8 +207,8 @@ describe("Golden Scenario: Clearwater Inn — Mgmt Co + 1 Property", () => {
   const yearlyProp = aggregatePropertyByYear(propFinancials, 2);
   const yearlyCF = aggregateCashFlowByYear(
     propFinancials,
-    { ...PROPERTY, preOpeningCosts: 50_000 } as any,
-    GLOBAL as any,
+    { ...PROPERTY, preOpeningCosts: 50_000 } as PropertyInput,
+    GLOBAL,
     2,
   );
 

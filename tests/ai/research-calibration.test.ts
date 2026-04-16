@@ -5,6 +5,7 @@ import { buildPropertyContextPack } from "../../server/ai/context-pack/property-
 import { assembleResearchPrompt } from "../../server/ai/prompt/assemble-research-prompt";
 import { applyBusinessModelBoost } from "../../server/ai/comparables/relaxation-engine";
 import type { ComparableProperty } from "../../server/ai/comparables/relaxation-engine";
+import type { Property } from "../../shared/schema";
 
 const baseProperty = {
   id: 1,
@@ -93,7 +94,7 @@ const baseProperty = {
   sourceUrls: null,
   lastAssumptionChangeAt: null,
   stabilizationMonths: 6,
-} as any;
+} as Partial<Property> as Property;
 
 describe("Research Calibration", () => {
   describe("T001: Business-model-aware prompts", () => {

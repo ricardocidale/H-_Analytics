@@ -158,9 +158,9 @@ describe("generatePortfolioInvestmentData", () => {
       allPropertyFinancials: [],
       allPropertyYearlyIS: [],
       weightedMetricsByYear: [{ weightedADR: 250, weightedOcc: 0.7, revPAR: 175, totalAvailableRoomNights: 36500 }],
-    } as any;
+    } as Parameters<typeof generatePortfolioInvestmentData>[0];
 
-    const properties = [{ name: "Hotel A" }] as any[];
+    const properties = [{ name: "Hotel A" }] as Parameters<typeof generatePortfolioInvestmentData>[1];
     const result = generatePortfolioInvestmentData(financials, properties, 1, (i) => 2025 + i);
 
     expect(result.years).toEqual([2025]);

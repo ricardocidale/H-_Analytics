@@ -31,6 +31,7 @@ import {
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_COMPANY_TAX_RATE,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 const PROPERTY = {
   id: 1, name: "Gap Lodge", type: "Financed",
@@ -46,9 +47,9 @@ const PROPERTY = {
   acquisitionInterestRate: 0.07,
   acquisitionTermYears: 20,
   exitCapRate: 0.085, dispositionCommission: 0.05, willRefinance: "No",
-} as any;
+} as PropertyInput;
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01", projectionYears: 2, inflationRate: 0,
   fixedCostEscalationRate: 0, companyInflationRate: 0,
   companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
@@ -61,7 +62,7 @@ const GLOBAL = {
   officeLeaseStart: 36_000, professionalServicesStart: 24_000,
   travelCostPerClient: 12_000, itLicensePerClient: 3_000,
   marketingRate: 0.05, miscOpsRate: 0.03,
-} as any;
+} as GlobalInput;
 
 const MONTHS = 24;
 

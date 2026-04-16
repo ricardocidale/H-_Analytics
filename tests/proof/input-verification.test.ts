@@ -14,11 +14,11 @@ const baseProperty = makeProperty({
   startAdr: 250,
   maxOccupancy: 0.85,
   purchasePrice: 2_000_000,
-} as any);
+});
 
 const baseGlobal = makeGlobal({
   projectionYears: 10,
-} as any);
+});
 
 const property = { ...baseProperty, type: "Full Equity" };
 const result = generatePropertyProForma(property, baseGlobal, 120);

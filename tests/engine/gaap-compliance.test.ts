@@ -38,11 +38,11 @@ import { baseProperty, makeProperty, makeGlobal } from "../fixtures";
 const fullEquityProperty = baseProperty;
 
 const financedProperty = makeProperty({
-  type: "Financed" as any,
+  type: "Financed" as const,
   acquisitionLTV: 0.75,
   acquisitionInterestRate: 0.09,
   acquisitionTermYears: 25,
-} as any);
+} as Partial<ReturnType<typeof makeProperty>>);
 
 const baseGlobal = makeGlobal({ projectionYears: 1 });
 

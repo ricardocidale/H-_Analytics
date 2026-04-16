@@ -25,7 +25,7 @@ export function makeBrowserDownloadMocks() {
       click: vi.fn(),
       style: { display: "" },
     };
-    (globalThis as any).document = {
+    (globalThis as unknown as Record<string, unknown>).document = {
       createElement: vi.fn().mockReturnValue(_mockLink),
       body: {
         appendChild: vi.fn().mockReturnValue(_mockLink),
@@ -33,16 +33,16 @@ export function makeBrowserDownloadMocks() {
       },
     };
     _mockRevokeObjectURL = vi.fn();
-    (URL as any).createObjectURL = vi.fn((blob: Blob) => {
+    (URL as unknown as Record<string, unknown>).createObjectURL = vi.fn((blob: Blob) => {
       _capturedBlob = blob;
       return "blob:http://test/abc123";
     });
-    (URL as any).revokeObjectURL = _mockRevokeObjectURL;
+    (URL as unknown as Record<string, unknown>).revokeObjectURL = _mockRevokeObjectURL;
   };
 
   const uninstall = async () => {
     await new Promise((r) => setTimeout(r, 300));
-    delete (globalThis as any).document;
+    delete (globalThis as unknown as Record<string, unknown>).document;
   };
 
   return {

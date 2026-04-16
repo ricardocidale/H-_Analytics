@@ -17,11 +17,11 @@ const baseProperty = makeProperty({
   startAdr: 250,
   maxOccupancy: 0.85,
   purchasePrice: 2_000_000,
-} as any);
+});
 
 const baseGlobal = makeGlobal({
   projectionYears: 10,
-} as any);
+});
 
 interface ReconciliationReport {
   scenario: string;
@@ -79,7 +79,7 @@ function generateReport(
   const totalRefi = result.reduce((s, m) => s + m.refinancingProceeds, 0);
   const totalPrincipal = result.reduce((s, m) => s + m.principalPayment, 0);
 
-  const ltv = (property as any).acquisitionLTV ?? 0;
+  const ltv = property.acquisitionLTV ?? 0;
   const equity = property.purchasePrice * (1 - ltv);
   const debt = property.purchasePrice * ltv;
 
