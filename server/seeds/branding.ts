@@ -19,14 +19,32 @@ export async function seedDefaultLogos() {
     logger.info("Added new H+ Analytics logo and set as default", "seed");
   }
 
+  const hasLbLogo = existingLogos.some(l => l.url === "/logos/lb-logo.jpeg");
+  if (!hasLbLogo && existingLogos.length > 0) {
+    await db.update(logos).set({ isDefault: false }).where(eq(logos.isDefault, true));
+    await db.insert(logos).values({
+      name: "L+B Logo",
+      companyName: "L+B",
+      url: "/logos/lb-logo.jpeg",
+      isDefault: true,
+    });
+    logger.info("Added L+B logo and set as default management company logo", "seed");
+  }
+
   if (existingLogos.length > 0) return;
 
   await db.insert(logos).values([
     {
+      name: "L+B Logo",
+      companyName: "L+B",
+      url: "/logos/lb-logo.jpeg",
+      isDefault: true,
+    },
+    {
       name: "H+ Analytics",
       companyName: "H+ Analytics",
       url: "/logos/h-logo-glass.png",
-      isDefault: true,
+      isDefault: false,
       isAppLogo: true,
     },
     {
