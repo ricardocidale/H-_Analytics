@@ -8,6 +8,18 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
 - **The Analyst** — the singular intelligence agent. Conducts research, provides ranges, conviction levels, and risk flags next to every assumption field. Always "The Analyst" (capitalized, singular). Powered by Norfolk AI Engine.
 - **Rebecca** — the expert companion agent. Answers questions, explains what The Analyst found, guides tours, offers help. Always available in the chat panel.
 
+## Business Model (CRITICAL — read before any work)
+
+- **Norfolk AI** builds the app. The HMC is what's modeled. They are separate entities.
+- **The HMC does NOT buy properties.** Property owners hire the HMC for management and branding.
+- **Defaults** = admin sets in Admin section. **Assumptions** = users work with in front of app. Never confuse them.
+- **Company Assumptions page is user-facing** (ManagementRoute), not admin-only.
+- **Save is per tab.** Each tab save commits that tab's fields and triggers The Analyst.
+- **The Analyst runs after every save** (Tier-0 instant) and on button press (Tier-1 deep research).
+- **Full product architecture:** `docs/architecture/ARCHITECTURE.md`
+- **Business model details:** `.claude/memory/project_business_model_correction.md`
+- **Active Replit tasks:** `.claude/replit-instructions/2026-04-16-master-fixes.md`
+
 ## User Preferences
 
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.

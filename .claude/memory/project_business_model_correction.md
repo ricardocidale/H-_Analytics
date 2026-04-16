@@ -58,7 +58,7 @@ The ICP is derived from the current portfolio (properties with switch ON). The A
 3. Allow the user to regenerate the ICP (= ask The Analyst to redo the analysis)
 4. A dedicated research engine for this task (only one HMC, run it well)
 
-**CRITICAL RULE:** Basic HMC information (location, name, country) must be endorsed or edited by the user BEFORE any research engine runs. Running research with wrong base data (e.g., company HQ in Utah when it's actually in Colombia) produces garbage intelligence.
+**IMPORTANT:** Basic HMC information (name, country, start date) must exist before research runs. The research endpoint checks for companyName and modelStartDate. If missing, returns COMPANY_SETUP_INCOMPLETE. The Analyst runs on whatever data exists — seed or user-entered. It validates and flags issues rather than blocking.
 
 ## Property Switches
 

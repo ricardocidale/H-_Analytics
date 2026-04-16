@@ -1,11 +1,12 @@
 ---
 name: app-architecture
-description: Unified architecture map — navigation, all variables/assumptions, file injection points, external dependencies, and codebase health trends. The single reference for understanding the full system.
+description: Technical reference — navigation tree, field inventory, file injection points, external dependencies, codebase health. For the PRODUCT architecture (actors, workflows, business model), see docs/architecture/ARCHITECTURE.md.
 ---
 
-# H+ Analytics — Unified Architecture Map
+# H+ Analytics — Technical Reference Map
 
-> Compiled from comprehensive codebase audit. This is the definitive reference for navigation structure, all editable variables, file injection points, external service dependencies, and structural health patterns.
+> Technical inventory of navigation, fields, dependencies, and health patterns.
+> For the product architecture (how the app works, user workflow, The Analyst, business model), see **docs/architecture/ARCHITECTURE.md**.
 
 ---
 

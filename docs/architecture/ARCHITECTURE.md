@@ -1,180 +1,201 @@
 # H+ Analytics — Product & System Architecture
 
-**Version:** 2.0 — April 16, 2026
-**Supersedes:** ADR-001, ADR-002, ADR-003, ADR-004 (consolidated here)
+**Version:** 3.0 — April 16, 2026
+**Supersedes:** All previous ADRs and architecture documents
 
 ---
 
-## 1. What This App Is
+## 1. Three Entities, Never Confused
 
-H+ Analytics by Norfolk AI is a financial simulation platform for boutique hospitality management companies. It models a management company (the HMC) alongside independent property SPVs, producing GAAP-compliant financial projections with The Analyst — an always-on AI research engine that validates every assumption.
-
-**Norfolk AI** builds the app. The HMC is the company being modeled. They are separate entities.
-
----
-
-## 2. The Actors
-
-| Actor | Role | Controls |
-|-------|------|----------|
-| **Admin** | Configures system. Seeds properties, creates users, manages AI engines. | Everything except The Analyst's data quality exclusions |
-| **User** | Reviews assumptions, adjusts what they know, endorses what they accept. | Their scenario, their property switches, their saves |
-| **The Analyst** | Always-on AI that validates every assumption, provides ranges, vets its own research inputs. | Data quality exclusions — admin cannot override |
-| **Rebecca** | AI companion who answers questions, drawing on The Analyst's intelligence. | Nothing — she advises, never changes data |
-| **The HMC** | The hospitality management company being modeled. Name is admin-configured. | N/A — it's the subject, not an actor |
-| **Properties** | Independent SPVs owned by their own investors. Property owners hire the HMC. | N/A — they're data, not actors |
+| Entity | What It Is | Who Controls It |
+|--------|-----------|----------------|
+| **Norfolk AI** | The company that builds H+ Analytics. Never modeled in the app. | — |
+| **The HMC** | The hospitality management company being modeled. Name is admin-configured. Provides branding and management services to properties. Does NOT buy real estate. | Admin configures defaults. Users work with assumptions. |
+| **Property SPVs** | Independent real estate assets. Owned by their own investors. Property owners hire the HMC. Each is a separate financial entity. | Admin seeds. Users assign to scenarios via switches. |
 
 ---
 
-## 3. The Business Model
+## 2. Defaults vs Assumptions
 
-The HMC is a management company and brand. It does NOT buy properties.
-
-- Property owners independently acquire large estates
-- They hire the HMC for branding, operations, and management services
-- The HMC charges management fees (the service categories: Marketing, IT, Accounting, etc.)
-- The HMC raises capital (via SAFE or similar) to fund its own operations — NOT to buy real estate
-- Properties with switch ON = agreed to use the HMC for services
-- The ICP defines what properties the HMC prospects for as management clients
-
----
-
-## 4. Data Layers
-
-| Layer | What | Who Sets It | Tracked By |
-|-------|------|------------|-----------|
-| **Seed** | Initial values from seed data or import | Admin/system | `assumption_change_log.changeSource = "seed"` |
-| **Endorsed** | User has saved the page containing this field | User (via Save) | `user_page_visits.endorsed = true` |
-| **Analyst-reviewed** | The Analyst has validated against benchmarks/research | The Analyst | `assumption_guidance` rows + `validationStatus` |
-| **Computed** | Financial engine output (statements, IRR, exits) | Engine (deterministic) | Never stored as assumptions |
+| | Defaults | Assumptions |
+|---|---|---|
+| **Where** | Admin section | Front of the app |
+| **Who edits** | Admin only | Any management user |
+| **Purpose** | Template values that seed new entities | Working numbers the user adjusts and endorses |
+| **Examples** | Default tax rate for Colombia, default FF&E reserve %, default service categories | This property's ADR, this company's staff salary, this scenario's exit cap rate |
+| **When they matter** | When a new property or company is created — defaults fill the fields | Every day — users work with assumptions to build their financial model |
+| **The Analyst's role** | Validates defaults are reasonable at seed time | Validates assumptions after every save, provides ranges, flags issues |
 
 ---
 
-## 5. The User Workflow
+## 3. The User Workflow
 
 ### First Login
-1. Dashboard → banner: "Confirm your management company information"
-2. User goes to Management Company > Setup tab
-3. Checks name, country, city, start date → hits Save
-4. Save = endorsement gate. The Analyst can now run.
+1. Dashboard loads. Properties are pre-assigned by admin. Seed data is pre-populated.
+2. The Analyst has ALREADY run on seed data (Tier-0 deterministic validation at seed time). Ranges are visible. Flags are set.
+3. User navigates to Management Company → Assumptions. Sees 7 tabs with pre-populated data and Analyst ranges.
+4. User works through tabs, adjusting what they know.
 
-### After Endorsement
-5. The Analyst runs Tier-0 automatically (free, 2 seconds) — validates all properties
-6. User sees: "Analyst reviewed your portfolio — N properties need attention"
-7. Tabs show badge counts: Setup ✓, Funding (3 to review), Revenue (2 to review)
-8. User works through tabs, adjusting and endorsing
+### Per-Tab Save (the core interaction)
+Each tab has its own Save button. When the user saves a tab:
 
-### Deep Research (Optional)
-9. User clicks "Refresh Intelligence" when ready
-10. Tier-1 runs: LLM web research, comparable sets, multi-model synthesis
-11. Richer ranges with source citations and conviction scores
-12. User reviews and accepts/overrides
+1. **Fields are committed** — only that tab's fields are written to the database
+2. **The Analyst runs immediately** — validates saved fields against benchmarks (Tier-0, instant)
+3. **Context propagation** — if saved data changes context for other tabs (e.g., company country changes → labor rates, tax defaults, depreciation all shift), The Analyst flags affected fields across the app
+4. **Post-save validation** — if any saved value falls outside The Analyst's range:
+   - On-screen message: "The Analyst notes that [field] at [value] is outside the expected range of [low]–[high]."
+   - Two options: "Adjust" (scrolls to the field) or "Keep my value" (acknowledged and logged to assumption_change_log)
+   - This is not a blocking error — the user can always keep their value. The Analyst advises, never overwrites.
+5. **Intelligence improves** — each save gives The Analyst more context. Saving the company address enables market-specific research. Saving the room count enables per-room benchmarking. The model gets smarter with every tab.
+
+### The Analyst Button (always available, every tab)
+- Pulsating AI icon on every tab that has variables/assumptions
+- Pressing it triggers Tier-1 deep research (LLM-powered) for that tab's domain
+- Animated visual entertains the user while research runs (60-120 seconds)
+- The user is encouraged to press it — it's not a last resort, it's the core feature
+- After research completes, ranges update, conviction levels sharpen, new insights appear
+- The user can press it as many times as they want — each run refines the intelligence
+
+### What The Analyst Does on Each Tab
+
+| Tab | After Save (Tier-0) | After Button Press (Tier-1) |
+|-----|---------------------|----------------------------|
+| **Setup** | Validates country → updates tax, depreciation, CRP defaults. Checks company name, address against known markets. | Researches the specific market: local labor costs, commercial rents, regulatory environment. |
+| **Funding** | Validates SAFE terms against typical venture terms. | Researches comparable management company funding rounds, valuations, investor expectations. |
+| **Revenue Model** | Validates service rates against ISHC/PKF benchmarks. Checks total management fee against industry range. | Researches comparable management fee structures, cost-plus vs flat-fee models, incentive fee benchmarks. |
+| **Compensation** | Validates salary against BLS/market data. Checks staffing tiers against portfolio size. | Researches hospitality executive compensation by market, staffing ratios for boutique management companies. |
+| **Overhead** | Validates office lease, insurance, professional services against market. | Researches commercial lease rates in the HMC's city, hospitality-specific insurance costs, tech infrastructure benchmarks. |
+| **Tax & Exit** | Validates tax rate against country defaults. Checks exit cap rate against market data. Cost of equity against risk profile. | Researches current cap rate trends, comparable management company exits, cost of equity for hospitality. |
+| **Property Defaults** | Validates expense ratios against USALI benchmarks. | Researches property-level operating ratios by quality tier and market. |
 
 ### Returning User
-13. Dashboard shows: "The Analyst has N updates since your last visit"
-14. Staleness badges on properties that need refresh
-15. Change log shows what moved and why
+- Dashboard shows what changed since last visit
+- Properties with stale intelligence show amber badges
+- The Analyst runs staleness checks every 6 hours in the background — user never pays for this
+- If The Analyst found new benchmark data or source health changes, relevant fields are flagged
 
 ---
 
-## 6. The Analyst — Four Modes
+## 4. The Analyst
 
-### Mode 1: Watchdog (always on, zero cost)
-- Fires on every property PATCH and HMC save
-- Checks against country_defaults + hospitality_benchmarks
-- 50ms per property, pure DB lookup
+### Identity
+The Analyst is the AI persona of the Norfolk AI Engine. It's a colleague, not a tool. It studies, reviews, flags, suggests — never processes, computes, or executes.
+
+### Four Modes
+
+**Tier-0: Watchdog** — always on, every write, zero cost, 50ms
+- Fires on every tab save, every property edit, every seed
+- Checks against country_defaults, hospitality_benchmarks, pre-collected data tables
 - Writes `validationStatus` and `assumption_guidance` rows
+- Catches errors like 9% Colombia tax rate instantly
 - Code: `server/ai/analyst-watchdog.ts`
 
-### Mode 2: Seed Validator (on seed/import, zero cost)
-- Runs after every seed or bulk import
-- Validates every field on every property
-- Sets research fitness: `validated`, `flagged`, or `excluded_data`
-- Code: `analyst-watchdog.ts → validateAllProperties()`
-
-### Mode 3: Research Engine (on demand, LLM cost)
-- User clicks "Refresh Intelligence"
+**Tier-1: Research Engine** — on demand, user presses button, $0.05-0.10 per run
 - Multi-stage: pre-collected tables → Pinecone → APIs → LLM web research → multi-model synthesis
-- Writes rich `assumption_guidance` with citations, data quality, conviction
-- Code: `server/routes/research.ts → /api/research/generate`
+- Writes rich guidance with source citations, data quality scores, conviction levels
+- Code: `server/routes/research.ts`
 
-### Mode 4: Data Quality Guardian (background, periodic)
+**Staleness Monitor** — background, every 6 hours
+- Marks properties/company data as stale when older than 30 days
+- Runs portfolio consistency checks (cross-property anomalies)
+- Never triggers Tier-1 automatically — just flags for the user
+
+**Data Quality Guardian** — background, on seed/import
 - Evaluates every property for research fitness
-- Properties with missing critical data or >50% flags → `excluded_data`
+- `excluded_data`: missing critical fields or >50% flags → The Analyst won't use this property for HMC research
 - Admin cannot override — only fixing the data restores fitness
-- Uses full database (all properties, not just user's scenario) for HMC research
-- Code: `analyst-watchdog.ts → validatePropertyAssumptions()`
+- Uses ALL research-ready properties in the database for HMC context (not just the user's scenario)
+
+### Conviction Levels
+
+| Level | Score | Meaning |
+|-------|-------|---------|
+| High | 75-100 | Multiple verified sources agree. Defensible to investors. |
+| Moderate | 45-74 | Some data, reasonable estimate. |
+| Developing | 0-44 | Limited data. Deeper research recommended. |
+| Insufficient | Below floor | The Analyst refuses to advise. "Needs research." |
+
+### The Conviction Floor
+When `qualityScore < 40` or no verified sources exist, The Analyst shows "Insufficient data — press the Analyst button for deeper research" instead of a bad range. The Analyst never guesses.
 
 ---
 
-## 7. The Triggering Policy
+## 5. Property System
 
-| Trigger | Tier | Precondition | Timing | Outcome |
-|---------|------|-------------|--------|---------|
-| Seed / import | 0 | Property exists | Blocking | Set validationStatus |
-| Property save | 0 | PATCH accepted | Fire-and-forget | Recompute status |
-| Company save (basics) | 0 | GA save accepted | Fire-and-forget | Re-validate ALL properties |
-| First eligible visit | 1 | Context checklist GREEN | User waits | Full research |
-| Manual "Refresh Intelligence" | 1 | Context checklist GREEN | User waits | Streamed research |
-| Stale (>30 days) | 1 | Context checklist GREEN | Background (scheduler) | User never pays |
-| Export request | Gate | — | Blocking | Block or watermark |
-| Dashboard open | — | — | NEVER | Read only |
+- Properties exist in the database whether or not any user has them in their scenario
+- Admin assigns properties to users via `userDefaultProperties`
+- Users toggle properties ON/OFF for their scenario
+- Switch ON = property is included in financial calculations and visible in the user's portfolio
+- Switch OFF = hidden from calculations, not deleted
+- Properties are NEVER deleted. `archivedAt` for soft delete by admin.
 
-### Context Checklist (Tier-1)
-**Company:** companyName, companyCountry, opsStartDate, at least 1 research-ready property, Setup page endorsed.
-**Property:** roomCount > 0, startAdr > 0, country set, purchasePrice > 0, type set, not excluded.
+### Research Fitness
+Every property has a `validationStatus`:
+- `pending_validation` — seeded, Analyst hasn't reviewed
+- `validated` — all fields within range, research-ready
+- `flagged` — some fields outside range, usable but needs attention
+- `stale` — validated but older than 30 days
+- `excluded_data` — Analyst excluded, data too unreliable for research
+- `excluded_admin` — admin manually excluded
 
-### Conviction Floor
-The Analyst refuses to advise when `qualityScore < 40` or no verified sources. Shows "Insufficient data — needs research" instead of a bad range.
+The Analyst uses ALL research-ready properties (not just the user's scenario) for HMC-level research. More properties = better ICP = better HMC sizing.
 
 ---
 
-## 8. The Export Gate
+## 6. Scenario System
+
+- Every user gets a default scenario on first login
+- Scenarios snapshot: global assumptions + properties + fees + photos
+- Users can create, clone, compare, share scenarios
+- Admin controls default scenarios and sharing permissions
+- Auto-save after 1hr idle creates visible versioned copy
+
+---
+
+## 7. Export Gate
 
 | Status | Export Behavior |
 |--------|----------------|
-| `excluded_data` | HARD BLOCK |
-| `pending_validation` | HARD BLOCK |
-| `flagged` | SOFT BLOCK — admin can override |
-| `stale` | WATERMARK — proceeds with warning |
-| `validated` | Clean |
-| HMC not endorsed | HARD BLOCK |
+| `excluded_data` properties | HARD BLOCK |
+| Company name not set | HARD BLOCK |
+| `flagged` properties | SOFT BLOCK — admin can override |
+| `stale` data | WATERMARK on every page |
+| `validated` | Clean export |
 
 ---
 
-## 9. The Source Architecture
+## 8. Source Architecture
 
 | Priority | Source | Speed | Cost |
 |----------|--------|-------|------|
 | 0 | Pre-collected DB tables (7 tables, 475+ rows) | Instant | Free |
 | 1 | Pinecone vector search (7 namespaces) | Instant | Free |
-| 2 | FRED, Frankfurter, Walk Score | <1 sec | Free/cheap |
+| 2 | FRED, Frankfurter, Walk Score | <1 sec | Free |
 | 3 | RapidAPI market data | 1-5 sec | Paid |
 | 4 | LLM web research (Perplexity/Tavily) | 10-60 sec | Expensive |
 | 5 | Multi-model synthesis (Gemini + Claude → Opus) | 30-120 sec | Most expensive |
 
-Smart Data Router checks Priority 0 first. Each level only reached if previous didn't have sufficient data.
-
 ---
 
-## 10. The LLM Self-Management Layer
+## 9. LLM Self-Management
 
 - Probes all vendors on startup + every 6 hours
-- Scores each model per function (research-deep, research-fast, chat, exports, operations)
-- Auto-recommends best model. Admin can pin. Engine auto-failovers + emails admin.
-- Code: `server/ai/llm-health-probe.ts`, `llm-recommender.ts`, `llm-registry-manager.ts`
+- Scores models per function, auto-recommends
+- Admin can pin models. Engine failovers + emails admin on issues.
+- The user never sees model names — only "The Analyst suggests..."
 
 ---
 
-## 11. Key Architectural Rules
+## 10. Key Rules
 
-1. **The HMC manages, does NOT buy** — properties are clients, not investments
-2. **The Analyst validates everything** — no assumption reaches financials without review
-3. **The Analyst controls its own inputs** — excludes bad data, admin can't override
-4. **User endorses, never auto-overwritten** — Save = "I've reviewed this"
-5. **Conviction floor** — refuses to advise on low-quality data
-6. **No LLM for math** — financial engine is pure deterministic code
-7. **No magic numbers** — all defaults DB-backed, admin-editable
-8. **Every change logged** — `assumption_change_log` tracks who, what, old, new, why
-9. **LLM layer invisible** — user sees "The Analyst suggests" not "GPT-4 says"
-10. **10 minutes from login to model** — Analyst fills 80%, user reviews 20%
+1. **Norfolk AI builds the app. The HMC is what's modeled. They are separate.**
+2. **Defaults are admin. Assumptions are users. Never confuse them.**
+3. **Save is per tab.** Each save commits that tab's fields and triggers The Analyst.
+4. **The Analyst runs after every save.** Tier-0 instant. Tier-1 on button press.
+5. **The Analyst advises, never overwrites.** User always has final say.
+6. **The Analyst controls its own inputs.** Excludes bad data from research pool.
+7. **The Analyst refuses to guess.** Below conviction floor = "needs research."
+8. **No LLM for math.** Financial engine is pure deterministic code.
+9. **Every change logged.** `assumption_change_log` tracks everything.
+10. **Properties are permanent.** Never deleted, only archived or switched off.
+11. **The HMC does not buy properties.** Property owners hire the HMC.
