@@ -213,15 +213,17 @@ export default function CompanyAssumptions() {
     // Tier 2: Raw research JSON parsing (legacy fallback when guidance records not yet extracted)
     if (research?.content) {
       const c = research.content;
-      const parsePctRange = (str: string | undefined): { display: string; mid: number } | null => {
-        if (!str) return null;
+      const parsePctRange = (raw: unknown): { display: string; mid: number } | null => {
+        if (typeof raw !== "string" || !raw) return null;
+        const str = raw;
         const nums = str.replace(/[^0-9.,\-–]/g, ' ').split(/[\s–\-]+/).map(s => parseFloat(s.replace(/,/g, ''))).filter(n => !isNaN(n));
         if (nums.length >= 2) return { display: str, mid: (nums[0] + nums[1]) / 2 };
         if (nums.length === 1) return { display: str, mid: nums[0] };
         return null;
       };
-      const parseDollarRange = (str: string | undefined): { display: string; mid: number } | null => {
-        if (!str) return null;
+      const parseDollarRange = (raw: unknown): { display: string; mid: number } | null => {
+        if (typeof raw !== "string" || !raw) return null;
+        const str = raw;
         const nums = str.replace(/[^0-9.,\-–kK]/g, ' ').replace(/[kK]/g, '000').split(/[\s–\-]+/).map(s => parseFloat(s.replace(/,/g, ''))).filter(n => !isNaN(n));
         if (nums.length >= 2) return { display: str, mid: Math.round((nums[0] + nums[1]) / 2) };
         if (nums.length === 1) return { display: str, mid: nums[0] };
