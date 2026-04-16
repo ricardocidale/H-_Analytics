@@ -44,6 +44,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Link, useRoute, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
+import { AnalystWorkingView } from "@/components/research/AnalystWorkingView";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
@@ -92,9 +93,10 @@ export default function PropertyEdit() {
   const intelligencePromptShown = useRef(false);
   const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
   const wasGeneratingRef = useRef(false);
+  const [researchStartedAt, setResearchStartedAt] = useState<number | null>(null);
   const { data: marketRates } = useMarketRates();
 
-  const { isGenerating, streamedContent, generateResearch } = useResearchStream({
+  const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
     property: property ?? null,
     propertyId,
     global: globalAssumptions,
@@ -119,6 +121,9 @@ export default function PropertyEdit() {
   });
 
   useEffect(() => {
+    if (!wasGeneratingRef.current && isGenerating) {
+      setResearchStartedAt(Date.now());
+    }
     if (wasGeneratingRef.current && !isGenerating && research?.content) {
       setShowApplyDialog(true);
     }
@@ -645,45 +650,40 @@ export default function PropertyEdit() {
           onAcceptRange={handleAcceptRange}
         />
 
-        {isGenerating && (
-          <Card className="bg-primary/5 border-primary/20 p-4">
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">Researching market data for {property.name}…</p>
-                {streamedContent && (
-                  <p className="text-xs text-muted-foreground mt-1 truncate">
-                    {streamedContent.slice(0, 200)}…
-                  </p>
-                )}
-              </div>
-            </div>
-          </Card>
+        {isGenerating ? (
+          <AnalystWorkingView
+            propertyName={property.name}
+            phases={phases}
+            streamedContent={streamedContent}
+            startedAt={researchStartedAt}
+          />
+        ) : (
+          <>
+            <BasicInfoSection {...sectionProps} />
+            <DescriptionSection {...sectionProps} />
+            <SourceUrlsSection
+              urls={draft.sourceUrls ?? []}
+              onChange={handleSourceUrlsChange}
+              onRunResearch={handleResearchFromUrls}
+              isGenerating={isGenerating}
+            />
+            <PropertyLinksSection propertyId={propertyId} />
+            <TimelineSection {...sectionProps} />
+            <CapitalStructureSection {...sectionProps} />
+            <RevenueAssumptionsSection {...sectionProps} />
+            <OperatingCostRatesSection {...sectionProps} />
+            <ManagementFeesSection
+              {...sectionProps}
+              feeDraft={feeDraft}
+              onFeeCategoryChange={handleFeeCategoryChange}
+              totalServiceFeeRate={totalServiceFeeRate}
+            />
+            <OtherAssumptionsSection {...sectionProps} exitYear={exitYear} />
+
+            <RiskInsightsPanel propertyId={propertyId} />
+            <RegulatoryNotesPanel countryCode={draft.country} />
+          </>
         )}
-
-        <BasicInfoSection {...sectionProps} />
-        <DescriptionSection {...sectionProps} />
-        <SourceUrlsSection
-          urls={draft.sourceUrls ?? []}
-          onChange={handleSourceUrlsChange}
-          onRunResearch={handleResearchFromUrls}
-          isGenerating={isGenerating}
-        />
-        <PropertyLinksSection propertyId={propertyId} />
-        <TimelineSection {...sectionProps} />
-        <CapitalStructureSection {...sectionProps} />
-        <RevenueAssumptionsSection {...sectionProps} />
-        <OperatingCostRatesSection {...sectionProps} />
-        <ManagementFeesSection
-          {...sectionProps}
-          feeDraft={feeDraft}
-          onFeeCategoryChange={handleFeeCategoryChange}
-          totalServiceFeeRate={totalServiceFeeRate}
-        />
-        <OtherAssumptionsSection {...sectionProps} exitYear={exitYear} />
-
-        <RiskInsightsPanel propertyId={propertyId} />
-        <RegulatoryNotesPanel countryCode={draft.country} />
 
         <div className="flex justify-end pb-8">
           <SaveButton 
