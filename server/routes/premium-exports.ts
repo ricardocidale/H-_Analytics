@@ -163,6 +163,25 @@ export function register(app: Express) {
       }
 
       const data = parsed.data;
+
+      // Gate: warn in export metadata if properties are unvalidated
+      if (data.computeRef?.propertyIds?.length) {
+        try {
+          const dbProps = await Promise.all(
+            data.computeRef.propertyIds.map((id: number) => storage.getProperty(id))
+          );
+          const unvalidated = dbProps.filter(p => p && p.validationStatus === "pending_validation");
+          if (unvalidated.length > 0) {
+            logger.warn(
+              `Export includes ${unvalidated.length} unvalidated properties: ${unvalidated.map(p => p!.name).join(", ")}`,
+              "premium-export",
+            );
+          }
+        } catch {
+          // Don't block export if validation check fails
+        }
+      }
+
       let exportOutputHash: string | undefined;
 
       if (data.computeRef && !req.user?.id) {

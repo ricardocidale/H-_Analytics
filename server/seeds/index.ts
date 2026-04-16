@@ -125,6 +125,21 @@ export async function seed() {
 
     await seedKnowledgeBase();
 
+    // The Analyst validates every seeded property — catches errors like wrong tax rates
+    try {
+      const { validateAllProperties } = await import("../ai/seed-validator");
+      const results = await validateAllProperties();
+      const flagged = results.filter(r => r.status === "flagged");
+      if (flagged.length > 0) {
+        logger.warn(
+          `The Analyst flagged ${flagged.length} properties with assumption issues: ${flagged.map(f => `${f.propertyName} (${f.flagged} flags)`).join(", ")}`,
+          "seed",
+        );
+      }
+    } catch (validationErr: unknown) {
+      logger.warn(`Analyst seed validation skipped: ${validationErr instanceof Error ? validationErr.message : String(validationErr)}`, "seed");
+    }
+
     logger.info("Database seed completed successfully!", "seed");
   } catch (err: unknown) {
     logger.error(`Seed failed — rolling back inserted data so --force re-run is safe: ${err instanceof Error ? err.message : String(err)}`, "seed");

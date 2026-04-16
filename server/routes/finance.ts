@@ -183,6 +183,23 @@ export function registerFinanceRoutes(router: Router): void {
       const { properties: allProperties, globalAssumptions, projectionYears } = validation.data;
       // Defense-in-depth: exclude inactive properties even if client already filtered
       const properties = allProperties.filter((p: Record<string, unknown>) => p.isActive !== false);
+
+      // Warn (don't block) if properties have unvalidated assumptions
+      const propertyIds = properties.map((p: Record<string, unknown>) => p.id).filter((id): id is number => typeof id === "number");
+      if (propertyIds.length > 0) {
+        try {
+          const dbProps = await Promise.all(propertyIds.map(id => storage.getProperty(id)));
+          const unvalidated = dbProps.filter(p => p && p.validationStatus === "pending_validation");
+          if (unvalidated.length > 0) {
+            logger.warn(
+              `Computing financials with ${unvalidated.length} unvalidated properties: ${unvalidated.map(p => p!.name).join(", ")}`,
+              "finance",
+            );
+          }
+        } catch {
+          // Don't block computation if validation check itself fails
+        }
+      }
       const wantAudit = req.query.audit === "true";
 
       // Load service templates for company cost-of-services calculation
