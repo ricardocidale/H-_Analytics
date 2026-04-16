@@ -164,19 +164,17 @@ export function register(app: Express) {
 
       const data = parsed.data;
 
-      // Gate 1: HMC must be endorsed before exporting investor materials
-      if (req.user?.id) {
-        try {
-          const setupVisit = await storage.getPageVisit(req.user.id, "company-assumptions");
-          if (!setupVisit?.endorsed) {
-            return res.status(400).json({
-              error: "Please review and save Company Assumptions before exporting. Investor materials require confirmed company data.",
-              code: "HMC_NOT_ENDORSED",
-            });
-          }
-        } catch {
-          // Don't block if visit check fails
+      // Gate 1: HMC must have basic setup before exporting investor materials
+      try {
+        const ga = await storage.getGlobalAssumptions();
+        if (!ga?.companyName) {
+          return res.status(400).json({
+            error: "Company setup is incomplete. An administrator must configure the company name before exporting.",
+            code: "COMPANY_SETUP_INCOMPLETE",
+          });
         }
+      } catch {
+        // Don't block if check fails
       }
 
       // Gate 2: warn in export metadata if properties are unvalidated

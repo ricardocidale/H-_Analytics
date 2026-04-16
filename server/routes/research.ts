@@ -178,14 +178,12 @@ export function register(app: Express) {
             error: "Company name is required before generating intelligence. Set it on the Company Assumptions page.",
           });
         }
-        // HMC endorsement gate — user must save Setup tab before research runs
-        // This prevents research on stale/wrong seed data (e.g., wrong country)
-        const userId = getAuthUser(req).id;
-        const setupVisit = await storage.getPageVisit(userId, "company-assumptions");
-        if (!setupVisit?.endorsed) {
+        // Context gate — ensure minimum company info exists for meaningful research
+        // The admin sets these via Company Assumptions; regular users benefit from them
+        if (!ga.companyName || !ga.modelStartDate) {
           return res.status(400).json({
-            error: "Please review and save the Company Assumptions page before running intelligence. The Analyst needs confirmed company information to provide accurate research.",
-            code: "HMC_NOT_ENDORSED",
+            error: "Company setup is incomplete. An administrator must configure the company name and start date before intelligence can run.",
+            code: "COMPANY_SETUP_INCOMPLETE",
           });
         }
         const reqUser = getAuthUser(req);
