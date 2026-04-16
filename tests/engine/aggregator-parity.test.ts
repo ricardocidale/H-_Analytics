@@ -16,7 +16,8 @@ import {
   DEFAULT_PROPERTY_TAX_RATE,
   DEFAULT_PROPERTY_INFLATION_RATE,
 } from "@/lib/constants";
-import { baseProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput, makeGlobalInput } from "../fixtures/factories";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 /**
  * Aggregator Parity Tests
@@ -36,9 +37,10 @@ import { baseProperty, makeGlobal } from "../fixtures";
 // Helpers
 // ---------------------------------------------------------------------------
 
-const baseGlobal = makeGlobal({ projectionYears: 5 });
+const baseProperty: PropertyInput = makePropertyInput();
+const baseGlobal: GlobalInput = makeGlobalInput({ projectionYears: 5 });
 
-function toLoanParams(prop: typeof baseProperty): LoanParams {
+function toLoanParams(prop: PropertyInput): LoanParams {
   return {
     purchasePrice: prop.purchasePrice,
     buildingImprovements: prop.buildingImprovements ?? 0,
@@ -46,29 +48,29 @@ function toLoanParams(prop: typeof baseProperty): LoanParams {
     preOpeningCosts: 0,
     operatingReserve: 0,
     type: prop.type,
-    acquisitionDate: (prop as any).acquisitionDate ?? null,
-    taxRate: (prop as any).taxRate ?? null,
-    acquisitionLTV: (prop as any).acquisitionLTV ?? null,
-    acquisitionInterestRate: (prop as any).acquisitionInterestRate ?? null,
-    acquisitionTermYears: (prop as any).acquisitionTermYears ?? null,
-    willRefinance: (prop as any).willRefinance ?? null,
-    refinanceDate: (prop as any).refinanceDate ?? null,
-    refinanceLTV: (prop as any).refinanceLTV ?? null,
-    refinanceInterestRate: (prop as any).refinanceInterestRate ?? null,
-    refinanceTermYears: (prop as any).refinanceTermYears ?? null,
-    refinanceClosingCostRate: (prop as any).refinanceClosingCostRate ?? null,
-    exitCapRate: (prop as any).exitCapRate ?? null,
-    dispositionCommission: (prop as any).dispositionCommission ?? null,
+    acquisitionDate: prop.acquisitionDate ?? null,
+    taxRate: prop.taxRate ?? null,
+    acquisitionLTV: prop.acquisitionLTV ?? null,
+    acquisitionInterestRate: prop.acquisitionInterestRate ?? null,
+    acquisitionTermYears: prop.acquisitionTermYears ?? null,
+    willRefinance: prop.willRefinance ?? null,
+    refinanceDate: prop.refinanceDate ?? null,
+    refinanceLTV: prop.refinanceLTV ?? null,
+    refinanceInterestRate: prop.refinanceInterestRate ?? null,
+    refinanceTermYears: prop.refinanceTermYears ?? null,
+    refinanceClosingCostRate: prop.refinanceClosingCostRate ?? null,
+    exitCapRate: prop.exitCapRate ?? null,
+    dispositionCommission: prop.dispositionCommission ?? null,
   };
 }
 
-function toGlobalLoanParams(glob: typeof baseGlobal): GlobalLoanParams {
+function toGlobalLoanParams(glob: GlobalInput): GlobalLoanParams {
   return {
     modelStartDate: glob.modelStartDate,
     debtAssumptions: glob.debtAssumptions,
-    exitCapRate: (glob as any).exitCapRate,
-    commissionRate: (glob as any).commissionRate,
-    salesCommissionRate: (glob as any).salesCommissionRate,
+    exitCapRate: glob.exitCapRate,
+    commissionRate: undefined,
+    salesCommissionRate: glob.salesCommissionRate,
   };
 }
 
@@ -80,8 +82,8 @@ interface AllAggregations {
 }
 
 function generateAllAggregations(
-  prop: typeof baseProperty,
-  glob: typeof baseGlobal,
+  prop: PropertyInput,
+  glob: GlobalInput,
   years: number,
 ): AllAggregations {
   const months = years * 12;

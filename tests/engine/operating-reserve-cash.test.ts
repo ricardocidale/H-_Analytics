@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { generatePropertyProForma, MonthlyFinancials } from "@/lib/financialEngine";
 import { differenceInMonths } from "date-fns";
-import { baseProperty as fixtureProperty, makeGlobal } from "../fixtures";
+import { makePropertyInput, makeGlobalInput } from "../fixtures/factories";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
-const baseProperty = { ...fixtureProperty };
+const baseProperty: PropertyInput = makePropertyInput();
 
-const baseGlobal = {
-  modelStartDate: "2026-04-01",
+const baseGlobal: GlobalInput = makeGlobalInput({
   inflationRate: 0.03,
-  modelDurationYears: 3,
-};
+  projectionYears: 3,
+});
 
 describe("Operating Reserve and Cumulative Cash Flow", () => {
   describe("Operating reserve seeds cash at acquisition month", () => {
@@ -19,7 +19,7 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         ...baseProperty,
         operatingReserve: reserve,
       };
-      const months = generatePropertyProForma(property, baseGlobal as any);
+      const months = generatePropertyProForma(property, baseGlobal);
       const acqMonth = months[0];
       expect(acqMonth.endingCash).toBeGreaterThanOrEqual(reserve);
     });
@@ -29,7 +29,7 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         ...baseProperty,
         operatingReserve: 0,
       };
-      const months = generatePropertyProForma(property, baseGlobal as any);
+      const months = generatePropertyProForma(property, baseGlobal);
       const acqMonth = months[0];
       expect(acqMonth.endingCash).toBeLessThan(250_000);
     });
@@ -37,11 +37,11 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
     it("reserve difference shows up in ending cash", () => {
       const withReserve = generatePropertyProForma(
         { ...baseProperty, operatingReserve: 500_000 },
-        baseGlobal as any
+        baseGlobal
       );
       const withoutReserve = generatePropertyProForma(
         { ...baseProperty, operatingReserve: 0 },
-        baseGlobal as any
+        baseGlobal
       );
       const diff = (withReserve[0].endingCash || 0) - (withoutReserve[0].endingCash || 0);
       expect(Math.abs(diff - 500_000)).toBeLessThan(1);
@@ -53,7 +53,7 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         ...baseProperty,
         operatingReserve: reserve,
       };
-      const months = generatePropertyProForma(property, baseGlobal as any);
+      const months = generatePropertyProForma(property, baseGlobal);
 
       let cumulativeCash = reserve;
       for (let i = 0; i < months.length; i++) {
@@ -73,7 +73,7 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         acquisitionInterestRate: 0.08,
         acquisitionTermYears: 25,
       };
-      const months = generatePropertyProForma(property, baseGlobal as any);
+      const months = generatePropertyProForma(property, baseGlobal);
 
       const firstOpMonth = months.find(m => (m.debtPayment || 0) > 0);
       expect(firstOpMonth).toBeDefined();
@@ -103,8 +103,8 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         acquisitionInterestRate: 0.08,
         acquisitionTermYears: 30,
       };
-      const months25 = generatePropertyProForma(property25yr, baseGlobal as any);
-      const months30 = generatePropertyProForma(property30yr, baseGlobal as any);
+      const months25 = generatePropertyProForma(property25yr, baseGlobal);
+      const months30 = generatePropertyProForma(property30yr, baseGlobal);
 
       const ds25 = months25.find(m => (m.debtPayment || 0) > 0)?.debtPayment || 0;
       const ds30 = months30.find(m => (m.debtPayment || 0) > 0)?.debtPayment || 0;
@@ -120,7 +120,7 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         ...baseProperty,
         operatingReserve: reserve,
       };
-      const months = generatePropertyProForma(property, baseGlobal as any);
+      const months = generatePropertyProForma(property, baseGlobal);
 
       let cumCash = reserve;
       for (const m of months) {
@@ -140,10 +140,10 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         acquisitionTermYears: 25,
         operatingReserve: reserve,
       };
-      const months = generatePropertyProForma(property, {
-        ...baseGlobal,
-        modelDurationYears: 5,
-      } as any);
+      const months = generatePropertyProForma(property, makeGlobalInput({
+        inflationRate: 0.03,
+        projectionYears: 5,
+      }));
 
       let cumCash = reserve;
       for (const m of months) {
@@ -158,7 +158,7 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         ...baseProperty,
         operatingReserve: 0,
       };
-      const months = generatePropertyProForma(property, baseGlobal as any);
+      const months = generatePropertyProForma(property, baseGlobal);
 
       let cumCash = 0;
       for (const m of months) {
@@ -182,10 +182,10 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         refinanceTermYears: 25,
         refinanceClosingCostRate: 0.03,
       };
-      const months = generatePropertyProForma(property, {
-        ...baseGlobal,
-        modelDurationYears: 5,
-      } as any);
+      const months = generatePropertyProForma(property, makeGlobalInput({
+        inflationRate: 0.03,
+        projectionYears: 5,
+      }));
 
       let cumCash = reserve;
       for (const m of months) {
@@ -209,10 +209,10 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         refinanceTermYears: 25,
         refinanceClosingCostRate: 0.03,
       };
-      const months = generatePropertyProForma(property, {
-        ...baseGlobal,
-        modelDurationYears: 5,
-      } as any);
+      const months = generatePropertyProForma(property, makeGlobalInput({
+        inflationRate: 0.03,
+        projectionYears: 5,
+      }));
 
       const acqMonth = months[0];
       expect(acqMonth.endingCash).toBeGreaterThanOrEqual(reserve);
@@ -238,11 +238,11 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
       };
       const withReserve = generatePropertyProForma(
         { ...refiProperty, operatingReserve: reserve },
-        { ...baseGlobal, modelDurationYears: 5 } as any
+        makeGlobalInput({ inflationRate: 0.03, projectionYears: 5 })
       );
       const withoutReserve = generatePropertyProForma(
         { ...refiProperty, operatingReserve: 0 },
-        { ...baseGlobal, modelDurationYears: 5 } as any
+        makeGlobalInput({ inflationRate: 0.03, projectionYears: 5 })
       );
       const diff = (withReserve[withReserve.length - 1].endingCash || 0) -
                    (withoutReserve[withoutReserve.length - 1].endingCash || 0);
@@ -264,10 +264,10 @@ describe("Operating Reserve and Cumulative Cash Flow", () => {
         purchasePrice: 3_800_000,
         buildingImprovements: 1_000_000,
       };
-      const months = generatePropertyProForma(property, {
-        ...baseGlobal,
-        modelDurationYears: 5,
-      } as any);
+      const months = generatePropertyProForma(property, makeGlobalInput({
+        inflationRate: 0.03,
+        projectionYears: 5,
+      }));
 
       const opsStart = new Date(property.operationsStartDate);
       const modelStart = new Date(baseGlobal.modelStartDate);
