@@ -6,7 +6,8 @@ import { CityCombobox } from "@/components/ui/city-combobox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
-import { IconPhone, IconGlobe, IconHash, IconCalendar, IconMail, IconMapPin, IconPercent } from "@/components/icons";
+import { IconPhone, IconGlobe, IconHash, IconCalendar, IconMail, IconMapPin, IconPercent, IconTarget } from "@/components/icons";
+import { Link } from "wouter";
 
 import { PROJECTION_YEARS } from "@/lib/constants";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
@@ -28,12 +29,22 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
       <div className="relative space-y-6">
-        <div>
-          <h3 className="text-lg font-display text-foreground flex items-center">
-            Company Setup
-            <InfoTooltip text="Configure the management company identity, contact info, location, and projection horizon." />
-          </h3>
-          <p className="text-muted-foreground text-sm label-text">Configure the management company details and when it starts operations</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-display text-foreground flex items-center">
+              Company Setup
+              <InfoTooltip text="Configure the management company identity, contact info, location, and projection horizon." />
+            </h3>
+            <p className="text-muted-foreground text-sm label-text">Configure the management company details and when it starts operations</p>
+          </div>
+          <Link
+            href="/company/icp-definition"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline whitespace-nowrap"
+            data-testid="link-icp-definition"
+          >
+            <IconTarget className="w-4 h-4" />
+            Edit ICP Definition
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

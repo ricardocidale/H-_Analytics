@@ -1,19 +1,23 @@
 import { NeuralGlow } from "@/components/ui/ai-loader";
-import { Button } from "@/components/ui/button";
-import { IconSparkles } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 interface FirstVisitBannerProps {
-  onAskAnalyst: () => void;
-  isGenerating: boolean;
+  /** @deprecated kept for API compatibility — banner no longer renders its own CTA */
+  onAskAnalyst?: () => void;
+  /** @deprecated kept for API compatibility */
+  isGenerating?: boolean;
   className?: string;
 }
 
-export function FirstVisitBanner({
-  onAskAnalyst,
-  isGenerating,
-  className,
-}: FirstVisitBannerProps) {
+/**
+ * Informational banner shown on first visit to an assumptions page.
+ *
+ * The "Ask the Analyst" CTA used to live here but was removed because it
+ * duplicated the primary action button already present in the page header.
+ * The banner is now purely informational — callers must continue to gate
+ * its visibility (e.g. hide it once intelligence freshness is "current").
+ */
+export function FirstVisitBanner({ className }: FirstVisitBannerProps) {
   return (
     <div
       className={cn(
@@ -29,19 +33,9 @@ export function FirstVisitBanner({
           The Analyst hasn't reviewed these assumptions yet
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Ask the Analyst to study market data and provide conviction-scored ranges for every field.
+          Use <span className="font-medium">Ask the Analyst</span> in the page header to study market data and provide conviction-scored ranges for every field.
         </p>
       </div>
-      <Button
-        size="sm"
-        onClick={onAskAnalyst}
-        disabled={isGenerating}
-        className="animate-intelligence-pulse gap-1.5 flex-shrink-0"
-        data-testid="button-first-visit-ask-analyst"
-      >
-        <IconSparkles className="w-3.5 h-3.5" />
-        Ask the Analyst
-      </Button>
     </div>
   );
 }

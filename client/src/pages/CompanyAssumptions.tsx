@@ -40,11 +40,11 @@ import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, us
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconPlay, IconAlertTriangle, IconTarget } from "@/components/icons";
+import { IconPlay, IconAlertTriangle } from "@/components/icons";
 import { OrbitalDots } from "@/components/ui/ai-loader";
 import { usePageVisit } from "@/hooks/usePageVisit";
 import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import type { GlobalResponse } from "@/lib/api";
 import { SaveButton } from "@/components/ui/save-button";
@@ -408,7 +408,7 @@ export default function CompanyAssumptions() {
       <div className="space-y-6">
         <PageHeader
           title="Company Assumptions"
-          subtitle={`Configure ${global.companyName ?? "Hospitality Business"} Co. operating parameters`}
+          subtitle={`Configure ${global.companyName ?? "Hospitality Business"} operating parameters`}
           variant="dark"
           backLink="/company"
           actions={
@@ -465,15 +465,9 @@ export default function CompanyAssumptions() {
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-[260px] text-center">
-                  When enabled, intelligence refreshes automatically whenever you open an assumptions page with outdated data.
+                  Auto-refresh intelligence when assumptions change
                 </TooltipContent>
               </Tooltip>
-              <Link href="/company/icp-definition" className="text-inherit no-underline">
-                <Button variant="outline" data-testid="button-icp-definition">
-                  <IconTarget className="w-4 h-4" />
-                  ICP Definition
-                </Button>
-              </Link>
               <SaveButton 
                 onClick={handleSave} 
                 isPending={updateMutation.isPending}
@@ -490,12 +484,17 @@ export default function CompanyAssumptions() {
           onRunResearch={generateResearch}
         />
 
-        {isFirstVisit && !isGenerating && (
-          <FirstVisitBanner
-            onAskAnalyst={generateResearch}
-            isGenerating={isGenerating}
-          />
-        )}
+        {(() => {
+          const { status } = computeFreshnessStatus({
+            researchUpdatedAt: companyResearchUpdatedAt,
+            lastAssumptionChangeAt: global.lastAssumptionChangeAt,
+            isGenerating,
+          });
+          // Hide the first-visit banner once intelligence is up to date —
+          // the green status bar already conveys the same information.
+          if (!isFirstVisit || isGenerating || status === "current") return null;
+          return <FirstVisitBanner />;
+        })()}
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <div className="sticky top-0 z-10 -mx-2 px-2 py-2 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
