@@ -81,9 +81,16 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
       if (expectedValue == null) continue;
 
       totalChecked++;
-      const deviation = Math.abs(propertyValue - expectedValue) / Math.max(Math.abs(expectedValue), 1e-6);
+      // For year-based fields, use absolute difference; for rates, use relative deviation
+      const isYearField = check.propertyField === "depreciationYears";
+      const deviation = isYearField
+        ? Math.abs(propertyValue - expectedValue) / expectedValue  // 20 vs 39 = 49% — but threshold is generous
+        : Math.abs(propertyValue - expectedValue) / Math.max(Math.abs(expectedValue), 1e-6);
+      const exceeds = isYearField
+        ? Math.abs(propertyValue - expectedValue) > 5  // Flag if off by more than 5 years
+        : deviation > check.threshold;
 
-      if (deviation > check.threshold) {
+      if (exceeds) {
         flags.push({
           field: check.propertyField,
           value: propertyValue,
@@ -141,13 +148,13 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
 
   for (const field of benchmarkFields) {
     const val = (property as Record<string, unknown>)[field];
-    if (typeof val === "number" && Number.isFinite(val) && val !== 0) {
+    if (typeof val === "number" && Number.isFinite(val)) {
       assumptionValues[field] = val;
     }
   }
 
   const market = property.city || property.stateProvince || countryName;
-  const tier = (property as Record<string, unknown>).qualityTier as string | undefined;
+  const tier = property.qualityTier ?? undefined;
 
   const benchmarkResults = await validateAllAssumptions(
     assumptionValues,
@@ -213,7 +220,7 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
 
   logger.info(
     `Analyst validation: ${resultSummary.propertyName} — ${status} (${withinRange} ok, ${flags.length} flagged, ${noData} no data)`,
-    "seed-validator",
+    "analyst-watchdog",
   );
 
   return resultSummary;
@@ -233,7 +240,7 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
     } catch (err: unknown) {
       logger.error(
         `Analyst validation failed for property ${prop.id}: ${err instanceof Error ? err.message : err}`,
-        "seed-validator",
+        "analyst-watchdog",
       );
     }
   }
@@ -245,7 +252,7 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
 
   logger.info(
     `Analyst validation complete: ${total} properties (${validated} validated, ${flagged} flagged, ${totalFlags} total flags)`,
-    "seed-validator",
+    "analyst-watchdog",
   );
 
   return results;
@@ -308,7 +315,7 @@ export async function computeFieldAlerts(
     }
 
     const market = property.city || property.stateProvince || countryName;
-    const tier = (property as Record<string, unknown>).qualityTier as string | undefined;
+    const tier = property.qualityTier ?? undefined;
     const validation = await validateAssumptionRange(field, value, market, tier, countryName);
 
     if (validation.verdict === "above" || validation.verdict === "below") {

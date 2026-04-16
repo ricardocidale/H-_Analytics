@@ -13,6 +13,7 @@ import { invalidateComputeCache } from "../finance/cache";
 import { buildPropertyDefaultsFromRegistry } from "@shared/field-registry";
 import { logger } from "../logger";
 import { WalkScoreService } from "../services/WalkScoreService";
+import { validateFieldChanges, computeFieldAlerts } from "../ai/analyst-watchdog";
 import { suggestStarRating } from "../ai/context-pack/star-rating";
 import { registerPropertyUrlRoutes } from "./properties-urls";
 import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
@@ -306,18 +307,16 @@ export function register(app: Express) {
       }
 
       // The Analyst watches every field change in real time
-      import("../ai/analyst-watchdog").then(({ validateFieldChanges }) =>
-        validateFieldChanges(propertyId, validation.data as Record<string, unknown>)
-          .then(alerts => {
-            if (alerts.length > 0) {
-              logger.info(
-                `Analyst flagged ${alerts.length} issue(s) on ${property.name}: ${alerts.map(a => a.message).join("; ")}`,
-                "analyst-watchdog",
-              );
-            }
-          })
-          .catch(err => logger.warn(`Analyst watchdog error: ${err instanceof Error ? err.message : err}`, "properties"))
-      ).catch(() => {});
+      validateFieldChanges(propertyId, validation.data as Record<string, unknown>)
+        .then(alerts => {
+          if (alerts.length > 0) {
+            logger.info(
+              `Analyst flagged ${alerts.length} issue(s) on ${property.name}: ${alerts.map(a => a.message).join("; ")}`,
+              "analyst-watchdog",
+            );
+          }
+        })
+        .catch(err => logger.warn(`Analyst watchdog error: ${err instanceof Error ? err.message : err}`, "properties"));
 
       invalidateComputeCache();
       logActivity(req, "update", "property", property.id, property.name, { updates: req.body });
@@ -346,7 +345,7 @@ export function register(app: Express) {
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) return res.status(403).json({ error: "Access denied" });
 
-      const { computeFieldAlerts } = await import("../ai/analyst-watchdog");
+      // computeFieldAlerts imported statically at top of file
       const numericFields: Record<string, unknown> = {};
       for (const [key, val] of Object.entries(property as Record<string, unknown>)) {
         if (typeof val === "number" && Number.isFinite(val)) {
