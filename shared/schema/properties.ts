@@ -238,14 +238,18 @@ export const properties = pgTable("properties", {
   
   lastAssumptionChangeAt: timestamp("last_assumption_change_at"),
 
-  // The Analyst validation status — every assumption must be validated before use
+  // The Analyst validation + research fitness status
   // "pending_validation" = seeded/imported, Analyst hasn't reviewed yet
-  // "validated" = Analyst confirmed all fields within range (or admin reviewed flags)
+  // "validated" = Analyst confirmed all fields within range, research-ready
   // "stale" = Analyst data older than 30 days, refresh recommended
-  // "flagged" = Analyst found fields outside expected ranges, admin must review
+  // "flagged" = Analyst found fields outside expected ranges, needs review
+  // "excluded_data" = Analyst excluded from research pool — data too unreliable
+  // "excluded_admin" = Admin manually excluded from research pool
   validationStatus: text("validation_status").notNull().default("pending_validation"),
   lastValidatedAt: timestamp("last_validated_at"),
   flaggedFieldCount: integer("flagged_field_count").notNull().default(0),
+  // Why The Analyst excluded this property (null if not excluded)
+  validationReason: text("validation_reason"),
 
   // Soft-delete: null = active, non-null = archived (never hard-delete properties)
   archivedAt: timestamp("archived_at"),
@@ -388,6 +392,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   validationStatus: true,
   lastValidatedAt: true,
   flaggedFieldCount: true,
+  validationReason: true,
 });
 
 export const HOSPITALITY_TYPES = ["hotel", "resort", "boutique_hotel", "business_hotel", "wellness_resort", "conference_hotel", "extended_stay", "vrbo", "lodge"] as const;

@@ -178,6 +178,16 @@ export function register(app: Express) {
             error: "Company name is required before generating intelligence. Set it on the Company Assumptions page.",
           });
         }
+        // HMC endorsement gate — user must save Setup tab before research runs
+        // This prevents research on stale/wrong seed data (e.g., wrong country)
+        const userId = getAuthUser(req).id;
+        const setupVisit = await storage.getPageVisit(userId, "company-assumptions");
+        if (!setupVisit?.endorsed) {
+          return res.status(400).json({
+            error: "Please review and save the Company Assumptions page before running intelligence. The Analyst needs confirmed company information to provide accurate research.",
+            code: "HMC_NOT_ENDORSED",
+          });
+        }
         const reqUser = getAuthUser(req);
         _companyProperties = isAdminRole(reqUser.role)
           ? await storage.getAllProperties()

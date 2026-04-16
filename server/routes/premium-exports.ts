@@ -164,12 +164,34 @@ export function register(app: Express) {
 
       const data = parsed.data;
 
-      // Gate: warn in export metadata if properties are unvalidated
+      // Gate 1: HMC must be endorsed before exporting investor materials
+      if (req.user?.id) {
+        try {
+          const setupVisit = await storage.getPageVisit(req.user.id, "company-assumptions");
+          if (!setupVisit?.endorsed) {
+            return res.status(400).json({
+              error: "Please review and save Company Assumptions before exporting. Investor materials require confirmed company data.",
+              code: "HMC_NOT_ENDORSED",
+            });
+          }
+        } catch {
+          // Don't block if visit check fails
+        }
+      }
+
+      // Gate 2: warn in export metadata if properties are unvalidated
       if (data.computeRef?.propertyIds?.length) {
         try {
           const dbProps = await Promise.all(
             data.computeRef.propertyIds.map((id: number) => storage.getProperty(id))
           );
+          const excluded = dbProps.filter(p => p && (p.validationStatus === "excluded_data" || p.validationStatus === "excluded_admin"));
+          if (excluded.length > 0) {
+            return res.status(400).json({
+              error: `Cannot export: ${excluded.length} properties excluded by The Analyst due to data quality issues: ${excluded.map(p => p!.name).join(", ")}`,
+              code: "PROPERTIES_EXCLUDED",
+            });
+          }
           const unvalidated = dbProps.filter(p => p && p.validationStatus === "pending_validation");
           if (unvalidated.length > 0) {
             logger.warn(

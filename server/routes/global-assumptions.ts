@@ -6,6 +6,7 @@ import { fromZodError } from "zod-validation-error";
 import { logActivity, logAndSendError, parseParamId } from "./helpers";
 import { z } from "zod";
 import { invalidateComputeCache } from "../finance/cache";
+import { logger } from "../logger";
 import { flag } from "../feature-flags";
 
 const appearanceDefaultsSchema = z.object({
@@ -102,6 +103,24 @@ export function register(app: Express) {
       const assumptions = await storage.upsertGlobalAssumptions(finalData, getAuthUser(req).id);
       invalidateComputeCache();
       logActivity(req, "update", "global_assumptions", assumptions.id, "System Settings");
+
+      // Auto-trigger The Analyst's deterministic validation when HMC basics change
+      // This is the "first pass" described in ADR-003 — runs after user confirms Setup
+      const HMC_BASICS = ["companyName", "companyCountry", "companyCity", "companyOpsStartDate"];
+      const basicsChanged = HMC_BASICS.some(k => k in req.body);
+      if (basicsChanged || hasKeyChange) {
+        import("../ai/analyst-watchdog").then(({ validateAllProperties }) =>
+          validateAllProperties()
+            .then(results => {
+              const flagged = results.filter(r => r.status === "flagged" || r.status === "excluded_data");
+              if (flagged.length > 0) {
+                logger.info(`Analyst auto-validation after HMC save: ${flagged.length} properties need attention`, "global-assumptions");
+              }
+            })
+            .catch(err => logger.warn(`Analyst auto-validation failed: ${err instanceof Error ? err.message : err}`, "global-assumptions"))
+        ).catch(() => {});
+      }
+
       res.json(assumptions);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update global assumptions", error);

@@ -41,7 +41,7 @@ const HARD_FLOOR_FIELDS: Array<{
 export interface ValidationResult {
   propertyId: number;
   propertyName: string;
-  status: "validated" | "flagged";
+  status: "validated" | "flagged" | "excluded_data";
   totalChecked: number;
   withinRange: number;
   flagged: number;
@@ -221,12 +221,39 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
     }
   }
 
-  // ── Step 3: Update property validation status ──────────
-  const status = flags.length > 0 ? "flagged" : "validated";
+  // ── Step 3: Check for missing critical data ──────────
+  const criticalFields = ["roomCount", "startAdr", "country"];
+  const missingCritical = criticalFields.filter(f => {
+    const val = (property as Record<string, unknown>)[f];
+    return val == null || val === "" || val === 0;
+  });
+
+  // ── Step 4: Determine validation status ──────────
+  // excluded_data: missing critical fields OR more than 50% of checked fields flagged
+  // flagged: some fields outside range but enough data to be usable
+  // validated: all fields within range, research-ready
+  let status: "validated" | "flagged" | "excluded_data";
+  let reason: string | null = null;
+
+  if (missingCritical.length > 0) {
+    status = "excluded_data";
+    reason = `Missing critical fields: ${missingCritical.join(", ")}. The Analyst cannot use this property for research until these are provided.`;
+  } else if (totalChecked > 0 && flags.length > totalChecked * 0.5) {
+    status = "excluded_data";
+    reason = `${flags.length} of ${totalChecked} fields are outside expected ranges. Data quality is too low for research. Fix the flagged fields and re-validate.`;
+  } else if (flags.length > 0) {
+    status = "flagged";
+    reason = `${flags.length} field(s) outside expected ranges. Property is usable for research but flagged for review.`;
+  } else {
+    status = "validated";
+    reason = null;
+  }
+
   await storage.updateProperty(propertyId, {
     validationStatus: status,
     lastValidatedAt: new Date(),
     flaggedFieldCount: flags.length,
+    validationReason: reason,
   });
 
   const resultSummary: ValidationResult = {

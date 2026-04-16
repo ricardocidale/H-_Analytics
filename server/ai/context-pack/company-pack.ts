@@ -157,7 +157,13 @@ export function buildCompanyContextPack(
   serviceTemplates: Array<{ name: string; defaultRate: number; serviceModel: string; serviceMarkup: number; isActive: boolean }>,
 ): CompanyContextPack {
   const ga = globalAssumptions;
-  const activeProperties = properties.filter(p => p.isActive !== false);
+  // Use all research-ready properties for HMC context (not just user's scenario)
+  // Exclude properties The Analyst has flagged as too unreliable
+  const activeProperties = properties.filter(p =>
+    p.isActive !== false &&
+    p.validationStatus !== "excluded_data" &&
+    p.validationStatus !== "excluded_admin"
+  );
   const totalRooms = activeProperties.reduce((sum, p) => sum + (p.roomCount ?? 0), 0);
   const avgRooms = activeProperties.length > 0 ? Math.round(totalRooms / activeProperties.length) : 0;
   const adrs = activeProperties.map(p => p.startAdr ?? 0).filter(a => a > 0);
