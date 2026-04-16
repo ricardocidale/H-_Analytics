@@ -101,13 +101,13 @@ export async function executeScheduledWorkflow(
         scheduledWorkflow: workflow.workflowKey,
         workflowName: workflow.name,
         generatedAt: new Date().toISOString(),
-      } as any,
+      },
       llmModel: model,
       propertyId: null,
       promptConditions: {
         scheduledWorkflow: workflow.workflowKey,
         durationMs,
-      } as any,
+      },
     });
 
     await storage.createResearchRun({
@@ -223,10 +223,10 @@ async function processPendingBatches(): Promise<void> {
               scheduledWorkflow: workflow.workflowKey,
               workflowName: workflow.name,
               generatedAt: now.toISOString(),
-            } as any,
+            },
             llmModel: "batch/anthropic",
             propertyId: null,
-            promptConditions: { scheduledWorkflow: workflow.workflowKey, batchId } as any,
+            promptConditions: { scheduledWorkflow: workflow.workflowKey, batchId },
           });
 
           await storage.updateScheduledWorkflowRun(workflow.id, {

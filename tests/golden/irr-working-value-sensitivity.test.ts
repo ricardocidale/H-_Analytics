@@ -20,12 +20,13 @@ import { describe, it, expect } from "vitest";
 import { generatePropertyProForma } from "../../client/src/lib/financial/property-engine";
 import { aggregateCashFlowByYear } from "../../client/src/lib/financial/cashFlowAggregator";
 import { computeIRR } from "../../analytics/returns/irr";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCENARIO FACTORY
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function makeScenarioProperty(overrides: Record<string, any> = {}) {
+function makeScenarioProperty(overrides: Record<string, any> = {}): PropertyInput {
   return {
     id: 1,
     name: "IRR Sensitivity Lodge",
@@ -53,10 +54,10 @@ function makeScenarioProperty(overrides: Record<string, any> = {}) {
     willRefinance: "No",
     landValuePercent: 0.25,
     ...overrides,
-  } as any;
+  };
 }
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01",
   projectionYears: 10,
   inflationRate: 0,
@@ -68,7 +69,7 @@ const GLOBAL = {
   safeTranche1Amount: 800_000,
   safeTranche2Date: null,
   safeTranche2Amount: 0,
-} as any;
+};
 
 const MONTHS = 120;
 const YEARS = 10;
@@ -90,8 +91,8 @@ function computeScenarioIRR(overrides: Record<string, any> = {}): {
   const monthly = generatePropertyProForma(prop, GLOBAL, MONTHS);
   const yearlyCF = aggregateCashFlowByYear(
     monthly,
-    { ...prop, preOpeningCosts: 0 } as any,
-    GLOBAL as any,
+    { ...prop, preOpeningCosts: 0 },
+    GLOBAL,
     YEARS,
   );
 

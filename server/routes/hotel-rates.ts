@@ -129,7 +129,7 @@ export function register(app: Express) {
         name: property.name,
         latitude,
         longitude,
-        qualityTier: (property as any).qualityTier,
+        qualityTier: property.qualityTier,
         location: property.location ?? undefined,
       });
 

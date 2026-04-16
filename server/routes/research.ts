@@ -817,12 +817,12 @@ export function register(app: Express) {
         propertyContext: {
           name: property.name || "Property",
           location: property.location || "",
-          qualityTier: (property as any).qualityTier ?? undefined,
+          qualityTier: property.qualityTier ?? undefined,
           roomCount: property.roomCount ?? undefined,
-          businessModel: (property as any).businessModel ?? undefined,
+          businessModel: property.businessModel ?? undefined,
         },
         researchType,
-        country: (property as any).country ?? undefined,
+        country: property.country ?? undefined,
         focusField: focusField ?? undefined,
       };
 

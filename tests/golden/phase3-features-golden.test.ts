@@ -24,12 +24,13 @@ import { describe, it, expect } from "vitest";
 import { generatePropertyProForma } from "../../client/src/lib/financial/property-engine";
 import { BUSINESS_MODEL_DEFAULTS } from "../../shared/constants-business-models";
 import { DAYS_PER_MONTH, DEFAULT_LAND_VALUE_PERCENT, MONTHS_PER_YEAR } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BASE TEMPLATES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const BASE_PROPERTY = {
+const BASE_PROPERTY: PropertyInput = {
   id: 200, name: "Test Property", type: "Full Equity",
   purchasePrice: 2_000_000, buildingImprovements: 0, preOpeningCosts: 0,
   roomCount: 20, startAdr: 300, startOccupancy: 0.70, maxOccupancy: 0.70,
@@ -44,14 +45,14 @@ const BASE_PROPERTY = {
   costRateOther: 0.05, costRateInsurance: 0.015,
   revShareEvents: 0.18, revShareFB: 0.30, revShareOther: 0.03,
   cateringBoostPercent: 0,
-};
+} as PropertyInput;
 
-const BASE_GLOBAL = {
+const BASE_GLOBAL: GlobalInput = {
   modelStartDate: "2026-01-01", projectionYears: 2, inflationRate: 0,
   fixedCostEscalationRate: 0, companyInflationRate: 0, companyTaxRate: 0.21,
   marketingRate: 0.01,
   debtAssumptions: { interestRate: 0.08, amortizationYears: 25 },
-};
+} as GlobalInput;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FEATURE 1: SEASONALITY (Task 3.3)
@@ -62,10 +63,10 @@ describe("Feature 1: Seasonality Profile (Task 3.3)", () => {
   const PEAK_TROUGH_PROFILE = [1.4, 1.3, 1.2, 1.0, 0.8, 0.6, 0.5, 0.5, 0.6, 0.8, 1.0, 1.2];
 
   it("1.1 Flat profile (all 1.0) produces identical results to no profile", () => {
-    const propFlat = { ...BASE_PROPERTY, seasonalityProfile: FLAT_PROFILE } as any;
-    const propNull = { ...BASE_PROPERTY } as any; // no seasonalityProfile
-    const flat = generatePropertyProForma(propFlat, BASE_GLOBAL as any, 24);
-    const noProfile = generatePropertyProForma(propNull, BASE_GLOBAL as any, 24);
+    const propFlat = { ...BASE_PROPERTY, seasonalityProfile: FLAT_PROFILE };
+    const propNull = { ...BASE_PROPERTY }; // no seasonalityProfile
+    const flat = generatePropertyProForma(propFlat, BASE_GLOBAL, 24);
+    const noProfile = generatePropertyProForma(propNull, BASE_GLOBAL, 24);
 
     // Every month's revenue should be identical
     for (let i = 0; i < 24; i++) {
@@ -82,8 +83,8 @@ describe("Feature 1: Seasonality Profile (Task 3.3)", () => {
   });
 
   it("1.2 Peak/trough profile — January peak vs July trough", () => {
-    const prop = { ...BASE_PROPERTY, seasonalityProfile: PEAK_TROUGH_PROFILE } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    const prop = { ...BASE_PROPERTY, seasonalityProfile: PEAK_TROUGH_PROFILE };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // January (month 0): factor = 1.4
     // seasonalOccupancy = min(1, 0.70 * 1.4) = min(1, 0.98) = 0.98
@@ -116,8 +117,8 @@ describe("Feature 1: Seasonality Profile (Task 3.3)", () => {
   it("1.3 Occupancy capped at 100% but ADR NOT capped", () => {
     // Factor = 2.0: occ = 0.70 * 2.0 = 1.4 -> capped at 1.0; ADR = 300 * 2.0 = 600
     const highProfile = [2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
-    const prop = { ...BASE_PROPERTY, seasonalityProfile: highProfile } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    const prop = { ...BASE_PROPERTY, seasonalityProfile: highProfile };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // January: occ capped at 1.0, ADR = 600
     expect(result[0].occupancy).toBeCloseTo(1.0, 4);
@@ -133,10 +134,10 @@ describe("Feature 1: Seasonality Profile (Task 3.3)", () => {
   });
 
   it("1.4 Annual total with seasonal profile differs from flat", () => {
-    const propSeasonal = { ...BASE_PROPERTY, seasonalityProfile: PEAK_TROUGH_PROFILE } as any;
-    const propFlat = { ...BASE_PROPERTY } as any;
-    const seasonal = generatePropertyProForma(propSeasonal, BASE_GLOBAL as any, 24);
-    const flat = generatePropertyProForma(propFlat, BASE_GLOBAL as any, 24);
+    const propSeasonal = { ...BASE_PROPERTY, seasonalityProfile: PEAK_TROUGH_PROFILE };
+    const propFlat = { ...BASE_PROPERTY };
+    const seasonal = generatePropertyProForma(propSeasonal, BASE_GLOBAL, 24);
+    const flat = generatePropertyProForma(propFlat, BASE_GLOBAL, 24);
 
     // Sum year 1 revenue (months 0-11)
     const seasonalYear1 = seasonal.slice(0, 12).reduce((s, m) => s + m.revenueRooms, 0);
@@ -163,8 +164,8 @@ describe("Feature 2: Occupancy Ramp Curve (Task 3.4)", () => {
     const prop = {
       ...BASE_PROPERTY,
       occupancyRampCurve: [0.50, 0.75, 0.90, 1.0],
-    } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // Year 0 (months 0-11): occupancy = 0.70 * 0.50 = 0.35
     expect(result[0].occupancy).toBeCloseTo(0.35, 4);
@@ -191,8 +192,8 @@ describe("Feature 2: Occupancy Ramp Curve (Task 3.4)", () => {
       occupancyGrowthStep: 0.05,
       occupancyRampMonths: 6,
       occupancyRampCurve: [0.60, 0.80, 1.0], // curve should win
-    } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // With curve: year 0 occ = 0.80 * 0.60 = 0.48
     // Without curve (step): month 0 = 0.50, month 6 = 0.55
@@ -209,9 +210,9 @@ describe("Feature 2: Occupancy Ramp Curve (Task 3.4)", () => {
     const prop = {
       ...BASE_PROPERTY,
       occupancyRampCurve: [0.60, 0.80], // only 2 elements, projection is 3 years
-    } as any;
+    };
     // 3 years = 36 months
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 36);
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 36);
 
     // Year 0: 0.70 * 0.60 = 0.42
     expect(result[0].occupancy).toBeCloseTo(0.70 * 0.60, 4);
@@ -230,8 +231,8 @@ describe("Feature 2: Occupancy Ramp Curve (Task 3.4)", () => {
       occupancyGrowthStep: 0.05,
       occupancyRampMonths: 6,
       // No occupancyRampCurve — step function applies
-    } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // Step function: starts at 0.50, steps up by 0.05 every 6 months, capped at 0.70
     // month 0: 0.50 (rampSteps = floor(0/6) = 0 → 0.50 + 0*0.05 = 0.50)
@@ -254,8 +255,8 @@ describe("Feature 2: Occupancy Ramp Curve (Task 3.4)", () => {
 describe("Feature 3: Owner's Priority Return (Task 3.5)", () => {
 
   it("3.1 No priority return (default) — incentive fee active from month 1", () => {
-    const prop = { ...BASE_PROPERTY } as any; // ownerPriorityReturn defaults to 0
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    const prop = { ...BASE_PROPERTY }; // ownerPriorityReturn defaults to 0
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // Incentive fee = GOP * 0.12 (hotel default), should be > 0 for profitable property
     expect(result[0].feeIncentive).toBeGreaterThan(0);
@@ -267,8 +268,8 @@ describe("Feature 3: Owner's Priority Return (Task 3.5)", () => {
   });
 
   it("3.2 8% priority return — incentive fee deferred until cumulative cash >= hurdle", () => {
-    const prop = { ...BASE_PROPERTY, ownerPriorityReturn: 0.08 } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    const prop = { ...BASE_PROPERTY, ownerPriorityReturn: 0.08 };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // Hurdle = 0.08 * equityInvested
     // equityInvested = totalPropertyValue - loanAmount = $2M - $0 (Full Equity) = $2M
@@ -303,8 +304,8 @@ describe("Feature 3: Owner's Priority Return (Task 3.5)", () => {
   });
 
   it("3.3 Very high priority return (50%) — incentive fee deferred for early months, kicks in after hurdle", () => {
-    const prop = { ...BASE_PROPERTY, ownerPriorityReturn: 0.50 } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    const prop = { ...BASE_PROPERTY, ownerPriorityReturn: 0.50 };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // Hurdle = 0.50 * $2M = $1,000,000
     // Monthly cash flow (no incentive) ~ $69,683/month → crosses $1M around month 14-15
@@ -328,10 +329,10 @@ describe("Feature 3: Owner's Priority Return (Task 3.5)", () => {
   });
 
   it("3.4 Priority return = 0 vs absent — both produce identical results", () => {
-    const propZero = { ...BASE_PROPERTY, ownerPriorityReturn: 0 } as any;
-    const propAbsent = { ...BASE_PROPERTY } as any; // no ownerPriorityReturn field
-    const resultZero = generatePropertyProForma(propZero, BASE_GLOBAL as any, 24);
-    const resultAbsent = generatePropertyProForma(propAbsent, BASE_GLOBAL as any, 24);
+    const propZero = { ...BASE_PROPERTY, ownerPriorityReturn: 0 };
+    const propAbsent = { ...BASE_PROPERTY }; // no ownerPriorityReturn field
+    const resultZero = generatePropertyProForma(propZero, BASE_GLOBAL, 24);
+    const resultAbsent = generatePropertyProForma(propAbsent, BASE_GLOBAL, 24);
 
     for (let i = 0; i < 24; i++) {
       expect(resultZero[i].feeIncentive).toBeCloseTo(resultAbsent[i].feeIncentive, 2);
@@ -356,8 +357,8 @@ describe("Feature 4: Fee Subordination (Task 3.6)", () => {
   };
 
   it("4.1 No subordination (default) — fees always charged, deferredFees = 0", () => {
-    const prop = { ...FINANCED_PROPERTY } as any; // feeSubordination defaults to "none"
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    const prop = { ...FINANCED_PROPERTY }; // feeSubordination defaults to "none"
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     for (let i = 0; i < 24; i++) {
       expect(result[i].deferredFees).toBeCloseTo(0, 2);
@@ -369,8 +370,8 @@ describe("Feature 4: Fee Subordination (Task 3.6)", () => {
   });
 
   it("4.2 Full subordination on profitable property — no fees deferred", () => {
-    const prop = { ...FINANCED_PROPERTY, feeSubordination: "full" } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    const prop = { ...FINANCED_PROPERTY, feeSubordination: "full" };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // Property at $300 ADR, 70% occ should easily cover debt service
     // Verify no fees deferred
@@ -392,8 +393,8 @@ describe("Feature 4: Fee Subordination (Task 3.6)", () => {
       ...FINANCED_PROPERTY,
       startAdr: 30, // extremely low ADR = stressed property
       feeSubordination: "full",
-    } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // Check that some months have deferred fees
     const deferredMonths = result.filter(m => m.deferredFees > 0);
@@ -424,8 +425,8 @@ describe("Feature 4: Fee Subordination (Task 3.6)", () => {
       ...FINANCED_PROPERTY,
       startAdr: 30, // stressed property (same as 4.3)
       feeSubordination: "partial",
-    } as any;
-    const result = generatePropertyProForma(prop, BASE_GLOBAL as any, 24);
+    };
+    const result = generatePropertyProForma(prop, BASE_GLOBAL, 24);
 
     // In stressed months where subordination kicks in:
     const deferredMonths = result.filter(m => m.deferredFees > 0);
@@ -444,8 +445,8 @@ describe("Feature 4: Fee Subordination (Task 3.6)", () => {
       ...FINANCED_PROPERTY,
       startAdr: 30,
       feeSubordination: "full",
-    } as any;
-    const resultFull = generatePropertyProForma(propFull, BASE_GLOBAL as any, 24);
+    };
+    const resultFull = generatePropertyProForma(propFull, BASE_GLOBAL, 24);
 
     const partialDeferred = result[23].cumulativeDeferredFees;
     const fullDeferred = resultFull[23].cumulativeDeferredFees;

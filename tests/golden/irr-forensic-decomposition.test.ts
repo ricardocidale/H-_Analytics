@@ -3,6 +3,7 @@ import { generatePropertyProForma } from "../../client/src/lib/financial/propert
 import { aggregateCashFlowByYear } from "../../client/src/lib/financial/cashFlowAggregator";
 import { computeIRR } from "../../analytics/returns/irr";
 import { makeProperty, makeGlobal } from "../fixtures";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -37,37 +38,37 @@ describe("Forensic IRR Test 5 — Cash Flow Decomposition", () => {
   const propA = makeProperty({
     purchasePrice: 2_000_000, roomCount: 20, startAdr: 200,
     startOccupancy: 0.70, maxOccupancy: 0.70, occupancyGrowthStep: 0, adrGrowthRate: 0.0,
-    type: "Financed" as any, acquisitionLTV: 0.60, acquisitionInterestRate: 0.08,
+    type: "Financed", acquisitionLTV: 0.60, acquisitionInterestRate: 0.08,
     acquisitionTermYears: 25, landValuePercent: 0.25, buildingImprovements: 0,
     taxRate: 0.25, operatingReserve: 0,
     revShareEvents: 0.30, revShareFB: 0.18, revShareOther: 0.05, cateringBoostPercent: 0.22,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  } as any);
+  });
 
   // ── Scenario B: Full equity, flat ──────────────────────────────────────────
   const propB = makeProperty({
     purchasePrice: 1_500_000, roomCount: 15, startAdr: 250,
     startOccupancy: 0.65, maxOccupancy: 0.65, occupancyGrowthStep: 0, adrGrowthRate: 0.0,
-    type: "Full Equity" as any, landValuePercent: 0.20, buildingImprovements: 0,
+    type: "Full Equity", landValuePercent: 0.20, buildingImprovements: 0,
     taxRate: 0.22, operatingReserve: 0,
     revShareEvents: 0.25, revShareFB: 0.20, revShareOther: 0.08, cateringBoostPercent: 0.20,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  } as any);
+  });
 
   // ── Scenario C: Financed, with 3% growth ───────────────────────────────────
   const propC = makeProperty({
     purchasePrice: 3_000_000, roomCount: 25, startAdr: 180,
     startOccupancy: 0.55, maxOccupancy: 0.80, occupancyGrowthStep: 0.05,
     occupancyRampMonths: 6, adrGrowthRate: 0.03,
-    type: "Financed" as any, acquisitionLTV: 0.65, acquisitionInterestRate: 0.07,
+    type: "Financed", acquisitionLTV: 0.65, acquisitionInterestRate: 0.07,
     acquisitionTermYears: 25, landValuePercent: 0.25, buildingImprovements: 500_000,
     taxRate: 0.25, operatingReserve: 100_000,
     revShareEvents: 0.30, revShareFB: 0.18, revShareOther: 0.05, cateringBoostPercent: 0.22,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  } as any);
+  });
 
   const global = makeGlobal({
     modelStartDate: "2026-04-01",
@@ -92,7 +93,7 @@ describe("Forensic IRR Test 5 — Cash Flow Decomposition", () => {
   for (const scenario of scenarios) {
     describe(`Scenario: ${scenario.name}`, () => {
       const monthly = generatePropertyProForma(scenario.prop, scenario.gl, MONTHS);
-      const yearly = aggregateCashFlowByYear(monthly, scenario.prop as any, scenario.gl as any, YEARS);
+      const yearly = aggregateCashFlowByYear(monthly, scenario.prop as PropertyInput, scenario.gl as GlobalInput, YEARS);
 
       // Identity 1: netCashFlowToInvestors = atcf + refi + exit - equity
       it("Identity 1: netCF = atcf + refi + exit - equity (all years)", () => {

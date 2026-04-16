@@ -213,7 +213,7 @@ export async function buildRebeccaContext(
     const property = await storage.getProperty(entityId);
     if (!property) throw new Error("Property not found");
     const ga = await storage.getGlobalAssumptions(userId);
-    const icpConfig = (ga as any)?.icpConfig as IcpConfig ?? null;
+    const icpConfig = ga?.icpConfig ?? null;
     const pack = buildPropertyContextPack(property, ga ?? null, icpConfig);
     entitySummary = buildPropertySummary(pack, property as Record<string, any>);
     entityName = pack.identity.name;

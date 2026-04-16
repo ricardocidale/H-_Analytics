@@ -31,12 +31,13 @@ import {
   DEFAULT_CATERING_BOOST_PCT, DEFAULT_BASE_MANAGEMENT_FEE_RATE, DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCENARIO INPUTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PROPERTY = {
+const PROPERTY: PropertyInput = {
   id: 1,
   name: "Underwater Lodge",
   type: "Financed",
@@ -61,9 +62,9 @@ const PROPERTY = {
   exitCapRate: 0.12,
   dispositionCommission: 0.05,
   willRefinance: "No",
-} as any;
+};
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01",
   projectionYears: 5,
   inflationRate: 0,
@@ -75,7 +76,7 @@ const GLOBAL = {
   safeTranche1Amount: 800_000,
   safeTranche2Date: null,
   safeTranche2Amount: 0,
-} as any;
+};
 
 const MONTHS = 60;
 
@@ -192,8 +193,8 @@ describe("Golden Scenario: Underwater Exit (Negative Equity)", () => {
   const yearlyProp = aggregatePropertyByYear(propFinancials, 5);
   const yearlyCF = aggregateCashFlowByYear(
     propFinancials,
-    { ...PROPERTY, preOpeningCosts: 0 } as any,
-    GLOBAL as any,
+    { ...PROPERTY, preOpeningCosts: 0 } as PropertyInput,
+    GLOBAL,
     5,
   );
 

@@ -106,8 +106,9 @@ function buildStaffingNarrative(ga: GlobalAssumptions): string {
 }
 
 function buildIcpNarrative(ga: GlobalAssumptions): string {
-  const icp = (ga as any).icpConfig;
-  const descriptive = (ga as any).icpDescriptive;
+  const icp = ga.icpConfig;
+  const gaRecord = ga as Record<string, unknown>;
+  const descriptive = gaRecord.icpDescriptive as Record<string, unknown> | undefined;
   const companyName = ga.companyName || "Management Company";
 
   // Use the full ICP narrative builder if there's a generated ICP

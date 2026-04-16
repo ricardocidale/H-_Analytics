@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { generatePropertyProForma } from "../../client/src/lib/financial/property-engine";
 import { aggregateCashFlowByYear } from "../../client/src/lib/financial/cashFlowAggregator";
 import { computeIRR } from "../../analytics/returns/irr";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -32,7 +33,7 @@ describe("Forensic IRR Test 4 — Multi-Property Portfolio", () => {
   const YEARS = 10;
   const MONTHS = 120;
 
-  const GLOBAL = {
+  const GLOBAL: GlobalInput = {
     modelStartDate: "2026-04-01",
     projectionYears: 10,
     inflationRate: 0.0,
@@ -73,7 +74,7 @@ describe("Forensic IRR Test 4 — Multi-Property Portfolio", () => {
   };
 
   // Property A: Full Equity, high ADR, acquired at model start
-  const propA = {
+  const propA: PropertyInput = {
     ...sharedFields,
     name: "Property A",
     type: "Full Equity",
@@ -84,7 +85,7 @@ describe("Forensic IRR Test 4 — Multi-Property Portfolio", () => {
   };
 
   // Property B: Financed 60% LTV, moderate ADR, acquired at model start
-  const propB = {
+  const propB: PropertyInput = {
     ...sharedFields,
     name: "Property B",
     type: "Financed",
@@ -98,7 +99,7 @@ describe("Forensic IRR Test 4 — Multi-Property Portfolio", () => {
   };
 
   // Property C: Financed 70% LTV, lower ADR, acquired Year 2 (staggered)
-  const propC = {
+  const propC: PropertyInput = {
     ...sharedFields,
     name: "Property C",
     type: "Financed",
@@ -112,13 +113,13 @@ describe("Forensic IRR Test 4 — Multi-Property Portfolio", () => {
   };
 
   // Run engines
-  const monthlyA = generatePropertyProForma(propA as any, GLOBAL as any, MONTHS);
-  const monthlyB = generatePropertyProForma(propB as any, GLOBAL as any, MONTHS);
-  const monthlyC = generatePropertyProForma(propC as any, GLOBAL as any, MONTHS);
+  const monthlyA = generatePropertyProForma(propA, GLOBAL, MONTHS);
+  const monthlyB = generatePropertyProForma(propB, GLOBAL, MONTHS);
+  const monthlyC = generatePropertyProForma(propC, GLOBAL, MONTHS);
 
-  const yearlyA = aggregateCashFlowByYear(monthlyA, propA as any, GLOBAL as any, YEARS);
-  const yearlyB = aggregateCashFlowByYear(monthlyB, propB as any, GLOBAL as any, YEARS);
-  const yearlyC = aggregateCashFlowByYear(monthlyC, propC as any, GLOBAL as any, YEARS);
+  const yearlyA = aggregateCashFlowByYear(monthlyA, propA, GLOBAL, YEARS);
+  const yearlyB = aggregateCashFlowByYear(monthlyB, propB, GLOBAL, YEARS);
+  const yearlyC = aggregateCashFlowByYear(monthlyC, propC, GLOBAL, YEARS);
 
   const vectorA = yearlyA.map(y => y.netCashFlowToInvestors);
   const vectorB = yearlyB.map(y => y.netCashFlowToInvestors);

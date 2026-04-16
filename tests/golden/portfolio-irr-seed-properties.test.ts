@@ -20,6 +20,7 @@ import { describe, it, expect } from "vitest";
 import { generatePropertyProForma } from "../../client/src/lib/financial/property-engine";
 import { aggregateCashFlowByYear } from "../../client/src/lib/financial/cashFlowAggregator";
 import { computeIRR } from "../../analytics/returns/irr.js";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -36,7 +37,7 @@ import {
 const PROJECTION_YEARS = 10;
 const MONTHS = PROJECTION_YEARS * 12;
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01",
   projectionYears: PROJECTION_YEARS,
   inflationRate: DEFAULT_PROPERTY_INFLATION_RATE,
@@ -57,13 +58,13 @@ const GLOBAL = {
     refiLTV: 0.75,
     refiClosingCostRate: 0.03,
   },
-} as any;
+};
 
 // ═══════════════════════════════════════════════════════════════════
 // PROPERTY DEFINITIONS — exact working values from seed file
 // ═══════════════════════════════════════════════════════════════════
 
-const JANO_GRANDE = {
+const JANO_GRANDE: PropertyInput = {
   id: 1,
   name: "Jano Grande Ranch",
   type: "Full Equity",
@@ -106,9 +107,9 @@ const JANO_GRANDE = {
   taxRate: 0.09,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-} as any;
+};
 
-const LOCH_SHELDRAKE = {
+const LOCH_SHELDRAKE: PropertyInput = {
   id: 2,
   name: "Loch Sheldrake",
   type: "Full Equity",
@@ -151,9 +152,9 @@ const LOCH_SHELDRAKE = {
   taxRate: 0.25,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-} as any;
+};
 
-const BELLEAYRE = {
+const BELLEAYRE: PropertyInput = {
   id: 3,
   name: "Belleayre Mountain",
   type: "Full Equity",
@@ -196,9 +197,9 @@ const BELLEAYRE = {
   taxRate: 0.25,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-} as any;
+};
 
-const SCOTTS_HOUSE = {
+const SCOTTS_HOUSE: PropertyInput = {
   id: 4,
   name: "Scott's House",
   type: "Financed",
@@ -238,9 +239,9 @@ const SCOTTS_HOUSE = {
   taxRate: 0.22,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-} as any;
+};
 
-const LAKEVIEW_HAVEN = {
+const LAKEVIEW_HAVEN: PropertyInput = {
   id: 5,
   name: "Lakeview Haven Lodge",
   type: "Financed",
@@ -280,9 +281,9 @@ const LAKEVIEW_HAVEN = {
   taxRate: 0.22,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-} as any;
+};
 
-const SAN_DIEGO = {
+const SAN_DIEGO: PropertyInput = {
   id: 6,
   name: "San Diego",
   type: "Financed",
@@ -322,7 +323,7 @@ const SAN_DIEGO = {
   taxRate: 0.35,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-} as any;
+};
 
 const ALL_PROPERTIES = [JANO_GRANDE, LOCH_SHELDRAKE, BELLEAYRE, SCOTTS_HOUSE, LAKEVIEW_HAVEN, SAN_DIEGO];
 

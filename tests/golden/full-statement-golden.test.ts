@@ -29,12 +29,13 @@ import {
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_BUSINESS_INSURANCE_START,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCENARIO INPUTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PROPERTY = {
+const PROPERTY: PropertyInput = {
   id: 1,
   name: "Golden Lodge",
   type: "Financed",
@@ -59,9 +60,9 @@ const PROPERTY = {
   exitCapRate: DEFAULT_EXIT_CAP_RATE,
   dispositionCommission: DEFAULT_COMMISSION_RATE,
   willRefinance: "No",
-} as any;
+};
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01",
   projectionYears: 2,
   inflationRate: 0,
@@ -89,7 +90,7 @@ const GLOBAL = {
   itLicensePerClient: 3_000,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
-} as any;
+};
 
 const MONTHS = 24;
 
@@ -229,8 +230,8 @@ describe("Golden Scenario: Full Financial Statements", () => {
   const yearlyProp = aggregatePropertyByYear(propFinancials, 2);
   const yearlyCF = aggregateCashFlowByYear(
     propFinancials,
-    { ...PROPERTY, preOpeningCosts: 0 } as any,
-    GLOBAL as any,
+    { ...PROPERTY, preOpeningCosts: 0 } as PropertyInput,
+    GLOBAL,
     2,
   );
 

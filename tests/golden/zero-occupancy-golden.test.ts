@@ -30,12 +30,13 @@ import {
   DEFAULT_COST_RATE_FFE, DEFAULT_COST_RATE_TAXES, DEFAULT_COST_RATE_INSURANCE,
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
 } from "../../shared/constants";
+import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCENARIO INPUTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PROPERTY = {
+const PROPERTY: PropertyInput = {
   id: 1,
   name: "Vacant Lodge",
   type: "Cash",                         // No debt — full equity purchase
@@ -60,9 +61,9 @@ const PROPERTY = {
   exitCapRate: 0.085,
   dispositionCommission: 0.05,
   willRefinance: "No",
-} as any;
+};
 
-const GLOBAL = {
+const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01",
   projectionYears: 10,
   inflationRate: 0,
@@ -74,7 +75,7 @@ const GLOBAL = {
   safeTranche1Amount: 800_000,
   safeTranche2Date: null,
   safeTranche2Amount: 0,
-} as any;
+};
 
 const MONTHS = 120;
 
@@ -151,8 +152,8 @@ describe("Golden Scenario: Zero Occupancy (Failed Asset)", () => {
   const yearlyProp = aggregatePropertyByYear(propFinancials, 10);
   const yearlyCF = aggregateCashFlowByYear(
     propFinancials,
-    { ...PROPERTY, preOpeningCosts: 0 } as any,
-    GLOBAL as any,
+    { ...PROPERTY, preOpeningCosts: 0 } as PropertyInput,
+    GLOBAL,
     10,
   );
 
