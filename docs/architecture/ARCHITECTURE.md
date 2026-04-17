@@ -50,11 +50,13 @@ See `.claude/skills/finance/management-company-statements.md` for the engine-sid
 ### First Login
 1. Dashboard loads. Properties are pre-assigned by admin. Seed data is pre-populated.
 2. The Analyst has ALREADY run on seed data (Tier-0 deterministic validation at seed time). Ranges are visible. Flags are set.
-3. User navigates to Management Company → Assumptions. Sees 7 tabs with pre-populated data and Analyst ranges.
+3. User navigates to Management Company → Assumptions. Sees 6 tabs with pre-populated data and Analyst ranges.
 4. User works through tabs, adjusting what they know.
 
 ### Per-Tab Save (the core interaction)
-Each tab has its own Save button. When the user saves a tab:
+The Analyst and Save buttons live **inside the tab strip** (`CurrentThemeTab`'s `rightContent`), scoped to the active tab — NOT in the page header. This is enforced by `script/check-no-header-analyst-save.ts`. Putting them in the header would silently flush every dirty field across every tab on Save and break per-tab gating.
+
+When the user saves a tab:
 
 1. **Fields are committed** — only that tab's fields are written to the database
 2. **The Analyst runs immediately** — validates saved fields against benchmarks (Tier-0, instant)
@@ -64,6 +66,12 @@ Each tab has its own Save button. When the user saves a tab:
    - Two options: "Adjust" (scrolls to the field) or "Keep my value" (acknowledged and logged to assumption_change_log)
    - This is not a blocking error — the user can always keep their value. The Analyst advises, never overwrites.
 5. **Intelligence improves** — each save gives The Analyst more context. Saving the company address enables market-specific research. Saving the room count enables per-room benchmarking. The model gets smarter with every tab.
+
+### Override Memory — `assumption_acknowledgments`
+When the user clicks "Keep my value" on a flagged warning, a row is written to `assumption_acknowledgments` (entityType + entityId + fieldName, with a snapshot of the value and the recommended range at ack-time). The warning generator suppresses re-flagging while the live value remains inside the snapshot window. Editing the field clears the ack so the next save re-evaluates with fresh context. Acked-but-still-out-of-range fields surface a small grey "Range" pill next to the input as a passive reminder; flagged fields get an amber "Expected" pill. Tab pills carry an amber dot whenever that tab has unresolved warnings.
+
+### Banner State Machine
+The `IntelligenceStatusBar` on Company Assumptions runs through five states: `idle → saving → reviewing → (clean | flagged)`. `saving` reflects the per-tab mutation; `reviewing` covers the non-awaited Analyst kickoff fired after every successful save; `flagged` shows the count of warnings across all tabs. Falls back to freshness-based display (`current / stale / very_stale / missing`) when no banner state is active. See `client/src/components/intelligence/IntelligenceStatusBar.tsx`.
 
 ### The Analyst Button (always available, every tab)
 - Pulsating AI icon on every tab that has variables/assumptions

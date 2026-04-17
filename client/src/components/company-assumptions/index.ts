@@ -52,5 +52,7 @@ export { default as PropertyExpenseRatesSection } from "./PropertyExpenseRatesSe
 export { default as PartnerCompSection } from "./PartnerCompSection";
 export { TabWarningsPanel } from "./TabActions";
 export type { TabValidationWarning } from "./TabActions";
+export { RangePillsLayer } from "./RangePillsLayer";
+export type { RangePillSpec } from "./RangePillsLayer";
 export { default as SummaryFooter } from "./SummaryFooter";
 export type * from "./types";

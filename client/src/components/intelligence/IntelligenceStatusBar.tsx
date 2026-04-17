@@ -5,6 +5,22 @@ import { cn } from "@/lib/utils";
 
 export type FreshnessStatus = "current" | "stale" | "very_stale" | "missing" | "running";
 
+/**
+ * Higher-level banner state for the post-save validation flow on
+ * CompanyAssumptions. Maps onto the existing freshness colors but exposes
+ * the intent ("we're saving", "we're reviewing", "we found warnings") rather
+ * than the underlying freshness math.
+ */
+export type BannerState = "idle" | "saving" | "reviewing" | "clean" | "flagged";
+
+const BANNER_STATE_TO_FRESHNESS: Record<BannerState, FreshnessStatus> = {
+  idle: "current",
+  saving: "running",
+  reviewing: "running",
+  clean: "current",
+  flagged: "stale",
+};
+
 const STALE_THRESHOLD_DAYS = 30;
 const VERY_STALE_THRESHOLD_DAYS = 90;
 
@@ -96,6 +112,14 @@ interface IntelligenceStatusBarProps {
   isGenerating: boolean;
   onRunResearch: () => void;
   className?: string;
+  /**
+   * Optional explicit banner state. When set, overrides the freshness
+   * computation so the page can drive the cycle saving → reviewing →
+   * (clean | flagged) directly. `flaggedCount` is shown when state is
+   * "flagged" so the user knows how many fields need attention.
+   */
+  bannerState?: BannerState;
+  flaggedCount?: number;
 }
 
 export function IntelligenceStatusBar({
@@ -104,12 +128,36 @@ export function IntelligenceStatusBar({
   isGenerating,
   onRunResearch,
   className,
+  bannerState,
+  flaggedCount = 0,
 }: IntelligenceStatusBarProps) {
-  const { status, reason, daysAgo } = computeFreshnessStatus({
+  const freshness = computeFreshnessStatus({
     researchUpdatedAt,
     lastAssumptionChangeAt,
     isGenerating,
   });
+
+  // When a banner state is supplied, it takes precedence over freshness.
+  // This lets CompanyAssumptions show "Saving…" / "Reviewing…" while a
+  // mutation or research run is in flight, without losing the regular
+  // freshness display once those finish.
+  const status: FreshnessStatus = bannerState
+    ? BANNER_STATE_TO_FRESHNESS[bannerState]
+    : freshness.status;
+
+  const reason = bannerState
+    ? bannerState === "saving"
+      ? "Saving your assumptions"
+      : bannerState === "reviewing"
+        ? "The Analyst is reviewing the change"
+        : bannerState === "flagged"
+          ? `${flaggedCount} value${flaggedCount === 1 ? "" : "s"} outside the expected range`
+          : bannerState === "clean"
+            ? "All values inside the expected ranges"
+            : freshness.reason
+    : freshness.reason;
+
+  const daysAgo = bannerState ? null : freshness.daysAgo;
 
   const config = STATUS_CONFIG[status];
   const StatusIcon = config.icon;

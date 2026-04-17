@@ -219,6 +219,29 @@ findings.push({
   samples: propAnyRaw.slice(0, 3),
 });
 
+// 14. Strip-pattern guard — fails if AnalystButton/SaveButton ever leaks
+// back into the PageHeader actions block on CompanyAssumptions. Wired here
+// (rather than as its own package script — package.json is read-only in
+// this environment) so it runs alongside every audit:quick check.
+let stripGuardCount = 0;
+const stripGuardSamples: string[] = [];
+try {
+  execSync("tsx script/check-no-header-analyst-save.ts", {
+    encoding: "utf-8",
+    timeout: 15_000,
+  });
+} catch (err: unknown) {
+  stripGuardCount = 1;
+  const msg = err instanceof Error ? err.message : String(err);
+  stripGuardSamples.push(msg.split("\n").find(Boolean) ?? "guard failed");
+}
+findings.push({
+  label: "Strip-pattern guard (no Analyst/Save in header)",
+  count: stripGuardCount,
+  severity: stripGuardCount > 0 ? "critical" : "info",
+  samples: stripGuardSamples,
+});
+
 // Output
 console.log("");
 console.log("  Quick Audit");

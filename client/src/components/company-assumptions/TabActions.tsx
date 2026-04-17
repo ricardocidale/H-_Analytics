@@ -15,6 +15,7 @@
  *   • Renders nothing (returns null) when there are no warnings.
  */
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { OrbitalDots } from "@/components/ui/ai-loader";
 import { IconAlertTriangle, IconCheck } from "@/components/icons";
@@ -36,6 +37,7 @@ interface TabWarningsPanelProps {
 
 export function TabWarningsPanel({ warnings, onDismissWarning }: TabWarningsPanelProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [keepingField, setKeepingField] = useState<string | null>(null);
 
   if (warnings.length === 0) return null;
@@ -43,17 +45,50 @@ export function TabWarningsPanel({ warnings, onDismissWarning }: TabWarningsPane
   const handleKeep = async (w: TabValidationWarning) => {
     setKeepingField(w.fieldName);
     try {
-      await fetch("/api/assumption-change-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entityType: "company",
-          entityId: 0,
-          fieldName: w.fieldName,
-          newValue: w.currentValue,
-          changeSource: "user_override",
-          reason: `User kept value outside recommended range ${w.display}`,
+      // 1) Audit trail — append-only record of the override decision.
+      // 2) Acknowledgment — keyed snapshot the warning generator reads
+      //    on the next save to suppress re-flagging the same value while
+      //    it remains inside the acknowledged window. Cleared when the
+      //    user edits the field (handled in CompanyAssumptions on change).
+      const [logRes, ackRes] = await Promise.all([
+        fetch("/api/assumption-change-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entityType: "company",
+            entityId: 0,
+            fieldName: w.fieldName,
+            newValue: w.currentValue,
+            changeSource: "user_override",
+            reason: `User kept value outside recommended range ${w.display}`,
+          }),
         }),
+        fetch("/api/assumption-acknowledgments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entityType: "company",
+            entityId: 0,
+            fieldName: w.fieldName,
+            valueAtAck: w.currentValue,
+            rangeLowAtAck: w.rangeLow,
+            rangeHighAtAck: w.rangeHigh,
+          }),
+        }),
+      ]);
+      // Fail loudly if either write rejected — silently dismissing a
+      // warning whose persistence failed would silently desync the UI
+      // from the database and re-surface the same flag on next reload.
+      if (!logRes.ok || !ackRes.ok) {
+        throw new Error(
+          `Override write failed (log:${logRes.status} ack:${ackRes.status})`,
+        );
+      }
+      // Refresh the ack cache so the warning generator + RangePillsLayer
+      // see the new ack on the next render without waiting for a refetch
+      // window.
+      await queryClient.invalidateQueries({
+        queryKey: ["assumption-acknowledgments", "company", 0],
       });
       toast({ title: "Value kept", description: `${w.fieldLabel} recorded as an intentional override.` });
       onDismissWarning(w.fieldName);

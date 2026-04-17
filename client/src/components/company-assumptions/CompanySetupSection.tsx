@@ -9,7 +9,6 @@ import { ResearchContextFieldLabel } from "@/components/research/ResearchContext
 import { IconPhone, IconGlobe, IconHash, IconCalendar, IconMail, IconMapPin, IconPercent, IconTarget } from "@/components/icons";
 import { Link } from "wouter";
 
-import { PROJECTION_YEARS } from "@/lib/constants";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import LogoSelector from "@/components/admin/LogoSelector";
 import { GovernedFieldWrapper } from "@/components/ui/governed-field";
@@ -47,7 +46,9 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {/* Operations Start Date + Projection Years live in column 2 (TaxSection)
+            so this column hosts only identity fields. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="flex flex-col gap-2">
             <Label className="flex items-center text-foreground label-text">
               Company Logo
@@ -79,36 +80,6 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
             {!isAdmin && (
               <p className="text-xs text-muted-foreground">Only administrators can change the company name</p>
             )}
-          </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label className="flex items-center text-foreground label-text">
-                Operations Start Date
-                <InfoTooltip text="The date when the management company begins operations, starts paying salaries, and incurs overhead costs" />
-              </Label>
-              <Input
-                type="date"
-                value={formData.companyOpsStartDate ?? global.companyOpsStartDate ?? "2026-06-01"}
-                onChange={(e) => onChange("companyOpsStartDate", e.target.value)}
-                className="max-w-40 bg-card border-border text-foreground"
-                data-testid="input-company-ops-start-date"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label className="flex items-center text-foreground label-text">
-                Projection Years
-                <InfoTooltip text="Number of years to project financial statements. Affects all charts, tables, and verification checks." />
-              </Label>
-              <Input
-                type="number"
-                value={formData.projectionYears ?? global.projectionYears ?? PROJECTION_YEARS}
-                onChange={(e) => onChange("projectionYears", Math.max(1, Math.min(30, parseInt(e.target.value) || PROJECTION_YEARS)))}
-                min={1}
-                max={30}
-                className="max-w-24 bg-card border-border text-foreground"
-                data-testid="input-projection-years"
-              />
-            </div>
           </div>
         </div>
 

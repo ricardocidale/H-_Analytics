@@ -42,7 +42,7 @@ import Layout from "@/components/Layout";
 import { AnimatedPage } from "@/components/graphics";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle } from "@/components/icons";
@@ -74,6 +74,8 @@ import {
   SummaryFooter,
   TabWarningsPanel,
   type TabValidationWarning,
+  RangePillsLayer,
+  type RangePillSpec,
 } from "@/components/company-assumptions";
 import { isAdminRole } from "@shared/constants";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
@@ -193,6 +195,7 @@ export default function CompanyAssumptions() {
   const [isDirty, setIsDirty] = useState(false);
   const [dirtyFields, setDirtyFields] = useState<Set<keyof GlobalResponse>>(new Set());
   const { markDirty: markGlobalDirty, clearDirty: clearGlobalDirty } = useScenarioDirtyState();
+  const queryClient = useQueryClient();
   const { data: research } = useMarketResearch("company");
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
   const entityId = user?.id ?? 1;
@@ -208,6 +211,25 @@ export default function CompanyAssumptions() {
     enabled: !!entityId,
     refetchOnWindowFocus: false,
   });
+
+  // "Keep my value" acknowledgments — keyed by fieldName. Suppresses warning
+  // re-flagging while the live value stays inside the snapshot window. Cleared
+  // server-side (and locally) when the user actually edits the field.
+  type AckRow = { fieldName: string; valueAtAck: number; rangeLowAtAck: number; rangeHighAtAck: number };
+  const { data: acks = [] } = useQuery<AckRow[]>({
+    queryKey: ["assumption-acknowledgments", "company", 0],
+    queryFn: async () => {
+      const res = await fetch("/api/assumption-acknowledgments?entityType=company&entityId=0");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    refetchOnWindowFocus: false,
+  });
+  const ackByField = useMemo(() => {
+    const m = new Map<string, AckRow>();
+    for (const a of acks) m.set(a.fieldName, a);
+    return m;
+  }, [acks]);
 
   // The Analyst needs a minimum amount of company context before it can
   // produce useful research. Without at least a name and a country we block
@@ -422,6 +444,22 @@ export default function CompanyAssumptions() {
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
 
+  // Tabs the user has saved at least once this session. Drives Analyst gating —
+  // non-Company tabs require Company to be saved first so the Analyst has the
+  // anchor entity context (name, tax, country) before researching dependents.
+  // Hydrated on first load: if the global record already has a
+  // `lastAssumptionChangeAt`, Company has been saved on a prior visit.
+  const [savedTabs, setSavedTabs] = useState<Set<TabKey>>(() => {
+    const seed = new Set<TabKey>();
+    if (global?.lastAssumptionChangeAt) seed.add("company");
+    return seed;
+  });
+  useEffect(() => {
+    if (global?.lastAssumptionChangeAt) {
+      setSavedTabs((prev) => (prev.has("company") ? prev : new Set(prev).add("company")));
+    }
+  }, [global?.lastAssumptionChangeAt]);
+
   const TAB_LABELS: Record<TabKey, string> = {
     company: "Company",
     funding: "Funding",
@@ -429,6 +467,74 @@ export default function CompanyAssumptions() {
     compensation: "Compensation",
     overhead: "Overhead",
     "property-defaults": "Property Defaults",
+  };
+
+  // Per-tab Analyst gating. The Analyst can only research a tab once it has
+  // the minimum context it needs to be useful — otherwise it would burn tokens
+  // on a hollow prompt and return generic guidance.
+  //
+  // Rules:
+  //   1. Universal — a company name and at least one property must exist.
+  //   2. Company anchors — the active tab's anchor fields must be filled in.
+  //   3. Cross-tab — every tab except `company` requires Company saved at
+  //      least once this session (or on a prior visit, hydrated from
+  //      `lastAssumptionChangeAt`) so the entity is grounded before
+  //      researching dependents.
+  const getTabGating = (tab: TabKey): { enabled: boolean; reason?: string } => {
+    if (!formData.companyName) {
+      return { enabled: false, reason: "Set a company name in the Company tab first." };
+    }
+    if (properties.length === 0) {
+      return { enabled: false, reason: "Add at least one property to your portfolio first." };
+    }
+    if (tab !== "company" && !savedTabs.has("company")) {
+      return {
+        enabled: false,
+        reason: "Save the Company tab first so the Analyst has anchor context.",
+      };
+    }
+    const num = (k: string): number => {
+      const v = (formData as Record<string, unknown>)[k];
+      return typeof v === "number" ? v : Number(v ?? 0);
+    };
+    switch (tab) {
+      case "company":
+        if (!formData.companyCountry) {
+          return { enabled: false, reason: "Set the company country so research can localize benchmarks." };
+        }
+        return { enabled: true };
+      case "funding":
+        if (num("costOfEquity") <= 0) {
+          return { enabled: false, reason: "Set a cost of equity > 0 before researching funding." };
+        }
+        return { enabled: true };
+      case "revenue":
+        if (allFeeCategories.length === 0) {
+          return { enabled: false, reason: "Define at least one fee category before researching revenue." };
+        }
+        return { enabled: true };
+      case "compensation":
+        if (num("staffSalary") <= 0) {
+          return { enabled: false, reason: "Set a base staff salary before researching compensation." };
+        }
+        return { enabled: true };
+      case "overhead": {
+        const anyOverhead = (
+          ["officeLease", "professionalServices", "techInfra", "businessInsurance"] as const
+        ).some((k) => num(k) > 0);
+        if (!anyOverhead) {
+          return { enabled: false, reason: "Enter at least one overhead line item before researching overhead." };
+        }
+        return { enabled: true };
+      }
+      case "property-defaults":
+        if (num("exitCapRate") <= 0) {
+          return { enabled: false, reason: "Set an exit cap rate before researching property defaults." };
+        }
+        return { enabled: true };
+      default:
+        return { enabled: true };
+    }
   };
   const getInitialTab = (): TabKey => {
     if (typeof window === "undefined") return "company";
@@ -439,6 +545,21 @@ export default function CompanyAssumptions() {
     return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "company";
   };
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab);
+
+  // Clear a tab's warnings when the user starts editing fields in that tab again.
+  // Must live above the early returns below or the hooks order will diverge
+  // between the loading and loaded renders.
+  useEffect(() => {
+    (Object.keys(TAB_FIELDS) as TabKey[]).forEach((tab) => {
+      if (tabWarnings[tab].length === 0) return;
+      const stillDirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
+      if (stillDirty) {
+        setTabWarnings((prev) => ({ ...prev, [tab]: [] }));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirtyFields]);
+
   const handleTabChange = (val: string) => {
     setActiveTab(val as TabKey);
     if (typeof window !== "undefined") {
@@ -474,6 +595,26 @@ export default function CompanyAssumptions() {
     setDirtyFields((prev) => new Set(prev).add(field));
     setIsDirty(true);
     markGlobalDirty();
+
+    // Editing a previously-acked field invalidates the override — drop the
+    // ack so the next save re-evaluates this field with fresh context. Fire
+    // and forget; failure here is non-blocking (worst case the value gets
+    // re-flagged on the next save and the user can re-acknowledge).
+    if (ackByField.has(String(field))) {
+      void fetch(
+        `/api/assumption-acknowledgments/${encodeURIComponent(String(field))}?entityType=company&entityId=0`,
+        { method: "DELETE" },
+      ).then((res) => {
+        if (res.ok) {
+          // Drop the cached ack so suppress-in-window logic releases this
+          // field on the next render — without invalidation the client would
+          // continue to suppress its own warnings post-edit.
+          void queryClient.invalidateQueries({
+            queryKey: ["assumption-acknowledgments", "company", 0],
+          });
+        }
+      });
+    }
   };
 
 
@@ -517,6 +658,10 @@ export default function CompanyAssumptions() {
       const num = typeof raw === "number" ? raw : typeof raw === "string" ? parseFloat(raw) : NaN;
       if (!Number.isFinite(num)) continue;
       if (num < range.low || num > range.high) {
+        // Suppress if user has acknowledged this field and the live value is
+        // still inside the acked window — they intentionally chose to keep it.
+        const ack = ackByField.get(String(k));
+        if (ack && num >= ack.rangeLowAtAck && num <= ack.rangeHighAtAck) continue;
         if (seenByResearchKey.has(rk)) continue;
         seenByResearchKey.add(rk);
         out.push({
@@ -557,8 +702,26 @@ export default function CompanyAssumptions() {
       });
 
       // Post-save validation — flag fields outside The Analyst's range.
-      const warnings = computeTabWarnings(touched, formData);
+      // Recompute across the FULL tab field set (not just touched), so a
+      // previously-flagged field that was *not* edited this round still
+      // surfaces a warning. Computing only on `touched` would mark the tab
+      // "clean" while a stale flagged value remained on screen.
+      const warnings = computeTabWarnings(keys, formData);
       setTabWarnings((prev) => ({ ...prev, [tab]: warnings }));
+
+      // Mark this tab as saved this session — unlocks downstream tab Analyst
+      // gating (non-Company tabs require Company saved at least once).
+      setSavedTabs((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
+
+      // Async post-save review — kick the Analyst off without awaiting so the
+      // UI returns immediately. The IntelligenceStatusBar surfaces "Reviewing…"
+      // until results land. Skipped if a research run is already in flight or
+      // if the Analyst is gated for the active tab.
+      const gating = getTabGating(tab);
+      if (gating.enabled && !isGenerating) {
+        // Intentionally not awaited.
+        void generateResearch();
+      }
 
       toast({
         title: `${TAB_LABELS[tab]} saved`,
@@ -577,18 +740,6 @@ export default function CompanyAssumptions() {
       setSavingTab(null);
     }
   };
-
-  // Clear a tab's warnings when the user starts editing fields in that tab again.
-  useEffect(() => {
-    (Object.keys(TAB_FIELDS) as TabKey[]).forEach((tab) => {
-      if (tabWarnings[tab].length === 0) return;
-      const stillDirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
-      if (stillDirty) {
-        setTabWarnings((prev) => ({ ...prev, [tab]: [] }));
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirtyFields]);
 
   const handleSave = async () => {
     try {
@@ -671,12 +822,59 @@ export default function CompanyAssumptions() {
           }
         />
 
-        <IntelligenceStatusBar
-          researchUpdatedAt={companyResearchUpdatedAt}
-          lastAssumptionChangeAt={global.lastAssumptionChangeAt ?? null}
-          isGenerating={isGenerating}
-          onRunResearch={generateResearch}
-        />
+        {(() => {
+          // Banner state machine: drives the post-save validation feedback
+          // loop independently of the freshness math. See BannerState type.
+          const totalWarnings = (Object.values(tabWarnings) as TabValidationWarning[][])
+            .reduce((acc, arr) => acc + arr.length, 0);
+          let bannerState: import("@/components/intelligence/IntelligenceStatusBar").BannerState | undefined;
+          if (updateMutation.isPending) bannerState = "saving";
+          else if (isGenerating) bannerState = "reviewing";
+          else if (savedTabs.size > 0 && totalWarnings > 0) bannerState = "flagged";
+          else if (savedTabs.size > 0 && totalWarnings === 0 && !!companyResearchUpdatedAt) bannerState = "clean";
+          // else leave undefined → fall back to freshness display
+          return (
+            <IntelligenceStatusBar
+              researchUpdatedAt={companyResearchUpdatedAt}
+              lastAssumptionChangeAt={global.lastAssumptionChangeAt ?? null}
+              isGenerating={isGenerating}
+              onRunResearch={generateResearch}
+              bannerState={bannerState}
+              flaggedCount={totalWarnings}
+            />
+          );
+        })()}
+
+        {(() => {
+          // Build pill specs once per render. Flagged pills come from the
+          // current warning set across tabs; acked pills surface the kept
+          // override range so the user can see they're outside the
+          // recommendation by intent. Targets that aren't in the DOM (other
+          // tabs' inputs) simply render nothing — `querySelector` returns null.
+          const pills: RangePillSpec[] = [];
+          const seen = new Set<string>();
+          for (const tab of TAB_KEYS) {
+            for (const w of tabWarnings[tab] ?? []) {
+              if (seen.has(w.fieldName)) continue;
+              seen.add(w.fieldName);
+              pills.push({ fieldName: w.fieldName, display: w.display, variant: "flagged" });
+            }
+          }
+          for (const a of acks) {
+            if (seen.has(a.fieldName)) continue;
+            seen.add(a.fieldName);
+            const lo = a.rangeLowAtAck;
+            const hi = a.rangeHighAtAck;
+            pills.push({
+              fieldName: a.fieldName,
+              display: `${lo}–${hi}`,
+              variant: "acked",
+            });
+          }
+          // `activeTab` is passed so RangePillsLayer re-runs its DOM lookup
+          // on tab change without needing a body-wide MutationObserver.
+          return <RangePillsLayer pills={pills} reKey={activeTab} />;
+        })()}
 
         {(() => {
           const { status } = computeFreshnessStatus({
@@ -693,42 +891,49 @@ export default function CompanyAssumptions() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <div className="sticky top-0 z-10 -mx-2 px-2 py-2 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
             <CurrentThemeTab
-              tabs={TAB_KEYS.map((k) => ({ value: k, label: TAB_LABELS[k] }))}
+              tabs={TAB_KEYS.map((k) => ({
+                value: k,
+                label: TAB_LABELS[k],
+                statusDot: tabWarnings[k]?.length > 0 ? "text-amber-500" : undefined,
+              }))}
               activeTab={activeTab}
               onTabChange={handleTabChange}
-              rightContent={
-                <>
-                  <AnalystButton
-                    onClick={generateResearch}
-                    isRunning={isGenerating}
-                    disabled={!formData.companyName || properties.length === 0}
-                    disabledReason={
-                      !formData.companyName
-                        ? "Set a company name before generating intelligence."
-                        : "Add at least one property to your portfolio first."
-                    }
-                    suffix={TAB_LABELS[activeTab]}
-                    size="sm"
-                    freshnessStatus={
-                      computeFreshnessStatus({
-                        researchUpdatedAt: companyResearchUpdatedAt,
-                        lastAssumptionChangeAt: global.lastAssumptionChangeAt,
-                        isGenerating: false,
-                      }).status
-                    }
-                    dataTestId={`button-ask-analyst-${activeTab}`}
-                  />
-                  <SaveButton
-                    onClick={() => handleSaveTab(activeTab)}
-                    isPending={savingTab === activeTab && updateMutation.isPending}
-                    hasChanges={TAB_FIELDS[activeTab].some((k) => dirtyFields.has(k))}
-                    size="sm"
-                    data-testid={`button-save-tab-${activeTab}`}
-                  >
-                    Save {TAB_LABELS[activeTab]}
-                  </SaveButton>
-                </>
-              }
+              rightContent={(() => {
+                const gating = getTabGating(activeTab);
+                return (
+                  <>
+                    {/* Compact export-button style: bare "Analyst" / "Save"
+                        labels with their canonical icons (sparkle / disk).
+                        Per-tab context lives in the active tab pill itself,
+                        so suffixing the labels is redundant noise. The tab
+                        is also encoded in dataTestId for e2e selectors and
+                        the tooltip below for users hovering. */}
+                    <AnalystButton
+                      onClick={generateResearch}
+                      isRunning={isGenerating}
+                      disabled={!gating.enabled}
+                      disabledReason={gating.reason}
+                      tooltip={`Run The Analyst on ${TAB_LABELS[activeTab]}`}
+                      size="sm"
+                      freshnessStatus={
+                        computeFreshnessStatus({
+                          researchUpdatedAt: companyResearchUpdatedAt,
+                          lastAssumptionChangeAt: global.lastAssumptionChangeAt,
+                          isGenerating: false,
+                        }).status
+                      }
+                      dataTestId={`button-ask-analyst-${activeTab}`}
+                    />
+                    <SaveButton
+                      onClick={() => handleSaveTab(activeTab)}
+                      isPending={savingTab === activeTab && updateMutation.isPending}
+                      hasChanges={TAB_FIELDS[activeTab].some((k) => dirtyFields.has(k))}
+                      size="sm"
+                      data-testid={`button-save-tab-${activeTab}`}
+                    />
+                  </>
+                );
+              })()}
             />
           </div>
 

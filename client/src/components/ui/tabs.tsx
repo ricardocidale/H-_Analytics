@@ -54,6 +54,12 @@ interface CurrentThemeTabItem {
   value: string;
   label: string;
   icon?: React.ComponentType<{ className?: string }>;
+  /**
+   * Small status dot rendered next to the label. Use to surface that the tab
+   * has unresolved post-save warnings (amber) or another notable state.
+   * Pass a tailwind text-color token (e.g. "text-amber-500", "text-red-500").
+   */
+  statusDot?: string;
 }
 
 interface CurrentThemeTabProps {
@@ -90,6 +96,13 @@ function CurrentThemeTab({ tabs, activeTab, onTabChange, rightContent }: Current
                   )} />
                 )}
                 <span className="text-xs sm:text-sm">{tab.label}</span>
+                {tab.statusDot && (
+                  <span
+                    className={cn("inline-block w-1.5 h-1.5 rounded-full bg-current", tab.statusDot)}
+                    data-testid={`tab-status-dot-${tab.value}`}
+                    aria-label="has warnings"
+                  />
+                )}
               </button>
             );
           })}

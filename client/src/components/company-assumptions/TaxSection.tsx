@@ -15,7 +15,9 @@
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
-import { DEFAULT_COMPANY_TAX_RATE } from "@/lib/constants";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { DEFAULT_COMPANY_TAX_RATE, PROJECTION_YEARS } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { TaxSectionProps } from "./types";
 
@@ -24,7 +26,44 @@ export default function TaxSection({ formData, onChange, global, researchValues 
 
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
-      <div className="relative">
+      <div className="relative space-y-6">
+      {/* Operations Start Date + Projection Years moved here from
+          CompanySetupSection so column 2 owns the projection-horizon controls
+          alongside the company tax rate. */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-display text-foreground">Projection Horizon</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <Label className="flex items-center text-foreground label-text">
+              Operations Start Date
+              <InfoTooltip text="The date when the management company begins operations, starts paying salaries, and incurs overhead costs" />
+            </Label>
+            <Input
+              type="date"
+              value={formData.companyOpsStartDate ?? global.companyOpsStartDate ?? "2026-06-01"}
+              onChange={(e) => onChange("companyOpsStartDate", e.target.value)}
+              className="bg-card border-border text-foreground"
+              data-testid="input-company-ops-start-date"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label className="flex items-center text-foreground label-text">
+              Projection Years
+              <InfoTooltip text="Number of years to project financial statements. Affects all charts, tables, and verification checks." />
+            </Label>
+            <Input
+              type="number"
+              value={formData.projectionYears ?? global.projectionYears ?? PROJECTION_YEARS}
+              onChange={(e) => onChange("projectionYears", Math.max(1, Math.min(30, parseInt(e.target.value) || PROJECTION_YEARS)))}
+              min={1}
+              max={30}
+              className="bg-card border-border text-foreground"
+              data-testid="input-projection-years"
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-4">
         <h3 className="text-lg font-display text-foreground flex items-center gap-2">
           Company Income Tax

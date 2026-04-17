@@ -3,10 +3,12 @@ import {
   guidanceDecisions, coverageSnapshots, sourceRegistry, sourceCallLogs, engineSuggestedLines,
   integrationKeyRotations, pipelinePolicies, scheduledResearchWorkflows,
   assumptionChangeLog,
+  assumptionAcknowledgments,
   hospitalityBenchmarks,
   marketAdrIndex, seasonalCalendars, eventCalendars, airportDistances, laborRates, fbBenchmarks,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type AssumptionChangeLog, type InsertAssumptionChangeLog,
+  type AssumptionAcknowledgment, type InsertAssumptionAcknowledgment,
   type ResearchRun, type InsertResearchRun,
   type BenchmarkSnapshot, type InsertBenchmarkSnapshot,
   type RelaxationTrace, type InsertRelaxationTrace,
@@ -246,6 +248,82 @@ export class IntelligenceV2Storage {
         eq(assumptionChangeLog.changeSource, "seed"),
       ))
       .orderBy(assumptionChangeLog.entityId, assumptionChangeLog.fieldName);
+  }
+
+  // ── Assumption Acknowledgments (Keep my value memory) ─────────
+  // Returns the single ack row (if any) for the given entity+field tuple.
+  // Used by the warning generator to suppress re-flagging an override that
+  // is still inside its acknowledged window.
+  async getAcknowledgment(
+    entityType: string,
+    entityId: number,
+    fieldName: string,
+    userId: number,
+  ): Promise<AssumptionAcknowledgment | undefined> {
+    const [row] = await db.select().from(assumptionAcknowledgments)
+      .where(and(
+        eq(assumptionAcknowledgments.entityType, entityType),
+        eq(assumptionAcknowledgments.entityId, entityId),
+        eq(assumptionAcknowledgments.fieldName, fieldName),
+        eq(assumptionAcknowledgments.userId, userId),
+      ))
+      .limit(1);
+    return row;
+  }
+
+  async listAcknowledgments(
+    entityType: string,
+    entityId: number,
+    userId: number,
+  ): Promise<AssumptionAcknowledgment[]> {
+    return db.select().from(assumptionAcknowledgments)
+      .where(and(
+        eq(assumptionAcknowledgments.entityType, entityType),
+        eq(assumptionAcknowledgments.entityId, entityId),
+        eq(assumptionAcknowledgments.userId, userId),
+      ));
+  }
+
+  // Upsert keyed on (entityType, entityId, fieldName, userId) — the unique
+  // constraint. A second "Keep my value" on the same field by the same user
+  // replaces the prior snapshot (new value or fresher recommended range).
+  // Different users do NOT collide — each maintains their own ack state.
+  async upsertAcknowledgment(
+    data: InsertAssumptionAcknowledgment,
+  ): Promise<AssumptionAcknowledgment> {
+    const [row] = await db.insert(assumptionAcknowledgments)
+      .values(data as typeof assumptionAcknowledgments.$inferInsert)
+      .onConflictDoUpdate({
+        target: [
+          assumptionAcknowledgments.entityType,
+          assumptionAcknowledgments.entityId,
+          assumptionAcknowledgments.fieldName,
+          assumptionAcknowledgments.userId,
+        ],
+        set: {
+          valueAtAck: data.valueAtAck,
+          rangeLowAtAck: data.rangeLowAtAck,
+          rangeHighAtAck: data.rangeHighAtAck,
+          ackedAt: sql`now()`,
+        },
+      })
+      .returning();
+    return row;
+  }
+
+  async deleteAcknowledgment(
+    entityType: string,
+    entityId: number,
+    fieldName: string,
+    userId: number,
+  ): Promise<void> {
+    await db.delete(assumptionAcknowledgments)
+      .where(and(
+        eq(assumptionAcknowledgments.entityType, entityType),
+        eq(assumptionAcknowledgments.entityId, entityId),
+        eq(assumptionAcknowledgments.fieldName, fieldName),
+        eq(assumptionAcknowledgments.userId, userId),
+      ));
   }
 
   async createCoverageSnapshot(data: InsertCoverageSnapshot): Promise<CoverageSnapshot> {

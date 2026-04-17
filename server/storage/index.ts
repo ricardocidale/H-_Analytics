@@ -333,6 +333,10 @@ export class DatabaseStorage implements IStorage {
   logAssumptionChanges = this.intelligenceV2.logAssumptionChanges.bind(this.intelligenceV2);
   getAssumptionHistory = this.intelligenceV2.getAssumptionHistory.bind(this.intelligenceV2);
   getUnvalidatedAssumptions = this.intelligenceV2.getUnvalidatedAssumptions.bind(this.intelligenceV2);
+  getAcknowledgment = this.intelligenceV2.getAcknowledgment.bind(this.intelligenceV2);
+  listAcknowledgments = this.intelligenceV2.listAcknowledgments.bind(this.intelligenceV2);
+  upsertAcknowledgment = this.intelligenceV2.upsertAcknowledgment.bind(this.intelligenceV2);
+  deleteAcknowledgment = this.intelligenceV2.deleteAcknowledgment.bind(this.intelligenceV2);
   createSourceCallLog = this.intelligenceV2.createSourceCallLog.bind(this.intelligenceV2);
   getSourceCallLogs = this.intelligenceV2.getSourceCallLogs.bind(this.intelligenceV2);
   getEngineSuggestedLines = this.intelligenceV2.getEngineSuggestedLines.bind(this.intelligenceV2);

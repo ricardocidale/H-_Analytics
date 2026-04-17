@@ -161,6 +161,66 @@ export function register(app: Express) {
     }
   });
 
+  // ────────────────────────────────────────────────────────────
+  // ASSUMPTION ACKNOWLEDGMENTS — "Keep my value" memory
+  // When a user keeps a value outside The Analyst's range we record the
+  // snapshot here so the warning generator skips re-flagging it on
+  // subsequent saves. Cleared (DELETE) when the user later edits the
+  // field, so a fresh divergence re-surfaces.
+  // ────────────────────────────────────────────────────────────
+  const acknowledgmentSchema = z.object({
+    entityType: z.enum(["company", "property"]),
+    entityId: z.number().int().nonnegative(),
+    fieldName: z.string().min(1),
+    valueAtAck: z.number(),
+    rangeLowAtAck: z.number(),
+    rangeHighAtAck: z.number(),
+  });
+
+  app.get("/api/assumption-acknowledgments", requireAuth, async (req, res) => {
+    try {
+      const entityType = String(req.query.entityType ?? "");
+      const entityId = Number(req.query.entityId ?? 0);
+      if (!["company", "property"].includes(entityType)) {
+        return res.status(400).json({ error: "entityType must be 'company' or 'property'" });
+      }
+      const rows = await storage.listAcknowledgments(entityType, entityId, getAuthUser(req).id);
+      res.json(rows);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to list acknowledgments", error);
+    }
+  });
+
+  app.post("/api/assumption-acknowledgments", requireManagementAccess, async (req, res) => {
+    try {
+      const parsed = acknowledgmentSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const row = await storage.upsertAcknowledgment({
+        ...parsed.data,
+        userId: getAuthUser(req).id,
+      });
+      res.json(row);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to upsert acknowledgment", error);
+    }
+  });
+
+  app.delete("/api/assumption-acknowledgments/:fieldName", requireManagementAccess, async (req, res) => {
+    try {
+      const entityType = String(req.query.entityType ?? "company");
+      const entityId = Number(req.query.entityId ?? 0);
+      if (!["company", "property"].includes(entityType)) {
+        return res.status(400).json({ error: "entityType must be 'company' or 'property'" });
+      }
+      await storage.deleteAcknowledgment(entityType, entityId, String(req.params.fieldName), getAuthUser(req).id);
+      res.json({ ok: true });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to delete acknowledgment", error);
+    }
+  });
+
   app.get("/api/appearance-defaults", requireAuth, async (req, res) => {
     try {
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
