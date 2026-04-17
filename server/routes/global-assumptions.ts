@@ -128,6 +128,89 @@ export function register(app: Express) {
   });
 
   // ────────────────────────────────────────────────────────────
+  // ANALYST WATCHDOG — per-tab Save with deterministic verdict
+  // POST /api/global-assumptions/save-tab marks a Company Assumptions tab
+  // as saved (union into globalAssumptions.savedTabs jsonb), persists any
+  // patched fields, and returns a watchdog result. Funding tab runs the
+  // real evaluator against cached benchmarks; other 5 tabs return a stub.
+  // ────────────────────────────────────────────────────────────
+  const TAB_KEYS = [
+    "company", "funding", "revenue", "compensation", "overhead", "property-defaults",
+  ] as const;
+  const saveTabSchema = z.object({
+    tabKey: z.enum(TAB_KEYS),
+    patch: z.record(z.unknown()).optional(),
+    /** When true, removes tabKey from savedTabs instead of adding it.
+     *  Used by the AnalystCheckDialog "Adjust" action to roll back a save
+     *  the user no longer wants to commit. */
+    unsave: z.boolean().optional(),
+    fundingInputs: z
+      .object({
+        runwayBufferMonths: z.number().nullable().optional(),
+        sizingOvershootPct: z.number().nullable().optional(),
+        trancheGapMonths: z.number().nullable().optional(),
+        revenueRampDelayMonths: z.number().nullable().optional(),
+        burnFlexDownPct: z.number().nullable().optional(),
+      })
+      .optional(),
+  });
+
+  app.post("/api/global-assumptions/save-tab", requireManagementAccess, async (req, res) => {
+    try {
+      const parsed = saveTabSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const { tabKey, patch, fundingInputs, unsave } = parsed.data;
+      const userId = getAuthUser(req).id;
+
+      const current = await storage.getGlobalAssumptions(userId);
+      const baseRow = (current ?? {}) as Record<string, unknown>;
+      const merged = { ...baseRow, ...(patch ?? {}) };
+      delete merged.id; delete merged.createdAt; delete merged.updatedAt;
+      delete (merged as Record<string, unknown>).companyLogoUrl;
+
+      const existingSaved: string[] = Array.isArray(baseRow.savedTabs)
+        ? (baseRow.savedTabs as string[]).filter((k) => TAB_KEYS.includes(k as typeof TAB_KEYS[number]))
+        : [];
+      const nextSaved = unsave
+        ? existingSaved.filter((k) => k !== tabKey)
+        : Array.from(new Set([...existingSaved, tabKey]));
+      (merged as Record<string, unknown>).savedTabs = nextSaved;
+
+      const validation = insertGlobalAssumptionsSchema.partial().safeParse(merged);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+      const fullValidation = insertGlobalAssumptionsSchema.safeParse(merged);
+      const dataToWrite = fullValidation.success ? fullValidation.data : (merged as Record<string, unknown>);
+
+      const saved = await storage.upsertGlobalAssumptions(
+        dataToWrite as Parameters<typeof storage.upsertGlobalAssumptions>[0],
+        userId,
+      );
+      invalidateComputeCache();
+      logActivity(req, "update", "global_assumptions", saved.id, `Save tab: ${tabKey}`);
+
+      let watchdog;
+      if (tabKey === "funding") {
+        const [{ evaluateCapitalRaise }, benchmarks] = await Promise.all([
+          import("../../engine/watchdog/capitalRaiseEvaluator"),
+          storage.getAnalystWatchdogBenchmarks(userId),
+        ]);
+        watchdog = evaluateCapitalRaise(fundingInputs ?? {}, benchmarks);
+      } else {
+        const { evaluateStub } = await import("../../engine/watchdog/capitalRaiseEvaluator");
+        watchdog = evaluateStub();
+      }
+
+      res.json({ ok: true, savedTabs: nextSaved, watchdog });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to save Company Assumptions tab", error);
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────
   // ASSUMPTION CHANGE LOG
   // POST used when a user keeps a value that's outside The Analyst's
   // recommended range (change_source = "user_override"), so we have an

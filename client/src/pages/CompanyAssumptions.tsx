@@ -53,6 +53,8 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import type { GlobalResponse } from "@/lib/api";
 import { SaveButton } from "@/components/ui/save-button";
+import { AnalystCheckDialog } from "@/components/intelligence/AnalystCheckDialog";
+import type { WatchdogResult, WatchdogAction } from "../../../engine/watchdog/capitalRaiseEvaluator";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { DEFAULT_MODEL_START_DATE } from "@/lib/constants";
@@ -447,6 +449,12 @@ export default function CompanyAssumptions() {
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
 
+  // Analyst watchdog dialog state — fired by per-tab Save when the
+  // deterministic evaluator returns severity != "ok".
+  const [watchdogOpen, setWatchdogOpen] = useState(false);
+  const [watchdogResult, setWatchdogResult] = useState<WatchdogResult | null>(null);
+  const [watchdogTab, setWatchdogTab] = useState<TabKey | null>(null);
+
   // Tabs the user has saved at least once this session. Drives Analyst gating —
   // non-Company tabs require Company to be saved first so the Analyst has the
   // anchor entity context (name, tax, country) before researching dependents.
@@ -680,11 +688,96 @@ export default function CompanyAssumptions() {
     return out;
   };
 
-  const handleSaveTab = async (tab: TabKey) => {
+  // Derive Funding-tab evaluator inputs from the saved formData. Until the
+  // simulator wires through here, only `trancheGapMonths` is computable from
+  // SAFE note tranche close dates; the other dimensions stay null and the
+  // evaluator treats them as "no signal".
+  const deriveFundingInputs = (data: typeof formData) => {
+    const tranches = (data as Record<string, unknown>).safeNoteTranches;
+    let trancheGapMonths: number | null = null;
+    if (Array.isArray(tranches) && tranches.length >= 2) {
+      const dates = tranches
+        .map((t) => {
+          const d = (t as Record<string, unknown>).closeDate;
+          return typeof d === "string" ? new Date(d).getTime() : NaN;
+        })
+        .filter((ms) => Number.isFinite(ms))
+        .sort((a, b) => a - b);
+      if (dates.length >= 2) {
+        const ms = dates[1] - dates[0];
+        trancheGapMonths = ms / (1000 * 60 * 60 * 24 * 30.44);
+      }
+    }
+    return {
+      runwayBufferMonths: null,
+      sizingOvershootPct: null,
+      trancheGapMonths,
+      revenueRampDelayMonths: null,
+      burnFlexDownPct: null,
+    };
+  };
+
+  const handleWatchdogAction = async (action: WatchdogAction) => {
+    setWatchdogOpen(false);
+    if (action.kind === "adjust") {
+      // Roll back the savedTabs commit for this tab — the user is choosing to
+      // edit before re-saving, so the gate must NOT unlock from this attempt.
+      // Field-value patches already persisted are intentionally left in place
+      // so the user keeps their typed numbers; only the "saved once" flag is
+      // reverted.
+      if (watchdogTab) {
+        try {
+          await fetch("/api/global-assumptions/save-tab", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ tabKey: watchdogTab, unsave: true }),
+          });
+          await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
+          setSavedTabs((prev) => {
+            if (!prev.has(watchdogTab)) return prev;
+            const next = new Set(prev);
+            next.delete(watchdogTab);
+            return next;
+          });
+        } catch (err) {
+          console.warn("Failed to roll back save on Adjust:", err);
+        }
+      }
+      if (action.targetField) {
+        // Best-effort scroll/focus; the field may not be currently mounted.
+        const el = document.querySelector<HTMLElement>(
+          `[data-field="${action.targetField}"], [name="${action.targetField}"], #${CSS.escape(action.targetField)}`,
+        );
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          if ("focus" in el && typeof el.focus === "function") setTimeout(() => el.focus(), 250);
+        }
+      }
+    }
+    // "ack" and "save_anyway" both just close — the save already persisted
+    // before the dialog opened. No free-text or Rebecca handoff path.
+  };
+
+  const handleSaveTab = async (tab: TabKey, opts: { force?: boolean } = {}) => {
     const keys = TAB_FIELDS[tab];
     const touched = keys.filter((k) => dirtyFields.has(k));
-    if (touched.length === 0) {
-      toast({ title: "No changes in this tab", description: "Nothing to save." });
+    // Allow re-save with no changes when the user is just registering the
+    // tab as "saved once" for the downstream-page gate (force=true path).
+    if (touched.length === 0 && !opts.force) {
+      // Still mark the tab as saved server-side so the downstream gate opens.
+      try {
+        const res = await fetch("/api/global-assumptions/save-tab", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ tabKey: tab }),
+        });
+        if (res.ok) {
+          await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
+          toast({ title: `${TAB_LABELS[tab]} saved`, description: "Marked this tab as reviewed." });
+        }
+      } catch { /* swallow — toast already shown if pertinent */ }
       return;
     }
     const payload: Partial<GlobalResponse> = {};
@@ -693,6 +786,28 @@ export default function CompanyAssumptions() {
     setSavingTab(tab);
     try {
       await updateMutation.mutateAsync(payload);
+      // Persist savedTabs server-side and run the deterministic Analyst
+      // watchdog (real for funding, stub for the other 5 tabs).
+      try {
+        const fundingInputs = tab === "funding" ? deriveFundingInputs(formData) : undefined;
+        const res = await fetch("/api/global-assumptions/save-tab", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ tabKey: tab, fundingInputs }),
+        });
+        if (res.ok) {
+          const json = await res.json() as { watchdog?: WatchdogResult };
+          await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
+          if (json.watchdog && json.watchdog.severity !== "ok") {
+            setWatchdogResult(json.watchdog);
+            setWatchdogTab(tab);
+            setWatchdogOpen(true);
+          }
+        }
+      } catch (watchdogErr) {
+        console.warn("Watchdog save-tab call failed:", watchdogErr);
+      }
       // Remove saved keys from dirty set; update isDirty accordingly.
       setDirtyFields((prev) => {
         const next = new Set(prev);
@@ -927,13 +1042,6 @@ export default function CompanyAssumptions() {
                       }
                       dataTestId={`button-ask-analyst-${activeTab}`}
                     />
-                    <SaveButton
-                      onClick={() => handleSaveTab(activeTab)}
-                      isPending={savingTab === activeTab && updateMutation.isPending}
-                      hasChanges={TAB_FIELDS[activeTab].some((k) => dirtyFields.has(k))}
-                      size="sm"
-                      data-testid={`button-save-tab-${activeTab}`}
-                    />
                   </>
                 );
               })()}
@@ -999,6 +1107,31 @@ export default function CompanyAssumptions() {
                   }
                 />
                 {renderBody()}
+
+                {/* Bottom-aligned per-tab Save — drives the deterministic
+                    Analyst watchdog. Each of the 6 tabs gets one. The button
+                    stays enabled when the tab has not yet been saved on the
+                    server (even with no edits) so users can clear the
+                    downstream-page gate from a clean state. */}
+                <div className="flex justify-end pt-4 border-t border-border/40">
+                  {(() => {
+                    const dirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
+                    const rawSaved = (global as unknown as { savedTabs?: unknown }).savedTabs;
+                    const persistedSaved = Array.isArray(rawSaved)
+                      ? (rawSaved as string[]).includes(tab)
+                      : false;
+                    const tabNeverSaved = !persistedSaved;
+                    return (
+                      <SaveButton
+                        onClick={() => handleSaveTab(tab, { force: tabNeverSaved && !dirty })}
+                        isPending={savingTab === tab && updateMutation.isPending}
+                        hasChanges={dirty || tabNeverSaved}
+                        size="default"
+                        data-testid={`button-save-tab-${tab}`}
+                      />
+                    );
+                  })()}
+                </div>
               </TabsContent>
             );
           })}
@@ -1006,6 +1139,14 @@ export default function CompanyAssumptions() {
 
         <SummaryFooter formData={formData} onChange={handleUpdate} global={global} activeTab={activeTab} />
       </div>
+
+      <AnalystCheckDialog
+        open={watchdogOpen}
+        result={watchdogResult}
+        tabLabel={watchdogTab ? TAB_LABELS[watchdogTab] : undefined}
+        onAction={handleWatchdogAction}
+        onOpenChange={setWatchdogOpen}
+      />
 
       </AnimatedPage>
     </Layout>

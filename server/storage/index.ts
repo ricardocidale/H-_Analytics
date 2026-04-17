@@ -386,6 +386,8 @@ export class DatabaseStorage implements IStorage {
   upsertLaborRate = this.intelligenceV2.upsertLaborRate.bind(this.intelligenceV2);
   getFbBenchmarks = this.intelligenceV2.getFbBenchmarks.bind(this.intelligenceV2);
   upsertFbBenchmark = this.intelligenceV2.upsertFbBenchmark.bind(this.intelligenceV2);
+  getAnalystWatchdogBenchmarks = this.intelligenceV2.getAnalystWatchdogBenchmarks.bind(this.intelligenceV2);
+  upsertAnalystWatchdogBenchmarks = this.intelligenceV2.upsertAnalystWatchdogBenchmarks.bind(this.intelligenceV2);
 
   // Capital Raise Benchmarks + Analyst Refresh module
   getCapitalRaiseBenchmarks = this.intelligenceV2.getCapitalRaiseBenchmarks.bind(this.intelligenceV2);

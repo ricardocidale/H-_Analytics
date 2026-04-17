@@ -31,6 +31,7 @@ import {
   FinancialErrorBoundary,
 } from "@/components/ErrorBoundary";
 import NotFound from "@/pages/not-found";
+import { AssumptionsGateGuard } from "@/components/intelligence/AssumptionsGate";
 import { initClientSentry, setClientUser, Sentry } from "@/lib/sentry";
 import { initAnalytics, identifyUser, trackUserLogin } from "@/lib/analytics";
 import {
@@ -184,7 +185,9 @@ function Router() {
         <Route path="/about"><Suspense fallback={<PageLoader />}><About /></Suspense></Route>
         <Route path="/">
           <FinancialErrorBoundary>
-            <ProtectedRoute component={Dashboard} />
+            <AssumptionsGateGuard pageLabel="the Dashboard">
+              <ProtectedRoute component={Dashboard} />
+            </AssumptionsGateGuard>
           </FinancialErrorBoundary>
         </Route>
         <Route path="/company">
@@ -271,7 +274,9 @@ function Router() {
         </Route>
         <Route path="/scenarios">
           <FinancialErrorBoundary>
-            <ManagementRoute component={Scenarios} />
+            <AssumptionsGateGuard pageLabel="Scenarios">
+              <ManagementRoute component={Scenarios} />
+            </AssumptionsGateGuard>
           </FinancialErrorBoundary>
         </Route>
         <Route path="/property-finder">
@@ -279,7 +284,9 @@ function Router() {
         </Route>
         <Route path="/analysis">
           <FinancialErrorBoundary>
-            <ProtectedRoute component={Analysis} />
+            <AssumptionsGateGuard pageLabel="Analysis">
+              <ProtectedRoute component={Analysis} />
+            </AssumptionsGateGuard>
           </FinancialErrorBoundary>
         </Route>
         <Route path="/sensitivity">

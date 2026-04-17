@@ -316,6 +316,12 @@ export const globalAssumptions = pgTable("global_assumptions", {
 
   lastAssumptionChangeAt: timestamp("last_assumption_change_at"),
 
+  // Per-tab Save tracking for the Analyst watchdog. Once all 6 Company
+  // Assumptions tabs have been saved at least once, downstream pages
+  // (Simulation/Compare/Sensitivity/Executive Summary/Dashboard) unlock.
+  // Stored as a jsonb array of TabKey strings.
+  savedTabs: jsonb("saved_tabs").$type<string[]>().notNull().default([]),
+
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("global_assumptions_user_id_idx").on(table.userId),

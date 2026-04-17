@@ -5,6 +5,9 @@ import {
   assumptionChangeLog,
   assumptionAcknowledgments,
   hospitalityBenchmarks,
+  analystWatchdogBenchmarks,
+  type AnalystWatchdogBenchmarks,
+  type InsertAnalystWatchdogBenchmarks,
   marketAdrIndex, seasonalCalendars, eventCalendars, airportDistances, laborRates, fbBenchmarks,
   capitalRaiseBenchmarks, analystRefreshAuditLog, analystRefreshSettings,
   type CapitalRaiseBenchmark, type InsertCapitalRaiseBenchmark,
@@ -779,6 +782,51 @@ export class IntelligenceV2Storage {
       .values(data as typeof laborRates.$inferInsert)
       .returning();
     return inserted;
+  }
+
+  // ── Analyst Watchdog Benchmarks (per-user cache) ──────────────────────
+  // Stub seeding: when no row exists for the user, insert one populated from
+  // DEFAULT_CAPITAL_RAISE_BENCHMARKS. Future task swaps the seed for an
+  // LLM-refreshed populator without changing the read path.
+  async getAnalystWatchdogBenchmarks(userId: number): Promise<AnalystWatchdogBenchmarks> {
+    const rows = await db.select().from(analystWatchdogBenchmarks)
+      .where(eq(analystWatchdogBenchmarks.userId, userId))
+      .limit(1);
+    if (rows.length > 0) return rows[0];
+    const { DEFAULT_CAPITAL_RAISE_BENCHMARKS } = await import("@shared/constants-funding");
+    const seed: typeof analystWatchdogBenchmarks.$inferInsert = {
+      userId,
+      ...DEFAULT_CAPITAL_RAISE_BENCHMARKS,
+      lastRefreshedAt: null,
+      refreshedBy: "stub",
+      sourceCount: 0,
+      tokensUsed: 0,
+    };
+    const [inserted] = await db.insert(analystWatchdogBenchmarks).values(seed).returning();
+    return inserted;
+  }
+
+  async upsertAnalystWatchdogBenchmarks(
+    userId: number,
+    row: Partial<InsertAnalystWatchdogBenchmarks>,
+  ): Promise<AnalystWatchdogBenchmarks> {
+    const existing = await db.select().from(analystWatchdogBenchmarks)
+      .where(eq(analystWatchdogBenchmarks.userId, userId))
+      .limit(1);
+    if (existing.length > 0) {
+      const [updated] = await db.update(analystWatchdogBenchmarks)
+        .set({ ...row, updatedAt: new Date() })
+        .where(eq(analystWatchdogBenchmarks.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    // Seed a base row first so every column has a value, then patch.
+    const seeded = await this.getAnalystWatchdogBenchmarks(userId);
+    const [updated] = await db.update(analystWatchdogBenchmarks)
+      .set({ ...row, updatedAt: new Date() })
+      .where(eq(analystWatchdogBenchmarks.id, seeded.id))
+      .returning();
+    return updated;
   }
 
   // ── F&B Benchmarks ─────────────────────────────────────────────────────

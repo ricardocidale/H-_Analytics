@@ -11,6 +11,7 @@ export * from "./audit";
 export * from "./calc-audit";
 export * from "./intelligence";
 export * from "./intelligence-v2";
+export * from "./watchdog";
 export * from "./engagement";
 export * from "./notifications";
 export * from "./integrations";
