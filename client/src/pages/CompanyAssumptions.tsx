@@ -40,7 +40,7 @@ import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, us
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconPlay, IconAlertTriangle } from "@/components/icons";
+import { IconSparkles, IconAlertTriangle } from "@/components/icons";
 import { OrbitalDots } from "@/components/ui/ai-loader";
 import { usePageVisit } from "@/hooks/usePageVisit";
 import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
@@ -642,9 +642,9 @@ export default function CompanyAssumptions() {
                         {isGenerating ? (
                           <OrbitalDots size={18} />
                         ) : (
-                          <IconPlay className="w-4 h-4" />
+                          <IconSparkles className="w-4 h-4" />
                         )}
-                        {isGenerating ? "Consulting..." : "Ask the Analyst"}
+                        {isGenerating ? "Consulting..." : "Analyst"}
                       </Button>
                     </span>
                   </TooltipTrigger>

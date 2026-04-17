@@ -16,7 +16,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
 import { OrbitalDots } from "@/components/ui/ai-loader";
-import { IconPlay, IconAlertTriangle, IconCheck } from "@/components/icons";
+import { IconSparkles, IconAlertTriangle, IconCheck } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 
 export interface TabValidationWarning {
@@ -153,8 +153,8 @@ export function TabActions({
             className="relative z-10"
             data-testid={`button-ask-analyst-${tabLabel.toLowerCase().replace(/\s+/g, "-")}`}
           >
-            {isAnalystRunning ? <OrbitalDots size={14} /> : <IconPlay className="w-3.5 h-3.5" />}
-            {isAnalystRunning ? "Consulting..." : `Ask the Analyst — ${tabLabel}`}
+            {isAnalystRunning ? <OrbitalDots size={14} /> : <IconSparkles className="w-3.5 h-3.5" />}
+            {isAnalystRunning ? "Consulting..." : `Analyst — ${tabLabel}`}
           </Button>
         </div>
         <SaveButton

@@ -58,7 +58,7 @@ Two AI Agents run the app experience. See `product-vision/the-analyst.md` for th
 
 | Canonical Term | Replaces | Where Used | Why |
 |---|---|---|---|
-| **"Ask the Analyst"** | "Regenerate Intelligence" | Main research button on property edit, company assumptions | The Analyst is singular — one authoritative figure, not a team. |
+| **"Analyst"** (button label) | "Regenerate Intelligence", "Ask the Analyst", "Ask the Analysts" | Main research button on property edit, company assumptions, per-tab actions | Short, sharp label paired with a Sparkles icon (`IconSparkles`). The Analyst is singular — one authoritative figure, not a team. Per-tab variant: `"Analyst — {Tab Label}"`. |
 | **"Consult"** | "Generate Research" / "Run Research" | Research hub, company research tabs, ICP | A verb you'd use with a colleague. |
 | **"Analyst Note"** | "Research badge" / "AI suggestion" / "range tooltip" | Yellow badge next to assumption fields | The Analyst left you a note. |
 | **"Conviction"** | "Confidence Score" | Research results, guidance display | Investor language. Three tiers: **High** / **Moderate** / **Developing**. Never show raw percentages. |
@@ -87,7 +87,7 @@ The AI is a team of sharp analysts who happen to work very fast. Never reference
 | Save | **"Save"** | All save buttons, everywhere | "Update", "Submit", "Apply" |
 | Delete (property) | **"Delete Property"** | Soft-deletes (archives). Always with confirmation dialog. | "Remove", "Archive" (internal term, never shown to user) |
 | Delete (scenario) | **"Delete Scenario"** | Soft-deletes. Confirmation dialog. | "Permanently Delete" (admin context only), "Remove" |
-| Research | **"Ask the Analysts"** | Primary action on property/company edit pages | "Regenerate Intelligence", "Generate Research", "Run Research" |
+| Research | **"Analyst"** (with `IconSparkles`) | Primary action on property/company edit pages and per-tab actions | "Regenerate Intelligence", "Generate Research", "Run Research", "Ask the Analyst", "Ask the Analysts" |
 | Research (secondary) | **"Consult"** | Research hub, dedicated research pages | "Generate", "Run", "Execute" |
 | Load scenario | **"Load"** | Scenario list action | "Restore", "Open", "Apply" |
 | Share | **"Share"** | Scenario sharing | "Grant Access", "Send" |
