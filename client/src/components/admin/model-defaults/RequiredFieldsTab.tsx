@@ -127,7 +127,7 @@ export function RequiredFieldsTab() {
             data-testid="button-save-required-fields"
           >
             {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Save Changes
+            Save
           </Button>
         </div>
       </CardContent>

@@ -173,7 +173,7 @@ export function ConfigureDialog({ open, onOpenChange, source, defaultCategory, o
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="btn-cancel-configure">Cancel</Button>
           <Button onClick={handleSubmit} disabled={!name || isSaving} data-testid="btn-save-configure">
-            {isSaving ? "Saving…" : isCreate ? "Create" : "Save Changes"}
+            {isSaving ? "Saving…" : isCreate ? "Create" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

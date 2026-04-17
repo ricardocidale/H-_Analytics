@@ -142,7 +142,7 @@ function StyleConfigCard({ setting, onUpdate }: { setting: RenderSetting; onUpda
             {[promptPrefix, "<user prompt>", promptSuffix].filter(Boolean).join(", ")}
           </div>
           <Button onClick={handleSave} size="sm" data-testid={`button-save-${setting.styleKey}`}>
-            Save Changes
+            Save
           </Button>
         </CardContent>
       )}

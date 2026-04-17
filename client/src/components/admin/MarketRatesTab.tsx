@@ -309,7 +309,7 @@ export default function MarketRatesTab() {
             <Button variant="outline" onClick={() => setOverrideDialog(null)}>Cancel</Button>
             <Button onClick={handleOverride} disabled={overrideRate.isPending} className="gap-2">
               {overrideRate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
-              Save Changes
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>

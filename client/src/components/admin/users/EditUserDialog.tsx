@@ -94,7 +94,7 @@ export default function EditUserDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-edit">Cancel</Button>
           <Button variant="outline" onClick={onSubmit} disabled={isPending} data-testid="button-save-user" className="flex items-center gap-2">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
-            Save Changes
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>

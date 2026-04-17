@@ -238,7 +238,7 @@ export function ThemeFormDialog({ open, onOpenChange, editingTheme, themeForForm
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={onSave} disabled={isSaving}>
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
-            {editingTheme ? "Save Changes" : "Create Theme"}
+            {editingTheme ? "Save" : "Create Theme"}
           </Button>
         </DialogFooter>
       </DialogContent>

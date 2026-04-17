@@ -372,7 +372,7 @@ export default function ExportsTab() {
           Reset to defaults
         </Button>
         <Button onClick={handleSave} disabled={!dirty || saving} data-testid="button-export-save">
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? "Saving…" : "Save"}
         </Button>
       </div>
     </div>

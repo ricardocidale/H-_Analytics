@@ -18,7 +18,7 @@
  *
  * Pinned outside tabs: PageHeader, IntelligenceStatusBar, FirstVisitBanner,
  * ResearchTheater overlay, SummaryFooter (always visible totals), and the
- * bottom Save Changes button.
+ * bottom Save button.
  *
  * Days Per Month is intentionally NOT here — it lives in
  * Admin → App Defaults → Market & Macro as the single source of truth for

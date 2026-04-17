@@ -143,7 +143,7 @@ export function ServiceTemplateDialog({
             data-testid="button-save-service"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <IconSave className="w-4 h-4 mr-1" />}
-            {editingId ? "Save Changes" : "Create"}
+            {editingId ? "Save" : "Create"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -21,7 +21,7 @@ export function SaveButton({
   disabled = false, 
   isPending = false,
   hasChanges = true,
-  children = "Save Changes",
+  children = "Save",
   className,
   type = "button",
   size,

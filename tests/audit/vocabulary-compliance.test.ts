@@ -42,6 +42,8 @@ describe("Vocabulary Compliance — Forbidden Terms", () => {
     { term: "the chatbot", replacement: "Rebecca" },
     { term: "the assistant", replacement: "Rebecca" },
     { term: "AI helper", replacement: "Rebecca" },
+    { term: "Save Changes", replacement: "Save (button label is just 'Save' app-wide)" },
+    { term: "Save changes", replacement: "Save (button label is just 'Save' app-wide)" },
   ];
 
   for (const { term, replacement } of FORBIDDEN) {

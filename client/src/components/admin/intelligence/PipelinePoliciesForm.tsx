@@ -166,7 +166,7 @@ function PolicyCard({ policy, onSave }: { policy: PipelinePolicy | Omit<Pipeline
       {dirty && (
         <div className="flex justify-end">
           <Button size="sm" onClick={handleSave} data-testid={`save-${policy.policyKey}`}>
-            Save Changes
+            Save
           </Button>
         </div>
       )}

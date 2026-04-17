@@ -189,7 +189,7 @@ export function LlmDefaultsTab() {
             data-testid="button-save-llm-defaults"
           >
             {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
-            Save Changes
+            Save
           </Button>
         </div>
       )}

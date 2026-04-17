@@ -374,7 +374,7 @@ export function IcpContent({ onSaveStateChange }: IcpContentProps) {
               Discard
             </Button>
             <Button onClick={handleDialogSave} data-testid="button-save-and-switch">
-              Save Changes
+              Save
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

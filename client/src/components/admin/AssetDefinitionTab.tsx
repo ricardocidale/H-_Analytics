@@ -337,7 +337,7 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
             data-testid="button-save-icp"
           >
             {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <IconSave className="w-3.5 h-3.5 mr-1.5" />}
-            Save Changes
+            Save
           </Button>
         </CardFooter>
       </Card>
