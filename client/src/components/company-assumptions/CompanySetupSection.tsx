@@ -1,22 +1,17 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CityCombobox } from "@/components/ui/city-combobox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
-import { IconPhone, IconGlobe, IconHash, IconCalendar, IconMail, IconMapPin, IconPercent, IconTarget } from "@/components/icons";
+import { IconPhone, IconGlobe, IconHash, IconCalendar, IconMail, IconMapPin, IconTarget } from "@/components/icons";
 import { Link } from "wouter";
 
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import LogoSelector from "@/components/admin/LogoSelector";
-import { GovernedFieldWrapper } from "@/components/ui/governed-field";
-import { GOVERNED_FIELDS, DEPRECIATION_YEARS } from "@shared/constants";
 import type { CompanySetupSectionProps } from "./types";
 
-export default function CompanySetupSection({ formData, onChange, global, isAdmin, researchValues }: CompanySetupSectionProps) {
-  const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
+export default function CompanySetupSection({ formData, onChange, global, isAdmin }: CompanySetupSectionProps) {
   const geo = useGeoSelect({
     countryName: formData.companyCountry ?? global.companyCountry ?? "",
     stateName: formData.companyStateProvince ?? global.companyStateProvince ?? "",
@@ -46,13 +41,12 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
           </Link>
         </div>
 
-        {/* Two-column rebalance: identity + contact + finance on the left,
-            location + macro/policy on the right. `items-start` keeps cards
-            top-aligned; each column flows independently so heights balance
-            organically rather than forcing equal-height awkward gaps. */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* ───────── LEFT COLUMN: Identity, Contact, Financial ───────── */}
-          <div className="space-y-6">
+        {/* Single-column inner stack — the page itself is already a 2-col
+            split (CompanySetupSection on the left, TaxSection on the right).
+            Macro/policy controls (Inflation Rate, Model Constants) live in
+            TaxSection so this card stays focused on company identity, contact,
+            financial, and location. */}
+        <div className="space-y-6">
             <Card className="bg-card border border-border/80 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -261,82 +255,6 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="bg-card border border-border/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <IconPercent className="w-4 h-4 text-muted-foreground" /> Inflation rate used by Company
-                </CardTitle>
-                <CardDescription className="label-text">Specific inflation rate for management company overhead calculations</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <ResearchContextFieldLabel
-                      label={<>Company Inflation Rate <InfoTooltip text="Overrides the global inflation rate for management company overhead cost escalation. If left empty, falls back to the global inflation rate. Three-tier cascade: property → company → global." /></>}
-                      badgeProps={{ value: researchValues.companyInflationRate?.display, sourceType: "industry", sourceName: "CPI / Fed Reserve", "data-testid": "badge-company-inflation" }}
-                      onApplyValue={() => researchValues.companyInflationRate && onChange("companyInflationRate", researchValues.companyInflationRate.mid / 100)}
-                      guidanceContext={gc("companyInflationRate", "Company Inflation Rate")}
-                      className="text-foreground label-text"
-                    />
-                    <span className="text-sm font-mono text-primary">
-                      {(formData.companyInflationRate ?? global.companyInflationRate) != null
-                        ? `${(((formData.companyInflationRate ?? global.companyInflationRate) as number) * 100).toFixed(1)}%`
-                        : "Default (Global)"}
-                    </span>
-                  </div>
-                  <Slider
-                    value={[((formData.companyInflationRate ?? global.companyInflationRate ?? 0.03) as number) * 100]}
-                    onValueChange={([v]) => onChange("companyInflationRate", v / 100)}
-                    min={0}
-                    max={10}
-                    step={0.1}
-                    data-testid="slider-company-inflation"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>0%</span>
-                    <span>10%</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Falls back to global inflation if not set. Used for escalating management company overhead costs annually.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card border border-border/80 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <IconHash className="w-4 h-4 text-muted-foreground" /> Model Constants
-                </CardTitle>
-                <CardDescription className="label-text">Governed by external authorities. Apply uniformly across all properties.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <GovernedFieldWrapper
-                  authority={GOVERNED_FIELDS.depreciationYears.authority}
-                  label={GOVERNED_FIELDS.depreciationYears.fieldName}
-                  helperText={GOVERNED_FIELDS.depreciationYears.helperText}
-                  referenceUrl={GOVERNED_FIELDS.depreciationYears.referenceUrl}
-                  data-testid="governed-field-depreciationYears"
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="depreciationYears" className="text-xs text-accent-pop dark:text-accent-pop">Years</Label>
-                    <Input
-                      id="depreciationYears"
-                      type="number"
-                      step="0.5"
-                      min="1"
-                      max="50"
-                      value={formData.depreciationYears ?? DEPRECIATION_YEARS}
-                      onChange={(e) => onChange("depreciationYears", parseFloat(e.target.value) || DEPRECIATION_YEARS)}
-                      className="h-8 text-sm bg-white dark:bg-background border-accent-pop/30 dark:border-accent-pop/30"
-                      data-testid="input-depreciationYears"
-                    />
-                  </div>
-                </GovernedFieldWrapper>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </div>
