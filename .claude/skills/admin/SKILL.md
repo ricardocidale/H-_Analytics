@@ -29,6 +29,9 @@ Documents the Admin Settings page architecture — 19 sections with standalone t
 ## Tabs (13)
 Users, Groups, Activity, Branding, Themes, Logos, Navigation, Companies, Services, Market Rates, **Research**, AI Agent, Verification, Database
 
+## Model Defaults → Model Constants
+Admin → Model Defaults hosts the **Model Constants** tab (`client/src/components/admin/model-defaults/ModelConstantsTab.tsx`) — the single edit point for externally-governed values like `depreciationYears` and `daysPerMonth`. Three-state provenance badges (factory / manual / analyst), locality cascade with "Using US baseline" fallback, mandatory note on manual override, reset-to-factory, and "Regenerate via Analyst" (grounded research → typed proposal → diff dialog → apply). All other surfaces that show a Model Constant are read-only and link back here. See ARCHITECTURE.md §2 ("The third category: Model Constants").
+
 ## Research Tab
 Per-event control over AI research: enable/disable, focus areas, regions, time horizon, custom instructions, custom questions, deterministic tool selection. Config stored in `global_assumptions.researchConfig` (JSONB). See `rules/research-precision.md`.
 

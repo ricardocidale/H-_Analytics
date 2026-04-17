@@ -56,6 +56,16 @@ When the user asks where a value lives, **lead with the assumption** (the user-f
 
 Conflating these has caused real production losses (admin-only routing on user pages, reset buttons wiping user work, seed values treated as authoritative, agent answers that send the user to Admin when the value actually lives on a user page).
 
+### The third category: Model Constants
+
+Beyond Defaults and Assumptions there is a small third category: **Model Constants** — values fixed by an external authority (e.g. IRS depreciation life, AHLA "365/12" day count convention) that neither admins nor users may invent. They are not seeds because they don't initialize a tenant; they are not assumptions because the user does not get to choose them. They are governed.
+
+Model Constants live in `model_constant_overrides` with a TS factory fallback (`shared/get-effective-constant.ts`) and three-state provenance: **factory** (no DB row, TS literal wins), **manual** (admin override with mandatory note), or **analyst** (Analyst-proposed value with cited authority + reasoning). The single edit point is **Admin → Model Defaults → Model Constants**; every other surface that displays a Model Constant is read-only and links back to that tab.
+
+The Analyst's role for Model Constants mirrors its role for Assumptions, with one twist: instead of validating against benchmarks, the Analyst can be asked to **regenerate** the value by running grounded web research and returning a typed proposal with an authoritative citation. The admin reviews the diff and applies, or rejects. Per-property overrides of a Model Constant (e.g. a single asset with a shorter remaining depreciation life) are legitimate and remain editable on the property page — those are per-property exceptions, not edits to the constant itself.
+
+Vocabulary: when in doubt, "assumption" still means user-facing working variable, "default" still means admin-only seed, and "constant" or "model constant" means an externally governed value.
+
 ---
 
 ## 3. The User Workflow

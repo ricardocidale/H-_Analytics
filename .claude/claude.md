@@ -288,11 +288,13 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 
 ## Governed Model Constants (DB-Backed)
 
-`DEPRECIATION_YEARS` (39) and `DAYS_PER_MONTH` (30.5) are DB-backed with constant fallbacks. Cascade: `property.depreciationYears → global.depreciationYears → DEPRECIATION_YEARS constant (39)`. The useful life varies by country (see `shared/countryDefaults.ts`). Calculation METHOD always follows US GAAP (ASC 360, straight-line); only the period changes.
+`DEPRECIATION_YEARS` (39) and `DAYS_PER_MONTH` (30.5) are **Model Constants** — values fixed by an external authority (IRS, AHLA convention, etc.), not user assumptions and not seed defaults. They live in `model_constant_overrides` (DB) with TS factory fallback via `shared/get-effective-constant.ts`. Provenance is one of three states: `factory` (TS literal, no DB row), `manual` (admin override with mandatory note), or `analyst` (Analyst-proposed value with cited authority + reasoning).
 
-**Editing surfaces:**
-- `depreciationYears` — **Company Assumptions → Setup tab**, in a Card next to the Inflation Card (wrapped in `GovernedFieldWrapper`).
-- `daysPerMonth` — **Admin → App Defaults → Market & Macro tab** ONLY (single source of truth for this app-wide constant). The duplicate UI on Company Assumptions was removed April 2026.
+**Single edit point: Admin → Model Defaults → Model Constants tab** (`client/src/components/admin/model-defaults/ModelConstantsTab.tsx`). Three-state badges show provenance. "Regenerate via Analyst" runs grounded web research (Perplexity/Tavily + Claude) and proposes a typed value with citation; admin reviews diff and applies. Locality-aware: country/subdivision overrides cascade to a US baseline fallback marked "Using US baseline".
+
+**User-facing surfaces are read-only.** Company Assumptions → Tax shows the current value + an "Edit in Admin → Model Defaults → Model Constants" link; the editable inputs (and the duplicate `daysPerMonth` slider on Admin → Market & Macro) were removed in April 2026 (Phase 4 of the Model Constants migration). Per-property *overrides* of model constants (e.g. `property.depreciationYears` for a specific asset's remaining life) remain editable on the property page — those are per-property, not the constant itself.
+
+Engine cascade today: `property.depreciationYears → global.depreciationYears → DEPRECIATION_YEARS constant`. Wiring the engine to read the admin-governed Model Constant directly via `getEffectiveConstant` is the open Phase 5 follow-up.
 
 ---
 
