@@ -563,6 +563,7 @@ function RegenerateDialog({ row, country }: { row: ConstantRow; country: string 
         <Button
           variant="ghost"
           size="sm"
+          title="Regenerate Research and Intelligence"
           data-testid={`button-regenerate-${row.key}`}
         >
           <IconSparkles className="w-3.5 h-3.5 mr-1.5" />
