@@ -23,6 +23,38 @@ GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio man
 
 ---
 
+## User Workflow Direction (in-progress — Apr 16, 2026)
+
+- **Property-first is the default journey** for the dominant persona (investor). Properties
+  dimension the HMC: portfolio size → staffing tiers (`staffTier{1,2}MaxProperties`);
+  property revenue → HMC fee revenue; The Analyst uses all research-ready properties as
+  HMC research context (excluded_data drops out → `PROPERTIES_EXCLUDED`).
+- **Founder persona may invert** the order (model HMC first, then ask The Analyst what
+  portfolio would justify the model). Open whether to branch on persona at first login.
+- **Preferred shell**: adaptive dashboard with a "what to do next" card that reads
+  data-quality state and steers the user — not a strict locked wizard.
+- **Open forks** (still being decided): (1) adaptive dashboard vs strict wizard,
+  (2) persona branch at first login vs single universal flow.
+
+---
+
+## Operating Model — In-Session vs External Shell
+
+Two execution surfaces in play. The agent must flag which one a task belongs to:
+
+- **In-session (this Replit Agent)** — UI / components / pages, workflow + routing, DB
+  schema and migrations, API routes, server plumbing, anything iterative that benefits
+  from seeing the change land in the preview pane immediately.
+- **External shell (user's Claude Code 4.7 1M)** — multi-file refactors across `calc/`,
+  anything needing the full test tree in one context window, cross-cutting numerical/
+  financial logic where one bad assumption ripples into many places, long-running deep-
+  research synthesis (read 30 docs → produce one cohesive design).
+- **Handoff shape**: agent says *"This one's better in your shell — here's the prompt"*
+  and hands a self-contained brief with file paths, constraints, and acceptance criteria.
+  User runs it externally, pastes back the result, work continues in-session.
+
+---
+
 ## Core Differentiators (Priority Order)
 
 1. **Calculation Accuracy** — GAAP-compliant, independently verifiable, users choose this over Excel

@@ -35,6 +35,15 @@ The platform must feel like an indispensable institutional tool. Every screen, i
 
 This is the **intended onboarding workflow** for every new user. It governs how help content, Rebecca's guidance, the guided tour, and any onboarding prompts should be written. It also defines the logical sequence Rebecca should recommend when a user asks "what do I do first?" or "how do I get started?"
 
+> **Workflow direction (Apr 16, 2026 — in-progress):** The dominant persona is the
+> **investor**, and the default journey is **property-first** — properties dimension
+> the HMC (portfolio size → staffing tiers; property revenue → fee revenue; The Analyst
+> uses research-ready properties as HMC research context). The **founder persona** may
+> invert the order (HMC first). Open forks under discussion: (1) adaptive dashboard
+> with a "what to do next" card vs strict locked wizard, (2) persona branch at first
+> login vs single universal property-first default. The Step-by-Step below is the
+> baseline; the chosen shell will determine how strictly the steps are enforced.
+
 ### What the User Finds on First Login
 
 The app is pre-loaded with **seeded default properties and assumptions** — a realistic starting portfolio that represents a plausible boutique hospitality investment scenario. This is the **default scenario**. Users do not start from a blank slate; they start from a sensible baseline they can customize.

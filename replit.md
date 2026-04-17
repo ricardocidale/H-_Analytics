@@ -20,6 +20,38 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
 - **Business model details:** `.claude/memory/project_business_model_correction.md`
 - **Active Replit tasks:** `.claude/replit-instructions/2026-04-16-master-fixes.md`
 
+## User Workflow Direction (in-progress design — Apr 16, 2026)
+
+- **Property-first is the default user journey** for the dominant persona (investor).
+  Properties feed The Analyst's HMC dimensioning: portfolio size drives staffing
+  tiers (`staffTier{1,2}MaxProperties`); property revenue drives HMC fee revenue;
+  The Analyst literally uses all research-ready properties as HMC research context
+  (excluded_data properties drop out — that's the `PROPERTIES_EXCLUDED` error).
+- **Founder persona may invert** the order (model the HMC first, ask The Analyst
+  what portfolio would make the math work). Open question whether to branch on
+  persona at first login or treat property-first as universal default with manual
+  skip-ahead.
+- **Preferred shell**: adaptive dashboard with a "what to do next" card that reads
+  data-quality state and steers the user — not a strict locked wizard.
+- **Open forks** (still being decided with the user):
+  1. Adaptive dashboard vs strict wizard
+  2. Persona branch at first login vs single universal flow
+
+## Operating Model — In-Session vs External Shell
+
+Two execution surfaces are in play. The agent must flag which one a task belongs to:
+
+- **In-session (this Replit Agent)** — UI / components / pages, workflow + routing,
+  DB schema and migrations, API routes, server plumbing, anything iterative the user
+  wants to see in the preview pane immediately.
+- **External shell (user's Claude Code 4.7 1M session)** — multi-file refactors across
+  `calc/`, anything requiring the full test tree in one window, cross-cutting numerical
+  /financial logic where one bad assumption ripples into many places, long-running
+  deep-research synthesis (read 30 docs → produce one cohesive design).
+- **Handoff shape**: when escalating, the agent says *"This one's better in your shell —
+  here's the prompt"* and hands a self-contained brief with file paths, constraints,
+  and acceptance criteria. User runs it, pastes back the result, work continues.
+
 ## User Preferences
 
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
