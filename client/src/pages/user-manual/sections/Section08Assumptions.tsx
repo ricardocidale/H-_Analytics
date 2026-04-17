@@ -42,9 +42,9 @@ export default function Section08Assumptions({ expanded, onToggle, sectionRef }:
             ["Exit Cap Rate", "8.5%", "HVS / CBRE cap rate surveys", "7–10%"],
             ["Sales Commission", "5%", "Broker industry standard", "4–6%"],
             ["Land Value %", "25%", "IRS Pub 946 guidelines", "20–30%"],
-            ["Depreciation Years", "39 years", "IRS Pub 946 / IRC §168(e)(2)(A) (MACRS)", "Fixed by IRS"],
+            ["Depreciation Years", "39 years (US)", "Governed Model Constant — set in Admin → Model Constants", "Country-specific"],
             ["FF&E Reserve", "4% of revenue", "USALI / lender covenants", "3–5%"],
-            ["Days Per Month", "30.5", "Industry convention (365 ÷ 12)", "Fixed"],
+            ["Days Per Month", "30.5", "Governed Model Constant — set in Admin → Model Constants", "Universal"],
             ["Projection Horizon", "10 years", "PE underwriting standard", "5–15 years"],
             ["Staffing Tier 1", "≤3 properties → 2.5 FTE", "Early-stage mgmt co benchmarks", "2–4 FTE"],
             ["Staffing Tier 2", "≤6 properties → 4.5 FTE", "Growth-stage mgmt co benchmarks", "4–6 FTE"],
@@ -69,6 +69,22 @@ export default function Section08Assumptions({ expanded, onToggle, sectionRef }:
           If a property has its own inflation rate, that is used. Otherwise, the systemwide inflation rate applies.
           If neither is set, the constant default (3%) is used. This cascade ensures every calculation always has
           a valid input while allowing granular overrides where needed.
+        </p>
+      </Callout>
+
+      <Callout variant="light" title="Governed Model Constants (separate from your assumptions)">
+        <p className="text-sm">
+          A small set of values are <strong>not</strong> investor assumptions — they are accounting/regulatory
+          standards that apply to everyone (GAAP, IRS, USALI). Today these are <strong>Days per Month</strong>
+          (30.5, universal industry convention) and <strong>Depreciation Years</strong> (39 years for US hotels
+          under IRC §168, with country-specific values elsewhere).
+        </p>
+        <p className="text-sm mt-2">
+          You can no longer edit these from the Tax or Macro sections. They are managed centrally in
+          <strong> Admin → Model Defaults → Model Constants</strong>, where each value carries a badge showing its
+          source: <strong>Factory</strong> (built-in default), <strong>Analyst</strong> (researched and proposed
+          by The Analyst with a citation), or <strong>Manual</strong> (admin override). Whatever the admin
+          confirms there is what every calculation across the portal uses — no per-property override possible.
         </p>
       </Callout>
 

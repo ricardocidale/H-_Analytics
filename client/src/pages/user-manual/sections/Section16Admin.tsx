@@ -36,6 +36,7 @@ export default function Section16Admin({ expanded, onToggle, sectionRef }: Secti
             ["Verification", "Run the financial verification engine and review audit results"],
             ["Activity", "View system activity logs and user actions"],
             ["Rebecca", "Configure the AI analytics assistant — knowledge base, guardrails, and analytics"],
+            ["Model Defaults", "Govern the model's accounting and regulatory constants — see Model Constants below"],
             ["Database", "Database management tools for administrators"],
           ]}
         />
@@ -97,6 +98,36 @@ export default function Section16Admin({ expanded, onToggle, sectionRef }: Secti
             ["Investor", "Read-only. Views reports and shared scenarios but cannot edit any data."],
           ]}
         />
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Model Defaults → Model Constants</h4>
+        <p className="text-sm text-muted-foreground mb-3">
+          The Model Constants tab is where the portal's accounting and regulatory standards live —
+          values that aren't user assumptions but apply to everyone (GAAP, IRS, USALI). Today the
+          two governed constants are <strong>Days per Month</strong> (30.5, universal) and
+          <strong> Depreciation Years</strong> (country-specific; 39 for US hotels under IRC §168).
+          These used to live on the Tax and Macro sections; they are now centrally governed.
+        </p>
+        <p className="text-sm text-muted-foreground mb-2">
+          Each constant displays a three-state badge showing where its current value comes from:
+        </p>
+        <ManualTable
+          variant="light"
+          headers={["Badge", "Meaning"]}
+          rows={[
+            ["Factory", "Built-in default from the shared constants file. The starting point if nothing else is set."],
+            ["Analyst", "Researched and proposed by The Analyst with a citation. Confirmed by an admin via the Regenerate dialog."],
+            ["Manual", "An admin typed in the value directly. Highest precedence — overrides Analyst and Factory."],
+          ]}
+        />
+        <p className="text-sm text-muted-foreground mt-3">
+          Use <strong>Regenerate Research and Intelligence</strong> (the sparkle button) to ask The Analyst
+          for a fresh, sourced value. The dialog shows the proposed number, the Analyst's reasoning, and the
+          web sources it cited; you confirm before anything is saved. Whatever is confirmed here flows
+          through every calculation in the portal — finance, scenarios, exports, sensitivity, and the
+          verification audit — regardless of what any client may have cached.
+        </p>
       </div>
 
       <Callout severity="info" variant="light">

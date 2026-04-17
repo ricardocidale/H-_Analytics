@@ -26,7 +26,7 @@ The land value percentage typically ranges from 15% to 40% depending on location
 Monthly Depreciation = Depreciable Basis / Depreciation Years / 12
 Annual Depreciation = Depreciable Basis / Depreciation Years
 
-Where Depreciation Years is resolved from: property override → global assumption → US default (39 years).
+Where Depreciation Years is resolved from the governed Model Constants registry: an admin's manual override → an Analyst-researched value (with citation) → the country factory default (39 years for the US under IRC §168). Per-property overrides are no longer accepted for this value, since it is a regulatory constant, not an investor assumption. The Tax section displays it as read-only with a link to Admin → Model Constants.
 
 Depreciation starts when the property is placed in service (the acquisition date). No depreciation occurs before that date.
 
