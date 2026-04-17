@@ -163,3 +163,80 @@ export const insertMarketRateSchema = z.object({
 
 export type MarketRate = typeof marketRates.$inferSelect;
 export type InsertMarketRate = z.infer<typeof insertMarketRateSchema>;
+
+// ── Capital Raise Benchmarks ─────────────────────────────────────
+// Singleton-style benchmark table used by the Analyst watchdog to validate
+// capital-raise (funding) assumptions. One row per dimension keyed by
+// `dimensionKey` (e.g. "valuationCap", "discountRate", "trancheSize").
+// Refreshed by admins via the Analyst Tables admin module.
+export const capitalRaiseBenchmarks = pgTable("capital_raise_benchmarks", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  dimensionKey: text("dimension_key").notNull().unique(),
+  label: text("label").notNull(),
+  unit: text("unit").notNull().default("usd"),
+  valueLow: real("value_low"),
+  valueMid: real("value_mid"),
+  valueHigh: real("value_high"),
+  sourceCount: integer("source_count").notNull().default(0),
+  lastRefreshedAt: timestamp("last_refreshed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCapitalRaiseBenchmarkSchema = createInsertSchema(capitalRaiseBenchmarks).pick({
+  dimensionKey: true, label: true, unit: true,
+  valueLow: true, valueMid: true, valueHigh: true,
+  sourceCount: true, lastRefreshedAt: true,
+});
+export type CapitalRaiseBenchmark = typeof capitalRaiseBenchmarks.$inferSelect;
+export type InsertCapitalRaiseBenchmark = z.infer<typeof insertCapitalRaiseBenchmarkSchema>;
+
+// ── Analyst Refresh Audit Log ────────────────────────────────────
+// Every admin-triggered Analyst-table refresh attempt is recorded here.
+// Provides a tamper-evident trail of who refreshed which table, when, with
+// what evidence, and what the resulting diff was. Required for the 7
+// security guardrails on POST /api/admin/analyst-tables/:id/refresh.
+export const analystRefreshAuditLog = pgTable("analyst_refresh_audit_log", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  tableId: text("table_id").notNull(),
+  adminId: integer("admin_id").references(() => users.id, { onDelete: "set null" }),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  finishedAt: timestamp("finished_at"),
+  sourceCount: integer("source_count"),
+  tokensUsed: integer("tokens_used"),
+  diffSummary: jsonb("diff_summary").$type<Record<string, unknown>>(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  status: text("status").notNull().default("success"), // success | failure | aborted | pending
+  errorMessage: text("error_message"),
+}, (table) => [
+  index("analyst_refresh_audit_table_idx").on(table.tableId),
+  index("analyst_refresh_audit_admin_idx").on(table.adminId),
+  index("analyst_refresh_audit_started_idx").on(table.startedAt),
+]);
+
+export const insertAnalystRefreshAuditLogSchema = createInsertSchema(analystRefreshAuditLog).pick({
+  tableId: true, adminId: true, sourceCount: true, tokensUsed: true,
+  diffSummary: true, ipAddress: true, userAgent: true, status: true,
+  errorMessage: true, finishedAt: true,
+});
+export type AnalystRefreshAuditLog = typeof analystRefreshAuditLog.$inferSelect;
+export type InsertAnalystRefreshAuditLog = z.infer<typeof insertAnalystRefreshAuditLogSchema>;
+
+// ── Analyst Refresh Settings (singleton) ─────────────────────────
+// Single-row config table for the analyst-refresh module. The route layer
+// upserts the row with id=1 so reads always return one record.
+export const analystRefreshSettings = pgTable("analyst_refresh_settings", {
+  id: integer("id").primaryKey(),
+  globalCadenceDays: integer("global_cadence_days").notNull().default(30),
+  lastSuspiciousAlertAt: timestamp("last_suspicious_alert_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAnalystRefreshSettingsSchema = z.object({
+  id: z.number().optional(),
+  globalCadenceDays: z.number().int().min(1).max(365).optional(),
+  lastSuspiciousAlertAt: z.date().nullable().optional(),
+});
+export type AnalystRefreshSettings = typeof analystRefreshSettings.$inferSelect;
+export type InsertAnalystRefreshSettings = z.infer<typeof insertAnalystRefreshSettingsSchema>;

@@ -229,3 +229,23 @@ npm run diff:summary   # Git status + diff stats (<1s)
 npm run db:push        # Push schema changes
 npx tsx script/ci-hygiene.ts  # Auto-fix CI failures after external pulls
 ```
+
+## Admin Analyst Tables (task #339)
+
+Admin-only LLM-driven refresh of benchmark tables, starting with
+`capital_raise_benchmarks`. Lives at Admin → AI Research → Analyst Tables.
+
+- Schema: `capital_raise_benchmarks`, `analyst_refresh_audit_log`,
+  `analyst_refresh_settings` (in `shared/schema/intelligence.ts`).
+- Backend: `server/routes/admin/analyst-tables.ts` exposes list / refresh /
+  commit / discard / reseed-accounts / settings endpoints.
+- LLM helper: `server/ai/analyst-table-refresh.ts` (single round-trip,
+  N+1 = 3 sources required).
+- Security: 7 composable guards in
+  `server/middleware/analyst-refresh-guards.ts` — admin-role, CSRF
+  double-submit, per-admin rate limit (10/hr), table allow-list,
+  single-flight, audit-log open, suspicious-pattern tracker (>5/10min).
+- Frontend: `client/src/components/admin/intelligence/AnalystTables.tsx`
+  with `AnalystRefreshTheater`, `RefreshDiffDialog`,
+  `SuspiciousActivityBanner`, plus `useFirstVisitBenchmarkSeed`.
+- Tests: `tests/server/analyst-refresh-guards.test.ts` (16 cases).

@@ -6,6 +6,10 @@ import {
   assumptionAcknowledgments,
   hospitalityBenchmarks,
   marketAdrIndex, seasonalCalendars, eventCalendars, airportDistances, laborRates, fbBenchmarks,
+  capitalRaiseBenchmarks, analystRefreshAuditLog, analystRefreshSettings,
+  type CapitalRaiseBenchmark, type InsertCapitalRaiseBenchmark,
+  type AnalystRefreshAuditLog, type InsertAnalystRefreshAuditLog,
+  type AnalystRefreshSettings, type InsertAnalystRefreshSettings,
   type AssumptionGuidance, type InsertAssumptionGuidance,
   type AssumptionChangeLog, type InsertAssumptionChangeLog,
   type AssumptionAcknowledgment, type InsertAssumptionAcknowledgment,
@@ -784,6 +788,99 @@ export class IntelligenceV2Storage {
     return db.select().from(fbBenchmarks)
       .where(and(...conditions))
       .orderBy(fbBenchmarks.propertyType);
+  }
+
+  // ── Capital Raise Benchmarks ──────────────────────────────────
+  async getCapitalRaiseBenchmarks(): Promise<CapitalRaiseBenchmark[]> {
+    return db.select().from(capitalRaiseBenchmarks).orderBy(capitalRaiseBenchmarks.dimensionKey);
+  }
+
+  async getCapitalRaiseBenchmarkSummary(): Promise<{
+    rows: CapitalRaiseBenchmark[];
+    lastRefreshedAt: Date | null;
+    sourceCount: number;
+  }> {
+    const rows = await this.getCapitalRaiseBenchmarks();
+    const refreshed = rows.map(r => r.lastRefreshedAt).filter((d): d is Date => !!d);
+    const lastRefreshedAt = refreshed.length ? new Date(Math.max(...refreshed.map(d => d.getTime()))) : null;
+    const sourceCount = rows.reduce((s, r) => Math.max(s, r.sourceCount ?? 0), 0);
+    return { rows, lastRefreshedAt, sourceCount };
+  }
+
+  async upsertCapitalRaiseBenchmark(data: InsertCapitalRaiseBenchmark): Promise<CapitalRaiseBenchmark> {
+    const [existing] = await db.select().from(capitalRaiseBenchmarks)
+      .where(eq(capitalRaiseBenchmarks.dimensionKey, data.dimensionKey)).limit(1);
+    if (existing) {
+      const [updated] = await db.update(capitalRaiseBenchmarks)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(capitalRaiseBenchmarks.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(capitalRaiseBenchmarks)
+      .values(data as typeof capitalRaiseBenchmarks.$inferInsert)
+      .returning();
+    return inserted;
+  }
+
+  // ── Analyst Refresh Audit Log ─────────────────────────────────
+  async createAnalystRefreshAuditLog(data: InsertAnalystRefreshAuditLog): Promise<AnalystRefreshAuditLog> {
+    const [row] = await db.insert(analystRefreshAuditLog)
+      .values(data as typeof analystRefreshAuditLog.$inferInsert)
+      .returning();
+    return row;
+  }
+
+  async finalizeAnalystRefreshAuditLog(
+    id: number,
+    patch: Partial<InsertAnalystRefreshAuditLog> & { finishedAt?: Date },
+  ): Promise<AnalystRefreshAuditLog | undefined> {
+    const [row] = await db.update(analystRefreshAuditLog)
+      .set(patch)
+      .where(eq(analystRefreshAuditLog.id, id))
+      .returning();
+    return row;
+  }
+
+  async getRecentAnalystRefreshAuditLogs(opts: { tableId?: string; sinceMs?: number; limit?: number } = {}): Promise<AnalystRefreshAuditLog[]> {
+    const since = opts.sinceMs ? new Date(Date.now() - opts.sinceMs) : null;
+    const conditions = [];
+    if (opts.tableId) conditions.push(eq(analystRefreshAuditLog.tableId, opts.tableId));
+    if (since) conditions.push(sql`${analystRefreshAuditLog.startedAt} > ${since}`);
+    const where = conditions.length ? and(...conditions) : undefined;
+    return db.select().from(analystRefreshAuditLog)
+      .where(where)
+      .orderBy(desc(analystRefreshAuditLog.startedAt))
+      .limit(opts.limit ?? 50);
+  }
+
+  async countAnalystRefreshAttempts(opts: { adminId?: number; sinceMs: number }): Promise<number> {
+    const since = new Date(Date.now() - opts.sinceMs);
+    const conditions = [sql`${analystRefreshAuditLog.startedAt} > ${since}`];
+    if (opts.adminId != null) conditions.push(eq(analystRefreshAuditLog.adminId, opts.adminId));
+    const rows = await db.select({ c: sql<number>`count(*)::int` })
+      .from(analystRefreshAuditLog)
+      .where(and(...conditions));
+    return rows[0]?.c ?? 0;
+  }
+
+  // ── Analyst Refresh Settings (singleton row id=1) ─────────────
+  async getAnalystRefreshSettings(): Promise<AnalystRefreshSettings> {
+    const [row] = await db.select().from(analystRefreshSettings).where(eq(analystRefreshSettings.id, 1)).limit(1);
+    if (row) return row;
+    const [inserted] = await db.insert(analystRefreshSettings)
+      .values({ id: 1, globalCadenceDays: 30 })
+      .returning();
+    return inserted;
+  }
+
+  async updateAnalystRefreshSettings(patch: InsertAnalystRefreshSettings): Promise<AnalystRefreshSettings> {
+    await this.getAnalystRefreshSettings(); // ensure exists
+    const [row] = await db.update(analystRefreshSettings)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(analystRefreshSettings.id, 1))
+      .returning();
+    return row;
   }
 
   async upsertFbBenchmark(data: InsertFbBenchmark): Promise<FbBenchmark> {

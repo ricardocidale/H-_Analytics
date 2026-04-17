@@ -387,6 +387,17 @@ export class DatabaseStorage implements IStorage {
   getFbBenchmarks = this.intelligenceV2.getFbBenchmarks.bind(this.intelligenceV2);
   upsertFbBenchmark = this.intelligenceV2.upsertFbBenchmark.bind(this.intelligenceV2);
 
+  // Capital Raise Benchmarks + Analyst Refresh module
+  getCapitalRaiseBenchmarks = this.intelligenceV2.getCapitalRaiseBenchmarks.bind(this.intelligenceV2);
+  getCapitalRaiseBenchmarkSummary = this.intelligenceV2.getCapitalRaiseBenchmarkSummary.bind(this.intelligenceV2);
+  upsertCapitalRaiseBenchmark = this.intelligenceV2.upsertCapitalRaiseBenchmark.bind(this.intelligenceV2);
+  createAnalystRefreshAuditLog = this.intelligenceV2.createAnalystRefreshAuditLog.bind(this.intelligenceV2);
+  finalizeAnalystRefreshAuditLog = this.intelligenceV2.finalizeAnalystRefreshAuditLog.bind(this.intelligenceV2);
+  getRecentAnalystRefreshAuditLogs = this.intelligenceV2.getRecentAnalystRefreshAuditLogs.bind(this.intelligenceV2);
+  countAnalystRefreshAttempts = this.intelligenceV2.countAnalystRefreshAttempts.bind(this.intelligenceV2);
+  getAnalystRefreshSettings = this.intelligenceV2.getAnalystRefreshSettings.bind(this.intelligenceV2);
+  updateAnalystRefreshSettings = this.intelligenceV2.updateAnalystRefreshSettings.bind(this.intelligenceV2);
+
   // Rebecca Guardrails
   getRebeccaGuardrails = this.rebecca.getRebeccaGuardrails.bind(this.rebecca);
   getActiveRebeccaGuardrails = this.rebecca.getActiveRebeccaGuardrails.bind(this.rebecca);
