@@ -9,7 +9,7 @@
  *     = Operating Cash Flow
  *
  *   Financing Activities:
- *     + SAFE note funding inflows (pre-revenue capital)
+ *     + Capital raise funding inflows (pre-revenue capital, e.g. SAFE notes)
  *     − Partner draws / distributions
  *
  *   Ending Cash = Opening Cash + Operating CF + Financing CF
@@ -104,7 +104,7 @@ export default function CompanyCashFlowTab({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="cashflow-kpi-cards">
         {([
           { label: "Year 1 Operating Cash", value: y1OperatingCF, sub: "Net income + non-cash adjustments" },
-          { label: "Year 1 Funding Received", value: y1FundingReceived, sub: "SAFE note capital inflows" },
+          { label: "Year 1 Funding Received", value: y1FundingReceived, sub: "Capital raise inflows" },
           { label: "Year 1 Net Cash Change", value: y1.CashFlow, sub: "Annual net cash increase" },
           { label: "Year 1 Ending Cash", value: y1.EndingCash, sub: y1Runway ? `${y1Runway} months runway` : "End of year 1 balance" },
         ] as { label: string; value: number; sub: string }[]).map(card => (

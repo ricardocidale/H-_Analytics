@@ -35,7 +35,7 @@ const PRESET_SERIES: Record<string, ChartSeries> = {
   atcf: { dataKey: "ATCF", name: "ATCF — After-Tax Cash Flow", color: "hsl(var(--line-5))" },
   baseFees: { dataKey: "BaseFees", name: "Service Fees — Base Management Fees", color: "hsl(var(--line-2))" },
   incentiveFees: { dataKey: "IncentiveFees", name: "Incentive Fees — Performance-Based Fees", color: "hsl(var(--line-3))" },
-  funding: { dataKey: "Funding", name: "Funding Received — SAFE Note Capital", color: "hsl(var(--line-2))" },
+  funding: { dataKey: "Funding", name: "Funding Received — Capital Raise", color: "hsl(var(--line-2))" },
 };
 
 export interface FinancialChartProps {

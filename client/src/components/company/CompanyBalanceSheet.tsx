@@ -7,9 +7,10 @@
  *     • Cash & Equivalents (cumulative net cash from the cash flow statement)
  *
  *   Liabilities:
- *     • SAFE Notes Payable — total outstanding SAFE (Simple Agreement for
- *       Future Equity) obligations. SAFEs convert to equity at a future
- *       priced round; until then they sit as a liability.
+ *     • Capital Raise Notes Payable — total outstanding capital-raise
+ *       obligations (e.g. SAFE — Simple Agreement for Future Equity — or
+ *       similar convertible instruments). These typically convert to equity
+ *       at a future priced round; until then they sit as a liability.
  *
  *   Equity:
  *     • Retained Earnings — cumulative net income less distributions
@@ -19,7 +20,7 @@
  *   Assets = Liabilities + Equity
  *
  * For a startup management company, the early years may show negative
- * retained earnings offset by SAFE proceeds, which is normal until the
+ * retained earnings offset by capital-raise proceeds, which is normal until the
  * portfolio generates sufficient fee revenue to cover overhead.
  */
 import React from "react";

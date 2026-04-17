@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 const DEFAULT_NARRATION = [
-  "Pulling the latest SAFE Note benchmark databases…",
+  "Pulling the latest capital-raise benchmark databases…",
   "Cross-checking Carta, AngelList, and Crunchbase priced-round data…",
   "Reviewing recent YC and Techstars cohort raise sizes…",
   "Synthesizing valuation cap and discount-rate distributions…",

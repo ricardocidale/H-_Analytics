@@ -49,8 +49,8 @@ export default function Section08Assumptions({ expanded, onToggle, sectionRef }:
             ["Staffing Tier 1", "≤3 properties → 2.5 FTE", "Early-stage mgmt co benchmarks", "2–4 FTE"],
             ["Staffing Tier 2", "≤6 properties → 4.5 FTE", "Growth-stage mgmt co benchmarks", "4–6 FTE"],
             ["Staffing Tier 3", "7+ properties → 7.0 FTE", "Scaled mgmt co benchmarks", "6–10 FTE"],
-            ["SAFE Valuation Cap", "$2,500,000", "Early-stage hospitality", "$1.5M–$5M"],
-            ["SAFE Discount Rate", "20%", "Standard SAFE terms", "15–25%"],
+            ["Capital Raise Valuation Cap", "$2,500,000", "Early-stage hospitality (e.g. SAFE notes)", "$1.5M–$5M"],
+            ["Capital Raise Discount Rate", "20%", "Standard convertible / SAFE terms", "15–25%"],
             ["Funding Interest Rate", "8%", "Convertible note market", "6–10%"],
           ]}
         />
