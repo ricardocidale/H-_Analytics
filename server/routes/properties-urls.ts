@@ -198,8 +198,8 @@ export function registerPropertyUrlRoutes(app: Express) {
       }
       await storage.deletePropertyUrl(urlId);
       try {
-        const { deleteVectors, isPineconeAvailable } = await import("../ai/pinecone-service");
-        if (isPineconeAvailable()) {
+        const { deleteVectors, isVectorStoreAvailable } = await import("../ai/vector-store-service");
+        if (isVectorStoreAvailable()) {
           await deleteVectors("properties", [`prop-url:${propertyId}:${urlId}`]);
         }
       } catch (e: unknown) {
@@ -298,8 +298,8 @@ export function registerPropertyUrlRoutes(app: Express) {
       const relevantUrls = results.filter(r => r.isValid && r.isRelevant);
       const staleUrls = results.filter(r => !r.isValid || !r.isRelevant);
       try {
-        const { upsertChunks, deleteVectors, isPineconeAvailable } = await import("../ai/pinecone-service");
-        if (isPineconeAvailable()) {
+        const { upsertChunks, deleteVectors, isVectorStoreAvailable } = await import("../ai/vector-store-service");
+        if (isVectorStoreAvailable()) {
           if (staleUrls.length > 0) {
             const staleIds = staleUrls.map(r => `prop-url:${propertyId}:${r.id}`);
             await deleteVectors("properties", staleIds);

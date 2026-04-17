@@ -1,21 +1,13 @@
 /**
- * Vector store service — pgvector-backed (Neon PostgreSQL) replacement for the
- * legacy Pinecone implementation. The public API is preserved so all existing
- * call sites continue to work; only the storage backend has changed.
+ * Vector store service — pgvector-backed (Neon PostgreSQL).
  *
  * Storage: `vector_chunks` table in the primary Neon database (see migration
  * `0012_pgvector_store.sql`). Embeddings are stored as `vector(1536)` and
- * indexed with HNSW using cosine distance. The legacy "namespace" concept is
- * kept as a column so `knowledge-base`, `research-history`, `comparables`,
- * `assumption-guidance`, `documents`, `scenarios`, and `properties` continue
- * to behave as logically isolated buckets.
+ * indexed with HNSW using cosine distance. The "namespace" column keeps
+ * `knowledge-base`, `research-history`, `comparables`, `assumption-guidance`,
+ * `documents`, `scenarios`, and `properties` as logically isolated buckets.
  *
  * Embedding model: text-embedding-3-small (1536 dims, cosine).
- *
- * NOTE: The file is still named `pinecone-service.ts` to avoid a sweeping
- * rename across ~30 call sites. Type and helper names that mention "Pinecone"
- * are kept as aliases for the same reason; user-facing labels say "vector
- * store".
  */
 
 import OpenAI from "openai";
@@ -57,7 +49,7 @@ export function isEmbeddingAvailable(): boolean {
   return getEmbeddingClient() !== null;
 }
 
-export type PineconeNamespace =
+export type VectorNamespace =
   | "knowledge-base"
   | "research-history"
   | "comparables"
@@ -66,10 +58,7 @@ export type PineconeNamespace =
   | "scenarios"
   | "properties";
 
-/** Alias kept for new call sites that want a non-vendor-specific name. */
-export type VectorNamespace = PineconeNamespace;
-
-export const ALL_NAMESPACES: PineconeNamespace[] = [
+export const ALL_NAMESPACES: VectorNamespace[] = [
   "knowledge-base",
   "research-history",
   "comparables",
@@ -79,13 +68,11 @@ export const ALL_NAMESPACES: PineconeNamespace[] = [
   "properties",
 ];
 
-export interface PineconeChunk {
+export interface VectorChunk {
   id: string;
   text: string;
   metadata: Record<string, string | number | boolean>;
 }
-
-export type VectorChunk = PineconeChunk;
 
 export interface QueryMatch {
   id: string;
@@ -110,7 +97,7 @@ const AVAILABILITY_TTL_MS = 60_000;
  * Callers that need a guaranteed-accurate answer should `await
  * checkVectorStoreReady()` instead.
  */
-export function isPineconeAvailable(): boolean {
+export function isVectorStoreAvailable(): boolean {
   if (!process.env.DATABASE_URL) return false;
   if (_storeReady !== null && Date.now() - _availabilityCachedAt < AVAILABILITY_TTL_MS) {
     return _storeReady;
@@ -120,9 +107,6 @@ export function isPineconeAvailable(): boolean {
   // Fail closed until the first probe completes — strict readiness reporting.
   return _storeReady === true;
 }
-
-/** New-style alias for `isPineconeAvailable`. */
-export const isVectorStoreAvailable = isPineconeAvailable;
 
 /**
  * Async readiness check that verifies DATABASE_URL is set, the `vector`
@@ -241,10 +225,10 @@ function toVectorLiteral(vec: number[]): string {
  * Idempotent on (namespace, id): re-indexing the same id replaces the row.
  */
 export async function upsertChunks(
-  namespace: PineconeNamespace,
-  chunks: PineconeChunk[],
+  namespace: VectorNamespace,
+  chunks: VectorChunk[],
 ): Promise<void> {
-  if (!isPineconeAvailable() || chunks.length === 0) return;
+  if (!isVectorStoreAvailable() || chunks.length === 0) return;
   if (!isEmbeddingAvailable()) return;
   await ensureStore();
 
@@ -289,12 +273,12 @@ export async function upsertChunks(
  * `filter` matches against metadata using JSON containment (`metadata @> ...`).
  */
 export async function queryChunks(
-  namespace: PineconeNamespace,
+  namespace: VectorNamespace,
   query: string,
   topK = 8,
   filter?: Record<string, unknown>,
 ): Promise<QueryMatch[]> {
-  if (!isPineconeAvailable() || !isEmbeddingAvailable()) return [];
+  if (!isVectorStoreAvailable() || !isEmbeddingAvailable()) return [];
   await ensureStore();
 
   const vector = await embed(query);
@@ -331,10 +315,10 @@ export async function queryChunks(
 }
 
 export async function deleteVectors(
-  namespace: PineconeNamespace,
+  namespace: VectorNamespace,
   ids: string[],
 ): Promise<void> {
-  if (!isPineconeAvailable() || ids.length === 0) return;
+  if (!isVectorStoreAvailable() || ids.length === 0) return;
   await ensureStore();
   await pool.query(
     `DELETE FROM vector_chunks WHERE namespace = $1 AND id = ANY($2::text[])`,
@@ -343,16 +327,16 @@ export async function deleteVectors(
 }
 
 export interface MultiNamespaceMatch extends QueryMatch {
-  namespace: PineconeNamespace;
+  namespace: VectorNamespace;
 }
 
 export async function multiNamespaceQuery(
   query: string,
-  namespaces: PineconeNamespace[],
+  namespaces: VectorNamespace[],
   topK = 5,
   filter?: Record<string, unknown>,
 ): Promise<MultiNamespaceMatch[]> {
-  if (!isPineconeAvailable() || !isEmbeddingAvailable() || namespaces.length === 0) return [];
+  if (!isVectorStoreAvailable() || !isEmbeddingAvailable() || namespaces.length === 0) return [];
   await ensureStore();
 
   const vector = await embed(query);
@@ -405,8 +389,8 @@ export async function multiNamespaceQuery(
   return results.flat().sort((a, b) => b.score - a.score).slice(0, topK * 2);
 }
 
-export async function vectorCount(namespace: PineconeNamespace): Promise<number> {
-  if (!isPineconeAvailable()) return 0;
+export async function vectorCount(namespace: VectorNamespace): Promise<number> {
+  if (!isVectorStoreAvailable()) return 0;
   try {
     await ensureStore();
     const { rows } = await pool.query<{ count: string }>(
@@ -419,11 +403,11 @@ export async function vectorCount(namespace: PineconeNamespace): Promise<number>
   }
 }
 
-export async function getNamespaceStats(): Promise<Record<PineconeNamespace, number>> {
+export async function getNamespaceStats(): Promise<Record<VectorNamespace, number>> {
   const stats: Record<string, number> = {};
   for (const ns of ALL_NAMESPACES) stats[ns] = 0;
 
-  if (!isPineconeAvailable()) return stats as Record<PineconeNamespace, number>;
+  if (!isVectorStoreAvailable()) return stats as Record<VectorNamespace, number>;
 
   try {
     await ensureStore();
@@ -442,11 +426,11 @@ export async function getNamespaceStats(): Promise<Record<PineconeNamespace, num
     );
   }
 
-  return stats as Record<PineconeNamespace, number>;
+  return stats as Record<VectorNamespace, number>;
 }
 
-export async function deleteNamespace(namespace: PineconeNamespace): Promise<void> {
-  if (!isPineconeAvailable()) return;
+export async function deleteNamespace(namespace: VectorNamespace): Promise<void> {
+  if (!isVectorStoreAvailable()) return;
   try {
     await ensureStore();
     await pool.query(`DELETE FROM vector_chunks WHERE namespace = $1`, [namespace]);
@@ -461,10 +445,10 @@ export async function deleteNamespace(namespace: PineconeNamespace): Promise<voi
 }
 
 export async function cleanupPropertyVectors(propertyId: number): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
   await ensureStore();
 
-  const namespacesToClean: PineconeNamespace[] = [
+  const namespacesToClean: VectorNamespace[] = [
     "properties",
     "research-history",
     "assumption-guidance",
@@ -499,7 +483,7 @@ export async function cleanupPropertyVectors(propertyId: number): Promise<void> 
 }
 
 export async function getTotalVectorCount(): Promise<number> {
-  if (!isPineconeAvailable()) return 0;
+  if (!isVectorStoreAvailable()) return 0;
   try {
     await ensureStore();
     const { rows } = await pool.query<{ count: string }>(
@@ -511,7 +495,7 @@ export async function getTotalVectorCount(): Promise<number> {
   }
 }
 
-// ── Domain indexing functions delegated to pinecone-indexing.ts ──────────────
+// ── Domain indexing functions delegated to vector-indexing.ts ────────────────
 export {
   indexResearchResult,
   retrieveSimilarResearch,
@@ -529,4 +513,4 @@ export {
   indexPropertyProfile,
   retrievePropertyContext,
   indexToKnowledgeBase,
-} from "./pinecone-indexing";
+} from "./vector-indexing";

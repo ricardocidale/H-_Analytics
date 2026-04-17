@@ -12,7 +12,7 @@ import {
   KB_MIN_CONFIDENCE,
 } from "../constants";
 import { extractMethodologyContent, extractCheckerManualContent, extractPlatformGuide } from "./kb-content";
-import { isPineconeAvailable, upsertChunks, queryChunks, vectorCount } from "./pinecone-service";
+import { isVectorStoreAvailable, upsertChunks, queryChunks, vectorCount } from "./vector-store-service";
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
 const CHUNK_SIZE = 800;
@@ -130,7 +130,7 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
 
     // If Pinecone is available and already indexed, skip re-embedding this session.
     // Load the in-memory cache from Pinecone metadata instead.
-    if (isPineconeAvailable()) {
+    if (isVectorStoreAvailable()) {
       const existing = await vectorCount("knowledge-base").catch(() => 0);
       if (existing > 0) {
         logger.info(`Pinecone knowledge-base has ${existing} vectors — skipping re-index`, "knowledge-base");
@@ -162,7 +162,7 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
     }));
 
     // Persist to Pinecone so future restarts skip re-embedding
-    if (isPineconeAvailable()) {
+    if (isVectorStoreAvailable()) {
       const pineconeChunks = allChunks.map((chunk, i) => ({
         id: `kb:${chunk.source}:${i}`,
         text: `${chunk.title}\n\n${chunk.content}`,
@@ -195,7 +195,7 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
 
 export async function retrieveRelevantChunks(query: string, topK: number = TOP_K): Promise<{ title: string; content: string; source: string; category: string; score: number }[]> {
   // Pinecone path: persistent, no in-memory dependency
-  if (isPineconeAvailable()) {
+  if (isVectorStoreAvailable()) {
     try {
       const matches = await queryChunks("knowledge-base", query, topK);
       return matches

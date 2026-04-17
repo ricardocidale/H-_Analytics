@@ -6,7 +6,7 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { registerSourceRoutes } from "./intelligence-sources";
 import { registerScheduledResearchRoutes } from "./intelligence-scheduled";
-import { registerPineconeRoutes } from "./intelligence-pinecone";
+import { registerVectorStoreRoutes } from "./intelligence-vector-store";
 import { registerQaRoutes } from "./intelligence-qa";
 
 const scenarioQuerySchema = z.object({
@@ -229,6 +229,6 @@ export function registerIntelligenceRoutes(app: Express) {
 
   registerSourceRoutes(app);
   registerScheduledResearchRoutes(app);
-  registerPineconeRoutes(app);
+  registerVectorStoreRoutes(app);
   registerQaRoutes(app);
 }

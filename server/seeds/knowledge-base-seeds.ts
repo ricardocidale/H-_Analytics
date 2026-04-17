@@ -6,7 +6,7 @@
  * Uses the `knowledge-base` namespace via indexToKnowledgeBase().
  */
 
-import { indexToKnowledgeBase } from "../ai/pinecone-service";
+import { indexToKnowledgeBase } from "../ai/vector-store-service";
 import { logger } from "../logger";
 
 interface KnowledgeEntry {

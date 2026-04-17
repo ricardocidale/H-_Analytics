@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../../server/ai/pinecone-service", () => ({
-  isPineconeAvailable: vi.fn(() => true),
+vi.mock("../../server/ai/vector-store-service", () => ({
+  isVectorStoreAvailable: vi.fn(() => true),
   isEmbeddingAvailable: vi.fn(() => true),
   upsertChunks: vi.fn(async () => {}),
   queryChunks: vi.fn(async () => []),
 }));
 
-import { indexScenarioSummary } from "../../server/ai/pinecone-indexing";
-import { upsertChunks, isPineconeAvailable } from "../../server/ai/pinecone-service";
+import { indexScenarioSummary } from "../../server/ai/vector-indexing";
+import { upsertChunks, isVectorStoreAvailable } from "../../server/ai/vector-store-service";
 
 const mockedUpsertChunks = vi.mocked(upsertChunks);
-const mockedIsPineconeAvailable = vi.mocked(isPineconeAvailable);
+const mockedIsPineconeAvailable = vi.mocked(isVectorStoreAvailable);
 
 const baseScenario = {
   scenarioId: 42,

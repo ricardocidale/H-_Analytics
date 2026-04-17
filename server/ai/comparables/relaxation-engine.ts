@@ -2,7 +2,7 @@ import type { PropertyContextPack } from "../context-pack/types";
 import type { Property } from "@shared/schema";
 import type { InsertRelaxationTrace } from "@shared/schema/intelligence-v2";
 import { ComparableQueryBuilder, type RelaxLevel, type ComparableCriteria } from "./query-builder";
-import { queryChunks, isPineconeAvailable, type QueryMatch } from "../pinecone-service";
+import { queryChunks, isVectorStoreAvailable, type QueryMatch } from "../vector-store-service";
 import { enrichComparablesFromWeb, type WebComparable } from "./web-enricher";
 import { storage } from "../../storage";
 import { logger } from "../../logger";
@@ -248,7 +248,7 @@ function filterCompAgainstCriteria(
 }
 
 async function queryPinecone(pack: PropertyContextPack, criteria: ComparableCriteria): Promise<ComparableProperty[]> {
-  if (!isPineconeAvailable()) return [];
+  if (!isVectorStoreAvailable()) return [];
   try {
     const queryText = [
       pack.classification.compositeLabel,

@@ -28,7 +28,7 @@ import {
   indexDocumentExtraction,
   indexToKnowledgeBase,
   indexAssumptionGuidance,
-} from "../ai/pinecone-service";
+} from "../ai/vector-store-service";
 import { db } from "../db";
 import { companies } from "@shared/schema";
 import { inArray } from "drizzle-orm";

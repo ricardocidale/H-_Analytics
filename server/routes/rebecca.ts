@@ -6,7 +6,7 @@ import { sendNotificationEmail } from "../integrations/resend";
 import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
-import { upsertChunks, deleteVectors, vectorCount } from "../ai/pinecone-service";
+import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
 
 const emailRequestSchema = z.object({
   conversationId: z.number().int().positive(),

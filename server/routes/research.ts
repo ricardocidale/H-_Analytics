@@ -23,7 +23,7 @@ import { buildCompanyContextPack } from "../ai/context-pack/company-pack";
 import { assembleResearchPrompt } from "../ai/prompt/assemble-research-prompt";
 import { extractGuidance } from "../ai/guidance/extractor";
 import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
-import { indexAssumptionGuidance, retrieveSimilarGuidance, isPineconeAvailable } from "../ai/pinecone-service";
+import { indexAssumptionGuidance, retrieveSimilarGuidance, isVectorStoreAvailable } from "../ai/vector-store-service";
 import { registerResearchMetaRoutes } from "./research-meta";
 import { detectStaleness } from "../ai/staleness-detector";
 import { conductWebResearch, isWebResearchAvailable, type WebResearchResult, type WebResearchRequest } from "../ai/web-research";
@@ -393,7 +393,7 @@ export function register(app: Express) {
               // Retrieve prior assumption guidance from similar properties (non-blocking)
               let priorGuidanceStr: string | undefined;
               try {
-                if (isPineconeAvailable()) {
+                if (isVectorStoreAvailable()) {
                   const priorGuidance = await retrieveSimilarGuidance({
                     location: property.location ?? "",
                     propertyType: property.hospitalityType ?? "boutique hotel",

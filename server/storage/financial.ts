@@ -4,7 +4,7 @@ import { eq, desc, isNull, or, sql, and } from "drizzle-orm";
 import { stripAutoFields, stripToColumns } from "./utils";
 import { type PropertyDiff } from "../scenarios/diff-engine";
 import { USE_STABLE_SCENARIO_LOAD } from "@shared/constants";
-import { indexScenarioSummary } from "../ai/pinecone-service";
+import { indexScenarioSummary } from "../ai/vector-store-service";
 import { logger } from "../logger";
 import { FinancialSharingStorage } from "./financial-sharing";
 import { FinancialFeeStorage } from "./financial-fees";

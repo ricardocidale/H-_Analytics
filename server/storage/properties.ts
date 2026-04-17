@@ -2,7 +2,7 @@ import { properties, userDefaultProperties, type Property, type InsertProperty, 
 import { db } from "../db";
 import { eq, or, and, isNull, inArray, sql } from "drizzle-orm";
 import { stripToColumns } from "./utils";
-import { indexPropertyProfile } from "../ai/pinecone-service";
+import { indexPropertyProfile } from "../ai/vector-store-service";
 import { logger } from "../logger";
 
 async function _indexPropertyAsync(property: Property): Promise<void> {

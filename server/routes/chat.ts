@@ -14,7 +14,7 @@ import type { ResearchConfig } from "@shared/schema";
 import { buildRebeccaContext } from "../ai/rebecca-context-builder";
 import { PAGE_LABELS, VALID_PAGE_KEYS, OBSERVATION_DELIMITER } from "@shared/rebecca-pages";
 import type { PageKey } from "@shared/rebecca-pages";
-import { retrieveDocumentContext, multiNamespaceQuery } from "../ai/pinecone-service";
+import { retrieveDocumentContext, multiNamespaceQuery } from "../ai/vector-store-service";
 import { retrieveRelevantChunks } from "../ai/knowledge-base";
 import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
 import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERLAY, detectLanguage, generateFollowUpChips, deriveContextType, deriveContextKey } from "./chat-prompts";

@@ -30,7 +30,7 @@ import {
   isVectorStoreAvailable,
   __resetVectorStoreAvailabilityCache,
   ALL_NAMESPACES,
-} from "../../server/ai/pinecone-service";
+} from "../../server/ai/vector-store-service";
 import { vectorStorePool } from "../../server/storage/vector-store";
 
 const query = vectorStorePool.query as unknown as ReturnType<typeof vi.fn>;

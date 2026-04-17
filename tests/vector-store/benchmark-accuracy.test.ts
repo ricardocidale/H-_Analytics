@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapCategoryToKpis, computeBenchmarkFreshness } from "../../server/ai/pinecone-indexing";
+import { mapCategoryToKpis, computeBenchmarkFreshness } from "../../server/ai/vector-indexing";
 
 const ALL_BENCHMARK_CATEGORIES = [
   { key: "us_hotel_avg_adr_2024",       category: "hospitality_adr",       value: 157.95, expectedField: "adr" },

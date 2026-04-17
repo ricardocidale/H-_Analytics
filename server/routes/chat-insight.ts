@@ -8,7 +8,7 @@ import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@shared/schema";
-import { multiNamespaceQuery } from "../ai/pinecone-service";
+import { multiNamespaceQuery } from "../ai/vector-store-service";
 
 const insightRequestSchema = z.object({
   noiMargin: z.number(),

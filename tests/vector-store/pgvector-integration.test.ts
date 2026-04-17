@@ -1,7 +1,7 @@
 /**
  * Integration tests for the pgvector-backed vector store.
  *
- * Runs the real `pinecone-service` (now pgvector) against a live Postgres +
+ * Runs the real `vector-store-service` (pgvector) against a live Postgres +
  * pgvector instance. The OpenAI client is mocked so embeddings are
  * deterministic — every test text is mapped to a sparse 1536-dim vector
  * whose nonzero slots determine cosine similarity in a predictable way.
@@ -114,7 +114,7 @@ const TEST_NAMESPACES = [
 ] as const;
 
 let pgvectorAvailable = false;
-let svc: typeof import("../../server/ai/pinecone-service");
+let svc: typeof import("../../server/ai/vector-store-service");
 let pool: import("../../server/storage/vector-store")["vectorStorePool"];
 
 async function loadMigration(): Promise<string> {
@@ -146,7 +146,7 @@ const describeIfDb = HAS_DB ? describe : describe.skip;
 
 describeIfDb("pgvector integration — vector store backend", () => {
   beforeAll(async () => {
-    svc = await import("../../server/ai/pinecone-service");
+    svc = await import("../../server/ai/vector-store-service");
     ({ vectorStorePool: pool } = await import("../../server/storage/vector-store"));
 
     try {
@@ -293,7 +293,7 @@ describeIfDb("pgvector integration — vector store backend", () => {
     const SIBLING = 987654322;
 
     const inserts: Array<{
-      ns: import("../../server/ai/pinecone-service").PineconeNamespace;
+      ns: import("../../server/ai/vector-store-service").VectorNamespace;
       id: string;
     }> = [
       // Should be deleted (LIKE 'property:TARGET%' or exact ids):

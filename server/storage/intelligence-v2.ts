@@ -38,8 +38,8 @@ import {
 import { db } from "../db";
 import { eq, and, desc, lte, sql, isNull } from "drizzle-orm";
 export { IntelligenceRebeccaStorage } from "./intelligence-rebecca";
-import { indexBenchmarkSnapshot } from "../ai/pinecone-service";
-import { mapCategoryToKpis } from "../ai/pinecone-indexing";
+import { indexBenchmarkSnapshot } from "../ai/vector-store-service";
+import { mapCategoryToKpis } from "../ai/vector-indexing";
 import { logger } from "../logger";
 
 export class IntelligenceV2Storage {

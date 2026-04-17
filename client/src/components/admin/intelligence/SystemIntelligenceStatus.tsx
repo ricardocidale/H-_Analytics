@@ -80,12 +80,10 @@ export default function SystemIntelligenceStatus() {
     staleTime: 60_000,
   });
 
-  // Endpoint path remains `/api/admin/pinecone/*` for back-compat with the
-  // existing route registrations; semantically these now hit pgvector.
   const { data: vectorStoreStats, isLoading: statsLoading } = useQuery<VectorStoreStatsData>({
     queryKey: ["admin", "vector-store-stats"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/pinecone/stats", { credentials: "include" });
+      const res = await fetch("/api/admin/vector-store/stats", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch vector store stats");
       return res.json();
     },
@@ -95,7 +93,7 @@ export default function SystemIntelligenceStatus() {
   const reindexMutation = useMutation({
     mutationFn: async (namespace: string) => {
       setReindexingNs(namespace);
-      const res = await fetch(`/api/admin/pinecone/reindex/${namespace}`, {
+      const res = await fetch(`/api/admin/vector-store/reindex/${namespace}`, {
         method: "POST",
         credentials: "include",
       });
@@ -111,7 +109,7 @@ export default function SystemIntelligenceStatus() {
   const clearMutation = useMutation({
     mutationFn: async (namespace: string) => {
       setClearingNs(namespace);
-      const res = await fetch(`/api/admin/pinecone/clear/${namespace}`, {
+      const res = await fetch(`/api/admin/vector-store/clear/${namespace}`, {
         method: "DELETE",
         credentials: "include",
       });

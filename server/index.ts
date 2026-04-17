@@ -531,7 +531,7 @@ async function runSeeds() {
 function indexPropertiesToVectorStoreAsync() {
   (async () => {
     try {
-      const { indexPropertyProfile } = await import("./ai/pinecone-service");
+      const { indexPropertyProfile } = await import("./ai/vector-store-service");
       const { properties: propertiesTable } = await import("@shared/schema");
       const { db: database } = await import("./db");
       const allProps = await database.select().from(propertiesTable);

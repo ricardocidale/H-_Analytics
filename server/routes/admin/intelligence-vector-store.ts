@@ -4,14 +4,14 @@ import { requireAdmin, getAuthUser } from "../../auth";
 import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { z } from "zod";
 
-import { isPineconeAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type PineconeNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/pinecone-service";
-import { mapCategoryToKpis } from "../../ai/pinecone-indexing";
+import { isVectorStoreAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type VectorNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/vector-store-service";
+import { mapCategoryToKpis } from "../../ai/vector-indexing";
 import { indexAllAssets } from "../../ai/asset-intelligence";
 import { indexKnowledgeBase } from "../../ai/knowledge-base";
 import { checkVendorAvailability, getRecommendedDefaults } from "../../ai/resolve-llm";
 import { logger } from "../../logger";
 
-export function registerPineconeRoutes(app: Express) {
+export function registerVectorStoreRoutes(app: Express) {
   app.get("/api/admin/intelligence/financial-lines", requireAdmin, async (req, res) => {
     try {
       const status = z.enum(["all", "pending", "approved", "rejected"]).optional().safeParse(req.query.status);
@@ -38,7 +38,7 @@ export function registerPineconeRoutes(app: Express) {
 
       if (updated) {
         try {
-          const { indexToKnowledgeBase } = await import("../../ai/pinecone-service");
+          const { indexToKnowledgeBase } = await import("../../ai/vector-store-service");
           const text = `Approved financial line suggestion: ${updated.lineName} (${updated.statementType} / ${updated.category}). ${updated.description ?? ""} ${updated.justification ?? ""}`;
           await indexToKnowledgeBase(`financial-line-${updated.id}`, text, {
             type: "financial-line-suggestion",
@@ -79,7 +79,7 @@ export function registerPineconeRoutes(app: Express) {
     try {
       const vendors = checkVendorAvailability();
       const recommended = getRecommendedDefaults();
-      const vectorStore = isPineconeAvailable();
+      const vectorStore = isVectorStoreAvailable();
       const embeddings = isEmbeddingAvailable();
 
       const knowledgeLearning = vectorStore && embeddings;
@@ -114,7 +114,7 @@ export function registerPineconeRoutes(app: Express) {
 
   app.post("/api/admin/intelligence/index-assets", requireAdmin, async (_req, res) => {
     try {
-      if (!isPineconeAvailable()) {
+      if (!isVectorStoreAvailable()) {
         return res.status(400).json({ error: "Vector store not configured" });
       }
       if (!isEmbeddingAvailable()) {
@@ -128,9 +128,9 @@ export function registerPineconeRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/pinecone/stats", requireAdmin, async (_req, res) => {
+  app.get("/api/admin/vector-store/stats", requireAdmin, async (_req, res) => {
     try {
-      if (!isPineconeAvailable()) {
+      if (!isVectorStoreAvailable()) {
         return res.json({ available: false, namespaces: {}, totalVectors: 0 });
       }
       const [namespaces, totalVectors] = await Promise.all([
@@ -149,13 +149,13 @@ export function registerPineconeRoutes(app: Express) {
     }
   });
 
-  app.post("/api/admin/pinecone/reindex/:namespace", requireAdmin, async (req, res) => {
+  app.post("/api/admin/vector-store/reindex/:namespace", requireAdmin, async (req, res) => {
     try {
-      const ns = req.params.namespace as PineconeNamespace;
+      const ns = req.params.namespace as VectorNamespace;
       if (!ALL_NAMESPACES.includes(ns)) {
         return res.status(400).json({ error: `Invalid namespace: ${ns}` });
       }
-      if (!isPineconeAvailable()) {
+      if (!isVectorStoreAvailable()) {
         return res.status(400).json({ error: "Vector store not configured" });
       }
       if (!isEmbeddingAvailable()) {
@@ -229,7 +229,7 @@ export function registerPineconeRoutes(app: Express) {
       } else if (ns === "comparables") {
         await deleteNamespace(ns);
         const snapshots = await storage.getBenchmarkSnapshots();
-        const { indexBenchmarkSnapshot } = await import("../../ai/pinecone-service");
+        const { indexBenchmarkSnapshot } = await import("../../ai/vector-store-service");
         let indexed = 0;
         for (const snap of snapshots) {
           try {
@@ -260,13 +260,13 @@ export function registerPineconeRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/admin/pinecone/clear/:namespace", requireAdmin, async (req, res) => {
+  app.delete("/api/admin/vector-store/clear/:namespace", requireAdmin, async (req, res) => {
     try {
-      const ns = req.params.namespace as PineconeNamespace;
+      const ns = req.params.namespace as VectorNamespace;
       if (!ALL_NAMESPACES.includes(ns)) {
         return res.status(400).json({ error: `Invalid namespace: ${ns}` });
       }
-      if (!isPineconeAvailable()) {
+      if (!isVectorStoreAvailable()) {
         return res.status(400).json({ error: "Vector store not configured" });
       }
       await deleteNamespace(ns);
@@ -276,5 +276,18 @@ export function registerPineconeRoutes(app: Express) {
     } catch (error: unknown) {
       logAndSendError(res, `Failed to clear namespace ${req.params.namespace}`, error);
     }
+  });
+
+  // ── Back-compat redirects: legacy /api/admin/pinecone/* paths ─────────────
+  // These permanently redirect to the new vendor-neutral /api/admin/vector-store/*
+  // routes. Remove once all clients have been updated.
+  app.get("/api/admin/pinecone/stats", requireAdmin, (_req, res) => {
+    res.redirect(308, "/api/admin/vector-store/stats");
+  });
+  app.post("/api/admin/pinecone/reindex/:namespace", requireAdmin, (req, res) => {
+    res.redirect(308, `/api/admin/vector-store/reindex/${encodeURIComponent(String(req.params.namespace))}`);
+  });
+  app.delete("/api/admin/pinecone/clear/:namespace", requireAdmin, (req, res) => {
+    res.redirect(308, `/api/admin/vector-store/clear/${encodeURIComponent(String(req.params.namespace))}`);
   });
 }

@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { documentExtractions, extractionFields, type DocumentExtraction, type InsertDocumentExtraction, type ExtractionField, type InsertExtractionField } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
-import { indexDocumentExtraction } from "../ai/pinecone-service";
+import { indexDocumentExtraction } from "../ai/vector-store-service";
 import { logger } from "../logger";
 
 export class DocumentStorage {

@@ -1,12 +1,12 @@
 import { logger } from "../logger";
 import {
-  isPineconeAvailable,
+  isVectorStoreAvailable,
   isEmbeddingAvailable,
   upsertChunks,
   queryChunks,
-  type PineconeChunk,
+  type VectorChunk,
   type QueryMatch,
-} from "./pinecone-service";
+} from "./vector-store-service";
 
 const DOC_MAX_CHARS = 100_000;
 
@@ -62,7 +62,7 @@ export async function indexResearchResult(params: {
   marketTier?: string;
   locationType?: string;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
 
   const bm = params.businessModel ?? "hotel";
   const qt = params.qualityTier ?? "";
@@ -98,7 +98,7 @@ export async function indexResearchResult(params: {
     },
   }]);
 
-  logger.info(`Indexed research result for ${params.location} (${params.type}, ${bm})`, "pinecone");
+  logger.info(`Indexed research result for ${params.location} (${params.type}, ${bm})`, "vector-store");
 }
 
 export async function retrieveSimilarResearch(
@@ -127,7 +127,7 @@ export async function indexAssumptionGuidance(params: {
   confidence: number;
   reasoning: string | null;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
 
   try {
     // Vector ID must mirror the relational uniqueness key
@@ -158,9 +158,9 @@ export async function indexAssumptionGuidance(params: {
       },
     }]);
 
-    logger.info(`Indexed assumption guidance: ${params.assumptionKey} for ${params.location} (${bm})`, "pinecone");
+    logger.info(`Indexed assumption guidance: ${params.assumptionKey} for ${params.location} (${bm})`, "vector-store");
   } catch (err: unknown) {
-    logger.warn(`Failed to index assumption guidance: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index assumption guidance: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -182,7 +182,7 @@ export async function retrieveSimilarGuidance(params: {
   reasoning: string | null;
   score: number;
 }>> {
-  if (!isPineconeAvailable()) return [];
+  if (!isVectorStoreAvailable()) return [];
 
   try {
     const bm = params.businessModel ?? "hotel";
@@ -208,7 +208,7 @@ export async function retrieveSimilarGuidance(params: {
         score:         m.score,
       }));
   } catch (err: unknown) {
-    logger.warn(`Failed to retrieve similar guidance: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to retrieve similar guidance: ${err instanceof Error ? err.message : err}`, "vector-store");
     return [];
   }
 }
@@ -223,7 +223,7 @@ export async function indexBenchmarkSnapshot(params: {
   source: string;
   snapshotDate: string;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
 
   try {
     const id = `benchmark:${params.market.toLowerCase().replace(/\s+/g, "-")}:${params.propertyType}:${params.source}`;
@@ -245,9 +245,9 @@ export async function indexBenchmarkSnapshot(params: {
       },
     }]);
 
-    logger.info(`Indexed benchmark snapshot: ${params.market} (${params.source})`, "pinecone");
+    logger.info(`Indexed benchmark snapshot: ${params.market} (${params.source})`, "vector-store");
   } catch (err: unknown) {
-    logger.warn(`Failed to index benchmark snapshot: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index benchmark snapshot: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -261,7 +261,7 @@ export async function indexMarketAdrData(params: {
   avgOccupancy: number | null; avgRevpar: number | null;
   source: string | null;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
   try {
     const id = `market-adr:${params.market.toLowerCase().replace(/\s+/g, "-")}:${params.quarter}`;
     const parts = [`${params.market} ${params.country} hotel market data ${params.quarter}`];
@@ -277,7 +277,7 @@ export async function indexMarketAdrData(params: {
       revpar: params.avgRevpar ?? 0, source: params.source ?? "", isBenchmark: true,
     }}]);
   } catch (err: unknown) {
-    logger.warn(`Failed to index market ADR: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index market ADR: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -285,7 +285,7 @@ export async function indexSeasonalCalendar(params: {
   market: string; country: string;
   months: Array<{ month: number; seasonType: string; demandMultiplier: number }>;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
   try {
     const peak = params.months.reduce((best, m) => m.demandMultiplier > best.demandMultiplier ? m : best);
     const trough = params.months.reduce((best, m) => m.demandMultiplier < best.demandMultiplier ? m : best);
@@ -298,7 +298,7 @@ export async function indexSeasonalCalendar(params: {
       peakMonth: peak.month, troughMonth: trough.month,
     }}]);
   } catch (err: unknown) {
-    logger.warn(`Failed to index seasonal calendar: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index seasonal calendar: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -306,7 +306,7 @@ export async function indexEventCalendar(params: {
   market: string; country: string;
   events: Array<{ name: string; startMonth: number | null; impact: string; category: string | null; attendees: number | null }>;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
   try {
     const id = `events:${params.market.toLowerCase().replace(/\s+/g, "-")}`;
     const eventList = params.events.map(e =>
@@ -320,7 +320,7 @@ export async function indexEventCalendar(params: {
       highImpactCount: params.events.filter(e => e.impact === "high").length,
     }}]);
   } catch (err: unknown) {
-    logger.warn(`Failed to index event calendar: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index event calendar: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -328,7 +328,7 @@ export async function indexLaborRates(params: {
   market: string; country: string;
   roles: Array<{ role: string; annualSalary: number | null; currency: string }>;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
   try {
     const id = `labor:${params.market.toLowerCase().replace(/\s+/g, "-")}`;
     const roleList = params.roles.map(r =>
@@ -341,7 +341,7 @@ export async function indexLaborRates(params: {
       roleCount: params.roles.length,
     }}]);
   } catch (err: unknown) {
-    logger.warn(`Failed to index labor rates: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index labor rates: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -353,11 +353,11 @@ export async function indexDocumentExtraction(params: {
   extractedText: string;
   location: string;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
 
   try {
     const maxChunkSize = 2_000;
-    const chunks: PineconeChunk[] = [];
+    const chunks: VectorChunk[] = [];
     const fullText = params.extractedText.slice(0, DOC_MAX_CHARS);
 
     for (let i = 0; i < fullText.length; i += maxChunkSize) {
@@ -380,10 +380,10 @@ export async function indexDocumentExtraction(params: {
 
     if (chunks.length > 0) {
       await upsertChunks("documents", chunks);
-      logger.info(`Indexed document extraction ${params.extractionId}: ${chunks.length} chunks for ${params.propertyName}`, "pinecone");
+      logger.info(`Indexed document extraction ${params.extractionId}: ${chunks.length} chunks for ${params.propertyName}`, "vector-store");
     }
   } catch (err: unknown) {
-    logger.warn(`Failed to index document extraction: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index document extraction: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -399,7 +399,7 @@ export async function retrieveDocumentContext(params: {
   content: string;
   score: number;
 }>> {
-  if (!isPineconeAvailable()) return [];
+  if (!isVectorStoreAvailable()) return [];
 
   try {
     const matches = await queryChunks("documents", params.query, params.topK ?? 5);
@@ -416,7 +416,7 @@ export async function retrieveDocumentContext(params: {
         score:        m.score,
       }));
   } catch (err: unknown) {
-    logger.warn(`Failed to retrieve document context: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to retrieve document context: ${err instanceof Error ? err.message : err}`, "vector-store");
     return [];
   }
 }
@@ -438,7 +438,7 @@ export async function indexScenarioSummary(params: {
   years?: number;
   createdBy?: string;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
 
   try {
     const metrics: string[] = [];
@@ -480,9 +480,9 @@ export async function indexScenarioSummary(params: {
       },
     }]);
 
-    logger.info(`Indexed scenario ${params.scenarioId}: "${params.scenarioName}" for ${params.propertyName}`, "pinecone");
+    logger.info(`Indexed scenario ${params.scenarioId}: "${params.scenarioName}" for ${params.propertyName}`, "vector-store");
   } catch (err: unknown) {
-    logger.warn(`Failed to index scenario: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index scenario: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -501,7 +501,7 @@ export async function retrieveScenarioContext(params: {
   occupancy: number;
   score: number;
 }>> {
-  if (!isPineconeAvailable()) return [];
+  if (!isVectorStoreAvailable()) return [];
 
   try {
     const matches = await queryChunks("scenarios", params.query, params.topK ?? 5);
@@ -521,7 +521,7 @@ export async function retrieveScenarioContext(params: {
         score:        m.score,
       }));
   } catch (err: unknown) {
-    logger.warn(`Failed to retrieve scenario context: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to retrieve scenario context: ${err instanceof Error ? err.message : err}`, "vector-store");
     return [];
   }
 }
@@ -539,7 +539,7 @@ export async function indexPropertyProfile(params: {
   description?: string | null;
   streetAddress?: string | null;
 }): Promise<void> {
-  if (!isPineconeAvailable()) return;
+  if (!isVectorStoreAvailable()) return;
 
   try {
     const details: string[] = [];
@@ -575,9 +575,9 @@ export async function indexPropertyProfile(params: {
       },
     }]);
 
-    logger.info(`Indexed property profile ${params.propertyId}: "${params.name}"`, "pinecone");
+    logger.info(`Indexed property profile ${params.propertyId}: "${params.name}"`, "vector-store");
   } catch (err: unknown) {
-    logger.warn(`Failed to index property profile: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to index property profile: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -592,7 +592,7 @@ export async function retrievePropertyContext(params: {
   roomCount: number;
   score: number;
 }>> {
-  if (!isPineconeAvailable()) return [];
+  if (!isVectorStoreAvailable()) return [];
 
   try {
     const matches = await queryChunks("properties", params.query, params.topK ?? 5);
@@ -608,13 +608,13 @@ export async function retrievePropertyContext(params: {
         score:        m.score,
       }));
   } catch (err: unknown) {
-    logger.warn(`Failed to retrieve property context: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Failed to retrieve property context: ${err instanceof Error ? err.message : err}`, "vector-store");
     return [];
   }
 }
 
 export async function indexToKnowledgeBase(id: string, text: string, metadata: Record<string, unknown>): Promise<void> {
-  if (!isPineconeAvailable() || !isEmbeddingAvailable()) return;
+  if (!isVectorStoreAvailable() || !isEmbeddingAvailable()) return;
   await upsertChunks("knowledge-base", [{
     id: `kb:${id}`,
     text: text.slice(0, 8_000),

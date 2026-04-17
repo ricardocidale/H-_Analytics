@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../../server/ai/pinecone-service", () => ({
-  isPineconeAvailable: vi.fn(() => true),
+vi.mock("../../server/ai/vector-store-service", () => ({
+  isVectorStoreAvailable: vi.fn(() => true),
   isEmbeddingAvailable: vi.fn(() => true),
   upsertChunks: vi.fn(async () => {}),
   queryChunks: vi.fn(async () => []),
 }));
 
-import { retrieveSimilarGuidance, indexAssumptionGuidance } from "../../server/ai/pinecone-indexing";
-import { queryChunks, upsertChunks } from "../../server/ai/pinecone-service";
+import { retrieveSimilarGuidance, indexAssumptionGuidance } from "../../server/ai/vector-indexing";
+import { queryChunks, upsertChunks } from "../../server/ai/vector-store-service";
 
 const mockedQueryChunks = vi.mocked(queryChunks);
 const mockedUpsertChunks = vi.mocked(upsertChunks);

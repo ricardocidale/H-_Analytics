@@ -1,6 +1,6 @@
 /**
  * Round-trip integration tests for the high-level vector store indexers in
- * `server/ai/pinecone-indexing.ts`.
+ * `server/ai/vector-indexing.ts`.
  *
  * For each `index*` / `retrieve*` pair we:
  *   1. Write through the real indexer (which calls `upsertChunks` against the
@@ -12,7 +12,7 @@
  *      namespace placement downstream consumers expect.
  *
  * Why this exists: the lower-level `pgvector-integration.test.ts` only covers
- * `pinecone-service` (`upsertChunks`, `queryChunks`, …). A regression in an
+ * `vector-store-service` (`upsertChunks`, `queryChunks`, …). A regression in an
  * indexer's id scheme, namespace choice, metadata key names, or score
  * threshold would currently slip past CI because every existing indexer test
  * mocks the underlying service. This suite plugs that gap by running each
@@ -99,8 +99,8 @@ const HAS_DB = !!process.env.DATABASE_URL;
 process.env.OPENAI_API_KEY ||= "sk-test";
 
 let pgvectorAvailable = false;
-let svc: typeof import("../../server/ai/pinecone-service");
-let idx: typeof import("../../server/ai/pinecone-indexing");
+let svc: typeof import("../../server/ai/vector-store-service");
+let idx: typeof import("../../server/ai/vector-indexing");
 let pool: import("../../server/storage/vector-store")["vectorStorePool"];
 
 async function applyMigration(): Promise<void> {
@@ -148,10 +148,10 @@ async function cleanupInserted(): Promise<void> {
 
 const describeIfDb = HAS_DB ? describe : describe.skip;
 
-describeIfDb("pgvector indexer round-trips — pinecone-indexing.ts", () => {
+describeIfDb("pgvector indexer round-trips — vector-indexing.ts", () => {
   beforeAll(async () => {
-    svc = await import("../../server/ai/pinecone-service");
-    idx = await import("../../server/ai/pinecone-indexing");
+    svc = await import("../../server/ai/vector-store-service");
+    idx = await import("../../server/ai/vector-indexing");
     ({ vectorStorePool: pool } = await import("../../server/storage/vector-store"));
 
     try {

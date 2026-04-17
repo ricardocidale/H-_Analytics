@@ -27,7 +27,7 @@ import {
 } from "./research-client";
 import { buildUserPrompt, type ResearchParams } from "./research-prompt-builders";
 import { loadSkill } from "./research-resources";
-import { retrieveSimilarResearch, indexResearchResult, isPineconeAvailable } from "./pinecone-service";
+import { retrieveSimilarResearch, indexResearchResult, isVectorStoreAvailable } from "./vector-store-service";
 
 import { logger } from "../logger";
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
@@ -316,9 +316,9 @@ export async function* orchestrateResearch(
   yield { type: "phase", data: `Analyst B (${ANALYST_B_MODEL}): market strategy analysis` };
 
   let propertyUrlContext = "";
-  if (params.propertyId && isPineconeAvailable()) {
+  if (params.propertyId && isVectorStoreAvailable()) {
     try {
-      const { queryChunks } = await import("./pinecone-service");
+      const { queryChunks } = await import("./vector-store-service");
       const urlChunks = await queryChunks("properties", `prop-url:${params.propertyId} property reference links ${params.propertyContext?.name || ""} ${location}`, 10)
         .then(chunks => chunks.filter(c => c.id.startsWith(`prop-url:${params.propertyId}:`)));
       if (urlChunks.length > 0) {
@@ -334,7 +334,7 @@ export async function* orchestrateResearch(
   const [panelA, panelB, priorResearch] = await Promise.all([
     runAnalystPanel(params, ANALYST_A_MODEL, "quantitative", v2Prompt),
     runAnalystPanel(params, ANALYST_B_MODEL, "market-strategy", v2Prompt),
-    isPineconeAvailable()
+    isVectorStoreAvailable()
       ? retrieveSimilarResearch(location, propType, params.type).catch(() => [])
       : Promise.resolve([]),
   ]);
@@ -430,7 +430,7 @@ export async function* orchestrateResearch(
   };
 
   // Index synthesis result for future retrieval
-  if (isPineconeAvailable() && fullContent.length > 100) {
+  if (isVectorStoreAvailable() && fullContent.length > 100) {
     const summary = fullContent.slice(0, 1_500);
     indexResearchResult({
       propertyId:   params.propertyId,

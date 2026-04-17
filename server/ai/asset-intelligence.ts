@@ -1,5 +1,5 @@
 import { storage } from "../storage";
-import { upsertChunks, queryChunks, isPineconeAvailable, isEmbeddingAvailable } from "./pinecone-service";
+import { upsertChunks, queryChunks, isVectorStoreAvailable, isEmbeddingAvailable } from "./vector-store-service";
 import { logger } from "../logger";
 
 export interface AssetMatch {
@@ -14,7 +14,7 @@ export interface AssetMatch {
 }
 
 export async function indexPropertyPhotos(): Promise<number> {
-  if (!isPineconeAvailable() || !isEmbeddingAvailable()) return 0;
+  if (!isVectorStoreAvailable() || !isEmbeddingAvailable()) return 0;
 
   try {
     const allProperties = await storage.getAllProperties();
@@ -62,7 +62,7 @@ export async function indexPropertyPhotos(): Promise<number> {
 }
 
 export async function indexLogos(): Promise<number> {
-  if (!isPineconeAvailable() || !isEmbeddingAvailable()) return 0;
+  if (!isVectorStoreAvailable() || !isEmbeddingAvailable()) return 0;
 
   try {
     const logos = await storage.getAllLogos();
@@ -96,7 +96,7 @@ export async function indexLogos(): Promise<number> {
 }
 
 export async function searchAssets(query: string, topK = 6, accessiblePropertyIds?: number[]): Promise<AssetMatch[]> {
-  if (!isPineconeAvailable() || !isEmbeddingAvailable()) {
+  if (!isVectorStoreAvailable() || !isEmbeddingAvailable()) {
     return fallbackAssetSearch(query, accessiblePropertyIds);
   }
 
