@@ -48,7 +48,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
           <div className="flex items-center gap-4 mb-2">
             <h3 className="text-lg font-display text-foreground flex items-center">
               Funding
-              <InfoTooltip text="Initial capital to fund management company operations before fee revenue begins" manualSection="funding-financing" />
+              <InfoTooltip text="Capital raised to fund management company operations before fee revenue begins" manualSection="funding-financing" />
             </h3>
           </div>
           <div className="flex items-center gap-3 mb-3">
@@ -61,7 +61,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
               className="max-w-48 bg-card border-border text-foreground"
               data-testid="input-funding-source-label"
             />
-            <InfoTooltip text="Customize the name of your funding source (e.g., Funding Vehicle, SAFE, Seed, Series A)" />
+            <InfoTooltip text="Customize the name of your capital raise (e.g., Funding Vehicle, SAFE, Seed, Series A)" />
           </div>
           <p className="text-muted-foreground text-sm label-text">Capital raised via {fundingLabel} in two tranches to support management company operations</p>
         </div>
@@ -70,7 +70,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
             <h4 className="text-sm font-display text-foreground">Capital Raise 1</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the first tranche of funding to cover initial operating expenses before management fee revenue begins." /></Label>
+                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the first tranche of the capital raise to cover initial operating expenses before management fee revenue begins." /></Label>
                 <EditableValue
                   value={formData.capitalRaise1Amount ?? global.capitalRaise1Amount}
                   onChange={(v) => onChange("capitalRaise1Amount", v)}
@@ -89,7 +89,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground label-text flex items-center gap-1">Date<InfoTooltip text="Date when the first tranche of funding is received and recorded on the balance sheet." /></Label>
+              <Label className="text-foreground label-text flex items-center gap-1">Date<InfoTooltip text="Date when the first tranche of the capital raise is received and recorded on the balance sheet." /></Label>
               <Input
                 type="date"
                 value={formData.capitalRaise1Date ?? global.capitalRaise1Date}
@@ -102,7 +102,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
             <h4 className="text-sm font-display text-foreground">Capital Raise 2</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the second tranche of funding, typically deployed as the portfolio grows." /></Label>
+                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the second tranche of the capital raise, typically deployed as the portfolio grows." /></Label>
                 <EditableValue
                   value={formData.capitalRaise2Amount ?? global.capitalRaise2Amount}
                   onChange={(v) => onChange("capitalRaise2Amount", v)}
@@ -121,7 +121,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground label-text flex items-center gap-1">Date<InfoTooltip text="Date when the second tranche of funding is received and recorded on the balance sheet." /></Label>
+              <Label className="text-foreground label-text flex items-center gap-1">Date<InfoTooltip text="Date when the second tranche of the capital raise is received and recorded on the balance sheet." /></Label>
               <Input
                 type="date"
                 value={formData.capitalRaise2Date ?? global.capitalRaise2Date}
@@ -145,7 +145,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
               <div className="flex items-center justify-between">
                 <Label className="flex items-center text-foreground label-text">
                   Valuation Cap
-                  <InfoTooltip text="Maximum company valuation at which the funding instrument converts to equity. Enable this if your instrument includes a valuation cap (common for SAFEs and convertible notes)." manualSection="funding-financing" />
+                  <InfoTooltip text="Maximum company valuation at which the capital raise converts to equity. Enable this if your instrument includes a valuation cap (common for SAFEs and convertible notes)." manualSection="funding-financing" />
                 </Label>
                 <Switch
                   checked={showValuationCap}
@@ -187,7 +187,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
               <div className="flex items-center justify-between">
                 <Label className="flex items-center text-foreground label-text">
                   Discount Rate
-                  <InfoTooltip text="Percentage discount on share price when the funding instrument converts to equity. Enable this if your instrument includes a discount rate." manualSection="funding-financing" />
+                  <InfoTooltip text="Percentage discount on share price when the capital raise converts to equity. Enable this if your instrument includes a discount rate." manualSection="funding-financing" />
                 </Label>
                 <Switch
                   checked={showDiscountRate}
@@ -229,7 +229,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
               <div className="flex items-center justify-between">
                 <Label className="flex items-center text-foreground label-text">
                   Interest Rate
-                  <InfoTooltip text="Annual simple interest rate on outstanding principal. Common for convertible notes and interest-bearing SAFEs. Interest accrues monthly and flows through the income statement as Interest Expense." manualSection="funding-financing" />
+                  <InfoTooltip text="Annual simple interest rate on the outstanding capital raise principal. Common for convertible notes and interest-bearing SAFEs. Interest accrues monthly and flows through the income statement as Interest Expense." manualSection="funding-financing" />
                 </Label>
                 <Switch
                   checked={showInterestRate}

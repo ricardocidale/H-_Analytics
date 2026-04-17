@@ -75,7 +75,7 @@ const GROUPS: GuidanceGroup[] = [
     id: "capital",
     name: "Capital Structure",
     explainer:
-      "Funding architecture for the management entity. Capital commitments and deployment schedule that determine your operational runway and investor returns.",
+      "Capital raise architecture for the management entity. Capital commitments and deployment schedule that determine your operational runway and investor returns.",
     fields: [
       { key: "capitalRaise1Amount", label: "Capital Raise 1", format: "dollar" },
       { key: "capitalRaise2Amount", label: "Capital Raise 2", format: "dollar" },

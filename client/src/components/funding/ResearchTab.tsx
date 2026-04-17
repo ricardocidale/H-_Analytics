@@ -32,7 +32,7 @@ export function ResearchTab({ analysis, fundingLabel, marketRates, global, navig
             <IconTrending className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
               <h3 className="text-lg font-display text-foreground">Market Intelligence</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Live rates that inform {fundingLabel} terms and valuation</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Live rates that inform capital raise ({fundingLabel}) terms and valuation</p>
             </div>
           </div>
 

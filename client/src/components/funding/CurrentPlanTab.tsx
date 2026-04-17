@@ -54,7 +54,7 @@ export function CurrentPlanTab({ analysis, fundingLabel, global, chartData, navi
             <div>
               <p className="text-sm font-medium text-destructive">Funding Gap: {formatMoney(gap)}</p>
               <p className="text-xs text-destructive/80 mt-1">
-                Your configured {fundingLabel} raises {formatMoney(configuredTotal)}, but the engine recommends {formatMoney(analysis.totalRaiseNeeded)} to reach operating breakeven with adequate reserves. Consider increasing tranche amounts or reducing operating expenses.
+                Your configured capital raise ({fundingLabel}) totals {formatMoney(configuredTotal)}, but the engine recommends {formatMoney(analysis.totalRaiseNeeded)} to reach operating breakeven with adequate reserves. Consider increasing tranche amounts or reducing operating expenses.
               </p>
             </div>
           </div>
