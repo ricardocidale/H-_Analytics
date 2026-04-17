@@ -270,7 +270,7 @@ describe("Funding Date Gate", () => {
       const gate = findGate(result, "Management Company Funding Gate")!;
       expect(gate.passed).toBe(false);
       expect(gate.severity).toBe("critical");
-      expect(gate.description).toContain("SAFE funding");
+      expect(gate.description).toContain("capital raise funding");
     });
 
     it("includes correct dates in details", () => {

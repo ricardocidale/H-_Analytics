@@ -38,7 +38,7 @@ export function aggregateCompanyByYear(
       preTaxIncome: sum(slice, m => m.preTaxIncome),
       companyIncomeTax: sum(slice, m => m.companyIncomeTax),
       netIncome: sum(slice, m => m.netIncome),
-      safeFunding: sum(slice, m => m.safeFunding),
+      capitalRaiseFunding: sum(slice, m => m.capitalRaiseFunding),
       cashFlow: sum(slice, m => m.cashFlow),
       endingCash: lastMonth.endingCash,
     });

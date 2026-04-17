@@ -559,7 +559,7 @@ The management company (ManCo) is funded during its pre-profitability phase thro
 #### SAFE Structure
 - **Two configurable tranches** with independent dates, amounts, valuation cap, and discount rate
 - Optional interest rate with configurable payment frequency (accrues only, quarterly, or annually)
-- **Operational gate:** ManCo revenue and expenses do not accrue until BOTH `companyOpsStartDate` AND `safeTranche1Date` are reached — funding must land before operations begin
+- **Operational gate:** ManCo revenue and expenses do not accrue until BOTH `companyOpsStartDate` AND `capitalRaise1Date` are reached — funding must land before operations begin
 
 #### Dynamic Tranche Sizing
 The funding strategy engine computes 1–3 tranches dynamically based on:

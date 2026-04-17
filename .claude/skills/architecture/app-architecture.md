@@ -246,7 +246,7 @@ These apply at the management company level:
 
 **Company Financing**
 - fundingSourceLabel (admin-set, NOT hardcoded "SAFE")
-- safeValuationCap, safeDiscount, equityRaiseAmount
+- capitalRaiseValuationCap, capitalRaiseDiscountRate, equityRaiseAmount
 - equityRoundSize, preMoneyValuation
 
 **Projection Settings**

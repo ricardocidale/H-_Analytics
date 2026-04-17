@@ -333,7 +333,7 @@ Eager-loaded pages: Dashboard, Company, CompanyAssumptions, Portfolio, Settings,
 | Login | /login | none | Email/password login |
 | Dashboard | / | auth | Portfolio overview, KPIs, charts |
 | Company | /company | auth | Management company financials |
-| CompanyAssumptions | /company/assumptions | auth | Fee rates, staffing, SAFE funding |
+| CompanyAssumptions | /company/assumptions | auth | Fee rates, staffing, capital raise funding |
 | Portfolio | /portfolio | auth | Property list, aggregate metrics |
 | PropertyDetail | /property/:id | auth | Single property pro forma, statements |
 | PropertyEdit | /property/:id/edit | auth | Property assumption editor |
@@ -454,7 +454,7 @@ Shared between client and server. All `DEFAULT_*` values for:
 - Land value (25%, IRS Pub 946)
 - Depreciation (27.5 years)
 - Days per month (30.5)
-- SAFE funding (valuation cap: $2.5M, discount: 20%)
+- capital raise funding (valuation cap: $2.5M, discount: 20%)
 
 #### `client/src/lib/constants.ts` — Re-exports shared + client-only
 Client-only additions:
@@ -540,7 +540,7 @@ TOOL_DISPATCH = {
 - `validate.ts` — Financing assumption validation
 
 **Funding (`calc/funding/`):**
-- `funding-engine.ts` — SAFE + equity funding timeline
+- `funding-engine.ts` — Capital raise + equity funding timeline
 - `equity-rollforward.ts` — Period-over-period equity tracking
 - `gates.ts` — Funding sufficiency checks (5 mandatory rules)
 - `timeline.ts` — Capital call scheduling
@@ -727,7 +727,7 @@ Output includes: posted entries, periods, trial balances, income statements, bal
 **Tables:**
 - `users` — id, name, email, passwordHash, role, company, title, createdAt
 - `sessions` — id, userId, sessionId, expiresAt, createdAt
-- `globalAssumptions` — userId + all fee/inflation/staffing/SAFE fields
+- `globalAssumptions` — userId + all fee/inflation/staffing/capital raise fields
 - `properties` — userId + property details (rooms, ADR, occupancy, costs, financing)
 - `scenarios` — userId, name, savedAssumptions (JSON), savedProperties (JSON[])
 - `loginLogs` — userId, sessionId, loginAt, logoutAt, ipAddress

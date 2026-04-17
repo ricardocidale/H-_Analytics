@@ -204,7 +204,7 @@ function buildCompanyStatement(yearly: CompanyYearlyFinancials[], years: string[
     row("Net Income", vals("netIncome"), { isBold: true }),
 
     row("Cash Position", [], { isHeader: true }),
-    row("SAFE Funding", vals("safeFunding"), { indent: 1 }),
+    row("Capital Raise", vals("capitalRaiseFunding"), { indent: 1 }),
     row("Cash Flow", vals("cashFlow"), { indent: 1 }),
     row("Ending Cash", vals("endingCash"), { isBold: true }),
   ];
@@ -225,7 +225,7 @@ function buildCompanyCashFlowStatement(yearly: CompanyYearlyFinancials[], years:
   ] : [
     row("Operating Activities", [], { isHeader: true }),
     row("Net Income", vals("netIncome"), { indent: 1 }),
-    row("SAFE Funding", vals("safeFunding"), { indent: 1 }),
+    row("Capital Raise", vals("capitalRaiseFunding"), { indent: 1 }),
     row("Cash Flow", vals("cashFlow"), { isBold: true }),
 
     row("Cash Position", [], { isHeader: true }),
@@ -250,7 +250,7 @@ function buildCompanyBalanceSheet(yearly: CompanyYearlyFinancials[], years: stri
     row("Total Assets", vals("endingCash"), { isBold: true }),
 
     row("Equity", [], { isHeader: true }),
-    row("SAFE Funding (Cumulative)", vals("safeFunding"), { indent: 1 }),
+    row("Capital Raise (Cumulative)", vals("capitalRaiseFunding"), { indent: 1 }),
     row("Retained Earnings (Net Income)", vals("netIncome"), { indent: 1 }),
   ];
 

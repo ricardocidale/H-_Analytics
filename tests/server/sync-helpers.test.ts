@@ -111,7 +111,7 @@ describe("Seed constants shape", () => {
     expect(SEED_GLOBAL_ASSUMPTIONS.modelStartDate).toBe("2026-04-01");
     expect(SEED_GLOBAL_ASSUMPTIONS.inflationRate).toBe(0.03);
     expect(SEED_GLOBAL_ASSUMPTIONS.companyOpsStartDate).toBe("2026-06-01");
-    expect(typeof SEED_GLOBAL_ASSUMPTIONS.safeTranche1Amount).toBe("number");
+    expect(typeof SEED_GLOBAL_ASSUMPTIONS.capitalRaise1Amount).toBe("number");
     expect(typeof SEED_GLOBAL_ASSUMPTIONS.exitCapRate).toBe("number");
   });
 

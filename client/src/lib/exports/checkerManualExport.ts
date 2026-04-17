@@ -114,7 +114,7 @@ const TESTING_PHASES = [
 const REQUIRED_GLOBAL_FIELDS = [
   "modelStartDate", "companyOpsStartDate", "inflationRate",
   "companyInflationRate", "fixedCostEscalationRate",
-  "safeTranche1Amount", "exitCapRate",
+  "capitalRaise1Amount", "exitCapRate",
 ];
 
 const REQUIRED_PROPERTY_FIELDS = ["name", "location", "roomCount", "startAdr", "purchasePrice"];
@@ -386,10 +386,10 @@ export async function exportFullData(user: { email?: string; role?: string; comp
     ["Company Inflation Rate", global.companyInflationRate ? `${(global.companyInflationRate * 100).toFixed(1)}%` : "Global Default"],
     ["Fixed Cost Escalation Override", global.fixedCostEscalationRate ? `${(global.fixedCostEscalationRate * 100).toFixed(1)}%` : "Global Default"],
     ["Management Fees", "Per-property (see property details)"],
-    ["Funding Tranche 1", formatMoney(global.safeTranche1Amount ?? 0)],
-    ["Funding Tranche 1 Date", global.safeTranche1Date || "—"],
-    ["Funding Tranche 2", formatMoney(global.safeTranche2Amount ?? 0)],
-    ["Funding Tranche 2 Date", global.safeTranche2Date || "—"],
+    ["Capital Raise 1", formatMoney(global.capitalRaise1Amount ?? 0)],
+    ["Capital Raise 1 Date", global.capitalRaise1Date || "—"],
+    ["Capital Raise 2", formatMoney(global.capitalRaise2Amount ?? 0)],
+    ["Capital Raise 2 Date", global.capitalRaise2Date || "—"],
     ["Exit Cap Rate", `${((global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100).toFixed(1)}%`],
     ["Sales Commission", `Per Property (default ${(DEFAULT_COMMISSION_RATE * 100).toFixed(1)}%)`],
     ["Company Income Tax Rate", `${((global.companyTaxRate ?? DEFAULT_COMPANY_TAX_RATE) * 100).toFixed(1)}%`],
@@ -456,7 +456,7 @@ export async function exportFullData(user: { email?: string; role?: string; comp
   try {
     const companyData = generateCompanyProForma(properties, global, projMonths);
     const companyYearly: Record<string, number[]> = {};
-    const keys = ["totalRevenue", "totalExpenses", "netIncome", "endingCash", "safeFunding"] as const;
+    const keys = ["totalRevenue", "totalExpenses", "netIncome", "endingCash", "capitalRaiseFunding"] as const;
     keys.forEach(k => { companyYearly[k] = Array(projYears).fill(0); });
     companyData.forEach((m: any, i: number) => {
       const yr = Math.floor(i / MONTHS_PER_YEAR);
@@ -473,7 +473,7 @@ export async function exportFullData(user: { email?: string; role?: string; comp
       ["Total Revenue", ...companyYearly.totalRevenue.map(v => formatMoney(v))],
       ["Total Expenses", ...companyYearly.totalExpenses.map(v => formatMoney(v))],
       ["Net Income", ...companyYearly.netIncome.map(v => formatMoney(v))],
-      ["Funding Received", ...companyYearly.safeFunding.map(v => formatMoney(v))],
+      ["Funding Received", ...companyYearly.capitalRaiseFunding.map(v => formatMoney(v))],
       ["Ending Cash", ...companyYearly.endingCash.map(v => formatMoney(v))],
     ]);
     includedStatements.push("Management Company — Summary");

@@ -32,7 +32,7 @@ import { SectionCard } from "@/components/ui/section-card";
         <ManualTable
           headers={["Rule #", "Name", "Description"]}
           rows={[
-            ["BR-1", "Funding Gate", "Tranche 1 must be received before Management Company can begin operations"],
+            ["BR-1", "Funding Gate", "Capital Raise 1 must be received before Management Company can begin operations"],
             ["BR-2", "Fee Linkage", "Management fees appear as expense on Property IS and revenue on Company IS — must net to zero in consolidated view"],
             ["BR-3", "Stabilization Prerequisite", "Refinancing cannot occur until property reaches stabilized occupancy"],
             ["BR-4", "Balance Sheet Identity", "Assets = Liabilities + Equity must hold every period for every property"],

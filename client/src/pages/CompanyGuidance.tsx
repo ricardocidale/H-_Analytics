@@ -77,8 +77,8 @@ const GROUPS: GuidanceGroup[] = [
     explainer:
       "Funding architecture for the management entity. Capital commitments and deployment schedule that determine your operational runway and investor returns.",
     fields: [
-      { key: "safeTranche1Amount", label: "Funding Tranche 1", format: "dollar" },
-      { key: "safeTranche2Amount", label: "Funding Tranche 2", format: "dollar" },
+      { key: "capitalRaise1Amount", label: "Capital Raise 1", format: "dollar" },
+      { key: "capitalRaise2Amount", label: "Capital Raise 2", format: "dollar" },
     ],
   },
   {

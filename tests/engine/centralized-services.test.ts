@@ -32,10 +32,10 @@ const baseGlobal = {
   baseManagementFee: 0.05,
   incentiveManagementFee: 0.15,
   miscOpsRate: 0.03,
-  safeTranche1Date: "2026-04-01",
-  safeTranche1Amount: 1_000_000,
-  safeTranche2Date: undefined as string | undefined,
-  safeTranche2Amount: 0,
+  capitalRaise1Date: "2026-04-01",
+  capitalRaise1Amount: 1_000_000,
+  capitalRaise2Date: undefined as string | undefined,
+  capitalRaise2Amount: 0,
   staffSalary: 75_000,
   staffTier1MaxProperties: 3,
   staffTier1Fte: 2.5,
@@ -171,9 +171,9 @@ describe("Centralized Services — Engine Integration", () => {
   describe("cash flow impact", () => {
     const withTemplates = generateCompanyProForma([baseProperty], baseGlobal, 12, serviceTemplates);
 
-    it("cashFlow = netIncome + safeFunding", () => {
+    it("cashFlow = netIncome + capitalRaiseFunding", () => {
       for (const m of withTemplates) {
-        expect(m.cashFlow).toBeCloseTo(m.netIncome + m.safeFunding, 4);
+        expect(m.cashFlow).toBeCloseTo(m.netIncome + m.capitalRaiseFunding, 4);
       }
     });
 

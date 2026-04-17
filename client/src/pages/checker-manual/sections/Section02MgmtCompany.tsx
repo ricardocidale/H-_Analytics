@@ -17,7 +17,7 @@ import { SectionCard } from "@/components/ui/section-card";
         onToggle={onToggle}
         sectionRef={sectionRef}
       >
-        <p className="text-muted-foreground text-sm">Service company, NOT a property owner. Revenue: Base Fee (% of Total Revenue) + Incentive Fee (% of GOP). Funded via capital notes (Tranche 1 gates operations — Business Rule #1). Uses company inflation rate if set, otherwise global default.</p>
+        <p className="text-muted-foreground text-sm">Service company, NOT a property owner. Revenue: Base Fee (% of Total Revenue) + Incentive Fee (% of GOP). Funded via capital notes (Capital Raise 1 gates operations — Business Rule #1). Uses company inflation rate if set, otherwise global default.</p>
         <ManualTable
           headers={["Expense Category", "Calculation", "Escalation"]}
           rows={[

@@ -176,8 +176,8 @@ describe("Constants re-export parity (constants-and-config)", () => {
       if (name === "DEFAULT_OCCUPANCY_RAMP_MONTHS") return true;
       if (name === "DEFAULT_BASE_MANAGEMENT_FEE_RATE") return true;
       if (name === "DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE") return true;
-      if (name === "DEFAULT_SAFE_VALUATION_CAP") return true;
-      if (name === "DEFAULT_SAFE_DISCOUNT_RATE") return true;
+      if (name === "DEFAULT_CAPITAL_RAISE_VALUATION_CAP") return true;
+      if (name === "DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE") return true;
       if (name === "DEFAULT_FIXED_COST_ESCALATION_RATE") return true;
       if (name === "DEFAULT_COMPANY_TAX_RATE") return true;
       if (name === "DEFAULT_PROJECTION_YEARS") return true;

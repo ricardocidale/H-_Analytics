@@ -111,7 +111,7 @@ Used as fallbacks when no user-configured value exists:
 | `DEFAULT_IT_LICENSE_PER_CLIENT` | $3,000 | Annual IT licenses per client |
 | `DEFAULT_MARKETING_RATE` | 0.05 (5%) | Marketing as % of revenue |
 | `DEFAULT_MISC_OPS_RATE` | 0.03 (3%) | Miscellaneous ops as % of revenue |
-| `DEFAULT_SAFE_TRANCHE` | $800,000 | Default SAFE funding tranche |
+| `DEFAULT_CAPITAL_RAISE_TRANCHE` | $800,000 | Default SAFE funding tranche |
 
 ### Projection & Model Constants
 

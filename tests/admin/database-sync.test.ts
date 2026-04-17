@@ -19,8 +19,8 @@ import {
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_SERVICE_FEE_CATEGORIES,
-  DEFAULT_SAFE_VALUATION_CAP,
-  DEFAULT_SAFE_DISCOUNT_RATE,
+  DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
+  DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_PROPERTY_TAX_RATE,
 } from "../../shared/constants.js";
 
@@ -45,12 +45,12 @@ const SEED_GLOBAL_ASSUMPTIONS = {
   standardAcqPackage: { monthsToOps: 6, purchasePrice: 3800000, preOpeningCosts: 200000, operatingReserve: 250000, buildingImprovements: 1200000 },
   commissionRate: DEFAULT_COMMISSION_RATE,
   fixedCostEscalationRate: 0.03,
-  safeTranche1Amount: 1000000,
-  safeTranche1Date: "2026-06-01",
-  safeTranche2Amount: 1000000,
-  safeTranche2Date: "2027-04-01",
-  safeValuationCap: DEFAULT_SAFE_VALUATION_CAP,
-  safeDiscountRate: DEFAULT_SAFE_DISCOUNT_RATE,
+  capitalRaise1Amount: 1000000,
+  capitalRaise1Date: "2026-06-01",
+  capitalRaise2Amount: 1000000,
+  capitalRaise2Date: "2027-04-01",
+  capitalRaiseValuationCap: DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
+  capitalRaiseDiscountRate: DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   companyTaxRate: 0.3,
   companyOpsStartDate: "2026-06-01",
   fiscalYearStartMonth: 1,
@@ -112,13 +112,13 @@ describe("Database Sync — Seed Constants Integrity", () => {
     });
 
     it("SAFE valuation cap matches constant", () => {
-      expect(SEED_GLOBAL_ASSUMPTIONS.safeValuationCap).toBe(2500000);
-      expect(SEED_GLOBAL_ASSUMPTIONS.safeValuationCap).toBe(DEFAULT_SAFE_VALUATION_CAP);
+      expect(SEED_GLOBAL_ASSUMPTIONS.capitalRaiseValuationCap).toBe(2500000);
+      expect(SEED_GLOBAL_ASSUMPTIONS.capitalRaiseValuationCap).toBe(DEFAULT_CAPITAL_RAISE_VALUATION_CAP);
     });
 
     it("SAFE discount rate matches constant", () => {
-      expect(SEED_GLOBAL_ASSUMPTIONS.safeDiscountRate).toBe(0.20);
-      expect(SEED_GLOBAL_ASSUMPTIONS.safeDiscountRate).toBe(DEFAULT_SAFE_DISCOUNT_RATE);
+      expect(SEED_GLOBAL_ASSUMPTIONS.capitalRaiseDiscountRate).toBe(0.20);
+      expect(SEED_GLOBAL_ASSUMPTIONS.capitalRaiseDiscountRate).toBe(DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE);
     });
 
     it("standard acquisition package has correct values", () => {
@@ -342,12 +342,12 @@ describe("Database Sync — Seed Constants Integrity", () => {
     });
 
     it("SAFE tranches total $2M", () => {
-      expect(SEED_GLOBAL_ASSUMPTIONS.safeTranche1Amount + SEED_GLOBAL_ASSUMPTIONS.safeTranche2Amount).toBe(2000000);
+      expect(SEED_GLOBAL_ASSUMPTIONS.capitalRaise1Amount + SEED_GLOBAL_ASSUMPTIONS.capitalRaise2Amount).toBe(2000000);
     });
 
     it("SAFE tranche 2 date is after tranche 1", () => {
-      expect(new Date(SEED_GLOBAL_ASSUMPTIONS.safeTranche2Date).getTime())
-        .toBeGreaterThan(new Date(SEED_GLOBAL_ASSUMPTIONS.safeTranche1Date).getTime());
+      expect(new Date(SEED_GLOBAL_ASSUMPTIONS.capitalRaise2Date).getTime())
+        .toBeGreaterThan(new Date(SEED_GLOBAL_ASSUMPTIONS.capitalRaise1Date).getTime());
     });
 
     it("standard acquisition package purchase price matches Hudson Estate", () => {

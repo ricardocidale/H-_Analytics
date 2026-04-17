@@ -6,8 +6,8 @@ import { logos } from "./core";
 import { users } from "./auth";
 import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition, RequiredFieldsConfig } from "./types/jsonb-shapes";
 import {
-  DEFAULT_SAFE_VALUATION_CAP,
-  DEFAULT_SAFE_DISCOUNT_RATE,
+  DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
+  DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_FUNDING_INTEREST_RATE,
   DEFAULT_FUNDING_INTEREST_PAYMENT_FREQUENCY,
   DEFAULT_REV_SHARE_EVENTS,
@@ -114,14 +114,14 @@ export const globalAssumptions = pgTable("global_assumptions", {
   defaultOwnerPriorityReturn: real("default_owner_priority_return"),
   defaultFeeSubordination: text("default_fee_subordination").notNull().default("partial"),
 
-  // Funding Instrument (column names use 'safe_' prefix for DB compatibility — do not rename)
+  // Funding Instrument (generic capital raise — may be SAFE, convertible note, seed round, etc.)
   fundingSourceLabel: text("funding_source_label").notNull().default("Funding Vehicle"),
-  safeTranche1Amount: real("safe_tranche1_amount").notNull().default(800000),
-  safeTranche1Date: text("safe_tranche1_date").notNull().default("2026-06-01"),
-  safeTranche2Amount: real("safe_tranche2_amount").notNull().default(800000),
-  safeTranche2Date: text("safe_tranche2_date").notNull().default("2027-04-01"),
-  safeValuationCap: real("safe_valuation_cap").notNull().default(DEFAULT_SAFE_VALUATION_CAP),
-  safeDiscountRate: real("safe_discount_rate").notNull().default(DEFAULT_SAFE_DISCOUNT_RATE),
+  capitalRaise1Amount: real("capital_raise_1_amount").notNull().default(800000),
+  capitalRaise1Date: text("capital_raise_1_date").notNull().default("2026-06-01"),
+  capitalRaise2Amount: real("capital_raise_2_amount").notNull().default(800000),
+  capitalRaise2Date: text("capital_raise_2_date").notNull().default("2027-04-01"),
+  capitalRaiseValuationCap: real("capital_raise_valuation_cap").notNull().default(DEFAULT_CAPITAL_RAISE_VALUATION_CAP),
+  capitalRaiseDiscountRate: real("capital_raise_discount_rate").notNull().default(DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE),
   fundingInterestRate: real("funding_interest_rate").notNull().default(DEFAULT_FUNDING_INTEREST_RATE),
   fundingInterestPaymentFrequency: text("funding_interest_payment_frequency").notNull().default(DEFAULT_FUNDING_INTEREST_PAYMENT_FREQUENCY),
   

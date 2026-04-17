@@ -80,10 +80,10 @@ const makeGlobal = (overrides: Partial<GlobalInput> = {}): GlobalInput => ({
   companyInflationRate: 0,
   companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
   companyOpsStartDate: "2026-01-01",
-  safeTranche1Date: "2026-01-01",
-  safeTranche1Amount: 800_000,
-  safeTranche2Date: null,
-  safeTranche2Amount: 0,
+  capitalRaise1Date: "2026-01-01",
+  capitalRaise1Amount: 800_000,
+  capitalRaise2Date: null,
+  capitalRaise2Amount: 0,
   staffSalary: 75_000,
   staffTier1MaxProperties: 3,
   staffTier1Fte: 2.5,
@@ -393,9 +393,9 @@ describe("Golden: Company Funding Interest Waterfall (8%)", () => {
 
   describe("Two-tranche scenario: $500K at m0 + $300K at m6, quarterly payments", () => {
     const g = makeGlobal({
-      safeTranche1Amount: 500_000,
-      safeTranche2Date: "2026-07-01",
-      safeTranche2Amount: 300_000,
+      capitalRaise1Amount: 500_000,
+      capitalRaise2Date: "2026-07-01",
+      capitalRaise2Amount: 300_000,
       fundingInterestPaymentFrequency: 'quarterly',
     });
     const co = generateCompanyProForma([PROPERTY], g, MONTHS);
@@ -404,15 +404,15 @@ describe("Golden: Company Funding Interest Waterfall (8%)", () => {
     const INT_PHASE2 = 800_000 * 0.08 / 12;
 
     it("SAFE funding: $500K at month 0, $300K at month 6", () => {
-      expect(co[0].safeFunding1).toBe(500_000);
-      expect(co[0].safeFunding2).toBe(0);
-      expect(co[0].safeFunding).toBe(500_000);
-      expect(co[6].safeFunding1).toBe(0);
-      expect(co[6].safeFunding2).toBe(300_000);
-      expect(co[6].safeFunding).toBe(300_000);
+      expect(co[0].capitalRaiseFunding1).toBe(500_000);
+      expect(co[0].capitalRaiseFunding2).toBe(0);
+      expect(co[0].capitalRaiseFunding).toBe(500_000);
+      expect(co[6].capitalRaiseFunding1).toBe(0);
+      expect(co[6].capitalRaiseFunding2).toBe(300_000);
+      expect(co[6].capitalRaiseFunding).toBe(300_000);
       for (let m = 0; m < MONTHS; m++) {
         if (m !== 0 && m !== 6) {
-          expect(co[m].safeFunding).toBe(0);
+          expect(co[m].capitalRaiseFunding).toBe(0);
         }
       }
     });
@@ -438,7 +438,7 @@ describe("Golden: Company Funding Interest Waterfall (8%)", () => {
       let cumSAFE = 0;
       for (let m = 0; m < MONTHS; m++) {
         cumNI += co[m].netIncome;
-        cumSAFE += co[m].safeFunding;
+        cumSAFE += co[m].capitalRaiseFunding;
         const identity = cumSAFE + co[m].cumulativeAccruedInterest + cumNI;
         expect(co[m].endingCash).toBeCloseTo(identity, PENNY);
       }
@@ -619,7 +619,7 @@ describe("Golden: Company Funding Interest Waterfall (8%)", () => {
         const co = generateCompanyProForma([PROPERTY], g, MONTHS);
         for (let m = 0; m < MONTHS; m++) {
           const expected = co[m].netIncome + co[m].fundingInterestExpense +
-            co[m].safeFunding - co[m].fundingInterestPayment;
+            co[m].capitalRaiseFunding - co[m].fundingInterestPayment;
           expect(co[m].cashFlow).toBeCloseTo(expected, PENNY);
         }
       });
@@ -734,7 +734,7 @@ describe("Golden: Company Funding Interest Waterfall (8%)", () => {
       let cumSAFE = 0;
       for (let m = 0; m < MONTHS; m++) {
         cumNI += co[m].netIncome;
-        cumSAFE += co[m].safeFunding;
+        cumSAFE += co[m].capitalRaiseFunding;
         const identity = cumSAFE + co[m].cumulativeAccruedInterest + cumNI;
         expect(co[m].endingCash).toBeCloseTo(identity, PENNY);
       }
@@ -795,8 +795,8 @@ describe("Golden: Company Funding Interest Waterfall (8%)", () => {
     });
 
     it("SAFE arrives at month 0 = $800,000 exactly", () => {
-      expect(co[0].safeFunding).toBe(800000);
-      expect(co[1].safeFunding).toBe(0);
+      expect(co[0].capitalRaiseFunding).toBe(800000);
+      expect(co[1].capitalRaiseFunding).toBe(0);
     });
 
     it("year-end accrued interest = $0.00 (quarterly, month 11 is a payment month)", () => {

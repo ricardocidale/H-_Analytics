@@ -77,10 +77,10 @@ const GLOBAL: GlobalInput = {
   companyInflationRate: 0,
   companyTaxRate: 0.30,
   companyOpsStartDate: "2026-04-01",
-  safeTranche1Date: "2026-04-01",
-  safeTranche1Amount: 800_000,
-  safeTranche2Date: null,
-  safeTranche2Amount: 0,
+  capitalRaise1Date: "2026-04-01",
+  capitalRaise1Amount: 800_000,
+  capitalRaise2Date: null,
+  capitalRaise2Amount: 0,
 } as GlobalInput;
 
 const MONTHS = 120;

@@ -64,7 +64,7 @@ export interface ManagementCompanyStatement {
   fee_revenue: number;
   operating_expenses?: number;
   net_income?: number;
-  safe_funding?: number;
+  capital_raise_funding?: number;
   ending_cash?: number;
   total_assets?: number;
   total_liabilities?: number;

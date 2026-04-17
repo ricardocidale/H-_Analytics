@@ -2,8 +2,8 @@ import type { CompanyMonthlyFinancials, GlobalInput, FundingAnalysis, FundingTra
 import type { MarketRateResponse } from '@/lib/api/market-rates';
 import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from '@/lib/constants';
 import {
-  DEFAULT_SAFE_VALUATION_CAP,
-  DEFAULT_SAFE_DISCOUNT_RATE,
+  DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
+  DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_EARLY_STAGE_DISCOUNT_PREMIUM,
   DEFAULT_EARLY_STAGE_CAP_DISCOUNT,
   DEFAULT_TRANCHE_BUFFER_MULTIPLIER,
@@ -21,7 +21,7 @@ import {
   DEFAULT_THREE_TRANCHE_MIN_T2,
   DEFAULT_TREASURY_HIGH_RATE_THRESHOLD,
   DEFAULT_TREASURY_LOW_RATE_THRESHOLD,
-  DEFAULT_MAX_SAFE_DISCOUNT_RATE,
+  DEFAULT_MAX_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_RISK_FREE_RATE_SENSITIVITY,
   TRAILING_YEAR_MONTHS_OFFSET,
   MONTHS_PER_YEAR,
@@ -32,8 +32,8 @@ interface FundingGlobalInput extends GlobalInput {
   companyName?: string;
   assetDescription?: string | null;
   fundingSourceLabel?: string;
-  safeValuationCap?: number;
-  safeDiscountRate?: number;
+  capitalRaiseValuationCap?: number;
+  capitalRaiseDiscountRate?: number;
 }
 
 function getMarketRate(rates: MarketRateResponse[] | undefined, key: string): number | null {
@@ -214,7 +214,7 @@ export function analyzeFundingNeeds(
     ? Math.ceil(totalRaiseRaw / DEFAULT_FUNDING_ROUNDING_INCREMENT) * DEFAULT_FUNDING_ROUNDING_INCREMENT
     : OPERATING_RESERVE_BUFFER + COMPANY_FUNDING_BUFFER;
 
-  const currentFunding = (global.safeTranche1Amount ?? 0) + (global.safeTranche2Amount ?? 0);
+  const currentFunding = (global.capitalRaise1Amount ?? 0) + (global.capitalRaise2Amount ?? 0);
   const fundingGap = totalRaiseNeeded - currentFunding;
 
   const revenueAtBreakeven = breakevenMonth !== null
@@ -292,8 +292,8 @@ function buildTranches(
   const endIdx = breakevenMonth ?? Math.min(financials.length - 1, operationsStartIdx + 60);
   const periodLength = endIdx - operationsStartIdx;
 
-  const baseValuationCap = global.safeValuationCap ?? DEFAULT_SAFE_VALUATION_CAP;
-  const baseDiscount = global.safeDiscountRate ?? DEFAULT_SAFE_DISCOUNT_RATE;
+  const baseValuationCap = global.capitalRaiseValuationCap ?? DEFAULT_CAPITAL_RAISE_VALUATION_CAP;
+  const baseDiscount = global.capitalRaiseDiscountRate ?? DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE;
   const hasValuationCap = baseValuationCap > 0;
   const hasDiscountRate = baseDiscount > 0;
 
@@ -303,7 +303,7 @@ function buildTranches(
   };
   const computeTrancheDiscount = (adjustment: number): number | null => {
     if (!hasDiscountRate) return null;
-    return Math.min(DEFAULT_MAX_SAFE_DISCOUNT_RATE, baseDiscount + adjustment + riskFreeRate * DEFAULT_RISK_FREE_RATE_SENSITIVITY);
+    return Math.min(DEFAULT_MAX_CAPITAL_RAISE_DISCOUNT_RATE, baseDiscount + adjustment + riskFreeRate * DEFAULT_RISK_FREE_RATE_SENSITIVITY);
   };
 
   const termsNote = (hasValuationCap || hasDiscountRate)
@@ -334,7 +334,7 @@ function buildTranches(
   const revenueAtMid = financials.slice(Math.max(0, midpoint - TRAILING_YEAR_MONTHS_OFFSET), midpoint + 1).reduce((s, m) => s + m.totalRevenue, 0);
 
   const t2TermsNote = (hasValuationCap || hasDiscountRate)
-    ? ` Revenue traction de-risks the investment, supporting ${hasValuationCap ? 'a higher valuation cap' : ''}${hasValuationCap && hasDiscountRate ? ' and ' : ''}${hasDiscountRate ? 'lower discount' : ''} compared to Tranche 1.`
+    ? ` Revenue traction de-risks the investment, supporting ${hasValuationCap ? 'a higher valuation cap' : ''}${hasValuationCap && hasDiscountRate ? ' and ' : ''}${hasDiscountRate ? 'lower discount' : ''} compared to Capital Raise 1.`
     : '';
 
   const tranches: FundingTranche[] = [

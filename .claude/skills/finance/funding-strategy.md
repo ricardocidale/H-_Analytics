@@ -28,7 +28,7 @@ Documents the capital strategy system that models how the management company fun
 | `client/src/lib/financial/funding-predictor.ts` | Pure calculation engine: cash runway, tranche sizing, breakeven, narratives |
 | `client/src/pages/FundingPredictor.tsx` | Capital Strategy page with runway chart, KPI grid, tranche visualization |
 | `client/src/lib/financial/types.ts` | `FundingAnalysis`, `FundingTranche`, `CashRunwayPoint` types |
-| `shared/constants.ts` | 20 `DEFAULT_SAFE_*` / `DEFAULT_TRANCHE_*` / `DEFAULT_FUNDING_*` constants |
+| `shared/constants.ts` | 20 `DEFAULT_CAPITAL_RAISE_*` / `DEFAULT_TRANCHE_*` / `DEFAULT_FUNDING_*` constants |
 | `client/src/lib/constants.ts` | `OPERATING_RESERVE_BUFFER`, `COMPANY_FUNDING_BUFFER` |
 
 ## Architecture
@@ -99,8 +99,8 @@ interface FundingTranche {
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `DEFAULT_SAFE_VALUATION_CAP` | $2.5M | Base valuation cap for SAFE |
-| `DEFAULT_SAFE_DISCOUNT_RATE` | 20% | Base discount rate |
+| `DEFAULT_CAPITAL_RAISE_VALUATION_CAP` | $2.5M | Base valuation cap for SAFE |
+| `DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE` | 20% | Base discount rate |
 | `DEFAULT_FUNDING_ROUNDING_INCREMENT` | $50K | All amounts rounded to this |
 | `DEFAULT_TRANCHE1_PERIOD_RATIO` | 0.45 | T1 covers first 45% of period |
 | `DEFAULT_TRANCHE1_MAX_ALLOCATION` | 0.65 | T1 never exceeds 65% of total |

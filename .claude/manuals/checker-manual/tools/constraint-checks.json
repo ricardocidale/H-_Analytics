@@ -6,7 +6,7 @@
       "id": "BC-01",
       "name": "Management Company Funding Gate",
       "rule": "Company operations cannot begin before SAFE funding is received",
-      "description": "If companyOpsStartDate precedes safeTranche1Date, system must block/flag",
+      "description": "If companyOpsStartDate precedes capitalRaise1Date, system must block/flag",
       "severity": "CRITICAL"
     },
     {

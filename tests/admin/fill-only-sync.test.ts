@@ -12,8 +12,8 @@ import {
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_COMPANY_TAX_RATE,
-  DEFAULT_SAFE_VALUATION_CAP,
-  DEFAULT_SAFE_DISCOUNT_RATE,
+  DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
+  DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_SERVICE_FEE_CATEGORIES,
 } from "../../shared/constants";
 
@@ -139,12 +139,12 @@ describe("Fill-Only Sync — Seed Constants Alignment", () => {
     expect(SEED_GLOBAL_ASSUMPTIONS.companyTaxRate).toBe(DEFAULT_COMPANY_TAX_RATE);
   });
 
-  it("SEED_GLOBAL_ASSUMPTIONS.safeValuationCap matches constant", () => {
-    expect(SEED_GLOBAL_ASSUMPTIONS.safeValuationCap).toBe(DEFAULT_SAFE_VALUATION_CAP);
+  it("SEED_GLOBAL_ASSUMPTIONS.capitalRaiseValuationCap matches constant", () => {
+    expect(SEED_GLOBAL_ASSUMPTIONS.capitalRaiseValuationCap).toBe(DEFAULT_CAPITAL_RAISE_VALUATION_CAP);
   });
 
-  it("SEED_GLOBAL_ASSUMPTIONS.safeDiscountRate matches constant", () => {
-    expect(SEED_GLOBAL_ASSUMPTIONS.safeDiscountRate).toBe(DEFAULT_SAFE_DISCOUNT_RATE);
+  it("SEED_GLOBAL_ASSUMPTIONS.capitalRaiseDiscountRate matches constant", () => {
+    expect(SEED_GLOBAL_ASSUMPTIONS.capitalRaiseDiscountRate).toBe(DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE);
   });
 
   it("SEED_PROPERTY_DEFAULTS.baseManagementFeeRate matches constant", () => {
@@ -207,12 +207,12 @@ describe("Fill-Only Sync — Behavioral Contract", () => {
   });
 
   it("SAFE tranche amounts total $2M", () => {
-    expect(SEED_GLOBAL_ASSUMPTIONS.safeTranche1Amount + SEED_GLOBAL_ASSUMPTIONS.safeTranche2Amount).toBe(2000000);
+    expect(SEED_GLOBAL_ASSUMPTIONS.capitalRaise1Amount + SEED_GLOBAL_ASSUMPTIONS.capitalRaise2Amount).toBe(2000000);
   });
 
   it("SAFE tranche 2 date is after tranche 1", () => {
-    expect(new Date(SEED_GLOBAL_ASSUMPTIONS.safeTranche2Date).getTime())
-      .toBeGreaterThan(new Date(SEED_GLOBAL_ASSUMPTIONS.safeTranche1Date).getTime());
+    expect(new Date(SEED_GLOBAL_ASSUMPTIONS.capitalRaise2Date).getTime())
+      .toBeGreaterThan(new Date(SEED_GLOBAL_ASSUMPTIONS.capitalRaise1Date).getTime());
   });
 });
 

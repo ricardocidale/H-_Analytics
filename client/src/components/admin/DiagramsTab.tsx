@@ -506,7 +506,7 @@ export default function DiagramsTab() {
             <AccordionItem value="manco">
               <AccordionTrigger className="text-sm font-semibold">Management Company Engine</AccordionTrigger>
               <AccordionContent>
-                <DiagramCard title="ManCo Financial Model" description="Revenue (Base + Incentive + Service Fees) → Expenses → SAFE Funding → Bottom Line">
+                <DiagramCard title="ManCo Financial Model" description="Revenue (Base + Incentive + Service Fees) → Expenses → Capital Raise → Bottom Line">
                   <L2ManCo />
                 </DiagramCard>
               </AccordionContent>

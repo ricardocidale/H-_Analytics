@@ -135,7 +135,7 @@ globalAssumptions.exitCapRate
 
 **When a field is NOT dual-residence:**
 - **Seed-only fields** use the `default*` naming convention (e.g., `defaultStartAdr`, `defaultRoomCount`). These are pure templates — the engine never reads them directly. They only flow through `buildPropertyDefaultsFromGlobal()`.
-- **Live-only fields** have no `default*` counterpart (e.g., `partnerCompensation`, `safeTranche1`). These are consumed directly by the company engine and never copied into properties.
+- **Live-only fields** have no `default*` counterpart (e.g., `partnerCompensation`, `capitalRaise1`). These are consumed directly by the company engine and never copied into properties.
 
 **Examples of dual-residence fields:**
 | Field | Seed Role (Model Defaults) | Live Role (Company Assumptions) |

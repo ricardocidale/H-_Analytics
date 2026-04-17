@@ -165,11 +165,11 @@ export interface GlobalInput {
   companyInflationRate?: number;
   fixedCostEscalationRate?: number;
   marketingRate: number;
-  // Funding Instrument (field names use 'safe' prefix for DB compatibility)
-  safeTranche1Amount?: number;
-  safeTranche1Date?: string;
-  safeTranche2Amount?: number;
-  safeTranche2Date?: string;
+  // Funding Instrument (generic capital raise — may be SAFE, convertible note, seed round, etc.)
+  capitalRaise1Amount?: number;
+  capitalRaise1Date?: string;
+  capitalRaise2Amount?: number;
+  capitalRaise2Date?: string;
   fundingInterestRate?: number;
   fundingInterestPaymentFrequency?: string;
   // Staffing tiers
@@ -329,9 +329,9 @@ export interface CompanyMonthlyFinancials {
   preTaxIncome: number;
   companyIncomeTax: number;
   netIncome: number;
-  safeFunding: number;
-  safeFunding1: number;
-  safeFunding2: number;
+  capitalRaiseFunding: number;
+  capitalRaiseFunding1: number;
+  capitalRaiseFunding2: number;
   cashFlow: number;
   endingCash: number;
   cashShortfall: boolean;
@@ -370,7 +370,7 @@ export interface CompanyYearlyFinancials {
   preTaxIncome: number;
   companyIncomeTax: number;
   netIncome: number;
-  safeFunding: number;
+  capitalRaiseFunding: number;
   cashFlow: number;
   endingCash: number;
 }

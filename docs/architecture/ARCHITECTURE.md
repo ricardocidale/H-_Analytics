@@ -19,7 +19,7 @@
 |---|---|---|
 | Asset class | Real estate | Operating service business |
 | Depreciation | Yes (IRS basis) | None (no real estate) |
-| Debt | Yes (loan, refi) | None (SAFE-funded) |
+| Debt | Yes (loan, refi) | None (capital-raise-funded) |
 | NOI concept | Yes | **No — NOI is a real estate metric** |
 | Exit valuation method | **Cap rate** (NOI ÷ exitCapRate) at terminal year | **DCF on FCF** (discount at `costOfEquity`) or EBITDA multiple — **never cap rate** |
 | Sales commission on exit | Yes (`dispositionCommission`) | N/A |
@@ -109,7 +109,7 @@ The `IntelligenceStatusBar` on Company Assumptions runs through five states: `id
 | Tab | After Save (Tier-0) | After Button Press (Tier-1) |
 |-----|---------------------|----------------------------|
 | **Company** | Validates country → updates tax, depreciation, CRP defaults. Checks company name, address against known markets. Validates company tax rate against country defaults. | Researches the specific market: local labor costs, commercial rents, regulatory environment, corporate tax structure. |
-| **Funding** | Validates SAFE terms against typical venture terms. Validates cost of equity against risk profile. | Researches comparable management company funding rounds, valuations, investor expectations, cost of equity for hospitality. |
+| **Funding** | Validates capital raise terms against typical venture terms. Validates cost of equity against risk profile. | Researches comparable management company funding rounds, valuations, investor expectations, cost of equity for hospitality. |
 | **Revenue Model** | Validates service rates against ISHC/PKF benchmarks. Checks total management fee against industry range. | Researches comparable management fee structures, cost-plus vs flat-fee models, incentive fee benchmarks. |
 | **Compensation** | Validates salary against BLS/market data. Checks staffing tiers against portfolio size. | Researches hospitality executive compensation by market, staffing ratios for boutique management companies. |
 | **Overhead** | Validates office lease, insurance, professional services against market. | Researches commercial lease rates in the HMC's city, hospitality-specific insurance costs, tech infrastructure benchmarks. |

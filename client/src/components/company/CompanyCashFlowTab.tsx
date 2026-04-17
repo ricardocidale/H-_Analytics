@@ -88,7 +88,7 @@ export default function CompanyCashFlowTab({
 
   const y1 = yearlyChartData?.[0];
   const y1FundingReceived = y1
-    ? financials.slice(0, MONTHS_PER_YEAR).reduce((a, m) => a + (m.safeFunding ?? 0), 0)
+    ? financials.slice(0, MONTHS_PER_YEAR).reduce((a, m) => a + (m.capitalRaiseFunding ?? 0), 0)
     : 0;
   const y1OperatingCF = y1
     ? financials.slice(0, MONTHS_PER_YEAR).reduce((a, m) => a + m.netIncome + (m.fundingInterestExpense ?? 0), 0)
@@ -177,7 +177,7 @@ export default function CompanyCashFlowTab({
               </TableCell>
               {Array.from({ length: projectionYears }, (_, y) => {
                 const yearData = financials.slice(y * MONTHS_PER_YEAR, (y + 1) * MONTHS_PER_YEAR);
-                const total = yearData.reduce((a, m) => a + m.safeFunding, 0);
+                const total = yearData.reduce((a, m) => a + m.capitalRaiseFunding, 0);
                 return <TableCell key={y} className="text-right text-muted-foreground font-mono">{total > 0 ? formatMoney(total) : '-'}</TableCell>;
               })}
             </TableRow>
@@ -185,21 +185,21 @@ export default function CompanyCashFlowTab({
               <>
                 <TableRow className="bg-muted/50">
                   <TableCell className="sticky left-0 bg-muted/50 pl-12 text-sm text-muted-foreground">
-                    {fundingLabel} Tranche 1
+                    {fundingLabel} 1
                   </TableCell>
                   {Array.from({ length: projectionYears }, (_, y) => {
                     const yearData = financials.slice(y * MONTHS_PER_YEAR, (y + 1) * MONTHS_PER_YEAR);
-                    const total = yearData.reduce((a, m) => a + m.safeFunding1, 0);
+                    const total = yearData.reduce((a, m) => a + m.capitalRaiseFunding1, 0);
                     return <TableCell key={y} className="text-right text-sm text-muted-foreground font-mono">{total > 0 ? formatMoney(total) : '-'}</TableCell>;
                   })}
                 </TableRow>
                 <TableRow className="bg-muted/50">
                   <TableCell className="sticky left-0 bg-muted/50 pl-12 text-sm text-muted-foreground">
-                    {fundingLabel} Tranche 2
+                    {fundingLabel} 2
                   </TableCell>
                   {Array.from({ length: projectionYears }, (_, y) => {
                     const yearData = financials.slice(y * MONTHS_PER_YEAR, (y + 1) * MONTHS_PER_YEAR);
-                    const total = yearData.reduce((a, m) => a + m.safeFunding2, 0);
+                    const total = yearData.reduce((a, m) => a + m.capitalRaiseFunding2, 0);
                     return <TableCell key={y} className="text-right text-sm text-muted-foreground font-mono">{total > 0 ? formatMoney(total) : '-'}</TableCell>;
                   })}
                 </TableRow>
@@ -228,7 +228,7 @@ export default function CompanyCashFlowTab({
               <TableCell className="sticky left-0 bg-card">Net Cash from Financing Activities</TableCell>
               {Array.from({ length: projectionYears }, (_, y) => {
                 const yearData = financials.slice(y * MONTHS_PER_YEAR, (y + 1) * MONTHS_PER_YEAR);
-                const funding = yearData.reduce((a, m) => a + m.safeFunding, 0);
+                const funding = yearData.reduce((a, m) => a + m.capitalRaiseFunding, 0);
                 const interestPaid = yearData.reduce((a, m) => a + (m.fundingInterestPayment ?? 0), 0);
                 const total = funding - interestPaid;
                 return <TableCell key={y} className="text-right font-mono">{total !== 0 ? formatMoney(total) : '-'}</TableCell>;
@@ -239,12 +239,12 @@ export default function CompanyCashFlowTab({
               label={
                 financials.some(m => (m.fundingInterestPayment ?? 0) > 0)
                   ? `= ${fundingLabel} Funding Received − Interest Paid on Notes`
-                  : `= ${fundingLabel} Funding Received (Tranche 1 + Tranche 2)`
+                  : `= ${fundingLabel} Funding Received (Capital Raise 1 + Capital Raise 2)`
               }
               values={Array.from({ length: projectionYears }, (_, y) => {
                 const yearData = financials.slice(y * MONTHS_PER_YEAR, (y + 1) * MONTHS_PER_YEAR);
-                const t1 = yearData.reduce((a, m) => a + m.safeFunding1, 0);
-                const t2 = yearData.reduce((a, m) => a + m.safeFunding2, 0);
+                const t1 = yearData.reduce((a, m) => a + m.capitalRaiseFunding1, 0);
+                const t2 = yearData.reduce((a, m) => a + m.capitalRaiseFunding2, 0);
                 const interestPaid = yearData.reduce((a, m) => a + (m.fundingInterestPayment ?? 0), 0);
                 if (interestPaid > 0) {
                   return `${formatMoney(t1 + t2)} − ${formatMoney(interestPaid)}`;
@@ -273,7 +273,7 @@ export default function CompanyCashFlowTab({
                 const netIncome = yearData.reduce((a, m) => a + m.netIncome, 0);
                 const interestAddback = yearData.reduce((a, m) => a + (m.fundingInterestExpense ?? 0), 0);
                 const opsCF = netIncome + interestAddback;
-                const funding = yearData.reduce((a, m) => a + m.safeFunding, 0);
+                const funding = yearData.reduce((a, m) => a + m.capitalRaiseFunding, 0);
                 const interestPaid = yearData.reduce((a, m) => a + (m.fundingInterestPayment ?? 0), 0);
                 const finCF = funding - interestPaid;
                 return `${formatMoney(opsCF)} + ${formatMoney(finCF)}`;

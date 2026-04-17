@@ -411,7 +411,7 @@ Revenue-linked:
 ### Net Income
 ```
 netIncome = totalRevenue − totalExpenses
-cashFlow = netIncome + safeFunding
+cashFlow = netIncome + capitalRaiseFunding
 ```
 
 ---

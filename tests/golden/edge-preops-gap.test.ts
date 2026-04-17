@@ -54,9 +54,9 @@ const GLOBAL: GlobalInput = {
   fixedCostEscalationRate: 0, companyInflationRate: 0,
   companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
   companyOpsStartDate: "2026-10-01",  // company ops = property ops
-  safeTranche1Date: "2026-04-01",     // SAFE arrives before ops
-  safeTranche1Amount: 800_000,
-  safeTranche2Date: null, safeTranche2Amount: 0,
+  capitalRaise1Date: "2026-04-01",     // SAFE arrives before ops
+  capitalRaise1Amount: 800_000,
+  capitalRaise2Date: null, capitalRaise2Amount: 0,
   staffSalary: 75_000, staffTier1MaxProperties: 3, staffTier1Fte: 2.5,
   partnerCompYear1: 540_000, partnerCompYear2: 540_000,
   officeLeaseStart: 36_000, professionalServicesStart: 24_000,
@@ -246,7 +246,7 @@ describe("Golden Edge: Pre-Operations Gap", () => {
   // ─── Company: SAFE gate delays operations ─────────────────────────────
   describe("Company: SAFE received early, ops delayed", () => {
     it("SAFE funding arrives month 0 (before ops start)", () => {
-      expect(compF[0].safeFunding).toBe(800_000);
+      expect(compF[0].capitalRaiseFunding).toBe(800_000);
     });
 
     it("zero company revenue months 0-5 (ops haven't started)", () => {

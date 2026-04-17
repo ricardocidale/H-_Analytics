@@ -406,7 +406,10 @@ export default function CompanyAssumptions() {
       "companyTaxRate",
     ] as unknown as Array<keyof GlobalResponse>,
     funding: [
-      "safeNoteTranches", "safeNoteCapAmount", "safeNoteDiscount",
+      "capitalRaise1Amount", "capitalRaise1Date",
+      "capitalRaise2Amount", "capitalRaise2Date",
+      "capitalRaiseValuationCap", "capitalRaiseDiscountRate",
+      "fundingSourceLabel", "fundingInterestRate",
       "costOfEquity",
     ] as unknown as Array<keyof GlobalResponse>,
     revenue: [

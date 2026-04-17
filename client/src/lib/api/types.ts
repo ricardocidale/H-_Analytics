@@ -20,12 +20,12 @@ export interface GlobalResponse {
   fixedCostEscalationRate: number;
   // Funding Instrument
   fundingSourceLabel: string;
-  safeTranche1Amount: number;
-  safeTranche1Date: string;
-  safeTranche2Amount: number;
-  safeTranche2Date: string;
-  safeValuationCap: number;
-  safeDiscountRate: number;
+  capitalRaise1Amount: number;
+  capitalRaise1Date: string;
+  capitalRaise2Amount: number;
+  capitalRaise2Date: string;
+  capitalRaiseValuationCap: number;
+  capitalRaiseDiscountRate: number;
   fundingInterestRate: number;
   fundingInterestPaymentFrequency: string;
   // Compensation - partner comp by year

@@ -4,7 +4,7 @@ import type { Property } from "@shared/schema";
 import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import { computeIRR } from "@analytics/returns/irr.js";
 import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_TAX_RATE, DEFAULT_INTEREST_RATE } from "@/lib/constants";
-import { DEFAULT_COST_OF_EQUITY, DEFAULT_SAFE_DISCOUNT_RATE } from "@shared/constants";
+import { DEFAULT_COST_OF_EQUITY, DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE } from "@shared/constants";
 
 export function generatePortfolioInvestmentData(
   financials: DashboardFinancials,
@@ -210,7 +210,7 @@ export function generatePortfolioInvestmentData(
         const ew = totalCapital > 0 ? equity / totalCapital : 1;
         const dw = totalCapital > 0 ? debt / totalCapital : 0;
         const wacc = (ew * re) + (dw * debtRate * (1 - taxRate));
-        const discountRate = wacc > 0 ? wacc : DEFAULT_SAFE_DISCOUNT_RATE;
+        const discountRate = wacc > 0 ? wacc : DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE;
 
         const yearlyATCF = years.map((_, y) => propCF[y]?.atcf ?? 0);
         const exitValue = propCF[projectionYears - 1]?.exitValue ?? 0;

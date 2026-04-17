@@ -11,7 +11,7 @@
  *
  * 1. FUNDING TIMING GATE:
  *    For properties: Acquisition/funding must occur before operations start.
- *    For management company: SAFE funding must arrive before company operations begin.
+ *    For management company: Capital raise funding must arrive before company operations begin.
  *    Why: You can't operate a hotel you haven't bought, and you can't pay employees
  *    from an unfunded management company.
  *
@@ -77,7 +77,7 @@ export function checkFundingGates(input: FundingGateInput): FundingGateOutput {
     gates.push({
       rule: label,
       description: input.entity_type === "management_company"
-        ? "Operations cannot start before SAFE funding is received"
+        ? "Operations cannot start before capital raise funding is received"
         : "Property cannot operate before acquisition/funding",
       passed,
       details: passed

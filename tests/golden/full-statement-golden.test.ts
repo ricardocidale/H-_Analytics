@@ -70,10 +70,10 @@ const GLOBAL: GlobalInput = {
   companyInflationRate: 0,
   companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
   companyOpsStartDate: "2026-04-01",
-  safeTranche1Date: "2026-04-01",
-  safeTranche1Amount: 800_000,
-  safeTranche2Date: null,
-  safeTranche2Amount: 0,
+  capitalRaise1Date: "2026-04-01",
+  capitalRaise1Amount: 800_000,
+  capitalRaise2Date: null,
+  capitalRaise2Amount: 0,
   // Explicitly set all company cost fields to defaults for hand-calc traceability
   staffSalary: 75_000,
   staffTier1MaxProperties: 3,
@@ -499,7 +499,7 @@ describe("Golden Scenario: Full Financial Statements", () => {
     });
 
     it("SAFE funding arrives in month 0", () => {
-      expect(c0.safeFunding).toBe(800_000);
+      expect(c0.capitalRaiseFunding).toBe(800_000);
       expect(c0.cashFlow).toBeCloseTo(H_CO_CF_MONTH0, 2);
     });
   });
@@ -642,8 +642,8 @@ describe("Golden Scenario: Full Financial Statements", () => {
     });
 
     it("SAFE tranche 1 = $800,000 in month 0 only", () => {
-      expect(companyFinancials[0].safeFunding).toBe(800_000);
-      expect(companyFinancials[1].safeFunding).toBe(0);
+      expect(companyFinancials[0].capitalRaiseFunding).toBe(800_000);
+      expect(companyFinancials[1].capitalRaiseFunding).toBe(0);
     });
   });
 });

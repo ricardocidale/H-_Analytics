@@ -45,7 +45,7 @@
           "fee_revenue": { "type": "number", "description": "Total management fee revenue (should equal sum of property management_fees)" },
           "operating_expenses": { "type": "number" },
           "net_income": { "type": "number" },
-          "safe_funding": { "type": "number" },
+          "capital_raise_funding": { "type": "number" },
           "ending_cash": { "type": "number" },
           "total_assets": { "type": "number" },
           "total_liabilities": { "type": "number" },

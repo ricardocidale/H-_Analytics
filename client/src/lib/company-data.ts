@@ -333,18 +333,18 @@ export function generateCompanyCashFlowData(
 
   rows.push({ category: `${fundingLabel} Funding Received`, values: years.map((_, y) => {
     const yearData = financials.slice(y * 12, (y + 1) * 12);
-    return yearData.reduce((a, m) => a + m.safeFunding, 0);
+    return yearData.reduce((a, m) => a + m.capitalRaiseFunding, 0);
   }), indent: 1 });
 
   if (!summaryOnly) {
-    rows.push({ category: `${fundingLabel} Tranche 1`, values: years.map((_, y) => {
+    rows.push({ category: `${fundingLabel} 1`, values: years.map((_, y) => {
       const yearData = financials.slice(y * 12, (y + 1) * 12);
-      return yearData.reduce((a, m) => a + m.safeFunding1, 0);
+      return yearData.reduce((a, m) => a + m.capitalRaiseFunding1, 0);
     }), indent: 2 });
 
-    rows.push({ category: `${fundingLabel} Tranche 2`, values: years.map((_, y) => {
+    rows.push({ category: `${fundingLabel} 2`, values: years.map((_, y) => {
       const yearData = financials.slice(y * 12, (y + 1) * 12);
-      return yearData.reduce((a, m) => a + m.safeFunding2, 0);
+      return yearData.reduce((a, m) => a + m.capitalRaiseFunding2, 0);
     }), indent: 2 });
   }
 
@@ -357,7 +357,7 @@ export function generateCompanyCashFlowData(
 
   rows.push({ category: "Net Cash from Financing Activities", values: years.map((_, y) => {
     const yearData = financials.slice(y * 12, (y + 1) * 12);
-    return yearData.reduce((a, m) => a + m.safeFunding - m.fundingInterestPayment, 0);
+    return yearData.reduce((a, m) => a + m.capitalRaiseFunding - m.fundingInterestPayment, 0);
   }), isSubtotal: true });
 
   rows.push({ category: "Net Increase (Decrease) in Cash", values: years.map((_, y) => {
@@ -424,7 +424,7 @@ export function generateCompanyBalanceData(
   let cumSafe = 0;
   const safeValues = years.map((_, y) => {
     const yearData = financials.slice(y * 12, (y + 1) * 12);
-    cumSafe += yearData.reduce((a, m) => a + m.safeFunding, 0);
+    cumSafe += yearData.reduce((a, m) => a + m.capitalRaiseFunding, 0);
     return cumSafe;
   });
 

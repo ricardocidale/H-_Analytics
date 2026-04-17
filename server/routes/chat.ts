@@ -127,13 +127,13 @@ export function register(app: Express) {
       const fundingInterestRate = ga?.fundingInterestRate ?? 0;
       const fundingLines: string[] = [];
       fundingLines.push(`Funding Source: ${ga?.fundingSourceLabel ?? "Funding Vehicle"}`);
-      fundingLines.push(`Tranche 1: $${(ga?.safeTranche1Amount ?? 0).toLocaleString()} (${ga?.safeTranche1Date ?? "N/A"})`);
-      fundingLines.push(`Tranche 2: $${(ga?.safeTranche2Amount ?? 0).toLocaleString()} (${ga?.safeTranche2Date ?? "N/A"})`);
-      if ((ga?.safeValuationCap ?? 0) > 0) {
-        fundingLines.push(`Valuation Cap: $${(ga.safeValuationCap).toLocaleString()}`);
+      fundingLines.push(`Capital Raise 1: $${(ga?.capitalRaise1Amount ?? 0).toLocaleString()} (${ga?.capitalRaise1Date ?? "N/A"})`);
+      fundingLines.push(`Capital Raise 2: $${(ga?.capitalRaise2Amount ?? 0).toLocaleString()} (${ga?.capitalRaise2Date ?? "N/A"})`);
+      if ((ga?.capitalRaiseValuationCap ?? 0) > 0) {
+        fundingLines.push(`Valuation Cap: $${(ga.capitalRaiseValuationCap).toLocaleString()}`);
       }
-      if ((ga?.safeDiscountRate ?? 0) > 0) {
-        fundingLines.push(`Discount Rate: ${(ga.safeDiscountRate * 100).toFixed(0)}%`);
+      if ((ga?.capitalRaiseDiscountRate ?? 0) > 0) {
+        fundingLines.push(`Discount Rate: ${(ga.capitalRaiseDiscountRate * 100).toFixed(0)}%`);
       }
       if (fundingInterestRate > 0) {
         fundingLines.push(`Interest Rate: ${(fundingInterestRate * 100).toFixed(1)}% annual`);

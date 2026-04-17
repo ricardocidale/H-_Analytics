@@ -12,7 +12,7 @@
  * and Financing tabs.
  *
  * Funding gate: generateCompanyProForma() returns zero revenue and zero
- * expenses for months before both companyOpsStartDate and safeTranche1Date.
+ * expenses for months before both companyOpsStartDate and capitalRaise1Date.
  * analyzeCompanyCashPosition() surfaces any funding shortfall as a warning.
  *
  * Service templates: if centralized-services templates are configured in the
@@ -152,9 +152,9 @@ export default function Company() {
 
   const yearlyChartData = useMemo(() => {
     if (!financials.length || !global) return [];
-    const safeTranche1 = global.safeTranche1Amount || 0;
-    const safeTranche2 = global.safeTranche2Amount || 0;
-    const totalSafeFunding = safeTranche1 + safeTranche2;
+    const capitalRaise1 = global.capitalRaise1Amount || 0;
+    const capitalRaise2 = global.capitalRaise2Amount || 0;
+    const totalCapitalRaiseFunding = capitalRaise1 + capitalRaise2;
     const data = [];
     for (let y = 0; y < projectionYears; y++) {
       const yearData = financials.slice(y * 12, (y + 1) * 12);
@@ -172,11 +172,11 @@ export default function Company() {
         Expenses: yearData.reduce((a, m) => a + m.totalExpenses, 0),
         OperatingIncome: yearData.reduce((a, m) => a + (m.totalRevenue - m.totalExpenses), 0),
         NetIncome: yearData.reduce((a, m) => a + m.netIncome, 0),
-        Funding: yearData.reduce((a, m) => a + m.safeFunding, 0),
+        Funding: yearData.reduce((a, m) => a + m.capitalRaiseFunding, 0),
         CashFlow: yearData.reduce((a, m) => a + m.cashFlow, 0),
         EndingCash: cashBalance,
         Assets: cashBalance,
-        Liabilities: totalSafeFunding + accruedInterest,
+        Liabilities: totalCapitalRaiseFunding + accruedInterest,
         Equity: cumulativeNetIncome,
       });
     }

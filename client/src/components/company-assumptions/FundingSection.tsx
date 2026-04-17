@@ -26,15 +26,15 @@ import { Switch } from "@/components/ui/switch";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatMoney } from "@/lib/financialEngine";
-import { DEFAULT_SAFE_VALUATION_CAP, DEFAULT_SAFE_DISCOUNT_RATE, DEFAULT_FUNDING_INTEREST_RATE } from "@shared/constants";
+import { DEFAULT_CAPITAL_RAISE_VALUATION_CAP, DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE, DEFAULT_FUNDING_INTEREST_RATE } from "@shared/constants";
 import EditableValue from "./EditableValue";
 import type { FundingSectionProps } from "./types";
 
 export default function FundingSection({ formData, onChange, global }: FundingSectionProps) {
   const fundingLabel = formData.fundingSourceLabel ?? global.fundingSourceLabel ?? "Funding Vehicle";
 
-  const hasValuationCap = (formData.safeValuationCap ?? global.safeValuationCap) > 0;
-  const hasDiscountRate = (formData.safeDiscountRate ?? global.safeDiscountRate) > 0;
+  const hasValuationCap = (formData.capitalRaiseValuationCap ?? global.capitalRaiseValuationCap) > 0;
+  const hasDiscountRate = (formData.capitalRaiseDiscountRate ?? global.capitalRaiseDiscountRate) > 0;
   const hasInterestRate = (formData.fundingInterestRate ?? global.fundingInterestRate ?? 0) > 0;
   const [showValuationCap, setShowValuationCap] = useState(hasValuationCap);
   const [showDiscountRate, setShowDiscountRate] = useState(hasDiscountRate);
@@ -67,13 +67,13 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="p-4 bg-primary/10 rounded-lg space-y-4">
-            <h4 className="text-sm font-display text-foreground">Tranche 1</h4>
+            <h4 className="text-sm font-display text-foreground">Capital Raise 1</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the first tranche of funding to cover initial operating expenses before management fee revenue begins." /></Label>
                 <EditableValue
-                  value={formData.safeTranche1Amount ?? global.safeTranche1Amount}
-                  onChange={(v) => onChange("safeTranche1Amount", v)}
+                  value={formData.capitalRaise1Amount ?? global.capitalRaise1Amount}
+                  onChange={(v) => onChange("capitalRaise1Amount", v)}
                   format="dollar"
                   min={100000}
                   max={1500000}
@@ -81,8 +81,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                 />
               </div>
               <Slider
-                value={[formData.safeTranche1Amount ?? global.safeTranche1Amount]}
-                onValueChange={([v]) => onChange("safeTranche1Amount", v)}
+                value={[formData.capitalRaise1Amount ?? global.capitalRaise1Amount]}
+                onValueChange={([v]) => onChange("capitalRaise1Amount", v)}
                 min={100000}
                 max={1500000}
                 step={25000}
@@ -92,20 +92,20 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
               <Label className="text-foreground label-text flex items-center gap-1">Date<InfoTooltip text="Date when the first tranche of funding is received and recorded on the balance sheet." /></Label>
               <Input
                 type="date"
-                value={formData.safeTranche1Date ?? global.safeTranche1Date}
-                onChange={(e) => onChange("safeTranche1Date", e.target.value)}
+                value={formData.capitalRaise1Date ?? global.capitalRaise1Date}
+                onChange={(e) => onChange("capitalRaise1Date", e.target.value)}
                 className="max-w-40 bg-card border-border text-foreground"
               />
             </div>
           </div>
           <div className="p-4 bg-primary/10 rounded-lg space-y-4">
-            <h4 className="text-sm font-display text-foreground">Tranche 2</h4>
+            <h4 className="text-sm font-display text-foreground">Capital Raise 2</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the second tranche of funding, typically deployed as the portfolio grows." /></Label>
                 <EditableValue
-                  value={formData.safeTranche2Amount ?? global.safeTranche2Amount}
-                  onChange={(v) => onChange("safeTranche2Amount", v)}
+                  value={formData.capitalRaise2Amount ?? global.capitalRaise2Amount}
+                  onChange={(v) => onChange("capitalRaise2Amount", v)}
                   format="dollar"
                   min={100000}
                   max={1500000}
@@ -113,8 +113,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                 />
               </div>
               <Slider
-                value={[formData.safeTranche2Amount ?? global.safeTranche2Amount]}
-                onValueChange={([v]) => onChange("safeTranche2Amount", v)}
+                value={[formData.capitalRaise2Amount ?? global.capitalRaise2Amount]}
+                onValueChange={([v]) => onChange("capitalRaise2Amount", v)}
                 min={100000}
                 max={1500000}
                 step={25000}
@@ -124,8 +124,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
               <Label className="text-foreground label-text flex items-center gap-1">Date<InfoTooltip text="Date when the second tranche of funding is received and recorded on the balance sheet." /></Label>
               <Input
                 type="date"
-                value={formData.safeTranche2Date ?? global.safeTranche2Date}
-                onChange={(e) => onChange("safeTranche2Date", e.target.value)}
+                value={formData.capitalRaise2Date ?? global.capitalRaise2Date}
+                onChange={(e) => onChange("capitalRaise2Date", e.target.value)}
                 className="max-w-40 bg-card border-border text-foreground"
               />
             </div>
@@ -136,7 +136,7 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
             <div>
               <Label className="text-muted-foreground text-sm label-text">Total {fundingLabel} Raise</Label>
               <p className="font-mono font-semibold text-lg text-foreground">
-                {formatMoney((formData.safeTranche1Amount ?? global.safeTranche1Amount) + (formData.safeTranche2Amount ?? global.safeTranche2Amount))}
+                {formatMoney((formData.capitalRaise1Amount ?? global.capitalRaise1Amount) + (formData.capitalRaise2Amount ?? global.capitalRaise2Amount))}
               </p>
             </div>
           </div>
@@ -152,9 +152,9 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                   onCheckedChange={(checked) => {
                     setShowValuationCap(checked);
                     if (!checked) {
-                      onChange("safeValuationCap", 0);
-                    } else if ((formData.safeValuationCap ?? global.safeValuationCap) <= 0) {
-                      onChange("safeValuationCap", DEFAULT_SAFE_VALUATION_CAP);
+                      onChange("capitalRaiseValuationCap", 0);
+                    } else if ((formData.capitalRaiseValuationCap ?? global.capitalRaiseValuationCap) <= 0) {
+                      onChange("capitalRaiseValuationCap", DEFAULT_CAPITAL_RAISE_VALUATION_CAP);
                     }
                   }}
                   data-testid="toggle-valuation-cap"
@@ -165,8 +165,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Cap Amount</span>
                     <EditableValue
-                      value={formData.safeValuationCap ?? global.safeValuationCap}
-                      onChange={(v) => onChange("safeValuationCap", v)}
+                      value={formData.capitalRaiseValuationCap ?? global.capitalRaiseValuationCap}
+                      onChange={(v) => onChange("capitalRaiseValuationCap", v)}
                       format="dollar"
                       min={100000}
                       max={5000000}
@@ -174,8 +174,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                     />
                   </div>
                   <Slider
-                    value={[formData.safeValuationCap ?? global.safeValuationCap]}
-                    onValueChange={([v]) => onChange("safeValuationCap", v)}
+                    value={[formData.capitalRaiseValuationCap ?? global.capitalRaiseValuationCap]}
+                    onValueChange={([v]) => onChange("capitalRaiseValuationCap", v)}
                     min={100000}
                     max={5000000}
                     step={100000}
@@ -194,9 +194,9 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                   onCheckedChange={(checked) => {
                     setShowDiscountRate(checked);
                     if (!checked) {
-                      onChange("safeDiscountRate", 0);
-                    } else if ((formData.safeDiscountRate ?? global.safeDiscountRate) <= 0) {
-                      onChange("safeDiscountRate", DEFAULT_SAFE_DISCOUNT_RATE);
+                      onChange("capitalRaiseDiscountRate", 0);
+                    } else if ((formData.capitalRaiseDiscountRate ?? global.capitalRaiseDiscountRate) <= 0) {
+                      onChange("capitalRaiseDiscountRate", DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE);
                     }
                   }}
                   data-testid="toggle-discount-rate"
@@ -207,8 +207,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Rate</span>
                     <EditableValue
-                      value={formData.safeDiscountRate ?? global.safeDiscountRate}
-                      onChange={(v) => onChange("safeDiscountRate", v)}
+                      value={formData.capitalRaiseDiscountRate ?? global.capitalRaiseDiscountRate}
+                      onChange={(v) => onChange("capitalRaiseDiscountRate", v)}
                       format="percent"
                       min={0}
                       max={0.5}
@@ -216,8 +216,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                     />
                   </div>
                   <Slider
-                    value={[(formData.safeDiscountRate ?? global.safeDiscountRate) * 100]}
-                    onValueChange={([v]) => onChange("safeDiscountRate", v / 100)}
+                    value={[(formData.capitalRaiseDiscountRate ?? global.capitalRaiseDiscountRate) * 100]}
+                    onValueChange={([v]) => onChange("capitalRaiseDiscountRate", v / 100)}
                     min={0}
                     max={50}
                     step={5}

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "@/components/icons/themed-icons";
 import { formatMoney } from "@/lib/financialEngine";
 import { analyzeFundingNeeds } from "@/lib/financial/funding-predictor";
-import { DEFAULT_SAFE_VALUATION_CAP, DEFAULT_SAFE_DISCOUNT_RATE } from "@shared/constants";
+import { DEFAULT_CAPITAL_RAISE_VALUATION_CAP, DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE } from "@shared/constants";
 import { StatRow, CashRunwayChart } from "./shared";
 
 export function CurrentPlanTab({ analysis, fundingLabel, global, chartData, navigate }: {
@@ -15,13 +15,13 @@ export function CurrentPlanTab({ analysis, fundingLabel, global, chartData, navi
   chartData: { month: number; withFunding: number; withoutFunding: number }[];
   navigate: (to: string) => void;
 }) {
-  const t1Amount = global.safeTranche1Amount ?? 0;
-  const t2Amount = global.safeTranche2Amount ?? 0;
+  const t1Amount = global.capitalRaise1Amount ?? 0;
+  const t2Amount = global.capitalRaise2Amount ?? 0;
   const configuredTotal = t1Amount + t2Amount;
-  const t1Date = global.safeTranche1Date ?? "—";
-  const t2Date = global.safeTranche2Date ?? "—";
-  const valCap = global.safeValuationCap ?? DEFAULT_SAFE_VALUATION_CAP;
-  const discRate = global.safeDiscountRate ?? DEFAULT_SAFE_DISCOUNT_RATE;
+  const t1Date = global.capitalRaise1Date ?? "—";
+  const t2Date = global.capitalRaise2Date ?? "—";
+  const valCap = global.capitalRaiseValuationCap ?? DEFAULT_CAPITAL_RAISE_VALUATION_CAP;
+  const discRate = global.capitalRaiseDiscountRate ?? DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE;
   const gap = analysis.totalRaiseNeeded - configuredTotal;
   const coveragePct = analysis.totalRaiseNeeded > 0 ? Math.min(100, configuredTotal / analysis.totalRaiseNeeded * 100) : 100;
 
@@ -69,7 +69,7 @@ export function CurrentPlanTab({ analysis, fundingLabel, global, chartData, navi
                 <span className="text-sm font-bold text-primary">1</span>
               </div>
               <div>
-                <h4 className="text-sm font-display text-foreground">Tranche 1</h4>
+                <h4 className="text-sm font-display text-foreground">Capital Raise 1</h4>
                 <p className="text-xs text-muted-foreground">Initial capital deployment</p>
               </div>
             </div>
@@ -97,7 +97,7 @@ export function CurrentPlanTab({ analysis, fundingLabel, global, chartData, navi
                 <span className="text-sm font-bold text-primary">2</span>
               </div>
               <div>
-                <h4 className="text-sm font-display text-foreground">Tranche 2</h4>
+                <h4 className="text-sm font-display text-foreground">Capital Raise 2</h4>
                 <p className="text-xs text-muted-foreground">Growth-phase capital</p>
               </div>
             </div>

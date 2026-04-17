@@ -6,7 +6,7 @@ import { ExternalLink } from "@/components/icons/themed-icons";
 import { formatMoney } from "@/lib/financialEngine";
 import { analyzeFundingNeeds } from "@/lib/financial/funding-predictor";
 import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from "@/lib/constants";
-import { DEFAULT_SAFE_VALUATION_CAP, DEFAULT_SAFE_DISCOUNT_RATE, DEFAULT_TRANCHE_BUFFER_MULTIPLIER, DEFAULT_EARLY_STAGE_CAP_DISCOUNT, DEFAULT_EARLY_STAGE_DISCOUNT_PREMIUM, DEFAULT_FUNDING_ROUNDING_INCREMENT } from "@shared/constants";
+import { DEFAULT_CAPITAL_RAISE_VALUATION_CAP, DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE, DEFAULT_TRANCHE_BUFFER_MULTIPLIER, DEFAULT_EARLY_STAGE_CAP_DISCOUNT, DEFAULT_EARLY_STAGE_DISCOUNT_PREMIUM, DEFAULT_FUNDING_ROUNDING_INCREMENT } from "@shared/constants";
 import { StatRow } from "./shared";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -158,8 +158,8 @@ export function ResearchTab({ analysis, fundingLabel, marketRates, global, navig
             <div>
               <p className="text-[11px] text-muted-foreground/60 uppercase tracking-wider mb-2">Default Instrument Terms</p>
               <div className="space-y-0">
-                <StatRow label="Default Valuation Cap" value={formatMoney(DEFAULT_SAFE_VALUATION_CAP)} />
-                <StatRow label="Default Discount Rate" value={`${(DEFAULT_SAFE_DISCOUNT_RATE * 100).toFixed(0)}%`} />
+                <StatRow label="Default Valuation Cap" value={formatMoney(DEFAULT_CAPITAL_RAISE_VALUATION_CAP)} />
+                <StatRow label="Default Discount Rate" value={`${(DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE * 100).toFixed(0)}%`} />
                 <StatRow label="Early-Stage Cap Discount" value={`${(DEFAULT_EARLY_STAGE_CAP_DISCOUNT * 100).toFixed(0)}%`} />
                 <StatRow label="Early-Stage Discount Premium" value={`${(DEFAULT_EARLY_STAGE_DISCOUNT_PREMIUM * 100).toFixed(0)} pp`} />
               </div>

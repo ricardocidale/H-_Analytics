@@ -243,7 +243,7 @@ async function exportCompanyFullWorkbook(
       miscOps: yearSlice.reduce((a: number, m: any) => a + m.miscOps, 0),
       totalExpenses: yearSlice.reduce((a: number, m: any) => a + m.totalExpenses, 0),
       netIncome: yearSlice.reduce((a: number, m: any) => a + m.netIncome, 0),
-      safeFunding: yearSlice.reduce((a: number, m: any) => a + m.safeFunding, 0),
+      capitalRaiseFunding: yearSlice.reduce((a: number, m: any) => a + m.capitalRaiseFunding, 0),
       cashFlow: yearSlice.reduce((a: number, m: any) => a + m.cashFlow, 0),
       fundingInterestExpense: yearSlice.reduce((a: number, m: any) => a + (m.fundingInterestExpense ?? 0), 0),
       fundingInterestPayment: yearSlice.reduce((a: number, m: any) => a + (m.fundingInterestPayment ?? 0), 0),
@@ -327,7 +327,7 @@ async function exportCompanyFullWorkbook(
   isRows.push(
     [],
     ["FUNDING"],
-    ["  Funding Received", ...yearlyData.map(y => y.safeFunding)],
+    ["  Funding Received", ...yearlyData.map(y => y.capitalRaiseFunding)],
     ["Cash Flow", ...yearlyData.map(y => y.cashFlow)],
   );
   await addSheet("Income Statement", isRows);
@@ -375,7 +375,7 @@ async function exportCompanyFullWorkbook(
     })],
     [],
     ["CASH FLOW FROM FINANCING ACTIVITIES"],
-    ["  Funding Received", ...yearlyData.map(y => y.safeFunding)],
+    ["  Funding Received", ...yearlyData.map(y => y.capitalRaiseFunding)],
   );
   if (cfHasInterest) {
     cfRows.push(
@@ -383,7 +383,7 @@ async function exportCompanyFullWorkbook(
     );
   }
   cfRows.push(
-    ["Net Cash from Financing Activities", ...yearlyData.map(y => y.safeFunding - y.fundingInterestPayment)],
+    ["Net Cash from Financing Activities", ...yearlyData.map(y => y.capitalRaiseFunding - y.fundingInterestPayment)],
     [],
     ["Net Increase (Decrease) in Cash", ...yearlyData.map(y => y.cashFlow)],
     ["Opening Cash Balance", ...openingCash],
@@ -397,7 +397,7 @@ async function exportCompanyFullWorkbook(
   );
   await addSheet("Cash Flow", cfRows);
 
-  const totalSafeFunding = (global.safeTranche1Amount || 0) + (global.safeTranche2Amount || 0);
+  const totalSafeFunding = (global.capitalRaise1Amount || 0) + (global.capitalRaise2Amount || 0);
   const cumRetainedEarnings = yearlyData.map((_: any, i: number) => {
     let cum = 0;
     for (let j = 0; j <= i; j++) cum += yearlyData[j].netIncome;
@@ -460,7 +460,7 @@ async function exportCompanyFullWorkbook(
     ["CASH POSITION"],
     ["  Annual Cash Flow", ...yearlyData.map(y => y.cashFlow)],
     ["  Closing Cash Balance", ...closingCash],
-    ["  Funding Received", ...yearlyData.map(y => y.safeFunding)],
+    ["  Funding Received", ...yearlyData.map(y => y.capitalRaiseFunding)],
     [],
     ["CUMULATIVE METRICS"],
     ["  Cumulative Revenue", ...cumRevenue],

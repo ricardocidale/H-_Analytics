@@ -60,10 +60,10 @@ const global = {
   incentiveManagementFee: 0.15,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
-  safeTranche1Date: "2026-04-01",
-  safeTranche1Amount: 1_000_000,
-  safeTranche2Date: undefined as string | undefined,
-  safeTranche2Amount: 0,
+  capitalRaise1Date: "2026-04-01",
+  capitalRaise1Amount: 1_000_000,
+  capitalRaise2Date: undefined as string | undefined,
+  capitalRaise2Amount: 0,
   staffSalary: 75_000,
   staffTier1MaxProperties: 3,
   staffTier1Fte: 2.5,
@@ -179,21 +179,21 @@ describe("generateCompanyProForma — golden scenario", () => {
 
   describe("Funding instrument", () => {
     it("tranche 1 received in month 0", () => {
-      expect(result[0].safeFunding1).toBe(1_000_000);
-      expect(result[0].safeFunding).toBe(1_000_000);
+      expect(result[0].capitalRaiseFunding1).toBe(1_000_000);
+      expect(result[0].capitalRaiseFunding).toBe(1_000_000);
     });
 
     it("no funding in subsequent months", () => {
       for (let i = 1; i < 12; i++) {
-        expect(result[i].safeFunding).toBe(0);
+        expect(result[i].capitalRaiseFunding).toBe(0);
       }
     });
   });
 
   describe("cash flow", () => {
-    it("cashFlow = netIncome + safeFunding", () => {
+    it("cashFlow = netIncome + capitalRaiseFunding", () => {
       for (const m of result) {
-        expect(m.cashFlow).toBeCloseTo(m.netIncome + m.safeFunding, 2);
+        expect(m.cashFlow).toBeCloseTo(m.netIncome + m.capitalRaiseFunding, 2);
       }
     });
 
@@ -218,7 +218,7 @@ describe("Funding gate — company ops blocked before funding receipt", () => {
     const delayedGlobal = {
       ...global,
       companyOpsStartDate: "2026-04-01",
-      safeTranche1Date: "2026-07-01", // Funding delayed to July
+      capitalRaise1Date: "2026-07-01", // Funding delayed to July
     };
 
     const result = generateCompanyProForma([property], delayedGlobal, 12);
@@ -240,7 +240,7 @@ describe("pre-ops company — zero revenue and expenses before ops start", () =>
     const delayedGlobal = {
       ...global,
       companyOpsStartDate: "2026-07-01",
-      safeTranche1Date: "2026-04-01",
+      capitalRaise1Date: "2026-04-01",
     };
 
     const result = generateCompanyProForma([property], delayedGlobal, 12);

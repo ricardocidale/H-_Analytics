@@ -13,7 +13,7 @@
  *   - "material": Results will be unreliable (e.g., start occupancy > max occupancy,
  *     interest rate above 25%). The engine can run but results are suspect.
  *   - "warning": Unusual but not necessarily wrong (e.g., exit cap rate outside
- *     3–15% typical range, no SAFE funding configured).
+ *     3–15% typical range, no capital raise funding configured).
  *   - "info": Informational notes for the user.
  *
  * ISSUE CATEGORIES:
@@ -30,7 +30,7 @@
  *   - LTV (Loan-to-Value): Acquisition LTV above 95% is extremely aggressive.
  *   - ADR (Average Daily Rate): Must be positive — zero ADR means zero revenue.
  *   - SAFE (Simple Agreement for Future Equity): Startup funding for the management
- *     company. If no SAFE tranches are configured, the company has no capital before
+ *     company. If no capital raise dates are configured, the company has no capital before
  *     operations begin.
  *   - Land Value Percent: Portion of purchase price allocated to land (not depreciable).
  *     Typical range: 5–50%.
@@ -69,10 +69,10 @@ export interface AssumptionConsistencyInput {
     fixed_cost_escalation_rate?: number;
     base_management_fee?: number;
     incentive_management_fee?: number;
-    safe_tranche1_date?: string;
-    safe_tranche1_amount?: number;
-    safe_tranche2_date?: string;
-    safe_tranche2_amount?: number;
+    capital_raise_1_date?: string;
+    capital_raise_1_amount?: number;
+    capital_raise_2_date?: string;
+    capital_raise_2_amount?: number;
     exit_cap_rate?: number;
     debt_assumptions?: {
       interest_rate?: number;
@@ -172,14 +172,14 @@ export function checkAssumptionConsistency(input: AssumptionConsistencyInput): A
     }
   }
 
-  // SAFE funding check
+  // Capital raise funding check
   if (g.company_ops_start_date && g.model_start_date) {
-    const noSAFE = !g.safe_tranche1_date && !g.safe_tranche2_date;
-    if (noSAFE) {
+    const noCapitalRaise = !g.capital_raise_1_date && !g.capital_raise_2_date;
+    if (noCapitalRaise) {
       issues.push({
-        severity: "warning", category: "business_rule", entity: "global", field: "safe_tranche_dates",
-        message: "No SAFE funding dates configured — management company may have no funding before operations start",
-        current_value: "missing", expected_range: "At least one SAFE tranche date before company_ops_start_date",
+        severity: "warning", category: "business_rule", entity: "global", field: "capital_raise_dates",
+        message: "No capital raise funding dates configured — management company may have no funding before operations start",
+        current_value: "missing", expected_range: "At least one capital raise date before company_ops_start_date",
       });
     }
   }

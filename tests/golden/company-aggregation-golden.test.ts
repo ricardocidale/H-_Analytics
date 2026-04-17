@@ -63,8 +63,8 @@ const GLOBAL: GlobalInput = {
   fixedCostEscalationRate: 0, companyInflationRate: 0,
   companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
   companyOpsStartDate: "2026-04-01",
-  safeTranche1Date: "2026-04-01", safeTranche1Amount: 800_000,
-  safeTranche2Date: null, safeTranche2Amount: 0,
+  capitalRaise1Date: "2026-04-01", capitalRaise1Amount: 800_000,
+  capitalRaise2Date: null, capitalRaise2Amount: 0,
   staffSalary: 75_000, staffTier1MaxProperties: 3, staffTier1Fte: 2.5,
   partnerCompYear1: 540_000, partnerCompYear2: 540_000,
   officeLeaseStart: 36_000, professionalServicesStart: 24_000,
@@ -401,12 +401,12 @@ describe("Golden: Company Aggregation with 2 Properties", () => {
   // ─── Company Cash Flow ─────────────────────────────────────────────────
   describe("Company CF: SAFE funding and cash balance", () => {
     it("SAFE $800K arrives at month 0", () => {
-      expect(comp[0].safeFunding).toBe(800_000);
+      expect(comp[0].capitalRaiseFunding).toBe(800_000);
     });
 
     it("no SAFE in subsequent months", () => {
       for (let i = 1; i < 24; i++) {
-        expect(comp[i].safeFunding).toBe(0);
+        expect(comp[i].capitalRaiseFunding).toBe(0);
       }
     });
 

@@ -18,12 +18,12 @@ const seedIndexPath = path.resolve(__dirname, "../../server/seeds/index.ts");
 const seedIndexContent = fs.readFileSync(seedIndexPath, "utf-8");
 
 describe("Seed Constants Drift — Global Assumptions", () => {
-  it("uses DEFAULT_SAFE_VALUATION_CAP (not a literal)", () => {
-    expect(seedPropsContent).toContain("safeValuationCap: DEFAULT_SAFE_VALUATION_CAP");
+  it("uses DEFAULT_CAPITAL_RAISE_VALUATION_CAP (not a literal)", () => {
+    expect(seedPropsContent).toContain("capitalRaiseValuationCap: DEFAULT_CAPITAL_RAISE_VALUATION_CAP");
   });
 
-  it("uses DEFAULT_SAFE_DISCOUNT_RATE (not a literal)", () => {
-    expect(seedPropsContent).toContain("safeDiscountRate: DEFAULT_SAFE_DISCOUNT_RATE");
+  it("uses DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE (not a literal)", () => {
+    expect(seedPropsContent).toContain("capitalRaiseDiscountRate: DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE");
   });
 
   it("uses DEFAULT_COMMISSION_RATE for commissionRate", () => {

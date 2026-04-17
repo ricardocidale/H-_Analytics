@@ -209,7 +209,7 @@ export async function exportCompanyIncomeStatement(
     preTaxIncome: number;
     tax: number;
     netIncome: number;
-    safeFunding: number;
+    capitalRaiseFunding: number;
     cashFlow: number;
   }[] = [];
 
@@ -252,7 +252,7 @@ export async function exportCompanyIncomeStatement(
       preTaxIncome: yearSlice.reduce((a, m) => a + m.preTaxIncome, 0),
       tax: yearSlice.reduce((a, m) => a + m.companyIncomeTax, 0),
       netIncome: yearSlice.reduce((a, m) => a + m.netIncome, 0),
-      safeFunding: yearSlice.reduce((a, m) => a + m.safeFunding, 0),
+      capitalRaiseFunding: yearSlice.reduce((a, m) => a + m.capitalRaiseFunding, 0),
       cashFlow: yearSlice.reduce((a, m) => a + m.cashFlow, 0),
     });
   }
@@ -316,7 +316,7 @@ export async function exportCompanyIncomeStatement(
     ["Net Income", ...yearlyData.map((y) => y.netIncome)],
     [],
     ["FUNDING"],
-    ["  Funding Received", ...yearlyData.map((y) => y.safeFunding)],
+    ["  Funding Received", ...yearlyData.map((y) => y.capitalRaiseFunding)],
     ["Cash Flow", ...yearlyData.map((y) => y.cashFlow)],
   );
 
@@ -348,7 +348,7 @@ export async function exportCompanyCashFlow(
     baseFee: number;
     incentiveFee: number;
     totalVendorCost: number;
-    safeFunding: number;
+    capitalRaiseFunding: number;
     totalExpenses: number;
     interestPayment: number;
     partnerComp: number;
@@ -375,7 +375,7 @@ export async function exportCompanyCashFlow(
       baseFee: yearSlice.reduce((a, m) => a + m.baseFeeRevenue, 0),
       incentiveFee: yearSlice.reduce((a, m) => a + m.incentiveFeeRevenue, 0),
       totalVendorCost: yearSlice.reduce((a, m) => a + m.totalVendorCost, 0),
-      safeFunding: yearSlice.reduce((a, m) => a + m.safeFunding, 0),
+      capitalRaiseFunding: yearSlice.reduce((a, m) => a + m.capitalRaiseFunding, 0),
       totalExpenses: yearSlice.reduce((a, m) => a + m.totalExpenses, 0),
       interestPayment: yearSlice.reduce((a, m) => a + m.fundingInterestPayment, 0),
       partnerComp: yearSlice.reduce((a, m) => a + m.partnerCompensation, 0),
@@ -438,7 +438,7 @@ export async function exportCompanyCashFlow(
     ["Net Cash from Operating Activities", ...yearlyData.map((y) => y.totalRevenue - y.totalVendorCost - y.totalExpenses)],
     [],
     ["CASH FLOW FROM FINANCING ACTIVITIES"],
-    ["  Funding Received", ...yearlyData.map((y) => y.safeFunding)],
+    ["  Funding Received", ...yearlyData.map((y) => y.capitalRaiseFunding)],
   );
 
   const hasCFInterest = yearlyData.some(y => y.interestPayment > 0);
@@ -447,7 +447,7 @@ export async function exportCompanyCashFlow(
   }
 
   rows.push(
-    ["Net Cash from Financing Activities", ...yearlyData.map((y) => y.safeFunding - y.interestPayment)],
+    ["Net Cash from Financing Activities", ...yearlyData.map((y) => y.capitalRaiseFunding - y.interestPayment)],
     [],
     ["Net Increase (Decrease) in Cash", ...yearlyData.map((y) => y.cashFlow)],
     ["Opening Cash Balance", ...openingCash],
@@ -470,15 +470,15 @@ export async function exportCompanyCashFlow(
  */
 export async function exportCompanyBalanceSheet(
   data: CompanyMonthlyFinancials[],
-  safeTranche1Amount: number,
-  safeTranche2Amount: number,
+  capitalRaise1Amount: number,
+  capitalRaise2Amount: number,
   modelStartDate: string,
   fiscalYearStartMonth: number,
   years: number
 ) {
   const XLSX = await import("xlsx");
   const cumulativeNetIncome = data.reduce((a, m) => a + m.netIncome, 0);
-  const totalSafeFunding = safeTranche1Amount + safeTranche2Amount;
+  const totalSafeFunding = capitalRaise1Amount + capitalRaise2Amount;
   const lastMonth = data[data.length - 1];
   const cashBalance = lastMonth?.endingCash ?? 0;
   const accruedInterestBalance = lastMonth?.cumulativeAccruedInterest ?? 0;

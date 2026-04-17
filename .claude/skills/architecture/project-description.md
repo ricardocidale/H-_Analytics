@@ -22,7 +22,7 @@ HBG Portal is a comprehensive financial simulation and analysis platform for hos
 - Revenue: Base Fee + Incentive Fee from each property it manages
 - Many services are **pass-through**: ManCo hires third-party vendors and applies a markup
 - Overhead: tiered staffing (scales with portfolio size), fixed costs, variable costs per property
-- Funded by SAFE instrument (two tranches) during pre-profitability phase
+- Funded by capital raise (two rounds) during pre-profitability phase
 
 ### Intercompany Relationship
 Management fees paid by properties = fee revenue received by ManCo. These eliminate to zero in consolidation (ASC 810). This is validated by the proof system.
@@ -63,7 +63,7 @@ Exportable at any level in six formats: PDF, Excel, CSV, PowerPoint, PNG (ZIP), 
 
 ### Assumptions & Recalculation
 - Each property has a large set of assumptions (room count, ADR, occupancy ramp, acquisition cost, debt terms, renovation, capex, etc.)
-- GlobalAssumptions configure ManCo behavior, staffing tiers, inflation, SAFE funding, and more
+- GlobalAssumptions configure ManCo behavior, staffing tiers, inflation, capital raise funding, and more
 - When assumptions change, ALL calculations recalculate via `invalidateAllFinancialQueries()`
 - Users save snapshots as **Scenarios** — restoring a scenario always produces identical outputs
 

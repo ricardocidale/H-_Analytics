@@ -54,12 +54,12 @@ import { SectionCard } from "@/components/ui/section-card";
           headers={["Variable", "Description", "Default", "Unit", "Affects"]}
           rows={[
             ["fundingSourceLabel", "Label for funding instrument type", "Funding Vehicle", "text", "Mgmt Co."],
-            ["safeTranche1Amount", "Amount of first funding tranche", "$1,000,000", "$", "Mgmt Co."],
-            ["safeTranche1Date", "Disbursement date for first tranche", "2026-06-01", "date", "Mgmt Co."],
-            ["safeTranche2Amount", "Amount of second funding tranche", "$1,000,000", "$", "Mgmt Co."],
-            ["safeTranche2Date", "Disbursement date for second tranche", "2027-04-01", "date", "Mgmt Co."],
-            ["safeValuationCap", "Max pre-money valuation for funding conversion", "$2,500,000", "$", "Mgmt Co."],
-            ["safeDiscountRate", "Discount rate for funding equity conversion", "20%", "%", "Mgmt Co."],
+            ["capitalRaise1Amount", "Amount of first funding tranche", "$1,000,000", "$", "Mgmt Co."],
+            ["capitalRaise1Date", "Disbursement date for first tranche", "2026-06-01", "date", "Mgmt Co."],
+            ["capitalRaise2Amount", "Amount of second funding tranche", "$1,000,000", "$", "Mgmt Co."],
+            ["capitalRaise2Date", "Disbursement date for second tranche", "2027-04-01", "date", "Mgmt Co."],
+            ["capitalRaiseValuationCap", "Max pre-money valuation for funding conversion", "$2,500,000", "$", "Mgmt Co."],
+            ["capitalRaiseDiscountRate", "Discount rate for funding equity conversion", "20%", "%", "Mgmt Co."],
           ]}
         />
         <h3 className="text-foreground text-sm font-semibold mt-4 mb-2">Partner Compensation (per year)</h3>

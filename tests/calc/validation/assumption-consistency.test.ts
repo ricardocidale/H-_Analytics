@@ -422,50 +422,50 @@ describe("debt_assumptions", () => {
 // 7. SAFE funding gate
 // ===========================================================================
 describe("SAFE funding gate", () => {
-  it("warns when company_ops_start_date is set but no SAFE tranche dates exist", () => {
+  it("warns when company_ops_start_date is set but no capital raise dates exist", () => {
     const input = validInput();
     input.global_assumptions.company_ops_start_date = "2026-06-01";
-    input.global_assumptions.safe_tranche1_date = undefined;
-    input.global_assumptions.safe_tranche2_date = undefined;
+    input.global_assumptions.capital_raise_1_date = undefined;
+    input.global_assumptions.capital_raise_2_date = undefined;
     const result = checkAssumptionConsistency(input);
 
     const warning = result.issues.find(
-      (i) => i.field === "safe_tranche_dates" && i.severity === "warning",
+      (i) => i.field === "capital_raise_dates" && i.severity === "warning",
     );
     expect(warning).toBeDefined();
     expect(warning!.category).toBe("business_rule");
   });
 
-  it("no warning when safe_tranche1_date is present", () => {
+  it("no warning when capital_raise_1_date is present", () => {
     const input = validInput();
     input.global_assumptions.company_ops_start_date = "2026-06-01";
-    input.global_assumptions.safe_tranche1_date = "2026-05-01";
-    input.global_assumptions.safe_tranche2_date = undefined;
+    input.global_assumptions.capital_raise_1_date = "2026-05-01";
+    input.global_assumptions.capital_raise_2_date = undefined;
     const result = checkAssumptionConsistency(input);
 
-    const safeIssues = result.issues.filter((i) => i.field === "safe_tranche_dates");
+    const safeIssues = result.issues.filter((i) => i.field === "capital_raise_dates");
     expect(safeIssues).toHaveLength(0);
   });
 
-  it("no warning when safe_tranche2_date is present", () => {
+  it("no warning when capital_raise_2_date is present", () => {
     const input = validInput();
     input.global_assumptions.company_ops_start_date = "2026-06-01";
-    input.global_assumptions.safe_tranche1_date = undefined;
-    input.global_assumptions.safe_tranche2_date = "2026-05-15";
+    input.global_assumptions.capital_raise_1_date = undefined;
+    input.global_assumptions.capital_raise_2_date = "2026-05-15";
     const result = checkAssumptionConsistency(input);
 
-    const safeIssues = result.issues.filter((i) => i.field === "safe_tranche_dates");
+    const safeIssues = result.issues.filter((i) => i.field === "capital_raise_dates");
     expect(safeIssues).toHaveLength(0);
   });
 
   it("no warning when company_ops_start_date is not set", () => {
     const input = validInput();
     input.global_assumptions.company_ops_start_date = undefined;
-    input.global_assumptions.safe_tranche1_date = undefined;
-    input.global_assumptions.safe_tranche2_date = undefined;
+    input.global_assumptions.capital_raise_1_date = undefined;
+    input.global_assumptions.capital_raise_2_date = undefined;
     const result = checkAssumptionConsistency(input);
 
-    const safeIssues = result.issues.filter((i) => i.field === "safe_tranche_dates");
+    const safeIssues = result.issues.filter((i) => i.field === "capital_raise_dates");
     expect(safeIssues).toHaveLength(0);
   });
 
@@ -473,12 +473,12 @@ describe("SAFE funding gate", () => {
     const input = validInput();
     input.global_assumptions.model_start_date = "";
     input.global_assumptions.company_ops_start_date = "2026-06-01";
-    input.global_assumptions.safe_tranche1_date = undefined;
-    input.global_assumptions.safe_tranche2_date = undefined;
+    input.global_assumptions.capital_raise_1_date = undefined;
+    input.global_assumptions.capital_raise_2_date = undefined;
     const result = checkAssumptionConsistency(input);
 
     // model_start_date is falsy so the SAFE check block is skipped
-    const safeIssues = result.issues.filter((i) => i.field === "safe_tranche_dates");
+    const safeIssues = result.issues.filter((i) => i.field === "capital_raise_dates");
     expect(safeIssues).toHaveLength(0);
   });
 });

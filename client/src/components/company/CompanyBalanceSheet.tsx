@@ -66,9 +66,9 @@ export default function CompanyBalanceSheet({
         {(() => {
           const cumulativeNetIncome = financials.reduce((a, m) => a + m.netIncome, 0);
           
-          const safeTranche1 = global.safeTranche1Amount || 0;
-          const safeTranche2 = global.safeTranche2Amount || 0;
-          const totalSafeFunding = safeTranche1 + safeTranche2;
+          const capitalRaise1 = global.capitalRaise1Amount || 0;
+          const capitalRaise2 = global.capitalRaise2Amount || 0;
+          const totalCapitalRaiseFunding = capitalRaise1 + capitalRaise2;
           
           const lastMonth = financials[financials.length - 1];
           const accruedInterestBalance = lastMonth?.cumulativeAccruedInterest ?? 0;
@@ -76,7 +76,7 @@ export default function CompanyBalanceSheet({
           const cashBalance = lastMonth?.endingCash ?? 0;
           const totalAssets = cashBalance;
           
-          const safeNotesPayable = totalSafeFunding;
+          const safeNotesPayable = totalCapitalRaiseFunding;
           const totalLiabilities = safeNotesPayable + accruedInterestBalance;
           
           const retainedEarnings = cumulativeNetIncome;
@@ -133,18 +133,18 @@ export default function CompanyBalanceSheet({
                     )}
                     <TableRow className="bg-primary/5" data-expandable-row="true">
                       <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground italic">{fundingLabel} Funding (Total)</TableCell>
-                      <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(totalSafeFunding)}</TableCell>
+                      <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(totalCapitalRaiseFunding)}</TableCell>
                     </TableRow>
-                    {safeTranche1 > 0 && (
+                    {capitalRaise1 > 0 && (
                       <TableRow className="bg-primary/5" data-expandable-row="true">
-                        <TableCell className="pl-16 py-0.5 text-xs text-muted-foreground italic">Tranche 1</TableCell>
-                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(safeTranche1)}</TableCell>
+                        <TableCell className="pl-16 py-0.5 text-xs text-muted-foreground italic">Capital Raise 1</TableCell>
+                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(capitalRaise1)}</TableCell>
                       </TableRow>
                     )}
-                    {safeTranche2 > 0 && (
+                    {capitalRaise2 > 0 && (
                       <TableRow className="bg-primary/5" data-expandable-row="true">
-                        <TableCell className="pl-16 py-0.5 text-xs text-muted-foreground italic">Tranche 2</TableCell>
-                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(safeTranche2)}</TableCell>
+                        <TableCell className="pl-16 py-0.5 text-xs text-muted-foreground italic">Capital Raise 2</TableCell>
+                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(capitalRaise2)}</TableCell>
                       </TableRow>
                     )}
                     <TableRow className="bg-primary/5" data-expandable-row="true">
@@ -187,16 +187,16 @@ export default function CompanyBalanceSheet({
                 </TableRow>
                 {bsExpanded.notes && (
                   <>
-                    {safeTranche1 > 0 && (
+                    {capitalRaise1 > 0 && (
                       <TableRow className="bg-primary/5" data-expandable-row="true">
-                        <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground italic">Tranche 1</TableCell>
-                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(safeTranche1)}</TableCell>
+                        <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground italic">Capital Raise 1</TableCell>
+                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(capitalRaise1)}</TableCell>
                       </TableRow>
                     )}
-                    {safeTranche2 > 0 && (
+                    {capitalRaise2 > 0 && (
                       <TableRow className="bg-primary/5" data-expandable-row="true">
-                        <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground italic">Tranche 2</TableCell>
-                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(safeTranche2)}</TableCell>
+                        <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground italic">Capital Raise 2</TableCell>
+                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(capitalRaise2)}</TableCell>
                       </TableRow>
                     )}
                   </>

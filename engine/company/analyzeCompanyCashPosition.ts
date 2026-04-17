@@ -30,13 +30,13 @@ export function analyzeCompanyCashPosition(financials: CompanyMonthlyFinancials[
 
   for (let i = 0; i < financials.length; i++) {
     const month = financials[i];
-    totalSafe += month.safeFunding;
+    totalSafe += month.capitalRaiseFunding;
     
-    if (month.netIncome !== 0 || month.safeFunding !== 0 || month.totalExpenses !== 0) {
+    if (month.netIncome !== 0 || month.capitalRaiseFunding !== 0 || month.totalExpenses !== 0) {
       hasActivity = true;
     }
     
-    cashPosition += month.netIncome + month.safeFunding;
+    cashPosition += month.netIncome + month.capitalRaiseFunding;
     
     if (cashPosition < minCashPosition) {
       minCashPosition = cashPosition;

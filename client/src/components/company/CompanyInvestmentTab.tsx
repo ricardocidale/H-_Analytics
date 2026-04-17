@@ -15,7 +15,7 @@ interface CompanyInvestmentTabProps {
   getFiscalYear: (yearIndex: number) => number;
   yearlyChartData: CompanyChartDataPoint[];
   propertyFinancials: { property: { isActive?: boolean }; financials: { noi: number }[] }[];
-  global: { companyOpsStartDate?: string; safeTranche1Date?: string; safeTranche1Amount?: number; safeTranche2Amount?: number; companyName?: string };
+  global: { companyOpsStartDate?: string; capitalRaise1Date?: string; capitalRaise1Amount?: number; capitalRaise2Amount?: number; companyName?: string };
   fundingLabel: string;
   tableRef?: React.RefObject<HTMLDivElement | null>;
   activeTab?: string;
@@ -57,7 +57,7 @@ export default function CompanyInvestmentTab({
 
   const years = Array.from({ length: projectionYears }, (_, i) => getFiscalYear(i));
 
-  const totalSafeFunding = (global.safeTranche1Amount ?? 0) + (global.safeTranche2Amount ?? 0);
+  const totalSafeFunding = (global.capitalRaise1Amount ?? 0) + (global.capitalRaise2Amount ?? 0);
 
   const breakevenMonth = useMemo(() => {
     const SUSTAINED_MONTHS = 3;

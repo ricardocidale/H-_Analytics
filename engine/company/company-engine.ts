@@ -33,7 +33,7 @@ import {
   DEFAULT_IT_LICENSE_PER_CLIENT,
   DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
-  DEFAULT_SAFE_TRANCHE,
+  DEFAULT_CAPITAL_RAISE_TRANCHE,
 } from '@/lib/constants';
 import { DEFAULT_COMPANY_TAX_RATE, MONTHS_PER_YEAR } from '@shared/constants';
 import { computeCostOfServices } from '@calc/services/cost-of-services';
@@ -59,7 +59,7 @@ function parseDateComponents(dateStr: string) {
  *                         cost-of-services is deducted from fee revenue → grossProfit.
  * @returns               Array of CompanyMonthlyFinancials, one entry per month from model start.
  *
- * Funding gate: hasStartedOps = currentDate >= companyOpsStartDate AND >= safeTranche1Date.
+ * Funding gate: hasStartedOps = currentDate >= companyOpsStartDate AND >= capitalRaise1Date.
  * Both conditions must hold simultaneously — no revenue or expenses accrue before the gate.
  */
 export function generateCompanyProForma(
@@ -75,8 +75,8 @@ export function generateCompanyProForma(
   let cumulativePrincipal = 0;
 
   const startParsed = parseDateComponents(global.modelStartDate);
-  const tranche1Parsed = global.safeTranche1Date ? parseDateComponents(global.safeTranche1Date) : startParsed;
-  const tranche2Parsed = global.safeTranche2Date ? parseDateComponents(global.safeTranche2Date) : null;
+  const tranche1Parsed = global.capitalRaise1Date ? parseDateComponents(global.capitalRaise1Date) : startParsed;
+  const tranche2Parsed = global.capitalRaise2Date ? parseDateComponents(global.capitalRaise2Date) : null;
   const opsStartParsed = global.companyOpsStartDate ? parseDateComponents(global.companyOpsStartDate) : startParsed;
   
   const propertyFinancials = properties.map(p => generatePropertyProForma(p, global, months));
@@ -131,8 +131,8 @@ export function generateCompanyProForma(
   const marketingRate = global.marketingRate ?? DEFAULT_MARKETING_RATE;
   const miscOpsRate = global.miscOpsRate ?? DEFAULT_MISC_OPS_RATE;
   const companyTaxRate = global.companyTaxRate ?? DEFAULT_COMPANY_TAX_RATE;
-  const safeTranche1Amount = global.safeTranche1Amount ?? DEFAULT_SAFE_TRANCHE;
-  const safeTranche2Amount = global.safeTranche2Amount ?? DEFAULT_SAFE_TRANCHE;
+  const capitalRaise1Amount = global.capitalRaise1Amount ?? DEFAULT_CAPITAL_RAISE_TRANCHE;
+  const capitalRaise2Amount = global.capitalRaise2Amount ?? DEFAULT_CAPITAL_RAISE_TRANCHE;
   const fundingInterestRate = global.fundingInterestRate ?? 0;
   const fundingInterestPaymentFrequency = global.fundingInterestPaymentFrequency ?? 'accrues_only';
   const hasServiceTemplates = serviceTemplates && serviceTemplates.length > 0;
@@ -268,16 +268,16 @@ export function generateCompanyProForma(
     const totalExpenses = partnerCompensation + staffCompensation + officeLease + professionalServices +
       techInfrastructure + businessInsurance + travelCosts + itLicensing + marketing + miscOps;
 
-    let safeFunding1 = 0;
-    let safeFunding2 = 0;
+    let capitalRaiseFunding1 = 0;
+    let capitalRaiseFunding2 = 0;
     if (m === tranche1MonthIdx) {
-      safeFunding1 = safeTranche1Amount;
+      capitalRaiseFunding1 = capitalRaise1Amount;
     }
     if (m === tranche2MonthIdx) {
-      safeFunding2 = safeTranche2Amount;
+      capitalRaiseFunding2 = capitalRaise2Amount;
     }
-    const safeFunding = safeFunding1 + safeFunding2;
-    cumulativePrincipal += safeFunding;
+    const capitalRaiseFunding = capitalRaiseFunding1 + capitalRaiseFunding2;
+    cumulativePrincipal += capitalRaiseFunding;
 
     const fundingInterestExpense = fundingInterestRate > 0 ? cumulativePrincipal * fundingInterestRate / MONTHS_PER_YEAR : 0;
     cumulativeAccruedInterest += fundingInterestExpense;
@@ -300,7 +300,7 @@ export function generateCompanyProForma(
     const companyIncomeTax = preTaxIncome > 0 ? preTaxIncome * companyTaxRate : 0;
     const netIncome = preTaxIncome - companyIncomeTax;
     
-    const cashFlow = netIncome + fundingInterestExpense + safeFunding - fundingInterestPayment;
+    const cashFlow = netIncome + fundingInterestExpense + capitalRaiseFunding - fundingInterestPayment;
     cumulativeCompanyCash += cashFlow;
 
     const totalMonths = startParsed.month + m;
@@ -337,9 +337,9 @@ export function generateCompanyProForma(
       preTaxIncome,
       companyIncomeTax,
       netIncome,
-      safeFunding,
-      safeFunding1,
-      safeFunding2,
+      capitalRaiseFunding,
+      capitalRaiseFunding1,
+      capitalRaiseFunding2,
       cashFlow,
       endingCash: cumulativeCompanyCash,
       cashShortfall: cumulativeCompanyCash < 0,

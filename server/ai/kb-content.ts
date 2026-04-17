@@ -191,8 +191,8 @@ Expense Categories:
 
 Funding Instrument:
 - Released in 2 tranches to support at least 12 months of operations
-- Tranche 1: configured amount at model start
-- Tranche 2: configured amount one year later
+- Capital Raise 1: configured amount at model start
+- Capital Raise 2: configured amount one year later
 - Funding instrument is not revenue — it represents future equity or convertible investment
 - The instrument type is configurable (e.g., SAFE, Convertible Note, Seed Round) via fundingSourceLabel
 - Valuation cap and discount rate are optional and may not apply to all instrument types
