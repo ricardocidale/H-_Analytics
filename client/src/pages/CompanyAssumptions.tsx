@@ -796,7 +796,7 @@ export default function CompanyAssumptions() {
           })}
         </Tabs>
 
-        <SummaryFooter formData={formData} onChange={handleUpdate} global={global} />
+        <SummaryFooter formData={formData} onChange={handleUpdate} global={global} activeTab={activeTab} />
       </div>
 
       </AnimatedPage>
