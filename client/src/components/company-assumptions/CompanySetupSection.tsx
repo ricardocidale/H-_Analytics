@@ -46,122 +46,61 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
           </Link>
         </div>
 
-        {/* Operations Start Date + Projection Years live in column 2 (TaxSection)
-            so this column hosts only identity fields. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="flex flex-col gap-2">
-            <Label className="flex items-center text-foreground label-text">
-              Company Logo
-              <InfoTooltip text="The company logo displayed in the navigation sidebar and reports." />
-            </Label>
-            <LogoSelector
-              label=""
-              value={formData.companyLogoId ?? global.companyLogoId ?? null}
-              onChange={(logoId) => onChange("companyLogoId", logoId)}
-              showNone={true}
-              emptyLabel="Default Logo"
-              helpText="Select from Logo Portfolio"
-              testId="select-company-logo"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label className="flex items-center text-foreground label-text">
-              Company Name
-              <InfoTooltip text="The name of the hospitality management company." />
-            </Label>
-            <Input
-              type="text"
-              value={formData.companyName ?? global.companyName ?? "Hospitality Business"}
-              onChange={(e) => onChange("companyName", e.target.value)}
-              disabled={!isAdmin}
-              className={`max-w-64 border-border text-foreground ${!isAdmin ? 'bg-muted cursor-not-allowed opacity-60' : 'bg-card'}`}
-              data-testid="input-company-name"
-            />
-            {!isAdmin && (
-              <p className="text-xs text-muted-foreground">Only administrators can change the company name</p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-card border border-border/80 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-              <IconPercent className="w-4 h-4 text-muted-foreground" /> Inflation rate used by Company
-            </CardTitle>
-            <CardDescription className="label-text">Specific inflation rate for management company overhead calculations</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <ResearchContextFieldLabel
-                  label={<>Company Inflation Rate <InfoTooltip text="Overrides the global inflation rate for management company overhead cost escalation. If left empty, falls back to the global inflation rate. Three-tier cascade: property → company → global." /></>}
-                  badgeProps={{ value: researchValues.companyInflationRate?.display, sourceType: "industry", sourceName: "CPI / Fed Reserve", "data-testid": "badge-company-inflation" }}
-                  onApplyValue={() => researchValues.companyInflationRate && onChange("companyInflationRate", researchValues.companyInflationRate.mid / 100)}
-                  guidanceContext={gc("companyInflationRate", "Company Inflation Rate")}
-                  className="text-foreground label-text"
-                />
-                <span className="text-sm font-mono text-primary">
-                  {(formData.companyInflationRate ?? global.companyInflationRate) != null
-                    ? `${(((formData.companyInflationRate ?? global.companyInflationRate) as number) * 100).toFixed(1)}%`
-                    : "Default (Global)"}
-                </span>
-              </div>
-              <Slider
-                value={[((formData.companyInflationRate ?? global.companyInflationRate ?? 0.03) as number) * 100]}
-                onValueChange={([v]) => onChange("companyInflationRate", v / 100)}
-                min={0}
-                max={10}
-                step={0.1}
-                data-testid="slider-company-inflation"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>0%</span>
-                <span>10%</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Falls back to global inflation if not set. Used for escalating management company overhead costs annually.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border border-border/80 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-              <IconHash className="w-4 h-4 text-muted-foreground" /> Model Constants
-            </CardTitle>
-            <CardDescription className="label-text">Governed by external authorities. Apply uniformly across all properties.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <GovernedFieldWrapper
-              authority={GOVERNED_FIELDS.depreciationYears.authority}
-              label={GOVERNED_FIELDS.depreciationYears.fieldName}
-              helperText={GOVERNED_FIELDS.depreciationYears.helperText}
-              referenceUrl={GOVERNED_FIELDS.depreciationYears.referenceUrl}
-              data-testid="governed-field-depreciationYears"
-            >
-              <div className="space-y-1">
-                <Label htmlFor="depreciationYears" className="text-xs text-accent-pop dark:text-accent-pop">Years</Label>
-                <Input
-                  id="depreciationYears"
-                  type="number"
-                  step="0.5"
-                  min="1"
-                  max="50"
-                  value={formData.depreciationYears ?? DEPRECIATION_YEARS}
-                  onChange={(e) => onChange("depreciationYears", parseFloat(e.target.value) || DEPRECIATION_YEARS)}
-                  className="h-8 text-sm bg-white dark:bg-background border-accent-pop/30 dark:border-accent-pop/30"
-                  data-testid="input-depreciationYears"
-                />
-              </div>
-            </GovernedFieldWrapper>
-          </CardContent>
-        </Card>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Two-column rebalance: identity + contact + finance on the left,
+            location + macro/policy on the right. `items-start` keeps cards
+            top-aligned; each column flows independently so heights balance
+            organically rather than forcing equal-height awkward gaps. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* ───────── LEFT COLUMN: Identity, Contact, Financial ───────── */}
           <div className="space-y-6">
+            <Card className="bg-card border border-border/80 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <IconHash className="w-4 h-4 text-muted-foreground" /> Identity
+                </CardTitle>
+                <CardDescription className="label-text">Company name and the logo shown in navigation and reports</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Stacked vertically — the outer page is already a 2-col split,
+                    and each Identity field (logo picker, name input) reads more
+                    naturally at full width than squeezed side-by-side. */}
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <Label className="flex items-center text-foreground label-text">
+                      Company Name
+                      <InfoTooltip text="The name of the hospitality management company." />
+                    </Label>
+                    <Input
+                      type="text"
+                      value={formData.companyName ?? global.companyName ?? "Hospitality Business"}
+                      onChange={(e) => onChange("companyName", e.target.value)}
+                      disabled={!isAdmin}
+                      className={`border-border text-foreground ${!isAdmin ? 'bg-muted cursor-not-allowed opacity-60' : 'bg-card'}`}
+                      data-testid="input-company-name"
+                    />
+                    {!isAdmin && (
+                      <p className="text-xs text-muted-foreground">Only administrators can change the company name</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label className="flex items-center text-foreground label-text">
+                      Company Logo
+                      <InfoTooltip text="The company logo displayed in the navigation sidebar and reports." />
+                    </Label>
+                    <LogoSelector
+                      label=""
+                      value={formData.companyLogoId ?? global.companyLogoId ?? null}
+                      onChange={(logoId) => onChange("companyLogoId", logoId)}
+                      showNone={true}
+                      emptyLabel="Default Logo"
+                      helpText="Select from Logo Portfolio"
+                      testId="select-company-logo"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="bg-card border border-border/80 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -240,86 +179,164 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
             </Card>
           </div>
 
-          <Card className="bg-card border border-border/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                <IconMapPin className="w-4 h-4 text-muted-foreground" /> Headquarters Location
-              </CardTitle>
-              <CardDescription className="label-text">Primary business address</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <Label className="label-text text-foreground">Street Address</Label>
-                  <Input
-                    value={formData.companyStreetAddress ?? global.companyStreetAddress ?? ""}
-                    onChange={(e) => onChange("companyStreetAddress", e.target.value)}
-                    placeholder="123 Business Way"
-                    className="bg-card"
-                    data-testid="input-company-street"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+          {/* ───────── RIGHT COLUMN: Location, Inflation, Model Constants ───────── */}
+          <div className="space-y-6">
+            <Card className="bg-card border border-border/80 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <IconMapPin className="w-4 h-4 text-muted-foreground" /> Headquarters Location
+                </CardTitle>
+                <CardDescription className="label-text">Primary business address</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
-                    <Label className="label-text text-foreground">Country</Label>
-                    <Select value={geo.countryCode || GEO_CLEAR_VALUE} onValueChange={geo.handleCountryChange}>
-                      <SelectTrigger className="bg-card" data-testid="select-company-country">
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[280px]">
-                        <SelectItem value={GEO_CLEAR_VALUE} className="text-muted-foreground">None</SelectItem>
-                        {geo.countries.map((c) => (
-                          <SelectItem key={c.isoCode} value={c.isoCode}>
-                            {c.flag} {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="label-text text-foreground">State / Province</Label>
-                    <Select value={geo.stateCode || GEO_CLEAR_VALUE} onValueChange={geo.handleStateChange} disabled={!geo.countryCode}>
-                      <SelectTrigger className="bg-card" data-testid="select-company-state">
-                        <SelectValue placeholder={geo.countryCode ? "Select state" : "Select country first"} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[280px]">
-                        <SelectItem value={GEO_CLEAR_VALUE} className="text-muted-foreground">None</SelectItem>
-                        {geo.states.map((s) => (
-                          <SelectItem key={s.isoCode} value={s.isoCode}>
-                            {s.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="label-text text-foreground">City</Label>
-                    <CityCombobox
-                      value={(formData.companyCity ?? global.companyCity) || ""}
-                      onValueChange={geo.handleCityChange}
-                      cities={geo.cities}
-                      disabled={!geo.stateCode}
-                      placeholder={geo.stateCode ? "Select city" : "Select state first"}
-                      className="bg-card"
-                      data-testid="select-company-city"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="label-text text-foreground">Zip / Postal Code</Label>
+                    <Label className="label-text text-foreground">Street Address</Label>
                     <Input
-                      value={formData.companyZipPostalCode ?? global.companyZipPostalCode ?? ""}
-                      onChange={(e) => onChange("companyZipPostalCode", e.target.value)}
-                      placeholder="94105"
+                      value={formData.companyStreetAddress ?? global.companyStreetAddress ?? ""}
+                      onChange={(e) => onChange("companyStreetAddress", e.target.value)}
+                      placeholder="123 Business Way"
                       className="bg-card"
-                      data-testid="input-company-zip"
+                      data-testid="input-company-street"
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="label-text text-foreground">Country</Label>
+                      <Select value={geo.countryCode || GEO_CLEAR_VALUE} onValueChange={geo.handleCountryChange}>
+                        <SelectTrigger className="bg-card" data-testid="select-company-country">
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[280px]">
+                          <SelectItem value={GEO_CLEAR_VALUE} className="text-muted-foreground">None</SelectItem>
+                          {geo.countries.map((c) => (
+                            <SelectItem key={c.isoCode} value={c.isoCode}>
+                              {c.flag} {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="label-text text-foreground">State / Province</Label>
+                      <Select value={geo.stateCode || GEO_CLEAR_VALUE} onValueChange={geo.handleStateChange} disabled={!geo.countryCode}>
+                        <SelectTrigger className="bg-card" data-testid="select-company-state">
+                          <SelectValue placeholder={geo.countryCode ? "Select state" : "Select country first"} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[280px]">
+                          <SelectItem value={GEO_CLEAR_VALUE} className="text-muted-foreground">None</SelectItem>
+                          {geo.states.map((s) => (
+                            <SelectItem key={s.isoCode} value={s.isoCode}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="label-text text-foreground">City</Label>
+                      <CityCombobox
+                        value={(formData.companyCity ?? global.companyCity) || ""}
+                        onValueChange={geo.handleCityChange}
+                        cities={geo.cities}
+                        disabled={!geo.stateCode}
+                        placeholder={geo.stateCode ? "Select city" : "Select state first"}
+                        className="bg-card"
+                        data-testid="select-company-city"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="label-text text-foreground">Zip / Postal Code</Label>
+                      <Input
+                        value={formData.companyZipPostalCode ?? global.companyZipPostalCode ?? ""}
+                        onChange={(e) => onChange("companyZipPostalCode", e.target.value)}
+                        placeholder="94105"
+                        className="bg-card"
+                        data-testid="input-company-zip"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border border-border/80 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <IconPercent className="w-4 h-4 text-muted-foreground" /> Inflation rate used by Company
+                </CardTitle>
+                <CardDescription className="label-text">Specific inflation rate for management company overhead calculations</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <ResearchContextFieldLabel
+                      label={<>Company Inflation Rate <InfoTooltip text="Overrides the global inflation rate for management company overhead cost escalation. If left empty, falls back to the global inflation rate. Three-tier cascade: property → company → global." /></>}
+                      badgeProps={{ value: researchValues.companyInflationRate?.display, sourceType: "industry", sourceName: "CPI / Fed Reserve", "data-testid": "badge-company-inflation" }}
+                      onApplyValue={() => researchValues.companyInflationRate && onChange("companyInflationRate", researchValues.companyInflationRate.mid / 100)}
+                      guidanceContext={gc("companyInflationRate", "Company Inflation Rate")}
+                      className="text-foreground label-text"
+                    />
+                    <span className="text-sm font-mono text-primary">
+                      {(formData.companyInflationRate ?? global.companyInflationRate) != null
+                        ? `${(((formData.companyInflationRate ?? global.companyInflationRate) as number) * 100).toFixed(1)}%`
+                        : "Default (Global)"}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[((formData.companyInflationRate ?? global.companyInflationRate ?? 0.03) as number) * 100]}
+                    onValueChange={([v]) => onChange("companyInflationRate", v / 100)}
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    data-testid="slider-company-inflation"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>0%</span>
+                    <span>10%</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Falls back to global inflation if not set. Used for escalating management company overhead costs annually.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border border-border/80 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <IconHash className="w-4 h-4 text-muted-foreground" /> Model Constants
+                </CardTitle>
+                <CardDescription className="label-text">Governed by external authorities. Apply uniformly across all properties.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <GovernedFieldWrapper
+                  authority={GOVERNED_FIELDS.depreciationYears.authority}
+                  label={GOVERNED_FIELDS.depreciationYears.fieldName}
+                  helperText={GOVERNED_FIELDS.depreciationYears.helperText}
+                  referenceUrl={GOVERNED_FIELDS.depreciationYears.referenceUrl}
+                  data-testid="governed-field-depreciationYears"
+                >
+                  <div className="space-y-1">
+                    <Label htmlFor="depreciationYears" className="text-xs text-accent-pop dark:text-accent-pop">Years</Label>
+                    <Input
+                      id="depreciationYears"
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="50"
+                      value={formData.depreciationYears ?? DEPRECIATION_YEARS}
+                      onChange={(e) => onChange("depreciationYears", parseFloat(e.target.value) || DEPRECIATION_YEARS)}
+                      className="h-8 text-sm bg-white dark:bg-background border-accent-pop/30 dark:border-accent-pop/30"
+                      data-testid="input-depreciationYears"
+                    />
+                  </div>
+                </GovernedFieldWrapper>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
