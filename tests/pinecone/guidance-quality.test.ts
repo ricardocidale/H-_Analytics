@@ -175,7 +175,7 @@ describe("T014 — Assumption Guidance Retrieval Quality", () => {
       expect(mockedUpsertChunks).toHaveBeenCalledWith(
         "assumption-guidance",
         expect.arrayContaining([
-          expect.objectContaining({ id: "guidance:property:42:adr" }),
+          expect.objectContaining({ id: "guidance:global:property:42:adr" }),
         ]),
       );
     });

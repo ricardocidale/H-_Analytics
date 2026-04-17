@@ -114,6 +114,8 @@ export async function retrieveSimilarResearch(
 export async function indexAssumptionGuidance(params: {
   entityType: "property" | "company";
   entityId: number;
+  /** Scenario this guidance belongs to; null = global / cross-scenario default. */
+  scenarioId?: number | null;
   userId?: number;
   location: string;
   propertyType: string;
@@ -128,7 +130,11 @@ export async function indexAssumptionGuidance(params: {
   if (!isPineconeAvailable()) return;
 
   try {
-    const id = `guidance:${params.entityType}:${params.entityId}:${params.assumptionKey}`;
+    // Vector ID must mirror the relational uniqueness key
+    // (scenarioId, entityType, entityId, assumptionKey) so scenario-specific
+    // and global guidance never overwrite each other in the store.
+    const scenarioPart = params.scenarioId == null ? "global" : String(params.scenarioId);
+    const id = `guidance:${scenarioPart}:${params.entityType}:${params.entityId}:${params.assumptionKey}`;
     const bm = params.businessModel ?? "hotel";
     const text = `${params.location} ${params.propertyType} ${bm} ${params.assumptionKey} hospitality assumption guidance`;
 
@@ -138,6 +144,7 @@ export async function indexAssumptionGuidance(params: {
       metadata: {
         entityType:    params.entityType,
         entityId:      params.entityId,
+        scenarioId:    params.scenarioId ?? 0,
         userId:        params.userId ?? 0,
         location:      params.location,
         propertyType:  params.propertyType,

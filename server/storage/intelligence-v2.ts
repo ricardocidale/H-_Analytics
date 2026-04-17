@@ -55,6 +55,11 @@ export class IntelligenceV2Storage {
       .orderBy(assumptionGuidance.assumptionKey);
   }
 
+  async getAllAssumptionGuidance(): Promise<AssumptionGuidance[]> {
+    return db.select().from(assumptionGuidance)
+      .orderBy(assumptionGuidance.entityType, assumptionGuidance.entityId, assumptionGuidance.assumptionKey);
+  }
+
   async getAllAssumptionGuidanceForScenario(scenarioId: number | null): Promise<AssumptionGuidance[]> {
     return db.select().from(assumptionGuidance)
       .where(

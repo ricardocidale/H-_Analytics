@@ -613,6 +613,7 @@ export function register(app: Express) {
                   indexAssumptionGuidance({
                     entityType: "property",
                     entityId: propertyId,
+                    scenarioId: null,
                     location: propLocation,
                     propertyType: propType,
                     businessModel: propBusinessModel,
@@ -679,6 +680,7 @@ export function register(app: Express) {
                 indexAssumptionGuidance({
                   entityType: "company",
                   entityId: ownerUserId,
+                  scenarioId: null,
                   location: ga?.companyName ?? "Management Company",
                   propertyType: "management company",
                   assumptionKey: rec.assumptionKey,

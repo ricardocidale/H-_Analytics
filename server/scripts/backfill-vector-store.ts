@@ -8,6 +8,7 @@
  *   - research-history     ← market_research (all)
  *   - comparables          ← benchmark_snapshots (all)
  *   - documents            ← document_extractions (all)
+ *   - assumption-guidance  ← assumption_guidance (all)
  *
  * Safe to re-run; failures are logged per-row and do not abort the job.
  *
@@ -26,7 +27,11 @@ import {
   indexResearchResult,
   indexDocumentExtraction,
   indexToKnowledgeBase,
+  indexAssumptionGuidance,
 } from "../ai/pinecone-service";
+import { db } from "../db";
+import { companies } from "@shared/schema";
+import { inArray } from "drizzle-orm";
 
 function mapCategoryToKpis(
   category: string,
@@ -47,7 +52,8 @@ type Source =
   | "scenarios"
   | "research-history"
   | "comparables"
-  | "documents";
+  | "documents"
+  | "assumption-guidance";
 
 const ALL_SOURCES: Source[] = [
   "knowledge-base",
@@ -56,7 +62,21 @@ const ALL_SOURCES: Source[] = [
   "research-history",
   "comparables",
   "documents",
+  "assumption-guidance",
 ];
+
+function confidenceTextToNumber(c: string | null | undefined): number {
+  switch ((c ?? "").toLowerCase()) {
+    case "high":     return 0.9;
+    case "medium":
+    case "moderate": return 0.6;
+    case "low":      return 0.3;
+    default: {
+      const n = Number(c);
+      return Number.isFinite(n) ? n : 0.5;
+    }
+  }
+}
 
 function parseOnly(): Source[] {
   const arg = process.argv.find((a) => a.startsWith("--only="));
@@ -232,13 +252,106 @@ async function backfillDocuments(): Promise<{ ok: number; fail: number }> {
   return { ok, fail };
 }
 
+async function backfillAssumptionGuidance(): Promise<{ ok: number; fail: number }> {
+  const rows = await storage.getAllAssumptionGuidance();
+  logger.info(`[backfill] assumption-guidance: ${rows.length} guidance rows`);
+  if (rows.length === 0) return { ok: 0, fail: 0 };
+
+  // Pre-load entity context (properties + companies) to avoid N+1 lookups.
+  const propertyIds = Array.from(new Set(
+    rows.filter(r => r.entityType === "property").map(r => r.entityId),
+  ));
+  const companyIds = Array.from(new Set(
+    rows.filter(r => r.entityType === "company").map(r => r.entityId),
+  ));
+
+  const propMap = new Map<number, { location: string; propertyType: string }>();
+  for (const id of propertyIds) {
+    const p = await safeRun(`load property ${id}`, () => storage.getProperty(id));
+    if (p) {
+      propMap.set(id, {
+        location:     [p.city, p.stateProvince, p.country].filter(Boolean).join(", ") || p.name,
+        propertyType: (p as { propertyType?: string }).propertyType ?? "hotel",
+      });
+    }
+  }
+
+  // Company guidance is keyed by the owner user id (see
+  // server/routes/research.ts where it is written with entityId = ownerUserId)
+  // — not by companies.id. So we look up users first, fall back to the
+  // companies table by id (defensive — historic rows may have used company id),
+  // and finally fall back to a generic label so no row is dropped.
+  const companyDisplay = new Map<number, string>();
+  for (const id of companyIds) {
+    const user = await safeRun(`load user ${id}`, () => storage.getUserById(id));
+    const u = user as { firstName?: string | null; lastName?: string | null; company?: string | null; email?: string | null } | null | undefined;
+    if (u) {
+      const name =
+        (u.company && u.company.trim()) ||
+        [u.firstName, u.lastName].filter(Boolean).join(" ").trim() ||
+        u.email ||
+        `Company entity ${id}`;
+      companyDisplay.set(id, name);
+    }
+  }
+  const stillMissing = companyIds.filter((id) => !companyDisplay.has(id));
+  if (stillMissing.length > 0) {
+    const list = await safeRun("load companies fallback", () =>
+      db.select().from(companies).where(inArray(companies.id, stillMissing)),
+    );
+    for (const c of list ?? []) companyDisplay.set(c.id, c.name);
+  }
+
+  let ok = 0, fail = 0;
+  for (const row of rows) {
+    let location = "";
+    let propertyType = "hotel";
+    if (row.entityType === "property") {
+      const ctx = propMap.get(row.entityId);
+      if (!ctx) {
+        // Property no longer exists — index with a placeholder so the row is
+        // still searchable; embedding text quality is acceptable for backfill.
+        location = `Property ${row.entityId}`;
+      } else {
+        location = ctx.location;
+        propertyType = ctx.propertyType;
+      }
+    } else if (row.entityType === "company") {
+      location = companyDisplay.get(row.entityId) ?? `Company entity ${row.entityId}`;
+      propertyType = "company";
+    } else {
+      // Unknown entity type — index with placeholder so it remains discoverable.
+      location = `${row.entityType}-${row.entityId}`;
+    }
+
+    const r = await safeRun(`guidance ${row.id}`, () =>
+      indexAssumptionGuidance({
+        entityType:    row.entityType as "property" | "company",
+        entityId:      row.entityId,
+        scenarioId:    row.scenarioId ?? null,
+        location,
+        propertyType,
+        assumptionKey: row.assumptionKey,
+        valueLow:      row.valueLow ?? null,
+        valueMid:      row.valueMid ?? null,
+        valueHigh:     row.valueHigh ?? null,
+        confidence:    confidenceTextToNumber(row.confidence),
+        reasoning:     row.reasoning ?? null,
+      }),
+    );
+    if (r === null) fail++; else ok++;
+  }
+  return { ok, fail };
+}
+
 const RUNNERS: Record<Source, () => Promise<{ ok: number; fail: number }>> = {
-  "knowledge-base":    backfillKnowledgeBase,
-  "properties":        backfillProperties,
-  "scenarios":         backfillScenarios,
-  "research-history":  backfillResearchHistory,
-  "comparables":       backfillBenchmarks,
-  "documents":         backfillDocuments,
+  "knowledge-base":      backfillKnowledgeBase,
+  "properties":          backfillProperties,
+  "scenarios":           backfillScenarios,
+  "research-history":    backfillResearchHistory,
+  "comparables":         backfillBenchmarks,
+  "documents":           backfillDocuments,
+  "assumption-guidance": backfillAssumptionGuidance,
 };
 
 async function main() {
