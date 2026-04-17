@@ -557,7 +557,7 @@ export default function CompanyAssumptions() {
         setTabWarnings((prev) => ({ ...prev, [tab]: [] }));
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // intentionally only depends on dirtyFields; pruning warnings should react to user edits
   }, [dirtyFields]);
 
   const handleTabChange = (val: string) => {
