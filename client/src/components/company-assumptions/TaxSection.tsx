@@ -18,9 +18,9 @@ import { ResearchContextFieldLabel } from "@/components/research/ResearchContext
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GovernedFieldWrapper } from "@/components/ui/governed-field";
 import { GOVERNED_FIELDS, DEPRECIATION_YEARS } from "@shared/constants";
-import { IconHash, IconPercent, IconCalendar, IconReceipt } from "@/components/icons";
+import { IconShieldCheck, IconHash, IconPercent, IconCalendar, IconReceipt } from "@/components/icons";
+import { Link } from "wouter";
 import { DEFAULT_COMPANY_TAX_RATE, PROJECTION_YEARS } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { TaxSectionProps } from "./types";
@@ -174,39 +174,46 @@ export default function TaxSection({ formData, onChange, global, researchValues 
         </CardContent>
       </Card>
 
-      {/* Model Constants — externally-governed values (e.g. IRS depreciation
-          life). Lives in column 2 because it's a policy/regulatory input
-          rather than company identity. */}
-      <Card className="bg-card border border-border/80 shadow-sm">
+      {/* Model Constants — read-only display since Phase 4. The actual
+          editing of governed constants lives in Admin → Model Constants
+          (single edit point, three-state provenance, mandatory note for
+          manual overrides). We keep the visible Card here so company
+          assumptions still show what's governing depreciation, but no
+          longer let the user edit the value at the company level. The
+          underlying `formData.depreciationYears` is left untouched so the
+          engine and existing data-flow keep working. */}
+      <Card className="bg-card border border-border/80 shadow-sm" data-testid="card-model-constants-readonly">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-            <IconHash className="w-4 h-4 text-muted-foreground" /> Model Constants
+            <IconShieldCheck className="w-4 h-4 text-accent-pop" /> Model Constants
           </CardTitle>
-          <CardDescription className="label-text">Governed by external authorities. Apply uniformly across all properties.</CardDescription>
+          <CardDescription className="label-text">
+            Governed centrally in Admin → Model Constants. Read-only here.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <GovernedFieldWrapper
-            authority={GOVERNED_FIELDS.depreciationYears.authority}
-            label={GOVERNED_FIELDS.depreciationYears.fieldName}
-            helperText={GOVERNED_FIELDS.depreciationYears.helperText}
-            referenceUrl={GOVERNED_FIELDS.depreciationYears.referenceUrl}
-            data-testid="governed-field-depreciationYears"
-          >
-            <div className="space-y-1">
-              <Label htmlFor="depreciationYears" className="text-xs text-accent-pop dark:text-accent-pop">Years</Label>
-              <Input
-                id="depreciationYears"
-                type="number"
-                step="0.5"
-                min="1"
-                max="50"
-                value={formData.depreciationYears ?? DEPRECIATION_YEARS}
-                onChange={(e) => onChange("depreciationYears", parseFloat(e.target.value) || DEPRECIATION_YEARS)}
-                className="h-8 text-sm bg-white dark:bg-background border-accent-pop/30 dark:border-accent-pop/30"
-                data-testid="input-depreciationYears"
-              />
+          <div className="rounded-md border border-border bg-muted/30 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-foreground">
+                  {GOVERNED_FIELDS.depreciationYears.fieldName}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {GOVERNED_FIELDS.depreciationYears.authority}
+                </div>
+              </div>
+              <div className="text-lg font-mono text-foreground shrink-0" data-testid="value-depreciationYears-readonly">
+                {formData.depreciationYears ?? DEPRECIATION_YEARS}
+              </div>
             </div>
-          </GovernedFieldWrapper>
+            <Link
+              href="/admin"
+              className="inline-block mt-2 text-xs underline text-muted-foreground hover:text-foreground"
+              data-testid="link-admin-model-constants"
+            >
+              Edit in Admin → Model Defaults → Model Constants
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div></div>

@@ -1,9 +1,6 @@
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { GovernedFieldWrapper } from "@/components/ui/governed-field";
-import EditableValue from "@/components/company-assumptions/EditableValue";
 import { Section, PctField, TabBanner, MONTHS, type Draft } from "./FieldHelpers";
 
 export function MarketMacroTab({ draft, onChange }: { draft: Draft; onChange: (field: string, value: any) => void }) {
@@ -33,32 +30,17 @@ export function MarketMacroTab({ draft, onChange }: { draft: Draft; onChange: (f
             min={0.05} max={0.35} step={0.005}
             testId="field-costOfEquity"
           />
-          <div className="pt-2 col-span-full">
-            <GovernedFieldWrapper
-              authority="Industry Convention (365/12)"
-              label="Days Per Month"
-              helperText="Standard day count convention used across the hospitality industry. 30.5 = 365 days / 12 months. Changing this value affects all revenue and expense calculations across every property."
-              defaultExpanded={false}
-              data-testid="governed-daysPerMonth"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-foreground label-text">Convention Value</Label>
-                  <EditableValue
-                    value={draft.daysPerMonth ?? 30.5}
-                    onChange={(v) => onChange("daysPerMonth", v)}
-                    format="number"
-                    min={28} max={31} step={0.5}
-                  />
-                </div>
-                <Slider
-                  value={[draft.daysPerMonth ?? 30.5]}
-                  onValueChange={([v]) => onChange("daysPerMonth", v)}
-                  min={28} max={31} step={0.5}
-                />
-              </div>
-            </GovernedFieldWrapper>
-          </div>
+          {/*
+            Days Per Month was previously editable here. As of Phase 4 of the
+            Model Constants migration it is governed centrally in
+            Admin → Model Constants (registry key `daysPerMonth`,
+            authority: AHLA convention 365/12). Removed from this tab to
+            establish a single edit point and prevent drift between user
+            assumption and governed constant. The DB column on
+            `globalAssumptions` stays in place (engine still reads it,
+            default 30.5) until Phase 5 wires the engine to read directly
+            from `getEffectiveConstant`.
+          */}
         </Section>
 
         <Section title="Fiscal Calendar" description="Controls the fiscal year alignment for financial reporting.">
