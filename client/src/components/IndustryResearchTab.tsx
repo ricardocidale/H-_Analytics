@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -362,24 +363,12 @@ export function IndustryResearchTab() {
           </div>
 
           <div className="pt-4 border-t border-border">
-            <Button
-              className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+            <AnalystButton
               onClick={generateResearch}
-              disabled={isGenerating}
-              data-testid="button-trigger-global-research"
-            >
-              {isGenerating ? (
-                <>
-                  <IconRefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                  Generating Market Analysis...
-                </>
-              ) : (
-                <>
-                  <IconRefreshCw className="w-5 h-5 mr-2" />
-                  Ask the Analyst
-                </>
-              )}
-            </Button>
+              isRunning={isGenerating}
+              size="lg"
+              dataTestId="button-trigger-global-research"
+            />
             <p className="text-[10px] text-center text-muted-foreground mt-2 uppercase tracking-widest font-medium">
               Powered by Norfolk AI
             </p>

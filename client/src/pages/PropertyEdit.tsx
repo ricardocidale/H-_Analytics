@@ -29,6 +29,7 @@ import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch, useFeeCategories, useUpdateFeeCategories, usePropertyGuidance, type FeeCategoryResponse } from "@/lib/api";
 import { useMarketRates } from "@/lib/api/market-rates";
 import { ValidationStatusBadge, AnalystValidationBanner } from "@/components/analyst";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -531,56 +532,30 @@ export default function PropertyEdit() {
           backLink={`/property/${propertyId}`}
           actions={
             <div className="flex items-center gap-3">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="default"
+              {(() => {
+                const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
+                const lastResearched = researchUpdatedAt
+                  ? `Last researched ${(() => {
+                      const ms = Date.now() - new Date(researchUpdatedAt).getTime();
+                      const mins = Math.floor(ms / 60000);
+                      if (mins < 1) return "just now";
+                      if (mins < 60) return `${mins}m ago`;
+                      const hrs = Math.floor(mins / 60);
+                      if (hrs < 24) return `${hrs}h ago`;
+                      return `${Math.floor(hrs / 24)}d ago`;
+                    })()} · `
+                  : "";
+                return (
+                  <AnalystButton
                     onClick={() => { setIntelligenceClicked(true); generateResearch(); }}
-                    disabled={isGenerating}
-                    className={!intelligenceClicked && !isGenerating && (() => {
-                      const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
-                      return status !== "current";
-                    })() ? "animate-intelligence-pulse" : ""}
-                    data-testid="button-regenerate-intelligence"
-                  >
-                    <span className="relative">
-                      {isGenerating ? (
-                        <OrbitalDots size={18} />
-                      ) : (
-                        <IconSparkles className="w-4 h-4" />
-                      )}
-                      {!isGenerating && (() => {
-                        const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
-                        return (
-                          <span
-                            className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                              status === "current" ? "bg-emerald-500" :
-                              status === "stale" ? "bg-amber-500" :
-                              status === "very_stale" ? "bg-red-500" :
-                              status === "missing" ? "bg-muted-foreground" : "bg-muted-foreground"
-                            }`}
-                          />
-                        );
-                      })()}
-                    </span>
-                    {isGenerating ? "Consulting..." : "Ask the Analyst"}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[260px] text-center">
-                  {researchUpdatedAt
-                    ? `Last researched ${(() => {
-                        const ms = Date.now() - new Date(researchUpdatedAt).getTime();
-                        const mins = Math.floor(ms / 60000);
-                        if (mins < 1) return "just now";
-                        if (mins < 60) return `${mins}m ago`;
-                        const hrs = Math.floor(mins / 60);
-                        if (hrs < 24) return `${hrs}h ago`;
-                        return `${Math.floor(hrs / 24)}d ago`;
-                      })()} · `
-                    : ""}
-                  Run AI research to get market-backed ranges for all assumptions.
-                </TooltipContent>
-              </Tooltip>
+                    isRunning={isGenerating}
+                    freshnessStatus={status}
+                    pulse={!intelligenceClicked && status !== "current"}
+                    tooltip={`${lastResearched}Run AI research to get market-backed ranges for all assumptions.`}
+                    dataTestId="button-regenerate-intelligence"
+                  />
+                );
+              })()}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-1.5" data-testid="toggle-auto-refresh">
@@ -716,10 +691,10 @@ export default function PropertyEdit() {
             <Button variant="outline" onClick={handleIntelligenceLater} data-testid="button-intelligence-later">
               Later
             </Button>
-            <Button onClick={handleIntelligenceNow} data-testid="button-intelligence-now">
-              <IconSparkles className="w-4 h-4 mr-1" />
-              Ask the Analyst
-            </Button>
+            <AnalystButton
+              onClick={handleIntelligenceNow}
+              dataTestId="button-intelligence-now"
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>

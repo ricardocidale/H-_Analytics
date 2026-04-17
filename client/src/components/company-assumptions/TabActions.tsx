@@ -2,7 +2,7 @@
  * TabActions.tsx — Per-tab action bar for Company Assumptions.
  *
  * Each of the 7 tabs renders its own TabActions row with:
- *   • "Ask the Analyst" — pulsating AI button that fires domain-specific
+ *   • "Analyst — {Tab}" — pulsating AI button that fires domain-specific
  *     research (shares the same company-research endpoint — the tab label
  *     is just UI framing).
  *   • Save — saves only the fields dirty within this tab (per-tab save
@@ -15,8 +15,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { OrbitalDots } from "@/components/ui/ai-loader";
-import { IconSparkles, IconAlertTriangle, IconCheck } from "@/components/icons";
+import { IconAlertTriangle, IconCheck } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 
 export interface TabValidationWarning {
@@ -144,18 +145,17 @@ export function TabActions({
               style={{ animationDuration: "2s" }}
             />
           )}
-          <Button
-            variant="outline"
-            size="sm"
+          <AnalystButton
             onClick={onAskAnalyst}
-            disabled={askAnalystDisabled || isAnalystRunning}
-            title={askAnalystDisabled ? askAnalystDisabledReason : `Research ${tabLabel.toLowerCase()}`}
+            isRunning={isAnalystRunning}
+            disabled={askAnalystDisabled}
+            disabledReason={askAnalystDisabledReason}
+            tooltip={!askAnalystDisabled ? `Research ${tabLabel.toLowerCase()}` : undefined}
+            size="sm"
+            suffix={tabLabel}
             className="relative z-10"
-            data-testid={`button-ask-analyst-${tabLabel.toLowerCase().replace(/\s+/g, "-")}`}
-          >
-            {isAnalystRunning ? <OrbitalDots size={14} /> : <IconSparkles className="w-3.5 h-3.5" />}
-            {isAnalystRunning ? "Consulting..." : `Analyst — ${tabLabel}`}
-          </Button>
+            dataTestId={`button-ask-analyst-${tabLabel.toLowerCase().replace(/\s+/g, "-")}`}
+          />
         </div>
         <SaveButton
           onClick={onSave}

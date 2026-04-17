@@ -1,6 +1,6 @@
 import { IconCheckCircle, IconAlertTriangle, IconClock, IconRefreshCw } from "@/components/icons";
 import { ThinkingRing, NeuralGlow } from "@/components/ui/ai-loader";
-import { Button } from "@/components/ui/button";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { cn } from "@/lib/utils";
 
 export type FreshnessStatus = "current" | "stale" | "very_stale" | "missing" | "running";
@@ -145,16 +145,13 @@ export function IntelligenceStatusBar({
         </span>
       </div>
       {(status === "stale" || status === "very_stale" || status === "missing") && (
-        <Button
+        <AnalystButton
+          onClick={onRunResearch}
           size="sm"
           variant="ghost"
-          className={cn("h-7 text-xs gap-1.5 flex-shrink-0", config.text)}
-          onClick={onRunResearch}
-          data-testid="button-regenerate-research"
-        >
-          <IconRefreshCw className="w-3 h-3" />
-          Ask the Analyst
-        </Button>
+          className={cn("flex-shrink-0", config.text)}
+          dataTestId="button-regenerate-research"
+        />
       )}
     </div>
   );

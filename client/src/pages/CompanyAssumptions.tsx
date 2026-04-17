@@ -40,8 +40,8 @@ import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, us
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconSparkles, IconAlertTriangle } from "@/components/icons";
-import { OrbitalDots } from "@/components/ui/ai-loader";
+import { IconAlertTriangle } from "@/components/icons";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { usePageVisit } from "@/hooks/usePageVisit";
 import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
 import { useLocation } from "wouter";
@@ -180,7 +180,7 @@ export default function CompanyAssumptions() {
 
   // The Analyst is an explicit, user-initiated action — never auto-fire on
   // mount. The page shows a "first visit" banner nudging the user toward the
-  // header "Ask the Analyst" button; the Auto-refresh switch additionally
+  // header "Analyst" button; the Auto-refresh switch additionally
   // gates scheduled refreshes on sufficient company context below.
 
   const [formData, setFormData] = useState<Partial<GlobalResponse>>({});
@@ -629,46 +629,24 @@ export default function CompanyAssumptions() {
           backLink="/company"
           actions={
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        variant="default"
-                        onClick={generateResearch}
-                        disabled={isGenerating || !formData.companyName || properties.length === 0}
-                        data-testid="button-run-company-research"
-                      >
-                        {isGenerating ? (
-                          <OrbitalDots size={18} />
-                        ) : (
-                          <IconSparkles className="w-4 h-4" />
-                        )}
-                        {isGenerating ? "Consulting..." : "Analyst"}
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {(!formData.companyName || properties.length === 0) && (
-                    <TooltipContent side="bottom" className="max-w-[280px] text-center">
-                      {!formData.companyName
-                        ? "Set a company name before generating intelligence."
-                        : "Add at least one property to your portfolio first."}
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-                {(() => {
-                  const { status } = computeFreshnessStatus({ researchUpdatedAt: companyResearchUpdatedAt, lastAssumptionChangeAt: global.lastAssumptionChangeAt, isGenerating: false });
-                  return (
-                    <span
-                      className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-background ${
-                        status === "current" ? "bg-primary" :
-                        status === "stale" ? "bg-accent-pop" : "bg-destructive"
-                      }`}
-                      data-testid="indicator-research-freshness"
-                    />
-                  );
-                })()}
-              </div>
+              <AnalystButton
+                onClick={generateResearch}
+                isRunning={isGenerating}
+                disabled={!formData.companyName || properties.length === 0}
+                disabledReason={
+                  !formData.companyName
+                    ? "Set a company name before generating intelligence."
+                    : "Add at least one property to your portfolio first."
+                }
+                freshnessStatus={
+                  computeFreshnessStatus({
+                    researchUpdatedAt: companyResearchUpdatedAt,
+                    lastAssumptionChangeAt: global.lastAssumptionChangeAt,
+                    isGenerating: false,
+                  }).status
+                }
+                dataTestId="button-run-company-research"
+              />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-1.5" data-testid="toggle-auto-refresh-company">

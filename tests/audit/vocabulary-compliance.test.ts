@@ -36,6 +36,7 @@ describe("Vocabulary Compliance — Forbidden Terms", () => {
     { term: "Regenerate Intelligence", replacement: "Analyst" },
     { term: "No Intelligence", replacement: "Not yet reviewed" },
     { term: "Ask the Analysts", replacement: "Analyst (singular, no 'Ask the')" },
+    { term: "Ask the Analyst", replacement: "Analyst (use <AnalystButton />, drop 'Ask the')" },
     { term: "Your analysts", replacement: "The Analyst" },
     { term: "Our analysts", replacement: "The Analyst" },
     { term: "the chatbot", replacement: "Rebecca" },

@@ -190,7 +190,7 @@ function getProvenance(
     return {
       status: "awaiting",
       label: "Awaiting Validation",
-      description: "Not yet reviewed. Ask the Analyst on the Assumptions page to get guidance for this field.",
+      description: "Not yet reviewed. Press the Analyst button on the Assumptions page to get guidance for this field.",
     };
   }
 

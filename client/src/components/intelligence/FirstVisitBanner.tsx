@@ -12,7 +12,7 @@ interface FirstVisitBannerProps {
 /**
  * Informational banner shown on first visit to an assumptions page.
  *
- * The "Ask the Analyst" CTA used to live here but was removed because it
+ * The "Analyst" CTA used to live here but was removed because it
  * duplicated the primary action button already present in the page header.
  * The banner is now purely informational — callers must continue to gate
  * its visibility (e.g. hide it once intelligence freshness is "current").
@@ -33,7 +33,7 @@ export function FirstVisitBanner({ className }: FirstVisitBannerProps) {
           The Analyst hasn't reviewed these assumptions yet
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Use <span className="font-medium">Ask the Analyst</span> in the page header to study market data and provide conviction-scored ranges for every field.
+          Press the <span className="font-medium">Analyst</span> button in the page header to study market data and provide conviction-scored ranges for every field.
         </p>
       </div>
     </div>
