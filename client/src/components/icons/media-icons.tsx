@@ -350,10 +350,17 @@ export function IconBrain(p: IconProps) {
 
 export function IconSparkles(p: IconProps) {
   const a = defaults(p);
+  // Classic AI "twinkle" sparkle: a 4-point star with concave sides, paired
+  // with a smaller companion sparkle in the upper-right. Used by the Analyst
+  // CTA across the app — see AnalystButton for theming (text-accent-pop).
   return (
     <svg {...a}>
-      <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z" {...F} />
-      <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z" {...S} fill="none" />
+      {/* Main sparkle (4-point twinkle, concave-sided) */}
+      <path d="M11 3 C 11.7 8.2, 13.8 10.3, 19 11 C 13.8 11.7, 11.7 13.8, 11 19 C 10.3 13.8, 8.2 11.7, 3 11 C 8.2 10.3, 10.3 8.2, 11 3 Z" {...F} />
+      <path d="M11 3 C 11.7 8.2, 13.8 10.3, 19 11 C 13.8 11.7, 11.7 13.8, 11 19 C 10.3 13.8, 8.2 11.7, 3 11 C 8.2 10.3, 10.3 8.2, 11 3 Z" {...S} fill="none" />
+      {/* Companion sparkle (smaller, upper-right) */}
+      <path d="M19 14 C 19.3 16, 20 16.7, 22 17 C 20 17.3, 19.3 18, 19 20 C 18.7 18, 18 17.3, 16 17 C 18 16.7, 18.7 16, 19 14 Z" {...F} />
+      <path d="M19 14 C 19.3 16, 20 16.7, 22 17 C 20 17.3, 19.3 18, 19 20 C 18.7 18, 18 17.3, 16 17 C 18 16.7, 18.7 16, 19 14 Z" {...S} fill="none" />
     </svg>
   );
 }

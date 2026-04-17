@@ -87,7 +87,11 @@ export function AnalystButton({
       data-testid={dataTestId}
     >
       <span className="relative inline-flex items-center">
-        {isRunning ? <OrbitalDots size={cfg.loader} /> : <IconSparkles className={cfg.icon} />}
+        {/* Sparkle is themed with the brand's intelligence accent (accent-pop,
+            amber/gold) so it pops on dark default-variant buttons and reads
+            as the canonical "AI / Analyst" cue. See
+            .claude/skills/ui/analyst-sparkle.md for the rule. */}
+        {isRunning ? <OrbitalDots size={cfg.loader} /> : <IconSparkles className={cn(cfg.icon, "text-accent-pop")} />}
         {!isRunning && freshnessStatus && FRESHNESS_DOT[freshnessStatus] && (
           <span
             className={cn(
