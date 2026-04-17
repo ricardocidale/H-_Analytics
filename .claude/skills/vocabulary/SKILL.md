@@ -17,14 +17,22 @@ financial terms, or ask before inventing new language.
 
 ---
 
-## 0. Critical Distinction — Assumptions vs Defaults (READ FIRST)
+## 0. Critical Distinction — Assumptions vs Defaults (READ FIRST)  *(MASTER RULE)*
 
-**This confusion has cost us real time and real money. Get it right.**
+**This confusion has cost us real time and real money. Get it right. Every task. Every answer. Every line of copy.**
 
 | Term | What It Means | Who Touches It | Where It Lives |
 |---|---|---|---|
-| **Assumption** | A user-facing **working variable**. The number the user is currently modeling with. Editable on the front of the app. The Analyst validates it, flags it, and suggests ranges for it. | Every user (management role and above) | Company Assumptions page, Property assumption pages, scenario state |
-| **Default** | An admin-only **seed value** loaded into the database to initialize a fresh tenant or reset a field. A starting point, not a working number. | Super admin only, in the Admin section | `defaults` tables, seed scripts, admin settings |
+| **Assumption** *(a.k.a. Working Variable)* | A user-facing **working variable**. The number the user is currently modeling with. Editable on the front of the app. The Analyst validates it, flags it, and suggests ranges for it. | Every user (management role and above) | Company Assumptions page, Property assumption pages, scenario state |
+| **Default** *(a.k.a. Seed)* | An admin-only **seed value** loaded into the database to initialize a fresh tenant or reset a field. A starting point, not a working number. | Super admin only, in the Admin section | `defaults` tables, seed scripts, admin settings |
+
+### Seed → Assumption transition (the part everyone forgets)
+A default is **only a seed**. The instant the user clicks **Save** on any user-facing page, **every field on that page becomes a working variable — an assumption** — whether the user edited it or left the seed untouched. After Save, that page no longer holds defaults; it holds the user's assumptions. The Analyst then validates against those assumptions, not against the seeds.
+
+So when you talk to the user about a value on a saved page, **call it an assumption**. Calling it a "default" after Save is wrong and confusing.
+
+### Answering "where is X stored / set / configured?"
+When the user asks where a value lives, **lead with the assumption** — name the user-facing page where the working variable is set and saved. Mention the Admin seed location only as a secondary note ("the seed value used to pre-fill new tenants is in Admin → …"). Never lead with the seed. Never imply the Admin page is where the user "works with" or "stores" the value. The seed is a one-time initializer; the assumption is the live, authoritative number.
 
 **Rules — non-negotiable:**
 
@@ -32,9 +40,10 @@ financial terms, or ask before inventing new language.
 2. **"Default" never appears in user-facing copy** outside the Admin section. Users do not see, hear, or read the word *default* on Properties, Company Assumptions, Dashboard, Scenarios, Research, or anywhere else in the main app.
 3. **Save a default ≠ Save an assumption.** Editing a default in Admin reseeds new tenants and provides reset values; it does **not** change any existing user's saved assumption. Editing an assumption in the front of the app writes to that user's tenant scope only.
 4. **The Analyst validates assumptions, not defaults.** Watchdog, conviction floor, change log, post-save warnings — all operate on assumptions. Defaults are inert until copied into a fresh tenant.
-5. **Any AI agent (Replit Agent, Claude Code, future agents) reading this file must treat the two as different DB columns, different routes, different audiences, and different business meanings.** Conflating them has caused: admin-only routing on user pages, reset buttons that wiped user work, "default" surfacing in user copy, and seed values being treated as authoritative.
+5. **The agent's own chat replies must follow this vocabulary too.** When the user asks the agent (Replit Agent, Claude Code, etc.) about a value, the agent says "assumption" and points at the user-facing page first. Pointing the user at Admin to "find their assumption" is a bug in the answer.
+6. **Any AI agent (Replit Agent, Claude Code, future agents) reading this file must treat the two as different DB columns, different routes, different audiences, and different business meanings.** Conflating them has caused: admin-only routing on user pages, reset buttons that wiped user work, "default" surfacing in user copy, seed values being treated as authoritative, and agent answers that send the user to Admin when the value actually lives on a user page.
 
-**Quick test before you write code or copy:** *"Is this number something the user types and saves?"* → it's an **assumption**. *"Is this number set once by an admin to seed every new tenant?"* → it's a **default**. If both apply, you're describing the relationship between them — say so explicitly.
+**Quick test before you write code, copy, or an answer:** *"Is this number something the user types and saves?"* → it's an **assumption**, and the user-facing page is the authoritative location. *"Is this number set once by an admin to seed every new tenant?"* → it's a **default**. If both apply (a seed that becomes an assumption after Save), you're describing the seed→assumption relationship — say so explicitly and lead with the assumption side when talking to the user.
 
 ---
 
