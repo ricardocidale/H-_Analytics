@@ -40,7 +40,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage } from "@/components/graphics";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { useGlobalAssumptions, useUpdateGlobalAssumptions, useMarketResearch, useProperties, useAllFeeCategories } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -72,7 +72,7 @@ import {
   PropertyExpenseRatesSection,
   PartnerCompSection,
   SummaryFooter,
-  TabActions,
+  TabWarningsPanel,
   type TabValidationWarning,
 } from "@/components/company-assumptions";
 import { isAdminRole } from "@shared/constants";
@@ -653,46 +653,21 @@ export default function CompanyAssumptions() {
           variant="dark"
           backLink="/company"
           actions={
-            <div className="flex items-center gap-3">
-              <AnalystButton
-                onClick={generateResearch}
-                isRunning={isGenerating}
-                disabled={!formData.companyName || properties.length === 0}
-                disabledReason={
-                  !formData.companyName
-                    ? "Set a company name before generating intelligence."
-                    : "Add at least one property to your portfolio first."
-                }
-                freshnessStatus={
-                  computeFreshnessStatus({
-                    researchUpdatedAt: companyResearchUpdatedAt,
-                    lastAssumptionChangeAt: global.lastAssumptionChangeAt,
-                    isGenerating: false,
-                  }).status
-                }
-                dataTestId="button-run-company-research"
-              />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1.5" data-testid="toggle-auto-refresh-company">
-                    <Switch
-                      checked={autoRefresh}
-                      onCheckedChange={setAutoRefresh}
-                      className="scale-75"
-                    />
-                    <span className="text-[10px] font-medium text-muted-foreground leading-tight whitespace-nowrap">Auto</span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[260px] text-center">
-                  Auto-refresh intelligence when assumptions change
-                </TooltipContent>
-              </Tooltip>
-              <SaveButton 
-                onClick={handleSave} 
-                isPending={updateMutation.isPending}
-                hasChanges={isDirty}
-              />
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5" data-testid="toggle-auto-refresh-company">
+                  <Switch
+                    checked={autoRefresh}
+                    onCheckedChange={setAutoRefresh}
+                    className="scale-75"
+                  />
+                  <span className="text-[10px] font-medium text-muted-foreground leading-tight whitespace-nowrap">Auto</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                Auto-refresh intelligence when assumptions change
+              </TooltipContent>
+            </Tooltip>
           }
         />
 
@@ -717,14 +692,44 @@ export default function CompanyAssumptions() {
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <div className="sticky top-0 z-10 -mx-2 px-2 py-2 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-            <TabsList className="w-full justify-start flex-wrap h-auto gap-1" data-testid="tabs-company-assumptions">
-              <TabsTrigger value="company" data-testid="tab-company">Company</TabsTrigger>
-              <TabsTrigger value="funding" data-testid="tab-funding">Funding</TabsTrigger>
-              <TabsTrigger value="revenue" data-testid="tab-revenue">Revenue Model</TabsTrigger>
-              <TabsTrigger value="compensation" data-testid="tab-compensation">Compensation</TabsTrigger>
-              <TabsTrigger value="overhead" data-testid="tab-overhead">Overhead</TabsTrigger>
-              <TabsTrigger value="property-defaults" data-testid="tab-property-defaults">Property Defaults</TabsTrigger>
-            </TabsList>
+            <CurrentThemeTab
+              tabs={TAB_KEYS.map((k) => ({ value: k, label: TAB_LABELS[k] }))}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              rightContent={
+                <>
+                  <AnalystButton
+                    onClick={generateResearch}
+                    isRunning={isGenerating}
+                    disabled={!formData.companyName || properties.length === 0}
+                    disabledReason={
+                      !formData.companyName
+                        ? "Set a company name before generating intelligence."
+                        : "Add at least one property to your portfolio first."
+                    }
+                    suffix={TAB_LABELS[activeTab]}
+                    size="sm"
+                    freshnessStatus={
+                      computeFreshnessStatus({
+                        researchUpdatedAt: companyResearchUpdatedAt,
+                        lastAssumptionChangeAt: global.lastAssumptionChangeAt,
+                        isGenerating: false,
+                      }).status
+                    }
+                    dataTestId={`button-ask-analyst-${activeTab}`}
+                  />
+                  <SaveButton
+                    onClick={() => handleSaveTab(activeTab)}
+                    isPending={savingTab === activeTab && updateMutation.isPending}
+                    hasChanges={TAB_FIELDS[activeTab].some((k) => dirtyFields.has(k))}
+                    size="sm"
+                    data-testid={`button-save-tab-${activeTab}`}
+                  >
+                    Save {TAB_LABELS[activeTab]}
+                  </SaveButton>
+                </>
+              }
+            />
           </div>
 
           {(TAB_KEYS).map((tab) => {
@@ -769,7 +774,6 @@ export default function CompanyAssumptions() {
                   );
               }
             };
-            const tabDirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
             return (
               <TabsContent
                 key={tab}
@@ -777,21 +781,7 @@ export default function CompanyAssumptions() {
                 className="mt-0 space-y-6"
                 data-testid={`tab-content-${tab}`}
               >
-                <TabActions
-                  tabLabel={TAB_LABELS[tab]}
-                  onAskAnalyst={generateResearch}
-                  isAnalystRunning={isGenerating}
-                  askAnalystDisabled={!formData.companyName || properties.length === 0}
-                  askAnalystDisabledReason={
-                    !formData.companyName
-                      ? "Set a company name before generating intelligence."
-                      : properties.length === 0
-                        ? "Add at least one property to your portfolio first."
-                        : undefined
-                  }
-                  onSave={() => handleSaveTab(tab)}
-                  isSaving={savingTab === tab && updateMutation.isPending}
-                  hasChanges={tabDirty}
+                <TabWarningsPanel
                   warnings={tabWarnings[tab]}
                   onDismissWarning={(fieldName) =>
                     setTabWarnings((prev) => ({
