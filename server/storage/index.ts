@@ -44,6 +44,7 @@ import { PropertyUrlStorage } from "./property-urls";
 import { CalcAuditStorage, type ICalcAuditStorage } from "./calc-audit";
 import { RenderSettingsStorage } from "./render-settings";
 import { PageVisitStorage } from "./page-visits";
+import { ModelConstantsStorage } from "./model-constants";
 
 export interface IStorage extends
   UserStorage,
@@ -61,7 +62,8 @@ export interface IStorage extends
   PropertyUrlStorage,
   ICalcAuditStorage,
   RenderSettingsStorage,
-  PageVisitStorage {
+  PageVisitStorage,
+  ModelConstantsStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -84,6 +86,13 @@ export class DatabaseStorage implements IStorage {
   private calcAudit = new CalcAuditStorage();
   private renderSettingsStore = new RenderSettingsStorage();
   private pageVisitStore = new PageVisitStorage();
+  private modelConstantsStore = new ModelConstantsStorage();
+
+  // Model Constants (governed values — TS factory + DB override layer)
+  listModelConstantOverrides = this.modelConstantsStore.listModelConstantOverrides.bind(this.modelConstantsStore);
+  findModelConstantOverride = this.modelConstantsStore.findModelConstantOverride.bind(this.modelConstantsStore);
+  upsertModelConstantOverride = this.modelConstantsStore.upsertModelConstantOverride.bind(this.modelConstantsStore);
+  deleteModelConstantOverride = this.modelConstantsStore.deleteModelConstantOverride.bind(this.modelConstantsStore);
 
   // Users
   getUserById = this.users.getUserById.bind(this.users);

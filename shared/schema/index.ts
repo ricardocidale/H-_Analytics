@@ -2,6 +2,7 @@ export * from "./core";
 export * from "./auth";
 export * from "./research-types";
 export * from "./config";
+export * from "./model-constants";
 export * from "./properties";
 export * from "./services";
 export * from "./scenarios";
