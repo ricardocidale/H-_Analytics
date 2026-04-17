@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { requireChecker, requireAuth , getAuthUser } from "../auth";
 import { isAdminRole } from "@shared/constants";
 import { runVerificationWithEngine } from "../calculationChecker";
+import { withModelConstants } from "../finance/apply-model-constants";
 import { logActivity, logAndSendError, parseRouteId } from "./helpers";
 import { logger } from "../logger";
 import * as calcSchemas from "../../calc/shared/schemas";
@@ -39,11 +40,17 @@ export function register(app: Express) {
         : await storage.getAllProperties(calcUser.id);
       // Only verify active properties — inactive ones are excluded from all calculations
       const properties = allProperties.filter(p => p.isActive !== false);
-      const globalAssumptions = await storage.getGlobalAssumptions(calcUser.id);
+      const rawGlobal = await storage.getGlobalAssumptions(calcUser.id);
 
-      if (!globalAssumptions) {
+      if (!rawGlobal) {
         return res.status(400).json({ error: "Global assumptions not found" });
       }
+
+      // Overlay admin-governed Model Constants so verification uses the same
+      // numbers as finance/scenarios/exports. Without this, an admin override
+      // on (e.g.) daysPerMonth would silently disagree with the rest of the
+      // system inside the audit checker.
+      const globalAssumptions = await withModelConstants(rawGlobal);
 
       const report = runVerificationWithEngine(
         properties,

@@ -6,6 +6,7 @@ import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 import { logActivity, logAndSendError } from "./helpers";
 import { computePortfolioProjection } from "../finance/service";
+import { applyModelConstantsToGlobals } from "../finance/apply-model-constants";
 import { stableHash } from "../scenarios/stable-json";
 import { logger } from "../logger";
 import {
@@ -37,9 +38,10 @@ export function registerScenarioAccessRoutes(app: Express) {
       const { propertyInputs, globalInput, projYears, scenarioProps, scenarioGA } =
         extractScenarioComputeInputs(scenario, bodyParse.data?.projectionYears);
 
+      const modelConstantOverrides = await storage.listModelConstantOverrides();
       const computeResult = computePortfolioProjection({
         properties: propertyInputs,
-        globalAssumptions: globalInput,
+        globalAssumptions: applyModelConstantsToGlobals(globalInput, modelConstantOverrides),
         projectionYears: projYears,
       });
 
@@ -136,9 +138,10 @@ export function registerScenarioAccessRoutes(app: Express) {
       const { propertyInputs, globalInput, projYears } =
         extractScenarioComputeInputs(scenario, stored.projectionYears);
 
+      const modelConstantOverrides = await storage.listModelConstantOverrides();
       const computeResult = computePortfolioProjection({
         properties: propertyInputs,
-        globalAssumptions: globalInput,
+        globalAssumptions: applyModelConstantsToGlobals(globalInput, modelConstantOverrides),
         projectionYears: projYears,
       });
 

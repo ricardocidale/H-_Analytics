@@ -3,6 +3,7 @@ import { z } from "zod";
 import superjson from "superjson";
 import { computePortfolioProjectionWithAudit, computeSingleProperty, computeCompanyProjection } from "../finance/service";
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
+import { withModelConstants } from "../finance/apply-model-constants";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../auth";
 import { logger } from "../logger";
@@ -180,7 +181,11 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { properties: allProperties, globalAssumptions, projectionYears } = validation.data;
+      const { properties: allProperties, globalAssumptions: rawGlobal, projectionYears } = validation.data;
+      // Overlay admin-governed Model Constants (e.g. daysPerMonth) on top of
+      // whatever the client sent. Server is authoritative — admin overrides
+      // always win, even against a stale client payload.
+      const globalAssumptions = await withModelConstants(rawGlobal);
       // Defense-in-depth: exclude inactive properties even if client already filtered
       const properties = allProperties.filter((p: Record<string, unknown>) => p.isActive !== false);
 
@@ -275,11 +280,14 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { property, globalAssumptions, projectionYears } = validation.data;
+      const { property, globalAssumptions: rawGlobal, projectionYears } = validation.data;
 
       if (property.id !== undefined && property.id !== routeId) {
         return res.status(400).json({ error: "Property ID in body does not match route" });
       }
+
+      // Overlay admin-governed Model Constants before engine call.
+      const globalAssumptions = await withModelConstants(rawGlobal);
 
       const result = computeSingleProperty({
         property: property as PropertyInput,
@@ -312,7 +320,9 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { properties: allCompanyProps, globalAssumptions, projectionYears } = validation.data;
+      const { properties: allCompanyProps, globalAssumptions: rawGlobal, projectionYears } = validation.data;
+      // Overlay admin-governed Model Constants before engine call.
+      const globalAssumptions = await withModelConstants(rawGlobal);
       // Defense-in-depth: exclude inactive properties even if client already filtered
       const properties = allCompanyProps.filter((p: Record<string, unknown>) => p.isActive !== false);
 

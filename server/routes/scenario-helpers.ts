@@ -11,6 +11,8 @@ import type {
 } from "@shared/schema";
 import { computeFullDiff, reconstructScenarioProperties } from "../scenarios/diff-engine";
 import { computePortfolioProjection } from "../finance/service";
+import { applyModelConstantsToGlobals } from "../finance/apply-model-constants";
+import type { ModelConstantOverride } from "@shared/schema/model-constants";
 import { logger } from "../logger";
 
 export function requireScenarioPermission(req: any, res: any, next: any) {
@@ -102,7 +104,8 @@ export async function ensureDefaultScenario(userId: number): Promise<void> {
   const name = `${initials} Default Scenario`;
 
   const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates, diffResult } = await buildCreateSnapshotData(userId);
-  const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps);
+  const modelConstantOverrides = await storage.listModelConstantOverrides();
+  const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps, modelConstantOverrides);
 
   try {
     const scenario = await storage.createScenario({
@@ -181,15 +184,18 @@ export async function buildCreateSnapshotData(userId: number) {
 
 export function tryComputeResults(
   scenarioGA: ScenarioGlobalAssumptionsSnapshot,
-  scenarioProps: ScenarioPropertySnapshot[]
+  scenarioProps: ScenarioPropertySnapshot[],
+  modelConstantOverrides: readonly ModelConstantOverride[] = [],
 ): { computedResults: ComputedResultsSnapshot | null; computeHash: string | null } {
   try {
     const { propertyInputs, globalInput, projYears } = extractScenarioComputeInputs(
       { globalAssumptions: scenarioGA, properties: scenarioProps }
     );
+    // Overlay admin-governed Model Constants (e.g. daysPerMonth) — these are
+    // GAAP/USALI standards, not part of the user's scenario snapshot.
     const computeResult = computePortfolioProjection({
       properties: propertyInputs,
-      globalAssumptions: globalInput,
+      globalAssumptions: applyModelConstantsToGlobals(globalInput, modelConstantOverrides),
       projectionYears: projYears,
     });
     return {

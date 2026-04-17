@@ -1,4 +1,5 @@
 import { computePortfolioProjection, computeSingleProperty, computeCompanyProjection } from "../finance/service";
+import { withModelConstants } from "../finance/apply-model-constants";
 import { storage } from "../storage";
 import type { PropertyInput, GlobalInput, CompanyYearlyFinancials } from "@engine/types";
 import type { YearlyPropertyFinancials } from "@engine/aggregation/yearlyAggregator";
@@ -379,7 +380,9 @@ export async function buildExportData(
   const scope = input.reportScope ?? "all";
 
   const projYears = input.projectionYears ?? Number(globalAssumptions.projectionYears ?? 10);
-  const globalInput = buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears);
+  const globalInput = await withModelConstants(
+    buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears),
+  );
 
   const result = computePortfolioProjection({
     properties: propertyInputs,
@@ -454,7 +457,9 @@ export async function buildPropertyExportData(
   const property = propertyInputs[0];
   const rawProperty = allProperties.find(p => p.id === input.propertyId);
   const projYears = input.projectionYears ?? Number(globalAssumptions.projectionYears ?? 10);
-  const globalInput = buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears);
+  const globalInput = await withModelConstants(
+    buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears),
+  );
 
   const result = computeSingleProperty({
     property,
@@ -533,7 +538,9 @@ export async function buildCompanyExportData(
   const scope = input.reportScope ?? "all";
 
   const projYears = input.projectionYears ?? Number(globalAssumptions.projectionYears ?? 10);
-  const globalInput = buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears);
+  const globalInput = await withModelConstants(
+    buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears),
+  );
 
   const result = computeCompanyProjection({
     properties: propertyInputs,

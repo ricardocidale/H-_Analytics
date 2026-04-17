@@ -10,6 +10,7 @@
  */
 
 import { generatePropertyProForma } from "./core/property-pipeline";
+import { withModelConstants } from "./apply-model-constants";
 import { computeIRR } from "../../analytics/returns/irr.js";
 import { storage } from "../storage";
 import type { PropertyInput, GlobalInput } from "@engine/types";
@@ -174,7 +175,9 @@ export async function computeSensitivityAnalysis(
     throw new Error("No matching properties found");
   }
 
-  const globalInput = rawGlobal as unknown as GlobalInput;
+  // Overlay admin-governed Model Constants (e.g. daysPerMonth) on top of the
+  // DB row before the engine sees it. Single authoritative source.
+  const globalInput = (await withModelConstants(rawGlobal)) as unknown as GlobalInput;
   const projectionYears = (rawGlobal.projectionYears as number | null) ?? 10;
   const projectionMonths = projectionYears * MONTHS_PER_YEAR;
 

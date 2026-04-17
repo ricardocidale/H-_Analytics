@@ -20,6 +20,8 @@ import { isAdminRole } from "@shared/constants";
 import { compareScenarios as compareScenarioMetrics } from "@calc/analysis/scenario-compare";
 import type { ScenarioMetrics } from "@calc/analysis/scenario-compare";
 import { computePortfolioProjection } from "../finance/service";
+import { applyModelConstantsToGlobals } from "../finance/apply-model-constants";
+import type { ModelConstantOverride } from "@shared/schema/model-constants";
 import {
   requireScenarioPermission,
   importScenarioSchema,
@@ -52,14 +54,17 @@ const updateTagsSchema = z.object({
  * recomputing if needed. Returns the ScenarioMetrics shape expected by
  * the calc/analysis compare engine.
  */
-function extractMetricsFromScenario(scenario: Scenario): ScenarioMetrics | null {
+function extractMetricsFromScenario(
+  scenario: Scenario,
+  modelConstantOverrides: readonly ModelConstantOverride[] = [],
+): ScenarioMetrics | null {
   try {
     const { propertyInputs, globalInput, projYears } = extractScenarioComputeInputs(
       { globalAssumptions: scenario.globalAssumptions, properties: scenario.properties }
     );
     const result = computePortfolioProjection({
       properties: propertyInputs,
-      globalAssumptions: globalInput,
+      globalAssumptions: applyModelConstantsToGlobals(globalInput, modelConstantOverrides),
       projectionYears: projYears,
     });
 
@@ -111,7 +116,8 @@ export function register(app: Express) {
     try {
       const user = getAuthUser(req);
       const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates } = await buildCreateSnapshotData(user.id);
-      const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps);
+      const modelConstantOverrides = await storage.listModelConstantOverrides();
+      const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps, modelConstantOverrides);
 
       const existing = await storage.getAutoSaveScenario(user.id);
       if (existing) {
@@ -206,7 +212,8 @@ export function register(app: Express) {
       const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates, diffResult } =
         await buildCreateSnapshotData(user.id);
 
-      const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps);
+      const modelConstantOverrides = await storage.listModelConstantOverrides();
+      const { computedResults, computeHash } = tryComputeResults(scenarioGA, scenarioProps, modelConstantOverrides);
 
       const scenario = await storage.createScenario({
         userId: user.id,
@@ -604,10 +611,12 @@ export function register(app: Express) {
         return res.status(400).json({ error: `Base scenario ${baseId} is not in the scenarioIds list` });
       }
 
-      // Compute metrics for all scenarios
+      // Compute metrics for all scenarios — overlay admin-governed Model
+      // Constants so compare-batch agrees with finance/exports/verification.
+      const modelConstantOverrides = await storage.listModelConstantOverrides();
       const metricsMap = new Map<number, ScenarioMetrics>();
       for (const [id, scenario] of Array.from(scenarioMap.entries())) {
-        const metrics = extractMetricsFromScenario(scenario);
+        const metrics = extractMetricsFromScenario(scenario, modelConstantOverrides);
         if (!metrics) {
           return res.status(422).json({ error: `Failed to compute metrics for scenario "${scenario.name}" (ID ${id})` });
         }
