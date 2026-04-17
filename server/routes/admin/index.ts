@@ -11,6 +11,7 @@ import { registerRequiredFieldsRoutes } from "./required-fields";
 import { registerHospitalityBenchmarkRoutes } from "./hospitality-benchmarks";
 import { registerSourceHealthRoutes } from "./source-health";
 import { registerTestBatteryRoutes } from "./test-batteries";
+import { registerModelConstantsRoutes } from "./model-constants";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -25,4 +26,5 @@ export function register(app: Express) {
   registerHospitalityBenchmarkRoutes(app);
   registerSourceHealthRoutes(app);
   registerTestBatteryRoutes(app);
+  registerModelConstantsRoutes(app);
 }

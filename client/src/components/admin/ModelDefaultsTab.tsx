@@ -7,6 +7,7 @@ import { invalidateAllFinancialQueries } from "@/lib/api";
 import type { AdminSaveState } from "@/components/admin/save-state";
 import type { Draft } from "./model-defaults/FieldHelpers";
 import { MarketMacroTab } from "./model-defaults/MarketMacroTab";
+import { ModelConstantsTab } from "./model-defaults/ModelConstantsTab";
 import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTab";
 import { LlmDefaultsTab } from "./model-defaults/LlmDefaultsTab";
 import { CompanyTab } from "./model-defaults/CompanyTab";
@@ -99,6 +100,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
         <TabsList className="bg-muted/50 border border-border/60">
           <TabsTrigger value="company" data-testid="tab-company">Company</TabsTrigger>
           <TabsTrigger value="market-macro" data-testid="tab-market-macro">Market & Macro</TabsTrigger>
+          <TabsTrigger value="model-constants" data-testid="tab-model-constants">Model Constants</TabsTrigger>
           <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
           <TabsTrigger value="llm-defaults" data-testid="tab-llm-defaults">LLM Defaults</TabsTrigger>
           <TabsTrigger value="required-fields" data-testid="tab-required-fields">Required Fields</TabsTrigger>
@@ -110,6 +112,10 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
 
         <TabsContent value="market-macro">
           <MarketMacroTab draft={draft} onChange={handleChange} />
+        </TabsContent>
+
+        <TabsContent value="model-constants">
+          <ModelConstantsTab />
         </TabsContent>
 
         <TabsContent value="property-underwriting">

@@ -116,16 +116,16 @@ export class ModelConstantsStorage {
       return null;
     }
 
-    // Atomic upsert: relies on the unique (constant_key, country, country_subdivision)
-    // index. `country` and `country_subdivision` are nullable, but Postgres treats
-    // NULLs as distinct in unique indexes — that's exactly what we want here, since
-    // (key, NULL, NULL) is genuinely a different locality from (key, 'US', NULL).
-    // The unique constraint we created uses standard semantics so the conflict path
-    // works for non-null tuples; the (NULL, NULL) universal row is single-occurrence
-    // by construction (only one universal row per key at a time, enforced by the
-    // pre-write find below for that single edge case).
-    if (country === null && subdivision === null) {
-      const existing = await this.findModelConstantOverride(data.constantKey, null, null);
+    // Postgres treats NULLs as DISTINCT in standard unique indexes. That
+    // means our unique (constant_key, country, country_subdivision) index
+    // does NOT prevent a second insert at any locality where one of those
+    // columns is NULL. To keep PUT idempotent regardless of locality, we
+    // emulate a "NULLS NOT DISTINCT" upsert with a pre-find when at least
+    // one locality column is NULL. Subdivision-level rows (country and
+    // subdivision both non-null) still go through `onConflictDoUpdate`
+    // below, which is race-safe for the all-non-null case.
+    if (country === null || subdivision === null) {
+      const existing = await this.findModelConstantOverride(data.constantKey, country, subdivision);
       if (existing) {
         const [updated] = await db
           .update(modelConstantOverrides)
