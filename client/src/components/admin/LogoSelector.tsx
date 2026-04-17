@@ -27,7 +27,13 @@ export default function LogoSelector({
   testId = "select-logo",
   fallbackUrl,
 }: LogoSelectorProps) {
-  const { data: logos } = useAdminLogos();
+  const { data: allLogos } = useAdminLogos();
+  // Exclude logos that shouldn't appear in the management-company picker:
+  // - The app identity logo (e.g. H+ Analytics) is managed on Admin → App Identity only.
+  // - Proprietary brand logos (Numeratti, Norfolk AI) are tied to their owning companies
+  //   and aren't offered as generic options.
+  const HIDDEN_NAMES = new Set(["Numeratti Logo", "Norfolk AI Logo"]);
+  const logos = allLogos?.filter(l => !l.isAppLogo && !HIDDEN_NAMES.has(l.name));
 
   const defaultLogoEntry = logos?.find(l => l.isDefault);
   const effectiveValue = useDefaultFallback && value == null ? defaultLogoEntry?.id ?? null : value;

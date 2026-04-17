@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { usePanelManager } from "@/lib/panel-manager";
 import { RebeccaContextCard } from "./RebeccaContextCard";
@@ -13,7 +12,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   X,
-  Sparkles,
   RotateCcw,
   Mail,
   Flag,
@@ -22,6 +20,13 @@ import {
   AlignLeft,
   BookOpen,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
 import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
@@ -68,9 +73,10 @@ function getStoredMode(): ResponseMode {
 }
 
 const DEFAULT_CHIPS = [
-  "What does research suggest?",
-  "Compare to similar properties",
-  "Explain the methodology",
+  "How are my properties performing?",
+  "Tell me about the management company",
+  "What scenarios should I consider?",
+  "Explain a key metric",
 ];
 
 interface RebeccaPanelProps {
@@ -486,7 +492,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         </SheetHeader>
 
         <div className="px-4 py-2 border-b border-border/30 shrink-0 flex items-center gap-1.5" data-testid="rebecca-mode-selector">
-          <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider mr-1">Mode</span>
+          <span className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mr-1">Mode</span>
           {RESPONSE_MODES.map((m) => {
             const Icon = m.icon;
             const active = responseMode === m.value;
@@ -500,8 +506,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/40"
+                    ? "bg-primary/15 text-primary"
+                    : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
                 )}
                 title={m.tip}
                 data-testid={`button-mode-${m.value}`}
@@ -524,28 +530,26 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             className="mb-1"
           />
           {messages.length === 0 && !loading && (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground gap-3 py-8">
-              <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 opacity-30" />
-              </div>
+            <div className="flex flex-col items-center justify-center text-center text-muted-foreground gap-3 pt-4 pb-2">
+              <RebeccaAvatar size="lg" />
               <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground/70">
+                <p className="text-sm font-medium text-foreground/80">
                   {rebeccaContext?.fieldName
                     ? `Let's discuss ${rebeccaContext.fieldName}`
                     : "How can I help?"}
                 </p>
-                <p className="text-xs text-muted-foreground max-w-[280px]">
+                <p className="text-xs text-muted-foreground max-w-[320px]">
                   Ask about properties, financials, research methodology, or investment metrics.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-1.5 justify-center mt-1 max-w-[360px]">
+              <div className="flex flex-row flex-wrap gap-1.5 justify-center mt-1 max-w-full">
                 {activeChips.map((q) => (
                   <Button
                     key={q}
                     variant="outline"
                     size="sm"
                     onClick={() => sendMessage(q)}
-                    className="text-xs px-2.5 py-1 rounded-full h-auto"
+                    className="text-xs px-2.5 py-1 rounded-full h-auto whitespace-nowrap"
                     data-testid={`button-rebecca-chip-${q.slice(0, 20).replace(/\s+/g, "-")}`}
                   >
                     {q}

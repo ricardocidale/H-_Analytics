@@ -27,6 +27,7 @@ import { RebeccaChatbot } from "@/components/RebeccaChatbot";
 import { ResearchQueueIndicator } from "@/components/research/ResearchQueueIndicator";
 import { GuidanceSideSheet } from "@/components/research/GuidanceSideSheet";
 import { RebeccaPanel } from "@/components/rebecca/RebeccaPanel";
+import { RebeccaFloatingLauncher } from "@/components/rebecca/RebeccaFloatingLauncher";
 import { usePanelManager } from "@/lib/panel-manager";
 
 import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } from "@/lib/theme";
@@ -472,7 +473,10 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       <GuidedWalkthrough />
       <GuidanceSideSheet />
       {!!global?.rebeccaEnabled && !user?.rebeccaOptOut && !!global?.rebeccaV2 && (
-        <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
+        <>
+          <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
+          <RebeccaFloatingLauncher displayName={global?.rebeccaDisplayName || "Rebecca"} />
+        </>
       )}
     </div>
   );

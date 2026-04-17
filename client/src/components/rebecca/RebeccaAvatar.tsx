@@ -1,12 +1,17 @@
 import { cn } from "@/lib/utils";
 
 interface RebeccaAvatarProps {
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
 export function RebeccaAvatar({ size = "sm", className }: RebeccaAvatarProps) {
-  const sizeClasses = size === "sm" ? "w-6 h-6 text-[10px]" : "w-8 h-8 text-xs";
+  const sizeClasses =
+    size === "sm"
+      ? "w-6 h-6 text-[10px]"
+      : size === "md"
+        ? "w-8 h-8 text-xs"
+        : "w-12 h-12 text-base";
 
   return (
     <div

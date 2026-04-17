@@ -27,6 +27,8 @@ export const useRebeccaInsightStore = create<InsightState>((set, get) => ({
   insights: [],
   seenHashes: new Set<string>(),
   addInsight: (insight, sourceHash?) => {
+    const trimmed = (insight.message ?? "").trim();
+    if (trimmed.length < 20) return;
     if (sourceHash && get().seenHashes.has(sourceHash)) return;
     set((state) => {
       const newSeenHashes = new Set(state.seenHashes);
@@ -55,7 +57,7 @@ export const useRebeccaInsightStore = create<InsightState>((set, get) => ({
     set((state) => ({
       insights: state.insights.map((i) => ({ ...i, dismissed: true })),
     })),
-  activeInsight: () => get().insights.find((i) => !i.dismissed),
+  activeInsight: () => get().insights.find((i) => !i.dismissed && (i.message?.trim().length ?? 0) >= 20),
 }));
 
 interface RebeccaInsightBannerProps {
