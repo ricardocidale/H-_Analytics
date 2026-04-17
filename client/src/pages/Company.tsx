@@ -40,6 +40,8 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconCheckCircle } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
+import { useLocation } from "wouter";
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Link } from "wouter";
 import { AnimatedPage } from "@/components/graphics";
@@ -86,6 +88,7 @@ export default function Company() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportType, setExportType] = useState<"pdf" | "xlsx" | "pptx" | "docx" | "chart">("pdf");
   const { requestSave, SaveDialog } = useExportSave();
+  const [, navigate] = useLocation();
 
   const fundingLabel = global?.fundingSourceLabel ?? "Funding Vehicle";
 
@@ -268,7 +271,17 @@ export default function Company() {
   const tabLabel = activeTab === "income" ? "Income Statement" : activeTab === "cashflow" ? "Cash Flow" : activeTab === "investment" ? "Investment" : "Balance Sheet";
 
   const exportMenuNode = (
-    <ExportMenu
+    <>
+      <AnalystButton
+        onClick={() => navigate(isAdmin ? "/company/assumptions?analyst=1" : "/company/guidance")}
+        size="sm"
+        variant="outline"
+        tooltip={isAdmin
+          ? "Open Company Assumptions and consult The Analyst for AI-backed market ranges across every field."
+          : "Open AI Guidance to see The Analyst's recommended ranges for your company assumptions."}
+        dataTestId="button-analyst-company"
+      />
+      <ExportMenu
       variant="light"
       actions={[
         pdfAction(() => { setExportType('pdf'); setExportDialogOpen(true); }),
@@ -304,6 +317,7 @@ export default function Company() {
         pngAction(() => requestSave(`${companyName} ${tabLabel}`, ".png", (f) => exportTablePNG(tableRef, activeTab, companyName, f))),
       ]}
     />
+    </>
   );
 
   return (

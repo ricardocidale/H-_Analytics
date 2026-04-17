@@ -340,6 +340,17 @@ export default function CompanyAssumptions() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("analyst") !== "1") return;
+    if (!companyContextReady || isGenerating) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("analyst");
+    window.history.replaceState({}, "", url.toString());
+    generateResearch();
+  }, [companyContextReady, isGenerating, generateResearch]);
+
   const modelStartYear = global?.modelStartDate 
     ? new Date(global.modelStartDate).getFullYear() 
     : new Date(DEFAULT_MODEL_START_DATE).getFullYear();
