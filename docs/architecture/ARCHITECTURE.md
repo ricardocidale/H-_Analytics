@@ -13,6 +13,23 @@
 | **The HMC** | The hospitality management company being modeled. Name is admin-configured. Provides branding and management services to properties. Does NOT buy real estate. | Admin configures defaults. Users work with assumptions. |
 | **Property SPVs** | Independent real estate assets. Owned by their own investors. Property owners hire the HMC. Each is a separate financial entity. | Admin seeds. Users assign to scenarios via switches. |
 
+### 1a. Entity-Type Financial Rules (CANONICAL)
+
+| Concern | Property SPV | The HMC (Management Company) |
+|---|---|---|
+| Asset class | Real estate | Operating service business |
+| Depreciation | Yes (IRS basis) | None (no real estate) |
+| Debt | Yes (loan, refi) | None (SAFE-funded) |
+| NOI concept | Yes | **No — NOI is a real estate metric** |
+| Exit valuation method | **Cap rate** (NOI ÷ exitCapRate) at terminal year | **DCF on FCF** (discount at `costOfEquity`) or EBITDA multiple — **never cap rate** |
+| Sales commission on exit | Yes (`dispositionCommission`) | N/A |
+
+**The fields `exitCapRate`, `salesCommissionRate`, `dispositionCommission` are PROPERTY DEFAULTS.** They live in the `global` bag only as a cascade source for new properties (`property.exitCapRate ?? global?.exitCapRate ?? DEFAULT_EXIT_CAP_RATE`). They are NOT Management Company exit fields. UI tabs that group them under a "Company Exit" heading are incorrect; they belong with property defaults.
+
+**Legitimate company-level financial fields:** `costOfEquity` (WACC Re input + DCF discount rate) and `companyTaxRate`.
+
+See `.claude/skills/finance/management-company-statements.md` for the engine-side enforcement contract.
+
 ---
 
 ## 2. Defaults vs Assumptions

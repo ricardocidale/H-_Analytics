@@ -169,6 +169,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Rebecca must NEVER compute financial values** — all data from the calculation pipeline
 - **Rebecca Proactive Insights:** Two-tier insight system after portfolio compute. Tier 1: instant deterministic analysis. Tier 2: RAG-powered LLM insight via `POST /api/rebecca/insight`.
 - **Balance Sheet Identity**: A = L + E must hold within $1
+- **Management Company has NO exit cap rate.** It is an operating service business, not real estate. Never apply NOI ÷ cap rate to the HMC. Terminal value (if ever needed) = DCF on FCF discounted at `costOfEquity`, or EBITDA multiple. Fields `exitCapRate`, `salesCommissionRate`, `dispositionCommission` are PROPERTY DEFAULTS (cascade through `global` bag), not company exit fields. See `.claude/skills/finance/management-company-statements.md`.
 - **Resend replaces SendGrid** for all transactional email
 - **Domain boundary**: Route files must NEVER import `db` or `drizzle-orm` directly — use `IStorage` facade.
 - **drizzle-zod**: NEVER `.omit()` — only `.pick()`.

@@ -47,9 +47,37 @@ The Management Company is a **service company** — it has NO real estate assets
 - No interest expense (no debt — funded by SAFE agreements)
 - No principal payments
 - No NOI concept (NOI is a real estate metric)
+- **No exit cap rate** — see "Terminal Value" rule below
 - SAFE funding is NOT revenue — it is equity capital (classified as financing activity)
 - Expenses begin only AFTER company operations start (Funding Gate rule)
 - Revenue begins only when properties are operational and generating fees
+
+---
+
+## CANONICAL RULE — Management Company Has No Exit Cap Rate
+
+The Management Company is an **operating service business**, not a real-estate asset. Cap-rate exit valuation (Value = NOI ÷ cap rate) is a real-estate concept and **MUST NOT be applied** to the Management Company under any circumstance.
+
+If a terminal/exit value for the Management Company is ever required, the **only** acceptable methods are:
+1. **Discounted Free Cash Flow (DCF)** — discount projected FCF at `costOfEquity` (the WACC Re input already in the model)
+2. **EBITDA multiple** — service-business comparables
+
+**Never** use `exitCapRate`, `salesCommissionRate`, or `dispositionCommission` on the Management Company entity.
+
+### Where these fields actually belong
+The fields `exitCapRate`, `salesCommissionRate` and `dispositionCommission` are **property defaults**. In the engine they are read as `property.exitCapRate ?? global?.exitCapRate ?? DEFAULT_EXIT_CAP_RATE` inside `engine/aggregation/cashFlowAggregator.ts` and `engine/aggregation/yearlyAggregator.ts` — they cascade from the global/company defaults bag into each property's last-year exit valuation. The `global` bag is a **defaults carrier**, not a statement of company-level exit. Putting these fields on a "Tax & Exit" tab of the Company page was a UX mis-categorization, not a financial statement.
+
+### Company-level fields that ARE legitimate
+- `costOfEquity` — required equity return (Re). Used as the WACC Re input for property DCF and as the discount rate for any Management Company DCF.
+- `companyTaxRate` — corporate tax rate applied to the Management Company's taxable income.
+
+### Engine-side enforcement contract
+`generateCompanyProForma` in `client/src/lib/financial/company-engine.ts` MUST NOT:
+- Read `exitCapRate`, `salesCommissionRate`, or `dispositionCommission` from the company entity
+- Compute a terminal/exit value for the Management Company via cap rate
+- Add a "sale of company" line to the Management Company cash flow statement
+
+If a future requirement adds a Management Company terminal value, it must be implemented as a separate FCF/DCF module and clearly labeled as such in both code and UI.
 
 **Fee Linkage Rule:** The Management Company's revenue MUST exactly match the sum of Management Fee expenses across all properties. This is a mandatory cross-entity validation.
 

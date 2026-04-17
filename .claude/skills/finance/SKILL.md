@@ -55,8 +55,9 @@ Documents the financial calculation engine — GAAP-compliant (ASC 230, ASC 360,
 
 ## Critical Rules (April 2026 Remediation)
 
+- **Management Company has NO exit cap rate.** It is an operating service business, not real estate. Cap-rate exit valuation (NOI ÷ cap rate) MUST NOT be applied. If a terminal value is ever needed, use DCF on FCF (discounted at `costOfEquity`) or an EBITDA multiple. The fields `exitCapRate`, `salesCommissionRate`, `dispositionCommission` are PROPERTY DEFAULTS that cascade through the `global` bag to each property's last-year exit — they are not company exit fields. See `management-company-statements.md` ("Canonical Rule — Management Company Has No Exit Cap Rate").
 - **PMT:** Only `calc/shared/pmt.ts` is the canonical PMT function. It has overflow guards, epsilon zero-rate check, and interest-only fallback. Other files have copies that should eventually be replaced with imports from here.
-- **Exit Valuation:** `annualizedNOI` must be > 0 before dividing by exitCapRate. Negative NOI = exit value 0 (walk away, not negative sale price).
+- **Exit Valuation (property only):** `annualizedNOI` must be > 0 before dividing by exitCapRate. Negative NOI = exit value 0 (walk away, not negative sale price).
 - **FF&E in Cash Flow:** FF&E is excluded from CFO and placed in CFI. FCF = CFO - acquisition capex. Do NOT deduct FF&E from FCF again.
 - **Cost Segregation:** If `pct5 + pct7 + pctLong > 1.0`, clamp proportionally. Total depreciation must never exceed building value.
 - **Depreciation Years:** If 0, default to DEPRECIATION_YEARS constant. Never allow division by zero.
