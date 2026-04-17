@@ -12,7 +12,7 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
 
 - **Norfolk AI** builds the app. The HMC is what's modeled. They are separate entities.
 - **The HMC does NOT buy properties.** Property owners hire the HMC for management and branding.
-- **Defaults** = admin sets in Admin section. **Assumptions** = users work with in front of app. Never confuse them.
+- **Defaults ≠ Assumptions — DO NOT CONFUSE.** **Assumptions = user-facing working variables** (the numbers a user types, saves, and runs scenarios on, on the front of the app). **Defaults = admin-only seed values** loaded into the DB to initialize a fresh tenant. The word *"assumption"* in any UI label, button, tooltip, error message, AI agent text, or doc **always means the user's working variable** — never a default. The word *"default"* must not appear in user-facing copy outside the Admin section. Conflating these has caused real production losses (admin-only routing on user pages, reset buttons wiping user work, seed values treated as authoritative). Full rule in `.claude/skills/vocabulary/SKILL.md` §0.
 - **Company Assumptions page is user-facing** (ManagementRoute), not admin-only.
 - **Save is per tab.** Each tab save commits that tab's fields and triggers The Analyst.
 - **The Analyst runs after every save** (Tier-0 instant) and on button press (Tier-1 deep research).

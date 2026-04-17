@@ -17,6 +17,27 @@ financial terms, or ask before inventing new language.
 
 ---
 
+## 0. Critical Distinction — Assumptions vs Defaults (READ FIRST)
+
+**This confusion has cost us real time and real money. Get it right.**
+
+| Term | What It Means | Who Touches It | Where It Lives |
+|---|---|---|---|
+| **Assumption** | A user-facing **working variable**. The number the user is currently modeling with. Editable on the front of the app. The Analyst validates it, flags it, and suggests ranges for it. | Every user (management role and above) | Company Assumptions page, Property assumption pages, scenario state |
+| **Default** | An admin-only **seed value** loaded into the database to initialize a fresh tenant or reset a field. A starting point, not a working number. | Super admin only, in the Admin section | `defaults` tables, seed scripts, admin settings |
+
+**Rules — non-negotiable:**
+
+1. **"Assumption" never means "default value."** When the UI, copy, error messages, button labels, tooltips, or AI agent text says *assumption*, it refers to the **user's current working variable** — the thing they edit, save, and run scenarios on. Never a seed.
+2. **"Default" never appears in user-facing copy** outside the Admin section. Users do not see, hear, or read the word *default* on Properties, Company Assumptions, Dashboard, Scenarios, Research, or anywhere else in the main app.
+3. **Save a default ≠ Save an assumption.** Editing a default in Admin reseeds new tenants and provides reset values; it does **not** change any existing user's saved assumption. Editing an assumption in the front of the app writes to that user's tenant scope only.
+4. **The Analyst validates assumptions, not defaults.** Watchdog, conviction floor, change log, post-save warnings — all operate on assumptions. Defaults are inert until copied into a fresh tenant.
+5. **Any AI agent (Replit Agent, Claude Code, future agents) reading this file must treat the two as different DB columns, different routes, different audiences, and different business meanings.** Conflating them has caused: admin-only routing on user pages, reset buttons that wiped user work, "default" surfacing in user copy, and seed values being treated as authoritative.
+
+**Quick test before you write code or copy:** *"Is this number something the user types and saves?"* → it's an **assumption**. *"Is this number set once by an admin to seed every new tenant?"* → it's a **default**. If both apply, you're describing the relationship between them — say so explicitly.
+
+---
+
 ## 1. Core Entities
 
 | Canonical Name | What It Is | Forbidden Alternatives |
