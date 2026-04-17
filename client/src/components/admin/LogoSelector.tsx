@@ -32,15 +32,21 @@ export default function LogoSelector({
   // - The app identity logo (e.g. H+ Analytics) is managed on Admin → App Identity only.
   // - Proprietary brand logos (Numeratti, Norfolk AI) are tied to their owning companies
   //   and aren't offered as generic options.
+  // Exception: if the company currently has one of these logos assigned, keep it in the
+  // list so the dropdown still shows its name instead of going blank.
   const HIDDEN_NAMES = new Set(["Numeratti Logo", "Norfolk AI Logo"]);
-  const logos = allLogos?.filter(l => !l.isAppLogo && !HIDDEN_NAMES.has(l.name));
+  const filteredLogos = allLogos?.filter(l => !l.isAppLogo && !HIDDEN_NAMES.has(l.name));
+  const currentLogo = value != null ? allLogos?.find(l => l.id === value) : undefined;
+  const logos = currentLogo && !filteredLogos?.some(l => l.id === currentLogo.id)
+    ? [...(filteredLogos ?? []), currentLogo]
+    : filteredLogos;
 
   const defaultLogoEntry = logos?.find(l => l.isDefault);
   const effectiveValue = useDefaultFallback && value == null ? defaultLogoEntry?.id ?? null : value;
 
   const resolvedUrl = (() => {
     if (effectiveValue) {
-      const logo = logos?.find(l => l.id === effectiveValue);
+      const logo = allLogos?.find(l => l.id === effectiveValue);
       if (logo) return logo.url;
     }
     return fallbackUrl || defaultLogo;

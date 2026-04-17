@@ -1,5 +1,5 @@
 import { usePanelManager } from "@/lib/panel-manager";
-import { RebeccaAvatar } from "./RebeccaAvatar";
+import { IconMessageCircle } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 interface RebeccaFloatingLauncherProps {
@@ -28,13 +28,13 @@ export function RebeccaFloatingLauncher({ displayName = "Rebecca" }: RebeccaFloa
         "fixed z-[60] bottom-[max(1rem,env(safe-area-inset-bottom))] right-4",
         "md:bottom-6 md:right-6",
         "h-14 w-14 rounded-full",
-        "bg-card border border-border shadow-lg hover:shadow-xl",
+        "bg-primary text-primary-foreground shadow-lg hover:shadow-xl",
         "flex items-center justify-center",
         "transition-all duration-200 hover:scale-105",
         "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
       )}
     >
-      <RebeccaAvatar size="md" />
+      <IconMessageCircle className="w-6 h-6" />
     </button>
   );
 }

@@ -611,7 +611,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => sendMessage(q)}
-                  className="text-[11px] px-2 py-0.5 rounded-full h-auto opacity-70 hover:opacity-100"
+                  className="text-[11px] px-2 py-0.5 rounded-full h-auto opacity-70 hover:opacity-100 whitespace-nowrap"
                   disabled={loading}
                   data-testid={`button-rebecca-followup-${q.slice(0, 15).replace(/\s+/g, "-")}`}
                 >
