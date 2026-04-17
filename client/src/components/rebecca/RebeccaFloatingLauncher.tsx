@@ -25,14 +25,6 @@ export function RebeccaFloatingLauncher({ displayName = "Rebecca" }: RebeccaFloa
         "h-14 w-14",
       )}
     >
-      {/* Ambient pulse halo — sits behind the button, draws the eye without being noisy */}
-      <span
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-0 rounded-full",
-          "bg-primary/40 animate-ping",
-        )}
-      />
       <button
         type="button"
         onClick={() => (isOpen ? closeAll() : openRebecca())}

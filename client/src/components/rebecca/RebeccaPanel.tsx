@@ -20,13 +20,6 @@ import {
   AlignLeft,
   BookOpen,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
 import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
@@ -129,6 +122,35 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // If any nested overlay (sub-sheet/dialog/popover) is open, let it handle Escape first
+      const nested = document.querySelector(
+        '[role="dialog"][data-state="open"], [data-radix-popper-content-wrapper] [data-state="open"]'
+      );
+      if (nested) return;
+      closeAll();
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (panelRef.current && panelRef.current.contains(target)) return;
+      // Ignore clicks inside any portalled overlay (sub-sheets/dialogs/popovers)
+      const el = target as HTMLElement;
+      if (el.closest?.('[role="dialog"], [data-radix-popper-content-wrapper], [data-state="open"][data-side]')) return;
+      closeAll();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [isOpen, closeAll]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -407,23 +429,38 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       : DEFAULT_CHIPS;
 
   return (
-    <Sheet open={isOpen} onOpenChange={(o) => { if (!o) closeAll(); }}>
-      <SheetContent
-        side="right"
-        className="w-full sm:w-[520px] sm:max-w-[520px] p-0 flex flex-col overflow-hidden relative"
-        data-testid="rebecca-panel"
-      >
-        <SheetHeader className="px-5 pt-4 pb-3 border-b border-border/40 shrink-0">
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-label={displayName}
+            aria-modal="false"
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className={cn(
+              "fixed z-[70] bg-background border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden",
+              // Mobile: nearly full viewport but still floating with rounded corners
+              "left-2 right-2 bottom-2 top-2",
+              // Desktop: small chat-box anchored bottom-right
+              "sm:left-auto sm:top-auto sm:right-6 sm:bottom-6 sm:w-[400px] sm:h-[600px] sm:max-h-[calc(100svh-3rem)]",
+            )}
+            data-testid="rebecca-panel"
+          >
+        <div className="px-5 pt-4 pb-3 border-b border-border/40 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <RebeccaAvatar size="md" />
               <div className="min-w-0">
-                <SheetTitle className="text-sm font-semibold" data-testid="rebecca-panel-title">
+                <h2 className="text-sm font-semibold" data-testid="rebecca-panel-title">
                   {displayName}
-                </SheetTitle>
-                <SheetDescription className="text-[11px] mt-0">
+                </h2>
+                <p className="text-[11px] mt-0 text-muted-foreground">
                   Norfolk AI Analytics
-                </SheetDescription>
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -489,7 +526,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               </Button>
             </div>
           </div>
-        </SheetHeader>
+        </div>
 
         <div className="px-4 py-2 border-b border-border/30 shrink-0 flex items-center gap-1.5" data-testid="rebecca-mode-selector">
           <span className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mr-1">Mode</span>
@@ -655,7 +692,9 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           onSelect={handleSelectConversation}
           currentConversationId={conversationId}
         />
-      </SheetContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <RebeccaEmailPreview
         open={emailOpen}
@@ -674,6 +713,6 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         entityId={rebeccaContext?.entityId}
         fieldKey={rebeccaContext?.fieldKey}
       />
-    </Sheet>
+    </>
   );
 }
