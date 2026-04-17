@@ -23,13 +23,17 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
       <div className="relative space-y-6">
-        <div className="flex items-start justify-between gap-4">
+        {/* Header block uses the same min-h as TaxSection so the first inner
+            Card aligns horizontally across the two-column page even when one
+            subtitle wraps to two lines and the other is single-line. See
+            .claude/skills/ui/page-column-card-pattern.md §"Header alignment". */}
+        <div className="flex items-start justify-between gap-4 min-h-[4.5rem]">
           <div>
-            <h3 className="text-lg font-display text-foreground flex items-center">
+            <h2 className="text-xl font-display text-foreground flex items-center">
               Company Setup
               <InfoTooltip text="Configure the management company identity, contact info, location, and projection horizon." />
-            </h3>
-            <p className="text-muted-foreground text-sm label-text">Configure the management company details and when it starts operations</p>
+            </h2>
+            <p className="text-muted-foreground text-sm label-text mt-1">Configure the management company details and when it starts operations</p>
           </div>
           <Link
             href="/company/icp-definition"

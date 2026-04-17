@@ -56,7 +56,10 @@ Where `IconX` comes from `@/components/icons` (use the financial / status / navi
 
 ```tsx
 <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
-  <div className="mb-6">
+  {/* min-h reserves the same vertical space across columns so the first
+      inner Card aligns horizontally even when one subtitle is one line and
+      the other wraps to two. See §"Header alignment" below. */}
+  <div className="mb-6 min-h-[4.5rem]">
     <h2 className="text-xl font-display text-foreground">Outer Section Name</h2>
     <p className="label-text text-muted-foreground mt-1">One-line description of the column's purpose</p>
   </div>
@@ -65,6 +68,30 @@ Where `IconX` comes from `@/components/icons` (use the financial / status / navi
   </div>
 </div>
 ```
+
+---
+
+## Header alignment (the "close-but-not-aligned" rule)
+
+**When two columns sit side-by-side, the first inner Card in each column must start at the same vertical Y.** The most common breakage is asymmetric subtitle wrap: column 1's subtitle is one line, column 2's wraps to two — and now the inner cards are off by ~20px and the eye reads it as "broken."
+
+**The rule:** every column's outer header block (the wrapper around the `<h2>` + subtitle) must carry a matching `min-h-[4.5rem]` class. That reserves enough vertical space for a two-line subtitle (the realistic worst case) so a one-line subtitle still leaves the inner cards aligned with their two-line peer across the page.
+
+```tsx
+<div className="mb-6 min-h-[4.5rem]">          {/* ✓ both columns identical */}
+  <h2 className="text-xl font-display ...">…</h2>
+  <p className="label-text text-muted-foreground mt-1">…</p>
+</div>
+```
+
+Anti-patterns specific to this rule:
+
+- **Different heading levels or sizes between columns** (`h3 text-lg` in column 1 vs `h2 text-xl` in column 2). Always `<h2 className="text-xl font-display text-foreground">` for both.
+- **Manually padding the shorter subtitle to two lines** with filler words. Use `min-h`, not prose hacks.
+- **Using `min-h` on only one column.** It must be on both, with the same value.
+- **Using a smaller `min-h` and accepting "close enough."** If the design rule is alignment, anything visibly off is wrong. `4.5rem` accommodates two-line subtitles in this app's font sizes; bump it together (and matchingly) only if one subtitle realistically needs three lines.
+
+If you ever rework outer subtitles to be longer/shorter, **re-verify both columns still align** by viewing the page side-by-side — don't trust the type-check or the lint to catch this; it's purely visual.
 
 ---
 

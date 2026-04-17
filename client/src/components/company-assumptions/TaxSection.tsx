@@ -32,8 +32,11 @@ export default function TaxSection({ formData, onChange, global, researchValues 
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
       {/* Outer card title — mirrors CompanySetupSection's "Company Setup"
           heading + subtitle so column 2 reads as a peer of column 1, not as
-          a different shape. */}
-      <div className="mb-6">
+          a different shape. min-h matches column 1 so the first inner Card
+          aligns horizontally across the two columns even when one subtitle
+          wraps to two lines. See
+          .claude/skills/ui/page-column-card-pattern.md §"Header alignment". */}
+      <div className="mb-6 min-h-[4.5rem]">
         <h2 className="text-xl font-display text-foreground">Financial & Macro</h2>
         <p className="label-text text-muted-foreground mt-1">
           Projection horizon, tax, inflation, and externally-governed model constants
