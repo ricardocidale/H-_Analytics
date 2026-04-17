@@ -583,8 +583,7 @@ npm run exports:check  # Find unused exports
 | `ANTHROPIC_API_KEY` | Claude API for research and chatbot |
 | `GOOGLE_AI_API_KEY` | Gemini for image generation and research |
 | `OPENAI_API_KEY` | GPT for fallback image generation |
-| `PINECONE_API_KEY` | Vector database for RAG |
-| `PINECONE_INDEX` | Pinecone index name |
+| `OPENAI_EMBEDDING_KEY` | OpenAI key used for `text-embedding-3-small` (1536-dim) embeddings written to the pgvector store. Falls back to `OPENAI_API_KEY` if unset. |
 | `SENTRY_DSN` | Error tracking |
 | `POSTHOG_KEY` | Analytics |
 | `UPSTASH_REDIS_URL` | Caching |

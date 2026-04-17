@@ -155,7 +155,8 @@ Note: Frankfurter ECB FX Rates and World Bank API require no API key.
 
 | Variable | Service | Category |
 |----------|---------|----------|
-| `PINECONE_API_KEY` | Pinecone Vector DB | vector_search |
+| `DATABASE_URL` | Neon pgvector (`vector_chunks` table, 1536-dim cosine HNSW) | vector_search |
+| `OPENAI_EMBEDDING_KEY` (or `OPENAI_API_KEY`) | OpenAI `text-embedding-3-small` for embeddings written to the vector store | embeddings |
 
 ### Communication (Optional)
 

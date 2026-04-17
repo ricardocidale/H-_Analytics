@@ -99,15 +99,15 @@ const SOURCE_SEEDS: SourceSeed[] = [
 
   // ── Vector Search ────────────────────────────────────────────────────────
   {
-    serviceKey: "pinecone",
-    name: "Pinecone Vector DB",
+    serviceKey: "pgvector",
+    name: "Neon pgvector",
     sourceType: "sdk",
     category: "vector_search",
-    endpoint: "https://api.pinecone.io",
-    apiKeyRef: "PINECONE_API_KEY",
-    rateLimitPerMin: 100,
+    endpoint: "postgres://neon (vector_chunks)",
+    apiKeyRef: "DATABASE_URL",
+    rateLimitPerMin: 0,
     isActive: true,
-    description: "Pinecone vector database for property profiles, benchmark embeddings, and Rebecca RAG knowledge base. Enables semantic search across research results and historical analyses.",
+    description: "Neon PostgreSQL with the pgvector extension. Stores property profiles, benchmark embeddings, and Rebecca RAG knowledge base. Enables semantic search across research results and historical analyses via cosine similarity (HNSW index).",
   },
 
   // ── Communication ────────────────────────────────────────────────────────

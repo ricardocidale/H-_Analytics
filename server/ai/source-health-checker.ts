@@ -208,7 +208,6 @@ const LLM_SOURCES: Record<string, string> = {
 
 const ENV_ONLY_SOURCES: Record<string, string> = {
   tavily: "TAVILY_API_KEY",
-  pinecone: "PINECONE_API_KEY",
   resend: "RESEND_API_KEY",
   sentry: "SENTRY_DSN",
   posthog: "POSTHOG_KEY",

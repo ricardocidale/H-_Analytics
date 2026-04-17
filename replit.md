@@ -120,7 +120,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Monitoring & Analytics:** Sentry, PostHog
 - **Caching:** Upstash Redis
 - **AI/LLM Providers:** `@anthropic-ai/sdk`, Gemini
-- **Vector DB:** Pinecone — 7 namespaces: knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties.
+- **Vector store:** Neon pgvector (`vector_chunks` table, 1536-dim cosine, HNSW index) — 7 namespaces: knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties. Embeddings via OpenAI `text-embedding-3-small`.
 - **Icons:** Lucide (hardcoded — Phosphor/Material removed)
 - **Email:** Resend
 

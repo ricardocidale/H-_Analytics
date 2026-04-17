@@ -15,19 +15,23 @@ interface SystemStatusData {
   llmVendors: LlmVendorStatus[];
   recommendedDefaults: { vendor: string; model: string };
   knowledgeBase: {
-    pinecone: boolean;
+    // `pinecone` is a legacy alias still emitted by the API for back-compat;
+    // the new field name is `vectorStore`.
+    pinecone?: boolean;
+    vectorStore?: boolean;
     embeddings: boolean;
     learningActive: boolean;
     message: string;
   };
   missingKeys: {
     fredApiKey: boolean;
-    pineconeApiKey: boolean;
+    pineconeApiKey?: boolean;
+    vectorStore?: boolean;
     embeddingKey: boolean;
   };
 }
 
-interface PineconeStatsData {
+interface VectorStoreStatsData {
   available: boolean;
   embeddingsAvailable?: boolean;
   totalVectors: number;
@@ -76,11 +80,13 @@ export default function SystemIntelligenceStatus() {
     staleTime: 60_000,
   });
 
-  const { data: pineconeStats, isLoading: statsLoading } = useQuery<PineconeStatsData>({
-    queryKey: ["admin", "pinecone-stats"],
+  // Endpoint path remains `/api/admin/pinecone/*` for back-compat with the
+  // existing route registrations; semantically these now hit pgvector.
+  const { data: vectorStoreStats, isLoading: statsLoading } = useQuery<VectorStoreStatsData>({
+    queryKey: ["admin", "vector-store-stats"],
     queryFn: async () => {
       const res = await fetch("/api/admin/pinecone/stats", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch Pinecone stats");
+      if (!res.ok) throw new Error("Failed to fetch vector store stats");
       return res.json();
     },
     staleTime: 30_000,
@@ -98,7 +104,7 @@ export default function SystemIntelligenceStatus() {
     },
     onSettled: () => {
       setReindexingNs(null);
-      queryClient.invalidateQueries({ queryKey: ["admin", "pinecone-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "vector-store-stats"] });
     },
   });
 
@@ -114,7 +120,7 @@ export default function SystemIntelligenceStatus() {
     },
     onSettled: () => {
       setClearingNs(null);
-      queryClient.invalidateQueries({ queryKey: ["admin", "pinecone-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "vector-store-stats"] });
     },
   });
 
@@ -142,16 +148,21 @@ export default function SystemIntelligenceStatus() {
     );
   }
 
+  const vectorStoreConnected = data.knowledgeBase.vectorStore ?? data.knowledgeBase.pinecone ?? false;
+
   const missingKeysList = Object.entries(data.missingKeys)
     .filter(([, missing]) => missing)
     .map(([key]) => {
       switch (key) {
         case "fredApiKey": return "FRED_API_KEY (macro rates: SOFR, Treasury, CPI)";
-        case "pineconeApiKey": return "PINECONE_API_KEY (vector knowledge base)";
+        case "vectorStore":
+        case "pineconeApiKey": return "DATABASE_URL (vector store / pgvector)";
         case "embeddingKey": return "OPENAI_EMBEDDING_KEY (vector embeddings for learning)";
         default: return key;
       }
-    });
+    })
+    // De-duplicate the legacy + new alias when both are emitted.
+    .filter((label, idx, arr) => arr.indexOf(label) === idx);
 
   return (
     <div className="space-y-4" data-testid="system-intelligence-status">
@@ -194,8 +205,8 @@ export default function SystemIntelligenceStatus() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span>Pinecone</span>
-              {data.knowledgeBase.pinecone ? (
+              <span>Vector store</span>
+              {vectorStoreConnected ? (
                 <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30">Connected</Badge>
               ) : (
                 <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50 dark:bg-red-950/30">Not configured</Badge>
@@ -209,11 +220,11 @@ export default function SystemIntelligenceStatus() {
                 <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">Unavailable</Badge>
               )}
             </div>
-            {pineconeStats?.available && (
+            {vectorStoreStats?.available && (
               <div className="flex items-center justify-between text-sm">
                 <span>Total Vectors</span>
                 <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-950/30">
-                  {pineconeStats.totalVectors.toLocaleString()}
+                  {vectorStoreStats.totalVectors.toLocaleString()}
                 </Badge>
               </div>
             )}
@@ -252,20 +263,20 @@ export default function SystemIntelligenceStatus() {
         )}
       </div>
 
-      {pineconeStats?.available && (
-        <Card data-testid="pinecone-namespace-stats">
+      {vectorStoreStats?.available && (
+        <Card data-testid="vector-store-namespace-stats">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Cpu className="w-4 h-4 text-primary" />
-                Pinecone Namespaces — Vector Index
+                Vector Store Namespaces — pgvector Index
               </CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["admin", "pinecone-stats"] })}
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["admin", "vector-store-stats"] })}
                 className="h-7 text-xs"
-                data-testid="btn-refresh-pinecone-stats"
+                data-testid="btn-refresh-vector-store-stats"
               >
                 <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
               </Button>
@@ -282,12 +293,12 @@ export default function SystemIntelligenceStatus() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(pineconeStats.allNamespaces || Object.keys(pineconeStats.namespaces)).map(ns => {
-                    const count = pineconeStats.namespaces[ns] ?? 0;
+                  {(vectorStoreStats.allNamespaces || Object.keys(vectorStoreStats.namespaces)).map(ns => {
+                    const count = vectorStoreStats.namespaces[ns] ?? 0;
                     const isReindexing = reindexingNs === ns;
                     const isClearing = clearingNs === ns;
                     return (
-                      <tr key={ns} className="border-b border-border/30 last:border-0" data-testid={`pinecone-ns-${ns}`}>
+                      <tr key={ns} className="border-b border-border/30 last:border-0" data-testid={`vector-store-ns-${ns}`}>
                         <td className="py-2.5">
                           <div className="font-medium text-foreground">{namespaceLabels[ns] || ns}</div>
                           <div className="text-xs text-muted-foreground">{namespaceDescriptions[ns] || ns}</div>

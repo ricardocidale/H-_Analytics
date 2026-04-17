@@ -142,7 +142,7 @@ function AboutContent() {
                   items: [
                     { name: "Norfolk AI Engine", detail: "Proprietary research orchestration and ICP-driven analysis" },
                     { name: "Google Gemini", detail: "Large language model for portfolio analysis and chat" },
-                    { name: "Pinecone", detail: "Vector database for RAG retrieval across 5 knowledge namespaces" },
+                    { name: "Neon pgvector", detail: "Vector store for RAG retrieval across 6 knowledge namespaces" },
                     { name: "Perplexity", detail: "Grounded web search for real-time market intelligence" },
                   ],
                 },

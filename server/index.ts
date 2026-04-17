@@ -167,14 +167,14 @@ app.use((req, res, next) => {
     }
   }
 
-  const hasPinecone = !!process.env.PINECONE_API_KEY;
+  const hasVectorStore = !!process.env.DATABASE_URL;
   const hasEmbeddingKey = !!(process.env.OPENAI_EMBEDDING_KEY || process.env.OPENAI_API_KEY);
-  if (hasPinecone && hasEmbeddingKey) {
-    serverLog("Pinecone + embeddings: ready (knowledge learning active)", "startup", "info");
-  } else if (hasPinecone && !hasEmbeddingKey) {
-    serverLog("Pinecone: configured but embeddings unavailable — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.", "startup", "warn");
+  if (hasVectorStore && hasEmbeddingKey) {
+    serverLog("Vector store (pgvector) + embeddings: ready (knowledge learning active)", "startup", "info");
+  } else if (hasVectorStore && !hasEmbeddingKey) {
+    serverLog("Vector store: configured but embeddings unavailable — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.", "startup", "warn");
   } else {
-    serverLog("Pinecone: not configured (PINECONE_API_KEY not set)", "startup", "warn");
+    serverLog("Vector store: DATABASE_URL not set — vector indexing disabled", "startup", "warn");
   }
 
   const { initStorageProvider } = await import("./providers/storage");
@@ -525,10 +525,10 @@ async function runSeeds() {
   const { cleanOrphanedLogos } = await import("./migrations/db-hygiene-001");
   await cleanOrphanedLogos();
 
-  indexPropertiesToPineconeAsync();
+  indexPropertiesToVectorStoreAsync();
 }
 
-function indexPropertiesToPineconeAsync() {
+function indexPropertiesToVectorStoreAsync() {
   (async () => {
     try {
       const { indexPropertyProfile } = await import("./ai/pinecone-service");
@@ -550,10 +550,10 @@ function indexPropertiesToPineconeAsync() {
         });
       }
       if (allProps.length > 0) {
-        log(`Indexed ${allProps.length} property profiles to Pinecone`);
+        log(`Indexed ${allProps.length} property profiles to vector store`);
       }
     } catch (err: unknown) {
-      log(`Pinecone property indexing failed: ${err instanceof Error ? err.message : String(err)}`);
+      log(`Vector store property indexing failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   })();
 }

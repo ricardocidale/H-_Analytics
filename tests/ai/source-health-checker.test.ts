@@ -181,8 +181,8 @@ describe("checkSourceHealth", () => {
 
   // 9. latencyMs is measured
   it("returns latencyMs >= 0 on successful env-only checks", async () => {
-    process.env.PINECONE_API_KEY = "pk_test";
-    const result = await checkSourceHealth("pinecone");
+    process.env.RESEND_API_KEY = "re_test_latency";
+    const result = await checkSourceHealth("resend");
 
     expect(result.latencyMs).toBeGreaterThanOrEqual(0);
     expect(typeof result.latencyMs).toBe("number");

@@ -48,7 +48,7 @@ export function registerPineconeRoutes(app: Express) {
             status: "approved",
           });
         } catch {
-          logger.warn("Failed to index approved financial line to Pinecone", "financial-lines");
+          logger.warn("Failed to index approved financial line to vector store", "financial-lines");
         }
       }
 
@@ -79,27 +79,31 @@ export function registerPineconeRoutes(app: Express) {
     try {
       const vendors = checkVendorAvailability();
       const recommended = getRecommendedDefaults();
-      const pinecone = isPineconeAvailable();
+      const vectorStore = isPineconeAvailable();
       const embeddings = isEmbeddingAvailable();
 
-      const knowledgeLearning = pinecone && embeddings;
+      const knowledgeLearning = vectorStore && embeddings;
 
       res.json({
         llmVendors: vendors,
         recommendedDefaults: recommended,
         knowledgeBase: {
-          pinecone,
+          // Legacy field name preserved for older clients; mirrors `vectorStore`.
+          pinecone: vectorStore,
+          vectorStore,
           embeddings,
           learningActive: knowledgeLearning,
           message: knowledgeLearning
             ? "Knowledge learning is active — research results are indexed for future retrieval"
-            : !pinecone
-              ? "Pinecone not configured (PINECONE_API_KEY) — knowledge learning disabled"
+            : !vectorStore
+              ? "Vector store not configured (DATABASE_URL) — knowledge learning disabled"
               : "Embedding API not available — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.",
         },
         missingKeys: {
           fredApiKey: !process.env.FRED_API_KEY,
-          pineconeApiKey: !pinecone,
+          // Legacy field preserved; mirrors vectorStore availability.
+          pineconeApiKey: !vectorStore,
+          vectorStore: !vectorStore,
           embeddingKey: !embeddings,
         },
       });
@@ -111,13 +115,13 @@ export function registerPineconeRoutes(app: Express) {
   app.post("/api/admin/intelligence/index-assets", requireAdmin, async (_req, res) => {
     try {
       if (!isPineconeAvailable()) {
-        return res.status(400).json({ error: "Pinecone not configured" });
+        return res.status(400).json({ error: "Vector store not configured" });
       }
       if (!isEmbeddingAvailable()) {
         return res.status(400).json({ error: "Embedding service not available" });
       }
       const result = await indexAllAssets();
-      logActivity(_req, "index-assets", "pinecone", null, "knowledge-base", { indexed: result });
+      logActivity(_req, "index-assets", "vector-store", null, "knowledge-base", { indexed: result });
       res.json({ success: true, indexed: result });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to index assets", error);
@@ -152,7 +156,7 @@ export function registerPineconeRoutes(app: Express) {
         return res.status(400).json({ error: `Invalid namespace: ${ns}` });
       }
       if (!isPineconeAvailable()) {
-        return res.status(400).json({ error: "Pinecone not configured" });
+        return res.status(400).json({ error: "Vector store not configured" });
       }
       if (!isEmbeddingAvailable()) {
         return res.status(400).json({ error: "Embedding service not available" });
@@ -196,7 +200,7 @@ export function registerPineconeRoutes(app: Express) {
               createdBy: scenario.userId ? String(scenario.userId) : undefined,
             });
             indexed++;
-          } catch (e: unknown) { logger.warn(`Failed to index scenario ${scenario.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
+          } catch (e: unknown) { logger.warn(`Failed to index scenario ${scenario.id}: ${e instanceof Error ? e.message : e}`, "vector-store"); }
         }
         result.indexed = indexed;
         result.total = allScenarios.length;
@@ -218,7 +222,7 @@ export function registerPineconeRoutes(app: Express) {
               market: undefined,
             });
             indexed++;
-          } catch (e: unknown) { logger.warn(`Failed to index property ${property.id}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
+          } catch (e: unknown) { logger.warn(`Failed to index property ${property.id}: ${e instanceof Error ? e.message : e}`, "vector-store"); }
         }
         result.indexed = indexed;
         result.total = allProperties.length;
@@ -238,7 +242,7 @@ export function registerPineconeRoutes(app: Express) {
               snapshotDate: snap.fetchedAt.toISOString(),
             });
             indexed++;
-          } catch (e: unknown) { logger.warn(`Failed to index benchmark ${snap.snapshotKey}: ${e instanceof Error ? e.message : e}`, "pinecone"); }
+          } catch (e: unknown) { logger.warn(`Failed to index benchmark ${snap.snapshotKey}: ${e instanceof Error ? e.message : e}`, "vector-store"); }
         }
         result.indexed = indexed;
         result.total = snapshots.length;
@@ -248,8 +252,8 @@ export function registerPineconeRoutes(app: Express) {
         result.message = `Namespace "${ns}" cleared. Data will be re-indexed as new items are created.`;
       }
 
-      logActivity(req, "reindex-pinecone", "pinecone", null, ns, result as Record<string, unknown>);
-      logger.info(`Admin re-indexed Pinecone namespace "${ns}": ${JSON.stringify(result)}`, "pinecone");
+      logActivity(req, "reindex-vector-store", "vector-store", null, ns, result as Record<string, unknown>);
+      logger.info(`Admin re-indexed vector-store namespace "${ns}": ${JSON.stringify(result)}`, "vector-store");
       res.json({ success: true, ...result });
     } catch (error: unknown) {
       logAndSendError(res, `Failed to reindex namespace ${req.params.namespace}`, error);
@@ -263,11 +267,11 @@ export function registerPineconeRoutes(app: Express) {
         return res.status(400).json({ error: `Invalid namespace: ${ns}` });
       }
       if (!isPineconeAvailable()) {
-        return res.status(400).json({ error: "Pinecone not configured" });
+        return res.status(400).json({ error: "Vector store not configured" });
       }
       await deleteNamespace(ns);
-      logActivity(req, "clear-pinecone", "pinecone", null, ns);
-      logger.info(`Admin cleared Pinecone namespace "${ns}"`, "pinecone");
+      logActivity(req, "clear-vector-store", "vector-store", null, ns);
+      logger.info(`Admin cleared vector-store namespace "${ns}"`, "vector-store");
       res.json({ success: true, namespace: ns, cleared: true });
     } catch (error: unknown) {
       logAndSendError(res, `Failed to clear namespace ${req.params.namespace}`, error);
