@@ -27,7 +27,7 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
             Card aligns horizontally across the two-column page even when one
             subtitle wraps to two lines and the other is single-line. See
             .claude/skills/ui/page-column-card-pattern.md §"Header alignment". */}
-        <div className="flex items-start justify-between gap-4 min-h-[4.5rem]">
+        <div className="flex items-start justify-between gap-4 min-h-[5.5rem]">
           <div>
             <h2 className="text-xl font-display text-foreground flex items-center">
               Company Setup

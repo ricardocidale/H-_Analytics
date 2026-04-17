@@ -75,21 +75,43 @@ Where `IconX` comes from `@/components/icons` (use the financial / status / navi
 
 **When two columns sit side-by-side, the first inner Card in each column must start at the same vertical Y.** The most common breakage is asymmetric subtitle wrap: column 1's subtitle is one line, column 2's wraps to two — and now the inner cards are off by ~20px and the eye reads it as "broken."
 
-**The rule:** every column's outer header block (the wrapper around the `<h2>` + subtitle) must carry a matching `min-h-[4.5rem]` class. That reserves enough vertical space for a two-line subtitle (the realistic worst case) so a one-line subtitle still leaves the inner cards aligned with their two-line peer across the page.
+**The rule:** every column's outer header block (the wrapper around the `<h2>` + subtitle) must carry a matching `min-h-[Xrem]` class, where X is large enough to fit the **worst-case rendered height across all columns**. Today the canonical value is `min-h-[5.5rem]` (≈ 88px) because column 1 (`CompanySetupSection`) carries a right-aligned action link ("Edit ICP Definition") that shrinks the title block and forces its subtitle to wrap to three lines.
 
 ```tsx
-<div className="mb-6 min-h-[4.5rem]">          {/* ✓ both columns identical */}
+<div className="mb-6 min-h-[5.5rem]">          {/* ✓ both columns identical */}
   <h2 className="text-xl font-display ...">…</h2>
   <p className="label-text text-muted-foreground mt-1">…</p>
 </div>
 ```
 
+### Side-action gotcha (the regression that keeps coming back)
+
+If **either** column's outer header carries a side action — `<Link>`, `<Button>`, badge, dropdown, anything to the right of the title — then the title block is wrapped in a `flex items-start justify-between gap-4` row, which **steals horizontal space from the title/subtitle and forces the subtitle to wrap one extra line**. The peer column's subtitle (with no side action) still wraps the original number of lines, and the inner cards drift apart by ~16–24px.
+
+**Required check whenever you add, remove, move, or rename a side action OR change the length of any outer subtitle:**
+
+1. Open the page side-by-side in the dev preview at the realistic viewport (≥ `lg` — the canonical 2-col split breakpoint).
+2. Place a horizontal mental ruler at the top edge of the first inner card in column 1.
+3. The first inner card in column 2 must touch that same ruler. If it doesn't, the headers are misaligned.
+4. If they're misaligned, **bump the `min-h` value on every column's header in lockstep** (don't bump just one). Use the smallest value that fits the tallest rendered header at the breakpoint of interest.
+
+Common trigger combos that force a `min-h` bump:
+
+| Column 1 header | Column 2 header | Likely needed `min-h` |
+|---|---|---|
+| Title only + 1-line subtitle | Title only + 1-line subtitle | `4rem` |
+| Title only + ≤2-line subtitle | Title only + ≤2-line subtitle | `4.5rem` |
+| Title + side action (subtitle wraps to 3) | Title only + ≤2-line subtitle | **`5.5rem`** ← current canonical |
+| Title + side action (subtitle wraps to 3) | Title + side action (subtitle wraps to 3) | `5.5rem` |
+| Title + tall side action (e.g. button row) | anything | measure both and round up |
+
 Anti-patterns specific to this rule:
 
 - **Different heading levels or sizes between columns** (`h3 text-lg` in column 1 vs `h2 text-xl` in column 2). Always `<h2 className="text-xl font-display text-foreground">` for both.
 - **Manually padding the shorter subtitle to two lines** with filler words. Use `min-h`, not prose hacks.
-- **Using `min-h` on only one column.** It must be on both, with the same value.
-- **Using a smaller `min-h` and accepting "close enough."** If the design rule is alignment, anything visibly off is wrong. `4.5rem` accommodates two-line subtitles in this app's font sizes; bump it together (and matchingly) only if one subtitle realistically needs three lines.
+- **Using `min-h` on only one column.** It must be on both, with the same value. The values must be string-identical (`grep` the file and confirm).
+- **Using a smaller `min-h` and accepting "close enough."** If the design rule is alignment, anything visibly off is wrong. Bump together until the inner cards line up at every breakpoint where the columns sit side-by-side.
+- **Adding a side action in column 1 without re-checking column 2.** This is the #1 cause of the misalignment regression — the side action silently steals title-block width and bumps the subtitle to 3 lines while column 2 stays at 2 lines. Always re-measure after touching either header.
 
 If you ever rework outer subtitles to be longer/shorter, **re-verify both columns still align** by viewing the page side-by-side — don't trust the type-check or the lint to catch this; it's purely visual.
 

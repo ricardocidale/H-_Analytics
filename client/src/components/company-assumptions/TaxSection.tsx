@@ -36,7 +36,7 @@ export default function TaxSection({ formData, onChange, global, researchValues 
           aligns horizontally across the two columns even when one subtitle
           wraps to two lines. See
           .claude/skills/ui/page-column-card-pattern.md §"Header alignment". */}
-      <div className="mb-6 min-h-[4.5rem]">
+      <div className="mb-6 min-h-[5.5rem]">
         <h2 className="text-xl font-display text-foreground">Financial & Macro</h2>
         <p className="label-text text-muted-foreground mt-1">
           Projection horizon, tax, inflation, and externally-governed model constants
