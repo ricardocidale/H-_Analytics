@@ -50,7 +50,7 @@ export { default as CostOfEquityCard } from "./CostOfEquityCard";
 export { default as PropertyExitDefaultsCard } from "./PropertyExitDefaultsCard";
 export { default as PropertyExpenseRatesSection } from "./PropertyExpenseRatesSection";
 export { default as PartnerCompSection } from "./PartnerCompSection";
-export { TabWarningsPanel, TabActions } from "./TabActions";
+export { TabWarningsPanel } from "./TabActions";
 export type { TabValidationWarning } from "./TabActions";
 export { default as SummaryFooter } from "./SummaryFooter";
 export type * from "./types";

@@ -1,26 +1,23 @@
 /**
- * TabActions.tsx — Per-tab action bar for Company Assumptions.
+ * TabActions.tsx — Post-save warnings panel for Company Assumptions tabs.
  *
- * This file currently exposes TWO components during the v2 migration:
+ * History: this file used to render a per-tab action bar with the Analyst
+ * and Save buttons inline. As of the v2 refactor (April 2026) those buttons
+ * live in the tab strip's `rightContent` slot (see `CurrentThemeTab` in
+ * `client/src/components/ui/tabs.tsx`), and only the post-save validation
+ * warnings remain here.
  *
- *   • TabActions          — legacy, full bar (Analyst + Save + warnings).
- *                           Still rendered inside each tab body until Part B
- *                           moves the buttons to the strip's rightContent slot.
- *
- *   • TabWarningsPanel    — new, warnings-only panel. After Part B lands this
- *                           replaces TabActions inside the tab body and the
- *                           legacy export can be retired.
- *
- * After a save, if any saved field falls outside The Analyst's recommended
- * range we surface inline "Adjust" / "Keep my value" prompts. "Keep" writes
- * to assumption_change_log with source = "user_override" so the override is
- * auditable.
+ * Behavior:
+ *   • If a saved field falls outside The Analyst's recommended range we
+ *     surface inline "Adjust" / "Keep my value" prompts.
+ *   • "Keep" writes to assumption_change_log with source = "user_override"
+ *     so the override is auditable.
+ *   • Renders nothing (returns null) when there are no warnings.
  */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { SaveButton } from "@/components/ui/save-button";
 import { OrbitalDots } from "@/components/ui/ai-loader";
-import { IconPlay, IconAlertTriangle, IconCheck } from "@/components/icons";
+import { IconAlertTriangle, IconCheck } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 
 export interface TabValidationWarning {
@@ -32,13 +29,16 @@ export interface TabValidationWarning {
   display: string;
 }
 
-// ---------------------------------------------------------------------------
-// Shared warnings UI
-// ---------------------------------------------------------------------------
+interface TabWarningsPanelProps {
+  warnings: TabValidationWarning[];
+  onDismissWarning: (fieldName: string) => void;
+}
 
-function useKeepHandler(onDismissWarning: (fieldName: string) => void) {
+export function TabWarningsPanel({ warnings, onDismissWarning }: TabWarningsPanelProps) {
   const { toast } = useToast();
   const [keepingField, setKeepingField] = useState<string | null>(null);
+
+  if (warnings.length === 0) return null;
 
   const handleKeep = async (w: TabValidationWarning) => {
     setKeepingField(w.fieldName);
@@ -52,7 +52,7 @@ function useKeepHandler(onDismissWarning: (fieldName: string) => void) {
           fieldName: w.fieldName,
           newValue: w.currentValue,
           changeSource: "user_override",
-          reason: `User kept value outside Analyst range ${w.display}`,
+          reason: `User kept value outside recommended range ${w.display}`,
         }),
       });
       toast({ title: "Value kept", description: `${w.fieldLabel} recorded as an intentional override.` });
@@ -72,19 +72,6 @@ function useKeepHandler(onDismissWarning: (fieldName: string) => void) {
       setTimeout(() => el.classList.remove("ring-2", "ring-destructive", "ring-offset-2"), 2500);
     }
   };
-
-  return { handleKeep, handleAdjust, keepingField };
-}
-
-function WarningsList({
-  warnings,
-  onDismissWarning,
-}: {
-  warnings: TabValidationWarning[];
-  onDismissWarning: (fieldName: string) => void;
-}) {
-  const { handleKeep, handleAdjust, keepingField } = useKeepHandler(onDismissWarning);
-  if (warnings.length === 0) return null;
 
   return (
     <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
@@ -127,90 +114,6 @@ function WarningsList({
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Slim panel — used after the Part B strip migration completes.
-// ---------------------------------------------------------------------------
-
-export function TabWarningsPanel({
-  warnings,
-  onDismissWarning,
-}: {
-  warnings: TabValidationWarning[];
-  onDismissWarning: (fieldName: string) => void;
-}) {
-  if (warnings.length === 0) return null;
-  return <WarningsList warnings={warnings} onDismissWarning={onDismissWarning} />;
-}
-
-// ---------------------------------------------------------------------------
-// Legacy bar — Analyst + Save + warnings, in-form.
-// ---------------------------------------------------------------------------
-
-interface TabActionsProps {
-  tabLabel: string;
-  hasChanges: boolean;
-  isSaving: boolean;
-  isAnalystRunning: boolean;
-  onSave: () => void;
-  onAskAnalyst: () => void;
-  askAnalystDisabled?: boolean;
-  askAnalystDisabledReason?: string;
-  warnings: TabValidationWarning[];
-  onDismissWarning: (fieldName: string) => void;
-}
-
-export function TabActions({
-  tabLabel,
-  hasChanges,
-  isSaving,
-  isAnalystRunning,
-  onSave,
-  onAskAnalyst,
-  askAnalystDisabled,
-  askAnalystDisabledReason,
-  warnings,
-  onDismissWarning,
-}: TabActionsProps) {
-  return (
-    <div className="space-y-3 pt-4 border-t border-border/40">
-      <WarningsList warnings={warnings} onDismissWarning={onDismissWarning} />
-
-      <div className="flex items-center justify-end gap-2">
-        <div className="relative inline-flex">
-          {!isAnalystRunning && !askAnalystDisabled && (
-            <span
-              aria-hidden
-              className="absolute inset-0 rounded-md animate-ping bg-primary/30"
-              style={{ animationDuration: "2s" }}
-            />
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onAskAnalyst}
-            disabled={askAnalystDisabled || isAnalystRunning}
-            title={askAnalystDisabled ? askAnalystDisabledReason : `Research ${tabLabel.toLowerCase()}`}
-            className="relative z-10"
-            data-testid={`button-ask-analyst-${tabLabel.toLowerCase().replace(/\s+/g, "-")}`}
-          >
-            {isAnalystRunning ? <OrbitalDots size={14} /> : <IconPlay className="w-3.5 h-3.5" />}
-            {isAnalystRunning ? "Consulting..." : `Ask the Analyst — ${tabLabel}`}
-          </Button>
-        </div>
-        <SaveButton
-          onClick={onSave}
-          isPending={isSaving}
-          hasChanges={hasChanges}
-          size="sm"
-          data-testid={`button-save-tab-${tabLabel.toLowerCase().replace(/\s+/g, "-")}`}
-        >
-          Save {tabLabel}
-        </SaveButton>
-      </div>
     </div>
   );
 }
