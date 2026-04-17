@@ -32,16 +32,29 @@ See `.claude/skills/finance/management-company-statements.md` for the engine-sid
 
 ---
 
-## 2. Defaults vs Assumptions
+## 2. Defaults vs Assumptions  *(MASTER RULE — every task must respect this)*
 
-| | Defaults | Assumptions |
+| | Defaults (a.k.a. Seeds) | Assumptions (a.k.a. Working Variables) |
 |---|---|---|
-| **Where** | Admin section | Front of the app |
+| **Where** | Admin section only | Front of the app (every user-facing page) |
 | **Who edits** | Admin only | Any management user |
-| **Purpose** | Template values that seed new entities | Working numbers the user adjusts and endorses |
+| **Purpose** | Template values that **seed** new entities | Working numbers the user adjusts, endorses, and runs scenarios on |
 | **Examples** | Default tax rate for Colombia, default FF&E reserve %, default service categories | This property's ADR, this company's staff salary, this scenario's exit cap rate |
-| **When they matter** | When a new property or company is created — defaults fill the fields | Every day — users work with assumptions to build their financial model |
+| **When they matter** | At seed time only — when a new tenant/property/company is created they fill the fields | Every day — users work with assumptions to build their financial model |
 | **The Analyst's role** | Validates defaults are reasonable at seed time | Validates assumptions after every save, provides ranges, flags issues |
+
+### Seed → Assumption transition (do not forget this)
+A default is **only a seed**. The instant the user clicks **Save** on any user-facing page, **every field on that page becomes a working variable — i.e. an assumption** — whether the user edited it or left the seed untouched. After Save, that page no longer holds defaults; it holds the user's assumptions. The Analyst then validates against those assumptions, not against the seeds.
+
+### Answering "where is X stored / set / configured?"
+When the user asks where a value lives, **lead with the assumption** (the user-facing page where the working variable is set and saved). Mention the Admin seed location only as a secondary note, and never imply the seed page is where the user "works with" or "stores" the value. The seed is a one-time initializer; the assumption is the live, authoritative number.
+
+### Vocabulary discipline in code, copy, and chat
+- The word **"assumption"** in any UI label, button, tooltip, error message, AI agent text, or doc **always means the user's working variable** — never a default.
+- The word **"default"** must not appear in user-facing copy outside the Admin section.
+- When the agent (me) talks to the user about a value, use **"assumption"** unless the conversation is explicitly about Admin seed configuration.
+
+Conflating these has caused real production losses (admin-only routing on user pages, reset buttons wiping user work, seed values treated as authoritative, agent answers that send the user to Admin when the value actually lives on a user page).
 
 ---
 
