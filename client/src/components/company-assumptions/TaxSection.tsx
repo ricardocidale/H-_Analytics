@@ -18,9 +18,7 @@ import { ResearchContextFieldLabel } from "@/components/research/ResearchContext
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GOVERNED_FIELDS, DEPRECIATION_YEARS } from "@shared/constants";
-import { IconShieldCheck, IconHash, IconPercent, IconCalendar, IconReceipt } from "@/components/icons";
-import { Link } from "wouter";
+import { IconPercent, IconCalendar, IconReceipt } from "@/components/icons";
 import { DEFAULT_COMPANY_TAX_RATE, PROJECTION_YEARS } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { TaxSectionProps } from "./types";
@@ -39,7 +37,7 @@ export default function TaxSection({ formData, onChange, global, researchValues 
       <div className="mb-6 min-h-[5.5rem]">
         <h2 className="text-xl font-display text-foreground">Financial & Macro</h2>
         <p className="label-text text-muted-foreground mt-1">
-          Projection horizon, tax, inflation, and externally-governed model constants
+          Projection horizon, corporate income tax, and macro inflation
         </p>
       </div>
       <div className="relative space-y-6">
@@ -174,48 +172,6 @@ export default function TaxSection({ formData, onChange, global, researchValues 
         </CardContent>
       </Card>
 
-      {/* Model Constants — read-only display since Phase 4. The actual
-          editing of governed constants lives in Admin → Model Constants
-          (single edit point, three-state provenance, mandatory note for
-          manual overrides). We keep the visible Card here so company
-          assumptions still show what's governing depreciation, but no
-          longer let the user edit the value at the company level. The
-          underlying `formData.depreciationYears` is left untouched so the
-          engine and existing data-flow keep working. */}
-      <Card className="bg-card border border-border/80 shadow-sm" data-testid="card-model-constants-readonly">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-            <IconShieldCheck className="w-4 h-4 text-accent-pop" /> Model Constants
-          </CardTitle>
-          <CardDescription className="label-text">
-            Governed centrally in Admin → Model Constants. Read-only here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="rounded-md border border-border bg-muted/30 p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-foreground">
-                  {GOVERNED_FIELDS.depreciationYears.fieldName}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {GOVERNED_FIELDS.depreciationYears.authority}
-                </div>
-              </div>
-              <div className="text-lg font-mono text-foreground shrink-0" data-testid="value-depreciationYears-readonly">
-                {formData.depreciationYears ?? DEPRECIATION_YEARS}
-              </div>
-            </div>
-            <Link
-              href="/admin"
-              className="inline-block mt-2 text-xs underline text-muted-foreground hover:text-foreground"
-              data-testid="link-admin-model-constants"
-            >
-              Edit in Admin → Model Defaults → Model Constants
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div></div>
   );
 }
