@@ -35,12 +35,27 @@ import {
 } from "@shared/model-constants-registry";
 import { getEffectiveConstant } from "@shared/get-effective-constant";
 import { COUNTRY_DEFAULTS } from "@shared/countryDefaults";
+import { proposeConstantRegeneration } from "../../ai/regenerate-constants";
 
 const overrideBodySchema = z.object({
   country: z.string().nullable().optional(),
   countrySubdivision: z.string().nullable().optional(),
   value: z.unknown(),
   overrideNote: z.string().min(1, "An override note is required for manual overrides"),
+});
+
+/**
+ * Body schema for the analyst-apply route. Mirrors a regeneration proposal
+ * so the client can round-trip the response from POST .../regenerate
+ * straight into POST .../apply-research.
+ */
+const applyResearchBodySchema = z.object({
+  country: z.string().nullable().optional(),
+  countrySubdivision: z.string().nullable().optional(),
+  value: z.unknown(),
+  authority: z.string().min(1, "Analyst overrides must cite an authority"),
+  referenceUrl: z.string().nullable().optional(),
+  reasoning: z.string().min(1, "Analyst overrides must include a reasoning string"),
 });
 
 const localityQuerySchema = z.object({
@@ -241,6 +256,110 @@ export function registerModelConstantsRoutes(app: Express) {
       res.json({ ok: true });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to reset model constant", error);
+    }
+  });
+
+  /**
+   * Analyst-driven regeneration — proposal only, no DB write.
+   *
+   * The Admin UI calls this when the user clicks "Regenerate via Analyst".
+   * We return the proposed value plus authority + reasoning + sources so the
+   * UI can show a diff against the currently-effective value. The user then
+   * confirms (or cancels) via POST .../apply-research below.
+   */
+  app.post("/api/admin/model-constants/:key/regenerate", requireAdmin, async (req, res) => {
+    try {
+      const key = String(req.params.key ?? "");
+      if (!MODEL_CONSTANTS_REGISTRY[key]) {
+        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+      }
+
+      const parsed = localityQuerySchema.safeParse(req.query);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
+
+      const localityCheck = validateLocality(key, country, subdivision);
+      if (!localityCheck.ok) {
+        return res.status(400).json({ error: localityCheck.error });
+      }
+
+      // The proposer needs the full overrides list to resolve the current
+      // effective value at the requested locality (without an extra DB hit).
+      const overrides = await storage.listModelConstantOverrides();
+
+      const proposal = await proposeConstantRegeneration({
+        key,
+        country,
+        subdivision,
+        overrides,
+      });
+
+      res.json(proposal);
+    } catch (error: unknown) {
+      logAndSendError(res, "Analyst regeneration failed", error);
+    }
+  });
+
+  /**
+   * Persist a confirmed Analyst proposal as an override. Mirrors the manual
+   * PUT path but with source='analyst' and citation fields filled from the
+   * proposal payload (not user free-text). The factory-equality invariant
+   * applies — applying a value equal to factory deletes the row instead.
+   */
+  app.post("/api/admin/model-constants/:key/apply-research", requireAdmin, async (req, res) => {
+    try {
+      const key = String(req.params.key ?? "");
+      if (!MODEL_CONSTANTS_REGISTRY[key]) {
+        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+      }
+
+      const parsed = applyResearchBodySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+
+      const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.countrySubdivision);
+
+      const localityCheck = validateLocality(key, country, subdivision);
+      if (!localityCheck.ok) {
+        return res.status(400).json({ error: localityCheck.error });
+      }
+
+      const userId = (req as { user?: { id?: number } }).user?.id ?? null;
+
+      const result = await storage.upsertModelConstantOverride({
+        constantKey: key,
+        country,
+        countrySubdivision: subdivision,
+        value: parsed.data.value,
+        source: "analyst",
+        authority: parsed.data.authority,
+        referenceUrl: parsed.data.referenceUrl ?? null,
+        // Analyst regenerations do not (yet) create a research_runs row —
+        // the reasoning/authority is stored inline. Phase 5 wires this into
+        // the scheduler and will set researchRunId.
+        researchRunId: null,
+        // Preserve the analyst's reasoning in the override row so the audit
+        // trail can show *why* the value moved when the override is later
+        // listed in Admin.
+        overrideNote: parsed.data.reasoning,
+        createdBy: userId,
+      });
+
+      logActivity(
+        req,
+        "analyst-override-model-constant",
+        "model-constant",
+        0,
+        result === null
+          ? `Analyst regeneration of ${key} (${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}) matched factory — no override stored.`
+          : `Analyst regenerated ${key} (${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}). Authority: ${parsed.data.authority}.`,
+      );
+
+      res.json({
+        wasFactoryEqual: result === null,
+        override: result,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to apply analyst regeneration", error);
     }
   });
 }

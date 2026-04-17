@@ -1,5 +1,5 @@
 /**
- * Model Constants tab — Phase 2 Admin UI for governed constants.
+ * Model Constants tab — Phase 2/3 Admin UI for governed constants.
  *
  * Shows every key registered in MODEL_CONSTANTS_REGISTRY at the chosen
  * country, with a three-state badge (Factory / Analyst / Manual), an
@@ -8,7 +8,9 @@
  *   - Override (manual) → opens a dialog requiring a note; the storage
  *     layer auto-deletes if the value matches factory.
  *   - Reset to factory → DELETE on the override row.
- *   - Regenerate via Analyst → placeholder, wired in Phase 3.
+ *   - Regenerate via Analyst (Phase 3) → fetches a researched proposal,
+ *     shows a current-vs-proposed diff with authority + reasoning + sources,
+ *     and persists with source='analyst' on user confirmation.
  *
  * Universal constants ignore the country selector. Country-keyed constants
  * fall back to the United States row when the selected country has no
@@ -429,16 +431,7 @@ function ConstantRowCard({
       )}
 
       <div className="mt-3 flex items-center gap-2 flex-wrap">
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled
-          title="The Analyst regenerate flow ships in Phase 3."
-          data-testid={`button-regenerate-${row.key}`}
-        >
-          <IconSparkles className="w-3.5 h-3.5 mr-1.5" />
-          Regenerate via Analyst
-        </Button>
+        <RegenerateDialog row={row} country={country} />
         <OverrideDialog
           row={row}
           country={country}
@@ -460,4 +453,267 @@ function ConstantRowCard({
       </div>
     </div>
   );
+}
+
+/**
+ * Phase 3 — Analyst regeneration dialog.
+ *
+ * Two-stage flow:
+ *   Stage 1 (loading): user clicks the trigger → POST /regenerate fires →
+ *     spinner with "Researching..." text. The endpoint runs grounded search
+ *     + Claude extraction and returns the proposal.
+ *   Stage 2 (review):  show current vs proposed values, the cited authority
+ *     + Analyst reasoning + grounded source list. Apply persists via
+ *     POST /apply-research.
+ *
+ * If the Analyst's proposal equals the current effective value (server's
+ * `isDifferentFromCurrent === false`), the Apply button is hidden and we
+ * surface a "no change recommended" notice instead — applying a no-op would
+ * be confusing and the storage layer would drop the row anyway.
+ */
+function RegenerateDialog({ row, country }: { row: ConstantRow; country: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [proposal, setProposal] = useState<RegenerationProposal | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const propose = useMutation({
+    mutationFn: async (): Promise<RegenerationProposal> => {
+      const params = new URLSearchParams();
+      if (row.locality !== "universal") params.set("country", country);
+      const res = await fetch(`/api/admin/model-constants/${row.key}/regenerate?${params}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `Regenerate failed (HTTP ${res.status})`);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setProposal(data);
+      setError(null);
+    },
+    onError: (e) => {
+      setError(e instanceof Error ? e.message : "Unknown error");
+      setProposal(null);
+    },
+  });
+
+  const apply = useMutation({
+    mutationFn: async (p: RegenerationProposal) => {
+      const body = {
+        country: p.country,
+        countrySubdivision: p.subdivision,
+        value: p.value,
+        authority: p.authority,
+        referenceUrl: p.referenceUrl,
+        reasoning: p.reasoning,
+      };
+      const res = await fetch(`/api/admin/model-constants/${row.key}/apply-research`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const errBody = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errBody.error ?? "Apply failed");
+      }
+      return res.json() as Promise<{ wasFactoryEqual: boolean }>;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-model-constants"] });
+      toast({
+        title: result.wasFactoryEqual ? "Reset to factory" : "Analyst override applied",
+        description: result.wasFactoryEqual
+          ? `${row.label} matched the factory value, so no override row was stored.`
+          : `${row.label} now sourced from the Analyst for ${row.locality === "universal" ? "all countries" : country}.`,
+      });
+      setOpen(false);
+      setProposal(null);
+    },
+    onError: (e) => {
+      toast({
+        title: "Apply failed",
+        description: e instanceof Error ? e.message : "Unknown error",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next) {
+      setProposal(null);
+      setError(null);
+      propose.mutate();
+    } else {
+      // Reset state on close so the next open re-runs research.
+      setProposal(null);
+      setError(null);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          data-testid={`button-regenerate-${row.key}`}
+        >
+          <IconSparkles className="w-3.5 h-3.5 mr-1.5" />
+          Regenerate via Analyst
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="max-w-xl"
+        data-testid={`dialog-regenerate-${row.key}`}
+      >
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <IconSparkles className="w-4 h-4 text-yellow-500" />
+            Analyst regeneration — {row.label}
+          </DialogTitle>
+          <DialogDescription>
+            The Analyst will research the authoritative value for{" "}
+            {row.locality === "universal" ? "this universal constant" : country}{" "}
+            and propose a value backed by a citable source. Nothing is saved
+            until you click Apply.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2 min-h-[140px]">
+          {propose.isPending && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Researching authoritative sources…
+            </div>
+          )}
+
+          {error && !propose.isPending && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="font-medium mb-1">Regeneration failed</div>
+              <div className="text-xs opacity-90">{error}</div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => propose.mutate()}
+                data-testid={`button-retry-regenerate-${row.key}`}
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+              </Button>
+            </div>
+          )}
+
+          {proposal && !propose.isPending && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-md border border-border bg-muted/30 p-3">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Current</div>
+                  <div className="text-lg font-mono" data-testid={`regen-current-${row.key}`}>
+                    {formatValue(proposal.currentValue)}
+                  </div>
+                </div>
+                <div className={`rounded-md border p-3 ${proposal.isDifferentFromCurrent ? "border-yellow-500/40 bg-yellow-500/5" : "border-border bg-muted/30"}`}>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Proposed</div>
+                  <div className="text-lg font-mono" data-testid={`regen-proposed-${row.key}`}>
+                    {formatValue(proposal.value)}
+                  </div>
+                </div>
+              </div>
+
+              {!proposal.isDifferentFromCurrent && (
+                <div className="rounded-md border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-700 dark:text-blue-300">
+                  No change recommended — the Analyst confirmed the current value is correct.
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Authority</div>
+                <div className="text-sm">{proposal.authority}</div>
+                {proposal.referenceUrl && (
+                  <a
+                    href={proposal.referenceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs underline text-muted-foreground hover:text-foreground"
+                  >
+                    {proposal.referenceUrl}
+                  </a>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Analyst reasoning</div>
+                <p className="text-sm text-foreground/90 leading-relaxed">{proposal.reasoning}</p>
+              </div>
+
+              {proposal.sources.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Grounded sources</div>
+                  <ul className="space-y-1 text-xs">
+                    {proposal.sources.slice(0, 6).map((s, i) => (
+                      <li key={`${s.url}-${i}`} className="truncate">
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-muted-foreground hover:text-foreground"
+                          title={s.title}
+                        >
+                          [{i + 1}] {s.title || s.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {proposal.sources.length === 0 && (
+                <div className="text-xs italic text-muted-foreground">
+                  No grounded web sources were available; the Analyst answered from training data.
+                  Review the citation carefully before applying.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          {proposal && proposal.isDifferentFromCurrent && (
+            <Button
+              onClick={() => apply.mutate(proposal)}
+              disabled={apply.isPending}
+              data-testid={`button-apply-regenerate-${row.key}`}
+            >
+              {apply.isPending ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <IconSparkles className="w-4 h-4 mr-1.5" />}
+              Apply Analyst override
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Shape returned by POST /api/admin/model-constants/:key/regenerate. */
+interface RegenerationProposal {
+  key: string;
+  label: string;
+  country: string | null;
+  subdivision: string | null;
+  value: unknown;
+  authority: string;
+  referenceUrl: string | null;
+  reasoning: string;
+  sources: { title: string; url: string; snippet?: string; publishedDate?: string }[];
+  factoryValue: unknown;
+  currentValue: unknown;
+  isDifferentFromCurrent: boolean;
 }
