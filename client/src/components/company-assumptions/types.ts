@@ -68,10 +68,6 @@ export interface TaxSectionProps extends CompanyAssumptionsSectionProps {
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
 }
 
-export interface ExitAssumptionsSectionProps extends CompanyAssumptionsSectionProps {
-  researchValues: Record<string, { display: string; mid: number } | null | undefined>;
-}
-
 export interface PartnerCompSectionProps extends CompanyAssumptionsSectionProps {
   modelStartYear: number;
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;

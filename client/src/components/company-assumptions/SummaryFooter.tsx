@@ -15,12 +15,11 @@ import { STAFFING_TIERS } from "@/lib/constants";
 import type { CompanyAssumptionsSectionProps } from "./types";
 
 type FooterTab =
-  | "setup"
+  | "company"
   | "funding"
   | "revenue"
   | "compensation"
   | "overhead"
-  | "tax-exit"
   | "property-defaults";
 
 interface SummaryFooterProps extends CompanyAssumptionsSectionProps {

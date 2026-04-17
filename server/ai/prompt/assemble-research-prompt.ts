@@ -18,13 +18,21 @@ const PROPERTY_ASSUMPTION_CATEGORIES = [
   { category: "Fees & Tax", keys: ["baseMgmtFee", "incentiveMgmtFee", "incomeTax", "saleCommission"] },
 ];
 
+// Company-level assumption categories. NOTE: The Management Company is an
+// operating service business — it has NO exit cap rate. costOfEquity belongs
+// in "Cost of Capital" (used for DCF and as Re in WACC). Property exit
+// defaults (exitCapRate, dispositionCommission) are PROPERTY assumptions, not
+// company assumptions, and are excluded from this list. See
+// docs/architecture/ARCHITECTURE.md §1a and
+// .claude/skills/finance/management-company-statements.md.
 const COMPANY_ASSUMPTION_CATEGORIES = [
-  { category: "Fee Revenue", keys: ["baseManagementFee", "incentiveManagementFee", "acquisitionCommission", "dispositionCommission"] },
+  { category: "Fee Revenue", keys: ["baseManagementFee", "incentiveManagementFee"] },
   { category: "Service Markups", keys: ["svcFeeMarketing", "svcFeeTechRes", "svcFeeAccounting", "svcFeeRevMgmt", "svcFeeGeneralMgmt", "svcFeeProcurement"] },
   { category: "Compensation & Staffing", keys: ["partnerComp", "staffSalary", "staffingTiers"] },
   { category: "Fixed Overhead", keys: ["officeLease", "professionalServices", "techInfra", "businessInsurance"] },
   { category: "Variable Costs", keys: ["travelCost", "itLicense", "marketingRate", "miscOps"] },
-  { category: "Tax & Exit", keys: ["companyTaxRate", "costOfEquity"] },
+  { category: "Income Tax", keys: ["companyTaxRate"] },
+  { category: "Cost of Capital", keys: ["costOfEquity"] },
 ];
 
 function buildBusinessModelGuidance(businessModel: string): string {

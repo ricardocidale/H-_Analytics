@@ -5,15 +5,25 @@
  * These components are mounted inside horizontal tabs on the
  * "Company Assumptions" page (see client/src/pages/CompanyAssumptions.tsx).
  *
- * Tab → component mapping:
- *   1. Setup            → CompanySetupSection (identity, contact, HQ,
- *                          inflation, depreciation years)
- *   2. Funding          → FundingSection
- *   3. Revenue Model    → ManagementFeesSection
- *   4. Compensation     → CompensationSection + PartnerCompSection
- *   5. Overhead         → FixedOverheadSection + VariableCostsSection
- *   6. Tax & Exit       → TaxSection + ExitAssumptionsSection
- *   7. Property Defaults → PropertyExpenseRatesSection
+ * Tab → component mapping (6 tabs after the April 2026 entity-correctness
+ * restructure — see ARCHITECTURE.md §1a):
+ *   1. Company           → CompanySetupSection + TaxSection
+ *                          (identity, contact, HQ, inflation, depreciation,
+ *                           company income tax rate)
+ *   2. Funding           → FundingSection + CostOfEquityCard
+ *                          (SAFE tranches + cost of capital — the discount
+ *                           rate for company-level DCF)
+ *   3. Revenue Model     → ManagementFeesSection
+ *   4. Compensation      → CompensationSection + PartnerCompSection
+ *   5. Overhead          → FixedOverheadSection + VariableCostsSection
+ *   6. Property Defaults → PropertyExpenseRatesSection + PropertyExitDefaultsCard
+ *                          (USALI ratios + property exit cap rate / sales
+ *                           commission — these are PROPERTY defaults, never
+ *                           applied to the Management Company)
+ *
+ * The HMC is an operating service business: it has NO exit cap rate. Any
+ * terminal value would be DCF on FCF discounted at costOfEquity, or an
+ * EBITDA multiple. See .claude/skills/finance/management-company-statements.md.
  *
  * Always pinned beneath the tabs: SummaryFooter.
  *
@@ -36,10 +46,11 @@ export { default as CompensationSection } from "./CompensationSection";
 export { default as FixedOverheadSection } from "./FixedOverheadSection";
 export { default as VariableCostsSection } from "./VariableCostsSection";
 export { default as TaxSection } from "./TaxSection";
-export { default as ExitAssumptionsSection } from "./ExitAssumptionsSection";
+export { default as CostOfEquityCard } from "./CostOfEquityCard";
+export { default as PropertyExitDefaultsCard } from "./PropertyExitDefaultsCard";
 export { default as PropertyExpenseRatesSection } from "./PropertyExpenseRatesSection";
 export { default as PartnerCompSection } from "./PartnerCompSection";
-export { TabActions } from "./TabActions";
+export { TabWarningsPanel, TabActions } from "./TabActions";
 export type { TabValidationWarning } from "./TabActions";
 export { default as SummaryFooter } from "./SummaryFooter";
 export type * from "./types";

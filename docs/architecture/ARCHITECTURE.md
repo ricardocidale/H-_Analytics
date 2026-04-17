@@ -77,13 +77,14 @@ Each tab has its own Save button. When the user saves a tab:
 
 | Tab | After Save (Tier-0) | After Button Press (Tier-1) |
 |-----|---------------------|----------------------------|
-| **Setup** | Validates country → updates tax, depreciation, CRP defaults. Checks company name, address against known markets. | Researches the specific market: local labor costs, commercial rents, regulatory environment. |
-| **Funding** | Validates SAFE terms against typical venture terms. | Researches comparable management company funding rounds, valuations, investor expectations. |
+| **Company** | Validates country → updates tax, depreciation, CRP defaults. Checks company name, address against known markets. Validates company tax rate against country defaults. | Researches the specific market: local labor costs, commercial rents, regulatory environment, corporate tax structure. |
+| **Funding** | Validates SAFE terms against typical venture terms. Validates cost of equity against risk profile. | Researches comparable management company funding rounds, valuations, investor expectations, cost of equity for hospitality. |
 | **Revenue Model** | Validates service rates against ISHC/PKF benchmarks. Checks total management fee against industry range. | Researches comparable management fee structures, cost-plus vs flat-fee models, incentive fee benchmarks. |
 | **Compensation** | Validates salary against BLS/market data. Checks staffing tiers against portfolio size. | Researches hospitality executive compensation by market, staffing ratios for boutique management companies. |
 | **Overhead** | Validates office lease, insurance, professional services against market. | Researches commercial lease rates in the HMC's city, hospitality-specific insurance costs, tech infrastructure benchmarks. |
-| **Tax & Exit** | Validates tax rate against country defaults. Checks exit cap rate against market data. Cost of equity against risk profile. | Researches current cap rate trends, comparable management company exits, cost of equity for hospitality. |
-| **Property Defaults** | Validates expense ratios against USALI benchmarks. | Researches property-level operating ratios by quality tier and market. |
+| **Property Defaults** | Validates expense ratios against USALI benchmarks. Validates default exit cap rate and sales commission against market data (cascade defaults for new properties). | Researches property-level operating ratios by quality tier and market, current cap rate trends. |
+
+> **NOTE:** There is no "Tax & Exit" tab. Tax lives in **Company**; cost of equity in **Funding**; property exit defaults in **Property Defaults**. The Management Company has no cap-rate exit — see §1a.
 
 ### Returning User
 - Dashboard shows what changed since last visit

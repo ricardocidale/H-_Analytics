@@ -1,20 +1,25 @@
 /**
  * CompanyAssumptions.tsx — Editor for management-company-level financial assumptions.
  *
- * Layout: 7 horizontal tabs sit beneath a sticky header. A single shared
+ * Layout: 6 horizontal tabs sit beneath a sticky header. A single shared
  * `formData` + `handleSave` powers every tab — tabs are pure visual organization
  * over the same form state. The active tab is mirrored to the URL via the
  * `?tab=` query param so deep links and refreshes preserve location.
  *
- * Tabs:
- *   1. Setup            — identity, contact, HQ, financial/regulatory,
- *                          inflation rate, depreciation years (model constant)
- *   2. Funding          — SAFE note tranches (amount, date, cap, discount, interest)
- *   3. Revenue Model    — service categories + incentive fee + per-property summary
- *   4. Compensation     — staff salary, staffing tiers, partner comp schedule
- *   5. Overhead         — fixed overhead + variable costs (side-by-side)
- *   6. Tax & Exit       — company income tax + exit/sale/valuation (side-by-side)
- *   7. Property Defaults — cascading defaults for new properties
+ * Tabs (April 2026 entity-correctness restructure — see ARCHITECTURE.md §1a):
+ *   1. Company           — identity, contact, HQ, financial/regulatory,
+ *                          inflation, depreciation, company income tax rate
+ *   2. Funding           — funding tranches + cost of equity (DCF discount rate)
+ *   3. Revenue Model     — service categories + incentive fee + per-property summary
+ *   4. Compensation      — staff salary, staffing tiers, partner comp schedule
+ *   5. Overhead          — fixed overhead + variable costs (side-by-side)
+ *   6. Property Defaults — USALI ratios + property exit cap rate + sales commission
+ *                          (cascading defaults for NEW properties)
+ *
+ * Note: There is no "Tax & Exit" tab. The Management Company is an operating
+ * service business, not real estate — it has NO cap-rate exit. Property exit
+ * defaults live in Property Defaults; cost of equity (the DCF discount rate
+ * for any company-level terminal value) lives in Funding.
  *
  * Pinned outside tabs: PageHeader, IntelligenceStatusBar, FirstVisitBanner,
  * ResearchTheater overlay, SummaryFooter (always visible totals), and the
@@ -62,7 +67,8 @@ import {
   FixedOverheadSection,
   VariableCostsSection,
   TaxSection,
-  ExitAssumptionsSection,
+  CostOfEquityCard,
+  PropertyExitDefaultsCard,
   PropertyExpenseRatesSection,
   PartnerCompSection,
   SummaryFooter,
@@ -150,14 +156,14 @@ export default function CompanyAssumptions() {
           <button
             onClick={() => {
               const url = new URL(window.location.href);
-              url.searchParams.set("tab", "setup");
+              url.searchParams.set("tab", "company");
               window.history.replaceState({}, "", url.toString());
               window.dispatchEvent(new Event("popstate"));
             }}
             className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
-            data-testid="toast-action-goto-setup"
+            data-testid="toast-action-goto-company"
           >
-            Go to Setup
+            Go to Company
           </button>
         ) as never,
       });
@@ -355,23 +361,31 @@ export default function CompanyAssumptions() {
     ? new Date(global.modelStartDate).getFullYear() 
     : new Date(DEFAULT_MODEL_START_DATE).getFullYear();
 
-  const TAB_KEYS = ["setup", "funding", "revenue", "compensation", "overhead", "tax-exit", "property-defaults"] as const;
+  const TAB_KEYS = ["company", "funding", "revenue", "compensation", "overhead", "property-defaults"] as const;
   type TabKey = typeof TAB_KEYS[number];
 
   // Which form fields belong to which tab. Drives per-tab save + per-tab
   // validation. Fields not listed in any tab are saved via the global header
   // Save button (which sends the full dirty set).
+  //
+  // Entity-correctness (ARCHITECTURE.md §1a):
+  //   - companyTaxRate lives in `company` (it's a company-level field)
+  //   - costOfEquity lives in `funding` (it's the DCF discount rate / WACC Re)
+  //   - exitCapRate + salesCommissionRate live in `property-defaults`
+  //     (they cascade to NEW properties; HMC has no cap-rate exit)
   const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
-    setup: [
+    company: [
       "companyName", "companyCountry", "companyCity", "companyAddress",
       "companyOpsStartDate", "modelStartDate", "projectionYears",
       "companyInflationRate", "inflationRate", "depreciationYears",
       "companyLogoId", "companyPhone", "companyEmail", "companyWebsite",
       "companyRegistrationNumber", "companyTaxId",
       "companyContactName", "companyContactTitle", "companyContactEmail", "companyContactPhone",
+      "companyTaxRate",
     ] as unknown as Array<keyof GlobalResponse>,
     funding: [
       "safeNoteTranches", "safeNoteCapAmount", "safeNoteDiscount",
+      "costOfEquity",
     ] as unknown as Array<keyof GlobalResponse>,
     revenue: [
       "baseManagementFee", "incentiveManagementFee",
@@ -394,35 +408,35 @@ export default function CompanyAssumptions() {
       "businessInsurance", "travelCost", "itLicense",
       "eventExpense", "marketingRate", "miscOps",
     ] as unknown as Array<keyof GlobalResponse>,
-    "tax-exit": [
-      "companyTaxRate", "costOfEquity", "exitCapRate", "dispositionCommission",
-    ] as unknown as Array<keyof GlobalResponse>,
     "property-defaults": [
       "eventExpenseRate", "otherExpenseRate", "utilitiesVariableSplit",
+      "exitCapRate", "salesCommissionRate",
     ] as unknown as Array<keyof GlobalResponse>,
   };
 
   // Post-save validation warnings, keyed by tab. Populated after a tab save
   // when saved values fall outside The Analyst's recommended range.
   const [tabWarnings, setTabWarnings] = useState<Record<TabKey, TabValidationWarning[]>>({
-    setup: [], funding: [], revenue: [], compensation: [],
-    overhead: [], "tax-exit": [], "property-defaults": [],
+    company: [], funding: [], revenue: [], compensation: [],
+    overhead: [], "property-defaults": [],
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
 
   const TAB_LABELS: Record<TabKey, string> = {
-    setup: "Setup",
+    company: "Company",
     funding: "Funding",
     revenue: "Revenue Model",
     compensation: "Compensation",
     overhead: "Overhead",
-    "tax-exit": "Tax & Exit",
     "property-defaults": "Property Defaults",
   };
   const getInitialTab = (): TabKey => {
-    if (typeof window === "undefined") return "setup";
+    if (typeof window === "undefined") return "company";
     const t = new URLSearchParams(window.location.search).get("tab");
-    return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "setup";
+    // Backwards-compat: legacy `setup` and `tax-exit` URL params remap to `company`.
+    const legacyRemap: Record<string, TabKey> = { setup: "company", "tax-exit": "company" };
+    if (t && t in legacyRemap) return legacyRemap[t];
+    return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "company";
   };
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab);
   const handleTabChange = (val: string) => {
@@ -547,7 +561,7 @@ export default function CompanyAssumptions() {
       setTabWarnings((prev) => ({ ...prev, [tab]: warnings }));
 
       toast({
-        title: `${tab === "tax-exit" ? "Tax & Exit" : tab.replace(/-/g, " ")} saved`,
+        title: `${TAB_LABELS[tab]} saved`,
         description: warnings.length > 0
           ? `${warnings.length} value${warnings.length === 1 ? "" : "s"} outside The Analyst's range — review below.`
           : "Changes take effect immediately.",
@@ -704,12 +718,11 @@ export default function CompanyAssumptions() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <div className="sticky top-0 z-10 -mx-2 px-2 py-2 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
             <TabsList className="w-full justify-start flex-wrap h-auto gap-1" data-testid="tabs-company-assumptions">
-              <TabsTrigger value="setup" data-testid="tab-setup">Setup</TabsTrigger>
+              <TabsTrigger value="company" data-testid="tab-company">Company</TabsTrigger>
               <TabsTrigger value="funding" data-testid="tab-funding">Funding</TabsTrigger>
               <TabsTrigger value="revenue" data-testid="tab-revenue">Revenue Model</TabsTrigger>
               <TabsTrigger value="compensation" data-testid="tab-compensation">Compensation</TabsTrigger>
               <TabsTrigger value="overhead" data-testid="tab-overhead">Overhead</TabsTrigger>
-              <TabsTrigger value="tax-exit" data-testid="tab-tax-exit">Tax &amp; Exit</TabsTrigger>
               <TabsTrigger value="property-defaults" data-testid="tab-property-defaults">Property Defaults</TabsTrigger>
             </TabsList>
           </div>
@@ -717,10 +730,20 @@ export default function CompanyAssumptions() {
           {(TAB_KEYS).map((tab) => {
             const renderBody = () => {
               switch (tab) {
-                case "setup":
-                  return <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />;
+                case "company":
+                  return (
+                    <div className="grid gap-6 lg:grid-cols-2 items-start">
+                      <CompanySetupSection formData={formData} onChange={handleUpdate} global={global} isAdmin={isAdmin} researchValues={researchValues} />
+                      <TaxSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+                    </div>
+                  );
                 case "funding":
-                  return <FundingSection formData={formData} onChange={handleUpdate} global={global} />;
+                  return (
+                    <div className="space-y-6">
+                      <FundingSection formData={formData} onChange={handleUpdate} global={global} />
+                      <CostOfEquityCard formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+                    </div>
+                  );
                 case "revenue":
                   return <ManagementFeesSection formData={formData} onChange={handleUpdate} global={global} properties={properties} allFeeCategories={allFeeCategories} researchValues={researchValues} />;
                 case "compensation":
@@ -737,15 +760,13 @@ export default function CompanyAssumptions() {
                       <VariableCostsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
                     </div>
                   );
-                case "tax-exit":
+                case "property-defaults":
                   return (
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      <TaxSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-                      <ExitAssumptionsSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+                    <div className="space-y-6">
+                      <PropertyExpenseRatesSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
+                      <PropertyExitDefaultsCard formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
                     </div>
                   );
-                case "property-defaults":
-                  return <PropertyExpenseRatesSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />;
               }
             };
             const tabDirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
