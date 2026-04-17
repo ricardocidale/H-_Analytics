@@ -54,11 +54,14 @@ const SIZE_CONFIG: Record<AnalystButtonSize, { btn: string; icon: string; loader
   lg: { btn: "w-full h-12 text-base font-semibold shadow-lg shadow-primary/20", icon: "w-5 h-5", loader: 22 },
 };
 
+// Freshness dot uses fixed traffic-light colors regardless of theme so the
+// status reads consistently in light, dark, and any custom theme:
+//   green  → current, gold/yellow → stale, red → very_stale / missing.
 const FRESHNESS_DOT: Partial<Record<Exclude<FreshnessStatus, null>, string>> = {
-  current: "bg-primary",
-  stale: "bg-accent-pop",
-  very_stale: "bg-destructive",
-  missing: "bg-destructive",
+  current: "bg-green-500",
+  stale: "bg-yellow-400",
+  very_stale: "bg-red-500",
+  missing: "bg-red-500",
 };
 
 export function AnalystButton({
