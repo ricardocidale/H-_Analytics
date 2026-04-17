@@ -36,7 +36,7 @@ export default function CompanyHeader({
     <Link href="/company/assumptions" className="text-inherit no-underline">
       <Button variant="outline">
         <IconSettings className="w-4 h-4" />
-        Configure Assumptions
+        Assumptions
       </Button>
     </Link>
   ) : (
