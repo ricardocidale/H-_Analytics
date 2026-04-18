@@ -1,0 +1,113 @@
+name: Vector Benchmark
+
+# Scheduled regression check for pgvector / HNSW search latency.
+# Runs against an ephemeral pgvector postgres service — never production.
+#
+# Triggers:
+#   - Weekly cron (Mondays 06:00 UTC)
+#   - Manual dispatch with adjustable size / threshold inputs
+#   - Push to main when the script, docs, or this workflow change
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      sizes:
+        description: "Comma-separated row counts to seed"
+        required: false
+        default: "1000,5000"
+      queries:
+        description: "Queries per size after warmup"
+        required: false
+        default: "50"
+      threshold_p95_ms:
+        description: "Fail if any size's p95 exceeds this (ms). 0 disables."
+        required: false
+        default: "400"
+      warn_p95_ms:
+        description: "Warn if any size's p95 exceeds this (ms). 0 disables."
+        required: false
+        default: "200"
+  push:
+    branches: [main]
+    paths:
+      - "script/vector-bench.ts"
+      - ".github/workflows/vector-bench.yml"
+      - "migrations/0012_pgvector_store.sql"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HUSKY: 0
+      DATABASE_URL: postgresql://bench:bench@localhost:5432/vector_bench
+      NODE_ENV: test
+      SIZES: ${{ github.event.inputs.sizes || '1000,5000' }}
+      QUERIES: ${{ github.event.inputs.queries || '50' }}
+      THRESHOLD_P95_MS: ${{ github.event.inputs.threshold_p95_ms || '400' }}
+      WARN_P95_MS: ${{ github.event.inputs.warn_p95_ms || '200' }}
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: bench
+          POSTGRES_PASSWORD: bench
+          POSTGRES_DB: vector_bench
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U bench"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm install
+
+      - name: Run vector benchmark
+        id: bench
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          npx tsx script/vector-bench.ts \
+            --sizes="${SIZES}" \
+            --queries="${QUERIES}" \
+            --threshold-p95-ms="${THRESHOLD_P95_MS}" \
+            --warn-p95-ms="${WARN_P95_MS}" \
+            --json-out=artifacts/vector-bench.json \
+            --append-docs \
+            | tee artifacts/vector-bench.log
+
+      - name: Write GitHub job summary
+        if: always()
+        run: |
+          {
+            echo "## Vector Benchmark"
+            echo ""
+            echo "Sizes: \`${SIZES}\`  |  Queries: \`${QUERIES}\`  |  p95 fail threshold: \`${THRESHOLD_P95_MS}\` ms  |  p95 warn threshold: \`${WARN_P95_MS}\` ms"
+            echo ""
+            if [ -f artifacts/vector-bench.json ]; then
+              echo '```json'
+              cat artifacts/vector-bench.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vector-bench-${{ github.run_id }}
+          path: |
+            artifacts/vector-bench.json
+            artifacts/vector-bench.log
+            docs/vector-bench-results.md
+          retention-days: 90

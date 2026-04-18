@@ -24,10 +24,18 @@
  *   npx tsx script/vector-bench.ts --keep                # don't clean up
  *   npx tsx script/vector-bench.ts --no-record           # don't append to docs
  *
+ * CI / regression-alert flags (used by `.github/workflows/vector-bench.yml`):
+ *   --threshold-p95-ms=<ms>  Exit 1 if any size's single or multi p95 exceeds
+ *   --warn-p95-ms=<ms>       Print a warning if any size's p95 exceeds
+ *   --json-out=<path>        Write a structured JSON summary to this file
+ *   --append-docs            Alias for the default record behavior (explicit)
+ *   --allow-production       Override the safety check that refuses to run
+ *                            against a DATABASE_URL that looks production-like
+ *
  * Requires DATABASE_URL pointing at a Postgres instance with the `vector`
  * extension and the `vector_chunks` table (migration 0012_pgvector_store.sql).
  */
-import { mkdir, appendFile } from "node:fs/promises";
+import { mkdir, appendFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { vectorStorePool as pool } from "../server/storage/vector-store";
 import { ALL_NAMESPACES, type VectorNamespace } from "../server/ai/vector-store-service";
@@ -44,6 +52,10 @@ interface Args {
   keep: boolean;
   record: boolean;
   insertBatch: number;
+  thresholdP95Ms: number;
+  warnP95Ms: number;
+  jsonOut: string | null;
+  allowProduction: boolean;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -54,11 +66,27 @@ function parseArgs(argv: string[]): Args {
     keep: false,
     record: true,
     insertBatch: 500,
+    thresholdP95Ms: 0,
+    warnP95Ms: 0,
+    jsonOut: null,
+    allowProduction: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    const next = () => argv[++i];
-    switch (a) {
+    // Support both "--flag value" and "--flag=value" styles so the CI
+    // workflow can use the more compact form.
+    let key = a;
+    let inlineValue: string | undefined;
+    if (a.startsWith("--") && a.includes("=")) {
+      const eq = a.indexOf("=");
+      key = a.slice(0, eq);
+      inlineValue = a.slice(eq + 1);
+    }
+    const next = (): string => {
+      if (inlineValue !== undefined) return inlineValue;
+      return argv[++i];
+    };
+    switch (key) {
       case "--sizes":
         args.sizes = next().split(",").map((s) => Number(s.trim())).filter((n) => n > 0);
         break;
@@ -66,21 +94,47 @@ function parseArgs(argv: string[]): Args {
         args.queries = Number(next());
         break;
       case "--top-k":
+      case "--topK":
+      case "--topk":
         args.topK = Number(next());
         break;
       case "--insert-batch":
         args.insertBatch = Number(next());
         break;
       case "--keep":
+      case "--keep-data":
         args.keep = true;
         break;
       case "--no-record":
         args.record = false;
         break;
+      case "--append-docs":
+        // Default behavior already records; flag is accepted for explicitness
+        // so the CI workflow reads naturally.
+        args.record = true;
+        break;
+      case "--threshold-p95-ms":
+        args.thresholdP95Ms = Math.max(0, Number(next()) || 0);
+        break;
+      case "--warn-p95-ms":
+        args.warnP95Ms = Math.max(0, Number(next()) || 0);
+        break;
+      case "--json-out": {
+        const v = next();
+        args.jsonOut = v && v.length > 0 ? v : null;
+        break;
+      }
+      case "--allow-production":
+        args.allowProduction = true;
+        break;
       case "-h":
       case "--help":
         console.log(
-          "Usage: tsx script/vector-bench.ts [--sizes 10000,100000] [--queries 50] [--top-k 8] [--insert-batch 500] [--keep] [--no-record]",
+          "Usage: tsx script/vector-bench.ts [--sizes 10000,100000] [--queries 50] [--top-k 8]\n" +
+            "                                  [--insert-batch 500] [--keep] [--no-record]\n" +
+            "                                  [--append-docs] [--json-out path]\n" +
+            "                                  [--threshold-p95-ms N] [--warn-p95-ms N]\n" +
+            "                                  [--allow-production]",
         );
         process.exit(0);
     }
@@ -98,6 +152,24 @@ function parseArgs(argv: string[]): Args {
     throw new Error("--insert-batch must be a positive integer");
   }
   return args;
+}
+
+function isProductionLike(url: string): boolean {
+  const lower = url.toLowerCase();
+  // Heuristic: explicit "prod" markers in DSN. Local / ephemeral CI databases
+  // never trip these.
+  return /(\bprod\b|\bproduction\b|prod[-_])/.test(lower);
+}
+
+function redactDsn(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.password) u.password = "***";
+    if (u.username) u.username = u.username.replace(/.(?=.{0,3}$)/g, "*");
+    return u.toString();
+  } catch {
+    return "unknown";
+  }
 }
 
 function randomUnitVector(dims: number): number[] {
@@ -349,12 +421,39 @@ ${renderTable(rows, args.queries)}
   console.log(`  recorded results to ${path}`);
 }
 
+interface BenchOutcome {
+  startedAt: string;
+  finishedAt: string;
+  commit: string | null;
+  database: string;
+  embedDims: number;
+  queries: number;
+  topK: number;
+  thresholdP95Ms: number;
+  warnP95Ms: number;
+  results: Array<{
+    size: number;
+    totalRowsAtRun: number;
+    single: Stats;
+    multi: Stats;
+  }>;
+  failed: string[];
+  warned: string[];
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
   if (!process.env.DATABASE_URL) {
     console.error("DATABASE_URL is not set — aborting.");
     process.exit(1);
+  }
+
+  if (isProductionLike(process.env.DATABASE_URL) && !args.allowProduction) {
+    console.error(
+      "Refusing to run: DATABASE_URL looks production-like. Pass --allow-production to override.",
+    );
+    process.exit(2);
   }
 
   // Sanity check: extension + table.
@@ -374,8 +473,11 @@ async function main(): Promise<void> {
   console.log(`  sizes: ${args.sizes.join(", ")}, queries/size: ${args.queries}, top-K: ${args.topK}`);
   console.log(`  bench namespace: ${BENCH_NAMESPACE}, id prefix: ${BENCH_ID_PREFIX}`);
 
+  const startedAt = new Date().toISOString();
   const sortedSizes = [...args.sizes].sort((a, b) => a - b);
   const results: Array<Awaited<ReturnType<typeof benchAtSize>>> = [];
+  const failed: string[] = [];
+  const warned: string[] = [];
   let exitCode = 0;
   try {
     for (const size of sortedSizes) {
@@ -389,6 +491,20 @@ async function main(): Promise<void> {
       console.log(
         `  multi-ns(7):  p50=${fmt(r.multi.p50Ms)}ms  p95=${fmt(r.multi.p95Ms)}ms  mean=${fmt(r.multi.meanMs)}ms  max=${fmt(r.multi.maxMs)}ms`,
       );
+
+      // Threshold checks: evaluate against single-namespace and multi-namespace
+      // p95 separately so the CI summary makes the failure source obvious.
+      const checks: Array<{ label: string; p95: number }> = [
+        { label: `size=${size} single`, p95: r.single.p95Ms },
+        { label: `size=${size} multi`, p95: r.multi.p95Ms },
+      ];
+      for (const c of checks) {
+        if (args.thresholdP95Ms > 0 && c.p95 > args.thresholdP95Ms) {
+          failed.push(`${c.label}: p95=${fmt(c.p95)}ms > ${args.thresholdP95Ms}ms`);
+        } else if (args.warnP95Ms > 0 && c.p95 > args.warnP95Ms) {
+          warned.push(`${c.label}: p95=${fmt(c.p95)}ms > ${args.warnP95Ms}ms`);
+        }
+      }
     }
 
     console.log("\n" + renderTable(results, args.queries));
@@ -397,7 +513,7 @@ async function main(): Promise<void> {
       await recordResults(RESULTS_PATH, results, args);
     }
   } catch (err) {
-    exitCode = 1;
+    exitCode = 2;
     console.error("Benchmark failed:", err instanceof Error ? err.message : err);
   } finally {
     if (!args.keep) {
@@ -410,6 +526,47 @@ async function main(): Promise<void> {
       console.log("  --keep set: leaving synthetic rows in place");
     }
     await pool.end().catch(() => {});
+  }
+
+  // Always emit a structured JSON summary so CI can parse / surface it,
+  // regardless of whether --json-out is set.
+  const outcome: BenchOutcome = {
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    commit: process.env.GITHUB_SHA || process.env.COMMIT_SHA || null,
+    database: redactDsn(process.env.DATABASE_URL),
+    embedDims: EMBED_DIMS,
+    queries: args.queries,
+    topK: args.topK,
+    thresholdP95Ms: args.thresholdP95Ms,
+    warnP95Ms: args.warnP95Ms,
+    results: results.map((r) => ({
+      size: r.size,
+      totalRowsAtRun: r.totalRowsAtRun,
+      single: r.single,
+      multi: r.multi,
+    })),
+    failed,
+    warned,
+  };
+  console.log("\n=== vector-bench JSON ===");
+  console.log(JSON.stringify(outcome, null, 2));
+
+  if (args.jsonOut) {
+    try {
+      await mkdir(dirname(args.jsonOut), { recursive: true });
+      await writeFile(args.jsonOut, JSON.stringify(outcome, null, 2));
+    } catch (err) {
+      console.error("Failed to write --json-out:", err instanceof Error ? err.message : err);
+    }
+  }
+
+  if (failed.length > 0) {
+    console.error(`\nvector-bench FAIL:\n${failed.map((m) => "  - " + m).join("\n")}`);
+    if (exitCode === 0) exitCode = 1;
+  }
+  if (warned.length > 0) {
+    console.warn(`\nvector-bench WARN:\n${warned.map((m) => "  - " + m).join("\n")}`);
   }
 
   process.exit(exitCode);

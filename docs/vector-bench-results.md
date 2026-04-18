@@ -25,6 +25,12 @@ npx tsx script/vector-bench.ts --keep
 The script seeds rows in the `knowledge-base` namespace under the id prefix
 `bench:vector-bench:` and removes them on exit unless `--keep` is passed.
 
+The scheduled CI job in `.github/workflows/vector-bench.yml` runs this
+script weekly against an ephemeral pgvector postgres service container,
+appends the run block here, and uploads the JSON summary as an artifact.
+The job fails when any seeded size's p95 (single- or multi-namespace)
+exceeds the configured `--threshold-p95-ms`.
+
 ## Runs
 
 ## 2026-04-18T10:58:59.498Z
