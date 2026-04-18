@@ -237,3 +237,33 @@ These are existing cross-layer divergence, not drift introduced by my prior audi
 ---
 
 ## Phase 2 complete — 2 commits (`8f50224a`, `5d4b4111`). Next: Phase 3 (audit sweep of 16 remaining files).
+
+---
+
+## Phase 3 — audit sweep (complete, 0 commits)
+
+**Files audited (16):** all 10 un-audited + 6 partially-audited sub-sections.
+
+**8 findings → tasks #9–#16:**
+- #9 (P1) — `EditableValue.tsx` declares `step` as required but destructure omits it — callers pass it, it's silently ignored.
+- #10 (P1) — `CateringSection.tsx` is dead code (not imported, not exported from barrel).
+- #11 (P2) — `ServiceTemplateDialog.tsx` `emptyForm` hardcodes markup/rate literals that should use `DEFAULT_SERVICE_MARKUP`.
+- #12 (P2) — `CompensationSection.tsx` tier fallbacks hardcode 3/2.5/6/4.5/7.0; should use `STAFFING_TIERS`.
+- #13 (P2) — `index.ts` barrel docstring still references "SAFE tranches" (field is `capitalRaise*` now).
+- #14 (P2) — `SummaryFooter.tsx` missing last-chance `DEFAULT_FIXED_COST_ESCALATION_RATE` fallback.
+- #15 (P3) — `PropertyFeeSummaryTable.tsx` uses `any[]` — should be `PortfolioPropertySummary[]` + `FeeCategoryResponse[]`.
+- #16 (P3) — `CompensationSection.tsx` tooltip line 40 embeds "AHLA Lodging Industry Survey 2024" + specific $ figures that drift.
+
+**Clean files (no findings):** `TabActions`, `RangePillsLayer`, `ServiceResearchPanel`, `FixedOverheadSection`, `VariableCostsSection`, `PropertyExpenseRatesSection`, `PartnerCompSection`, `CostOfEquityCard`, `index.ts` (except docstring — task #13).
+
+---
+
+## Phase 4 — split workflow decision (new rule)
+
+**Workflow change (April 18, 2026):** UI and database tasks now go to Replit Agent for execution; Claude Code handles docs, architecture, and pure refactors. Handoff files live in `.claude/replit-handoffs/`. See that directory's `README.md`.
+
+- Task #13 (docstring-only, no UI/DB) → completed by Claude Code this session.
+- Tasks #9–#12, #14–#16 → handed off to Replit Agent via `.claude/replit-handoffs/phase-4-pending-ui-tasks.md`.
+- Phase 2 shipped commits to be verified by Replit via `.claude/replit-handoffs/phase-2-verification.md`.
+
+## Phase 3 complete. Next: Replit executes Phase 4 handoff; Claude prepares Phase 5 (structural refactors) and Phase 6 (DB migration) handoffs.

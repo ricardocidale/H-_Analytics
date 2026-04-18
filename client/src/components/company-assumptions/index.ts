@@ -11,8 +11,10 @@
  *                          (identity, contact, HQ, inflation, depreciation,
  *                           company income tax rate)
  *   2. Funding           → FundingSection + CostOfEquityCard
- *                          (SAFE tranches + cost of capital — the discount
- *                           rate for company-level DCF)
+ *                          (capital raise tranches + cost of capital — the
+ *                           discount rate for company-level DCF. The tranche
+ *                           fields are `capitalRaise*`; the instrument can be
+ *                           a SAFE, convertible note, seed round, etc.)
  *   3. Revenue Model     → ManagementFeesSection
  *   4. Compensation      → CompensationSection + PartnerCompSection
  *   5. Overhead          → FixedOverheadSection + VariableCostsSection
@@ -32,8 +34,11 @@
  * data, an onChange handler, and the global assumptions fallback values.
  *
  * Financial concepts configured here:
- *   • SAFE notes — Simple Agreement for Future Equity (startup funding instrument)
- *   • Valuation cap / discount rate — SAFE conversion terms
+ *   • Capital raise tranches (`capitalRaise*` fields) — startup funding
+ *     instruments. Can be SAFE notes (Simple Agreement for Future Equity),
+ *     convertible notes, seed rounds, etc.
+ *   • Valuation cap / discount rate — conversion terms for convertible
+ *     instruments (SAFEs and convertible notes)
  *   • Staffing tiers — FTE headcount that scales with portfolio size
  *   • Fixed vs. variable costs — overhead that escalates annually vs. costs
  *     that scale per-property or as a percentage of management fee revenue
