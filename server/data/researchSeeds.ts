@@ -1,4 +1,5 @@
 import type { ResearchValueMap, ResearchValueEntry } from "../../shared/schema";
+import { CITATIONS } from "@shared/citations";
 
 interface LocationContext {
   location: string;
@@ -340,7 +341,7 @@ const FIELD_SOURCES: Record<string, string> = {
   occupancy: "STR/CBRE market data",
   startOccupancy: "STR ramp-up benchmarks",
   rampMonths: "STR ramp-up benchmarks",
-  capRate: "CBRE Cap Rate Survey",
+  capRate: CITATIONS.cbreCapRateSurvey,
   catering: "USALI F&B benchmarks",
   landValue: "Assessor/market comps",
   costHousekeeping: "USALI departmental",
@@ -350,7 +351,7 @@ const FIELD_SOURCES: Record<string, string> = {
   costUtilities: "USALI undistributed",
   costFFE: "USALI reserves",
   costMarketing: "USALI undistributed",
-  costIT: "HFTP Technology Survey",
+  costIT: CITATIONS.hftpTechnologySurvey,
   costOther: "USALI undistributed",
   costPropertyTaxes: "Local assessor data",
   svcFeeMarketing: "HVS Mgmt Agreement Study",
@@ -361,7 +362,7 @@ const FIELD_SOURCES: Record<string, string> = {
   svcFeeProcurement: "HVS Mgmt Agreement Study",
   incentiveFee: "HVS Mgmt Agreement Study",
   incomeTax: "IRS/jurisdiction rates",
-  saleCommission: "NAR transaction data",
+  saleCommission: CITATIONS.narTransactionData,
   acqLtv: "CBRE lending benchmarks",
   acqRate: "CBRE lending benchmarks",
   refiLtv: "CBRE lending benchmarks",
