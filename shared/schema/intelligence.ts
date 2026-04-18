@@ -191,6 +191,34 @@ export const insertCapitalRaiseBenchmarkSchema = createInsertSchema(capitalRaise
 export type CapitalRaiseBenchmark = typeof capitalRaiseBenchmarks.$inferSelect;
 export type InsertCapitalRaiseBenchmark = z.infer<typeof insertCapitalRaiseBenchmarkSchema>;
 
+// ── Exit Multiples ───────────────────────────────────────────────
+// Second Analyst-managed benchmark table. One row per industry vertical
+// keyed by `dimensionKey` (e.g. "saas", "ecommerce", "marketplace").
+// Stores low/mid/high revenue-multiple ranges used by the Analyst watchdog
+// when validating exit-valuation assumptions. Same shape as
+// capital_raise_benchmarks so the admin UI can render both side-by-side.
+export const exitMultiples = pgTable("exit_multiples", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  dimensionKey: text("dimension_key").notNull().unique(),
+  label: text("label").notNull(),
+  unit: text("unit").notNull().default("x_revenue"),
+  valueLow: real("value_low"),
+  valueMid: real("value_mid"),
+  valueHigh: real("value_high"),
+  sourceCount: integer("source_count").notNull().default(0),
+  lastRefreshedAt: timestamp("last_refreshed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertExitMultipleSchema = createInsertSchema(exitMultiples).pick({
+  dimensionKey: true, label: true, unit: true,
+  valueLow: true, valueMid: true, valueHigh: true,
+  sourceCount: true, lastRefreshedAt: true,
+});
+export type ExitMultiple = typeof exitMultiples.$inferSelect;
+export type InsertExitMultiple = z.infer<typeof insertExitMultipleSchema>;
+
 // ── Analyst Refresh Audit Log ────────────────────────────────────
 // Every admin-triggered Analyst-table refresh attempt is recorded here.
 // Provides a tamper-evident trail of who refreshed which table, when, with

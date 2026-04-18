@@ -31,10 +31,11 @@ import {
   ANALYST_TABLE_ALLOW_LIST,
   type AnalystTableId,
 } from "../../middleware/analyst-refresh-guards";
-import { researchCapitalRaiseBenchmarks } from "../../ai/analyst-table-refresh";
+import { researchCapitalRaiseBenchmarks, researchExitMultiples } from "../../ai/analyst-table-refresh";
 
 const TABLE_LABELS: Record<AnalystTableId, string> = {
   capital_raise_benchmarks: "Capital Raise Benchmarks",
+  exit_multiples: "Exit Multiples",
 };
 
 export function registerAdminAnalystTableRoutes(app: Express) {
@@ -44,33 +45,33 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const settings = await storage.getAnalystRefreshSettings();
       const tables = [];
 
+      const cadenceMs = settings.globalCadenceDays * 24 * 60 * 60 * 1000;
       for (const id of ANALYST_TABLE_ALLOW_LIST) {
-        if (id === "capital_raise_benchmarks") {
-          const summary = await storage.getCapitalRaiseBenchmarkSummary();
-          const lastRefreshedAt = summary.lastRefreshedAt;
-          const ageMs = lastRefreshedAt ? Date.now() - lastRefreshedAt.getTime() : null;
-          const cadenceMs = settings.globalCadenceDays * 24 * 60 * 60 * 1000;
-          const freshness =
-            lastRefreshedAt == null ? "missing" :
-            ageMs! > cadenceMs ? "stale" : "fresh";
-          const recent = await storage.getRecentAnalystRefreshAuditLogs({ tableId: id, limit: 1 });
-          tables.push({
-            id,
-            label: TABLE_LABELS[id],
-            ranges: summary.rows.map(r => ({
-              dimensionKey: r.dimensionKey,
-              label: r.label,
-              unit: r.unit,
-              valueLow: r.valueLow,
-              valueMid: r.valueMid,
-              valueHigh: r.valueHigh,
-            })),
-            sourceCount: summary.sourceCount,
-            tokensUsedLastRefresh: recent[0]?.tokensUsed ?? null,
-            lastRefreshedAt,
-            freshness,
-          });
-        }
+        const summary = id === "capital_raise_benchmarks"
+          ? await storage.getCapitalRaiseBenchmarkSummary()
+          : await storage.getExitMultiplesSummary();
+        const lastRefreshedAt = summary.lastRefreshedAt;
+        const ageMs = lastRefreshedAt ? Date.now() - lastRefreshedAt.getTime() : null;
+        const freshness =
+          lastRefreshedAt == null ? "missing" :
+          ageMs! > cadenceMs ? "stale" : "fresh";
+        const recent = await storage.getRecentAnalystRefreshAuditLogs({ tableId: id, limit: 1 });
+        tables.push({
+          id,
+          label: TABLE_LABELS[id],
+          ranges: summary.rows.map(r => ({
+            dimensionKey: r.dimensionKey,
+            label: r.label,
+            unit: r.unit,
+            valueLow: r.valueLow,
+            valueMid: r.valueMid,
+            valueHigh: r.valueHigh,
+          })),
+          sourceCount: summary.sourceCount,
+          tokensUsedLastRefresh: recent[0]?.tokensUsed ?? null,
+          lastRefreshedAt,
+          freshness,
+        });
       }
 
       res.json({
@@ -131,10 +132,9 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const tableId = req.params.id as AnalystTableId;
       const auditId = res.locals.analystRefreshAuditId as number | undefined;
       try {
-        const current = tableId === "capital_raise_benchmarks"
-          ? await storage.getCapitalRaiseBenchmarks()
-          : [];
-        const llmResult = await researchCapitalRaiseBenchmarks(current);
+        const llmResult = tableId === "capital_raise_benchmarks"
+          ? await researchCapitalRaiseBenchmarks(await storage.getCapitalRaiseBenchmarks())
+          : await researchExitMultiples(await storage.getExitMultiples());
 
         if (auditId) {
           await storage.finalizeAnalystRefreshAuditLog(auditId, {
@@ -198,17 +198,23 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
 
       const now = new Date();
+      const defaultUnit = tableId === "exit_multiples" ? "x_revenue" : "usd";
       for (const r of parsed.data.proposedRanges) {
-        await storage.upsertCapitalRaiseBenchmark({
+        const payload = {
           dimensionKey: r.dimensionKey,
           label: r.label,
-          unit: r.unit ?? "usd",
+          unit: r.unit ?? defaultUnit,
           valueLow: r.valueLow,
           valueMid: r.valueMid,
           valueHigh: r.valueHigh,
           sourceCount: parsed.data.sourceCount ?? 0,
           lastRefreshedAt: now,
-        });
+        };
+        if (tableId === "capital_raise_benchmarks") {
+          await storage.upsertCapitalRaiseBenchmark(payload);
+        } else {
+          await storage.upsertExitMultiple(payload);
+        }
       }
       if (parsed.data.auditId) {
         await storage.finalizeAnalystRefreshAuditLog(parsed.data.auditId, {
@@ -258,9 +264,11 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       }
       // Touch the lastRefreshedAt to indicate a forced reseed.
       const now = new Date();
-      const rows = await storage.getCapitalRaiseBenchmarks();
+      const rows = tableId === "capital_raise_benchmarks"
+        ? await storage.getCapitalRaiseBenchmarks()
+        : await storage.getExitMultiples();
       for (const r of rows) {
-        await storage.upsertCapitalRaiseBenchmark({
+        const payload = {
           dimensionKey: r.dimensionKey,
           label: r.label,
           unit: r.unit,
@@ -269,7 +277,12 @@ export function registerAdminAnalystTableRoutes(app: Express) {
           valueHigh: r.valueHigh,
           sourceCount: r.sourceCount,
           lastRefreshedAt: now,
-        });
+        };
+        if (tableId === "capital_raise_benchmarks") {
+          await storage.upsertCapitalRaiseBenchmark(payload);
+        } else {
+          await storage.upsertExitMultiple(payload);
+        }
       }
       logActivity(req, "analyst-table-reseed", "analyst_table", null, tableId as string, {
         rowsReseeded: rows.length,

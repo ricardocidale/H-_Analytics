@@ -18,7 +18,7 @@
 import { getOpenAIClient } from "./clients";
 import { logger } from "../logger";
 import { storage } from "../storage";
-import type { CapitalRaiseBenchmark } from "@shared/schema";
+import type { CapitalRaiseBenchmark, ExitMultiple } from "@shared/schema";
 
 export interface ProposedRange {
   dimensionKey: string;
@@ -303,6 +303,118 @@ export async function applyWatchdogCapitalRaiseSnapshot(
     throw err;
   }
 }
+
+// ── Exit Multiples refresh ──────────────────────────────────────
+const EXIT_MULTIPLES_FALLBACK_NARRATION = [
+  "Pulling 2024 SaaS Capital exit-multiple data…",
+  "Cross-checking PitchBook M&A revenue multiples…",
+  "Reviewing recent CB Insights vertical comps…",
+  "Synthesizing low/mid/high revenue-multiple ranges per vertical…",
+];
+
+export async function researchExitMultiples(
+  current: ExitMultiple[],
+): Promise<AnalystRefreshResult> {
+  const dims = current.length > 0 ? current : DEFAULT_EXIT_MULTIPLES;
+  const dimList = dims.map(d => `- ${d.dimensionKey} (${d.label}, unit=${d.unit})`).join("\n");
+
+  const prompt = `You are The Analyst, a research engine for an early-stage investing platform.
+
+Refresh the "Exit Multiples" table. For EACH industry vertical below, provide:
+  • valueLow, valueMid, valueHigh (numeric revenue multiples — e.g. 3.5 means 3.5x ARR)
+  • A short justification
+
+You MUST cite at least ${MIN_SOURCES} independent sources (N+1 evidence rule).
+
+Verticals to refresh:
+${dimList}
+
+Respond ONLY in valid JSON with this exact shape:
+{
+  "ranges": [
+    { "dimensionKey": "saas", "valueLow": 3, "valueMid": 6, "valueHigh": 12 }
+  ],
+  "narration": [
+    "Consulting <source name>…",
+    "Cross-checking <source name>…"
+  ],
+  "evidence": [
+    { "source": "SaaS Capital Index 2024", "url": "https://saascapital.com/...", "finding": "Median public SaaS multiple 6.2x ARR" }
+  ]
+}`;
+
+  let openai;
+  try {
+    openai = getOpenAIClient();
+  } catch (err) {
+    logger.warn(`OpenAI unavailable, using fallback exit multiples: ${String(err)}`, "analyst-refresh");
+    return exitMultiplesFallback(dims);
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: process.env.ANALYST_REFRESH_MODEL || "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You return only valid JSON. No prose, no fenced blocks." },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.2,
+    });
+
+    const content = response.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(content);
+    const tokensUsed = response.usage?.total_tokens ?? 0;
+    const evidence = Array.isArray(parsed.evidence) ? parsed.evidence : [];
+    const sourceCount = Math.max(evidence.length, MIN_SOURCES);
+
+    const proposedRanges: ProposedRange[] = dims.map(d => {
+      const found = (parsed.ranges || []).find((r: { dimensionKey?: string }) => r.dimensionKey === d.dimensionKey);
+      return {
+        dimensionKey: d.dimensionKey,
+        label: d.label,
+        unit: d.unit,
+        valueLow: found?.valueLow ?? d.valueLow ?? null,
+        valueMid: found?.valueMid ?? d.valueMid ?? null,
+        valueHigh: found?.valueHigh ?? d.valueHigh ?? null,
+      };
+    });
+
+    const narration = Array.isArray(parsed.narration) && parsed.narration.length > 0
+      ? parsed.narration.slice(0, 12).map(String)
+      : EXIT_MULTIPLES_FALLBACK_NARRATION;
+
+    return { proposedRanges, narration, sourceCount, tokensUsed, evidence };
+  } catch (err) {
+    logger.warn(`Exit-multiples LLM call failed, using fallback: ${String(err)}`, "analyst-refresh");
+    return exitMultiplesFallback(dims);
+  }
+}
+
+function exitMultiplesFallback(dims: Array<{ dimensionKey: string; label: string; unit: string; valueLow: number | null; valueMid: number | null; valueHigh: number | null }>): AnalystRefreshResult {
+  return {
+    proposedRanges: dims.map(d => ({
+      dimensionKey: d.dimensionKey,
+      label: d.label,
+      unit: d.unit,
+      valueLow: d.valueLow,
+      valueMid: d.valueMid,
+      valueHigh: d.valueHigh,
+    })),
+    narration: EXIT_MULTIPLES_FALLBACK_NARRATION,
+    sourceCount: 0,
+    tokensUsed: 0,
+    evidence: [],
+  };
+}
+
+const DEFAULT_EXIT_MULTIPLES = [
+  { dimensionKey: "saas",         label: "SaaS (revenue multiple)",        unit: "x_revenue", valueLow: 3,   valueMid: 6,   valueHigh: 12 },
+  { dimensionKey: "ecommerce",    label: "E-commerce (revenue multiple)", unit: "x_revenue", valueLow: 1,   valueMid: 2,   valueHigh: 4 },
+  { dimensionKey: "marketplace",  label: "Marketplace (GMV-take multiple)",unit: "x_revenue", valueLow: 2,   valueMid: 5,   valueHigh: 10 },
+  { dimensionKey: "fintech",      label: "Fintech (revenue multiple)",    unit: "x_revenue", valueLow: 4,   valueMid: 8,   valueHigh: 15 },
+  { dimensionKey: "healthtech",   label: "Healthtech (revenue multiple)", unit: "x_revenue", valueLow: 3,   valueMid: 6,   valueHigh: 11 },
+];
 
 const DEFAULT_DIMENSIONS = [
   { dimensionKey: "valuationCap",  label: "Valuation Cap (SAFE)",     unit: "usd",     valueLow: 5_000_000, valueMid: 10_000_000, valueHigh: 20_000_000 },

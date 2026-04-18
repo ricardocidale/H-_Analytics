@@ -9,8 +9,9 @@ import {
   type AnalystWatchdogBenchmarks,
   type InsertAnalystWatchdogBenchmarks,
   marketAdrIndex, seasonalCalendars, eventCalendars, airportDistances, laborRates, fbBenchmarks,
-  capitalRaiseBenchmarks, analystRefreshAuditLog, analystRefreshSettings,
+  capitalRaiseBenchmarks, exitMultiples, analystRefreshAuditLog, analystRefreshSettings,
   type CapitalRaiseBenchmark, type InsertCapitalRaiseBenchmark,
+  type ExitMultiple, type InsertExitMultiple,
   type AnalystRefreshAuditLog, type InsertAnalystRefreshAuditLog,
   type AnalystRefreshSettings, type InsertAnalystRefreshSettings,
   type AssumptionGuidance, type InsertAssumptionGuidance,
@@ -931,6 +932,39 @@ export class IntelligenceV2Storage {
     }
 
     return { applied, skipped };
+  }
+
+  // ── Exit Multiples ────────────────────────────────────────────
+  async getExitMultiples(): Promise<ExitMultiple[]> {
+    return db.select().from(exitMultiples).orderBy(exitMultiples.dimensionKey);
+  }
+
+  async getExitMultiplesSummary(): Promise<{
+    rows: ExitMultiple[];
+    lastRefreshedAt: Date | null;
+    sourceCount: number;
+  }> {
+    const rows = await this.getExitMultiples();
+    const refreshed = rows.map(r => r.lastRefreshedAt).filter((d): d is Date => !!d);
+    const lastRefreshedAt = refreshed.length ? new Date(Math.max(...refreshed.map(d => d.getTime()))) : null;
+    const sourceCount = rows.reduce((s, r) => Math.max(s, r.sourceCount ?? 0), 0);
+    return { rows, lastRefreshedAt, sourceCount };
+  }
+
+  async upsertExitMultiple(data: InsertExitMultiple): Promise<ExitMultiple> {
+    const [existing] = await db.select().from(exitMultiples)
+      .where(eq(exitMultiples.dimensionKey, data.dimensionKey)).limit(1);
+    if (existing) {
+      const [updated] = await db.update(exitMultiples)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(exitMultiples.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(exitMultiples)
+      .values(data as typeof exitMultiples.$inferInsert)
+      .returning();
+    return inserted;
   }
 
   // ── Analyst Refresh Audit Log ─────────────────────────────────
