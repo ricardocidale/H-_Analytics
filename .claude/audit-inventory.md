@@ -209,6 +209,11 @@ These are user-facing numbers baked into Rebecca's responses. If admin changes `
 All 5 true drift sites now import `DEFAULT_COMPANY_OPS_START_DATE`:
 `shared/schema/config.ts`, `server/syncHelpers.ts`, `server/seeds/properties.ts`, `client/src/components/admin/model-defaults/CompanyTab.tsx`, `client/src/pages/checker-manual/sections/Section04GlobalAssumptions.tsx`. Remaining `"2026-06-01"` occurrences are different fields (`capitalRaise1Date`, `acquisitionDate`) — not task #6 drift.
 
+### D-1-B: capitalRaise{1,2}Date drift ✅ closed (commit `6a18d8cf`)
+Added `DEFAULT_CAPITAL_RAISE_1_DATE` (`"2026-06-01"`) and `DEFAULT_CAPITAL_RAISE_2_DATE` (`"2027-04-01"`) to `shared/constants.ts`. Adopted across 4 files (8 literal substitutions):
+`shared/schema/config.ts` (column defaults), `server/syncHelpers.ts` (sync fallback), `server/seeds/properties.ts` (dev seed), `client/src/pages/checker-manual/sections/Section04GlobalAssumptions.tsx` (user-manual row).
+Out of scope (intentionally retained): `seed-manifest.json` (JSON, can't import TS), `script/seed-production.sql` + `script/manual-sync/*.sql` (SQL), `server/seeds/property-data.ts` `acquisitionDate` (per-property, not a default), test fixtures (intentional inputs), `server/ai/kb/19-financial-formulas.md` (Phase 5B).
+
 ### D-3 ✅ verified safe (no code change)
 `tests/e2e` + `tests/` sweep finds 0 references to the removed `button-save-incentive` testid. Task #1 rewire caused no test orphaning.
 
