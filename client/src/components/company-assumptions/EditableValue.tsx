@@ -29,7 +29,8 @@ export default function EditableValue({
   format: "percent" | "dollar" | "number";
   min: number;
   max: number;
-  step: number;
+  /** @deprecated EditableValue is a free-form text input; step has no effect. Accepted for call-site compatibility (Slider siblings still use it). */
+  step?: number;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
