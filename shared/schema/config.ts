@@ -185,6 +185,15 @@ export const globalAssumptions = pgTable("global_assumptions", {
   // Exit & Sale Assumptions (global defaults) — disposition-side broker commission (applied at property sale/exit)
   exitCapRate: real("exit_cap_rate").notNull().default(DEFAULT_EXIT_CAP_RATE),
   salesCommissionRate: real("sales_commission_rate").notNull().default(DEFAULT_COMMISSION_RATE), // Distinct from commissionRate: this is exit/sale, that is acquisition
+
+  // Industry vertical (sourced from exit_multiples.dimensionKey) used by the
+  // Analyst watchdog to validate `exitRevenueMultiple` against the
+  // admin-managed [low, high] band. Nullable — when not set the watchdog
+  // skips the multiple check entirely.
+  industryVertical: text("industry_vertical"),
+  // Exit revenue multiple (e.g. 4.5x revenue) used to sanity-check exit
+  // valuation alongside the cap-rate method. Nullable.
+  exitRevenueMultiple: real("exit_revenue_multiple"),
   
   // Expense Rates (applied to specific revenue streams)
   eventExpenseRate: real("event_expense_rate").notNull().default(DEFAULT_EVENT_EXPENSE_RATE),

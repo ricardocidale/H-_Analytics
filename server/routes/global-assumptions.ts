@@ -22,6 +22,26 @@ export function register(app: Express) {
   // PUT uses upsert logic (creates on first save, updates thereafter).
   // ────────────────────────────────────────────────────────────
 
+  // Expose the admin-managed exit-multiple bands to any authenticated user so
+  // the Assumptions page can render the industry-vertical dropdown and show
+  // the inline "outside band — recommended midpoint" warning. Read-only; the
+  // admin write endpoints live under /api/admin/analyst-tables.
+  app.get("/api/exit-multiples", requireAuth, async (_req, res) => {
+    try {
+      const rows = await storage.getExitMultiples();
+      res.json(rows.map(m => ({
+        dimensionKey: m.dimensionKey,
+        label: m.label,
+        unit: m.unit,
+        valueLow: m.valueLow,
+        valueMid: m.valueMid,
+        valueHigh: m.valueHigh,
+      })));
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch exit multiples", error);
+    }
+  });
+
   app.get("/api/global-assumptions", requireAuth, async (req, res) => {
     try {
       const assumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);

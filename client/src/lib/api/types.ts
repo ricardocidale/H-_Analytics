@@ -74,6 +74,10 @@ export interface GlobalResponse {
   costOfEquity: number;
   exitCapRate: number;
   salesCommissionRate: number;
+  // Industry vertical (matches exit_multiples.dimensionKey) and exit revenue
+  // multiple — Analyst watchdog flags multiples outside the admin-managed band.
+  industryVertical: string | null;
+  exitRevenueMultiple: number | null;
   // Property Expense Rates
   eventExpenseRate: number;
   otherExpenseRate: number;

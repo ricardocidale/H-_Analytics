@@ -438,6 +438,7 @@ export default function CompanyAssumptions() {
     "property-defaults": [
       "eventExpenseRate", "otherExpenseRate", "utilitiesVariableSplit",
       "exitCapRate", "salesCommissionRate",
+      "industryVertical", "exitRevenueMultiple",
     ] as unknown as Array<keyof GlobalResponse>,
   };
 

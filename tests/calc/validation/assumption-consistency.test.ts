@@ -1137,6 +1137,68 @@ describe("edge cases", () => {
     expect(result.summary_by_severity.info).toBe(0);
   });
 
+  describe("exit revenue multiple band", () => {
+    const bands = [
+      { dimensionKey: "saas", label: "SaaS", valueLow: 4, valueMid: 6, valueHigh: 10 },
+      { dimensionKey: "ecommerce", label: "E-commerce", valueLow: 1, valueMid: 2, valueHigh: 4 },
+    ];
+
+    it("does nothing when no vertical is selected", () => {
+      const input = validInput();
+      input.global_assumptions.exit_revenue_multiple = 25;
+      input.exit_multiples = bands;
+      const out = checkAssumptionConsistency(input);
+      expect(out.issues.find(i => i.field === "exit_revenue_multiple")).toBeUndefined();
+    });
+
+    it("does nothing when no multiple is provided", () => {
+      const input = validInput();
+      input.global_assumptions.industry_vertical = "saas";
+      input.exit_multiples = bands;
+      const out = checkAssumptionConsistency(input);
+      expect(out.issues.find(i => i.field === "exit_revenue_multiple")).toBeUndefined();
+    });
+
+    it("does nothing when value is inside the band", () => {
+      const input = validInput();
+      input.global_assumptions.industry_vertical = "saas";
+      input.global_assumptions.exit_revenue_multiple = 6;
+      input.exit_multiples = bands;
+      const out = checkAssumptionConsistency(input);
+      expect(out.issues.find(i => i.field === "exit_revenue_multiple")).toBeUndefined();
+    });
+
+    it("flags warning with recommended midpoint when above the band", () => {
+      const input = validInput();
+      input.global_assumptions.industry_vertical = "saas";
+      input.global_assumptions.exit_revenue_multiple = 12.5;
+      input.exit_multiples = bands;
+      const out = checkAssumptionConsistency(input);
+      const issue = out.issues.find(i => i.field === "exit_revenue_multiple");
+      expect(issue).toBeDefined();
+      expect(issue!.severity).toBe("warning");
+      expect(issue!.message).toContain("Recommended midpoint for SaaS: 6x revenue");
+    });
+
+    it("flags warning when below the band", () => {
+      const input = validInput();
+      input.global_assumptions.industry_vertical = "ecommerce";
+      input.global_assumptions.exit_revenue_multiple = 0.5;
+      input.exit_multiples = bands;
+      const out = checkAssumptionConsistency(input);
+      expect(out.issues.find(i => i.field === "exit_revenue_multiple")?.severity).toBe("warning");
+    });
+
+    it("does nothing when the band has no low/high configured", () => {
+      const input = validInput();
+      input.global_assumptions.industry_vertical = "saas";
+      input.global_assumptions.exit_revenue_multiple = 999;
+      input.exit_multiples = [{ dimensionKey: "saas", label: "SaaS", valueLow: null, valueMid: 6, valueHigh: null }];
+      const out = checkAssumptionConsistency(input);
+      expect(out.issues.find(i => i.field === "exit_revenue_multiple")).toBeUndefined();
+    });
+  });
+
   it("multiple properties with issues accumulate correctly", () => {
     const input = validInput();
     // Property 1: critical (price) + critical (ADR)
