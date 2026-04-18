@@ -44,7 +44,7 @@ describe("capitalRaiseEvaluator", () => {
     expect(r.severity).toBe("alert");
     expect(r.reasoning[0]).toMatch(/Runway buffer/);
     expect(r.suggestedActions.find((a) => a.kind === "adjust")?.targetField).toBe(
-      "safeTranche1Amount",
+      "capitalRaise1Amount",
     );
     // Preset actions only — no free text path.
     expect(r.suggestedActions.map((a) => a.kind).sort()).toEqual(["ack", "adjust", "save_anyway"]);

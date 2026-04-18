@@ -249,3 +249,33 @@ Admin-only LLM-driven refresh of benchmark tables, starting with
   with `AnalystRefreshTheater`, `RefreshDiffDialog`,
   `SuspiciousActivityBanner`, plus `useFirstVisitBenchmarkSeed`.
 - Tests: `tests/server/analyst-refresh-guards.test.ts` (16 cases).
+
+## Migration Drift Checklist (Apr 18, 2026)
+
+Stage 0 fix-app + Stage 1 migration hygiene applied. Recurring root cause:
+`bootstrapDrizzleMigrationState()` in `server/migrations/consolidated-schema.ts`
+is one-shot — it stamps a snapshot of `drizzle.__drizzle_migrations` at first
+run and never backfills when later migrations land. If a new migration is added
+but its hash is missing from `__drizzle_migrations`, drizzle's `migrate()`
+re-runs already-applied SQL and the boot fails (`column already exists`,
+`column does not exist`, etc).
+
+When adding a new migration, do all five:
+1. Drop SQL into `migrations/NNNN_*.sql`
+2. Add a matching entry to `migrations/meta/_journal.json` (idx + tag must match)
+3. If running on an existing DB that already has the column, stamp the hash:
+   `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at) VALUES (sha256(file), now_ms);`
+4. Update `shared/schema/*.ts` so Drizzle queries see the new column
+5. `script/post-merge.sh` now runs the same node-postgres migrator the server
+   uses at boot (headless, no TTY). Fresh clones / merged branches pick up
+   pending migrations automatically.
+
+Known historical-state issues (deferred — non-blocking):
+- `__drizzle_migrations` row id=5 has stale hash `b01b0292…` that matches no
+  current file (originally 0004 prior to a rewrite).
+- Rows id=7 and id=8 are duplicate inserts of the 0006 hash.
+Cleanup is safe but not required; drizzle keys by hash, not row id.
+
+Migrations 0013 (`industry_vertical` + `exit_revenue_multiple`) and 0014
+(`saved_tabs` jsonb) were added April 18 to bring the journal in sync with
+already-applied DB state.

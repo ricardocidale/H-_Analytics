@@ -94,13 +94,13 @@ export function evaluateCapitalRaise(
     if (cls === "below") {
       findings.push({
         severity: "alert",
-        targetField: "safeTranche1Amount",
+        targetField: "capitalRaise1Amount",
         bullet: `Runway buffer is ${fmtMonths(v!)} — below the ${fmtMonths(benchmarks.runwayBufferMonthsLow)}–${fmtMonths(benchmarks.runwayBufferMonthsHigh)} cushion I'd want before the next milestone.`,
       });
     } else if (cls === "above") {
       findings.push({
         severity: "warn",
-        targetField: "safeTranche1Amount",
+        targetField: "capitalRaise1Amount",
         bullet: `Runway buffer is ${fmtMonths(v!)} — that's a longer cushion than the ${fmtMonths(benchmarks.runwayBufferMonthsLow)}–${fmtMonths(benchmarks.runwayBufferMonthsHigh)} I usually see; you may be over-raising.`,
       });
     }
@@ -113,13 +113,13 @@ export function evaluateCapitalRaise(
     if (cls === "below") {
       findings.push({
         severity: "warn",
-        targetField: "safeTranche2Amount",
+        targetField: "capitalRaise2Amount",
         bullet: `Sizing overshoot of ${fmtPct(v!)} sits below my ${fmtPct(benchmarks.sizingOvershootPctLow)}–${fmtPct(benchmarks.sizingOvershootPctHigh)} guidance — there's little slack for slippage.`,
       });
     } else if (cls === "above") {
       findings.push({
         severity: "warn",
-        targetField: "safeTranche2Amount",
+        targetField: "capitalRaise2Amount",
         bullet: `Sizing overshoot of ${fmtPct(v!)} is above the ${fmtPct(benchmarks.sizingOvershootPctLow)}–${fmtPct(benchmarks.sizingOvershootPctHigh)} guidance — extra dilution worth justifying.`,
       });
     }
@@ -132,13 +132,13 @@ export function evaluateCapitalRaise(
     if (cls === "below") {
       findings.push({
         severity: "warn",
-        targetField: "safeTranche2Date",
+        targetField: "capitalRaise2Date",
         bullet: `Tranche gap of ${fmtMonths(v!)} is tighter than the ${fmtMonths(benchmarks.trancheGapMonthsLow)}–${fmtMonths(benchmarks.trancheGapMonthsHigh)} window — Tranche 2 may close before milestones de-risk it.`,
       });
     } else if (cls === "above") {
       findings.push({
         severity: "alert",
-        targetField: "safeTranche2Date",
+        targetField: "capitalRaise2Date",
         bullet: `Tranche gap of ${fmtMonths(v!)} exceeds the ${fmtMonths(benchmarks.trancheGapMonthsLow)}–${fmtMonths(benchmarks.trancheGapMonthsHigh)} window — risk of running dry between tranches.`,
       });
     }
@@ -198,9 +198,9 @@ export function evaluateCapitalRaise(
   const actions: WatchdogAction[] = [];
   if (adjustTarget) {
     actions.push({
-      label: adjustTarget === "safeTranche1Amount"
+      label: adjustTarget === "capitalRaise1Amount"
         ? "Adjust Capital Raise 1"
-        : adjustTarget === "safeTranche2Amount" || adjustTarget === "safeTranche2Date"
+        : adjustTarget === "capitalRaise2Amount" || adjustTarget === "capitalRaise2Date"
           ? "Adjust Capital Raise 2"
           : "Adjust funding plan",
       kind: "adjust",

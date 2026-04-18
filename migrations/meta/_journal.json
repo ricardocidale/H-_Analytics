@@ -92,6 +92,20 @@
       "when": 1776643200000,
       "tag": "0012_pgvector_store",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1776816000000,
+      "tag": "0013_industry_vertical_exit_multiple",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1776902400000,
+      "tag": "0014_saved_tabs",
+      "breakpoints": true
     }
   ]
 }

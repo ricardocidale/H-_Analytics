@@ -691,23 +691,15 @@ export default function CompanyAssumptions() {
 
   // Derive Funding-tab evaluator inputs from the saved formData. Until the
   // simulator wires through here, only `trancheGapMonths` is computable from
-  // SAFE note tranche close dates; the other dimensions stay null and the
-  // evaluator treats them as "no signal".
+  // the two capital-raise tranche close dates; the other dimensions stay null
+  // and the evaluator treats them as "no signal".
   const deriveFundingInputs = (data: typeof formData) => {
-    const tranches = (data as Record<string, unknown>).safeNoteTranches;
+    const merged = { ...(global ?? {}), ...data } as Record<string, unknown>;
+    const d1 = typeof merged.capitalRaise1Date === "string" ? new Date(merged.capitalRaise1Date as string).getTime() : NaN;
+    const d2 = typeof merged.capitalRaise2Date === "string" ? new Date(merged.capitalRaise2Date as string).getTime() : NaN;
     let trancheGapMonths: number | null = null;
-    if (Array.isArray(tranches) && tranches.length >= 2) {
-      const dates = tranches
-        .map((t) => {
-          const d = (t as Record<string, unknown>).closeDate;
-          return typeof d === "string" ? new Date(d).getTime() : NaN;
-        })
-        .filter((ms) => Number.isFinite(ms))
-        .sort((a, b) => a - b);
-      if (dates.length >= 2) {
-        const ms = dates[1] - dates[0];
-        trancheGapMonths = ms / (1000 * 60 * 60 * 24 * 30.44);
-      }
+    if (Number.isFinite(d1) && Number.isFinite(d2) && d2 > d1) {
+      trancheGapMonths = (d2 - d1) / (1000 * 60 * 60 * 24 * 30.44);
     }
     return {
       runwayBufferMonths: null,

@@ -71,14 +71,16 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the first tranche of the capital raise to cover initial operating expenses before management fee revenue begins." /></Label>
-                <EditableValue
-                  value={formData.capitalRaise1Amount ?? global.capitalRaise1Amount}
-                  onChange={(v) => onChange("capitalRaise1Amount", v)}
-                  format="dollar"
-                  min={100000}
-                  max={1500000}
-                  step={25000}
-                />
+                <span data-field="capitalRaise1Amount">
+                  <EditableValue
+                    value={formData.capitalRaise1Amount ?? global.capitalRaise1Amount}
+                    onChange={(v) => onChange("capitalRaise1Amount", v)}
+                    format="dollar"
+                    min={100000}
+                    max={1500000}
+                    step={25000}
+                  />
+                </span>
               </div>
               <Slider
                 value={[formData.capitalRaise1Amount ?? global.capitalRaise1Amount]}
@@ -95,6 +97,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                 value={formData.capitalRaise1Date ?? global.capitalRaise1Date}
                 onChange={(e) => onChange("capitalRaise1Date", e.target.value)}
                 className="max-w-40 bg-card border-border text-foreground"
+                data-field="capitalRaise1Date"
+                name="capitalRaise1Date"
               />
             </div>
           </div>
@@ -103,14 +107,16 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the second tranche of the capital raise, typically deployed as the portfolio grows." /></Label>
-                <EditableValue
-                  value={formData.capitalRaise2Amount ?? global.capitalRaise2Amount}
-                  onChange={(v) => onChange("capitalRaise2Amount", v)}
-                  format="dollar"
-                  min={100000}
-                  max={1500000}
-                  step={25000}
-                />
+                <span data-field="capitalRaise2Amount">
+                  <EditableValue
+                    value={formData.capitalRaise2Amount ?? global.capitalRaise2Amount}
+                    onChange={(v) => onChange("capitalRaise2Amount", v)}
+                    format="dollar"
+                    min={100000}
+                    max={1500000}
+                    step={25000}
+                  />
+                </span>
               </div>
               <Slider
                 value={[formData.capitalRaise2Amount ?? global.capitalRaise2Amount]}
@@ -127,6 +133,8 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                 value={formData.capitalRaise2Date ?? global.capitalRaise2Date}
                 onChange={(e) => onChange("capitalRaise2Date", e.target.value)}
                 className="max-w-40 bg-card border-border text-foreground"
+                data-field="capitalRaise2Date"
+                name="capitalRaise2Date"
               />
             </div>
           </div>
