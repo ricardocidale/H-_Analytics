@@ -21,7 +21,7 @@ import {
   DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_BUSINESS_INSURANCE_START,
   DEFAULT_SERVICE_FEE_CATEGORIES,
-  DEFAULT_EXIT_CAP_RATE,
+  SEED_EXIT_CAP_RATE_LUXURY,
 } from "@shared/constants";
 import {
   SEED_INITIAL_PROPERTIES,
@@ -124,7 +124,7 @@ export async function seedGlobalAssumptions() {
     debtAssumptions: SEED_DEBT_ASSUMPTIONS,
     companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
     ...SEED_COMPANY_IDENTITY,
-    exitCapRate: DEFAULT_EXIT_CAP_RATE,
+    exitCapRate: SEED_EXIT_CAP_RATE_LUXURY,
     salesCommissionRate: DEFAULT_COMMISSION_RATE,
     eventExpenseRate: DEFAULT_EVENT_EXPENSE_RATE,
     otherExpenseRate: DEFAULT_OTHER_EXPENSE_RATE,
