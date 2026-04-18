@@ -201,3 +201,39 @@ These are user-facing numbers baked into Rebecca's responses. If admin changes `
 ---
 
 ## Phase 1 complete — 0 commits. Next: Phase 2 (drift repair).
+
+---
+
+## Phase 2 — drift repair (status)
+
+### D-1 ✅ closed (commits `8f50224a`, `5d4b4111`)
+All 5 true drift sites now import `DEFAULT_COMPANY_OPS_START_DATE`:
+`shared/schema/config.ts`, `server/syncHelpers.ts`, `server/seeds/properties.ts`, `client/src/components/admin/model-defaults/CompanyTab.tsx`, `client/src/pages/checker-manual/sections/Section04GlobalAssumptions.tsx`. Remaining `"2026-06-01"` occurrences are different fields (`capitalRaise1Date`, `acquisitionDate`) — not task #6 drift.
+
+### D-3 ✅ verified safe (no code change)
+`tests/e2e` + `tests/` sweep finds 0 references to the removed `button-save-incentive` testid. Task #1 rewire caused no test orphaning.
+
+### D-4 ✅ verified safe (no code change)
+`savedTabs` contract round-trip verified:
+- `server/routes/global-assumptions.ts:193-199` — unions/removes correctly, filters to valid tab keys.
+- `server/storage/financial.ts:479, 487-490` — scenario load spreads `gaData` into target row; savedTabs preserved.
+- `tests/client/assumptions-gate.test.ts` — existing coverage for missing/invalid/partial cases.
+- `SEED_GLOBAL_ASSUMPTIONS` omits `savedTabs`; DB column `.default([])` handles it.
+
+### D-2 ⚠️ deferred — not drift I created
+Server-side citation strings (`HVS 2024`, `CBRE Cap Rate Survey`, `NAR transaction data`) live in multiple server surfaces that predate my client-side `citations.ts`:
+- `server/seeds/hospitality-benchmarks.ts:134, 141` — seed data rows
+- `server/ai/kb/19-financial-formulas.md` — Rebecca RAG (3 occurrences)
+- `server/ai/ambient/fetchers.ts:93, 94`
+- `server/ai/research-prompt-builders.ts:83`
+- `server/ai/research-tool-prompts.ts:21`
+- `server/data/researchSeeds.ts:343, 364`
+
+These are existing cross-layer divergence, not drift introduced by my prior audit commits. A proper fix requires promoting `citations.ts` to `shared/citations.ts` and reconciling the full citation set (server has additional sources like "S&P Global", "Damodaran" not in client set). Tracked as a Phase 5 refactor candidate; product decision (E.1) should inform the approach.
+
+### KB content note (separate from D-2)
+`server/ai/kb/19-financial-formulas.md:117, 118` embeds numeric defaults (`8.5%`, `12%`) that should be templated. Requires either (a) KB re-indexing on constant change, or (b) admin workflow to edit KB markdown. **Not a code-path fix** — a content/process decision. Route to product as part of E.3.
+
+---
+
+## Phase 2 complete — 2 commits (`8f50224a`, `5d4b4111`). Next: Phase 3 (audit sweep of 16 remaining files).
