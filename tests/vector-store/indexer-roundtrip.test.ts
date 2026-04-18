@@ -270,7 +270,7 @@ describeIfDb("pgvector indexer round-trips — vector-indexing.ts", () => {
     const entityId = randomId();
     const userId = randomId();
 
-    const id = `guidance:property:${entityId}:${assumptionKey}`;
+    const id = `guidance:global:property:${entityId}:${assumptionKey}`;
     track(id);
 
     await idx.indexAssumptionGuidance({
