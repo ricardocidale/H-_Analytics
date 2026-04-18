@@ -23,6 +23,7 @@ import { formatMoney } from "@/lib/financialEngine";
 import { DEFAULT_PARTNER_COMP, DEFAULT_PARTNER_COUNT } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { PartnerCompSectionProps } from "./types";
+import { CITATIONS } from "./citations";
 
 export default function PartnerCompSection({ formData, onChange, global, modelStartYear, researchValues }: PartnerCompSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
@@ -33,7 +34,7 @@ export default function PartnerCompSection({ formData, onChange, global, modelSt
         <div>
           <ResearchContextFieldLabel
             label={<>Management Compensation Schedule <InfoTooltip text="Annual total management compensation and headcount for each year. Individual compensation = Total ÷ Headcount." manualSection="company-formulas" /></>}
-            badgeProps={{ value: researchValues.partnerComp?.display, sourceType: "industry", sourceName: "Hospitality comp benchmarks", "data-testid": "badge-management-comp" }}
+            badgeProps={{ value: researchValues.partnerComp?.display, sourceType: "industry", sourceName: CITATIONS.hospitalityCompBenchmarks, "data-testid": "badge-management-comp" }}
             onApplyValue={() => {
               if (researchValues.partnerComp) {
                 onChange("partnerCompYear1", researchValues.partnerComp.mid);

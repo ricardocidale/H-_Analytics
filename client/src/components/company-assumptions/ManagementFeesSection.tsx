@@ -26,6 +26,7 @@ import type { ManagementFeesSectionProps } from "./types";
 import { ServiceTemplateDialog, type FormState, emptyForm } from "./ServiceTemplateDialog";
 import { PropertyFeeSummaryTable } from "./PropertyFeeSummaryTable";
 import { ServiceTemplateCard } from "./ServiceTemplateCard";
+import { CITATIONS } from "./citations";
 
 function formFromTemplate(t: ServiceTemplate): FormState {
   return {
@@ -352,7 +353,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
           <div className="max-w-md space-y-2">
             <ResearchContextFieldLabel
               label={<><IconPercent className="w-3 h-3 inline" /> Default Incentive Fee</>}
-              badgeProps={{ value: researchValues.incentiveManagementFee?.display, sourceType: "industry", sourceName: "HVS 2024 Fee Survey", "data-testid": "badge-incentive-fee" }}
+              badgeProps={{ value: researchValues.incentiveManagementFee?.display, sourceType: "industry", sourceName: CITATIONS.hvsFeeSurvey, "data-testid": "badge-incentive-fee" }}
               onApplyValue={() => {
                 if (researchValues.incentiveManagementFee) {
                   onChange("incentiveManagementFee", researchValues.incentiveManagementFee.mid / 100);

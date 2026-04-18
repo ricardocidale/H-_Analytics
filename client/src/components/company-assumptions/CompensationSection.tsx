@@ -25,6 +25,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import EditableValue from "./EditableValue";
 import type { CompensationSectionProps } from "./types";
+import { CITATIONS } from "./citations";
 
 export default function CompensationSection({ formData, onChange, global, researchValues }: CompensationSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
@@ -44,7 +45,7 @@ export default function CompensationSection({ formData, onChange, global, resear
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
               label={<>Staff Salary <InfoTooltip text="Average annual salary per full-time staff member. The total staff cost depends on how many FTEs your portfolio size requires (see tiers below). As you add properties, you may cross into a higher staffing tier. AHLA Lodging Industry Survey: $65K–$90K average salary for hospitality management roles." formula="Staff Cost = FTE Count × Salary ÷ 12" /></>}
-              badgeProps={{ value: researchValues.staffSalary?.display, sourceType: "industry", sourceName: "AHLA Lodging Industry Survey", "data-testid": "badge-staff-salary" }}
+              badgeProps={{ value: researchValues.staffSalary?.display, sourceType: "industry", sourceName: CITATIONS.ahlaLodgingIndustrySurvey, "data-testid": "badge-staff-salary" }}
               onApplyValue={() => researchValues.staffSalary && onChange("staffSalary", researchValues.staffSalary.mid)}
               guidanceContext={gc("staffSalary", "Staff Salary")}
             />

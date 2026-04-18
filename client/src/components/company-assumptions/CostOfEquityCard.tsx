@@ -13,6 +13,7 @@ import { ResearchContextFieldLabel } from "@/components/research/ResearchContext
 import { DEFAULT_COST_OF_EQUITY } from "@shared/constants";
 import EditableValue from "./EditableValue";
 import type { CompanyAssumptionsSectionProps } from "./types";
+import { CITATIONS } from "./citations";
 
 interface CostOfEquityCardProps extends CompanyAssumptionsSectionProps {
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
@@ -33,7 +34,7 @@ export default function CostOfEquityCard({ formData, onChange, global, researchV
             <div className="flex items-center justify-between">
               <ResearchContextFieldLabel
                 label={<>Cost of Equity <InfoTooltip text="The equity investor's required annual return. Used as the Re component in WACC and as the discount rate for any Management Company DCF. Typical range: 15–25%." formula="WACC = (E/V × Re) + (D/V × Rd × (1−T))" manualSection="investment-returns" /></>}
-                badgeProps={{ value: researchValues.costOfEquity?.display, sourceType: "industry", sourceName: "Private RE equity benchmarks", "data-testid": "badge-cost-of-equity" }}
+                badgeProps={{ value: researchValues.costOfEquity?.display, sourceType: "industry", sourceName: CITATIONS.privateReEquityBenchmarks, "data-testid": "badge-cost-of-equity" }}
                 onApplyValue={() => researchValues.costOfEquity && onChange("costOfEquity", researchValues.costOfEquity.mid / 100)}
                 guidanceContext={gc("costOfEquity", "Cost of Equity")}
               />

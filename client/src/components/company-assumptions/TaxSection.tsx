@@ -27,6 +27,7 @@ import {
 } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { TaxSectionProps } from "./types";
+import { CITATIONS } from "./citations";
 
 export default function TaxSection({ formData, onChange, global, researchValues }: TaxSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
@@ -104,7 +105,7 @@ export default function TaxSection({ formData, onChange, global, researchValues 
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
                 label={<>Company Income Tax Rate <InfoTooltip text="Use the US federal corporate rate (21%) as a baseline, then adjust upward to model a combined federal + state effective rate for your jurisdiction." /></>}
-                badgeProps={{ value: researchValues.companyTaxRate?.display, sourceType: "industry", sourceName: "AICPA/IRS benchmarks", "data-testid": "badge-company-tax" }}
+                badgeProps={{ value: researchValues.companyTaxRate?.display, sourceType: "industry", sourceName: CITATIONS.aicpaIrsBenchmarks, "data-testid": "badge-company-tax" }}
                 onApplyValue={() => researchValues.companyTaxRate && onChange("companyTaxRate", researchValues.companyTaxRate.mid / 100)}
                 guidanceContext={gc("companyTaxRate", "Company Income Tax Rate")}
                 className="text-foreground label-text"
@@ -147,7 +148,7 @@ export default function TaxSection({ formData, onChange, global, researchValues 
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
                 label={<>Company Inflation Rate <InfoTooltip text="Overrides the global inflation rate for management company overhead cost escalation. If left empty, falls back to the global inflation rate. Three-tier cascade: property → company → global." /></>}
-                badgeProps={{ value: researchValues.companyInflationRate?.display, sourceType: "industry", sourceName: "CPI / Fed Reserve", "data-testid": "badge-company-inflation" }}
+                badgeProps={{ value: researchValues.companyInflationRate?.display, sourceType: "industry", sourceName: CITATIONS.cpiFedReserve, "data-testid": "badge-company-inflation" }}
                 onApplyValue={() => researchValues.companyInflationRate && onChange("companyInflationRate", researchValues.companyInflationRate.mid / 100)}
                 guidanceContext={gc("companyInflationRate", "Company Inflation Rate")}
                 className="text-foreground label-text"
