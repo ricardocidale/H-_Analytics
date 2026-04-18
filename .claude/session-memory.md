@@ -13,6 +13,7 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **Shipped so far**: 4 commits (`ae563c1c`, `a417f2b1`, `f916300e`, `0ce1f06b`) — CompanyAssumptions.tsx cleanup, 3 sub-sections, TaxSection constants, citations module.
 - **Known drift from my own audit work**: 13 residual `"2026-06-01"` literals across schema/seeds/manual/sync; citation strings duplicated in server KB/seeds/research-prompts outside the new `citations.ts`.
 - **Phase 2 next**: drift repair before new findings audit (Phase 3). Plan: 8 phases total, ~20-28 commits across 2 PRs (main + DB for service description column).
+- **Phase 2 verification (Replit, Apr 18 evening): FAIL.** Tests 10/11 pass in `vocabulary-compliance.test.ts`; 1 fails. TypeScript 0, Lint 0, Verify UNQUALIFIED, Parity UNQUALIFIED, Quick Audit clean. Single regression: `CompanyAssumptions.tsx:994` tooltip text `"Ask the Analyst about <tab>"` (introduced by `ae563c1c`) violates vocabulary rule that forbids `"Ask the Analyst"` literal in client code (must use `<AnalystButton />`). Phase 4 BLOCKED. Bug filed at `.claude/replit-handoffs/phase-2-bug-vocabulary-violation.md` with three suggested fixes.
 
 ## Session: April 17, 2026 — Vocabulary Hard-Rule + Button Rename + Tab-Content Hygiene
 - **"Configure Assumptions" button → "Assumptions"** in `client/src/components/company/CompanyHeader.tsx` (single occurrence).
