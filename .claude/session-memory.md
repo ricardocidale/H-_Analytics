@@ -8,6 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 18, 2026 — CompanyAssumptions refactor audit (Phases 1–2 of 8)
+- **Phase 1 (inventory)** complete — dependency map at `.claude/audit-inventory.md`. 12 surfaces catalogued; 4 drift clusters identified.
+- **Shipped so far**: 4 commits (`ae563c1c`, `a417f2b1`, `f916300e`, `0ce1f06b`) — CompanyAssumptions.tsx cleanup, 3 sub-sections, TaxSection constants, citations module.
+- **Known drift from my own audit work**: 13 residual `"2026-06-01"` literals across schema/seeds/manual/sync; citation strings duplicated in server KB/seeds/research-prompts outside the new `citations.ts`.
+- **Phase 2 next**: drift repair before new findings audit (Phase 3). Plan: 8 phases total, ~20-28 commits across 2 PRs (main + DB for service description column).
+
 ## Session: April 17, 2026 — Vocabulary Hard-Rule + Button Rename + Tab-Content Hygiene
 - **"Configure Assumptions" button → "Assumptions"** in `client/src/components/company/CompanyHeader.tsx` (single occurrence).
 - **Vocabulary hard-rule added** as §0 in `.claude/skills/vocabulary/SKILL.md`: **Assumptions = user-facing working variables**, **Defaults = admin-only seeds**. Different DB columns, different routes, different audiences. Word *"default"* banned from user-facing copy outside Admin. Mirrored to `replit.md` and `.claude/claude.md`.

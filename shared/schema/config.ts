@@ -6,6 +6,7 @@ import { logos } from "./core";
 import { users } from "./auth";
 import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition, RequiredFieldsConfig } from "./types/jsonb-shapes";
 import {
+  DEFAULT_COMPANY_OPS_START_DATE,
   DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
   DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_FUNDING_INTEREST_RATE,
@@ -98,7 +99,7 @@ export const globalAssumptions = pgTable("global_assumptions", {
   assetLogoId: integer("asset_logo_id").references(() => logos.id, { onDelete: "set null" }),
   modelStartDate: text("model_start_date").notNull(),
   projectionYears: integer("projection_years").notNull().default(DEFAULT_PROJECTION_YEARS),
-  companyOpsStartDate: text("company_ops_start_date").notNull().default("2026-06-01"),
+  companyOpsStartDate: text("company_ops_start_date").notNull().default(DEFAULT_COMPANY_OPS_START_DATE),
   fiscalYearStartMonth: integer("fiscal_year_start_month").notNull().default(1), // 1 = January, 4 = April, etc.
   inflationRate: real("inflation_rate").notNull().default(DEFAULT_PROPERTY_INFLATION_RATE),
   fixedCostEscalationRate: real("fixed_cost_escalation_rate").notNull().default(DEFAULT_FIXED_COST_ESCALATION_RATE),

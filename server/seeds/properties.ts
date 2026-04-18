@@ -13,6 +13,7 @@ import {
   DEFAULT_FUNDING_INTEREST_PAYMENT_FREQUENCY,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
+  DEFAULT_COMPANY_OPS_START_DATE,
   SEED_DEBT_ASSUMPTIONS,
   DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COMPANY_TAX_RATE,
@@ -67,7 +68,7 @@ export async function seedGlobalAssumptions() {
   await db.insert(globalAssumptions).values({
     userId: null,
     modelStartDate: "2026-04-01",
-    companyOpsStartDate: "2026-06-01",
+    companyOpsStartDate: DEFAULT_COMPANY_OPS_START_DATE,
     fiscalYearStartMonth: 1,
     inflationRate: DEFAULT_PROPERTY_INFLATION_RATE,
     fixedCostEscalationRate: DEFAULT_PROPERTY_INFLATION_RATE,
