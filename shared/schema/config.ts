@@ -7,6 +7,8 @@ import { users } from "./auth";
 import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition, RequiredFieldsConfig } from "./types/jsonb-shapes";
 import {
   DEFAULT_COMPANY_OPS_START_DATE,
+  DEFAULT_CAPITAL_RAISE_1_DATE,
+  DEFAULT_CAPITAL_RAISE_2_DATE,
   DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
   DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_FUNDING_INTEREST_RATE,
@@ -118,9 +120,9 @@ export const globalAssumptions = pgTable("global_assumptions", {
   // Funding Instrument (generic capital raise — may be SAFE, convertible note, seed round, etc.)
   fundingSourceLabel: text("funding_source_label").notNull().default("Funding Vehicle"),
   capitalRaise1Amount: real("capital_raise_1_amount").notNull().default(800000),
-  capitalRaise1Date: text("capital_raise_1_date").notNull().default("2026-06-01"),
+  capitalRaise1Date: text("capital_raise_1_date").notNull().default(DEFAULT_CAPITAL_RAISE_1_DATE),
   capitalRaise2Amount: real("capital_raise_2_amount").notNull().default(800000),
-  capitalRaise2Date: text("capital_raise_2_date").notNull().default("2027-04-01"),
+  capitalRaise2Date: text("capital_raise_2_date").notNull().default(DEFAULT_CAPITAL_RAISE_2_DATE),
   capitalRaiseValuationCap: real("capital_raise_valuation_cap").notNull().default(DEFAULT_CAPITAL_RAISE_VALUATION_CAP),
   capitalRaiseDiscountRate: real("capital_raise_discount_rate").notNull().default(DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE),
   fundingInterestRate: real("funding_interest_rate").notNull().default(DEFAULT_FUNDING_INTEREST_RATE),

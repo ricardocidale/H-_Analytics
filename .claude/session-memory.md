@@ -8,42 +8,17 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 18, 2026 — CompanyAssumptions refactor audit (Phases 1–2 of 8)
-- **Phase 1 (inventory)** complete — dependency map at `.claude/audit-inventory.md`. 12 surfaces catalogued; 4 drift clusters identified.
-- **Shipped so far**: 4 commits (`ae563c1c`, `a417f2b1`, `f916300e`, `0ce1f06b`) — CompanyAssumptions.tsx cleanup, 3 sub-sections, TaxSection constants, citations module.
-- **Known drift from my own audit work**: 13 residual `"2026-06-01"` literals across schema/seeds/manual/sync; citation strings duplicated in server KB/seeds/research-prompts outside the new `citations.ts`.
-- **Phase 2 next**: drift repair before new findings audit (Phase 3). Plan: 8 phases total, ~20-28 commits across 2 PRs (main + DB for service description column).
-- **Phase 2 verification (Replit, Apr 18 evening): FAIL.** Tests 10/11 pass in `vocabulary-compliance.test.ts`; 1 fails. TypeScript 0, Lint 0, Verify UNQUALIFIED, Parity UNQUALIFIED, Quick Audit clean. Single regression: `CompanyAssumptions.tsx:994` tooltip text `"Ask the Analyst about <tab>"` (introduced by `ae563c1c`) violates vocabulary rule that forbids `"Ask the Analyst"` literal in client code (must use `<AnalystButton />`). Phase 4 BLOCKED. Bug filed at `.claude/replit-handoffs/phase-2-bug-vocabulary-violation.md` with three suggested fixes.
-- **Phase 5A shipped (Replit, Apr 18 evening).** 2 commits: `847e1f3a` (move `citations.ts` → `shared/citations.ts`, rewire 9 client imports to `@shared/citations`) and `0c3ebc1b` (adopt CITATIONS in `server/data/researchSeeds.ts` for capRate/costIT/saleCommission). Verification after each commit: TS 0, Lint 0, vocabulary 11/11, test:summary PASS, Verify UNQUALIFIED. D-2 closed for exact-match sites in `audit-inventory.md`. Tasks 5A-4 (short "HVS 2024" label) and 5A-5 (KB markdown) deferred per handoff. Awaiting Phase 5B (KB templating) / 5C (remaining `2026-06-01` literals) handoffs from Claude Code.
-- **Phase 2 fix + Phase 4 #9–#16 shipped (Replit, Apr 18 evening).** 7 commits: `1a131949` (Phase 2 tooltip → "Consult the Analyst"), `5bde2ca3` (#9 EditableValue step → optional, deviated from handoff because TS rejects extraneous props), `f19800eb` (#10 delete CateringSection), `ea395e51` (#11 DEFAULT_SERVICE_MARKUP import), `fd05ea59` (#12 STAFFING_TIERS fallbacks), `623f324a` (#14 escalation rate fallback), `d5555e43` (#15 type PropertyFeeSummaryTable + add isActive to PortfolioPropertySummary — real contract bug surfaced as predicted), `c34fb96f` (#16 strip AHLA prose from compensation tooltips). Final verification: TS 0, Lint 0, vocabulary 11/11, test:summary PASS, Verify UNQUALIFIED, Parity UNQUALIFIED. Architect review PASS (no P1/P2). Phase 4 complete. **Two notes for next agent:** (a) handoff #9 was technically wrong that TS accepts extraneous props on typed components — correct future handoffs of that shape; (b) #15 fixed a real contract bug (`PortfolioPropertySummary` was missing `isActive` while `PropertyFeeSummaryTable` rendered an "Excluded" badge from it). Phase 5A (citation promotion `client→shared`) / 5D (structural refactor candidates) next from Claude Code.
+## Session: April 18, 2026 — CompanyAssumptions audit, Phases 1–5A complete
+- **Claude (Phases 1–3):** inventory → drift repair → 16-file audit sweep. 4 Claude commits + D-1 closure (`8f50224a`, `5d4b4111`); 8 findings catalogued as tasks #9–#16. Split workflow formalized (`.claude/rules/claude-replit-split.md`): UI/DB → Replit, docs/refactors → Claude. Handoffs in `.claude/replit-handoffs/`.
+- **Replit (Phase 4 — 8 commits + docs `806dfe87`):** `1a131949` Phase 2 vocab fix, then `5bde2ca3`, `f19800eb`, `ea395e51`, `fd05ea59`, `623f324a`, `d5555e43`, `c34fb96f`. Architect PASS. Handoff #9 deviation lesson: TS rejects extraneous props on typed components — future constant-removal handoffs must account for this. #15 surfaced a real contract bug: `PortfolioPropertySummary` was missing `isActive`.
+- **Replit (Phase 5A — 2 commits + docs `c58517e9`):** `847e1f3a` promote `citations.ts` to `shared/` + rewire 9 client imports; `0c3ebc1b` adopt `CITATIONS` in `server/data/researchSeeds.ts` (3 exact-match lines). D-2 closed for exact-match sites. All verification UNQUALIFIED.
+- **Phase 5C handoff drafted (Claude):** `.claude/replit-handoffs/phase-5c-capital-raise-date-drift.md` — promote `DEFAULT_CAPITAL_RAISE_{1,2}_DATE`, adopt across schema/syncHelpers/seeds/Section04 (1 commit). Awaiting Replit execution.
+- **Phase 5B decision (user):** option 1 — strip baked defaults from Rebecca KB, let her query live values. Handoff to be drafted by Claude Code; Rebecca's chat route already loads `ga` so live values propagate without re-indexing beyond the KB markdown edit.
 
 ## Session: April 17, 2026 — Vocabulary Hard-Rule + Button Rename + Tab-Content Hygiene
 - **"Configure Assumptions" button → "Assumptions"** in `client/src/components/company/CompanyHeader.tsx` (single occurrence).
 - **Vocabulary hard-rule added** as §0 in `.claude/skills/vocabulary/SKILL.md`: **Assumptions = user-facing working variables**, **Defaults = admin-only seeds**. Different DB columns, different routes, different audiences. Word *"default"* banned from user-facing copy outside Admin. Mirrored to `replit.md` and `.claude/claude.md`.
 - **Tab-content hygiene**: `SummaryFooter` was mixing overhead-escalation language with staff-tier language in one paragraph on every tab. Split into tab-aware footer — staffing summary now renders only on Compensation tab, escalation summary only on Overhead tab, no footer on other tabs. **Principle for future agents**: any text that summarizes tab state must live with that tab's concern. Staffing tiers drive compensation, not overhead — never group them by visual proximity.
-
-## Session: April 16, 2026 — Workflow Direction + Operating Model
-- **Property-first user journey** confirmed for investor persona (dominant). Properties dimension HMC: portfolio → staffing tiers, property revenue → HMC fee revenue, The Analyst uses research-ready properties as HMC research context.
-- **Open forks**: (1) adaptive dashboard with "what to do next" card vs strict wizard; (2) persona branch at first login (investor → properties; founder → HMC) vs universal property-first default.
-- **Operating model formalized**: in-session = UI/routing/DB/API/preview-pane work; external Claude Code 4.7 1M shell = multi-file `calc/` refactors, full-test-tree reads, cross-cutting financial logic, deep-research synthesis. Agent flags escalation with self-contained prompt.
-- **8-task Company Assumptions session** completed: per-tab save, pulsating Analyst button, post-save validation warnings (multi-year fields de-duplicated per architect feedback), error-code handling for `COMPANY_SETUP_INCOMPLETE` + `PROPERTIES_EXCLUDED`, Partner→Management Compensation rename, depreciation 27.5→39 fix.
-
-## Session: April 15, 2026 — CI Hygiene & Documentation Optimization
-- **CI hygiene script** (`script/ci-hygiene.ts`): auto-fixes ESLint unused vars/imports, secret scanner false positives, TypeScript errors. Replit Agent skill at `.agents/skills/ci-hygiene/SKILL.md`.
-- **All MD files updated**: test count corrected to ~4,191 (204 files), 178 skills across 19 domains, 25 rules, 498 verify checks. Stale "4,816 tests/202 files/171 skills/18 domains" references fixed across replit.md, claude.md, _index.md, session-memory.md.
-- **ESLint** warnings reduced 13→2. `vitest.config.ts` testTimeout: 15s. Health check timeout: 300s.
-
-## Session: April 15, 2026 — Brand Voice, Personas, Intelligence-First
-- Brand voice guidelines (`.claude/brand-voice-guidelines.md`) — single source of truth. The Analyst + Rebecca personas, vocabulary enforcement.
-- Communication skills (reusable): conversation-principles, ai-agent-voice, norfolk-brand-voice. New domain: communication/.
-- Shared utilities: fetchWithTimeout, sanitizeError. PMT copies eliminated → `calc/shared/pmt.ts`.
-- user_page_visits table, usePageVisit hook, FirstVisitBanner, AgentPersonasTab.
-- 18 KB seeds, dataQuality JSONB on assumption_guidance.
-
-## Session: April 14-15, 2026 — Schema/Tests/Remediation (Archived)
-- 10 `.default()` values, 6 `DEFAULT_*` constants, 8 test fixes (PARTNER→SUPER_ADMIN).
-- 11 calc bugs, 7 service bugs, deep security audit (IDOR, prototype pollution, NaN guards).
-- 5 CI gates registered. Intelligence pipeline skill. Rebecca personality. PDF export plan (NOT executed).
 
 ---
 

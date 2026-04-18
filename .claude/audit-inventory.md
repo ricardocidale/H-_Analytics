@@ -265,4 +265,70 @@ These are existing cross-layer divergence, not drift introduced by my prior audi
 - Tasks #9–#12, #14–#16 → handed off to Replit Agent via `.claude/replit-handoffs/phase-4-pending-ui-tasks.md`.
 - Phase 2 shipped commits to be verified by Replit via `.claude/replit-handoffs/phase-2-verification.md`.
 
-## Phase 3 complete. Next: Replit executes Phase 4 handoff; Claude prepares Phase 5 (structural refactors) and Phase 6 (DB migration) handoffs.
+---
+
+## Phase 4 — complete ✅ (Replit, April 18)
+
+8 commits shipped (`1a131949`, `5bde2ca3`, `f19800eb`, `ea395e51`, `fd05ea59`, `623f324a`, `d5555e43`, `c34fb96f`, docs `806dfe87`). Verification green (TS 0 / Lint 0 / vocab 11/11 / test:summary PASS / Verify UNQUALIFIED / Parity UNQUALIFIED); architect review PASS, no P1/P2. Handoff #9 deviated (EditableValue `step` made optional rather than removed — TS rejected extraneous props on typed component; correct future handoffs of that shape). Task #15 surfaced a real contract bug: `PortfolioPropertySummary` was missing `isActive` while `PropertyFeeSummaryTable` rendered an "Excluded" badge from it.
+
+---
+
+## Phase 5A — complete ✅ (Replit, April 18)
+
+D-2 closed for exact-match sites. 2 substantive commits + 1 docs commit:
+- `847e1f3a` — moved `client/src/components/company-assumptions/citations.ts` → `shared/citations.ts`; rewired 9 client imports to `@shared/citations`.
+- `0c3ebc1b` — adopted `CITATIONS` in `server/data/researchSeeds.ts` (3 lines: capRate → cbreCapRateSurvey, costIT → hftpTechnologySurvey, saleCommission → narTransactionData).
+- `c58517e9` — docs.
+
+Verification green after each substantive commit.
+
+### D-2 still-open sub-items
+
+1. **Short "HVS 2024" label** in `server/seeds/hospitality-benchmarks.ts:134, 141` + `server/ai/ambient/fetchers.ts:93, 94`. Not an exact match for `CITATIONS.hvsFeeSurvey` (`"HVS 2024 Fee Survey"`). Needs product decision: add `CITATIONS.hvsShort` entry, or upgrade seed rows to use the longer label.
+2. **KB markdown** (`server/ai/kb/19-financial-formulas.md`) — moved to Phase 5B scope.
+3. **`RESEARCH_SOURCES` registry** in `server/ai/research-prompt-builders.ts:81-88` — superset of client CITATIONS (includes URLs + categories). Intentionally kept separate; different purpose (prompt-building vs badge display).
+
+---
+
+## Phase 5B — Rebecca KB templating (decision taken, handoff pending)
+
+**Decision (April 18, user):** **Option 1 — remove baked defaults from KB; Rebecca queries API for live values when asked.**
+
+Rationale: KB should teach Rebecca formula *structure* and concepts, not source-of-truth numeric values. Rebecca's chat route already has `globalAssumptions` loaded (see `server/routes/chat.ts:142-143`); live values propagate without re-indexing.
+
+Scope (to be drafted in `phase-5b-kb-templating.md`):
+- Edit `server/ai/kb/19-financial-formulas.md` — strip baked `%` defaults + citation strings from formulas (lines 32, 33, 37, 51, 66) and from the "Key Constants" block (lines 115–124).
+- Keep the two immutable constants (Depreciation 39, Days/month 30.5).
+- Replace "Key Constants" block with a "Where Live Values Live" block that lists field paths (`globalAssumptions.baseManagementFee`, `property.taxRate`, etc.).
+- Verify Rebecca's context injection already surfaces the live values she'd need to answer range questions.
+- Re-index KB into Pinecone.
+
+Owner: Replit Agent (KB markdown edit + Pinecone re-index runs in the live environment).
+
+---
+
+## Phase 5C — capital-raise-date drift (handoff drafted, awaiting execution)
+
+Handoff: `.claude/replit-handoffs/phase-5c-capital-raise-date-drift.md`.
+
+Scope: Add `DEFAULT_CAPITAL_RAISE_1_DATE` + `DEFAULT_CAPITAL_RAISE_2_DATE` to `shared/constants.ts`; adopt across `shared/schema/config.ts:121, 123`, `server/syncHelpers.ts:58, 60`, `server/seeds/properties.ts:78, 80`, and `Section04GlobalAssumptions.tsx:60, 62`. Single commit. SQL files, `seed-manifest.json`, and test fixtures explicitly out of scope.
+
+Owner: Replit Agent (touches seed-runtime path + UI manual page).
+
+---
+
+## Current state (as of April 18, 2026)
+
+| Phase | Status | Owner |
+|---|---|---|
+| 1 — inventory | ✅ complete | Claude |
+| 2 — drift repair (D-1/D-3/D-4) | ✅ complete | Claude |
+| 3 — audit sweep (16 files) | ✅ complete | Claude |
+| 4 — findings #9–#16 | ✅ complete | Replit |
+| 5A — citations promotion | ✅ complete | Replit |
+| 5B — KB templating | 🟡 decision made (option 1); handoff to draft | Claude → Replit |
+| 5C — capital-raise-date drift | 🟡 handoff drafted; awaiting execution | Replit |
+| 6 — DB migration (service description column) | ⏸ not started | Replit (future) |
+| 7–8 | ⏸ not scoped yet | TBD |
+
+Next actions: (a) Replit executes Phase 5C handoff; (b) Claude Code drafts Phase 5B handoff. Both can run in parallel.

@@ -2,7 +2,11 @@ import { SectionCard } from "@/components/ui/section-card";
   import { ManualTable } from "@/components/ui/manual-table";
   import { Callout } from "@/components/ui/callout";
   import { IconSettings } from "@/components/icons";
-  import { DEFAULT_COMPANY_OPS_START_DATE } from "@shared/constants";
+  import {
+    DEFAULT_COMPANY_OPS_START_DATE,
+    DEFAULT_CAPITAL_RAISE_1_DATE,
+    DEFAULT_CAPITAL_RAISE_2_DATE,
+  } from "@shared/constants";
 interface SectionProps {
     expanded: boolean;
     onToggle: () => void;
@@ -57,9 +61,9 @@ interface SectionProps {
           rows={[
             ["fundingSourceLabel", "Label for funding instrument type", "Funding Vehicle", "text", "Mgmt Co."],
             ["capitalRaise1Amount", "Amount of first funding tranche", "$1,000,000", "$", "Mgmt Co."],
-            ["capitalRaise1Date", "Disbursement date for first tranche", "2026-06-01", "date", "Mgmt Co."],
+            ["capitalRaise1Date", "Disbursement date for first tranche", DEFAULT_CAPITAL_RAISE_1_DATE, "date", "Mgmt Co."],
             ["capitalRaise2Amount", "Amount of second funding tranche", "$1,000,000", "$", "Mgmt Co."],
-            ["capitalRaise2Date", "Disbursement date for second tranche", "2027-04-01", "date", "Mgmt Co."],
+            ["capitalRaise2Date", "Disbursement date for second tranche", DEFAULT_CAPITAL_RAISE_2_DATE, "date", "Mgmt Co."],
             ["capitalRaiseValuationCap", "Max pre-money valuation for funding conversion", "$2,500,000", "$", "Mgmt Co."],
             ["capitalRaiseDiscountRate", "Discount rate for funding equity conversion", "20%", "%", "Mgmt Co."],
           ]}

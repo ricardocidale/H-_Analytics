@@ -221,6 +221,13 @@ export const DEFAULT_PROJECTION_YEARS = 10;
 // in one place prevents the literal from drifting across call sites.
 export const DEFAULT_COMPANY_OPS_START_DATE = "2026-06-01";
 
+// First funding tranche disbursement date. Drives schema column default,
+// dev + production seed fallbacks, and the user-manual documentation row.
+export const DEFAULT_CAPITAL_RAISE_1_DATE = "2026-06-01";
+
+// Second funding tranche disbursement date. Same pattern as raise 1.
+export const DEFAULT_CAPITAL_RAISE_2_DATE = "2027-04-01";
+
 // ──────────────────────────────────────────────────────────
 // AI AGENT & SCENARIO DEFAULTS
 // ──────────────────────────────────────────────────────────
