@@ -32,16 +32,18 @@ See `.claude/skills/finance/management-company-statements.md` for the engine-sid
 
 ---
 
-## 2. Defaults vs Assumptions  *(MASTER RULE — every task must respect this)*
+## 2. Constants vs Defaults vs Assumptions  *(MASTER RULE — every task must respect this)*
 
-| | Defaults (a.k.a. Seeds) | Assumptions (a.k.a. Working Variables) |
-|---|---|---|
-| **Where** | Admin section only | Front of the app (every user-facing page) |
-| **Who edits** | Admin only | Any management user |
-| **Purpose** | Template values that **seed** new entities | Working numbers the user adjusts, endorses, and runs scenarios on |
-| **Examples** | Default tax rate for Colombia, default FF&E reserve %, default service categories | This property's ADR, this company's staff salary, this scenario's exit cap rate |
-| **When they matter** | At seed time only — when a new tenant/property/company is created they fill the fields | Every day — users work with assumptions to build their financial model |
-| **The Analyst's role** | Validates defaults are reasonable at seed time | Validates assumptions after every save, provides ranges, flags issues |
+There are **three tiers**, never two. The cascade direction is always **Constant → Default → Assumption**, never collapsed and never reversed.
+
+| | Model Constants | Defaults (a.k.a. Seeds) | Assumptions (a.k.a. Working Variables) |
+|---|---|---|---|
+| **Where** | `shared/constants.ts` + `shared/countryDefaults.ts` + `model_constant_overrides` table | Admin section only | Front of the app (every user-facing page) |
+| **Who edits** | Nobody at runtime; admin can override governed constants in Admin → Model Defaults with a citation; The Analyst can propose values | Admin only | Any management user |
+| **Purpose** | Externally governed values nobody invents (IRS depreciation life, AHLA day-count, GAAP/USALI line definitions, FX rates ingested by the engine) | Template values that **seed** new entities | Working numbers the user adjusts, endorses, and runs scenarios on |
+| **Examples** | 27.5-year residential depreciation, France CGI Art. 39 lives, `DAYS_PER_MONTH`, market FX rates | Default tax rate for Colombia, default FF&E reserve %, default service categories | This property's ADR, this company's staff salary, this scenario's exit cap rate |
+| **When they matter** | Always — they're the floor of the resolution chain, read via `getEffectiveConstant` (`manual > analyst > factory`) | At seed time only — when a new tenant/property/company is created they fill the fields | Every day — users work with assumptions to build their financial model |
+| **The Analyst's role** | Can be asked to **regenerate** a governed constant by running cited research; admin reviews the diff before it lands | Validates defaults are reasonable at seed time | Validates assumptions after every save, provides ranges, flags issues |
 
 ### Seed → Assumption transition (do not forget this)
 A default is **only a seed**. The instant the user clicks **Save** on any user-facing page, **every field on that page becomes a working variable — i.e. an assumption** — whether the user edited it or left the seed untouched. After Save, that page no longer holds defaults; it holds the user's assumptions. The Analyst then validates against those assumptions, not against the seeds.
@@ -56,15 +58,13 @@ When the user asks where a value lives, **lead with the assumption** (the user-f
 
 Conflating these has caused real production losses (admin-only routing on user pages, reset buttons wiping user work, seed values treated as authoritative, agent answers that send the user to Admin when the value actually lives on a user page).
 
-### The third category: Model Constants
+### Model Constants — provenance and edit surface
 
-Beyond Defaults and Assumptions there is a small third category: **Model Constants** — values fixed by an external authority (e.g. IRS depreciation life, AHLA "365/12" day count convention) that neither admins nor users may invent. They are not seeds because they don't initialize a tenant; they are not assumptions because the user does not get to choose them. They are governed.
+Beyond what the table above shows, the Model Constants tier has a strict provenance triplet recorded in `model_constant_overrides`: **factory** (no DB row, the TS literal in `shared/constants.ts` / `shared/countryDefaults.ts` wins), **manual** (admin override with a mandatory note), or **analyst** (Analyst-proposed value with cited authority + reasoning). All three are read through `getEffectiveConstant` (`shared/get-effective-constant.ts`), resolution order **manual > analyst > factory**.
 
-Model Constants live in `model_constant_overrides` with a TS factory fallback (`shared/get-effective-constant.ts`) and three-state provenance: **factory** (no DB row, TS literal wins), **manual** (admin override with mandatory note), or **analyst** (Analyst-proposed value with cited authority + reasoning). The single edit point is **Admin → Model Defaults → Model Constants**; every other surface that displays a Model Constant is read-only and links back to that tab.
+The single edit point is **Admin → Model Defaults → Model Constants**; every other surface that displays a Model Constant is read-only and links back to that tab. Per-property overrides of a Model Constant (e.g. a single asset with a shorter remaining depreciation life) are legitimate and remain editable on the property page — those are per-property exceptions stored as assumptions, not edits to the constant itself.
 
-The Analyst's role for Model Constants mirrors its role for Assumptions, with one twist: instead of validating against benchmarks, the Analyst can be asked to **regenerate** the value by running grounded web research and returning a typed proposal with an authoritative citation. The admin reviews the diff and applies, or rejects. Per-property overrides of a Model Constant (e.g. a single asset with a shorter remaining depreciation life) are legitimate and remain editable on the property page — those are per-property exceptions, not edits to the constant itself.
-
-Vocabulary: when in doubt, "assumption" still means user-facing working variable, "default" still means admin-only seed, and "constant" or "model constant" means an externally governed value.
+Vocabulary collision check: "assumption" always means the user-facing working variable, "default" always means the admin-only seed, "constant" / "model constant" always means an externally governed value. If a sentence works with two of those words swapped, the sentence is wrong.
 
 ---
 

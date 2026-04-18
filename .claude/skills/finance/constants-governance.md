@@ -1,11 +1,11 @@
 ---
 name: constants-governance
-description: Constants governance covering the shared/client barrel pattern, the safeNum guard, the NaN bug root cause, fallback constant rules, and how constants relate to seed defaults and live assumptions.
+description: Constants governance for the third tier of the Constants/Defaults/Assumptions taxonomy — covers the shared/client barrel pattern, the safeNum guard, the NaN bug root cause, fallback rules, and how Model Constants sit beneath seed defaults and live user assumptions in the resolution chain.
 ---
 
-Constants governance for the hospitality financial model. Documents the shared/client barrel pattern, how hardcoded constants serve as last-resort fallbacks behind database-driven seed defaults and live assumptions, the `safeNum` guard pattern, and the NaN bug root cause.
+Constants governance for the hospitality financial model. Constants are the **third tier** in the canonical taxonomy (see `vocabulary/SKILL.md` §0 and `docs/architecture/ARCHITECTURE.md` §2): **Constants → Defaults → Assumptions**. This skill documents the shared/client barrel pattern, how hardcoded constants serve as the last-resort floor of the resolution chain (under DB-stored seed defaults and the user's live assumptions), the `safeNum` guard pattern, and the NaN bug root cause.
 
-**Related skills:** `settings/` (seed defaults vs live assumptions vs config switches), `finance/` (engine consumption)
+**Related skills:** `vocabulary/` (the three-tier master rule), `settings/` (seed defaults vs live assumptions vs config switches), `finance/` (engine consumption)
 
 ## Architecture: Two-File Barrel Pattern
 
