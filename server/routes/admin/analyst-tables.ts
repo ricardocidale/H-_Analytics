@@ -81,7 +81,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
           lastSuspiciousAlertAt: settings.lastSuspiciousAlertAt,
         },
       });
-    } catch (err) {
+    } catch (err: unknown) {
       logAndSendError(res, "Failed to list analyst tables", err);
     }
   });

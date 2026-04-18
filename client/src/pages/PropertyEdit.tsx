@@ -472,7 +472,11 @@ export default function PropertyEdit() {
           });
         }
       }
-    } catch {}
+    } catch (err: unknown) {
+      // Validation-alerts is additive — the save itself already succeeded above.
+      // Log so we still surface fetch/parse problems in dev tools.
+      console.warn("Post-save validation alerts fetch failed:", err);
+    }
     setLocation(`/property/${propertyId}`);
   };
 

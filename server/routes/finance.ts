@@ -201,7 +201,7 @@ export function registerFinanceRoutes(router: Router): void {
               "finance",
             );
           }
-        } catch {
+        } catch (_err: unknown) {
           // Don't block computation if validation check itself fails
         }
       }

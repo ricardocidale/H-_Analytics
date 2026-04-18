@@ -735,7 +735,7 @@ export default function CompanyAssumptions() {
             next.delete(watchdogTab);
             return next;
           });
-        } catch (err) {
+        } catch (err: unknown) {
           console.warn("Failed to roll back save on Adjust:", err);
         }
       }

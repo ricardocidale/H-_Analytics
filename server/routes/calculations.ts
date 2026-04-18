@@ -287,7 +287,7 @@ export function register(app: Express) {
             valueMid: r.valueMid,
             valueHigh: r.valueHigh,
           }));
-        } catch (err) {
+        } catch (err: unknown) {
           // Non-fatal — guidance is additive. Log and continue without ranges.
           logger.warn(`Failed to load exit_multiples for consistency check: ${(err instanceof Error ? err.message : String(err))}`, "calc");
         }

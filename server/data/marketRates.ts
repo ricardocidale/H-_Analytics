@@ -14,7 +14,56 @@ import { marketRates, type MarketRate } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { EXTERNAL_API_TIMEOUT_MS } from "../constants";
 import { FRED_BASE_URL } from "../services/FREDService";
+import { OpenExchangeRatesService } from "../services/OpenExchangeRatesService";
 import { logger } from "../logger";
+
+// Lazy-instantiated OXR client — only created on first fallback call.
+let oxrServiceSingleton: OpenExchangeRatesService | null = null;
+function getOxrService(): OpenExchangeRatesService {
+  if (!oxrServiceSingleton) {
+    oxrServiceSingleton = new OpenExchangeRatesService();
+  }
+  return oxrServiceSingleton;
+}
+
+const oxrFallbackWarned = new Set<string>();
+
+/**
+ * OXR fallback for currencies Frankfurter (ECB) doesn't carry — primarily
+ * the LATAM set: COP, CRC, DOP, PEN, UYU, etc. Free-tier OXR covers daily
+ * rates for ~170 currencies and we cache results for 6h inside the service.
+ */
+async function fetchOxrCrossRate(targetCurrency: string): Promise<{ value: number; date: string } | null> {
+  const oxr = getOxrService();
+  if (!oxr.isAvailable()) {
+    if (!oxrFallbackWarned.has(targetCurrency)) {
+      logger.warn(
+        `No OXR fallback available for ${targetCurrency} (set OPEN_EXCHANGE_RATES_APP_ID); FX rate will stay stale (suppressing further warnings)`,
+        "market-rates",
+      );
+      oxrFallbackWarned.add(targetCurrency);
+    }
+    return null;
+  }
+  try {
+    const fx = await oxr.fetchRates();
+    if (!fx) return null;
+    const rate = fx.rates?.[targetCurrency];
+    if (typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0) {
+      return null;
+    }
+    return { value: rate, date: fx.fetchedAt.slice(0, 10) };
+  } catch (error: unknown) {
+    if (!oxrFallbackWarned.has(targetCurrency)) {
+      logger.warn(
+        `OXR fallback failed for ${targetCurrency}: ${error instanceof Error ? error.message : error}`,
+        "market-rates",
+      );
+      oxrFallbackWarned.add(targetCurrency);
+    }
+    return null;
+  }
+}
 
 interface FredObservation {
   date: string;
@@ -189,6 +238,23 @@ async function refreshSingleRate(rate: MarketRate): Promise<boolean> {
     result = await fetchFredRate(rate.seriesId);
   } else if (rate.source === "frankfurter" && rate.seriesId) {
     result = await fetchFrankfurterRate(rate.seriesId);
+    // Frankfurter (ECB) doesn't carry every currency we need — notably the
+    // LATAM set (COP, CRC, DOP, PEN, UYU). Fall back to OpenExchangeRates,
+    // which covers them, when Frankfurter returns null.
+    if (!result) {
+      result = await fetchOxrCrossRate(rate.seriesId);
+      if (result) {
+        await upsertMarketRate({
+          rateKey: rate.rateKey,
+          value: result.value,
+          displayValue: formatRate(result.value, "frankfurter"),
+          source: "openexchangerates",
+          publishedAt: new Date(result.date),
+          fetchedAt: new Date(),
+        });
+        return true;
+      }
+    }
   }
 
   if (!result) return false;
