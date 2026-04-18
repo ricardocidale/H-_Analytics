@@ -103,7 +103,7 @@ export function isVectorStoreAvailable(): boolean {
     return _storeReady;
   }
   // Kick off a probe so subsequent sync calls see the real answer.
-  void checkVectorStoreReady().catch(() => {});
+  void checkVectorStoreReady().catch(() => { /* ignore — fire-and-forget probe; readiness is reported below */ });
   // Fail closed until the first probe completes — strict readiness reporting.
   return _storeReady === true;
 }

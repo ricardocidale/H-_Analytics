@@ -800,7 +800,7 @@ export default function CompanyAssumptions() {
             setWatchdogOpen(true);
           }
         }
-      } catch (watchdogErr) {
+      } catch (watchdogErr: unknown) {
         console.warn("Watchdog save-tab call failed:", watchdogErr);
       }
       // Remove saved keys from dirty set; update isDirty accordingly.

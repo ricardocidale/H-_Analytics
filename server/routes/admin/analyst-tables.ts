@@ -91,7 +91,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
     try {
       const settings = await storage.getAnalystRefreshSettings();
       res.json(settings);
-    } catch (err) {
+    } catch (err: unknown) {
       logAndSendError(res, "Failed to load analyst refresh settings", err);
     }
   });
@@ -107,7 +107,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const settings = await storage.updateAnalystRefreshSettings(parsed.data);
       logActivity(req, "update-analyst-refresh-settings", "settings", null, "analyst-refresh", parsed.data);
       res.json(settings);
-    } catch (err) {
+    } catch (err: unknown) {
       logAndSendError(res, "Failed to update analyst refresh settings", err);
     }
   });
@@ -119,7 +119,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const last = settings.lastSuspiciousAlertAt;
       const active = last ? (Date.now() - last.getTime()) < 60 * 60 * 1000 : false;
       res.json({ suspiciousActive: active, lastSuspiciousAlertAt: last });
-    } catch (err) {
+    } catch (err: unknown) {
       logAndSendError(res, "Failed to load analyst refresh status", err);
     }
   });
@@ -159,13 +159,13 @@ export function registerAdminAnalystTableRoutes(app: Express) {
           tokensUsed: llmResult.tokensUsed,
           evidence: llmResult.evidence,
         });
-      } catch (err) {
+      } catch (err: unknown) {
         if (auditId) {
           await storage.finalizeAnalystRefreshAuditLog(auditId, {
             status: "failure",
             finishedAt: new Date(),
             errorMessage: err instanceof Error ? err.message : String(err),
-          }).catch(() => {});
+          }).catch(() => { /* ignore — already inside an error path; audit-log finalize is best-effort */ });
         }
         releaseInFlight(tableId);
         logger.error(`Analyst-table refresh failed for ${tableId}: ${String(err)}`, "analyst-refresh");
@@ -226,7 +226,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         rangesCommitted: parsed.data.proposedRanges.length,
       });
       res.json({ ok: true });
-    } catch (err) {
+    } catch (err: unknown) {
       logAndSendError(res, "Failed to commit analyst-table refresh", err);
     }
   });
@@ -247,7 +247,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       });
       logActivity(req, "analyst-table-discard", "analyst_table", null, tableId as string);
       res.json({ ok: true });
-    } catch (err) {
+    } catch (err: unknown) {
       logAndSendError(res, "Failed to discard analyst-table refresh", err);
     }
   });
@@ -288,7 +288,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         rowsReseeded: rows.length,
       });
       res.json({ ok: true, rowsReseeded: rows.length });
-    } catch (err) {
+    } catch (err: unknown) {
       logAndSendError(res, "Failed to reseed accounts", err);
     }
   });

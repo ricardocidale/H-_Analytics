@@ -99,7 +99,7 @@ export async function perAdminRateLimitGuard(req: Request, res: Response, next: 
         retryAfterSeconds: 3600,
       });
     }
-  } catch (err) {
+  } catch (err: unknown) {
     // Fall back to in-memory counter if DB read fails — fail open isn't great,
     // but we still need a soft limit so the API doesn't fall down.
     const now = Date.now();
@@ -150,7 +150,7 @@ export async function auditPrepareGuard(req: Request, res: Response, next: NextF
     });
     res.locals.analystRefreshAuditId = row.id;
     next();
-  } catch (err) {
+  } catch (err: unknown) {
     logger.error(`Failed to write analyst-refresh audit log: ${String(err)}`, "analyst-refresh");
     next(); // don't block the refresh
   }
@@ -166,7 +166,7 @@ export async function suspiciousActivityTracker(req: Request, res: Response, nex
       await storage.updateAnalystRefreshSettings({ lastSuspiciousAlertAt: new Date() });
       logger.warn(`Suspicious analyst-refresh pattern detected: ${count} refreshes in 10min`, "analyst-refresh");
     }
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Suspicious tracker failed: ${String(err)}`, "analyst-refresh");
   }
   next();

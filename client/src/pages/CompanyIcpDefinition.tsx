@@ -155,7 +155,7 @@ export default function CompanyIcpDefinition() {
       fetch("/api/icp/generate-quick", { method: "POST", credentials: "include" })
         .then(r => r.json())
         .then(() => queryClient.invalidateQueries({ queryKey: ["global-assumptions"] }))
-        .catch(() => {});
+        .catch(() => { /* ignore — auto-generate is best-effort; user can retry from the UI */ });
     }
   }, [global, properties.length, queryClient]);
 

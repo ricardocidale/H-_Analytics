@@ -138,7 +138,7 @@ export function register(app: Express) {
               }
             })
             .catch(err => logger.warn(`Analyst auto-validation failed: ${err instanceof Error ? err.message : err}`, "global-assumptions"))
-        ).catch(() => {});
+        ).catch(() => { /* ignore — inner promise already logs via .catch above */ });
       }
 
       res.json(assumptions);

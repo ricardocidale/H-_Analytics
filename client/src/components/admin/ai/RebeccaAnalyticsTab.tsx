@@ -27,10 +27,11 @@ interface AnalyticsData {
   totalFeedback: number;
 }
 
-// H+ Analytics brand colors — intentional for Rebecca's branded analytics views
-const HP_TEAL = "#0091AE";
-const HP_NAVY = "#112548";
-const HP_GOLD = "#FDB817";
+// H+ Analytics brand colors — sourced from theme tokens so brand refreshes
+// (and dark/alt modes) propagate without touching this file.
+const HP_TEAL = "hsl(var(--brand-teal))";
+const HP_NAVY = "hsl(var(--brand-navy))";
+const HP_GOLD = "hsl(var(--brand-gold))";
 const CHART_COLORS = [HP_TEAL, HP_NAVY, HP_GOLD, "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-3))"];
 
 function StatCard({ label, value, icon: Icon, sub }: { label: string; value: string | number; icon: React.ElementType; sub?: string }) {

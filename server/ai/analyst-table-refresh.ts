@@ -81,7 +81,7 @@ Respond ONLY in valid JSON with this exact shape:
   let openai;
   try {
     openai = getOpenAIClient();
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`OpenAI unavailable, using fallback ranges: ${String(err)}`, "analyst-refresh");
     return fallback(dims);
   }
@@ -120,7 +120,7 @@ Respond ONLY in valid JSON with this exact shape:
       : FALLBACK_NARRATION;
 
     return { proposedRanges, narration, sourceCount, tokensUsed, evidence };
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Analyst refresh LLM call failed, using fallback: ${String(err)}`, "analyst-refresh");
     return fallback(dims);
   }
@@ -225,7 +225,7 @@ export async function applyWatchdogCapitalRaiseSnapshot(
       status: "pending",
     });
     auditId = audit.id;
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(
       `Watchdog ingest could not open audit log (continuing): ${String(err)}`,
       "analyst-refresh",
@@ -239,7 +239,7 @@ export async function applyWatchdogCapitalRaiseSnapshot(
         finishedAt: new Date(),
         sourceCount,
         diffSummary: { reason: "empty-snapshot", notes: snapshot.notes ?? null },
-      }).catch(() => {});
+      }).catch(() => { /* ignore — audit-log finalize on empty-snapshot is best-effort */ });
     }
     return { tableId, auditId, appliedDimensions: [], skippedDimensions: [], recordedAt };
   }
@@ -292,13 +292,13 @@ export async function applyWatchdogCapitalRaiseSnapshot(
       skippedDimensions: skipped,
       recordedAt,
     };
-  } catch (err) {
+  } catch (err: unknown) {
     if (auditId) {
       await storage.finalizeAnalystRefreshAuditLog(auditId, {
         status: "failure",
         finishedAt: new Date(),
         errorMessage: err instanceof Error ? err.message : String(err),
-      }).catch(() => {});
+      }).catch(() => { /* ignore — already failing, audit-log finalize is best-effort before re-throw */ });
     }
     throw err;
   }
@@ -346,7 +346,7 @@ Respond ONLY in valid JSON with this exact shape:
   let openai;
   try {
     openai = getOpenAIClient();
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`OpenAI unavailable, using fallback exit multiples: ${String(err)}`, "analyst-refresh");
     return exitMultiplesFallback(dims);
   }
@@ -385,7 +385,7 @@ Respond ONLY in valid JSON with this exact shape:
       : EXIT_MULTIPLES_FALLBACK_NARRATION;
 
     return { proposedRanges, narration, sourceCount, tokensUsed, evidence };
-  } catch (err) {
+  } catch (err: unknown) {
     logger.warn(`Exit-multiples LLM call failed, using fallback: ${String(err)}`, "analyst-refresh");
     return exitMultiplesFallback(dims);
   }
