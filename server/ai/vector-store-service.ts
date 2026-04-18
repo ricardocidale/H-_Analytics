@@ -189,7 +189,7 @@ export function __resetVectorStoreAvailabilityCache(): void {
 
 // ── Embedding helpers ─────────────────────────────────────────────────────────
 
-async function embed(text: string): Promise<number[]> {
+export async function embed(text: string): Promise<number[]> {
   const client = getEmbeddingClient();
   if (!client) throw new Error("Embedding client not available");
   const res = await client.embeddings.create({
@@ -199,7 +199,7 @@ async function embed(text: string): Promise<number[]> {
   return res.data[0].embedding;
 }
 
-async function embedBatch(texts: string[]): Promise<number[][]> {
+export async function embedBatch(texts: string[]): Promise<number[][]> {
   const client = getEmbeddingClient();
   if (!client) throw new Error("Embedding client not available");
   const out: number[][] = [];

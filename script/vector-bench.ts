@@ -31,6 +31,12 @@
  *   --append-docs            Alias for the default record behavior (explicit)
  *   --allow-production       Override the safety check that refuses to run
  *                            against a DATABASE_URL that looks production-like
+ *   --embed-source=openai|random
+ *                            Choose how seed/query vectors are generated.
+ *                            `random` (default) uses synthetic unit vectors —
+ *                            cheap, no API key. `openai` calls
+ *                            text-embedding-3-small so the distribution
+ *                            matches production (requires OPENAI_API_KEY).
  *
  * Requires DATABASE_URL pointing at a Postgres instance with the `vector`
  * extension and the `vector_chunks` table (migration 0012_pgvector_store.sql).
@@ -38,12 +44,20 @@
 import { mkdir, appendFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { vectorStorePool as pool } from "../server/storage/vector-store";
-import { ALL_NAMESPACES, type VectorNamespace } from "../server/ai/vector-store-service";
+import {
+  ALL_NAMESPACES,
+  embed,
+  embedBatch,
+  isEmbeddingAvailable,
+  type VectorNamespace,
+} from "../server/ai/vector-store-service";
 
 const EMBED_DIMS = 1536;
 const BENCH_NAMESPACE: VectorNamespace = "knowledge-base";
 const BENCH_ID_PREFIX = "bench:vector-bench:";
 const RESULTS_PATH = "docs/vector-bench-results.md";
+
+type EmbedSource = "openai" | "random";
 
 interface Args {
   sizes: number[];
@@ -56,6 +70,7 @@ interface Args {
   warnP95Ms: number;
   jsonOut: string | null;
   allowProduction: boolean;
+  embedSource: EmbedSource;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -70,6 +85,7 @@ function parseArgs(argv: string[]): Args {
     warnP95Ms: 0,
     jsonOut: null,
     allowProduction: false,
+    embedSource: "random",
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -127,6 +143,14 @@ function parseArgs(argv: string[]): Args {
       case "--allow-production":
         args.allowProduction = true;
         break;
+      case "--embed-source": {
+        const v = next();
+        if (v !== "openai" && v !== "random") {
+          throw new Error("--embed-source must be 'openai' or 'random'");
+        }
+        args.embedSource = v;
+        break;
+      }
       case "-h":
       case "--help":
         console.log(
@@ -134,7 +158,8 @@ function parseArgs(argv: string[]): Args {
             "                                  [--insert-batch 500] [--keep] [--no-record]\n" +
             "                                  [--append-docs] [--json-out path]\n" +
             "                                  [--threshold-p95-ms N] [--warn-p95-ms N]\n" +
-            "                                  [--allow-production]",
+            "                                  [--allow-production]\n" +
+            "                                  [--embed-source openai|random]",
         );
         process.exit(0);
     }
@@ -172,6 +197,38 @@ function redactDsn(url: string): string {
   }
 }
 
+// Small word pool used to synthesise short, varied texts for OpenAI embedding.
+// We don't need semantically meaningful content — just realistic-looking
+// English noun-phrase chunks so the embedding distribution resembles
+// production text rather than uniform noise.
+const WORD_POOL = [
+  "hotel", "resort", "occupancy", "ADR", "RevPAR", "seasonal", "calendar",
+  "market", "comp", "set", "demand", "supply", "leisure", "corporate",
+  "group", "transient", "rate", "yield", "channel", "OTA", "direct",
+  "booking", "cancellation", "lead", "time", "shoulder", "peak", "valley",
+  "weekend", "weekday", "summer", "winter", "spring", "fall", "festival",
+  "convention", "airport", "downtown", "suburb", "luxury", "midscale",
+  "economy", "branded", "independent", "renovation", "capex", "noi",
+  "ebitda", "cap", "rate", "exit", "multiple", "underwriting", "pro",
+  "forma", "stabilised", "ramp", "rooms", "F&B", "banquet", "spa", "golf",
+  "loyalty", "guest", "satisfaction", "score", "reputation", "review",
+  "investor", "debt", "service", "coverage", "ltv", "irr", "equity",
+  "sponsor", "operator", "management", "agreement", "franchise", "fee",
+  "labor", "wages", "utilities", "insurance", "tax", "assessment",
+];
+
+function syntheticText(seed: number): string {
+  // Deterministic-ish per-seed length & word pick (still varied across rows).
+  const len = 12 + (seed % 24);
+  const parts: string[] = [];
+  let s = seed * 2654435761;
+  for (let i = 0; i < len; i++) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    parts.push(WORD_POOL[s % WORD_POOL.length]);
+  }
+  return parts.join(" ");
+}
+
 function randomUnitVector(dims: number): number[] {
   const v = new Array<number>(dims);
   let sumSq = 0;
@@ -207,17 +264,29 @@ async function currentBenchCount(): Promise<number> {
   return Number(rows[0]?.count ?? 0);
 }
 
-async function seedTo(target: number, batchSize: number): Promise<void> {
+async function seedTo(target: number, batchSize: number, embedSource: EmbedSource): Promise<void> {
   const have = await currentBenchCount();
   if (have >= target) return;
 
   const need = target - have;
-  process.stdout.write(`  seeding ${need.toLocaleString()} chunks (have ${have.toLocaleString()}, target ${target.toLocaleString()})`);
+  process.stdout.write(`  seeding ${need.toLocaleString()} chunks (have ${have.toLocaleString()}, target ${target.toLocaleString()}, source=${embedSource})`);
   const start = Date.now();
 
   let inserted = 0;
   while (inserted < need) {
     const thisBatch = Math.min(batchSize, need - inserted);
+    const texts: string[] = [];
+    for (let j = 0; j < thisBatch; j++) {
+      texts.push(
+        embedSource === "openai"
+          ? syntheticText(have + inserted + j)
+          : `synthetic-${have + inserted + j}`,
+      );
+    }
+    const vectors: number[][] = embedSource === "openai"
+      ? await embedBatch(texts)
+      : Array.from({ length: thisBatch }, () => randomUnitVector(EMBED_DIMS));
+
     const placeholders: string[] = [];
     const values: unknown[] = [];
     for (let j = 0; j < thisBatch; j++) {
@@ -229,9 +298,9 @@ async function seedTo(target: number, batchSize: number): Promise<void> {
       values.push(
         BENCH_NAMESPACE,
         id,
-        `synthetic-${have + inserted + j}`,
-        JSON.stringify({ bench: true }),
-        toLiteral(randomUnitVector(EMBED_DIMS)),
+        texts[j],
+        JSON.stringify({ bench: true, embedSource }),
+        toLiteral(vectors[j]),
       );
     }
     await pool.query(
@@ -276,7 +345,14 @@ function summarise(samples: number[]): Stats {
   };
 }
 
-async function benchAtSize(size: number, queries: number, topK: number): Promise<{
+async function queryVector(embedSource: EmbedSource, seed: number): Promise<number[]> {
+  if (embedSource === "openai") {
+    return embed(syntheticText(seed));
+  }
+  return randomUnitVector(EMBED_DIMS);
+}
+
+async function benchAtSize(size: number, queries: number, topK: number, embedSource: EmbedSource): Promise<{
   size: number;
   topK: number;
   totalRowsAtRun: number;
@@ -285,7 +361,7 @@ async function benchAtSize(size: number, queries: number, topK: number): Promise
 }> {
   // Warm up — first query after a cold session pays connection / planning costs.
   for (let w = 0; w < 3; w++) {
-    const warm = toLiteral(randomUnitVector(EMBED_DIMS));
+    const warm = toLiteral(await queryVector(embedSource, 1_000_000 + w));
     await pool.query(
       `SELECT id FROM vector_chunks WHERE namespace = $1
         ORDER BY embedding <=> $2::vector ASC LIMIT $3`,
@@ -295,7 +371,7 @@ async function benchAtSize(size: number, queries: number, topK: number): Promise
 
   const singleSamples: number[] = [];
   for (let i = 0; i < queries; i++) {
-    const literal = toLiteral(randomUnitVector(EMBED_DIMS));
+    const literal = toLiteral(await queryVector(embedSource, 2_000_000 + i));
     const ms = await timeQuery(
       `SELECT id, metadata, 1 - (embedding <=> $2::vector) AS score
          FROM vector_chunks
@@ -309,7 +385,7 @@ async function benchAtSize(size: number, queries: number, topK: number): Promise
 
   const multiSamples: number[] = [];
   for (let i = 0; i < queries; i++) {
-    const literal = toLiteral(randomUnitVector(EMBED_DIMS));
+    const literal = toLiteral(await queryVector(embedSource, 3_000_000 + i));
     const t0 = process.hrtime.bigint();
     // Mirror multiNamespaceQuery: parallel per-namespace queries, then merge,
     // sort by score desc, slice to topK*2.
@@ -411,6 +487,7 @@ async function recordResults(
   const block = `## ${ts}
 
 - Runner: Node ${node}, ${dbHint}
+- Embedding source: **${args.embedSource}**${args.embedSource === "openai" ? " (text-embedding-3-small)" : " (synthetic unit vectors)"}
 - Queries per size: ${args.queries}, top-K: ${args.topK}
 - Sizes: ${args.sizes.join(", ")}
 
@@ -431,6 +508,7 @@ interface BenchOutcome {
   topK: number;
   thresholdP95Ms: number;
   warnP95Ms: number;
+  embedSource: EmbedSource;
   results: Array<{
     size: number;
     totalRowsAtRun: number;
@@ -469,7 +547,15 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  if (args.embedSource === "openai" && !isEmbeddingAvailable()) {
+    console.error(
+      "--embed-source=openai requires OPENAI_API_KEY (or equivalent) to be set.",
+    );
+    process.exit(1);
+  }
+
   console.log("Vector store benchmark");
+  console.log(`  embed source: ${args.embedSource}`);
   console.log(`  sizes: ${args.sizes.join(", ")}, queries/size: ${args.queries}, top-K: ${args.topK}`);
   console.log(`  bench namespace: ${BENCH_NAMESPACE}, id prefix: ${BENCH_ID_PREFIX}`);
 
@@ -482,8 +568,8 @@ async function main(): Promise<void> {
   try {
     for (const size of sortedSizes) {
       console.log(`\nSize: ${size.toLocaleString()}`);
-      await seedTo(size, args.insertBatch);
-      const r = await benchAtSize(size, args.queries, args.topK);
+      await seedTo(size, args.insertBatch, args.embedSource);
+      const r = await benchAtSize(size, args.queries, args.topK, args.embedSource);
       results.push(r);
       console.log(
         `  single-ns:    p50=${fmt(r.single.p50Ms)}ms  p95=${fmt(r.single.p95Ms)}ms  mean=${fmt(r.single.meanMs)}ms  max=${fmt(r.single.maxMs)}ms`,
@@ -540,6 +626,7 @@ async function main(): Promise<void> {
     topK: args.topK,
     thresholdP95Ms: args.thresholdP95Ms,
     warnP95Ms: args.warnP95Ms,
+    embedSource: args.embedSource,
     results: results.map((r) => ({
       size: r.size,
       totalRowsAtRun: r.totalRowsAtRun,

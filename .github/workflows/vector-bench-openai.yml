@@ -1,0 +1,104 @@
+name: Vector Bench (OpenAI embeddings)
+
+# Runs the pgvector / HNSW latency benchmark with *real* text-embedding-3-small
+# vectors. The sister workflow `vector-bench.yml` runs the same benchmark with
+# random unit vectors — useful for spotting index-config regressions but not
+# representative of the embedding distribution we see in production.
+# This job is opt-in: it only runs on a schedule (or manual dispatch) and only
+# if the OPENAI_API_KEY repository secret is configured. Results are labelled
+# with the embedding source so they're not compared like-for-like against the
+# random-vector runs.
+
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      sizes:
+        description: "Comma-separated chunk counts to seed (smaller is cheaper)."
+        required: false
+        default: "1000,10000"
+      queries:
+        description: "Queries per size."
+        required: false
+        default: "50"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HUSKY: 0
+      DATABASE_URL: postgresql://bench:bench@localhost:5432/vector_bench
+      NODE_ENV: test
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      SIZES: ${{ github.event.inputs.sizes || '1000,10000' }}
+      QUERIES: ${{ github.event.inputs.queries || '50' }}
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: bench
+          POSTGRES_PASSWORD: bench
+          POSTGRES_DB: vector_bench
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U bench"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - name: Skip if OPENAI_API_KEY is not configured
+        id: keycheck
+        run: |
+          if [ -z "${OPENAI_API_KEY}" ]; then
+            echo "OPENAI_API_KEY secret is not set; skipping OpenAI vector bench."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.keycheck.outputs.skip == 'false'
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        if: steps.keycheck.outputs.skip == 'false'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.keycheck.outputs.skip == 'false'
+        run: npm install
+
+      - name: Apply database schema
+        if: steps.keycheck.outputs.skip == 'false'
+        run: npm run db:push -- --force
+
+      - name: Run vector benchmark (OpenAI embeddings)
+        if: steps.keycheck.outputs.skip == 'false'
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          npx tsx script/vector-bench.ts \
+            --embed-source=openai \
+            --sizes="${SIZES}" \
+            --queries="${QUERIES}" \
+            --append-docs \
+            --json-out=artifacts/vector-bench-openai.json \
+            2>&1 | tee artifacts/vector-bench-openai.log
+
+      - name: Upload results
+        if: always() && steps.keycheck.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vector-bench-openai-${{ github.run_id }}
+          path: |
+            artifacts/vector-bench-openai.json
+            artifacts/vector-bench-openai.log
+            docs/vector-bench-results.md
+          retention-days: 90
