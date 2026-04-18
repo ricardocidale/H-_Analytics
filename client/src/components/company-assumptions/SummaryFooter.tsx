@@ -11,7 +11,7 @@
  *   • all other tabs   → no footer (avoid noise)
  */
 import { formatPercent } from "@/lib/financialEngine";
-import { STAFFING_TIERS } from "@/lib/constants";
+import { STAFFING_TIERS, DEFAULT_FIXED_COST_ESCALATION_RATE } from "@/lib/constants";
 import type { CompanyAssumptionsSectionProps } from "./types";
 
 type FooterTab =
@@ -58,7 +58,7 @@ export default function SummaryFooter({ formData, global, activeTab }: SummaryFo
         <p className="text-sm text-muted-foreground text-center label-text">
           Fixed overhead escalates at{" "}
           <span className="font-mono">
-            {formatPercent(formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate)}
+            {formatPercent(formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate ?? DEFAULT_FIXED_COST_ESCALATION_RATE)}
           </span>
           /year. All costs begin at Operations Start Date and are prorated for partial years.
         </p>
