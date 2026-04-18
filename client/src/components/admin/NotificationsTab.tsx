@@ -426,6 +426,8 @@ export default function NotificationsTab() {
               )}
             </CardContent>
           </Card>
+
+          <VectorLatencyAlertsPanel />
         </TabsContent>
 
         <TabsContent value="logs" className="mt-4">
@@ -472,6 +474,7 @@ export default function NotificationsTab() {
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
 
       <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
@@ -589,5 +592,82 @@ export default function NotificationsTab() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function VectorLatencyAlertsPanel() {
+  const { data: vectorLogs = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/notifications/logs", { eventType: "VECTOR_LATENCY_BREACH", limit: 10 }],
+    queryFn: async () => {
+      const res = await fetch("/api/notifications/logs?eventType=VECTOR_LATENCY_BREACH&limit=10", {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`Failed to load alerts: ${res.status}`);
+      return res.json();
+    },
+  });
+
+  return (
+    <Card data-testid="card-vector-latency-alerts">
+      <CardHeader>
+        <CardTitle>Recent Vector Latency Alerts</CardTitle>
+        <CardDescription>
+          The last 10 vector search latency breach notifications, including [TEST] sends, so you can
+          confirm your alert wiring without leaving the page.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-center text-muted-foreground py-8" data-testid="text-vector-latency-loading">
+            Loading recent alerts…
+          </p>
+        ) : vectorLogs.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8" data-testid="text-vector-latency-empty">
+            No vector latency alerts have been sent yet.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="py-2 px-3">Time</th>
+                  <th className="py-2 px-3">Recipient</th>
+                  <th className="py-2 px-3">Status</th>
+                  <th className="py-2 px-3">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vectorLogs.map((log: any) => {
+                  const isTest = !!(log.metadata && (log.metadata as any).test);
+                  return (
+                    <tr
+                      key={log.id}
+                      className="border-b"
+                      data-testid={`row-vector-latency-alert-${log.id}`}
+                    >
+                      <td className="py-2 px-3 text-muted-foreground whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3">{log.recipient || "—"}</td>
+                      <td className="py-2 px-3">
+                        <StatusBadge status={log.status} />
+                      </td>
+                      <td className="py-2 px-3">
+                        <Badge
+                          variant={isTest ? "secondary" : "outline"}
+                          data-testid={`badge-vector-latency-kind-${log.id}`}
+                        >
+                          {isTest ? "[TEST]" : "Real"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

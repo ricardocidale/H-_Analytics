@@ -67,7 +67,11 @@ export function register(app: Express) {
   app.get("/api/notifications/logs", requireAdmin, async (req, res) => {
     try {
       const limit = Math.min(Number(req.query.limit) || 100, 500);
-      const logs = await storage.getNotificationLogs(limit);
+      const eventType =
+        typeof req.query.eventType === "string" && req.query.eventType.length > 0
+          ? req.query.eventType
+          : undefined;
+      const logs = await storage.getNotificationLogs(limit, eventType);
       res.json(logs);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch notification logs", error);

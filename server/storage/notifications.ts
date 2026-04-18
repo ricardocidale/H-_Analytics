@@ -35,8 +35,12 @@ export class NotificationStorage {
     await db.delete(alertRules).where(eq(alertRules.id, id));
   }
 
-  async getNotificationLogs(limit = 100): Promise<NotificationLog[]> {
-    return db.select().from(notificationLogs).orderBy(desc(notificationLogs.createdAt)).limit(limit);
+  async getNotificationLogs(limit = 100, eventType?: string): Promise<NotificationLog[]> {
+    const base = db.select().from(notificationLogs);
+    const filtered = eventType
+      ? base.where(eq(notificationLogs.eventType, eventType))
+      : base;
+    return filtered.orderBy(desc(notificationLogs.createdAt)).limit(limit);
   }
 
   async createNotificationLog(data: InsertNotificationLog): Promise<NotificationLog> {
