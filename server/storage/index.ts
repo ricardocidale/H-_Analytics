@@ -394,6 +394,7 @@ export class DatabaseStorage implements IStorage {
   getCapitalRaiseBenchmarks = this.intelligenceV2.getCapitalRaiseBenchmarks.bind(this.intelligenceV2);
   getCapitalRaiseBenchmarkSummary = this.intelligenceV2.getCapitalRaiseBenchmarkSummary.bind(this.intelligenceV2);
   upsertCapitalRaiseBenchmark = this.intelligenceV2.upsertCapitalRaiseBenchmark.bind(this.intelligenceV2);
+  applyWatchdogCapitalRaiseObservations = this.intelligenceV2.applyWatchdogCapitalRaiseObservations.bind(this.intelligenceV2);
   createAnalystRefreshAuditLog = this.intelligenceV2.createAnalystRefreshAuditLog.bind(this.intelligenceV2);
   finalizeAnalystRefreshAuditLog = this.intelligenceV2.finalizeAnalystRefreshAuditLog.bind(this.intelligenceV2);
   getRecentAnalystRefreshAuditLogs = this.intelligenceV2.getRecentAnalystRefreshAuditLogs.bind(this.intelligenceV2);

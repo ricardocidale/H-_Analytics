@@ -876,6 +876,63 @@ export class IntelligenceV2Storage {
     return inserted;
   }
 
+  /**
+   * Batch write path used by the Capital-Raise Watchdog ingestion pipeline.
+   * Each observation is upserted into `capital_raise_benchmarks` keyed by
+   * `dimensionKey`. Existing rows inherit their label/unit when the watchdog
+   * doesn't supply one; unrecognized dimensions (no existing row + missing
+   * label) are skipped so a stray observation can't pollute the table.
+   *
+   * Note: writes are sequential, not wrapped in a single DB transaction. A
+   * mid-loop failure can leave the table partially updated; the caller's
+   * audit-log row records exactly which dimensions made it through (the
+   * `applied` list) so the next watchdog run reconciles the rest.
+   *
+   * Returns the dimensionKeys that were applied vs. skipped so the caller can
+   * log a precise diff and finalize the audit row accordingly.
+   */
+  async applyWatchdogCapitalRaiseObservations(
+    observations: Array<{
+      dimensionKey: string;
+      label?: string | null;
+      unit?: string | null;
+      valueLow: number | null;
+      valueMid: number | null;
+      valueHigh: number | null;
+    }>,
+    opts: { sourceCount: number; recordedAt: Date },
+  ): Promise<{ applied: CapitalRaiseBenchmark[]; skipped: string[] }> {
+    const existingRows = await this.getCapitalRaiseBenchmarks();
+    const byKey = new Map(existingRows.map(r => [r.dimensionKey, r] as const));
+
+    const applied: CapitalRaiseBenchmark[] = [];
+    const skipped: string[] = [];
+
+    for (const obs of observations) {
+      const prior = byKey.get(obs.dimensionKey);
+      const label = obs.label ?? prior?.label ?? null;
+      const unit = obs.unit ?? prior?.unit ?? "usd";
+      if (!label) {
+        // Unknown dimension with no label = unsafe to insert. Skip.
+        skipped.push(obs.dimensionKey);
+        continue;
+      }
+      const row = await this.upsertCapitalRaiseBenchmark({
+        dimensionKey: obs.dimensionKey,
+        label,
+        unit,
+        valueLow: obs.valueLow,
+        valueMid: obs.valueMid,
+        valueHigh: obs.valueHigh,
+        sourceCount: opts.sourceCount,
+        lastRefreshedAt: opts.recordedAt,
+      });
+      applied.push(row);
+    }
+
+    return { applied, skipped };
+  }
+
   // ── Analyst Refresh Audit Log ─────────────────────────────────
   async createAnalystRefreshAuditLog(data: InsertAnalystRefreshAuditLog): Promise<AnalystRefreshAuditLog> {
     const [row] = await db.insert(analystRefreshAuditLog)
