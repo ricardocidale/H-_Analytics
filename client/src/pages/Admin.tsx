@@ -32,6 +32,7 @@ const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/Pip
 const FinancialLinesTab = lazy(() => import("@/components/admin/intelligence/FinancialLinesTab"));
 const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
 const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/AnalystTables"));
+const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const PhotosRendersTab = lazy(() => import("@/components/admin/PhotosRendersTab"));
 
 export type { AdminSaveState };
@@ -56,6 +57,7 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "financial-lines":     { title: "Financial Lines",           subtitle: "Suggested calculation additions for financial statements" },
   benchmarks:            { title: "Hospitality Benchmarks",    subtitle: "Industry benchmark values powering AI research ranges" },
   "analyst-tables":      { title: "Analyst Tables",             subtitle: "Admin-only LLM refresh of benchmark tables (capital raise, etc.)" },
+  "vector-bench":        { title: "Vector Search Latency",      subtitle: "Trend lines for pgvector / HNSW p50 and p95 query latency over time" },
   notifications:         { title: "Notifications",            subtitle: "Email channels, alert rules, and delivery tracking" },
   navigation:            { title: "Navigation",               subtitle: "Control which sidebar pages are visible to users" },
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
@@ -148,6 +150,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "financial-lines":  return <FinancialLinesTab />;
     case "benchmarks":       return <HospitalityBenchmarksTab />;
     case "analyst-tables":   return <AnalystTablesTab />;
+    case "vector-bench":     return <VectorBenchTrendsTab />;
     case "notifications":    return <NotificationsTab />;
     case "navigation":       return <NavigationTab />;
     case "verification":     return <VerificationTab />;

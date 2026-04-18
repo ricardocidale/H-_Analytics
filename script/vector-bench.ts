@@ -41,7 +41,7 @@
  * Requires DATABASE_URL pointing at a Postgres instance with the `vector`
  * extension and the `vector_chunks` table (migration 0012_pgvector_store.sql).
  */
-import { mkdir, appendFile, writeFile } from "node:fs/promises";
+import { mkdir, appendFile, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { vectorStorePool as pool } from "../server/storage/vector-store";
 import {
@@ -56,6 +56,20 @@ const EMBED_DIMS = 1536;
 const BENCH_NAMESPACE: VectorNamespace = "knowledge-base";
 const BENCH_ID_PREFIX = "bench:vector-bench:";
 const RESULTS_PATH = "docs/vector-bench-results.md";
+const HISTORY_PATH = "docs/vector-bench-history.json";
+
+/**
+ * Latency thresholds (ms) used by the trends chart to highlight regressions.
+ * Single-namespace queries hit a single HNSW index; multi-namespace queries
+ * fan out across {@link ALL_NAMESPACES} in parallel and pay the slowest.
+ */
+export const VECTOR_BENCH_THRESHOLDS = {
+  singleP95Ms: 50,
+  singleP50Ms: 25,
+  multiP95Ms: 600,
+  multiP50Ms: 300,
+} as const;
+const HISTORY_MAX_RUNS = 500;
 
 type EmbedSource = "openai" | "random";
 
@@ -519,6 +533,87 @@ interface BenchOutcome {
   warned: string[];
 }
 
+export interface VectorBenchHistoryRun {
+  timestamp: string;
+  node: string;
+  dbHint: string;
+  queries: number;
+  topK: number;
+  sizes: number[];
+  results: Array<{
+    size: number;
+    totalRowsAtRun: number;
+    single: Stats;
+    multi: Stats;
+  }>;
+}
+
+export interface VectorBenchHistory {
+  thresholds: typeof VECTOR_BENCH_THRESHOLDS;
+  namespaces: number;
+  updatedAt: string;
+  runs: VectorBenchHistoryRun[];
+}
+
+async function recordHistory(
+  path: string,
+  rows: Array<Awaited<ReturnType<typeof benchAtSize>>>,
+  args: Args,
+): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  let history: VectorBenchHistory = {
+    thresholds: VECTOR_BENCH_THRESHOLDS,
+    namespaces: ALL_NAMESPACES.length,
+    updatedAt: new Date().toISOString(),
+    runs: [],
+  };
+  try {
+    const raw = await readFile(path, "utf8");
+    const parsed = JSON.parse(raw) as Partial<VectorBenchHistory>;
+    if (parsed && Array.isArray(parsed.runs)) {
+      history.runs = parsed.runs.filter(
+        (r): r is VectorBenchHistoryRun =>
+          !!r && typeof r.timestamp === "string" && Array.isArray(r.results),
+      );
+    }
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") {
+      console.warn(
+        `  warning: could not parse existing history at ${path}: ${
+          err instanceof Error ? err.message : err
+        } (starting fresh)`,
+      );
+    }
+  }
+
+  const ts = new Date().toISOString();
+  const dbHint = process.env.DATABASE_URL?.includes("neon") ? "Neon" : "Postgres";
+  history.runs.push({
+    timestamp: ts,
+    node: process.version,
+    dbHint,
+    queries: args.queries,
+    topK: args.topK,
+    sizes: args.sizes,
+    results: rows.map((r) => ({
+      size: r.size,
+      totalRowsAtRun: r.totalRowsAtRun,
+      single: r.single,
+      multi: r.multi,
+    })),
+  });
+
+  if (history.runs.length > HISTORY_MAX_RUNS) {
+    history.runs = history.runs.slice(-HISTORY_MAX_RUNS);
+  }
+  history.updatedAt = ts;
+  history.thresholds = VECTOR_BENCH_THRESHOLDS;
+  history.namespaces = ALL_NAMESPACES.length;
+
+  await writeFile(path, JSON.stringify(history, null, 2) + "\n");
+  console.log(`  recorded history to ${path} (${history.runs.length} runs)`);
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
@@ -597,6 +692,7 @@ async function main(): Promise<void> {
 
     if (args.record && results.length > 0) {
       await recordResults(RESULTS_PATH, results, args);
+      await recordHistory(HISTORY_PATH, results, args);
     }
   } catch (err) {
     exitCode = 2;

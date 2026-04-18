@@ -30,7 +30,7 @@ export type AdminSection =
   | "companies" | "groups" | "scenarios" // companies kept as alias → redirects to users
   | "brand" | "exports"
   | "ai-agents" | "knowledge-base" | "conversations"
-  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines" | "benchmarks" | "analyst-tables"
+  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines" | "benchmarks" | "analyst-tables" | "vector-bench"
   | "navigation" | "notifications" | "verification" | "database"
   | "photos-renders"
   // Legacy aliases (redirect to canonical)
@@ -143,6 +143,7 @@ function buildNavGroups(): NavGroup[] {
         { value: "scheduled-research", label: "Scheduled Research",   icon: IconTimer },
         { value: "benchmarks",         label: "Hospitality Benchmarks", icon: IconResearch },
         { value: "analyst-tables",     label: "Analyst Tables",       icon: IconResearch },
+        { value: "vector-bench",       label: "Vector Search Latency", icon: IconGauge },
       ],
     },
     {

@@ -128,6 +128,34 @@ export function registerVectorStoreRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/vector-bench/history", requireAdmin, async (_req, res) => {
+    try {
+      const { readFile } = await import("node:fs/promises");
+      const { resolve } = await import("node:path");
+      const path = resolve(process.cwd(), "docs/vector-bench-history.json");
+      let raw: string;
+      try {
+        raw = await readFile(path, "utf8");
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+          return res.json({
+            available: false,
+            updatedAt: null,
+            namespaces: ALL_NAMESPACES.length,
+            thresholds: null,
+            runs: [],
+            message: "No benchmark history yet. Run `npx tsx script/vector-bench.ts` to record one.",
+          });
+        }
+        throw err;
+      }
+      const parsed = JSON.parse(raw);
+      res.json({ available: true, ...parsed });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to read vector benchmark history", error);
+    }
+  });
+
   app.get("/api/admin/vector-store/stats", requireAdmin, async (_req, res) => {
     try {
       if (!isVectorStoreAvailable()) {
