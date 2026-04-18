@@ -991,7 +991,7 @@ export default function CompanyAssumptions() {
                       isRunning={isGenerating}
                       disabled={!gating.enabled}
                       disabledReason={gating.reason}
-                      tooltip={`Ask the Analyst about ${TAB_LABELS[activeTab]}`}
+                      tooltip={`Consult the Analyst on ${TAB_LABELS[activeTab]}`}
                       size="sm"
                       freshnessStatus={
                         computeFreshnessStatus({
