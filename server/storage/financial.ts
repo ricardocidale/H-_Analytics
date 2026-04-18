@@ -176,7 +176,7 @@ async function _indexScenarioAsync(scenario: Scenario): Promise<void> {
       createdBy: scenario.userId ? String(scenario.userId) : undefined,
     });
   } catch (err: unknown) {
-    logger.warn(`Async scenario index failed: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Async scenario index failed: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -312,7 +312,7 @@ export class FinancialStorage {
       .insert(scenarios)
       .values(data as typeof scenarios.$inferInsert)
       .returning();
-    _indexScenarioAsync(scenario).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
+    _indexScenarioAsync(scenario).catch(() => { /* ignore: Vector store indexing is async best-effort */ });
     return scenario;
   }
 
@@ -374,7 +374,7 @@ export class FinancialStorage {
       .where(eq(scenarios.id, id))
       .returning();
     if (scenario) {
-      _indexScenarioAsync(scenario).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
+      _indexScenarioAsync(scenario).catch(() => { /* ignore: Vector store indexing is async best-effort */ });
     }
     return scenario || undefined;
   }
@@ -403,7 +403,7 @@ export class FinancialStorage {
       .returning();
 
     if (updated) {
-      _indexScenarioAsync(updated).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
+      _indexScenarioAsync(updated).catch(() => { /* ignore: Vector store indexing is async best-effort */ });
     }
 
     return updated || undefined;

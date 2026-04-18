@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the source-health-checker before importing the module under test
 vi.mock("../../server/ai/source-health-checker", () => ({
-  getHealthySources: vi.fn().mockResolvedValue(["fred", "anthropic", "pinecone"]),
+  getHealthySources: vi.fn().mockResolvedValue(["fred", "anthropic", "vector-store"]),
 }));
 
 import {
@@ -120,7 +120,7 @@ describe("computePerFieldConfidence", () => {
 
 describe("computeConfidenceBreakdown", () => {
   beforeEach(() => {
-    vi.mocked(getHealthySources).mockResolvedValue(["fred", "anthropic", "pinecone"]);
+    vi.mocked(getHealthySources).mockResolvedValue(["fred", "anthropic", "vector-store"]);
   });
 
   it("6. All factors high => overall 'high', score >= 80", async () => {

@@ -609,7 +609,7 @@ export function register(app: Express) {
                     comparableSet: (rec.comparableSet as Record<string, unknown>) ?? null,
                   });
 
-                  // Index to Pinecone for cross-property retrieval (fire-and-forget)
+                  // Index to Vector store for cross-property retrieval (fire-and-forget)
                   indexAssumptionGuidance({
                     entityType: "property",
                     entityId: propertyId,
@@ -623,7 +623,7 @@ export function register(app: Express) {
                     valueHigh: rec.valueHigh ?? null,
                     confidence: rec.confidence === "high" ? 0.9 : rec.confidence === "medium" ? 0.7 : 0.4,
                     reasoning: rec.reasoning ?? null,
-                  }).catch(err => logger.warn(`Failed to index guidance to Pinecone: ${err}`, "research"));
+                  }).catch(err => logger.warn(`Failed to index guidance to Vector store: ${err}`, "research"));
                 }
 
                 logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for property ${propertyId} (run ${runId})`, "research");
@@ -676,7 +676,7 @@ export function register(app: Express) {
                   comparableSet: (rec.comparableSet as Record<string, unknown>) ?? null,
                 });
 
-                // Index to Pinecone for cross-entity retrieval (fire-and-forget)
+                // Index to Vector store for cross-entity retrieval (fire-and-forget)
                 indexAssumptionGuidance({
                   entityType: "company",
                   entityId: ownerUserId,
@@ -689,7 +689,7 @@ export function register(app: Express) {
                   valueHigh: rec.valueHigh ?? null,
                   confidence: rec.confidence === "high" ? 0.9 : rec.confidence === "medium" ? 0.7 : 0.4,
                   reasoning: rec.reasoning ?? null,
-                }).catch(err => logger.warn(`Failed to index company guidance to Pinecone: ${err}`, "research"));
+                }).catch(err => logger.warn(`Failed to index company guidance to Vector store: ${err}`, "research"));
               }
 
               logger.info(`RI v2: wrote ${guidanceResult.records.length} guidance records for company entity (user ${ownerUserId}, run ${runRecord.id})`, "research");

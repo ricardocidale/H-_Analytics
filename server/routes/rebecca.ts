@@ -252,7 +252,7 @@ export function register(app: Express) {
     try {
       const stats = await storage.getRebeccaKBStats();
       let vectorCt = 0;
-      try { vectorCt = await vectorCount("knowledge-base"); } catch (err: unknown) { logger.warn(`Failed to get Pinecone vector count: ${err instanceof Error ? err.message : String(err)}`, "rebecca"); }
+      try { vectorCt = await vectorCount("knowledge-base"); } catch (err: unknown) { logger.warn(`Failed to get Vector store vector count: ${err instanceof Error ? err.message : String(err)}`, "rebecca"); }
       return res.json({ ...stats, vectorCount: vectorCt });
     } catch (err: unknown) {
       logger.error(`Failed to get KB stats: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
@@ -267,7 +267,7 @@ export function register(app: Express) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
       const entry = await storage.createRebeccaKBEntry(parsed.data);
-      syncKBEntryToPinecone(entry.id, entry.title, entry.content, entry.category);
+      syncKBEntryToVectorStore(entry.id, entry.title, entry.content, entry.category);
       logActivity(req, "create-kb-entry", "rebecca_kb", entry.id, entry.title, { category: entry.category });
       logger.info(`KB entry created: ${entry.title}`, "rebecca");
       return res.json(entry);
@@ -292,10 +292,10 @@ export function register(app: Express) {
       if (!updated) return res.status(404).json({ error: "KB entry not found" });
 
       if (updated.isActive) {
-        syncKBEntryToPinecone(updated.id, updated.title, updated.content, updated.category);
+        syncKBEntryToVectorStore(updated.id, updated.title, updated.content, updated.category);
       } else {
         deleteVectors("knowledge-base", [`admin-kb:${updated.id}`]).catch(e =>
-          logger.warn(`Pinecone delete failed for KB ${updated.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+          logger.warn(`Vector store delete failed for KB ${updated.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
         );
       }
       logActivity(req, "update-kb-entry", "rebecca_kb", id, updated.title, { category: updated.category });
@@ -316,7 +316,7 @@ export function register(app: Express) {
       if (!deleted) return res.status(404).json({ error: "KB entry not found" });
 
       deleteVectors("knowledge-base", [`admin-kb:${id}`]).catch(e =>
-        logger.warn(`Pinecone delete failed for KB ${id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+        logger.warn(`Vector store delete failed for KB ${id}: ${e instanceof Error ? e.message : e}`, "rebecca")
       );
       logActivity(req, "delete-kb-entry", "rebecca_kb", id);
       logger.info(`KB entry ${id} deleted`, "rebecca");
@@ -351,10 +351,10 @@ export function register(app: Express) {
       if (!restored) return res.status(404).json({ error: "History entry not found" });
 
       if (restored.isActive) {
-        syncKBEntryToPinecone(restored.id, restored.title, restored.content, restored.category);
+        syncKBEntryToVectorStore(restored.id, restored.title, restored.content, restored.category);
       } else {
         deleteVectors("knowledge-base", [`admin-kb:${restored.id}`]).catch(e =>
-          logger.warn(`Pinecone delete failed for KB ${restored.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+          logger.warn(`Vector store delete failed for KB ${restored.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
         );
       }
       logActivity(req, "rollback-kb-entry", "rebecca_kb", entryId, restored.title, { historyId });
@@ -479,13 +479,13 @@ export function register(app: Express) {
   });
 }
 
-function syncKBEntryToPinecone(entryId: number, title: string, content: string, category: string) {
+function syncKBEntryToVectorStore(entryId: number, title: string, content: string, category: string) {
   upsertChunks("knowledge-base", [{
     id: `admin-kb:${entryId}`,
     text: `${title}\n\n${content}`,
     metadata: { title, content: content.slice(0, 3_000), source: "admin-kb", category },
   }]).catch(e =>
-    logger.warn(`Pinecone sync failed for KB ${entryId}: ${e instanceof Error ? e.message : e}`, "rebecca")
+    logger.warn(`Vector store sync failed for KB ${entryId}: ${e instanceof Error ? e.message : e}`, "rebecca")
   );
 }
 

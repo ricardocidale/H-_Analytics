@@ -133,8 +133,8 @@ describe("T014 — Assumption Guidance Retrieval Quality", () => {
       expect(results[0].valueHigh).toBeNull();
     });
 
-    it("returns empty array on Pinecone error (graceful degradation)", async () => {
-      mockedQueryChunks.mockRejectedValue(new Error("Pinecone timeout"));
+    it("returns empty array on Vector store error (graceful degradation)", async () => {
+      mockedQueryChunks.mockRejectedValue(new Error("Vector store timeout"));
       const results = await retrieveSimilarGuidance({
         location: "Miami, FL",
         propertyType: "boutique",

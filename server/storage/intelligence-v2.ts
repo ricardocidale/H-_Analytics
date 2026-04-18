@@ -166,9 +166,9 @@ export class IntelligenceV2Storage {
           ...kpis,
           source: updated.source ?? "unknown",
           snapshotDate: updated.fetchedAt.toISOString(),
-        }).catch(err => logger.warn(`Pinecone benchmark re-index failed: ${err}`, "intelligence-v2"));
+        }).catch(err => logger.warn(`Vector store benchmark re-index failed: ${err}`, "intelligence-v2"));
       } catch (err: unknown) {
-        logger.warn(`Pinecone benchmark re-index failed: ${err instanceof Error ? err.message : String(err)}`, "intelligence-v2");
+        logger.warn(`Vector store benchmark re-index failed: ${err instanceof Error ? err.message : String(err)}`, "intelligence-v2");
       }
 
       return updated;
@@ -185,9 +185,9 @@ export class IntelligenceV2Storage {
         ...kpis,
         source: inserted.source ?? "unknown",
         snapshotDate: inserted.fetchedAt.toISOString(),
-      }).catch(err => logger.warn(`Pinecone benchmark index failed: ${err}`, "intelligence-v2"));
+      }).catch(err => logger.warn(`Vector store benchmark index failed: ${err}`, "intelligence-v2"));
     } catch (err: unknown) {
-      logger.warn(`Pinecone benchmark index failed: ${err instanceof Error ? err.message : String(err)}`, "intelligence-v2");
+      logger.warn(`Vector store benchmark index failed: ${err instanceof Error ? err.message : String(err)}`, "intelligence-v2");
     }
 
     return inserted;

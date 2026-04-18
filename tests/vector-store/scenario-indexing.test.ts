@@ -11,7 +11,7 @@ import { indexScenarioSummary } from "../../server/ai/vector-indexing";
 import { upsertChunks, isVectorStoreAvailable } from "../../server/ai/vector-store-service";
 
 const mockedUpsertChunks = vi.mocked(upsertChunks);
-const mockedIsPineconeAvailable = vi.mocked(isVectorStoreAvailable);
+const mockedIsVectorStoreAvailable = vi.mocked(isVectorStoreAvailable);
 
 const baseScenario = {
   scenarioId: 42,
@@ -34,7 +34,7 @@ describe("T015 — Scenario Indexing for Rebecca", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    mockedIsPineconeAvailable.mockReturnValue(true);
+    mockedIsVectorStoreAvailable.mockReturnValue(true);
     mockedUpsertChunks.mockResolvedValue(undefined);
   });
 
@@ -158,8 +158,8 @@ describe("T015 — Scenario Indexing for Rebecca", () => {
   });
 
   describe("graceful degradation", () => {
-    it("no-ops when Pinecone is unavailable", async () => {
-      mockedIsPineconeAvailable.mockReturnValue(false);
+    it("no-ops when Vector store is unavailable", async () => {
+      mockedIsVectorStoreAvailable.mockReturnValue(false);
       await indexScenarioSummary(baseScenario);
       expect(mockedUpsertChunks).not.toHaveBeenCalled();
     });

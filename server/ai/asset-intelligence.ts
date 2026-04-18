@@ -53,7 +53,7 @@ export async function indexPropertyPhotos(): Promise<number> {
       }
     }
 
-    logger.info(`Indexed ${indexed} property photos into Pinecone`, "asset-intelligence");
+    logger.info(`Indexed ${indexed} property photos into Vector store`, "asset-intelligence");
     return indexed;
   } catch (err: unknown) {
     logger.warn(`Failed to index property photos: ${err instanceof Error ? err.message : err}`, "asset-intelligence");
@@ -87,7 +87,7 @@ export async function indexLogos(): Promise<number> {
     }));
 
     await upsertChunks("knowledge-base", chunks);
-    logger.info(`Indexed ${chunks.length} logos into Pinecone`, "asset-intelligence");
+    logger.info(`Indexed ${chunks.length} logos into Vector store`, "asset-intelligence");
     return chunks.length;
   } catch (err: unknown) {
     logger.warn(`Failed to index logos: ${err instanceof Error ? err.message : err}`, "asset-intelligence");
@@ -141,7 +141,7 @@ export async function searchAssets(query: string, topK = 6, accessiblePropertyId
       };
     });
   } catch (err: unknown) {
-    logger.warn(`Pinecone asset search failed, falling back: ${err instanceof Error ? err.message : err}`, "asset-intelligence");
+    logger.warn(`Vector store asset search failed, falling back: ${err instanceof Error ? err.message : err}`, "asset-intelligence");
     return fallbackAssetSearch(query, accessiblePropertyIds);
   }
 }

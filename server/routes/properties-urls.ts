@@ -324,7 +324,7 @@ export function registerPropertyUrlRoutes(app: Express) {
           }
         }
       } catch (e: unknown) {
-        logger.warn(`Failed to manage property URL vectors in Pinecone: ${(e instanceof Error ? e.message : String(e))}`, "property-urls");
+        logger.warn(`Failed to manage property URL vectors in Vector store: ${(e instanceof Error ? e.message : String(e))}`, "property-urls");
       }
 
       res.json({ validated: results.length, results });

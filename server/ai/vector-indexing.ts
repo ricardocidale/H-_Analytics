@@ -252,8 +252,8 @@ export async function indexBenchmarkSnapshot(params: {
 }
 
 // ── Pre-collected Market Data Indexing ───────────────────────────────────────
-// These index rows from the 6 pre-collected tables into Pinecone for RAG access.
-// Dual access: relational DB for exact tool lookups, Pinecone vectors for semantic search.
+// These index rows from the 6 pre-collected tables into Vector store for RAG access.
+// Dual access: relational DB for exact tool lookups, Vector store vectors for semantic search.
 
 export async function indexMarketAdrData(params: {
   market: string; country: string; quarter: string;

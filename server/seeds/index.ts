@@ -121,7 +121,7 @@ export async function seed() {
 
     await seedSourceRegistry();
 
-    await indexAllPropertiesToPinecone();
+    await indexAllPropertiesToVectorStore();
 
     await seedKnowledgeBase();
 
@@ -154,7 +154,7 @@ export async function seed() {
   }
 }
 
-async function indexAllPropertiesToPinecone() {
+async function indexAllPropertiesToVectorStore() {
   try {
     const allProps = await db.select().from(properties);
     let indexed = 0;
@@ -174,10 +174,10 @@ async function indexAllPropertiesToPinecone() {
       indexed++;
     }
     if (indexed > 0) {
-      logger.info(`Indexed ${indexed} properties to Pinecone`, "seed");
+      logger.info(`Indexed ${indexed} properties to Vector store`, "seed");
     }
   } catch (err: unknown) {
-    logger.warn(`Pinecone property indexing skipped: ${err instanceof Error ? err.message : err}`, "seed");
+    logger.warn(`Vector store property indexing skipped: ${err instanceof Error ? err.message : err}`, "seed");
   }
 }
 

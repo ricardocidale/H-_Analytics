@@ -329,7 +329,7 @@ export async function computeConfidenceBreakdown(
   const evidenceScore = extractAvgEvidenceScore(records);
 
   // Source availability factor — check if critical data sources are online
-  const criticalSources = ["fred", "anthropic", "pinecone"];
+  const criticalSources = ["fred", "anthropic", "vector-store"];
   let healthySources: string[] = [];
   try {
     healthySources = await getHealthySources();

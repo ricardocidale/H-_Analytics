@@ -128,13 +128,13 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
   indexingPromise = (async () => {
     const start = Date.now();
 
-    // If Pinecone is available and already indexed, skip re-embedding this session.
-    // Load the in-memory cache from Pinecone metadata instead.
+    // If Vector store is available and already indexed, skip re-embedding this session.
+    // Load the in-memory cache from Vector store metadata instead.
     if (isVectorStoreAvailable()) {
       const existing = await vectorCount("knowledge-base").catch(() => 0);
       if (existing > 0) {
-        logger.info(`Pinecone knowledge-base has ${existing} vectors — skipping re-index`, "knowledge-base");
-        // Mark as indexed with a placeholder so retrieveRelevantChunks uses Pinecone path
+        logger.info(`Vector store knowledge-base has ${existing} vectors — skipping re-index`, "knowledge-base");
+        // Mark as indexed with a placeholder so retrieveRelevantChunks uses Vector store path
         indexedAt = new Date();
         return { chunksIndexed: existing, timeMs: Date.now() - start };
       }
@@ -161,9 +161,9 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
       embedding: embeddings[i],
     }));
 
-    // Persist to Pinecone so future restarts skip re-embedding
+    // Persist to Vector store so future restarts skip re-embedding
     if (isVectorStoreAvailable()) {
-      const pineconeChunks = allChunks.map((chunk, i) => ({
+      const vectorStoreChunks = allChunks.map((chunk, i) => ({
         id: `kb:${chunk.source}:${i}`,
         text: `${chunk.title}\n\n${chunk.content}`,
         metadata: {
@@ -174,10 +174,10 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
         },
       }));
       try {
-        await upsertChunks("knowledge-base", pineconeChunks);
-        logger.info(`Pinecone: uploaded ${pineconeChunks.length} KB chunks`, "knowledge-base");
+        await upsertChunks("knowledge-base", vectorStoreChunks);
+        logger.info(`Vector store: uploaded ${vectorStoreChunks.length} KB chunks`, "knowledge-base");
       } catch (err: unknown) {
-        logger.warn(`Pinecone KB upload failed (in-memory cache still valid): ${err}`, "knowledge-base");
+        logger.warn(`Vector store KB upload failed (in-memory cache still valid): ${err}`, "knowledge-base");
       }
     }
 
@@ -194,7 +194,7 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
 }
 
 export async function retrieveRelevantChunks(query: string, topK: number = TOP_K): Promise<{ title: string; content: string; source: string; category: string; score: number }[]> {
-  // Pinecone path: persistent, no in-memory dependency
+  // Vector store path: persistent, no in-memory dependency
   if (isVectorStoreAvailable()) {
     try {
       const matches = await queryChunks("knowledge-base", query, topK);
@@ -208,7 +208,7 @@ export async function retrieveRelevantChunks(query: string, topK: number = TOP_K
           score:    m.score,
         }));
     } catch (err: unknown) {
-      logger.warn(`Pinecone KB query failed, falling back to in-memory: ${err}`, "knowledge-base");
+      logger.warn(`Vector store KB query failed, falling back to in-memory: ${err}`, "knowledge-base");
     }
   }
 

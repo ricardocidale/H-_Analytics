@@ -99,7 +99,7 @@ const SOURCE_DISPLAY_MAP: Record<string, { name: string; description: string; ca
   tavily:                  { name: "Tavily Web Search", description: "real-time hospitality market data", category: "web_research" },
   perplexity:              { name: "Perplexity AI Search", description: "web synthesis with citations", category: "web_research" },
   hospitality_benchmarks:  { name: "H+ Benchmark Database", description: "hospitality metrics by segment", category: "market_data" },
-  pinecone:                { name: "Pinecone Vector Store", description: "similar past research retrieval", category: "market_data" },
+  "vector-store":          { name: "Vector Store", description: "similar past research retrieval", category: "market_data" },
   costar:                  { name: "CoStar Group / STR", description: "RevPAR, ADR, occupancy, supply pipeline", category: "market_data" },
   amadeus:                 { name: "Amadeus Hotel API", description: "live hotel pricing for competitive set analysis (770K+ properties)", category: "market_data" },
   anthropic:               { name: "Claude (Anthropic)", description: "primary LLM analyst", category: "market_data" },

@@ -29,7 +29,7 @@ export class DocumentStorage {
       .returning();
     if (!updated) return undefined;
 
-    // Index completed extractions to Pinecone for semantic retrieval (fire-and-forget)
+    // Index completed extractions to Vector store for semantic retrieval (fire-and-forget)
     if (updated.status === "completed" && updated.rawExtractionData) {
       try {
         const raw = updated.rawExtractionData as Record<string, unknown>;
@@ -49,10 +49,10 @@ export class DocumentStorage {
             documentType: updated.documentType,
             extractedText,
             location: prop?.location ?? "",
-          }).catch(err => logger.warn(`Pinecone document index failed: ${err}`, "documents"));
+          }).catch(err => logger.warn(`Vector store document index failed: ${err}`, "documents"));
         }
       } catch (err: unknown) {
-        logger.warn(`Pinecone document index failed: ${err}`, "documents");
+        logger.warn(`Vector store document index failed: ${err}`, "documents");
       }
     }
 

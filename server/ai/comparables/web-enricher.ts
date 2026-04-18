@@ -2,7 +2,7 @@
  * server/ai/comparables/web-enricher.ts — Web-enhanced comparable enrichment
  *
  * When the progressive relaxation engine finds fewer than the target number
- * of DB/Pinecone comparables, this module supplements the set with web-sourced
+ * of DB/Vector store comparables, this module supplements the set with web-sourced
  * market data from Perplexity and Tavily.
  *
  * Web comparables are always tagged confidence: "web_sourced" so the UI can
@@ -192,7 +192,7 @@ function dedupeWebComparables(comps: WebComparable[]): WebComparable[] {
 // ── Main enrichment function ────────────────────────────────────────────────
 
 /**
- * Supplement the comparable set with web-sourced data when the DB/Pinecone
+ * Supplement the comparable set with web-sourced data when the DB/Vector store
  * search returns fewer comps than desired.
  *
  * Only triggers if existingCompCount < targetCompCount (default 3) AND

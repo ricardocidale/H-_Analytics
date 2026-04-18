@@ -1,5 +1,5 @@
 /**
- * Knowledge Base Seeds — indexes foundational knowledge into Pinecone
+ * Knowledge Base Seeds — indexes foundational knowledge into Vector store
  * so Rebecca can draw on conversation principles, communication techniques,
  * Norfolk AI identity, and behavioral economics during conversations.
  *
@@ -285,8 +285,8 @@ export async function seedKnowledgeBase(): Promise<void> {
   }
 
   if (indexed > 0) {
-    logger.info(`Seeded ${indexed}/${ENTRIES.length} knowledge base entries to Pinecone`, "seed");
+    logger.info(`Seeded ${indexed}/${ENTRIES.length} knowledge base entries to Vector store`, "seed");
   } else {
-    logger.warn("No knowledge base entries were indexed (Pinecone may be unavailable)", "seed");
+    logger.warn("No knowledge base entries were indexed (Vector store may be unavailable)", "seed");
   }
 }

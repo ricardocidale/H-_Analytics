@@ -12,7 +12,7 @@
  *     Detect agreements, divergences, and contradictions with real data.
  *
  *   Phase 3 — Synthesis (+1, Claude Opus):
- *     Reads both panels + API validation + similar past research from Pinecone.
+ *     Reads both panels + API validation + similar past research from Vector store.
  *     Produces final reconciled output. Model disagreement becomes the confidence band.
  *     Streams directly to client — this is what the user sees building on screen.
  *
@@ -259,7 +259,7 @@ Consensus ratio: ${(validation.consensusRatio * 100).toFixed(0)}% of key metrics
 
 ${formatValidationTable(validation)}
 
-### Similar Prior Research (from Pinecone research-history)
+### Similar Prior Research (from Vector store research-history)
 ${formatPriorResearch(priorResearch)}
 
 ---
@@ -327,7 +327,7 @@ export async function* orchestrateResearch(
         yield { type: "phase", data: `Retrieved ${urlChunks.length} validated property URLs from knowledge base` };
       }
     } catch (e: unknown) {
-      logger.warn(`Failed to retrieve property URLs from Pinecone: ${(e instanceof Error ? e.message : String(e))}`, "research-orchestrator");
+      logger.warn(`Failed to retrieve property URLs from Vector store: ${(e instanceof Error ? e.message : String(e))}`, "research-orchestrator");
     }
   }
 
@@ -440,7 +440,7 @@ export async function* orchestrateResearch(
       type:         params.type,
       summary,
       completedAt:  new Date().toISOString(),
-    }).catch(err => logger.warn(`Failed to index research to Pinecone: ${err}`, "orchestrator"));
+    }).catch(err => logger.warn(`Failed to index research to Vector store: ${err}`, "orchestrator"));
   }
 
   yield { type: "done", data: "" };

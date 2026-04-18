@@ -10,7 +10,7 @@ import { logger } from "../../logger";
 export interface ComparableProperty {
   id: number | string;
   name: string;
-  source: "local" | "pinecone";
+  source: "local" | "vector-store";
   starRating: number | null;
   hospitalityType: string;
   businessModel: string;
@@ -133,11 +133,11 @@ function localPropToComparable(prop: Property): ComparableProperty {
   };
 }
 
-function pineconeMatchToComparable(match: QueryMatch): ComparableProperty {
+function vectorStoreMatchToComparable(match: QueryMatch): ComparableProperty {
   return {
     id: match.id,
     name: String(match.metadata.name ?? match.id),
-    source: "pinecone",
+    source: "vector-store",
     starRating: typeof match.metadata.starRating === "number" ? match.metadata.starRating : null,
     hospitalityType: String(match.metadata.hospitalityType ?? "hotel"),
     businessModel: String(match.metadata.businessModel ?? "hotel"),
@@ -247,7 +247,7 @@ function filterCompAgainstCriteria(
   return true;
 }
 
-async function queryPinecone(pack: PropertyContextPack, criteria: ComparableCriteria): Promise<ComparableProperty[]> {
+async function queryVectorStore(pack: PropertyContextPack, criteria: ComparableCriteria): Promise<ComparableProperty[]> {
   if (!isVectorStoreAvailable()) return [];
   try {
     const queryText = [
@@ -259,10 +259,10 @@ async function queryPinecone(pack: PropertyContextPack, criteria: ComparableCrit
     ].filter(Boolean).join(" ");
 
     const matches = await queryChunks("research-history", queryText, 15);
-    const comps = matches.map(pineconeMatchToComparable);
+    const comps = matches.map(vectorStoreMatchToComparable);
     return comps.filter(c => filterCompAgainstCriteria(c, criteria, pack));
   } catch (err: unknown) {
-    logger.warn(`Pinecone comparable query failed at L${criteria.level}: ${err instanceof Error ? err.message : err}`, "relaxation");
+    logger.warn(`Vector store comparable query failed at L${criteria.level}: ${err instanceof Error ? err.message : err}`, "relaxation");
     return [];
   }
 }
@@ -315,12 +315,12 @@ export async function progressiveRelax(options: {
   for (let level = 0; level <= policy.relaxationMaxLevel; level++) {
     const criteria = builder.build(level as RelaxLevel);
 
-    const [localComps, pineconeComps] = await Promise.all([
+    const [localComps, vectorStoreComps] = await Promise.all([
       queryLocalDb(contextPack, criteria, userId),
-      queryPinecone(contextPack, criteria),
+      queryVectorStore(contextPack, criteria),
     ]);
 
-    let merged = dedupeComps([...localComps, ...pineconeComps]);
+    let merged = dedupeComps([...localComps, ...vectorStoreComps]);
 
     merged = merged.filter(c => starGuard(c, targetStar));
 
@@ -360,7 +360,7 @@ export async function progressiveRelax(options: {
   }
 
   // ── Web enrichment (post-processing, additive only) ──────────────────────
-  // If DB/Pinecone search yielded fewer than the minimum comp count, attempt
+  // If DB/Vector store search yielded fewer than the minimum comp count, attempt
   // to supplement with web-sourced comparables. These are kept separate from
   // DB comps and receive a lower evidence-score weight (50%).
   let webComparables: WebComparable[] | undefined;

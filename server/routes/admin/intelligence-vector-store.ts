@@ -145,7 +145,7 @@ export function registerVectorStoreRoutes(app: Express) {
         allNamespaces: ALL_NAMESPACES,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to get Pinecone stats", error);
+      logAndSendError(res, "Failed to get vector store stats", error);
     }
   });
 

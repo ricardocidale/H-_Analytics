@@ -22,7 +22,7 @@ async function _indexPropertyAsync(property: Property): Promise<void> {
       streetAddress: (rec.streetAddress ?? rec.street_address ?? undefined) as string | undefined,
     });
   } catch (err: unknown) {
-    logger.warn(`Async property index failed: ${err instanceof Error ? err.message : err}`, "pinecone");
+    logger.warn(`Async property index failed: ${err instanceof Error ? err.message : err}`, "vector-store");
   }
 }
 
@@ -103,7 +103,7 @@ export class PropertyStorage {
       .insert(properties)
       .values(safeData as typeof properties.$inferInsert)
       .returning();
-    _indexPropertyAsync(property).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
+    _indexPropertyAsync(property).catch(() => { /* ignore: Vector store indexing is async best-effort */ });
     return property;
   }
 
@@ -115,7 +115,7 @@ export class PropertyStorage {
       .where(eq(properties.id, id))
       .returning();
     if (property) {
-      _indexPropertyAsync(property).catch(() => { /* ignore: Pinecone indexing is async best-effort */ });
+      _indexPropertyAsync(property).catch(() => { /* ignore: Vector store indexing is async best-effort */ });
     }
     return property || undefined;
   }
