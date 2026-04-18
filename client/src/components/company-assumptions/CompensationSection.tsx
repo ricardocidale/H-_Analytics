@@ -38,14 +38,14 @@ export default function CompensationSection({ formData, onChange, global, resear
         <div>
           <h3 className="text-lg font-display text-foreground flex items-center">
             Compensation
-            <InfoTooltip text="Total compensation expense for the management company. Includes management team draws and staff salaries. Staff headcount is determined by the portfolio size (staffing tiers below). Early-stage hotel management companies typically allocate 50–65% of total overhead to compensation. AHLA Lodging Industry Survey 2024: Upper Upscale management teams average $75K–$95K per FTE; Luxury/boutique operators $85K–$120K." formula="Monthly = (Management Comp + FTE × Salary) ÷ 12" />
+            <InfoTooltip text="Total compensation expense for the management company. Includes management team draws and staff salaries. Staff headcount is determined by the portfolio size (staffing tiers below). Early-stage hotel management companies typically allocate 50–65% of total overhead to compensation. See the Analyst badge for live per-FTE benchmarks by property class." formula="Monthly = (Management Comp + FTE × Salary) ÷ 12" />
           </h3>
           <p className="text-muted-foreground text-sm label-text">Configure management compensation, staff salaries, and staffing tiers</p>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
-              label={<>Staff Salary <InfoTooltip text="Average annual salary per full-time staff member. The total staff cost depends on how many FTEs your portfolio size requires (see tiers below). As you add properties, you may cross into a higher staffing tier. AHLA Lodging Industry Survey: $65K–$90K average salary for hospitality management roles." formula="Staff Cost = FTE Count × Salary ÷ 12" /></>}
+              label={<>Staff Salary <InfoTooltip text="Average annual salary per full-time staff member. The total staff cost depends on how many FTEs your portfolio size requires (see tiers below). As you add properties, you may cross into a higher staffing tier. See the Analyst badge for live salary ranges in your market." formula="Staff Cost = FTE Count × Salary ÷ 12" /></>}
               badgeProps={{ value: researchValues.staffSalary?.display, sourceType: "industry", sourceName: CITATIONS.ahlaLodgingIndustrySurvey, "data-testid": "badge-staff-salary" }}
               onApplyValue={() => researchValues.staffSalary && onChange("staffSalary", researchValues.staffSalary.mid)}
               guidanceContext={gc("staffSalary", "Staff Salary")}
