@@ -79,11 +79,15 @@ export default function NotificationsTab() {
   });
 
   const [resendEnabled, setResendEnabled] = useState(false);
+  const [vectorOverrides, setVectorOverrides] = useState({
+    singleP95: "",
+    multiP95: "",
+    singleP50: "",
+    multiP50: "",
+  });
 
   // Vector latency alert local form state (synced from settings)
   const [vectorAlertsEnabled, setVectorAlertsEnabled] = useState(true);
-  const [vectorSingleP95, setVectorSingleP95] = useState<string>("");
-  const [vectorMultiP95, setVectorMultiP95] = useState<string>("");
   const [vectorRecipientIds, setVectorRecipientIds] = useState<number[]>([]);
 
   const { data: adminUsers = [] } = useQuery<AdminUser[]>({
@@ -94,8 +98,12 @@ export default function NotificationsTab() {
   useEffect(() => {
     setResendEnabled(settings.resend_enabled === "true");
     setVectorAlertsEnabled(settings.vector_latency_alerts_disabled !== "true");
-    setVectorSingleP95(settings.vector_latency_single_p95_override ?? "");
-    setVectorMultiP95(settings.vector_latency_multi_p95_override ?? "");
+    setVectorOverrides({
+      singleP95: settings.vector_latency_single_p95_override ?? "",
+      multiP95: settings.vector_latency_multi_p95_override ?? "",
+      singleP50: settings.vector_latency_single_p50_override ?? "",
+      multiP50: settings.vector_latency_multi_p50_override ?? "",
+    });
     try {
       const raw = settings.vector_latency_recipient_user_ids;
       const parsed = raw ? JSON.parse(raw) : [];
@@ -131,8 +139,10 @@ export default function NotificationsTab() {
   const saveVectorSettings = () => {
     const updates: Record<string, string | null> = {
       vector_latency_alerts_disabled: vectorAlertsEnabled ? "false" : "true",
-      vector_latency_single_p95_override: vectorSingleP95.trim() === "" ? null : vectorSingleP95.trim(),
-      vector_latency_multi_p95_override: vectorMultiP95.trim() === "" ? null : vectorMultiP95.trim(),
+      vector_latency_single_p95_override: vectorOverrides.singleP95.trim() === "" ? null : vectorOverrides.singleP95.trim(),
+      vector_latency_multi_p95_override: vectorOverrides.multiP95.trim() === "" ? null : vectorOverrides.multiP95.trim(),
+      vector_latency_single_p50_override: vectorOverrides.singleP50.trim() === "" ? null : vectorOverrides.singleP50.trim(),
+      vector_latency_multi_p50_override: vectorOverrides.multiP50.trim() === "" ? null : vectorOverrides.multiP50.trim(),
       vector_latency_recipient_user_ids:
         vectorRecipientIds.length === 0 ? null : JSON.stringify(vectorRecipientIds),
     };
@@ -342,26 +352,52 @@ export default function NotificationsTab() {
                   <Label htmlFor="input-vector-single-p95">Single-namespace p95 override (ms)</Label>
                   <Input
                     id="input-vector-single-p95"
-                    data-testid="input-vector-single-p95"
+                    data-testid="input-vector-single-p95-override"
                     type="number"
                     min="0"
                     step="1"
                     placeholder="e.g. 50 (blank = use file)"
-                    value={vectorSingleP95}
-                    onChange={(e) => setVectorSingleP95(e.target.value)}
+                    value={vectorOverrides.singleP95}
+                    onChange={(e) => setVectorOverrides({ ...vectorOverrides, singleP95: e.target.value })}
                   />
                 </div>
                 <div>
                   <Label htmlFor="input-vector-multi-p95">Multi-namespace p95 override (ms)</Label>
                   <Input
                     id="input-vector-multi-p95"
-                    data-testid="input-vector-multi-p95"
+                    data-testid="input-vector-multi-p95-override"
                     type="number"
                     min="0"
                     step="1"
                     placeholder="e.g. 600 (blank = use file)"
-                    value={vectorMultiP95}
-                    onChange={(e) => setVectorMultiP95(e.target.value)}
+                    value={vectorOverrides.multiP95}
+                    onChange={(e) => setVectorOverrides({ ...vectorOverrides, multiP95: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="input-vector-single-p50">Single-namespace p50 override (ms)</Label>
+                  <Input
+                    id="input-vector-single-p50"
+                    data-testid="input-vector-single-p50-override"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 20 (blank = use file)"
+                    value={vectorOverrides.singleP50}
+                    onChange={(e) => setVectorOverrides({ ...vectorOverrides, singleP50: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="input-vector-multi-p50">Multi-namespace p50 override (ms)</Label>
+                  <Input
+                    id="input-vector-multi-p50"
+                    data-testid="input-vector-multi-p50-override"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 200 (blank = use file)"
+                    value={vectorOverrides.multiP50}
+                    onChange={(e) => setVectorOverrides({ ...vectorOverrides, multiP50: e.target.value })}
                   />
                 </div>
               </div>

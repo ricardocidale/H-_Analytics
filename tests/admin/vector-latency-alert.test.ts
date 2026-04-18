@@ -9,9 +9,7 @@ const recentLogs: Array<{ metadata: Record<string, unknown> | null; status: stri
 let users: Array<{ id: number; email: string; role: string }> = [];
 let disabledSetting: string | null = null;
 let resendEnabledSetting: string | null = "true";
-let singleP95Override: string | null = null;
-let multiP95Override: string | null = null;
-let recipientUserIdsSetting: string | null = null;
+let overrideSettings: Record<string, string | null> = {};
 
 vi.mock("../../server/integrations/resend", () => ({
   sendNotificationEmail: vi.fn(async (params: { to: string; subject: string }) => {
@@ -24,9 +22,7 @@ vi.mock("../../server/storage", () => ({
     getNotificationSetting: vi.fn(async (key: string) => {
       if (key === "vector_latency_alerts_disabled") return disabledSetting;
       if (key === "resend_enabled") return resendEnabledSetting;
-      if (key === "vector_latency_single_p95_override") return singleP95Override;
-      if (key === "vector_latency_multi_p95_override") return multiP95Override;
-      if (key === "vector_latency_recipient_user_ids") return recipientUserIdsSetting;
+      if (key in overrideSettings) return overrideSettings[key];
       return null;
     }),
     getAllUsers: vi.fn(async () => users),
@@ -105,9 +101,7 @@ describe("evaluateVectorLatencyAlert", () => {
     ];
     disabledSetting = null;
     resendEnabledSetting = "true";
-    singleP95Override = null;
-    multiP95Override = null;
-    recipientUserIdsSetting = null;
+    overrideSettings = {};
   });
 
   it("returns disabled when resend_enabled is not true", async () => {
@@ -153,7 +147,15 @@ describe("evaluateVectorLatencyAlert", () => {
     expect(first.sent).toBe(2);
     expect(first.failed).toBe(0);
     expect(sentEmails).toHaveLength(2);
-    expect(first.breaches?.[0]).toMatchObject({ size: 1000, scope: "single", p95Ms: 80, thresholdP95Ms: 50 });
+    expect(first.breaches?.[0]).toMatchObject({
+      size: 1000,
+      scope: "single",
+      metric: "p95",
+      valueMs: 80,
+      thresholdMs: 50,
+      p95Ms: 80,
+      thresholdP95Ms: 50,
+    });
 
     // Simulate the row being persisted so dedupe sees it on the second tick.
     recentLogs.push({ metadata: { runId: first.runId }, status: "sent" });
@@ -185,7 +187,7 @@ describe("evaluateVectorLatencyAlert", () => {
     expect((await evaluateVectorLatencyAlert({ historyPath: path })).status).toBe("no-breach");
 
     // With a stricter override (20ms), the same run should breach.
-    singleP95Override = "20";
+    overrideSettings["vector_latency_single_p95_override"] = "20";
     const result = await evaluateVectorLatencyAlert({ historyPath: path });
     expect(result.status).toBe("ok");
     expect(result.breaches?.[0]).toMatchObject({ scope: "single", p95Ms: 30, thresholdP95Ms: 20 });
@@ -204,7 +206,7 @@ describe("evaluateVectorLatencyAlert", () => {
 
     // Reset dedupe and raise the override so the same run is no longer a breach.
     recentLogs.length = 0;
-    multiP95Override = "1000";
+    overrideSettings["vector_latency_multi_p95_override"] = "1000";
     const result = await evaluateVectorLatencyAlert({ historyPath: path });
     expect(result.status).toBe("no-breach");
   });
@@ -214,15 +216,15 @@ describe("evaluateVectorLatencyAlert", () => {
     breaching.runs[0].results[0].single.p95Ms = 80; // > 50ms file threshold
     const path = await writeHistory(breaching);
 
-    singleP95Override = "not-a-number";
-    multiP95Override = "-5";
+    overrideSettings["vector_latency_single_p95_override"] = "not-a-number";
+    overrideSettings["vector_latency_multi_p95_override"] = "-5";
     const result = await evaluateVectorLatencyAlert({ historyPath: path });
     expect(result.status).toBe("ok");
     expect(result.breaches?.[0]).toMatchObject({ scope: "single", thresholdP95Ms: 50 });
   });
 
   it("restricts recipients to the configured admin user ids", async () => {
-    recipientUserIdsSetting = JSON.stringify([2]); // only the super admin
+    overrideSettings["vector_latency_recipient_user_ids"] = JSON.stringify([2]); // only the super admin
     const breaching = JSON.parse(JSON.stringify(baseHistory));
     breaching.runs[0].results[0].single.p95Ms = 80;
     const path = await writeHistory(breaching);
@@ -234,7 +236,7 @@ describe("evaluateVectorLatencyAlert", () => {
   });
 
   it("never sends to non-admins even if their id is configured", async () => {
-    recipientUserIdsSetting = JSON.stringify([3]); // user@example.com is not an admin
+    overrideSettings["vector_latency_recipient_user_ids"] = JSON.stringify([3]); // user@example.com is not an admin
     const breaching = JSON.parse(JSON.stringify(baseHistory));
     breaching.runs[0].results[0].single.p95Ms = 80;
     const path = await writeHistory(breaching);
@@ -245,7 +247,7 @@ describe("evaluateVectorLatencyAlert", () => {
   });
 
   it("falls back to all admins when the recipient setting is malformed", async () => {
-    recipientUserIdsSetting = "not-json";
+    overrideSettings["vector_latency_recipient_user_ids"] = "not-json";
     const breaching = JSON.parse(JSON.stringify(baseHistory));
     breaching.runs[0].results[0].single.p95Ms = 80;
     const path = await writeHistory(breaching);
@@ -288,6 +290,90 @@ describe("evaluateVectorLatencyAlert", () => {
     const result = await evaluateVectorLatencyAlert({ historyPath: path });
     expect(result.status).toBe("no-breach");
     expect(sentEmails).toHaveLength(0);
+  });
+
+  it("alerts on single-namespace p50 breach when file thresholds.singleP50Ms is set", async () => {
+    const breaching = JSON.parse(JSON.stringify(baseHistory));
+    // p95 (20) is well under 50; p50 (30) breaches the 25ms file threshold.
+    breaching.runs[0].results[0].single.p50Ms = 30;
+    const path = await writeHistory(breaching);
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.breaches).toEqual([
+      expect.objectContaining({
+        size: 1000,
+        scope: "single",
+        metric: "p50",
+        valueMs: 30,
+        thresholdMs: 25,
+      }),
+    ]);
+  });
+
+  it("alerts on multi-namespace p50 breach", async () => {
+    const breaching = JSON.parse(JSON.stringify(baseHistory));
+    breaching.runs[0].results[0].multi.p50Ms = 400; // > 300ms file threshold
+    const path = await writeHistory(breaching);
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.breaches).toEqual([
+      expect.objectContaining({ scope: "multi", metric: "p50", valueMs: 400, thresholdMs: 300 }),
+    ]);
+  });
+
+  it("admin override for single p50 takes precedence over the file threshold", async () => {
+    // File thresholds.singleP50Ms = 25; p50 = 22 would normally pass.
+    overrideSettings["vector_latency_single_p50_override"] = "20";
+    const path = await writeHistory(baseHistory); // p50=8, p95=20, both under
+    // Bump p50 to 22 so it breaches the 20ms override but not the 25ms file value.
+    const tweaked = JSON.parse(JSON.stringify(baseHistory));
+    tweaked.runs[0].results[0].single.p50Ms = 22;
+    const path2 = await writeHistory(tweaked);
+
+    const noOverride = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(noOverride.status).toBe("no-breach");
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path2 });
+    expect(result.status).toBe("ok");
+    expect(result.breaches).toEqual([
+      expect.objectContaining({ scope: "single", metric: "p50", valueMs: 22, thresholdMs: 20 }),
+    ]);
+  });
+
+  it("admin override for multi p50 enables p50 alerting even if file omits the threshold", async () => {
+    const noFileP50 = JSON.parse(JSON.stringify(baseHistory));
+    delete noFileP50.thresholds.multiP50Ms;
+    delete noFileP50.thresholds.singleP50Ms;
+    noFileP50.runs[0].results[0].multi.p50Ms = 150;
+    overrideSettings["vector_latency_multi_p50_override"] = "100";
+    const path = await writeHistory(noFileP50);
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.breaches).toEqual([
+      expect.objectContaining({ scope: "multi", metric: "p50", valueMs: 150, thresholdMs: 100 }),
+    ]);
+  });
+
+  it("admin override for single p95 also takes precedence", async () => {
+    overrideSettings["vector_latency_single_p95_override"] = "15";
+    const path = await writeHistory(baseHistory); // p95 = 20
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.breaches).toEqual([
+      expect.objectContaining({ scope: "single", metric: "p95", valueMs: 20, thresholdMs: 15 }),
+    ]);
+  });
+
+  it("blank or non-positive override strings fall back to file thresholds", async () => {
+    overrideSettings["vector_latency_single_p50_override"] = "";
+    overrideSettings["vector_latency_multi_p50_override"] = "0";
+    const path = await writeHistory(baseHistory);
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("no-breach");
   });
 
   it("returns no-admins when no admin users exist", async () => {

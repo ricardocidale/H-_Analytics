@@ -74,9 +74,75 @@ interface BenchHistory {
 interface BreachedSize {
   size: number;
   scope: "single" | "multi";
+  metric: "p50" | "p95";
+  /** The actual latency value (ms) for the breached metric. */
+  valueMs: number;
+  /** The threshold (ms) that the value exceeded. */
+  thresholdMs: number;
+  /** Both p50 and p95 are included for context in emails / metadata. */
   p50Ms: number;
   p95Ms: number;
-  thresholdP95Ms: number;
+  /**
+   * Legacy field retained for backward compatibility with downstream
+   * consumers that expected a p95-only shape. Set only on p95 breaches.
+   */
+  thresholdP95Ms?: number;
+}
+
+/**
+ * Resolve the effective thresholds by overlaying admin-provided overrides
+ * (stored in `notification_settings`) on top of whatever was embedded in
+ * `docs/vector-bench-history.json`. Both p95 and p50 thresholds may be
+ * overridden independently for the single- and multi-namespace scopes.
+ *
+ * Override keys:
+ *   - vector_latency_single_p95_override
+ *   - vector_latency_multi_p95_override
+ *   - vector_latency_single_p50_override   (new — see task #374)
+ *   - vector_latency_multi_p50_override    (new — see task #374)
+ *
+ * A non-empty positive numeric override replaces the file value; an empty
+ * string, null, or non-positive value leaves the file value in place.
+ */
+export interface ResolvedVectorLatencyThresholds {
+  singleP95Ms: number;
+  multiP95Ms: number;
+  singleP50Ms?: number;
+  multiP50Ms?: number;
+}
+
+function parseOverride(raw: string | null | undefined): number | undefined {
+  if (raw == null) return undefined;
+  const trimmed = String(raw).trim();
+  if (trimmed === "") return undefined;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return n;
+}
+
+/**
+ * Combine the file thresholds with the admin-provided p95 overrides
+ * (already loaded into `config` by `resolveVectorLatencyConfig`) and the
+ * two new p50 override settings. Used by both the evaluator and tests.
+ */
+export async function resolveVectorLatencyThresholds(
+  history: BenchHistory,
+  config?: { singleP95Override: number | null; multiP95Override: number | null },
+): Promise<ResolvedVectorLatencyThresholds> {
+  const [singleP95Raw, multiP95Raw, singleP50Raw, multiP50Raw] = await Promise.all([
+    config ? Promise.resolve(null) : storage.getNotificationSetting("vector_latency_single_p95_override"),
+    config ? Promise.resolve(null) : storage.getNotificationSetting("vector_latency_multi_p95_override"),
+    storage.getNotificationSetting("vector_latency_single_p50_override"),
+    storage.getNotificationSetting("vector_latency_multi_p50_override"),
+  ]);
+  const singleP95 = config?.singleP95Override ?? parseOverride(singleP95Raw);
+  const multiP95 = config?.multiP95Override ?? parseOverride(multiP95Raw);
+  return {
+    singleP95Ms: singleP95 ?? history.thresholds.singleP95Ms,
+    multiP95Ms: multiP95 ?? history.thresholds.multiP95Ms,
+    singleP50Ms: parseOverride(singleP50Raw) ?? history.thresholds.singleP50Ms,
+    multiP50Ms: parseOverride(multiP50Raw) ?? history.thresholds.multiP50Ms,
+  };
 }
 
 async function loadHistory(path: string): Promise<BenchHistory | null> {
@@ -114,28 +180,36 @@ function pickLatestRun(history: BenchHistory): BenchRun | null {
   return sorted[sorted.length - 1];
 }
 
-function findBreaches(run: BenchRun, thresholds: BenchThresholds): BreachedSize[] {
+function findBreaches(
+  run: BenchRun,
+  thresholds: ResolvedVectorLatencyThresholds,
+): BreachedSize[] {
   const breaches: BreachedSize[] = [];
-  const single = Number(thresholds.singleP95Ms);
-  const multi = Number(thresholds.multiP95Ms);
+  const checks: Array<{ scope: "single" | "multi"; metric: "p50" | "p95"; threshold: number | undefined }> = [
+    { scope: "single", metric: "p95", threshold: thresholds.singleP95Ms },
+    { scope: "multi", metric: "p95", threshold: thresholds.multiP95Ms },
+    { scope: "single", metric: "p50", threshold: thresholds.singleP50Ms },
+    { scope: "multi", metric: "p50", threshold: thresholds.multiP50Ms },
+  ];
   for (const r of run.results ?? []) {
-    if (Number.isFinite(single) && single > 0 && r.single?.p95Ms > single) {
-      breaches.push({
+    for (const c of checks) {
+      const t = Number(c.threshold);
+      if (!Number.isFinite(t) || t <= 0) continue;
+      const stats = c.scope === "single" ? r.single : r.multi;
+      if (!stats) continue;
+      const value = c.metric === "p95" ? stats.p95Ms : stats.p50Ms;
+      if (!(value > t)) continue;
+      const breach: BreachedSize = {
         size: r.size,
-        scope: "single",
-        p50Ms: r.single.p50Ms,
-        p95Ms: r.single.p95Ms,
-        thresholdP95Ms: single,
-      });
-    }
-    if (Number.isFinite(multi) && multi > 0 && r.multi?.p95Ms > multi) {
-      breaches.push({
-        size: r.size,
-        scope: "multi",
-        p50Ms: r.multi.p50Ms,
-        p95Ms: r.multi.p95Ms,
-        thresholdP95Ms: multi,
-      });
+        scope: c.scope,
+        metric: c.metric,
+        valueMs: value,
+        thresholdMs: t,
+        p50Ms: stats.p50Ms,
+        p95Ms: stats.p95Ms,
+      };
+      if (c.metric === "p95") breach.thresholdP95Ms = t;
+      breaches.push(breach);
     }
   }
   return breaches;
@@ -168,8 +242,8 @@ function buildEmailBody(run: BenchRun, breaches: BreachedSize[], chartUrl: strin
     .map(
       (b) =>
         `<li><strong>size ${b.size.toLocaleString()} (${b.scope}-namespace)</strong>: ` +
-        `p50 ${fmt(b.p50Ms)} ms, p95 <strong>${fmt(b.p95Ms)} ms</strong> ` +
-        `(threshold ${fmt(b.thresholdP95Ms)} ms)</li>`,
+        `${b.metric} <strong>${fmt(b.valueMs)} ms</strong> ` +
+        `(threshold ${fmt(b.thresholdMs)} ms; p50 ${fmt(b.p50Ms)} ms, p95 ${fmt(b.p95Ms)} ms)</li>`,
     )
     .join("");
   const meta =
@@ -177,7 +251,7 @@ function buildEmailBody(run: BenchRun, breaches: BreachedSize[], chartUrl: strin
     (run.topK ? `, top-K=${run.topK}` : "") +
     (run.queries ? `, queries/size=${run.queries}` : "");
   return (
-    `The most recent vector benchmark run breached the configured p95 latency thresholds.` +
+    `The most recent vector benchmark run breached the configured latency thresholds.` +
     `<br/><br/>${meta}` +
     `<br/><br/><strong>Breached results:</strong><ul>${lines}</ul>` +
     `<a href="${chartUrl}">Open the latency chart</a> in the admin console (Intelligence → Vector Search Latency) to investigate.`
@@ -263,13 +337,8 @@ export async function evaluateVectorLatencyAlert(
   const latest = pickLatestRun(history);
   if (!latest) return { status: "no-history" };
 
-  const effectiveThresholds: BenchThresholds = {
-    ...history.thresholds,
-    singleP95Ms: config.singleP95Override ?? history.thresholds.singleP95Ms,
-    multiP95Ms: config.multiP95Override ?? history.thresholds.multiP95Ms,
-  };
-
-  const breaches = findBreaches(latest, effectiveThresholds);
+  const resolvedThresholds = await resolveVectorLatencyThresholds(history, config);
+  const breaches = findBreaches(latest, resolvedThresholds);
   if (breaches.length === 0) return { status: "no-breach" };
 
   const runId = latest.timestamp;
@@ -291,18 +360,22 @@ export async function evaluateVectorLatencyAlert(
 
   const event: NotificationEvent = {
     type: "VECTOR_LATENCY_BREACH",
-    message: `Vector search p95 latency breached the embedded thresholds in the latest benchmark run.`,
+    message: `Vector search latency breached the configured thresholds in the latest benchmark run.`,
     link: chartUrl,
     timestamp: new Date(),
     metadata: {
       runId,
       thresholds: history.thresholds,
+      resolvedThresholds,
       breaches: breaches.map((b) => ({
         size: b.size,
         scope: b.scope,
+        metric: b.metric,
+        valueMs: b.valueMs,
+        thresholdMs: b.thresholdMs,
         p50Ms: b.p50Ms,
         p95Ms: b.p95Ms,
-        thresholdP95Ms: b.thresholdP95Ms,
+        ...(b.thresholdP95Ms !== undefined ? { thresholdP95Ms: b.thresholdP95Ms } : {}),
       })),
     },
   };

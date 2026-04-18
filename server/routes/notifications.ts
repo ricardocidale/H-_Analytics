@@ -104,6 +104,8 @@ export function register(app: Express) {
         "vector_latency_single_p95_override",
         "vector_latency_multi_p95_override",
         "vector_latency_recipient_user_ids",
+        "vector_latency_single_p50_override",
+        "vector_latency_multi_p50_override",
       ]);
       const validation = z.record(z.string(), z.string().nullable()).safeParse(req.body);
       if (!validation.success) {
