@@ -698,8 +698,10 @@ export default function CompanyAssumptions() {
     const d1 = typeof merged.capitalRaise1Date === "string" ? new Date(merged.capitalRaise1Date as string).getTime() : NaN;
     const d2 = typeof merged.capitalRaise2Date === "string" ? new Date(merged.capitalRaise2Date as string).getTime() : NaN;
     let trancheGapMonths: number | null = null;
-    if (Number.isFinite(d1) && Number.isFinite(d2) && d2 > d1) {
-      trancheGapMonths = (d2 - d1) / (1000 * 60 * 60 * 24 * 30.44);
+    if (Number.isFinite(d1) && Number.isFinite(d2) && d1 !== d2) {
+      // Use absolute spacing so inverted dates (Tranche 2 before Tranche 1)
+      // still surface as an out-of-band finding, not silent "no signal".
+      trancheGapMonths = Math.abs(d2 - d1) / (1000 * 60 * 60 * 24 * 30.44);
     }
     return {
       runwayBufferMonths: null,
