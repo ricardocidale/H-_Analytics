@@ -150,6 +150,7 @@ export interface GlobalResponse {
   depreciationYears: number;
   daysPerMonth: number;
   lastAssumptionChangeAt: string | null;
+  savedTabs: string[];
   updatedAt: string;
 }
 

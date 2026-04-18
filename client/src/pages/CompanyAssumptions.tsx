@@ -1,8 +1,10 @@
 /**
  * CompanyAssumptions.tsx — Editor for management-company-level financial assumptions.
  *
- * Layout: 6 horizontal tabs sit beneath a sticky header. A single shared
- * `formData` + `handleSave` powers every tab — tabs are pure visual organization
+ * Layout: 6 horizontal tabs sit beneath a sticky header. Each tab renders its
+ * own bottom Save button wired to `handleSaveTab(tab)`, which persists only
+ * that tab's dirty fields and fires the deterministic Analyst watchdog. A
+ * single shared `formData` backs all tabs — tabs are pure visual organization
  * over the same form state. The active tab is mirrored to the URL via the
  * `?tab=` query param so deep links and refreshes preserve location.
  *
@@ -22,8 +24,7 @@
  * for any company-level terminal value) lives in Funding.
  *
  * Pinned outside tabs: PageHeader, IntelligenceStatusBar, FirstVisitBanner,
- * ResearchTheater overlay, SummaryFooter (always visible totals), and the
- * bottom Save button.
+ * ResearchTheater overlay, and SummaryFooter (always visible totals).
  *
  * Days Per Month is intentionally NOT here — it lives in
  * Admin → App Defaults → Market & Macro as the single source of truth for
@@ -49,7 +50,6 @@ import { IconAlertTriangle } from "@/components/icons";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { usePageVisit } from "@/hooks/usePageVisit";
 import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
-import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import type { GlobalResponse } from "@/lib/api";
 import { SaveButton } from "@/components/ui/save-button";
@@ -57,7 +57,7 @@ import { AnalystCheckDialog } from "@/components/intelligence/AnalystCheckDialog
 import type { WatchdogResult, WatchdogAction } from "../../../engine/watchdog/capitalRaiseEvaluator";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { DEFAULT_MODEL_START_DATE } from "@/lib/constants";
+import { DEFAULT_MODEL_START_DATE, DAYS_PER_MONTH } from "@/lib/constants";
 import { useCompanyResearchStream } from "@/components/company-research/useCompanyResearchStream";
 import { ResearchTheater } from "@/components/research/ResearchTheater";
 import type { ResearchJob } from "@/components/research/ResearchTheater";
@@ -140,7 +140,6 @@ function fmtNum(v: number): string {
 }
 
 export default function CompanyAssumptions() {
-  const [, setLocation] = useLocation();
   const { data: global, isLoading, isError } = useGlobalAssumptions();
   const { data: properties = [] } = useProperties();
   const { data: allFeeCategories = [] } = useAllFeeCategories();
@@ -456,21 +455,25 @@ export default function CompanyAssumptions() {
   const [watchdogResult, setWatchdogResult] = useState<WatchdogResult | null>(null);
   const [watchdogTab, setWatchdogTab] = useState<TabKey | null>(null);
 
-  // Tabs the user has saved at least once this session. Drives Analyst gating —
-  // non-Company tabs require Company to be saved first so the Analyst has the
-  // anchor entity context (name, tax, country) before researching dependents.
-  // Hydrated on first load: if the global record already has a
-  // `lastAssumptionChangeAt`, Company has been saved on a prior visit.
-  const [savedTabs, setSavedTabs] = useState<Set<TabKey>>(() => {
+  // Tabs the user has saved at least once. Drives Analyst gating — non-Company
+  // tabs require Company to be saved first so the Analyst has the anchor entity
+  // context (name, tax, country) before researching dependents. Hydrated from
+  // the persisted `global.savedTabs[]` jsonb so local state and server agree
+  // across sessions; re-hydrates whenever the server payload changes.
+  const hydrateSavedTabs = (raw: unknown): Set<TabKey> => {
     const seed = new Set<TabKey>();
-    if (global?.lastAssumptionChangeAt) seed.add("company");
-    return seed;
-  });
-  useEffect(() => {
-    if (global?.lastAssumptionChangeAt) {
-      setSavedTabs((prev) => (prev.has("company") ? prev : new Set(prev).add("company")));
+    if (!Array.isArray(raw)) return seed;
+    for (const k of raw) {
+      if ((TAB_KEYS as readonly string[]).includes(k)) seed.add(k as TabKey);
     }
-  }, [global?.lastAssumptionChangeAt]);
+    return seed;
+  };
+  const [savedTabs, setSavedTabs] = useState<Set<TabKey>>(() => hydrateSavedTabs(global?.savedTabs));
+  useEffect(() => {
+    setSavedTabs(hydrateSavedTabs(global?.savedTabs));
+    // Re-seed on every server refresh so a scenario load, watchdog rollback,
+    // or another user's save propagates into the local gating state.
+  }, [global?.savedTabs]);
 
   const TAB_LABELS: Record<TabKey, string> = {
     company: "Company",
@@ -701,7 +704,7 @@ export default function CompanyAssumptions() {
     if (Number.isFinite(d1) && Number.isFinite(d2) && d1 !== d2) {
       // Use absolute spacing so inverted dates (Tranche 2 before Tranche 1)
       // still surface as an out-of-band finding, not silent "no signal".
-      trancheGapMonths = Math.abs(d2 - d1) / (1000 * 60 * 60 * 24 * 30.44);
+      trancheGapMonths = Math.abs(d2 - d1) / (1000 * 60 * 60 * 24 * DAYS_PER_MONTH);
     }
     return {
       runwayBufferMonths: null,
@@ -854,44 +857,6 @@ export default function CompanyAssumptions() {
     }
   };
 
-  const handleSave = async () => {
-    try {
-      await updateMutation.mutateAsync(formData);
-      setIsDirty(false);
-      setDirtyFields(new Set());
-      clearGlobalDirty();
-
-      const propertyDefaultKeys: Array<keyof GlobalResponse> = [
-        "eventExpenseRate",
-        "otherExpenseRate",
-        "utilitiesVariableSplit",
-      ];
-      const touchedPropertyDefaults = propertyDefaultKeys.some(
-        (k) => dirtyFields.has(k),
-      );
-
-      if (touchedPropertyDefaults) {
-        toast({
-          title: "Property defaults saved",
-          description: `These will apply to new properties. ${properties.length} existing ${properties.length === 1 ? "property retains its" : "properties retain their"} current values.`,
-        });
-      } else {
-        toast({
-          title: "Company settings saved",
-          description: "Changes take effect immediately.",
-        });
-      }
-      setLocation("/company");
-    } catch (error: unknown) {
-      console.error("Failed to save company assumptions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save company assumptions.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const researchJobs: ResearchJob[] = isGenerating ? [
     { id: "company-context", label: "Analyzing company context", group: "Preparation", status: streamedContent.length > 0 ? "complete" : "generating" },
     { id: "icp-profile", label: "Processing ICP profile", group: "Preparation", status: streamedContent.length > 100 ? "complete" : streamedContent.length > 0 ? "generating" : "pending" },
@@ -1026,7 +991,7 @@ export default function CompanyAssumptions() {
                       isRunning={isGenerating}
                       disabled={!gating.enabled}
                       disabledReason={gating.reason}
-                      tooltip={`Run The Analyst on ${TAB_LABELS[activeTab]}`}
+                      tooltip={`Ask the Analyst about ${TAB_LABELS[activeTab]}`}
                       size="sm"
                       freshnessStatus={
                         computeFreshnessStatus({
@@ -1111,11 +1076,7 @@ export default function CompanyAssumptions() {
                 <div className="flex justify-end pt-4 border-t border-border/40">
                   {(() => {
                     const dirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
-                    const rawSaved = (global as unknown as { savedTabs?: unknown }).savedTabs;
-                    const persistedSaved = Array.isArray(rawSaved)
-                      ? (rawSaved as string[]).includes(tab)
-                      : false;
-                    const tabNeverSaved = !persistedSaved;
+                    const tabNeverSaved = !savedTabs.has(tab);
                     return (
                       <SaveButton
                         onClick={() => handleSaveTab(tab, { force: tabNeverSaved && !dirty })}
