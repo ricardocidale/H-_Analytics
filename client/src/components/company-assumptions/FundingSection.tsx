@@ -30,6 +30,10 @@ import { DEFAULT_CAPITAL_RAISE_VALUATION_CAP, DEFAULT_CAPITAL_RAISE_DISCOUNT_RAT
 import EditableValue from "./EditableValue";
 import type { FundingSectionProps } from "./types";
 
+// Both Capital Raise tranches share the same UI bounds so slider/stepper
+// behavior stays in sync by construction.
+const CAPITAL_RAISE_SLIDER = { min: 100_000, max: 1_500_000, step: 25_000 } as const;
+
 export default function FundingSection({ formData, onChange, global }: FundingSectionProps) {
   const fundingLabel = formData.fundingSourceLabel ?? global.fundingSourceLabel ?? "Funding Vehicle";
 
@@ -76,18 +80,14 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                     value={formData.capitalRaise1Amount ?? global.capitalRaise1Amount}
                     onChange={(v) => onChange("capitalRaise1Amount", v)}
                     format="dollar"
-                    min={100000}
-                    max={1500000}
-                    step={25000}
+                    {...CAPITAL_RAISE_SLIDER}
                   />
                 </span>
               </div>
               <Slider
                 value={[formData.capitalRaise1Amount ?? global.capitalRaise1Amount]}
                 onValueChange={([v]) => onChange("capitalRaise1Amount", v)}
-                min={100000}
-                max={1500000}
-                step={25000}
+                {...CAPITAL_RAISE_SLIDER}
               />
             </div>
             <div className="space-y-2">
@@ -112,18 +112,14 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
                     value={formData.capitalRaise2Amount ?? global.capitalRaise2Amount}
                     onChange={(v) => onChange("capitalRaise2Amount", v)}
                     format="dollar"
-                    min={100000}
-                    max={1500000}
-                    step={25000}
+                    {...CAPITAL_RAISE_SLIDER}
                   />
                 </span>
               </div>
               <Slider
                 value={[formData.capitalRaise2Amount ?? global.capitalRaise2Amount]}
                 onValueChange={([v]) => onChange("capitalRaise2Amount", v)}
-                min={100000}
-                max={1500000}
-                step={25000}
+                {...CAPITAL_RAISE_SLIDER}
               />
             </div>
             <div className="space-y-2">

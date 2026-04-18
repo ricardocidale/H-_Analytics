@@ -11,7 +11,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
-  IconPlus, IconSave, IconInfo, IconPercent, IconDollarSign, IconArrowRightLeft,
+  IconPlus, IconInfo, IconPercent, IconDollarSign, IconArrowRightLeft,
   IconPackage, IconTrending,
 } from "@/components/icons";
 import {
@@ -21,7 +21,6 @@ import {
   useDeleteServiceTemplate,
   useSyncServiceTemplates,
 } from "@/lib/api/services";
-import { useGlobalAssumptions, useUpdateGlobalAssumptions } from "@/lib/api";
 import type { ServiceTemplate } from "@shared/schema";
 import type { ManagementFeesSectionProps } from "./types";
 import { ServiceTemplateDialog, type FormState, emptyForm } from "./ServiceTemplateDialog";
@@ -39,7 +38,7 @@ function formFromTemplate(t: ServiceTemplate): FormState {
   };
 }
 
-export default function ManagementFeesSection({ properties, allFeeCategories, researchValues }: ManagementFeesSectionProps) {
+export default function ManagementFeesSection({ formData, onChange, global, properties, allFeeCategories, researchValues }: ManagementFeesSectionProps) {
   const { toast } = useToast();
 
   const { data: templates, isLoading: templatesLoading } = useServiceTemplates();
@@ -47,9 +46,6 @@ export default function ManagementFeesSection({ properties, allFeeCategories, re
   const updateMutation = useUpdateServiceTemplate();
   const deleteMutation = useDeleteServiceTemplate();
   const syncMutation = useSyncServiceTemplates();
-
-  const { data: globalAssumptions } = useGlobalAssumptions();
-  const updateGlobalMutation = useUpdateGlobalAssumptions();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -62,11 +58,11 @@ export default function ManagementFeesSection({ properties, allFeeCategories, re
   const [inlineRateValue, setInlineRateValue] = useState("");
   const [inlineMarkupValue, setInlineMarkupValue] = useState("");
 
-  const [incentivePct, setIncentivePct] = useState<string>("");
-  const [incentiveDirty, setIncentiveDirty] = useState(false);
-
-  const currentIncentive = globalAssumptions?.incentiveManagementFee ?? 0;
-  const displayIncentive = incentiveDirty ? incentivePct : (currentIncentive * 100).toFixed(1);
+  // Incentive fee flows through the shared parent formData → onChange path so
+  // the Revenue tab's per-tab Save + computeTabWarnings see edits. Stored as
+  // a 0–1 fraction in the DB; rendered as a 0–100 percent in the input.
+  const storedIncentive = formData.incentiveManagementFee ?? global.incentiveManagementFee ?? 0;
+  const displayIncentive = (storedIncentive * 100).toFixed(1);
 
   const toggleResearch = (id: number) => {
     setExpandedResearch(prev => {
@@ -189,18 +185,6 @@ export default function ManagementFeesSection({ properties, allFeeCategories, re
         onSuccess: () => toast({ title: `${t.name} ${t.isActive ? "deactivated" : "activated"}` }),
         onError: (e: Error) => toast({ title: "Toggle failed", description: e.message, variant: "destructive" }),
       }
-    );
-  };
-
-  const handleSaveIncentive = () => {
-    const pct = parseFloat(incentivePct);
-    if (isNaN(pct) || pct < 0 || pct > 100) {
-      toast({ title: "Incentive fee must be between 0% and 100%", variant: "destructive" });
-      return;
-    }
-    updateGlobalMutation.mutate(
-      { incentiveManagementFee: pct / 100 },
-      { onSuccess: () => { setIncentiveDirty(false); toast({ title: "Saved", description: "Incentive management fee saved." }); } }
     );
   };
 
@@ -365,36 +349,32 @@ export default function ManagementFeesSection({ properties, allFeeCategories, re
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-end gap-4 max-w-md">
-            <div className="space-y-2 flex-1">
-              <ResearchContextFieldLabel
-                label={<><IconPercent className="w-3 h-3 inline" /> Default Incentive Fee</>}
-                badgeProps={{ value: researchValues.incentiveManagementFee?.display, sourceType: "industry", sourceName: "HVS 2024 Fee Survey", "data-testid": "badge-incentive-fee" }}
-                onApplyValue={() => {
-                  if (researchValues.incentiveManagementFee) {
-                    setIncentivePct(String(researchValues.incentiveManagementFee.mid));
-                    setIncentiveDirty(true);
-                  }
+          <div className="max-w-md space-y-2">
+            <ResearchContextFieldLabel
+              label={<><IconPercent className="w-3 h-3 inline" /> Default Incentive Fee</>}
+              badgeProps={{ value: researchValues.incentiveManagementFee?.display, sourceType: "industry", sourceName: "HVS 2024 Fee Survey", "data-testid": "badge-incentive-fee" }}
+              onApplyValue={() => {
+                if (researchValues.incentiveManagementFee) {
+                  onChange("incentiveManagementFee", researchValues.incentiveManagementFee.mid / 100);
+                }
+              }}
+              guidanceContext={gc("incentiveManagementFee", "Incentive Management Fee")}
+              className="label-text text-foreground"
+            />
+            <div className="relative">
+              <Input
+                type="number" step="0.1" min="0" max="100"
+                value={displayIncentive}
+                onChange={(e) => {
+                  const pct = parseFloat(e.target.value);
+                  if (Number.isFinite(pct)) onChange("incentiveManagementFee", pct / 100);
                 }}
-                guidanceContext={gc("incentiveManagementFee", "Incentive Management Fee")}
-                className="label-text text-foreground"
+                placeholder="12" className="bg-card pr-8"
+                data-testid="input-incentive-management-fee"
               />
-              <div className="relative">
-                <Input
-                  type="number" step="0.1" min="0" max="100"
-                  value={displayIncentive}
-                  onChange={(e) => { setIncentivePct(e.target.value); setIncentiveDirty(true); }}
-                  placeholder="12" className="bg-card pr-8"
-                  data-testid="input-incentive-management-fee"
-                />
-                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground text-sm">%</div>
-              </div>
-              <p className="text-[10px] text-muted-foreground italic">e.g. 12 for 12% of GOP. Industry range: 10–20%.</p>
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground text-sm">%</div>
             </div>
-            <Button onClick={handleSaveIncentive} disabled={!incentiveDirty || updateGlobalMutation.isPending} data-testid="button-save-incentive">
-              {updateGlobalMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <IconSave className="w-4 h-4 mr-1" />}
-              Save
-            </Button>
+            <p className="text-[10px] text-muted-foreground italic">e.g. 12 for 12% of GOP. Industry range: 10–20%. Saved with the Revenue Model tab.</p>
           </div>
         </CardContent>
       </Card>
