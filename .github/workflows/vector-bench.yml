@@ -36,6 +36,9 @@ on:
       - ".github/workflows/vector-bench.yml"
       - "migrations/0012_pgvector_store.sql"
 
+permissions:
+  contents: write
+
 jobs:
   bench:
     runs-on: ubuntu-latest
@@ -110,4 +113,26 @@ jobs:
             artifacts/vector-bench.json
             artifacts/vector-bench.log
             docs/vector-bench-results.md
+            docs/vector-bench-history.json
           retention-days: 90
+
+      # Persist the markdown log and JSON history back to the repo so the
+      # admin "Vector latency" chart picks up new runs without needing a
+      # manual backfill. Only runs on schedule / manual dispatch — push-
+      # triggered runs skip this to avoid a commit loop on `main`.
+      - name: Commit updated benchmark history
+        # Always commit on schedule / manual dispatch — even when the bench
+        # step exits non-zero due to a threshold regression, the run itself
+        # completed and its history entry is still meaningful for the chart.
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/vector-bench-results.md docs/vector-bench-history.json
+          if git diff --cached --quiet; then
+            echo "No benchmark history changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(vector-bench): record run $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
+          git push origin HEAD:${GITHUB_REF#refs/heads/}

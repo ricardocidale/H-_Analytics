@@ -540,6 +540,7 @@ export interface VectorBenchHistoryRun {
   queries: number;
   topK: number;
   sizes: number[];
+  source: "vector-bench" | "backfill";
   results: Array<{
     size: number;
     totalRowsAtRun: number;
@@ -595,6 +596,7 @@ async function recordHistory(
     queries: args.queries,
     topK: args.topK,
     sizes: args.sizes,
+    source: "vector-bench",
     results: rows.map((r) => ({
       size: r.size,
       totalRowsAtRun: r.totalRowsAtRun,
@@ -602,6 +604,12 @@ async function recordHistory(
       multi: r.multi,
     })),
   });
+
+  // Keep runs sorted oldest -> newest so the chart's time-series renders
+  // consistently regardless of when older entries (e.g. backfill) are merged in.
+  history.runs.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
 
   if (history.runs.length > HISTORY_MAX_RUNS) {
     history.runs = history.runs.slice(-HISTORY_MAX_RUNS);
