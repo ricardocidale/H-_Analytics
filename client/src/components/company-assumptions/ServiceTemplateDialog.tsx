@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconSave } from "@/components/icons";
+import { DEFAULT_SERVICE_MARKUP } from "@shared/constants";
+
+const DEFAULT_SERVICE_MARKUP_PCT = (DEFAULT_SERVICE_MARKUP * 100).toFixed(0);
 
 export interface FormState {
   name: string;
@@ -19,9 +22,10 @@ export interface FormState {
 
 export const emptyForm: FormState = {
   name: "",
+  // UI prompt — not a canonical default; user fills in
   defaultRate: "2",
   serviceModel: "centralized",
-  serviceMarkup: "20",
+  serviceMarkup: DEFAULT_SERVICE_MARKUP_PCT,
   isActive: true,
   sortOrder: "0",
 };
