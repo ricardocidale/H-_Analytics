@@ -166,6 +166,41 @@ describe("evaluateVectorLatencyAlert", () => {
     expect(result.breaches?.some((b) => b.scope === "multi" && b.p95Ms === 900)).toBe(true);
   });
 
+  it("records failed send and still returns ok when one admin email throws", async () => {
+    const { sendNotificationEmail } = await import("../../server/integrations/resend");
+    vi.mocked(sendNotificationEmail).mockImplementationOnce(async () => {
+      throw new Error("resend 503");
+    });
+
+    const breaching = JSON.parse(JSON.stringify(baseHistory));
+    breaching.runs[0].results[0].single.p95Ms = 80;
+    const path = await writeHistory(breaching);
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.recipients).toBe(2);
+    expect(result.sent).toBe(1);
+    expect(result.failed).toBe(1);
+    const statuses = createdLogs.map((l) => l.status);
+    expect(statuses).toContain("failed");
+    expect(statuses).toContain("sent");
+    const failedLog = createdLogs.find((l) => l.status === "failed");
+    expect(failedLog?.errorMessage).toContain("resend 503");
+  });
+
+  it("picks the latest run when history has multiple out-of-order runs", async () => {
+    const multi = JSON.parse(JSON.stringify(baseHistory));
+    const olderBreaching = JSON.parse(JSON.stringify(multi.runs[0]));
+    olderBreaching.timestamp = "2026-04-15T00:00:00.000Z";
+    olderBreaching.results[0].single.p95Ms = 999;
+    multi.runs = [multi.runs[0], olderBreaching]; // newest first; older breaches but is older
+    const path = await writeHistory(multi);
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("no-breach");
+    expect(sentEmails).toHaveLength(0);
+  });
+
   it("returns no-admins when no admin users exist", async () => {
     users = [{ id: 1, email: "user@example.com", role: "user" }];
     const breaching = JSON.parse(JSON.stringify(baseHistory));
