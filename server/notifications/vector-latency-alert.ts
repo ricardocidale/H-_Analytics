@@ -193,17 +193,68 @@ export interface VectorLatencyAlertResult {
   failed?: number;
 }
 
+/**
+ * Settings keys this evaluator honors (all stored in `notification_settings`):
+ *  - `vector_latency_alerts_disabled` ("true" disables the alert entirely)
+ *  - `vector_latency_single_p95_override` (numeric string; replaces file threshold)
+ *  - `vector_latency_multi_p95_override`  (numeric string; replaces file threshold)
+ *  - `vector_latency_recipient_user_ids`  (JSON array of admin user ids; when set,
+ *     restricts recipients to that subset of admins. Empty/null => all admins.)
+ */
+function parsePositiveNumber(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+function parseRecipientUserIds(value: string | null | undefined): number[] | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return null;
+    const ids = parsed
+      .map((v) => Number(v))
+      .filter((n) => Number.isFinite(n) && Number.isInteger(n) && n > 0);
+    return ids.length > 0 ? ids : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveVectorLatencyConfig(): Promise<{
+  alertsEnabled: boolean;
+  resendEnabled: boolean;
+  singleP95Override: number | null;
+  multiP95Override: number | null;
+  recipientUserIds: number[] | null;
+}> {
+  const [disabled, resendEnabled, single, multi, recipients] = await Promise.all([
+    storage.getNotificationSetting("vector_latency_alerts_disabled"),
+    storage.getNotificationSetting("resend_enabled"),
+    storage.getNotificationSetting("vector_latency_single_p95_override"),
+    storage.getNotificationSetting("vector_latency_multi_p95_override"),
+    storage.getNotificationSetting("vector_latency_recipient_user_ids"),
+  ]);
+  return {
+    alertsEnabled: disabled !== "true",
+    resendEnabled: resendEnabled === "true",
+    singleP95Override: parsePositiveNumber(single),
+    multiP95Override: parsePositiveNumber(multi),
+    recipientUserIds: parseRecipientUserIds(recipients),
+  };
+}
+
 export async function evaluateVectorLatencyAlert(
   options: { historyPath?: string } = {},
 ): Promise<VectorLatencyAlertResult> {
-  const disabled = await storage.getNotificationSetting("vector_latency_alerts_disabled");
-  if (disabled === "true") return { status: "disabled" };
+  const config = await resolveVectorLatencyConfig();
+  if (!config.alertsEnabled) return { status: "disabled" };
 
   // Honor the same global gate as processNotificationEvent: when Resend
   // delivery is turned off in admin settings, skip rather than queue
   // failed-send rows.
-  const resendEnabled = await storage.getNotificationSetting("resend_enabled");
-  if (resendEnabled !== "true") return { status: "disabled" };
+  if (!config.resendEnabled) return { status: "disabled" };
 
   const path = options.historyPath ?? VECTOR_BENCH_HISTORY_PATH;
   const history = await loadHistory(path);
@@ -212,7 +263,13 @@ export async function evaluateVectorLatencyAlert(
   const latest = pickLatestRun(history);
   if (!latest) return { status: "no-history" };
 
-  const breaches = findBreaches(latest, history.thresholds);
+  const effectiveThresholds: BenchThresholds = {
+    ...history.thresholds,
+    singleP95Ms: config.singleP95Override ?? history.thresholds.singleP95Ms,
+    multiP95Ms: config.multiP95Override ?? history.thresholds.multiP95Ms,
+  };
+
+  const breaches = findBreaches(latest, effectiveThresholds);
   if (breaches.length === 0) return { status: "no-breach" };
 
   const runId = latest.timestamp;
@@ -221,7 +278,11 @@ export async function evaluateVectorLatencyAlert(
   }
 
   const allUsers = await storage.getAllUsers();
-  const admins = allUsers.filter((u) => u.email && isAdminRole(u.role));
+  let admins = allUsers.filter((u) => u.email && isAdminRole(u.role));
+  if (config.recipientUserIds) {
+    const allowed = new Set(config.recipientUserIds);
+    admins = admins.filter((u) => allowed.has(u.id));
+  }
   if (admins.length === 0) return { status: "no-admins", runId, breaches };
 
   const chartUrl = `${getAppUrl()}${VECTOR_LATENCY_CHART_PATH}`;

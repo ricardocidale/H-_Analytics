@@ -9,6 +9,9 @@ const recentLogs: Array<{ metadata: Record<string, unknown> | null; status: stri
 let users: Array<{ id: number; email: string; role: string }> = [];
 let disabledSetting: string | null = null;
 let resendEnabledSetting: string | null = "true";
+let singleP95Override: string | null = null;
+let multiP95Override: string | null = null;
+let recipientUserIdsSetting: string | null = null;
 
 vi.mock("../../server/integrations/resend", () => ({
   sendNotificationEmail: vi.fn(async (params: { to: string; subject: string }) => {
@@ -21,6 +24,9 @@ vi.mock("../../server/storage", () => ({
     getNotificationSetting: vi.fn(async (key: string) => {
       if (key === "vector_latency_alerts_disabled") return disabledSetting;
       if (key === "resend_enabled") return resendEnabledSetting;
+      if (key === "vector_latency_single_p95_override") return singleP95Override;
+      if (key === "vector_latency_multi_p95_override") return multiP95Override;
+      if (key === "vector_latency_recipient_user_ids") return recipientUserIdsSetting;
       return null;
     }),
     getAllUsers: vi.fn(async () => users),
@@ -99,6 +105,9 @@ describe("evaluateVectorLatencyAlert", () => {
     ];
     disabledSetting = null;
     resendEnabledSetting = "true";
+    singleP95Override = null;
+    multiP95Override = null;
+    recipientUserIdsSetting = null;
   });
 
   it("returns disabled when resend_enabled is not true", async () => {
@@ -164,6 +173,86 @@ describe("evaluateVectorLatencyAlert", () => {
     const result = await evaluateVectorLatencyAlert({ historyPath: path });
     expect(result.status).toBe("ok");
     expect(result.breaches?.some((b) => b.scope === "multi" && b.p95Ms === 900)).toBe(true);
+  });
+
+  it("uses single p95 override to trigger a breach where the file threshold would not", async () => {
+    // File threshold is 50ms; the run measured 30ms so without override there is no breach.
+    const passing = JSON.parse(JSON.stringify(baseHistory));
+    passing.runs[0].results[0].single.p95Ms = 30;
+    const path = await writeHistory(passing);
+
+    // Sanity check: no breach without override.
+    expect((await evaluateVectorLatencyAlert({ historyPath: path })).status).toBe("no-breach");
+
+    // With a stricter override (20ms), the same run should breach.
+    singleP95Override = "20";
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.breaches?.[0]).toMatchObject({ scope: "single", p95Ms: 30, thresholdP95Ms: 20 });
+  });
+
+  it("uses multi p95 override to relax breach detection when set higher", async () => {
+    // File multi threshold is 600ms; configure run to breach at 700ms.
+    const breaching = JSON.parse(JSON.stringify(baseHistory));
+    breaching.runs[0].results[0].multi.p95Ms = 700;
+    const path = await writeHistory(breaching);
+
+    // Without override -> breach.
+    expect((await evaluateVectorLatencyAlert({ historyPath: path })).status).toBe("ok");
+    sentEmails.length = 0;
+    recentLogs.push({ metadata: { runId: "2026-04-17T00:00:00.000Z" }, status: "sent" });
+
+    // Reset dedupe and raise the override so the same run is no longer a breach.
+    recentLogs.length = 0;
+    multiP95Override = "1000";
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("no-breach");
+  });
+
+  it("ignores invalid override values and falls back to file thresholds", async () => {
+    const breaching = JSON.parse(JSON.stringify(baseHistory));
+    breaching.runs[0].results[0].single.p95Ms = 80; // > 50ms file threshold
+    const path = await writeHistory(breaching);
+
+    singleP95Override = "not-a-number";
+    multiP95Override = "-5";
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.breaches?.[0]).toMatchObject({ scope: "single", thresholdP95Ms: 50 });
+  });
+
+  it("restricts recipients to the configured admin user ids", async () => {
+    recipientUserIdsSetting = JSON.stringify([2]); // only the super admin
+    const breaching = JSON.parse(JSON.stringify(baseHistory));
+    breaching.runs[0].results[0].single.p95Ms = 80;
+    const path = await writeHistory(breaching);
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.recipients).toBe(1);
+    expect(sentEmails.map((e) => e.to)).toEqual(["super@example.com"]);
+  });
+
+  it("never sends to non-admins even if their id is configured", async () => {
+    recipientUserIdsSetting = JSON.stringify([3]); // user@example.com is not an admin
+    const breaching = JSON.parse(JSON.stringify(baseHistory));
+    breaching.runs[0].results[0].single.p95Ms = 80;
+    const path = await writeHistory(breaching);
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("no-admins");
+    expect(sentEmails).toHaveLength(0);
+  });
+
+  it("falls back to all admins when the recipient setting is malformed", async () => {
+    recipientUserIdsSetting = "not-json";
+    const breaching = JSON.parse(JSON.stringify(baseHistory));
+    breaching.runs[0].results[0].single.p95Ms = 80;
+    const path = await writeHistory(breaching);
+
+    const result = await evaluateVectorLatencyAlert({ historyPath: path });
+    expect(result.status).toBe("ok");
+    expect(result.recipients).toBe(2);
   });
 
   it("records failed send and still returns ok when one admin email throws", async () => {

@@ -12,7 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Bell, MessageSquare, Mail, AlertTriangle, CheckCircle, XCircle, Clock } from "@/components/icons/themed-icons";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { AlertRule, Property } from "@shared/schema";
+
+const ADMIN_ROLES = new Set(["admin", "super_admin"]);
+type AdminUser = { id: number; email: string; role: string; firstName?: string | null; lastName?: string | null };
 
 const METRIC_OPTIONS = [
   { value: "dscr", label: "DSCR" },
@@ -76,9 +80,73 @@ export default function NotificationsTab() {
 
   const [resendEnabled, setResendEnabled] = useState(false);
 
+  // Vector latency alert local form state (synced from settings)
+  const [vectorAlertsEnabled, setVectorAlertsEnabled] = useState(true);
+  const [vectorSingleP95, setVectorSingleP95] = useState<string>("");
+  const [vectorMultiP95, setVectorMultiP95] = useState<string>("");
+  const [vectorRecipientIds, setVectorRecipientIds] = useState<number[]>([]);
+
+  const { data: adminUsers = [] } = useQuery<AdminUser[]>({
+    queryKey: ["/api/admin/users"],
+    select: (rows) => (rows ?? []).filter((u) => u.email && ADMIN_ROLES.has(u.role)),
+  });
+
   useEffect(() => {
     setResendEnabled(settings.resend_enabled === "true");
+    setVectorAlertsEnabled(settings.vector_latency_alerts_disabled !== "true");
+    setVectorSingleP95(settings.vector_latency_single_p95_override ?? "");
+    setVectorMultiP95(settings.vector_latency_multi_p95_override ?? "");
+    try {
+      const raw = settings.vector_latency_recipient_user_ids;
+      const parsed = raw ? JSON.parse(raw) : [];
+      setVectorRecipientIds(Array.isArray(parsed) ? parsed.map((n: unknown) => Number(n)).filter((n) => Number.isFinite(n)) : []);
+    } catch {
+      setVectorRecipientIds([]);
+    }
   }, [settings]);
+
+  const testVectorMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/notifications/test-vector-latency", {});
+      return res.json();
+    },
+    onSuccess: (data: { sent: number; failed: number; recipients: number; errors?: string[] }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/logs"] });
+      if (data.failed > 0) {
+        toast({
+          title: `Sent ${data.sent}/${data.recipients}, ${data.failed} failed`,
+          description: data.errors?.[0],
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: `Test email sent to ${data.sent} recipient${data.sent === 1 ? "" : "s"}` });
+      }
+    },
+    onError: async (err: any) => {
+      const msg = err?.message || "Failed to send test email";
+      toast({ title: "Test email failed", description: msg, variant: "destructive" });
+    },
+  });
+
+  const saveVectorSettings = () => {
+    const updates: Record<string, string | null> = {
+      vector_latency_alerts_disabled: vectorAlertsEnabled ? "false" : "true",
+      vector_latency_single_p95_override: vectorSingleP95.trim() === "" ? null : vectorSingleP95.trim(),
+      vector_latency_multi_p95_override: vectorMultiP95.trim() === "" ? null : vectorMultiP95.trim(),
+      vector_latency_recipient_user_ids:
+        vectorRecipientIds.length === 0 ? null : JSON.stringify(vectorRecipientIds),
+    };
+    saveSettingsMutation.mutate(updates);
+  };
+
+  const toggleVectorRecipient = (userId: number, checked: boolean) => {
+    setVectorRecipientIds((prev) => {
+      const set = new Set(prev);
+      if (checked) set.add(userId);
+      else set.delete(userId);
+      return Array.from(set).sort((a, b) => a - b);
+    });
+  };
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (updates: Record<string, string | null>) => {
@@ -134,6 +202,9 @@ export default function NotificationsTab() {
           </TabsTrigger>
           <TabsTrigger value="rules" data-testid="tab-rules">
             <AlertTriangle className="w-4 h-4 mr-1" /> Alert Rules
+          </TabsTrigger>
+          <TabsTrigger value="vector-latency" data-testid="tab-vector-latency">
+            <AlertTriangle className="w-4 h-4 mr-1" /> Vector Latency
           </TabsTrigger>
           <TabsTrigger value="logs" data-testid="tab-logs">
             <Bell className="w-4 h-4 mr-1" /> Delivery Log
@@ -243,6 +314,118 @@ export default function NotificationsTab() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="vector-latency" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" /> Vector Search Latency Alerts
+              </CardTitle>
+              <CardDescription>
+                Email admins when the latest vector benchmark run breaches the p95 latency thresholds.
+                Leave a threshold blank to use the value embedded in the bench history file.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-center gap-3">
+                <Switch
+                  data-testid="switch-vector-alerts-enabled"
+                  checked={vectorAlertsEnabled}
+                  onCheckedChange={setVectorAlertsEnabled}
+                />
+                <Label>Alert enabled</Label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="input-vector-single-p95">Single-namespace p95 override (ms)</Label>
+                  <Input
+                    id="input-vector-single-p95"
+                    data-testid="input-vector-single-p95"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 50 (blank = use file)"
+                    value={vectorSingleP95}
+                    onChange={(e) => setVectorSingleP95(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="input-vector-multi-p95">Multi-namespace p95 override (ms)</Label>
+                  <Input
+                    id="input-vector-multi-p95"
+                    data-testid="input-vector-multi-p95"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 600 (blank = use file)"
+                    value={vectorMultiP95}
+                    onChange={(e) => setVectorMultiP95(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Recipients</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Pick which admins receive alerts. Leave all unchecked to email every admin (default).
+                </p>
+                {adminUsers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground" data-testid="text-no-admins">
+                    No admin users found.
+                  </p>
+                ) : (
+                  <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
+                    {adminUsers.map((u) => {
+                      const checked = vectorRecipientIds.includes(u.id);
+                      const displayName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email;
+                      return (
+                        <label
+                          key={u.id}
+                          className="flex items-center gap-3 cursor-pointer text-sm"
+                          data-testid={`row-vector-recipient-${u.id}`}
+                        >
+                          <Checkbox
+                            data-testid={`checkbox-vector-recipient-${u.id}`}
+                            checked={checked}
+                            onCheckedChange={(v) => toggleVectorRecipient(u.id, v === true)}
+                          />
+                          <span className="font-medium">{displayName}</span>
+                          <span className="text-muted-foreground">{u.email}</span>
+                          <Badge variant="outline" className="ml-auto text-xs">{u.role}</Badge>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  data-testid="button-save-vector-settings"
+                  onClick={saveVectorSettings}
+                  disabled={saveSettingsMutation.isPending}
+                >
+                  Save settings
+                </Button>
+                <Button
+                  variant="outline"
+                  data-testid="button-test-vector-email"
+                  onClick={() => testVectorMutation.mutate()}
+                  disabled={testVectorMutation.isPending || !resendEnabled}
+                  title={!resendEnabled ? "Enable Resend on the Channels tab first" : undefined}
+                >
+                  Send test email
+                </Button>
+              </div>
+              {!resendEnabled && (
+                <p className="text-xs text-muted-foreground" data-testid="text-resend-disabled-hint">
+                  Resend email delivery is currently disabled. Enable it on the Channels tab to send alerts.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="logs" className="mt-4">
