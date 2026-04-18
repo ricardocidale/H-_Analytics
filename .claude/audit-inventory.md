@@ -171,16 +171,15 @@ Known drift sites (subset):
 | `client/src/components/admin/model-defaults/CompanyTab.tsx` | S7 | 45 |
 | `client/src/pages/checker-manual/sections/Section04GlobalAssumptions.tsx` | S5 | 30, 58 |
 
-### D-2: Citation drift (tasks #4, #8)
-`citations.ts` centralizes UI badge strings, but the same citations appear in server-side surfaces:
-- `server/seeds/hospitality-benchmarks.ts:134, 141` — "HVS 2024"
-- `server/ai/kb/19-financial-formulas.md:32, 117, 118` — "HVS 2024" in Rebecca's KB (RAG)
-- `server/ai/ambient/fetchers.ts:93, 94` — "HVS 2024"
-- `server/ai/research-prompt-builders.ts:83` — "CBRE Cap Rate Survey"
-- `server/ai/research-tool-prompts.ts:21` — "CBRE Cap Rate Survey" + others
-- `server/data/researchSeeds.ts:343, 364` — CBRE, NAR
+### D-2: Citation drift (tasks #4, #8) — ✅ closed for exact-match sites (Phase 5A, `847e1f3a` + `0c3ebc1b`)
+`citations.ts` promoted to `shared/citations.ts`; 9 client imports rewired to `@shared/citations`. Server-side exact-match sites adopted in `server/data/researchSeeds.ts` (capRate, costIT, saleCommission).
 
-Conclusion: `citations.ts` was a client-only fix. The server-side citation strings still live as literals. Phase 2 should decide: extend `citations.ts` to `shared/`, or accept that server research-seeded citations live where the research layer reads them.
+Remaining open sub-items (deferred to later handoffs):
+- `server/seeds/hospitality-benchmarks.ts:134, 141` — short "HVS 2024" label, no exact CITATIONS match (Phase 5A-4 — needs product decision: add `CITATIONS.hvsShort` or upgrade to `hvsFeeSurvey`)
+- `server/ai/ambient/fetchers.ts:93, 94` — same short "HVS 2024" label (Phase 5A-4)
+- `server/ai/kb/19-financial-formulas.md:32, 117, 118` — KB markdown, requires Pinecone re-indexing (Phase 5A-5 / 5B)
+- `server/ai/research-prompt-builders.ts:83` — `RESEARCH_SOURCES` is its own registry (superset of CITATIONS, includes URLs/categories), intentionally separate
+- `server/ai/research-tool-prompts.ts:21` — citations are prose inside LLM prompts, semantically distinct, leave as-is
 
 ### D-3: `button-save-incentive` orphan check (task #1)
 No test references found. Safe.
