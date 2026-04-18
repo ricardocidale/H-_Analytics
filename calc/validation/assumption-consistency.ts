@@ -60,6 +60,20 @@ export interface AssumptionIssue {
   expected_range: string;
 }
 
+/**
+ * Industry-vertical exit-revenue-multiple range, sourced from the admin-managed
+ * `exit_multiples` table (shared/schema/intelligence.ts). When supplied, the
+ * watchdog flags any user-entered exit revenue multiple that falls outside
+ * [valueLow, valueHigh] for the matching `industry_vertical`.
+ */
+export interface ExitMultipleRange {
+  dimensionKey: string;
+  label?: string;
+  valueLow?: number | null;
+  valueMid?: number | null;
+  valueHigh?: number | null;
+}
+
 export interface AssumptionConsistencyInput {
   global_assumptions: {
     model_start_date: string;
@@ -74,6 +88,8 @@ export interface AssumptionConsistencyInput {
     capital_raise_2_date?: string;
     capital_raise_2_amount?: number;
     exit_cap_rate?: number;
+    industry_vertical?: string;
+    exit_revenue_multiple?: number;
     debt_assumptions?: {
       interest_rate?: number;
       amortization_years?: number;
@@ -94,8 +110,12 @@ export interface AssumptionConsistencyInput {
     will_refinance?: string;
     refinance_date?: string;
     exit_cap_rate?: number;
+    industry_vertical?: string;
+    exit_revenue_multiple?: number;
     land_value_percent?: number;
   }>;
+  /** Reference ranges from the exit_multiples table, keyed by industry vertical. */
+  exit_multiples?: ExitMultipleRange[];
 }
 
 export interface AssumptionConsistencyOutput {
@@ -171,6 +191,18 @@ export function checkAssumptionConsistency(input: AssumptionConsistencyInput): A
       });
     }
   }
+
+  // Exit revenue multiple check (global) — uses admin-managed exit_multiples
+  // ranges keyed by industry vertical. A user-entered multiple outside the
+  // [valueLow, valueHigh] band raises a warning suggesting the recommended
+  // mid value for that vertical.
+  checkExitRevenueMultiple({
+    issues,
+    entity: "global",
+    industryVertical: g.industry_vertical,
+    multiple: g.exit_revenue_multiple,
+    ranges: input.exit_multiples,
+  });
 
   // Capital raise funding check
   if (g.company_ops_start_date && g.model_start_date) {
@@ -259,6 +291,16 @@ export function checkAssumptionConsistency(input: AssumptionConsistencyInput): A
           expected_range: "> 0",
         });
       }
+
+      // Per-property exit revenue multiple — falls back to the global vertical
+      // when the property does not declare its own.
+      checkExitRevenueMultiple({
+        issues,
+        entity,
+        industryVertical: prop.industry_vertical ?? g.industry_vertical,
+        multiple: prop.exit_revenue_multiple,
+        ranges: input.exit_multiples,
+      });
     }
   }
 
@@ -275,4 +317,47 @@ export function checkAssumptionConsistency(input: AssumptionConsistencyInput): A
     issues,
     summary_by_severity,
   };
+}
+
+/**
+ * Emit a warning when `multiple` falls outside the [valueLow, valueHigh] band
+ * for the matching `industryVertical`. Silently no-ops when any required input
+ * is missing (no vertical, no multiple, or no matching range row), so this is
+ * additive guidance — it never blocks the engine.
+ */
+function checkExitRevenueMultiple(args: {
+  issues: AssumptionIssue[];
+  entity: string;
+  industryVertical?: string;
+  multiple?: number;
+  ranges?: ExitMultipleRange[];
+}): void {
+  const { issues, entity, industryVertical, multiple, ranges } = args;
+  if (multiple === undefined || multiple === null) return;
+  if (!industryVertical || !ranges || ranges.length === 0) return;
+
+  const verticalKey = industryVertical.toLowerCase().trim();
+  const range = ranges.find(r => r.dimensionKey?.toLowerCase().trim() === verticalKey);
+  if (!range) return;
+
+  const low = range.valueLow ?? undefined;
+  const mid = range.valueMid ?? undefined;
+  const high = range.valueHigh ?? undefined;
+  if (low === undefined || high === undefined) return;
+
+  if (multiple < low || multiple > high) {
+    const label = range.label ?? range.dimensionKey;
+    const recommendation = mid !== undefined
+      ? ` Recommended midpoint for ${label}: ${mid}x revenue.`
+      : "";
+    issues.push({
+      severity: "warning",
+      category: "out_of_range",
+      entity,
+      field: "exit_revenue_multiple",
+      message: `Exit revenue multiple ${multiple}x is outside the typical ${label} range (${low}x – ${high}x).${recommendation}`,
+      current_value: String(multiple),
+      expected_range: `${low}x – ${high}x`,
+    });
+  }
 }

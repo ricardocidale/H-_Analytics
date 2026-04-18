@@ -152,6 +152,8 @@ export const assumptionConsistencySchema = z.object({
     capital_raise_2_date: z.string().optional(),
     capital_raise_2_amount: z.number().optional(),
     exit_cap_rate: z.number().optional(),
+    industry_vertical: z.string().optional(),
+    exit_revenue_multiple: z.number().optional(),
     debt_assumptions: z.object({
       interest_rate: z.number().optional(),
       amortization_years: z.number().int().optional(),
@@ -172,7 +174,16 @@ export const assumptionConsistencySchema = z.object({
     will_refinance: z.string().optional(),
     refinance_date: z.string().optional(),
     exit_cap_rate: z.number().optional(),
+    industry_vertical: z.string().optional(),
+    exit_revenue_multiple: z.number().optional(),
     land_value_percent: z.number().optional(),
+  })).optional(),
+  exit_multiples: z.array(z.object({
+    dimensionKey: z.string(),
+    label: z.string().optional(),
+    valueLow: z.number().nullable().optional(),
+    valueMid: z.number().nullable().optional(),
+    valueHigh: z.number().nullable().optional(),
   })).optional(),
 });
 

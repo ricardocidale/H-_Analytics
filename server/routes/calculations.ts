@@ -271,7 +271,28 @@ export function register(app: Express) {
     try {
       const validation = calcSchemas.assumptionConsistencySchema.safeParse(req.body);
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
-      const result = checkAssumptionConsistency(validation.data);
+      // Inject admin-managed exit-multiple ranges from the analyst
+      // intelligence store unless the caller already supplied them
+      // (tests/dispatch may pass them inline).
+      let exitMultiples = validation.data.exit_multiples;
+      // Treat an empty array the same as "not provided" so callers cannot
+      // accidentally bypass the watchdog by sending exit_multiples: [].
+      if (!exitMultiples || exitMultiples.length === 0) {
+        try {
+          const rows = await storage.getExitMultiples();
+          exitMultiples = rows.map(r => ({
+            dimensionKey: r.dimensionKey,
+            label: r.label,
+            valueLow: r.valueLow,
+            valueMid: r.valueMid,
+            valueHigh: r.valueHigh,
+          }));
+        } catch (err) {
+          // Non-fatal — guidance is additive. Log and continue without ranges.
+          logger.warn(`Failed to load exit_multiples for consistency check: ${(err instanceof Error ? err.message : String(err))}`, "calc");
+        }
+      }
+      const result = checkAssumptionConsistency({ ...validation.data, exit_multiples: exitMultiples });
       res.json(result);
     } catch (_error: unknown) {
       res.status(500).json({ error: "Consistency check failed" });

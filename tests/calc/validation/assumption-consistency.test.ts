@@ -1160,3 +1160,170 @@ describe("edge cases", () => {
     expect(result.is_valid).toBe(false);
   });
 });
+
+// ===========================================================================
+// 24. Exit revenue multiple vs admin-managed exit_multiples ranges
+// ===========================================================================
+describe("exit_revenue_multiple (industry vertical ranges)", () => {
+  /** A small reference set mirroring rows from the exit_multiples table. */
+  function ranges() {
+    return [
+      { dimensionKey: "saas", label: "SaaS", valueLow: 5, valueMid: 8, valueHigh: 12 },
+      { dimensionKey: "ecommerce", label: "E-commerce", valueLow: 1, valueMid: 2, valueHigh: 3 },
+      { dimensionKey: "marketplace", label: "Marketplace", valueLow: 3, valueMid: 5, valueHigh: 8 },
+    ];
+  }
+
+  it("multiple inside the band raises no warning", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "saas";
+    input.global_assumptions.exit_revenue_multiple = 8;
+    input.exit_multiples = ranges();
+    const result = checkAssumptionConsistency(input);
+
+    const exitIssues = result.issues.filter(i => i.field === "exit_revenue_multiple");
+    expect(exitIssues).toHaveLength(0);
+  });
+
+  it("multiple above the high bound raises a warning with recommended mid", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "saas";
+    input.global_assumptions.exit_revenue_multiple = 20;
+    input.exit_multiples = ranges();
+    const result = checkAssumptionConsistency(input);
+
+    const warning = result.issues.find(
+      i => i.field === "exit_revenue_multiple" && i.entity === "global" && i.severity === "warning",
+    );
+    expect(warning).toBeDefined();
+    expect(warning!.category).toBe("out_of_range");
+    expect(warning!.expected_range).toBe("5x – 12x");
+    expect(warning!.message).toContain("Recommended midpoint");
+    expect(warning!.message).toContain("8x");
+    expect(warning!.message).toContain("SaaS");
+  });
+
+  it("multiple below the low bound raises a warning", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "ecommerce";
+    input.global_assumptions.exit_revenue_multiple = 0.5;
+    input.exit_multiples = ranges();
+    const result = checkAssumptionConsistency(input);
+
+    const warning = result.issues.find(
+      i => i.field === "exit_revenue_multiple" && i.severity === "warning",
+    );
+    expect(warning).toBeDefined();
+    expect(warning!.expected_range).toBe("1x – 3x");
+    expect(warning!.message).toContain("E-commerce");
+  });
+
+  it("vertical match is case-insensitive", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "  SaaS  ";
+    input.global_assumptions.exit_revenue_multiple = 100;
+    input.exit_multiples = ranges();
+    const result = checkAssumptionConsistency(input);
+
+    const warning = result.issues.find(i => i.field === "exit_revenue_multiple");
+    expect(warning).toBeDefined();
+  });
+
+  it("no warning when no matching vertical is found", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "biotech";
+    input.global_assumptions.exit_revenue_multiple = 100;
+    input.exit_multiples = ranges();
+    const result = checkAssumptionConsistency(input);
+
+    const exitIssues = result.issues.filter(i => i.field === "exit_revenue_multiple");
+    expect(exitIssues).toHaveLength(0);
+  });
+
+  it("no warning when exit_multiples reference data is absent", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "saas";
+    input.global_assumptions.exit_revenue_multiple = 100;
+    const result = checkAssumptionConsistency(input);
+
+    const exitIssues = result.issues.filter(i => i.field === "exit_revenue_multiple");
+    expect(exitIssues).toHaveLength(0);
+  });
+
+  it("no warning when industry_vertical is not provided", () => {
+    const input = validInput();
+    input.global_assumptions.exit_revenue_multiple = 100;
+    input.exit_multiples = ranges();
+    const result = checkAssumptionConsistency(input);
+
+    const exitIssues = result.issues.filter(i => i.field === "exit_revenue_multiple");
+    expect(exitIssues).toHaveLength(0);
+  });
+
+  it("no warning when range row has missing low/high bounds", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "incomplete";
+    input.global_assumptions.exit_revenue_multiple = 999;
+    input.exit_multiples = [
+      { dimensionKey: "incomplete", label: "Incomplete", valueLow: null, valueMid: 5, valueHigh: null },
+    ];
+    const result = checkAssumptionConsistency(input);
+
+    const exitIssues = result.issues.filter(i => i.field === "exit_revenue_multiple");
+    expect(exitIssues).toHaveLength(0);
+  });
+
+  it("warning omits the recommended midpoint when valueMid is null", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "no-mid";
+    input.global_assumptions.exit_revenue_multiple = 50;
+    input.exit_multiples = [
+      { dimensionKey: "no-mid", label: "No Mid", valueLow: 1, valueMid: null, valueHigh: 5 },
+    ];
+    const result = checkAssumptionConsistency(input);
+
+    const warning = result.issues.find(i => i.field === "exit_revenue_multiple");
+    expect(warning).toBeDefined();
+    expect(warning!.message).not.toContain("Recommended midpoint");
+  });
+
+  it("per-property exit_revenue_multiple is checked using its own vertical", () => {
+    const input = validInput();
+    input.exit_multiples = ranges();
+    input.properties![0].industry_vertical = "marketplace";
+    input.properties![0].exit_revenue_multiple = 50;
+    const result = checkAssumptionConsistency(input);
+
+    const warning = result.issues.find(
+      i => i.field === "exit_revenue_multiple" && i.entity.startsWith("property:"),
+    );
+    expect(warning).toBeDefined();
+    expect(warning!.expected_range).toBe("3x – 8x");
+    expect(warning!.message).toContain("Marketplace");
+  });
+
+  it("per-property check falls back to the global vertical", () => {
+    const input = validInput();
+    input.exit_multiples = ranges();
+    input.global_assumptions.industry_vertical = "saas";
+    input.properties![0].exit_revenue_multiple = 100;
+    const result = checkAssumptionConsistency(input);
+
+    const warning = result.issues.find(
+      i => i.field === "exit_revenue_multiple" && i.entity.startsWith("property:"),
+    );
+    expect(warning).toBeDefined();
+    expect(warning!.expected_range).toBe("5x – 12x");
+  });
+
+  it("warnings do not flip is_valid to false", () => {
+    const input = validInput();
+    input.global_assumptions.industry_vertical = "saas";
+    input.global_assumptions.exit_revenue_multiple = 100;
+    input.exit_multiples = ranges();
+    const result = checkAssumptionConsistency(input);
+
+    expect(result.is_valid).toBe(true);
+    expect(result.summary_by_severity.warning).toBeGreaterThanOrEqual(1);
+  });
+});
