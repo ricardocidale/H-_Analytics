@@ -1,0 +1,61 @@
+{
+  "thresholds": {
+    "singleP95Ms": 50,
+    "singleP50Ms": 25,
+    "multiP95Ms": 600,
+    "multiP50Ms": 300
+  },
+  "namespaces": 7,
+  "updatedAt": "2026-04-18T11:38:29.154Z",
+  "runs": [
+    {
+      "timestamp": "2026-04-18T10:58:59.498Z",
+      "node": "v20.20.0",
+      "dbHint": "Postgres",
+      "queries": 20,
+      "topK": 8,
+      "sizes": [
+        1000,
+        5000
+      ],
+      "results": [
+        {
+          "size": 1000,
+          "totalRowsAtRun": 1000,
+          "single": {
+            "count": 20,
+            "meanMs": 4.7,
+            "p50Ms": 4.8,
+            "p95Ms": 5.4,
+            "maxMs": 5.4
+          },
+          "multi": {
+            "count": 20,
+            "meanMs": 145,
+            "p50Ms": 187,
+            "p95Ms": 253,
+            "maxMs": 253
+          }
+        },
+        {
+          "size": 5000,
+          "totalRowsAtRun": 5000,
+          "single": {
+            "count": 20,
+            "meanMs": 4.6,
+            "p50Ms": 4.8,
+            "p95Ms": 5.4,
+            "maxMs": 5.4
+          },
+          "multi": {
+            "count": 20,
+            "meanMs": 146,
+            "p50Ms": 190,
+            "p95Ms": 255,
+            "maxMs": 255
+          }
+        }
+      ]
+    }
+  ]
+}
