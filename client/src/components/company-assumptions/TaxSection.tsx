@@ -19,7 +19,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconPercent, IconCalendar, IconReceipt } from "@/components/icons";
-import { DEFAULT_COMPANY_TAX_RATE, PROJECTION_YEARS } from "@/lib/constants";
+import {
+  DEFAULT_COMPANY_TAX_RATE,
+  DEFAULT_COMPANY_INFLATION_RATE,
+  DEFAULT_COMPANY_OPS_START_DATE,
+  PROJECTION_YEARS,
+} from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { TaxSectionProps } from "./types";
 
@@ -61,7 +66,7 @@ export default function TaxSection({ formData, onChange, global, researchValues 
               </Label>
               <Input
                 type="date"
-                value={formData.companyOpsStartDate ?? global.companyOpsStartDate ?? "2026-06-01"}
+                value={formData.companyOpsStartDate ?? global.companyOpsStartDate ?? DEFAULT_COMPANY_OPS_START_DATE}
                 onChange={(e) => onChange("companyOpsStartDate", e.target.value)}
                 className="bg-card border-border text-foreground"
                 data-testid="input-company-ops-start-date"
@@ -154,7 +159,7 @@ export default function TaxSection({ formData, onChange, global, researchValues 
               </span>
             </div>
             <Slider
-              value={[((formData.companyInflationRate ?? global.companyInflationRate ?? 0.03) as number) * 100]}
+              value={[((formData.companyInflationRate ?? global.companyInflationRate ?? DEFAULT_COMPANY_INFLATION_RATE) as number) * 100]}
               onValueChange={([v]) => onChange("companyInflationRate", v / 100)}
               min={0}
               max={10}

@@ -24,6 +24,26 @@ export const SERVICE_HELP: Record<string, string> = {
     "Centralized purchasing, vendor negotiation, supply chain management, group purchasing organization (GPO) coordination, contract management, and cost optimization across the portfolio. Per USALI 12th Edition, procurement activities are tracked under Administrative & General or as a separate operator cost. Leverages group purchasing power for better pricing on FF&E, OS&E, and operating supplies. Charged as a percentage of Total Revenue.",
 };
 
+/**
+ * Normalize a service-category name for help-text lookup: lowercase, strip
+ * non-alphanumeric characters, collapse whitespace. Makes minor admin renames
+ * ("Marketing & Brand" → "Marketing and Brand", different spacing, different
+ * casing) still resolve to the right canonical help entry. A full rename that
+ * changes the semantic meaning still returns null and the tooltip hides
+ * gracefully. Proper fix is a `description` column on company_service_templates
+ * — see audit task #7.
+ */
+const normalizeHelpKey = (name: string): string =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+const NORMALIZED_SERVICE_HELP: Record<string, string> = Object.fromEntries(
+  Object.entries(SERVICE_HELP).map(([k, v]) => [normalizeHelpKey(k), v]),
+);
+
+function lookupServiceHelp(templateName: string): string | undefined {
+  return SERVICE_HELP[templateName] ?? NORMALIZED_SERVICE_HELP[normalizeHelpKey(templateName)];
+}
+
 interface ServiceTemplateCardProps {
   template: ServiceTemplate;
   expandedDescriptions: Set<number>;
@@ -71,7 +91,7 @@ export function ServiceTemplateCard({
   onEdit,
   onDelete,
 }: ServiceTemplateCardProps) {
-  const helpText = SERVICE_HELP[t.name];
+  const helpText = lookupServiceHelp(t.name);
   const isDescExpanded = expandedDescriptions.has(t.id);
   const descTruncateLength = 120;
   const needsTruncation = helpText && helpText.length > descTruncateLength;

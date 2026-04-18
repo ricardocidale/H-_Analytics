@@ -214,6 +214,14 @@ export const DEFAULT_COMPANY_TAX_RATE = 0.30;
 export const DEFAULT_PROJECTION_YEARS = 10;
 
 // ──────────────────────────────────────────────────────────
+// MODEL TIMELINE DEFAULTS
+// ──────────────────────────────────────────────────────────
+// Date the management company begins operations by default. Drives seed
+// data, DB column defaults, sync helpers, and UI fallbacks. Keeping this
+// in one place prevents the literal from drifting across call sites.
+export const DEFAULT_COMPANY_OPS_START_DATE = "2026-06-01";
+
+// ──────────────────────────────────────────────────────────
 // AI AGENT & SCENARIO DEFAULTS
 // ──────────────────────────────────────────────────────────
 
