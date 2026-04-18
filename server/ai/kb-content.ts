@@ -312,6 +312,90 @@ Research can be run from the property detail page or the property edit page. Mul
     category: "guide",
   });
 
+  chunks.push({
+    title: "Founder & Company Background",
+    content: `H+ Analytics is built by Norfolk AI. The founder is Ricardo Cidale — a serial entrepreneur, published author, and tech executive based in Austin, Texas. He holds engineering degrees from Texas A&M (civil + structural), an MBA from Syracuse University's Whitman School of Management, and a master's in corporate governance from IBMEC in Brazil. He's a member of Chi Epsilon and Tau Beta Pi honor societies.
+
+Ricardo has built, merged, and sold multiple tech companies (LabOne Systems, OTT Networks, UUX Systems) and held senior executive roles at Hewlett Packard, Dell, and RealNetworks across Barcelona, São Paulo, Austin, Madrid, Miami, Mexico City, Milan, and Seattle — managing P&Ls over $200M and teams of hundreds. Before Norfolk AI, he was Chief Revenue Officer at First Orion Corporation. Two-time Executive of the Year in Digital Media Software. Published author with McGraw-Hill ("Digital Virus", "The Wizard of DOS"). Venture Partner at Synapse Venture Capital since 2019. Mentor at Capital Factory (Austin) and MassChallenge.
+
+Ricardo is not a developer — he's a builder who created this entire platform in partnership with Anthropic's Claude Code. He thinks in business terms, revenue models, and investor returns. His hospitality portfolio spans Medellín, Cartagena, New York, and Utah. When he asks a question, he's thinking like an LP evaluating a deal, not an engineer debugging code.
+
+The portal is a closed system — only pre-approved users added by an admin can access it. There is no public sign-up.`,
+    source: "Platform Guide",
+    category: "methodology",
+  });
+
+  chunks.push({
+    title: "International Depreciation Periods",
+    content: `The depreciation calculation method always follows US GAAP (ASC 360, straight-line). Only the useful life period varies by jurisdiction. Each country's tax authority determines the allowable recovery period for commercial real property (hotels).
+
+For US properties, hotels are classified as nonresidential real property under IRC §168(e)(2)(A). The IRS-mandated depreciation period is 39 years using straight-line MACRS. This is different from residential rental property (apartments, houses), which uses 27.5 years. Hotels are explicitly nonresidential because transient lodging (stays under 30 days) does not qualify as residential.
+
+For international properties, the depreciation period is set by the local tax authority:
+- Colombia: 20 years (Estatuto Tributario Art. 137)
+- Mexico: 20 years (Ley del ISR Art. 34)
+- Brazil: 25 years (RIR/2018 Art. 311)
+
+Cost segregation is an IRS-approved method that accelerates depreciation by reclassifying building components (e.g., FF&E, land improvements, specialty mechanical systems) into shorter MACRS recovery periods (5, 7, or 15 years instead of 39 years). The model does not perform cost segregation analysis but users should be aware it may reduce effective tax burden. A cost segregation study requires a qualified engineer and is most beneficial for properties with a purchase price above $1 million.
+
+FF&E depreciates over a shorter useful life, typically 5 to 7 years. The FF&E reserve set aside each year funds these replacements. When actual FF&E replacements occur, they are capitalized and depreciated over their useful life.
+
+Depreciation recapture on sale: when a property is sold, the IRS recaptures some of the depreciation benefit under IRC §1250. The gain attributable to prior depreciation deductions is taxed at a maximum rate of 25% — higher than the long-term capital gains rate. Sometimes called "unrecaptured Section 1250 gain."`,
+    source: "Platform Guide",
+    category: "methodology",
+  });
+
+  chunks.push({
+    title: "Research Workflow & Conviction Levels",
+    content: `The platform includes The Analyst — an AI agent that reviews property assumptions against real market data: comparable hotels, seasonal patterns, labor costs, cap rate transactions, and industry benchmarks.
+
+When the user consults The Analyst on a property or company page, the research pipeline runs live. The user sees what's happening in real time: "Studying the market", "Cross-referencing industry benchmarks", "Getting a second opinion from independent sources". Each step pulls data from multiple verified sources.
+
+The results appear as Analyst Notes — small badges next to each assumption field showing the range The Analyst recommends. Each note includes a conviction level:
+- **High conviction** — strong market evidence from multiple sources that agree
+- **Moderate conviction** — data exists but sources disagree or the data is older
+- **Developing** — limited data; the recommendation is based on broader benchmarks while The Analyst gathers more
+
+The user's numbers are always their own. Analyst Notes never change assumptions automatically. The user reviews what The Analyst suggests and decides. The financial engine only uses numbers the user has explicitly approved.
+
+The platform gets smarter with every property added. When The Analyst discovers market data during a research run, that data gets stored locally. Next time a property in the same market needs research, the data is already there — faster, cheaper, higher conviction.
+
+The review status bar tells the user how current the analyst review is:
+- **Up to date** — The Analyst reviewed recently and nothing has changed
+- **Due for review** — assumptions have changed or time has passed since the last review
+- **Overdue** — it's been more than 90 days; market conditions may have shifted
+- **Not yet reviewed** — The Analyst hasn't looked at these assumptions yet
+
+The user can consult The Analyst again anytime — it will check for updated data and refresh its view.`,
+    source: "Platform Guide",
+    category: "methodology",
+  });
+
+  chunks.push({
+    title: "Governed Model Constants",
+    content: `The portal distinguishes two layers of financial values:
+
+- **Investor assumptions** — what an investor believes about a market or property (occupancy, ADR, growth rates, fees). These live on the property and on Company Assumptions and follow the per-property → systemwide → constant cascade.
+- **Governed Model Constants** — accounting and regulatory standards (Days per Month, Depreciation Years). These live in Admin → Model Defaults → Model Constants. They are not editable from property pages or Company Assumptions.
+
+Registered Model Constants today:
+- **Days per Month** — 30.5, universal industry convention (365 ÷ 12). Used wherever occupied room-nights convert between monthly and annualized rates.
+- **Depreciation Years** — country-specific. 39 years for US hotels under IRC §168(e)(2)(A) MACRS; 20 years in Colombia and Mexico; 25 years in Brazil. See the country defaults table for the full citation list.
+
+Each governed constant shows a three-state badge describing where its current effective value comes from:
+- **Factory** — the built-in default from the shared constants file. The starting point if nothing else has been set.
+- **Analyst** — a value researched and proposed by The Analyst, with a citation captured in the audit trail. Confirmed by an admin via the Regenerate dialog.
+- **Manual** — an admin typed the value in directly. Highest precedence; overrides both Analyst and Factory.
+
+Resolution precedence: Manual override > Analyst override > Factory value, evaluated per-locality (universal, country, or country+state) where applicable.
+
+The sparkle button on each row opens the Analyst regeneration dialog. The Analyst produces a typed proposal: the new value, the reasoning, and a list of grounded web sources. The admin reviews and confirms before anything is persisted. If The Analyst confirms the current value is correct, no change is saved.
+
+How values reach the engine: the admin's confirmed value is overlaid onto the global assumptions object on the server at every engine boundary — finance routes, scenario compute/recompute, exports, sensitivity analysis, and the verification audit. The server is authoritative. Even if a client sends a stale Days per Month in its request payload, the engine substitutes the admin-governed value before computing.`,
+    source: "Platform Guide",
+    category: "methodology",
+  });
+
   return chunks;
 }
 
