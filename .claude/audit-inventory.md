@@ -290,8 +290,14 @@ Verification green after each substantive commit.
 ### D-2 still-open sub-items
 
 1. **Short "HVS 2024" label** in `server/seeds/hospitality-benchmarks.ts:134, 141` + `server/ai/ambient/fetchers.ts:93, 94`. Not an exact match for `CITATIONS.hvsFeeSurvey` (`"HVS 2024 Fee Survey"`). Needs product decision: add `CITATIONS.hvsShort` entry, or upgrade seed rows to use the longer label.
-2. **KB markdown** (`server/ai/kb/19-financial-formulas.md`) — moved to Phase 5B scope.
+2. ~~**KB markdown** (`server/ai/kb/19-financial-formulas.md`)~~ — closed in Phase 5B; the entire orphan directory was deleted (never wired into RAG pipeline). See D-2-B below.
 3. **`RESEARCH_SOURCES` registry** in `server/ai/research-prompt-builders.ts:81-88` — superset of client CITATIONS (includes URLs + categories). Intentionally kept separate; different purpose (prompt-building vs badge display).
+
+### D-2-B: KB orphan cleanup ✅ closed (commits `f2c90e04`, `5dd1a5f4`)
+Phase 5B discovered the entire `server/ai/kb/` directory (19 markdown files added in `640e889f`) was orphaned — never read by `server/ai/knowledge-base.ts`, which only loads from `kb-content.ts` + `attached_assets/`. The "drift" worry from D-2 sub-item 2 was therefore moot — nothing read those files.
+- `f2c90e04` — ported 4 high-value chunks (Founder Background, International Depreciation, Research Workflow, Governed Model Constants) into `server/ai/kb-content.ts` with vocabulary cleanup.
+- `5dd1a5f4` — `rm -rf server/ai/kb/` (19 files, ~900 lines). Zero application-code references remain.
+- Runtime KB re-index (Task 5B-3) **pending** — requires admin session; Replit Agent cannot trigger from CLI. User needs to hit **Admin → System Intelligence → Reindex** for the `knowledge-base` namespace. Expected: `chunksIndexed` increases by ~4.
 
 ---
 
@@ -331,8 +337,8 @@ Owner: Replit Agent (touches seed-runtime path + UI manual page).
 | 3 — audit sweep (16 files) | ✅ complete | Claude |
 | 4 — findings #9–#16 | ✅ complete | Replit |
 | 5A — citations promotion | ✅ complete | Replit |
-| 5B — KB templating | 🟡 decision made (option 1); handoff to draft | Claude → Replit |
-| 5C — capital-raise-date drift | 🟡 handoff drafted; awaiting execution | Replit |
+| 5B — KB orphan cleanup | ✅ complete (commits, code) — re-index pending user action | Replit |
+| 5C — capital-raise-date drift | ✅ complete | Replit |
 | 6 — DB migration (service description column) | ⏸ not started | Replit (future) |
 | 7–8 | ⏸ not scoped yet | TBD |
 
