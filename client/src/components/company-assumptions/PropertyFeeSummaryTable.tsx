@@ -8,10 +8,12 @@ import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
 } from "@/lib/constants";
+import type { PortfolioPropertySummary } from "./types";
+import type { FeeCategoryResponse } from "@/lib/api";
 
 interface PropertyFeeSummaryTableProps {
-  properties: any[];
-  allFeeCategories: any[];
+  properties: PortfolioPropertySummary[];
+  allFeeCategories: FeeCategoryResponse[];
 }
 
 export function PropertyFeeSummaryTable({ properties, allFeeCategories }: PropertyFeeSummaryTableProps) {

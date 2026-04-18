@@ -37,6 +37,7 @@ export interface FundingSectionProps extends CompanyAssumptionsSectionProps {}
 export interface PortfolioPropertySummary {
   id: number;
   name: string;
+  isActive?: boolean;
   baseManagementFeeRate?: number;
   incentiveManagementFeeRate?: number;
 }
