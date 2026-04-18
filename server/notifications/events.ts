@@ -36,6 +36,7 @@ export function getEventLabel(type: NotificationEventType): string {
     CAP_RATE_BREACH: "Cap Rate Threshold Breach",
     NOI_VARIANCE_BREACH: "NOI Variance Threshold Breach",
     LLM_MODEL_ISSUE: "AI Model Configuration Issue",
+    VECTOR_LATENCY_BREACH: "Vector Search Latency Threshold Breach",
   };
   return labels[type] || type;
 }

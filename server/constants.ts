@@ -40,6 +40,9 @@ export const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 /** Market intelligence property cache invalidation interval (ms) — 24 hours */
 export const MI_CACHE_INVALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
+/** Vector benchmark latency alert check interval (ms) — 1 hour */
+export const VECTOR_LATENCY_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
 // ---------------------------------------------------------------------------
 // HTTP / compression / caching
 // ---------------------------------------------------------------------------

@@ -42,6 +42,7 @@ import {
   SESSION_CLEANUP_INTERVAL_MS,
   MI_CACHE_INVALIDATION_INTERVAL_MS,
   SCENARIO_PURGE_INTERVAL_MS,
+  VECTOR_LATENCY_CHECK_INTERVAL_MS,
 } from "./constants";
 
 initSentry();
@@ -319,6 +320,22 @@ app.use((req, res, next) => {
           serverLog(`Scenario purge error: ${err instanceof Error ? err.message : err}`, "purge", "error");
         }
       }, SCENARIO_PURGE_INTERVAL_MS));
+
+      // Email admins when the latest vector benchmark run breaches the
+      // p95 latency threshold embedded in docs/vector-bench-history.json
+      const runVectorLatencyAlert = async () => {
+        try {
+          const { evaluateVectorLatencyAlert } = await import("./notifications/vector-latency-alert");
+          const result = await evaluateVectorLatencyAlert();
+          if (result.status === "ok") {
+            log(`Vector latency alert sent to ${result.sent}/${result.recipients} admins (runId=${result.runId})`);
+          }
+        } catch (err: unknown) {
+          serverLog(`Vector latency alert error: ${err instanceof Error ? err.message : err}`, "notifications", "error");
+        }
+      };
+      void runVectorLatencyAlert();
+      intervalHandles.push(setInterval(runVectorLatencyAlert, VECTOR_LATENCY_CHECK_INTERVAL_MS));
     },
   );
 })();
