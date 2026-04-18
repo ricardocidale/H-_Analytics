@@ -13,7 +13,7 @@ import { ResearchContextFieldLabel } from "@/components/research/ResearchContext
 import { DEFAULT_COST_OF_EQUITY } from "@shared/constants";
 import EditableValue from "./EditableValue";
 import type { CompanyAssumptionsSectionProps } from "./types";
-import { CITATIONS } from "./citations";
+import { CITATIONS } from "@shared/citations";
 
 interface CostOfEquityCardProps extends CompanyAssumptionsSectionProps {
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;

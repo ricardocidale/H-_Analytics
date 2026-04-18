@@ -7,11 +7,9 @@
  * GuidanceRecord with its own `sourceName`, that wins via `researchValues`.
  * These strings are the Tier-3 (industry default) attribution.
  *
- * Centralized here so the 18 hardcoded citations that used to be scattered
- * across ManagementFeesSection, PropertyExitDefaultsCard, TaxSection,
- * FixedOverheadSection, VariableCostsSection, CompensationSection,
- * PartnerCompSection, PropertyExpenseRatesSection, and CostOfEquityCard
- * update in one place. See audit tasks #4 and #8.
+ * Promoted from client/src/components/company-assumptions/citations.ts so
+ * server seed/research code can import the same constants and stay in lockstep
+ * with the badges. See audit Phase 5A and audit-inventory.md D-2.
  */
 export const CITATIONS = {
   // Fees & incentive — ManagementFeesSection

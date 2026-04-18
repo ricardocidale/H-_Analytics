@@ -26,7 +26,7 @@ import type { ManagementFeesSectionProps } from "./types";
 import { ServiceTemplateDialog, type FormState, emptyForm } from "./ServiceTemplateDialog";
 import { PropertyFeeSummaryTable } from "./PropertyFeeSummaryTable";
 import { ServiceTemplateCard } from "./ServiceTemplateCard";
-import { CITATIONS } from "./citations";
+import { CITATIONS } from "@shared/citations";
 
 function formFromTemplate(t: ServiceTemplate): FormState {
   return {

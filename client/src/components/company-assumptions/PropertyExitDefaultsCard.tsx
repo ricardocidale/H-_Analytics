@@ -22,7 +22,7 @@ import { ResearchContextFieldLabel } from "@/components/research/ResearchContext
 import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { CompanyAssumptionsSectionProps } from "./types";
-import { CITATIONS } from "./citations";
+import { CITATIONS } from "@shared/citations";
 
 interface PropertyExitDefaultsCardProps extends CompanyAssumptionsSectionProps {
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;

@@ -25,7 +25,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import EditableValue from "./EditableValue";
 import type { CompensationSectionProps } from "./types";
-import { CITATIONS } from "./citations";
+import { CITATIONS } from "@shared/citations";
 import { STAFFING_TIERS } from "@/lib/constants";
 
 export default function CompensationSection({ formData, onChange, global, researchValues }: CompensationSectionProps) {

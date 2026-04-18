@@ -22,7 +22,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import EditableValue from "./EditableValue";
 import type { VariableCostsSectionProps } from "./types";
-import { CITATIONS } from "./citations";
+import { CITATIONS } from "@shared/citations";
 
 export default function VariableCostsSection({ formData, onChange, global, researchValues }: VariableCostsSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });

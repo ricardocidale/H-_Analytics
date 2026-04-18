@@ -27,7 +27,7 @@ import {
 } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { TaxSectionProps } from "./types";
-import { CITATIONS } from "./citations";
+import { CITATIONS } from "@shared/citations";
 
 export default function TaxSection({ formData, onChange, global, researchValues }: TaxSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
