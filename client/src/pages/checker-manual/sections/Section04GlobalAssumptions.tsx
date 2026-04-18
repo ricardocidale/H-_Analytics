@@ -1,7 +1,9 @@
 import { SectionCard } from "@/components/ui/section-card";
   import { ManualTable } from "@/components/ui/manual-table";
   import { Callout } from "@/components/ui/callout";
-  import { IconSettings } from "@/components/icons";interface SectionProps {
+  import { IconSettings } from "@/components/icons";
+  import { DEFAULT_COMPANY_OPS_START_DATE } from "@shared/constants";
+interface SectionProps {
     expanded: boolean;
     onToggle: () => void;
     sectionRef: (el: HTMLDivElement | null) => void;
@@ -27,7 +29,7 @@ import { SectionCard } from "@/components/ui/section-card";
             ["propertyLabel", "Label for property type throughout UI", "Boutique Hotel", "text", "Both"],
             ["modelStartDate", "First month of the financial model", "2026-04-01", "date", "Both"],
             ["projectionYears", "Number of years to project", "10", "count", "Both"],
-            ["companyOpsStartDate", "Date Management Company begins operations", "2026-06-01", "date", "Mgmt Co."],
+            ["companyOpsStartDate", "Date Management Company begins operations", DEFAULT_COMPANY_OPS_START_DATE, "date", "Mgmt Co."],
             ["fiscalYearStartMonth", "Month number when fiscal year begins (1=Jan)", "1", "count (1–12)", "Both"],
           ]}
         />

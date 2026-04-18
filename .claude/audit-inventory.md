@@ -92,29 +92,66 @@ No dedicated `help-system/` directory. Admin copy is inline:
   - `finance/constants-and-config.md` (touched by DEFAULT_* additions)
   - `database/SKILL.md` (touched by schema changes)
 
-### S13 — Replit platform bindings
-Replit-provided infrastructure and config. **Do not re-implement what Replit
-provides; do not break the declarative config without coordination.**
+### S13 — Replit platform bindings (authoritative list from Replit Integrations page)
 
-| Replit service | This repo's use | Key file |
+**Don't re-implement what Replit provides; don't break the declarative config
+without coordination.** Source: Replit Integrations UI (user-provided April 2026).
+
+#### A. Replit managed (built-in, auto-provisioned, always available)
+| Service | Type | This repo |
 |---|---|---|
-| Object Storage (sidecar) | Photo binary + export blobs | `server/replit_integrations/object_storage/objectStorage.ts` (sidecar at `127.0.0.1:1106`) |
-| Neon PostgreSQL (managed) | All DB state | `.replit` modules `postgresql-16`; shared/schema uses Neon serverless client |
-| Secrets (env vars) | `REPLIT_DEPLOYMENT`, `REPLIT_DEV_DOMAIN`, `REPLIT_DOMAINS` + app secrets | `process.env.*` (never `.env` committed) |
-| Autoscale deployment | Prod hosting | `.replit` `[deployment] deploymentTarget = "autoscale"` |
-| Nix package system | Chromium + X libs for Puppeteer exports | `.replit` `[nix] packages = [...]`, channel `stable-24_05` |
-| Workflows (Project runner) | Start app + parity + typecheck + lint tasks | `.replit` `[[workflows.workflow]]` |
-| Vite plugins (dev-only) | cartographer / dev-banner / runtime-error-modal | `package.json` — dev deps only, must not bundle to prod |
-| PORT convention | Must bind to `PORT=5000` | `.replit` `[env] PORT = "5000"` |
+| Replit Database | PostgreSQL | In use — Neon via `shared/db`, `.replit` module `postgresql-16` |
+| Replit App Storage | Object Storage | In use — `server/replit_integrations/object_storage/objectStorage.ts` (sidecar `127.0.0.1:1106`) |
+| Replit Auth | Authentication | **Not in use** — this repo has custom session auth (`server/auth.ts`); don't mix |
+| Replit Domains | Domains | In use — `process.env.REPLIT_DOMAINS`, `REPLIT_DEV_DOMAIN` |
 
-**Audit invariants for S13:**
-1. Don't add `puppeteer` with its own Chromium download — Chromium comes from Nix. Use `puppeteer-core` + `executablePath: "/usr/bin/chromium"` (or similar Nix path).
-2. Don't commit `.env` files — use Replit Secrets.
-3. Don't override `PORT` in server code — read from `process.env.PORT`.
-4. Don't add a second DB client or connection pool — `shared/db` is the single Drizzle pool.
-5. Any `.replit` / `replit.nix` change = deployment-affecting; flag in commit message.
-6. Object Storage access must go through the sidecar endpoint; direct GCS/S3 clients violate the Replit pattern.
-7. Vite plugins stay dev-only (`vite.config.ts` conditionally loads them).
+#### B. Connectors (first-party, sign-in once, available to the agent)
+**Account status as of inventory:** 18 Active, 12 Sign-in-only, 1 Error.
+
+Likely candidates to adopt if needed (no reinvention):
+- **Resend** (Active) — email; currently used per architecture skill
+- **Stripe** (Active) — payments; available if needed
+- **Twilio** (Active) — SMS/voice
+- **Slack** (Active) — team messaging
+- **ElevenLabs** (Active) — voice AI
+- **GitHub** (Active) — repo sync (Git provider, not agent-accessible)
+- **Google Sheets / Docs / Drive / Calendar / Gmail** (Active)
+- **HubSpot**, **Linear**, **Figma** (Active)
+- **Discord**, **Dropbox**, **Todoist** (Active)
+- **Microsoft OneDrive** (Error — reconnect needed)
+
+Sign-in only (available but not connected): AgentMail, Asana, Box, Confluence, Jira, Outlook, Notion, RevenueCat, Sendgrid, SharePoint, Spotify, Zendesk.
+
+**Audit rule:** before adding a new external integration, check this list first. If Replit provides it as a connector, use that path (OAuth handled, credentials managed by Replit) instead of embedding a direct API client with our own secrets.
+
+#### C. MCP servers for Replit Agent (beta)
+**Active:** Figma, Google Maps, Context7 MCP.  
+**Available (not signed in):** Stripe, Linear, Notion, Sentry, Atlassian, Miro, PostHog, Amplitude, Granola, Razorpay, Sanity, Wistia, Squidler.
+
+**Audit rule:** MCP tools are for the Replit Agent runtime, not direct app use. Don't bundle MCP servers into the app build.
+
+#### D. Git providers
+**Active:** GitHub. **Available:** Bitbucket, GitLab.
+
+#### E. Platform infrastructure (non-integration)
+| Surface | Where | Audit concern |
+|---|---|---|
+| `.replit` config | Root | modules, Nix packages, deployment target, workflows, env `PORT=5000` |
+| Nix channel `stable-24_05` | `.replit` `[nix]` | Chromium + X libs for Puppeteer exports |
+| Autoscale deployment | `.replit` `[deployment]` | Build cmd `npm run build`, run cmd `node ./dist/index.cjs` |
+| Vite plugins (dev-only) | `package.json` | `@replit/vite-plugin-cartographer`, `dev-banner`, `runtime-error-modal` |
+
+#### F. Audit invariants (apply before any dependency change)
+1. **Use Replit-managed for Tier A services** (DB, Object Storage, Domains). Don't instantiate alternatives.
+2. **Prefer Tier B connectors over raw API clients** for Stripe/Resend/Twilio/Slack/Google etc. — check this list first.
+3. **Don't commit `.env` files** — use Replit Secrets (env vars).
+4. **Don't override `PORT`** — read `process.env.PORT`.
+5. **Don't download Chromium via `puppeteer`** — use `puppeteer-core` + Nix-provided Chromium path.
+6. **Object Storage access goes through the sidecar** (`127.0.0.1:1106`). Direct GCS/S3 clients violate the pattern.
+7. **Vite plugins stay dev-only** — `vite.config.ts` conditionally loads them.
+8. **Any `.replit` or Nix package change = deployment-affecting** — flag explicitly in commit message.
+9. **Replit Auth is not adopted** — don't mix it with the custom session auth here without migration plan.
+10. **MCP servers are agent-runtime only** — don't bundle into app code.
 
 ---
 

@@ -43,7 +43,7 @@ export function CompanyTab({ draft, onChange }: { draft: Draft; onChange: (field
               </Label>
               <Input
                 type="date"
-                value={draft.companyOpsStartDate ?? "2026-06-01"}
+                value={draft.companyOpsStartDate ?? DEFAULT_COMPANY_OPS_START_DATE}
                 onChange={(e) => onChange("companyOpsStartDate", e.target.value)}
                 className="bg-card border-border"
                 data-testid="input-companyOpsStartDate"
