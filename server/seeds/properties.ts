@@ -129,6 +129,12 @@ export async function seedGlobalAssumptions() {
     eventExpenseRate: DEFAULT_EVENT_EXPENSE_RATE,
     otherExpenseRate: DEFAULT_OTHER_EXPENSE_RATE,
     utilitiesVariableSplit: DEFAULT_UTILITIES_VARIABLE_SPLIT,
+    // Mark every Company Assumptions tab as saved on the seeded shared row so
+    // the AssumptionsGate opens out of the box and downstream pages
+    // (Dashboard, Simulation, Compare, Sensitivity, Executive Summary) render
+    // their full content from the seeded values. Real users still have to
+    // click Save per-tab — this only applies to the seeded baseline row.
+    savedTabs: ["company", "funding", "revenue", "compensation", "overhead", "property-defaults"],
     assetDefinition: {
       minRooms: 10,
       maxRooms: 80,
