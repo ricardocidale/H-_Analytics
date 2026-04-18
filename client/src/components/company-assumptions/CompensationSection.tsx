@@ -26,6 +26,7 @@ import { ResearchContextFieldLabel } from "@/components/research/ResearchContext
 import EditableValue from "./EditableValue";
 import type { CompensationSectionProps } from "./types";
 import { CITATIONS } from "./citations";
+import { STAFFING_TIERS } from "@/lib/constants";
 
 export default function CompensationSection({ formData, onChange, global, researchValues }: CompensationSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
@@ -81,8 +82,8 @@ export default function CompensationSection({ formData, onChange, global, resear
               <span className="text-xs text-muted-foreground">Up to</span>
               <Input
                 type="number"
-                value={formData.staffTier1MaxProperties ?? global.staffTier1MaxProperties ?? 3}
-                onChange={(e) => onChange("staffTier1MaxProperties", Math.max(1, parseInt(e.target.value) || 3))}
+                value={formData.staffTier1MaxProperties ?? global.staffTier1MaxProperties ?? STAFFING_TIERS[0].maxProperties}
+                onChange={(e) => onChange("staffTier1MaxProperties", Math.max(1, parseInt(e.target.value) || STAFFING_TIERS[0].maxProperties))}
                 min={1}
                 max={20}
                 className="w-16 bg-card border-primary/30 text-foreground text-center"
@@ -91,8 +92,8 @@ export default function CompensationSection({ formData, onChange, global, resear
               <span className="text-xs text-muted-foreground">properties →</span>
               <Input
                 type="number"
-                value={formData.staffTier1Fte ?? global.staffTier1Fte ?? 2.5}
-                onChange={(e) => onChange("staffTier1Fte", Math.max(0.5, parseFloat(e.target.value) || 2.5))}
+                value={formData.staffTier1Fte ?? global.staffTier1Fte ?? STAFFING_TIERS[0].fte}
+                onChange={(e) => onChange("staffTier1Fte", Math.max(0.5, parseFloat(e.target.value) || STAFFING_TIERS[0].fte))}
                 min={0.5}
                 max={20}
                 step={0.5}
@@ -106,8 +107,8 @@ export default function CompensationSection({ formData, onChange, global, resear
               <span className="text-xs text-muted-foreground">Up to</span>
               <Input
                 type="number"
-                value={formData.staffTier2MaxProperties ?? global.staffTier2MaxProperties ?? 6}
-                onChange={(e) => onChange("staffTier2MaxProperties", Math.max(1, parseInt(e.target.value) || 6))}
+                value={formData.staffTier2MaxProperties ?? global.staffTier2MaxProperties ?? STAFFING_TIERS[1].maxProperties}
+                onChange={(e) => onChange("staffTier2MaxProperties", Math.max(1, parseInt(e.target.value) || STAFFING_TIERS[1].maxProperties))}
                 min={1}
                 max={30}
                 className="w-16 bg-card border-primary/30 text-foreground text-center"
@@ -116,8 +117,8 @@ export default function CompensationSection({ formData, onChange, global, resear
               <span className="text-xs text-muted-foreground">properties →</span>
               <Input
                 type="number"
-                value={formData.staffTier2Fte ?? global.staffTier2Fte ?? 4.5}
-                onChange={(e) => onChange("staffTier2Fte", Math.max(0.5, parseFloat(e.target.value) || 4.5))}
+                value={formData.staffTier2Fte ?? global.staffTier2Fte ?? STAFFING_TIERS[1].fte}
+                onChange={(e) => onChange("staffTier2Fte", Math.max(0.5, parseFloat(e.target.value) || STAFFING_TIERS[1].fte))}
                 min={0.5}
                 max={30}
                 step={0.5}
@@ -128,11 +129,11 @@ export default function CompensationSection({ formData, onChange, global, resear
             </div>
             <div className="flex items-center gap-3 bg-primary/5 rounded-lg px-3 py-2">
               <span className="text-sm text-muted-foreground w-20 shrink-0">Tier 3:</span>
-              <span className="text-xs text-muted-foreground">Above {formData.staffTier2MaxProperties ?? global.staffTier2MaxProperties ?? 6} properties →</span>
+              <span className="text-xs text-muted-foreground">Above {formData.staffTier2MaxProperties ?? global.staffTier2MaxProperties ?? STAFFING_TIERS[1].maxProperties} properties →</span>
               <Input
                 type="number"
-                value={formData.staffTier3Fte ?? global.staffTier3Fte ?? 7.0}
-                onChange={(e) => onChange("staffTier3Fte", Math.max(0.5, parseFloat(e.target.value) || 7.0))}
+                value={formData.staffTier3Fte ?? global.staffTier3Fte ?? STAFFING_TIERS[2].fte}
+                onChange={(e) => onChange("staffTier3Fte", Math.max(0.5, parseFloat(e.target.value) || STAFFING_TIERS[2].fte))}
                 min={0.5}
                 max={50}
                 step={0.5}
