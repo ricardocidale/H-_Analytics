@@ -8,10 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 19, 2026 — Analyst architecture doc + Phase 6 paused for re-seed
-- **Architecture mental model written (Claude, commit `6fc4d676`):** `.claude/notes/analyst-architecture.md` — 240-line walkthrough of the N+1 orchestrator (Gemini + Sonnet in parallel, Opus synthesis), supporting cast across ~40 files, what's elegant (model disagreement = confidence band, deterministic-math enforcement, narrative context packs), open questions (three-model cost, `research-history` namespace, single-panel fallback quality, staleness/re-run semantics). Informational only — not a handoff. New `.claude/notes/` directory introduced as the "knowledge-sharing between agents" channel (distinct from `replit-handoffs/` which is instructional).
-- **Phase 6 paused:** Replit kicked off a DB + app re-seed with Analyst-vetted values. Phase 6 (add `description` column to `companyServiceTemplates`) is on hold until that lands to avoid schema/seed-row conflicts. No file edits from Claude Code in parallel.
-- **5B re-index still pending user action** — one-time Admin UI click at AI Research → System Health → Re-index next to `knowledge-base` row. Expected `chunksIndexed` delta ≈ +4.
+## Session: April 19, 2026 — Analyst architecture doc + Phase 1b analyst skills
+- **Architecture mental model written (Claude, commit `6fc4d676`):** `.claude/notes/analyst-architecture.md` — 240-line walkthrough of the N+1 orchestrator. Informational only — not a handoff. New `.claude/notes/` directory for knowledge-sharing between agents (distinct from `replit-handoffs/` which is instructional).
+- **Pre-commit enforcement rules (Claude, `bcab3620`):** two new rules landed — `pre-commit-verification.md` (the blocking five gates) and `cross-check-invariants.md` (edit → sibling-surface map). Strengthened `claude-replit-split.md` and `testing-strategy.md`. Aim: stop the 40+-bugs-per-audit-sweep pattern.
+- **Phase 1a landed (Replit, `68f983fc`, `a230d968`):** architecture spine + 8 per-component specs + ADR-001 under `docs/architecture/analyst/` and `docs/architecture/decisions/`. Zero code change.
+- **Phase 1b complete: analyst skills + vocabulary rules landed (Claude).** 14 files under `.claude/`: 12 skills in `.claude/skills/analyst/` (`_index`, `orchestrator`, 6 surface specialists, `cognitive-engine`, `voice`, `quality-scoring`, `steward`) + 2 rules (`analyst-team.md`, `analyst-verdict-contract.md`). All five gates pass: TS 0, Lint 0 errors / 348 pre-existing warnings, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED. Awaiting Phase 2 (engine skeleton + CODEOWNERS + ADR-002) from Replit.
+- **Phase 6 (service description column) still paused for Replit's re-seed work.** 5B re-index still pending user action (Admin → AI Research → System Health → Re-index knowledge-base).
 
 ## Session: April 18, 2026 — CompanyAssumptions audit, Phases 1–5 complete (15 commits across 2 days)
 - **Claude (Phases 1–3):** inventory at `.claude/audit-inventory.md` (12 surfaces, 4 drift clusters) → drift repair (D-1 closed: `8f50224a`, `5d4b4111`) → 16-file audit sweep producing 8 findings (tasks #9–#16). Split workflow formalized in `.claude/rules/claude-replit-split.md` (UI/DB → Replit, docs/refactors → Claude); handoffs in `.claude/replit-handoffs/`.
