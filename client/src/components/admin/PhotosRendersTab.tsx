@@ -208,7 +208,7 @@ export default function PhotosRendersTab() {
   const globalDefaultQuality = firstSetting?.defaultQuality ?? 95;
   const globalDefaultSize = firstSetting?.defaultImageSize ?? "1024x1024";
 
-  const totalCost = usage.reduce((sum, e) => sum + (e.estimatedCostUsd || 0), 0);
+  const totalCost = usage.reduce((sum, e) => sum + (e.estimatedCostUsd ?? 0), 0);
 
   if (isLoading) {
     return (
@@ -419,7 +419,7 @@ export default function PhotosRendersTab() {
                             <td className="p-2">{entry.service}</td>
                             <td className="p-2 font-mono truncate max-w-[120px]">{entry.model?.split(":")[0] || "-"}</td>
                             <td className="p-2">{entry.operation}</td>
-                            <td className="p-2 text-right">${(entry.estimatedCostUsd || 0).toFixed(4)}</td>
+                            <td className="p-2 text-right">${(entry.estimatedCostUsd ?? 0).toFixed(4)}</td>
                             <td className="p-2 text-right text-muted-foreground">
                               {entry.durationMs ? `${(entry.durationMs / 1000).toFixed(1)}s` : "-"}
                             </td>

@@ -160,7 +160,7 @@ function formatMetadata(log: ActivityLogEntry): string {
     parts.push(`${meta.targetType} #${meta.targetId}`);
   }
   if (meta.sharesRemoved || meta.accessRemoved) {
-    parts.push(`removed: ${(meta.sharesRemoved || 0)} shares, ${(meta.accessRemoved || 0)} access`);
+    parts.push(`removed: ${(meta.sharesRemoved ?? 0)} shares, ${(meta.accessRemoved ?? 0)} access`);
   }
   if (parts.length === 0) {
     const raw = JSON.stringify(meta);

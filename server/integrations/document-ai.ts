@@ -134,7 +134,7 @@ export class DocumentAIService extends BaseIntegrationService {
     const entities = (document.entities || []).map((entity: any) => ({
       type: entity.type || "",
       mentionText: entity.mentionText || "",
-      confidence: entity.confidence || 0,
+      confidence: entity.confidence ?? 0,
     }));
 
     const keyValuePairs: Array<{ key: string; value: string; confidence: number }> = [];
@@ -142,7 +142,7 @@ export class DocumentAIService extends BaseIntegrationService {
       for (const field of page.formFields || []) {
         const key = this.extractTextFromLayout(field.fieldName, text).trim();
         const value = this.extractTextFromLayout(field.fieldValue, text).trim();
-        const confidence = field.fieldName?.confidence || field.fieldValue?.confidence || 0;
+        const confidence = field.fieldName?.confidence ?? field.fieldValue?.confidence ?? 0;
         if (key && value) {
           keyValuePairs.push({ key, value, confidence });
         }
@@ -155,7 +155,7 @@ export class DocumentAIService extends BaseIntegrationService {
   private extractTextFromLayout(layout: any, fullText: string): string {
     if (!layout?.textAnchor?.textSegments) return "";
     return layout.textAnchor.textSegments
-      .map((seg: any) => fullText.substring(seg.startIndex || 0, seg.endIndex || 0))
+      .map((seg: { startIndex?: number; endIndex?: number }) => fullText.substring(seg.startIndex ?? 0, seg.endIndex ?? 0))
       .join("");
   }
 

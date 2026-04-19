@@ -124,8 +124,8 @@ export async function processImage(
     }
   }
 
-  let finalWidth = metadata.width || 0;
-  let finalHeight = metadata.height || 0;
+  let finalWidth = metadata.width ?? 0;
+  let finalHeight = metadata.height ?? 0;
   if (crop) {
     finalWidth = Math.round(crop.width);
     finalHeight = Math.round(crop.height);

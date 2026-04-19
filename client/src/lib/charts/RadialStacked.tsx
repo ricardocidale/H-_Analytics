@@ -22,7 +22,10 @@ export function RadialStacked({
     centerValue ??
     (data.length > 0
       ? series
-          .reduce((sum, s) => sum + (Number(data[0][s.dataKey]) || 0), 0)
+          .reduce((sum, s) => {
+            const v = Number(data[0][s.dataKey]);
+            return sum + (Number.isFinite(v) ? v : 0);
+          }, 0)
           .toLocaleString()
       : "");
 
@@ -49,7 +52,7 @@ export function RadialStacked({
                   <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
                     <tspan
                       x={viewBox.cx}
-                      y={(viewBox.cy || 0) - 16}
+                      y={(viewBox.cy ?? 0) - 16}
                       className="fill-foreground text-2xl font-bold"
                     >
                       {resolvedCenter}
@@ -57,7 +60,7 @@ export function RadialStacked({
                     {centerLabel && (
                       <tspan
                         x={viewBox.cx}
-                        y={(viewBox.cy || 0) + 4}
+                        y={(viewBox.cy ?? 0) + 4}
                         className="fill-muted-foreground"
                       >
                         {centerLabel}

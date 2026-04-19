@@ -110,7 +110,7 @@ export async function searchAssets(query: string, topK = 6, accessiblePropertyId
       .filter(m => {
         if (!accessiblePropertyIds) return true;
         if (String(m.metadata.assetType) === "logo") return true;
-        const propId = Number(m.metadata.propertyId || 0);
+        const propId = Number(m.metadata.propertyId ?? 0);
         return propId === 0 || accessiblePropertyIds.includes(propId);
       })
       .slice(0, topK);
@@ -127,7 +127,7 @@ export async function searchAssets(query: string, topK = 6, accessiblePropertyId
           url: String(m.metadata.url),
           caption: String(m.metadata.caption || m.metadata.propertyName || ""),
           propertyName: String(m.metadata.propertyName || ""),
-          propertyId: Number(m.metadata.propertyId || 0),
+          propertyId: Number(m.metadata.propertyId ?? 0),
           isHero: Boolean(m.metadata.isHero),
           score: m.score,
         };

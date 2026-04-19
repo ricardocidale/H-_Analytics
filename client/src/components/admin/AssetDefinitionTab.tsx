@@ -92,8 +92,8 @@ function CurrencyInput({ value, onChange }: { value: number; onChange: (v: numbe
         setLocal(raw ? Number(raw).toLocaleString() : "");
       }}
       onBlur={() => {
-        const num = Number(local.replace(/[^0-9]/g, "")) || 0;
-        onChange(num);
+        const parsed = Number(local.replace(/[^0-9]/g, ""));
+        onChange(Number.isFinite(parsed) ? parsed : 0);
       }}
       className="h-7 text-xs bg-card w-[110px] text-right tabular-nums"
     />
@@ -106,7 +106,10 @@ function NumberInput({ value, onChange, step }: { value: number; onChange: (v: n
       type="number"
       value={value}
       step={step || 1}
-      onChange={(e) => onChange(Number(e.target.value) || 0)}
+      onChange={(e) => {
+        const parsed = Number(e.target.value);
+        onChange(Number.isFinite(parsed) ? parsed : 0);
+      }}
       className="h-7 text-xs bg-card w-[80px] text-right tabular-nums"
     />
   );

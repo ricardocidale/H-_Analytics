@@ -38,7 +38,7 @@ export function ActivityLogList({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const queryClient = useQueryClient();
 
-  const activeSessionsCount = loginLogs?.filter(l => !l.logoutAt).length || 0;
+  const activeSessionsCount = loginLogs?.filter(l => !l.logoutAt).length ?? 0;
 
   const filteredLogs = loginLogs?.filter(log => {
     if (loginLogUserFilter && String(log.userId) !== loginLogUserFilter) return false;
@@ -52,7 +52,7 @@ export function ActivityLogList({
         <CardHeader className="relative">
           <CardTitle className="text-base font-semibold text-foreground">Login Activity</CardTitle>
           <CardDescription className="label-text">
-            {loginLogs?.length || 0} login records | {activeSessionsCount} active sessions
+            {loginLogs?.length ?? 0} login records | {activeSessionsCount} active sessions
           </CardDescription>
         </CardHeader>
 

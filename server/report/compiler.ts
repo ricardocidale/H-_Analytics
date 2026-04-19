@@ -140,7 +140,7 @@ function buildTableRows(
       : r.isBold
         ? "total"
         : ("data" as "header" | "data" | "total"),
-    indent: r.indent || 0,
+    indent: r.indent ?? 0,
     format: r.format,
   }));
 }
@@ -305,7 +305,8 @@ export function compileReport(input: CompileInput): ReportDefinition {
   }
 
   if (input.chartScreenshots?.length) {
-    const insertIdx = sections.findIndex(s => s.kind === "kpi") + 1 || 0;
+    const kpiIdx = sections.findIndex(s => s.kind === "kpi");
+    const insertIdx = kpiIdx >= 0 ? kpiIdx + 1 : 0;
     const imageSections: ReportSection[] = input.chartScreenshots.map(ss => ({
       kind: "image" as const,
       title: ss.title,

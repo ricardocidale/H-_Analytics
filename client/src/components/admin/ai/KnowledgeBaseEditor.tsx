@@ -337,7 +337,10 @@ export default function KnowledgeBaseEditor() {
                         min={0}
                         max={100}
                         value={newPriority}
-                        onChange={e => setNewPriority(parseInt(e.target.value) || 0)}
+                        onChange={e => {
+                          const parsed = parseInt(e.target.value);
+                          setNewPriority(Number.isFinite(parsed) ? parsed : 0);
+                        }}
                         className="text-sm bg-card border-border"
                         data-testid="input-kb-new-priority"
                       />
@@ -481,7 +484,10 @@ export default function KnowledgeBaseEditor() {
                             min={0}
                             max={100}
                             value={editPriority}
-                            onChange={e => setEditPriority(parseInt(e.target.value) || 0)}
+                            onChange={e => {
+                              const parsed = parseInt(e.target.value);
+                              setEditPriority(Number.isFinite(parsed) ? parsed : 0);
+                            }}
                             className="bg-card border-border text-sm"
                             data-testid={`input-edit-priority-${entry.id}`}
                           />

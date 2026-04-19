@@ -297,7 +297,7 @@ export async function queryChunks(
       metadata: Record<string, string | number | boolean>;
       score: number;
     }>(sql, [namespace, literal, JSON.stringify(filter), topK]);
-    return rows.map((r) => ({ id: r.id, score: Number(r.score) || 0, metadata: r.metadata ?? {} }));
+    return rows.map((r) => ({ id: r.id, score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), metadata: r.metadata ?? {} }));
   }
 
   const sql = `
@@ -311,7 +311,7 @@ export async function queryChunks(
     metadata: Record<string, string | number | boolean>;
     score: number;
   }>(sql, [namespace, literal, topK]);
-  return rows.map((r) => ({ id: r.id, score: Number(r.score) || 0, metadata: r.metadata ?? {} }));
+  return rows.map((r) => ({ id: r.id, score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), metadata: r.metadata ?? {} }));
 }
 
 export async function deleteVectors(
@@ -372,7 +372,7 @@ export async function multiNamespaceQuery(
         }
         return rows.map((r) => ({
           id: r.id,
-          score: Number(r.score) || 0,
+          score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0),
           metadata: r.metadata ?? {},
           namespace: ns,
         }));

@@ -92,8 +92,8 @@ export default function DatabaseTab() {
     onSuccess: (data) => {
       setCanonicalResult(data);
       setCanonicalConfirmOpen(false);
-      const total = (data.usersFixed || 0) + (data.orphanedFeeCategoriesDeleted || 0) +
-        (data.orphanedResearchDeleted || 0) + (data.scenariosCleaned || 0) + (data.feeCategoriesFixed || 0);
+      const total = (data.usersFixed ?? 0) + (data.orphanedFeeCategoriesDeleted ?? 0) +
+        (data.orphanedResearchDeleted ?? 0) + (data.scenariosCleaned ?? 0) + (data.feeCategoriesFixed ?? 0);
       toast({
         title: "Canonical Sync Complete",
         description: total > 0 ? `${total} item(s) corrected` : "Everything already in sync",

@@ -98,7 +98,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
-      toast({ title: "All Access Removed", description: `Removed ${(data.sharesRemoved || 0) + (data.accessRemoved || 0)} access grant(s)` });
+      toast({ title: "All Access Removed", description: `Removed ${(data.sharesRemoved ?? 0) + (data.accessRemoved ?? 0)} access grant(s)` });
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });

@@ -238,7 +238,7 @@ export default function UsersTab() {
               </Tooltip>
             </div>
             <CardDescription className="label-text">
-              {users?.length || 0} registered users
+              {users?.length ?? 0} registered users
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
