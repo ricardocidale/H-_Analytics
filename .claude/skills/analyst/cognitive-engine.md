@@ -67,7 +67,7 @@ The `CognitiveRequest` shape is scoped to what a Specialist actually needs (surf
 ## What the Engine gives you back
 
 - Streaming `CognitiveResult` events, including the phase narration the UI renders.
-- Structured output via `research-value-extractor.ts` → `assumption_guidance` rows.
+- Structured output via `synthesisOutputToLegacyJson` (in `synthesis-schema.ts`) → `assumption_guidance` rows (legacy extractor retired in OT-A.4, `7da9f25a`).
 - `qualityScore` inputs the Specialist can pass to the Quality Scorer (see `quality-scoring.md`).
 - `cognitiveRunId` the Specialist attaches to its `AnalystVerdict.meta` for audit trail.
 

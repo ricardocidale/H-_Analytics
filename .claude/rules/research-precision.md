@@ -33,5 +33,5 @@ Config stored in `global_assumptions.researchConfig` (JSONB). Loaded in `server/
 ## When Adding Research Skills
 
 - Keep skill under 60 lines; include `confidence` field on every recommended value
-- Output schema must match `extractResearchValues()` in `server/ai/aiResearch.ts`
+- Output schema must match `SynthesisOutputSchema` in `server/ai/synthesis-schema.ts` (retired `extractResearchValues()` in OT-A.4, `7da9f25a`)
 - Add unit tests in `tests/calc/`

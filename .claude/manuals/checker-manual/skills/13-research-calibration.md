@@ -108,8 +108,8 @@ After the LLM generates research recommendations, the system runs a deterministi
 
 The full research pipeline is:
 
-1. **LLM generates** structured research output (ADR range, occupancy range, cap rate, etc.)
-2. **`extractResearchValues()`** parses the LLM output into typed numeric fields
+1. **LLM generates** structured research output via Vercel AI SDK `streamObject` (ADR range, occupancy range, cap rate, etc.), typed as `SynthesisOutput`
+2. **`synthesisOutputToLegacyJson()`** in `server/ai/synthesis-schema.ts` adapts the output into the legacy nested envelope shape
 3. **`validateResearchValues()`** cross-checks extracted values against bound constraints and deterministic financial models
 4. **Valid values saved** to property; out-of-bounds values flagged with warnings
 

@@ -34,11 +34,12 @@ If you're not sure, load this skill. Cheap to skim, expensive to drift.
 | `buildAnalystVerdict()` factory | same | Frozen — mandatory for construction | Never hand-assemble `AnalystVerdict` objects |
 | `CONVICTION_FLOOR`, `MIN_SOURCES_FOR_ADVICE` | `shared/analyst-conviction.ts` | Frozen | Change = ADR (both consume + refine widely) |
 | `DataQualitySummary` | same | Frozen | Extend, don't narrow |
-| `CanonicalResearchField` enum (41 keys) | `server/ai/synthesis-schema.ts` | **Extensible** — add new fields carefully | Must mirror `server/ai/research-value-extractor.ts` keys + downstream consumers |
-| `FIELD_DEFINITIONS` (unit + denominator + scope per field) | same | Active — v3 as of `cd397044` | Must match what the **legacy extractor actually parses**, not textbook semantics |
-| `SynthesisOutputSchema` | same | In flight (OT-A.3) | Behind `USE_AI_SDK_SYNTHESIS` flag until A/B passes categorical gate |
+| `CanonicalResearchField` enum (41 keys) | `server/ai/synthesis-schema.ts` | **Extensible** — add new fields carefully | Must align with downstream consumers (`extractGuidance`, UI, Property.researchValues) |
+| `FIELD_DEFINITIONS` (unit + denominator + scope per field) | same | Active; rule: `.claude/rules/field-definitions-no-prescription-hints.md` bans typical-range hints | Describe unit + denominator + scope + evidence-source cues; no numeric range hints |
+| `SynthesisOutputSchema` | same | **Active (default)** — OT-A.4 flipped `USE_AI_SDK_SYNTHESIS=true` in `7da9f25a`; legacy extractor retired | Zod-validated; schema failures fall through to `ORCHESTRATOR_BOTH_FAILED` sentinel |
 | `NumericResearchValueSchema` | same | Frozen shape, field enum extensible | See FIELD_DEFINITIONS rule |
-| `toLegacyResearchValuesMap()` | same | Legacy-bridge helper | Retires when `research-value-extractor.ts` is deleted (OT-A.4) |
+| `synthesisOutputToLegacyJson()` | same | Common envelope adapter | Feeds `extractGuidance`, UI render, single-model fallback. Retires when all consumers migrate to `SynthesisOutput.values[]` directly |
+| `toLegacyResearchValuesMap()` | same | Legacy-bridge helper for `researchValues` persistence | Retained post-OT-A.4; converts `SynthesisOutput` → the `Record<string, ResearchValueEntry>` shape consumed by `Property.researchValues` |
 | `formatFieldDefinitionsForPrompt()` | same | Synthesis prompt helper | Reads from `FIELD_DEFINITIONS` — update the const, not the helper |
 
 ---
@@ -97,9 +98,9 @@ Note: **`save_anyway` is intentionally NOT in the union.** It's a UI-only ghost 
 
 ## SynthesisOutput — the Cognitive Engine structured-output contract
 
-**Status:** In flight (OT-A.3 v3). Ships at commit `cd397044`.
+**Status:** Active default post-OT-A.4 (commit `7da9f25a`). `USE_AI_SDK_SYNTHESIS=true` by default; legacy regex extractor retired.
 
-Opus emits this shape via Vercel AI SDK `streamObject`. Replaces the regex-based `research-value-extractor.ts` after OT-A.4 passes the A/B categorical gate.
+Opus emits this shape via Vercel AI SDK `streamObject`. The `synthesisOutputToLegacyJson()` adapter (also in `synthesis-schema.ts`) converts `SynthesisOutput` into the legacy nested envelope consumed by `extractGuidance`, UI render, and the single-model fallback.
 
 ```
 SynthesisOutput = {
@@ -115,9 +116,9 @@ Critical rule: **every `NumericResearchValue.field` must be a member of `CANONIC
 
 1. `CANONICAL_RESEARCH_FIELDS` array in `synthesis-schema.ts`
 2. `FIELD_DEFINITIONS` entry (unit + denominator + scope)
-3. Downstream consumer — `research-value-extractor.ts` (until OT-A.4) or the direct reader afterward
+3. Downstream consumers — `synthesisOutputToLegacyJson()` adapter + `extractGuidance` in `server/ai/guidance/extractor.ts`
 
-Ship all three in a single commit or the schema and extractor drift silently.
+Ship all three in a single commit or the schema and consumers drift silently.
 
 ---
 
@@ -125,16 +126,16 @@ Ship all three in a single commit or the schema and extractor drift silently.
 
 **The hardest-earned artifact in the Analyst system.** Pins unit + denominator + scope for every canonical field so Opus doesn't invent its own semantics.
 
-Derived from what `research-value-extractor.ts` **actually parses**, not from what textbook USALI says. Industry practice ≠ textbook; when they differ, industry practice wins because downstream consumers were built against it.
+Derived from industry practice (USALI conventions + Marriott/Hilton/Hyatt operator contract norms + what the legacy extractor historically parsed). Industry practice ≠ textbook; when they differ, industry practice wins because downstream consumers were built against it.
 
-**Two bugs already caught and fixed in v3:**
+**Two bugs already caught and fixed in v3 (pre-OT-A.4):**
 
-| Field | Wrong (v2) | Right (v3, what legacy emits) |
+| Field | Wrong (v2) | Right (v3+) |
 |---|---|---|
 | `rampMonths` | "calendar months between ramp steps" | "TOTAL months from opening to stabilized occupancy" |
 | `incentiveFee` | "% of TOTAL revenue" | "% of GOP (hospitality-standard)" |
 
-When adding or refining a definition: **read `research-value-extractor.ts` first** to see the exact parse path, then match semantics. Textbook interpretations get overridden by whatever the legacy path actually produces.
+When adding or refining a definition: grep `server/ai/guidance/extractor.ts` for the field's legacy path lookups (what extractGuidance reads from the envelope) and match the semantics, or consult the OT-A.3 history in `docs/operational-tooling/OT-A-3-*.md`. Rule `.claude/rules/field-definitions-no-prescription-hints.md` forbids numeric typical-range hints in the definition string.
 
 ---
 

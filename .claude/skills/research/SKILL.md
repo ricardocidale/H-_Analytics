@@ -402,15 +402,17 @@ Validation results are stored in `_validation` metadata. Warnings do NOT block s
 | `properties.research_values` | Lightweight badge values `{ display, mid, source }` | JSONB column on property |
 | pgvector | Embedded guidance vectors for cross-property similarity | Vector IDs linked to assumption_guidance |
 
-### Persistence Sequence (post-LLM)
-1. `parseResearchJSON()` → structured output
-2. `extractResearchValues()` → 25 badge entries
+### Persistence Sequence (post-LLM, post-OT-A.4)
+1. `streamObject({ schema: SynthesisOutputSchema })` → typed `SynthesisOutput`
+2. `synthesisOutputToLegacyJson()` in `server/ai/synthesis-schema.ts` → legacy nested envelope (common shape for UI + extractGuidance + single-model fallback)
 3. `validateResearchValues()` → bounds/cross-validation
 4. `storage.updateProperty()` → write to `properties.research_values`
 5. `extractGuidance()` → GuidanceRecord[] (25+ records)
 6. `storage.upsertAssumptionGuidance()` → insert/update guidance table
 7. `indexAssumptionGuidance()` → async pgvector indexing (fire-and-forget)
 8. `storage.upsertMarketResearch()` → write full JSON to `market_research`
+
+The regex-based `extractResearchValues()` + `parseResearchJSON()` path was retired in OT-A.4 (commit `7da9f25a`). The Vercel AI SDK `streamObject` is now the single synthesis path.
 
 ---
 

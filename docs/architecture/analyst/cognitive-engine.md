@@ -38,7 +38,7 @@ For the full mental model — phase-by-phase walkthrough, file references, desig
 | Staleness Detector | `server/ai/staleness-detector.ts` |
 | Context Packs | `server/ai/context-pack/*.ts` |
 | Prompt Builders | `server/ai/research-prompt-builders.ts`, `server/ai/research-tool-prompts.ts`, `server/ai/prompt/*.ts` |
-| Value Extractor | `server/ai/research-value-extractor.ts`, `server/ai/guidance/*.ts` |
+| Value Extractor | `server/ai/synthesis-schema.ts` (`synthesisOutputToLegacyJson` adapter), `server/ai/guidance/*.ts` |
 | Ambient Fetchers | `server/ai/ambient/*.ts` + `server/services/MarketIntelligenceAggregator.ts` |
 | LLM Plumbing | `server/ai/clients.ts`, `llm-registry-manager.ts`, `resolve-llm.ts`, `llm-recommender.ts`, `llm-health-probe.ts` |
 | Source Health | `server/ai/source-health-checker.ts` |

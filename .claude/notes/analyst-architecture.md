@@ -133,7 +133,7 @@ These outputs get bundled into `MarketIntelligence` via `server/services/MarketI
 
 ### Value extraction
 
-**`server/ai/research-value-extractor.ts`** + **`server/ai/guidance/{extractor,schemas}.ts`**. Parse the synthesized JSON into typed `assumption_guidance` records: one row per `(propertyId, fieldName, researchRunId)` with range (low/mid/high), confidence tier, data quality score, citations, and free-text reasoning. This is what hydrates the badges — `AnalystRangeIndicator.tsx` reads a guidance record and renders the range pill.
+**`synthesisOutputToLegacyJson()` in `server/ai/synthesis-schema.ts`** (the post-OT-A.4 common envelope adapter) + **`server/ai/guidance/{extractor,schemas}.ts`**. The adapter converts `SynthesisOutput` (typed Zod shape) to the legacy nested JSON envelope that `extractGuidance` consumes; the extractor parses it into typed `assumption_guidance` records: one row per `(propertyId, fieldName, researchRunId)` with range (low/mid/high), confidence tier, data quality score, citations, and free-text reasoning. This is what hydrates the badges — `AnalystRangeIndicator.tsx` reads a guidance record and renders the range pill. The regex-based `research-value-extractor.ts` this path replaced was retired in OT-A.4 (commit `7da9f25a`).
 
 **`dataQuality` JSONB** attached to each guidance record tracks source count, recency, consensus ratio, etc. This is what determines whether a range shows "High" / "Moderate" / "Developing" conviction.
 
@@ -223,7 +223,7 @@ If I were briefing a fresh Claude Code session on this code, I'd point them here
 6. **`server/ai/context-pack/property-pack.ts`** — see what context packs look like.
 7. **`server/routes/research.ts:147`** (POST handler) — see how the stream is wired to HTTP.
 8. **`calc/research/adr-projection.ts`** (or any one tool) — see what a deterministic tool looks like.
-9. **`server/ai/research-value-extractor.ts`** — see how synthesis output becomes DB rows.
+9. **`server/ai/synthesis-schema.ts`** (`synthesisOutputToLegacyJson`) + **`server/ai/guidance/extractor.ts`** — see how synthesis output becomes DB rows via the adapter + extractor pair.
 10. **`client/src/components/analyst/AnalystRangeIndicator.tsx`** — see how a DB row becomes a range pill.
 
 That path takes you from user intent through orchestration through math through storage through rendering. ~2 hours of reading.
