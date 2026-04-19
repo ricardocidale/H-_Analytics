@@ -22,7 +22,7 @@
 
 import { getAnthropicClient, getGeminiClient, getOpenAIClient } from "./clients";
 import { getAiSdkAnthropic } from "./ai-sdk-clients";
-import { SynthesisOutputSchema, formatFieldDefinitionsForPrompt } from "./synthesis-schema";
+import { SynthesisOutputSchema, formatFieldDefinitionsForPrompt, synthesisOutputToLegacyJson } from "./synthesis-schema";
 import { streamObject } from "ai";
 import { generateResearchWithTools } from "./aiResearch";
 import {
@@ -414,30 +414,37 @@ export async function* orchestrateResearch(
 
   yield { type: "phase", data: `Synthesizing with ${SYNTHESIS_MODEL}…` };
 
-  const useStructuredOutput = process.env.USE_AI_SDK_SYNTHESIS === "true";
-  const systemPrompt = buildSynthesisSystemPrompt(params, singlePanelMode, useStructuredOutput);
+  // OT-A.4: structured-output prompt is now the only synthesis path.
+  const systemPrompt = buildSynthesisSystemPrompt(params, singlePanelMode, true);
   const baseUserPrompt = await buildSynthesisUserPrompt(params, panelA, panelB, validation, priorResearch, v2Prompt);
   const userPrompt = propertyUrlContext ? baseUserPrompt + propertyUrlContext : baseUserPrompt;
 
-  // OT-A.3 — Synthesis path is gated by USE_AI_SDK_SYNTHESIS. Default OFF so
-  // production keeps using the proven anthropic.messages.stream() path. Flip
-  // ON in dev to A/B-test the Vercel-AI-SDK + AI-Gateway streamObject() path
-  // that returns Zod-validated structured output (SynthesisOutputSchema).
-  // Both paths preserve the OT-A.1 ephemeral cache_control on the system
-  // prompt. Both yield SSE events of shape { type: "content", data: string }.
-  // Both populate `fullContent` so the downstream vector-store indexing block
-  // is path-agnostic. OT-A.4 will retire the legacy `else` branch once the
-  // A/B parity criteria in docs/operational-tooling/OT-A-3-ab-results.md
-  // are met.
+  // OT-A.4 — Synthesis runs through the Vercel AI SDK `streamObject` path
+  // exclusively. Returns a Zod-validated SynthesisOutput, which we then
+  // adapt to the legacy nested-JSON envelope via `synthesisOutputToLegacyJson`.
+  // The route layer + extractGuidance + UI all consume that envelope shape,
+  // identical to what pre-OT-A.3 Opus emitted as free-form JSON.
+  //
+  // Streaming-shape note: we DO NOT stream `JSON.stringify(partial)` per
+  // tick. The route's `fullContent += chunk.data` accumulator would
+  // concatenate every snapshot into a corrupt string. We forward a
+  // `phase` event for UI progress, then yield ONE terminal `content`
+  // event with the legacy envelope so `parseResearchJSON` produces the
+  // structured object downstream code expects.
 
   let fullContent = "";
 
-  if (process.env.USE_AI_SDK_SYNTHESIS === "true") {
-    // New path: Vercel AI SDK streamObject via AI Gateway. Returns Zod-
-    // validated SynthesisOutput. We stringify each partial snapshot from
-    // partialObjectStream onto the existing `content` SSE channel — the
-    // shape stays compatible; OT-A.4 migrates the client to consume the
-    // structured object directly.
+  yield { type: "phase", data: "Synthesizing structured research output…" };
+
+  // OT-A.4: streamObject path is now exclusive. Any failure here (network,
+  // provider error, or — most importantly — Zod validation failure if Opus
+  // emits a value outside SynthesisOutputSchema bounds) is surfaced via the
+  // existing ORCHESTRATOR_BOTH_FAILED sentinel so routes/research.ts:502
+  // engages the single-model `generateResearchWithToolsStream` fallback
+  // identically to a dual-panel failure. Without this guard, a Zod parse
+  // failure would propagate as an uncaught exception and abort the SSE
+  // stream mid-flight.
+  try {
     const result = streamObject({
       model: getAiSdkAnthropic()(SYNTHESIS_MODEL),
       schema: SynthesisOutputSchema,
@@ -454,11 +461,15 @@ export async function* orchestrateResearch(
       maxOutputTokens: SYNTHESIS_TOKENS,
     });
 
-    for await (const partial of result.partialObjectStream) {
-      yield { type: "content", data: JSON.stringify(partial) };
+    // Drain the partial stream for backpressure but do not forward — the
+    // partials are not legacy-shape envelopes and would corrupt fullContent.
+    for await (const _partial of result.partialObjectStream) {
+      void _partial;
     }
     const finalObject = await result.object;
-    fullContent = JSON.stringify(finalObject);
+    const legacyEnvelope = synthesisOutputToLegacyJson(finalObject);
+    fullContent = JSON.stringify(legacyEnvelope);
+    yield { type: "content", data: fullContent };
 
     if (process.env.DEBUG_AI_CACHING === "1") {
       try {
@@ -477,43 +488,14 @@ export async function* orchestrateResearch(
         logger.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`, "orchestrator");
       }
     }
-  } else {
-    // Legacy path (unchanged): direct anthropic.messages.stream(). Preserves
-    // OT-A.1's ephemeral cache_control on the system prompt.
-    const anthropic = getAnthropicClient();
-    const stream = anthropic.messages.stream({
-      model:      SYNTHESIS_MODEL,
-      max_tokens: SYNTHESIS_TOKENS,
-      system: [
-        { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
-      ],
-      messages:   [{ role: "user", content: userPrompt }],
-    });
-
-    for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        yield { type: "content", data: event.delta.text };
-        fullContent += event.delta.text;
-      }
-    }
-
-    if (process.env.DEBUG_AI_CACHING === "1") {
-      try {
-        const finalMessage = await stream.finalMessage();
-        const usage = finalMessage.usage as {
-          input_tokens?: number;
-          output_tokens?: number;
-          cache_creation_input_tokens?: number;
-          cache_read_input_tokens?: number;
-        };
-        logger.info(
-          `[cache] synthesis usage: input=${usage.input_tokens ?? 0} output=${usage.output_tokens ?? 0} cache_create=${usage.cache_creation_input_tokens ?? 0} cache_read=${usage.cache_read_input_tokens ?? 0}`,
-          "orchestrator",
-        );
-      } catch (err) {
-        logger.warn(`[cache] failed to read synthesis usage: ${err instanceof Error ? err.message : err}`, "orchestrator");
-      }
-    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn(`Synthesis streamObject failed: ${msg}`, "orchestrator");
+    yield {
+      type: "error",
+      data: `ORCHESTRATOR_BOTH_FAILED: synthesis path failed (${msg.slice(0, 200)}) — falling back to single-model research.`,
+    };
+    return;
   }
 
   const knowledgeContributions = priorResearch

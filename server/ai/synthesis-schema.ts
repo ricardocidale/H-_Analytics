@@ -327,3 +327,242 @@ export function toLegacyResearchValuesMap(
   }
   return result;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Legacy nested-JSON adapter (OT-A.4)
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Converts a SynthesisOutput into the LEGACY nested-JSON shape that
+ * pre-OT-A.4 Opus emitted as free-form structured output. This adapter is
+ * the "common envelope" used by routes/research.ts so all downstream
+ * consumers — extractGuidance (server/ai/guidance/extractor.ts), the UI
+ * render of `parsed`, the single-model fallback path that still emits
+ * legacy-shape JSON — keep reading the same shape regardless of which
+ * synthesis path produced the values.
+ *
+ * **Architectural framing:** The canonical engine contract is
+ * `SynthesisOutput`. The route layer keeps the legacy nested JSON as its
+ * common serialization envelope. This adapter converts engine → envelope.
+ *
+ * **Retirement path:** When extractGuidance + UI render + single-model
+ * fallback all migrate to consume `SynthesisOutput.values[]` directly
+ * (likely Phase 5 specialist migrations or the ADR-004 verdict-cache
+ * reshape), this adapter retires too. Until then, deleting it would
+ * silently zero-out assumption-guidance persistence.
+ *
+ * **Path enumeration** — every legacy path that downstream consumers read
+ * (cross-checked against `extractFromPropertyResearch` in
+ * `server/ai/guidance/extractor.ts:202-303` AND the deleted-in-OT-A.4
+ * `extractResearchValues`):
+ *
+ *   Section nodes (extractGuidance reads valueLow/valueMid/valueHigh/display):
+ *     - adrAnalysis                               → adr
+ *     - occupancyAnalysis                         → occupancy
+ *     - capRateAnalysis                           → capRate
+ *     - cateringAnalysis                          → catering
+ *     - landValueAllocation                       → landValue
+ *     - operatingCostAnalysis.roomRevenueBased.housekeeping     → costHousekeeping
+ *     - operatingCostAnalysis.roomRevenueBased.fbCostOfSales    → costFB
+ *     - operatingCostAnalysis.totalRevenueBased.adminGeneral    → costAdmin
+ *     - operatingCostAnalysis.totalRevenueBased.propertyOps     → costPropertyOps
+ *     - operatingCostAnalysis.totalRevenueBased.utilities       → costUtilities
+ *     - operatingCostAnalysis.totalRevenueBased.ffeReserve      → costFFE
+ *     - operatingCostAnalysis.totalRevenueBased.marketing       → costMarketing
+ *     - operatingCostAnalysis.totalRevenueBased.it              → costIT
+ *     - operatingCostAnalysis.totalRevenueBased.other           → costOther
+ *     - propertyValueCostAnalysis.propertyTaxes                 → costPropertyTaxes
+ *     - managementServiceFeeAnalysis.incentiveFee               → incentiveFee
+ *     - managementServiceFeeAnalysis.serviceFeeCategories.{marketing, technologyReservations,
+ *           accounting, revenueManagement, generalManagement, procurement} → svcFee*
+ *     - incomeTaxAnalysis                          → incomeTax
+ *
+ *   Sub-string paths (legacy regex extractor read these; extractGuidance
+ *   maps a few — historical latent string-coercion bug carried forward,
+ *   out of scope for OT-A.4):
+ *     - adrAnalysis.recommendedGrowthRate          → adrGrowth
+ *     - occupancyAnalysis.initialOccupancy         → startOccupancy
+ *     - occupancyAnalysis.rampUpTimeline           → rampMonths (composed)
+ *     - occupancyAnalysis.recommendedGrowthStep    → occupancyStep
+ *     - capRateAnalysis.saleCommission             → saleCommission
+ *     - dispositionAnalysis.recommendedCommission  → saleCommission (alt)
+ *     - eventDemandAnalysis.recommendedRevenueShare → revShareEvents
+ *     - fbRevenueAnalysis.recommendedPercent       → revShareFB
+ *     - ancillaryRevenueAnalysis.recommendedPercent → revShareOther
+ *     - localEconomics.inflationRate               → inflationRate
+ *     - localEconomics.interestRate                → interestRate
+ *     - capitalStructureAnalysis.recommendedLTV    → ltv
+ *     - costSegregationAnalysis.{fiveYearPercent, sevenYearPercent,
+ *           fifteenYearPercent}                    → costSeg{5,7,15}yrPct
+ *     - workingCapitalAnalysis.{arDays, apDays}    → arDays, apDays (numeric)
+ *     - preOpeningAnalysis.estimatedCost           → preOpeningCosts ($-range)
+ *     - platformFeeAnalysis.recommendedRate        → platformFee
+ *
+ * **Unit convention:** SynthesisOutput emits PERCENTAGE values for `%`
+ * fields (e.g. mid=30 for 30%). Section-node `valueLow/valueMid/valueHigh`
+ * fields are populated as DECIMAL (mid/100) because extractGuidance's
+ * sanity bounds + cross-field rules are written in decimal. String
+ * fields (`display`, `recommendedRange`, `recommendedRate`) are emitted
+ * as-is — extractGuidance's `parsePct` handles the "30%" → 0.30
+ * conversion downstream.
+ */
+
+type LegacySection = {
+  recommendedRange?: string;
+  recommendedRate?: string;
+  valueLow?: number;
+  valueMid?: number;
+  valueHigh?: number;
+  display?: string;
+  reasoning?: string;
+  sourceName?: string;
+  sources?: string[];
+};
+
+type LegacyResearchJson = Record<string, unknown>;
+
+const PCT_FIELDS: Set<string> = new Set([
+  "adrGrowth", "occupancy", "startOccupancy", "occupancyStep", "catering",
+  "revShareFB", "revShareEvents", "revShareOther",
+  "capRate", "landValue", "saleCommission",
+  "costHousekeeping", "costFB", "costAdmin", "costMarketing",
+  "costPropertyOps", "costUtilities", "costFFE", "costIT", "costOther",
+  "costPropertyTaxes",
+  "incentiveFee",
+  "svcFeeMarketing", "svcFeeTechRes", "svcFeeAccounting",
+  "svcFeeRevMgmt", "svcFeeGeneralMgmt", "svcFeeProcurement",
+  "incomeTax", "inflationRate", "interestRate",
+  "ltv", "costSeg5yrPct", "costSeg7yrPct", "costSeg15yrPct",
+  "platformFee",
+]);
+
+function decimalScale(field: string, n: number): number {
+  return PCT_FIELDS.has(field) ? n / 100 : n;
+}
+
+function buildSection(v: NumericResearchValue): LegacySection {
+  return {
+    recommendedRange: v.display,
+    recommendedRate:  v.display,
+    valueLow:  decimalScale(v.field, v.low),
+    valueMid:  decimalScale(v.field, v.mid),
+    valueHigh: decimalScale(v.field, v.high),
+    display:   v.display,
+    reasoning: v.reasoning,
+    sourceName: v.sources[0],
+    sources:    v.sources,
+  };
+}
+
+function setPath(root: LegacyResearchJson, path: string[], value: unknown): void {
+  let cur: Record<string, unknown> = root;
+  for (let i = 0; i < path.length - 1; i++) {
+    const key = path[i];
+    if (!cur[key] || typeof cur[key] !== "object" || Array.isArray(cur[key])) {
+      cur[key] = {};
+    }
+    cur = cur[key] as Record<string, unknown>;
+  }
+  cur[path[path.length - 1]] = value;
+}
+
+/**
+ * Mapping from SynthesisOutput canonical field to its legacy nested-JSON
+ * destination. `kind: "section"` emits a full section object via
+ * buildSection(). `kind: "string"` emits the display string at the path.
+ */
+type FieldMapping =
+  | { kind: "section"; path: string[] }
+  | { kind: "string"; path: string[] }
+  | { kind: "number"; path: string[] };
+
+const FIELD_TO_LEGACY_PATH: Record<CanonicalResearchField, FieldMapping> = {
+  // Section nodes
+  adr:                { kind: "section", path: ["adrAnalysis"] },
+  occupancy:          { kind: "section", path: ["occupancyAnalysis"] },
+  capRate:            { kind: "section", path: ["capRateAnalysis"] },
+  catering:           { kind: "section", path: ["cateringAnalysis"] },
+  landValue:          { kind: "section", path: ["landValueAllocation"] },
+  costHousekeeping:   { kind: "section", path: ["operatingCostAnalysis", "roomRevenueBased", "housekeeping"] },
+  costFB:             { kind: "section", path: ["operatingCostAnalysis", "roomRevenueBased", "fbCostOfSales"] },
+  costAdmin:          { kind: "section", path: ["operatingCostAnalysis", "totalRevenueBased", "adminGeneral"] },
+  costPropertyOps:    { kind: "section", path: ["operatingCostAnalysis", "totalRevenueBased", "propertyOps"] },
+  costUtilities:      { kind: "section", path: ["operatingCostAnalysis", "totalRevenueBased", "utilities"] },
+  costFFE:            { kind: "section", path: ["operatingCostAnalysis", "totalRevenueBased", "ffeReserve"] },
+  costMarketing:      { kind: "section", path: ["operatingCostAnalysis", "totalRevenueBased", "marketing"] },
+  costIT:             { kind: "section", path: ["operatingCostAnalysis", "totalRevenueBased", "it"] },
+  costOther:          { kind: "section", path: ["operatingCostAnalysis", "totalRevenueBased", "other"] },
+  costPropertyTaxes:  { kind: "section", path: ["propertyValueCostAnalysis", "propertyTaxes"] },
+  incentiveFee:       { kind: "section", path: ["managementServiceFeeAnalysis", "incentiveFee"] },
+  svcFeeMarketing:    { kind: "section", path: ["managementServiceFeeAnalysis", "serviceFeeCategories", "marketing"] },
+  svcFeeTechRes:      { kind: "section", path: ["managementServiceFeeAnalysis", "serviceFeeCategories", "technologyReservations"] },
+  svcFeeAccounting:   { kind: "section", path: ["managementServiceFeeAnalysis", "serviceFeeCategories", "accounting"] },
+  svcFeeRevMgmt:      { kind: "section", path: ["managementServiceFeeAnalysis", "serviceFeeCategories", "revenueManagement"] },
+  svcFeeGeneralMgmt:  { kind: "section", path: ["managementServiceFeeAnalysis", "serviceFeeCategories", "generalManagement"] },
+  svcFeeProcurement:  { kind: "section", path: ["managementServiceFeeAnalysis", "serviceFeeCategories", "procurement"] },
+  incomeTax:          { kind: "section", path: ["incomeTaxAnalysis"] },
+  preOpeningCosts:    { kind: "section", path: ["preOpeningAnalysis"] },
+
+  // Sub-string paths
+  adrGrowth:        { kind: "string", path: ["adrAnalysis", "recommendedGrowthRate"] },
+  startOccupancy:   { kind: "string", path: ["occupancyAnalysis", "initialOccupancy"] },
+  rampMonths:       { kind: "string", path: ["occupancyAnalysis", "rampUpTimeline"] },
+  occupancyStep:    { kind: "string", path: ["occupancyAnalysis", "recommendedGrowthStep"] },
+  saleCommission:   { kind: "string", path: ["dispositionAnalysis", "recommendedCommission"] },
+  revShareEvents:   { kind: "string", path: ["eventDemandAnalysis", "recommendedRevenueShare"] },
+  revShareFB:       { kind: "string", path: ["fbRevenueAnalysis", "recommendedPercent"] },
+  revShareOther:    { kind: "string", path: ["ancillaryRevenueAnalysis", "recommendedPercent"] },
+  inflationRate:    { kind: "string", path: ["localEconomics", "inflationRate"] },
+  interestRate:     { kind: "string", path: ["localEconomics", "interestRate"] },
+  ltv:              { kind: "string", path: ["capitalStructureAnalysis", "recommendedLTV"] },
+  costSeg5yrPct:    { kind: "string", path: ["costSegregationAnalysis", "fiveYearPercent"] },
+  costSeg7yrPct:    { kind: "string", path: ["costSegregationAnalysis", "sevenYearPercent"] },
+  costSeg15yrPct:   { kind: "string", path: ["costSegregationAnalysis", "fifteenYearPercent"] },
+  platformFee:      { kind: "string", path: ["platformFeeAnalysis", "recommendedRate"] },
+
+  // Numeric sub-paths
+  arDays:           { kind: "number", path: ["workingCapitalAnalysis", "arDays"] },
+  apDays:           { kind: "number", path: ["workingCapitalAnalysis", "apDays"] },
+};
+
+/**
+ * Adapter: SynthesisOutput → legacy nested JSON envelope.
+ *
+ * Used by routes/research.ts as the post-synthesis "common envelope" so
+ * extractGuidance, the UI render path, and the single-model fallback all
+ * read the same shape regardless of which synthesis path executed.
+ *
+ * See JSDoc above for path enumeration + retirement path.
+ */
+export function synthesisOutputToLegacyJson(output: SynthesisOutput): LegacyResearchJson {
+  const result: LegacyResearchJson = {};
+
+  for (const v of output.values) {
+    const mapping = FIELD_TO_LEGACY_PATH[v.field];
+    if (!mapping) continue;
+
+    if (mapping.kind === "section") {
+      setPath(result, mapping.path, buildSection(v));
+    } else if (mapping.kind === "string") {
+      setPath(result, mapping.path, v.display);
+    } else if (mapping.kind === "number") {
+      setPath(result, mapping.path, v.mid);
+    }
+  }
+
+  // Surface the consensus + key takeaways at the envelope root so any
+  // downstream consumer that wants to render the synthesis summary (or
+  // log it) can find it without reaching into the raw SynthesisOutput.
+  result._synthesis = {
+    consensusRatio: output.overall.consensusRatio,
+    keyTakeaways:   output.overall.keyTakeaways,
+  };
+
+  // Also embed the legacy `Record<field, {display, mid, source:"ai"}>` map
+  // at the envelope root so routes/research.ts can persist it to
+  // Property.researchValues (replacing the deleted extractResearchValues
+  // call site) without a second round-trip through the adapter.
+  result._researchValues = toLegacyResearchValuesMap(output);
+
+  return result;
+}

@@ -1,7 +1,7 @@
 import { db } from "../server/db";
 import { properties, globalAssumptions, marketResearch } from "../shared/schema";
 import { getAnthropicClient } from "../server/ai/clients";
-import { generateResearchWithToolsStream, parseResearchJSON, extractResearchValues } from "../server/ai/aiResearch";
+import { generateResearchWithToolsStream, parseResearchJSON } from "../server/ai/aiResearch";
 import { validateResearchValues } from "../calc/research/validate-research";
 import { getMarketIntelligenceAggregator } from "../server/services/MarketIntelligenceAggregator";
 import { eq, isNull } from "drizzle-orm";
@@ -62,9 +62,19 @@ async function generateAndSave(
 
   const parsed = parseResearchJSON(fullContent);
 
+  // OT-A.4: legacy `extractResearchValues` regex path retired. The
+  // canonical research-values map is now embedded at `parsed._researchValues`
+  // by the orchestrator's `synthesisOutputToLegacyJson` adapter when the
+  // structured-synthesis path runs. This script's single-model path
+  // (generateResearchWithToolsStream → parseResearchJSON) does NOT
+  // populate `_researchValues`, so the per-property persistence below is
+  // intentionally a no-op for the single-model path. Use the production
+  // route (orchestrator) for property-level researchValues persistence.
   if (type === "property" && propertyId && !parsed.rawResponse) {
-    const researchValues = extractResearchValues(parsed);
-    if (researchValues) {
+    const researchValues = (parsed as Record<string, unknown>)._researchValues as
+      | Record<string, { display: string; mid: number; source: "ai" }>
+      | undefined;
+    if (researchValues && Object.keys(researchValues).length > 0) {
       const [property] = await db.select().from(properties).where(eq(properties.id, propertyId));
       if (property) {
         const validated = validateResearchValues(researchValues, {

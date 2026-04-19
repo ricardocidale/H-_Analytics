@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { extractResearchValues } from "../../server/ai/research-value-extractor";
 import { validateResearchValues } from "../../calc/research/validate-research";
 import { buildPropertyContextPack } from "../../server/ai/context-pack/property-pack";
 import { assembleResearchPrompt } from "../../server/ai/prompt/assemble-research-prompt";
@@ -162,122 +161,10 @@ describe("Research Calibration", () => {
     });
   });
 
-  describe("T002: Expanded value extraction", () => {
-    it("extracts cost segregation percentages", () => {
-      const content = {
-        adrAnalysis: { recommendedRange: "$300-$400" },
-        costSegregationAnalysis: {
-          fiveYearPercent: "15%",
-          sevenYearPercent: "10%",
-          fifteenYearPercent: "20%",
-        },
-      };
-      const result = extractResearchValues(content);
-      expect(result).not.toBeNull();
-      expect(result!.costSeg5yrPct).toEqual({ display: "15%", mid: 15, source: "ai" });
-      expect(result!.costSeg7yrPct).toEqual({ display: "10%", mid: 10, source: "ai" });
-      expect(result!.costSeg15yrPct).toEqual({ display: "20%", mid: 20, source: "ai" });
-    });
-
-    it("extracts working capital AR/AP days", () => {
-      const content = {
-        adrAnalysis: { recommendedRange: "$300-$400" },
-        workingCapitalAnalysis: {
-          arDays: 30,
-          apDays: 45,
-        },
-      };
-      const result = extractResearchValues(content);
-      expect(result).not.toBeNull();
-      expect(result!.arDays).toEqual({ display: "30 days", mid: 30, source: "ai" });
-      expect(result!.apDays).toEqual({ display: "45 days", mid: 45, source: "ai" });
-    });
-
-    it("extracts working capital from string values", () => {
-      const content = {
-        adrAnalysis: { recommendedRange: "$300-$400" },
-        workingCapitalAnalysis: {
-          accountsReceivableDays: "25",
-          accountsPayableDays: "40",
-        },
-      };
-      const result = extractResearchValues(content);
-      expect(result).not.toBeNull();
-      expect(result!.arDays!.mid).toBe(25);
-      expect(result!.apDays!.mid).toBe(40);
-    });
-
-    it("extracts LTV recommendation", () => {
-      const content = {
-        adrAnalysis: { recommendedRange: "$300-$400" },
-        capitalStructureAnalysis: {
-          recommendedLTV: "65%",
-        },
-      };
-      const result = extractResearchValues(content);
-      expect(result).not.toBeNull();
-      expect(result!.ltv).toEqual({ display: "65%", mid: 65, source: "ai" });
-    });
-
-    it("extracts pre-opening cost estimate", () => {
-      const content = {
-        adrAnalysis: { recommendedRange: "$300-$400" },
-        preOpeningAnalysis: {
-          estimatedCost: "$50,000-$150,000",
-        },
-      };
-      const result = extractResearchValues(content);
-      expect(result).not.toBeNull();
-      expect(result!.preOpeningCosts!.mid).toBe(100000);
-    });
-
-    it("extracts platform fee for VRBO", () => {
-      const content = {
-        adrAnalysis: { recommendedRange: "$200-$300" },
-        platformFeeAnalysis: {
-          recommendedRate: "14%",
-        },
-      };
-      const result = extractResearchValues(content);
-      expect(result).not.toBeNull();
-      expect(result!.platformFee).toEqual({ display: "14%", mid: 14, source: "ai" });
-    });
-
-    it("extracts cost seg from capitalStructureAnalysis fallback", () => {
-      const content = {
-        adrAnalysis: { recommendedRange: "$300-$400" },
-        capitalStructureAnalysis: {
-          costSeg5yrPct: "12%",
-          costSeg7yrPct: "8%",
-          costSeg15yrPct: "18%",
-        },
-      };
-      const result = extractResearchValues(content);
-      expect(result).not.toBeNull();
-      expect(result!.costSeg5yrPct!.mid).toBe(12);
-      expect(result!.costSeg7yrPct!.mid).toBe(8);
-      expect(result!.costSeg15yrPct!.mid).toBe(18);
-    });
-
-    it("existing extraction fields still work", () => {
-      const content = {
-        adrAnalysis: { recommendedRange: "$400-$600", recommendedGrowthRate: "3%" },
-        occupancyAnalysis: { rampUpTimeline: "initial occupancy around 55-60%, reaching stabilized occupancy of 80-85% over 12-18 months" },
-        capRateAnalysis: { recommendedRange: "6-8%" },
-        operatingCostAnalysis: {
-          roomRevenueBased: { housekeeping: { recommendedRate: "25%" } },
-          totalRevenueBased: { adminGeneral: { recommendedRate: "8%" } },
-        },
-      };
-      const result = extractResearchValues(content);
-      expect(result).not.toBeNull();
-      expect(result!.adr!.mid).toBe(500);
-      expect(result!.occupancy!.mid).toBe(83);
-      expect(result!.capRate).toBeDefined();
-      expect(result!.costHousekeeping!.mid).toBe(25);
-      expect(result!.costAdmin!.mid).toBe(8);
-    });
-  });
+  // OT-A.4: T002 ("Expanded value extraction") block retired alongside
+  // server/ai/research-value-extractor.ts. Coverage of the field-extraction
+  // surface now lives in tests/ai/synthesis-to-legacy-adapter.test.ts,
+  // which exercises synthesisOutputToLegacyJson + extractGuidance end-to-end.
 
   describe("T005: Business-model validation context", () => {
     it("VRBO validation uses VRBO bounds for ADR", () => {

@@ -22,10 +22,15 @@
  *   cat server/ai/synthesis-schema.ts server/ai/research-prompt-builders.ts | sha256sum
  */
 
-export const ENGINE_VERSION = "v1-2026-04-20-b" as const;
+// OT-A.4: bump to v2 — synthesis-schema.ts gained the
+// `synthesisOutputToLegacyJson` adapter, which is a Cognitive Engine
+// semantic change (it defines how SynthesisOutput maps onto the legacy
+// envelope that extractGuidance + UI consume). Verdict cache must
+// cold-miss; ADR-004 invariant.
+export const ENGINE_VERSION = "v2-2026-04-20-a" as const;
 
 export const SYNTHESIS_FINGERPRINT =
-  "c821037f6d91ccdc1ddf69b571445b49da00082bd5f89efcd8ee3d0f8b082a81" as const;
+  "786aae354061bc8780e8f092a2dd78581c086b840a2ad0e032be383aa27d8769" as const;
 
 export const COGNITIVE_MODEL_VERSIONS = {
   analystA: "gemini-2.5-flash",

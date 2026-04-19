@@ -24,7 +24,17 @@ import {
   type SynthesisOutput,
   type LegacyResearchEntry,
 } from "../server/ai/synthesis-schema";
-import { extractResearchValues } from "../server/ai/research-value-extractor";
+// OT-A.4: `extractResearchValues` retired alongside `research-value-extractor.ts`.
+// This A/B harness is archival — kept for the OT-A.3 parity-results audit
+// trail. If re-run, replace this stub with the OT-A.4 adapter pathway:
+//   import { synthesisOutputToLegacyJson } from "../server/ai/synthesis-schema";
+//   const legacyEnvelope = synthesisOutputToLegacyJson(synthesisOutput);
+const extractResearchValues = (_content: Record<string, unknown>): null => {
+  throw new Error(
+    "ot-a-3-ab-harness.ts: extractResearchValues retired in OT-A.4. " +
+      "Adapt to use synthesisOutputToLegacyJson from synthesis-schema.ts before re-running.",
+  );
+};
 import { FORBIDDEN_VOICE_PATTERNS } from "../engine/analyst/voice/voice-renderer";
 
 const SYNTHESIS_MODEL = "claude-opus-4-6";

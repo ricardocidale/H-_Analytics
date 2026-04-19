@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { requireAuth, isApiRateLimited, checkPropertyAccess , getAuthUser } from "../auth";
 import { researchGenerateSchema, logActivity, logAndSendError } from "./helpers";
 import { fromZodError } from "zod-validation-error";
-import { generateResearchWithToolsStream, parseResearchJSON, extractResearchValues } from "../ai/aiResearch";
+import { generateResearchWithToolsStream, parseResearchJSON } from "../ai/aiResearch";
 import { orchestrateResearch, isOrchestratorAvailable, type OrchestratorModelOverrides } from "../ai/research-orchestrator";
 import { validateResearchValues } from "../../calc/research/validate-research";
 import { processNotificationEvent } from "../notifications/engine";
@@ -517,10 +517,17 @@ export function register(app: Express) {
       if (fullContent) {
         const parsed = parseResearchJSON(fullContent);
 
-        // Validate and extract research values for property research
+        // Validate and extract research values for property research.
+        // OT-A.4: the legacy regex-based `extractResearchValues` is gone.
+        // The orchestrator now embeds the canonical
+        // `Record<field, {display, mid, source:"ai"}>` map at
+        // `parsed._researchValues` via `synthesisOutputToLegacyJson`,
+        // sourced directly from the Zod-validated SynthesisOutput.
         if (type === "property" && propertyId && !parsed.rawResponse) {
-          const researchValues = extractResearchValues(parsed);
-          if (researchValues) {
+          const researchValues = parsed._researchValues as
+            | Record<string, { display: string; mid: number; source: "ai" }>
+            | undefined;
+          if (researchValues && Object.keys(researchValues).length > 0) {
             const property = await storage.getProperty(propertyId);
             if (property) {
               const validated = validateResearchValues(researchValues, {

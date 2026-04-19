@@ -101,4 +101,3 @@ export function parseResearchJSON(fullText: string): Record<string, any> {
 }
 
 export { loadSkill, loadToolDefinitions, buildUserPrompt, handleToolCall };
-export { extractResearchValues } from "./research-value-extractor.js";
