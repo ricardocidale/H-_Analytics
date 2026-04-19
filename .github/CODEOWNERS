@@ -1,0 +1,31 @@
+# CODEOWNERS — change-control gates for The Analyst architecture.
+#
+# GitHub uses last-match-wins. Patterns below are ordered general → specific.
+#
+# Owner placeholder is the org. Replace with a specific team handle
+# (e.g. @Norfolk-Group/analyst-architects) once one is created.
+
+# ---------------------------------------------------------------------------
+# The Analyst — engine, docs, decisions, skills, rules
+# ---------------------------------------------------------------------------
+
+# Engine code (skeleton today; Specialists, Router, Voice, Quality follow).
+/engine/analyst/                                    @Norfolk-Group/admins
+
+# Architecture spine + per-component specs + handoff briefs.
+/docs/architecture/ANALYST.md                       @Norfolk-Group/admins
+/docs/architecture/analyst/                         @Norfolk-Group/admins
+
+# Architecture decision records (any ADR is irreversible by design).
+/docs/architecture/decisions/                       @Norfolk-Group/admins
+
+# Analyst-domain rules and skills (.claude/ is Claude Code's authoritative
+# domain, but ownership review still flows through architects).
+/.claude/rules/the-analyst-persona.md               @Norfolk-Group/admins
+/.claude/rules/analyst-team.md                      @Norfolk-Group/admins
+/.claude/rules/analyst-verdict-contract.md          @Norfolk-Group/admins
+/.claude/skills/analyst/                            @Norfolk-Group/admins
+/.claude/notes/analyst-architecture.md              @Norfolk-Group/admins
+
+# Existing tab evaluators that will migrate into engine/analyst/surface/mgmt-co/.
+/engine/watchdog/                                   @Norfolk-Group/admins

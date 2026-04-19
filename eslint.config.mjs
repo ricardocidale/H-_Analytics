@@ -24,6 +24,29 @@ const NEW_BUG_GUARDS = [
   },
 ];
 
+// Internal Analyst team vocabulary. These names exist for code, docs, and skills
+// only; they must NEVER reach a user-facing string. Persona rule: the user only
+// ever sees "The Analyst" (singular). See:
+//   - .claude/rules/the-analyst-persona.md
+//   - .claude/rules/analyst-team.md
+//   - docs/architecture/ANALYST.md
+//   - docs/architecture/decisions/ADR-002-engine-analyst-skeleton.md
+const ANALYST_INTERNAL_VOCAB_PATTERN =
+  "Surface Specialist|Cognitive Engine|Surface Router|Voice Renderer|Quality Scorer";
+
+const ANALYST_INTERNAL_VOCAB_FORBIDDEN_IN_CLIENT = [
+  {
+    selector: `Literal[value=/${ANALYST_INTERNAL_VOCAB_PATTERN}/]`,
+    message:
+      "Internal Analyst team vocabulary (Surface Specialist / Cognitive Engine / Surface Router / Voice Renderer / Quality Scorer) is forbidden in user-facing code. The user only ever sees 'The Analyst'. See .claude/rules/the-analyst-persona.md.",
+  },
+  {
+    selector: `JSXText[value=/${ANALYST_INTERNAL_VOCAB_PATTERN}/]`,
+    message:
+      "Internal Analyst team vocabulary (Surface Specialist / Cognitive Engine / Surface Router / Voice Renderer / Quality Scorer) is forbidden in user-facing JSX. The user only ever sees 'The Analyst'. See .claude/rules/the-analyst-persona.md.",
+  },
+];
+
 // Files that pre-date these rules. They keep the financial rules at warn level
 // instead of error so CI does not break, but new code in them still gets
 // flagged in the editor. Clean up incrementally and remove from this list.
@@ -135,7 +158,14 @@ export default [
     },
     plugins: { "@typescript-eslint": tsPlugin },
     rules: {
-      "no-restricted-syntax": ["warn", ...FINANCIAL_RESTRICTED],
+      "no-restricted-syntax": [
+        "warn",
+        ...FINANCIAL_RESTRICTED,
+        // Internal Analyst team vocabulary is an ERROR-level violation even
+        // though the surrounding rules are warn — leaking team names to the
+        // user breaks the persona contract.
+        ...ANALYST_INTERNAL_VOCAB_FORBIDDEN_IN_CLIENT,
+      ],
       "@typescript-eslint/no-unused-vars": [
         "warn",
         {
