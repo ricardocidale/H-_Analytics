@@ -101,7 +101,7 @@ client/          React 18 frontend — 684 files, 116K lines
 shared/          Types, constants, schemas — 39 files, 7K lines
 tests/           Test suites (golden, proof, server) — 208 files, 56K lines
 docs/            Architecture, developer guide, research, planning
-.claude/         AI knowledge base (20 domains, 195 skills, 32 rules)
+.claude/         AI knowledge base (20 domains, 195 skills, 33 rules)
 ```
 
 **Key directories:**
