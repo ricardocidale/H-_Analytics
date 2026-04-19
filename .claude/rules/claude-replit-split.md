@@ -53,8 +53,20 @@ running UI, the live database, or deployment config.
    (or a `BLOCKED.md` sibling file) and stop — not improvise.
 3. **Every commit gets a `Surfaces: S?, S?, …` footer** so the reviewer
    can confirm dependency-surface coverage.
-4. **Type-check + test suite must pass after every commit** — both
-   agents enforce this. No deferred fixes.
+4. **Pre-commit verification is BLOCKING, not optional.** Every commit
+   (Claude or Replit) must pass all five gates in
+   `.claude/rules/pre-commit-verification.md`: `tsc --noEmit`, `npm run
+   lint`, vocabulary test, `npm run test:summary`, `npm run
+   verify:summary` (UNQUALIFIED). No `--no-verify`. No "I'll fix the
+   failing test in a follow-up." A failing gate means the commit does
+   not land — either root-cause it now or file a BLOCKED.md and escalate.
+5. **Before editing any file, read `cross-check-invariants.md`.** Every
+   edit touches multiple surfaces. The rule lists the invariant pairs
+   (change type X → also check Y) drawn from real failures we've hit.
+6. **Every handoff's "Verification" section is a checklist, not a
+   suggestion.** Replit must run every step listed in a handoff's
+   verification block. If a step is skipped, it must be explicitly
+   flagged in the completion report with the reason.
 
 ## When Claude CAN edit UI/DB files directly
 

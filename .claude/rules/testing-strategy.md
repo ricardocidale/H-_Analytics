@@ -55,9 +55,50 @@ npm run test:file -- <path>   # Single file
 npm run verify:summary        # Proof suite (must show UNQUALIFIED)
 ```
 
+## Pre-Commit Gate (mandatory)
+
+**Before every commit**, run the full five-gate verification from
+`.claude/rules/pre-commit-verification.md`. Tests are not something you
+run "when you remember" — they are the gate between "written code" and
+"committed code." A test failure means the commit does not land.
+
+## Contract Tests — catch cross-surface drift
+
+TypeScript already catches the easy cases (missing fields, wrong types).
+Contract tests catch the subtler ones:
+
+- **Shape assertions at boundaries** — when a client consumes an API
+  response, assert the full shape (not a subset). When a server returns
+  a typed response, validate against the schema. Use `satisfies` rather
+  than `as` for assignment-style typing so mismatches surface at compile.
+- **Seed-vs-schema parity** — for any schema column with a `.default()`,
+  at least one seed row must exercise it. Missing defaults silently
+  produce NULL in production.
+- **Type-to-consumer parity** — when exporting a type from `shared/`,
+  grep the consumers. If the field count diverges between the type and
+  the code that reads it, one of them is wrong.
+
+These tests live in `tests/proof/` and run as part of `verify:summary`.
+
+## Dead Code Detection
+
+Files that nothing imports are either half-finished implementations or
+abandoned migrations. Either way they mislead the next reader. When
+adding a file:
+
+- It must be imported by at least one code path that reaches production
+  OR be explicitly part of a test suite / admin script.
+- If a file is intentionally "pending wire-up" (rare), annotate at the
+  top with `// UNWIRED — blocking on: <reason>` so future audits know
+  why it's there.
+
+The `server/ai/kb/` directory (19 orphan files deleted in Phase 5B) is
+the canonical "do not do this" example.
+
 ## Test Quality Standards
 
 - Tests must be deterministic — no random data, no timing dependencies
 - Financial tests use `toBeCloseTo` for floating-point comparisons
 - Test names describe the business rule, not the implementation: "NOI equals GOP minus fees and taxes" not "function returns correct number"
 - Proof tests run automatically in the verification pipeline — failures produce ADVERSE opinion
+- **Never delete a failing test to "fix" it.** Either fix the code the test is asserting, or update the test with a written justification for why the assertion changed. Deleted tests are deleted guarantees.

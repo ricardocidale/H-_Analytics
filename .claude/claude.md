@@ -150,7 +150,7 @@ Quick rules:
 | Coding Conventions | `.claude/skills/coding-conventions/SKILL.md` | Naming, formatting, context reduction, error handling, type contracts |
 | Product Vision | `.claude/skills/product-vision/SKILL.md` | Product identity, design tenets, workflow, navigation, roles |
 | Vocabulary | `.claude/skills/vocabulary/SKILL.md` | Canonical terms, AI-as-colleague voice, forbidden words. **Read before writing any UI text.** |
-| Rules (22) | `.claude/rules/` | All behavioral constraints |
+| Rules (28) | `.claude/rules/` | All behavioral constraints. **Read `pre-commit-verification.md` and `cross-check-invariants.md` before any edit.** |
 
 ---
 
