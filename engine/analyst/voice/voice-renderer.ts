@@ -171,10 +171,11 @@ function humanField(field: string): string {
 function composeDimensionHeadline(inputs: VoiceRenderInputs): string {
   const { field, severity, range, qualityScore, intent, personaContext } = inputs;
 
-  // Below-floor guard: if a range is present but qualityScore is below the
-  // conviction floor, the renderer emits the developing-data voice with no
-  // range (the Router has already downgraded severity).
-  if (range !== null && qualityScore < CONVICTION_FLOOR) {
+  // Below-floor guard: any dimension whose qualityScore is below the
+  // conviction floor emits developing-data voice with no range. This
+  // covers both the "range passed in but weak" path and the Router's
+  // downgrade path (which passes range=null + severity=ok).
+  if (qualityScore < CONVICTION_FLOOR) {
     return `${humanField(field)} — developing data. The Analyst will refine this as more sources land.`;
   }
 
@@ -194,9 +195,9 @@ function composeDimensionHeadline(inputs: VoiceRenderInputs): string {
 }
 
 function composeDimensionDetail(inputs: VoiceRenderInputs): string | undefined {
-  const { evidence, range, qualityScore, intent } = inputs;
+  const { evidence, qualityScore, intent } = inputs;
   if (evidence.length === 0) return undefined;
-  if (range !== null && qualityScore < CONVICTION_FLOOR) return undefined;
+  if (qualityScore < CONVICTION_FLOOR) return undefined;
 
   const sourceList = evidence
     .slice(0, 3)
@@ -270,7 +271,6 @@ function enforceOrSanitize(text: string, field: string): string {
   if (!match) return text;
 
   if (process.env.NODE_ENV === "production") {
-    // eslint-disable-next-line no-console
     console.warn(`[voice-renderer] persona-violation field=${field} matched="${match.label}"`);
     return sanitize(text);
   }

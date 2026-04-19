@@ -24,7 +24,7 @@ function ev(overrides: Partial<Evidence> = {}): Evidence {
   };
 }
 
-const PERFECT_RANGE: VerdictRange = { low: 0.035, mid: 0.04, high: 0.045, unit: "%" };
+const PERFECT_RANGE: VerdictRange = { low: 0.0395, mid: 0.04, high: 0.0405, unit: "%" };
 
 describe("re-exports from shared/analyst-conviction", () => {
   it("re-exports point to the same constants", () => {
