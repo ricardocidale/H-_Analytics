@@ -8,6 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 20, 2026 — ADR-004 verdict cache drafted
+- **`docs/architecture/decisions/ADR-004-verdict-cache.md` drafted (Claude, Proposed status):** Content-addressed cache layered over existing `research_runs` + `assumption_guidance` (no new tables — adds `cache_key`, `cache_inputs_hash`, `superseded_at` columns). Two-axis TTL (time + `inputContextHash`). Automatic invalidation on property/global mutation + pgvector reindex. Miss path is stream-through with write-after.
+- **Phased plan:** 5A migrations (Replit) → 5B façade read path + engine-client.ts (Claude Code) → 5C write-after + invalidation hooks (Replit) → 5D observability pairs with PostHog handoff (Replit). Multi-tenant persona (N3) unblocked by the shape being persona-hash-agnostic.
+- **Expected savings ~80%** at current volume (~$125/day → ~$25/day); primary win is unlocking ambient/cross-portfolio UX that's cost-prohibitive today.
+- **SYSTEM-MODEL.md §9 N2 updated** with ADR-004 reference + phased plan. claude.md Phase 5 line points at ADR-004.
+- **Next up:** waiting on Replit for OT-A.3 v3 A/B rerun; ADR-004 stays Proposed until human steward accepts; Phase 5A migrations queue after acceptance.
+
 ## Session: April 20, 2026 — SYSTEM-MODEL.md canonical mental model
 - **`docs/architecture/SYSTEM-MODEL.md` written (Claude):** 11-section canonical business+technical mental model. Captures dual-entity mechanics (ManCo + SPVs), engine chain (Revenue→GOP→AGOP→NOI→ANOI), Analyst N+1 pipeline, cost economics (~$0.70/consult), 7 open architectural questions, and 11 next steps ranked by leverage (top 3: finish OT-A.3 v3 A/B → ship verdict-cache ADR → multi-tenant persona resolution).
 - **Verified engine facts anchored in doc:** `feeIncentive = Math.max(0, gop * ctx.incentiveFeeRate)` at `engine/property/property-engine.ts:174` — incentive fee is % of GOP, not total revenue. Owner priority hurdle gates fee (line 170); subordination defers it (185-195).

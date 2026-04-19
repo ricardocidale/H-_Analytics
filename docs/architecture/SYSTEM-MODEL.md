@@ -298,8 +298,8 @@ This section replaces ad-hoc TODO scattering. Each item has a size estimate (S/M
 **N1. Finish OT-A.3 v3 A/B rerun and unblock OT-A.4. (S, leverage 5.)**
 Pending on Replit. Re-runs the 20-case A/B with v3 `FIELD_DEFINITIONS` under the tightened categorical gate. Unblocks OT-A.4 (delete the legacy extractor, retire the old synthesis path). Gate: categorical gate passes (zero unit/denominator/scope errors); aggregate bucket-match ≥ 50%. Why top: it's the last blocking item on the SDK adoption track.
 
-**N2. Ship the verdict cache ADR. (M, leverage 5.)**
-Draft `docs/architecture/decisions/ADR-XXX-verdict-cache.md`. Key proposal: Redis or `pg_memo` table keyed on `(propertyId, fieldGroup, contextHash, personaId)` with TTL tied to staleness-detector output. Why top: it turns a $1K/day liability into a $50/day one at modest engineering cost and unblocks aggressive Analyst UX.
+**N2. Ship the verdict cache. (M, leverage 5.)**
+**ADR-004 drafted** at `docs/architecture/decisions/ADR-004-verdict-cache.md` (status: Proposed, April 20, 2026). Decision: content-addressed cache layered over existing `research_runs` + `assumption_guidance` (no new tables). Two-axis TTL (time + `inputContextHash`); automatic invalidation on property/global mutation and pgvector reindex; miss path is stream-through with write-after. Phased implementation: 5A migrations (Replit) → 5B façade read path (Claude Code) → 5C write-after + invalidation (Replit) → 5D observability (Replit, pairs with PostHog handoff). Why top: turns ~$125/day into ~$25/day at current volume and unlocks ambient/cross-portfolio UX patterns that are cost-prohibitive today.
 
 **N3. Multi-tenant persona resolution. (L, leverage 4.)**
 Follow-up to ADR-001. Replaces hardcoded persona with `resolvePersona(userId, orgId, propertyId)` returning a typed `AnalystPersona`. Gate: all existing verdict tests pass with a resolved persona path; new test suite covers 4+ persona combinations.

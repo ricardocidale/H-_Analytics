@@ -371,7 +371,7 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - ✅ Phase 3a — `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + ADR-003 + 53 tests (Claude Code, commits `d220f4b1`, `cc6d5a0e`). Contract frozen.
 - ✅ Phase 3b — Funding + Revenue Specialists backfilled to `AnalystVerdict`; `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten on the contract (Replit, commit `ee0c6573`). Five gates green.
 - ⏳ Phase 4 — build remaining Surface Specialists incrementally; Compensation ships first. Persona resolution (currently hardcoded L+B/luxury/US) + verdict-cache table are deferred follow-ups.
-- ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + orchestrator cache + research-history reindex + guidance↔engine seam doc
+- ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + **verdict cache (ADR-004 Proposed — `docs/architecture/decisions/ADR-004-verdict-cache.md`)** + research-history reindex + guidance↔engine seam doc
 
 **Parallel workstream — Operational Tooling (OT):**
 - ✅ OT-A.1 — Anthropic native prompt caching (Replit, `7326e28c`)
