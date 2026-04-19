@@ -90,34 +90,45 @@ real but the user-facing impact is small (T3 = small NPV). Decision:
 ship OT-A.4 with these on the watchlist; fix in OT-A.5 if the
 fixes for the bigger T2 biases naturally extend.
 
-## Pending validation — v5 A/B (Apr 19, ~$22)
+## v5 A/B result — 2026-04-19 16:53 (~$22)
 
-Three field anchors edited in `ed42d8ac`, fingerprint bumped in
-`d3c25e86`:
+**Run health:** 20/20 cases × 2 paths complete; schema 100%; voice 0;
+latency 1.63× (within ≤2× budget).
 
-  - `inflationRate` — country-CPI anchor (NEW pattern, not the
-    validated strip-hints pattern). Watch: must produce ≥3 unique
-    ranges across the 20 markets and pass mid±10% on ≥90% of cases.
-  - `svcFeeMarketing` — strip-hints + per-market reasoning
-    (validated pattern). Watch: ≥3 unique ranges.
-  - `svcFeeTechRes` — strip-hints + per-market reasoning
-    (validated pattern). Watch: ≥3 unique ranges.
+**Tier-based gate result vs v4 (delta in parens):**
+  - T1 **3/8 PASS** (-1 vs v4's 4/8) — `adrGrowth` flipped to FAIL
+    on stochastic noise (`±10% mid-hit` 80% < 90%; bias=unbiased-noise).
+  - T2 **8/17 PASS** (no change) — same 9 misses as v4.
+  - T3 **9/15 PASS** (-1 vs v4's 10/15) — `svcFeeAccounting` flipped
+    to FAIL on inclusion (35% < 80%, bias-down -39%).
+  - **Mode collapse gate: FAIL** — 4 fields uniq<3 (see below).
 
-**Success criteria for unblocking OT-A.4 (per user, this round):**
-  - T1 ≥ 7/8 fields pass (or 8/8 minus `adrGrowth` documented as
-    noise above)
-  - 0 mode-collapsed fields except the documented `incentiveFee`
-    exemption
+**v5 anchor outcomes (the 3 fields edited in `ed42d8ac`):**
 
-**If v5 fails on `inflationRate`:** the country-CPI anchor design
-itself may still be too prescriptive. Iteration plan in
-`BLOCKED-ota3-path3.md` "next steps."
+| Field | Pattern | v4 result | v5 result | Verdict |
+|---|---|---|---|---|
+| `inflationRate` | country-CPI anchor (NEW pattern) | mid±10% 35%, 2 unique, bias-down | bucket **5%**, mid±10% **10%**, 6 unique, **bias-down** | **REGRESSED**. Anchor produced more unique ranges (good) but broke verdict-parity entirely (bad). The country-CPI guidance is steering Opus toward a *different* anchor than legacy uses (legacy seems to use a US/global default). |
+| `svcFeeMarketing` | strip-hints + per-market reasoning (validated pattern) | inclusion 100%, 2 unique | inclusion 100%, **1 unique**, unbiased-noise | **REGRESSED to mode-collapse.** Pattern that worked for cost-seg fields did NOT generalize here. |
+| `svcFeeTechRes` | strip-hints + per-market reasoning (validated pattern) | inclusion 100%, 2 unique, bias-down | inclusion 100%, 2 unique, unbiased-noise | **NO CHANGE on uniqueness; bias gone** (smaller win than expected). |
 
-**If v5 fails on the svcFee* fields:** the strip-hints pattern is
-more robust than the country-anchor; a re-fail here would be
-surprising and warrants a deeper look at whether the legacy svcFee*
-extractor is itself emitting collapsed values (in which case the
-"fix" target should be the legacy baseline, not the new path).
+**Collateral regression:**
+  - `incentiveFee` (T1, accepted as 1-unique per D1): still mid±10% 80% but now flagged as a true mode-collapsed field by the gate (uniq=1). v5 did not change anything intentional here; this looks like stochastic regression in unrelated cases shifting the legacy distribution.
+  - `adrGrowth` (T1): flipped from PASS-borderline to FAIL on noise. Direction tag is `unbiased-noise` so technically a pass on the qualitative "ship despite this" bar — but the headline T1 score now reads 3/8 instead of 4/8.
+
+**Pattern-level lessons (input to OT-A.5 design):**
+  1. The strip-hints pattern is **not universal**. It worked for `costSeg5yrPct` / `costSeg15yrPct` (mechanism bug #2 fix in v3.3) but failed to budge `svcFeeMarketing`. Hypothesis: cost-seg has an obvious physical anchor (asset class table); svc-fees do not, so Opus regresses to a single industry-median number when hints are stripped.
+  2. The country-CPI anchor pattern is **net-harmful** for inflationRate as written. It increased uniqueness at the cost of verdict-parity. Either the wording must point at a *value* (e.g., "use most recent annual CPI from the country's central bank, default 2.5% if unknown") or the legacy baseline itself must be revisited (legacy may be hard-coded to 2.5% USA).
+
+**Verdict against OT-A.4 unblock criteria:**
+  - T1 ≥ 7/8: **FAIL** (3/8)
+  - 0 mode-collapsed (excl. incentiveFee): **FAIL** (`svcFeeMarketing` uniq=1, `costFB` uniq=2, `costSeg5yrPct` uniq=2, `svcFeeGeneralMgmt` uniq=2, `svcFeeTechRes` uniq=2)
+
+**OT-A.4 STATUS: BLOCKED.** v5 is a net regression. The existing
+3 anchor edits should be reverted or re-designed before any further
+spend. Recommend escalation back to user for OT-A.5 scoping.
+
+**v5 raw preserved at canonical path** (`OT-A-3-ab-raw.json`,
+mod 2026-04-19 16:53). v4 snapshot remains as `*-v4` suffix.
 
 ## Out-of-scope for OT-A.5 (parking)
 
