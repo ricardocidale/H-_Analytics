@@ -21,6 +21,9 @@
  */
 
 import { getAnthropicClient, getGeminiClient, getOpenAIClient } from "./clients";
+import { getAiSdkAnthropic } from "./ai-sdk-clients";
+import { SynthesisOutputSchema } from "./synthesis-schema";
+import { streamObject } from "ai";
 import { generateResearchWithTools } from "./aiResearch";
 import {
   createResearchClient,
@@ -377,48 +380,100 @@ export async function* orchestrateResearch(
   const baseUserPrompt = await buildSynthesisUserPrompt(params, panelA, panelB, validation, priorResearch, v2Prompt);
   const userPrompt = propertyUrlContext ? baseUserPrompt + propertyUrlContext : baseUserPrompt;
 
-  const anthropic = getAnthropicClient();
-
-  // Anthropic native prompt caching (OT-A.1):
-  // The synthesis system prompt (loadSkill + buildSynthesisSystemPrompt) is large
-  // and stable across calls within the same persona. Marking it as an `ephemeral`
-  // cache block lets repeated synthesis calls within Anthropic's cache window
-  // (~5 min) read the system prompt at ~10% of the standard input-token cost.
-  // First call writes the cache (cache_creation_input_tokens > 0); subsequent
-  // calls hit it (cache_read_input_tokens > 0). Set DEBUG_AI_CACHING=1 to log.
-  const stream = anthropic.messages.stream({
-    model:      SYNTHESIS_MODEL,
-    max_tokens: SYNTHESIS_TOKENS,
-    system: [
-      { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
-    ],
-    messages:   [{ role: "user", content: userPrompt }],
-  });
+  // OT-A.3 — Synthesis path is gated by USE_AI_SDK_SYNTHESIS. Default OFF so
+  // production keeps using the proven anthropic.messages.stream() path. Flip
+  // ON in dev to A/B-test the Vercel-AI-SDK + AI-Gateway streamObject() path
+  // that returns Zod-validated structured output (SynthesisOutputSchema).
+  // Both paths preserve the OT-A.1 ephemeral cache_control on the system
+  // prompt. Both yield SSE events of shape { type: "content", data: string }.
+  // Both populate `fullContent` so the downstream vector-store indexing block
+  // is path-agnostic. OT-A.4 will retire the legacy `else` branch once the
+  // A/B parity criteria in docs/operational-tooling/OT-A-3-ab-results.md
+  // are met.
 
   let fullContent = "";
 
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-      yield { type: "content", data: event.delta.text };
-      fullContent += event.delta.text;
-    }
-  }
+  if (process.env.USE_AI_SDK_SYNTHESIS === "true") {
+    // New path: Vercel AI SDK streamObject via AI Gateway. Returns Zod-
+    // validated SynthesisOutput. We stringify each partial snapshot from
+    // partialObjectStream onto the existing `content` SSE channel — the
+    // shape stays compatible; OT-A.4 migrates the client to consume the
+    // structured object directly.
+    const result = streamObject({
+      model: getAiSdkAnthropic()(SYNTHESIS_MODEL),
+      schema: SynthesisOutputSchema,
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+          providerOptions: {
+            anthropic: { cacheControl: { type: "ephemeral" } },
+          },
+        },
+        { role: "user", content: userPrompt },
+      ],
+      maxOutputTokens: SYNTHESIS_TOKENS,
+    });
 
-  if (process.env.DEBUG_AI_CACHING === "1") {
-    try {
-      const finalMessage = await stream.finalMessage();
-      const usage = finalMessage.usage as {
-        input_tokens?: number;
-        output_tokens?: number;
-        cache_creation_input_tokens?: number;
-        cache_read_input_tokens?: number;
-      };
-      logger.info(
-        `[cache] synthesis usage: input=${usage.input_tokens ?? 0} output=${usage.output_tokens ?? 0} cache_create=${usage.cache_creation_input_tokens ?? 0} cache_read=${usage.cache_read_input_tokens ?? 0}`,
-        "orchestrator",
-      );
-    } catch (err) {
-      logger.warn(`[cache] failed to read synthesis usage: ${err instanceof Error ? err.message : err}`, "orchestrator");
+    for await (const partial of result.partialObjectStream) {
+      yield { type: "content", data: JSON.stringify(partial) };
+    }
+    const finalObject = await result.object;
+    fullContent = JSON.stringify(finalObject);
+
+    if (process.env.DEBUG_AI_CACHING === "1") {
+      try {
+        const usage = await result.usage;
+        const provider = (await result.providerMetadata)?.anthropic as
+          | {
+              cacheCreationInputTokens?: number;
+              cacheReadInputTokens?: number;
+            }
+          | undefined;
+        logger.info(
+          `[cache] synthesis usage (ai-sdk): input=${usage?.inputTokens ?? 0} output=${usage?.outputTokens ?? 0} cache_create=${provider?.cacheCreationInputTokens ?? 0} cache_read=${provider?.cacheReadInputTokens ?? 0}`,
+          "orchestrator",
+        );
+      } catch (err) {
+        logger.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`, "orchestrator");
+      }
+    }
+  } else {
+    // Legacy path (unchanged): direct anthropic.messages.stream(). Preserves
+    // OT-A.1's ephemeral cache_control on the system prompt.
+    const anthropic = getAnthropicClient();
+    const stream = anthropic.messages.stream({
+      model:      SYNTHESIS_MODEL,
+      max_tokens: SYNTHESIS_TOKENS,
+      system: [
+        { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
+      ],
+      messages:   [{ role: "user", content: userPrompt }],
+    });
+
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        yield { type: "content", data: event.delta.text };
+        fullContent += event.delta.text;
+      }
+    }
+
+    if (process.env.DEBUG_AI_CACHING === "1") {
+      try {
+        const finalMessage = await stream.finalMessage();
+        const usage = finalMessage.usage as {
+          input_tokens?: number;
+          output_tokens?: number;
+          cache_creation_input_tokens?: number;
+          cache_read_input_tokens?: number;
+        };
+        logger.info(
+          `[cache] synthesis usage: input=${usage.input_tokens ?? 0} output=${usage.output_tokens ?? 0} cache_create=${usage.cache_creation_input_tokens ?? 0} cache_read=${usage.cache_read_input_tokens ?? 0}`,
+          "orchestrator",
+        );
+      } catch (err) {
+        logger.warn(`[cache] failed to read synthesis usage: ${err instanceof Error ? err.message : err}`, "orchestrator");
+      }
     }
   }
 
