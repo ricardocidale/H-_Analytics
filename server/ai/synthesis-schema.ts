@@ -200,9 +200,9 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
 
   // Capital structure
   ltv: { key: "ltv", unit: "%", denominator: "loan amount as % of property value (acquisition LTV)", description: "Loan-to-value ratio" },
-  costSeg5yrPct: { key: "costSeg5yrPct", unit: "%", denominator: "5-year MACRS class as % of PURCHASE PRICE (cost segregation split)", description: "Cost seg 5-yr class" },
-  costSeg7yrPct: { key: "costSeg7yrPct", unit: "%", denominator: "7-year MACRS class as % of PURCHASE PRICE", description: "Cost seg 7-yr class" },
-  costSeg15yrPct: { key: "costSeg15yrPct", unit: "%", denominator: "15-year MACRS class as % of PURCHASE PRICE", description: "Cost seg 15-yr class" },
+  costSeg5yrPct: { key: "costSeg5yrPct", unit: "%", denominator: "5-year MACRS class as % of BUILDING VALUE (depreciable basis = total project cost minus land allocation, per engine resolve-assumptions.ts:182 buildingValue * pct5). Typical 18–25%.", description: "Cost seg 5-yr class" },
+  costSeg7yrPct: { key: "costSeg7yrPct", unit: "%", denominator: "7-year MACRS class as % of BUILDING VALUE (depreciable basis, see costSeg5yrPct). Typical 5–12%.", description: "Cost seg 7-yr class" },
+  costSeg15yrPct: { key: "costSeg15yrPct", unit: "%", denominator: "15-year MACRS class as % of BUILDING VALUE (depreciable basis, see costSeg5yrPct). Typical 10–18%.", description: "Cost seg 15-yr class" },
   arDays: { key: "arDays", unit: "days", denominator: "accounts receivable days outstanding", description: "A/R days" },
   apDays: { key: "apDays", unit: "days", denominator: "accounts payable days outstanding", description: "A/P days" },
   preOpeningCosts: { key: "preOpeningCosts", unit: "$", denominator: "total pre-opening expense budget in DOLLARS (typical $200K–$2M for boutique-luxury)", description: "Pre-opening costs" },
