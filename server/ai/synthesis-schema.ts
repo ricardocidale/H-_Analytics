@@ -186,8 +186,8 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
 
   // Management fees
   incentiveFee: { key: "incentiveFee", unit: "%", denominator: "incentive management fee as % of GOP (Gross Operating Profit, hospitality-standard); NOT % of total revenue. Reason per-market from operator brand strength, owner negotiating leverage, and comparable management contracts; do NOT emit a generic textbook share of GOP", description: "Incentive management fee (% of GOP)" },
-  svcFeeMarketing: { key: "svcFeeMarketing", unit: "%", denominator: "service fee (marketing component) as % of TOTAL revenue", description: "Service fee — marketing" },
-  svcFeeTechRes: { key: "svcFeeTechRes", unit: "%", denominator: "service fee (technology + reservations) as % of TOTAL revenue", description: "Service fee — tech/reservations" },
+  svcFeeMarketing: { key: "svcFeeMarketing", unit: "%", denominator: "service fee (marketing component) as % of TOTAL revenue. Reason per-market from operator brand marketing co-op intensity, regional brand penetration, and comparable management contracts in this market; do NOT emit a generic textbook rate", description: "Service fee — marketing" },
+  svcFeeTechRes: { key: "svcFeeTechRes", unit: "%", denominator: "service fee (technology + reservations) as % of TOTAL revenue. Reason per-market from the operator's reservation-channel mix (brand.com share, GDS dependency), tech-stack intensity, and comparable management contracts; do NOT emit a generic textbook rate", description: "Service fee — tech/reservations" },
   svcFeeAccounting: { key: "svcFeeAccounting", unit: "%", denominator: "service fee (accounting) as % of TOTAL revenue", description: "Service fee — accounting" },
   svcFeeRevMgmt: { key: "svcFeeRevMgmt", unit: "%", denominator: "service fee (revenue management) as % of TOTAL revenue", description: "Service fee — revenue mgmt" },
   svcFeeGeneralMgmt: { key: "svcFeeGeneralMgmt", unit: "%", denominator: "service fee (general management) as % of TOTAL revenue", description: "Service fee — general mgmt" },
@@ -195,7 +195,7 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
 
   // Tax & macro
   incomeTax: { key: "incomeTax", unit: "%", denominator: "corporate income tax rate as % of taxable income", description: "Income tax rate" },
-  inflationRate: { key: "inflationRate", unit: "%", denominator: "annual CPI / general inflation (per year)", description: "Inflation rate" },
+  inflationRate: { key: "inflationRate", unit: "%", denominator: "annual CPI / general inflation for the property's country (per year). Reason per-market from the jurisdiction's IMF World Economic Outlook CPI projection or the local central bank's inflation target / latest CPI print — NOT a generic global average; do NOT emit a generic textbook rate", description: "Inflation rate" },
   interestRate: { key: "interestRate", unit: "%", denominator: "debt interest rate (annual, nominal)", description: "Interest rate on debt" },
 
   // Capital structure
