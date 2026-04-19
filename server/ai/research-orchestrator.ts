@@ -144,7 +144,10 @@ export { buildApiValidation } from "./research-validation";
 
 // ── Synthesis prompt ──────────────────────────────────────────────────────────
 
-function formatPanelForSynthesis(panel: AnalystPanel): string {
+// Exported for `tests/ai/orchestrator-fallback.test.ts` — the fallback
+// prompt regression harness (SYSTEM-MODEL.md §9 N9). Asserts the graceful-
+// degradation contract without a live LLM call.
+export function formatPanelForSynthesis(panel: AnalystPanel): string {
   if (panel.error) return `[Panel failed: ${panel.error}]`;
   return JSON.stringify(panel.output, null, 2).slice(0, 12_000);
 }
@@ -194,7 +197,10 @@ function formatPriorResearch(matches: Awaited<ReturnType<typeof retrieveSimilarR
     .join("\n\n");
 }
 
-function buildSynthesisSystemPrompt(
+// Exported for `tests/ai/orchestrator-fallback.test.ts` — verifies the
+// single-panel vs dual-panel guidance branches produce the expected prompt
+// shape when a Cognitive Panel fails.
+export function buildSynthesisSystemPrompt(
   params: ResearchParams,
   singlePanelMode: boolean,
   useStructuredOutput = false,
