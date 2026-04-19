@@ -104,7 +104,10 @@ export function registerModelConstantsRoutes(app: Express) {
       if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
 
-      const allOverrides = await storage.listModelConstantOverrides();
+      const [allOverrides, allCanonicals] = await Promise.all([
+        storage.listModelConstantOverrides(),
+        storage.listCanonicals(),
+      ]);
 
       const items = REGISTERED_CONSTANT_KEYS.map((key) => {
         const entry = MODEL_CONSTANTS_REGISTRY[key]!;
@@ -122,21 +125,22 @@ export function registerModelConstantsRoutes(app: Express) {
           country: localityForKey.country,
           subdivision: localityForKey.subdivision,
           overrides: allOverrides,
+          canonicals: allCanonicals,
         });
 
-        // Did the factory call fall back to the US baseline because the
-        // requested country has no entry of its own? Compute by checking the
-        // raw COUNTRY_DEFAULTS entry instead of relying on equality with the
-        // US value (which would false-positive when a country happens to
-        // share the US value).
+        // Did the resolved baseline fall back to the US (or to TS) because no
+        // direct canonical/TS entry exists for this country? The flag drives
+        // a "Using US baseline" badge in the admin UI.
         let factoryWasFallback = false;
         if (entry.locality !== "universal" && localityForKey.country) {
           const def = COUNTRY_DEFAULTS[localityForKey.country];
-          // For Phase 1 the only country-keyed key is `depreciationYears`.
-          // Reading via index keeps this generic for future country keys
-          // without per-key branches.
-          const directHit = def ? (def as unknown as Record<string, unknown>)[key] : undefined;
-          factoryWasFallback = directHit === undefined && localityForKey.country !== "United States";
+          const tsHit = def ? (def as unknown as Record<string, unknown>)[key] : undefined;
+          const canonicalHit = allCanonicals.find(
+            (c) => c.constantKey === key
+              && c.country === localityForKey.country
+              && c.countrySubdivision === (localityForKey.subdivision ?? null),
+          );
+          factoryWasFallback = !canonicalHit && tsHit === undefined && localityForKey.country !== "United States";
         }
 
         return {

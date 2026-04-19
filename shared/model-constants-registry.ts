@@ -1,62 +1,81 @@
 /**
  * Model Constants Registry — classifies every governed value with metadata.
  *
- * This registry is the single source of truth for:
+ * Single source of truth for:
  *   - Which constants exist (the canonical key list)
- *   - Whether a constant is universal or country-keyed
- *   - Whether a country-keyed constant additionally varies by US state
- *   - How to look up the factory baseline value (TS factory)
- *   - The "documentation" cited authority + helper text (re-uses GOVERNED_FIELDS where present)
+ *   - Whether a constant is universal, country-keyed, or country+state
+ *   - How to look up the TS factory baseline (last-resort fallback only —
+ *     the runtime resolver consults the DB canonical layer first)
+ *   - The cited authority + helper text for documentation
  *
- * It does NOT store values directly. Universal constants point at exports
- * from `shared/constants.ts`; country-keyed constants point into
- * `COUNTRY_DEFAULTS` / `US_STATE_DEFAULTS` in `shared/countryDefaults.ts`.
+ * Phase 2 scope (canonical-DB-first): seven keys registered.
+ *   universal:         daysPerMonth
+ *   country-keyed:     depreciationYears, countryRiskPremium, inflationRate, capitalGainsRate
+ *   country+state:     taxRate, costRateTaxes
  *
- * The runtime value comes from `getEffectiveConstant`
- * (see `shared/get-effective-constant.ts`), which layers DB overrides on top.
- *
- * Phase 1 scope: register the two existing GOVERNED_FIELDS
- * (`depreciationYears`, `daysPerMonth`). More constants can be migrated into
- * this registry incrementally without breaking callers — until the registry
- * holds an entry for a key, the helper still falls back to plain TS lookup.
+ * The TS values reached via `factoryValue` here serve only as a fallback
+ * when the DB canonical row for a locality is missing (e.g. an unseeded
+ * country). Authoritative values live in `model_constants` table; admins
+ * can update them without a deploy.
  */
 
 import { DAYS_PER_MONTH, GOVERNED_FIELDS, type GovernedFieldMeta } from "./constants";
 import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS, type CountryDefaults, type UsStateDefaults } from "./countryDefaults";
 
-/**
- * Locality of a constant:
- *   - "universal"     → one value worldwide (e.g. days per month)
- *   - "country"       → varies by country, no sub-divisions
- *   - "country+state" → country-keyed AND US has per-state overlays
- */
 export type ConstantLocality = "universal" | "country" | "country+state";
 
-/**
- * Where the factory value lives in TS. The registry exposes a getter so the
- * helper can resolve a (key, country, subdivision) tuple to a TS value
- * without each caller knowing the file layout.
- */
 export interface ConstantRegistryEntry {
-  /** Stable key as used in DB rows and admin UI. */
   key: string;
-  /** Display label for UI. */
   label: string;
-  /** Where the constant varies. */
   locality: ConstantLocality;
-  /** Documentation block (authority, helper text, reference URL). */
   meta: GovernedFieldMeta;
   /**
-   * Factory-value resolver. For "universal" → ignores arguments.
-   * For "country" / "country+state" → reads COUNTRY_DEFAULTS / US_STATE_DEFAULTS.
-   * Returns undefined if no factory value exists for that locality (e.g.
-   * unregistered country) — caller should treat as "not seeded".
+   * Factory-value resolver (TS fallback). For country/country+state keys,
+   * falls back to the United States baseline if the requested country has
+   * no entry. Returns undefined only when no US baseline is registered.
    */
   factoryValue(country?: string | null, subdivision?: string | null): unknown;
 }
 
 const depreciationYearsMeta = GOVERNED_FIELDS.depreciationYears!;
 const daysPerMonthMeta = GOVERNED_FIELDS.daysPerMonth!;
+
+/** Build a meta block for keys not yet present in GOVERNED_FIELDS. */
+function buildMeta(fieldName: string, authority: string, helperText: string, referenceUrl?: string): GovernedFieldMeta {
+  return {
+    fieldName,
+    authority,
+    helperText,
+    referenceUrl,
+  } as GovernedFieldMeta;
+}
+
+const taxRateMeta = buildMeta(
+  "Income tax rate",
+  "Country corporate income tax statute (federal + state where applicable)",
+  "Effective corporate income tax rate. For US, federal 21% plus state corporate tax.",
+);
+const costRateTaxesMeta = buildMeta(
+  "Property tax (% of revenue)",
+  "Local property/real-estate tax authority (municipal, state, or national)",
+  "Property/real-estate taxes as % of revenue, mapped to the USALI Property Taxes line.",
+);
+const countryRiskPremiumMeta = buildMeta(
+  "Country Risk Premium",
+  "Damodaran NYU Stern Country Risk Premium table (Jan 2026)",
+  "Equity risk premium add-on for the country, applied to the discount rate.",
+  "https://pages.stern.nyu.edu/~adamodar/",
+);
+const inflationRateMeta = buildMeta(
+  "Inflation rate",
+  "Country central bank long-run inflation target / IMF WEO outlook",
+  "Annual cost escalation rate. For dollarized economies (Argentina, El Salvador, Panama), reflects USD escalation, not local currency.",
+);
+const capitalGainsRateMeta = buildMeta(
+  "Capital gains tax rate",
+  "Country tax statute governing capital gains on real property",
+  "Tax rate applied to gains on disposal of the property.",
+);
 
 export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
   depreciationYears: {
@@ -77,26 +96,78 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     meta: daysPerMonthMeta,
     factoryValue: () => DAYS_PER_MONTH,
   },
+  taxRate: {
+    key: "taxRate",
+    label: taxRateMeta.fieldName,
+    locality: "country+state",
+    meta: taxRateMeta,
+    factoryValue: (country, subdivision) => {
+      if (country === "United States" && subdivision) {
+        const st: UsStateDefaults | undefined = US_STATE_DEFAULTS[subdivision];
+        if (st) return st.taxRate;
+      }
+      if (!country) return COUNTRY_DEFAULTS["United States"]!.taxRate;
+      const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
+      return def?.taxRate ?? COUNTRY_DEFAULTS["United States"]!.taxRate;
+    },
+  },
+  costRateTaxes: {
+    key: "costRateTaxes",
+    label: costRateTaxesMeta.fieldName,
+    locality: "country+state",
+    meta: costRateTaxesMeta,
+    factoryValue: (country, subdivision) => {
+      if (country === "United States" && subdivision) {
+        const st: UsStateDefaults | undefined = US_STATE_DEFAULTS[subdivision];
+        if (st) return st.costRateTaxes;
+      }
+      if (!country) return COUNTRY_DEFAULTS["United States"]!.costRateTaxes;
+      const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
+      return def?.costRateTaxes ?? COUNTRY_DEFAULTS["United States"]!.costRateTaxes;
+    },
+  },
+  countryRiskPremium: {
+    key: "countryRiskPremium",
+    label: countryRiskPremiumMeta.fieldName,
+    locality: "country",
+    meta: countryRiskPremiumMeta,
+    factoryValue: (country) => {
+      if (!country) return COUNTRY_DEFAULTS["United States"]!.countryRiskPremium;
+      const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
+      return def?.countryRiskPremium ?? COUNTRY_DEFAULTS["United States"]!.countryRiskPremium;
+    },
+  },
+  inflationRate: {
+    key: "inflationRate",
+    label: inflationRateMeta.fieldName,
+    locality: "country",
+    meta: inflationRateMeta,
+    factoryValue: (country) => {
+      if (!country) return COUNTRY_DEFAULTS["United States"]!.inflationRate;
+      const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
+      return def?.inflationRate ?? COUNTRY_DEFAULTS["United States"]!.inflationRate;
+    },
+  },
+  capitalGainsRate: {
+    key: "capitalGainsRate",
+    label: capitalGainsRateMeta.fieldName,
+    locality: "country",
+    meta: capitalGainsRateMeta,
+    factoryValue: (country) => {
+      if (!country) return COUNTRY_DEFAULTS["United States"]!.capitalGainsRate;
+      const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
+      return def?.capitalGainsRate ?? COUNTRY_DEFAULTS["United States"]!.capitalGainsRate;
+    },
+  },
 };
 
-/** All registered constant keys (Phase 1: depreciationYears, daysPerMonth). */
 export const REGISTERED_CONSTANT_KEYS = Object.keys(MODEL_CONSTANTS_REGISTRY);
 
-/**
- * Helper: does this country have a US-state overlay for this constant?
- * Currently only relevant for keys with locality === "country+state" + country === "United States".
- * (No country+state constants in Phase 1, but the helper is here for Phase 3.)
- */
 export function hasStateOverlay(key: string, country: string | null | undefined): boolean {
   const entry = MODEL_CONSTANTS_REGISTRY[key];
   return !!entry && entry.locality === "country+state" && country === "United States";
 }
 
-/**
- * Convenience: return the factory value at a locality WITHOUT consulting the
- * DB. Used by callers that explicitly want the "what would baseline say"
- * answer (e.g. the diff preview in Admin's regenerate flow).
- */
 export function getFactoryValue(
   key: string,
   country?: string | null,
@@ -107,5 +178,4 @@ export function getFactoryValue(
   return entry.factoryValue(country, subdivision);
 }
 
-// Re-export for convenience so callers can import everything from one place.
 export type { CountryDefaults, UsStateDefaults };

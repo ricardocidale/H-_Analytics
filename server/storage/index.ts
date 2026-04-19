@@ -45,6 +45,7 @@ import { CalcAuditStorage, type ICalcAuditStorage } from "./calc-audit";
 import { RenderSettingsStorage } from "./render-settings";
 import { PageVisitStorage } from "./page-visits";
 import { ModelConstantsStorage } from "./model-constants";
+import { ModelCanonicalsStorage } from "./model-canonicals";
 
 export interface IStorage extends
   UserStorage,
@@ -63,7 +64,8 @@ export interface IStorage extends
   ICalcAuditStorage,
   RenderSettingsStorage,
   PageVisitStorage,
-  ModelConstantsStorage {
+  ModelConstantsStorage,
+  ModelCanonicalsStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -87,12 +89,17 @@ export class DatabaseStorage implements IStorage {
   private renderSettingsStore = new RenderSettingsStorage();
   private pageVisitStore = new PageVisitStorage();
   private modelConstantsStore = new ModelConstantsStorage();
+  private modelCanonicalsStore = new ModelCanonicalsStorage();
 
-  // Model Constants (governed values — TS factory + DB override layer)
+  // Model Constants (governed values — DB canonical baseline + DB override layer + TS fallback)
   listModelConstantOverrides = this.modelConstantsStore.listModelConstantOverrides.bind(this.modelConstantsStore);
   findModelConstantOverride = this.modelConstantsStore.findModelConstantOverride.bind(this.modelConstantsStore);
   upsertModelConstantOverride = this.modelConstantsStore.upsertModelConstantOverride.bind(this.modelConstantsStore);
   deleteModelConstantOverride = this.modelConstantsStore.deleteModelConstantOverride.bind(this.modelConstantsStore);
+  listCanonicals = this.modelCanonicalsStore.listCanonicals.bind(this.modelCanonicalsStore);
+  findCanonical = this.modelCanonicalsStore.findCanonical.bind(this.modelCanonicalsStore);
+  upsertCanonical = this.modelCanonicalsStore.upsertCanonical.bind(this.modelCanonicalsStore);
+  deleteCanonical = this.modelCanonicalsStore.deleteCanonical.bind(this.modelCanonicalsStore);
 
   // Users
   getUserById = this.users.getUserById.bind(this.users);
