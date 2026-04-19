@@ -379,10 +379,19 @@ export async function* orchestrateResearch(
 
   const anthropic = getAnthropicClient();
 
+  // Anthropic native prompt caching (OT-A.1):
+  // The synthesis system prompt (loadSkill + buildSynthesisSystemPrompt) is large
+  // and stable across calls within the same persona. Marking it as an `ephemeral`
+  // cache block lets repeated synthesis calls within Anthropic's cache window
+  // (~5 min) read the system prompt at ~10% of the standard input-token cost.
+  // First call writes the cache (cache_creation_input_tokens > 0); subsequent
+  // calls hit it (cache_read_input_tokens > 0). Set DEBUG_AI_CACHING=1 to log.
   const stream = anthropic.messages.stream({
     model:      SYNTHESIS_MODEL,
     max_tokens: SYNTHESIS_TOKENS,
-    system:     systemPrompt,
+    system: [
+      { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
+    ],
     messages:   [{ role: "user", content: userPrompt }],
   });
 
@@ -392,6 +401,24 @@ export async function* orchestrateResearch(
     if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
       yield { type: "content", data: event.delta.text };
       fullContent += event.delta.text;
+    }
+  }
+
+  if (process.env.DEBUG_AI_CACHING === "1") {
+    try {
+      const finalMessage = await stream.finalMessage();
+      const usage = finalMessage.usage as {
+        input_tokens?: number;
+        output_tokens?: number;
+        cache_creation_input_tokens?: number;
+        cache_read_input_tokens?: number;
+      };
+      logger.info(
+        `[cache] synthesis usage: input=${usage.input_tokens ?? 0} output=${usage.output_tokens ?? 0} cache_create=${usage.cache_creation_input_tokens ?? 0} cache_read=${usage.cache_read_input_tokens ?? 0}`,
+        "orchestrator",
+      );
+    } catch (err) {
+      logger.warn(`[cache] failed to read synthesis usage: ${err instanceof Error ? err.message : err}`, "orchestrator");
     }
   }
 
