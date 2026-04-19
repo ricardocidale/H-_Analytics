@@ -216,7 +216,7 @@ async function exportCompanyFullWorkbook(
     const vendorCostByCategory: Record<string, number> = {};
     yearSlice.forEach((m: any) => {
       if (m.costOfCentralizedServices) {
-        for (const [catName, cat] of Object.entries(m.costOfCentralizedServices.byCategory) as any) {
+        for (const [catName, cat] of Object.entries(m.costOfCentralizedServices.byCategory) as Array<[string, { serviceModel: string; vendorCost: number }]>) {
           if (cat.serviceModel === 'centralized') {
             vendorCostByCategory[catName] = (vendorCostByCategory[catName] ?? 0) + cat.vendorCost;
           }

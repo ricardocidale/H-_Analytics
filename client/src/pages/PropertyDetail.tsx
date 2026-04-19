@@ -19,7 +19,7 @@ import { FinancialChart } from "@/components/ui/financial-chart";
 import { Link, useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExportDialog, type ExportVersion } from "@/components/ExportDialog";
+import { ExportDialog, type ExportVersion, type PremiumFormat } from "@/components/ExportDialog";
 import { loadExportConfig } from "@/lib/exportConfig";
 import { useExportSave } from "@/hooks/useExportSave";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
@@ -201,7 +201,7 @@ export default function PropertyDetail() {
         showVersionOption={exportType !== "chart"}
         allowShort={loadExportConfig().statements.allowShort}
         allowExtended={loadExportConfig().statements.allowExtended}
-        premiumFormat={exportType === "chart" ? "pdf" : exportType as any}
+        premiumFormat={exportType === "chart" ? "pdf" : exportType as PremiumFormat}
         suggestedFilename={
           exportType === 'chart'
             ? `${property.name} Chart`

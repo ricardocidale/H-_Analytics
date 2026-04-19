@@ -215,14 +215,14 @@ When we're done we'll optionally discuss whether to upgrade the rules from warni
 
 | Batch | Warnings targeted | Status | Commit |
 |---|---:|---|---|
-| 1 — unused vars + Math.pow | 24 | ✅ done (348 → 324) | (this commit) |
-| 2 — `as any` low-count files | ~30 | — | — |
+| 1 — unused vars + Math.pow | 24 | ✅ done (348 → 324) | `3e51bd46` |
+| 2 — `as any` low-count files | 18 | ✅ done (324 → 306) | (this commit) |
 | 3 — `as any` high-count files | ~30 | — | — |
 | 4 — `\|\| 0` non-financial | ~40 | — | — |
 | 5 — `\|\| 0` financial calculators | ~60 | — | — |
 | 6 — `\|\| 0` remaining client | ~50 | — | — |
 | 7 — `fetch()` timeouts | 6 | — | — |
 | 8 — misc cleanup | ~14 | — | — |
-| **Total** | **~348** | **24 / 348 complete** | — |
+| **Total** | **~348** | **42 / 348 complete** | — |
 
 Update this table when a batch commits. Copy the exact SHA and warning delta.

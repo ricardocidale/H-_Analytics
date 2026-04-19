@@ -288,7 +288,7 @@ export default function CompanyGuidance() {
       for (const field of group.fields) {
         const gKey = field.guidanceKey ?? field.key;
         const guidance = guidanceMap.get(gKey);
-        const value = (global as any)?.[field.key];
+        const value = (global as unknown as Record<string, unknown> | undefined)?.[field.key];
         const prov = getProvenance(value, guidance);
         if (prov.status === "validated") validated++;
         else if (prov.status === "review") review++;
@@ -381,7 +381,7 @@ export default function CompanyGuidance() {
                   {group.fields.map((field) => {
                     const value = field.key === "projectionYears"
                       ? projectionYears
-                      : (global as any)?.[field.key];
+                      : (global as unknown as Record<string, unknown> | undefined)?.[field.key];
                     const gKey = field.guidanceKey ?? field.key;
                     const guidance = guidanceMap.get(gKey);
                     const provenance = getProvenance(value, guidance);

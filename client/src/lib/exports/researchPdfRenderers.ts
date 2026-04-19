@@ -422,7 +422,7 @@ async function buildResearchDoc(options: ResearchExportOptions) {
   }
   void y;
 
-  const totalPages = (doc as any).internal.getNumberOfPages();
+  const totalPages = (doc as unknown as { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages();
   const pageH = doc.internal.pageSize.getHeight();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);

@@ -72,7 +72,7 @@ export function drawLineChart(options: DrawChartOptions): void {
     formatValue = (v) => `$${(v / 1_000_000).toFixed(1)}M`,
     brand: b,
   } = options;
-  const doc = docAny as any;
+  const doc = docAny;
 
   const FOREGROUND: RGB = b?.FOREGROUND_RGB ?? FALLBACK_BRAND.FOREGROUND_RGB;
   const BORDER: RGB = b?.BORDER_RGB ?? FALLBACK_BRAND.BORDER_RGB;

@@ -62,7 +62,18 @@ export default function PropertyMarketResearch() {
     );
   }
 
-  const content = research?.content as any;
+  type ResearchContentBag = {
+    modelId?: string;
+    sources?: { url?: string; label?: string; name?: string }[];
+    starRating?: number;
+    relaxationTrail?: string[];
+    tierUsed?: number;
+    compSetSize?: number;
+    comparableProperties?: unknown[];
+    rawResponse?: unknown;
+    [key: string]: unknown;
+  };
+  const content = research?.content as ResearchContentBag | undefined;
   const hasResearch = content && !content.rawResponse;
   const adrValue = property.startAdr ? Math.round(property.startAdr) : null;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -108,7 +119,7 @@ export default function PropertyMarketResearch() {
                           content,
                           updatedAt: research?.updatedAt,
                           llmModel: research?.llmModel || undefined,
-                          promptConditions: (research as any)?.promptConditions || undefined,
+                          promptConditions: (research as { promptConditions?: unknown })?.promptConditions || undefined,
                         }, f)),
                         testId: "button-export-research-pdf",
                       },

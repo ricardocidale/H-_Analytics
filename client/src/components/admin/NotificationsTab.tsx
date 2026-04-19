@@ -674,7 +674,7 @@ function VectorLatencyAlertsPanel() {
               </thead>
               <tbody>
                 {vectorLogs.map((log: any) => {
-                  const isTest = !!(log.metadata && (log.metadata as any).test);
+                  const isTest = !!(log.metadata && (log.metadata as { test?: boolean }).test);
                   return (
                     <tr
                       key={log.id}

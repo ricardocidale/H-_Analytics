@@ -271,7 +271,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                 <div className="flex justify-between items-center">
                   <ResearchContextFieldLabel
                     label={<>LTV <InfoTooltip text="Loan-to-Value ratio: the percentage of the purchase price financed by the lender. Higher LTV means less equity required but more debt service." /> <GaapBadge rule="ASC 470: Debt must be separated into interest expense (Income Statement) and principal repayment (Balance Sheet/Financing Activity). Only interest reduces taxable income." /></>}
-                    badgeProps={{ entry: researchValues.acqLtv, sourceType: researchValues.acqLtv?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqLtv as any)?.sourceName }}
+                    badgeProps={{ entry: researchValues.acqLtv, sourceType: researchValues.acqLtv?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqLtv as { sourceName?: string })?.sourceName }}
                     onApplyValue={() => researchValues.acqLtv && onChange("acquisitionLTV", researchValues.acqLtv.mid / 100)}
                     guidanceContext={gc("acqLtv", "Acquisition LTV")}
                     currentValue={draft.acquisitionLTV || DEFAULT_LTV} isPercent
@@ -297,7 +297,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                 <div className="flex justify-between items-center">
                   <ResearchContextFieldLabel
                     label={<>Interest Rate <InfoTooltip text="Annual interest rate on the acquisition loan. Determines monthly debt service payments." /></>}
-                    badgeProps={{ entry: researchValues.acqRate, sourceType: researchValues.acqRate?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqRate as any)?.sourceName }}
+                    badgeProps={{ entry: researchValues.acqRate, sourceType: researchValues.acqRate?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqRate as { sourceName?: string })?.sourceName }}
                     onApplyValue={() => researchValues.acqRate && onChange("acquisitionInterestRate", researchValues.acqRate.mid / 100)}
                     guidanceContext={gc("acqRate", "Acquisition Interest Rate")}
                     currentValue={draft.acquisitionInterestRate || DEFAULT_INTEREST_RATE} isPercent

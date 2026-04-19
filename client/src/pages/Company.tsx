@@ -24,7 +24,7 @@
  * page free of inline financial logic.
  */
 import React, { useState, useRef, useMemo, lazy, Suspense } from "react";
-import { ExportDialog, type ExportVersion, type PremiumExportPayload } from "@/components/ExportDialog";
+import { ExportDialog, type ExportVersion, type PremiumExportPayload, type PremiumFormat } from "@/components/ExportDialog";
 import { loadExportConfig } from "@/lib/exportConfig";
 import { useQuery } from "@tanstack/react-query";
 import { useExportSave } from "@/hooks/useExportSave";
@@ -239,7 +239,7 @@ export default function Company() {
       const incomeData = getStatementData('income', summaryOnly);
       const cashFlowData = getStatementData('cashflow', summaryOnly);
       const balanceData = getStatementData('balance', summaryOnly);
-      exportCompanyPDF(activeTab as any, incomeData, global, projectionYears, yearlyChartData, orientation, customFilename, brandingData?.themeColors ?? undefined, {
+      exportCompanyPDF(activeTab as "income" | "cashflow" | "balance", incomeData, global, projectionYears, yearlyChartData, orientation, customFilename, brandingData?.themeColors ?? undefined, {
         income: incomeData,
         cashflow: cashFlowData,
         balance: balanceData,
@@ -332,7 +332,7 @@ export default function Company() {
         showVersionOption={exportType !== "chart"}
         allowShort={loadExportConfig().statements.allowShort}
         allowExtended={loadExportConfig().statements.allowExtended}
-        premiumFormat={exportType === "chart" ? "pdf" : exportType as any}
+        premiumFormat={exportType === "chart" ? "pdf" : exportType as PremiumFormat}
         suggestedFilename={
           exportType === 'chart' ? `${companyName} Chart` : `${companyName} ${tabLabel}`
         }

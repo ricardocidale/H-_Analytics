@@ -71,8 +71,17 @@ export default function CompanyResearch() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isGenerating, streamedContent, generateResearch } = useCompanyResearchStream();
 
-  const companyContent = (companyRes?.content ?? {}) as any;
-  const globalContent = (globalRes?.content ?? {}) as any;
+  type ResearchContentBag = {
+    modelId?: string;
+    sources?: { url?: string; label?: string; name?: string }[];
+    starRating?: number;
+    relaxationTrail?: string[];
+    tierUsed?: number;
+    rawResponse?: unknown;
+    [key: string]: unknown;
+  };
+  const companyContent = (companyRes?.content ?? {}) as ResearchContentBag;
+  const globalContent = (globalRes?.content ?? {}) as ResearchContentBag;
   const hasCompany = companyContent && !companyContent.rawResponse;
   const hasGlobal = globalContent && !globalContent.rawResponse;
   const companyName = globalAssumptions?.companyName || "Management Company";

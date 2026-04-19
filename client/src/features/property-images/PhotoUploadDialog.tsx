@@ -66,7 +66,7 @@ export function PhotoUploadDialog({ open, onOpenChange, propertyId }: PhotoUploa
       setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, status: "uploading" } : item));
       try {
         const response = await uploadFile(items[i].file);
-        const objectPath = (response as any)?.objectPath;
+        const objectPath = (response as { objectPath?: string })?.objectPath;
         if (!objectPath) throw new Error("No object path returned");
 
         const hasCrop = !!items[i].crop;

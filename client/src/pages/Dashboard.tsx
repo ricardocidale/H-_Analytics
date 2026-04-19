@@ -43,7 +43,7 @@ import { IconAlertTriangle, IconDashboard, IconIncomeStatement, IconCashFlow, Ic
 import { PageHeader } from "@/components/ui/page-header";
 import { PROJECTION_YEARS } from "@/lib/constants";
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
-import { ExportDialog, type ExportVersion, type PremiumExportPayload } from "@/components/ExportDialog";
+import { ExportDialog, type ExportVersion, type PremiumExportPayload, type PremiumFormat } from "@/components/ExportDialog";
 import { loadExportConfig } from "@/lib/exportConfig";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { exportTablePNG } from "@/lib/exports/pngExport";
@@ -444,7 +444,7 @@ export default function Dashboard() {
         showVersionOption={exportType !== "chart"}
         allowShort={(() => { const cfg = loadExportConfig(); return activeTab === "overview" ? cfg.overview.allowShort : activeTab === "investment" ? cfg.analysis.allowShort : cfg.statements.allowShort; })()}
         allowExtended={(() => { const cfg = loadExportConfig(); return activeTab === "overview" ? cfg.overview.allowExtended : activeTab === "investment" ? cfg.analysis.allowExtended : cfg.statements.allowExtended; })()}
-        premiumFormat={exportType === "chart" ? "pdf" : exportType as any}
+        premiumFormat={exportType === "chart" ? "pdf" : exportType as PremiumFormat}
         suggestedFilename={TAB_LABELS[activeTab] || "Portfolio"}
         fileExtension={exportType === "chart" ? ".pdf" : `.${exportType}`}
         getPremiumExportData={exportType !== "chart" ? async (version: ExportVersion) => {

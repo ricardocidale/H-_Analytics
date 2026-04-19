@@ -44,7 +44,7 @@ export async function saveFile(blob: Blob, suggestedName: string): Promise<void>
 
   if (isRealBrowser() && "showSaveFilePicker" in window) {
     try {
-      const handle = await (window as any).showSaveFilePicker({
+      const handle = await (window as unknown as { showSaveFilePicker: (options: unknown) => Promise<{ createWritable: () => Promise<{ write: (b: Blob) => Promise<void>; close: () => Promise<void> }> }> }).showSaveFilePicker({
         suggestedName,
         types: [
           {
