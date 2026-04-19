@@ -221,8 +221,8 @@ When we're done we'll optionally discuss whether to upgrade the rules from warni
 | 4 — `\|\| 0` non-financial (admin UI + metadata + charts) | 34 | ✅ done (271 → 237) | (this commit) |
 | 5 — `\|\| 0` financial calculators | ~60 | ⏸ **pause for review — expected to surface NaN bugs** | — |
 | 6 — `\|\| 0` remaining client | ~50 | — | — |
-| 7 — `fetch()` timeouts | 6 | — | — |
+| 7 — `fetch()` timeouts | 6 | ✅ done (237 → 231) | (this commit) |
 | 8 — misc `as any` + misc | ~24 | — | — |
-| **Total** | **~348** | **111 / 348 complete (32%)** | — |
+| **Total** | **~348** | **117 / 348 complete (34%)** | — |
 
 Update this table when a batch commits. Copy the exact SHA and warning delta.

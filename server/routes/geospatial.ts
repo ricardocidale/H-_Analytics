@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { requireAuth, requireManagementAccess, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
 import { geocodeSchema, logAndSendError, parseRouteId } from "./helpers";
+import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 import { fromZodError } from "zod-validation-error";
 import {
   geocodeAddress,
@@ -117,7 +118,7 @@ export function register(app: Express) {
       const apiKey = process.env.GOOGLE_MAPS_API_KEY;
       if (apiKey) {
         const url = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${width}x${height}&maptype=satellite&markers=color:red|${lat},${lng}&key=${apiKey}`;
-        const response = await fetch(url);
+        const response = await fetchWithTimeout(url, undefined, 15_000);
         if (response.ok) {
           const contentType = response.headers.get("content-type") || "image/png";
           res.setHeader("Content-Type", contentType);

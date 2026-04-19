@@ -10,6 +10,7 @@ import { storage } from "../storage";
 import { MAX_UPLOAD_BYTES } from "../constants";
 import { logger } from "../logger";
 import { isBlockedHostResolved } from "./ssrf-guard";
+import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 
 const ALLOWED_CONTENT_TYPES = [
   "image/png", "image/jpeg", "image/jpg", "image/gif",
@@ -193,7 +194,7 @@ export function register(app: Express) {
               failed++;
               continue;
             }
-            const response = await fetch(photo.imageUrl);
+            const response = await fetchWithTimeout(photo.imageUrl, undefined, 30_000);
             if (!response.ok) { failed++; continue; }
             buffer = Buffer.from(await response.arrayBuffer());
             contentType = response.headers.get("content-type") || "image/jpeg";

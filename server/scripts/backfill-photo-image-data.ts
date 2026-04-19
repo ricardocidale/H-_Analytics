@@ -18,12 +18,13 @@ import { db } from "../db";
 import { propertyPhotos, properties } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../logger";
+import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 
 const BASE_URL = process.env.BASE_URL ?? "https://partner-portal-landb.replit.app";
 const TAG = "backfill-photo-image-data";
 
 async function fetchImageAsBase64(url: string): Promise<string> {
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url, undefined, 60_000);
   if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
   const buf = Buffer.from(await res.arrayBuffer());
   return buf.toString("base64");

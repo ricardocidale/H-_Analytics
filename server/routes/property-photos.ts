@@ -4,6 +4,7 @@ import { requireAuth, requireManagementAccess, requireAdmin, checkPropertyAccess
 import { insertPropertyPhotoSchema, updatePropertyPhotoSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { logAndSendError, parseRouteId } from "./helpers";
+import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 import { z } from "zod";
 import { processExistingPhoto, processImage } from "../image/pipeline";
 import { logger } from "../logger";
@@ -345,7 +346,7 @@ export function register(app: Express) {
       if (photo.imageData) {
         sourceBuffer = Buffer.from(photo.imageData, "base64");
       } else if (photo.imageUrl.startsWith("http")) {
-        const imgRes = await fetch(photo.imageUrl);
+        const imgRes = await fetchWithTimeout(photo.imageUrl, undefined, 30_000);
         if (!imgRes.ok) {
           return res.status(400).json({ error: "Failed to fetch source image" });
         }

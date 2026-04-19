@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { requireAuth } from "../auth";
 import { logger } from "../logger";
+import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 
 export function register(app: Express) {
   app.get("/api/tiles/osm/:z/:x/:y", requireAuth, async (req: Request, res: Response) => {
@@ -47,7 +48,7 @@ export function register(app: Express) {
     const { z, x, y } = req.params;
     try {
       const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
-      const resp = await fetch(url);
+      const resp = await fetchWithTimeout(url, undefined, 10_000);
       if (!resp.ok) {
         return res.status(resp.status).send("Tile not found");
       }

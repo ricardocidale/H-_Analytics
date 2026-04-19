@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { IMAGE_VARIANTS, buildVariantPath, buildOriginalPath, type ImageVariants, type VariantSpec } from "./variants";
 import { getStorageProvider } from "../providers/storage";
 import { logger } from "../logger";
+import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 
 export interface CropRegion {
   left: number;
@@ -154,7 +155,7 @@ export async function processExistingPhoto(
       buffer = downloaded.buffer;
       contentType = downloaded.contentType || "image/jpeg";
     } else if (imageUrl.startsWith("http")) {
-      const response = await fetch(imageUrl);
+      const response = await fetchWithTimeout(imageUrl, undefined, 30_000);
       if (!response.ok) return null;
       buffer = Buffer.from(await response.arrayBuffer());
       contentType = response.headers.get("content-type") || "image/jpeg";
