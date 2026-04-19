@@ -246,7 +246,7 @@ Master index of 178 skill files across 19 domains. Use this to find the right sk
 
 | File | Description |
 |------|-------------|
-| `rebecca-chatbot/SKILL.md` | Rebecca AI assistant: Super Conversations, RAG/Pinecone, knowledge base, guardrails, rich messages |
+| `rebecca-chatbot/SKILL.md` | Rebecca AI assistant: Super Conversations, RAG/pgvector, knowledge base, guardrails, rich messages |
 
 ## Vocabulary (1 file)
 

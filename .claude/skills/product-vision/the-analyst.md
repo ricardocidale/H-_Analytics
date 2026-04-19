@@ -14,7 +14,7 @@ sharp, opinionated colleague who reviewed your numbers.
 
 Behind The Analyst: 7 pre-collected data tables, 11 deterministic calculation tools,
 multi-model LLM synthesis (Gemini + Claude), progressive relaxation comparable finding,
-Pinecone RAG across 7 namespaces, web research via Perplexity and Tavily, 7-factor
+pgvector RAG across 7 namespaces, web research via Perplexity and Tavily, 7-factor
 conviction scoring, and FRED macro data. The user sees none of this. They see
 The Analyst's work.
 
@@ -63,7 +63,7 @@ Both are AI Agents. They work together, each with a distinct role:
 | **Communication** | Leaves notes, flags, ranges — pervasive | Conversations, help, tours — interactive |
 | **Personality** | Authoritative, opinionated through work | Outgoing, witty, intellectual, geeky |
 | **Triggered by** | "Ask the Analyst" button / automatic on first visit | Chat panel, tours, help, "?" icons |
-| **Powered by** | Norfolk AI Engine (full research pipeline) | Norfolk AI Engine + Pinecone RAG + chat context |
+| **Powered by** | Norfolk AI Engine (full research pipeline) | Norfolk AI Engine + pgvector RAG + chat context |
 | **Presence** | Pervasive — in every field, every page, every export | Omni-present — floating chat, always available |
 
 Rebecca answers specific questions from the user, many times based on intelligence

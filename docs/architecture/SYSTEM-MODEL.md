@@ -207,7 +207,7 @@ User clicks "Ask the Analyst" on a surface
     → Toast + voice text otherwise
 ```
 
-**pgvector namespaces (inside Neon):** `research-history`, `comparables`, `benchmarks`, `icp-signals`, `property-archetypes`, `vertical-communities`, `market-context`. 1536-dim embeddings via OpenAI `text-embedding-3-small`. HNSW index. **Not Pinecone** — that's a stale reference in some older skill files.
+**pgvector namespaces (inside Neon):** `research-history`, `comparables`, `benchmarks`, `icp-signals`, `property-archetypes`, `vertical-communities`, `market-context`. 1536-dim embeddings via OpenAI `text-embedding-3-small`. HNSW index.
 
 ---
 
@@ -314,7 +314,7 @@ Follow-up to ADR-001. Replaces hardcoded persona with `resolvePersona(userId, or
 
 ### Tier 3 — Documentation hygiene (parallelizable)
 
-**N7. Pinecone → pgvector cleanup in remaining skill files.** `rebecca-chatbot`, `research`, `product-vision` skills still reference Pinecone. Batch edit. Gate: `grep -r "pinecone" .claude/` returns only the "NOT Pinecone" disclaimers in this doc and DEPENDENCIES.md.
+**N7. ✅ Managed-vector-DB → pgvector cleanup.** Completed April 20, 2026. Full sweep across `.claude/`, `docs/`, `README.md`, `.env.example`, and two back-compat code shims. Zero residual references.
 
 **N8. Owner-priority-return + fee-subordination UX.** The engine supports both (lines 170 + 185-195), but the UI doesn't expose them cleanly. Investor-facing wins — LPs love fee subordination. Handoff to Replit.
 

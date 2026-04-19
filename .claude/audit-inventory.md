@@ -54,13 +54,13 @@ No dedicated `help-system/` directory. Admin copy is inline:
 - `server/migrations/rebecca-*` — 5 migrations (guardrails, KB, language, chat engine, opt-out)
 - `global_assumptions.rebeccaSystemPrompt` — admin-configurable prompt (column, S1)
 
-### S9 — RAG / Pinecone
+### S9 — RAG / pgvector
 - `server/ai/vector-store-service.ts` — service wrapper
 - `server/ai/vector-indexing.ts` — indexing pipeline
 - `server/storage/vector-store.ts` — storage facade
 - `server/ai/knowledge-base.ts` + `server/ai/kb-content.ts` — KB loaders
 - `server/ai/kb/` — 20 numbered markdown KB files. Drift risk:
-  - `19-financial-formulas.md:32, 117, 118` — embeds "HVS 2024 Specialty Fee Survey" citations + `8.5%` / `12%` default fee values (re-indexed into Pinecone on change)
+  - `19-financial-formulas.md:32, 117, 118` — embeds "HVS 2024 Specialty Fee Survey" citations + `8.5%` / `12%` default fee values (re-indexed into pgvector on change)
 
 ### S10 — Research prompts / tool schemas
 - `server/ai/research-prompt-builders.ts:83` — cites "CBRE Cap Rate Survey"
@@ -177,7 +177,7 @@ Known drift sites (subset):
 Remaining open sub-items (deferred to later handoffs):
 - `server/seeds/hospitality-benchmarks.ts:134, 141` — short "HVS 2024" label, no exact CITATIONS match (Phase 5A-4 — needs product decision: add `CITATIONS.hvsShort` or upgrade to `hvsFeeSurvey`)
 - `server/ai/ambient/fetchers.ts:93, 94` — same short "HVS 2024" label (Phase 5A-4)
-- `server/ai/kb/19-financial-formulas.md:32, 117, 118` — KB markdown, requires Pinecone re-indexing (Phase 5A-5 / 5B)
+- `server/ai/kb/19-financial-formulas.md:32, 117, 118` — KB markdown, requires pgvector re-indexing (Phase 5A-5 / 5B)
 - `server/ai/research-prompt-builders.ts:83` — `RESEARCH_SOURCES` is its own registry (superset of CITATIONS, includes URLs/categories), intentionally separate
 - `server/ai/research-tool-prompts.ts:21` — citations are prose inside LLM prompts, semantically distinct, leave as-is
 
@@ -312,9 +312,9 @@ Scope (to be drafted in `phase-5b-kb-templating.md`):
 - Keep the two immutable constants (Depreciation 39, Days/month 30.5).
 - Replace "Key Constants" block with a "Where Live Values Live" block that lists field paths (`globalAssumptions.baseManagementFee`, `property.taxRate`, etc.).
 - Verify Rebecca's context injection already surfaces the live values she'd need to answer range questions.
-- Re-index KB into Pinecone.
+- Re-index KB into pgvector.
 
-Owner: Replit Agent (KB markdown edit + Pinecone re-index runs in the live environment).
+Owner: Replit Agent (KB markdown edit + pgvector re-index runs in the live environment).
 
 ---
 

@@ -36,7 +36,7 @@ Located in `server/ai/source-health-checker.ts`. Each source type has a tailored
 | **Lightweight API ping** | FRED, Frankfurter | Actual HTTP request with timeout (5s) |
 | **Redis PING** | Upstash Redis | `redis.ping()` via SDK |
 | **DB query** | Hospitality Benchmarks | `SELECT count(*) FROM hospitality_benchmarks` |
-| **Env var only** | Tavily, Pinecone, Resend, Sentry, PostHog, Google Maps, Walk Score, RapidAPI (x3), CoStar, Replicate, Apify | Checks env var is set |
+| **Env var only** | Tavily,Vector DB | pgvector, Resend, Sentry, PostHog, Google Maps, Walk Score, RapidAPI (x3), CoStar, Replicate, Apify | Checks env var is set |
 
 **Key design choice:** LLM providers only verify client initialization, not actual API calls. This avoids cost and rate-limit consumption during health checks.
 

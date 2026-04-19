@@ -140,7 +140,7 @@ The Analyst is the AI persona of the Norfolk AI Engine. It's a colleague, not a 
 - Code: `server/ai/analyst-watchdog.ts`
 
 **Tier-1: Research Engine** — on demand, user presses button, $0.05-0.10 per run
-- Multi-stage: pre-collected tables → Pinecone → APIs → LLM web research → multi-model synthesis
+- Multi-stage: pre-collected tables → pgvector | Rebecca RAG→ APIs → LLM web research → multi-model synthesis
 - Writes rich guidance with source citations, data quality scores, conviction levels
 - Code: `server/routes/research.ts`
 
@@ -218,7 +218,7 @@ The Analyst uses ALL research-ready properties (not just the user's scenario) fo
 | Priority | Source | Speed | Cost |
 |----------|--------|-------|------|
 | 0 | Pre-collected DB tables (7 tables, 475+ rows) | Instant | Free |
-| 1 | Pinecone vector search (7 namespaces) | Instant | Free |
+| 1 | pgvector search (7 namespaces) | Instant | Free |
 | 2 | FRED, Frankfurter, Walk Score | <1 sec | Free |
 | 3 | RapidAPI market data | 1-5 sec | Paid |
 | 4 | LLM web research (Perplexity/Tavily) | 10-60 sec | Expensive |

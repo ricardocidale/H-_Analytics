@@ -29,7 +29,7 @@
 | `tests/refinance/` | 6 | 1,104 | 58 | Refinance payoff, sizing, scheduling |
 | `tests/ai/` | 1 | 432 | 23 | Research calibration |
 | `tests/ai_agent/` | 2 | 507 | 20 | AI agent tools |
-| `tests/pinecone/` | 3 | 533 | 54 | Pinecone indexing, guidance quality |
+| `tests/vector-store/` | 3 | 533 | 54 | pgvector indexing, guidance quality |
 | `tests/client/` | 1 | 245 | 36 | Client-side formatters |
 | `tests/schema/` | 1 | 235 | 25 | Zod schema validation |
 | `tests/auditors/` | 1 | 173 | 22 | Auditor regression tests |
@@ -223,7 +223,7 @@ DOM mocks use `(globalThis as any).document` (unavoidable in Node.js test enviro
 
 ### Mocking Patterns
 - **Low mock count**: Only 69 `vi.mock`/`vi.fn`/`vi.spyOn` usages across 185 files — tests prefer real implementations
-- **6 files with `vi.mock`**: All in export tests and Pinecone tests where browser APIs or external services must be mocked
+- **6 files with `vi.mock`**: All in export tests and vector-store tests where browser APIs or external services must be mocked
 - **44 lifecycle hooks** (`beforeEach`/`afterEach`/`beforeAll`/`afterAll`): Appropriate density for 185 files
 
 ### No Snapshots

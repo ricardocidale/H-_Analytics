@@ -1,6 +1,6 @@
 ---
 name: rebecca-chatbot
-description: "Rebecca — the sole AI assistant and conversational intelligence layer for H+ Analytics. Covers Super Conversations, context injection, email summaries, feedback, RAG knowledge architecture (Pinecone maximization), admin configuration, Knowledge Base CRUD with Pinecone sync, Guardrail Editor with runtime injection, and Rich Message Formatting (5 visual block types). Load when working on the chat endpoint, Rebecca UI, chatbot configuration, knowledge base management, guardrails, or research explanation flows. IMPORTANT — 'Marcela' is never used; the AI assistant is always 'Rebecca.'"
+description: "Rebecca — the sole AI assistant and conversational intelligence layer for H+ Analytics. Covers Super Conversations, context injection, email summaries, feedback, RAG knowledge architecture (pgvector maximization), admin configuration, Knowledge Base CRUD with pgvector sync, Guardrail Editor with runtime injection, and Rich Message Formatting (5 visual block types). Load when working on the chat endpoint, Rebecca UI, chatbot configuration, knowledge base management, guardrails, or research explanation flows. IMPORTANT — 'Marcela' is never used; the AI assistant is always 'Rebecca.'"
 ---
 
 # Rebecca Chatbot — Conversational Intelligence Layer
@@ -11,7 +11,7 @@ description: "Rebecca — the sole AI assistant and conversational intelligence 
 
 ## Purpose
 
-Rebecca is the AI chatbot AND the conversational intelligence layer for the entire research system. She replaces complex tooltips for research explanations and provides "Super Conversations" — deep, multi-turn, contextual dialogues about any financial assumption, market benchmark, or research finding. Rebecca knows EVERYTHING about the portfolio via RAG retrieval across multiple Pinecone namespaces.
+Rebecca is the AI chatbot AND the conversational intelligence layer for the entire research system. She replaces complex tooltips for research explanations and provides "Super Conversations" — deep, multi-turn, contextual dialogues about any financial assumption, market benchmark, or research finding. Rebecca knows EVERYTHING about the portfolio via RAG retrieval across multiple pgvector namespaces.
 
 ## Architecture (T19–T24 + Tasks #305–#307 IMPLEMENTED)
 
@@ -35,7 +35,7 @@ Build context layers (all parallel where possible):
   ├── Portfolio context: buildPropertyContext(properties) + company/funding
   ├── Document context: retrieveDocumentContext(message, propertyId, topK=3)
   ├── RAG context: retrieveRelevantChunks(message, 4) + multiNamespaceQuery(research-history, assumption-guidance, topK=4)
-  ├── KB context: Admin Knowledge Base entries (active only, synced to Pinecone)
+  ├── KB context: Admin Knowledge Base entries (active only, synced to pgvector)
   └── Field context (if fieldContext present):
       ├── Validate entity ownership (IDOR prevention)
       ├── buildRebeccaContext(entityType, entityId, fieldKey?, scenarioId?)
@@ -104,14 +104,14 @@ The system prompt contains:
 | `GET /api/rebecca/kb/:id/history` | Admin | Version history |
 | `POST /api/rebecca/kb/:id/rollback/:historyId` | Admin | Rollback to snapshot |
 
-### Pinecone Sync
+### pgvector Sync
 
 - **ID pattern**: `admin-kb:{entryId}` in `knowledge-base` namespace
-- **Active entries**: Upserted to Pinecone with title+content+category+source metadata
-- **Inactive entries**: DELETED from Pinecone vectors (not upserted) — prevents deactivated content from being retrieved
-- **On delete**: Vectors removed from Pinecone
+- **Active entries**: Upserted to pgvector with title+content+category+source metadata
+- **Inactive entries**: DELETED from pgvector rows (not upserted) — prevents deactivated content from being retrieved
+- **On delete**: Vectors removed from pgvector
 - **On rollback**: If restored entry is inactive, vectors deleted; if active, vectors upserted
-- **Non-blocking**: `syncKBEntryToPinecone()` is fire-and-forget with error logging
+- **Non-blocking**: `syncKBEntryToVectorStore()` is fire-and-forget with error logging
 
 ### Admin UI (`KnowledgeBaseEditor.tsx`)
 
@@ -120,7 +120,7 @@ The system prompt contains:
 - Search input with debounce
 - Create form: title, content (textarea), category (select), priority (1-5), tags (comma-separated)
 - Inline edit per entry
-- Toggle active/inactive (with Pinecone sync)
+- Toggle active/inactive (with pgvector sync)
 - Delete with confirmation dialog
 - Version history drawer per entry with rollback button
 - Tab: "Knowledge Base" in `RebeccaAdminTabs.tsx` (between Configuration and Guardrails)
@@ -175,9 +175,9 @@ Data-testids: `rich-block-stat`, `rich-block-compare`, `rich-block-timeline`, `r
 - Skip blocks for simple/conversational questions
 - Use `:::stat` for single metrics, `:::compare` for side-by-side, `:::kpi` for dashboards
 
-## Pinecone RAG Architecture — MAXIMIZE USAGE
+## pgvector RAG Architecture — MAXIMIZE USAGE
 
-Rebecca's intelligence depends on comprehensive Pinecone retrieval. All namespaces MUST be leveraged:
+Rebecca's intelligence depends on comprehensive pgvector retrieval. All namespaces MUST be leveraged:
 
 ### Namespaces (Index: `lb-hospitality`)
 
@@ -189,7 +189,7 @@ Rebecca's intelligence depends on comprehensive Pinecone retrieval. All namespac
 | `comparables` | Benchmark snapshots (ADR, Occupancy, etc.) | `indexBenchmarkSnapshot()` | Market-specific benchmark data |
 | `documents` | Extracted text from uploaded property documents | `indexDocumentExtraction()` | `content`, `documentType`, `propertyName`, `propertyId` |
 
-### Key Pinecone Service Methods (`server/ai/pinecone-service.ts`)
+### Key Vector Store Service Methods (`server/ai/vector-store-service.ts`)
 
 ```typescript
 queryChunks(namespace, query, topK=8): Promise<QueryMatch[]>
@@ -212,12 +212,12 @@ retrieveDocumentContext(params): Promise<DocumentMatch[]>
 
 ### When Adding New Features That Generate Knowledge
 
-Always index to Pinecone when:
+Always index to pgvector when:
 1. Research completes → `indexResearchResult()` to `research-history`
 2. Guidance is computed → `indexAssumptionGuidance()` to `assumption-guidance`
 3. Documents are uploaded → `indexDocumentExtraction()` to `documents`
 4. Benchmarks refresh → `indexBenchmarkSnapshot()` to `comparables`
-5. KB content changes → admin CRUD auto-syncs via `syncKBEntryToPinecone()` to `knowledge-base`
+5. KB content changes → admin CRUD auto-syncs via `syncKBEntryToVectorStore()` to `knowledge-base`
 
 ## Super Conversations (T21 IMPLEMENTED)
 
@@ -261,7 +261,7 @@ Builds rich context server-side from entity IDs — never trusts client-provided
 | Tab | Component | Purpose |
 |-----|-----------|---------|
 | **Configuration** | `RebeccaConfig.tsx` | Enable/disable, system prompt, model selection, temperature |
-| **Knowledge Base** | `KnowledgeBaseEditor.tsx` | CRUD entries with Pinecone sync, stats, version history |
+| **Knowledge Base** | `KnowledgeBaseEditor.tsx` | CRUD entries with pgvector sync, stats, version history |
 | **Guardrails** | `GuardrailEditor.tsx` | Manage response rules, reorder, toggle |
 | **Conversations** | `RebeccaConversationsTab` | Searchable history, expandable messages |
 | **Feedback** | `RebeccaFeedbackTab` | Status-filtered list with status updates |
@@ -273,7 +273,7 @@ Builds rich context server-side from entity IDs — never trusts client-provided
 | `server/routes/chat.ts` | Chat endpoint — personality, context, RAG, conversations, rich block prompt | ✅ T19-T23 + #305-#307 |
 | `server/routes/rebecca.ts` | Email + feedback + guardrails CRUD + KB CRUD routes | ✅ T22 + #305-#306 |
 | `server/ai/rebecca-context-builder.ts` | Builds entity+field context server-side | ✅ T20 |
-| `server/ai/pinecone-service.ts` | Vector store — all namespaces + multiNamespaceQuery | ✅ T23 |
+| `server/ai/vector-store-service.ts` | Vector store — all namespaces + multiNamespaceQuery | ✅ T23 |
 | `server/ai/knowledge-base.ts` | KB indexing, retrieval, in-memory fallback | ✅ T23 |
 | `server/ai/kb-content.ts` | Static KB content (GAAP, USALI, ICP, methodology) | ✅ T23 |
 | `client/src/components/rebecca/RebeccaPanel.tsx` | 520px slide-over chat panel | ✅ T19-T22 |
@@ -306,7 +306,7 @@ Feature flag: `REBECCA_V2` (ON) — gates Super Conversations and new features.
 | Score threshold | 0.3 minimum |
 | Model | `gemini-2.5-flash` (configurable via admin) |
 | Rich blocks | Max 1 per response |
-| KB Pinecone ID | `admin-kb:{entryId}` pattern |
+| KB vector ID | `admin-kb:{entryId}` pattern |
 | KB categories | Methodology, Hospitality, Financial, FAQ, Custom |
 | Guardrail seeds | 5 defaults (off-topic, legal, guarantees, arithmetic, redirect) |
 

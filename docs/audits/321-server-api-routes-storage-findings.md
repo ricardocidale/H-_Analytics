@@ -53,7 +53,7 @@
 ### M-002: `catch (error)` Without `: unknown` Type Annotation (majority of routes)
 **Severity**: Medium  
 **Location**: All route files — approximately 250+ catch blocks use `catch (error)` without `: unknown`  
-**Description**: The project convention requires `catch (error: unknown)` with `error instanceof Error ? error.message : String(error)`. While most catch blocks correctly handle the error via `logAndSendError()` (which accepts `unknown`), the type annotation is inconsistent. Only ~32 catch blocks use `catch (error: unknown)`. The `catch (e)` variant is used in ~35 places (cost-logger, pinecone, research admin). TypeScript treats untyped catch parameters as `any` by default, which weakens type safety.  
+**Description**: The project convention requires `catch (error: unknown)` with `error instanceof Error ? error.message : String(error)`. While most catch blocks correctly handle the error via `logAndSendError()` (which accepts `unknown`), the type annotation is inconsistent. Only ~32 catch blocks use `catch (error: unknown)`. The `catch (e)` variant is used in ~35 places (cost-logger, vector-store, research admin). TypeScript treats untyped catch parameters as `any` by default, which weakens type safety.  
 **Remediation**: Batch-update all `catch (error)` and `catch (e)` to `catch (error: unknown)` across route files.
 
 ### M-003: Raw `req.body` Merge in Global Assumptions PUT

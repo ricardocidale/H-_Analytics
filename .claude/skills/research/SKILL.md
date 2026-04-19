@@ -1,6 +1,6 @@
 ---
 name: Research System
-description: The research system provides industry-backed financial guidance for every property assumption in the simulation. It operates as an 11-layer multi-LLM pipeline: N+1 orchestrator (dual analyst panels → API validation → Opus synthesis), 15 prompt-builder tools, 10 deterministic calc tools, 7 live market data sources, Pinecone vector similarity, post-LLM validation, guidance extraction, SSE streaming, and a 3-tier badge display hierarchy. Load this skill for any work touching research generation, badges, research config, or the orchestration pipeline.
+description: The research system provides industry-backed financial guidance for every property assumption in the simulation. It operates as an 11-layer multi-LLM pipeline: N+1 orchestrator (dual analyst panels → API validation → Opus synthesis), 15 prompt-builder tools, 10 deterministic calc tools, 7 live market data sources, pgvector vector similarity, post-LLM validation, guidance extraction, SSE streaming, and a 3-tier badge display hierarchy. Load this skill for any work touching research generation, badges, research config, or the orchestration pipeline.
 ---
 
 # Research System — Master Skill
@@ -37,7 +37,7 @@ User clicks "Run Research"
         ▼
 [3] research-orchestrator.ts (property research only)
         │
-        ├──[3a] Phase 0: Pinecone comparable retrieval
+        ├──[3a] Phase 0: pgvector comparable retrieval
         │        Progressive relaxation L1–L5 strictness
         │        Top 15 prior research vectors injected
         │
@@ -105,7 +105,7 @@ User clicks "Run Research"
         │ market_research table: full parsed JSON content
         │ assumption_guidance table: per-key normalized records
         │ properties.research_values: lightweight badge values
-        │ Async: Pinecone index (fire-and-forget, non-blocking)
+        │ Async: pgvector store (fire-and-forget, non-blocking)
         │
         ▼
 [11] Client Badge Display (PropertyEdit.tsx)
@@ -400,7 +400,7 @@ Validation results are stored in `_validation` metadata. Warnings do NOT block s
 | `market_research` table | Full parsed JSON research content | `(userId, propertyId, type)` |
 | `assumption_guidance` table | Per-key GuidanceRecord (extracted + normalized) | `(propertyId, assumptionKey)` |
 | `properties.research_values` | Lightweight badge values `{ display, mid, source }` | JSONB column on property |
-| Pinecone | Embedded guidance vectors for cross-property similarity | Vector IDs linked to assumption_guidance |
+| pgvector | Embedded guidance vectors for cross-property similarity | Vector IDs linked to assumption_guidance |
 
 ### Persistence Sequence (post-LLM)
 1. `parseResearchJSON()` → structured output
@@ -409,7 +409,7 @@ Validation results are stored in `_validation` metadata. Warnings do NOT block s
 4. `storage.updateProperty()` → write to `properties.research_values`
 5. `extractGuidance()` → GuidanceRecord[] (25+ records)
 6. `storage.upsertAssumptionGuidance()` → insert/update guidance table
-7. `indexAssumptionGuidance()` → async Pinecone indexing (fire-and-forget)
+7. `indexAssumptionGuidance()` → async pgvector indexing (fire-and-forget)
 8. `storage.upsertMarketResearch()` → write full JSON to `market_research`
 
 ---
@@ -449,4 +449,4 @@ Validation results are stored in `_validation` metadata. Warnings do NOT block s
 7. **Badge hides when source="none"** — `ResearchBadge` returns null for falsy display values
 8. **Cost bases must match** — different costs have different bases (Room Rev vs Total Rev vs Property Value)
 9. **Admin config is respected** — disabled research types are blocked at the route level before any LLM is called
-10. **Pinecone indexing is async** — research result storage never waits for Pinecone
+10. **pgvector indexing is async** — research result storage never waits for pgvector

@@ -1,6 +1,6 @@
 ---
 name: rebecca-chatbot
-description: "Rebecca AI assistant system for H+ Analytics. Covers Super Conversations with context injection, RAG knowledge architecture (7 Pinecone namespaces), Knowledge Base CRUD with Pinecone sync, Guardrail Editor with runtime injection, Rich Message Formatting (5 visual block types: stat/compare/timeline/insight/kpi), email summaries, feedback system, and admin configuration (5 tabs). Use when working on the chat endpoint, Rebecca UI, knowledge base, guardrails, rich block rendering, or chatbot configuration. IMPORTANT: 'Marcela' is never used; the AI assistant is always 'Rebecca.'"
+description: "Rebecca AI assistant system for H+ Analytics. Covers Super Conversations with context injection, RAG knowledge architecture (7 pgvector namespaces), Knowledge Base CRUD with pgvector sync, Guardrail Editor with runtime injection, Rich Message Formatting (5 visual block types: stat/compare/timeline/insight/kpi), email summaries, feedback system, and admin configuration (5 tabs). Use when working on the chat endpoint, Rebecca UI, knowledge base, guardrails, rich block rendering, or chatbot configuration. IMPORTANT: 'Marcela' is never used; the AI assistant is always 'Rebecca.'"
 ---
 
 # Rebecca Chatbot — Conversational Intelligence Layer
@@ -11,7 +11,7 @@ description: "Rebecca AI assistant system for H+ Analytics. Covers Super Convers
 
 ## System Overview
 
-Rebecca is the AI chatbot and conversational intelligence layer for H+ Analytics. She provides "Super Conversations" — multi-turn, contextual dialogues about financial assumptions, market benchmarks, and research findings. Her intelligence comes from RAG retrieval across 7 Pinecone namespaces.
+Rebecca is the AI chatbot and conversational intelligence layer for H+ Analytics. She provides "Super Conversations" — multi-turn, contextual dialogues about financial assumptions, market benchmarks, and research findings. Her intelligence comes from RAG retrieval across 7 pgvector namespaces.
 
 ## Key Subsystems
 
@@ -32,7 +32,7 @@ Rebecca is the AI chatbot and conversational intelligence layer for H+ Analytics
 ### 3. Knowledge Base CRUD (Task #306)
 - **Tables**: `rebeccaKnowledgeBase` + `rebeccaKnowledgeHistory` in `intelligence-v2.ts`
 - **CRUD**: 7 endpoints under `/api/rebecca/kb/*` (admin-only)
-- **Pinecone sync**: Active entries upserted with ID `admin-kb:{entryId}`, inactive entries DELETED from vectors
+- **pgvector sync**: Active entries upserted with ID `admin-kb:{entryId}`, inactive entries DELETED from vectors
 - **Version history**: Auto-snapshot on update, rollback support
 - **Categories**: Methodology, Hospitality, Financial, FAQ, Custom
 - **Seeds**: 26 entries from `kb-content.ts`
@@ -47,7 +47,7 @@ Rebecca is the AI chatbot and conversational intelligence layer for H+ Analytics
 - **Locale**: `t()` function supports en/es label translation
 
 ### 5. RAG Architecture (T23)
-- 7 Pinecone namespaces: knowledge-base, research-history, assumption-guidance, comparables, documents, scenarios, properties
+- 7 pgvector namespaces: knowledge-base, research-history, assumption-guidance, comparables, documents, scenarios, properties
 - `multiNamespaceQuery()` for parallel cross-namespace search
 - 3000-char RAG budget with 0.3 score threshold
 - Namespace-specific metadata mapping
@@ -67,7 +67,7 @@ Rebecca is the AI chatbot and conversational intelligence layer for H+ Analytics
 | Tab | Component | Purpose |
 |-----|-----------|---------|
 | Configuration | `RebeccaConfig.tsx` | Enable/disable, prompt, model, temperature |
-| Knowledge Base | `KnowledgeBaseEditor.tsx` | CRUD entries with Pinecone sync, stats, versions |
+| Knowledge Base | `KnowledgeBaseEditor.tsx` | CRUD entries with pgvector sync, stats, versions |
 | Guardrails | `GuardrailEditor.tsx` | Manage response rules, reorder, toggle |
 | Conversations | `RebeccaConversationsTab` | Searchable history, expandable messages |
 | Feedback | `RebeccaFeedbackTab` | Status-filtered list with status updates |
@@ -79,7 +79,7 @@ Rebecca is the AI chatbot and conversational intelligence layer for H+ Analytics
 | `server/routes/chat.ts` | Chat endpoint — personality, RAG, conversations, rich blocks |
 | `server/routes/rebecca.ts` | Email, feedback, guardrails CRUD, KB CRUD routes |
 | `server/ai/rebecca-context-builder.ts` | Entity+field context assembly |
-| `server/ai/pinecone-service.ts` | Vector store — all namespaces |
+| `server/ai/pgvector-service.ts` | Vector store — all namespaces |
 | `client/src/components/rebecca/RebeccaPanel.tsx` | 520px slide-over chat panel |
 | `client/src/components/rebecca/RebeccaMarkdown.tsx` | Markdown + rich block rendering |
 | `client/src/components/rebecca/rich-block-parser.ts` | Rich block AST parser |
@@ -100,5 +100,5 @@ Rebecca is the AI chatbot and conversational intelligence layer for H+ Analytics
 | RAG budget | 3,000 characters |
 | Score threshold | 0.3 |
 | Rich blocks | Max 1 per response |
-| KB Pinecone ID | `admin-kb:{entryId}` |
+| KB pgvector ID | `admin-kb:{entryId}` |
 | Feature flag | `REBECCA_V2` (ON) |

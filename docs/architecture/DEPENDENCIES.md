@@ -65,7 +65,7 @@ Categories:
 | `connect-pg-simple` | `^10.0.0` | Session store for `express-session` | `server/auth.ts` | MIT |
 | `pgvector` (PG extension) | n/a | Vector similarity search inside Postgres | `server/ai/vector-store-service.ts`, migration `0012_pgvector_store.sql` | PostgreSQL license |
 
-**Notable:** The app uses **pgvector** inside Postgres for RAG, NOT Pinecone. Embeddings: `text-embedding-3-small` at 1536 dimensions; HNSW index; cosine distance. `.claude/notes/analyst-architecture.md` has been corrected to reflect this.
+**Notable:** The app uses **pgvector** inside Postgres for RAG (not a separate managed vector DB). Embeddings: `text-embedding-3-small` at 1536 dimensions; HNSW index; cosine distance.
 
 **Seven pgvector namespaces:** `knowledge-base`, `research-history`, `comparables`, `assumption-guidance`, `documents`, `scenarios`, `properties`.
 
@@ -462,22 +462,11 @@ Grouped by category. Add to `.replit` secrets or local `.env` as applicable.
 
 ---
 
-## Appendix B — Known documentation cleanup still to do
+## Appendix B — Documentation cleanup history
 
-Stale Pinecone references and file-name references in skill files that pre-date the pgvector migration. Known-not-fixed in the current audit:
+Completed April 20, 2026: full sweep of stale managed-vector-DB references across `.claude/` skills, notes, plans, handoffs, archive, `docs/`, `README.md`, `.env.example`, and two back-compat shims in `server/routes/admin/intelligence-vector-store.ts` + `client/src/components/admin/intelligence/SystemIntelligenceStatus.tsx`. All references updated to reflect the pgvector-inside-Neon architecture. Back-compat API shims (legacy admin redirect routes, response-body alias field, missing-keys alias entry) were removed at the same time.
 
-| File | Issue |
-|---|---|
-| `.claude/skills/rebecca-chatbot/SKILL.md` | ~15 mentions of Pinecone; references non-existent `server/ai/pinecone-service.ts` (now `vector-store-service.ts`); function-name references like `syncKBEntryToPinecone()` may be stale |
-| `.claude/skills/research/SKILL.md` | ~6 mentions of Pinecone in orchestration description |
-| `.claude/skills/product-vision/*.md` | Several Pinecone references in product-level descriptions |
-| `.claude/skills/architecture/*.md` | Pinecone references in architecture descriptions |
-| `.claude/archive/agents-skills-snapshot/pinecone-*/**` | Intentionally stale (archive); leave alone |
-| `.claude/plans/**`, `.claude/replit-handoffs/**`, `.claude/replit-instructions/**` | Historical; leave alone |
-
-These are known-stale and do not describe the current codebase. The authority is this file (`DEPENDENCIES.md`), `.claude/claude.md`, and `.claude/notes/analyst-architecture.md` (corrected April 19, 2026). The outdated skill files should get a full cleanup pass as a separate piece of work.
-
-When updating the stale skill files: replace `Pinecone` → `pgvector`, `server/ai/pinecone-service.ts` → `server/ai/vector-store-service.ts`, `syncKBEntryToPinecone` → whatever the actual current function name is (grep the code), and verify namespace lists match the 7 documented here.
+The authority for vector-store architecture is this file (`DEPENDENCIES.md`), `.claude/claude.md`, and `.claude/notes/analyst-architecture.md`.
 
 ---
 
@@ -497,7 +486,7 @@ Every PR that modifies `package.json` should also modify this file. A PR that sk
 - `.claude/claude.md` — master doc; links to this file
 - `.claude/skills/integrations/SKILL.md` — deeper dive on specific integrations
 - `.claude/skills/architecture/SKILL.md` — system-level architecture
-- `.claude/notes/analyst-architecture.md` — Cognitive Engine deep-dive. Pinecone references corrected to pgvector April 2026.
+- `.claude/notes/analyst-architecture.md` — Cognitive Engine deep-dive.
 - `.claude/rules/financial-safety.md` — rules that constrain which packages are allowed in `calc/`
 - `.claude/rules/deterministic-tools.md` — the 37-tool registry rule
 - `docs/architecture/ANALYST.md` — The Analyst architecture spine

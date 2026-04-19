@@ -26,7 +26,7 @@ Located in `server/ai/source-health-checker.ts`:
 | Lightweight HTTP ping | FRED, Frankfurter |
 | SDK ping | Upstash Redis |
 | DB row count | Hospitality Benchmarks |
-| Env var check only | Tavily, Pinecone, Resend, Sentry, PostHog, Google Maps, Walk Score, RapidAPI (x3), CoStar, Replicate, Apify |
+| Env var check only | Tavily, Resend, Sentry, PostHog, Google Maps, Walk Score, RapidAPI (x3), CoStar, Replicate, Apify |
 
 ## Trust Score Flow
 

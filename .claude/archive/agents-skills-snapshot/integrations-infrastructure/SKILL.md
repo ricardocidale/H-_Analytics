@@ -38,7 +38,7 @@ LLM provider selection is configurable via the admin panel.
 | **API base** | `https://api.stlouisfed.org/fred/series/observations` |
 | **Series used** | SOFR, DGS2, DGS5, DGS10, DPRIME, CPIAUCSL |
 | **Cache** | 24-hour stale-while-revalidate via in-memory cache |
-| **Refresh** | Ambient scheduler fetches every 6 hours; indexes snapshots to Pinecone |
+| **Refresh** | Ambient scheduler fetches every 6 hours; indexes snapshots to pgvector |
 | **Reliability** | Government-operated, highly authoritative — the definitive source for US economic indicators |
 
 ## Geospatial: Google Maps Platform

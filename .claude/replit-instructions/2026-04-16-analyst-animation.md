@@ -52,7 +52,7 @@ Replace the modal with an inline section that takes over the property page conte
 │                                                          │
 │  [FRED] ──beam──┐                                        │
 │  [Benchmarks] ──beam──→ [The Analyst] ──→ [Ranges]      │
-│  [Pinecone] ──beam──┘                                    │
+│  [pgvector]──beam──┘                                    │
 │  [Web Research] ··· (waiting)                            │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -190,10 +190,10 @@ The research SSE stream already sends progress events. Map them to human languag
 |-----------|----------------|-------------------|
 | `source_started: fred` | "○ Fetching FRED data" | "Pulling current interest rates and economic indicators..." |
 | `source_started: benchmarks` | "○ Loading benchmarks" | "Comparing against ISHC 2024 hospitality benchmarks for {roomCount}-room {qualityTier} properties..." |
-| `source_started: pinecone` | "○ Searching vectors" | "Searching for comparable properties in the {market} market..." |
+| `source_started: pgvector` | "○ Searching vectors" | "Searching for comparable properties in the {market} market..." |
 | `source_complete: fred` | "✓ FRED data" | "Federal funds rate at {rate}% — factored into financing assumptions" |
 | `source_complete: benchmarks` | "✓ Benchmarks loaded" | "Found {count} matching benchmarks — {segment} properties averaging {metric}" |
-| `source_complete: pinecone` | "✓ Vector search" | "{count} comparable properties identified within {radius}" |
+| `source_complete: pgvector` | "✓ Vector search" | "{count} comparable properties identified within {radius}" |
 | `llm_thinking` | "○ Analyzing..." | "Synthesizing {sourceCount} data points across {sourceNames}..." |
 | `range_computed: startAdr` | (not shown) | "ADR range: ${low}–${high} ({conviction} conviction)" |
 | `range_computed: exitCapRate` | (not shown) | "Exit cap rate: {low}%–{high}% based on {source}" |

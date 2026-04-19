@@ -114,7 +114,7 @@ Entity context (property location, type, assumptions)
     → Multi-source: Gemini 2.5 Flash (primary) + Claude (verification)
     → Live data: FRED API, hospitality benchmarks, RapidAPI
     → Deterministic calc tools (calc/research/) handle all arithmetic
-    → Pinecone RAG for knowledge base retrieval
+    → pgvector RAG for knowledge base retrieval
       → Research badges on UI assumption fields (3-tier hierarchy)
       → Rebecca chatbot for conversational explanation
 ```
@@ -205,4 +205,4 @@ Replit-specific integrations are isolated in `server/replit_integrations/`. The 
 | Testing | Vitest (4,536+ tests) |
 | AI | Gemini 2.5 Flash, Claude, OpenAI (configurable) |
 | Exports | @react-pdf/renderer, ExcelJS, PptxGenJS, Puppeteer (PNG) |
-| Vector DB | Pinecone (Rebecca RAG) |
+| Vector DB | pgvector| pgvector (Rebecca RAG) |

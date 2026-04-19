@@ -144,7 +144,7 @@ Hard floor: NEVER compare 5★ resort to 2★ budget hotel. Star rating constrai
 ### Tier 1: Entity-Scoped Research
 
 - Triggered by "Run Research" button on property or company
-- Pipeline: build Entity Context Pack → retrieve Tier 0 ambient → retrieve Pinecone similar → run N+1 pipeline (Gemini + Sonnet → Opus) → extract guidance → store to `assumption_guidance`
+- Pipeline: build Entity Context Pack → retrieve Tier 0 ambient → retrieve pgvector similar → run N+1 pipeline (Gemini + Sonnet → Opus) → extract guidance → store to `assumption_guidance`
 - Uses star rating + property type as PRIMARY comparable filters
 - Scenario-scoped: keyed to (scenario_id, entity_type, entity_id, assumption_key)
 
@@ -213,7 +213,7 @@ Rebecca replaces complex tooltips for research explanations. She IS the explaine
 ### Rebecca RAG Knowledge
 
 Rebecca accesses EVERYTHING:
-- Pinecone: research-history, market-reports, knowledge-base, assumption-guidance (NEW namespace)
+- pgvector namespaces: research-history, market-reports, knowledge-base, assumption-guidance (NEW namespace)
 - SQL live: benchmark_snapshots, entity context packs (computed on demand), property financials
 - Documents: methodology, checker manual, ICP definitions, GAAP rules
 - Always cites sources: "[CBRE 2024 Cap Rate Survey]", "[STR Market Report Q3]"
@@ -393,7 +393,7 @@ Replaces IntegrationsTab + IntegrationHealthTab:
 
 ### Phase 4: Rebecca Intelligence Layer
 - Rebecca chat panel (520px, context-aware from badges)
-- RAG knowledge connections (Pinecone + SQL live)
+- RAG knowledge connections (pgvector + SQL live)
 - Super Conversations with contextual follow-ups
 - Email summary + Norfolk AI feedback flows
 - Rebecca admin section (6 sub-tabs)

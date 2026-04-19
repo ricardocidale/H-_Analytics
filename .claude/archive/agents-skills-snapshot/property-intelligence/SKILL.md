@@ -126,10 +126,10 @@ Validation endpoint blocks via hostname/IP pattern checks:
 - **Broken** (destructive) — GET request failed or non-2xx response
 
 ### Research Integration
-Property URLs feed into the research engine via Pinecone vector indexing:
-- After validation, relevant URLs (score >= 0.6) are upserted into Pinecone namespace `properties` with vector ID `prop-url:{propertyId}:{urlId}`
-- Stale/invalid URLs are deleted from Pinecone during validation
-- Research orchestrator (`server/ai/research-orchestrator.ts`) queries Pinecone for `prop-url:{propertyId}` chunks and appends them as "Property Reference URLs" in the research prompt
+Property URLs feed into the research engine via pgvector vector indexing:
+- After validation, relevant URLs (score >= 0.6) are upserted into pgvector namespace `properties` with vector ID `prop-url:{propertyId}:{urlId}`
+- Stale/invalid URLs are deleted from pgvector during validation
+- Research orchestrator (`server/ai/research-orchestrator.ts`) queries pgvector for `prop-url:{propertyId}` chunks and appends them as "Property Reference URLs" in the research prompt
 - Property `sourceUrls` array also included in property context pack narrative
 
 ---

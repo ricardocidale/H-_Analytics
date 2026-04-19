@@ -19,7 +19,7 @@ Traditional hospitality pro-formas use static assumptions. Our app has:
 2. **Deterministic calculation tools** (11 pure functions the LLM calls for exact math)
 3. **N+1 multi-model synthesis** (Gemini + Claude in parallel, Claude Opus synthesizes)
 4. **Progressive relaxation** (L0-L5 comparable set expansion until evidence threshold met)
-5. **Dual-access data** (relational DB for tools + Pinecone vectors for RAG)
+5. **Dual-access data** (relational DB for tools + pgvector rows for RAG)
 6. **Self-improving flywheel** (every research run discovers data → stored → next lookup is instant)
 
 ---
@@ -71,7 +71,7 @@ Assembles everything known about the property into a structured object:
 | L4 | Relax to state/region | Antioquia department |
 | L5 | Relax to country | Colombia |
 
-Queries both local DB and Pinecone in parallel at each level. Star guard (±1 star), business model boost (+15%), evidence score formula:
+Queries both local DB and pgvector in parallel at each level. Star guard (±1 star), business model boost (+15%), evidence score formula:
 
 `0.30×countScore + 0.25×avgSimilarity + 0.20×constraintStrength + 0.15×diversityBonus + 0.10×businessModelAlignment`
 
@@ -86,7 +86,7 @@ The assembled prompt contains:
 3. **Pre-collected benchmarks** — from Stage 1, marked as "primary evidence"
 4. **Verified market data** — from Smart Data Router API calls, grouped by confidence
 5. **Comparable properties** — from Stage 3, formatted with provenance
-6. **Prior research** — from Pinecone RAG (similar past research)
+6. **Prior research** — from pgvector RAG (similar past research)
 7. **FRED macro data** — ambient-refreshed treasury yields, CPI, mortgage rates
 8. **Business model guidance** — VRBO/Lodge/Hotel-specific benchmark ranges
 9. **Research instructions** — which assumptions to analyze (Tier 1 = all, Tier 2 = specific)
@@ -114,7 +114,7 @@ the final recommendation with ranges, confidence levels, source citations, and r
 Streamed to the client via SSE for real-time display.
 
 **Post-Processing:**
-- Research results indexed to Pinecone (`research-history` namespace)
+- Research results indexed to pgvector (`research-history` namespace)
 - Assumption guidance extracted and stored in `assumption_guidance` table
 - Each field validated against benchmarks via `validateAssumptionRange()`
 
@@ -146,7 +146,7 @@ Each field then validated by `validateAssumptionRange()`:
 | Relaxation level | 13% | How far criteria were loosened |
 | Cross-validation | 10% | Do multiple sources agree? |
 | Field coverage | 10% | % of critical fields with data |
-| Source availability | 10% | Are FRED/Anthropic/Pinecone healthy? |
+| Source availability | 10% | Are FRED/Anthropic/pgvector healthy? |
 
 Thresholds: ≥80 = High, ≥50 = Moderate, ≥20 = Developing, <20 = None
 
@@ -174,7 +174,7 @@ Registered in `calc/dispatch.ts` (33 total tools across Returns, Validation, Ana
 
 ---
 
-## 7 Pinecone Namespaces
+## 7 pgvector Namespaces
 
 | Namespace | Stores | Used By |
 |---|---|---|
@@ -250,8 +250,8 @@ Tables accumulate → research gets faster and cheaper → conviction increases
 | **Confidence** | `server/ai/confidence-scorer.ts` | 7-factor confidence scoring |
 | **Tools** | `calc/research/*.ts` | 11 deterministic calculation tools |
 | **Dispatch** | `calc/dispatch.ts` | Tool name → handler registry (33 tools) |
-| **Pinecone** | `server/ai/pinecone-service.ts` | 7-namespace vector store |
-| **Indexing** | `server/ai/pinecone-indexing.ts` | Domain-specific vector indexing |
+| **pgvector** | `server/ai/vector-store-service.ts` | 7-namespace vector store |
+| **Indexing** | `server/ai/vector-indexing.ts` | Domain-specific vector indexing |
 | **Seeds** | `server/seeds/market-data-tables.ts` | 475 lines of market benchmark data |
 | **Ambient** | `server/ai/ambient/scheduler.ts` | 6-hour FRED + benchmark refresh |
 | **Scheduled** | `server/ai/ambient/research-scheduler.ts` | 15-min workflow check + batch API |

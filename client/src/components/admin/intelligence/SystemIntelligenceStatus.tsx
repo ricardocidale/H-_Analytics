@@ -15,9 +15,6 @@ interface SystemStatusData {
   llmVendors: LlmVendorStatus[];
   recommendedDefaults: { vendor: string; model: string };
   knowledgeBase: {
-    // `pinecone` is a legacy alias still emitted by the API for back-compat;
-    // the new field name is `vectorStore`.
-    pinecone?: boolean;
     vectorStore?: boolean;
     embeddings: boolean;
     learningActive: boolean;
@@ -25,7 +22,6 @@ interface SystemStatusData {
   };
   missingKeys: {
     fredApiKey: boolean;
-    pineconeApiKey?: boolean;
     vectorStore?: boolean;
     embeddingKey: boolean;
   };
@@ -146,21 +142,18 @@ export default function SystemIntelligenceStatus() {
     );
   }
 
-  const vectorStoreConnected = data.knowledgeBase.vectorStore ?? data.knowledgeBase.pinecone ?? false;
+  const vectorStoreConnected = data.knowledgeBase.vectorStore ?? false;
 
   const missingKeysList = Object.entries(data.missingKeys)
     .filter(([, missing]) => missing)
     .map(([key]) => {
       switch (key) {
         case "fredApiKey": return "FRED_API_KEY (macro rates: SOFR, Treasury, CPI)";
-        case "vectorStore":
-        case "pineconeApiKey": return "DATABASE_URL (vector store / pgvector)";
+        case "vectorStore": return "DATABASE_URL (vector store / pgvector)";
         case "embeddingKey": return "OPENAI_EMBEDDING_KEY (vector embeddings for learning)";
         default: return key;
       }
-    })
-    // De-duplicate the legacy + new alias when both are emitted.
-    .filter((label, idx, arr) => arr.indexOf(label) === idx);
+    });
 
   return (
     <div className="space-y-4" data-testid="system-intelligence-status">

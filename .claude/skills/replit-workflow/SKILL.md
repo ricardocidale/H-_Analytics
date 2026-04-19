@@ -226,7 +226,7 @@ Escalation format: a `BLOCKED-*.md` sibling to the active handoff, plus a sessio
 ## Session: 2026-04-20 — various fixes
 - Fixed lots of things. Tests pass. Good session overall. [too vague — no SHAs, no specifics]
 - Also updated the AnalystVerdict contract. [WRONG — that's a Claude Code domain]
-- Deleted some pinecone references in skills. [WRONG — `.claude/**` is Claude Code's]
+- Deleted some vector-store references in skills. [WRONG — `.claude/**` is Claude Code's]
 ```
 
 ---

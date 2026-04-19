@@ -496,9 +496,9 @@ Research Engine (N+1 pipeline) sees URLs as reference sources
 AI can extract: property details, photos, amenities, location info, pricing signals
 ```
 
-#### Pinecone Indexing
+#### pgvector Indexing
 
-Validated, relevant URLs are indexed into the `properties` Pinecone namespace for retrieval during research:
+Validated, relevant URLs are indexed into the `properties` pgvector namespace for retrieval during research:
 
 | Aspect | Detail |
 |--------|--------|
@@ -507,15 +507,15 @@ Validated, relevant URLs are indexed into the `properties` Pinecone namespace fo
 | **Delete trigger** | Stale/invalid URLs are removed via `deleteVectors("properties", staleIds)` |
 | **Text content** | `"Property {name} ({location}) reference link: {url} {title}"` |
 | **Metadata** | `{ propertyId, propertyName, location, url, title, relevanceScore, type: "property-url" }` |
-| **Consumer** | `server/ai/research-orchestrator.ts` queries Pinecone for `prop-url:{propertyId}` chunks, filters by ID prefix, and appends matched URLs as "Property Reference URLs" section in the research prompt |
+| **Consumer** | `server/ai/research-orchestrator.ts` queries pgvector for `prop-url:{propertyId}` chunks, filters by ID prefix, and appends matched URLs as "Property Reference URLs" section in the research prompt |
 | **Max results** | 10 URL chunks per property per research run |
 
 #### Key Files
 - Schema: `shared/schema/properties.ts` (`property_urls` table)
 - Storage: `server/storage/property-urls.ts` (PropertyUrlStorage CRUD)
-- Routes: `server/routes/properties.ts` (5 URL endpoints + Pinecone upsert/delete after validation)
+- Routes: `server/routes/properties.ts` (5 URL endpoints + pgvector upsert/delete after validation)
 - Research consumer: `server/ai/research-orchestrator.ts` (URL retrieval during N+1 pipeline)
-- Pinecone service: `server/ai/pinecone-service.ts` (`upsertChunks`, `deleteVectors`, `queryChunks`)
+- pgvector service: `server/ai/pgvector-service.ts` (`upsertChunks`, `deleteVectors`, `queryChunks`)
 - UI: `client/src/components/property-edit/PropertyLinksSection.tsx`
 
 ### 7.5 The N+1 Synthesis Pipeline
@@ -526,7 +526,7 @@ The research engine uses a multi-model parallel synthesis approach:
 Phase 1 — Parallel Analyst Panels (2 independent LLMs)
 ├─ Analyst A (Gemini Flash): Quantitative focus — numbers, ranges, statistical evidence
 ├─ Analyst B (Claude Sonnet): Market Strategy focus — narrative, risk, positioning
-└─ Memory Retrieval (Pinecone): Historical research for temporal context
+└─ Memory Retrieval (pgvector): Historical research for temporal context
 
 Phase 2 — API Validation
 ├─ Live market data: Xotelo (OTA rates), STR/CoStar (ADR/Occ/RevPAR)

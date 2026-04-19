@@ -107,8 +107,8 @@ When a task needs both backend and frontend:
 | **5.2** | Edge case tests | **CLI** | Test files |
 | **5.4** | Admin testing dashboard | **Replit Agent** | UI enhancement |
 | **6.1** | Rebecca screen context | **CLI** first (backend), then **Replit Agent** (UI integration) |
-| **6.2** | Enhanced RAG content | **CLI** | Pinecone indexing |
-| **6.3** | Pinecone optimization | **CLI** | Backend service |
+| **6.2** | Enhanced RAG content | **CLI** | pgvector indexing |
+| **6.3** | pgvector optimization | **CLI** | Backend service |
 | **7.1** | Export template enhancement | **Replit Agent** | Visual/formatting work |
 | **7.2** | Portfolio consolidated exports | **CLI** first (data), then **Replit Agent** (UI) |
 
@@ -527,13 +527,13 @@ research_sources: id, name, type (api|url|rag|text), endpoint, credentials_ref,
 
 ### 6.2 Enhanced RAG Content
 **WHY:** Rebecca needs to answer about business models, research data, and app usage.
-**FILES:** Pinecone knowledge-base namespace, RAG content files
-**CHANGE:** Index the research docs (`docs/research/*.md`), business model skills, and app help content into Pinecone.
+**FILES:** pgvector knowledge-base namespace, RAG content files
+**CHANGE:** Index the research docs (`docs/research/*.md`), business model skills, and app help content into pgvector.
 **RISK:** Low. Additive content.
 
-### 6.3 Pinecone Optimization
+### 6.3 pgvector Optimization
 **WHY:** 7 namespaces exist but may not be optimally indexed for Rebecca's query patterns.
-**FILES:** `server/ai/pinecone-service.ts`, `server/ai/pinecone-indexing.ts`
+**FILES:** `server/ai/vector-store-service.ts`, `server/ai/vector-indexing.ts`
 **CHANGE:** Review namespace usage, optimize chunk sizes, ensure research history is properly indexed for retrieval.
 **RISK:** Low.
 
@@ -609,7 +609,7 @@ Phase 7 (Exports) ─────── Do last (needs all engine changes finali
 | OpenAI | Active (embeddings) | No change |
 | Google Gemini | Active (Rebecca default engine) | No change |
 | Perplexity | Active (research) | No change |
-| Pinecone | Active (7 namespaces) | Optimize indexing |
+| pgvector | Active (7 namespaces) | Optimize indexing |
 | FRED | API key in .env.example | Activate and integrate |
 | Sentry | Active | No change |
 | Upstash Redis | Active | No change |
@@ -618,10 +618,10 @@ Phase 7 (Exports) ─────── Do last (needs all engine changes finali
 
 ### Database Considerations
 - **`real` (float4) columns for financial data** — known precision risk. Ideal fix: migrate to `numeric` or `double precision`. However, this is a massive migration touching every financial column. Recommend: do NOT change existing columns now. Use `decimal.js` in the engine (already done) to maintain precision in calculations. Flag for future migration when the app is more stable.
-- **Pinecone** — already integrated, 7 namespaces, OpenAI embeddings. Ensure embedding API key is configured. If OpenAI key is missing, embedding silently disables — this should be made more visible to admin.
+- **pgvector** — already integrated, 7 namespaces, OpenAI embeddings. Ensure embedding API key is configured. If OpenAI key is missing, embedding silently disables — this should be made more visible to admin.
 
 ### RAG & Vector Database
-- Pinecone index: `lb-hospitality`
+- pgvector store: `lb-hospitality`
 - Embedding model: `text-embedding-3-small` (1536 dims, cosine)
 - 7 namespaces covering knowledge base, research history, comparables, guidance, documents, scenarios, properties
 - **Action needed:** Index the new research docs (`docs/research/*.md`) into the `knowledge-base` namespace

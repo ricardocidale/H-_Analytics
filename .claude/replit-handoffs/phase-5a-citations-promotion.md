@@ -85,7 +85,7 @@ No other server files have exact-match citation strings. Do **not** touch:
   See 5A-5 below.
 - `server/ai/ambient/fetchers.ts` — same short `"HVS 2024"` label. See 5A-5.
 - `server/ai/kb/19-financial-formulas.md` — KB markdown. Change would require
-  Pinecone re-indexing. Defer to a later phase.
+  pgvector re-indexing. Defer to a later phase.
 
 Commit message:
 
@@ -117,7 +117,7 @@ Claude Code will decide with the user on the next session.
 
 `server/ai/kb/19-financial-formulas.md` contains three inline "HVS 2024
 Specialty Fee Survey" citations (lines 32, 117, 118) plus two numeric defaults
-(`8.5%`, `12%`) at lines 117–118. Changing the KB requires Pinecone
+(`8.5%`, `12%`) at lines 117–118. Changing the KB requires pgvector
 re-indexing. Out of scope for Phase 5A — tracked separately as Phase 5B.
 
 ---

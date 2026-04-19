@@ -29,7 +29,7 @@ All business logic now goes through `server/providers/` — zero direct Replit i
 **Step 1 — Get accounts and keys (30 min)**
 1. Create a [Neon](https://console.neon.tech) project (or use existing — it's the same provider Replit uses)
 2. Get API keys: [Anthropic](https://console.anthropic.com), [OpenAI](https://platform.openai.com), [Google AI](https://aistudio.google.com)
-3. Get a [Pinecone](https://app.pinecone.io) account (or use existing)
+3. pgvector is enabled on the DATABASE_URL Postgres instance — no separate account needed
 4. Pick an object storage: [Cloudflare R2](https://dash.cloudflare.com) (recommended, no egress fees) or AWS S3
 5. Pick a host: [Railway](https://railway.app) (easiest), [Fly.io](https://fly.io), or [Render](https://render.com)
 

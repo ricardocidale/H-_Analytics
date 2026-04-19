@@ -65,7 +65,7 @@ Engines must know what matters per entity:
 ## Pre-Collected Data Strategy
 Country/state/property-type regulatory data should be collected and cached BEFORE a user needs it. This speeds up per-property research by having the baseline ready.
 
-## Pinecone Integration
+## pgvector Integration
 - 7 namespaces: knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties
 - Use for semantic search across comp sets, benchmarks, research history
 - Index: "lb-hospitality", embedding: text-embedding-3-small (1536 dims)

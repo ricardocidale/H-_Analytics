@@ -87,7 +87,7 @@ User presses "Regenerate Intelligence" button (sparkles icon)
   Phase 6: SYNTHESIS & STORAGE (500ms)
   ├── Merge API data + LLM ranges → final guidance per field
   ├── Store in assumption_guidance table (per scenario, per entity, per field)
-  ├── Index summary in Pinecone (research-history namespace) for future RAG
+  ├── Index summary in pgvector (research-history namespace) for future RAG
   ├── Update staleness timestamps
   └── Return to client
   
@@ -193,11 +193,11 @@ User opens Property Edit page:
      → No banner (clean view)
 ```
 
-### 2.4 Pinecone Vector Indexing (After Research Completes)
+### 2.4 pgvector | Rebecca RAGVector Indexing (After Research Completes)
 
 ```
 After every research generation:
-  → Summary of findings indexed in Pinecone (research-history namespace)
+  → Summary of findings indexed in pgvector (research-history namespace)
   → Includes: property context, market, ranges found, sources cited
   → Purpose: when researching a SIMILAR property later, the system can say
     "We previously found ADR $285-$420 for luxury boutique in Catskills"
@@ -264,7 +264,7 @@ The entity context pack (`server/ai/context-pack/`) assembles 60+ fields:
 ### Step 2: Comparable Set Assembly
 
 Progressive relaxation engine (`server/ai/comparables/`) finds similar properties:
-- Queries local DB + Pinecone vector search in parallel
+- Queries local DB + pgvector search in parallel
 - Star rating guard: ±1 star only (hard constraint)
 - Business model boost: +15% score for matching model
 - Evidence score: 30% count + 25% similarity + 20% constraints + 15% diversity + 10% model
@@ -291,7 +291,7 @@ A synthesis model (Claude Opus or equivalent) merges both panels:
 - Sanity bounds check: ADR $30-$5,000, occupancy 5%-100%, cap rate 2%-20%
 - Cross-field validation: cap rate >12% with occupancy >85% = anomalous
 - Store in assumption_guidance with full provenance
-- Index in Pinecone for future research RAG
+- Index in pgvector | Rebecca RAGfor future research RAG
 
 ---
 
@@ -300,7 +300,7 @@ A synthesis model (Claude Opus or equivalent) merges both panels:
 | Feature | Excel + Google | H+ Analytics |
 |---------|---------------|--------------|
 | ADR data | Manual search, copy-paste, stale | Live from Amadeus + 5 fallback sources, refreshed on demand |
-| Comparable set | "I think similar hotels charge..." | Progressive relaxation across DB + Pinecone + web, scored and attributed |
+| Comparable set | "I think similar hotels charge..." | Progressive relaxation across DB + pgvector + web, scored and attributed |
 | Cost benchmarks | Guess or find one report | USALI benchmarks + market-adjusted + quality tier + scale adjusted |
 | Interest rates | Check bankrate.com once | Live FRED data, automatically updated every 6 hours |
 | Regulatory | "I should look into zoning..." | 18-country profiles with licensing, zoning, foreign investment, labor |
@@ -335,10 +335,10 @@ Track when users accept vs. override ranges:
 
 The research engines MUST learn from their own results. Every research run produces data that improves the NEXT run:
 
-**Pinecone RAG feedback loop (already built, 7 namespaces):**
+**pgvector RAG feedback loop (already built, 7 namespaces):**
 ```
 Research run for Property A in Catskills
-  → Results stored in Pinecone "research-history" namespace
+  → Results stored in pgvector "research-history" namespace
   → Next time ANY Catskills property is researched:
      → RAG query finds: "Previous research for similar luxury boutique in Catskills
         found ADR $285-$420 from 8 comps (April 2026)"
@@ -364,7 +364,7 @@ Over time, the system learns:
 **Comparable quality improvement:**
 ```
 Each comparable match is scored (evidence score 0-1)
-  → High-scoring matches are prioritized in Pinecone
+  → High-scoring matches are prioritized inVector DB | pgvector
   → Low-scoring matches are de-weighted over time
   → The vector database accumulates better comps with each research run
   → After 50+ research runs, the system has a rich proprietary comp database

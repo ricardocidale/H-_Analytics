@@ -10,7 +10,7 @@ LLMs are expensive at looking up facts and bad at arithmetic. They're great at j
 
 Every pre-collected data point is accessible two ways:
 1. **Relational table** → deterministic tool does `SELECT FROM table WHERE market = X AND tier = Y` → returns exact number
-2. **Pinecone vector** → RAG query returns contextual data when the LLM needs it for reasoning
+2. **pgvector row** → RAG query returns contextual data when the LLM needs it for reasoning
 
 The tool gives the LLM a fact. The vector gives the LLM context. Both come from the same source data.
 
@@ -47,15 +47,15 @@ The tool gives the LLM a fact. The vector gives the LLM context. Both come from 
 
 **Phase 3 — Ambient refresh:** The ambient scheduler (every 6 hours) checks FRED for macro data (already working). Extend it to also refresh market ADR indices from available API sources.
 
-### Pinecone Indexing
+### pgvector Indexing
 
-Every row inserted into a pre-collected table also gets indexed in Pinecone:
+Every row inserted into a pre-collected table also gets indexed in pgvector:
 - `market_adr_index` → namespace `comparables` with text: "Medellín luxury hotel ADR Q1 2026: $245, occupancy 68%, RevPAR $167"
 - `seasonal_calendars` → namespace `research-history` with text: "Medellín demand seasonality: Dec-Jan peak (1.35x), Jun-Aug low (0.7x)"
 - `event_calendars` → namespace `research-history` with text: "Medellín Flower Festival August, +15% occupancy impact"
 - etc.
 
-Use the existing `indexBenchmarkSnapshot()` pattern from `pinecone-indexing.ts`.
+Use the existing `indexBenchmarkSnapshot()` pattern from `vector-indexing.ts`.
 
 ---
 
@@ -191,10 +191,10 @@ When research completes for a property:
 | 2.9 | `calc/research/validate-assumption-range.ts` — THE key tool | 30 min |
 | 2.10 | Register all tools in `calc/dispatch.ts` | 10 min |
 
-### Phase 3: Pinecone indexing (Claude — 30 min)
+### Phase 3: pgvector indexing (Claude — 30 min)
 | # | What | Time |
 |---|---|---|
-| 3.1 | Add index functions for each table type in `pinecone-indexing.ts` | 20 min |
+| 3.1 | Add index functions for each table type in `vector-indexing.ts` | 20 min |
 | 3.2 | Call indexing after each seed/upsert | 10 min |
 
 ### Phase 4: Wire into research prompts (Claude — 1 hour)

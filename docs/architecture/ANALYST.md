@@ -48,7 +48,7 @@ This spine reconciles them and adds the missing piece: the **Surface tier**.
                 └────────────────────────────────────┘
                                   │
   Comparables Relaxation • Quantitative Panel (Gemini) • Market Panel (Sonnet)
-  • Synthesis Panel (Opus) • Vector Memory (Pinecone) • Deterministic Tools (calc/research)
+  • Synthesis Panel (Opus) • Vector Memory (pgvector) • Deterministic Tools (calc/research)
   • Validators • Confidence Scorer • Staleness Detector             ◄── COGNITIVE TIER
 ```
 
@@ -73,7 +73,7 @@ The Cognitive Engine is the brain Opus built and Claude Code documented. It is *
 | Quantitative Panel | Gemini 2.5 Flash via `server/ai/clients.ts` | Numbers, ranges, benchmarks |
 | Market Panel | Claude Sonnet 4.5 via `server/ai/clients.ts` | Narrative, risk, positioning |
 | Synthesis Panel | Claude Opus 4.6 via `server/ai/clients.ts` | Reconciles A vs B, streams to client |
-| Vector Memory | `server/ai/vector-store-service.ts` | Pinecone — 4 namespaces (knowledge-base, scenarios, properties, comparables) plus research-history |
+| Vector Memory | `server/ai/vector-store-service.ts` | pgvector — 4 namespaces (knowledge-base, scenarios, properties, comparables) plus research-history |
 | Deterministic Tools | `calc/research/*.ts` registered in `calc/dispatch.ts` | The 10 pure-function math tools; LLMs never compute arithmetic |
 | Validators | `server/ai/research-validation.ts`, `calc/research/validate-research.ts` | Bounds, sanity, cross-field consistency |
 | Confidence Scorer | `server/ai/confidence-scorer.ts` | Raw evidence → conviction tier |

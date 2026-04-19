@@ -423,7 +423,7 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - Sentry + PostHog handoffs ready and queued behind OT-A.
 
 **Cross-agent hygiene + SDK consolidation (April 19-20, 2026):**
-- `docs/architecture/DEPENDENCIES.md` — full dependency atlas (150+ deps, 16 categories, cost + env-var + status per item). Corrected stale Pinecone references throughout `.claude/` — the app uses pgvector inside Neon, not Pinecone.
+- `docs/architecture/DEPENDENCIES.md` — full dependency atlas (150+ deps, 16 categories, cost + env-var + status per item). Corrected stale managed-vector-DB references throughout `.claude/` — the app uses pgvector inside Neon.
 - `.claude/skills/analyst/contracts.md` — consolidated SDK contract reference (AnalystVerdict, SynthesisOutputSchema, FIELD_DEFINITIONS, VoiceRenderedString, the categorical A/B gate).
 - `.claude/skills/replit-workflow/SKILL.md` — what Replit Agent is uniquely good at (live preview, Neon integration, Object Storage sidecar, Secrets, Deployments) + hygiene rules parallel to Claude Code's pre-commit rules.
 

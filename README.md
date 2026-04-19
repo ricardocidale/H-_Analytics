@@ -337,7 +337,7 @@ When ON (default), every financial line item shows a help icon explaining its fo
 - **Regenerate Intelligence**: One-button AI research using N+1 multi-LLM pipeline with entity-aware context
 - **Range Badges**: Gold/amber badges next to every assumption field showing researched min-max ranges
 - **Confidence Scoring**: 7-factor weighted score (0-100) per field and per entity
-- **25 Data Sources**: FRED, Perplexity, Tavily, Pinecone, 3 RapidAPI slots, Google Maps, Walk Score, and more — all health-checked
+- **25 Data Sources**: FRED, Perplexity, Tavily, 3 RapidAPI slots, Google Maps, Walk Score, and more — all health-checked
 - **18-Country Regulatory Data**: Licensing, zoning, building codes, foreign investment, labor for all supported markets
 
 ### Risk Analysis
@@ -395,7 +395,7 @@ AI-powered market research analysis for property markets, using multi-provider L
 
 ### Rebecca Chatbot
 
-RAG-powered AI assistant using Pinecone vector database for document retrieval. Context-aware — understands which property or page the user is viewing and provides relevant financial insights, methodology explanations, and data lookups.
+RAG-powered AI assistant using pgvector (Neon PostgreSQL) vector store for document retrieval. Context-aware — understands which property or page the user is viewing and provides relevant financial insights, methodology explanations, and data lookups.
 
 ### Financial Methodology Review
 
@@ -449,7 +449,7 @@ The Administration page (`/admin`) is organized into these tabs:
 | Object Storage | S3-compatible (AWS S3, Cloudflare R2, or local filesystem) |
 | AI Image Generation | Gemini (`gemini-2.5-flash-image`), OpenAI (`gpt-image-1`) |
 | AI Text/Analysis | Anthropic Claude, Google Gemini Pro, OpenAI GPT |
-| Vector Database | Pinecone (RAG for Rebecca chatbot) |
+| Vector Database | pgvector inside Neon (RAG for Rebecca chatbot) |
 | Authentication | Express sessions + configurable OAuth |
 | Error Tracking | Sentry |
 | Analytics | PostHog |

@@ -336,7 +336,7 @@ Upload → Buffer validation → Content-type check → Size check
 
 | Service | Env Var | Purpose |
 |---------|---------|---------|
-| Pinecone | `PINECONE_API_KEY` | Vector DB — 7 namespaces (knowledge-base, market-data, regulatory, research-cache, property-comps, financial-benchmarks, user-preferences) |
+| pgvector | `DATABASE_URL` | Vector DB — 7 namespaces (knowledge-base, market-data, regulatory, research-cache, property-comps, financial-benchmarks, user-preferences) |
 | Upstash Redis | `UPSTASH_REDIS_URL` | Caching layer |
 | Google Maps | `GOOGLE_MAPS_API_KEY` | Geocoding, autocomplete, nearby POI |
 | Resend | `RESEND_API_KEY` | Transactional email |
@@ -433,7 +433,7 @@ These are **Priority 0** in the Smart Data Router — checked before any externa
 [User clicks "Ask the Analyst"] → [Smart Data Router]
                                         ↓
                     ┌──── Priority 0: Pre-collected DB tables (7)
-                    ├──── Priority 1: Pinecone vector search (7 namespaces)
+                    ├──── Priority 1: pgvector vector search (7 namespaces)
                     ├──── Priority 2: FRED / Frankfurter / Walk Score
                     ├──── Priority 3: RapidAPI market data
                     └──── Priority 4: LLM web research (Perplexity/Tavily)

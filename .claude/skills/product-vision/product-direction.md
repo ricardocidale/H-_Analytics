@@ -48,7 +48,7 @@ description: The product roadmap, admin section architecture, user simplificatio
 
 ### Block 6: Rebecca (AI Chatbot)
 - Name is REBECCA (confirmed)
-- RAG + Pinecone + current screen/page context awareness
+- RAG + pgvector + current screen/page context awareness
 - Must be delightful, well-spoken, knowledgeable about app + business + research
 
 ### Block 7: Themes

@@ -8,7 +8,7 @@
 - Audit tests: 10 files, 209 tests (endpoint security, fetch timeouts, route params, vocabulary)
 - WeasyPrint PDF pipeline wired
 - Page visit tracking (server + storage)
-- Knowledge base seeds (18 Pinecone entries), market data seeds (475 rows)
+- Knowledge base seeds (18 knowledge-base entries), market data seeds (475 rows)
 - CI fixes (ripgrep, test timeouts, ESLint)
 
 ### Day 2 (April 15)

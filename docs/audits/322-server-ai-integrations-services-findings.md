@@ -15,7 +15,7 @@
 |-----------|-------|-------|
 | Fault Isolation | 9/10 | Promise.allSettled in aggregator, circuit breakers on all integrations, non-blocking side effects |
 | Error Recovery | 7/10 | Circuit breakers with half-open probe (integrations), but no retry in services base class; scheduler mutual exclusion prevents cascading |
-| Data Integrity | 8/10 | Stale-while-revalidate caching, data recency validation, Pinecone mutex; but simulated Document AI fallback risks fake data leaking |
+| Data Integrity | 8/10 | Stale-while-revalidate caching, data recency validation, pgvector | Rebecca RAGmutex; but simulated Document AI fallback risks fake data leaking |
 | Observability | 8/10 | Sentry tracing on integrations, structured logging with service tags, API cost logging; but 8 empty catch blocks reduce debuggability |
 | Type Safety | 8/10 | 14 `as any` casts in scope (down from earlier audit baselines), proper `error instanceof Error` pattern in 45+ catch blocks |
 
@@ -28,9 +28,9 @@ Scoring methodology: Each dimension rated 1-10 based on adherence to production 
 ### AI Layer (`server/ai/`)
 - **Singleton client factories** (`clients.ts`): Lazy-init OpenAI, Anthropic, Gemini, Perplexity — one TCP connection pool per vendor. Proper fail-fast when API keys missing.
 - **LLM resolution** (`resolve-llm.ts`): 8 domain slots (companyLlm → graphicsLlm), tab-level defaults, dual-model support with configurable primary/secondary per domain. `normalizeModelId()` maps deprecated Claude models to current versions.
-- **Research orchestrator** (`research-orchestrator.ts`): N+1 parallel synthesis — two analyst panels (Gemini quantitative + Claude market-strategy) run concurrently, validated against live market data APIs, then synthesized by Claude Opus with streaming. Includes temporal decay for prior research relevance, progressive relaxation for comparable sets, and Pinecone-backed research memory.
+- **Research orchestrator** (`research-orchestrator.ts`): N+1 parallel synthesis — two analyst panels (Gemini quantitative + Claude market-strategy) run concurrently, validated against live market data APIs, then synthesized by Claude Opus with streaming. Includes temporal decay for prior research relevance, progressive relaxation for comparable sets, and pgvector-backed research memory.
 - **Multi-vendor research client** (`research-client.ts`): Adapter pattern — `AnthropicResearchClient`, `OpenAIResearchClient`, `GeminiResearchClient` all implement `ResearchClient` interface. Supports tool use across all three vendors with format translation.
-- **Pinecone service** (`pinecone-service.ts`): 7 namespaces (knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties). Embedding via `text-embedding-3-small` (1536 dims). Batch upserts in groups of 100.
+- **Vector store service** (`vector-store-service.ts`): 7 namespaces (knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties). Embedding via `text-embedding-3-small` (1536 dims). Batch upserts in groups of 100.
 - **Ambient schedulers**: Benchmark refresh (6h interval) and scheduled research workflows (15min check cycle with Anthropic batch API at 50% cost).
 - **Rebecca context builder**: Structured context packs for property/company entities with field-level assumption guidance for the chatbot.
 
@@ -88,12 +88,12 @@ Six `as any` casts used when reading `researchConfig` keys and constructing JSON
 
 **Recommendation**: Define explicit interfaces for scheduled research content/promptConditions payloads.
 
-#### M-3: Hardcoded 8-second sleep during Pinecone index creation
-**File**: `server/ai/pinecone-service.ts:120`
+#### M-3: Hardcoded 8-second sleep during pgvector index creation
+**File**: `server/ai/vector-store-service.ts:120`
 ```typescript
 await new Promise(r => setTimeout(r, 8_000));
 ```
-After creating the Pinecone index, the code blindly waits 8 seconds hoping the index is ready. Pinecone serverless index creation can take 10-30+ seconds depending on region. If the index isn't ready, subsequent operations will fail with transient errors (which are not retried by this code).
+After creating the pgvector store, the code blindly waits 8 seconds hoping the index is ready. pgvector index creation can take 10-30+ seconds depending on region. If the index isn't ready, subsequent operations will fail with transient errors (which are not retried by this code).
 
 **Impact**: Possible startup race condition on first deployment. Low probability since the index is created once and the mutex pattern prevents concurrent creation. The `_indexReady` flag prevents re-checking.
 
@@ -115,12 +115,12 @@ The service template query returns objects without `defaultRate`, `serviceModel`
 #### L-1: Empty `catch {}` blocks suppress errors silently
 **Files**: 
 - `server/ai/aiResearch.ts:97` (JSON parse failure returns `rawResponse` — acceptable)
-- `server/ai/pinecone-service.ts:266, 341` (vectorCount/totalVectorCount return 0 — acceptable)
+- `server/ai/vector-store-service.ts:266, 341` (vectorCount/totalVectorCount return 0 — acceptable)
 - `server/ai/knowledge-base.ts:80`
 - `server/ai/ambient/research-scheduler.ts:81, 183, 307`
 - `server/ai/comparables/relaxation-engine.ts:58`
 
-Total: 8 empty catch blocks across AI layer. Most are intentional non-blocking patterns (benchmark loading, Pinecone stats) but lack even a debug-level log. The scheduler's `catch { return; }` at line 183 silently skips batch processing when Anthropic client creation fails.
+Total: 8 empty catch blocks across AI layer. Most are intentional non-blocking patterns (benchmark loading, pgvector stats) but lack even a debug-level log. The scheduler's `catch { return; }` at line 183 silently skips batch processing when Anthropic client creation fails.
 
 #### L-2: `isTransientError` heuristic in `integrations/base.ts` uses fragile string matching
 **File**: `server/integrations/base.ts:175`
@@ -183,7 +183,7 @@ The synthesis phase hardcodes `getAnthropicClient()` for streaming, even though 
 
 6. **Ambient scheduler mutual exclusion**: Both schedulers (`scheduler.ts` and `research-scheduler.ts`) use `isRunning` boolean guards to prevent concurrent execution. The benchmark scheduler also protects interval cleanup on stop.
 
-7. **Pinecone index creation mutex**: `ensureIndex()` uses a promise-based mutex (`_ensureIndexPromise`) to prevent concurrent index creation during startup — correct concurrency pattern.
+7. **pgvector index creation mutex**: `ensureIndex()` uses a promise-based mutex (`_ensureIndexPromise`) to prevent concurrent index creation during startup — correct concurrency pattern.
 
 8. **Branded email templates**: The Resend integration produces production-quality HTML emails with responsive design, dynamic theme colors from the admin panel, and proper XSS protection via `esc()` helper.
 
@@ -200,7 +200,7 @@ The synthesis phase hardcodes `getAnthropicClient()` for streaming, even though 
 | `ambient/research-scheduler.ts` | 6 | ResearchConfig keys, JSONB payloads |
 | `rebecca-context-builder.ts` | 5 | Missing type fields on GA/templates |
 | `research-client.ts` | 2 | Gemini tools cast, schema cleanup |
-| `pinecone-service.ts` | 1 | Pinecone upsert records format |
+| `vector-store-service.ts` | 1 | pgvector upsert records format |
 | **Total** | **14** | |
 
 Note: `server/seeds/` (9 files) and `server/scripts/` (4 files) contain zero `as any` casts.
@@ -232,8 +232,8 @@ Note: `server/seeds/` (9 files) and `server/scripts/` (4 files) contain zero `as
 - `research-value-extractor.ts` — Value extraction from research output
 - `research-resources.ts` — Skill/tool definition loading
 - `aiResearch.ts` — Research generation with tool loop
-- `pinecone-service.ts` — Vector store operations (7 namespaces)
-- `pinecone-indexing.ts` — Domain-specific Pinecone indexing
+- `vector-store-service.ts` — Vector store operations (7 namespaces)
+- `vector-indexing.ts` — Domain-specific pgvector indexing
 - `rebecca-context-builder.ts` — Rebecca chatbot context packs
 - `knowledge-base.ts` — Knowledge base management
 - `kb-content.ts` — Knowledge base content definitions
@@ -282,7 +282,7 @@ Note: `server/seeds/` (9 files) and `server/scripts/` (4 files) contain zero `as
 - `services.ts` — Service template seeds
 
 ### server/scripts/ (4 files)
-- `backfill-benchmarks-pinecone.ts` — One-time Pinecone benchmark backfill
+- `backfill-benchmarks-vector.ts` — One-time pgvector benchmark backfill
 - `backfill-photo-image-data.ts` — Photo metadata backfill
 - `generate-medellin-exterior.ts` — Replicate image generation script
 - `generate-medellin-renders.ts` — Replicate batch render script
@@ -299,4 +299,4 @@ Note: `server/seeds/` (9 files) and `server/scripts/` (4 files) contain zero `as
 
 4. **M-1 (Medium-term)**: Add retry capability to `server/services/BaseIntegrationService.ts` by porting the exponential backoff from `server/integrations/base.ts`. Improves resilience of all 17 market data services.
 
-5. **M-3 (Medium-term)**: Replace hardcoded 8s sleep in `pinecone-service.ts` with poll-until-ready loop on `describeIndex()`. Low urgency since index creation is a one-time event.
+5. **M-3 (Medium-term)**: Replace hardcoded 8s sleep in `vector-store-service.ts` with poll-until-ready loop on `describeIndex()`. Low urgency since index creation is a one-time event.

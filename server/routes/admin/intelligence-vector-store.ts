@@ -88,8 +88,6 @@ export function registerVectorStoreRoutes(app: Express) {
         llmVendors: vendors,
         recommendedDefaults: recommended,
         knowledgeBase: {
-          // Legacy field name preserved for older clients; mirrors `vectorStore`.
-          pinecone: vectorStore,
           vectorStore,
           embeddings,
           learningActive: knowledgeLearning,
@@ -101,8 +99,6 @@ export function registerVectorStoreRoutes(app: Express) {
         },
         missingKeys: {
           fredApiKey: !process.env.FRED_API_KEY,
-          // Legacy field preserved; mirrors vectorStore availability.
-          pineconeApiKey: !vectorStore,
           vectorStore: !vectorStore,
           embeddingKey: !embeddings,
         },
@@ -306,16 +302,4 @@ export function registerVectorStoreRoutes(app: Express) {
     }
   });
 
-  // ── Back-compat redirects: legacy /api/admin/pinecone/* paths ─────────────
-  // These permanently redirect to the new vendor-neutral /api/admin/vector-store/*
-  // routes. Remove once all clients have been updated.
-  app.get("/api/admin/pinecone/stats", requireAdmin, (_req, res) => {
-    res.redirect(308, "/api/admin/vector-store/stats");
-  });
-  app.post("/api/admin/pinecone/reindex/:namespace", requireAdmin, (req, res) => {
-    res.redirect(308, `/api/admin/vector-store/reindex/${encodeURIComponent(String(req.params.namespace))}`);
-  });
-  app.delete("/api/admin/pinecone/clear/:namespace", requireAdmin, (req, res) => {
-    res.redirect(308, `/api/admin/vector-store/clear/${encodeURIComponent(String(req.params.namespace))}`);
-  });
 }

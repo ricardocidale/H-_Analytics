@@ -190,7 +190,7 @@ Expected: zero hits in application code. `.claude/` and `.git/` hits are fine (d
 
 ### Task 5B-3 — Trigger KB re-index
 
-After Commit B merges to main, trigger a re-index of the `knowledge-base` namespace so the new chunks are embedded into Pinecone:
+After Commit B merges to main, trigger a re-index of the `knowledge-base` namespace so the new chunks are embedded into pgvector:
 
 ```bash
 curl -X POST http://localhost:5000/api/admin/vector-store/reindex/knowledge-base \

@@ -111,7 +111,7 @@ This rule is the secret to why the Analyst's numbers are trustworthy. When Rebec
 
 ### Memory — pgvector (inside Neon Postgres)
 
-**`server/ai/vector-store-service.ts`** is the façade. The backing store is **pgvector**, the PostgreSQL vector extension, running inside the same Neon database that holds everything else. Not a separate managed service (no Pinecone, no Weaviate, no Qdrant). Migration: `0012_pgvector_store.sql`. Embeddings: OpenAI `text-embedding-3-small` at 1536 dimensions; HNSW approximate-nearest-neighbor index; cosine distance.
+**`server/ai/vector-store-service.ts`** is the façade. The backing store is **pgvector**, the PostgreSQL vector extension, running inside the same Neon database that holds everything else. Not a separate managed service. Migration: `0012_pgvector_store.sql`. Embeddings: OpenAI `text-embedding-3-small` at 1536 dimensions; HNSW approximate-nearest-neighbor index; cosine distance.
 
 **Seven namespaces** (confirmed by the April 2026 `docs/architecture/DEPENDENCIES.md` audit):
 
@@ -243,4 +243,4 @@ In this codebase, **The Analyst** (singular, capital T, capital A) refers to the
 This is my mental model as of April 2026, built from ~2 hours of directed reading after the user asked "where is the codebase creating the mega powerful analyst?" I haven't exhaustively verified every claim — where I said "I believe" or "I haven't confirmed," that's literal. If something here contradicts the actual code, the code wins.
 
 **Correction log:**
-- **April 19, 2026** — The original note referred to "Pinecone" as the vector-memory backing. The actual backing is **pgvector inside Neon Postgres** (migration `0012_pgvector_store.sql`). Corrected throughout after the `docs/architecture/DEPENDENCIES.md` audit.
+- **April 19, 2026** — The original note referred to a managed vector DB as the vector-memory backing. The actual backing is **pgvector inside Neon Postgres** (migration `0012_pgvector_store.sql`). Corrected throughout after the `docs/architecture/DEPENDENCIES.md` audit.

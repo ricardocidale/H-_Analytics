@@ -66,7 +66,7 @@ AI-generated property images, premium exports, investor-ready output. Branded PP
 
 ### 5. Knowledge Completeness
 
-Rebecca chatbot with RAG across 7 Pinecone namespaces. Contextual tooltips on every financial line item. Guided tours. Industry benchmark library. Users learn by using the platform.
+Rebecca chatbot with RAG across 7 pgvector namespaces. Contextual tooltips on every financial line item. Guided tours. Industry benchmark library. Users learn by using the platform.
 
 ---
 
@@ -80,7 +80,7 @@ All phases below are DONE. See `MASTER-PLAN.md` for full detail.
 | **1** | Data Model | Quality tiers, property descriptors, user simplification (groups eliminated), DB-backed constants, business brand entity, country defaults expansion |
 | **2** | Admin & UI | Admin sidebar restructure, component deduplication, per-user default scenarios, required fields config, branding polish |
 | **3** | Financial Engine | F&B as % of total revenue (not rooms), luxury rental model, monthly seasonality curves, improved occupancy ramp, owner's priority return, fee subordination |
-| **4** | Research Engines | FRED API integration, Damodaran data loader, source management system, range badge UX, entity-aware research context, Pinecone RAG expansion |
+| **4** | Research Engines | FRED API integration, Damodaran data loader, source management system, range badge UX, entity-aware research context, pgvector RAG expansion |
 | **5** | Testing | 4 golden scenario archetypes (Clearwater Inn, Medellin Duplex, Cartagena Hotel, NY Estate) + 16 edge cases, 4,536+ tests across 187 files |
 | **6** | Rebecca AI | Screen context awareness, proactive suggestions, enhanced greeting, Super Conversations, email summaries, feedback system, knowledge base CRUD, guardrail editor |
 | **7** | Exports | Scope selector, property profile in PDF/PPTX, seasonality charts, unified report compiler, premium PDF via @react-pdf/renderer, server-side export generation |
@@ -176,21 +176,9 @@ Created `server/providers/` with interfaces and factory functions for storage an
 
 **TOOL:** Claude Code CLI
 
-### 8.6 Migrate Pinecone → pgvector ⬜ TODO (do after owning Neon instance)
+### 8.6 ✅ pgvector-on-Neon (COMPLETED April 2026)
 
-**WHY:** Eliminates $70+/mo Pinecone dependency. pgvector is included free in Neon. Current vector dataset is tiny (~2-5K vectors across 7 namespaces) — pgvector handles this trivially. Cannot do this while on Replit's managed Neon (no control over PostgreSQL extensions). Must own the Neon project first.
-
-**TASKS:**
-- Enable pgvector extension on own Neon instance: `CREATE EXTENSION vector`
-- Create `embeddings` table: `id, namespace, content_hash, embedding vector(1536), metadata jsonb, created_at`
-- Create `VectorProvider` interface (like storage/auth providers)
-- Implement `PineconeVectorProvider` (wrap current code) and `PgVectorProvider`
-- Switch via `VECTOR_PROVIDER=pgvector` env var
-- Migrate data from all 7 Pinecone namespaces (knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties)
-- Verify Rebecca RAG quality matches Pinecone baseline
-- Remove `@pinecone-database/pinecone` dependency and `PINECONE_API_KEY`
-
-**TOOL:** Claude Code CLI | **Effort:** 2-3 days | **Prerequisite:** Phase 8.2 (own Neon instance)
+Migration from the managed vector DB to pgvector inside Neon Postgres shipped under `migrations/0012_pgvector_store.sql`. Vector store service at `server/ai/vector-store-service.ts`; indexing helpers at `server/ai/vector-indexing.ts`. All RAG retrieval and knowledge-base sync now run on pgvector. Historical cleanup of stale references across `.claude/`, `docs/`, and `README.md` completed April 20, 2026.
 
 ### 8.7 Database Migration Strategy
 
