@@ -138,11 +138,13 @@ All five gates pass. The new wrapper is imported by a throwaway test file in `te
 
 Put the Opus synthesis step behind a parallel code path controlled by the `USE_AI_SDK_SYNTHESIS` env var (default: `false`). Run both paths in A/B mode for 1 week.
 
-### Schema to add (Claude Code's responsibility — will be added to this handoff as an amendment before you start)
+### Schema to add
 
-`SynthesisOutputSchema` — the Zod schema defining the shape of synthesis output. Will live in `engine/analyst/cognitive/synthesis-schema.ts`. It must match what `research-value-extractor.ts` currently extracts, so A.4 (extractor deletion) is mechanical if A.3 succeeds.
+`SynthesisOutputSchema` — the Zod schema defining the shape of synthesis output. See **Amendment 1** at the end of this handoff for the exact file content to paste into `server/ai/synthesis-schema.ts`.
 
-**I will provide this schema before you start OT-A.3.** Do NOT invent it.
+**File location: `server/ai/synthesis-schema.ts`** — new file, colocated with `research-orchestrator.ts` and the rest of the Cognitive Engine plumbing. Do NOT place it under `engine/analyst/**` — that's Phase 3b/4 territory and out of OT-A scope.
+
+The schema is a structured replacement for what `research-value-extractor.ts` currently regex-parses. The helper `toLegacyResearchValuesMap()` (included in the schema file) converts the new shape back to the legacy `Record<string, ResearchEntry>` format that `Property.researchValues` DB column currently expects — so existing consumers keep working during A.3's A/B window. OT-A.4 then deletes the extractor, and any remaining legacy consumers migrate to `SynthesisOutput` directly.
 
 ### Change in `server/ai/research-orchestrator.ts`
 
@@ -261,7 +263,7 @@ This is mandatory. Every file outside this list is **not yours** in OT-A.
 
 - `server/ai/ai-sdk-clients.ts` (OT-A.2)
 - `tests/ai/ai-sdk-client.smoke.test.ts` (OT-A.2, deleted in OT-A.4)
-- `engine/analyst/cognitive/synthesis-schema.ts` (Claude Code provides the content; you commit it)
+- `server/ai/synthesis-schema.ts` (OT-A.3 — paste content from Amendment 1 verbatim)
 - `docs/operational-tooling/OT-A-3-ab-results.md` (OT-A.3)
 
 ### You may edit
@@ -357,3 +359,201 @@ OT-B is parallel-track to Phase 4 (Specialist build-out). It doesn't block anyth
 ## Conflict check
 
 If any instruction in this brief contradicts `.claude/rules/the-analyst-persona.md`, `.claude/rules/analyst-team.md`, `.claude/rules/claude-replit-split.md`, or `.claude/rules/pre-commit-verification.md`, **the `.claude/rules/*` files win**. Flag the contradiction in `BLOCKED-OT-A.md` and stop before proceeding.
+
+---
+
+## Amendment 1 — `server/ai/synthesis-schema.ts` (verbatim content)
+
+Create this file in OT-A.3. Paste the content below verbatim — do not edit the field list, do not rename exports, do not change the helper's return shape. Downstream consumers depend on the exact names.
+
+```typescript
+/**
+ * SynthesisOutputSchema — the Zod shape Opus returns for Cognitive Engine
+ * synthesis after OT-A.3 migration.
+ *
+ * This schema is the structured replacement for the regex-based extraction
+ * in server/ai/research-value-extractor.ts. Before OT-A.3, Opus returned
+ * loose JSON/markdown and the extractor regex-parsed strings like
+ * "stabilized occupancy of 70–80%". After OT-A.3, Opus returns this schema
+ * directly via Vercel AI SDK's streamObject. OT-A.4 deletes the extractor.
+ *
+ * Two entry types:
+ *   - NumericResearchValue — quantitative (ADR, occupancy, cap rate, cost
+ *     rates, etc.) with explicit low/mid/high/unit.
+ *   - DescriptiveResearchValue — qualitative narrative (market positioning,
+ *     seasonal patterns, risk flags).
+ *
+ * Field names (the string key) must match the known field keys consumed by:
+ *   - Property.researchValues DB column (per-property research storage)
+ *   - client/src/components/analyst/AnalystRangeIndicator.tsx (badge render)
+ *
+ * Known numeric fields (reference only; schema does NOT enum-restrict to
+ * preserve extensibility for future Specialists):
+ *
+ *   adr, adrGrowth, occupancy, startOccupancy, occupancyStep, rampMonths,
+ *   capRate, catering, landValue, saleCommission, incentiveFee, incomeTax,
+ *   inflationRate, interestRate, ltv, platformFee,
+ *   revShareFB, revShareEvents, revShareOther,
+ *   costHousekeeping, costFB, costAdmin, costPropertyOps, costUtilities,
+ *   costFFE, costMarketing, costIT, costOther, costPropertyTaxes,
+ *   svcFeeMarketing, svcFeeTechRes, svcFeeAccounting, svcFeeRevMgmt,
+ *   svcFeeGeneralMgmt, svcFeeProcurement,
+ *   costSeg5yrPct, costSeg7yrPct, costSeg15yrPct,
+ *   arDays, apDays, preOpeningCosts.
+ *
+ * See docs/operational-tooling/HANDOFF-replit-phase-OT-A.md §OT-A.3 for
+ * the migration plan and A/B parity criteria.
+ */
+
+import { z } from "zod";
+
+export const ResearchUnitSchema = z.enum([
+  "%",
+  "$",
+  "days",
+  "months",
+  "years",
+  "rooms",
+  "ratio",
+]);
+export type ResearchUnit = z.infer<typeof ResearchUnitSchema>;
+
+/**
+ * Numeric research value with a conviction range. Replaces the regex-parsed
+ * { display, mid } output of research-value-extractor.ts.
+ */
+export const NumericResearchValueSchema = z
+  .object({
+    /** Canonical field key (e.g. "adr", "capRate", "costMarketing"). */
+    field: z.string().min(1),
+    low: z.number().finite(),
+    mid: z.number().finite(),
+    high: z.number().finite(),
+    unit: ResearchUnitSchema,
+    /** Human-readable range ("70%–80%", "$180–$220", "6–9 mo"). UI consumes this. */
+    display: z.string().min(1),
+    /** One-paragraph reasoning citing which sources drove the range. */
+    reasoning: z.string().min(1).max(1200),
+    /** Source names (e.g. ["HVS 2024 Fee Survey", "STR Q1 2026"]). */
+    sources: z.array(z.string().min(1)).min(1),
+    /** Segment-relevance score (0..1). How well sources apply to this persona. */
+    personaFit: z.number().min(0).max(1),
+  })
+  .refine((r) => r.low <= r.mid && r.mid <= r.high, {
+    message: "NumericResearchValue requires low <= mid <= high",
+  });
+export type NumericResearchValue = z.infer<typeof NumericResearchValueSchema>;
+
+/**
+ * Descriptive research content (market narrative, seasonal patterns, risk
+ * flags). No numeric range — just narrative prose plus sources.
+ */
+export const DescriptiveResearchValueSchema = z.object({
+  field: z.string().min(1),
+  narrative: z.string().min(1).max(2000),
+  sources: z.array(z.string().min(1)).min(1),
+});
+export type DescriptiveResearchValue = z.infer<typeof DescriptiveResearchValueSchema>;
+
+/**
+ * Top-level synthesis output. Opus returns this via streamObject. The
+ * orchestrator flattens `values[]` into the legacy ResearchEntry map via
+ * `toLegacyResearchValuesMap()` for DB-column compatibility during A/B.
+ */
+export const SynthesisOutputSchema = z.object({
+  /** Quantitative research values, one per field. */
+  values: z.array(NumericResearchValueSchema).min(1),
+  /** Qualitative narrative blocks (optional; not every synthesis produces these). */
+  narrative: z.array(DescriptiveResearchValueSchema).optional().default([]),
+  /** Surface-level summary. */
+  overall: z.object({
+    /** Fraction of metrics where the two Cognitive Panels agreed (from Phase 2 validation). */
+    consensusRatio: z.number().min(0).max(1),
+    /** 1-5 bullet key takeaways for the UI summary header. */
+    keyTakeaways: z.array(z.string().min(1)).min(1).max(5),
+  }),
+});
+export type SynthesisOutput = z.infer<typeof SynthesisOutputSchema>;
+
+// ────────────────────────────────────────────────────────────────────────────
+// Legacy compatibility
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Legacy ResearchEntry shape currently stored in Property.researchValues.
+ * Kept here for type continuity during OT-A.3 A/B. After OT-A.4 deletes the
+ * extractor, any remaining consumers should migrate to SynthesisOutput directly.
+ */
+export type LegacyResearchEntry = { display: string; mid: number; source: "ai" };
+
+/**
+ * Converts the new SynthesisOutput shape into the legacy
+ * `Record<field, { display, mid, source: "ai" }>` map that
+ * Property.researchValues and research-value-extractor.ts consumers expect.
+ *
+ * During OT-A.3 A/B, both the old extractor path and the new streamObject
+ * path produce this same map shape, making verdict comparison mechanical.
+ */
+export function toLegacyResearchValuesMap(
+  output: SynthesisOutput,
+): Record<string, LegacyResearchEntry> {
+  const result: Record<string, LegacyResearchEntry> = {};
+  for (const v of output.values) {
+    result[v.field] = { display: v.display, mid: v.mid, source: "ai" };
+  }
+  return result;
+}
+```
+
+### How OT-A.3 uses this schema
+
+```typescript
+// server/ai/research-orchestrator.ts — inside the synthesis branch
+import { SynthesisOutputSchema, toLegacyResearchValuesMap } from "./synthesis-schema";
+import { streamObject } from "ai";
+import { getAiSdkAnthropic } from "./ai-sdk-clients";
+
+if (process.env.USE_AI_SDK_SYNTHESIS === "true") {
+  const { partialObjectStream, object: finalObjectPromise } = streamObject({
+    model: getAiSdkAnthropic()("claude-opus-4-6"),
+    schema: SynthesisOutputSchema,
+    system: [
+      {
+        type: "text",
+        text: systemPrompt,
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
+    ],
+    prompt: userPrompt,
+    maxTokens: SYNTHESIS_TOKENS,
+  });
+
+  for await (const partial of partialObjectStream) {
+    yield { type: "content", data: JSON.stringify(partial) };
+  }
+  const finalObject = await finalObjectPromise;
+  fullContent = JSON.stringify(finalObject);
+
+  // Legacy compatibility during A/B: emit the same shape the old extractor produced.
+  const legacyMap = toLegacyResearchValuesMap(finalObject);
+  // ... downstream consumers (Property.researchValues writer) receive this unchanged
+}
+```
+
+### A/B parity check uses the schema directly
+
+In OT-A.3's A/B measurement, comparing the old path vs new path becomes:
+
+```typescript
+// Old path output: Record<string, { display, mid, source: "ai" }>
+const oldMap = extractResearchValues(oldSynthesisContent);
+
+// New path output: SynthesisOutput, converted via helper
+const newMap = toLegacyResearchValuesMap(newSynthesisObject);
+
+// Compare field-by-field — same shape, mechanical equality check
+```
+
+This is what makes OT-A.4 (extractor deletion) safe: once the two maps match on 20 real inputs, the extractor is provably redundant.
