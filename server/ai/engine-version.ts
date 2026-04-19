@@ -22,10 +22,10 @@
  *   cat server/ai/synthesis-schema.ts server/ai/research-prompt-builders.ts | sha256sum
  */
 
-export const ENGINE_VERSION = "v1-2026-04-20-a" as const;
+export const ENGINE_VERSION = "v1-2026-04-20-b" as const;
 
 export const SYNTHESIS_FINGERPRINT =
-  "0c509dd704afa45e6f9a1f1bac4d8cf00266d0700dc341e6681bf8c95621402c" as const;
+  "c821037f6d91ccdc1ddf69b571445b49da00082bd5f89efcd8ee3d0f8b082a81" as const;
 
 export const COGNITIVE_MODEL_VERSIONS = {
   analystA: "gemini-2.5-flash",
