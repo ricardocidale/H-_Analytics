@@ -155,11 +155,15 @@ Per single Tier-1 consult with current (April 2026) pricing via Vercel AI Gatewa
 
 - Gemini 2.5 Flash (Panel A) — ~$0.05
 - Claude Sonnet 4.5 (Panel B) — ~$0.15
-- Claude Opus 4.6 (Synthesis) — ~$0.50
+- Claude Opus 4.6 (Synthesis) — ~$0.50 cold / ~$0.20–0.30 with prompt-cache hit
 - Embeddings (pgvector retrieval for comps) — < $0.01
-- **Per-call total: ~$0.70.** Native prompt caching (OT-A.1) reduces repeat-call cost by 40–60% for same-context hits.
+- **Per-call total: ~$0.70 cold, ~$0.40–0.50 warm** (after OT-A.1 native prompt caching + OT-A.4 `streamObject` migration reduced repeat-call cost by 40–60% on same-context hits)
 
-That budget is why Tier-0 must be the default. A dashboard with 50 fields × 10 users × 3 clicks/day = 1,500 Tier-1 calls = ~$1,050/day **if** we didn't gate. Gated, it's typically <$20/day.
+That budget is why Tier-0 must be the default. A dashboard with 50 fields × 10 users × 3 clicks/day = 1,500 Tier-1 calls = ~$1,050/day **if** we didn't gate (cold) or ~$600/day (warm). Gated via the staleness detector + conviction-floor rule, it's typically < $20/day in observed production.
+
+**Why this matters for ADR-004:** the ~$0.40–0.50 warm-cache figure is the cache-hit baseline the verdict cache is competing against. ADR-004's cache layer avoids the entire Cognitive Engine pipeline invocation on hit — marginal cost collapses to a Postgres-indexed lookup (< 1 ms, < $0.001). Observed session-replay data suggests hit rate > 60% is realistic after warmup. That turns ~$125/day gated into ~$25/day cached. OT-A.1 + OT-A.4 shrank the *unit* cost of a miss; ADR-004 eliminates the *count* of misses. The two optimizations compound — they aren't substitutes.
+
+**v2-2026-04-20-a ENGINE_VERSION baseline:** post-OT-A.4 cold cost measurements are from the first production week after the flip. When any of `synthesis-schema.ts`, `research-prompt-builders.ts`, or the model constants in `research-orchestrator.ts` change, the engine-version-drift test fires and the baseline re-measures against the new fingerprint. If cost regresses > 15% on a version bump, file BLOCKED before shipping.
 
 ---
 

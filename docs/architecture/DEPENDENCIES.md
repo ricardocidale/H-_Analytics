@@ -205,7 +205,7 @@ Files: `server/ai/clients.ts` (singleton factories), `server/ai/research-client.
 
 **Cost profile:** All four are usage-based on provider pricing. Baseline ~$0.70 per "Consult the Analyst" click (Gemini + Sonnet + Opus combined). Embeddings at `$0.02/1M` tokens are negligible.
 
-**In-flight migration (Phase OT-A):** these direct SDKs will be routed through the **Vercel AI SDK** and **Vercel AI Gateway** for unified billing, failover, and observability. BYOK — Anthropic/Gemini/OpenAI keys stay the same; Gateway takes zero markup. See `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md`.
+**Vercel AI SDK migration (Phase OT-A) — COMPLETE through OT-A.4 (`7da9f25a`).** Synthesis now runs exclusively on `streamObject({ schema: SynthesisOutputSchema })` via the AI Gateway with BYOK (zero markup). Anthropic/Gemini/OpenAI keys stay the same; the legacy regex-based `research-value-extractor.ts` was retired on ship. `USE_AI_SDK_SYNTHESIS=true` is the default (env flag retained only as an emergency kill-switch). OT-A.5 (field-anchor refinements) queued for v6 rerun post-72h observation window. See `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md` for the migration arc.
 
 ---
 
@@ -240,7 +240,7 @@ Files: `server/ai/vector-store-service.ts`, `server/storage/vector-store.ts`, `s
 
 **Current state (as of April 2026):** direct SDK calls per provider (`clients.ts`).
 
-**Adopted / in-flight (Phase OT-A):**
+**Adopted (Phase OT-A, complete through OT-A.4):**
 
 | Tool | Package(s) | Purpose | Cost |
 |---|---|---|---|
@@ -249,7 +249,7 @@ Files: `server/ai/vector-store-service.ts`, `server/storage/vector-store.ts`, `s
 
 Env var: `AI_GATEWAY_API_KEY` (in Replit Secrets).
 
-See OT-A handoff for migration plan: `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md`.
+See OT-A handoff for migration record: `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md`. Lessons codified: `.claude/rules/{field-definitions-no-prescription-hints,llm-contract-migration-parity,parity-exemption-classes}.md` + `.claude/notes/llm-migration-playbook.md`.
 
 **Not adopted (considered, deferred):**
 
@@ -490,5 +490,5 @@ Every PR that modifies `package.json` should also modify this file. A PR that sk
 - `.claude/rules/financial-safety.md` — rules that constrain which packages are allowed in `calc/`
 - `.claude/rules/deterministic-tools.md` — the 37-tool registry rule
 - `docs/architecture/ANALYST.md` — The Analyst architecture spine
-- `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md` — in-flight Vercel AI SDK migration
+- `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md` — Vercel AI SDK migration record (complete through OT-A.4 `7da9f25a`)
 - `replit.md` — platform-specific notes mirroring this file
