@@ -58,7 +58,7 @@ Two execution surfaces are in play. The agent must flag which one a task belongs
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
-- Skills live in `.claude/skills/` (19 domains, 178 files). See `.claude/skills/_index.md` for the master catalog.
+- Skills live in `.claude/skills/` (20 domains, 193 files). See `.claude/skills/_index.md` for the master catalog. **For Replit-specific behavior, read `.claude/skills/replit-workflow/SKILL.md` — it's authoritative for what Replit owns, session hygiene, and escalation rules.**
 - **App name** is "H+ Analytics" (seed/default). Editable by super admin in Admin > App Identity. Powered by Norfolk AI.
 - **Company name** refers to the hospitality management company (seed/default: "Hospitality Management Co"). Editable by any user on the Management Company page. NOT the app name.
 - **Norfolk AI** is the technology company that created and powers H+ Analytics.
@@ -90,7 +90,7 @@ Two execution surfaces are in play. The agent must flag which one a task belongs
 The application features a React 18 frontend with TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, and framer-motion. The backend is an Express 5 application utilizing Drizzle ORM and PostgreSQL.
 
 **Core Design Principles & Features:**
-- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (~4,191 tests across 204 files, 15-phase verification pipeline with 498 checks), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
+- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (~4,391 tests across 223 files, 15-phase verification pipeline with 498 checks), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
 - **Modular Skill-Based Architecture:** Domain knowledge and context are managed through a skill-based system in `.claude/skills/`.
 - **Theming & UI/UX:** A robust theme engine provides consistent UI with 5 presets. All UI components are theme-compliant, and specific UI patterns are enforced.
 - **Shared Financial Calculation Layer (`calc/`):** Pure financial calculation logic in standalone modules. Both client and server import from `calc/`.
@@ -212,7 +212,7 @@ Instead, authenticate via a direct API call BEFORE any browser navigation:
 |------|---------|----------------|
 | typecheck | `npx tsc --noEmit --skipLibCheck` | Type errors |
 | lint | `npm run lint:summary` | ESLint violations (max-warnings 10) |
-| test | `npm run test:summary` | ~4,191 unit/integration tests (204 files) |
+| test | `npm run test:summary` | ~4,391 unit/integration tests (223 files) |
 | verify | `npm run verify:summary` | Financial calculation accuracy (498 checks, 15 phases) |
 | parity | `tsx script/parity-check.ts` | Statement builder ↔ on-screen parity |
 
@@ -221,7 +221,7 @@ Instead, authenticate via a direct API call BEFORE any browser navigation:
 ```bash
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify + doc harmony (~90s)
-npm run test:summary   # ~4,191 tests, 204 files (~30s)
+npm run test:summary   # ~4,391 tests, 223 files (~30s)
 npm run verify:summary # 15-phase financial verification, 498 checks (~8s)
 npm run lint:summary   # ESLint check (<10s)
 npm run stats          # File/line/test counts (<5s)

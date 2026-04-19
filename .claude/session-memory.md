@@ -8,11 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 19, 2026 — Phase 3b complete + OT-A handoff active (Replit)
-- **Phase 3b landed (Replit, `ee0c6573`):** Funding + Revenue Surface Specialists wrap legacy evaluators via `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null` (legacy `watchdog` field removed); `AnalystCheckDialog` consumes the verdict directly; `tests/analyst/personas/lb.test.ts` exercises real Specialists end-to-end. All five gates green.
-- **Frozen contract reaffirmed:** `save_anyway` is NOT in the AnalystAction union — UI-only ghost button via `onProceedAnyway`. `adjust`→`consult-cognitive`, `ack`→`dismiss`. Persona hardcoded `{L+B, luxury, US}` (single-tenant); resolution + verdict-cache deferred to follow-ups.
-- **OT-A handoff active (Claude Code, parallel):** `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md` — Anthropic prompt-caching, AI-SDK + AI Gateway wrapper, synthesis A/B, optional cutover. Touches `server/ai/` ONLY. Replit Agent must NOT touch `server/ai/{ai-sdk-clients,synthesis-schema,research-value-extractor}.ts` while OT-A is open.
-- **Boundary preserved:** `.claude/claude.md` belongs to Claude Code; Replit Agent updated `replit.md` only and is appending here.
+## Session: April 19-20, 2026 — Phase 3b + OT-A progression + cross-agent hygiene
+- **Phase 3b shipped (Replit, `ee0c6573`):** Funding + Revenue Specialists wrap legacy evaluators via `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` consumes the verdict directly; `save_anyway` kept outside the action union (UI-only ghost via `onProceedAnyway`). Persona hardcoded `{L+B, luxury, US}` (single-tenant); resolution + verdict-cache deferred.
+- **OT-A.1 + A.2 + A.3 shipped (Replit, `7326e28c`, `aedebc05`, `64b37ca2`, `f1cd4aee`):** Anthropic native prompt caching, Vercel AI SDK + AI Gateway wrapper with BYOK (zero markup), synthesis path behind `USE_AI_SDK_SYNTHESIS` flag.
+- **OT-A.3 A/B iteration:** v1 found unit drift (landValue $ vs %); v2 added FIELD_DEFINITIONS but picked textbook semantics for 2 fields; v3 (`cd397044`) re-anchored `rampMonths` + `incentiveFee` to legacy emit semantics. Acceptance gate reframed from aggregate bucket-match to CATEGORICAL (zero unit/denominator/scope errors). OT-A.4 gated on v3 rerun passing.
+- **Property tests shipped (Claude, `43ed0163` + `991a6b77`):** 66 fast-check properties across all 10 research tools; 13,200 generated inputs per test:summary.
+- **Cross-agent hygiene (Claude, today):** `docs/architecture/DEPENDENCIES.md` atlas (150+ deps); Pinecone→pgvector corrections in core docs; `.claude/skills/analyst/contracts.md` SDK atlas; `.claude/skills/replit-workflow/SKILL.md` — Replit hygiene + what Replit is uniquely positioned to do. claude.md + replit.md refreshed for counts + OT-A phase status.
+- **Sentry + PostHog handoffs ready and queued behind OT-A.** `SENTRY_DSN` and `VITE_POSTHOG_KEY` both in Replit Secrets.
 
 ## Session: April 19, 2026 — Analyst architecture doc + Phase 1b analyst skills
 - **Architecture mental model written (Claude, commit `6fc4d676`):** `.claude/notes/analyst-architecture.md` — 240-line walkthrough of the N+1 orchestrator. Informational only — not a handoff. New `.claude/notes/` directory for knowledge-sharing between agents (distinct from `replit-handoffs/` which is instructional).

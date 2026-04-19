@@ -349,7 +349,10 @@ git push origin main --no-verify
 | Migration Guide | `docs/developer/migration-from-replit.md` | Replit → standalone |
 | Master Plan V2 | `docs/planning/MASTER-PLAN-V2.md` | Product roadmap (Phases 8-13) |
 | Research Docs | `docs/research/` | Hospitality benchmarks, APIs, fee structures |
-| Skill Catalog | `.claude/skills/_index.md` | All 171 skills indexed by domain |
+| Skill Catalog | `.claude/skills/_index.md` | All 193 skills indexed by domain |
+| Dependency Atlas | `docs/architecture/DEPENDENCIES.md` | Every SDK/API/service this app uses, with env vars + cost + status |
+| SDK Contracts Atlas | `.claude/skills/analyst/contracts.md` | Every Analyst contract in one place (AnalystVerdict, SynthesisOutputSchema, FIELD_DEFINITIONS, etc.) |
+| Replit Workflow | `.claude/skills/replit-workflow/SKILL.md` | What Replit Agent is uniquely good at + hygiene rules |
 | Master Remediation | `.claude/plans/master-remediation-plan.md` | Domain-by-domain bug fix + prevention plan |
 
 ---
@@ -370,9 +373,14 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + orchestrator cache + research-history reindex + guidance↔engine seam doc
 
 **Parallel workstream — Operational Tooling (OT):**
-- 🟡 OT-A active — Vercel AI SDK + AI Gateway adoption. Anthropic native prompt caching → SDK plumbing → synthesis migration behind flag → cleanup. Touches `server/ai/` only. Handoff: `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md`. Awaiting Replit execution.
-- ⏸ OT-B — Promptfoo PR-gate on persona drift (queued after OT-A)
-- ⏸ OT-C — Braintrust adoption decision (data-driven after OT-A + OT-B)
+- ✅ OT-A.1 — Anthropic native prompt caching (Replit, `7326e28c`)
+- ✅ OT-A.2 — Vercel AI SDK + AI Gateway wrapper (Replit, `aedebc05`, `64b37ca2`)
+- 🟡 OT-A.3 — synthesis path behind `USE_AI_SDK_SYNTHESIS` flag shipped (`f1cd4aee`); A/B parity iterating (v3 at `cd397044`). Categorical acceptance gate (zero unit/denominator/scope errors) instead of aggregate bucket-match threshold. Awaiting v3 A/B rerun results.
+- ⏸ OT-A.4 — retire old path + delete `research-value-extractor.ts` (gated on v3 A/B passing)
+- 🟡 Sentry financial contexts — handoff ready at `docs/operational-tooling/HANDOFF-replit-sentry-financial-contexts.md`; `SENTRY_DSN` in Secrets; queued behind OT-A
+- 🟡 PostHog wiring — handoff ready at `docs/operational-tooling/HANDOFF-replit-posthog-wiring.md`; `VITE_POSTHOG_KEY` in Secrets; queued behind Sentry
+- ⏸ OT-B — Promptfoo PR-gate on persona drift (queued)
+- ⏸ OT-C — Braintrust adoption decision (data-driven, after OT-A closes)
 
 **Engineering-discipline skills (project-agnostic, reusable in any codebase) under `.agents/skills/`:**
 - `pre-commit-gates/` — five-gate pattern, no `--no-verify`, BLOCKED.md escalation
@@ -391,10 +399,18 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - Phase 3a (Claude Code): `AnalystVerdict` contract (Zod + branded `VoiceRenderedString` + `buildAnalystVerdict` factory), `createSurfaceRouter` (pure dispatch + conviction-floor downgrade + multi-specialist aggregation), `createVoiceRenderer` (21 forbidden-pattern runtime enforcement, dev-throws-prod-sanitizes), `createQualityScorer` (6-component weighted score). 53 tests. ADR-003 Accepted.
 - Phase 3b (Replit): Funding + Revenue Specialists wrap legacy watchdog evaluators via `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten; persona-keyed L+B tests now exercise real Specialists end-to-end. `save_anyway` kept OUT of the action union (UI-only ghost button via `onProceedAnyway`). Deferred: persona resolution (hardcoded L+B/luxury/US today), verdict-cache table, full `/save-tab` route migration to all tabs.
 
-**Operational Tooling OT-A handoff landed (April 19, 2026):**
-- `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md` — Vercel AI SDK + AI Gateway adoption plan (Claude Code authored). Four sub-tasks: native Anthropic prompt caching, SDK + Gateway plumbing, synthesis migration behind `USE_AI_SDK_SYNTHESIS` flag with 20-case A/B, conditional cleanup. Amendment 1 includes the full `SynthesisOutputSchema` for verbatim paste.
-- Parallel to Phase 4 — OT-A touches `server/ai/` only; Phase 4 operates in `engine/analyst/surface/`. No file overlap.
-- `AI_GATEWAY_API_KEY` in Replit Secrets. Awaiting Replit kickoff.
+**Operational Tooling OT-A progressing (April 19, 2026):**
+- OT-A.1 shipped (Replit, `7326e28c`): Anthropic native prompt caching via `cache_control: "ephemeral"` on system prompts. Immediate cost savings on repeat synthesis calls.
+- OT-A.2 shipped (Replit, `aedebc05` + smoke-test harden `64b37ca2`): Vercel AI SDK packages installed, `server/ai/ai-sdk-clients.ts` wrapper routing via AI Gateway with BYOK (zero markup).
+- OT-A.3 shipped (Replit, `f1cd4aee`): synthesis path behind `USE_AI_SDK_SYNTHESIS` feature flag, default OFF. `server/ai/synthesis-schema.ts` + `SynthesisOutputSchema` + 41-field `CANONICAL_RESEARCH_FIELDS` enum.
+- A/B iteration (v1 `1f80383f`, v2 `1ca4a2ee`, v3 `cd397044`): v1 flagged definitional drift (landValue in dollars vs percent); v2 added `FIELD_DEFINITIONS` contract but picked textbook semantics for 2 fields; v3 re-anchored `rampMonths` + `incentiveFee` to match what the legacy extractor actually emits. Acceptance gate reframed from aggregate bucket-match (inherently lossy on stochastic 2-shot comparison) to categorical (zero unit/denominator/scope errors).
+- Property-based tests (Claude, `43ed0163` + `991a6b77`): 66 fast-check properties across all 10 research tools; 13,200 generated inputs per `test:summary`.
+- Sentry + PostHog handoffs ready and queued behind OT-A.
+
+**Cross-agent hygiene + SDK consolidation (April 19-20, 2026):**
+- `docs/architecture/DEPENDENCIES.md` — full dependency atlas (150+ deps, 16 categories, cost + env-var + status per item). Corrected stale Pinecone references throughout `.claude/` — the app uses pgvector inside Neon, not Pinecone.
+- `.claude/skills/analyst/contracts.md` — consolidated SDK contract reference (AnalystVerdict, SynthesisOutputSchema, FIELD_DEFINITIONS, VoiceRenderedString, the categorical A/B gate).
+- `.claude/skills/replit-workflow/SKILL.md` — what Replit Agent is uniquely good at (live preview, Neon integration, Object Storage sidecar, Secrets, Deployments) + hygiene rules parallel to Claude Code's pre-commit rules.
 
 **CI Hygiene & Documentation (April 15, 2026):**
 - `script/ci-hygiene.ts` auto-fixes ESLint unused vars/imports, secret scanner false positives, TypeScript errors after external code pulls. Skill: `.agents/skills/ci-hygiene/SKILL.md`.
