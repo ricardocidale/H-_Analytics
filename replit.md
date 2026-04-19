@@ -2,7 +2,7 @@
 
 ## Overview
 
-H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by Norfolk AI. It models a hospitality management company (default seed name: "Hospitality Management Co") and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP (ASC 230, ASC 360, ASC 470) and USALI 12th Edition standards. 1,113 source files, ~190K lines. The platform delivers a premium, bespoke financial experience enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
+H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by Norfolk AI. It models a hospitality management company (default seed name: "Hospitality Management Co") and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP (ASC 230, ASC 360, ASC 470) and USALI 12th Edition standards. ~1,174 source files in `calc/`+`server/`+`client/`+`shared/`, ~191K lines. The platform delivers a premium, bespoke financial experience enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
 
 **Two AI Agents:**
 - **The Analyst** — the singular intelligence agent. Conducts research, provides ranges, conviction levels, and risk flags next to every assumption field. Always "The Analyst" (capitalized, singular). Powered by Norfolk AI Engine.
@@ -174,6 +174,7 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Resend replaces SendGrid** for all transactional email
 - **Domain boundary**: Route files must NEVER import `db` or `drizzle-orm` directly — use `IStorage` facade.
 - **drizzle-zod**: NEVER `.omit()` — only `.pick()`.
+- **Git commits**: All five gates must pass before commit (`tsc --noEmit`, `lint:summary`, vocabulary test 11/11, `test:summary`, `verify:summary` UNQUALIFIED). Never use `--no-verify`. Commit message must include the verification line: `Verified: TS 0, Lint 0, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED`. See `.claude/rules/pre-commit-verification.md` and `.agents/skills/pre-commit-gates/SKILL.md`.
 
 ## User Roles
 
@@ -250,6 +251,24 @@ Admin-only LLM-driven refresh of benchmark tables, starting with
   with `AnalystRefreshTheater`, `RefreshDiffDialog`,
   `SuspiciousActivityBanner`, plus `useFirstVisitBenchmarkSeed`.
 - Tests: `tests/server/analyst-refresh-guards.test.ts` (16 cases).
+
+## The Analyst — Team-of-Specialists Architecture (in flight)
+
+The Analyst is **internally** a team of specialists; **user-facing voice stays singular** ("The Analyst"). Internal vocabulary (Surface Specialist, Cognitive Engine, Surface Router, Voice Renderer, Quality Scorer) lives in code, docs, and skills only — never user-facing strings.
+
+**Architecture spine:** `docs/architecture/ANALYST.md` (two-tier: Cognitive Engine + Surface Specialists). Per-component specs under `docs/architecture/analyst/`. Decision record: `docs/architecture/decisions/ADR-001-analyst-two-tier.md` (Accepted).
+
+**Phase status:**
+- ✅ Phase 1a — docs spine + 9 per-component specs + ADR-001 (15 files under `docs/architecture/`)
+- ⏸ Phase 1b — `.claude/skills/analyst/` + 2 new rules (handed off to Claude Code; brief at `docs/architecture/analyst/HANDOFF-claude-code-phase-1b.md`)
+- ⏳ Phase 2 — `engine/analyst/` skeleton + CODEOWNERS + naming-lint + ADR-002 (Replit Agent, after 1b)
+- ⏳ Phase 3 — `AnalystVerdict` contract + Surface Router + Voice Renderer + backfill 2 evaluators + persona-keyed test bench
+- ⏳ Phase 4 — build remaining Surface Specialists incrementally; Norfolk audit Phase 3 (Compensation) ships first under new architecture
+- ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + orchestrator cache + research-history reindex + guidance↔engine seam doc
+
+**Reusable engineering-discipline skills** (project-agnostic, under `.agents/skills/`): `pre-commit-gates`, `cross-check-invariants`, `architecture-decision-records`, `agent-handoff-briefs`, `agent-memory-files`.
+
+**Boundary rule:** `.claude/**` is Claude Code's authoritative domain. Replit Agent edits limited to ≤5-line append on `.claude/session-memory.md` and `BLOCKED.md` siblings; everything else under `.claude/` goes through a handoff brief. `.agents/skills/**` is project-agnostic. `docs/**` is open editing for either agent.
 
 ## Migration Drift Checklist (Apr 18, 2026)
 

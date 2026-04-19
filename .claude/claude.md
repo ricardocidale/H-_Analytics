@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by **Norfolk AI**. Models a hospitality management company (seed name: "Hospitality Management Co") alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual. 1,123 source files, ~191K lines. ~4,191 tests across 204 files. 15-phase verification pipeline (498 checks).
+GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by **Norfolk AI**. Models a hospitality management company (seed name: "Hospitality Management Co") alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual. ~1,174 source files in `calc/`+`server/`+`client/`+`shared/`, ~191K lines. ~4,191 tests across 204 files. 15-phase verification pipeline (498 checks).
 
 **Two AI Agents:**
 - **The Analyst** — singular intelligence agent. Conducts research, provides ranges with conviction levels, validates assumptions. Powered by Norfolk AI Engine. Always "The Analyst" (capitalized, singular, never plural).
@@ -14,7 +14,7 @@ GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio man
 
 - **Norfolk AI** builds the app. The HMC is what's modeled. They are separate entities.
 - **The HMC does NOT buy properties.** Property owners hire the HMC for management and branding.
-- **Defaults ≠ Assumptions — DO NOT CONFUSE. MASTER RULE.** **Assumptions = user-facing working variables** (the numbers a user types, saves, and scenarios run on, on the front of the app). **Defaults = admin-only seed values** loaded into the DB to initialize a fresh tenant. **Seed-to-assumption transition:** a default is only a *seed*. The instant the user clicks **Save** on any user-facing page, every field on that page — whether the user edited it or left the seed untouched — becomes a **working variable, i.e. an assumption**. After Save, that page no longer holds defaults; it holds assumptions. The Analyst then validates against assumptions, not against seeds. The word *"assumption"* in any UI label, button, tooltip, error message, AI agent text, or documentation **always means the user's working variable** — never a default. The word *"default"* must not appear in user-facing copy outside the Admin section. **When the user asks "where is X stored / set / configured?" lead with the assumption (the user-facing page where the working variable lives) and only mention the Admin seed location as a secondary note** — never lead with the seed and never imply the seed is where the user "works with" the value. Conflating these has caused real production losses (admin-only routing on user pages, reset buttons wiping user work, seed values treated as authoritative, agent answers that send the user to Admin when the value actually lives on a user page). Full rule in `.claude/skills/vocabulary/SKILL.md` §0.
+- **Constants vs Defaults vs Assumptions — three distinct tiers, never collapse.** **(1) Constants** are model values nobody edits at runtime (tax-code depreciation lives, GAAP/USALI line definitions, FX rates ingested by the engine). They live behind the factory + overlay pattern in `shared/constants.ts` / `shared/countryDefaults.ts` and are read via `getEffectiveConstant` (resolution order: `manual > analyst > factory`). **(2) Defaults** are admin-editable seed values that The Analyst suggests with citations and an admin approves in Admin; they live in `model_constant_overrides` and the seed tables; the word *"default"* must not appear in user-facing copy outside Admin. **(3) Assumptions** are the working variables a user types and saves on user-facing pages (Company Assumptions, Property Edit, etc.). The instant a user clicks **Save**, every field on that page becomes an assumption — even fields they never touched. After Save, that page no longer holds defaults; it holds assumptions. The Analyst validates against assumptions, not against seeds. **Cascade direction is always constant → default → assumption; never the reverse, never collapsed into two tiers.** The word *"assumption"* in any UI label, button, tooltip, error message, AI agent text, or documentation **always means the user's working variable** — never a default. **When the user asks "where is X stored / set / configured?" lead with the assumption (the user-facing page where the working variable lives) and only mention the Admin seed location as a secondary note** — never lead with the seed and never imply the seed is where the user "works with" the value. Conflating these has caused real production losses (admin-only routing on user pages, reset buttons wiping user work, seed values treated as authoritative, agent answers that send the user to Admin when the value actually lives on a user page). Full rule in `.claude/skills/vocabulary/SKILL.md` §0.
 - **Company Assumptions page is user-facing** (ManagementRoute), not admin-only.
 - **Save is per tab.** Each tab save commits that tab's fields and triggers The Analyst.
 - **The Analyst runs after every save** (Tier-0 instant) and on button press (Tier-1 deep research).
@@ -251,7 +251,7 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 - **Property listing uses userDefaultProperties** — users see assigned properties, not just created ones.
 - **Domain boundary**: Route files must NEVER import `db` or `drizzle-orm` directly — use `IStorage` facade.
 - **drizzle-zod**: NEVER `.omit()` — only `.pick()`. For Zod field overrides, add in `createInsertSchema(table, { fieldName: z.validator })`.
-- **Git commits**: Use `--no-verify` to bypass lint-staged (TypeScript full-check times out in pre-commit hook).
+- **Git commits**: All five gates must pass before commit (`tsc --noEmit`, `lint:summary`, vocabulary test 11/11, `test:summary`, `verify:summary` UNQUALIFIED). Never use `--no-verify`. Commit message must include the verification line: `Verified: TS 0, Lint 0, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED`. See `.claude/rules/pre-commit-verification.md` and `.agents/skills/pre-commit-gates/SKILL.md`.
 - **DEV_SKIP_AUTH**: Currently TRUE. E2E tests must `POST /api/auth/dev-login` first, never navigate to `/login`.
 - **Design colors**: Navy #112548, Teal #0091AE, Gold #FDB817. "Powered by Norfolk AI" badges.
 
@@ -354,7 +354,35 @@ git push origin main --no-verify
 
 ---
 
+## The Analyst — Team-of-Specialists Architecture (in flight)
+
+The Analyst is **internally** a team of specialists; **user-facing voice stays singular** ("The Analyst"). Internal vocabulary (Surface Specialist, Cognitive Engine, Surface Router, Voice Renderer, Quality Scorer) is for code, docs, and skills only — never user-facing strings.
+
+**Architecture spine:** `docs/architecture/ANALYST.md` (two-tier: Cognitive Engine + Surface Specialists). Per-component specs under `docs/architecture/analyst/`. Decision record: `docs/architecture/decisions/ADR-001-analyst-two-tier.md` (Accepted).
+
+**Phase status:**
+- ✅ Phase 1a — docs spine + 9 per-component specs + ADR-001 (15 files under `docs/architecture/`)
+- ⏸ Phase 1b — `.claude/skills/analyst/` + 2 new rules (handed off to Claude Code; brief at `docs/architecture/analyst/HANDOFF-claude-code-phase-1b.md`)
+- ⏳ Phase 2 — `engine/analyst/` skeleton + CODEOWNERS + naming-lint + ADR-002 (Replit Agent, after 1b)
+- ⏳ Phase 3 — `AnalystVerdict` contract + Surface Router + Voice Renderer + backfill 2 evaluators + persona-keyed test bench
+- ⏳ Phase 4 — build remaining Surface Specialists incrementally; Norfolk audit Phase 3 (Compensation) ships first under new architecture
+- ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + orchestrator cache + research-history reindex + guidance↔engine seam doc
+
+**Engineering-discipline skills (project-agnostic, reusable in any codebase) under `.agents/skills/`:**
+- `pre-commit-gates/` — five-gate pattern, no `--no-verify`, BLOCKED.md escalation
+- `cross-check-invariants/` — "edit one, verify many" discipline
+- `architecture-decision-records/` — ADR template + lifecycle
+- `agent-handoff-briefs/` — six required sections + common patterns
+
+---
+
 ## Recent Changes
+
+**Analyst Architecture Phase 1a (April 19, 2026):**
+- 15 files under `docs/architecture/`: spine (`ANALYST.md`), 9 per-component specs (`analyst/*.md`), ADR-001 (Accepted), ADR template, Phase 1b handoff brief.
+- Two-tier architecture: Cognitive Engine (single research/inference brain) + Surface Specialists (per-surface evaluators) joined by `AnalystVerdict` contract; Voice Renderer enforces singular user-facing voice.
+- 4 reusable engineering-discipline skills extracted to `.agents/skills/` (pre-commit-gates, cross-check-invariants, architecture-decision-records, agent-handoff-briefs).
+- Phase 1b (skill files under `.claude/skills/analyst/` + 2 new rules) handed off to Claude Code.
 
 **CI Hygiene & Documentation (April 15, 2026):**
 - `script/ci-hygiene.ts` auto-fixes ESLint unused vars/imports, secret scanner false positives, TypeScript errors after external code pulls. Skill: `.agents/skills/ci-hygiene/SKILL.md`.
