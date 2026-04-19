@@ -104,6 +104,11 @@ Three metrics surface in admin observability (Phase 5 extends the existing healt
 - `cache_miss_reason_breakdown` — pie chart of `fresh_miss` / `ttl_expired` / `inputs_changed` / `explicit_bypass` / `engine_version_drift` / `superseded`.
 - `cache_cost_saved_usd` — estimated dollars saved based on hit count × typical pipeline cost.
 
+**Implementation references** (added April 20, 2026 per PostHog handoff cross-ref):
+
+- **PostHog event instrumentation** — `docs/operational-tooling/HANDOFF-replit-posthog-wiring.md` §"Addendum — ADR-004 verdict cache integration" specifies the three events (`verdict_cache.hit`, `verdict_cache.miss`, `verdict_cache.cost_saved_estimate`), the dashboard additions for post-Phase-5D cache metrics, and the privacy-safe `personaHash` redaction pattern. Implementation lands with this ADR's Phase 5D.
+- **Sentry error-class instrumentation** — `docs/operational-tooling/HANDOFF-replit-sentry-financial-contexts.md` §"Addendum — OT-A.3 era error classes" specifies the `EngineVersionDriftError` Sentry tag (immediate page post-Phase-5A when cache staleness risk is real) and breadcrumb event names (`mode-collapse-check-passed`, `field-definitions-verified`, `engine-version-match`) for Cognitive Engine safety audit trail.
+
 These feed the PostHog handoff (N5) and Sentry financial-contexts handoff (N4) without duplicate instrumentation.
 
 ---
