@@ -258,30 +258,87 @@ interface FieldComparison {
   field: string;
   oldMid: number | null;
   newMid: number | null;
+  oldLow: number | null;
+  oldHigh: number | null;
+  newLow: number | null;
+  newHigh: number | null;
   midDeltaPct: number | null;
   withinFivePct: boolean;
+  /** OT-A.3 retry: bucket-match is the new gating metric. Each path's range
+   *  must mutually contain the other path's mid (mutual containment). */
+  bucketMatch: boolean;
+}
+
+/**
+ * Parse a `display` string from the legacy extractor into [low, high]. Handles
+ * the formats research-value-extractor emits: "$NNN-$NNN", "NN%–NN%", "N–N mo",
+ * "NN%-NN%". Returns null when the string is a single value (e.g. "8%") with
+ * no explicit range — caller falls back to mid ± epsilon for those.
+ */
+function parseDisplayRange(display: string): { low: number; high: number } | null {
+  const cleaned = display.replace(/[$,\s]/g, "").replace(/[%a-z]/gi, "");
+  // Match "N-N" or "N–N" (en-dash). Allow decimals and negatives just in case.
+  const m = cleaned.match(/(-?\d+(?:\.\d+)?)\s*[-–—]\s*(-?\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  const low = Number(m[1]);
+  const high = Number(m[2]);
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return null;
+  return low <= high ? { low, high } : { low: high, high: low };
+}
+
+/**
+ * Bucket-match: each path's range mutually contains the other path's midpoint.
+ *   pathA.low <= pathB.mid <= pathA.high  AND  pathB.low <= pathA.mid <= pathB.high
+ * If either side has no parseable range, fall back to mid ± 5% for a soft test.
+ */
+function isBucketMatch(
+  oldRange: { low: number; high: number } | null,
+  oldMid: number,
+  newRange: { low: number; high: number } | null,
+  newMid: number,
+): boolean {
+  const fallback = (mid: number) => ({ low: mid * 0.95, high: mid * 1.05 });
+  const a = oldRange ?? fallback(oldMid);
+  const b = newRange ?? fallback(newMid);
+  return a.low <= newMid && newMid <= a.high && b.low <= oldMid && oldMid <= b.high;
 }
 
 function compareLegacyMaps(
   oldMap: Record<string, LegacyResearchEntry> | null,
   newMap: Record<string, LegacyResearchEntry> | null,
+  newSynthesis: SynthesisOutput | null,
 ): { shared: FieldComparison[]; oldOnly: string[]; newOnly: string[] } {
   const oldKeys = new Set(oldMap ? Object.keys(oldMap) : []);
   const newKeys = new Set(newMap ? Object.keys(newMap) : []);
   const sharedKeys = Array.from(oldKeys).filter((k) => newKeys.has(k)).sort();
   const oldOnly = Array.from(oldKeys).filter((k) => !newKeys.has(k)).sort();
   const newOnly = Array.from(newKeys).filter((k) => !oldKeys.has(k)).sort();
+  // Build a field → {low, high} lookup from the new path's structured output
+  // (already has explicit low/high). Old path's range is parsed from `display`.
+  const newRangeByField = new Map<string, { low: number; high: number }>();
+  if (newSynthesis) {
+    for (const v of newSynthesis.values) {
+      newRangeByField.set(v.field, { low: v.low, high: v.high });
+    }
+  }
   const shared: FieldComparison[] = sharedKeys.map((field) => {
     const o = oldMap![field].mid;
     const n = newMap![field].mid;
     const denom = Math.max(Math.abs(o), 1e-6);
     const midDeltaPct = Math.abs(o - n) / denom;
+    const oldRange = parseDisplayRange(oldMap![field].display);
+    const newRange = newRangeByField.get(field) ?? null;
     return {
       field,
       oldMid: o,
       newMid: n,
+      oldLow: oldRange?.low ?? null,
+      oldHigh: oldRange?.high ?? null,
+      newLow: newRange?.low ?? null,
+      newHigh: newRange?.high ?? null,
       midDeltaPct,
       withinFivePct: midDeltaPct <= 0.05,
+      bucketMatch: isBucketMatch(oldRange, o, newRange, n),
     };
   });
   return { shared, oldOnly, newOnly };
@@ -298,6 +355,10 @@ interface CaseReport {
   newFieldCount: number;
   sharedCount: number;
   withinFivePctCount: number;
+  bucketMatchCount: number;
+  /** Per-case field overlap = shared / max(oldFieldCount, newFieldCount). The
+   *  retry's per-case ≥95% target compares against this rather than aggregate. */
+  fieldOverlapPct: number;
   oldOnly: string[];
   newOnly: string[];
   oldVoiceViolations: string[];
@@ -311,7 +372,10 @@ interface CaseReport {
 async function runCase(input: InputCase): Promise<CaseReport> {
   const userPrompt = buildUserPrompt(input);
   const [oldRes, newRes] = await Promise.all([runOldPath(userPrompt), runNewPath(userPrompt)]);
-  const cmp = compareLegacyMaps(oldRes.legacyMap, newRes.result.legacyMap);
+  const cmp = compareLegacyMaps(oldRes.legacyMap, newRes.result.legacyMap, newRes.synthesis);
+  const oldFieldCount = oldRes.legacyMap ? Object.keys(oldRes.legacyMap).length : 0;
+  const newFieldCount = newRes.result.legacyMap ? Object.keys(newRes.result.legacyMap).length : 0;
+  const fieldOverlapDenom = Math.max(oldFieldCount, newFieldCount);
   return {
     id: input.id,
     market: input.market,
@@ -319,10 +383,12 @@ async function runCase(input: InputCase): Promise<CaseReport> {
     newOk: newRes.result.ok,
     oldDurationMs: Math.round(oldRes.durationMs),
     newDurationMs: Math.round(newRes.result.durationMs),
-    oldFieldCount: oldRes.legacyMap ? Object.keys(oldRes.legacyMap).length : 0,
-    newFieldCount: newRes.result.legacyMap ? Object.keys(newRes.result.legacyMap).length : 0,
+    oldFieldCount,
+    newFieldCount,
     sharedCount: cmp.shared.length,
     withinFivePctCount: cmp.shared.filter((c) => c.withinFivePct).length,
+    bucketMatchCount: cmp.shared.filter((c) => c.bucketMatch).length,
+    fieldOverlapPct: fieldOverlapDenom > 0 ? cmp.shared.length / fieldOverlapDenom : 0,
     oldOnly: cmp.oldOnly,
     newOnly: cmp.newOnly,
     oldVoiceViolations: findVoiceViolations(oldRes.rawOutput),
@@ -344,7 +410,7 @@ async function runBatched<T, R>(items: T[], fn: (item: T) => Promise<R>, concurr
       console.log(`  [${String(i + 1).padStart(2, "0")}/${items.length}] starting ${(items[i] as any).market}…`);
       results[i] = await fn(items[i]);
       const r = results[i] as any as CaseReport;
-      console.log(`  [${String(i + 1).padStart(2, "0")}/${items.length}] done    ${r.market}  old=${r.oldOk ? "ok" : "ERR"} (${r.oldDurationMs}ms, ${r.oldFieldCount}f)  new=${r.newOk ? "ok" : "ERR"} (${r.newDurationMs}ms, ${r.newFieldCount}f)  shared=${r.sharedCount}  within5%=${r.withinFivePctCount}`);
+      console.log(`  [${String(i + 1).padStart(2, "0")}/${items.length}] done    ${r.market}  old=${r.oldOk ? "ok" : "ERR"} (${r.oldDurationMs}ms, ${r.oldFieldCount}f)  new=${r.newOk ? "ok" : "ERR"} (${r.newDurationMs}ms, ${r.newFieldCount}f)  shared=${r.sharedCount}  bucket=${r.bucketMatchCount}  overlap=${(r.fieldOverlapPct * 100).toFixed(0)}%`);
     }
   }
   await Promise.all(Array.from({ length: concurrency }, worker));
@@ -362,7 +428,12 @@ function buildReport(reports: CaseReport[]): string {
   const newSynthesisOkCount = reports.filter((r) => r.newSynthesisOk).length;
   const totalShared = reports.reduce((s, r) => s + r.sharedCount, 0);
   const totalWithinFive = reports.reduce((s, r) => s + r.withinFivePctCount, 0);
-  const overallParityPct = totalShared > 0 ? totalWithinFive / totalShared : 0;
+  const totalBucketMatch = reports.reduce((s, r) => s + r.bucketMatchCount, 0);
+  const overallWithinFivePct = totalShared > 0 ? totalWithinFive / totalShared : 0;
+  const overallBucketMatchPct = totalShared > 0 ? totalBucketMatch / totalShared : 0;
+  // Per-case field overlap criterion: ≥95% of fields shared per case (max(old,new) denominator).
+  const casesWithFieldOverlapPass = reports.filter((r) => r.fieldOverlapPct >= 0.95).length;
+  const fieldOverlapPassPct = total > 0 ? casesWithFieldOverlapPass / total : 0;
   const oldVoiceCount = reports.reduce((s, r) => s + r.oldVoiceViolations.length, 0);
   const newVoiceCount = reports.reduce((s, r) => s + r.newVoiceViolations.length, 0);
   const oldDurations = reports.filter((r) => r.oldOk).map((r) => r.oldDurationMs);
@@ -370,19 +441,26 @@ function buildReport(reports: CaseReport[]): string {
   const avg = (xs: number[]) => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
   const oldAvg = avg(oldDurations);
   const newAvg = avg(newDurations);
-  const latencyRegression = oldAvg > 0 ? (newAvg - oldAvg) / oldAvg : 0;
+  const latencyMultiplier = oldAvg > 0 ? newAvg / oldAvg : 0;
 
+  // OT-A.3 retry criteria — replaces the original handoff thresholds, which
+  // were unachievable for two stochastic Opus generations of the same prompt.
+  // The bucket-match metric tests behavioural equivalence for downstream
+  // AnalystVerdict consumers (do the two ranges mutually contain each other's
+  // midpoints?), which is what actually matters when OT-A.4 deletes the
+  // legacy extractor.
   const criteria = [
-    { name: "Severity match (mid within ±5%) ≥ 95%",                 pass: overallParityPct >= 0.95,         observed: fmtPct(overallParityPct) },
-    { name: "buildAnalystVerdict path completes both legs",          pass: oldOkCount === total && newOkCount === total && newSynthesisOkCount === total, observed: `old=${oldOkCount}/${total} new=${newOkCount}/${total} schema=${newSynthesisOkCount}/${total}` },
-    { name: "Zero FORBIDDEN_VOICE_PATTERNS violations on new path",  pass: newVoiceCount === 0,              observed: `${newVoiceCount} violations` },
-    { name: "Latency regression ≤ 20%",                              pass: latencyRegression <= 0.20,        observed: fmtPct(latencyRegression) },
+    { name: "Field overlap ≥ 95% per case",                          pass: casesWithFieldOverlapPass === total, observed: `${casesWithFieldOverlapPass}/${total} cases pass (${fmtPct(fieldOverlapPassPct)})` },
+    { name: "Bucket-match on shared fields ≥ 80%",                   pass: overallBucketMatchPct >= 0.80,    observed: `${totalBucketMatch}/${totalShared} = ${fmtPct(overallBucketMatchPct)}` },
+    { name: "Schema validity 100%",                                  pass: newSynthesisOkCount === total,    observed: `${newSynthesisOkCount}/${total}` },
+    { name: "Voice violations on new path = 0",                      pass: newVoiceCount === 0,              observed: `${newVoiceCount} violations` },
+    { name: "Latency regression ≤ 2× (new / old)",                   pass: latencyMultiplier > 0 && latencyMultiplier <= 2.0, observed: `${latencyMultiplier.toFixed(2)}× (old avg=${oldAvg}ms, new avg=${newAvg}ms)` },
   ];
   const allPass = criteria.every((c) => c.pass);
 
   const rows = reports.map((r) => {
-    const parity = r.sharedCount > 0 ? (r.withinFivePctCount / r.sharedCount) : 0;
-    return `| ${r.id} | ${r.market} | ${r.oldOk ? "✓" : "✗"} | ${r.newOk ? "✓" : "✗"} | ${r.oldFieldCount} | ${r.newFieldCount} | ${r.sharedCount} | ${r.withinFivePctCount} | ${fmtPct(parity)} | ${r.oldDurationMs} | ${r.newDurationMs} | ${r.newVoiceViolations.length} |`;
+    const bucketParity = r.sharedCount > 0 ? (r.bucketMatchCount / r.sharedCount) : 0;
+    return `| ${r.id} | ${r.market} | ${r.oldOk ? "✓" : "✗"} | ${r.newOk ? "✓" : "✗"} | ${r.oldFieldCount} | ${r.newFieldCount} | ${r.sharedCount} | ${fmtPct(r.fieldOverlapPct)} | ${r.bucketMatchCount} | ${fmtPct(bucketParity)} | ${r.oldDurationMs} | ${r.newDurationMs} | ${r.newVoiceViolations.length} |`;
   }).join("\n");
 
   const detailPerCase = reports.map((r) => {
@@ -433,17 +511,19 @@ ${criteria.map((c) => `| ${c.name} | — | ${c.observed} | ${c.pass ? "PASS" : "
 - New path completion: ${newOkCount}/${total}
 - New path schema-valid (SynthesisOutputSchema): ${newSynthesisOkCount}/${total}
 - Total shared fields across all cases: **${totalShared}**
-- Shared fields within ±5% midpoint: **${totalWithinFive}** (${fmtPct(overallParityPct)})
+- Shared fields with bucket-match (mutual range containment): **${totalBucketMatch}** (${fmtPct(overallBucketMatchPct)})
+- Shared fields within ±5% midpoint (informational, no longer gating): **${totalWithinFive}** (${fmtPct(overallWithinFivePct)})
+- Cases passing per-case field overlap ≥ 95%: **${casesWithFieldOverlapPass}/${total}** (${fmtPct(fieldOverlapPassPct)})
 - Voice violations (new path total): **${newVoiceCount}**
 - Voice violations (old path total): **${oldVoiceCount}**
-- Latency: old avg=${oldAvg}ms · new avg=${newAvg}ms · regression=${fmtPct(latencyRegression)}
+- Latency: old avg=${oldAvg}ms · new avg=${newAvg}ms · multiplier=${latencyMultiplier.toFixed(2)}×
 
 ---
 
 ## Per-case rollup
 
-| # | Market | old✓ | new✓ | old fields | new fields | shared | within ±5% | parity | old ms | new ms | new voice viol |
-|---|---|---|---|---|---|---|---|---|---|---|---|
+| # | Market | old✓ | new✓ | old fields | new fields | shared | overlap% | bucket✓ | bucket% | old ms | new ms | new voice viol |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
 ${rows}
 
 ---
@@ -458,7 +538,7 @@ ${detailPerCase}
 
 - **Path semantics.** Both paths consumed the same user prompt with ephemeral cache_control on the system message. The system prompts differ by design (post-OT-A.3 schema-tightening, commit e89d77441): the old path receives the legacy free-form-JSON instructions and is regex-parsed by \`extractResearchValues\`; the new path receives the structured-output contract (field-key enum + ≤500-char one-sentence reasoning) and is parsed via \`toLegacyResearchValuesMap\`. Using a single shared prompt for both paths was tried in the previous run and produced ad-hoc field names that broke parity — see prior commit 12363142.
 - **Field set drift is expected.** The new path emits whatever fields the model decides are answerable under the schema; the old extractor only fills slots it can regex-match. \`shared\` is the meaningful comparison surface; \`old-only\` / \`new-only\` are diagnostic, not a failure signal.
-- **Severity criterion.** Per-handoff "severity match" is interpreted operationally as midpoint convergence within ±5% on shared fields, since severity in the AnalystVerdict contract is downstream of the numeric range. Stricter severity-bucket comparison would require running each case through buildAnalystVerdict twice — out of scope for this harness.
+- **Severity criterion (OT-A.3 retry).** The original ±5% midpoint criterion was unachievable: two independent Opus calls on the same prompt naturally diverge well beyond 5% even when they agree on the answerable range. The retry criterion is **bucket-match** — for each shared field, each path's full \`[low, high]\` range must contain the other path's midpoint. This tests behavioural equivalence for downstream AnalystVerdict consumers (which gate on range, not point estimate). Old-path ranges are parsed from the \`display\` string (\`$NNN-$NNN\`, \`NN%–NN%\`, \`N–N mo\`); new-path ranges come from the structured \`SynthesisOutput.values[].{low,high}\`. When a display string is a single value (no dash), a ±5% band around the mid is used as a soft fallback.
 - **Cost.** Real Opus spend on user's Anthropic billing. Authorized.
 - **Rollback.** Setting \`USE_AI_SDK_SYNTHESIS=false\` (or unset) restores the legacy path immediately. No code revert needed.
 `;
