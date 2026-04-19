@@ -55,6 +55,7 @@ export async function withRetry<T>(
         message.includes("Connection terminated") ||
         message.includes("connection will be replaced");
       if (!isTransient || attempt === retries) break;
+      // eslint-disable-next-line no-restricted-syntax -- retry backoff, non-financial
       const delay = baseDelayMs * Math.pow(2, attempt - 1);
       logger.warn(`Attempt ${attempt}/${retries} failed (${message}), retrying in ${delay}ms…`, label);
       await new Promise((r) => setTimeout(r, delay));

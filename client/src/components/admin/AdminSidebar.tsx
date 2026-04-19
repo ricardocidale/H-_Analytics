@@ -10,7 +10,7 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
   IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconExport, IconScenarios, IconPalette,
-  IconLayers, IconShieldCheck, IconGlobe, IconTimer, IconDashboard, IconGauge, IconMessageSquare,
+  IconLayers, IconShieldCheck, IconGlobe, IconTimer, IconGauge, IconMessageSquare,
   IconCalculator,
 } from "@/components/icons";
 import { Link } from "wouter";

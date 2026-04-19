@@ -435,6 +435,7 @@ function scoreOperationalRisk(properties: Property[]): PortfolioRiskReport["oper
   // Occupancy variance (standard deviation)
   const occMean = avgOcc;
   const occVariance = Math.sqrt(
+    // eslint-disable-next-line no-restricted-syntax -- statistical variance, non-financial
     occupancies.reduce((sum, o) => sum + Math.pow(o - occMean, 2), 0) / occupancies.length,
   );
 
@@ -636,6 +637,7 @@ function clamp(value: number, min = 0, max = 100): number {
 }
 
 function round(value: number, decimals: number): number {
+  // eslint-disable-next-line no-restricted-syntax -- rounding utility, non-financial
   const factor = Math.pow(10, decimals);
   return Math.round(value * factor) / factor;
 }

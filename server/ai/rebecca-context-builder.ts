@@ -2,7 +2,6 @@ import { storage } from "../storage";
 import { buildPropertyContextPack } from "./context-pack/property-pack";
 import { buildCompanyContextPack } from "./context-pack/company-pack";
 import type { PropertyContextPack, CompanyContextPack } from "./context-pack/types";
-import type { IcpConfig } from "@shared/schema/types/jsonb-shapes";
 
 export interface RebeccaFieldContext {
   entityType: "property" | "company";

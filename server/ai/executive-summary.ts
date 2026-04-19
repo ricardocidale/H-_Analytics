@@ -13,6 +13,7 @@
 import type { Property } from "@shared/schema";
 import type { AssumptionGuidance } from "@shared/schema/intelligence-v2";
 import { getCountryDefaults } from "@shared/countryDefaults";
+import { dPow } from "@calc/shared/decimal.js";
 import { getRegulatoryProfile } from "@shared/regulatory-data";
 import { computeStressScenarios, type StressAssumptions } from "../../engine/helpers/stress-scenarios";
 import { pmt } from "../../calc/shared/pmt";
@@ -177,7 +178,7 @@ function computeKeyMetrics(p: Property): PropertyExecutiveSummary["keyMetrics"] 
 
   // Approximate IRR from equity multiple and hold period
   const projectedIRR = equity > 0 && holdYears > 0
-    ? Math.pow(Math.max(equityMultiple, 0.01), 1 / holdYears) - 1
+    ? dPow(Math.max(equityMultiple, 0.01), 1 / holdYears) - 1
     : 0;
 
   // Payback years: equity / annual cash flow

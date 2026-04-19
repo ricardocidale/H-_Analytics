@@ -130,6 +130,7 @@ export function register(app: Express) {
       const sharp = (await import("sharp")).default;
       const tileSize = 256;
 
+      // eslint-disable-next-line no-restricted-syntax -- tile zoom math, non-financial
       const n = Math.pow(2, zoom);
       const centerTileX = ((lng + 180) / 360) * n;
       const latRad = (lat * Math.PI) / 180;

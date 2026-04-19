@@ -136,5 +136,6 @@ export const useResearchQueue = create<ResearchQueueState>((set, get) => ({
 }));
 
 export function getBackoffDelay(retryCount: number): number {
+  // eslint-disable-next-line no-restricted-syntax -- exponential backoff, non-financial
   return BASE_BACKOFF_MS * Math.pow(2, retryCount - 1) + Math.random() * 1000;
 }

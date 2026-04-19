@@ -1,4 +1,4 @@
-import { probeAllVendors, probedModelsToAiModelEntries } from "./llm-health-probe";
+import { probeAllVendors } from "./llm-health-probe";
 import {
   computeRecommendations,
   detectAdminOverrideIssues,

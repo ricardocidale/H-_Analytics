@@ -9,6 +9,7 @@ import {
   MONTHS_PER_YEAR,
   DEFAULT_OCCUPANCY_RAMP_MONTHS,
 } from "@shared/constants";
+import { dPow } from "@calc/shared/decimal.js";
 import type {
   VerificationReport,
   PropertyCheckResults,
@@ -176,7 +177,7 @@ export function runIndependentVerification(
     const serverLastYear = aggregateYearMetrics(engineCalc.slice((projectionYears - 1) * MONTHS_PER_YEAR, projectionMonths));
 
     if (serverYear1.revenue > 0 && serverLastYear.revenue > 0) {
-      const annualGrowthRate = Math.pow(serverLastYear.revenue / serverYear1.revenue, 1 / (projectionYears - 1)) - 1;
+      const annualGrowthRate = dPow(serverLastYear.revenue / serverYear1.revenue, 1 / (projectionYears - 1)) - 1;
       const expectedGrowthRate = property.adrGrowthRate;
 
       const hasOccupancyRamp = (property.startOccupancy ?? 0) < (property.maxOccupancy ?? 1);

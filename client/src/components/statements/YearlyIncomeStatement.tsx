@@ -35,6 +35,7 @@ import {
   DEFAULT_COST_RATE_IT, DEFAULT_COST_RATE_OTHER,
   MONTHS_PER_YEAR,
 } from "@shared/constants";
+import { dPow } from "@calc/shared/decimal";
 import {
   TableShell,
   SectionHeader,
@@ -134,7 +135,7 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
       }
       const monthsSinceOps = (currentDate.getFullYear() - opsStart.getFullYear()) * MONTHS_PER_YEAR + currentDate.getMonth() - opsStart.getMonth();
       const opsYear = Math.floor(monthsSinceOps / MONTHS_PER_YEAR);
-      const safeFactor = Number.isFinite(fixedEscRate) ? Math.pow(1 + fixedEscRate, opsYear) : 1;
+      const safeFactor = Number.isFinite(fixedEscRate) ? dPow(1 + fixedEscRate, opsYear) : 1;
       factors.push(safeFactor);
     }
     return factors;

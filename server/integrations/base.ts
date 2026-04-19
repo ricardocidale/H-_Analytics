@@ -143,6 +143,7 @@ export abstract class BaseIntegrationService {
         if (attempt === this.retryConfig.maxAttempts) break;
 
         const delay = Math.min(
+          // eslint-disable-next-line no-restricted-syntax -- retry backoff, non-financial
           this.retryConfig.baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 100,
           this.retryConfig.maxDelayMs,
         );

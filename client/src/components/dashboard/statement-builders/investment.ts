@@ -5,6 +5,7 @@ import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import { computeIRR } from "@analytics/returns/irr.js";
 import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_INCOME_TAX_RATE, DEFAULT_INTEREST_RATE } from "@/lib/constants";
 import { DEFAULT_COST_OF_EQUITY, DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE } from "@shared/constants";
+import { dPow } from "@calc/shared/decimal";
 
 export function generatePortfolioInvestmentData(
   financials: DashboardFinancials,
@@ -214,7 +215,7 @@ export function generatePortfolioInvestmentData(
 
         const yearlyATCF = years.map((_, y) => propCF[y]?.atcf ?? 0);
         const exitValue = propCF[projectionYears - 1]?.exitValue ?? 0;
-        const pvFactors = years.map((_, y) => 1 / Math.pow(1 + discountRate, y + 1));
+        const pvFactors = years.map((_, y) => 1 / dPow(1 + discountRate, y + 1));
         const pvCF = yearlyATCF.map((v, y) => v * pvFactors[y]);
         const pvTerminal = exitValue * pvFactors[projectionYears - 1];
         const dcfVal = pvCF.reduce((s, v) => s + v, 0) + pvTerminal;

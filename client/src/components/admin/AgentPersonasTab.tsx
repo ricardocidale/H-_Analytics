@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { AGENT_PERSONAS, type AgentPersona } from "@shared/agent-personas";
 import { IconSparkles, IconBot } from "@/components/icons";
 import { useQuery } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
 
 function PersonaCard({ persona }: { persona: AgentPersona }) {
   const icon = persona.type === "intelligence"

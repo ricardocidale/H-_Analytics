@@ -1,4 +1,5 @@
 import { generatePropertyProForma, MonthlyFinancials } from "../financialEngine";
+import { dPow } from "@calc/shared/decimal";
 import {
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
@@ -141,7 +142,7 @@ function buildChecksForTestCase(testCase: TestCase): KnownValueCheck[] {
     const rate = DEFAULT_INTEREST_RATE / MONTHS_PER_YEAR;
     const n = DEFAULT_TERM_YEARS * MONTHS_PER_YEAR;
     const calculatedPayment = loanAmount > 0
-      ? (loanAmount * rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1)
+      ? (loanAmount * rate * dPow(1 + rate, n)) / (dPow(1 + rate, n) - 1)
       : 0;
     checks.push({
       label: "Loan Payment",

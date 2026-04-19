@@ -7,6 +7,7 @@ import { DEFAULT_PROPERTY_INCOME_TAX_RATE } from "@/lib/constants";
 import { DEFAULT_COST_OF_EQUITY } from "@shared/constants";
 import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import type { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
+import { dPow } from "@calc/shared/decimal";
 
 interface DCFAnalysisProps {
   properties: any[];
@@ -74,7 +75,7 @@ export function DCFAnalysis({
     const yearlyATCF = Array.from({ length: projectionYears }, (_, y) => yearly?.[y]?.atcf ?? 0);
     const exitValue = yearly?.[projectionYears - 1]?.exitValue ?? 0;
 
-    const pvFactors = Array.from({ length: projectionYears }, (_, y) => 1 / Math.pow(1 + discountRate, y + 1));
+    const pvFactors = Array.from({ length: projectionYears }, (_, y) => 1 / dPow(1 + discountRate, y + 1));
     const pvCashFlows = yearlyATCF.map((cf, y) => cf * pvFactors[y]);
     const pvTerminal = exitValue * pvFactors[projectionYears - 1];
     const dcfValue = pvCashFlows.reduce((s, pv) => s + pv, 0) + pvTerminal;
@@ -192,7 +193,7 @@ export function DCFAnalysis({
                           </TableRow>
                           <TableRow className="bg-muted/20">
                             <TableCell className="font-medium">Discount Factor <span className="text-xs text-muted-foreground">@ {(d.wacc * 100).toFixed(1)}%</span></TableCell>
-                            {Array.from({ length: projectionYears }, (_, y) => <TableCell key={y} className="text-right font-mono text-muted-foreground">{(1 / Math.pow(1 + d.wacc, y + 1)).toFixed(4)}</TableCell>)}
+                            {Array.from({ length: projectionYears }, (_, y) => <TableCell key={y} className="text-right font-mono text-muted-foreground">{(1 / dPow(1 + d.wacc, y + 1)).toFixed(4)}</TableCell>)}
                             <TableCell className="text-right text-muted-foreground">-</TableCell>
                           </TableRow>
                           <TableRow>

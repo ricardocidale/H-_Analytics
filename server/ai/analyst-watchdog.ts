@@ -21,9 +21,8 @@
 
 import { storage } from "../storage";
 import { COUNTRY_DEFAULTS, type CountryDefaults } from "@shared/countryDefaults";
-import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, meetsConvictionFloor, insufficientDataMessage, type AssumptionValidation } from "./benchmark-lookups";
+import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, meetsConvictionFloor, insufficientDataMessage } from "./benchmark-lookups";
 import { logger } from "../logger";
-import type { Property } from "@shared/schema";
 
 // Fields where country_defaults is authoritative — deviation > threshold = auto-flag
 const HARD_FLOOR_FIELDS: Array<{
