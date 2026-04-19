@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by **Norfolk AI**. Models a hospitality management company (seed name: "Hospitality Management Co") alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual. ~1,174 source files in `calc/`+`server/`+`client/`+`shared/`, ~191K lines. ~4,191 tests across 204 files. 15-phase verification pipeline (498 checks).
+GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by **Norfolk AI**. Models a hospitality management company (seed name: "Hospitality Management Co") alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual. ~1,174 source files in `calc/`+`server/`+`client/`+`shared/`, ~191K lines. ~4,391 tests across 223 files. 15-phase verification pipeline (498 checks).
 
 **Two AI Agents:**
 - **The Analyst** — singular intelligence agent. Conducts research, provides ranges with conviction levels, validates assumptions. Powered by Norfolk AI Engine. Always "The Analyst" (capitalized, singular, never plural).
@@ -70,7 +70,7 @@ Two execution surfaces in play. The agent must flag which one a task belongs to:
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
-- Skills live in `.claude/skills/` (19 domains, 178 files). See `_index.md` for the master catalog.
+- Skills live in `.claude/skills/` (20 domains, 193 files). See `_index.md` for the master catalog.
 - **App name**: "H+ Analytics" (seed/default). Editable by super admin in Admin > App Identity. Powered by Norfolk AI.
 - **Company name**: The hospitality management company name (seed: "Hospitality Management Co"). Editable by any user on Management Company page. NOT the app name.
 - **Norfolk AI**: The technology company that created and powers H+ Analytics.
@@ -101,7 +101,7 @@ client/          React 18 frontend — 684 files, 116K lines
 shared/          Types, constants, schemas — 39 files, 7K lines
 tests/           Test suites (golden, proof, server) — 208 files, 56K lines
 docs/            Architecture, developer guide, research, planning
-.claude/         AI knowledge base (19 domains, 178 skills, 25 rules)
+.claude/         AI knowledge base (20 domains, 193 skills, 30 rules)
 ```
 
 **Key directories:**
@@ -116,7 +116,7 @@ docs/            Architecture, developer guide, research, planning
 
 ## Context Loading Protocol
 
-With 178 skill files across 19 domains, **never load all skills at once**. Use `.claude/skills/_index.md` for the master catalog.
+With 193 skill files across 20 domains, **never load all skills at once**. Use `.claude/skills/_index.md` for the master catalog.
 
 Quick rules:
 - **Financial calc** → specific finance skill + `rules/audit-persona.md` + `proof-system/SKILL.md`
@@ -150,7 +150,7 @@ Quick rules:
 | Coding Conventions | `.claude/skills/coding-conventions/SKILL.md` | Naming, formatting, context reduction, error handling, type contracts |
 | Product Vision | `.claude/skills/product-vision/SKILL.md` | Product identity, design tenets, workflow, navigation, roles |
 | Vocabulary | `.claude/skills/vocabulary/SKILL.md` | Canonical terms, AI-as-colleague voice, forbidden words. **Read before writing any UI text.** |
-| Rules (28) | `.claude/rules/` | All behavioral constraints. **Read `pre-commit-verification.md` and `cross-check-invariants.md` before any edit.** |
+| Rules (30) | `.claude/rules/` | All behavioral constraints. **Read `pre-commit-verification.md` and `cross-check-invariants.md` before any edit.** |
 
 ---
 
@@ -202,7 +202,7 @@ Balance Sheet Identity: `A = L + E` must hold within $1.
 | Returns Analysis | IRR, NPV, MOIC, sensitivity | `testing/analysis-returns.md` |
 | Golden Scenarios | 4 archetypes + 16 edge cases, hand-calculated | `testing/golden-scenarios.md` |
 
-**Commands**: `npm test` (~4,191 tests, 204 files) · `npm run verify` (15-phase GAAP, 498 checks) · `npm run health` (tsc+tests+verify)
+**Commands**: `npm test` (~4,391 tests, 223 files) · `npm run verify` (15-phase GAAP, 498 checks) · `npm run health` (tsc+tests+verify)
 
 ---
 
@@ -306,7 +306,7 @@ Engine cascade today: `property.depreciationYears → global.depreciationYears �
 |------|---------|----------------|------|
 | typecheck | `npx tsc --noEmit --skipLibCheck` | Type errors | ~15s |
 | lint | `npm run lint:summary` | ESLint violations (max-warnings 10) | ~16s |
-| test | `npm run test:summary` | ~4,191 tests (204 files) | ~29s |
+| test | `npm run test:summary` | ~4,391 tests (223 files) | ~29s |
 | verify | `npm run verify:summary` | Financial accuracy (498 checks, 15 phases, UNQUALIFIED) | ~8s |
 | parity | `tsx script/parity-check.ts` | Statement builder ↔ on-screen parity | ~1s |
 
@@ -315,7 +315,7 @@ Engine cascade today: `property.depreciationYears → global.depreciationYears �
 ```bash
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify (~90s)
-npm run test:summary   # ~4,191 tests, 204 files (~30s)
+npm run test:summary   # ~4,391 tests, 223 files (~30s)
 npm run verify:summary # 15-phase financial verification, 498 checks (~8s)
 npm run lint:summary   # ESLint check (<10s)
 npm run stats          # File/line/test counts (<5s)
