@@ -4,7 +4,7 @@ import {
   COMPANY_ASSUMPTIONS_TAB_KEYS,
 } from "../../client/src/hooks/useCompanyAssumptionsConfirmation";
 import { pickDefaultActionIndex } from "../../client/src/components/intelligence/AnalystCheckDialog";
-import type { WatchdogAction } from "../../engine/watchdog/capitalRaiseEvaluator";
+import type { VerdictAction } from "../../engine/analyst/contracts/verdict";
 
 describe("computeAssumptionsConfirmation (gate hook)", () => {
   it("treats missing/invalid savedTabs as fully unconfirmed", () => {
@@ -92,28 +92,22 @@ describe("AssumptionsGateGuard semantics (loading invariants)", () => {
 });
 
 describe("AnalystCheckDialog · pickDefaultActionIndex", () => {
-  it("prefers Adjust when present", () => {
-    const actions: WatchdogAction[] = [
-      { kind: "adjust", label: "Adjust" },
-      { kind: "ack", label: "Got it" },
-      { kind: "save_anyway", label: "Save Anyway" },
+  // Phase 3b: actions are now AnalystVerdict VerdictAction values.
+  // adjust→consult-cognitive, ack→dismiss; "save_anyway" lives outside
+  // the actions[] array (UI-only ghost button, never the default focus).
+  it("prefers consult-cognitive (Adjust) when present", () => {
+    const actions: VerdictAction[] = [
+      { kind: "consult-cognitive", label: "Adjust", payload: { field: "runwayBufferMonths" } },
+      { kind: "dismiss", label: "Got it" },
     ];
     expect(pickDefaultActionIndex(actions)).toBe(0);
   });
 
-  it("falls back to Got it when no Adjust action exists", () => {
-    const actions: WatchdogAction[] = [
-      { kind: "ack", label: "Got it" },
-      { kind: "save_anyway", label: "Save Anyway" },
+  it("falls back to dismiss (Got it) when no consult-cognitive action exists", () => {
+    const actions: VerdictAction[] = [
+      { kind: "dismiss", label: "Got it" },
     ];
     expect(pickDefaultActionIndex(actions)).toBe(0);
-  });
-
-  it("never picks Save Anyway as the default", () => {
-    const actions: WatchdogAction[] = [
-      { kind: "save_anyway", label: "Save Anyway" },
-    ];
-    expect(pickDefaultActionIndex(actions)).toBe(-1);
   });
 
   it("returns -1 for an empty action list", () => {

@@ -54,7 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { GlobalResponse } from "@/lib/api";
 import { SaveButton } from "@/components/ui/save-button";
 import { AnalystCheckDialog } from "@/components/intelligence/AnalystCheckDialog";
-import type { WatchdogResult, WatchdogAction } from "../../../engine/watchdog/capitalRaiseEvaluator";
+import type { AnalystVerdict, VerdictAction } from "../../../engine/analyst/contracts/verdict";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { DEFAULT_MODEL_START_DATE, DAYS_PER_MONTH } from "@/lib/constants";
@@ -452,7 +452,7 @@ export default function CompanyAssumptions() {
   // Analyst watchdog dialog state — fired by per-tab Save when the
   // deterministic evaluator returns severity != "ok".
   const [watchdogOpen, setWatchdogOpen] = useState(false);
-  const [watchdogResult, setWatchdogResult] = useState<WatchdogResult | null>(null);
+  const [watchdogResult, setWatchdogResult] = useState<AnalystVerdict | null>(null);
   const [watchdogTab, setWatchdogTab] = useState<TabKey | null>(null);
 
   // Tabs the user has saved at least once. Drives Analyst gating — non-Company
@@ -715,9 +715,9 @@ export default function CompanyAssumptions() {
     };
   };
 
-  const handleWatchdogAction = async (action: WatchdogAction) => {
+  const handleWatchdogAction = async (action: VerdictAction) => {
     setWatchdogOpen(false);
-    if (action.kind === "adjust") {
+    if (action.kind === "consult-cognitive") {
       // Roll back the savedTabs commit for this tab — the user is choosing to
       // edit before re-saving, so the gate must NOT unlock from this attempt.
       // Field-value patches already persisted are intentionally left in place
@@ -742,19 +742,25 @@ export default function CompanyAssumptions() {
           console.warn("Failed to roll back save on Adjust:", err);
         }
       }
-      if (action.targetField) {
-        // Best-effort scroll/focus; the field may not be currently mounted.
-        const el = document.querySelector<HTMLElement>(
-          `[data-field="${action.targetField}"], [name="${action.targetField}"], #${CSS.escape(action.targetField)}`,
-        );
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          if ("focus" in el && typeof el.focus === "function") setTimeout(() => el.focus(), 250);
-        }
+      const targetField = action.payload.field;
+      // Best-effort scroll/focus; the field may not be currently mounted.
+      const el = document.querySelector<HTMLElement>(
+        `[data-field="${targetField}"], [name="${targetField}"], #${CSS.escape(targetField)}`,
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        if ("focus" in el && typeof el.focus === "function") setTimeout(() => el.focus(), 250);
       }
     }
-    // "ack" and "save_anyway" both just close — the save already persisted
-    // before the dialog opened. No free-text or Rebecca handoff path.
+    // "dismiss" and the separate "Save Anyway" button just close — the save
+    // already persisted before the dialog opened. No free-text or Rebecca
+    // handoff path.
+  };
+
+  const handleProceedAnyway = () => {
+    // Save already landed; this just closes the dialog and acknowledges
+    // the user has chosen to diverge from The Analyst's range.
+    setWatchdogOpen(false);
   };
 
   const handleSaveTab = async (tab: TabKey, opts: { force?: boolean } = {}) => {
@@ -795,10 +801,10 @@ export default function CompanyAssumptions() {
           body: JSON.stringify({ tabKey: tab, fundingInputs }),
         });
         if (res.ok) {
-          const json = await res.json() as { watchdog?: WatchdogResult };
+          const json = await res.json() as { verdict?: AnalystVerdict | null };
           await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
-          if (json.watchdog && json.watchdog.severity !== "ok") {
-            setWatchdogResult(json.watchdog);
+          if (json.verdict && json.verdict.overallSeverity !== "ok") {
+            setWatchdogResult(json.verdict);
             setWatchdogTab(tab);
             setWatchdogOpen(true);
           }
@@ -1098,9 +1104,10 @@ export default function CompanyAssumptions() {
 
       <AnalystCheckDialog
         open={watchdogOpen}
-        result={watchdogResult}
+        verdict={watchdogResult}
         tabLabel={watchdogTab ? TAB_LABELS[watchdogTab] : undefined}
         onAction={handleWatchdogAction}
+        onProceedAnyway={handleProceedAnyway}
         onOpenChange={setWatchdogOpen}
       />
 

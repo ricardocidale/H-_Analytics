@@ -212,43 +212,64 @@ export function register(app: Express) {
       invalidateComputeCache();
       logActivity(req, "update", "global_assumptions", saved.id, `Save tab: ${tabKey}`);
 
-      let watchdog;
-      if (tabKey === "funding") {
-        const [{ evaluateCapitalRaise }, benchmarks] = await Promise.all([
-          import("../../engine/watchdog/capitalRaiseEvaluator"),
-          storage.getAnalystWatchdogBenchmarks(userId),
-        ]);
-        watchdog = evaluateCapitalRaise(fundingInputs ?? {}, benchmarks);
-      } else if (tabKey === "revenue") {
-        // Revenue evaluator pulls inputs from the freshly-saved row itself —
-        // no client-side payload needed. Falls back to system constants when
-        // a per-company override is null.
-        const [{ evaluateRevenue }, { DEFAULT_REVENUE_BENCHMARKS }, c] = await Promise.all([
-          import("../../engine/watchdog/revenueEvaluator"),
+      // Phase 3b: Funding + Revenue tabs return a real AnalystVerdict from
+      // the Surface Router. Other tabs return verdict=null (no Analyst
+      // gate yet — Phase 4 ships Compensation, etc.).
+      let verdict = null;
+      if (tabKey === "funding" || tabKey === "revenue") {
+        const [
+          { createMgmtCoRouter, MGMT_CO_FUNDING_ID, MGMT_CO_REVENUE_ID },
+          { createVoiceRenderer },
+          { createQualityScorer },
+          { DEFAULT_REVENUE_BENCHMARKS },
+          c,
+          fundingBenchmarks,
+        ] = await Promise.all([
+          import("../../engine/analyst/surface/mgmt-co"),
+          import("../../engine/analyst/voice/voice-renderer"),
+          import("../../engine/analyst/quality/quality-scorer"),
           import("@shared/constants-revenue-benchmarks"),
           import("@shared/constants"),
+          storage.getAnalystWatchdogBenchmarks(userId),
         ]);
-        const savedRow = saved as Record<string, unknown>;
-        const num = (k: string) => {
-          const v = savedRow[k];
-          return typeof v === "number" && Number.isFinite(v) ? v : null;
-        };
-        watchdog = evaluateRevenue(
-          {
-            marketingRate:      num("defaultCostRateMarketing") ?? c.DEFAULT_COST_RATE_MARKETING,
-            fbRevenueShare:     num("defaultRevShareFb")        ?? c.DEFAULT_REV_SHARE_FB,
-            eventsRevenueShare: num("defaultRevShareEvents")    ?? c.DEFAULT_REV_SHARE_EVENTS,
-            otherRevenueShare:  num("defaultRevShareOther")     ?? c.DEFAULT_REV_SHARE_OTHER,
-            cateringBoostPct:   num("defaultCateringBoostPct")  ?? c.DEFAULT_CATERING_BOOST_PCT,
-          },
-          DEFAULT_REVENUE_BENCHMARKS,
+
+        const router = createMgmtCoRouter(
+          { voiceRenderer: createVoiceRenderer(), qualityScorer: createQualityScorer() },
+          { funding: fundingBenchmarks, revenue: DEFAULT_REVENUE_BENCHMARKS },
         );
-      } else {
-        const { evaluateStub } = await import("../../engine/watchdog/capitalRaiseEvaluator");
-        watchdog = evaluateStub();
+
+        // Single-tenant: hardcode the L+B luxury persona for now. Phase 4
+        // will plumb persona resolution through user/company settings.
+        const persona = { segment: "L+B", tier: "luxury", market: "US" } as const;
+
+        if (tabKey === "funding") {
+          verdict = await router.dispatch({
+            specialistId: MGMT_CO_FUNDING_ID,
+            payload: fundingInputs ?? {},
+            persona,
+          });
+        } else {
+          // Revenue specialist reads inputs from the freshly-saved row.
+          const savedRow = saved as Record<string, unknown>;
+          const num = (k: string) => {
+            const v = savedRow[k];
+            return typeof v === "number" && Number.isFinite(v) ? v : null;
+          };
+          verdict = await router.dispatch({
+            specialistId: MGMT_CO_REVENUE_ID,
+            payload: {
+              marketingRate:      num("defaultCostRateMarketing") ?? c.DEFAULT_COST_RATE_MARKETING,
+              fbRevenueShare:     num("defaultRevShareFb")        ?? c.DEFAULT_REV_SHARE_FB,
+              eventsRevenueShare: num("defaultRevShareEvents")    ?? c.DEFAULT_REV_SHARE_EVENTS,
+              otherRevenueShare:  num("defaultRevShareOther")     ?? c.DEFAULT_REV_SHARE_OTHER,
+              cateringBoostPct:   num("defaultCateringBoostPct")  ?? c.DEFAULT_CATERING_BOOST_PCT,
+            },
+            persona,
+          });
+        }
       }
 
-      res.json({ ok: true, savedTabs: nextSaved, watchdog });
+      res.json({ ok: true, savedTabs: nextSaved, verdict });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to save Company Assumptions tab", error);
     }
