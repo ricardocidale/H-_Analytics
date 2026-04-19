@@ -216,13 +216,13 @@ When we're done we'll optionally discuss whether to upgrade the rules from warni
 | Batch | Warnings targeted | Status | Commit |
 |---|---:|---|---|
 | 1 — unused vars + Math.pow | 24 | ✅ done (348 → 324) | `3e51bd46` |
-| 2 — `as any` low-count files | 18 | ✅ done (324 → 306) | (this commit) |
-| 3 — `as any` high-count files | ~30 | — | — |
+| 2 — `as any` low-count files | 18 | ✅ done (324 → 306) | `06b36838` |
+| 3 — `as any` in CompanyIcpDefinition.tsx | 35 | ✅ done (306 → 271) | (this commit) |
 | 4 — `\|\| 0` non-financial | ~40 | — | — |
 | 5 — `\|\| 0` financial calculators | ~60 | — | — |
 | 6 — `\|\| 0` remaining client | ~50 | — | — |
 | 7 — `fetch()` timeouts | 6 | — | — |
-| 8 — misc cleanup | ~14 | — | — |
-| **Total** | **~348** | **42 / 348 complete** | — |
+| 8 — misc `as any` + misc | ~24 | — | — |
+| **Total** | **~348** | **77 / 348 complete (22%)** | — |
 
 Update this table when a batch commits. Copy the exact SHA and warning delta.

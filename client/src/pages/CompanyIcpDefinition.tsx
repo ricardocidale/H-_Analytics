@@ -99,7 +99,7 @@ function AmenityChips({ icpConfig }: { icpConfig: IcpConfig }) {
   };
 
   const amenities = AMENITY_KEYS
-    .map(key => ({ key, label: AMENITY_LABELS[key], priority: (icpConfig as any)[key] as string | undefined }))
+    .map(key => ({ key, label: AMENITY_LABELS[key], priority: (icpConfig as unknown as Record<string, string | undefined>)[key] }))
     .filter(a => a.priority && a.priority !== "no");
 
   if (amenities.length === 0) return <p className="text-sm text-muted-foreground">No amenity priorities set.</p>;
@@ -130,27 +130,47 @@ export default function CompanyIcpDefinition() {
   const [defDraft, setDefDraft] = useState("");
   const [paramsOpen, setParamsOpen] = useState(false);
 
+  const g = global as unknown as { icpConfig?: unknown; icpDescriptive?: unknown } | undefined;
   const icpConfig: IcpConfig = useMemo(() => ({
     ...DEFAULT_ICP_CONFIG,
-    ...((global as any)?.icpConfig && typeof (global as any).icpConfig === "object" ? (global as any).icpConfig : {}),
-  }), [global]);
+    ...(g?.icpConfig && typeof g.icpConfig === "object" ? (g.icpConfig as Partial<IcpConfig>) : {}),
+  }), [g]);
 
   const icpDescriptive: IcpDescriptive = useMemo(() => ({
     ...DEFAULT_ICP_DESCRIPTIVE,
-    ...((global as any)?.icpDescriptive && typeof (global as any).icpDescriptive === "object" ? (global as any).icpDescriptive : {}),
-  }), [global]);
+    ...(g?.icpDescriptive && typeof g.icpDescriptive === "object" ? (g.icpDescriptive as Partial<IcpDescriptive>) : {}),
+  }), [g]);
 
   const companyName = global?.companyName ?? "Hospitality Business";
-  const meta = (icpConfig as any);
+  const meta = icpConfig as IcpConfig & {
+    _generated?: boolean;
+    _generatedAt?: string;
+    _source?: string;
+    _definition?: string;
+    _portfolioAnalysis?: unknown;
+  };
   const isGenerated = !!meta._generated;
   const generatedAt = meta._generatedAt ? new Date(meta._generatedAt) : null;
   const source: string = meta._source ?? "";
   const definition: string = meta._definition ?? "";
-  const portfolio = meta._portfolioAnalysis ?? {};
+  type PortfolioRange = { min?: number; max?: number; median?: number };
+  type PortfolioAnalysis = {
+    propertyCount?: number;
+    rooms?: PortfolioRange;
+    adr?: PortfolioRange;
+    purchasePrice?: PortfolioRange;
+    dominantQualityTier?: string;
+    qualityTiers?: Record<string, number>;
+    fbRating?: number;
+    regions?: string[];
+    businessModels?: Record<string, number>;
+    [key: string]: unknown;
+  };
+  const portfolio: PortfolioAnalysis = (meta._portfolioAnalysis ?? {}) as PortfolioAnalysis;
 
   useEffect(() => {
     if (!global || properties.length === 0) return;
-    const ga = (global as any)?.icpConfig?._generatedAt;
+    const ga = (g?.icpConfig as { _generatedAt?: string } | undefined)?._generatedAt;
     if (!ga) {
       fetch("/api/icp/generate-quick", { method: "POST", credentials: "include" })
         .then(r => r.json())
@@ -176,9 +196,9 @@ export default function CompanyIcpDefinition() {
   }, [queryClient, toast]);
 
   const handleSaveDefinition = useCallback(() => {
-    const existing = (global as any)?.icpConfig ?? {};
+    const existing = (g?.icpConfig ?? {}) as Record<string, unknown>;
     updateMutation.mutate(
-      { icpConfig: { ...existing, _definition: defDraft } } as any,
+      { icpConfig: { ...existing, _definition: defDraft } } as unknown as Parameters<typeof updateMutation.mutate>[0],
       {
         onSuccess: () => { setDefEditing(false); toast({ title: "Saved", description: "ICP definition saved." }); },
         onError: () => { toast({ title: "Error", description: "Failed to save.", variant: "destructive" }); },
@@ -411,13 +431,13 @@ export default function CompanyIcpDefinition() {
                 </StatCard>
               </div>
 
-              {(portfolio.regions?.length > 0 || portfolio.businessModels) && (
+              {((portfolio.regions?.length ?? 0) > 0 || portfolio.businessModels) && (
                 <div className="flex flex-wrap gap-4">
-                  {portfolio.regions?.length > 0 && (
+                  {(portfolio.regions?.length ?? 0) > 0 && (
                     <div className="space-y-1.5">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Regions</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {portfolio.regions.map((r: string) => (
+                        {portfolio.regions?.map((r: string) => (
                           <Badge key={r} variant="secondary" className="text-xs">{r}</Badge>
                         ))}
                       </div>
@@ -449,7 +469,7 @@ export default function CompanyIcpDefinition() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ParamCard title="Target Property" items={[
                   { label: "Rooms", value: `${icpConfig.roomsMin ?? "—"}–${icpConfig.roomsMax ?? "—"}` },
-                  { label: "Sweet Spot", value: `${(icpConfig as any).roomsSweetSpotMin ?? "—"}–${(icpConfig as any).roomsSweetSpotMax ?? "—"}` },
+                  { label: "Sweet Spot", value: `${icpConfig.roomsSweetSpotMin ?? "—"}–${icpConfig.roomsSweetSpotMax ?? "—"}` },
                   { label: "Land (acres)", value: `${icpConfig.landAcresMin ?? "—"}–${icpConfig.landAcresMax ?? "—"}` },
                   { label: "Built SqFt", value: `${formatNumber(icpConfig.builtSqFtMin)}–${formatNumber(icpConfig.builtSqFtMax)}` },
                   { label: "ADR", value: `$${icpConfig.adrMin ?? "—"}–$${icpConfig.adrMax ?? "—"}` },
@@ -459,21 +479,21 @@ export default function CompanyIcpDefinition() {
 
                 <ParamCard title="Financial Targets" items={[
                   { label: "Acquisition", value: `${formatCurrency(icpConfig.acquisitionMin)}–${formatCurrency(icpConfig.acquisitionMax)}` },
-                  { label: "Target Acq.", value: `${formatCurrency((icpConfig as any).acquisitionTargetMin)}–${formatCurrency((icpConfig as any).acquisitionTargetMax)}` },
-                  { label: "Total Investment", value: `${formatCurrency((icpConfig as any).totalInvestmentMin)}–${formatCurrency((icpConfig as any).totalInvestmentMax)}` },
-                  { label: "Renovation", value: `${formatCurrency((icpConfig as any).renovationMin)}–${formatCurrency((icpConfig as any).renovationMax)}` },
-                  { label: "Target IRR", value: `${(icpConfig as any).targetIrr ?? "—"}%` },
-                  { label: "Equity Multiple", value: `${(icpConfig as any).equityMultipleMin ?? "—"}x–${(icpConfig as any).equityMultipleMax ?? "—"}x` },
+                  { label: "Target Acq.", value: `${formatCurrency(icpConfig.acquisitionTargetMin)}–${formatCurrency(icpConfig.acquisitionTargetMax)}` },
+                  { label: "Total Investment", value: `${formatCurrency(icpConfig.totalInvestmentMin)}–${formatCurrency(icpConfig.totalInvestmentMax)}` },
+                  { label: "Renovation", value: `${formatCurrency(icpConfig.renovationMin)}–${formatCurrency(icpConfig.renovationMax)}` },
+                  { label: "Target IRR", value: `${icpConfig.targetIrr ?? "—"}%` },
+                  { label: "Equity Multiple", value: `${icpConfig.equityMultipleMin ?? "—"}x–${icpConfig.equityMultipleMax ?? "—"}x` },
                   { label: "Hold Years", value: `${icpConfig.holdYearsMin ?? "—"}–${icpConfig.holdYearsMax ?? "—"}` },
-                  { label: "Exit Cap Rate", value: `${(icpConfig as any).exitCapRateMin ?? "—"}%–${(icpConfig as any).exitCapRateMax ?? "—"}%` },
+                  { label: "Exit Cap Rate", value: `${icpConfig.exitCapRateMin ?? "—"}%–${icpConfig.exitCapRateMax ?? "—"}%` },
                 ]} />
 
                 <ParamCard title="Revenue Mix" items={[
-                  { label: "F&B Share", value: `${(icpConfig as any).fbShareMin ?? "—"}%–${(icpConfig as any).fbShareMax ?? "—"}%` },
-                  { label: "Events Share", value: `${(icpConfig as any).eventsShareMin ?? "—"}%–${(icpConfig as any).eventsShareMax ?? "—"}%` },
-                  { label: "Total Ancillary", value: `${(icpConfig as any).totalAncillaryMin ?? "—"}%–${(icpConfig as any).totalAncillaryMax ?? "—"}%` },
-                  { label: "Base Mgmt Fee", value: `${(icpConfig as any).baseMgmtFeeMin ?? "—"}%–${(icpConfig as any).baseMgmtFeeMax ?? "—"}%` },
-                  { label: "Incentive Fee", value: `${(icpConfig as any).incentiveFeeMin ?? "—"}%–${(icpConfig as any).incentiveFeeMax ?? "—"}%` },
+                  { label: "F&B Share", value: `${icpConfig.fbShareMin ?? "—"}%–${icpConfig.fbShareMax ?? "—"}%` },
+                  { label: "Events Share", value: `${icpConfig.eventsShareMin ?? "—"}%–${icpConfig.eventsShareMax ?? "—"}%` },
+                  { label: "Total Ancillary", value: `${icpConfig.totalAncillaryMin ?? "—"}%–${icpConfig.totalAncillaryMax ?? "—"}%` },
+                  { label: "Base Mgmt Fee", value: `${icpConfig.baseMgmtFeeMin ?? "—"}%–${icpConfig.baseMgmtFeeMax ?? "—"}%` },
+                  { label: "Incentive Fee", value: `${icpConfig.incentiveFeeMin ?? "—"}%–${icpConfig.incentiveFeeMax ?? "—"}%` },
                 ]} />
 
                 <Card className="p-4 space-y-3">
@@ -488,7 +508,7 @@ export default function CompanyIcpDefinition() {
             <h2 className="text-xl font-display font-semibold text-foreground">Qualitative Sections</h2>
             <Accordion type="multiple" className="space-y-1">
               {DESCRIPTIVE_SECTIONS.map(({ key, label }) => {
-                const content = (icpDescriptive as any)[key] as string | undefined;
+                const content = (icpDescriptive as unknown as Record<string, string | undefined>)[key];
                 return (
                   <AccordionItem key={key} value={key} className="border rounded-lg px-4">
                     <AccordionTrigger className="text-sm font-medium" data-testid={`accordion-${key}`}>
