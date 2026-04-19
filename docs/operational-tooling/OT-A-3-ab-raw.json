@@ -1,0 +1,298 @@
+[
+  {
+    "id": "01",
+    "market": "Charleston, SC",
+    "oldOk": true,
+    "newOk": true,
+    "oldDurationMs": 70818,
+    "newDurationMs": 95428,
+    "oldFieldCount": 40,
+    "newFieldCount": 40,
+    "sharedCount": 39,
+    "withinFivePctCount": 14,
+    "oldOnly": [
+      "landValue"
+    ],
+    "newOnly": [
+      "platformFee"
+    ],
+    "oldVoiceViolations": [],
+    "newVoiceViolations": [],
+    "comparisons": [
+      {
+        "field": "adr",
+        "oldMid": 475,
+        "newMid": 450,
+        "midDeltaPct": 0.05263157894736842,
+        "withinFivePct": false
+      },
+      {
+        "field": "adrGrowth",
+        "oldMid": 4.2,
+        "newMid": 4,
+        "midDeltaPct": 0.04761904761904766,
+        "withinFivePct": true
+      },
+      {
+        "field": "apDays",
+        "oldMid": 30,
+        "newMid": 38,
+        "midDeltaPct": 0.26666666666666666,
+        "withinFivePct": false
+      },
+      {
+        "field": "arDays",
+        "oldMid": 25,
+        "newMid": 28,
+        "midDeltaPct": 0.12,
+        "withinFivePct": false
+      },
+      {
+        "field": "capRate",
+        "oldMid": 7.3,
+        "newMid": 7.5,
+        "midDeltaPct": 0.02739726027397263,
+        "withinFivePct": true
+      },
+      {
+        "field": "catering",
+        "oldMid": 18,
+        "newMid": 12,
+        "midDeltaPct": 0.3333333333333333,
+        "withinFivePct": false
+      },
+      {
+        "field": "costAdmin",
+        "oldMid": 9,
+        "newMid": 9,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "costFB",
+        "oldMid": 32,
+        "newMid": 22,
+        "midDeltaPct": 0.3125,
+        "withinFivePct": false
+      },
+      {
+        "field": "costFFE",
+        "oldMid": 4,
+        "newMid": 4,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "costHousekeeping",
+        "oldMid": 18,
+        "newMid": 12.5,
+        "midDeltaPct": 0.3055555555555556,
+        "withinFivePct": false
+      },
+      {
+        "field": "costIT",
+        "oldMid": 2,
+        "newMid": 2.5,
+        "midDeltaPct": 0.25,
+        "withinFivePct": false
+      },
+      {
+        "field": "costMarketing",
+        "oldMid": 6,
+        "newMid": 7,
+        "midDeltaPct": 0.16666666666666666,
+        "withinFivePct": false
+      },
+      {
+        "field": "costOther",
+        "oldMid": 3,
+        "newMid": 2,
+        "midDeltaPct": 0.3333333333333333,
+        "withinFivePct": false
+      },
+      {
+        "field": "costPropertyOps",
+        "oldMid": 5,
+        "newMid": 5.5,
+        "midDeltaPct": 0.1,
+        "withinFivePct": false
+      },
+      {
+        "field": "costPropertyTaxes",
+        "oldMid": 1.2,
+        "newMid": 4.5,
+        "midDeltaPct": 2.75,
+        "withinFivePct": false
+      },
+      {
+        "field": "costSeg15yrPct",
+        "oldMid": 15,
+        "newMid": 12,
+        "midDeltaPct": 0.2,
+        "withinFivePct": false
+      },
+      {
+        "field": "costSeg5yrPct",
+        "oldMid": 22,
+        "newMid": 20,
+        "midDeltaPct": 0.09090909090909091,
+        "withinFivePct": false
+      },
+      {
+        "field": "costSeg7yrPct",
+        "oldMid": 8,
+        "newMid": 8,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "costUtilities",
+        "oldMid": 4,
+        "newMid": 4,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "incentiveFee",
+        "oldMid": 10,
+        "newMid": 8,
+        "midDeltaPct": 0.2,
+        "withinFivePct": false
+      },
+      {
+        "field": "incomeTax",
+        "oldMid": 25,
+        "newMid": 28,
+        "midDeltaPct": 0.12,
+        "withinFivePct": false
+      },
+      {
+        "field": "inflationRate",
+        "oldMid": 2.8,
+        "newMid": 2.8,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "interestRate",
+        "oldMid": 6.5,
+        "newMid": 7,
+        "midDeltaPct": 0.07692307692307693,
+        "withinFivePct": false
+      },
+      {
+        "field": "ltv",
+        "oldMid": 55,
+        "newMid": 60,
+        "midDeltaPct": 0.09090909090909091,
+        "withinFivePct": false
+      },
+      {
+        "field": "occupancy",
+        "oldMid": 75,
+        "newMid": 73,
+        "midDeltaPct": 0.02666666666666667,
+        "withinFivePct": true
+      },
+      {
+        "field": "occupancyStep",
+        "oldMid": 8.5,
+        "newMid": 12,
+        "midDeltaPct": 0.4117647058823529,
+        "withinFivePct": false
+      },
+      {
+        "field": "preOpeningCosts",
+        "oldMid": 2200000,
+        "newMid": 750000,
+        "midDeltaPct": 0.6590909090909091,
+        "withinFivePct": false
+      },
+      {
+        "field": "rampMonths",
+        "oldMid": 21,
+        "newMid": 30,
+        "midDeltaPct": 0.42857142857142855,
+        "withinFivePct": false
+      },
+      {
+        "field": "revShareEvents",
+        "oldMid": 8,
+        "newMid": 5,
+        "midDeltaPct": 0.375,
+        "withinFivePct": false
+      },
+      {
+        "field": "revShareFB",
+        "oldMid": 28,
+        "newMid": 28,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "revShareOther",
+        "oldMid": 6,
+        "newMid": 5,
+        "midDeltaPct": 0.16666666666666666,
+        "withinFivePct": false
+      },
+      {
+        "field": "saleCommission",
+        "oldMid": 2.5,
+        "newMid": 2,
+        "midDeltaPct": 0.2,
+        "withinFivePct": false
+      },
+      {
+        "field": "startOccupancy",
+        "oldMid": 55,
+        "newMid": 48,
+        "midDeltaPct": 0.12727272727272726,
+        "withinFivePct": false
+      },
+      {
+        "field": "svcFeeAccounting",
+        "oldMid": 1.5,
+        "newMid": 1,
+        "midDeltaPct": 0.3333333333333333,
+        "withinFivePct": false
+      },
+      {
+        "field": "svcFeeGeneralMgmt",
+        "oldMid": 3.5,
+        "newMid": 3.5,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "svcFeeMarketing",
+        "oldMid": 1.5,
+        "newMid": 1.5,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "svcFeeProcurement",
+        "oldMid": 0.5,
+        "newMid": 0.5,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "svcFeeRevMgmt",
+        "oldMid": 1,
+        "newMid": 1,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      },
+      {
+        "field": "svcFeeTechRes",
+        "oldMid": 2,
+        "newMid": 2,
+        "midDeltaPct": 0,
+        "withinFivePct": true
+      }
+    ],
+    "newSynthesisOk": true
+  }
+]

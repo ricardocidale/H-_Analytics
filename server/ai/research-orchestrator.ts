@@ -194,7 +194,11 @@ function formatPriorResearch(matches: Awaited<ReturnType<typeof retrieveSimilarR
     .join("\n\n");
 }
 
-function buildSynthesisSystemPrompt(params: ResearchParams, singlePanelMode: boolean): string {
+function buildSynthesisSystemPrompt(
+  params: ResearchParams,
+  singlePanelMode: boolean,
+  useStructuredOutput = false,
+): string {
   const panelGuidance = singlePanelMode
     ? `You are synthesizing a SINGLE surviving analyst panel (the other panel failed). Since you have only one perspective:
 - Weight API validation data more heavily to compensate for missing cross-validation.
@@ -209,6 +213,34 @@ Your synthesis must:
 3. Where API data CONFIRMS a value: increase confidence one level, cite the live data source.
 4. Where API data CONTRADICTS analyst estimates: defer to API for real-time anchor metrics (ADR, occupancy rates, cap rates from CoStar/STR). Explain why estimates may have diverged from market data.
 5. Incorporate relevant findings from similar prior research as supporting evidence — weight recent research (< 90 days) higher than older research.`;
+
+  // OT-A.3 — When the structured-output path is active (USE_AI_SDK_SYNTHESIS=true)
+  // we replace the OUTPUT FORMAT section with the SynthesisOutputSchema contract:
+  // (1) the canonical field-key enum, restated so Opus produces names that match
+  // CANONICAL_RESEARCH_FIELDS; (2) one-sentence reasoning instead of multi-paragraph
+  // chain-of-thought; (3) explicit "no narrative blocks" instruction. Legacy path
+  // keeps its original free-form-JSON instructions for an apples-to-apples A/B.
+  const outputFormat = useStructuredOutput
+    ? `## OUTPUT FORMAT (structured object)
+You will return a SynthesisOutput object via tool-use. Each entry in \`values[]\` has:
+- \`field\`: the canonical metric key (see contract below)
+- \`low\` / \`mid\` / \`high\`: numeric range bounds
+- \`unit\`: one of "%", "$", "days", "months", "years", "rooms", "ratio"
+- \`display\`: human-readable range string ("70%–80%", "$180–$220", "6–9 mo")
+- \`confidence\`: "high" | "medium" | "low"
+- \`reasoning\`: ONE TIGHT SENTENCE (≤500 chars) citing top 2-3 sources. No chain-of-thought prose, no multi-step explanation, no "Anchor: … Panel Evidence: … Resolution: …" structure. Just the synthesised result + the sources that drove it.
+- \`sources\`: array of source titles cited above
+
+## FIELD KEY CONTRACT (HARD CONSTRAINT)
+Each \`field\` value MUST be one of these EXACT keys (case-sensitive; no variants, no paraphrases, no descriptors in parens):
+  adr, adrGrowth, occupancy, startOccupancy, occupancyStep, rampMonths, catering, revShareFB, revShareEvents, revShareOther, capRate, landValue, saleCommission, costHousekeeping, costFB, costAdmin, costMarketing, costPropertyOps, costUtilities, costFFE, costIT, costOther, costPropertyTaxes, incentiveFee, svcFeeMarketing, svcFeeTechRes, svcFeeAccounting, svcFeeRevMgmt, svcFeeGeneralMgmt, svcFeeProcurement, incomeTax, inflationRate, interestRate, ltv, costSeg5yrPct, costSeg7yrPct, costSeg15yrPct, arDays, apDays, preOpeningCosts, platformFee.
+
+Only include fields you have real evidence for — omit the rest. Do NOT invent values just to fill the list. Do NOT emit narrative or qualitative-prose blocks of any kind — the structured object IS the entire output.`
+    : `## OUTPUT FORMAT
+Output the EXACT same JSON format as a standard research report — your output IS the final research.
+Every numeric field must include a "display" range string, a "mid" point estimate, and a "confidence" field ("high" | "medium" | "low").
+The "reasoning" field for each section must show your chain-of-thought (anchor → evidence → resolution).
+Do not output any text outside the JSON code block.`;
 
   return loadSkill(params.type) + `
 
@@ -228,11 +260,7 @@ ${panelGuidance}
 - **"medium"**: Single reliable source, moderate comp coverage, or 15–25% divergence.
 - **"low"**: Sparse data, >25% divergence, no API anchor, or stale comparables (>6 months old).
 
-## OUTPUT FORMAT
-Output the EXACT same JSON format as a standard research report — your output IS the final research.
-Every numeric field must include a "display" range string, a "mid" point estimate, and a "confidence" field ("high" | "medium" | "low").
-The "reasoning" field for each section must show your chain-of-thought (anchor → evidence → resolution).
-Do not output any text outside the JSON code block.`;
+${outputFormat}`;
 }
 
 async function buildSynthesisUserPrompt(
@@ -376,7 +404,8 @@ export async function* orchestrateResearch(
 
   yield { type: "phase", data: `Synthesizing with ${SYNTHESIS_MODEL}…` };
 
-  const systemPrompt = buildSynthesisSystemPrompt(params, singlePanelMode);
+  const useStructuredOutput = process.env.USE_AI_SDK_SYNTHESIS === "true";
+  const systemPrompt = buildSynthesisSystemPrompt(params, singlePanelMode, useStructuredOutput);
   const baseUserPrompt = await buildSynthesisUserPrompt(params, panelA, panelB, validation, priorResearch, v2Prompt);
   const userPrompt = propertyUrlContext ? baseUserPrompt + propertyUrlContext : baseUserPrompt;
 

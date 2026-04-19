@@ -30,7 +30,9 @@ const SYNTHESIS_MODEL = "claude-opus-4-6";
 const SYNTHESIS_TOKENS = 12_000;
 const CONCURRENCY = 5;
 
-const SYSTEM_PROMPT = `You are the H+ Analytics synthesis engine consolidating two cognitive panels into a single authoritative property research report for an L+B Hospitality boutique-luxury portfolio.
+// Legacy-path system prompt: free-form nested-JSON report. Unchanged from the
+// pre-OT-A.3 production prompt so the old leg of the A/B is a fair baseline.
+const SYSTEM_PROMPT_LEGACY = `You are the H+ Analytics synthesis engine consolidating two cognitive panels into a single authoritative property research report for an L+B Hospitality boutique-luxury portfolio.
 
 ## OUTPUT FORMAT
 Return ONE JSON object with the following sections:
@@ -78,6 +80,29 @@ Return ONE JSON object with the following sections:
 }
 
 Do not output any text outside the JSON code block. Use single-paragraph reasoning fields. Always cite at least one source. Match boutique-luxury (L+B) hospitality benchmarks.`;
+
+// New-path system prompt: structured-output contract matching SynthesisOutputSchema.
+// (post-OT-A.3 schema-tightening, commit e89d77441). Restates the field-name enum
+// inline so Opus emits CANONICAL_RESEARCH_FIELDS keys instead of ad-hoc descriptors.
+// Caps reasoning at one sentence to control output-token cost (drives latency).
+const SYSTEM_PROMPT_STRUCTURED = `You are the H+ Analytics synthesis engine consolidating two cognitive panels into a single authoritative property research report for an L+B Hospitality boutique-luxury portfolio.
+
+## OUTPUT FORMAT (structured object via tool-use)
+You will return a SynthesisOutput object. Each entry in \`values[]\` has:
+- \`field\`: the canonical metric key (see contract below)
+- \`low\` / \`mid\` / \`high\`: numeric range bounds
+- \`unit\`: one of "%", "$", "days", "months", "years", "rooms", "ratio"
+- \`display\`: human-readable range string ("70%–80%", "$180–$220", "6–9 mo")
+- \`confidence\`: "high" | "medium" | "low"
+- \`reasoning\`: ONE TIGHT SENTENCE (≤500 chars) citing top 2-3 sources. No chain-of-thought prose, no multi-step explanation. Just the synthesised result + the sources.
+- \`sources\`: array of source titles cited above
+Plus a single \`overall\` block: \`{ confidence: "high"|"medium"|"low", commentary: string, methodologyNotes: string }\`.
+
+## FIELD KEY CONTRACT (HARD CONSTRAINT)
+Each \`field\` value MUST be one of these EXACT keys (case-sensitive; no variants, no paraphrases, no descriptors in parens):
+  adr, adrGrowth, occupancy, startOccupancy, occupancyStep, rampMonths, catering, revShareFB, revShareEvents, revShareOther, capRate, landValue, saleCommission, costHousekeeping, costFB, costAdmin, costMarketing, costPropertyOps, costUtilities, costFFE, costIT, costOther, costPropertyTaxes, incentiveFee, svcFeeMarketing, svcFeeTechRes, svcFeeAccounting, svcFeeRevMgmt, svcFeeGeneralMgmt, svcFeeProcurement, incomeTax, inflationRate, interestRate, ltv, costSeg5yrPct, costSeg7yrPct, costSeg15yrPct, arDays, apDays, preOpeningCosts, platformFee.
+
+Only include fields you have real evidence for — omit the rest. Do NOT invent values just to fill the list. Do NOT emit any narrative or qualitative-prose blocks of any kind — the structured object IS the entire output. Always cite at least one source per value. Anchor every estimate to boutique-luxury (L+B) hospitality benchmarks.`;
 
 interface InputCase {
   id: string;
@@ -138,7 +163,7 @@ async function runOldPath(userPrompt: string): Promise<PathResult> {
     const stream = anthropic.messages.stream({
       model: SYNTHESIS_MODEL,
       max_tokens: SYNTHESIS_TOKENS,
-      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      system: [{ type: "text", text: SYSTEM_PROMPT_LEGACY, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userPrompt }],
     });
     for await (const event of stream) {
@@ -171,7 +196,7 @@ async function runNewPath(userPrompt: string): Promise<{ result: PathResult; syn
       messages: [
         {
           role: "system",
-          content: SYSTEM_PROMPT,
+          content: SYSTEM_PROMPT_STRUCTURED,
           providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
         },
         { role: "user", content: userPrompt },
@@ -431,7 +456,7 @@ ${detailPerCase}
 
 ## Notes
 
-- **Path semantics.** Both paths consumed the same system + user prompt under load, with the same ephemeral cache_control on the system message. The only difference is delivery: old path returns free-form JSON-as-text and is regex-parsed by \`extractResearchValues\`; new path returns Zod-validated SynthesisOutput and is mapped via \`toLegacyResearchValuesMap\`.
+- **Path semantics.** Both paths consumed the same user prompt with ephemeral cache_control on the system message. The system prompts differ by design (post-OT-A.3 schema-tightening, commit e89d77441): the old path receives the legacy free-form-JSON instructions and is regex-parsed by \`extractResearchValues\`; the new path receives the structured-output contract (field-key enum + ≤500-char one-sentence reasoning) and is parsed via \`toLegacyResearchValuesMap\`. Using a single shared prompt for both paths was tried in the previous run and produced ad-hoc field names that broke parity — see prior commit 12363142.
 - **Field set drift is expected.** The new path emits whatever fields the model decides are answerable under the schema; the old extractor only fills slots it can regex-match. \`shared\` is the meaningful comparison surface; \`old-only\` / \`new-only\` are diagnostic, not a failure signal.
 - **Severity criterion.** Per-handoff "severity match" is interpreted operationally as midpoint convergence within ±5% on shared fields, since severity in the AnalystVerdict contract is downstream of the numeric range. Stricter severity-bucket comparison would require running each case through buildAnalystVerdict twice — out of scope for this harness.
 - **Cost.** Real Opus spend on user's Anthropic billing. Authorized.
@@ -446,10 +471,15 @@ async function main() {
       process.exit(1);
     }
   }
-  console.log(`OT-A.3 A/B harness — ${INPUTS.length} cases × 2 paths = ${INPUTS.length * 2} calls, concurrency=${CONCURRENCY}`);
+  // CASES env var lets the caller run only the first N inputs (e.g. CASES=1 for
+  // the BYOK / Gateway-routing diagnostic). Defaults to all 20.
+  const requested = Number(process.env.CASES ?? INPUTS.length);
+  const limit = Number.isFinite(requested) && requested > 0 ? Math.min(requested, INPUTS.length) : INPUTS.length;
+  const inputs = INPUTS.slice(0, limit);
+  console.log(`OT-A.3 A/B harness — ${inputs.length} cases × 2 paths = ${inputs.length * 2} calls, concurrency=${CONCURRENCY}`);
   console.log(`Model: ${SYNTHESIS_MODEL}`);
   const t0 = performance.now();
-  const reports = await runBatched(INPUTS, runCase, CONCURRENCY);
+  const reports = await runBatched(inputs, runCase, CONCURRENCY);
   const wallClockMs = Math.round(performance.now() - t0);
   console.log(`Total wall: ${wallClockMs}ms (${(wallClockMs / 1000).toFixed(1)}s)`);
   const md = buildReport(reports);
