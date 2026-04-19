@@ -21,7 +21,11 @@
  * of that branded type (via __castVoiceRendered).
  */
 
-import { CONVICTION_FLOOR } from "@shared/analyst-conviction";
+import {
+  CONVICTION_FLOOR,
+  CONVICTION_HIGH_THRESHOLD,
+  CONVICTION_MODERATE_THRESHOLD,
+} from "@shared/analyst-conviction";
 import {
   __castVoiceRendered,
   type PersonaContext,
@@ -33,6 +37,29 @@ import {
   type VoiceRenderedString,
   type Evidence,
 } from "../contracts/verdict";
+
+// ────────────────────────────────────────────────────────────────────────────
+// Display + UX calibration constants
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Maximum number of evidence sources surfaced in a dimension detail line and
+ * maximum number of dimension names surfaced in a surface detail line. Beyond
+ * this, the renderer emits a "(+N more)" suffix or truncates silently.
+ * UX calibration; not a domain constraint.
+ */
+const MAX_SOURCES_IN_DIMENSION_DETAIL = 3;
+const MAX_DIMENSIONS_IN_SURFACE_DETAIL = 3;
+
+/**
+ * Display precision for percent-formatted numbers (e.g. 0.045 → "4.5%").
+ * Currency uses 0-decimal whole-dollar formatting.
+ */
+const PERCENT_DISPLAY_DECIMALS = 1;
+const CURRENCY_DISPLAY_DECIMALS = 0;
+
+/** Decimal-to-percent scale factor (100). Math/unit conversion. */
+const PERCENT_SCALE = 100;
 
 // ────────────────────────────────────────────────────────────────────────────
 // Forbidden patterns (runtime-rejected)
@@ -107,12 +134,16 @@ export class PersonaViolationError extends Error {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Conviction label mapping (mirrors confidence-scorer.ts tiers)
+// Conviction label mapping
 // ────────────────────────────────────────────────────────────────────────────
+//
+// Tier thresholds live in @shared/analyst-conviction.ts. Distinct from the
+// legacy confidence labels in server/ai/confidence-scorer.ts (80/50/20),
+// which serve a different domain.
 
 function convictionLabel(qualityScore: number): string {
-  if (qualityScore >= 80) return "high conviction";
-  if (qualityScore >= 60) return "moderate conviction";
+  if (qualityScore >= CONVICTION_HIGH_THRESHOLD) return "high conviction";
+  if (qualityScore >= CONVICTION_MODERATE_THRESHOLD) return "moderate conviction";
   if (qualityScore >= CONVICTION_FLOOR) return "developing conviction";
   return "developing data";
 }
@@ -138,8 +169,10 @@ function toneOpener(severity: Severity, intent: VoiceIntent): string {
 // ────────────────────────────────────────────────────────────────────────────
 
 function formatNumber(n: number, unit: string): string {
-  if (unit === "%") return `${(n * 100).toFixed(1)}%`;
-  if (unit === "$") return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  if (unit === "%") return `${(n * PERCENT_SCALE).toFixed(PERCENT_DISPLAY_DECIMALS)}%`;
+  if (unit === "$") {
+    return `$${n.toLocaleString("en-US", { maximumFractionDigits: CURRENCY_DISPLAY_DECIMALS })}`;
+  }
   return `${n}${unit ? " " + unit : ""}`;
 }
 
@@ -200,10 +233,13 @@ function composeDimensionDetail(inputs: VoiceRenderInputs): string | undefined {
   if (qualityScore < CONVICTION_FLOOR) return undefined;
 
   const sourceList = evidence
-    .slice(0, 3)
+    .slice(0, MAX_SOURCES_IN_DIMENSION_DETAIL)
     .map((e) => e.source)
     .join(", ");
-  const more = evidence.length > 3 ? ` (+${evidence.length - 3} more)` : "";
+  const more =
+    evidence.length > MAX_SOURCES_IN_DIMENSION_DETAIL
+      ? ` (+${evidence.length - MAX_SOURCES_IN_DIMENSION_DETAIL} more)`
+      : "";
 
   const tail = intent === "below-range" || intent === "above-range"
     ? " Expect LP questions on values outside the range."
@@ -236,7 +272,7 @@ function composeSurfaceDetail(dimensions: readonly VerdictDimension[]): string |
   if (dimensions.length === 0) return undefined;
   const names = dimensions
     .filter((d) => d.severity !== "ok")
-    .slice(0, 3)
+    .slice(0, MAX_DIMENSIONS_IN_SURFACE_DETAIL)
     .map((d) => humanField(d.field));
   if (names.length === 0) return undefined;
   return `Dimensions flagged: ${names.join(", ")}.`;

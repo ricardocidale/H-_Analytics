@@ -19,7 +19,11 @@
  */
 
 import { z } from "zod";
-import { CONVICTION_FLOOR, MIN_SOURCES_FOR_ADVICE } from "@shared/analyst-conviction";
+import {
+  CONVICTION_FLOOR,
+  MIN_SOURCES_FOR_ADVICE,
+  TIER_1_MIN_TOTAL_EVIDENCE,
+} from "@shared/analyst-conviction";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Severity
@@ -305,8 +309,12 @@ export const AnalystVerdictSchema = z
     { message: "Tier-1 verdicts require meta.cognitiveRunId" },
   )
   .refine(
-    (v) => v.meta.tier !== 1 || v.dimensions.reduce((acc, d) => acc + d.evidence.length, 0) >= 3,
-    { message: "Tier-1 verdicts require >= 3 total evidence entries across dimensions (N+1 rule)" },
+    (v) =>
+      v.meta.tier !== 1 ||
+      v.dimensions.reduce((acc, d) => acc + d.evidence.length, 0) >= TIER_1_MIN_TOTAL_EVIDENCE,
+    {
+      message: `Tier-1 verdicts require >= ${TIER_1_MIN_TOTAL_EVIDENCE} total evidence entries across dimensions (N+1 rule)`,
+    },
   );
 export type AnalystVerdict = Omit<
   z.infer<typeof AnalystVerdictSchema>,
@@ -321,22 +329,27 @@ export type AnalystVerdict = Omit<
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Weighted average of dimension qualityScores. Severity-weighted so that a
- * "warning" dimension pulls the overall score harder than an "ok" one — the
- * surface-level score should reflect the worst-case dimensions more heavily.
+ * Per-severity weights used by computeOverallQuality. A worse severity pulls
+ * the surface-level score harder than an "ok" one — the overall score should
+ * reflect worst-case dimensions more heavily. Calibrated against persona-keyed
+ * test bench (see ADR-003).
+ */
+export const SEVERITY_QUALITY_WEIGHTS: Record<Severity, number> = {
+  ok: 1,
+  advisory: 1.25,
+  warning: 1.5,
+  block: 2,
+};
+
+/**
+ * Weighted average of dimension qualityScores using SEVERITY_QUALITY_WEIGHTS.
  */
 export function computeOverallQuality(dimensions: readonly VerdictDimension[]): number {
   if (dimensions.length === 0) return 0;
-  const severityWeight: Record<Severity, number> = {
-    ok: 1,
-    advisory: 1.25,
-    warning: 1.5,
-    block: 2,
-  };
   let weightSum = 0;
   let scoreSum = 0;
   for (const d of dimensions) {
-    const w = severityWeight[d.severity];
+    const w = SEVERITY_QUALITY_WEIGHTS[d.severity];
     weightSum += w;
     scoreSum += d.qualityScore * w;
   }

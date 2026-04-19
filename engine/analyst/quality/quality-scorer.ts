@@ -21,13 +21,23 @@
 import { assertFinite } from "@calc/shared/decimal.js";
 import {
   CONVICTION_FLOOR,
+  MAX_QUALITY_SCORE,
+  MIN_QUALITY_SCORE,
   MIN_SOURCES_FOR_ADVICE,
+  TIER_1_MIN_TOTAL_EVIDENCE,
   meetsConvictionFloor,
 } from "@shared/analyst-conviction";
 import type { Evidence, EvidenceTier, PersonaContext, VerdictRange } from "../contracts/verdict";
 
 // Re-export primitives so callers have one import target.
-export { CONVICTION_FLOOR, MIN_SOURCES_FOR_ADVICE, meetsConvictionFloor };
+export {
+  CONVICTION_FLOOR,
+  MAX_QUALITY_SCORE,
+  MIN_QUALITY_SCORE,
+  MIN_SOURCES_FOR_ADVICE,
+  TIER_1_MIN_TOTAL_EVIDENCE,
+  meetsConvictionFloor,
+};
 
 // ────────────────────────────────────────────────────────────────────────────
 // Component caps (declared alongside the weight table in the spec)
@@ -50,12 +60,24 @@ const TIER_WEIGHT: Record<EvidenceTier, number> = {
   estimated: 0.2,
 };
 
-const TIER_1_SOURCE_MIN = 3; // N+1 rule; aligned with research-precision rule
-
 const DAY_MS = 86_400_000;
 const MAX_DATA_AGE_DAYS = 365;
 const DEFAULT_CONSENSUS_RATIO = 0.5;
 const DEFAULT_BENCHMARK_SPREAD_RATIO = 0.3;
+
+/**
+ * Half-credit fallback for the range-spread component when the range mid is
+ * zero (division-by-zero guard) or when benchmark variance is unavailable.
+ * Calibration constant; not a domain default.
+ */
+const RANGE_SPREAD_FALLBACK_CREDIT = 0.5;
+
+/**
+ * "2x benchmark spread = zero credit" tolerance multiplier in scoreRangeSpread.
+ * A dimension whose spread equals the benchmark spread earns half credit; a
+ * dimension whose spread is double the benchmark earns zero. Calibrated.
+ */
+const BENCHMARK_SPREAD_TOLERANCE_MULTIPLIER = 2;
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public contract
@@ -103,8 +125,8 @@ export interface QualityScorer {
 function scoreSourceCount(evidence: Evidence[]): number {
   const n = evidence.length;
   if (n <= 0) return 0;
-  // Linear ramp: 0 at n=0, full credit at n >= TIER_1_SOURCE_MIN, half at MIN_SOURCES_FOR_ADVICE.
-  const ratio = Math.min(n / TIER_1_SOURCE_MIN, 1);
+  // Linear ramp: 0 at n=0, full credit at n >= TIER_1_MIN_TOTAL_EVIDENCE.
+  const ratio = Math.min(n / TIER_1_MIN_TOTAL_EVIDENCE, 1);
   return assertFinite(ratio * QUALITY_COMPONENT_CAPS.sourceCount, "quality.sourceCount");
 }
 
@@ -137,13 +159,15 @@ function scoreRangeSpread(range: VerdictRange | null, benchmarkVariance: number 
   if (range === null) return QUALITY_COMPONENT_CAPS.rangeSpread; // non-numeric verdicts take full credit
   if (range.mid === 0) {
     // Avoid division-by-zero; fall back to half credit.
-    return QUALITY_COMPONENT_CAPS.rangeSpread * 0.5;
+    return QUALITY_COMPONENT_CAPS.rangeSpread * RANGE_SPREAD_FALLBACK_CREDIT;
   }
   const spreadRatio = (range.high - range.low) / Math.abs(range.mid);
   const benchmarkSpreadRatio = benchmarkVariance ?? DEFAULT_BENCHMARK_SPREAD_RATIO;
-  if (benchmarkSpreadRatio <= 0) return QUALITY_COMPONENT_CAPS.rangeSpread * 0.5;
+  if (benchmarkSpreadRatio <= 0) {
+    return QUALITY_COMPONENT_CAPS.rangeSpread * RANGE_SPREAD_FALLBACK_CREDIT;
+  }
   // Narrower range vs benchmark → higher score. Clamp to [0,1].
-  const raw = 1 - spreadRatio / (2 * benchmarkSpreadRatio);
+  const raw = 1 - spreadRatio / (BENCHMARK_SPREAD_TOLERANCE_MULTIPLIER * benchmarkSpreadRatio);
   const clamped = Math.min(1, Math.max(0, raw));
   return assertFinite(clamped * QUALITY_COMPONENT_CAPS.rangeSpread, "quality.rangeSpread");
 }
@@ -185,7 +209,7 @@ export function createQualityScorer(): QualityScorer {
         components.consensus +
         components.personaFit;
       return {
-        total: Math.round(Math.min(100, Math.max(0, total))),
+        total: Math.round(Math.min(MAX_QUALITY_SCORE, Math.max(MIN_QUALITY_SCORE, total))),
         components,
       };
     },
