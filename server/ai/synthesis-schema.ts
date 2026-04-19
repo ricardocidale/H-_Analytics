@@ -99,6 +99,121 @@ export type CanonicalResearchField = typeof CANONICAL_RESEARCH_FIELDS[number];
 export const CanonicalResearchFieldSchema = z.enum(CANONICAL_RESEARCH_FIELDS);
 
 // ────────────────────────────────────────────────────────────────────────────
+// Field definitions — unit + denominator + scope per canonical field
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Per-field semantic contract. Derived from the legacy
+ * `server/ai/research-value-extractor.ts` reading paths. These definitions
+ * pin unit + denominator + scope so Opus emits values comparable to the
+ * legacy path.
+ *
+ * The OT-A.3 A/B (commit 1f80383f) showed that without these definitions
+ * in the system prompt, Opus interpreted the same canonical key to mean
+ * different things:
+ *   - landValue — old 30 (allocation %), new 5_000_000 (dollars). 6
+ *     orders of magnitude apart because "landValue" is semantically
+ *     ambiguous without a denominator.
+ *   - costFB — old 32 (% of F&B revenue, hospitality-standard), new 65
+ *     (% of total revenue or something else). Different denominator.
+ *   - occupancyStep — old 6.5 (per-step increment), new 12 (cumulative).
+ *     Different scope.
+ *   - costPropertyTaxes — old 1.8 (% of property value), new 4 (different
+ *     denominator). Different denominator.
+ *
+ * To be injected into the synthesis system prompt as a table, replacing
+ * the flat enum list.
+ */
+export interface FieldDefinition {
+  /** Canonical field key. Must match CANONICAL_RESEARCH_FIELDS. */
+  key: CanonicalResearchField;
+  /** Unit symbol (matches ResearchUnitSchema where applicable). */
+  unit: "%" | "$" | "days" | "months" | "years" | "rooms" | "ratio";
+  /** What the value is expressed in — the denominator for percentages, or the
+   *  scope for dollar amounts. */
+  denominator: string;
+  /** One-phrase definition for the prompt. */
+  description: string;
+}
+
+export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> = {
+  // Revenue
+  adr: { key: "adr", unit: "$", denominator: "per available room per night", description: "Average Daily Rate" },
+  adrGrowth: { key: "adrGrowth", unit: "%", denominator: "annual growth over prior-year ADR (per-year, not cumulative)", description: "Annual ADR growth rate" },
+  occupancy: { key: "occupancy", unit: "%", denominator: "of available room-nights, stabilized (year 3+)", description: "Stabilized occupancy rate" },
+  startOccupancy: { key: "startOccupancy", unit: "%", denominator: "of available room-nights, month 1 of operations", description: "Day-one occupancy" },
+  occupancyStep: { key: "occupancyStep", unit: "%", denominator: "per-step increment in occupancy (NOT cumulative); typical 3–10 percentage points per ramp interval", description: "Occupancy ramp step size" },
+  rampMonths: { key: "rampMonths", unit: "months", denominator: "calendar months between ramp steps", description: "Months per ramp step" },
+  catering: { key: "catering", unit: "%", denominator: "boost on F&B revenue (catering uplift multiplier)", description: "Catering boost on F&B" },
+  revShareFB: { key: "revShareFB", unit: "%", denominator: "F&B revenue as % of TOTAL revenue", description: "F&B revenue share of total" },
+  revShareEvents: { key: "revShareEvents", unit: "%", denominator: "Events revenue as % of TOTAL revenue", description: "Events revenue share of total" },
+  revShareOther: { key: "revShareOther", unit: "%", denominator: "Other operated revenue as % of TOTAL revenue", description: "Other revenue share of total" },
+
+  // Valuation & exit
+  capRate: { key: "capRate", unit: "%", denominator: "annual NOI ÷ property value (exit cap rate)", description: "Exit cap rate" },
+  landValue: { key: "landValue", unit: "%", denominator: "LAND ALLOCATION as % of PURCHASE PRICE (NOT a dollar amount; typical 15–30%)", description: "Land allocation percentage" },
+  saleCommission: { key: "saleCommission", unit: "%", denominator: "broker commission as % of gross sale value", description: "Disposition commission" },
+
+  // Department costs — note denominators differ
+  costHousekeeping: { key: "costHousekeeping", unit: "%", denominator: "housekeeping cost as % of ROOM revenue", description: "Housekeeping cost rate" },
+  costFB: { key: "costFB", unit: "%", denominator: "F&B cost of sales as % of F&B revenue (hospitality-standard food cost ratio; NOT % of total revenue)", description: "F&B cost of sales" },
+
+  // Undistributed expenses — all % of TOTAL revenue
+  costAdmin: { key: "costAdmin", unit: "%", denominator: "admin & general as % of TOTAL revenue (USALI undistributed)", description: "Admin & general rate" },
+  costMarketing: { key: "costMarketing", unit: "%", denominator: "marketing as % of TOTAL revenue", description: "Marketing cost rate" },
+  costPropertyOps: { key: "costPropertyOps", unit: "%", denominator: "property operations as % of TOTAL revenue", description: "Property ops rate" },
+  costUtilities: { key: "costUtilities", unit: "%", denominator: "utilities as % of TOTAL revenue", description: "Utilities rate" },
+  costFFE: { key: "costFFE", unit: "%", denominator: "FF&E reserve as % of TOTAL revenue", description: "FF&E reserve rate" },
+  costIT: { key: "costIT", unit: "%", denominator: "IT & telecom as % of TOTAL revenue", description: "IT cost rate" },
+  costOther: { key: "costOther", unit: "%", denominator: "other operated as % of TOTAL revenue", description: "Other operated rate" },
+
+  // Property-value-based
+  costPropertyTaxes: { key: "costPropertyTaxes", unit: "%", denominator: "annual property taxes as % of PROPERTY VALUE (mill rate; typical 1–3%)", description: "Property tax rate" },
+
+  // Management fees — all % of TOTAL revenue unless noted
+  incentiveFee: { key: "incentiveFee", unit: "%", denominator: "incentive management fee as % of TOTAL revenue (use total revenue, not GOP, for consistency with legacy path)", description: "Incentive management fee" },
+  svcFeeMarketing: { key: "svcFeeMarketing", unit: "%", denominator: "service fee (marketing component) as % of TOTAL revenue", description: "Service fee — marketing" },
+  svcFeeTechRes: { key: "svcFeeTechRes", unit: "%", denominator: "service fee (technology + reservations) as % of TOTAL revenue", description: "Service fee — tech/reservations" },
+  svcFeeAccounting: { key: "svcFeeAccounting", unit: "%", denominator: "service fee (accounting) as % of TOTAL revenue", description: "Service fee — accounting" },
+  svcFeeRevMgmt: { key: "svcFeeRevMgmt", unit: "%", denominator: "service fee (revenue management) as % of TOTAL revenue", description: "Service fee — revenue mgmt" },
+  svcFeeGeneralMgmt: { key: "svcFeeGeneralMgmt", unit: "%", denominator: "service fee (general management) as % of TOTAL revenue", description: "Service fee — general mgmt" },
+  svcFeeProcurement: { key: "svcFeeProcurement", unit: "%", denominator: "service fee (procurement) as % of TOTAL revenue", description: "Service fee — procurement" },
+
+  // Tax & macro
+  incomeTax: { key: "incomeTax", unit: "%", denominator: "corporate income tax rate as % of taxable income", description: "Income tax rate" },
+  inflationRate: { key: "inflationRate", unit: "%", denominator: "annual CPI / general inflation (per year)", description: "Inflation rate" },
+  interestRate: { key: "interestRate", unit: "%", denominator: "debt interest rate (annual, nominal)", description: "Interest rate on debt" },
+
+  // Capital structure
+  ltv: { key: "ltv", unit: "%", denominator: "loan amount as % of property value (acquisition LTV)", description: "Loan-to-value ratio" },
+  costSeg5yrPct: { key: "costSeg5yrPct", unit: "%", denominator: "5-year MACRS class as % of PURCHASE PRICE (cost segregation split)", description: "Cost seg 5-yr class" },
+  costSeg7yrPct: { key: "costSeg7yrPct", unit: "%", denominator: "7-year MACRS class as % of PURCHASE PRICE", description: "Cost seg 7-yr class" },
+  costSeg15yrPct: { key: "costSeg15yrPct", unit: "%", denominator: "15-year MACRS class as % of PURCHASE PRICE", description: "Cost seg 15-yr class" },
+  arDays: { key: "arDays", unit: "days", denominator: "accounts receivable days outstanding", description: "A/R days" },
+  apDays: { key: "apDays", unit: "days", denominator: "accounts payable days outstanding", description: "A/P days" },
+  preOpeningCosts: { key: "preOpeningCosts", unit: "$", denominator: "total pre-opening expense budget in DOLLARS (typical $200K–$2M for boutique-luxury)", description: "Pre-opening costs" },
+
+  // Platform (VRBO/STR)
+  platformFee: { key: "platformFee", unit: "%", denominator: "platform fee rate as % of GROSS booking value (all-in: host + guest fees)", description: "Platform fee rate" },
+};
+
+/**
+ * Produces a table-formatted block of field definitions for injection into
+ * the synthesis system prompt. Call this once at prompt construction time.
+ *
+ * Format is optimized for LLM comprehension: one line per field with
+ * `key — unit — denominator`. Ordered by the CANONICAL_RESEARCH_FIELDS
+ * const (which groups semantically).
+ */
+export function formatFieldDefinitionsForPrompt(): string {
+  const lines = CANONICAL_RESEARCH_FIELDS.map((key) => {
+    const def = FIELD_DEFINITIONS[key];
+    return `  - \`${def.key}\` (${def.unit}) — ${def.denominator}`;
+  });
+  return lines.join("\n");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Unit enum
 // ────────────────────────────────────────────────────────────────────────────
 
