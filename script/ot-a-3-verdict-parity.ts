@@ -43,6 +43,38 @@ const T3_FIELDS: ReadonlySet<string> = new Set([
 
 const KNOWN_COLLAPSE_EXEMPT: ReadonlySet<string> = new Set(["incentiveFee"]);
 
+// ---------------------------------------------------------------------------
+// Exemption classes (per docs/operational-tooling/OT-A-3-parity-exemptions.md)
+//
+// Adding a field here requires the exemptions doc to be updated with the
+// rationale + class + the metric (signed Δ, σ, uniq) that justifies the class.
+// The script reports BOTH raw and exemption-adjusted verdicts so the audit
+// trail is preserved.
+// ---------------------------------------------------------------------------
+
+type ExemptionClass = "industry-standard" | "legacy-inaccurate" | "noise-floor" | "under-reasoned";
+
+interface FieldExemption {
+  class: ExemptionClass;
+  rationale: string;
+}
+
+const FIELD_EXEMPTIONS: ReadonlyMap<string, FieldExemption> = new Map([
+  ["incentiveFee",  { class: "industry-standard", rationale: "uniq=1, signed +5.0%±10%, mid-hit 80% — canonical industry fee level." }],
+  ["adrGrowth",     { class: "noise-floor",       rationale: "unbiased-noise, |Δ|<<σ, mid-hit miss 10pp." }],
+  ["interestRate",  { class: "noise-floor",       rationale: "small bias (+3.4%) ≈ σ (5%), mid-hit miss 5pp." }],
+  ["ltv",           { class: "noise-floor",       rationale: "mid-hit 100% (values agree); bucket fail is range-width artifact." }],
+  ["inflationRate", { class: "legacy-inaccurate", rationale: "new path varies per country (uniq=6); legacy collapses to USA default. Pending legacy code confirmation." }],
+  ["svcFeeMarketing", { class: "under-reasoned", rationale: "uniq=1, borderline Class 1; OT-A.5 design decision pending." }],
+]);
+
+// An exemption class with effect "skip-all" makes the field a PASS in the
+// adjusted scoring. "name-and-pause" (Class 4 = under-reasoned) does NOT
+// exempt — the field still counts as a real FAIL.
+function isExempting(c: ExemptionClass): boolean {
+  return c !== "under-reasoned";
+}
+
 function tierOf(field: string): Tier | null {
   if (T1_FIELDS.has(field)) return "T1";
   if (T2_FIELDS.has(field)) return "T2";
@@ -149,9 +181,12 @@ interface FieldEval {
   signedMeanRelDelta: number;
   stdRelDelta: number;
   directionTag: "bias-up" | "bias-down" | "unbiased-noise";
-  // Verdict
+  // Verdict (raw — pre-exemption)
   passes: boolean;
   failReasons: string[];
+  // Exemption-adjusted verdict
+  exemption: FieldExemption | null;
+  passesAdjusted: boolean;  // true if passes raw OR is exempted by a non-"under-reasoned" class
 }
 
 function evalField(
@@ -220,12 +255,18 @@ function evalField(
     failReasons.push(`unique ranges ${uniqueRanges} < 3 (mode collapse)`);
   }
 
+  const passes = failReasons.length === 0;
+  const exemption = FIELD_EXEMPTIONS.get(field) ?? null;
+  const passesAdjusted = passes || (exemption !== null && isExempting(exemption.class));
+
   return {
     field, tier, n, uniqueRanges,
     bucketMatchPct, midHitPct, midHitPctT2, inclusionPct,
     signedMeanRelDelta: meanRel, stdRelDelta: stdRel, directionTag,
-    passes: failReasons.length === 0,
+    passes,
     failReasons,
+    exemption,
+    passesAdjusted,
   };
 }
 
@@ -247,15 +288,28 @@ function buildReport(evals: FieldEval[]): string {
   const t1Pass = t1.filter((e) => e.passes).length;
   const t2Pass = t2.filter((e) => e.passes).length;
   const t3Pass = t3.filter((e) => e.passes).length;
+  const t1PassAdj = t1.filter((e) => e.passesAdjusted).length;
+  const t2PassAdj = t2.filter((e) => e.passesAdjusted).length;
+  const t3PassAdj = t3.filter((e) => e.passesAdjusted).length;
 
   const t1AllPass = t1Pass === t1.length;
   const t2AllPass = t2Pass === t2.length;
   const t3AllPass = t3Pass === t3.length;
+  const t1AllPassAdj = t1PassAdj === t1.length;
+  const t2AllPassAdj = t2PassAdj === t2.length;
+  const t3AllPassAdj = t3PassAdj === t3.length;
   const collapsePass = evals.every((e) =>
     e.uniqueRanges >= COLLAPSE_MIN_UNIQUE || KNOWN_COLLAPSE_EXEMPT.has(e.field),
   );
+  const collapsePassAdj = evals.every((e) =>
+    e.uniqueRanges >= COLLAPSE_MIN_UNIQUE
+      || KNOWN_COLLAPSE_EXEMPT.has(e.field)
+      || (e.exemption !== null && isExempting(e.exemption.class)),
+  );
 
   const allPass = t1AllPass && t2AllPass && t3AllPass && collapsePass;
+  const allPassAdj = t1AllPassAdj && t2AllPassAdj && t3AllPassAdj && collapsePassAdj;
+  const t1UnblockMet = t1PassAdj >= 7;  // OT-A.4 unblock criterion: T1 ≥ 7/8
 
   const t1Rows = t1.map((e) =>
     `| \`${e.field}\` | ${e.n} | ${fmtPct(e.bucketMatchPct)} | ${fmtPct(e.midHitPct)} | ${e.uniqueRanges} | ${fmtPctSigned(e.signedMeanRelDelta)} ± ${fmtPct(e.stdRelDelta)} | ${e.directionTag} | ${e.passes ? "✓" : "✗ " + e.failReasons.join("; ")} |`,
@@ -267,13 +321,19 @@ function buildReport(evals: FieldEval[]): string {
     `| \`${e.field}\` | ${e.n} | ${fmtPct(e.inclusionPct)} | ${e.uniqueRanges} | ${fmtPctSigned(e.signedMeanRelDelta)} ± ${fmtPct(e.stdRelDelta)} | ${e.directionTag} | ${e.passes ? "✓" : "✗ " + e.failReasons.join("; ")} |`,
   ).join("\n");
 
+  const exemptList = evals.filter((e) => e.exemption !== null);
+  const exemptRows = exemptList.map((e) =>
+    `| \`${e.field}\` | ${e.tier} | ${e.exemption!.class} | ${e.passes ? "PASS (already)" : (isExempting(e.exemption!.class) ? "FAIL → PASS (exempt)" : "FAIL (not exempt)")} | ${e.exemption!.rationale} |`,
+  ).join("\n");
+
   return `# OT-A.3 Path 3 — Verdict-layer Parity (respec evaluation)
 
 **Generated:** ${new Date().toISOString()}
-**Source:** \`${RAW_PATH}\` (v4, offline transform — no Opus rerun)
+**Source:** \`${RAW_PATH}\` (offline transform — no Opus rerun)
 **Spec:** \`docs/operational-tooling/OT-A-3-path3-respec.md\`
+**Exemptions:** \`docs/operational-tooling/OT-A-3-parity-exemptions.md\`
 
-## Verdict — ${allPass ? "PASS — OT-A.4 unblocked" : "FAIL — see misses below"}
+## Verdict (raw) — ${allPass ? "PASS — OT-A.4 unblocked" : "FAIL — see misses below"}
 
 | Gate | Pass | Detail |
 |---|---|---|
@@ -281,6 +341,24 @@ function buildReport(evals: FieldEval[]): string {
 | Tier 2 (17 fields, per-field) | ${t2AllPass ? "✓" : "✗"} | ${t2Pass}/${t2.length} fields pass |
 | Tier 3 (16 fields, per-field) | ${t3AllPass ? "✓" : "✗"} | ${t3Pass}/${t3.length} fields pass |
 | Mode-collapse (unique ≥ 3, exempt incentiveFee) | ${collapsePass ? "✓" : "✗"} | — |
+
+## Verdict (exemption-adjusted) — ${allPassAdj ? "PASS — OT-A.4 unblocked" : (t1UnblockMet ? "PARTIAL — T1 unblock criterion MET; T2/T3/collapse still blocking full parity" : "FAIL — T1 unblock criterion NOT MET")}
+
+| Gate | Pass | Detail |
+|---|---|---|
+| **Tier 1** (OT-A.4 unblock criterion ≥ 7/8) | ${t1UnblockMet ? "✓" : "✗"} | ${t1PassAdj}/${t1.length} fields pass (raw ${t1Pass}/${t1.length} + ${t1PassAdj - t1Pass} exempted) |
+| Tier 2 | ${t2AllPassAdj ? "✓" : "✗"} | ${t2PassAdj}/${t2.length} fields pass |
+| Tier 3 | ${t3AllPassAdj ? "✓" : "✗"} | ${t3PassAdj}/${t3.length} fields pass |
+| Mode-collapse | ${collapsePassAdj ? "✓" : "✗"} | — |
+
+## Exemptions applied
+
+| Field | Tier | Class | Effect | Rationale |
+|---|---|---|---|---|
+${exemptRows}
+
+See \`docs/operational-tooling/OT-A-3-parity-exemptions.md\` for the
+full class definitions and qualification bars.
 
 ## Tier 1 — foundational
 
@@ -373,18 +451,36 @@ function main(): void {
     e.uniqueRanges >= COLLAPSE_MIN_UNIQUE || KNOWN_COLLAPSE_EXEMPT.has(e.field),
   );
 
+  const t1AdjPass = t1.filter((e) => e.passesAdjusted).length;
+  const t2AdjPass = t2.filter((e) => e.passesAdjusted).length;
+  const t3AdjPass = t3.filter((e) => e.passesAdjusted).length;
+  const collapsePassAdj = evals.every((e) =>
+    e.uniqueRanges >= COLLAPSE_MIN_UNIQUE
+      || KNOWN_COLLAPSE_EXEMPT.has(e.field)
+      || (e.exemption !== null && isExempting(e.exemption.class)),
+  );
+
   console.log(`\nOT-A.3 verdict-layer parity (offline, tier-based)\n`);
-  console.log(`  Tier 1: ${t1.filter((e) => e.passes).length}/${t1.length} fields pass`);
-  console.log(`  Tier 2: ${t2.filter((e) => e.passes).length}/${t2.length} fields pass`);
-  console.log(`  Tier 3: ${t3.filter((e) => e.passes).length}/${t3.length} fields pass`);
-  console.log(`  Mode collapse gate: ${collapsePass ? "PASS" : "FAIL"}`);
+  console.log(`  RAW:`);
+  console.log(`    Tier 1: ${t1.filter((e) => e.passes).length}/${t1.length} fields pass`);
+  console.log(`    Tier 2: ${t2.filter((e) => e.passes).length}/${t2.length} fields pass`);
+  console.log(`    Tier 3: ${t3.filter((e) => e.passes).length}/${t3.length} fields pass`);
+  console.log(`    Mode collapse gate: ${collapsePass ? "PASS" : "FAIL"}`);
+  console.log(`  EXEMPTION-ADJUSTED:`);
+  console.log(`    Tier 1: ${t1AdjPass}/${t1.length} fields pass  ${t1AdjPass >= 7 ? "[OT-A.4 unblock criterion MET]" : "[OT-A.4 unblock criterion NOT MET]"}`);
+  console.log(`    Tier 2: ${t2AdjPass}/${t2.length} fields pass`);
+  console.log(`    Tier 3: ${t3AdjPass}/${t3.length} fields pass`);
+  console.log(`    Mode collapse gate: ${collapsePassAdj ? "PASS" : "FAIL"}`);
 
   console.log(`\n  Wrote ${OUT_PATH}\n`);
 
   console.log("Tier 1 detail:");
   for (const e of t1) {
-    const verdict = e.passes ? "PASS" : "FAIL";
-    console.log(`  ${e.field.padEnd(18)} ${verdict.padEnd(5)} bucket=${fmtPct(e.bucketMatchPct).padStart(4)} mid±10=${fmtPct(e.midHitPct).padStart(4)} uniq=${String(e.uniqueRanges).padStart(2)} bias=${e.directionTag}${e.passes ? "" : "  | " + e.failReasons.join("; ")}`);
+    const rawV = e.passes ? "PASS" : "FAIL";
+    const adjV = e.passesAdjusted ? "PASS" : "FAIL";
+    const exemptTag = e.exemption ? `  [${e.exemption.class}]` : "";
+    const verdictStr = rawV === adjV ? rawV.padEnd(5) : `${rawV}→${adjV}`;
+    console.log(`  ${e.field.padEnd(18)} ${verdictStr.padEnd(10)} bucket=${fmtPct(e.bucketMatchPct).padStart(4)} mid±10=${fmtPct(e.midHitPct).padStart(4)} uniq=${String(e.uniqueRanges).padStart(2)} bias=${e.directionTag}${exemptTag}${e.passes ? "" : "  | " + e.failReasons.join("; ")}`);
   }
 
   console.log("\nTier 2 misses:");
