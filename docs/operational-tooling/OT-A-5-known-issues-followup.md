@@ -120,9 +120,13 @@ sub-string path (affecting `adrGrowth`, `occupancyStep`, `ltv`,
 scope for OT-A.4.
 
 **Post-flip:** Bug persists (the adapter feeds `extractGuidance`
-the same envelope shape; downstream behavior unchanged). **Out of
-scope for OT-A.5** — file under OT-B (downstream-extractor
-hardening). Recording here so future audit doesn't rediscover it.
+the same envelope shape; downstream behavior unchanged). **Fix-path
+out of scope for OT-A.5** — file under OT-B (downstream-extractor
+hardening). **However**, the affected fields include T1 members
+(`ltv`, `inflationRate`); silent-wrong guidance on T1 is materially
+worse than any OT-A.4 parity error, so the **detection** of this
+bug IS in-scope for the T+72h Sentry watchlist (see authorization
+gate clause 2 below).
 
 ## Newly introduced by OT-A.4
 
@@ -182,11 +186,26 @@ Per `OT-A-5-design.md`, do not authorize the $22 v6 rerun until
      18:14 UTC).
   2. **0** Sentry parity-related errors in the
      `extractGuidance` / `synthesisOutputToLegacyJson` /
-     `routes/research.ts:522` paths during the window.
+     `routes/research.ts:522` paths during the window, **AND**
+     **0** hits on the NaN-coercion detection pattern below.
+     - **Detection pattern:** any `assumption_guidance` INSERT row
+       with `valueMid = 0` for a field where `valueLow ≠ 0` OR
+       `valueHigh ≠ 0` is a smell — the sub-string-path NaN-coercion
+       bug in `extractGuidance` has fired and silently zeroed the
+       midpoint while the bounds remain populated.
+     - **Affected fields to alert on (priority):** `ltv`,
+       `inflationRate` (T1); `adrGrowth`, `occupancyStep`,
+       `rampMonths` (T1/T2 secondary).
+     - **Action on hit:** file `BLOCKED-post-ota4-flip.md`, pause
+       OT-A.5, escalate. T1 silent-wrong guidance is worse than
+       any parity drift; do not advance to v6 spend until the
+       NaN-coercion fix-path (OT-B) ships or the affected rows
+       are remediated.
   3. **0** user reports of research-output regressions.
   4. `OT-A-5-design.md` user-reviewed and anchor wordings approved.
+  5. **Final user ack** to spend the $22 (separate from doc approval).
 
-If any of (1)–(4) fail: file `BLOCKED-post-ota4-flip.md`, pause
+If any of (1)–(5) fail: file `BLOCKED-post-ota4-flip.md`, pause
 OT-A.5, address regression first.
 
 ## Watchlist (post-v6 re-evaluation)

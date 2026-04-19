@@ -391,9 +391,16 @@ per v5 result section).
 each, plus ~10–30 LOC for inflationRate if Section A → STAYS).
 
 **v6 gate-pass criteria:**
-  - T1 ≥ 7/8 raw OR ≥ 7/8 exemption-adjusted (do not regress
-    from OT-A.4 baseline).
-  - T2 ≥ 13/17 PASS (current OT-A.4 baseline 8/17 + 5 of 6 B.x
+  - **T1:** raw T1 ≥ 7/8 **OR** exemption-adjusted T1 = 8/8 **with
+    no new raw regressions on previously-exempt Class 1 fields**
+    (`incentiveFee`, `svcFeeMarketing`, and `costFB` once added in
+    Section C.1). Rationale: a v6 that silently flips a Class 1
+    field from exempt-correct (uniq=1, signed Δ within ±10pp) to
+    raw-drift (uniq=1 but signed Δ moves outside ±10pp, OR uniq
+    rises with bias) would otherwise pass the gate by exemption
+    arithmetic while actually regressing the field's quality. The
+    Class 1 watch is a hard side-condition on the T1 pass.
+  - **T2:** ≥ 13/17 PASS (current OT-A.4 baseline 8/17 + 5 of 6 B.x
     anchors landing).
   - 0 mode-collapsed outside Class 1 exemptions.
   - Schema 100%; voice 0; latency ≤ 2× legacy.
