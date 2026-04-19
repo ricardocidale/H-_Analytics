@@ -70,7 +70,7 @@ Two execution surfaces in play. The agent must flag which one a task belongs to:
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
-- Skills live in `.claude/skills/` (20 domains, 193 files). See `_index.md` for the master catalog.
+- Skills live in `.claude/skills/` (20 domains, 195 files). See `_index.md` for the master catalog.
 - **App name**: "H+ Analytics" (seed/default). Editable by super admin in Admin > App Identity. Powered by Norfolk AI.
 - **Company name**: The hospitality management company name (seed: "Hospitality Management Co"). Editable by any user on Management Company page. NOT the app name.
 - **Norfolk AI**: The technology company that created and powers H+ Analytics.
@@ -101,7 +101,7 @@ client/          React 18 frontend — 684 files, 116K lines
 shared/          Types, constants, schemas — 39 files, 7K lines
 tests/           Test suites (golden, proof, server) — 208 files, 56K lines
 docs/            Architecture, developer guide, research, planning
-.claude/         AI knowledge base (20 domains, 193 skills, 30 rules)
+.claude/         AI knowledge base (20 domains, 195 skills, 32 rules)
 ```
 
 **Key directories:**
@@ -116,7 +116,7 @@ docs/            Architecture, developer guide, research, planning
 
 ## Context Loading Protocol
 
-With 193 skill files across 20 domains, **never load all skills at once**. Use `.claude/skills/_index.md` for the master catalog.
+With 195 skill files across 20 domains, **never load all skills at once**. Use `.claude/skills/_index.md` for the master catalog.
 
 Quick rules:
 - **Financial calc** → specific finance skill + `rules/audit-persona.md` + `proof-system/SKILL.md`
@@ -349,7 +349,7 @@ git push origin main --no-verify
 | Migration Guide | `docs/developer/migration-from-replit.md` | Replit → standalone |
 | Master Plan V2 | `docs/planning/MASTER-PLAN-V2.md` | Product roadmap (Phases 8-13) |
 | Research Docs | `docs/research/` | Hospitality benchmarks, APIs, fee structures |
-| Skill Catalog | `.claude/skills/_index.md` | All 193 skills indexed by domain |
+| Skill Catalog | `.claude/skills/_index.md` | All 195 skills indexed by domain |
 | **System Model** | `docs/architecture/SYSTEM-MODEL.md` | **Canonical business+technical mental model — read on day one. ManCo ↔ SPVs, engine chain, Analyst pipeline, ranked next steps.** |
 | Dependency Atlas | `docs/architecture/DEPENDENCIES.md` | Every SDK/API/service this app uses, with env vars + cost + status |
 | SDK Contracts Atlas | `.claude/skills/analyst/contracts.md` | Every Analyst contract in one place (AnalystVerdict, SynthesisOutputSchema, FIELD_DEFINITIONS, etc.) |
@@ -376,12 +376,18 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 **Parallel workstream — Operational Tooling (OT):**
 - ✅ OT-A.1 — Anthropic native prompt caching (Replit, `7326e28c`)
 - ✅ OT-A.2 — Vercel AI SDK + AI Gateway wrapper (Replit, `aedebc05`, `64b37ca2`)
-- 🟡 OT-A.3 — synthesis path behind `USE_AI_SDK_SYNTHESIS` flag shipped (`f1cd4aee`); A/B parity iterating (v3 at `cd397044`). Categorical acceptance gate (zero unit/denominator/scope errors) instead of aggregate bucket-match threshold. Awaiting v3 A/B rerun results.
-- ⏸ OT-A.4 — retire old path + delete `research-value-extractor.ts` (gated on v3 A/B passing)
+- 🟡 OT-A.3 — **ESCALATED** ship path. Four A/B iterations + v3 mode-collapse fix + v4 validation confirmed three distinct mechanism bugs across the migration: (1) definition drift [v1-v2, fixed by FIELD_DEFINITIONS], (2) mode collapse [v3, typical-range hints caused prescription leakage — fixed by `9058b1ce` + `e5d873fe` + `bffcf63c`], (3) representational mismatch [Path 3, 85% of legacy field-cases emit point estimates vs 100% of new-path emit ranges — cannot raw-parity-test]. Re-specced gate = per-tier value-parity over 41 fields (8 T1 + 17 T2 + 16 T3). v4 gate result: T1 4/8 pass (clean: adr, capRate, interestRate, occupancy; fix needed: inflationRate country-anchor, svcFeeMarketing + svcFeeTechRes collapse). Replit drafting 3 anchor fixes + known-issue doc; v5 $22 rerun authorized to validate before OT-A.4 ships.
+- ⏸ OT-A.4 — retire old path + delete `research-value-extractor.ts` (gated on v5 rerun passing respec'd gate: T1 ≥ 7/8 + 0 mode-collapsed excl. incentiveFee exemption)
+- ⏸ OT-A.5 — bundle 6 T2 USALI cost-line anchor fixes + validation with OT-A.4's v5 rerun tail
 - 🟡 Sentry financial contexts — handoff ready at `docs/operational-tooling/HANDOFF-replit-sentry-financial-contexts.md`; `SENTRY_DSN` in Secrets; queued behind OT-A
-- 🟡 PostHog wiring — handoff ready at `docs/operational-tooling/HANDOFF-replit-posthog-wiring.md`; `VITE_POSTHOG_KEY` in Secrets; queued behind Sentry
+- 🟡 PostHog wiring — handoff ready at `docs/operational-tooling/HANDOFF-replit-posthog-wiring.md`; `VITE_POSTHOG_KEY` in Secrets; queued behind Sentry; pairs with ADR-004 Phase 5D cache metrics
 - ⏸ OT-B — Promptfoo PR-gate on persona drift (queued)
 - ⏸ OT-C — Braintrust adoption decision (data-driven, after OT-A closes)
+
+**OT-A.3 codified lessons (enforce on future LLM-pipeline migrations):**
+- `.claude/rules/field-definitions-no-prescription-hints.md` + `tests/proof/field-definitions-no-hints.test.ts` — ban numeric typical-range hints in `FIELD_DEFINITIONS` (mechanism bug #2 enforcement).
+- `.claude/rules/llm-contract-migration-parity.md` — parity tests on contract migrations must happen at the downstream-effect layer, not raw-output (mechanism bug #3 enforcement).
+- `server/ai/engine-version.ts` + `tests/proof/engine-version-drift.test.ts` — `SYNTHESIS_FINGERPRINT` + `ENGINE_VERSION` must co-bump when `synthesis-schema.ts` or `research-prompt-builders.ts` change (ADR-004 prerequisite; already caught one self-inflicted drift this session).
 
 **Engineering-discipline skills (project-agnostic, reusable in any codebase) under `.agents/skills/`:**
 - `pre-commit-gates/` — five-gate pattern, no `--no-verify`, BLOCKED.md escalation
@@ -399,6 +405,14 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - Phase 2 (Replit): `engine/analyst/{contracts,router,voice,quality,surface}/` skeleton + CODEOWNERS + naming-lint + ADR-002.
 - Phase 3a (Claude Code): `AnalystVerdict` contract (Zod + branded `VoiceRenderedString` + `buildAnalystVerdict` factory), `createSurfaceRouter` (pure dispatch + conviction-floor downgrade + multi-specialist aggregation), `createVoiceRenderer` (21 forbidden-pattern runtime enforcement, dev-throws-prod-sanitizes), `createQualityScorer` (6-component weighted score). 53 tests. ADR-003 Accepted.
 - Phase 3b (Replit): Funding + Revenue Specialists wrap legacy watchdog evaluators via `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten; persona-keyed L+B tests now exercise real Specialists end-to-end. `save_anyway` kept OUT of the action union (UI-only ghost button via `onProceedAnyway`). Deferred: persona resolution (hardcoded L+B/luxury/US today), verdict-cache table, full `/save-tab` route migration to all tabs.
+
+**Lint cleanup 45% done (April 20, 2026, Claude Code):** 348 → 193 warnings across 6 executed batches (1 unused+Math.pow, 2 `as any` low-count, 3 CompanyIcpDefinition, 4 `|| 0` non-financial, 7 fetch timeouts, 8 `as any` high-count). Batch 5 (~79 financial `|| 0` sites) + Batch 6 (~82 remaining `|| 0`) pre-audited in `.claude/plans/batch-{5,6}-preaudit.md`; execution pending user decision on Option 1/2/3 strategy per batch. Plan doc: `.claude/plans/lint-warning-cleanup.md`.
+
+**OT-A.3 mechanism-bug saga (April 19-20, 2026, Replit + Claude Code):** Four A/B iterations ruled out three distinct mechanism bugs — definition drift, mode collapse, representational mismatch. Each gets a codified rule now. v5 spend authorized to validate 3 T1/T3 anchor fixes before OT-A.4 ships. See OT section above for full trail.
+
+**SYSTEM-MODEL.md shipped (April 20, 2026, Claude Code):** `docs/architecture/SYSTEM-MODEL.md` — canonical business+technical mental model for new contributors. Dual-entity mechanics, engine chain (Revenue→GOP→AGOP→NOI→ANOI), Analyst N+1 pipeline, cost economics (~$0.70/consult), 11 next steps ranked by leverage.
+
+**ADR-004 verdict cache drafted (April 20, 2026, Claude Code, Proposed):** `docs/architecture/decisions/ADR-004-verdict-cache.md`. Content-addressed cache layered over existing `research_runs` + `assumption_guidance` (no new tables). Two-axis TTL (time + `inputContextHash`). Automatic invalidation on property/global mutation + pgvector reindex. Phased plan: 5A migrations → 5B façade read path → 5C write-after + invalidation → 5D observability. Expected ~80% cost reduction.
 
 **Operational Tooling OT-A progressing (April 19, 2026):**
 - OT-A.1 shipped (Replit, `7326e28c`): Anthropic native prompt caching via `cache_control: "ephemeral"` on system prompts. Immediate cost savings on repeat synthesis calls.

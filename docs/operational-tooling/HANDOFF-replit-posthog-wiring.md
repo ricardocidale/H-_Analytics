@@ -251,3 +251,69 @@ Reply on this channel when done. Claude Code will then decide next steps — lik
 ## Conflict check
 
 If any instruction in this brief contradicts `.claude/rules/security.md` (privacy), `.claude/rules/claude-replit-split.md` (domain boundaries), or `.claude/rules/pre-commit-verification.md` (gates), **the `.claude/rules/*` files win**. Flag the contradiction in `BLOCKED-posthog.md` and stop before proceeding.
+
+---
+
+## Addendum — ADR-004 verdict cache integration (April 20, 2026)
+
+Since this handoff was drafted, `docs/architecture/decisions/ADR-004-verdict-cache.md` (Proposed) landed. ADR-004 §7 specifies that the Cognitive Engine verdict cache's observability hooks live **in this PostHog wiring**, not as a separate integration.
+
+### Three events to add to the initial instrumentation
+
+Beyond the 10 product events listed above, include these three Cognitive Engine cache events. They target ADR-004 Phase 5D (observability, Replit-owned) and will be dark/no-ops until Phase 5A–5C migrations ship:
+
+```typescript
+// verdict_cache.hit — a consult returned from cache instead of re-running the orchestrator
+posthog.capture("verdict_cache.hit", {
+  entityType,           // "property" | "company"
+  entityId,
+  fieldGroupSize,       // number of canonical fields in the query
+  cachedAtAgeMinutes,   // how fresh the cached row is
+  personaHash,          // redacted persona identifier (hashed, no PII)
+});
+
+// verdict_cache.miss — a consult hit the orchestrator; includes a reason
+posthog.capture("verdict_cache.miss", {
+  entityType, entityId, fieldGroupSize,
+  reason: "never_cached" | "ttl_expired" | "inputs_changed" | "explicit_bypass"
+        | "engine_version_drift" | "superseded",
+  personaHash,
+});
+
+// verdict_cache.cost_saved_estimate — on hit, estimated $ avoided
+posthog.capture("verdict_cache.cost_saved_estimate", {
+  estimatedCentsSaved,  // hit × per-consult pipeline cost (~$0.70 today)
+  modelA, modelB, modelSynthesis,  // which models the hit bypassed
+});
+```
+
+### Why this belongs in PostHog, not Sentry
+
+- **PostHog is for usage + cost observability**; Sentry is for failure observability. Cache hit/miss is usage data.
+- The cost-saved dashboard is the business case for ADR-004 — $125/day uncached → ~$25/day cached. We need a product-analytics surface to report on it.
+- Cache hit-rate heatmaps by entityType/fieldGroup are a PostHog funnel, not a Sentry alert.
+
+### Dashboard additions for the cache metrics
+
+After ADR-004 Phase 5D ships, add to the PostHog dashboard:
+- **Cache hit rate (last 24h):** % of `verdict_cache.hit` / (hits + misses). Target: > 60% after warmup.
+- **Miss reason breakdown:** stacked bar by `reason` field. Pie-chart candidates.
+- **Cost saved (last 30d):** sum of `estimatedCentsSaved`. This is the ROI number for the cache build.
+- **Mean cachedAtAgeMinutes on hit:** proxy for cache freshness — very low = cache isn't old enough to matter; very high = staleness detector misfiring.
+
+### Privacy note for cache events
+
+`personaHash` should be SHA-256 of the resolved persona tuple, truncated to 16 chars. Never log persona strings, userId, orgId, or propertyId in a way that links to a specific LP or investor. Cache events are aggregate-analytics; PII stays in Sentry (where legitimate for debugging a specific user's failure).
+
+### Sequencing with the main handoff
+
+If you're executing this handoff *before* ADR-004 Phase 5A ships:
+- Add the three event definitions to `client/src/lib/posthog.ts` as no-op stubs (`if (!CACHE_OBSERVABILITY_ENABLED) return;`).
+- Add a feature flag `POSTHOG_CACHE_OBSERVABILITY_ENABLED = false` in `shared/constants.ts` or env.
+- When Phase 5A–5C land, Replit flips the flag in the same PR. Zero ceremony.
+
+If executing *after* Phase 5A (unlikely given current status), wire them live.
+
+### Follow-up after this handoff
+
+Claude Code will update `docs/architecture/decisions/ADR-004-verdict-cache.md` §7 with a direct reference to this handoff once it commits, closing the cross-reference loop.

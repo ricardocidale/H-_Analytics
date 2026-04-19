@@ -338,3 +338,87 @@ Reply here when done. Claude Code will then:
 ## Conflict check
 
 If any instruction contradicts `.claude/rules/error-handling.md`, `.claude/rules/balance-sheet-identity.md`, `.claude/rules/claude-replit-split.md`, or `.claude/rules/pre-commit-verification.md`, **the `.claude/rules/*` files win**. Flag the contradiction in `BLOCKED-sentry-contexts.md` and stop.
+
+---
+
+## Addendum — OT-A.3 era error classes (April 20, 2026)
+
+Since this handoff was drafted (April 19, pre-OT-A.3 saga), three new rule-enforced error conditions have emerged from the Cognitive Engine migration. Consider tagging them the same way:
+
+### Extension to `FinancialSentryError` hierarchy
+
+Add these classes alongside the existing four. They already have matching rules; Sentry tagging makes runtime violations observable.
+
+```typescript
+/** Fires when a FIELD_DEFINITIONS entry ships with a banned typical-range hint. */
+export class FieldDefinitionHintViolationError extends FinancialSentryError {
+  readonly errorClass = "FieldDefinitionHintViolationError";
+  constructor(context: {
+    fieldKey: string;      // e.g. "rampMonths"
+    hintMatched: string;   // the offending substring
+    pattern: string;       // which banned regex pattern fired
+  }) {
+    super(
+      `FIELD_DEFINITIONS hint violation on "${context.fieldKey}": "${context.hintMatched}" matches banned pattern "${context.pattern}"`,
+      context,
+    );
+  }
+}
+
+/** Fires when ENGINE_VERSION hasn't been bumped but SYNTHESIS_FINGERPRINT changed. */
+export class EngineVersionDriftError extends FinancialSentryError {
+  readonly errorClass = "EngineVersionDriftError";
+  constructor(context: {
+    declaredFingerprint: string;
+    actualFingerprint: string;
+    declaredVersion: string;
+  }) {
+    super(
+      `Engine version drift: declared ${context.declaredFingerprint.slice(0, 12)}... but actual is ${context.actualFingerprint.slice(0, 12)}...`,
+      context,
+    );
+  }
+}
+
+/** Fires when an LLM contract migration attempts raw-output parity on mismatched shapes. */
+export class ContractMigrationParityMisuseError extends FinancialSentryError {
+  readonly errorClass = "ContractMigrationParityMisuseError";
+  constructor(context: {
+    legacyShape: "point" | "range" | "enum" | "prose";
+    newShape: "point" | "range" | "enum" | "prose";
+    parityLayer: "raw-output" | "downstream-effect";
+    suggestedLayer?: "downstream-effect";
+  }) {
+    super(
+      `Contract migration parity at ${context.parityLayer} layer attempted across shape mismatch: legacy=${context.legacyShape}, new=${context.newShape}`,
+      context,
+    );
+  }
+}
+```
+
+These are primarily **build-time** errors surfaced by proof tests (`tests/proof/field-definitions-no-hints.test.ts`, `tests/proof/engine-version-drift.test.ts`). But if any slip through to runtime (e.g. a Specialist dynamically constructs a FIELD_DEFINITIONS-like prompt), tagging them as `financial` in Sentry gives us the same canary behavior as the existing four classes.
+
+### Linkage to ADR-004 verdict cache
+
+ADR-004 (`docs/architecture/decisions/ADR-004-verdict-cache.md`, Proposed) adds a content-addressed cache to the Cognitive Engine. Cache invalidation depends on `ENGINE_VERSION` bumps being correct. If `EngineVersionDriftError` fires in production AFTER the cache ships (Phase 5A+), it means stale reasoning may have been served as fresh — that's an audit event worth a page, not just a Sentry tag. **Add to `@high-severity` alerts when the cache phase lands.**
+
+### Breadcrumb addition for orchestrator phases
+
+The existing `phase-<name>` breadcrumb pattern should extend to include the three new OT-A.3 safety conditions:
+
+- `mode-collapse-check-passed` — per-field unique-range count ≥ 3 across N markets (where applicable).
+- `field-definitions-verified` — synthesis prompt built without banned hints.
+- `engine-version-match` — `SYNTHESIS_FINGERPRINT` matched at call time.
+
+These don't need to emit anything normally; their absence in a Sentry event timeline tells you *where* in the pipeline a failure happened.
+
+### One pending Sentry decision
+
+Once this handoff lands, Claude Code will draft a Sentry alert runbook covering:
+- `financial_error_class:BalanceSheetImbalanceError` → immediate page
+- `financial_error_class:VerdictInvariantError` + frequency ≥ 3/hour → investigation
+- `financial_error_class:EngineVersionDriftError` → immediate page (post-Phase-5A)
+- `financial:true` + no match above → weekly digest
+
+Track that as `OT-A-follow-up-sentry-alerts.md` — will draft after this handoff commits.
