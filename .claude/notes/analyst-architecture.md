@@ -109,18 +109,21 @@ Registered in `calc/dispatch.ts` (single source of truth per `.claude/rules/dete
 
 This rule is the secret to why the Analyst's numbers are trustworthy. When Rebecca or The Analyst says "Cap Rate: 8.3%", that number came from `compute_cap_rate_valuation()`, not from "I bet ~8.3% sounds right." That's traceable back to inputs.
 
-### Memory — Pinecone
+### Memory — pgvector (inside Neon Postgres)
 
-**`server/ai/vector-store-service.ts`** is the façade. Four namespaces currently indexed:
+**`server/ai/vector-store-service.ts`** is the façade. The backing store is **pgvector**, the PostgreSQL vector extension, running inside the same Neon database that holds everything else. Not a separate managed service (no Pinecone, no Weaviate, no Qdrant). Migration: `0012_pgvector_store.sql`. Embeddings: OpenAI `text-embedding-3-small` at 1536 dimensions; HNSW approximate-nearest-neighbor index; cosine distance.
 
-- `knowledge-base` — the KB chunks (from `kb-content.ts` + attached_assets, after our 5B cleanup)
-- `scenarios` — scenario summaries, for "similar deal" retrieval
-- `properties` — property profiles
-- `comparables` — benchmark snapshots
+**Seven namespaces** (confirmed by the April 2026 `docs/architecture/DEPENDENCIES.md` audit):
 
-The orchestrator's Phase 1 parallel step queries `retrieveSimilarResearch()` against what I believe is a `research-history` namespace (I'd need to grep `indexResearchResult` callers to confirm — the name appears in the orchestrator but I haven't traced where it writes).
+- `knowledge-base` — KB chunks (from `kb-content.ts` + `attached_assets/`, after Phase 5B cleanup)
+- `research-history` — past research runs; queried by `retrieveSimilarResearch()` in Phase 1 of the orchestrator
+- `comparables` — hospitality benchmark snapshots used during the progressive relaxation comp-set assembly
+- `assumption-guidance` — per-property guidance rows that the UI range badges read
+- `documents` — document-AI-extracted content for Rebecca file context + document search
+- `scenarios` — scenario summaries for "similar deal" retrieval
+- `properties` — property profiles for Property Finder semantic search
 
-There's also an admin re-index endpoint at `POST /api/admin/vector-store/reindex/:namespace` (`server/routes/admin/intelligence-vector-store.ts:180`) that **deletes-then-rebuilds** a namespace. That's what the "Re-index" button under Admin → AI Research → System Health triggers.
+Admin re-index endpoint at `POST /api/admin/vector-store/reindex/:namespace` (`server/routes/admin/intelligence-vector-store.ts:180`) **deletes-then-rebuilds** a namespace. That's what the "Re-index" button under Admin → AI Research → System Health triggers.
 
 ### Live market data
 
@@ -182,7 +185,7 @@ Surfaced via **Admin → AI Research → Sources & APIs / LLM Configuration / Sy
 
 5. **Graceful single-panel degradation.** If Gemini 500s, Sonnet still produces output and Opus synthesizes from one panel. Users get a worse answer but never a blank screen. This is the kind of resilience that doesn't feel engineered — it just works.
 
-6. **Pinecone as institutional memory.** Each research run feeds the next. The third property in a market gets a better answer than the first because the system remembers what it learned from the first two.
+6. **pgvector as institutional memory.** Each research run feeds the next. The third property in a market gets a better answer than the first because the system remembers what it learned from the first two. And because the vector store lives inside the same Postgres database as everything else, there's no separate service to operate, no cross-vendor billing, no separate auth — a single `DATABASE_URL` covers all state.
 
 7. **Streaming the synthesis directly to the client.** The user sees Opus writing in real time. This is what makes the "Studying the Medellín luxury market…" UX feel alive rather than canned. Pure engineering bet: SSE + AsyncGenerator + Opus's streaming API. The implementation is a couple hundred lines but the UX payoff is enormous.
 
@@ -202,7 +205,7 @@ I'm writing these as "here's where I'd dig deeper if I had more time" — not as
 
 5. **Staleness vs re-run semantics.** The status bar says "Overdue — more than 90 days". What specifically happens when someone clicks "Consult the Analyst" on overdue guidance? Does the old guidance get archived? Overwritten? Appended as a new run? I'd expect an audit trail (`research_runs` table?) but I haven't confirmed the schema.
 
-6. **Cost of `progressive relaxation`.** Each relaxation level involves more DB lookups and probably more Pinecone queries. For a property in a thin market (few comps), does the relaxation engine loop a lot before giving up? If so, there's a latency tail I'd want to measure.
+6. **Cost of `progressive relaxation`.** Each relaxation level involves more DB lookups and more pgvector queries against the `comparables` namespace. For a property in a thin market (few comps), does the relaxation engine loop a lot before giving up? If so, there's a latency tail I'd want to measure. (Lower risk than it would be with an external vector service since pgvector queries are just Postgres queries over localhost — but not free.)
 
 7. **Sync between guidance and the engine.** The financial engine reads assumptions from `globalAssumptions` / `property.*`. The Analyst writes `assumption_guidance` rows. When a user "accepts" a range, does that write into the actual assumption column, or does the engine read from guidance? I *think* the answer is: user explicitly approves, and the explicit value writes to the assumption column — guidance is read-only metadata. But worth confirming.
 
@@ -238,3 +241,6 @@ In this codebase, **The Analyst** (singular, capital T, capital A) refers to the
 ## Disclaimer
 
 This is my mental model as of April 2026, built from ~2 hours of directed reading after the user asked "where is the codebase creating the mega powerful analyst?" I haven't exhaustively verified every claim — where I said "I believe" or "I haven't confirmed," that's literal. If something here contradicts the actual code, the code wins.
+
+**Correction log:**
+- **April 19, 2026** — The original note referred to "Pinecone" as the vector-memory backing. The actual backing is **pgvector inside Neon Postgres** (migration `0012_pgvector_store.sql`). Corrected throughout after the `docs/architecture/DEPENDENCIES.md` audit.

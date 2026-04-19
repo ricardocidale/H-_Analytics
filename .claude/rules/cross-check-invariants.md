@@ -25,7 +25,7 @@ left column, also verify the right column.
 | A proof invariant | Add/modify the corresponding test in `tests/proof/**` | Rules without proof tests are suggestions, not invariants |
 | A route handler | The `IStorage` method it calls (`server/storage/**`) + integration test | Route/storage drift — new fields missed in storage returns |
 | A research tool schema in `.claude/tools/**` | The implementation in `calc/**` + the registration in `calc/dispatch.ts` + tests in `tests/calc/**` | 4-surface drift; enforced by `tests/proof/tool-registry.test.ts` |
-| A KB markdown file (if loader exists) or `server/ai/kb-content.ts` | Pinecone re-index is required for changes to reach Rebecca | Silent staleness; Rebecca serves old content |
+| A KB markdown file (if loader exists) or `server/ai/kb-content.ts` | pgvector re-index is required for changes to reach Rebecca | Silent staleness; Rebecca serves old content |
 
 ## Three failure patterns that keep recurring
 
@@ -74,7 +74,7 @@ Run this mental checklist:
 4. **Did I add a file?** → confirm at least one production code path imports it.
 5. **Did I add prose to user-facing code?** → run the vocabulary test.
 6. **Did I add a calc tool?** → schema + impl + dispatch + test, all four.
-7. **Did I change a KB/RAG source?** → re-index Pinecone namespace.
+7. **Did I change a KB/RAG source?** → re-index the relevant pgvector namespace.
 
 Then run `pre-commit-verification.md`'s five gates.
 

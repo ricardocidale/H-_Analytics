@@ -93,7 +93,7 @@ Otherwise: Tier-0 (constants + DB benchmark lookup, sub-second, no LLM). The def
 The Engine already handles:
 
 - Comparables assembly with progressive constraint relaxation (`server/ai/comparables/relaxation-engine.ts`).
-- Peer-set retrieval from Pinecone vector memory.
+- Peer-set retrieval from pgvector memory (inside Neon Postgres; namespaces `research-history`, `comparables`, etc.).
 - Dual-panel parallel LLM execution with single-panel graceful degradation.
 - API validation against live market data (Xotelo, CoStar, FRED, etc.).
 - Opus synthesis with streaming SSE events.

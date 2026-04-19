@@ -6,7 +6,7 @@ GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio man
 
 **Two AI Agents:**
 - **The Analyst** — singular intelligence agent. Conducts research, provides ranges with conviction levels, validates assumptions. Powered by Norfolk AI Engine. Always "The Analyst" (capitalized, singular, never plural).
-- **Rebecca** — expert companion agent. Answers questions, explains what The Analyst found, guides tours, offers contextual help. Pinecone RAG across 7 namespaces with entity-aware context.
+- **Rebecca** — expert companion agent. Answers questions, explains what The Analyst found, guides tours, offers contextual help. pgvector RAG across 7 namespaces with entity-aware context.
 
 ---
 
@@ -107,7 +107,7 @@ docs/            Architecture, developer guide, research, planning
 **Key directories:**
 - `engine/property/property-engine.ts` — Core monthly financial projection
 - `engine/property/resolve-assumptions.ts` — Assumption resolution cascade
-- `server/ai/` — Research engines, Rebecca context, Pinecone indexing
+- `server/ai/` — Research engines, Rebecca context, pgvector indexing
 - `server/report/` — Export data assembly, report compiler
 - `shared/constants.ts` — All named financial constants (DB-backed with fallbacks)
 - `shared/schema/` — Drizzle ORM schema (single source of truth)
@@ -224,11 +224,11 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 | Store | What | Why |
 |-------|------|-----|
 | PostgreSQL (Neon) | Properties, scenarios, users, assumptions, research, market rates | Relational integrity, ACID |
-| Pinecone `knowledge-base` | Document chunks, methodology, platform guide | RAG for Rebecca |
-| Pinecone `research-history` | Research result summaries, property context | "Similar properties" retrieval |
-| Pinecone `assumption-guidance` | Vectorized guidance records | Rebecca Q&A on research |
+| pgvector `knowledge-base` | Document chunks, methodology, platform guide | RAG for Rebecca |
+| pgvector `research-history` | Research result summaries, property context | "Similar properties" retrieval |
+| pgvector `assumption-guidance` | Vectorized guidance records | Rebecca Q&A on research |
 
-**Rule**: SQL is the system of record; Pinecone is the semantic index.
+**Rule**: SQL is the system of record; pgvector (inside the same Postgres database) is the semantic index.
 
 ---
 
@@ -264,7 +264,7 @@ See `.claude/skills/exports/SKILL.md` for full reference.
 | Frontend | React 18, TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts |
 | Backend | Express 5, TypeScript, Drizzle ORM |
 | Database | PostgreSQL (Neon or self-hosted) |
-| Vector DB | Pinecone (7 namespaces) |
+| Vector DB | pgvector inside Neon Postgres (7 namespaces) |
 | AI/LLM | Anthropic Claude, Google Gemini, OpenAI (direct API keys) |
 | Object Storage | S3-compatible (AWS S3, Cloudflare R2, or local) |
 | Auth | Express sessions + configurable OAuth |
@@ -406,7 +406,7 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - Brand voice guidelines (`.claude/brand-voice-guidelines.md`) — single source of truth. The Analyst + Rebecca personas, 10 tone contexts, vocabulary enforcement.
 - Communication skills (reusable): conversation-principles, ai-agent-voice, norfolk-brand-voice.
 - user_page_visits table, usePageVisit hook, FirstVisitBanner, AgentPersonasTab in Admin.
-- 18 Pinecone KB seeds, fetchWithTimeout + sanitizeError shared utilities.
+- 18 KB seeds (pgvector `knowledge-base` namespace), fetchWithTimeout + sanitizeError shared utilities.
 
 **Schema, Tests & Remediation (April 14-15, 2026):**
 - 10 `.default()` values on notNull columns, 6 `DEFAULT_*` constants, fiscalYearStartMonth validation.
