@@ -262,13 +262,24 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - ✅ Phase 1a — docs spine + 9 per-component specs + ADR-001 (15 files under `docs/architecture/`)
 - ⏸ Phase 1b — `.claude/skills/analyst/` + 2 new rules (handed off to Claude Code; brief at `docs/architecture/analyst/HANDOFF-claude-code-phase-1b.md`)
 - ⏳ Phase 2 — `engine/analyst/` skeleton + CODEOWNERS + naming-lint + ADR-002 (Replit Agent, after 1b)
-- ⏳ Phase 3 — `AnalystVerdict` contract + Surface Router + Voice Renderer + backfill 2 evaluators + persona-keyed test bench
-- ⏳ Phase 4 — build remaining Surface Specialists incrementally; Norfolk audit Phase 3 (Compensation) ships first under new architecture
+- ✅ Phase 3a — `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + persona test bench (Claude, `d220f4b1`)
+- ✅ Phase 3b — Funding + Revenue Surface Specialists; `/save-tab` dispatches verdicts; dialog + call site consume `AnalystVerdict`; tests use real Specialists end-to-end (`ee0c6573`)
+- ⏳ Phase 4 — build remaining 4 mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults); Norfolk audit Phase 3 (Compensation) ships first under new architecture
 - ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + orchestrator cache + research-history reindex + guidance↔engine seam doc
+- 🔀 OT-A (parallel, Claude Code) — server/ai plumbing: Anthropic prompt-caching, AI-SDK + AI Gateway wrapper, synthesis A/B, optional cutover. Handoff: `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md`. **Boundary:** OT-A touches `server/ai/` only; never `engine/analyst/**`, `engine/watchdog/*Evaluator.ts`, `server/routes/**`, `client/src/**`, `tests/analyst/**`.
 
 **Reusable engineering-discipline skills** (project-agnostic, under `.agents/skills/`): `pre-commit-gates`, `cross-check-invariants`, `architecture-decision-records`, `agent-handoff-briefs`, `agent-memory-files`.
 
 **Boundary rule:** `.claude/**` is Claude Code's authoritative domain. Replit Agent edits limited to ≤5-line append on `.claude/session-memory.md` and `BLOCKED.md` siblings; everything else under `.claude/` goes through a handoff brief. `.agents/skills/**` is project-agnostic. `docs/**` is open editing for either agent.
+
+## Recent Changes
+
+**Analyst Architecture Phase 3b (April 19, 2026, `ee0c6573`):**
+- Funding + Revenue evaluators now ship through `engine/analyst/surface/mgmt-co/{funding,revenue}-specialist.ts` and dispatch via `createMgmtCoRouter` from `/save-tab`. Response shape: `{ ok, savedTabs, verdict: AnalystVerdict | null }` (legacy `watchdog` field removed — single consumer).
+- `AnalystCheckDialog` rewritten on `AnalystVerdict`: renders `voice.headline` verbatim, flatten+dedupe per-dim actions, separate ghost "Save Anyway" button outside `actions[]` (contract stays frozen — `save_anyway` deliberately not in the union).
+- `tests/analyst/personas/lb.test.ts` exercises real Specialists end-to-end through Router + Voice Renderer + Quality Scorer; compensation case stays a stub for Phase 4.
+- Verified: TS 0, Lint 0, test:summary PASS, Verify UNQUALIFIED, Parity PASS, Health ALL CLEAR.
+- Deferred (follow-ups): persisted verdict cache per tab; persona resolution from user/company settings (currently hardcoded `{ L+B, luxury, US }` single-tenant).
 
 ## Migration Drift Checklist (Apr 18, 2026)
 
