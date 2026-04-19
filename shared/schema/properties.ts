@@ -23,7 +23,7 @@ import {
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
   DEFAULT_EXIT_CAP_RATE,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -140,7 +140,7 @@ export const properties = pgTable("properties", {
   // Income Tax Rate (for calculating after-tax free cash flow)
   // NOTE: This is the corporate INCOME tax rate, NOT the property/real-estate tax rate.
   // Property taxes are computed via costRateTaxes (assessed on property value).
-  taxRate: real("tax_rate").notNull().default(DEFAULT_PROPERTY_TAX_RATE),
+  taxRate: real("tax_rate").notNull().default(DEFAULT_PROPERTY_INCOME_TAX_RATE),
 
   // Per-property inflation rate (nullable — NULL means use global default)
   inflationRate: real("inflation_rate"),

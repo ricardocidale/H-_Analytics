@@ -24,7 +24,7 @@ import { MarketRateBenchmark } from "@/components/property-research/MarketRateBe
 import { useEffect, useState, useCallback } from "react";
 import {
   DEFAULT_EXIT_CAP_RATE,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_PROPERTY_INFLATION_RATE,
 } from "@/lib/constants";
@@ -119,7 +119,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 guidanceContext={gc("incomeTax", "Income Tax Rate")}
               />
               <EditableValue
-                value={(draft.taxRate ?? DEFAULT_PROPERTY_TAX_RATE) * 100}
+                value={(draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) * 100}
                 onChange={(val) => onChange("taxRate", val / 100)}
                 format="percent"
                 min={0}
@@ -128,7 +128,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               />
             </div>
             <Slider 
-              value={[(draft.taxRate ?? DEFAULT_PROPERTY_TAX_RATE) * 100]}
+              value={[(draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) * 100]}
               onValueChange={(vals: number[]) => onChange("taxRate", vals[0] / 100)}
               min={0}
               max={50}

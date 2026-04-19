@@ -166,7 +166,7 @@ describe("Constants re-export parity (constants-and-config)", () => {
       if (name === "DEPRECIATION_YEARS") return true;
       if (name === "DAYS_PER_MONTH") return true;
       if (name === "DEFAULT_EXIT_CAP_RATE") return true;
-      if (name === "DEFAULT_PROPERTY_TAX_RATE") return true;
+      if (name === "DEFAULT_PROPERTY_INCOME_TAX_RATE") return true;
       if (name === "DEFAULT_COMMISSION_RATE") return true;
       if (name === "DEFAULT_LAND_VALUE_PERCENT") return true;
       if (name === "DEFAULT_CATERING_BOOST_PCT") return true;

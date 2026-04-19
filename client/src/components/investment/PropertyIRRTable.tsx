@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { formatMoney } from "@/lib/financialEngine";
-import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_TAX_RATE, IRR_HIGHLIGHT_THRESHOLD } from "@/lib/constants";
+import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_INCOME_TAX_RATE, IRR_HIGHLIGHT_THRESHOLD } from "@/lib/constants";
 
 interface PropertyIRRTableProps {
   properties: any[];
@@ -81,7 +81,7 @@ export function PropertyIRRTable({
                 <TableRow key={prop.id}>
                   <TableCell className="font-medium">{prop.name}</TableCell>
                   <TableCell className="text-right font-mono">{formatMoney(equity)}</TableCell>
-                  <TableCell className="text-right">{((prop.taxRate ?? DEFAULT_PROPERTY_TAX_RATE) * 100).toFixed(0)}%</TableCell>
+                  <TableCell className="text-right">{((prop.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) * 100).toFixed(0)}%</TableCell>
                   <TableCell className="text-right">{((prop.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100).toFixed(1)}%</TableCell>
                   <TableCell className="text-right text-accent">{formatMoney(exitValue)}</TableCell>
                   <TableCell className="text-right font-mono">{formatMoney(totalDistributions)}</TableCell>

@@ -99,7 +99,7 @@ import {
   DEFAULT_LTV, 
   DEFAULT_INTEREST_RATE, 
   DEFAULT_TERM_YEARS, 
-  DEFAULT_PROPERTY_TAX_RATE, 
+  DEFAULT_PROPERTY_INCOME_TAX_RATE, 
   DEFAULT_COMMISSION_RATE, 
   DEFAULT_EXIT_CAP_RATE, 
   DEPRECIATION_YEARS, 
@@ -118,7 +118,7 @@ export {
   DEFAULT_LTV, 
   DEFAULT_INTEREST_RATE, 
   DEFAULT_TERM_YEARS, 
-  DEFAULT_PROPERTY_TAX_RATE, 
+  DEFAULT_PROPERTY_INCOME_TAX_RATE, 
   DEFAULT_COMMISSION_RATE, 
   DEFAULT_EXIT_CAP_RATE, 
   DEPRECIATION_YEARS, 
@@ -148,7 +148,7 @@ export function calculateLoanParams(
   
   const interestRate = property.acquisitionInterestRate ?? DEFAULT_INTEREST_RATE;
   const termYears = property.acquisitionTermYears ?? DEFAULT_TERM_YEARS;
-  const taxRate = property.taxRate ?? DEFAULT_PROPERTY_TAX_RATE;
+  const taxRate = property.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE;
   const commissionRate = property.dispositionCommission ?? DEFAULT_COMMISSION_RATE;
   
   // Depreciable basis: land doesn't depreciate (IRS Publication 946 / ASC 360)

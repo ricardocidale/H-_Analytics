@@ -3,7 +3,7 @@ import { buildPropertyDefaultsFromGlobal } from "../../server/routes/properties"
 import type { GlobalAssumptions } from "@shared/schema";
 import {
   DEFAULT_EXIT_CAP_RATE,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -188,7 +188,7 @@ describe("buildPropertyDefaultsFromGlobal", () => {
   it("includes taxRate as hardcoded constant", () => {
     const ga = makeGlobal();
     const defaults = buildPropertyDefaultsFromGlobal(ga);
-    expect(defaults.taxRate).toBe(DEFAULT_PROPERTY_TAX_RATE);
+    expect(defaults.taxRate).toBe(DEFAULT_PROPERTY_INCOME_TAX_RATE);
   });
 
   it("includes cost rate and revenue share defaults", () => {
@@ -219,7 +219,7 @@ describe("buildPropertyDefaultsFromGlobal", () => {
     expect(defaults.dispositionCommission).toBe(DEFAULT_COMMISSION_RATE);
     expect(defaults.baseManagementFeeRate).toBe(DEFAULT_BASE_MANAGEMENT_FEE_RATE);
     expect(defaults.incentiveManagementFeeRate).toBe(DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE);
-    expect(defaults.taxRate).toBe(DEFAULT_PROPERTY_TAX_RATE);
+    expect(defaults.taxRate).toBe(DEFAULT_PROPERTY_INCOME_TAX_RATE);
     expect(defaults.acquisitionLTV).toBe(DEFAULT_LTV);
     expect(defaults.acquisitionInterestRate).toBe(DEFAULT_INTEREST_RATE);
     expect(defaults.acquisitionTermYears).toBe(DEFAULT_TERM_YEARS);

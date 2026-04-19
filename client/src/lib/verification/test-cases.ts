@@ -22,7 +22,7 @@ import {
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEPRECIATION_YEARS,
   MONTHS_PER_YEAR,
 } from "../constants";
@@ -96,7 +96,7 @@ export function computeMonthlyPL(tc: TestCase) {
   }
 
   const taxableIncome = anoi - interest - monthlyDep;
-  const incomeTax = taxableIncome > 0 ? taxableIncome * (tc.property.taxRate ?? DEFAULT_PROPERTY_TAX_RATE) : 0;
+  const incomeTax = taxableIncome > 0 ? taxableIncome * (tc.property.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) : 0;
   const netIncome = anoi - interest - monthlyDep - incomeTax;
   const cashFlow = anoi - tc.expectedMonthlyPayment - incomeTax;
 

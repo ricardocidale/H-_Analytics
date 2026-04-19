@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { formatMoney } from "@/lib/financialEngine";
-import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_TAX_RATE } from "@/lib/constants";
+import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_INCOME_TAX_RATE } from "@/lib/constants";
 import type { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
 
 interface FCFAnalysisTableProps {
@@ -188,7 +188,7 @@ export function FCFAnalysisTable({
                   <TableRow key={prop.id} className="bg-muted/5" data-testid={`fcf-property-${prop.id}`}>
                     <TableCell className="sticky left-0 bg-muted/5 pl-12 text-sm text-muted-foreground">
                       {prop.name}
-                      <span className="text-xs ml-2">({((prop.taxRate ?? DEFAULT_PROPERTY_TAX_RATE) * 100).toFixed(0)}% income tax)</span>
+                      <span className="text-xs ml-2">({((prop.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) * 100).toFixed(0)}% income tax)</span>
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">-</TableCell>
                     {Array.from({ length: projectionYears }, (_, y) => {

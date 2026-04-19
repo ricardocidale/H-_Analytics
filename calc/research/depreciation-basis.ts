@@ -8,7 +8,7 @@
  * IRS Publication 946 / IRC §168(e)(2)(A): Nonresidential real property (hotels) = 39 years straight-line.
  */
 import { roundCents } from "../shared/utils.js";
-import { DEPRECIATION_YEARS, DEFAULT_PROPERTY_TAX_RATE, RESEARCH_TAX_RATE_30_PCT, MONTHS_PER_YEAR } from "../../shared/constants.js";
+import { DEPRECIATION_YEARS, DEFAULT_PROPERTY_INCOME_TAX_RATE, RESEARCH_TAX_RATE_30_PCT, MONTHS_PER_YEAR } from "../../shared/constants.js";
 
 interface DepreciationBasisInput {
   purchase_price: number;
@@ -47,7 +47,7 @@ export function computeDepreciationBasis(input: DepreciationBasisInput): Depreci
   const monthlyDepreciation = roundCents(depreciableBasis / depYears / MONTHS_PER_YEAR);
 
   // Tax shields show the annual tax savings from depreciation
-  const taxShield25 = roundCents(annualDepreciation * DEFAULT_PROPERTY_TAX_RATE);
+  const taxShield25 = roundCents(annualDepreciation * DEFAULT_PROPERTY_INCOME_TAX_RATE);
   const taxShield30 = roundCents(annualDepreciation * RESEARCH_TAX_RATE_30_PCT);
 
   // Effective cost reduction: how much depreciation reduces effective annual cost as % of purchase price

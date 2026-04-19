@@ -13,7 +13,7 @@ import {
   LoanCalculation,
   RefinanceCalculation,
 } from "../../client/src/lib/financial/loanCalculations.js";
-import { DEFAULT_LTV, DEFAULT_INTEREST_RATE, DEFAULT_TERM_YEARS, DEFAULT_PROPERTY_TAX_RATE, DEPRECIATION_YEARS } from "../../client/src/lib/constants.js";
+import { DEFAULT_LTV, DEFAULT_INTEREST_RATE, DEFAULT_TERM_YEARS, DEFAULT_PROPERTY_INCOME_TAX_RATE, DEPRECIATION_YEARS } from "../../client/src/lib/constants.js";
 import { pmt } from "../../calc/shared/pmt.js";
 
 // ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ describe("calculateLoanParams", () => {
     expect(loan.loanAmount).toBe(1_000_000 * DEFAULT_LTV);
     expect(loan.interestRate).toBe(DEFAULT_INTEREST_RATE);
     expect(loan.termYears).toBe(DEFAULT_TERM_YEARS);
-    expect(loan.taxRate).toBe(DEFAULT_PROPERTY_TAX_RATE);
+    expect(loan.taxRate).toBe(DEFAULT_PROPERTY_INCOME_TAX_RATE);
   });
 
   it("zero interest rate computes straight-line monthly payment", () => {

@@ -25,7 +25,7 @@ import {
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
   DEFAULT_COST_RATE_INSURANCE,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_PROPERTY_INFLATION_RATE,
 } from "@shared/constants";
@@ -414,7 +414,7 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
           label="Property Income Tax Rate"
           tooltip="Income tax rate applied to gain on property sale and operating income. This is NOT the real estate/ad valorem property tax — that is modeled as a USALI operating expense (costRateTaxes)."
           value={draft.defaultPropertyTaxRate}
-          fallback={DEFAULT_PROPERTY_TAX_RATE}
+          fallback={DEFAULT_PROPERTY_INCOME_TAX_RATE}
           onChange={(_, v) => onChange("defaultPropertyTaxRate", v)}
           min={0} max={0.50} step={0.01}
           testId="field-defaultPropertyTaxRate"

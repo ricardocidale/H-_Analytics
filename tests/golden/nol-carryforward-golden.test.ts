@@ -6,7 +6,7 @@ import {
   DAYS_PER_MONTH,
   DEPRECIATION_YEARS,
   NOL_UTILIZATION_CAP,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_PROPERTY_INFLATION_RATE,
 } from "../../shared/constants";
 
@@ -49,7 +49,7 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
     acquisitionTermYears: 20,
     landValuePercent: 0.25,
     buildingImprovements: 0,
-    taxRate: DEFAULT_PROPERTY_TAX_RATE, // 0.25
+    taxRate: DEFAULT_PROPERTY_INCOME_TAX_RATE, // 0.25
     operatingReserve: 0,
   });
 
@@ -148,7 +148,7 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
     const adjustedIncome = pti - nolUsed;
 
     // Income tax = adjustedIncome * taxRate
-    const expectedTax = adjustedIncome > 0 ? adjustedIncome * DEFAULT_PROPERTY_TAX_RATE : 0;
+    const expectedTax = adjustedIncome > 0 ? adjustedIncome * DEFAULT_PROPERTY_INCOME_TAX_RATE : 0;
     expect(mo.incomeTax).toBeCloseTo(expectedTax, PENNY);
 
     // NOL balance should have decreased by nolUsed
@@ -172,14 +172,14 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
         const maxUtil = pti * NOL_UTILIZATION_CAP;
         const nolUsed = Math.min(prevNOL, maxUtil);
         const adjustedIncome = pti - nolUsed;
-        const expectedTax = adjustedIncome > 0 ? adjustedIncome * DEFAULT_PROPERTY_TAX_RATE : 0;
+        const expectedTax = adjustedIncome > 0 ? adjustedIncome * DEFAULT_PROPERTY_INCOME_TAX_RATE : 0;
         expect(mo.incomeTax).toBeCloseTo(expectedTax, PENNY);
       } else if (pti < 0) {
         // NOL accumulation month — tax must be zero
         expect(mo.incomeTax).toBe(0);
       } else if (pti > 0 && prevNOL === 0) {
         // Normal taxation — no NOL remaining
-        const expectedTax = pti * DEFAULT_PROPERTY_TAX_RATE;
+        const expectedTax = pti * DEFAULT_PROPERTY_INCOME_TAX_RATE;
         expect(mo.incomeTax).toBeCloseTo(expectedTax, PENNY);
       }
 
@@ -218,7 +218,7 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
     for (let i = 0; i < result.length; i++) {
       const pti = preTaxIncome(i);
       if (pti > 0) {
-        hypotheticalTotalTax += pti * DEFAULT_PROPERTY_TAX_RATE;
+        hypotheticalTotalTax += pti * DEFAULT_PROPERTY_INCOME_TAX_RATE;
       }
     }
 

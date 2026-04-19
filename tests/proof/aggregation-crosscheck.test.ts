@@ -4,7 +4,7 @@ import { aggregatePropertyByYear } from "../../engine/aggregation/yearlyAggregat
 import { consolidateYearlyFinancials } from "../../engine/aggregation/consolidation.js";
 import {
   DEFAULT_LAND_VALUE_PERCENT,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_EVENT_EXPENSE_RATE,
@@ -49,7 +49,7 @@ function makeProperty(overrides: Record<string, unknown> = {}) {
     cateringBoostPercent: 0.30,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-    taxRate: DEFAULT_PROPERTY_TAX_RATE,
+    taxRate: DEFAULT_PROPERTY_INCOME_TAX_RATE,
     type: "Financed",
     acquisitionLTV: 0.75,
     acquisitionInterestRate: 0.06,

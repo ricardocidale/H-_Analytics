@@ -3,7 +3,7 @@ import type { DashboardFinancials } from "../types";
 import type { Property } from "@shared/schema";
 import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import { computeIRR } from "@analytics/returns/irr.js";
-import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_TAX_RATE, DEFAULT_INTEREST_RATE } from "@/lib/constants";
+import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_INCOME_TAX_RATE, DEFAULT_INTEREST_RATE } from "@/lib/constants";
 import { DEFAULT_COST_OF_EQUITY, DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE } from "@shared/constants";
 
 export function generatePortfolioInvestmentData(
@@ -169,7 +169,7 @@ export function generatePortfolioInvestmentData(
         const exitVal2 = propCF[projectionYears - 1]?.exitValue ?? 0;
         const totalDist = yearlyATCF.reduce((a, b) => a + b, 0) + exitVal2;
         const eqMult = equity > 0 ? totalDist / equity : 0;
-        const taxRate = prop.taxRate ?? DEFAULT_PROPERTY_TAX_RATE;
+        const taxRate = prop.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE;
         const exitCapRate = prop.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
 
         rows.push({ category: prop.name || `Property ${pi + 1}`, values: years.map(() => 0), isHeader: true, indent: 1 });
@@ -205,7 +205,7 @@ export function generatePortfolioInvestmentData(
         const isFullEquity = prop.type === "Full Equity";
         const debt = isFullEquity ? 0 : (prop.purchasePrice ?? 0) * (prop.acquisitionLTV ?? 0);
         const debtRate = prop.acquisitionInterestRate ?? DEFAULT_INTEREST_RATE;
-        const taxRate = prop.taxRate ?? DEFAULT_PROPERTY_TAX_RATE;
+        const taxRate = prop.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE;
         const totalCapital = equity + debt;
         const ew = totalCapital > 0 ? equity / totalCapital : 1;
         const dw = totalCapital > 0 ? debt / totalCapital : 0;

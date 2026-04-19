@@ -1,6 +1,6 @@
 import { MonthlyFinancials } from "../financialEngine";
 import { addMonths, isBefore, startOfMonth } from "date-fns";
-import { DEFAULT_PROPERTY_TAX_RATE } from '../constants';
+import { DEFAULT_PROPERTY_INCOME_TAX_RATE } from '../constants';
 import { NOL_UTILIZATION_CAP } from '@shared/constants';
 import type { AuditFinding, AuditSection, PropertyAuditInput, GlobalAuditInput } from "./types";
 import { parseLocalDate, withinTolerance, formatVariance } from "./helpers";
@@ -160,7 +160,7 @@ export function auditIncomeStatement(
     
     const depExp = m.depreciationExpense || 0;
     const taxableForAudit = m.anoi - m.interestExpense - depExp;
-    const taxRate = property.taxRate ?? DEFAULT_PROPERTY_TAX_RATE;
+    const taxRate = property.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE;
     let expectedTax: number;
     if (taxableForAudit < 0) {
       auditNolBalance += Math.abs(taxableForAudit);

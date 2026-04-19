@@ -13,7 +13,7 @@ import {
   YearlyCashFlowResult,
 } from "@/lib/financial/loanCalculations";
 import {
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_PROPERTY_INFLATION_RATE,
 } from "@/lib/constants";
 import { makePropertyInput, makeGlobalInput } from "../fixtures/factories";

@@ -1,6 +1,6 @@
 import {
   DEFAULT_EXIT_CAP_RATE,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -79,7 +79,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "exit",
-    fallback: DEFAULT_PROPERTY_TAX_RATE,
+    fallback: DEFAULT_PROPERTY_INCOME_TAX_RATE,
     gaSource: { kind: "direct", gaField: "defaultPropertyTaxRate" },
     engineImpact: true,
     validationMin: 0,

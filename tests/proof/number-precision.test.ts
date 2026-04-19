@@ -3,7 +3,7 @@ import { generatePropertyProForma } from "../../client/src/lib/financialEngine.j
 import {
   DAYS_PER_MONTH,
   DEFAULT_LAND_VALUE_PERCENT,
-  DEFAULT_PROPERTY_TAX_RATE,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_EVENT_EXPENSE_RATE,
@@ -46,7 +46,7 @@ const baseProperty = {
   cateringBoostPercent: 0.30,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  taxRate: DEFAULT_PROPERTY_TAX_RATE,
+  taxRate: DEFAULT_PROPERTY_INCOME_TAX_RATE,
   type: "Full Equity",
 };
 

@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { formatMoney } from "@/lib/financialEngine";
-import { DEFAULT_PROPERTY_TAX_RATE } from "@/lib/constants";
+import { DEFAULT_PROPERTY_INCOME_TAX_RATE } from "@/lib/constants";
 import { DEFAULT_COST_OF_EQUITY } from "@shared/constants";
 import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import type { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
@@ -61,7 +61,7 @@ export function DCFAnalysis({
     const isFullEquity = prop.type === 'Full Equity';
     const debt = isFullEquity ? 0 : (prop.purchasePrice ?? 0) * (prop.acquisitionLTV ?? 0);
     const debtRate = prop.acquisitionInterestRate ?? 0.09;
-    const taxRate = prop.taxRate ?? DEFAULT_PROPERTY_TAX_RATE;
+    const taxRate = prop.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE;
 
     const totalCapital = equity + debt;
     const equityWeight = totalCapital > 0 ? equity / totalCapital : 1;
