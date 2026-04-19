@@ -57,9 +57,22 @@ preserves the same value-range envelope the regex extractor produced,
 and `extractGuidance` consumes it identically. The flip did not move
 the field's classification.
 
-**OT-A.5 work:** Section A of `OT-A-5-design.md` re-verifies Q1 against
-v5 raw to determine STAYS / PROMOTED / DEFER branch. No API spend
-required for verification step.
+**OT-A.5 Q1-extended verification (2026-04-19, no API spend):**
+Tabulation of `(market, legacy.inflationRate.mid, new.mid)` across all
+20 v5 cases revealed that **all 20 cases are US markets** — the
+mono-country sample cannot test the country-awareness precondition
+that Class 2 (PROMOTED) requires. Outcome: **DEFER**. `inflationRate`
+stays Class 4; **Section A REMOVED from v6 batch**. Filed for OT-A.6
+with a small targeted LEA trace gate ($3–5, 4–6 mixed-country cases).
+See `OT-A-3-parity-exemptions.md` §"Q1-extended finding" for the
+per-case table and decision detail.
+
+What the existing data DID confirm (useful for OT-A.6 scoping):
+  - Legacy is NOT hard-coding a single USA constant — it varies
+    bimodally (2.8% / 3.2%) within the same country, consistent with
+    Q1's finding that the extractor parses LEA panel output.
+  - Mean Δ −13.5% confirmed against v5 reported −13.3%.
+  - Both paths sit inside the current US CPI band (~2.5–3.2%).
 
 ### Mode-collapsed fields outside T1
 
@@ -75,8 +88,13 @@ OT-A.4 closeout" as deferred-to-OT-A.5.
 the new path's range outputs unchanged). Section C of
 `OT-A-5-design.md` classifies each:
   - `costFB` → Class 1 (industry-standard single-value, persona-narrowing).
-  - `costSeg5yrPct` → Class 2 (needs anchor; investigate v3.3 prompt
-    diff first).
+  - `costSeg5yrPct` → Class 2 (needs anchor). **OT-A.5 prep diff result
+    (2026-04-19, no API spend):** v3.3 cost-seg block at
+    `synthesis-schema.ts:203–205` is byte-identical between commit
+    `e5d873fe` and HEAD. v3.3 anchor is intact; v5 −26.7% bias is a
+    real regression the v3.3 wording failed to prevent. **Strengthen
+    in v6** (IRS Cost Seg Audit Techniques Guide source pointer per
+    C.2 design); restore-only is not sufficient.
   - `svcFeeGeneralMgmt`, `svcFeeTechRes` → defer to watchlist.
 
 ### 6 T2 USALI cost-line biases

@@ -81,7 +81,93 @@ to a different single value).
 
 | Field | Tier | v5 metric | Rationale |
 |---|---|---|---|
-| _(none — `inflationRate` was tentatively here pending legacy code review; finding documented below moved it to Class 4)_ | | | |
+| _(none — `inflationRate` was tentatively here pending legacy code review; Q1 finding (2026-04-19) moved it to Class 4; Q1-extended finding (2026-04-19, OT-A.5 prep) keeps it in Class 4 pending non-US sample, see below)_ | | | |
+
+### Q1-extended finding — 2026-04-19 (OT-A.5 prep, no API spend)
+
+Per OT-A-5-design.md §A verification protocol, opened
+`OT-A-3-ab-raw.json` and tabulated `(market, legacy.inflationRate.mid,
+new.inflationRate.mid)` across all 20 v5 cases.
+
+**Critical sample limitation:** all 20 v5 cases are **US markets**
+(Charleston SC, Aspen CO, Napa CA, Newport RI, Sedona AZ,
+Savannah GA, Park City UT, Carmel CA, Hudson Valley NY, Telluride CO,
+Healdsburg CA, Camden ME, Big Sur CA, Jackson WY, Provincetown MA,
+St. Helena CA, Stowe VT, Outer Banks NC, Marfa TX, Bar Harbor ME).
+The STAYS / PROMOTED decision rules from OT-A-5-design.md §A both
+assume a mixed-country sample to test country-awareness — neither
+rule is applicable to a mono-country dataset.
+
+**Per-case data (legacy emits point value; ranges are null):**
+
+| Distinct legacy.mid | Count | New.mid distribution |
+|---|---|---|
+| 2.8% | 8/20 | mostly 2.5%, some 2.8% |
+| 3.2% | 12/20 | mostly 2.5–2.8%, one 3.0% |
+
+  - Legacy emits **2 distinct values** across 20 US markets (bimodal
+    2.8 / 3.2).
+  - New path emits **3 distinct values** (2.5, 2.8, 3.0).
+  - Legacy mean: 3.04%. New mean: 2.63%. Mean Δ: −13.5%
+    (confirms v5 bias-down −13.3% within rounding).
+  - Both paths sit inside the current US CPI band (~2.5–3.2%).
+
+**What the data IS sufficient to confirm:**
+  - Legacy is **NOT** hard-coding a single USA constant — it varies
+    bimodally per call within the same country, consistent with Q1's
+    finding that the extractor parses `c.localEconomics.inflationRate`
+    from a stochastic LEA panel.
+  - The bimodal distribution within USA shows no obvious geographic
+    pattern (Charleston SC → 2.8, Savannah GA → 2.8, Aspen CO → 3.2,
+    Park City UT → 3.2 — not state- or region-correlated to a real
+    BLS regional CPI methodology).
+
+**What the data is NOT sufficient to confirm:**
+  - Whether legacy LEA panel actually varies by **country** when
+    given a non-US market. The mono-country sample cannot test the
+    Class 2 precondition.
+
+**Outcome: DEFER (third branch of OT-A-5-design.md §A decision rule).**
+
+`inflationRate` stays Class 4 in this exemption table. Section A
+**drops out of the v6 batch** — country-CPI anchor wording would
+be premature without country-awareness evidence. Filing a small
+targeted LEA trace gate for OT-A.6:
+
+  - $3–5 spend, 4–6 cases, deliberately mixed countries
+    (e.g., MX-CDMX, BR-São Paulo, UK-London, JP-Tokyo plus 1–2 US
+    controls).
+  - Extract `(country, LEA.inflationRate.mid)` per case.
+  - Apply STAYS / PROMOTED rule against that mixed sample.
+  - Re-classify `inflationRate` then.
+
+**v6 batch impact:** Section A removed; v6 ships with Sections B
+(6 anchors) + C.1 docs-only + C.2 strengthening (per C.2 finding
+below). Prompt LOC delta drops from ~120–160 to ~100–140 (no
+inflationRate clause).
+
+### C.2 cost-seg prompt diff finding — 2026-04-19 (OT-A.5 prep)
+
+Per OT-A-5-design.md §C.2 pre-v6 work item, diffed the cost-seg
+block in `server/ai/synthesis-schema.ts` between v3.3
+(commit `e5d873fe`) and HEAD (post-OT-A.4 `7da9f25a`).
+
+**Result:** lines 203–205 (FIELD_DEFINITIONS for `costSeg5yrPct`,
+`costSeg7yrPct`, `costSeg15yrPct`) are **byte-identical** between
+the two commits. The v3.3 anchor (BUILDING-VALUE denominator +
+per-market reasoning + "do NOT emit a generic typical range" clause)
+is **intact** in production.
+
+**Implication:** the v5 −26.7% bias on `costSeg5yrPct` is a **real
+regression that the v3.3 anchor failed to prevent.** Restore-only is
+not sufficient. The OT-A-5-design.md §C.2 **strengthening anchor**
+(naming the IRS Cost Segregation Audit Techniques Guide as the
+explicit source publication for hotel-property MACRS 5-year asset
+class assignments) IS warranted in v6.
+
+**v6 batch action:** include the C.2 strengthening anchor as
+designed (no restore — anchor is already there; add the IRS source
+pointer).
 
 **Q1 finding — 2026-04-19 legacy code review:** Read
 `server/ai/research-value-extractor.ts:108–119`. The legacy

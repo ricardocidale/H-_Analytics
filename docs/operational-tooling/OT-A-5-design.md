@@ -35,7 +35,14 @@ state.
 
   1. **Section A** — `inflationRate` Class 2 promotion (1 field, design
      spec + legacy-evidence write-up; no anchor wording change required
-     IF Q1 verification holds).
+     IF Q1 verification holds). **STATUS (2026-04-19, OT-A.5 prep):
+     Q1-extended verification against `OT-A-3-ab-raw.json` returned
+     DEFER — all 20 v5 cases are US-only; mono-country sample cannot
+     test the country-awareness precondition. Section A REMOVED from
+     v6 batch.** Filed for OT-A.6 with $3–5 mixed-country LEA trace
+     gate. See `OT-A-3-parity-exemptions.md` §"Q1-extended finding"
+     for the per-case data. v6 prompt LOC drops from ~120–160 to
+     ~100–140 (no inflationRate clause).
   2. **Section B** — 6 T2 USALI anchors (`costHousekeeping`,
      `costMarketing`, `preOpeningCosts`, `startOccupancy`, `catering`,
      `costPropertyTaxes`). Each gets an anchor proposal naming a USALI
@@ -45,6 +52,13 @@ state.
      `costSeg5yrPct`, `svcFeeGeneralMgmt`, `svcFeeTechRes`). Each
      classified as (a) industry-standard exempt (Class 1), (b) needs
      per-market reasoning anchor, or (c) insufficient evidence → defer.
+     **C.2 STATUS (2026-04-19, OT-A.5 prep):** v3.3 cost-seg block
+     in `synthesis-schema.ts:203–205` is byte-identical between
+     commit `e5d873fe` (v3.3) and HEAD (post `7da9f25a`). The v3.3
+     anchor is intact in production; the v5 −26.7% bias is a real
+     regression that the v3.3 wording failed to prevent. **Restore-
+     only is NOT sufficient — strengthening anchor (IRS Cost Seg
+     Audit Techniques Guide source pointer) IS warranted in v6.**
 
 ---
 
@@ -375,7 +389,7 @@ per v5 result section).
 
 | Field | Section | Action | Anchor wording change? |
 |---|---|---|---|
-| `inflationRate` | A | Q1 re-verify against v5 raw; outcome dictates anchor inclusion | Conditional (only if STAYS branch) |
+| ~~`inflationRate`~~ | ~~A~~ | **REMOVED — DEFER outcome (mono-country v5 sample). Filed for OT-A.6 with $3–5 mixed-country LEA trace gate.** | NO — out of v6 |
 | `costHousekeeping` | B.1 | New anchor | YES — STR HOST / CBRE source pointer |
 | `costMarketing` | B.2 | New anchor | YES — USALI Schedule 5 + branded distinction |
 | `preOpeningCosts` | B.3 | New anchor | YES — ISHC per-key source pointer |
@@ -383,7 +397,7 @@ per v5 result section).
 | `catering` | B.5 | Defensive anchor | YES — STR HOST F&B pointer |
 | `costPropertyTaxes` | B.6 | Defensive anchor | YES — assessor / DOR pointer |
 | `costFB` | C.1 | Class 1 reclassification (docs only) | NO |
-| `costSeg5yrPct` | C.2 | Diff vs v3.3; restore or strengthen | YES (TBD by diff) |
+| `costSeg5yrPct` | C.2 | **Strengthen (v3.3 anchor confirmed intact, regression is real)** | YES — IRS Cost Seg Audit Techniques Guide source pointer |
 | `svcFeeGeneralMgmt` | C.3 | Defer to watchlist | NO |
 | `svcFeeTechRes` | C.4 | Defer to watchlist | NO |
 
