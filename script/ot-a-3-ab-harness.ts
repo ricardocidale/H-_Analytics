@@ -20,6 +20,7 @@ import { getAiSdkAnthropic } from "../server/ai/ai-sdk-clients";
 import {
   SynthesisOutputSchema,
   toLegacyResearchValuesMap,
+  formatFieldDefinitionsForPrompt,
   type SynthesisOutput,
   type LegacyResearchEntry,
 } from "../server/ai/synthesis-schema";
@@ -98,9 +99,10 @@ You will return a SynthesisOutput object. Each entry in \`values[]\` has:
 - \`sources\`: array of source titles cited above
 Plus a single \`overall\` block: \`{ confidence: "high"|"medium"|"low", commentary: string, methodologyNotes: string }\`.
 
-## FIELD KEY CONTRACT (HARD CONSTRAINT)
-Each \`field\` value MUST be one of these EXACT keys (case-sensitive; no variants, no paraphrases, no descriptors in parens):
-  adr, adrGrowth, occupancy, startOccupancy, occupancyStep, rampMonths, catering, revShareFB, revShareEvents, revShareOther, capRate, landValue, saleCommission, costHousekeeping, costFB, costAdmin, costMarketing, costPropertyOps, costUtilities, costFFE, costIT, costOther, costPropertyTaxes, incentiveFee, svcFeeMarketing, svcFeeTechRes, svcFeeAccounting, svcFeeRevMgmt, svcFeeGeneralMgmt, svcFeeProcurement, incomeTax, inflationRate, interestRate, ltv, costSeg5yrPct, costSeg7yrPct, costSeg15yrPct, arDays, apDays, preOpeningCosts, platformFee.
+## FIELD KEY + UNIT + DENOMINATOR CONTRACT (HARD CONSTRAINT)
+Each entry in \`values[]\` MUST use a \`field\` from the EXACT list below (case-sensitive; no variants, no paraphrases, no descriptors in parens). The unit and denominator for each field are FIXED — do NOT emit a field in a different unit or denominator than shown. For percentage fields, emit the numeric value as a PERCENTAGE (e.g., \`30\` for 30%), NOT a decimal (\`0.30\`). Match the stated denominator exactly — if a field says "% of TOTAL revenue", do NOT emit it as "% of F&B revenue" or "% of room revenue".
+
+${formatFieldDefinitionsForPrompt()}
 
 Only include fields you have real evidence for — omit the rest. Do NOT invent values just to fill the list. Do NOT emit any narrative or qualitative-prose blocks of any kind — the structured object IS the entire output. Always cite at least one source per value. Anchor every estimate to boutique-luxury (L+B) hospitality benchmarks.`;
 
