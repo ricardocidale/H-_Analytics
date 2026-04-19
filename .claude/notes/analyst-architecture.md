@@ -9,7 +9,7 @@
 
 ## TL;DR — One-paragraph picture
 
-The Analyst is **not one file**. It's a three-model parallel synthesis pipeline with a classical "orchestrator + workers + memory + validators" shape, wrapped by thin client UI and a RESTful streaming API. The "mega-powerful" feeling the user is pointing at comes from the fact that every research call fans out across **Gemini 2.5 Flash + Claude Sonnet 4.5 in parallel**, cross-validates the outputs against **live market data**, reads **similar past research from Pinecone**, and then **Claude Opus 4.6** synthesizes all of that into a single reconciled answer streamed to the client. Model disagreement becomes the confidence band — which is a genuinely clever design choice. The rest of the ~40 files in `server/ai/` are the supporting cast that feeds context in, extracts guidance out, monitors staleness, governs behavior, and renders results.
+The Analyst is **not one file**. It's a three-model parallel synthesis pipeline with a classical "orchestrator + workers + memory + validators" shape, wrapped by thin client UI and a RESTful streaming API. The "mega-powerful" feeling the user is pointing at comes from the fact that every research call fans out across **Gemini 2.5 Flash + Claude Sonnet 4.5 in parallel**, cross-validates the outputs against **live market data**, reads **similar past research from the pgvector vector store** (inside Neon Postgres — not a separate service), and then **Claude Opus 4.6** synthesizes all of that into a single reconciled answer streamed to the client. Model disagreement becomes the confidence band — which is a genuinely clever design choice. The rest of the ~40 files in `server/ai/` are the supporting cast that feeds context in, extracts guidance out, monitors staleness, governs behavior, and renders results.
 
 ---
 
@@ -32,7 +32,7 @@ Both models run simultaneously via `Promise.all`:
 
 Each panel is produced by `runAnalystPanel()` (same file), which dispatches to the correct SDK via `server/ai/clients.ts`. The panels return typed `AnalystPanel` objects with `{ model, role, output, durationMs, error? }`.
 
-In parallel with the panels, the orchestrator also queries **Pinecone**'s `research-history` namespace via `retrieveSimilarResearch(location, propType, researchType)` for previous runs against similar properties. This is the "memory" the platform brags about — each research run's output feeds the next run's context.
+In parallel with the panels, the orchestrator also queries the **pgvector** `research-history` namespace via `retrieveSimilarResearch(location, propType, researchType)` for previous runs against similar properties. This is the "memory" the platform brags about — each research run's output feeds the next run's context. The vector store is a pgvector extension inside Neon Postgres (not a separate managed service); embeddings use OpenAI `text-embedding-3-small` at 1536 dimensions with HNSW index and cosine distance.
 
 The system gracefully degrades. If one panel fails, the other survives (`singlePanelMode`). If both fail, the orchestrator emits an `ORCHESTRATOR_BOTH_FAILED` error and returns — letting the caller fall back to single-model research. I found this failure-handling surprisingly clean for what's otherwise a dense file.
 
@@ -53,7 +53,7 @@ The `consensusRatio` (0-1) is the fraction of metrics where both analysts agreed
 
 - Both panel outputs, formatted side-by-side
 - The API validation table
-- Similar prior research from Pinecone
+- Similar prior research from the pgvector `research-history` namespace
 - The comps block from Phase 0
 
 And is asked to produce one authoritative JSON research report. Streams directly to the client via SSE — the "typing indicator" the user sees on screen is Opus writing in real time.

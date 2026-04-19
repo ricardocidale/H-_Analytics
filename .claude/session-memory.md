@@ -100,3 +100,8 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **Save = commitment** — after first Save, defaults never overwrite user values
 - **AI terms OK when proud** ("AI-powered intelligence"), NOT OK as implementation details
 - **App name** = "H+ Analytics". **Company name** = "Hospitality Management Co". **Technology** = "Norfolk AI Engine".
+
+## Session: April 19, 2026 — OT-A.3 structural wiring (commit f1cd4aee)
+- Synthesis branch behind USE_AI_SDK_SYNTHESIS env flag (default OFF).
+- Schema landed earlier in 595bd061; wiring uses streamObject + AI SDK v6 providerOptions for ephemeral cache_control.
+- Five gates GREEN. A/B parity run on 20 inputs is **PENDING USER AUTHORIZATION** — autonomous Opus spend (~\$12-40) was held back. Go/no-go for OT-A.4 deferred until A/B documented.
