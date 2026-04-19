@@ -8,6 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 20, 2026 — SYSTEM-MODEL.md canonical mental model
+- **`docs/architecture/SYSTEM-MODEL.md` written (Claude):** 11-section canonical business+technical mental model. Captures dual-entity mechanics (ManCo + SPVs), engine chain (Revenue→GOP→AGOP→NOI→ANOI), Analyst N+1 pipeline, cost economics (~$0.70/consult), 7 open architectural questions, and 11 next steps ranked by leverage (top 3: finish OT-A.3 v3 A/B → ship verdict-cache ADR → multi-tenant persona resolution).
+- **Verified engine facts anchored in doc:** `feeIncentive = Math.max(0, gop * ctx.incentiveFeeRate)` at `engine/property/property-engine.ts:174` — incentive fee is % of GOP, not total revenue. Owner priority hurdle gates fee (line 170); subordination defers it (185-195).
+- **claude.md Documentation table:** added SYSTEM-MODEL.md as day-one read for new contributors.
+- **business-model skill:** pointer to SYSTEM-MODEL.md as companion doc.
+- **Next up:** OT-A.3 v3 A/B rerun (Replit, gated on credit top-up); verdict-cache ADR; Sentry + PostHog handoff execution.
+
 ## Session: April 19-20, 2026 — Phase 3b + OT-A progression + cross-agent hygiene
 - **Phase 3b shipped (Replit, `ee0c6573`):** Funding + Revenue Specialists wrap legacy evaluators via `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` consumes the verdict directly; `save_anyway` kept outside the action union (UI-only ghost via `onProceedAnyway`). Persona hardcoded `{L+B, luxury, US}` (single-tenant); resolution + verdict-cache deferred.
 - **OT-A.1 + A.2 + A.3 shipped (Replit, `7326e28c`, `aedebc05`, `64b37ca2`, `f1cd4aee`):** Anthropic native prompt caching, Vercel AI SDK + AI Gateway wrapper with BYOK (zero markup), synthesis path behind `USE_AI_SDK_SYNTHESIS` flag.

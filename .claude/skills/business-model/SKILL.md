@@ -5,6 +5,8 @@ description: Foundational business domain for H+ Analytics. Covers dual-entity m
 
 # H+ Analytics Business Model
 
+**Companion doc:** `docs/architecture/SYSTEM-MODEL.md` is the canonical business+technical mental model — read that first for how the business model threads through the engine, the Analyst pipeline, the consolidation, and open architectural questions.
+
 ## Core Purpose
 H+ Analytics is a **fundraising and capital-raising tool**, NOT a business operations system. It helps a hospitality management company build credible, defensible financial models to raise capital from sophisticated investors (PE, family offices, HNWIs). The AI research engines are what make this app valuable — without them it's just Excel with a nicer UI.
 

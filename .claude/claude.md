@@ -350,6 +350,7 @@ git push origin main --no-verify
 | Master Plan V2 | `docs/planning/MASTER-PLAN-V2.md` | Product roadmap (Phases 8-13) |
 | Research Docs | `docs/research/` | Hospitality benchmarks, APIs, fee structures |
 | Skill Catalog | `.claude/skills/_index.md` | All 193 skills indexed by domain |
+| **System Model** | `docs/architecture/SYSTEM-MODEL.md` | **Canonical business+technical mental model — read on day one. ManCo ↔ SPVs, engine chain, Analyst pipeline, ranked next steps.** |
 | Dependency Atlas | `docs/architecture/DEPENDENCIES.md` | Every SDK/API/service this app uses, with env vars + cost + status |
 | SDK Contracts Atlas | `.claude/skills/analyst/contracts.md` | Every Analyst contract in one place (AnalystVerdict, SynthesisOutputSchema, FIELD_DEFINITIONS, etc.) |
 | Replit Workflow | `.claude/skills/replit-workflow/SKILL.md` | What Replit Agent is uniquely good at + hygiene rules |
