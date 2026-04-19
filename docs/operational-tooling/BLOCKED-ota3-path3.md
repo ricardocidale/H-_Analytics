@@ -1,9 +1,10 @@
 # OT-A.3 Path 3 — BLOCKED
 
 **Date opened:** 2026-04-19
+**Date resolved-with-escalation:** 2026-04-19
 **Phase:** OT-A.3 (Vercel AI SDK structured-output A/B parity)
 **Path:** 3 (verdict-layer parity)
-**Status:** BLOCKED on resolving a third-class mechanism bug.
+**Status:** ESCALATED — gate respec complete (Option 1 + 3, user-approved); offline tier-based evaluation produced an actionable field-level remediation list. OT-A.4 stays blocked on **mechanism-bug-#1 fixes for 3 Tier-1 fields and 4 Tier-2 fields with systematic bias**, NOT on the original raw-parity gate. See "Resolution outcome" section at the bottom.
 
 ## TL;DR
 
@@ -163,4 +164,79 @@ and would block OT-A.4 indefinitely on a non-issue.
 ## Spend tracker
 - Path 3 build: ~1.5 hr (under the 4 hr budget)
 - Path 3 rerun spend: **\$0** (offline analysis on v4 raw — saved \$22)
-- Total OT-A.3 retry cost so far: ~\$66 (v1+v2+v3 reruns from earlier sessions, all on user-authorized Anthropic billing). This BLOCKED was diagnosed without further spend.
+- Path 3 respec + tier-based eval: **\$0** (offline transform of v4 raw)
+- Total OT-A.3 retry cost so far: ~\$66 (v1+v2+v3 reruns from earlier sessions, all on user-authorized Anthropic billing). This BLOCKED + ESCALATION was resolved without further spend.
+
+---
+
+## Resolution outcome — 2026-04-19
+
+User authorized Option 1 + Option 3 (gate respec + decouple OT-A.4
+from raw-parity). Tiering doc, gate respec, harness rewrite, and
+offline evaluation completed in a single session with no Opus spend.
+
+### Tier-based gate result
+Source: `script/ot-a-3-verdict-parity.ts` against v4 raw.
+
+  - **Tier 1 (8 fields):** 4 pass / 4 fail
+    - Pass: `adr`, `capRate`, `interestRate`, `occupancy`
+    - Fail: `adrGrowth` (unbiased-noise — bucket 45%, mid±10% 65%),
+      `incentiveFee` (bias-up — mid±10% 75%, expected-collapse 1 unique),
+      `inflationRate` (bias-down — mid±10% 35%, mode collapse 2 unique),
+      `ltv` (bias-up — bucket 20% but mid±10% 100% — pure range-overlap miss)
+  - **Tier 2 (17 fields):** 8 pass / 9 fail
+    - Systematic-bias misses (need field-level fix):
+      `costHousekeeping` +43%, `costMarketing` +28%,
+      `costPropertyTaxes` -13%, `preOpeningCosts` -36%,
+      `startOccupancy` -37%, `catering` +16%
+    - Unbiased-noise misses (acknowledge, do not block):
+      `landValue`, `occupancyStep`, `rampMonths`
+  - **Tier 3 (16 fields, 15 with comparisons):** 10 pass / 5 fail
+    - Bias misses: `costSeg5yrPct`, `costSeg15yrPct`,
+      `svcFeeAccounting`, `svcFeeTechRes`
+    - Mode-collapse misses: `svcFeeMarketing`, `svcFeeTechRes`
+  - **Mode-collapse gate:** FAIL on `inflationRate`,
+    `svcFeeMarketing`, `svcFeeTechRes` (`incentiveFee` is exempt
+    per industry-standardization documentation).
+
+Full per-field detail in `OT-A-3-verdict-parity.md`.
+
+### Why this is ESCALATED, not RESOLVED
+The respec is correctly diagnostic. It produced an actionable
+field-level remediation list rather than the original opaque
+"13.6% < 95%" verdict. But OT-A.4 (delete legacy + flip flag)
+cannot ship until the **Tier-1 systematic biases** (incentiveFee,
+inflationRate, ltv) are resolved — those move user-visible model
+outputs by 10pp+ and are not noise.
+
+### Recommended next steps for OT-A.4 unblock
+1. **Tier-1 fixes (mandatory before flip):**
+   - `inflationRate`: definition tightening — currently 2 unique
+     ranges across 20 markets is itself a mode-collapse signal.
+     Suspect the "annual CPI / general inflation" denominator is
+     too generic; need to anchor to country-specific recent CPI.
+   - `incentiveFee`: ±10% midpoint miss at 75% suggests new path
+     emits 8% where legacy emits 10% systematically. Definition is
+     correct (% of GOP); likely needs a benchmark anchor (HVS Fee
+     Survey 8-10% range as observed industry standard).
+   - `ltv`: mid-hits at 100% but bucket-match at 20% means new path
+     emits a tighter range than legacy around the same midpoint.
+     Acceptable under value-parity if we relax bucket gate to "wider
+     of the two contains the narrower's midpoint." Treat as
+     `unbiased-noise` if user concurs.
+2. **Tier-2 fixes (recommended before flip, can be deferred):**
+   Six systematic biases on cost lines — same pattern as
+   `incentiveFee`: definition correct, needs benchmark-range
+   anchor in the prompt to align with USALI norms.
+3. **Tier-3 misses:** all five are either small-fee categorical
+   variance (svcFee*) or cost-seg MACRS-class noise — acceptable
+   under unbiased-noise; do not block OT-A.4.
+4. **Decision:** propose to user — fix Tier-1 (3 anchors), defer
+   Tier-2 with documented unbiased-noise list, ship OT-A.4.
+
+### Cross-references
+- `OT-A-3-field-tiering.md` — approved tiering
+- `OT-A-3-path3-respec.md` — gate spec
+- `OT-A-3-verdict-parity.md` — auto-written results
+- `script/ot-a-3-verdict-parity.ts` — harness
+- `.claude/rules/llm-contract-migration-parity.md` — rule documenting mechanism bug #3

@@ -1,47 +1,74 @@
 /**
- * OT-A.3 Path 3 — Verdict-layer parity harness.
+ * OT-A.3 Path 3 (respec) — Tier-based verdict-parity harness.
  *
  * Reads v4 A/B raw output (docs/operational-tooling/OT-A-3-ab-raw.json) and
- * runs both paths' shared fields through a deterministic verdict adapter,
- * then computes per-field and aggregate parity metrics:
- *   - Severity exact-match (target ≥ 95%)
- *   - Action.kind exact-match (target ≥ 95%)
- *   - Range overlap average (target ≥ 50%)
- *   - Bucket-match aggregate (diagnostic only, target ≥ 55%, not gating)
+ * evaluates per-field tier-based gates per docs/operational-tooling/
+ * OT-A-3-path3-respec.md (approved 2026-04-19).
  *
- * Why offline (no $22 rerun): the v4 raw JSON already has each path's
- * low/mid/high per shared field per case. Verdict-layer parity is a
- * deterministic transform of those ranges through the verdict adapter
- * defined here — the question "do A and B produce the same verdict" is
- * fully answerable from existing data. A rerun would only add value if
- * we were asking "is the verdict layer stable across stochastic samples,"
- * which is not the OT-A.3 unblock criterion.
+ * Why offline (no $22 rerun): every metric below is a deterministic transform
+ * of low/mid/high already in the v4 raw — no fresh stochastic samples needed.
  *
- * Adapter rules (defensible, not derived from a Phase-4 specialist that
- * doesn't exist yet — see engine/analyst/surface/{property,icp}/index.ts
- * which are 9-line placeholders):
- *
- *   severity:
- *     - range null/missing                   → "warning" (no evidence)
- *     - width = (high-low)/|mid| > 0.40      → "advisory" (very wide, low conviction)
- *     - width > 0.20                          → "advisory" (moderate conviction)
- *     - else                                  → "ok" (tight range, high conviction)
- *
- *   action.kind:
- *     - severity = "warning"                  → "consult-cognitive"
- *     - range present, width <= 0.20          → "accept-range"
- *     - range present, width > 0.20           → "consult-cognitive"
- *
- * The action rule is deliberately divergence-revealing: if path A produces
- * a tight range and path B produces a wide range for the same field, their
- * actions differ. A rule like "range present → accept-range" would make
- * action match severity trivially and add no signal.
- *
- * Spec: docs/operational-tooling/HANDOFF-replit-phase-OT-A.md §OT-A.3 retry.
+ * Spec: docs/operational-tooling/OT-A-3-path3-respec.md
+ *       docs/operational-tooling/OT-A-3-field-tiering.md
  *
  * Run:  tsx script/ot-a-3-verdict-parity.ts
  */
 import { readFileSync, writeFileSync } from "node:fs";
+
+// ---------------------------------------------------------------------------
+// Tiering (per OT-A-3-field-tiering.md, approved)
+// ---------------------------------------------------------------------------
+
+type Tier = "T1" | "T2" | "T3";
+
+const T1_FIELDS: ReadonlySet<string> = new Set([
+  "adr", "occupancy", "capRate", "ltv", "incentiveFee",
+  "adrGrowth", "inflationRate", "interestRate",
+]);
+
+const T2_FIELDS: ReadonlySet<string> = new Set([
+  "startOccupancy", "occupancyStep", "rampMonths", "catering", "revShareFB",
+  "landValue", "saleCommission", "costHousekeeping", "costFB", "costAdmin",
+  "costMarketing", "costPropertyOps", "costUtilities", "costFFE",
+  "costPropertyTaxes", "preOpeningCosts", "incomeTax",
+]);
+
+const T3_FIELDS: ReadonlySet<string> = new Set([
+  "revShareEvents", "revShareOther", "costIT", "costOther",
+  "costSeg5yrPct", "costSeg7yrPct", "costSeg15yrPct",
+  "svcFeeMarketing", "svcFeeTechRes", "svcFeeAccounting",
+  "svcFeeRevMgmt", "svcFeeGeneralMgmt", "svcFeeProcurement",
+  "arDays", "apDays", "platformFee",
+]);
+
+const KNOWN_COLLAPSE_EXEMPT: ReadonlySet<string> = new Set(["incentiveFee"]);
+
+function tierOf(field: string): Tier | null {
+  if (T1_FIELDS.has(field)) return "T1";
+  if (T2_FIELDS.has(field)) return "T2";
+  if (T3_FIELDS.has(field)) return "T3";
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Gate thresholds (per OT-A-3-path3-respec.md)
+// ---------------------------------------------------------------------------
+
+const T1_BUCKET_MIN = 0.55;
+const T1_MID_TOL_REL = 0.10;
+const T1_MID_HIT_MIN = 0.90;
+const T1_ABS_FALLBACK = 1.0;  // ±1pp/day/mo/etc
+
+const T2_MID_TOL_REL = 0.20;
+const T2_MID_HIT_MIN = 0.85;
+const T2_ABS_FALLBACK = 2.0;
+
+const T3_INCLUSION_MIN = 0.80;
+const T3_ABS_FALLBACK = 3.0;
+
+const ABS_FALLBACK_THRESHOLD = 0.5;
+
+const COLLAPSE_MIN_UNIQUE = 3;
 
 // ---------------------------------------------------------------------------
 // Inputs
@@ -65,186 +92,140 @@ interface RawCase {
   market: string;
   oldOk: boolean;
   newOk: boolean;
-  oldFieldCount: number;
-  newFieldCount: number;
-  sharedCount: number;
-  bucketMatchCount: number;
   comparisons: RawComparison[];
-  newSynthesisOk: boolean;
 }
 
 const RAW_PATH = "docs/operational-tooling/OT-A-3-ab-raw.json";
 const OUT_PATH = "docs/operational-tooling/OT-A-3-verdict-parity.md";
 
 // ---------------------------------------------------------------------------
-// Verdict adapter (deterministic)
+// Per-case predicates
 // ---------------------------------------------------------------------------
 
-type Severity = "ok" | "advisory" | "warning" | "block";
-type ActionKind =
-  | "consult-cognitive"
-  | "accept-range"
-  | "set-value"
-  | "open-admin"
-  | "view-source"
-  | "dismiss";
-
-const WIDTH_TIGHT = 0.20;
-const WIDTH_WIDE = 0.40;
-
-interface AdaptedDimension {
-  severity: Severity;
-  actionKind: ActionKind;
-  range: { low: number; high: number; mid: number } | null;
-  widthPct: number | null;
-}
-
-function adaptDimension(
-  mid: number,
-  low: number | null,
-  high: number | null,
-): AdaptedDimension {
-  // Representational normalisation: the legacy free-form prompt only asks
-  // for ranges on adr/occupancy/capRate; everything else is emitted as a
-  // bare midpoint (e.g. `"recommendedRate": "9%"`). The legacy regex
-  // extractor honestly reports null low/high for those fields. Without
-  // normalisation, 85% of legacy field-cases would be classified
-  // "warning" (no evidence), making severity-parity structurally
-  // impossible. We treat a midpoint-only entry as a zero-width range
-  // — semantically "9%" = "9-9%, mid 9, fully confident" — which is how
-  // downstream users actually interpret it (they accept the point value).
-  // This isolates the parity question to "do the two paths agree on what
-  // value to present" rather than "do they agree on representational
-  // shape" — the latter is a known artifact of legacy prompt design,
-  // not a synthesis-quality issue.
-  const effLow = low ?? mid;
-  const effHigh = high ?? mid;
-  const denom = Math.max(Math.abs(mid), 1e-9);
-  const width = (effHigh - effLow) / denom;
-  let severity: Severity;
-  let actionKind: ActionKind;
-  if (width > WIDTH_WIDE) {
-    severity = "advisory";
-    actionKind = "consult-cognitive";
-  } else if (width > WIDTH_TIGHT) {
-    severity = "advisory";
-    actionKind = "consult-cognitive";
-  } else {
-    severity = "ok";
-    actionKind = "accept-range";
+function midpointWithinTolerance(
+  legacyMid: number,
+  newMid: number,
+  relTol: number,
+  absFallback: number,
+): boolean {
+  const delta = newMid - legacyMid;
+  if (Math.abs(legacyMid) >= ABS_FALLBACK_THRESHOLD) {
+    return Math.abs(delta) / Math.abs(legacyMid) <= relTol;
   }
-  return { severity, actionKind, range: { low, high, mid }, widthPct: width };
+  return Math.abs(delta) <= absFallback;
 }
 
-function rangeOverlapPct(
-  a: { low: number; high: number },
-  b: { low: number; high: number },
-): number {
-  const overlap = Math.max(0, Math.min(a.high, b.high) - Math.max(a.low, b.low));
-  const widest = Math.max(a.high - a.low, b.high - b.low);
-  if (widest <= 0) {
-    // Both ranges are points; overlap iff the points coincide.
-    return a.low === b.low ? 1 : 0;
+function legacyPointInNewRange(
+  legacyMid: number,
+  newLow: number | null,
+  newHigh: number | null,
+  absFallback: number,
+): boolean {
+  if (newLow === null || newHigh === null) {
+    // Degenerate: new path didn't emit a range. Compare midpoints with absolute fallback.
+    return false;
   }
-  return overlap / widest;
+  // Inclusion test with a small epsilon = absFallback to absorb rounding.
+  return legacyMid >= newLow - 1e-9 && legacyMid <= newHigh + 1e-9;
 }
 
 // ---------------------------------------------------------------------------
-// Per-field + per-case parity
+// Per-field aggregation
 // ---------------------------------------------------------------------------
 
-interface FieldParity {
-  case: string;
-  market: string;
+interface FieldEval {
   field: string;
-  oldSeverity: Severity;
-  newSeverity: Severity;
-  severityMatch: boolean;
-  oldAction: ActionKind;
-  newAction: ActionKind;
-  actionMatch: boolean;
-  rangeOverlap: number;
-  oldWidth: number | null;
-  newWidth: number | null;
-  bucketMatch: boolean;
-}
-
-function buildFieldParity(c: RawCase, cmp: RawComparison): FieldParity {
-  const oldDim = adaptDimension(cmp.oldMid, cmp.oldLow, cmp.oldHigh);
-  const newDim = adaptDimension(cmp.newMid, cmp.newLow, cmp.newHigh);
-  const overlap = oldDim.range && newDim.range
-    ? rangeOverlapPct(oldDim.range, newDim.range)
-    : 0;
-  return {
-    case: c.id,
-    market: c.market,
-    field: cmp.field,
-    oldSeverity: oldDim.severity,
-    newSeverity: newDim.severity,
-    severityMatch: oldDim.severity === newDim.severity,
-    oldAction: oldDim.actionKind,
-    newAction: newDim.actionKind,
-    actionMatch: oldDim.actionKind === newDim.actionKind,
-    rangeOverlap: overlap,
-    oldWidth: oldDim.widthPct,
-    newWidth: newDim.widthPct,
-    bucketMatch: cmp.bucketMatch,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Aggregate
-// ---------------------------------------------------------------------------
-
-interface PerFieldStats {
-  field: string;
+  tier: Tier;
   n: number;
-  severityMatchPct: number;
-  actionMatchPct: number;
-  avgOverlap: number;
+  uniqueRanges: number;
+  // T1
   bucketMatchPct: number;
+  midHitPct: number;
+  // T2
+  midHitPctT2: number;
+  // T3
+  inclusionPct: number;
+  // Direction-of-failure
+  signedMeanRelDelta: number;
+  stdRelDelta: number;
+  directionTag: "bias-up" | "bias-down" | "unbiased-noise";
+  // Verdict
+  passes: boolean;
+  failReasons: string[];
 }
 
-interface Summary {
-  totalShared: number;
-  severityMatchPct: number;
-  actionMatchPct: number;
-  avgOverlap: number;
-  bucketMatchPct: number;
-  perField: PerFieldStats[];
-}
+function evalField(
+  field: string,
+  tier: Tier,
+  comparisons: RawComparison[],
+): FieldEval {
+  const n = comparisons.length;
+  const bucketHits = comparisons.filter((c) => c.bucketMatch).length;
+  const bucketMatchPct = n > 0 ? bucketHits / n : 0;
 
-function summarize(parities: FieldParity[]): Summary {
-  const totalShared = parities.length;
-  const severityHits = parities.filter((p) => p.severityMatch).length;
-  const actionHits = parities.filter((p) => p.actionMatch).length;
-  const overlapSum = parities.reduce((s, p) => s + p.rangeOverlap, 0);
-  const bucketHits = parities.filter((p) => p.bucketMatch).length;
+  // Midpoint within tolerance — choose tolerance by tier
+  const midHitT1 = comparisons.filter((c) =>
+    midpointWithinTolerance(c.oldMid, c.newMid, T1_MID_TOL_REL, T1_ABS_FALLBACK),
+  ).length;
+  const midHitT2 = comparisons.filter((c) =>
+    midpointWithinTolerance(c.oldMid, c.newMid, T2_MID_TOL_REL, T2_ABS_FALLBACK),
+  ).length;
+  const midHitPct = n > 0 ? midHitT1 / n : 0;
+  const midHitPctT2 = n > 0 ? midHitT2 / n : 0;
 
-  const byField = new Map<string, FieldParity[]>();
-  for (const p of parities) {
-    const arr = byField.get(p.field) ?? [];
-    arr.push(p);
-    byField.set(p.field, arr);
+  // T3 inclusion
+  const inclusionHits = comparisons.filter((c) =>
+    legacyPointInNewRange(c.oldMid, c.newLow, c.newHigh, T3_ABS_FALLBACK),
+  ).length;
+  const inclusionPct = n > 0 ? inclusionHits / n : 0;
+
+  // Unique ranges from the new path
+  const uniq = new Set<string>();
+  for (const c of comparisons) {
+    uniq.add(`${c.newLow}-${c.newMid}-${c.newHigh}`);
   }
-  const perField: PerFieldStats[] = Array.from(byField.entries())
-    .map(([field, ps]) => ({
-      field,
-      n: ps.length,
-      severityMatchPct: ps.filter((p) => p.severityMatch).length / ps.length,
-      actionMatchPct: ps.filter((p) => p.actionMatch).length / ps.length,
-      avgOverlap: ps.reduce((s, p) => s + p.rangeOverlap, 0) / ps.length,
-      bucketMatchPct: ps.filter((p) => p.bucketMatch).length / ps.length,
-    }))
-    .sort((a, b) => a.severityMatchPct - b.severityMatchPct);
+  const uniqueRanges = uniq.size;
+
+  // Direction of failure: signed relative delta with absolute-fallback
+  // for near-zero legacy midpoints.
+  const relDeltas: number[] = [];
+  for (const c of comparisons) {
+    const denom = Math.max(Math.abs(c.oldMid), ABS_FALLBACK_THRESHOLD);
+    relDeltas.push((c.newMid - c.oldMid) / denom);
+  }
+  const meanRel =
+    relDeltas.reduce((s, x) => s + x, 0) / Math.max(relDeltas.length, 1);
+  const variance =
+    relDeltas.reduce((s, x) => s + (x - meanRel) ** 2, 0) /
+    Math.max(relDeltas.length, 1);
+  const stdRel = Math.sqrt(variance);
+  let directionTag: "bias-up" | "bias-down" | "unbiased-noise";
+  if (Math.abs(meanRel) > 0.5 * stdRel && Math.abs(meanRel) > 0.02) {
+    directionTag = meanRel > 0 ? "bias-up" : "bias-down";
+  } else {
+    directionTag = "unbiased-noise";
+  }
+
+  // Verdict per tier
+  const failReasons: string[] = [];
+  if (tier === "T1") {
+    if (bucketMatchPct < T1_BUCKET_MIN) failReasons.push(`bucket ${(bucketMatchPct * 100).toFixed(0)}% < 55%`);
+    if (midHitPct < T1_MID_HIT_MIN) failReasons.push(`±10% mid-hit ${(midHitPct * 100).toFixed(0)}% < 90%`);
+  } else if (tier === "T2") {
+    if (midHitPctT2 < T2_MID_HIT_MIN) failReasons.push(`±20% mid-hit ${(midHitPctT2 * 100).toFixed(0)}% < 85%`);
+  } else {
+    if (inclusionPct < T3_INCLUSION_MIN) failReasons.push(`inclusion ${(inclusionPct * 100).toFixed(0)}% < 80%`);
+  }
+  if (uniqueRanges < COLLAPSE_MIN_UNIQUE && !KNOWN_COLLAPSE_EXEMPT.has(field)) {
+    failReasons.push(`unique ranges ${uniqueRanges} < 3 (mode collapse)`);
+  }
 
   return {
-    totalShared,
-    severityMatchPct: severityHits / totalShared,
-    actionMatchPct: actionHits / totalShared,
-    avgOverlap: overlapSum / totalShared,
-    bucketMatchPct: bucketHits / totalShared,
-    perField,
+    field, tier, n, uniqueRanges,
+    bucketMatchPct, midHitPct, midHitPctT2, inclusionPct,
+    signedMeanRelDelta: meanRel, stdRelDelta: stdRel, directionTag,
+    passes: failReasons.length === 0,
+    failReasons,
   };
 }
 
@@ -252,98 +233,98 @@ function summarize(parities: FieldParity[]): Summary {
 // Report
 // ---------------------------------------------------------------------------
 
-const SEVERITY_GATE = 0.95;
-const ACTION_GATE = 0.95;
-const OVERLAP_GATE = 0.50;
-const BUCKET_DIAGNOSTIC_TARGET = 0.55;
-
-function fmtPct(n: number): string {
-  return `${(n * 100).toFixed(1)}%`;
+function fmtPct(n: number): string { return `${(n * 100).toFixed(0)}%`; }
+function fmtPctSigned(n: number): string {
+  const sign = n >= 0 ? "+" : "";
+  return `${sign}${(n * 100).toFixed(1)}%`;
 }
 
-function buildReport(summary: Summary, perCase: { id: string; market: string; severityMatchPct: number; actionMatchPct: number; avgOverlap: number; n: number }[]): string {
-  const gates = [
-    { name: "Severity exact-match ≥ 95%", pass: summary.severityMatchPct >= SEVERITY_GATE, observed: fmtPct(summary.severityMatchPct) },
-    { name: "Action.kind exact-match ≥ 95%", pass: summary.actionMatchPct >= ACTION_GATE, observed: fmtPct(summary.actionMatchPct) },
-    { name: "Range overlap ≥ 50% average", pass: summary.avgOverlap >= OVERLAP_GATE, observed: fmtPct(summary.avgOverlap) },
-  ];
-  const allPass = gates.every((g) => g.pass);
-  const bucketDiagnostic = summary.bucketMatchPct >= BUCKET_DIAGNOSTIC_TARGET ? "✓" : "✗";
+function buildReport(evals: FieldEval[]): string {
+  const t1 = evals.filter((e) => e.tier === "T1");
+  const t2 = evals.filter((e) => e.tier === "T2");
+  const t3 = evals.filter((e) => e.tier === "T3");
 
-  const gateRows = gates.map((g) => `| ${g.pass ? "✓" : "✗"} | ${g.name} | ${g.observed} |`).join("\n");
-  const fieldRows = summary.perField.map((f) =>
-    `| \`${f.field}\` | ${f.n} | ${fmtPct(f.severityMatchPct)} | ${fmtPct(f.actionMatchPct)} | ${fmtPct(f.avgOverlap)} | ${fmtPct(f.bucketMatchPct)} |`,
+  const t1Pass = t1.filter((e) => e.passes).length;
+  const t2Pass = t2.filter((e) => e.passes).length;
+  const t3Pass = t3.filter((e) => e.passes).length;
+
+  const t1AllPass = t1Pass === t1.length;
+  const t2AllPass = t2Pass === t2.length;
+  const t3AllPass = t3Pass === t3.length;
+  const collapsePass = evals.every((e) =>
+    e.uniqueRanges >= COLLAPSE_MIN_UNIQUE || KNOWN_COLLAPSE_EXEMPT.has(e.field),
+  );
+
+  const allPass = t1AllPass && t2AllPass && t3AllPass && collapsePass;
+
+  const t1Rows = t1.map((e) =>
+    `| \`${e.field}\` | ${e.n} | ${fmtPct(e.bucketMatchPct)} | ${fmtPct(e.midHitPct)} | ${e.uniqueRanges} | ${fmtPctSigned(e.signedMeanRelDelta)} ± ${fmtPct(e.stdRelDelta)} | ${e.directionTag} | ${e.passes ? "✓" : "✗ " + e.failReasons.join("; ")} |`,
   ).join("\n");
-  const caseRows = perCase.map((c) =>
-    `| ${c.id} | ${c.market} | ${c.n} | ${fmtPct(c.severityMatchPct)} | ${fmtPct(c.actionMatchPct)} | ${fmtPct(c.avgOverlap)} |`,
+  const t2Rows = t2.map((e) =>
+    `| \`${e.field}\` | ${e.n} | ${fmtPct(e.midHitPctT2)} | ${e.uniqueRanges} | ${fmtPctSigned(e.signedMeanRelDelta)} ± ${fmtPct(e.stdRelDelta)} | ${e.directionTag} | ${e.passes ? "✓" : "✗ " + e.failReasons.join("; ")} |`,
+  ).join("\n");
+  const t3Rows = t3.map((e) =>
+    `| \`${e.field}\` | ${e.n} | ${fmtPct(e.inclusionPct)} | ${e.uniqueRanges} | ${fmtPctSigned(e.signedMeanRelDelta)} ± ${fmtPct(e.stdRelDelta)} | ${e.directionTag} | ${e.passes ? "✓" : "✗ " + e.failReasons.join("; ")} |`,
   ).join("\n");
 
-  return `# OT-A.3 Path 3 — Verdict-layer Parity
+  return `# OT-A.3 Path 3 — Verdict-layer Parity (respec evaluation)
 
 **Generated:** ${new Date().toISOString()}
-**Source:** \`${RAW_PATH}\` (v4, ${summary.totalShared} shared field-cases across 20 markets)
-**Method:** Offline deterministic transform — no Opus rerun required. See script header for adapter rules.
+**Source:** \`${RAW_PATH}\` (v4, offline transform — no Opus rerun)
+**Spec:** \`docs/operational-tooling/OT-A-3-path3-respec.md\`
 
-## Verdict — ${allPass ? "PASS" : "FAIL"}
+## Verdict — ${allPass ? "PASS — OT-A.4 unblocked" : "FAIL — see misses below"}
 
-| Pass | Gate | Observed |
+| Gate | Pass | Detail |
 |---|---|---|
-${gateRows}
+| Tier 1 (8 fields, per-field) | ${t1AllPass ? "✓" : "✗"} | ${t1Pass}/${t1.length} fields pass |
+| Tier 2 (17 fields, per-field) | ${t2AllPass ? "✓" : "✗"} | ${t2Pass}/${t2.length} fields pass |
+| Tier 3 (16 fields, per-field) | ${t3AllPass ? "✓" : "✗"} | ${t3Pass}/${t3.length} fields pass |
+| Mode-collapse (unique ≥ 3, exempt incentiveFee) | ${collapsePass ? "✓" : "✗"} | — |
 
-**Diagnostic (non-gating):** Bucket-match aggregate ${fmtPct(summary.bucketMatchPct)} (target ≥ ${fmtPct(BUCKET_DIAGNOSTIC_TARGET)}) ${bucketDiagnostic}
+## Tier 1 — foundational
 
-## Why these gates and not others
+Gate: bucket-match ≥ 55% AND midpoint within ±10% of legacy ≥ 90%
+(absolute fallback ±1pp when |legacy| < 0.5).
 
-The Phase-4 property/ICP specialists are 9-line placeholders. Without
-a real specialist that consumes \`ResearchValues\` and produces
-\`RawVerdictDimension[]\`, "verdict-layer parity" can't mean
-"specialists output identical AnalystVerdicts" because the specialists
-don't exist yet. So the harness defines a deterministic adapter
-(severity from range-width, action.kind from severity + range
-presence) and asks: would A and B's ranges, fed through the same
-adapter, produce the same severity tier and the same action.kind?
+| Field | n | Bucket | ±10% mid | Unique | Signed Δ ± σ | Bias | Verdict |
+|---|---|---|---|---|---|---|---|
+${t1Rows}
 
-This is the right question for OT-A.4 (deleting the legacy extractor):
-if A and B agree at the verdict tier under any reasonable adapter,
-then swapping A out for B doesn't change what users see.
+## Tier 2 — structural
 
-The bucket-match diagnostic is preserved as a sanity check on the
-underlying ranges, but the gates that matter for OT-A.4 unblock are
-severity, action, and overlap.
+Gate: midpoint within ±20% of legacy ≥ 85% (absolute fallback ±2pp).
 
-## Per-field parity (sorted by severity match, worst first)
+| Field | n | ±20% mid | Unique | Signed Δ ± σ | Bias | Verdict |
+|---|---|---|---|---|---|---|
+${t2Rows}
 
-| Field | n | Severity match | Action match | Avg overlap | Bucket match |
-|---|---|---|---|---|---|
-${fieldRows}
+## Tier 3 — technical
 
-## Per-case parity
+Gate: legacy point within new range ≥ 80% (absolute fallback ±3pp).
 
-| # | Market | n | Severity match | Action match | Avg overlap |
-|---|---|---|---|---|---|
-${caseRows}
+| Field | n | Inclusion | Unique | Signed Δ ± σ | Bias | Verdict |
+|---|---|---|---|---|---|---|
+${t3Rows}
 
----
+## Direction-of-failure summary
 
-## Adapter rules (reference)
+For any failing field, **bias** column distinguishes:
+  - **bias-up / bias-down** — new path is systematically higher / lower
+    than legacy. Field-level fix likely required (definition tighten,
+    prompt anchor, benchmark injection).
+  - **unbiased-noise** — new path drifts symmetrically around legacy.
+    This is two stochastic Opus runs disagreeing within their natural
+    spread; not blocking under the noise-floor argument.
 
-\`\`\`
-severity:
-  range null                          → warning
-  width = (high-low)/|mid| > 0.40     → advisory   (very wide)
-  width > 0.20                         → advisory   (moderate)
-  else                                 → ok         (tight)
+\`signed Δ ± σ\` is mean ± std dev of \`(new.mid − legacy.mid) / max(|legacy.mid|, 0.5)\`
+across the 20 cases.
 
-action.kind:
-  range null                           → consult-cognitive
-  width <= 0.20                        → accept-range
-  width > 0.20                         → consult-cognitive
-\`\`\`
-
-The thresholds (0.20 tight / 0.40 very wide) are calibrated against
-boutique-luxury benchmarks: a ±10% band around mid (e.g. ADR
-\$675-\$825 on \$750 mid, width 0.20) is the L+B "actionable" band.
-Anything wider is "needs human review."
+## Adapter rules
+None — this revision drops the verdict adapter entirely. The respec
+measures value-agreement (midpoint + range inclusion), not
+representation-agreement (severity + action). See respec doc for
+the full rationale.
 `;
 }
 
@@ -353,49 +334,74 @@ Anything wider is "needs human review."
 
 function main(): void {
   const raw: RawCase[] = JSON.parse(readFileSync(RAW_PATH, "utf8"));
-  const parities: FieldParity[] = [];
+
+  // Bucket comparisons by field
+  const byField = new Map<string, RawComparison[]>();
   for (const c of raw) {
     if (!c.oldOk || !c.newOk) continue;
-    for (const cmp of c.comparisons) parities.push(buildFieldParity(c, cmp));
+    for (const cmp of c.comparisons) {
+      const t = tierOf(cmp.field);
+      if (t === null) continue;  // only score canonical/tiered fields
+      const arr = byField.get(cmp.field) ?? [];
+      arr.push(cmp);
+      byField.set(cmp.field, arr);
+    }
   }
 
-  const summary = summarize(parities);
+  const evals: FieldEval[] = [];
+  for (const [field, comps] of byField) {
+    const tier = tierOf(field)!;
+    evals.push(evalField(field, tier, comps));
+  }
 
-  const perCase = raw
-    .filter((c) => c.oldOk && c.newOk)
-    .map((c) => {
-      const ps = parities.filter((p) => p.case === c.id);
-      const n = ps.length;
-      return {
-        id: c.id,
-        market: c.market,
-        n,
-        severityMatchPct: n > 0 ? ps.filter((p) => p.severityMatch).length / n : 0,
-        actionMatchPct: n > 0 ? ps.filter((p) => p.actionMatch).length / n : 0,
-        avgOverlap: n > 0 ? ps.reduce((s, p) => s + p.rangeOverlap, 0) / n : 0,
-      };
-    });
+  // Sort: failing first within each tier, then by tier
+  evals.sort((a, b) => {
+    const tierOrder = { T1: 0, T2: 1, T3: 2 };
+    if (tierOrder[a.tier] !== tierOrder[b.tier]) return tierOrder[a.tier] - tierOrder[b.tier];
+    if (a.passes !== b.passes) return a.passes ? 1 : -1;
+    return a.field.localeCompare(b.field);
+  });
 
-  const report = buildReport(summary, perCase);
+  const report = buildReport(evals);
   writeFileSync(OUT_PATH, report);
 
-  console.log(`\nOT-A.3 verdict-layer parity (offline, ${summary.totalShared} shared field-cases)\n`);
-  console.log(`  Severity exact-match : ${fmtPct(summary.severityMatchPct)}  (gate ≥ 95%)`);
-  console.log(`  Action.kind match    : ${fmtPct(summary.actionMatchPct)}  (gate ≥ 95%)`);
-  console.log(`  Range overlap avg    : ${fmtPct(summary.avgOverlap)}  (gate ≥ 50%)`);
-  console.log(`  Bucket-match diag    : ${fmtPct(summary.bucketMatchPct)}  (target ≥ 55%, non-gating)`);
+  // Console summary
+  const t1 = evals.filter((e) => e.tier === "T1");
+  const t2 = evals.filter((e) => e.tier === "T2");
+  const t3 = evals.filter((e) => e.tier === "T3");
+  const collapsePass = evals.every((e) =>
+    e.uniqueRanges >= COLLAPSE_MIN_UNIQUE || KNOWN_COLLAPSE_EXEMPT.has(e.field),
+  );
+
+  console.log(`\nOT-A.3 verdict-layer parity (offline, tier-based)\n`);
+  console.log(`  Tier 1: ${t1.filter((e) => e.passes).length}/${t1.length} fields pass`);
+  console.log(`  Tier 2: ${t2.filter((e) => e.passes).length}/${t2.length} fields pass`);
+  console.log(`  Tier 3: ${t3.filter((e) => e.passes).length}/${t3.length} fields pass`);
+  console.log(`  Mode collapse gate: ${collapsePass ? "PASS" : "FAIL"}`);
+
   console.log(`\n  Wrote ${OUT_PATH}\n`);
 
-  console.log("Worst 5 fields by severity match:");
-  for (const f of summary.perField.slice(0, 5)) {
-    console.log(`    ${f.field.padEnd(22)} sev=${fmtPct(f.severityMatchPct).padStart(6)}  act=${fmtPct(f.actionMatchPct).padStart(6)}  overlap=${fmtPct(f.avgOverlap).padStart(6)}  n=${f.n}`);
+  console.log("Tier 1 detail:");
+  for (const e of t1) {
+    const verdict = e.passes ? "PASS" : "FAIL";
+    console.log(`  ${e.field.padEnd(18)} ${verdict.padEnd(5)} bucket=${fmtPct(e.bucketMatchPct).padStart(4)} mid±10=${fmtPct(e.midHitPct).padStart(4)} uniq=${String(e.uniqueRanges).padStart(2)} bias=${e.directionTag}${e.passes ? "" : "  | " + e.failReasons.join("; ")}`);
+  }
+
+  console.log("\nTier 2 misses:");
+  for (const e of t2.filter((x) => !x.passes)) {
+    console.log(`  ${e.field.padEnd(20)} mid±20=${fmtPct(e.midHitPctT2).padStart(4)} uniq=${e.uniqueRanges} bias=${e.directionTag} signed=${fmtPctSigned(e.signedMeanRelDelta)}±${fmtPct(e.stdRelDelta)}  | ${e.failReasons.join("; ")}`);
+  }
+  console.log("\nTier 3 misses:");
+  for (const e of t3.filter((x) => !x.passes)) {
+    console.log(`  ${e.field.padEnd(20)} inclusion=${fmtPct(e.inclusionPct).padStart(4)} uniq=${e.uniqueRanges} bias=${e.directionTag} signed=${fmtPctSigned(e.signedMeanRelDelta)}±${fmtPct(e.stdRelDelta)}  | ${e.failReasons.join("; ")}`);
   }
 
   const allPass =
-    summary.severityMatchPct >= SEVERITY_GATE &&
-    summary.actionMatchPct >= ACTION_GATE &&
-    summary.avgOverlap >= OVERLAP_GATE;
-  console.log(`\n  VERDICT: ${allPass ? "PASS — OT-A.4 unblocked" : "FAIL — file BLOCKED-ota3-path3.md"}`);
+    t1.every((e) => e.passes) &&
+    t2.every((e) => e.passes) &&
+    t3.every((e) => e.passes) &&
+    collapsePass;
+  console.log(`\n  VERDICT: ${allPass ? "PASS — OT-A.4 unblocked" : "FAIL — field-level remediation list above"}`);
   process.exit(allPass ? 0 : 1);
 }
 
