@@ -105,3 +105,9 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - Synthesis branch behind USE_AI_SDK_SYNTHESIS env flag (default OFF).
 - Schema landed earlier in 595bd061; wiring uses streamObject + AI SDK v6 providerOptions for ephemeral cache_control.
 - Five gates GREEN. A/B parity run on 20 inputs is **PENDING USER AUTHORIZATION** — autonomous Opus spend (~\$12-40) was held back. Go/no-go for OT-A.4 deferred until A/B documented.
+
+## Session: April 19, 2026 (cont.) — OT-A.3 A/B parity run (commit 12363142) — DOES NOT PASS
+- 11/20 cases captured before Vercel AI Gateway hit insufficient_funds (HTTP 402); top-up required.
+- Two clear FAILs even on partial sample: latency regression +190% (vs ≤20% target) + field-name divergence (7/11 cases produce zero shared keys because SynthesisOutputSchema.field is an unrestricted z.string()).
+- OT-A.4 BLOCKED. Required remediation: (a) tighten schema to `field: z.enum([...KNOWN_KEYS])`, (b) add field-key contract to system prompt, (c) consider trimming reasoning.max + dropping narrative[] to fix latency, (d) Gateway top-up.
+- Structural OT-A.3 commit (f1cd4aee) safe in place; flag default OFF; no production behaviour change.
