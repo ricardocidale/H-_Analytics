@@ -30,10 +30,6 @@ args = "Start application"
 task = "workflow.run"
 args = "Parity Check"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "OT-A.3 v3 Harness"
-
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -98,17 +94,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "tsx script/parity-check.ts"
-
-[[workflows.workflow]]
-name = "OT-A.3 v3 Harness"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "tsx script/ot-a-3-ab-harness.ts"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [agent]
 mockupState = "FULLSTACK"
