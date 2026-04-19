@@ -361,12 +361,18 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 **Architecture spine:** `docs/architecture/ANALYST.md` (two-tier: Cognitive Engine + Surface Specialists). Per-component specs under `docs/architecture/analyst/`. Decision record: `docs/architecture/decisions/ADR-001-analyst-two-tier.md` (Accepted).
 
 **Phase status:**
-- ✅ Phase 1a — docs spine + 9 per-component specs + ADR-001 (15 files under `docs/architecture/`)
-- ⏸ Phase 1b — `.claude/skills/analyst/` + 2 new rules (handed off to Claude Code; brief at `docs/architecture/analyst/HANDOFF-claude-code-phase-1b.md`)
-- ⏳ Phase 2 — `engine/analyst/` skeleton + CODEOWNERS + naming-lint + ADR-002 (Replit Agent, after 1b)
-- ⏳ Phase 3 — `AnalystVerdict` contract + Surface Router + Voice Renderer + backfill 2 evaluators + persona-keyed test bench
-- ⏳ Phase 4 — build remaining Surface Specialists incrementally; Norfolk audit Phase 3 (Compensation) ships first under new architecture
+- ✅ Phase 1a — docs spine + 9 per-component specs + ADR-001 (Replit, commits `68f983fc`, `a230d968`)
+- ✅ Phase 1b — `.claude/skills/analyst/` (12 files) + `analyst-team.md` + `analyst-verdict-contract.md` (Claude Code, commits `14dc1f4b`, `c9a7d12b`)
+- ✅ Phase 2 — `engine/analyst/` skeleton + CODEOWNERS + naming-lint + ADR-002 (Replit, commit `5ba18f29`)
+- ✅ Phase 3a — `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + ADR-003 + 53 tests (Claude Code, commits `d220f4b1`, `cc6d5a0e`). Contract frozen.
+- ✅ Phase 3b — Funding + Revenue Specialists backfilled to `AnalystVerdict`; `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten on the contract (Replit, commit `ee0c6573`). Five gates green.
+- ⏳ Phase 4 — build remaining Surface Specialists incrementally; Compensation ships first. Persona resolution (currently hardcoded L+B/luxury/US) + verdict-cache table are deferred follow-ups.
 - ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + orchestrator cache + research-history reindex + guidance↔engine seam doc
+
+**Parallel workstream — Operational Tooling (OT):**
+- 🟡 OT-A active — Vercel AI SDK + AI Gateway adoption. Anthropic native prompt caching → SDK plumbing → synthesis migration behind flag → cleanup. Touches `server/ai/` only. Handoff: `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md`. Awaiting Replit execution.
+- ⏸ OT-B — Promptfoo PR-gate on persona drift (queued after OT-A)
+- ⏸ OT-C — Braintrust adoption decision (data-driven after OT-A + OT-B)
 
 **Engineering-discipline skills (project-agnostic, reusable in any codebase) under `.agents/skills/`:**
 - `pre-commit-gates/` — five-gate pattern, no `--no-verify`, BLOCKED.md escalation
@@ -378,11 +384,17 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 
 ## Recent Changes
 
-**Analyst Architecture Phase 1a (April 19, 2026):**
-- 15 files under `docs/architecture/`: spine (`ANALYST.md`), 9 per-component specs (`analyst/*.md`), ADR-001 (Accepted), ADR template, Phase 1b handoff brief.
-- Two-tier architecture: Cognitive Engine (single research/inference brain) + Surface Specialists (per-surface evaluators) joined by `AnalystVerdict` contract; Voice Renderer enforces singular user-facing voice.
-- 4 reusable engineering-discipline skills extracted to `.agents/skills/` (pre-commit-gates, cross-check-invariants, architecture-decision-records, agent-handoff-briefs).
-- Phase 1b (skill files under `.claude/skills/analyst/` + 2 new rules) handed off to Claude Code.
+**Analyst Architecture Phases 1-3b complete (April 19, 2026):**
+- Phase 1a (Replit): 15 files under `docs/architecture/` — spine, 9 per-component specs, ADR-001, ADR template, 3b handoff brief. Two-tier architecture locked.
+- Phase 1b (Claude Code): 12 skill files under `.claude/skills/analyst/` + `analyst-team.md` + `analyst-verdict-contract.md`. 4 reusable engineering-discipline skills extracted to `.agents/skills/`.
+- Phase 2 (Replit): `engine/analyst/{contracts,router,voice,quality,surface}/` skeleton + CODEOWNERS + naming-lint + ADR-002.
+- Phase 3a (Claude Code): `AnalystVerdict` contract (Zod + branded `VoiceRenderedString` + `buildAnalystVerdict` factory), `createSurfaceRouter` (pure dispatch + conviction-floor downgrade + multi-specialist aggregation), `createVoiceRenderer` (21 forbidden-pattern runtime enforcement, dev-throws-prod-sanitizes), `createQualityScorer` (6-component weighted score). 53 tests. ADR-003 Accepted.
+- Phase 3b (Replit): Funding + Revenue Specialists wrap legacy watchdog evaluators via `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten; persona-keyed L+B tests now exercise real Specialists end-to-end. `save_anyway` kept OUT of the action union (UI-only ghost button via `onProceedAnyway`). Deferred: persona resolution (hardcoded L+B/luxury/US today), verdict-cache table, full `/save-tab` route migration to all tabs.
+
+**Operational Tooling OT-A handoff landed (April 19, 2026):**
+- `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md` — Vercel AI SDK + AI Gateway adoption plan (Claude Code authored). Four sub-tasks: native Anthropic prompt caching, SDK + Gateway plumbing, synthesis migration behind `USE_AI_SDK_SYNTHESIS` flag with 20-case A/B, conditional cleanup. Amendment 1 includes the full `SynthesisOutputSchema` for verbatim paste.
+- Parallel to Phase 4 — OT-A touches `server/ai/` only; Phase 4 operates in `engine/analyst/surface/`. No file overlap.
+- `AI_GATEWAY_API_KEY` in Replit Secrets. Awaiting Replit kickoff.
 
 **CI Hygiene & Documentation (April 15, 2026):**
 - `script/ci-hygiene.ts` auto-fixes ESLint unused vars/imports, secret scanner false positives, TypeScript errors after external code pulls. Skill: `.agents/skills/ci-hygiene/SKILL.md`.
