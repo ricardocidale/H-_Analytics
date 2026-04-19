@@ -395,13 +395,13 @@ function AmenityCard({
                 <span className="text-xs text-muted-foreground">$</span>
                 <CurrencyInput
                   value={config[field.key as keyof IcpConfig] as number}
-                  onChange={(v) => updateConfig(field.key as keyof IcpConfig, v as any)}
+                  onChange={(v) => updateConfig(field.key as keyof IcpConfig, v as IcpConfig[keyof IcpConfig])}
                 />
               </div>
             ) : (
               <NumberInput
                 value={config[field.key as keyof IcpConfig] as number}
-                onChange={(v) => updateConfig(field.key as keyof IcpConfig, v as any)}
+                onChange={(v) => updateConfig(field.key as keyof IcpConfig, v as IcpConfig[keyof IcpConfig])}
                 step={field.suffix === "%" && !field.key.includes("Share") ? 1 : undefined}
               />
             )}
@@ -413,13 +413,13 @@ function AmenityCard({
                     <span className="text-xs text-muted-foreground">$</span>
                     <CurrencyInput
                       value={config[field.pair as keyof IcpConfig] as number}
-                      onChange={(v) => updateConfig(field.pair as keyof IcpConfig, v as any)}
+                      onChange={(v) => updateConfig(field.pair as keyof IcpConfig, v as IcpConfig[keyof IcpConfig])}
                     />
                   </div>
                 ) : (
                   <NumberInput
                     value={config[field.pair as keyof IcpConfig] as number}
-                    onChange={(v) => updateConfig(field.pair as keyof IcpConfig, v as any)}
+                    onChange={(v) => updateConfig(field.pair as keyof IcpConfig, v as IcpConfig[keyof IcpConfig])}
                   />
                 )}
               </div>
@@ -539,9 +539,9 @@ function AmenitiesTab({
 
                 const handlePriorityChange = (v: Priority) => {
                   if (field.type === "priority") {
-                    updateConfig(field.key as keyof IcpConfig, v as any);
+                    updateConfig(field.key as keyof IcpConfig, v as IcpConfig[keyof IcpConfig]);
                   } else if (field.linkedPriority) {
-                    updateConfig(field.linkedPriority as keyof IcpConfig, v as any);
+                    updateConfig(field.linkedPriority as keyof IcpConfig, v as IcpConfig[keyof IcpConfig]);
                   }
                 };
 

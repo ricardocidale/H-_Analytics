@@ -227,7 +227,14 @@ export default function PropertyEdit() {
     if (!research?.content) {
       return baseDefaults;
     }
-    const c = research.content;
+    type ResearchContentExt = typeof research.content & {
+      eventDemandAnalysis?: { recommendedRevenueShare?: string; recommendedPercent?: string };
+      fbRevenueAnalysis?: { recommendedPercent?: string };
+      cateringAnalysis?: { fbRevenueShare?: string; recommendedBoostPercent?: string };
+      ancillaryRevenueAnalysis?: { recommendedPercent?: string };
+      dispositionAnalysis?: { recommendedCommission?: string };
+    };
+    const c = research.content as ResearchContentExt;
     const parseRange = (rangeStr: string | undefined): { low: number; high: number; mid: number } | null => {
       if (!rangeStr) return null;
       const nums = rangeStr.replace(/[^0-9.,\-–]/g, ' ').split(/[\s–\-]+/).map(s => parseFloat(s.replace(/,/g, ''))).filter(n => !isNaN(n));
@@ -307,25 +314,25 @@ export default function PropertyEdit() {
         return pct != null ? { display: s, mid: pct } : null;
       })(),
       revShareEvents: (() => {
-        const ev = (c as any).eventDemandAnalysis?.recommendedRevenueShare ?? (c as any).eventDemandAnalysis?.recommendedPercent;
+        const ev = c.eventDemandAnalysis?.recommendedRevenueShare ?? c.eventDemandAnalysis?.recommendedPercent;
         if (!ev) return null;
         const pct = parsePct(ev);
         return pct != null ? { display: ev, mid: pct } : null;
       })(),
       revShareFB: (() => {
-        const fb = (c as any).fbRevenueAnalysis?.recommendedPercent ?? (c as any).cateringAnalysis?.fbRevenueShare;
+        const fb = c.fbRevenueAnalysis?.recommendedPercent ?? c.cateringAnalysis?.fbRevenueShare;
         if (!fb) return null;
         const pct = parsePct(fb);
         return pct != null ? { display: fb, mid: pct } : null;
       })(),
       revShareOther: (() => {
-        const other = (c as any).ancillaryRevenueAnalysis?.recommendedPercent;
+        const other = c.ancillaryRevenueAnalysis?.recommendedPercent;
         if (!other) return null;
         const pct = parsePct(other);
         return pct != null ? { display: other, mid: pct } : null;
       })(),
       saleCommission: (() => {
-        const comm = (c as any).dispositionAnalysis?.recommendedCommission ?? c.capRateAnalysis?.saleCommission;
+        const comm = c.dispositionAnalysis?.recommendedCommission ?? c.capRateAnalysis?.saleCommission;
         if (!comm) return null;
         const pct = parsePct(comm);
         return pct != null ? { display: comm, mid: pct } : null;
@@ -586,7 +593,7 @@ export default function PropertyEdit() {
                   See exactly what data and instructions the AI uses when researching this property's market.
                 </TooltipContent>
               </Tooltip>
-              {research?.content && !((research.content as any)?.rawResponse) && (
+              {research?.content && !((research.content as { rawResponse?: unknown })?.rawResponse) && (
                 <Button
                   variant="default"
                   onClick={() => setShowApplyDialog(true)}

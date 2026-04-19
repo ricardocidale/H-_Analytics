@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess, checkPropertyEditAccess, getAuthUser } from "../auth";
-import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions } from "@shared/schema";
+import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions, type ResearchValueEntry } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 import { logActivity, logAndSendError, parseRouteId } from "./helpers";
@@ -160,10 +160,10 @@ export function register(app: Express) {
         ...validation.data,
         ...mergedData,
         userId: isAdminRole(user.role) ? null : user.id,
-        researchValues: (validation.data as any).researchValues ?? {},
+        researchValues: (validation.data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
       };
-      const suggestion = suggestStarRating(createData as any);
-      (createData as any).starRatingSuggested = suggestion.rating;
+      const suggestion = suggestStarRating(createData as Parameters<typeof suggestStarRating>[0]);
+      (createData as typeof createData & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
 
       const property = await storage.createProperty(createData);
 
@@ -265,7 +265,7 @@ export function register(app: Express) {
         return res.status(400).json({ error: error.message });
       }
       const merged = { ...existingProp, ...validation.data };
-      const suggestion = suggestStarRating(merged as any);
+      const suggestion = suggestStarRating(merged as Parameters<typeof suggestStarRating>[0]);
       const updateData: Record<string, unknown> = { ...validation.data, starRatingSuggested: suggestion.rating };
 
       const STALENESS_TRIGGER_KEYS = [

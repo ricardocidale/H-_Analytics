@@ -18,7 +18,7 @@ export async function fixLegacyOwnership(): Promise<void> {
     const propResult = await db.execute(
       sql`UPDATE properties SET user_id = NULL WHERE user_id IS NOT NULL`
     );
-    const propsFixed = (propResult as any).rowCount ?? 0;
+    const propsFixed = (propResult as { rowCount?: number }).rowCount ?? 0;
     if (propsFixed > 0) {
       log(`[INFO] [fix-shared-ownership] Converted ${propsFixed} properties to shared (userId=NULL)`, "migration");
     }
@@ -27,7 +27,7 @@ export async function fixLegacyOwnership(): Promise<void> {
     const gaResult = await db.execute(
       sql`UPDATE global_assumptions SET user_id = NULL WHERE user_id IS NOT NULL`
     );
-    const gaFixed = (gaResult as any).rowCount ?? 0;
+    const gaFixed = (gaResult as { rowCount?: number }).rowCount ?? 0;
     if (gaFixed > 0) {
       log(`[INFO] [fix-shared-ownership] Converted ${gaFixed} global_assumptions rows to shared (userId=NULL)`, "migration");
     }
@@ -36,12 +36,12 @@ export async function fixLegacyOwnership(): Promise<void> {
     const dupeCount = await db.execute(
       sql`SELECT COUNT(*) as cnt FROM global_assumptions WHERE user_id IS NULL`
     );
-    const count = Number((dupeCount as any).rows?.[0]?.cnt ?? 0);
+    const count = Number((dupeCount as { rows?: Array<{ cnt?: string | number }> }).rows?.[0]?.cnt ?? 0);
     if (count > 1) {
       const newest = await db.execute(
         sql`SELECT id FROM global_assumptions WHERE user_id IS NULL ORDER BY id DESC LIMIT 1`
       );
-      const keepId = (newest as any).rows?.[0]?.id;
+      const keepId = (newest as { rows?: Array<{ id?: number }> }).rows?.[0]?.id;
       if (keepId) {
         await db.execute(
           sql`DELETE FROM global_assumptions WHERE user_id IS NULL AND id != ${keepId}`

@@ -3,7 +3,7 @@ import { MONTHS_PER_YEAR, DEPRECIATION_YEARS } from "@/lib/constants";
 import { calculateLoanParams, type LoanParams, type GlobalLoanParams } from "@/lib/financial/loanCalculations";
 
 export function resolveExportDepreciationYears(ctx: PropertyExportContext): number {
-  return (ctx.property as any).depreciationYears ?? (ctx.global as any)?.depreciationYears ?? DEPRECIATION_YEARS;
+  return ctx.property.depreciationYears ?? ctx.global?.depreciationYears ?? DEPRECIATION_YEARS;
 }
 
 export interface PropertyExportContext {
@@ -29,7 +29,7 @@ export interface PropertyExportContext {
 export function getLoanCalcs(ctx: PropertyExportContext) {
   const loan = calculateLoanParams(ctx.property as LoanParams, ctx.global as GlobalLoanParams);
   const acqYear = Math.floor(loan.acqMonthsFromModelStart / MONTHS_PER_YEAR);
-  const totalPropertyCost = (ctx.property as any).purchasePrice + ((ctx.property as any).buildingImprovements ?? 0) + ((ctx.property as any).preOpeningCosts ?? 0);
+  const totalPropertyCost = ctx.property.purchasePrice + (ctx.property.buildingImprovements ?? 0) + (ctx.property.preOpeningCosts ?? 0);
   return { loan, acqYear, totalPropertyCost };
 }
 

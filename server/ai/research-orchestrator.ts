@@ -236,6 +236,9 @@ Each entry in \`values[]\` MUST use a \`field\` from the EXACT list below (case-
 
 ${formatFieldDefinitionsForPrompt()}
 
+## PER-MARKET REASONING REQUIRED (anti-collapse rule)
+Field definitions describe DENOMINATORS and UNITS, not target values. Do NOT regurgitate the typical or example range when the definition mentions one — those are calibration hints, not answers. EVERY numeric output MUST reflect this market's specific evidence (panel anchors, comp set, demand profile, finish level). Two markets with materially different positioning (e.g. Aspen vs Outer Banks) MUST produce materially different numbers on rate-sensitive fields (ramp pace, cost-seg splits, incentive fee, occupancy targets, ADR growth). If your output for a field is identical to what you would emit for any other market, you have not done the synthesis — re-derive from the panel evidence for THIS market.
+
 Only include fields you have real evidence for — omit the rest. Do NOT invent values just to fill the list. Do NOT emit narrative or qualitative-prose blocks of any kind — the structured object IS the entire output.`
     : `## OUTPUT FORMAT
 Output the EXACT same JSON format as a standard research report — your output IS the final research.

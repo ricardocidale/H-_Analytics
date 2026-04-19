@@ -60,7 +60,7 @@ export interface PortfolioExportData {
 
 export async function exportPortfolioPPTX(data: PortfolioExportData, companyName = APP_BRAND_NAME, customFilename?: string, themeColors?: ThemeColor[]) {
   const pptxgen = (await import("pptxgenjs")).default;
-  const pres = new (pptxgen as any)();
+  const pres = new pptxgen();
   pres.layout = "LAYOUT_WIDE";
   pres.author = companyName;
   pres.title = "Consolidated Portfolio Investment Report";
@@ -123,7 +123,7 @@ export interface PropertyExportData {
 
 export async function exportPropertyPPTX(data: PropertyExportData, companyName = APP_BRAND_NAME, customFilename?: string, themeColors?: ThemeColor[]) {
   const pptxgen = (await import("pptxgenjs")).default;
-  const pres = new (pptxgen as any)();
+  const pres = new pptxgen();
   pres.layout = "LAYOUT_WIDE";
   pres.author = companyName;
   pres.title = `${data.propertyName} \u2014 Financial Report`;
@@ -174,7 +174,7 @@ export interface CompanyExportData {
 
 export async function exportCompanyPPTX(data: CompanyExportData, companyName = APP_BRAND_NAME, customFilename?: string, themeColors?: ThemeColor[]) {
   const pptxgen = (await import("pptxgenjs")).default;
-  const pres = new (pptxgen as any)();
+  const pres = new pptxgen();
   pres.layout = "LAYOUT_WIDE";
   pres.author = companyName;
   pres.title = `${companyName} \u2014 Management Company Financial Report`;

@@ -52,15 +52,18 @@ function PersonaCard({ persona }: { persona: AgentPersona }) {
   );
 }
 
+type GuidanceStats = { totalNotes?: number | string; averageConviction?: number | string };
+type RebeccaStats = { totalConversations?: number | string; messagesToday?: number | string };
+
 function PersonaStats({ persona }: { persona: AgentPersona }) {
   if (persona.type === "intelligence") {
-    const { data: stats } = useQuery({
+    const { data: stats } = useQuery<GuidanceStats>({
       queryKey: ["/api/guidance/stats"],
       retry: false,
     });
 
-    const guidanceCount = (stats as any)?.totalNotes ?? "—";
-    const avgConviction = (stats as any)?.averageConviction ?? "—";
+    const guidanceCount = stats?.totalNotes ?? "—";
+    const avgConviction = stats?.averageConviction ?? "—";
 
     return (
       <div className="flex items-center gap-4 pt-2 border-t border-border/40">
@@ -70,13 +73,13 @@ function PersonaStats({ persona }: { persona: AgentPersona }) {
     );
   }
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<RebeccaStats>({
     queryKey: ["/api/rebecca/stats"],
     retry: false,
   });
 
-  const conversations = (stats as any)?.totalConversations ?? "—";
-  const messagesToday = (stats as any)?.messagesToday ?? "—";
+  const conversations = stats?.totalConversations ?? "—";
+  const messagesToday = stats?.messagesToday ?? "—";
 
   return (
     <div className="flex items-center gap-4 pt-2 border-t border-border/40">

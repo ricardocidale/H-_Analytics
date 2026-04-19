@@ -416,7 +416,7 @@ export default function IcpLocationTab({ onSaveStateChange }: IcpLocationTabProp
           ...existing,
           _locations: locations,
         },
-      } as any,
+      } as unknown as Parameters<typeof updateMutation.mutate>[0],
       {
         onSuccess: () => {
           setDirty(false);

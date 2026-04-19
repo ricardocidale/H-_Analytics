@@ -98,11 +98,14 @@ export function IcpMarketContextTab({ global, properties, companyInputs, focusAr
         </div>
       </Card>
 
-      {(global as any).portfolioLocations && Array.isArray((global as any).portfolioLocations) && (global as any).portfolioLocations.length > 0 && (
+      {(() => {
+        const locs = (global as unknown as { portfolioLocations?: unknown }).portfolioLocations;
+        return Array.isArray(locs) && locs.length > 0;
+      })() && (
         <Card className="border border-border rounded-lg p-5 space-y-4">
           <SectionHeading icon={IconMapPin} title="Portfolio Locations / Markets" />
           <div className="flex flex-wrap gap-1.5">
-            {((global as any).portfolioLocations as string[]).map((loc, i) => (
+            {((global as unknown as { portfolioLocations?: string[] }).portfolioLocations ?? []).map((loc, i) => (
               <Badge key={i} variant="outline" className="text-xs">{loc}</Badge>
             ))}
           </div>
