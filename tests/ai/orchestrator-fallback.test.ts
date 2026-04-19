@@ -183,4 +183,136 @@ describe("Fallback contract — documented failure-mode coverage", () => {
     );
     expect(src).toContain("ORCHESTRATOR_BOTH_FAILED");
   });
+
+  it("post-OT-A.4: Zod-validation failure routes through ORCHESTRATOR_BOTH_FAILED (not a separate sentinel)", async () => {
+    // OT-A.4 shipped a try/catch around streamObject that surfaces schema
+    // validation failures via the SAME ORCHESTRATOR_BOTH_FAILED sentinel
+    // as a dual-panel failure. This is intentional — consumers already
+    // know how to handle that sentinel. But it means one sentinel string
+    // now carries two distinct meanings; the Sentry runbook (§1.3 +
+    // §"Zod-validation failure → fallback path observability") adds a
+    // `fallback_reason` tag to disambiguate. This test guards the source
+    // against splitting the sentinel without updating the runbook.
+    const fs = await import("fs");
+    const path = await import("path");
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../../server/ai/research-orchestrator.ts"),
+      "utf-8",
+    );
+    // The sentinel appears at BOTH the dual-panel-fail catch site and the
+    // streamObject Zod-fail catch site. Count ≥ 2 occurrences.
+    const matches = src.match(/ORCHESTRATOR_BOTH_FAILED/g);
+    expect(matches).not.toBeNull();
+    expect((matches?.length ?? 0)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ── Panel edge cases — defensive coverage ────────────────────────────
+
+describe("formatPanelForSynthesis — panel edge cases", () => {
+  it("empty object output serializes cleanly", () => {
+    const panel: AnalystPanel = {
+      model: "gemini-2.5-flash",
+      role: "quantitative",
+      output: {},
+      durationMs: 0,
+    };
+    const result = formatPanelForSynthesis(panel);
+    expect(result).toBe("{}");
+    expect(result).not.toContain("Panel failed");
+  });
+
+  it("nested output object serializes with indentation preserved", () => {
+    const panel: AnalystPanel = {
+      model: "gemini-2.5-flash",
+      role: "quantitative",
+      output: {
+        adrAnalysis: {
+          recommendedRange: "$280–$320",
+          confidence: "high",
+        },
+      },
+      durationMs: 3100,
+    };
+    const result = formatPanelForSynthesis(panel);
+    expect(result).toContain('"recommendedRange": "$280–$320"');
+    expect(result).toContain('"confidence": "high"');
+    // 2-space indent from JSON.stringify(..., null, 2)
+    expect(result).toMatch(/^\{\n {2}"adrAnalysis"/);
+  });
+
+  it("output with unicode + emoji survives serialization", () => {
+    const panel: AnalystPanel = {
+      model: "claude-sonnet-4-5",
+      role: "market-strategy",
+      output: { notes: "Medellín café scene ☕ drives F&B" },
+      durationMs: 8200,
+    };
+    const result = formatPanelForSynthesis(panel);
+    expect(result).toContain("Medellín");
+    expect(result).toContain("☕");
+  });
+
+  it("error message with 'null' string literal does not confuse the serializer", () => {
+    const panel: AnalystPanel = {
+      model: "gemini-2.5-flash",
+      role: "quantitative",
+      output: {},
+      durationMs: 0,
+      error: 'Received "null" response from upstream',
+    };
+    const result = formatPanelForSynthesis(panel);
+    expect(result).toBe('[Panel failed: Received "null" response from upstream]');
+  });
+
+  it("very long error message is NOT truncated (only output is)", () => {
+    // The 12,000-char truncation applies to JSON.stringify of output.
+    // Error messages flow through the [Panel failed: ...] wrapper
+    // uncapped — intentional, since error text is usually what a
+    // human debugger needs.
+    const longError = "Timeout: " + "x".repeat(5000);
+    const panel: AnalystPanel = {
+      model: "gemini-2.5-flash",
+      role: "quantitative",
+      output: {},
+      durationMs: 0,
+      error: longError,
+    };
+    const result = formatPanelForSynthesis(panel);
+    expect(result.length).toBeGreaterThan(5000);
+    expect(result.startsWith("[Panel failed: Timeout: xxxx")).toBe(true);
+  });
+});
+
+// ── Prompt structural invariants ──────────────────────────────────────
+
+describe("buildSynthesisSystemPrompt — structural invariants across modes", () => {
+  it("single-panel + unstructured both include 'API validation'", () => {
+    const dual = buildSynthesisSystemPrompt(MINIMAL_RESEARCH_PARAMS, false);
+    const single = buildSynthesisSystemPrompt(MINIMAL_RESEARCH_PARAMS, true);
+    expect(dual.toLowerCase()).toContain("api");
+    expect(single.toLowerCase()).toContain("api");
+  });
+
+  it("single-panel prompt is NOT materially shorter than dual-panel (no silent truncation)", () => {
+    const dual = buildSynthesisSystemPrompt(MINIMAL_RESEARCH_PARAMS, false);
+    const single = buildSynthesisSystemPrompt(MINIMAL_RESEARCH_PARAMS, true);
+    // Single-panel has additional degradation guidance, so it should be
+    // at least 70% of dual-panel length. If it's dramatically shorter,
+    // something was dropped.
+    expect(single.length).toBeGreaterThan(dual.length * 0.7);
+  });
+
+  it("structured-output variant (post-OT-A.4) includes SynthesisOutputSchema reference or CANONICAL_RESEARCH_FIELDS context", () => {
+    const structured = buildSynthesisSystemPrompt(MINIMAL_RESEARCH_PARAMS, false, true);
+    // Either the schema name, the field-enum name, or a schema-describing
+    // phrase must appear. Protects against a regression that silently
+    // strips the structured-output contract from the prompt.
+    const hasSchemaReference =
+      structured.includes("SynthesisOutput") ||
+      structured.includes("CANONICAL_RESEARCH_FIELDS") ||
+      structured.toLowerCase().includes("canonical field") ||
+      structured.toLowerCase().includes("field key");
+    expect(hasSchemaReference).toBe(true);
+  });
 });

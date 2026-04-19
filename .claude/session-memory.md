@@ -8,6 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 20, 2026 (late) — OT-A.4 ship + OT-A.5 queued + observability/reorg scaffolding
+- **OT-A.4 shipped (Replit, `7da9f25a`).** Four mechanism bugs codified as rules: `field-definitions-no-prescription-hints.md`, `llm-contract-migration-parity.md`, `parity-exemption-classes.md` (+ narrative `.claude/notes/llm-migration-playbook.md`). Pinecone removed 100% across active codebase (`706aec6c`).
+- **OT-A.5 drafts approved (Replit).** T+72h observation window runs until 2026-04-22 18:14 UTC. Cross-check finding (`OT-A-5-section-a-crosscheck.md`): v5 test set is all US states → inflationRate reclassified Class 4 → Class 3, Section A anchor dropped from v6 batch.
+- **Scaffolding shipped (Claude Code):** Sentry alerts runbook + OT-B Promptfoo scope + ADR-005 workspace reorg (Proposed) + ADR-004 cross-ref closed + SYSTEM-MODEL cost economics refreshed (~$0.70 cold / $0.40-0.50 warm) + 9 active skills/docs swept for post-OT-A.4 stale refs + agent-collision hygiene rule (fourth collision-incident trigger).
+- **NaN-coercion fix handoff queued** (`.claude/replit-handoffs/nan-coercion-extractguidance-fix.md`) for post-T+72h. Lint cleanup at 187 warnings (46% done; Batches 1-4/7/8 landed; 5+6 pre-audited pending user Option 1/2/3 call).
+- **Next:** await T+72h → authorize v6 rerun + OT-A.5 ship → Sentry/PostHog handoff execution → ADR-004 acceptance unblocks Phase 5A. Eight archived sessions moved to `archive/session-memory-archive.md` to restore 12-session cap.
+
 ## Session: April 20, 2026 — Lint warning cleanup plan + ADR-004
 - **Lint-cleanup plan drafted** at `.claude/plans/lint-warning-cleanup.md` (Claude Code-owned cross-cutting refactor). 348 warnings categorized: 195 `|| 0` silent fallback (56%), 109 `as any` (31%), 15 `Math.pow`, 9 unused vars, 6 fetch-no-timeout, 14 misc. 8 batches ordered safest-first: unused+Math.pow → `as any` by file → `|| 0` non-financial → `|| 0` financial (highest risk — may expose latent NaN bugs) → timeouts → misc. Per-batch five-gate verification; rollback only on PASS→FAIL regressions not explained by the fix.
 - **Key insight:** `|| 0` → `?? 0` is NOT semantically identical (`??` doesn't coerce NaN). Batch 5 expected to surface real bugs we've been silently swallowing. Plan treats test failures after a lint fix as *good* — fix the bug, don't mask it.
@@ -76,48 +83,6 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **Vocabulary hard-rule added** as §0 in `.claude/skills/vocabulary/SKILL.md`: **Assumptions = user-facing working variables**, **Defaults = admin-only seeds**. Different DB columns, different routes, different audiences. Word *"default"* banned from user-facing copy outside Admin. Mirrored to `replit.md` and `.claude/claude.md`.
 - **Tab-content hygiene**: `SummaryFooter` was mixing overhead-escalation language with staff-tier language in one paragraph on every tab. Split into tab-aware footer — staffing summary now renders only on Compensation tab, escalation summary only on Overhead tab, no footer on other tabs. **Principle for future agents**: any text that summarizes tab state must live with that tab's concern. Staffing tiers drive compensation, not overhead — never group them by visual proximity.
 
-## Session: April 16, 2026 — Workflow Direction + Operating Model
-- **Property-first user journey** confirmed for investor persona (dominant). Properties dimension HMC: portfolio → staffing tiers, property revenue → HMC fee revenue, The Analyst uses research-ready properties as HMC research context.
-- **Open forks**: (1) adaptive dashboard with "what to do next" card vs strict wizard; (2) persona branch at first login (investor → properties; founder → HMC) vs universal property-first default.
-- **Operating model formalized**: in-session = UI/routing/DB/API/preview-pane work; external Claude Code 4.7 1M shell = multi-file `calc/` refactors, full-test-tree reads, cross-cutting financial logic, deep-research synthesis. Agent flags escalation with self-contained prompt.
-- **8-task Company Assumptions session** completed: per-tab save, pulsating Analyst button, post-save validation warnings (multi-year fields de-duplicated per architect feedback), error-code handling for `COMPANY_SETUP_INCOMPLETE` + `PROPERTIES_EXCLUDED`, Partner→Management Compensation rename, depreciation 27.5→39 fix.
-
-## Session: April 15, 2026 — CI Hygiene & Documentation Optimization
-- **CI hygiene script** (`script/ci-hygiene.ts`): auto-fixes ESLint unused vars/imports, secret scanner false positives, TypeScript errors. Replit Agent skill at `.agents/skills/ci-hygiene/SKILL.md`.
-- **All MD files updated**: test count corrected to ~4,191 (204 files), 178 skills across 19 domains, 25 rules, 498 verify checks. Stale "4,816 tests/202 files/171 skills/18 domains" references fixed across replit.md, claude.md, _index.md, session-memory.md.
-- **ESLint** warnings reduced 13→2. `vitest.config.ts` testTimeout: 15s. Health check timeout: 300s.
-
-## Session: April 15, 2026 — Brand Voice, Personas, Intelligence-First
-- Brand voice guidelines (`.claude/brand-voice-guidelines.md`) — single source of truth. The Analyst + Rebecca personas, vocabulary enforcement.
-- Communication skills (reusable): conversation-principles, ai-agent-voice, norfolk-brand-voice. New domain: communication/.
-- Shared utilities: fetchWithTimeout, sanitizeError. PMT copies eliminated → `calc/shared/pmt.ts`.
-- user_page_visits table, usePageVisit hook, FirstVisitBanner, AgentPersonasTab.
-- 18 KB seeds, dataQuality JSONB on assumption_guidance.
-
-## Session: April 14-15, 2026 — Schema/Tests/Remediation
-- 10 `.default()` values, 6 `DEFAULT_*` constants, 8 test fixes (PARTNER→SUPER_ADMIN).
-- 11 calc bugs, 7 service bugs, deep security audit (IDOR, prototype pollution, NaN guards).
-- 5 CI gates registered. Intelligence pipeline skill. Rebecca personality. PDF export plan (NOT executed).
-
-## Session: March 12, 2026 — Infrastructure Contracts Optimization (12 Workstreams)
-- WS1-2: Sealed storage facade — ServiceStorage + NotificationStorage bound to IStorage, `patchGlobalAssumptions` added to FinancialStorage.
-- WS3-4: Domain boundaries — 6-domain separation rule + proof test (no route imports db, calc purity, financial isolation from AI SDKs).
-- WS6: Constants hardening — `DEFAULT_AI_AGENT_VOICE_ID`, `DEFAULT_STAFF_TIER1/2_MAX_PROPERTIES` extracted to `shared/constants.ts`.
-- WS7-8: Tool protection — 36-tool registry rule + proof test, `compute_make_vs_buy.json` schema created.
-- WS9-11: 0 TS errors, duplicate hooks eliminated (7 admin tabs → canonical `@/lib/api`), duplicate plaid dep removed, `GlobalResponse` expanded. Tests 2,927→2,940 (127 files, 500 golden).
-
-## Session: March 11, 2026 (cont.) — WACC + Plan Completion
-- WACC-based DCF: `compute_wacc` + `compute_portfolio_wacc` tools (33→36 total), `costOfEquity` column, research badges.
-- 12 golden WACC tests. All 9 prior workstreams COMPLETE. Tests 2,912→2,927 (125 files, 500 golden).
-
-## Session: March 11, 2026 — Architectural Hardening Initiative (9 Workstreams)
-- WS1-6: Magic numbers, golden scenarios, Rebecca chatbot, Admin Diagrams, theme endpoint, password guards.
-- Tests 2,842→2,912 (131 files). Health ALL CLEAR. UNQUALIFIED.
-
-## Session: March 9, 2026 — Magic UI Special Effects + ElevenLabs Orb Integration
-- Added 9 Magic UI components; `NumberTicker` preferred over `AnimatedCounter`.
-- New skill: `.claude/skills/ui/magic-ui.md`.
-
 ---
 
 ## Persistent Decisions & Preferences
@@ -143,13 +108,3 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **AI terms OK when proud** ("AI-powered intelligence"), NOT OK as implementation details
 - **App name** = "H+ Analytics". **Company name** = "Hospitality Management Co". **Technology** = "Norfolk AI Engine".
 
-## Session: April 19, 2026 — OT-A.3 structural wiring (commit f1cd4aee)
-- Synthesis branch behind USE_AI_SDK_SYNTHESIS env flag (default OFF).
-- Schema landed earlier in 595bd061; wiring uses streamObject + AI SDK v6 providerOptions for ephemeral cache_control.
-- Five gates GREEN. A/B parity run on 20 inputs is **PENDING USER AUTHORIZATION** — autonomous Opus spend (~\$12-40) was held back. Go/no-go for OT-A.4 deferred until A/B documented.
-
-## Session: April 19, 2026 (cont.) — OT-A.3 A/B parity run (commit 12363142) — DOES NOT PASS
-- 11/20 cases captured before Vercel AI Gateway hit insufficient_funds (HTTP 402); top-up required.
-- Two clear FAILs even on partial sample: latency regression +190% (vs ≤20% target) + field-name divergence (7/11 cases produce zero shared keys because SynthesisOutputSchema.field is an unrestricted z.string()).
-- OT-A.4 BLOCKED. Required remediation: (a) tighten schema to `field: z.enum([...KNOWN_KEYS])`, (b) add field-key contract to system prompt, (c) consider trimming reasoning.max + dropping narrative[] to fix latency, (d) Gateway top-up.
-- Structural OT-A.3 commit (f1cd4aee) safe in place; flag default OFF; no production behaviour change.
