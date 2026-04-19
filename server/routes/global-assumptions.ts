@@ -219,6 +219,30 @@ export function register(app: Express) {
           storage.getAnalystWatchdogBenchmarks(userId),
         ]);
         watchdog = evaluateCapitalRaise(fundingInputs ?? {}, benchmarks);
+      } else if (tabKey === "revenue") {
+        // Revenue evaluator pulls inputs from the freshly-saved row itself —
+        // no client-side payload needed. Falls back to system constants when
+        // a per-company override is null.
+        const [{ evaluateRevenue }, { DEFAULT_REVENUE_BENCHMARKS }, c] = await Promise.all([
+          import("../../engine/watchdog/revenueEvaluator"),
+          import("@shared/constants-revenue-benchmarks"),
+          import("@shared/constants"),
+        ]);
+        const savedRow = saved as Record<string, unknown>;
+        const num = (k: string) => {
+          const v = savedRow[k];
+          return typeof v === "number" && Number.isFinite(v) ? v : null;
+        };
+        watchdog = evaluateRevenue(
+          {
+            marketingRate:      num("defaultCostRateMarketing") ?? c.DEFAULT_COST_RATE_MARKETING,
+            fbRevenueShare:     num("defaultRevShareFb")        ?? c.DEFAULT_REV_SHARE_FB,
+            eventsRevenueShare: num("defaultRevShareEvents")    ?? c.DEFAULT_REV_SHARE_EVENTS,
+            otherRevenueShare:  num("defaultRevShareOther")     ?? c.DEFAULT_REV_SHARE_OTHER,
+            cateringBoostPct:   num("defaultCateringBoostPct")  ?? c.DEFAULT_CATERING_BOOST_PCT,
+          },
+          DEFAULT_REVENUE_BENCHMARKS,
+        );
       } else {
         const { evaluateStub } = await import("../../engine/watchdog/capitalRaiseEvaluator");
         watchdog = evaluateStub();
