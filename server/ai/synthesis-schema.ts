@@ -156,8 +156,8 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
   adrGrowth: { key: "adrGrowth", unit: "%", denominator: "annual growth over prior-year ADR (per-year, not cumulative)", description: "Annual ADR growth rate" },
   occupancy: { key: "occupancy", unit: "%", denominator: "of available room-nights, stabilized (year 3+)", description: "Stabilized occupancy rate" },
   startOccupancy: { key: "startOccupancy", unit: "%", denominator: "of available room-nights, month 1 of operations", description: "Day-one occupancy" },
-  occupancyStep: { key: "occupancyStep", unit: "%", denominator: "per-step increment in occupancy (NOT cumulative); typical 3–10 percentage points per ramp interval", description: "Occupancy ramp step size" },
-  rampMonths: { key: "rampMonths", unit: "months", denominator: "TOTAL months from opening to stabilized occupancy (end-to-end ramp duration, e.g., 24–36 months)", description: "Total ramp duration to stabilization" },
+  occupancyStep: { key: "occupancyStep", unit: "%", denominator: "per-step increment in occupancy (NOT cumulative — the size of each ramp jump). Reason per-market from demand-build pace (premium leisure ramps faster than convention-dependent markets); do NOT emit a generic typical step", description: "Occupancy ramp step size" },
+  rampMonths: { key: "rampMonths", unit: "months", denominator: "TOTAL months from opening to stabilized occupancy (end-to-end ramp duration). Reason per-market from demand profile, comp-set lead time to stabilization, and any seasonality compression; do NOT emit a generic textbook duration", description: "Total ramp duration to stabilization" },
   catering: { key: "catering", unit: "%", denominator: "boost on F&B revenue (catering uplift multiplier)", description: "Catering boost on F&B" },
   revShareFB: { key: "revShareFB", unit: "%", denominator: "F&B revenue as % of TOTAL revenue", description: "F&B revenue share of total" },
   revShareEvents: { key: "revShareEvents", unit: "%", denominator: "Events revenue as % of TOTAL revenue", description: "Events revenue share of total" },
@@ -165,7 +165,7 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
 
   // Valuation & exit
   capRate: { key: "capRate", unit: "%", denominator: "annual NOI ÷ property value (exit cap rate)", description: "Exit cap rate" },
-  landValue: { key: "landValue", unit: "%", denominator: "LAND ALLOCATION as % of PURCHASE PRICE (NOT a dollar amount; typical 15–30%)", description: "Land allocation percentage" },
+  landValue: { key: "landValue", unit: "%", denominator: "LAND ALLOCATION as % of PURCHASE PRICE (NOT a dollar amount). Reason per-market from local land scarcity, zoning premium, and assessor allocations on comp parcels; do NOT emit a generic textbook share", description: "Land allocation percentage" },
   saleCommission: { key: "saleCommission", unit: "%", denominator: "broker commission as % of gross sale value", description: "Disposition commission" },
 
   // Department costs — note denominators differ
@@ -182,10 +182,10 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
   costOther: { key: "costOther", unit: "%", denominator: "other operated as % of TOTAL revenue", description: "Other operated rate" },
 
   // Property-value-based
-  costPropertyTaxes: { key: "costPropertyTaxes", unit: "%", denominator: "annual property taxes as % of PROPERTY VALUE (mill rate; typical 1–3%)", description: "Property tax rate" },
+  costPropertyTaxes: { key: "costPropertyTaxes", unit: "%", denominator: "annual property taxes as % of PROPERTY VALUE (effective mill rate). Reason per-market from the actual jurisdiction's millage and assessment ratio; do NOT emit a generic textbook rate", description: "Property tax rate" },
 
   // Management fees
-  incentiveFee: { key: "incentiveFee", unit: "%", denominator: "incentive management fee as % of GOP (Gross Operating Profit, hospitality-standard); NOT % of total revenue. Typical 8–15% of GOP.", description: "Incentive management fee (% of GOP)" },
+  incentiveFee: { key: "incentiveFee", unit: "%", denominator: "incentive management fee as % of GOP (Gross Operating Profit, hospitality-standard); NOT % of total revenue. Reason per-market from operator brand strength, owner negotiating leverage, and comparable management contracts; do NOT emit a generic textbook share of GOP", description: "Incentive management fee (% of GOP)" },
   svcFeeMarketing: { key: "svcFeeMarketing", unit: "%", denominator: "service fee (marketing component) as % of TOTAL revenue", description: "Service fee — marketing" },
   svcFeeTechRes: { key: "svcFeeTechRes", unit: "%", denominator: "service fee (technology + reservations) as % of TOTAL revenue", description: "Service fee — tech/reservations" },
   svcFeeAccounting: { key: "svcFeeAccounting", unit: "%", denominator: "service fee (accounting) as % of TOTAL revenue", description: "Service fee — accounting" },
@@ -205,7 +205,7 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
   costSeg15yrPct: { key: "costSeg15yrPct", unit: "%", denominator: "15-year MACRS class as % of BUILDING VALUE (depreciable basis, see costSeg5yrPct). Reason per-market from site improvements / land prep intensity (parking, hardscape, landscaping, exterior lighting); do NOT emit a generic typical range.", description: "Cost seg 15-yr class" },
   arDays: { key: "arDays", unit: "days", denominator: "accounts receivable days outstanding", description: "A/R days" },
   apDays: { key: "apDays", unit: "days", denominator: "accounts payable days outstanding", description: "A/P days" },
-  preOpeningCosts: { key: "preOpeningCosts", unit: "$", denominator: "total pre-opening expense budget in DOLLARS (typical $200K–$2M for boutique-luxury)", description: "Pre-opening costs" },
+  preOpeningCosts: { key: "preOpeningCosts", unit: "$", denominator: "total pre-opening expense budget in DOLLARS. Reason per-market from key-count, brand-standard hiring lead time, and local labor / training cost intensity; do NOT emit a generic textbook budget", description: "Pre-opening costs" },
 
   // Platform (VRBO/STR)
   platformFee: { key: "platformFee", unit: "%", denominator: "platform fee rate as % of GROSS booking value (all-in: host + guest fees)", description: "Platform fee rate" },
