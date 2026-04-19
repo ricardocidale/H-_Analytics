@@ -64,8 +64,11 @@ const FIELD_EXEMPTIONS: ReadonlyMap<string, FieldExemption> = new Map([
   ["adrGrowth",     { class: "noise-floor",       rationale: "unbiased-noise, |Δ|<<σ, mid-hit miss 10pp." }],
   ["interestRate",  { class: "noise-floor",       rationale: "small bias (+3.4%) ≈ σ (5%), mid-hit miss 5pp." }],
   ["ltv",           { class: "noise-floor",       rationale: "mid-hit 100% (values agree); bucket fail is range-width artifact." }],
-  ["inflationRate", { class: "legacy-inaccurate", rationale: "new path varies per country (uniq=6); legacy collapses to USA default. Pending legacy code confirmation." }],
-  ["svcFeeMarketing", { class: "under-reasoned", rationale: "uniq=1, borderline Class 1; OT-A.5 design decision pending." }],
+  // inflationRate: Class 2 reclassified to Class 4 on 2026-04-19 after legacy
+  // code review (research-value-extractor.ts:108–119) showed legacy parses LEA
+  // panel output, NOT a hard-coded USA CPI. No exemption. See
+  // docs/operational-tooling/OT-A-3-parity-exemptions.md Q1 finding.
+  ["svcFeeMarketing", { class: "industry-standard", rationale: "Reclassified Class 4 → Class 1 on 2026-04-19. For L+B branded boutique-luxury, 1.5–2.0% of total revenue IS the canonical marketing-services fee (operator-contract standardization, like incentiveFee at 10% of GOP). uniq=1 is correct, not under-reasoning. σ (8%) > |Δ| (2.5%) means the small Δ vs legacy is persona-narrowing, not drift." }],
 ]);
 
 // An exemption class with effect "skip-all" makes the field a PASS in the

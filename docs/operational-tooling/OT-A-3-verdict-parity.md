@@ -1,6 +1,6 @@
 # OT-A.3 Path 3 — Verdict-layer Parity (respec evaluation)
 
-**Generated:** 2026-04-19T17:35:52.501Z
+**Generated:** 2026-04-19T17:45:45.222Z
 **Source:** `docs/operational-tooling/OT-A-3-ab-raw.json` (offline transform — no Opus rerun)
 **Spec:** `docs/operational-tooling/OT-A-3-path3-respec.md`
 **Exemptions:** `docs/operational-tooling/OT-A-3-parity-exemptions.md`
@@ -18,9 +18,9 @@
 
 | Gate | Pass | Detail |
 |---|---|---|
-| **Tier 1** (OT-A.4 unblock criterion ≥ 7/8) | ✓ | 8/8 fields pass (raw 3/8 + 5 exempted) |
+| **Tier 1** (OT-A.4 unblock criterion ≥ 7/8) | ✓ | 7/8 fields pass (raw 3/8 + 4 exempted) |
 | Tier 2 | ✗ | 8/17 fields pass |
-| Tier 3 | ✗ | 9/15 fields pass |
+| Tier 3 | ✗ | 10/15 fields pass |
 | Mode-collapse | ✗ | — |
 
 ## Exemptions applied
@@ -29,10 +29,9 @@
 |---|---|---|---|---|
 | `adrGrowth` | T1 | noise-floor | FAIL → PASS (exempt) | unbiased-noise, |Δ|<<σ, mid-hit miss 10pp. |
 | `incentiveFee` | T1 | industry-standard | FAIL → PASS (exempt) | uniq=1, signed +5.0%±10%, mid-hit 80% — canonical industry fee level. |
-| `inflationRate` | T1 | legacy-inaccurate | FAIL → PASS (exempt) | new path varies per country (uniq=6); legacy collapses to USA default. Pending legacy code confirmation. |
 | `interestRate` | T1 | noise-floor | FAIL → PASS (exempt) | small bias (+3.4%) ≈ σ (5%), mid-hit miss 5pp. |
 | `ltv` | T1 | noise-floor | FAIL → PASS (exempt) | mid-hit 100% (values agree); bucket fail is range-width artifact. |
-| `svcFeeMarketing` | T3 | under-reasoned | FAIL (not exempt) | uniq=1, borderline Class 1; OT-A.5 design decision pending. |
+| `svcFeeMarketing` | T3 | industry-standard | FAIL → PASS (exempt) | Reclassified Class 4 → Class 1 on 2026-04-19. For L+B branded boutique-luxury, 1.5–2.0% of total revenue IS the canonical marketing-services fee (operator-contract standardization, like incentiveFee at 10% of GOP). uniq=1 is correct, not under-reasoning. σ (8%) > |Δ| (2.5%) means the small Δ vs legacy is persona-narrowing, not drift. |
 
 See `docs/operational-tooling/OT-A-3-parity-exemptions.md` for the
 full class definitions and qualification bars.

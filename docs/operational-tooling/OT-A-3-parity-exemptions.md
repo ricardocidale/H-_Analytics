@@ -55,6 +55,7 @@ directionTag=`unbiased-noise` AND (T1 mid-hit ≥ 0.75 OR T3 inclusion ≥ 0.75)
 | Field | Tier | v5 metric | Rationale |
 |---|---|---|---|
 | `incentiveFee` | T1 | uniq=1, signed +5.0% ± 10%, mid-hit 80%, bucket 80% | Industry-standardized fee level (~10% of GOP above hurdle). Both paths converge on the same canonical number; the 20% miss-rate on mid-hit is purely the legacy distribution's stochastic spread around the same midpoint. **Already covered by `KNOWN_COLLAPSE_EXEMPT` in script; this doc formalizes the broader gate skip.** |
+| `svcFeeMarketing` | T3 | uniq=1, signed −2.5% ± 8%, unbiased-noise, inclusion 100% | For the L+B persona (branded boutique-luxury), 1.5–2.0% of total revenue IS the canonical marketing-services fee — same operator-contract standardization as `incentiveFee` at 10% of GOP. Marriott / Hilton / Hyatt soft-brand marketing fees land in that narrow band globally, so uniq=1 is correct behavior, not under-reasoning. The signed Δ −2.5% with σ (8%) > \|Δ\| reflects legacy drawing from a broader operator mix (branded + independent) while the new path is more L+B-aligned — i.e., the Δ is persona-narrowing, not drift. (Reclassified from Class 4 on 2026-04-19 per user direction; scope of OT-A.5 design pass shrinks accordingly.) |
 
 ---
 
@@ -80,7 +81,20 @@ to a different single value).
 
 | Field | Tier | v5 metric | Rationale |
 |---|---|---|---|
-| `inflationRate` | T1 | uniq=6, signed −13.3% ± 6%, bias-down, bucket 5%, mid-hit 10% | New path varies inflation per country (range: ~1.5–4.5% across the 20 markets — most are USA boutique-luxury but the Telluride / Aspen / Marfa / Sedona spread captures regional CPI nuance). Legacy appears to hard-code ~3.5–4.0% (USA national CPI median) regardless of market — bucket-match collapse to 5% is the diagnostic. New is the more accurate baseline; legacy is the artifact. **Pending: confirm legacy implementation hard-codes by reading the legacy `inflationRate` extractor.** Once confirmed in code, this exemption stands; if legacy actually does vary by market, downgrade to Class 4. |
+| _(none — `inflationRate` was tentatively here pending legacy code review; finding documented below moved it to Class 4)_ | | | |
+
+**Q1 finding — 2026-04-19 legacy code review:** Read
+`server/ai/research-value-extractor.ts:108–119`. The legacy
+`inflationRate` extractor does NOT hard-code USA CPI — it parses
+`c.localEconomics.inflationRate` from the upstream LEA (local-economic-analyst)
+panel output via `parsePct`. Same shape for `interestRate`. So legacy
+IS doing per-market reasoning (via the analyst panel) — Class 2's
+"hard-codes a wrong baseline" precondition does not hold. The
+v5 bucket-match 5% collapse is therefore a real value-disagreement
+between two reasoning paths on the same field, not legacy-as-artifact.
+
+**Reclassification:** `inflationRate` moved to Class 4 (under-reasoned)
+below.
 
 ---
 
@@ -130,7 +144,7 @@ industry-median is the right answer" and moved to Class 1.
 
 | Field | Tier | v5 metric | Why it doesn't fit Classes 1–3 |
 |---|---|---|---|
-| `svcFeeMarketing` | T3 | uniq=1, signed −2.5% ± 8%, unbiased-noise, inclusion 100% | **Borderline Class 1.** signed Δ tiny, unbiased-noise, inclusion 100%. Could plausibly move to Class 1 if we accept "1.5–2.0% of total revenue is the canonical marketing-services fee." **Pending decision:** treat as Class 1 OR design a per-market anchor pattern. Deferred to OT-A.5 design pass — for v5 gate evaluation, leave as Class 4 until decision. |
+| `inflationRate` | T1 | uniq=6, signed −13.3% ± 6%, bias-down, bucket 5%, mid-hit 10% | **Reclassified from Class 2 → Class 4 on 2026-04-19** after the legacy code review (above) showed legacy parses LEA panel output rather than hard-coding USA CPI. New path varies inflation per country (uniq=6 = real per-market reasoning), but the −13% signed bias against an LEA-derived legacy baseline is genuine value-disagreement. Both paths are reasoning per-market; they're disagreeing. The new path's per-market bias and direction warrant a design pass before we accept it as authoritative. **OT-A.5 work item:** either (a) reconcile the new-path inflation prompt to align with LEA's CPI sourcing methodology, or (b) explicitly accept the new path as the authoritative baseline and document why LEA's output is the artifact. |
 
 (Other v5 mode-collapsed fields — `costFB` uniq=2, `costSeg5yrPct`
 uniq=2, `svcFeeGeneralMgmt` uniq=2, `svcFeeTechRes` uniq=2 — are T2/T3,
@@ -141,7 +155,7 @@ work, not this exemption pass.)
 
 ---
 
-## Exemption-adjusted T1 result (v5)
+## Exemption-adjusted T1 result (v5, post-Q1/Q2 reclassification)
 
 Applying Classes 1–3 to the 5 failing T1 fields:
 
@@ -152,18 +166,19 @@ Applying Classes 1–3 to the 5 failing T1 fields:
 | `capRate` | PASS | — | PASS |
 | `adrGrowth` | FAIL | Class 3 (noise floor) | **PASS (exempt)** |
 | `incentiveFee` | FAIL | Class 1 (industry-standard) | **PASS (exempt)** |
-| `inflationRate` | FAIL | Class 2 (legacy-inaccurate) | **PASS (exempt)** — pending legacy code confirmation |
+| `inflationRate` | FAIL | **Class 4 (under-reasoned)** — Q1 finding above | **FAIL** (no exemption) |
 | `interestRate` | FAIL | Class 3 (noise floor) | **PASS (exempt)** |
 | `ltv` | FAIL | Class 3 (noise floor) | **PASS (exempt)** |
 
-**Exemption-adjusted T1: 8/8 PASS.**
+**Exemption-adjusted T1: 7/8 PASS** (`inflationRate` is the one true
+under-reasoned T1 field).
 
-OT-A.4 unblock criterion (T1 ≥ 7/8): **MET (under exemptions).**
+OT-A.4 unblock criterion (T1 ≥ 7/8): **MET.**
 
-**Caveat:** The Class 2 exemption for `inflationRate` is conditional on
-confirming the legacy extractor implementation hard-codes inflation.
-If the user prefers, this can be downgraded to Class 4 pending that
-inspection (which would yield T1 7/8, still meeting the unblock bar).
+The genuinely-under-reasoned T1 field requiring OT-A.5 design work
+is `inflationRate`. `svcFeeMarketing` was originally a Class 4
+candidate but is reclassified to Class 1 above (industry-standard
+single-value, persona-narrowing rationale).
 
 ## What this doc is *not*
 

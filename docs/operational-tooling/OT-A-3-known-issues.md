@@ -130,6 +130,57 @@ spend. Recommend escalation back to user for OT-A.5 scoping.
 **v5 raw preserved at canonical path** (`OT-A-3-ab-raw.json`,
 mod 2026-04-19 16:53). v4 snapshot remains as `*-v4` suffix.
 
+## OT-A.4 unblock — exemption-adjusted re-evaluation (2026-04-19)
+
+User direction post-v5: rather than revert `ed42d8ac`, draft an
+exemption framework (`OT-A-3-parity-exemptions.md`) and re-evaluate
+T1 with named, cited exemptions applied. Q1/Q2 reconciliation:
+
+  - **Q1 (inflationRate):** Legacy code review confirmed
+    `research-value-extractor.ts:108–119` parses `c.localEconomics.inflationRate`
+    from the LEA panel — NOT a hard-coded USA CPI. Class 2 exemption
+    DOES NOT hold. `inflationRate` reclassified Class 2 → Class 4.
+  - **Q2 (svcFeeMarketing):** Reclassified Class 4 → Class 1
+    (industry-standard single-value, persona-narrowing rationale).
+    For L+B branded boutique-luxury, 1.5–2.0% of total revenue IS
+    the canonical marketing-services fee.
+
+**Exemption-adjusted T1: 7/8 PASS** — meets the OT-A.4 unblock bar.
+The one true under-reasoned T1 field is `inflationRate`, which moves
+into OT-A.5 as a design work item.
+
+### Explicit lists for OT-A.4 closeout (for-the-record)
+
+**Mode-collapsed fields outside T1 scope (deferred to OT-A.5):**
+  - `costFB` (T2, uniq=2, signed +4.3% ± 3%, bias-up)
+  - `costSeg5yrPct` (T3, uniq=2, signed −26.7% ± 7%, bias-down)
+  - `svcFeeGeneralMgmt` (T3, uniq=2, signed +3.6% ± 10%, unbiased-noise)
+  - `svcFeeTechRes` (T3, uniq=2, signed +5.8% ± 17%, unbiased-noise)
+
+**Six T2 USALI cost-line biases parked for OT-A.5 batch** (already
+listed above in "Deferred to OT-A.5"): `costHousekeeping`,
+`costMarketing`, `costPropertyTaxes`, `preOpeningCosts`,
+`startOccupancy`, `catering`. Plus from v5: `occupancyStep` (uniq=8,
+signed −12.1% ± 29%, unbiased-noise — borderline, may resolve as
+ripple from inflationRate fix).
+
+**T3 misses explicitly acknowledged as noise (not blocking):**
+  - `costSeg15yrPct` (inclusion 65%, signed −25.0% ± 7%, bias-down — borderline; possibly ripples with cost-seg anchor pass)
+  - `svcFeeAccounting` (inclusion 35%, signed −39.4% ± 14%, bias-down — open question; T3 NPV impact small)
+
+**v5 anchor edit `ed42d8ac` post-mortem inputs to OT-A.5 design:**
+  1. Country-CPI anchor for `inflationRate` increased uniqueness
+     (good) but introduced −13% bias against LEA-derived legacy
+     baseline (bad). Two reasoning paths disagreeing on inflation
+     methodology — needs reconciliation, not a one-off prompt edit.
+  2. Strip-hints + per-market-reasoning pattern that worked for
+     cost-seg fields did NOT generalize to `svcFeeMarketing`. The
+     v5 outcome (uniq=1) is now reframed by Q2 as *correct
+     persona-narrowing*, not failure — pattern remained
+     non-generalizable for fields without a physical anchor, but
+     for `svcFeeMarketing` specifically the single value is the
+     right answer.
+
 ## Out-of-scope for OT-A.5 (parking)
 
   - Bimodal language for `incentiveFee` (D5): "8-12% branded
