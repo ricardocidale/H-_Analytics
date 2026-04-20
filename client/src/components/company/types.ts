@@ -16,6 +16,7 @@
  *                               by the Cash Flow tab's summary cards
  */
 import type { CompanyMonthlyFinancials } from "@/lib/financialEngine";
+import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 
 export interface CompanyChartDataPoint {
   [key: string]: string | number;
@@ -45,8 +46,8 @@ export interface CompanyCashAnalysis {
 
 export interface CompanyTabProps {
   financials: CompanyMonthlyFinancials[];
-  properties: any[];
-  global: any;
+  properties: PropertyResponse[];
+  global: GlobalResponse;
   projectionYears: number;
   expandedRows: Set<string>;
   toggleRow: (rowId: string) => void;
@@ -54,13 +55,13 @@ export interface CompanyTabProps {
   fundingLabel: string;
   tableRef?: React.RefObject<HTMLDivElement | null>;
   activeTab?: string;
-  propertyFinancials: { property: any; financials: any[] }[];
+  propertyFinancials: { property: PropertyResponse; financials: unknown[] }[];
   yearlyChartData?: CompanyChartDataPoint[];
 }
 
 export interface CompanyBalanceSheetProps {
   financials: CompanyMonthlyFinancials[];
-  global: any;
+  global: GlobalResponse;
   projectionYears: number;
   getFiscalYear: (yearIndex: number) => number;
   fundingLabel: string;
@@ -72,8 +73,8 @@ export interface CompanyBalanceSheetProps {
 }
 
 export interface CompanyHeaderProps {
-  global: any;
-  properties: any[];
+  global: GlobalResponse;
+  properties: PropertyResponse[];
   yearlyChartData: CompanyChartDataPoint[];
   cashAnalysis: CompanyCashAnalysis;
   projectionYears: number;

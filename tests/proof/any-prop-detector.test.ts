@@ -39,45 +39,36 @@ const SCAN_DIR = "client/src";
  * line (last resort).
  */
 const BASELINE_KNOWN_ANY_PROPS: string[] = [
-  // High-level portfolio/investment components — properties/global typed any
-  "client/src/components/InvestmentAnalysis.tsx:37",
-  "client/src/components/InvestmentAnalysis.tsx:38",
-  "client/src/components/InvestmentAnalysis.tsx:42",
+  // Sub-batch 2a (2026-04-20) RESOLVED — `global: any` (9 sites) + cascading
+  // `properties: any[]` (6 sites) replaced with GlobalResponse +
+  // PropertyResponse across: InvestmentAnalysis (global only), CompanyBenchmarkPanel,
+  // income-helpers, company/types (3 interfaces), DCFAnalysis, InvestmentReturnsTab,
+  // IcpMarketContextTab. Surfaced one real contract drift in IcpMarketContextTab
+  // where `assetDefinition` was cast to `Record<string, string>` despite its
+  // actual shape being structured.
 
-  // Company-research tab content payloads — untyped LLM output shapes
+  // Remaining `properties: any[]` + `allPropertyFinancials: any[]` — sub-batch 2b
+  "client/src/components/InvestmentAnalysis.tsx:38",
+  "client/src/components/InvestmentAnalysis.tsx:39",
+
+  // Company-research tab content payloads — untyped LLM output shapes (sub-batch 2c)
   "client/src/components/company-research/CompetitiveLandscapeTab.tsx:13",
   "client/src/components/company-research/OverheadBenchmarksTab.tsx:13",
   "client/src/components/company-research/PartnerCompTab.tsx:12",
   "client/src/components/company-research/ServiceRevenueTab.tsx:27",
   "client/src/components/company-research/VendorCostsTab.tsx:26",
 
-  // Company components — properties/global typed any (the Phase 4 #15 pattern)
-  "client/src/components/company/CompanyBenchmarkPanel.tsx:22",
-  "client/src/components/company/income-helpers.tsx:9",
-  "client/src/components/company/income-helpers.tsx:10",
-  "client/src/components/company/types.ts:48",
-  "client/src/components/company/types.ts:49",
-  "client/src/components/company/types.ts:63",
-  "client/src/components/company/types.ts:75",
-  "client/src/components/company/types.ts:76",
-
-  // Investment analysis components — properties/global typed any
-  "client/src/components/investment/DCFAnalysis.tsx:13",
-  "client/src/components/investment/DCFAnalysis.tsx:17",
+  // Investment analysis — remaining properties: any[] sites (sub-batch 2b)
   "client/src/components/investment/FCFAnalysisTable.tsx:10",
   "client/src/components/investment/PropertyIRRTable.tsx:8",
 
-  // Property detail / edit
+  // Property detail / edit — sub-batch 2d/2e
   "client/src/components/property-detail/BenchmarkPanel.tsx:25",
-  "client/src/components/property-detail/InvestmentReturnsTab.tsx:9",
-  "client/src/components/property-detail/InvestmentReturnsTab.tsx:10",
   "client/src/components/property-edit/types.ts:26",
   "client/src/components/property-edit/types.ts:29",
 
-  // ICP tabs
+  // ICP tabs — sub-batch 2b
   "client/src/pages/icp/IcpDataSourcesTab.tsx:8",
-  "client/src/pages/icp/IcpMarketContextTab.tsx:7",
-  "client/src/pages/icp/IcpMarketContextTab.tsx:8",
 ];
 
 // -- File enumeration --------------------------------------------------------

@@ -8,13 +8,14 @@ import { DEFAULT_COST_OF_EQUITY } from "@shared/constants";
 import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import type { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
 import { dPow } from "@calc/shared/decimal";
+import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 
 interface DCFAnalysisProps {
-  properties: any[];
+  properties: PropertyResponse[];
   allPropertyYearlyCF: ReturnType<typeof aggregateCashFlowByYear>[];
   projectionYears: number;
   getFiscalYear: (yearIndex: number) => number;
-  global: any;
+  global: GlobalResponse;
   expandedRows: Set<string>;
   toggleRow: (rowId: string) => void;
 }

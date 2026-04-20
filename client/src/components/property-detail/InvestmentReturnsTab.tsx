@@ -4,10 +4,11 @@ import { FinancialChart } from "@/components/ui/financial-chart";
 import { aggregatePropertyByYear } from "@/lib/financial/yearlyAggregator";
 import type { YearlyCashFlowResult } from "@/lib/financial/loanCalculations";
 import type { MonthlyFinancials } from "@engine/types";
+import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 
 interface InvestmentReturnsTabProps {
-  property: any;
-  global: any;
+  property: PropertyResponse;
+  global: GlobalResponse;
   financials: MonthlyFinancials[];
   cashFlowData: YearlyCashFlowResult[];
   projectionYears: number;

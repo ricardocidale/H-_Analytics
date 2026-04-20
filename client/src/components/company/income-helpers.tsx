@@ -3,15 +3,16 @@ import { TableRow, TableCell } from "@/components/ui/table";
 import { ChevronRight, ChevronDown } from "@/components/icons/themed-icons";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import type { CompanyMonthlyFinancials } from "@/lib/financialEngine";
+import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 
 export interface IncomeRowsProps {
   financials: CompanyMonthlyFinancials[];
-  properties: any[];
-  global: any;
+  properties: PropertyResponse[];
+  global: GlobalResponse;
   projectionYears: number;
   expandedRows: Set<string>;
   toggleRow: (rowId: string) => void;
-  propertyFinancials: { property: any; financials: any[] }[];
+  propertyFinancials: { property: PropertyResponse; financials: unknown[] }[];
 }
 
 export function FormulaRow({

@@ -2,16 +2,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { IconInfo, IconDatabase, IconDollarSign, IconBuilding, IconUsers, IconFileText, IconMapPin } from "@/components/icons";
 import { DataCard, SectionHeading, fmt$ } from "./IcpUIComponents";
+import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 
 interface IcpMarketContextTabProps {
-  global: any;
-  properties: any[];
+  global: GlobalResponse;
+  properties: PropertyResponse[];
   companyInputs: Array<{ label: string; value: string }>;
   focusAreas: string[];
 }
 
 export function IcpMarketContextTab({ global, properties, companyInputs, focusAreas }: IcpMarketContextTabProps) {
-  const assetDef = global.assetDefinition as Record<string, string> | undefined;
+  const assetDef = global.assetDefinition;
 
   return (
     <div className="space-y-4">

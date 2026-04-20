@@ -33,6 +33,7 @@ Admin
 ├── App Settings
 ├── Reports & Exports
 ├── Testing & Verification
+├── Scenarios (Admin)                         ← future block; per-user starter scenarios; see §9
 └── Steady State                              ← bottom of sidebar
     ├── Defaults                              ← admin-editable seed values
     │   ├── Management Company  (tab)         ← canonical example
@@ -214,7 +215,9 @@ Steady State
 
 | Concept | Lives in | Reason |
 |---|---|---|
-| Scenarios (named snapshots of assumptions + properties) | Front-of-app `Scenarios` page | User-created runtime artifact, not a seed value |
+| Scenarios — user-saved snapshots of assumptions + properties | Front-of-app `Scenarios` page | User-created runtime artifact, not a seed value |
+| The **default scenario** that shows on first sign-in | Derived at runtime from Defaults + the property catalogue (see §9) | Computed, not configured; no admin UI needed for the bare default |
+| **Starter scenarios per user / investor segment** (future) | Admin → Scenarios sidebar block (planned, not built) | RBAC/distribution config, distinct from seed values; reserves admin control over which properties each investor sees first |
 | Report layouts, KPI surfacing, export formats | Reports & Exports sidebar block | Presentation preference, not a model assumption |
 | Theme colors, fonts, dark/light | Themes & Appearance | Presentation, not a model assumption |
 | Default user role, RBAC | Users sidebar block | Governance, not a model assumption |
@@ -237,7 +240,47 @@ Steady State
 
 ---
 
-## 8. Why this pattern is the canonical example
+## 9. Default scenario semantics + future Admin → Scenarios block
+
+This section captures behavior that is adjacent to Steady State but lives on its own surface. It is documented here so future work doesn't accidentally fold it into Defaults.
+
+### 9.1 The default scenario is derived, not configured
+
+Every user, on first sign-in, lands inside what the app calls the **default scenario**. The default scenario is not stored as a row anybody edits in Admin — it is computed at runtime from two sources Steady State already owns:
+
+1. **All MC defaults** from Steady State → Defaults → Management Company are applied as the user's starting assumptions.
+2. **Every property in the property catalogue** is included in the scenario with its `included_in_scenario` flag set to ON. There is no curation, no allowlist — the bare default is "show me everything."
+
+Because the default scenario is derived, it has no Admin page and no Save button of its own. The instant the user clicks Save on any tab of Company Assumptions or any property, the cascade rule from §3 fires and the default scenario becomes the user's first saved scenario (named "Base Case" or equivalent). From that moment forward, the user is editing their own scenario — the default is gone for that user.
+
+**Implementation contract** for the default scenario:
+
+- [ ] Property records carry an `included_in_scenario` boolean that defaults to `true`.
+- [ ] Front-of-app first-visit logic resolves the starting state as: assumptions = MC defaults; properties = full catalogue with the flag respected.
+- [ ] No row in `scenarios` table is created for the default — it exists only as a runtime composition until the user's first save.
+
+### 9.2 Future Admin → Scenarios block (planned, not built)
+
+The bare default scenario is fine for an open beta where every investor sees the same property book. As soon as the product needs to expose **different investors to different property books** (the L+B Hospitality target operating model), Admin needs a way to:
+
+- Create a **starter scenario** — a named curation of (a) which properties are included and (b) optional MC-level assumption overrides on top of Steady State defaults.
+- Assign each starter scenario to one or more users, roles, or investor segments.
+- Mark exactly one starter scenario as the **fallback default** for users with no explicit assignment (which collapses to today's "all properties ON" behavior unless an admin changes it).
+
+This will live as its own sidebar block — **Scenarios (Admin)** — sitting just above Steady State. Out of scope for the current build, but reserved in the sidebar diagram in §2 so we don't paint ourselves into a corner.
+
+**Boundaries to honor when we get there:**
+
+- Starter scenarios are **not** Defaults. They reference Defaults; they don't replace them. Editing the MC defaults in Steady State propagates to every starter scenario that doesn't explicitly override.
+- A starter scenario's MC overrides follow the same Save-UX contract as any other assumption surface (§4): Save button enabled on render, navigation-away dialog, Cancel reverts to entry-state.
+- Property inclusion in a starter scenario is set-membership, not a deep copy of the property record. Property edits in Steady State → Defaults → Property still flow through to every starter scenario that includes that property.
+- A user assigned a starter scenario lands inside it on first sign-in instead of the bare default. The cascade rule from §3 still applies — the moment the user saves, the starter scenario becomes their own scenario, and the admin's starter is no longer their source of truth.
+
+This block will need its own spec when we build it. Pointer reserved.
+
+---
+
+## 10. Why this pattern is the canonical example
 
 The Management Company Defaults tab is built first because it is the simplest case (single entity, no sub-collections, all seeds are scalar or short list values). Once that is shipped:
 

@@ -9,6 +9,7 @@ import {
   GA_OVERHEAD_RANGE,
   STAFF_COST_RANGE,
 } from "@shared/companyBenchmarks";
+import type { GlobalResponse } from "@/lib/api/types";
 
 interface BenchmarkRow {
   label: string;
@@ -19,7 +20,7 @@ interface BenchmarkRow {
 }
 
 interface CompanyBenchmarkPanelProps {
-  global: any;
+  global: GlobalResponse;
   yearlyChartData: { Revenue: number; Expenses: number; NetIncome: number }[];
   financials: { staffCompensation: number; totalRevenue: number }[];
 }
