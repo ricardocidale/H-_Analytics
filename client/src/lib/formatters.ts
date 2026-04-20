@@ -22,5 +22,5 @@ export function formatMoneyInput(value: number): string {
 
 /** Parse comma-formatted string back to number. */
 export function parseMoneyInput(value: string): number {
-  return parseFloat(value.replace(/,/g, '')) || 0;
+  const v = parseFloat(value.replace(/,/g, '')); return Number.isFinite(v) ? v : 0;
 }

@@ -425,6 +425,10 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - Property-based tests (Claude, `43ed0163` + `991a6b77`): 66 fast-check properties across all 10 research tools; 13,200 generated inputs per `test:summary`.
 - Sentry + PostHog handoffs ready and queued behind OT-A.
 
+**Replit billing telemetry DB (April 20, 2026, Replit):**
+- New tables `replit_invoices` (75 rows) + `replit_invoice_line_items` (139: 3 gross + 136 net, explicit `amount_basis`) in project Postgres. Additive only — no app code imports them, no workflow restart.
+- Files: `shared/schema/replit-billing.ts` (Zod-free, uses `$inferInsert/$inferSelect` to avoid the drizzle-zod `.omit()` issue), `script/seed-replit-billing.ts` (txn-wrapped, re-runnable), `script/billing-report.ts` → `docs/billing/hplus-cost-report.md`. H+ project-life cash = $4,378.41 (92.2%).
+
 **Cross-agent hygiene + SDK consolidation (April 19-20, 2026):**
 - `docs/architecture/DEPENDENCIES.md` — full dependency atlas (150+ deps, 16 categories, cost + env-var + status per item). Corrected stale managed-vector-DB references throughout `.claude/` — the app uses pgvector inside Neon.
 - `.claude/skills/analyst/contracts.md` — consolidated SDK contract reference (AnalystVerdict, SynthesisOutputSchema, FIELD_DEFINITIONS, VoiceRenderedString, the categorical A/B gate).

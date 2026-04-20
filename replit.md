@@ -292,6 +292,15 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 
 ## Recent Changes
 
+**Replit billing telemetry DB — 75-invoice ledger live (April 20, 2026, Replit):**
+- Promoted the forensic 75-invoice ledger from static markdown (`rewritetax.md`) to live Postgres tables in the existing project DB (additive only — no app code touches them, no workflow restart, OT-A.5 v6 observation window untouched).
+- New tables: `replit_invoices` (75 rows: invoice headers + cap-hit/spike-day flags + H+ attribution columns) and `replit_invoice_line_items` (139 rows: 3 portal-line-item-exact gross + 136 ratio-estimated net, with explicit `amount_basis` column so the future CSV upgrade preserves semantics).
+- Files: `shared/schema/replit-billing.ts`, `script/seed-replit-billing.ts` (re-runnable, wrapped in `db.transaction`), `script/billing-report.ts` → `docs/billing/hplus-cost-report.md`, `script/_create-billing-tables.ts` (one-shot SQL bootstrap; drizzle-kit push needs a TTY).
+- Headline numbers: H+ workspace `e53ea481-…` = $4,378.41 attributed cash = 92.2% of total project-life cash invoiced ($4,747.69 across 34 active billing days, $128.78/day average).
+- Attribution model (path "C-then-B"): 91% routine ratio, 95% spike-day ratio (Feb 10, Mar 8, Apr 19), portal-line-item-exact for `XFPSSE-DRAFT` (H+ gross $2,558.98). Upgrade path: drop an Orb CSV at `./.local/orb-invoice-export.csv` and a follow-up loader replaces estimates with workspace-exact figures.
+- Implementation note: hit the documented `drizzle-zod .omit()` violation on first try; switched to `typeof table.$inferInsert/$inferSelect` (no Zod), which sidesteps the issue. Schema is Zod-free.
+- Refresh anytime: `npx tsx script/seed-replit-billing.ts && npx tsx script/billing-report.ts`.
+
 **OT-A.5 prep — Section A DEFER + C.2 strengthen confirmed (April 19, 2026, Replit, `97c5a331`, docs-only):**
 - Two offline verifications during the OT-A.4 T+72h observation window. **No source files touched, no API spend, engine-version-drift test stays clean.**
 - **Section A:** tabulating `(market, legacy.inflationRate.mid, new.mid)` across all 20 v5 cases revealed the sample is US-only; STAYS/PROMOTED rules from OT-A-5-design.md §A both presuppose mixed-country evidence. DEFER outcome → Section A removed from v6 batch; filed for OT-A.6 with $3–5 mixed-country LEA trace gate.

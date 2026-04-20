@@ -57,7 +57,7 @@ export function renderFinancialTableSection(section: any, d: PdfTemplateData): s
     const isHeader = r.type === "header" || r.isHeader;
     const isTotal = r.type === "total" || r.type === "subtotal" || r.isBold;
     const isFormula = r.isItalic || r.type === "formula";
-    const indent = r.indent || 0;
+    const indent = r.indent ?? 0;
     const category = (r.category || "").trim();
 
     if (!category && (r.values || []).every((v: any) => v === 0 || v === null || v === "")) {
