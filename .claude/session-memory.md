@@ -8,7 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst: T006 complete (a + b)
+## Session: April 20, 2026 (latest) — Interactive Analyst: T007a soft-gate primitives
+- **T007a**: `computeAnalystViolations` pure helper (thresholds 20% single / 40% lone-blunt, high-confidence only, nearest-edge metric) + `<SaveWithAnalystGate />` dialog component. Dialog offers Cancel / Save Anyway / Analyst ✨; tracks `awaitingRerun` so only in-dialog reruns auto-close on success. Barrel updated.
+- **Next (T007b)**: wire `<SaveWithAnalystGate />` into `ModelDefaultsTab` — scope `fields` to the active sub-tab (union for all-tabs save, or per-tab if we split). Current save contract lifts `onSave` via `onSaveStateChange`; we'll route that through the gate.
+- Lint/Health/Run-Tests still red pre-existing; gates at T008.
+
+## Session: April 20, 2026 — Interactive Analyst: T006 complete (a + b)
 - **T006b**: MarketMacroTab + PropertyUnderwritingTab wired to the same `useAnalystRefresh` hook via shared parent state; each renders `<AnalystActionButton variant="header" testIdSuffix="market-macro"|"property-underwriting" />` next to its `TabBanner`, firing its canonical field list from `analyst-fields.ts`. ModelConstantsTab/LlmDefaultsTab/RequiredFieldsTab skipped per plan.
 - **Next**: T007 soft-gate (`<SaveWithAnalystGate />`) — high-confidence + >20% out-of-band violations; ≥2 always interrupts, 1 only if >40%.
 - Lint Check still red pre-existing; gates run at T008.
