@@ -638,7 +638,7 @@ async function callServiceForField(
         if (field === "acquisitionInterestRate") {
           // Use REIT dividend yields as market context
           const avgDivYield = data.reits.length > 0
-            ? data.reits.reduce((sum, r) => sum + (r.monthChangePct || 0), 0) / data.reits.length
+            ? data.reits.reduce((sum, r) => sum + (r.monthChangePct ?? 0), 0) / data.reits.length
             : null;
           if (avgDivYield != null) {
             return { value: avgDivYield, provenance: `Alpha Vantage REIT market context, L${rCtx.level}` };

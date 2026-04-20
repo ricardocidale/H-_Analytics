@@ -70,7 +70,7 @@ export function generatePortfolioBalanceSheetData(
       const ppe = propertyPPE(property.purchasePrice, property.buildingImprovements);
       const accDep = sumMonthlyField(relevantMonths, "depreciationExpense");
       
-      const operatingReserve = property.operatingReserve || 0;
+      const operatingReserve = property.operatingReserve ?? 0;
       const cumulativeANOI = relevantMonths.reduce((sum, m) => sum + m.anoi, 0);
       const cumulativeDebtService = relevantMonths.reduce((sum, m) => sum + m.interestExpense + m.principalPayment, 0);
       const cumulativeTax = relevantMonths.reduce((sum, m) => sum + m.incomeTax, 0);
@@ -98,7 +98,7 @@ export function generatePortfolioBalanceSheetData(
       totalEquity += propertyEquityInvested(property);
       
       const netIncome = relevantMonths.reduce((sum, m) => sum + m.netIncome, 0);
-      const preOpening = property.preOpeningCosts || 0;
+      const preOpening = property.preOpeningCosts ?? 0;
       totalRetainedEarnings += (netIncome - preOpening);
     });
 

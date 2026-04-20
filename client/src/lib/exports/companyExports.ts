@@ -397,7 +397,7 @@ async function exportCompanyFullWorkbook(
   );
   await addSheet("Cash Flow", cfRows);
 
-  const totalSafeFunding = (global.capitalRaise1Amount || 0) + (global.capitalRaise2Amount || 0);
+  const totalSafeFunding = (global.capitalRaise1Amount ?? 0) + (global.capitalRaise2Amount ?? 0);
   const cumRetainedEarnings = yearlyData.map((_: any, i: number) => {
     let cum = 0;
     for (let j = 0; j <= i; j++) cum += yearlyData[j].netIncome;

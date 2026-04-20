@@ -29,7 +29,7 @@ function getTypeBreakdown(properties: Property[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const p of properties) {
     const type = p.hospitalityType ?? "hotel";
-    counts[type] = (counts[type] || 0) + 1;
+    counts[type] = (counts[type] ?? 0) + 1;
   }
   return counts;
 }

@@ -143,12 +143,12 @@ export function buildOverviewExportData(
   });
 
   const marketCounts = activeProperties.reduce<Record<string, number>>((acc, p) => {
-    acc[p.market] = (acc[p.market] || 0) + 1;
+    acc[p.market] = (acc[p.market] ?? 0) + 1;
     return acc;
   }, {});
 
   const statusCounts = activeProperties.reduce<Record<string, number>>((acc, p) => {
-    acc[p.status] = (acc[p.status] || 0) + 1;
+    acc[p.status] = (acc[p.status] ?? 0) + 1;
     return acc;
   }, {});
 

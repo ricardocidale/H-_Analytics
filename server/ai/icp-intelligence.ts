@@ -230,7 +230,7 @@ function aggregateNullable(values: (number | null | undefined)[]): { min: number
 function countMap<T extends string>(values: (T | null | undefined)[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const v of values) {
-    if (v) counts[v] = (counts[v] || 0) + 1;
+    if (v) counts[v] = (counts[v] ?? 0) + 1;
   }
   return counts;
 }

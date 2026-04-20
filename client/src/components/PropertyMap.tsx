@@ -211,7 +211,7 @@ export default function PropertyMap({ latitude, longitude, propertyName }: Prope
   };
 
   const poiCountByType = pois.reduce((acc, poi) => {
-    acc[poi.type] = (acc[poi.type] || 0) + 1;
+    acc[poi.type] = (acc[poi.type] ?? 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 

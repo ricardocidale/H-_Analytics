@@ -137,7 +137,7 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
   const [waterfallYear, setWaterfallYear] = useState<string>("0");
 
   const marketCounts = activeProperties.reduce((acc, p) => {
-    acc[p.market] = (acc[p.market] || 0) + 1;
+    acc[p.market] = (acc[p.market] ?? 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -159,7 +159,7 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
   };
 
   const statusCounts = activeProperties.reduce<Record<string, number>>((acc, p) => {
-    acc[p.status] = (acc[p.status] || 0) + 1;
+    acc[p.status] = (acc[p.status] ?? 0) + 1;
     return acc;
   }, {});
 

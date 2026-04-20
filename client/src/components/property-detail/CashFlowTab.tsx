@@ -49,9 +49,9 @@ export default function CashFlowTab({
               <LineChart data={yearlyChartData.map((d, i) => {
                 return {
                   ...d,
-                  FCF: cashFlowData[i]?.freeCashFlow || 0,
-                  FCFE: cashFlowData[i]?.freeCashFlowToEquity || 0,
-                  NetToInvestors: cashFlowData[i]?.netCashFlowToInvestors || 0,
+                  FCF: cashFlowData[i]?.freeCashFlow ?? 0,
+                  FCFE: cashFlowData[i]?.freeCashFlowToEquity ?? 0,
+                  NetToInvestors: cashFlowData[i]?.netCashFlowToInvestors ?? 0,
                 };
               })}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />

@@ -28,7 +28,7 @@ async function autoEnhancePhoto(photoId: number, imageUrl: string, imageDataBase
       logger.warn(`Auto-enhance: could not fetch source image for photo ${photoId}`, "property-photos");
       return;
     }
-    const contentLength = Number(imgRes.headers.get("content-length") || 0);
+    const contentLength = Number(imgRes.headers.get("content-length") ?? 0);
     if (contentLength > 20 * 1024 * 1024) {
       logger.warn(`Auto-enhance: image too large (${contentLength} bytes) for photo ${photoId}`, "property-photos");
       return;
