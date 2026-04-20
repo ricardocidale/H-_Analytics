@@ -27,7 +27,7 @@ There are **three tiers**, never two. The cascade direction is always **Constant
 |---|---|---|---|
 | **Model Constant** | An externally governed value nobody invents (IRS depreciation life, AHLA day-count, GAAP/USALI line definitions, FX rates ingested by the engine). Read through `getEffectiveConstant` (resolution order: `manual > analyst > factory`). | Nobody at runtime. Admin can override a governed constant in **Admin → Model Defaults** with a citation. The Analyst can propose values backed by cited research. | `shared/constants.ts`, `shared/countryDefaults.ts`, and the `model_constant_overrides` table |
 | **Assumption** *(a.k.a. Working Variable)* | A user-facing **working variable**. The number the user is currently modeling with. Editable on the front of the app. The Analyst validates it, flags it, and suggests ranges for it. | Every user (management role and above) | Company Assumptions page, Property assumption pages, scenario state |
-| **Default** *(a.k.a. Seed)* | An admin-only **seed value** loaded into the database to initialize a fresh tenant or reset a field. A starting point, not a working number. | Super admin only, in the Admin section | `defaults` tables, seed scripts, admin settings |
+| **Default** *(a.k.a. Seed)* | An admin-only **seed value** that initializes a user's first-visit composition or seeds the bare-default scenario. A starting point, not a working number. | Super admin only, in **Admin → Steady State → Defaults** | `model_defaults` table (no TS factory fallback — pure DB-backed; see `docs/architecture/STEADY-STATE.md`) |
 
 **Quick disambiguation:** *"Is this number something the user types and saves?"* → **assumption**. *"Is this number set once by an admin to seed every new tenant?"* → **default**. *"Is this number fixed by an external authority (tax code, accounting standard, FX feed)?"* → **constant**. If a sentence works with two of those words swapped, the sentence is wrong.
 
@@ -50,6 +50,9 @@ When the user asks where a value lives, **lead with the assumption** — name th
 7. **Model Constants are governed separately** and never appear in user-facing copy under that name. They are read through `getEffectiveConstant`, surfaced read-only on user pages with the link "Set in Admin → Model Defaults → Model Constants", and edited only in that single Admin tab. Full governance in `finance/constants-governance.md`. If you find yourself reaching for the word "default" to describe a tax-code life or an FX rate, you mean **constant** — fix the wording.
 
 **Quick test before you write code, copy, or an answer:** *"Is this number something the user types and saves?"* → it's an **assumption**, and the user-facing page is the authoritative location. *"Is this number set once by an admin to seed every new tenant?"* → it's a **default**. If both apply (a seed that becomes an assumption after Save), you're describing the seed→assumption relationship — say so explicitly and lead with the assumption side when talking to the user.
+
+### Canonical architecture pointer
+For the full Defaults / Constants / Admin IA spec — locked Defaults tree, Save UX contract, hardcoding exception, cascade rule, future Admin → Scenarios block, and `model_defaults` table shape — read **`docs/architecture/STEADY-STATE.md`**. That doc is the single source of truth for Steady State; this skill governs the vocabulary that surrounds it.
 
 ---
 
