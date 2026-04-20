@@ -10,7 +10,9 @@ import { SectionCard } from "../property-research/SectionCard";
 import { companySectionColors } from "./types";
 
 interface CompetitiveLandscapeTabProps {
-  content: any;
+  // Research overlay content (unused in static tab today; reserved for
+  // future AI-generated competitive intelligence per file docstring)
+  content?: unknown;
 }
 
 const COMPETITOR_TYPES = [
@@ -53,7 +55,8 @@ const DIFFERENTIATION_STRATEGIES = [
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function CompetitiveLandscapeTab({ content }: CompetitiveLandscapeTabProps) {
+export function CompetitiveLandscapeTab(_props: CompetitiveLandscapeTabProps) {
+  // _props accepts `content` but doesn't consume it — static tab content.
   return (
     <div className="space-y-6">
       <SectionCard icon={IconTarget} title="Competitor Landscape" color={companySectionColors.contracts}>

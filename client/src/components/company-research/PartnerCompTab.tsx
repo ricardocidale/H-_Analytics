@@ -8,8 +8,17 @@ import { SectionCard } from "../property-research/SectionCard";
 import { MetricCard } from "../property-research/MetricCard";
 import { companySectionColors } from "./types";
 
+interface CompensationBenchmarks {
+  gm?: string;
+  director?: string;
+  manager?: string;
+  source?: string;
+}
+
 interface PartnerCompTabProps {
-  content: any;
+  content?: {
+    compensationBenchmarks?: CompensationBenchmarks;
+  };
 }
 
 const COMP_BENCHMARKS = [

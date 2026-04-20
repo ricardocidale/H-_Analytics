@@ -56,12 +56,11 @@ const BASELINE_KNOWN_ANY_PROPS: string[] = [
   // `researchSources: any[]` in IcpDataSourcesTab replaced with a local
   // ResearchSource type derived from actual usage.
 
-  // Company-research tab content payloads — untyped LLM output shapes (sub-batch 2c)
-  "client/src/components/company-research/CompetitiveLandscapeTab.tsx:13",
-  "client/src/components/company-research/OverheadBenchmarksTab.tsx:13",
-  "client/src/components/company-research/PartnerCompTab.tsx:12",
-  "client/src/components/company-research/ServiceRevenueTab.tsx:27",
-  "client/src/components/company-research/VendorCostsTab.tsx:26",
+  // Sub-batch 2c (2026-04-20) RESOLVED — `content: any` in 5 company-research
+  // tabs replaced with `content?: unknown` (4 tabs don't consume the prop —
+  // orphan-like per barrel-only usage, kept for future AI overlay per each
+  // tab's docstring) + a specific CompensationBenchmarks type for
+  // PartnerCompTab which actually reads content.compensationBenchmarks.
 
   // Property detail / edit — sub-batches 2d, 2e
   "client/src/components/property-detail/BenchmarkPanel.tsx:25",

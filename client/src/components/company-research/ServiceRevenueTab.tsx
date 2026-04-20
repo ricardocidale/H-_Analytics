@@ -24,7 +24,8 @@ const LABELS: Record<string, string> = {
 };
 
 interface ServiceRevenueTabProps {
-  content: any;
+  // Research overlay content (unused today; reserved for AI overlays)
+  content?: unknown;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

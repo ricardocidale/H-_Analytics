@@ -10,7 +10,8 @@ import { MetricCard } from "../property-research/MetricCard";
 import { companySectionColors } from "./types";
 
 interface OverheadBenchmarksTabProps {
-  content: any;
+  // Research overlay content (unused today; reserved for AI overlays)
+  content?: unknown;
 }
 
 const OVERHEAD_BENCHMARKS = [
