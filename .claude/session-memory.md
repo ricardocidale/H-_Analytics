@@ -8,6 +8,11 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 20, 2026 (latest) — All lint batches complete (348→42, 88%)
+- **All 9 batches shipped:** 5a/5b/5c (audit/verification), 6a+6b/6c/6d/6e/6f (remaining codebase). Final count: **42 warnings** (88% reduction from 348). Haiku executed 5b/6c/6d (mechanical `?? 0`); Sonnet executed 5c (assertFinite on 4 accumulators) + 6e (14 `Number.isFinite` input-parsing wraps) + 6f (3 inspect-each). All gates green throughout; assertFinite surfaced no engine NaN bugs.
+- **Recurring Replit collision pattern**: commits 9ba2b495, cd64b6f5, fd509d51 auto-bundled Claude's edits mid-session (4th, 5th, 6th incidents). Work landed correctly; attribution in session memory.
+- **42 remaining warnings**: `as any` in tests/scripts/routes (~2 `as any`), `|| 0` in script/ + test fixtures not covered by batches, fetch-timeout waivers. Not worth further batch work — these are isolated or intentional.
+
 ## Session: April 20, 2026 (latest) — Lint Batches 5a + 6a+6b shipped + claude.md refresh
 - **Batch 5a shipped (Claude, `c66896fc`):** 22 Category A `|| 0` → `?? 0` swaps across 5 audit/verification files. Schema-nullable + test fixtures only. 187 → 159 warnings.
 - **Batch 6a+6b shipped (Claude, `fb4bbbe7`):** 20 Category A+E swaps across 14 files (groupBy accumulators, schema-nullable, optional-chained array reads, chart viewBox coords). 159 → 138 warnings.
