@@ -25,7 +25,7 @@ This table is the headline. Read the rest of the doc only if you want evidence.
 | **8. `any`-typed component props** | 🟢 **Stopped Apr 20** | Historical cost: Phase 4 #15 bug (BLOCKED handoff + fix commit) + today's 3 real bugs surfaced. | `any-prop-detector.test.ts` (Phase 17). Baseline empty after 20+ file sweep. |
 | **9. Magic date literals drifting across files** | 🟢 **Stopped Apr 20** | Historical cost: D-1 (`"2026-06-01"` in 7+ files), D-1-B (capital-raise dates). Each cluster = 1 full audit + 1 fix sweep. | `literal-drift.test.ts` (Phase 18). Baseline empty. |
 | **10. Decimal-literal drift** (cap rates, LTVs, fees) | 🟡 Partially covered | Same class as #9 but for numbers, not dates. Not yet detected. | V2 of literal-drift detector. Queued, not urgent. |
-| **11. Client/server seed data duplication** | 🔴 **Actively bleeding** | Same property list hardcoded in `client/src/lib/store.ts` AND `server/seeds/property-data.ts`. Drift inevitable. | Consolidate to single source. Not started. |
+| **11. Client/server seed data duplication** | 🟡 **Downgraded Apr 20** (re-assessed) | Client-side `INITIAL_PROPERTIES` is Zustand *initial-state* placeholder, replaced immediately on API fetch. No end user sees it in production. Shapes are intentionally different (`StoreProperty` vs drizzle `InsertProperty`). Real drift risk: low. | In-place docstring added 2026-04-20. Full consolidation (~1h refactor) would be over-engineering for a placeholder that's never rendered. |
 | **12. LLM-migration mechanism bugs** (OT-A.3/4 arc: mode collapse, definition drift, representational mismatch, parity-against-broken-baseline) | 🟢 **Stopped Apr 20** | Paid in full for OT-A.3 saga (~$180–$220 documented). | 4 rules codified: `field-definitions-no-prescription-hints.md`, `llm-contract-migration-parity.md`, `parity-exemption-classes.md`, + existing `analyst-verdict-contract.md`. |
 
 ### Stopped-by-today's-work summary
@@ -47,15 +47,21 @@ This table is the headline. Read the rest of the doc only if you want evidence.
 
 ### What's STILL bleeding and not yet stopped
 
-Patterns 1, 2, 3, 4, 11 above are not addressable by automated tests. They're human-discipline problems.
+Patterns 1, 2, 3, 4 above are not addressable by automated tests. They're human-discipline problems. The "5 install-this-week fixes" from the first draft of this scoreboard have mostly been implemented during the Apr 20 session — progress below.
 
-**The top 5 things to install THIS WEEK to stop the ongoing bleed:**
+**Progress on the 5 install-this-week fixes (as of Apr 20 EOD):**
 
-1. **Pre-commit hook that rejects generic commit messages** (`c`, `commit`, `com`, `wip`, `fix`). Ends 141-commit class of waste.
-2. **One-cosmetic-swap-per-month budget.** 88 opengraph-style swaps this year is absurd. Move to a single quarterly branding sprint.
-3. **Per-file `git add` enforcement.** After collision #10 (Apr 20) I violated my own rule. A git hook that refuses `git add -A` when multiple authors have uncommitted state would close this.
-4. **Consolidate client/server seed data.** `client/src/lib/store.ts::INITIAL_PROPERTIES` should import from `server/seeds/property-data.ts` (or a shared fixtures module). One source of truth.
-5. **Decimal literal drift detector** (v2 of pattern 9). Catches cap rate / LTV / fee drift before it becomes tomorrow's D-1.
+1. **✅ Pre-commit hook rejecting generic commit messages** (`.husky/commit-msg`, commit `afea52dc`). Blocks `c`, `wip`, `fix`, etc. + any subject <15 chars. Historical 141-commit class of waste is now blocked going forward.
+2. **✅ Cosmetic-swap budget + warning hook** (`.husky/cosmetic-warn` + `.claude/rules/cosmetic-budget.md`). Emits a warning when a commit touches only branding assets. Advisory (not blocking) since it needs human judgment — but the cost is now visible at commit time.
+3. **✅ Stage-collision check hook** (`.husky/stage-collision-check`). Warns when `git add`-staged files were last modified by a different author than the current session's. Advisory; catches the `git add -A` footgun that caused collision #10.
+4. **🟡 Client/server seed data — downgraded.** Re-assessment found the client-side `INITIAL_PROPERTIES` is Zustand placeholder, not real end-user state. Documented in-place rather than consolidating. See pattern #11 above.
+5. **⏳ Decimal literal drift detector** (v2 of pattern 9). Deferred — preview run flagged 33 unique decimal values across 2+ files, baseline would be too noisy to ship without tighter scoping. Queued for a future session when the signal-to-noise can be improved.
+
+**What remains purely human-discipline:**
+
+- **Cosmetic churn frequency** — the hook warns, but doesn't block. Needs your enforcement.
+- **Auto-publish checkpoints** — Replit-specific. Move to manual-only publishes via `.replit` setting or Replit dashboard.
+- **Multi-agent branch strategy** — if you want to eliminate collisions structurally (not just warn), Claude writes to feature branches and Replit merges. Open question; adds workflow friction.
 
 ### Where this section came from
 

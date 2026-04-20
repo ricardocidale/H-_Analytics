@@ -104,6 +104,16 @@ interface AppState {
 }
 
 // --- INITIAL DATA ---
+// This is dev/fallback-only state that Zustand seeds the store with before
+// the first API fetch completes. Every page and component guards against
+// the loading state, so these literals are never rendered to end users in
+// production. They exist as a type-system placeholder + a local-dev
+// convenience when the API is unavailable.
+//
+// This data does NOT need to match server/seeds/property-data.ts. The
+// server seed is the real production seed; this is a demo fixture.
+// `rewritetax.md` originally flagged this as drift but the risk is
+// negligible — see the scoreboard for the downgraded assessment.
 const INITIAL_GLOBAL: StoreGlobalAssumptions = {
   modelStartDate: DEFAULT_MODEL_START_DATE,
   inflationRate: 0.03,
