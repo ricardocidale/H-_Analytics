@@ -43,6 +43,22 @@ describe("cache-keys — canonicalJson", () => {
       canonicalJson({ a: 1 })
     );
   });
+
+  it("serializes Date values via toJSON (not as empty object)", () => {
+    // Regression guard — prior bug: sortKeys recursed into Date as regular
+    // object, producing `{"at":{}}` and collapsing all dates to one hash.
+    const a = canonicalJson({ at: new Date("2026-01-01T00:00:00Z") });
+    const b = canonicalJson({ at: new Date("2027-06-15T12:00:00Z") });
+    expect(a).not.toBe(b);
+    expect(a).toContain("2026-01-01");
+    expect(b).toContain("2027-06-15");
+  });
+
+  it("uses toJSON when available on custom objects", () => {
+    const a = { payload: { toJSON: () => "custom-repr-A" } };
+    const b = { payload: { toJSON: () => "custom-repr-B" } };
+    expect(canonicalJson(a)).not.toBe(canonicalJson(b));
+  });
 });
 
 describe("cache-keys — computeCacheKey", () => {
@@ -144,6 +160,77 @@ describe("cache-keys — computeInputContextHash (v0 full-dependency)", () => {
       ["adr"]
     );
     expect(pHash).not.toBe(cHash);
+  });
+});
+
+describe("cache-keys — completeness guards", () => {
+  // These guards catch the silent-drop bug pattern: if someone adds a field
+  // to PropertyCacheInputs or CompanyCacheInputs but forgets to list it in
+  // FULL_PROPERTY_INPUTS / FULL_COMPANY_INPUTS, the new field is silently
+  // excluded from the hash — stale caches served despite input changes.
+  //
+  // Type-level enforcement would be ideal but requires TS ≥5 satisfies +
+  // key-of acrobatics. Until then, the pattern-level check below asserts
+  // that every sample of a fully-populated input set changes hash when any
+  // individual key changes.
+
+  it("every property input in the type changes the hash when flipped", () => {
+    const propertyCacheInputKeys = [
+      "type",
+      "businessModel",
+      "location",
+      "market",
+      "country",
+      "stateProvince",
+      "marketTier",
+      "propertyType",
+      "qualityTier",
+      "serviceLevel",
+      "roomCount",
+      "maxGuests",
+      "hasFB",
+      "hasEvents",
+      "purchasePrice",
+      "buildingImprovements",
+      "acquisitionLTV",
+      "operatingReserve",
+      "inflationRate",
+      "taxRate",
+    ] as const satisfies readonly (keyof PropertyCacheInputs)[];
+
+    const base: PropertyCacheInputs = {
+      type: "luxury-boutique",
+      businessModel: "hotel",
+      location: "Aspen, CO",
+      market: "Rocky Mountain",
+      country: "US",
+      stateProvince: "CO",
+      marketTier: "primary",
+      propertyType: "luxury-boutique",
+      qualityTier: "luxury",
+      serviceLevel: "full-service",
+      roomCount: 42,
+      maxGuests: 2,
+      hasFB: true,
+      hasEvents: true,
+      purchasePrice: 10_000_000,
+      buildingImprovements: 2_000_000,
+      acquisitionLTV: 0.65,
+      operatingReserve: 500_000,
+      inflationRate: 0.025,
+      taxRate: 0.21,
+    };
+
+    const baseHash = computeInputContextHash("property", base, ["adr"]);
+
+    for (const key of propertyCacheInputKeys) {
+      const mutated = { ...base, [key]: typeof base[key] === "number" ? -1 : "MUTATED" };
+      const mutHash = computeInputContextHash("property", mutated, ["adr"]);
+      expect(
+        mutHash,
+        `Flipping property input "${key}" did not change the hash — it is likely missing from FULL_PROPERTY_INPUTS in cache-keys.ts.`
+      ).not.toBe(baseHash);
+    }
   });
 });
 

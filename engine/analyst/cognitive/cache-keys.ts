@@ -185,6 +185,15 @@ export function canonicalJson(value: unknown): string {
 function sortKeys(value: unknown): unknown {
   if (value === null || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map(sortKeys);
+  // Date / boxed primitives / objects with toJSON: pre-serialize so their
+  // content appears in the hash. Without this, `new Date(...)` hashes as
+  // `{}` because Object.entries on a Date returns no own enumerable keys.
+  if (
+    value instanceof Date ||
+    (typeof (value as { toJSON?: unknown }).toJSON === "function")
+  ) {
+    return (value as { toJSON: () => unknown }).toJSON();
+  }
   const entries = Object.entries(value as Record<string, unknown>)
     .filter(([, v]) => v !== undefined) // drop undefineds so unset ≡ absent
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
