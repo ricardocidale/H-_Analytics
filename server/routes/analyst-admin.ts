@@ -4,14 +4,10 @@ import { requireAuth, getAuthUser } from "../auth";
 import { requireAdminGuard } from "../middleware/analyst-refresh-guards";
 import { logActivity, logAndSendError } from "./helpers";
 import { runAnalystScoped } from "../ai/analyst-scoped-runner";
+import { storage } from "../storage";
 import { logger } from "../logger";
 
 const ANALYST_COOLDOWN_MS = 60 * 1000;
-
-// In-memory per-user cooldown. Source of truth is the `research_runs` table
-// (createResearchRun inside the runner writes a durable row), so a process
-// restart just resets the in-memory clock to zero — a generous failure mode.
-const lastRunByUser = new Map<number, number>();
 
 const refreshBodySchema = z.object({
   scope: z.literal("global-assumptions"),
@@ -28,9 +24,12 @@ const refreshBodySchema = z.object({
  * the doctrine is a strict "once every 60s" budget per admin. Rationale:
  * 1) a failing LLM call is expensive and likely to fail again on immediate
  * retry, 2) without the hold, an admin hammering a flaky upstream could
- * rack up cost behind the cooldown's back. Recovery path if the admin
- * genuinely needs to retry sooner: process restart, or (in tests) the
- * `__resetAnalystCooldown` hook below.
+ * rack up cost behind the cooldown's back.
+ *
+ * Cooldown state lives in the `analyst_cooldowns` table (one row per user)
+ * so the policy survives process restarts and is shared across app
+ * instances. Recovery path if an admin genuinely needs to retry sooner:
+ * delete the row (or, in tests, the `__resetAnalystCooldown` hook below).
  */
 export async function analystRefreshHandler(req: Request, res: Response) {
   const parsed = refreshBodySchema.safeParse(req.body);
@@ -44,20 +43,24 @@ export async function analystRefreshHandler(req: Request, res: Response) {
 
   const user = getAuthUser(req);
   const userId = user.id;
-  const now = Date.now();
-  const last = lastRunByUser.get(userId) ?? 0;
-  const elapsed = now - last;
-  if (elapsed < ANALYST_COOLDOWN_MS) {
-    const retryAfterMs = ANALYST_COOLDOWN_MS - elapsed;
-    res.setHeader("Retry-After", Math.ceil(retryAfterMs / 1000).toString());
+  // Single atomic admission step: tryReserveAnalystCooldown either acquires
+  // the slot in one DB round-trip or rejects with retryAfterMs. A separate
+  // read-then-reserve sequence here would race — two concurrent admin clicks
+  // (or two app instances) could both pass a stale read and both run.
+  const reservation = await storage.tryReserveAnalystCooldown(
+    userId,
+    new Date(),
+    ANALYST_COOLDOWN_MS,
+  );
+  if (!reservation.granted) {
+    res.setHeader("Retry-After", Math.ceil(reservation.retryAfterMs / 1000).toString());
     return res.status(429).json({
       error: "Analyst is cooling down",
-      retryAfterMs,
+      retryAfterMs: reservation.retryAfterMs,
     });
   }
-  // Reserve the slot up front so concurrent clicks don't all pass the gate
-  // AND so a failure downstream doesn't gift the admin an instant retry.
-  lastRunByUser.set(userId, now);
+  // Slot is held. A failure downstream does NOT release it — the doctrine
+  // is a strict 60s budget per admin, even against flaky upstreams.
 
   try {
     // `scope: "global-assumptions"` from the client maps to the runner's
@@ -122,9 +125,9 @@ export function register(app: Express) {
 }
 
 /**
- * Test hook — resets the in-memory cooldown map. Do not call from production
- * code.
+ * Test hook — clears the cooldown row(s) so a freshly-installed test starts
+ * with no carry-over reservation. Do not call from production code.
  */
-export function __resetAnalystCooldown() {
-  lastRunByUser.clear();
+export async function __resetAnalystCooldown(userId?: number): Promise<void> {
+  await storage.clearAnalystCooldown(userId);
 }

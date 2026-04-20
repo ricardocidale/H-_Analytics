@@ -10,6 +10,7 @@ import {
   type InsertAnalystWatchdogBenchmarks,
   marketAdrIndex, seasonalCalendars, eventCalendars, airportDistances, laborRates, fbBenchmarks,
   capitalRaiseBenchmarks, exitMultiples, analystRefreshAuditLog, analystRefreshSettings,
+  analystCooldowns,
   type CapitalRaiseBenchmark, type InsertCapitalRaiseBenchmark,
   type ExitMultiple, type InsertExitMultiple,
   type AnalystRefreshAuditLog, type InsertAnalystRefreshAuditLog,
@@ -95,6 +96,69 @@ export class IntelligenceV2Storage {
       .returning();
     return inserted;
     });
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // Analyst cooldown (per-user, durable across restarts/instances).
+  // Replaces the earlier in-memory Map; backs POST /api/analyst/refresh.
+  // ────────────────────────────────────────────────────────────
+  async getAnalystCooldownReservedAt(userId: number): Promise<Date | null> {
+    const [row] = await db.select().from(analystCooldowns)
+      .where(eq(analystCooldowns.userId, userId))
+      .limit(1);
+    return row?.reservedAt ?? null;
+  }
+
+  /**
+   * Atomic admission control for the analyst refresh cooldown.
+   *
+   * INSERTs a fresh reservation, OR UPDATEs an existing one only when the
+   * prior reservation is older than `cooldownMs`. Returns `granted=true`
+   * when the slot is acquired (caller may run), or `granted=false` with
+   * `retryAfterMs` when the cooldown is still active.
+   *
+   * This is the only correct primitive for serving multiple admin clicks
+   * (or multiple app instances) without two of them passing the gate; a
+   * separate read-then-reserve sequence would race.
+   */
+  async tryReserveAnalystCooldown(
+    userId: number,
+    now: Date,
+    cooldownMs: number,
+  ): Promise<{ granted: true } | { granted: false; retryAfterMs: number }> {
+    const cutoff = new Date(now.getTime() - cooldownMs);
+    const [row] = await db.insert(analystCooldowns)
+      .values({ userId, reservedAt: now })
+      .onConflictDoUpdate({
+        target: analystCooldowns.userId,
+        set: { reservedAt: now },
+        setWhere: lte(analystCooldowns.reservedAt, cutoff),
+      })
+      .returning({ reservedAt: analystCooldowns.reservedAt });
+    // RETURNING is empty when the conflict's WHERE clause filtered the
+    // UPDATE — meaning a recent reservation already exists and we lost.
+    if (!row) {
+      const [existing] = await db.select().from(analystCooldowns)
+        .where(eq(analystCooldowns.userId, userId))
+        .limit(1);
+      const elapsed = existing ? now.getTime() - existing.reservedAt.getTime() : 0;
+      const retryAfterMs = Math.max(0, cooldownMs - elapsed);
+      return { granted: false, retryAfterMs };
+    }
+    // RETURNING came back with our `now` — we acquired the slot.
+    return { granted: true };
+  }
+
+  /**
+   * Test/admin hook — clears cooldown for one user, or all users if `userId`
+   * is omitted. Production code should not call this.
+   */
+  async clearAnalystCooldown(userId?: number): Promise<void> {
+    if (userId == null) {
+      await db.delete(analystCooldowns);
+    } else {
+      await db.delete(analystCooldowns).where(eq(analystCooldowns.userId, userId));
+    }
   }
 
   async createResearchRun(data: InsertResearchRun): Promise<ResearchRun> {

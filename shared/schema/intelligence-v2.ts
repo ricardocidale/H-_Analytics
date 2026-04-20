@@ -80,6 +80,23 @@ export const researchRuns = pgTable("research_runs", {
   index("research_runs_scenario_idx").on(table.scenarioId),
 ]);
 
+/**
+ * Per-user cooldown clock for the Interactive Analyst (POST /api/analyst/refresh).
+ *
+ * One row per user; `reservedAt` records when the most-recent run was reserved.
+ * Reservation happens BEFORE the runner is invoked and is NOT released on
+ * failure — see the file-level comment in server/routes/analyst-admin.ts for
+ * the rationale (strict 60s budget per admin, even against flaky upstreams).
+ *
+ * This table replaces an earlier in-memory `Map<userId, timestamp>` so the
+ * doctrine survives process restarts and is shared across app instances.
+ */
+export const analystCooldowns = pgTable("analyst_cooldowns", {
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  reservedAt: timestamp("reserved_at").notNull(),
+});
+export type AnalystCooldown = typeof analystCooldowns.$inferSelect;
+
 export const insertResearchRunSchema = createInsertSchema(researchRuns).pick({
   userId: true, entityType: true, entityId: true, scenarioId: true,
   tier: true, status: true, completedAt: true, durationMs: true,

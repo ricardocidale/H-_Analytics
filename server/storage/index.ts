@@ -411,6 +411,9 @@ export class DatabaseStorage implements IStorage {
   countAnalystRefreshAttempts = this.intelligenceV2.countAnalystRefreshAttempts.bind(this.intelligenceV2);
   getAnalystRefreshSettings = this.intelligenceV2.getAnalystRefreshSettings.bind(this.intelligenceV2);
   updateAnalystRefreshSettings = this.intelligenceV2.updateAnalystRefreshSettings.bind(this.intelligenceV2);
+  getAnalystCooldownReservedAt = this.intelligenceV2.getAnalystCooldownReservedAt.bind(this.intelligenceV2);
+  tryReserveAnalystCooldown = this.intelligenceV2.tryReserveAnalystCooldown.bind(this.intelligenceV2);
+  clearAnalystCooldown = this.intelligenceV2.clearAnalystCooldown.bind(this.intelligenceV2);
 
   // Rebecca Guardrails
   getRebeccaGuardrails = this.rebecca.getRebeccaGuardrails.bind(this.rebecca);

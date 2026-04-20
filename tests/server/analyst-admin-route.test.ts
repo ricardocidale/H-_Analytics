@@ -28,6 +28,35 @@ vi.mock("../../server/auth", () => ({
   getAuthUser: vi.fn((req: any) => req.user),
 }));
 
+// In-memory stand-in for the `analyst_cooldowns` table — keeps the route
+// integration test honest about its DB interaction without booting Postgres.
+// `tryReserveAnalystCooldown` mirrors the production "atomic INSERT ... ON
+// CONFLICT DO UPDATE WHERE reserved_at <= cutoff" semantics: a single
+// synchronous read+write on the JS Map is atomic with respect to the event
+// loop, just as the SQL primitive is atomic with respect to other DB clients.
+const cooldownStore = new Map<number, Date>();
+vi.mock("../../server/storage", () => ({
+  storage: {
+    tryReserveAnalystCooldown: vi.fn(async (
+      userId: number,
+      now: Date,
+      cooldownMs: number,
+    ) => {
+      const existing = cooldownStore.get(userId);
+      const elapsed = existing ? now.getTime() - existing.getTime() : Infinity;
+      if (elapsed < cooldownMs) {
+        return { granted: false as const, retryAfterMs: cooldownMs - elapsed };
+      }
+      cooldownStore.set(userId, now);
+      return { granted: true as const };
+    }),
+    clearAnalystCooldown: vi.fn(async (userId?: number) => {
+      if (userId == null) cooldownStore.clear();
+      else cooldownStore.delete(userId);
+    }),
+  },
+}));
+
 import {
   analystRefreshHandler,
   __resetAnalystCooldown,
@@ -49,8 +78,8 @@ function mockReq(userId: number) {
   } as any;
 }
 
-beforeEach(() => {
-  __resetAnalystCooldown();
+beforeEach(async () => {
+  await __resetAnalystCooldown();
   vi.clearAllMocks();
 });
 
@@ -103,6 +132,34 @@ describe("POST /api/analyst/refresh — cooldown policy", () => {
         retryAfterMs: expect.any(Number),
       }),
     );
+  });
+
+  it("concurrent clicks by the same user — exactly one slot is granted", async () => {
+    // Regression guard for the read-then-reserve race surfaced by code
+    // review of Chunk 5: two simultaneous calls must not both pass the
+    // cooldown gate. The atomic tryReserveAnalystCooldown primitive
+    // guarantees only one wins.
+    (runAnalystScoped as any).mockResolvedValue({
+      runId: 7,
+      durationMs: 5,
+      totalRecords: 0,
+      filteredRecords: 0,
+      guidance: [],
+    });
+
+    const resA = mockRes();
+    const resB = mockRes();
+    await Promise.all([
+      analystRefreshHandler(mockReq(77), resA),
+      analystRefreshHandler(mockReq(77), resB),
+    ]);
+
+    const statuses = [resA.status, resB.status]
+      .map((s: any) => s.mock.calls.map((c: any[]) => c[0]).pop());
+    const cooledDown = statuses.filter((s) => s === 429).length;
+    const accepted = statuses.filter((s) => s !== 429).length;
+    expect(cooledDown).toBe(1);
+    expect(accepted).toBe(1);
   });
 
   it("cooldown is per-user — one admin's run does not block another admin", async () => {
