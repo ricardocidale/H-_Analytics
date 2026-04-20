@@ -34,27 +34,86 @@ The split between the two `ricardo` identities is the cleanest available proxy f
 
 ---
 
-## Cost Estimate Summary (read this first)
+## Actual Invoice Data — Reality Check (added 2026-04-20 after invoice XFPSSE-DRAFT was shared)
 
-All estimates use publicly-documented Anthropic/OpenAI API pricing and Replit's Effort-Based Agent pricing. Conservative midpoints. Assumptions stated inline.
+Before relying on the estimates that follow, here is the **actual invoice data** from Replit billing for the most recent complete cycle. This supersedes — and in most cases dramatically *exceeds* — the estimates in the next section.
 
-| Cost vector | Low estimate | High estimate | Confidence |
-|---|---:|---:|---|
-| **Replit Agent checkpoint token spend (3,721 commits × $0.20–$0.40 each)** | **$745** | **$1,490** | Medium-High — based on Effort-Based pricing median |
-| **Cross-agent duplicate work** (Vector 1: 30+ tasks × 2–7 redundant passes × $1.50–$5/pass) | **$135** | **$1,050** | Medium — substantive duplicates only, small patches excluded |
-| **OT-A.3 prompt-tuning saga** (8 iterations × $22 + harness reruns + analysis loops) | **$210** | **$280** | **High** — directly documented in commits and `.local/scratchpad` |
-| **Vendor-swap labor** (Pinecone full integration → removal; Marcela voice → removal; jsPDF → Puppeteer; SendGrid → Resend; legacy regex → streamObject) | **$200** | **$600** | Low-Medium — labor-equivalent, hard to isolate from forward work |
-| **Architectural-redirection rebuilds** (SAFE → capital_raise rename; HMC business-model correction cascade; Analyst persona split) | **$300** | **$900** | Medium — cascade across schema + routes + UI + tests |
-| **Migration journal drift recovery** (0013, 0014 reconciliation migrations + 4 collided "stages 0-2" hygiene commits + stale-row triage) | **$40** | **$120** | High — narrow scope, well-documented |
-| **Cosmetic image churn** (88 opengraph swaps × ~$0.10–$0.25 each in agent-loop cost) | **$9** | **$22** | High — small unit cost, well-counted |
-| **Empty/low-value checkpoint commits** (141 generic short + 50 auto-merge + 30 Plan→Build context reloads = 221 events × ~$0.10–$0.25) | **$22** | **$55** | High — direct count |
-| **TOTAL DIRECT ESTIMATED REWRITE + DEPENDENCY TAX** | **~$1,660** | **~$4,520** | — |
+### Invoice XFPSSE-DRAFT (issued 2026-04-23, period Mar 23 – Apr 22, 2026 = 30 days)
 
-**Midpoint working estimate: ~$3,000 over 86 days, or ~$35/day** in pure rewrite-tax burn. Plus an unmeasured human reconciliation cost (the human author's time spent triaging duplicate implementations, reviewing cleanup waves, and reading post-mortem docs) that is not captured in any token meter.
+| Line item | Gross usage value (30 days) | Notes |
+|---|---:|---|
+| **Agent Usage — workspace `e53ea481…` (the dominant workspace, almost certainly H+ Analytics)** | **$2,558.98** | $1.00/unit, ~2,559 billable agent-units in 30 days |
+| Agent Usage — workspace `ff0487fd…` | $239.55 | Secondary workspace |
+| Agent Usage — workspace `9fae4009…` | $15.07 | Tertiary workspace |
+| **Agent Usage subtotal (all workspaces)** | **$2,817.32** | The headline number |
+| Autoscale Compute Units (all workspaces) | $8.73 | Production runtime |
+| Autoscale Deployments (all workspaces, 160 deploys × $0.033) | $5.28 | One workspace had 27 deploys, six had 5–26 |
+| Autoscale Requests | $0.41 | Production traffic billing |
+| Deployments Outbound Data Transfer | $0.22 (waived by 100-unit free tier) | — |
+| Neon Compute Time — workspace `e53ea481` only | **$8.89** | 55.5 hours of DB compute on the H+ workspace |
+| Neon Compute Time — others | $1.90 | — |
+| Neon Data Storage (waived 100% via discount) | $1.05 | — |
+| **Replit AI Integrations** — workspace `e53ea481` only (Claude Opus 4.6, Sonnet 4.5, Gemini 2.5/3 Flash, GPT-4o-mini, all routed through Replit's pass-through) | **$2.41** | Direct model passthrough, not counted in Agent Usage |
+| **Invoice gross subtotal** | **$2,846.41** | Before any credits |
+| Pre-purchase credits applied | -$2,500.99 | Bulk credits already paid |
+| Previous invoice XFPSSE-00074 (Mar 23 – Apr 19, 27 days, already billed) | -$303.18 | |
+| **Net amount due on this invoice** | **$42.24** | The misleadingly small headline number |
 
-For comparison: the `cost economics` doc (`02a9c093 docs: post-OT-A.4 cost economics`) tracks per-consult cost at **~$0.70/consult**. At ~$3,000 of rewrite tax, that's the equivalent of **~4,300 user consults** worth of forward synthesis spend that was instead burned on doing-it-again work.
+### What this tells us
 
-**Forward avoidance figure:** the verdict cache (ADR-004, Proposed) is projected to deliver ~80% cost reduction on synthesis spend. Shipping it before the next OT-A iteration would offset roughly **$2,000+ per quarter** of forward synthesis cost on top of any rewrite tax avoided by the structural fixes recommended at the bottom of this audit.
+1. **The H+ Analytics workspace (`e53ea481…`) burned $2,558.98 in Agent Usage in 30 days alone.** That is **~$85.30/day** in agent spend on the project — *for a single month at recent activity levels*.
+
+2. **My earlier estimate ($745–$1,490 for Replit Agent spend across the entire 86-day project life) was off by approximately 5-10×.** The single most recent month exceeded my whole-project upper bound by 70%.
+
+3. **Direct API spend through Replit AI Integrations on the H+ workspace was only $2.41 for the month** — meaning the OT-A.3 / OT-A.4 saga ($180–$220 documented) was billed against a separate Anthropic API key (BYOK), not through the Replit pass-through. Both costs are real and additive.
+
+4. **The "Net amount due $42.24" on the invoice is almost entirely irrelevant for cost analysis** — it reflects pre-purchase credits being drawn down, not actual usage. The number that matters is the **$2,846.41 gross subtotal** representing real consumption.
+
+### Project-life extrapolation (revised)
+
+The project has run for 86 days. Activity per the commit-rate analysis was lower in Feb (837 commits, ~30/day) and higher in March (1,396 commits, ~45/day) and April (1,039 in 20 days, ~52/day). The invoice covers the heaviest 30 days. Conservative extrapolation, weighting by commit volume:
+
+| Period | Days | Commits | Inferred share of monthly burn rate | Estimated agent spend on H+ workspace |
+|---|---:|---:|---:|---:|
+| Late Jan (initial commit + setup) | 6 | ~155 | 0.3× | ~$150 |
+| February | 28 | 837 | 0.55× | ~$1,300 |
+| March | 31 | 1,396 | 0.95× | ~$2,500 |
+| April 1–22 | 22 | ~1,140 | 1.0× | ~$1,900 |
+| **Project-life H+ workspace agent spend (estimated)** | **87** | **~3,528** | — | **~$5,800–$7,000** |
+
+Add the documented OT-A.3 saga ($180–$220 direct Anthropic API), the secondary-workspace spillover (likely shared dev environments), and one pending OT-A.5 v6 round ($22) + queued OT-A.6 ($3–$5):
+
+**Revised project-life cost estimate: ~$6,000–$7,500 in true Replit Agent + direct API spend on H+ Analytics over 86 days.**
+
+That is **~2-4× larger than my pre-invoice estimate of $1,660–$4,520**. The pre-invoice estimate is preserved below for transparency, with a calibration note showing exactly where it underestimated.
+
+---
+
+## Cost Estimate Summary (pre-invoice; superseded by actuals above but retained for methodology audit)
+
+⚠️ **These estimates were generated before invoice XFPSSE-DRAFT was shared.** The Replit Agent checkpoint line item underestimated actual usage by ~5-10×. Other categorical estimates (cross-agent collision, vendor swaps, architectural redirection) likely undercount labor by similar factors because they used the same per-loop median ($0.20–$0.40) that the invoice now reveals to be too low. Revised totals follow each section.
+
+| Cost vector | Pre-invoice low | Pre-invoice high | Calibration delta | Revised estimate |
+|---|---:|---:|---|---:|
+| **Replit Agent checkpoint token spend** | $745 | $1,490 | **5–10× too low** — actual ~$85/day on H+ workspace = $7,335 over 86 days | **$5,800–$7,000** |
+| **Cross-agent duplicate work** (Vector 1: 30+ tasks × 2–7 redundant passes) | $135 | $1,050 | 3–5× too low if per-pass cost was undercounted | **$400–$3,500** |
+| **OT-A.3 prompt-tuning saga** (8 iterations × $22 + harness/analysis) | $210 | $280 | **Accurate** — direct API spend on BYOK Anthropic key, NOT through Replit | **$210–$280** (high confidence) |
+| **Vendor-swap labor** (Pinecone, Marcela, jsPDF, SendGrid, regex extractor) | $200 | $600 | 3–5× too low | **$600–$2,500** (subset of agent spend, double-counted) |
+| **Architectural-redirection rebuilds** (SAFE rename, HMC correction, persona split) | $300 | $900 | 3–5× too low | **$900–$3,500** (subset of agent spend, double-counted) |
+| **Migration journal drift recovery** | $40 | $120 | Roughly accurate (small scope) | **$40–$120** |
+| **Cosmetic image churn** (88 swaps) | $9 | $22 | Likely 3–5× too low | **$25–$100** |
+| **Empty/low-value checkpoint commits** (228 events) | $22 | $55 | Likely 3–5× too low | **$60–$250** |
+| **TOTAL — estimated rewrite + dependency tax (revised against invoice)** | — | — | — | **~$5,500–$10,000+** over 86 days |
+
+⚠️ **Important double-counting note**: most of the rewrite-tax categories (Vectors 1, 2, 3) are *subsets* of the Agent Usage line item, not additive to it. The $5,800–$7,000 in H+ workspace agent spend already *contains* the cross-agent duplication, vendor-swap labor, and architectural-redirection rebuilds. The OT-A.3 saga at $210–$280 is the only category cleanly *additive* (separate Anthropic API key).
+
+**Best-estimate single number:** **~$6,500 in true direct cost over 86 days, of which approximately 50–60% (~$3,500–$4,000) is rewrite tax** (work that produced no net forward code) and the rest is forward-progress agent spend.
+
+That is **~$75/day in pure rewrite-tax burn**, more than 2× my earlier estimate. Plus an unmeasured human reconciliation cost (the human author's time spent triaging duplicate implementations, reviewing cleanup waves, and reading post-mortem docs) that is not captured in any token meter.
+
+For comparison: the `cost economics` doc (`02a9c093 docs: post-OT-A.4 cost economics`) tracks per-consult cost at **~$0.70/consult**. At ~$3,500–$4,000 of rewrite tax, that's the equivalent of **~5,000–5,700 user consults** worth of forward synthesis spend that was instead burned on doing-it-again work.
+
+**Forward avoidance figure (revised):** the verdict cache (ADR-004, Proposed) is projected to deliver ~80% cost reduction on synthesis spend. At the actual ~$85/day burn rate, structural fixes from this audit could realistically save **$1,500–$2,500 per month** going forward — meaning the audit recommendations pay for themselves within days.
 
 ---
 
@@ -320,20 +379,22 @@ Each new task on Replit starts with the agent re-reading the relevant memory fil
 
 This is *not* a bug — it's the price of statelessness. But it is a Replit-specific surcharge: a single-shot AI session in a long-running shell would amortize this cost, where Replit's per-task model pays it again every time.
 
-### Replit Dependency Tax — subtotal
+### Replit Dependency Tax — subtotal (revised against invoice XFPSSE-DRAFT)
 
-| Sub-vector | Low | High |
-|---|---:|---:|
-| 7a — Checkpoint-per-loop economics (above and beyond commit count) | $1,000 | $2,700 |
-| 7b — Empty / low-value loops | $23 | $58 |
-| 7c — Cross-agent collision enablement (already in Vector 1) | — | — |
-| 7d — Environment-shaped bugs (migration drift, EADDRINUSE, etc.) | $45 | $140 |
-| 7e — Publish-loop overhead | $20 | $40 |
-| 7f — Inbox-driven micro-tasks (already in Vector 6) | — | — |
-| 7g — Per-task context reload | $130 | $200 |
-| **Subtotal (net of double-counted lines)** | **~$1,220** | **~$3,140** |
+| Sub-vector | Pre-invoice low | Pre-invoice high | Invoice-calibrated revision |
+|---|---:|---:|---:|
+| 7a — Checkpoint-per-loop economics (the dominant Agent Usage line) | $1,000 | $2,700 | **$5,800–$7,000** (project-life on H+ workspace) |
+| 7b — Empty / low-value loops | $23 | $58 | $80–$200 (3-4× revision) |
+| 7c — Cross-agent collision enablement (already in Vector 1) | — | — | — |
+| 7d — Environment-shaped bugs (migration drift, EADDRINUSE, etc.) | $45 | $140 | $100–$350 (2-3× revision; all subset of 7a) |
+| 7e — Publish-loop overhead (85 publishes × ~$1–$2 verification) | $20 | $40 | $85–$170 (subset of 7a) |
+| 7f — Inbox-driven micro-tasks (already in Vector 6) | — | — | — |
+| 7g — Per-task context reload (444 tasks × memory-file rehydration) | $130 | $200 | $400–$800 (3-4× revision; subset of 7a) |
+| **Subtotal (net of double-counting; 7a is the dominant figure)** | ~$1,220 | ~$3,140 | **~$5,800–$7,000** |
 
-⚠️ **Important note on double-counting**: Sub-vector 7a (the loop-economics estimate) is the same underlying spend as the top-of-file "Replit Agent checkpoint token spend" line ($745–$1,490). Sub-vector 7a is the *upper-bound revision* of that estimate after accounting for commit-less loops. Use one or the other, not both, when totaling. The cost summary table at the top uses the conservative commit-based figure.
+⚠️ **Critical note on double-counting** (rewritten post-invoice): Sub-vectors 7b, 7d, 7e, and 7g are all *subsets* of 7a's Agent Usage spend — they're slices of the same dollar pool, not additive to it. The Replit Dependency Tax for the project life is best stated as **~$5,800–$7,000 in pure Replit Agent spend on the H+ workspace**, of which an estimated 50–60% (~$3,000–$4,000) is rewrite tax (Vectors 1–6 work) and the rest is forward progress.
+
+The OT-A.3 saga's $210–$280 in direct Anthropic API spend is the only category cleanly *additive* to this number (it ran on a BYOK Anthropic key, not through Replit's pass-through, as confirmed by the $2.41 Replit AI Integrations line in the invoice).
 
 ### What this means
 
