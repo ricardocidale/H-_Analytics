@@ -292,6 +292,10 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 
 ## Recent Changes
 
+**Forward-discipline playbook (April 20, 2026, Replit, docs-only):**
+- `best-practices.md` (project root) — 22-rule forward-looking distillation of `rewritetax.md`'s 7 cost vectors. Categories: multi-agent hygiene, architectural redirection, vendor decisions, AI prompt-tuning, migration hygiene, cosmetic churn, platform-specific tax. Read before starting the next project; install the rules first, ship the code second.
+- `rewritetax.md` got two short addendums (Forward-Discipline Playbook + Live Billing Database) — body untouched.
+
 **Replit billing telemetry DB — 75-invoice ledger live (April 20, 2026, Replit):**
 - Promoted the forensic 75-invoice ledger from static markdown (`rewritetax.md`) to live Postgres tables in the existing project DB (additive only — no app code touches them, no workflow restart, OT-A.5 v6 observation window untouched).
 - New tables: `replit_invoices` (75 rows: invoice headers + cap-hit/spike-day flags + H+ attribution columns) and `replit_invoice_line_items` (139 rows: 3 portal-line-item-exact gross + 136 ratio-estimated net, with explicit `amount_basis` column so the future CSV upgrade preserves semantics).

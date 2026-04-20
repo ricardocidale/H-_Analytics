@@ -425,6 +425,9 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - Property-based tests (Claude, `43ed0163` + `991a6b77`): 66 fast-check properties across all 10 research tools; 13,200 generated inputs per `test:summary`.
 - Sentry + PostHog handoffs ready and queued behind OT-A.
 
+**Forward-discipline playbook (April 20, 2026, Replit, docs-only):**
+- `best-practices.md` (project root) — 22-rule distillation of `rewritetax.md`'s 7 cost vectors. Forward-looking, project-agnostic. Each rule represents a bug already paid for at least once.
+
 **Replit billing telemetry DB (April 20, 2026, Replit):**
 - New tables `replit_invoices` (75 rows) + `replit_invoice_line_items` (139: 3 gross + 136 net, explicit `amount_basis`) in project Postgres. Additive only — no app code imports them, no workflow restart.
 - Files: `shared/schema/replit-billing.ts` (Zod-free, uses `$inferInsert/$inferSelect` to avoid the drizzle-zod `.omit()` issue), `script/seed-replit-billing.ts` (txn-wrapped, re-runnable), `script/billing-report.ts` → `docs/billing/hplus-cost-report.md`. H+ project-life cash = $4,378.41 (92.2%).
