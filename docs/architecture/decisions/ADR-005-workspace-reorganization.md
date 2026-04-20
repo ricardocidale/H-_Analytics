@@ -211,15 +211,29 @@ If either Phase 1 or Phase 2 fails, ADR goes back to Proposed and we reconsider.
 
 ---
 
-## Open questions
+## Open questions — resolved 2026-04-20
 
-1. **Package namespace:** `@h-analytics/*`? `@norfolk/*`? `@internal/*`? Namespace affects npm publishing if `packages/calc` ever goes OSS. Recommend `@norfolk/*` since Norfolk AI is the brand; `calc` as `@norfolk/calc-hospitality` is clean.
+1. **Package namespace:** ✅ **`@norfolk/*`**. Matches the Norfolk AI brand; `@norfolk/calc-hospitality` is the clean OSS name when `packages/calc` ships publicly. The `@h-analytics/*` alternative confuses product identity (the *app* is H+ Analytics; the *org* is Norfolk AI — packages belong to the org).
 
-2. **Does Replit's deployment config need updating?** `.replit` file + `npm run build` script need adjustment for Turborepo. Replit should confirm feasibility during Phase 1.
+2. **Replit deployment config:** ✅ Defer concrete changes to Phase 1 execution. The `.replit` file and build script are Replit's territory per `.claude/rules/claude-replit-split.md`. Phase 1 handoff (`.claude/replit-handoffs/phase-1-workspace-bootstrap.md`) lists the touchpoints; Replit makes the specific choices since they own the deploy target.
 
-3. **Single-version dep policy vs per-package freedom.** Strict single-version is safer but can force unrelated upgrades. Per-package version freedom is riskier but more flexible. **Recommend strict single-version** for the first year — if it becomes a bottleneck, relax it later.
+3. **Single-version dep policy:** ✅ **Strict single-version for the first year.** PNPM's `.pnpmfile.cjs` + `workspaces.pnpmOverrides` enforce. Rationale: single-tenant product, single-team, single-deploy; the risk of divergent versions causing subtle prod bugs (e.g., two React copies) far outweighs the upgrade friction. Revisit if 3+ packages ever need to pin different majors of the same dep.
 
-4. **Test co-location:** tests in `packages/<x>/tests/` (co-located) vs root `tests/`? Recommend co-located for unit + integration; keep `tests/proof/` at root since proof tests are cross-package invariants.
+4. **Test co-location:** ✅ **Co-located unit + integration; root for cross-package proof + e2e.**
+   - `packages/<x>/src/**/*.test.ts` for unit tests next to the code they test.
+   - `packages/<x>/tests/**/*.test.ts` for integration tests scoped to one package.
+   - `tests/proof/**` stays at root — these assert invariants spanning packages (domain boundaries, orphan files, any-prop, literal-drift, seed/schema-sync).
+   - `tests/e2e/**` (if added later) stays at root.
+
+## Structural questions for Phase 2+ (unresolved, block Phase 2 execution)
+
+These emerged on review after the initial ADR draft. Each needs a decision before the relevant phase starts; Phase 1 (tooling only) proceeds without them.
+
+- **Q5. `client/src/features/` destination.** Feature modules (`property/`, `company/`, `admin/`) are mostly UI but touch analyst + engine. Options: (a) stay in `apps/web/src/features/`, (b) extract each large feature as its own package. **Recommend (a)** — features are product-specific orchestrations of the core packages; they belong with the web app. Revisit for any feature that grows cross-product scope.
+- **Q6. Test file destination.** `tests/engine/`, `tests/calc/`, `tests/audit/`, `tests/analyst/` today. Each has ~30–130 tests. Options: (a) move with the package (`packages/engine-financial/tests/...`), (b) keep at root. **Recommend (a)** — co-location matches the resolved Q4 decision. The migration script moves each test subtree with its implementation subtree in the same phase commit.
+- **Q7. `shared/schema/*.ts` (drizzle) ownership.** Drizzle schemas define DB tables and are imported by both `apps/server` (for queries) and `packages/shared` (for type exports). Options: (a) schema files live in `packages/shared/schema/` and `apps/server` imports from there, (b) schemas live in `apps/server/schema/` and `packages/shared` only has the generated types. **Recommend (a)** — TS types must travel everywhere; keeping the canonical source in `packages/shared` means no import asymmetry.
+- **Q8. `.claude/` and `docs/` locations.** Both currently at root. Both stay at root per the ADR. **Confirmed** — these are governance artifacts that apply cross-package; they don't belong in any single package.
+- **Q9. `engine/` current contents vs proposed `packages/engine-financial/` boundary.** Today's `engine/` has property/company/analyst/aggregation/helpers/watchdog. The ADR splits analyst out (Phase 5). During Phase 4, what goes where: the engine-financial package consumes the engine-analyst package for its watchdog outputs? Or watchdog is part of engine-financial? **Flagged for Phase 4 re-scoping** — watchdog evaluators currently live in `engine/watchdog/` but return `AnalystVerdict`. They're analyst-adjacent. Decision: watchdog belongs in `packages/engine-analyst/` because `AnalystVerdict` is its output contract and moves with the analyst package.
 
 ---
 
