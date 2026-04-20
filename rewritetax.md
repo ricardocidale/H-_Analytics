@@ -275,6 +275,52 @@ Final batch shared. Pagination footer: "Showing 61 to 75 of 75" — **the full p
 
 This is the final, definitive number for this audit. No further invoice data exists project-life, and the two independent triangulation methods (workspace-level Agent Usage breakdown + complete invoice ledger + pre-purchase drawdown reconciliation) all converge on the $9.2K–$11.2K range with high confidence.
 
+### 🚨 Live billing portal snapshot (Apr 23, 2026 — credit pool exhausted, three workspaces confirmed)
+
+The user shared the live Orb billing portal view (account: Ricardo Cidale / `ricardo.cidale@norfolkgroup.io`). Three material findings:
+
+#### Finding 1: Pre-purchase credit pool is EXHAUSTED
+
+**Credit balance: $0.00 USD** as of Apr 23, 2026. The Apr cycle drew down **$2,477.64** of pre-purchase credits (refines the prior $2,500.99 estimate). 
+
+**Forward implication**: from Apr 23 onward, every dollar of Replit usage hits direct cash billing — no more silent credit absorption masking the true daily rate. The next invoice cycle (May) will surface the **true cash burn rate** without the pre-purchase smoothing effect that suppressed Mar 15 – Apr 23 invoiced totals to $27.72/day. Expect the May cash invoice rate to revert toward the **underlying $80–$120/day true consumption** rate seen in Feb–early March before pre-purchase took over.
+
+#### Finding 2: Apr 19 spike was $297.44 gross, not $266.95
+
+The draft invoice's line-item adjustment shows `Invoice XFPSSE-00074 (Mar 23 – Apr 19, 2026): –$297.44`. This represents the gross cycle-to-date usage that was already billed via XFPSSE-00074 — meaning the **true gross cost of the OT-A.4 ship day was $297.44**, with $30.49 absorbed by pre-purchase before the net invoice of $266.95 was issued.
+
+**Revised**: the Apr 19 OT-A.4 ship day was budgeted at **$22** for a single rerun. Actual gross cost: **$297.44 = 13.5× the named budget**, not 12× as previously documented. This is the worst budget-to-actual variance in the project's spend history.
+
+#### Finding 3: Three workspaces confirmed; H+ Analytics is 91% of all Replit AI spend
+
+The Apr 23 draft invoice breaks Agent Usage into three workspace UUIDs:
+
+| Workspace UUID | Cycle cost (Mar 23 – Apr 22) | % of bill | Daily rate | Notes |
+|---|---:|---:|---:|---|
+| `9fae4009-cc0c-4840-9576-ce0c5c1142c6` | $15.07 | 0.5% | $0.50/day | Small/inactive workspace |
+| `e53ea481-4c36-4e2a-8bfc-80697f311b65` | **$2,558.98** | **90.9%** | **$85.30/day** | 🎯 **H+ Analytics workspace** |
+| `ff0487fd-797f-433c-b449-3b8b3000efee` | $239.55 | 8.5% | $7.99/day | Medium-activity secondary workspace |
+| **Subtotal** | **$2,813.60** | 100% | $93.79/day | All three combined |
+| Pre-purchase applied | -$2,477.64 | — | — | Drained credit balance to $0 |
+| XFPSSE-00074 already billed | -$297.44 | — | — | Apr 19 cycle-to-date settlement |
+| **Total due (XFPSSE-DRAFT)** | **$46.05** | — | — | What will issue when cycle closes |
+
+**The H+ workspace is 91% of all Replit AI consumption** across the user's account. The other two workspaces combined are less than 9% of activity. This means the rewrite-tax findings in this audit are essentially the user's *entire* Replit AI cost picture, not just one slice of it.
+
+**Triangulation now triple-confirmed**: H+ Agent Usage = $85.30/day, exactly matching the prior estimate from XFPSSE-DRAFT analysis and the invoice ledger reconciliation. Three independent methods, three matching numbers.
+
+#### Net effect on the audit's bottom-line numbers
+
+The portal data refines but does not materially change the project-life figures:
+
+- **Pre-purchase drawdown for Apr cycle**: $2,477.64 (was estimated $2,500.99) — adjustment of -$23
+- **Apr 19 spike true cost**: $297.44 (was recorded $266.95) — adjustment of +$30
+- **H+ workspace daily rate**: $85.30/day (unchanged — was the original triangulation point)
+- **Project-life cash outlay range**: **$9,200–$11,200** (unchanged)
+- **Rewrite tax estimate**: **$5,000–$6,500 (~50–60% of total)** (unchanged)
+
+**Forward-looking implication (the most important finding from the portal)**: with pre-purchase credits at zero, the May cash invoice cycle will show the **unmasked** true burn rate. If H+ activity continues at $85/day, **May cash invoices alone will total ~$2,550** without any credit-pool cushion — that's a ~3× increase from April's $1,108 cash-invoice total, even at identical underlying consumption. Plan for that step-change in cash outflow.
+
 ### Project-life extrapolation (revised)
 
 The project has run for 86 days. Activity per the commit-rate analysis was lower in Feb (837 commits, ~30/day) and higher in March (1,396 commits, ~45/day) and April (1,039 in 20 days, ~52/day). The invoice covers the heaviest 30 days. Conservative extrapolation, weighting by commit volume:
