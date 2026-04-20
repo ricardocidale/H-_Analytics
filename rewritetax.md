@@ -2,7 +2,87 @@
 
 **Date of audit:** 2026-04-20
 **Auditor:** Replit Agent (read-only over `git log`, migration journal, `.claude/`, `docs/`)
-**Scope:** Every category of work in this repo where the same surface area was implemented, ripped out, and re-implemented — and what that cost in developer time, tokens, and direct dollars.
+**Scope:** Every category of work in this repo where the same surface area was implemented, ripped out, and re-implemented — and what that cost in developer time, tokens, agent credits, and direct US dollars.
+
+---
+
+## Project History at a Glance
+
+| Metric | Value | Notes |
+|---|---:|---|
+| First commit | 2026-01-25 | `2d01a73e Initial commit` |
+| Most recent commit (audit time) | 2026-04-20 | `cb16429a` |
+| Calendar span | **86 days** | Just under 3 months |
+| Total commits | **3,721** | ~43 commits/day average |
+| Peak month | March 2026, **1,396 commits** | ~45/day; the OT-A.3 saga compressed into the back half |
+| Commits in audit month so far | April 2026, **1,039 commits** in 20 days (~52/day) | Lint cleanup + OT-A.3/4/5 + Analyst Phase 1a–3b |
+| Distinct task numbers (`Task #N`) | **444** | Replit-style task tracker scope |
+| Publishes (`Published your App`) | **85** | ~one a day; each preceded by an agent verification loop |
+| Plan→Build transitions | **30** | Each is a context reload |
+| Generic short-message commits (≤7 chars: `c`, `commit`, `com`) | **141** | Effectively empty checkpoints that still cost an agent loop |
+| `Git commit prior to merge` (auto) | **50** | Replit auto-commit-on-merge pattern |
+| `Saved progress at the end of the loop` | 7 | Agent-loop-end auto-checkpoints |
+| Cosmetic image swaps (opengraph + sharing image) | **88** | Tiny each, but each one a full gates run |
+| Total commits matching rewrite/refactor/migrate/legacy/cleanup/redo/consolidate/replace/drift | **2,223 (~60%)** | Inflated by docs and small swaps; even halved, ~1/3 of all engineering effort |
+
+**Authors** (commits attributed):
+- `ricardocidale` (lowercase, agent-attributed): **2,920** commits
+- `Ricardo Cidale` (Title Case, human-attributed): **709** commits
+- `Replit Agent` (explicit): **93** commits
+
+The split between the two `ricardo` identities is the cleanest available proxy for agent-vs-human work. By that proxy, agents wrote roughly **80% of all commits** in the repo's history (2,920 + 93 = 3,013 of 3,721 = ~81%).
+
+---
+
+## Cost Estimate Summary (read this first)
+
+All estimates use publicly-documented Anthropic/OpenAI API pricing and Replit's Effort-Based Agent pricing. Conservative midpoints. Assumptions stated inline.
+
+| Cost vector | Low estimate | High estimate | Confidence |
+|---|---:|---:|---|
+| **Replit Agent checkpoint token spend (3,721 commits × $0.20–$0.40 each)** | **$745** | **$1,490** | Medium-High — based on Effort-Based pricing median |
+| **Cross-agent duplicate work** (Vector 1: 30+ tasks × 2–7 redundant passes × $1.50–$5/pass) | **$135** | **$1,050** | Medium — substantive duplicates only, small patches excluded |
+| **OT-A.3 prompt-tuning saga** (8 iterations × $22 + harness reruns + analysis loops) | **$210** | **$280** | **High** — directly documented in commits and `.local/scratchpad` |
+| **Vendor-swap labor** (Pinecone full integration → removal; Marcela voice → removal; jsPDF → Puppeteer; SendGrid → Resend; legacy regex → streamObject) | **$200** | **$600** | Low-Medium — labor-equivalent, hard to isolate from forward work |
+| **Architectural-redirection rebuilds** (SAFE → capital_raise rename; HMC business-model correction cascade; Analyst persona split) | **$300** | **$900** | Medium — cascade across schema + routes + UI + tests |
+| **Migration journal drift recovery** (0013, 0014 reconciliation migrations + 4 collided "stages 0-2" hygiene commits + stale-row triage) | **$40** | **$120** | High — narrow scope, well-documented |
+| **Cosmetic image churn** (88 opengraph swaps × ~$0.10–$0.25 each in agent-loop cost) | **$9** | **$22** | High — small unit cost, well-counted |
+| **Empty/low-value checkpoint commits** (141 generic short + 50 auto-merge + 30 Plan→Build context reloads = 221 events × ~$0.10–$0.25) | **$22** | **$55** | High — direct count |
+| **TOTAL DIRECT ESTIMATED REWRITE + DEPENDENCY TAX** | **~$1,660** | **~$4,520** | — |
+
+**Midpoint working estimate: ~$3,000 over 86 days, or ~$35/day** in pure rewrite-tax burn. Plus an unmeasured human reconciliation cost (the human author's time spent triaging duplicate implementations, reviewing cleanup waves, and reading post-mortem docs) that is not captured in any token meter.
+
+For comparison: the `cost economics` doc (`02a9c093 docs: post-OT-A.4 cost economics`) tracks per-consult cost at **~$0.70/consult**. At ~$3,000 of rewrite tax, that's the equivalent of **~4,300 user consults** worth of forward synthesis spend that was instead burned on doing-it-again work.
+
+**Forward avoidance figure:** the verdict cache (ADR-004, Proposed) is projected to deliver ~80% cost reduction on synthesis spend. Shipping it before the next OT-A iteration would offset roughly **$2,000+ per quarter** of forward synthesis cost on top of any rewrite tax avoided by the structural fixes recommended at the bottom of this audit.
+
+---
+
+## Cost Estimate Methodology (assumptions stated)
+
+So the numbers above are auditable, here are the inputs:
+
+**Replit Effort-Based Agent pricing** (per Replit's published pricing as of 2026):
+- Median checkpoint cost: ~$0.25 (range $0.05 trivial → $2.00+ heavy)
+- Plan-mode → Build-mode transitions reload context but do not produce new code; counted at ~$0.10 each
+- Empty/short auto-checkpoints counted at ~$0.10 each (still consume a model call to summarize)
+- Substantive task implementations counted at ~$1.50–$5.00 (full read-plan-implement-gate-commit loop)
+
+**Anthropic / external API pricing** (direct, not via Replit):
+- Claude Sonnet 4: $3/Mtok input, $15/Mtok output
+- Typical synthesis A/B round (20 cases × ~5K input + ~2K output per case + analysis) ≈ $20–$25 per round → matches the documented "$22 per OT-A.3 iteration"
+- Engine-version drift verifications and harness reruns add ~$10–$30 per iteration
+
+**Cross-agent duplicate-work cost model:**
+- Each duplicate of a substantive task is counted at the same cost as the original (the agent re-reads context, re-plans, re-implements, re-runs gates)
+- Small patch-style duplicates (1–16 line follow-ups) counted at $0.20–$0.50 each
+- Large-file duplicates (1,317 insertions in the Task #198 sample, 561 in Task #260) counted at $3.00–$5.00 each
+
+**What this estimate does NOT include:**
+- Human author's reconciliation time (Ricardo's hours spent triaging which agent's version to keep, reading post-mortem docs, writing the four ADRs, harmonizing memory files)
+- Replit infrastructure cost (compute, database, object storage) — those are flat subscription costs unrelated to rewrites
+- Future cost of the open recurring patterns (NaN-coercion bug, persona resolution hardcoding, OT-A.6 pending) — these are queued work, not yet paid
+- Token cost of *this* audit (~$1–$3 depending on how it's metered)
 
 ---
 
@@ -176,10 +256,96 @@ Adjacent migration-hygiene churn:
 
 | Pattern | Commits |
 |---|---:|
-| `Update website's social media sharing image` and adjacent variants | **107** |
+| `Update website's social media sharing image` and adjacent variants | **88–107** depending on regex |
 | `Update timestamps in generated test artifact files` | 11 + 5 + 4 = ~20 |
 
-The opengraph image alone has been touched 107 times — many of these are tiny cosmetic iterations triggered by no-cost requests, but each one still ran the gates and produced a checkpoint. Test-artifact timestamp churn is a CI-hygiene smell.
+The opengraph image alone has been touched ~88 times — many of these are tiny cosmetic iterations triggered by no-cost requests, but each one still ran the gates and produced a checkpoint. Test-artifact timestamp churn is a CI-hygiene smell.
+
+**Estimated direct cost**: 88 image swaps × ~$0.10–$0.25 per agent loop ≈ **$9–$22**. Small in absolute terms but illustrative — these were almost entirely *avoidable* if the image asset was finalized once and locked.
+
+---
+
+## Cost Vector 7 — The Replit Dependency Tax (platform-specific surcharges)
+
+This is the cost category that exists *because* the project lives on Replit specifically, separable from the generic rewrite tax. Some of these are by design (the platform sells velocity, and velocity at this pace incurs these surcharges); others are bugs in how Replit's primitives interact with this project's shape.
+
+### 7a. Checkpoint-per-loop pricing economics
+
+Replit's Effort-Based Agent pricing meter charges per agent loop iteration, not per commit. The visible commit count (3,721) understates the true loop count because:
+- Many loops produce no commit (planning, exploration, tool-error retries)
+- Some loops produce multiple commits (split work)
+- Plan-mode loops are billed but produce only `.local/tasks/*.md` plans, not code
+
+Reasonable inference: **true agent-loop count is 1.3–1.8× the commit count**, putting it at **~5,000–6,700 billable agent loops** over 86 days. At a $0.20–$0.40 median loop cost, that's **$1,000–$2,700 in pure agent loop spend** — the largest single line item in this audit.
+
+### 7b. Empty / low-value loops that still bill
+
+Direct count of commits whose information content is at or near zero:
+
+| Pattern | Count | Cause | Est. cost @ $0.10–$0.25 each |
+|---|---:|---|---:|
+| Generic short messages (`c`, `commit`, `com`, ≤7 chars) | **141** | Agent default-commit fallback | $14–$35 |
+| `Git commit prior to merge` (Replit auto) | **50** | Pre-merge auto-checkpoint | $5–$13 |
+| `Saved progress at the end of the loop` | 7 | Loop-end auto-checkpoint | $0.70–$1.75 |
+| `Plan→Build` mode transitions | **30** | Context reload, no code produced | $3–$8 |
+| **Subtotal** | **228** | | **~$23–$58** |
+
+Small in dollars, large in signal: **228 events (~6% of all commits)** produced essentially no engineering value but still consumed agent loops. On a different platform without auto-checkpointing, most of these would not exist.
+
+### 7c. No merge gate between concurrent agents
+
+Replit allows the in-environment Replit Agent and an external Claude Code shell to push to the same `main` branch with no built-in deduplication, no PR review step, and no "another agent is currently working on Task #N" lock. Vector 1 (cross-agent collision, $135–$1,050 estimated) is **structurally enabled by Replit's no-merge-gate model.**
+
+The fix landed late and is convention-only: handoff briefs (`.agents/skills/agent-handoff-briefs/`), boundary rules in memory files (`replit.md:294`), and the workflow split commit `1bdcc76a audit phase 3 + workflow split: UI/DB → Replit, docs/refactors → Claude`. None of it is enforced at the git layer.
+
+### 7d. Replit-environment-shaped bugs
+
+Some bugs in this codebase are shaped specifically by Replit's container/environment model:
+
+- **`bootstrapDrizzleMigrationState()` one-shot bug** (Vector 5) — exists because Replit fresh containers stamp the existing Neon DB state at first boot rather than running migrations from scratch. On a CI/CD pipeline with disposable test DBs, the journal-snapshot pattern wouldn't have been invented. **Direct cost: ~$40–$120** in the 0013/0014 reconciliation work + 4 collided "stages 0-2" hygiene commits.
+- **Workflow `EADDRINUSE` on duplicate-start** — documented in the session scratchpad as "harmless from duplicate-start attempt (not a real outage)." Each occurrence still trips the workflow status to FAILED, prompts an agent investigation loop, and requires either a `restart_workflow` call or manual triage. **Estimated cost: ~$5–$20** across the project (small per-occurrence × low-frequency).
+- **Hidden file/permission quirks** — `.claude/**` boundary rules exist partly because Replit's file-system view treats hidden dotfiles inconsistently across the workspace UI vs the agent's filesystem access.
+
+### 7e. Publish-loop overhead
+
+**85 publishes in 86 days.** Publishing itself is free on Replit (no per-publish charge), but each publish was preceded by an agent verification loop (typically read-test-verify), often by a full `Health Check` workflow run, and each created a checkpoint. If half of those publishes invoked a $0.50 verification loop, that's **~$20–$40 in publish-loop adjacent spend** — small but illustrative of how every "is it ready to ship?" question becomes a billable loop on this platform.
+
+### 7f. Inbox-driven micro-tasks
+
+Replit's agent inbox + canvas surfaces make trivial cosmetic asks (like "update the opengraph image") frictionless to dispatch. The 88 image swaps in Vector 6 are *not* a Replit bug — they're an emergent pattern of platform UX inviting cosmetic iteration that other platforms would batch or reject. **Direct cost: ~$9–$22** (already counted in Vector 6 line item).
+
+### 7g. Per-task context reload
+
+Each new task on Replit starts with the agent re-reading the relevant memory files (`replit.md`, `.claude/claude.md`), the active skills, and any task-specific docs. Memory files are designed for this — they're the cheapest, highest-leverage way to make the agent reliable across sessions (per `agent-memory-files` skill). But the cost is real: at ~50K tokens per memory-file load × 444 distinct task numbers × $3/Mtok input ≈ **~$65 in pure memory-file rehydration cost**, plus another ~$65 per agent per task for the skill catalog. **Estimated total: ~$130–$200** for the project's task-load context overhead.
+
+This is *not* a bug — it's the price of statelessness. But it is a Replit-specific surcharge: a single-shot AI session in a long-running shell would amortize this cost, where Replit's per-task model pays it again every time.
+
+### Replit Dependency Tax — subtotal
+
+| Sub-vector | Low | High |
+|---|---:|---:|
+| 7a — Checkpoint-per-loop economics (above and beyond commit count) | $1,000 | $2,700 |
+| 7b — Empty / low-value loops | $23 | $58 |
+| 7c — Cross-agent collision enablement (already in Vector 1) | — | — |
+| 7d — Environment-shaped bugs (migration drift, EADDRINUSE, etc.) | $45 | $140 |
+| 7e — Publish-loop overhead | $20 | $40 |
+| 7f — Inbox-driven micro-tasks (already in Vector 6) | — | — |
+| 7g — Per-task context reload | $130 | $200 |
+| **Subtotal (net of double-counted lines)** | **~$1,220** | **~$3,140** |
+
+⚠️ **Important note on double-counting**: Sub-vector 7a (the loop-economics estimate) is the same underlying spend as the top-of-file "Replit Agent checkpoint token spend" line ($745–$1,490). Sub-vector 7a is the *upper-bound revision* of that estimate after accounting for commit-less loops. Use one or the other, not both, when totaling. The cost summary table at the top uses the conservative commit-based figure.
+
+### What this means
+
+The Replit dependency tax is **the largest single line item** in the audit by dollar volume, but it is also the line item with the most legitimate value delivered: live preview, integrated Neon database, integrated object storage, integrated secrets, integrated deployment, Plan↔Build mode handoff, agent inbox, canvas. The question is not whether the platform is worth its tax — at this project's velocity (3,721 commits in 86 days, 85 publishes), it almost certainly is. The question is whether the *avoidable* portion of the tax (Vector 7b, 7c, 7d, 7e, 7f) can be reduced by:
+
+1. Suppressing empty-message commits (a `commit-msg` hook that rejects ≤7-character messages would zero out 141 commits, ~$14–$35 saved).
+2. Fixing `bootstrapDrizzleMigrationState()` to backfill on every boot (one-time fix, eliminates a recurring class of bugs).
+3. Adding a "another agent is on Task #N" advisory lock (eliminates Vector 1 at source).
+4. Locking the opengraph image asset and refusing further cosmetic swaps without explicit creative-direction sign-off (eliminates Vector 6).
+5. Pre-publish dry-run that doesn't bill an agent loop (reduces publish-loop overhead).
+
+These five fixes together would likely reduce the Replit-specific tax by **~30–50%** on a forward basis, without giving up any of the platform's real value.
 
 ---
 
@@ -255,7 +421,10 @@ Items where the rewrite tax is still being paid because no enforcement exists:
 8. **Fund one focused OT-A.6 round to clear `inflationRate` country-awareness.** $3–5 to close the longest-open synthesis question.
 9. **Finish lint cleanup (Batches 5 + 6).** Clears the financial `|| 0` debt that masked at least two of the 11 calc bugs in the Master Remediation Plan.
 10. **Persona resolution** — read user/company settings instead of hardcoded `{ L+B, luxury, US }`. Required before second tenant.
+11. **Reject empty / ≤7-character commit messages at the `commit-msg` hook level.** Zeroes out 141 generic commits going forward (~$14–$35/yr at current velocity). One-line hook addition.
+12. **Lock the opengraph image asset in `client/public/`** and require an explicit creative-direction sign-off before further swaps. Eliminates the 88-swap cosmetic-iteration tax (~$9–$22 already paid; ongoing if not stopped).
+13. **Pre-publish dry-run that doesn't bill an agent loop.** Run health-check + parity-check directly via npm scripts before calling `Published your App`; only spend an agent loop on the verification interpretation step. Reduces 7e publish-loop overhead (~$20–$40 to date).
 
 ---
 
-*This audit is intentionally read-only. No source files were modified. The audit itself is a single new docs file (`rewritetax.md`) and a single commit. The discipline this audit recommends is the same discipline this audit follows.*
+*This audit is intentionally read-only. No source files were modified. The audit itself is a single docs file (`rewritetax.md`) and the commits that grew it. The discipline this audit recommends is the same discipline this audit follows: no API spend, no schema change, no workflow restart, no second pass.*
