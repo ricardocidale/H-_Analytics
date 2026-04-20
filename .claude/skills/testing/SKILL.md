@@ -6,12 +6,12 @@ description: Documents the full ~4,191-test automated verification system (204 f
 # Testing & Proof System — Master Skill
 
 ## Purpose
-Documents the full ~4,191-test automated verification system (204 files). Every financial statement, analysis, and engine calculation has dedicated tests that prove correctness without manual Excel verification. 15-phase verification pipeline with 498 checks.
+Documents the full ~4,191-test automated verification system (204 files). Every financial statement, analysis, and engine calculation has dedicated tests that prove correctness without manual Excel verification. 19-phase verification pipeline with 508 checks.
 
 ## Commands
 ```bash
 npm test                              # Run all ~4,191 tests
-npm run verify                        # Full 15-phase verification (UNQUALIFIED = pass)
+npm run verify                        # Full 19-phase verification (UNQUALIFIED = pass)
 npx vitest run tests/statements/      # Statement tests only
 npx vitest run tests/analytics/       # Analytics/returns tests only
 npx vitest run tests/engine/          # Engine (property + company pro forma) tests only
@@ -88,7 +88,7 @@ npx vitest run tests/auth/            # Auth utility tests only
 ## Maintenance Rules
 
 1. **All ~4,191 tests must pass before any merge** — run `npm test`
-2. **15-phase verification must pass with UNQUALIFIED** — run `npm run verify`
+2. **19-phase verification must pass with UNQUALIFIED** — run `npm run verify`
 3. **New financial calculations require new tests** — add to the appropriate domain directory
 4. **New calculators require golden tests** — add hand-calculated reference values in `tests/golden/`
 5. **New constants go in `shared/constants.ts`** — never inline magic numbers

@@ -1,12 +1,12 @@
 ---
 name: proof-system
-description: Automated financial proof system with ~4,191 tests across 204 files, 15-phase verification (498 checks), golden scenarios, and hand-calculated golden reference tests. Use when running verification, adding tests, debugging financial calculations, or reviewing proof coverage.
+description: Automated financial proof system with ~4,191 tests across 204 files, 19-phase verification (508 checks), golden scenarios, and hand-calculated golden reference tests. Use when running verification, adding tests, debugging financial calculations, or reviewing proof coverage.
 ---
 
 # Automated Financial Proof System
 
 ## Purpose
-Eliminates human Excel verification. Code proves itself correct through ~4,191 automated tests (204 files) across golden scenarios, hand-calculated golden reference tests, 15-phase verification pipeline (498 checks), input-to-output pipeline verification, and magic number detection.
+Eliminates human Excel verification. Code proves itself correct through ~4,191 automated tests (204 files) across golden scenarios, hand-calculated golden reference tests, 19-phase verification pipeline (508 checks), input-to-output pipeline verification, and magic number detection.
 
 ## Commands
 ```bash
@@ -26,7 +26,7 @@ npx tsx script/export-audit.ts  # 41-check export wiring validation (<2s)
 |----------|-----------|-------------|------|----------|
 | health | Yes | Yes (full) | ~90s | Pre-commit gate, full validation |
 | test:summary | No | Yes (full) | ~30s | Quick test pass/fail check |
-| verify:summary | No | Yes (15 phases) | ~8s | Financial engine changes only |
+| verify:summary | No | Yes (19 phases) | ~8s | Financial engine changes only |
 | lint:summary | No | No | <10s | ESLint quick spot-check |
 | stats | No | No | <5s | Codebase metrics overview |
 | audit:quick | No | No | <3s | Code smell detection |
@@ -141,7 +141,7 @@ For per-statement and per-analysis test coverage, see:
 
 ## Maintenance
 1. Run `npm test` — all ~4,191 tests must pass
-2. Run `npm run verify` — all 15 phases (498 checks) must pass with UNQUALIFIED opinion
+2. Run `npm run verify` — all 19 phases (508 checks) must pass with UNQUALIFIED opinion
 3. Run `npx vitest run tests/golden/` — hand-calculated tests must pass
 4. Check `test-artifacts/*.md` for UNQUALIFIED opinions
 5. New constants go in `shared/constants.ts` (never inline magic numbers)

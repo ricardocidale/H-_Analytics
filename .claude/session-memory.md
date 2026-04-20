@@ -83,29 +83,6 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **Decision tree for next OT-A.3 steps:** Q3 defensive FIELD_DEFINITIONS audit (free, prereq) → Q1 v4 rerun ($22) → Q2 diagnostic analysis (free) → Path 3 authorization. OT-A.4 stays blocked. ADR candidate: rule prohibiting typical-range hints in FIELD_DEFINITIONS with lint enforcement.
 - **Cross-agent file collision note:** Claude Code's uncommitted Batch 8 edits got swept into Replit's commit when Replit ran `git add -A` while Claude's files were on disk. Clean enough (work is landed, verified green); attribution lives in session memory since the commit message doesn't mention Claude Code. Future: commit Claude work more aggressively to avoid.
 
-## Session: April 20, 2026 — SYSTEM-MODEL.md canonical mental model
-- **`docs/architecture/SYSTEM-MODEL.md` written (Claude):** 11-section canonical business+technical mental model. Captures dual-entity mechanics (ManCo + SPVs), engine chain (Revenue→GOP→AGOP→NOI→ANOI), Analyst N+1 pipeline, cost economics (~$0.70/consult), 7 open architectural questions, and 11 next steps ranked by leverage (top 3: finish OT-A.3 v3 A/B → ship verdict-cache ADR → multi-tenant persona resolution).
-- **Verified engine facts anchored in doc:** `feeIncentive = Math.max(0, gop * ctx.incentiveFeeRate)` at `engine/property/property-engine.ts:174` — incentive fee is % of GOP, not total revenue. Owner priority hurdle gates fee (line 170); subordination defers it (185-195).
-- **claude.md Documentation table:** added SYSTEM-MODEL.md as day-one read for new contributors.
-- **business-model skill:** pointer to SYSTEM-MODEL.md as companion doc.
-- **Next up:** OT-A.3 v3 A/B rerun (Replit, gated on credit top-up); verdict-cache ADR; Sentry + PostHog handoff execution.
-
-## Session: April 19-20, 2026 — Phase 3b + OT-A progression + cross-agent hygiene
-- **Phase 3b shipped (Replit, `ee0c6573`):** Funding + Revenue Specialists wrap legacy evaluators via `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` consumes the verdict directly; `save_anyway` kept outside the action union (UI-only ghost via `onProceedAnyway`). Persona hardcoded `{L+B, luxury, US}` (single-tenant); resolution + verdict-cache deferred.
-- **OT-A.1 + A.2 + A.3 shipped (Replit, `7326e28c`, `aedebc05`, `64b37ca2`, `f1cd4aee`):** Anthropic native prompt caching, Vercel AI SDK + AI Gateway wrapper with BYOK (zero markup), synthesis path behind `USE_AI_SDK_SYNTHESIS` flag.
-- **OT-A.3 A/B iteration:** v1 found unit drift (landValue $ vs %); v2 added FIELD_DEFINITIONS but picked textbook semantics for 2 fields; v3 (`cd397044`) re-anchored `rampMonths` + `incentiveFee` to legacy emit semantics. Acceptance gate reframed from aggregate bucket-match to CATEGORICAL (zero unit/denominator/scope errors). OT-A.4 gated on v3 rerun passing.
-- **Property tests shipped (Claude, `43ed0163` + `991a6b77`):** 66 fast-check properties across all 10 research tools; 13,200 generated inputs per test:summary.
-- **Cross-agent hygiene (Claude, today):** `docs/architecture/DEPENDENCIES.md` atlas (150+ deps); managed-vector-DB → pgvector corrections in core docs; `.claude/skills/analyst/contracts.md` SDK atlas; `.claude/skills/replit-workflow/SKILL.md` — Replit hygiene + what Replit is uniquely positioned to do. claude.md + replit.md refreshed for counts + OT-A phase status.
-- **Sentry + PostHog handoffs ready and queued behind OT-A.** `SENTRY_DSN` and `VITE_POSTHOG_KEY` both in Replit Secrets.
-
-## Session: April 19, 2026 — Analyst architecture doc + Phase 1b analyst skills
-- **Architecture mental model written (Claude, commit `6fc4d676`):** `.claude/notes/analyst-architecture.md` — 240-line walkthrough of the N+1 orchestrator. Informational only — not a handoff. New `.claude/notes/` directory for knowledge-sharing between agents (distinct from `replit-handoffs/` which is instructional).
-- **Pre-commit enforcement rules (Claude, `bcab3620`):** two new rules landed — `pre-commit-verification.md` (the blocking five gates) and `cross-check-invariants.md` (edit → sibling-surface map). Strengthened `claude-replit-split.md` and `testing-strategy.md`. Aim: stop the 40+-bugs-per-audit-sweep pattern.
-- **Phase 1a landed (Replit, `68f983fc`, `a230d968`):** architecture spine + 8 per-component specs + ADR-001 under `docs/architecture/analyst/` and `docs/architecture/decisions/`. Zero code change.
-- **Phase 1b complete: analyst skills + vocabulary rules landed (Claude).** 14 files under `.claude/`: 12 skills in `.claude/skills/analyst/` (`_index`, `orchestrator`, 6 surface specialists, `cognitive-engine`, `voice`, `quality-scoring`, `steward`) + 2 rules (`analyst-team.md`, `analyst-verdict-contract.md`). All five gates pass: TS 0, Lint 0 errors / 348 pre-existing warnings, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED. Awaiting Phase 2 (engine skeleton + CODEOWNERS + ADR-002) from Replit.
-- **Phase 3a complete: AnalystVerdict + Router + Voice + Quality + tests landed (Claude).** 4 source files (`engine/analyst/{contracts/verdict,router/surface-router,voice/voice-renderer,quality/quality-scorer}.ts`) + 4 test files under `tests/analyst/` + ADR-003 + `.claude/rules/analyst-verdict-contract.md` replacement (placeholder → binding). Auto-committed by Replit as `d220f4b1` during editing; my follow-up fixes + ADR + rule replacement land on top. All 53 analyst tests pass; 5 verification gates UNQUALIFIED. Ready for Phase 3b backfill (watchdog evaluators → Specialists, route handler wiring, UI consumption).
-- **Phase 6 (service description column) still paused for Replit's re-seed work.** 5B re-index still pending user action (Admin → AI Research → System Health → Re-index knowledge-base).
-
 ---
 
 ## Persistent Decisions & Preferences

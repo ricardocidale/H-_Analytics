@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by **Norfolk AI**. Models a hospitality management company (seed name: "Hospitality Management Co") alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual. ~1,180 source files in `calc/`+`server/`+`client/`+`shared/`, ~192K lines. ~4,400 tests across ~227 files. 15-phase verification pipeline (498 checks).
+GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by **Norfolk AI**. Models a hospitality management company (seed name: "Hospitality Management Co") alongside individual property SPVs with monthly and yearly financial projections. GAAP-compliant (ASC 230, ASC 360, ASC 470). VRBO/STR/Lodge business model support, multilingual. ~1,180 source files in `calc/`+`server/`+`client/`+`shared/`, ~192K lines. ~4,400 tests across ~227 files. 19-phase verification pipeline (508 checks).
 
 **Two AI Agents:**
 - **The Analyst** — singular intelligence agent. Conducts research, provides ranges with conviction levels, validates assumptions. Powered by Norfolk AI Engine. Always "The Analyst" (capitalized, singular, never plural).
@@ -140,7 +140,7 @@ Quick rules:
 | UI (54 skills) | `.claude/skills/ui/` | Graphics, animation, entity cards, interactions, navigation, charts, mobile, 3D, tour, forms |
 | Admin (9 skills) | `.claude/skills/admin/` | 16-section shell, components, settings, API routes |
 | Testing (10 skills) | `.claude/skills/testing/` | Per-statement test coverage, conventions, golden scenarios |
-| Proof System | `.claude/skills/proof-system/SKILL.md` | 4,536+ tests, 583 golden values, 15-phase verification, release checklist |
+| Proof System | `.claude/skills/proof-system/SKILL.md` | 4,536+ tests, 583 golden values, 19-phase verification, release checklist |
 | Exports (8 skills) | `.claude/skills/exports/SKILL.md` | PDF, Excel, PPTX, PNG, CSV, premium export spec |
 | Database | `.claude/skills/database/SKILL.md` | Drizzle ORM, migrations, sync |
 | Rebecca Chatbot | `.claude/skills/rebecca-chatbot/SKILL.md` | RAG, Super Conversations, Knowledge Base, Guardrails, Rich Blocks |
@@ -202,7 +202,7 @@ Balance Sheet Identity: `A = L + E` must hold within $1.
 | Returns Analysis | IRR, NPV, MOIC, sensitivity | `testing/analysis-returns.md` |
 | Golden Scenarios | 4 archetypes + 16 edge cases, hand-calculated | `testing/golden-scenarios.md` |
 
-**Commands**: `npm test` (~4,391 tests, 223 files) · `npm run verify` (15-phase GAAP, 498 checks) · `npm run health` (tsc+tests+verify)
+**Commands**: `npm test` (~4,391 tests, 223 files) · `npm run verify` (15-phase GAAP, 508 checks) · `npm run health` (tsc+tests+verify)
 
 ---
 
@@ -307,7 +307,7 @@ Engine cascade today: `property.depreciationYears → global.depreciationYears �
 | typecheck | `npx tsc --noEmit --skipLibCheck` | Type errors | ~15s |
 | lint | `npm run lint:summary` | ESLint violations (max-warnings 10) | ~16s |
 | test | `npm run test:summary` | ~4,400 tests (~227 files) | ~29s |
-| verify | `npm run verify:summary` | Financial accuracy (498 checks, 15 phases, UNQUALIFIED) | ~8s |
+| verify | `npm run verify:summary` | Financial accuracy (508 checks, 19 phases, UNQUALIFIED) | ~8s |
 | parity | `tsx script/parity-check.ts` | Statement builder ↔ on-screen parity | ~1s |
 
 ## Quick Commands
@@ -316,7 +316,7 @@ Engine cascade today: `property.depreciationYears → global.depreciationYears �
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify (~90s)
 npm run test:summary   # ~4,400 tests, ~227 files (~30s)
-npm run verify:summary # 15-phase financial verification, 498 checks (~8s)
+npm run verify:summary # 15-phase financial verification, 508 checks (~8s)
 npm run lint:summary   # ESLint check (<10s)
 npm run stats          # File/line/test counts (<5s)
 npm run audit:quick    # Code quality: 13 guardrail checks (<3s)

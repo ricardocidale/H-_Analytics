@@ -209,7 +209,7 @@ Master index of 178 skill files across 19 domains. Use this to find the right sk
 
 | File | Description |
 |------|-------------|
-| `proof-system/SKILL.md` | Master: ~4,191 tests, 204 files, 15-phase verification (498 checks), golden scenarios |
+| `proof-system/SKILL.md` | Master: ~4,191 tests, 204 files, 19-phase verification (508 checks), golden scenarios |
 | `proof-system/comprehensive-audit.md` | Comprehensive audit procedures |
 | `proof-system/release-audit-checklist.md` | Release audit checklist |
 | `proof-system/verification-system.md` | Three-tier verification system |
