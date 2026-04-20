@@ -293,6 +293,14 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 
 ## Recent Changes
 
+**Defaults overlay read path landed (April 20, 2026, Replit):**
+- The 46 seeded `model_defaults` rows (all `mc.*` universal scope) are now reachable. New reader primitive at `server/defaults.ts` exposes `resolveDefault<T>(key, scope?)` and `resolveDefaultsByCard(cat, subTab, cardKey, scope?)`. Contract: candidates must be scope-compatible (each column is NULL or equal to the passed scope); highest specificity wins; ties broken by `id DESC`.
+- **Architectural rule** — the financial engine stays pure (no I/O). Server code resolves defaults at the request boundary, layers the user's saved value on top, then hands a plain value/overlay into the engine as an argument. Pattern: `ga?.X ?? (await resolveDefault<T>("mc.card.X")) ?? TS_CONSTANT_X`.
+- First call-site wired: `server/routes/chat.ts:205` (`Projection Years` in Rebecca's prompt context) — byte-identical swap since DB and TS constant both = 10, zero calc-path exposure.
+- Test: `tests/server/defaults-resolver.test.ts` — 7/7 pass against the real seeded DB. Covers known-key resolution, unknown→undefined, scope→universal fallback, jsonb type decoding, card grouping, category/subTab isolation.
+- All gates green: TS 0, Lint 0, Tests PASS, Verify UNQUALIFIED, Parity PASS, Health ALL CLEAR.
+- Next safe swap targets (same byte-identical profile, different call-sites): already queued on the `mc.setup.*` card.
+
 **Cross-check detector sweep shipped (April 20, 2026, Claude Code, end-of-day):**
 - **4 new proof tests** wired into `verify:summary` as Phases 16-19: orphan-files, any-prop-detector, literal-drift, seed-schema-sync. Total is now 19 phases / 508 checks. Each ships with a baseline + stale-entry guard for incremental cleanup.
 - **Baseline progression across the session:** orphans 29 → 0, any-prop 28 → 0, literal-drift 25 → 0, seed/schema 64 → 36. Net: 34 barrel files + 4 UNWIRED modules + 1 shim deleted (~720 LOC); 20+ files retyped from `any` to precise types; `DEFAULT_MODEL_START_DATE` centralized (closes D-1 drift pattern).

@@ -6,6 +6,7 @@ import { storage } from "../storage";
 import { buildPropertyContext } from "../ai/buildPropertyContext.js";
 import { z } from "zod";
 import { DEFAULT_PROJECTION_YEARS, DEFAULT_PROPERTY_INFLATION_RATE, isAdminRole } from "@shared/constants";
+import { resolveDefault } from "../defaults";
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
@@ -198,7 +199,7 @@ export function register(app: Express) {
         "",
         `Company: ${ga?.companyName ?? "Management Company"}`,
         `Properties in Portfolio: ${properties.length}`,
-        `Projection Years: ${ga?.projectionYears ?? DEFAULT_PROJECTION_YEARS}`,
+        `Projection Years: ${ga?.projectionYears ?? (await resolveDefault<number>("mc.setup.projectionYears")) ?? DEFAULT_PROJECTION_YEARS}`,
         `Inflation Rate: ${((ga?.inflationRate ?? DEFAULT_PROPERTY_INFLATION_RATE) * 100).toFixed(1)}%`,
         `Base Management Fee: ${(baseFee * 100).toFixed(1)}%`,
         `Incentive Management Fee: ${(incentiveFee * 100).toFixed(1)}%`,
