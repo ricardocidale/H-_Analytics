@@ -315,16 +315,16 @@ export function buildFinancialSummary(
   const lines: string[] = [];
   if (mgmtCompany) lines.push(`Management Company: ${mgmtCompany.name}`);
   lines.push(`Properties in portfolio: ${managedProps.length}`);
-  lines.push(`Base Management Fee: ${((ga.baseManagementFee || 0) * 100).toFixed(1)}%`);
-  lines.push(`Incentive Management Fee: ${((ga.incentiveManagementFee || 0) * 100).toFixed(1)}%`);
+  lines.push(`Base Management Fee: ${((ga.baseManagementFee ?? 0) * 100).toFixed(1)}%`);
+  lines.push(`Incentive Management Fee: ${((ga.incentiveManagementFee ?? 0) * 100).toFixed(1)}%`);
 
   for (const p of managedProps) {
-    const revPAR = (p.startAdr || 0) * (p.startOccupancy || 0);
+    const revPAR = (p.startAdr ?? 0) * (p.startOccupancy ?? 0);
     lines.push(`\n--- ${p.name} ---`);
-    lines.push(`  Keys: ${p.roomCount || 0}`);
-    lines.push(`  Starting ADR: $${(p.startAdr || 0).toFixed(0)}`);
-    lines.push(`  Starting Occupancy: ${((p.startOccupancy || 0) * 100).toFixed(0)}%`);
-    lines.push(`  ADR Growth Rate: ${((p.adrGrowthRate || 0) * 100).toFixed(1)}%`);
+    lines.push(`  Keys: ${p.roomCount ?? 0}`);
+    lines.push(`  Starting ADR: $${(p.startAdr ?? 0).toFixed(0)}`);
+    lines.push(`  Starting Occupancy: ${((p.startOccupancy ?? 0) * 100).toFixed(0)}%`);
+    lines.push(`  ADR Growth Rate: ${((p.adrGrowthRate ?? 0) * 100).toFixed(1)}%`);
     lines.push(`  RevPAR: $${revPAR.toFixed(0)}`);
   }
 
