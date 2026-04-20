@@ -126,49 +126,42 @@ export class IntelligenceV2Storage {
     now: Date,
     cooldownMs: number,
   ): Promise<{ granted: true } | { granted: false; retryAfterMs: number }> {
-    // Single round-trip CTE: the UPSERT either acquires the slot OR returns
-    // nothing (because setWhere filtered the UPDATE). The fallback SELECT in
-    // the second CTE reads the row that lost — but it reads it INSIDE the
-    // same statement as the UPSERT, so it sees the row the gate decision
-    // actually saw, eliminating the read-after-write race that a separate
-    // SELECT would expose to a third concurrent caller.
+    // Two-statement design, deliberate. An earlier attempt collapsed this
+    // into a single CTE so retryAfterMs would be linearizable with the
+    // gate decision, but that CTE is unsafe: ON CONFLICT detects concurrent
+    // writers via a special non-snapshot read, while a sibling SELECT in
+    // the same statement uses the statement's MVCC snapshot — which can
+    // be empty even though the conflict was real. The CTE then returns
+    // zero rows under contention and the caller has to guess (and guessing
+    // "granted" produces double-fires; guessing "denied" loses the
+    // first-ever reservation).
     //
-    // Result row is exactly one of:
-    //   { granted: true,  reserved_at: <now> }       — we acquired
-    //   { granted: false, reserved_at: <existing> }  — someone holds it
+    // The two-statement form below is correct because the fallback SELECT
+    // runs in a NEW statement, taking a fresh snapshot that *does* see the
+    // winner's commit. retryAfterMs is computed from the winner's
+    // reserved_at, which is the only value the user-facing 429 needs to
+    // be approximately right about.
     const cutoff = new Date(now.getTime() - cooldownMs);
-    const result = await db.execute<{ granted: boolean; reserved_at: Date }>(sql`
-      WITH upsert AS (
-        INSERT INTO analyst_cooldowns (user_id, reserved_at)
-        VALUES (${userId}, ${now})
-        ON CONFLICT (user_id) DO UPDATE
-          SET reserved_at = EXCLUDED.reserved_at
-          WHERE analyst_cooldowns.reserved_at <= ${cutoff}
-        RETURNING reserved_at, true AS granted
-      ),
-      existing AS (
-        SELECT reserved_at, false AS granted
-        FROM analyst_cooldowns
-        WHERE user_id = ${userId}
-      )
-      SELECT reserved_at, granted FROM upsert
-      UNION ALL
-      SELECT reserved_at, granted FROM existing
-        WHERE NOT EXISTS (SELECT 1 FROM upsert)
-      LIMIT 1
-    `);
-    const row = result.rows[0];
+    const [row] = await db.insert(analystCooldowns)
+      .values({ userId, reservedAt: now })
+      .onConflictDoUpdate({
+        target: analystCooldowns.userId,
+        set: { reservedAt: now },
+        setWhere: lte(analystCooldowns.reservedAt, cutoff),
+      })
+      .returning({ reservedAt: analystCooldowns.reservedAt });
+    // RETURNING is empty when the conflict's WHERE clause filtered the
+    // UPDATE — meaning a recent reservation already exists and we lost.
     if (!row) {
-      // First-ever reservation that somehow returned no rows — treat as a
-      // fresh grant via fallback insert. Defensive only; the CTE above
-      // covers every observable code path.
-      return { granted: true };
+      const [existing] = await db.select().from(analystCooldowns)
+        .where(eq(analystCooldowns.userId, userId))
+        .limit(1);
+      const elapsed = existing ? now.getTime() - existing.reservedAt.getTime() : 0;
+      const retryAfterMs = Math.max(0, cooldownMs - elapsed);
+      return { granted: false, retryAfterMs };
     }
-    if (row.granted) return { granted: true };
-    const reservedAt = row.reserved_at instanceof Date ? row.reserved_at : new Date(row.reserved_at);
-    const elapsed = now.getTime() - reservedAt.getTime();
-    const retryAfterMs = Math.max(0, cooldownMs - elapsed);
-    return { granted: false, retryAfterMs };
+    // RETURNING came back with our `now` — we acquired the slot.
+    return { granted: true };
   }
 
   /**
