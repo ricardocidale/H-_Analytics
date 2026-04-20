@@ -784,3 +784,56 @@ npx tsx script/billing-report.ts        # regenerate the report
 | H+ daily-avg cash burn | $128.78 per active day (34 active billing days) |
 
 **Upgrade path to raw line items**: drop an Orb invoice CSV at `./.local/orb-invoice-export.csv` and a follow-up loader will overwrite the line-item table with workspace-exact figures while leaving the invoice-header table untouched.
+
+---
+
+## Addendum: Rewrite-Tax Prevention — 4 New Proof Tests (Apr 20, 2026, Claude Code)
+
+The core thesis of this audit is that ~60% of commits in this repo touched code that had been written, ripped out, and re-implemented. Four new proof tests were added on 2026-04-20 that directly address the **detection gaps** which let those rewrites accumulate silently. Each is wired into `verify:summary` as a mandatory gate (now 19 phases, 508 checks).
+
+### The 4 tests and what historical tax each would have prevented
+
+| Test | Phase | What it catches | Historical tax it would have prevented |
+|---|---|---|---|
+| `orphan-files.test.ts` | 16 | Files with zero importers | The **`server/ai/kb/`** dead directory (19 files, ~900 LOC, committed `640e889f`, lived unused for weeks, deleted in Phase 5B `f2c90e04`). Detector would have flagged at the original commit. |
+| `any-prop-detector.test.ts` | 17 | `any` / `any[]` fields in `*Props` interfaces | The **Phase 4 #15 `PortfolioPropertySummary.isActive` bug** — component rendered an "Excluded" badge off a field the actual type didn't have; `any[]` typing hid the drift. Took one BLOCKED handoff + a fix commit to resolve. |
+| `literal-drift.test.ts` | 18 | Duplicated YYYY-MM-DD literals across 2+ files outside `constants.ts` | The **D-1 drift** (`"2026-06-01"` scattered across 7+ files, resolved in Phase 5C `6a18d8cf`) and **D-1-B capital-raise-date drift** (identical pattern). Detector would have flagged on the second appearance. |
+| `seed-schema-sync.test.ts` | 19 | Schema columns not exercised by any seed row | The class of "schema adds a column with `.default()` but seed doesn't set it → admin changes the default and an invisible behavior change ships". No single historical instance named, but this pattern has surfaced repeatedly in Phase 4–5 audits. |
+
+### The "baseline + forbid new" pattern
+
+Each detector ships with a baseline of existing known violations and a stale-entry guard that fails the test if a baseline entry gets fixed without being removed. This is the standard lint-debt pattern — it converts cleanup from a bulk project into incremental removals, and guarantees no new violations land.
+
+Baseline progression across the session (same day the detectors shipped):
+
+| Test | Original baseline | Session end | Change |
+|---|---:|---:|---|
+| Orphan Files | 29 | **0** | 34 barrel `index.ts` files + 4 UNWIRED modules + 1 dead shim deleted, cascading through 3 waves |
+| Any-Prop Detector | 28 | **0** | 20+ files retyped from `any` to precise types (`GlobalResponse`, `PropertyResponse`, local content types) |
+| Literal Drift | 25 | **0** | 4 real drift sites fixed (`DEFAULT_MODEL_START_DATE` centralized to `shared/constants.ts`); 21 per-property seed dates exempted at file-pattern level |
+| Seed/Schema Sync | 64 | **36** | 28 research-extracted + audit columns promoted to `SYSTEM_COLUMN_EXEMPTIONS`; 36 real drift remain — Replit handoff queued at `.claude/replit-handoffs/seed-schema-sync-coverage.md` |
+
+### 3 real production bugs surfaced during the sweep
+
+The any-prop cleanup turned up three latent issues, any one of which would have shipped as a real rewrite-tax contribution later:
+
+1. **`IcpMarketContextTab.tsx`** — over-broad `assetDefinition as Record<string, string>` cast on a structured type with numbers and booleans. Latent contract mismatch; any future field-shape change would have silently broken.
+2. **`InvestmentAnalysis.tsx`** — two props (`allPropertyFinancials`, `getPropertyYearly`) were destructured-but-unused, and two callers passed completely different shapes (`MonthlyFinancials[][]` vs `{property, financials}[]`). `any[]` typing hid the mismatch across both callers. Dead props + mismatched-shape callers both resolved.
+3. **`OtherAssumptionsSection.tsx`** — **real user-facing display bug.** Code read `draft.globalAssumptions?.costOfEquity ?? 0.18`, but `draft` (PropertyResponse) has no `globalAssumptions` field. The `??` always fired → every user saw 18% cost-of-equity regardless of the admin's Damodaran override. Shipped silently since the field was added. Only caught because the type change from `any` to `PropertyResponse` forced TS to validate the access.
+
+### Cost of writing the 4 detectors
+
+Single Claude Code session. Approximately 1,149 LOC across four test files + ~140 LOC of wiring into `tests/proof/verify-runner.ts` and `script/lib/verify-phases.ts`. Claude Opus API spend well under $5. Zero Anthropic API spend via the Replit pass-through (Claude Code's own context window, not billed to the project workspace).
+
+### Forward-tax avoided
+
+Every instance of the four patterns — dead files, `any`-typed Props fields, duplicated literals, schema/seed divergence — was a guaranteed future rewrite. The detectors convert each pattern from "ship now, pay later" to "can't ship." That structural shift is where the avoided-tax math lives.
+
+If even one future OT-A-class migration is prevented by these gates (e.g., a mode-collapse regression surfaced at PR time rather than after a $22 rerun), the detectors pay for themselves thousands of times over in the same billing cycle they were written.
+
+### Not yet prevented
+
+- **Client-side orphan detection.** The orphan detector covers `calc/`, `engine/`, `domain/`, `statements/`, `analytics/`, `shared/`, `server/` — not `client/src/`. During 2c, 5 company-research tab components (CompetitiveLandscape, OverheadBenchmarks, PartnerComp, ServiceRevenue, VendorCosts) were found to have zero consumers outside the feature's own barrel `index.ts`. They're likely dead but weren't flagged. Candidate for a v2 orphan-detector expansion.
+- **Decimal-literal drift.** The literal-drift detector matches `YYYY-MM-DD` strings only. Decimal literals (cap rates `0.08`, LTVs `0.65`, fees `0.03`) can still drift across files without flag. V2 candidate.
+- **Seed/schema sync for non-property tables.** V1 covers `shared/schema/properties.ts` only. `engagement`, `scenarios`, `intelligence-v2`, `services` tables are not yet covered. V2 candidate.
+- **Transitive reachability for orphans.** V1 flags files with zero importers. A directory where files only import each other (an island with no entry-point path) won't be flagged — each file has at least one importer inside the island. `statements/` top-level directory is suspected of being an island but passed v1. V2 candidate.

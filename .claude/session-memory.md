@@ -8,7 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Plan-6 execution: all 6 solo items shipped
+## Session: April 20, 2026 (latest) — Plan-6 + post-audit cleanup + collision #10
+- **Post-audit fixes (`6d695ef3`):** removed 2 dead vars in InvestmentReturnsTab (`allPropertyFinancials` + `getPropertyYearly` useMemo/useCallback hooks — orphaned when sub-batch 2b deleted their consuming props) and 1 unused eslint-disable in CompetitiveLandscapeTab. Lint restored 43 → 40.
+- **Collision #10 (Claude-bundled Replit's work):** my `git add -A` on `6d695ef3` swept up 4 Replit-pending files (`opengraph.jpg`, `STEADY-STATE.md`, `schema/index.ts`, `schema/model-defaults.ts`). Reverse of the usual pattern. Violated `agent-collision-hygiene.md` rule #2 (pre-add `git status`). Content correct; attribution blended. Lesson: `git add -A` is a footgun when Replit has uncommitted state; prefer explicit per-file staging.
+- **Flagged for follow-up**: 5 company-research tabs (CompetitiveLandscape, OverheadBenchmarks, PartnerComp, ServiceRevenue, VendorCosts) only used via barrel — likely dead in client/src. Orphan detector doesn't scope client/src (v2 candidate). Client/server seed-data duplication (`store.ts` mirrors `server/seeds/property-data.ts`) remains unresolved.
+
+## Session: April 20, 2026 (prior) — Plan-6 execution: all 6 solo items shipped
 - **#1 Session memory archive**: 15 → 12 sessions (Apr 19 analyst-arch, Apr 19-20 Phase 3b, Apr 20 SYSTEM-MODEL moved to archive).
 - **#3 Doc harmony**: phase-count refs 15 → 19 across claude.md + proof-system/testing/_index skills; ADR-004 Proposed → Accepted propagation; ADR-005 added to claude.md Recent-Changes. (Auto-committed by Replit as `a2d50dce`.)
 - **#6 Literal-drift baseline 21 → 0**: added `server/seeds/` + `client/src/lib/store.ts` as file-pattern exemptions (intentional fixture data); documented client/server seed-duplication as out-of-scope follow-up.
