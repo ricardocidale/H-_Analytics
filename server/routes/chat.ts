@@ -200,7 +200,7 @@ export function register(app: Express) {
         `Company: ${ga?.companyName ?? "Management Company"}`,
         `Properties in Portfolio: ${properties.length}`,
         `Projection Years: ${ga?.projectionYears ?? (await resolveDefault<number>("mc.setup.projectionYears")) ?? DEFAULT_PROJECTION_YEARS}`,
-        `Inflation Rate: ${((ga?.inflationRate ?? DEFAULT_PROPERTY_INFLATION_RATE) * 100).toFixed(1)}%`,
+        `Inflation Rate: ${((ga?.inflationRate ?? (await resolveDefault<number>("mc.property_defaults.propertyInflationRate")) ?? DEFAULT_PROPERTY_INFLATION_RATE) * 100).toFixed(1)}%`,
         `Base Management Fee: ${(baseFee * 100).toFixed(1)}%`,
         `Incentive Management Fee: ${(incentiveFee * 100).toFixed(1)}%`,
         "",

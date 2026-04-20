@@ -13,6 +13,7 @@ import { createResearchClient, resolveVendorFromModel } from "../ai/research-cli
 import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
 import type { ResearchConfig, ResearchEventConfig, LlmVendor } from "@shared/schema";
 import { DEFAULT_RESEARCH_EVENT_CONFIG, DEFAULT_RESEARCH_REFRESH_INTERVAL_DAYS, DEFAULT_ROOM_COUNT, DEFAULT_START_ADR, DEFAULT_MAX_OCCUPANCY, isAdminRole } from "../../shared/constants";
+import { resolveDefault } from "../defaults";
 import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceAggregator";
 import { fetchMultipleFields, getRoutableFields, type RoutingContext, type DataRouteResult } from "../ai/data-routing";
 import { buildPromptInjectionBlock } from "../ai/research-data-injector";
@@ -531,9 +532,9 @@ export function register(app: Express) {
             const property = await storage.getProperty(propertyId);
             if (property) {
               const validated = validateResearchValues(researchValues, {
-                roomCount: property.roomCount ?? DEFAULT_ROOM_COUNT,
-                startAdr: property.startAdr ?? DEFAULT_START_ADR,
-                maxOccupancy: property.maxOccupancy ?? DEFAULT_MAX_OCCUPANCY,
+                roomCount: property.roomCount ?? (await resolveDefault<number>("mc.property_defaults.roomCount")) ?? DEFAULT_ROOM_COUNT,
+                startAdr: property.startAdr ?? (await resolveDefault<number>("mc.property_defaults.startAdr")) ?? DEFAULT_START_ADR,
+                maxOccupancy: property.maxOccupancy ?? (await resolveDefault<number>("mc.property_defaults.maxOccupancy")) ?? DEFAULT_MAX_OCCUPANCY,
                 purchasePrice: property.purchasePrice ?? undefined,
                 costRateRooms: property.costRateRooms ?? undefined,
                 costRateFB: property.costRateFB ?? undefined,

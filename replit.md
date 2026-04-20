@@ -305,7 +305,16 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - Shared source of truth: `SPECS` + `toDefaultKey()` + `CardKey` now exported from `script/seed-model-defaults.ts` so seed and guard read from the same list.
 - Current baseline: 47/47 in sync on first run — confirms no existing drift.
 - All gates green: TS 0, Lint 0, Tests PASS, Verify UNQUALIFIED (20 phases / 555 checks), Parity PASS, Health ALL CLEAR.
-- Next safe swap targets (same byte-identical profile, different call-sites): already queued on the `mc.setup.*` card — drift guard now protects them.
+
+**Bulk wire-through increment 1 (April 20, 2026, Replit, same session):**
+- 4 additional byte-identical swaps landed, all prompt/validation-context (zero calc-path exposure), all in pre-existing async handlers:
+  - `server/routes/chat.ts:206` — `mc.property_defaults.propertyInflationRate` (Rebecca's inflation-rate prompt line).
+  - `server/routes/research.ts:538-540` — `mc.property_defaults.roomCount`, `.startAdr`, `.maxOccupancy` (fallbacks passed into `validateResearchValues()`).
+- Running tally: 5 of 46 seeded values now consumed via `resolveDefault()`. The drift guard protects all swaps.
+- Pattern reminder for the next hop: `userValue ?? (await resolveDefault<T>("mc.card.X")) ?? TS_CONSTANT_X`.
+- Known non-targets on the Setup card: `DEFAULT_MODEL_START_DATE` / `DEFAULT_COMPANY_OPS_START_DATE` live only in seed files (circular); `DEFAULT_COMPANY_INFLATION_RATE` has zero server consumers today — nothing to wire.
+- `DEFAULT_PROJECTION_YEARS` also referenced at `server/calculation-checker/index.ts:54` but the enclosing `runIndependentVerification()` is sync — wiring it requires an async refactor, deferred.
+- All gates green: TS 0, Lint 0, Tests PASS, Verify UNQUALIFIED (20 phases / 555 checks incl. 47 drift), Parity PASS, Health ALL CLEAR.
 
 **Cross-check detector sweep shipped (April 20, 2026, Claude Code, end-of-day):**
 - **4 new proof tests** wired into `verify:summary` as Phases 16-19: orphan-files, any-prop-detector, literal-drift, seed-schema-sync. Total is now 19 phases / 508 checks. Each ships with a baseline + stale-entry guard for incremental cleanup.
