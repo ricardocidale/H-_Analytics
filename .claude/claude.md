@@ -202,7 +202,7 @@ Balance Sheet Identity: `A = L + E` must hold within $1.
 | Returns Analysis | IRR, NPV, MOIC, sensitivity | `testing/analysis-returns.md` |
 | Golden Scenarios | 4 archetypes + 16 edge cases, hand-calculated | `testing/golden-scenarios.md` |
 
-**Commands**: `npm test` (~4,391 tests, 223 files) · `npm run verify` (15-phase GAAP, 508 checks) · `npm run health` (tsc+tests+verify)
+**Commands**: `npm test` (~4,391 tests, 223 files) · `npm run verify` (19-phase GAAP, 508 checks) · `npm run health` (tsc+tests+verify)
 
 ---
 
@@ -316,7 +316,7 @@ Engine cascade today: `property.depreciationYears → global.depreciationYears �
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify (~90s)
 npm run test:summary   # ~4,400 tests, ~227 files (~30s)
-npm run verify:summary # 15-phase financial verification, 508 checks (~8s)
+npm run verify:summary # 19-phase financial verification, 508 checks (~8s)
 npm run lint:summary   # ESLint check (<10s)
 npm run stats          # File/line/test counts (<5s)
 npm run audit:quick    # Code quality: 13 guardrail checks (<3s)
@@ -371,7 +371,7 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - ✅ Phase 3a — `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + ADR-003 + 53 tests (Claude Code, commits `d220f4b1`, `cc6d5a0e`). Contract frozen.
 - ✅ Phase 3b — Funding + Revenue Specialists backfilled to `AnalystVerdict`; `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten on the contract (Replit, commit `ee0c6573`). Five gates green.
 - ⏳ Phase 4 — build remaining Surface Specialists incrementally; Compensation ships first. Persona resolution (currently hardcoded L+B/luxury/US) + verdict-cache table are deferred follow-ups.
-- ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + **verdict cache (ADR-004 Proposed — `docs/architecture/decisions/ADR-004-verdict-cache.md`)** + research-history reindex + guidance↔engine seam doc
+- 🟡 Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders, pending ADR-005) + **verdict cache (ADR-004 Accepted 2026-04-20 — Phase 5A Claude-side shipped `38a468b3`; migrations handoff queued at `.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`)** + research-history reindex + guidance↔engine seam doc
 
 **Parallel workstream — Operational Tooling (OT):**
 - ✅ OT-A.1 — Anthropic native prompt caching (Replit, `7326e28c`)
@@ -415,7 +415,9 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 
 **SYSTEM-MODEL.md shipped (April 20, 2026, Claude Code):** `docs/architecture/SYSTEM-MODEL.md` — canonical business+technical mental model for new contributors. Dual-entity mechanics, engine chain (Revenue→GOP→AGOP→NOI→ANOI), Analyst N+1 pipeline, cost economics (~$0.70/consult), 11 next steps ranked by leverage.
 
-**ADR-004 verdict cache drafted (April 20, 2026, Claude Code, Proposed):** `docs/architecture/decisions/ADR-004-verdict-cache.md`. Content-addressed cache layered over existing `research_runs` + `assumption_guidance` (no new tables). Two-axis TTL (time + `inputContextHash`). Automatic invalidation on property/global mutation + pgvector reindex. Phased plan: 5A migrations → 5B façade read path → 5C write-after + invalidation → 5D observability. Expected ~80% cost reduction.
+**ADR-004 verdict cache accepted (April 20, 2026, Claude Code):** `docs/architecture/decisions/ADR-004-verdict-cache.md` — Status: Accepted. Content-addressed cache over existing `research_runs` + `assumption_guidance` (no new tables). Two-axis TTL (time + `inputContextHash`). Automatic invalidation on property/global mutation + pgvector reindex. **Phase 5A Claude-side shipped** (`38a468b3`): `engine/analyst/cognitive/cache-keys.ts` (285 LOC) + 21 tests PASS. Phase 5A migrations handoff queued at `.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`. Remaining phases: 5A migrations (Replit) → 5B façade (Claude) → 5C write-after + invalidation (Replit) → 5D observability (Replit). Expected ~80% cost reduction.
+
+**ADR-005 workspace reorganization proposed (April 20, 2026, Claude Code, Proposed):** `docs/architecture/decisions/ADR-005-workspace-reorganization.md`. PNPM workspaces + Turborepo. 4 open questions resolved; Phase 1 handoff queued at `.claude/replit-handoffs/phase-1-workspace-bootstrap.md` (tooling-only bootstrap, zero file moves). Status stays Proposed until Phase 1 + 2 land cleanly per ADR's own acceptance criteria.
 
 **Operational Tooling OT-A progressing (April 19, 2026):**
 - OT-A.1 shipped (Replit, `7326e28c`): Anthropic native prompt caching via `cache_control: "ephemeral"` on system prompts. Immediate cost savings on repeat synthesis calls.

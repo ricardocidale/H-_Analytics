@@ -12,7 +12,7 @@ Eliminates human Excel verification. Code proves itself correct through ~4,191 a
 ```bash
 npm run health             # All-in-one: tsc + tests + verification + doc harmony (~90s)
 npm run test:summary       # All tests, 1-line output (~30s)
-npm run verify:summary     # 15-phase financial verification only (~8s)
+npm run verify:summary     # 19-phase financial verification only (~8s)
 npm run lint:summary       # ESLint check (<10s)
 npm run stats              # File/line/test counts (<5s, no vitest or tsc)
 npm run audit:quick        # Code quality scan: `any`, TODO, console.log (<3s)
@@ -32,7 +32,7 @@ npx tsx script/export-audit.ts  # 41-check export wiring validation (<2s)
 | audit:quick | No | No | <3s | Code smell detection |
 | exports:check | No | No | <5s | Dead code detection |
 
-## 15-Phase Verification (498 Checks)
+## 19-phase Verification (498 Checks)
 1. **Proof Scenarios** (34) — Golden scenarios test every financial structure
 2. **Hardcoded Detection** (20) — Scans finance files for magic numbers
 3. **Golden Values** (27) — Hand-calculated reference value validation
