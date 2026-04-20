@@ -1,6 +1,6 @@
 # Hospitality Business Group — Business Simulation Portal
 
-A financial modeling and portfolio management platform for boutique hospitality. The portal generates GAAP-compliant monthly and yearly pro forma projections, income statements, balance sheets, cash flow statements, and investment return analyses for hospitality assets — all verified by a 4,536-test, 15-phase verification pipeline with three-tier financial verification.
+A financial modeling and portfolio management platform for boutique hospitality. The portal generates GAAP-compliant monthly and yearly pro forma projections, income statements, balance sheets, cash flow statements, and investment return analyses for hospitality assets — all verified by a 4,536-test, 19-phase verification pipeline with three-tier financial verification.
 
 ---
 
@@ -283,7 +283,7 @@ Verified every month across every property — any imbalance triggers a critical
 
 ## Verification and Proof System
 
-The system provides **independent three-tier verification** of all financial calculations, backed by **4,694+ automated tests** across 187+ test files with a 15-phase verification pipeline.
+The system provides **independent three-tier verification** of all financial calculations, backed by **4,694+ automated tests** across 187+ test files with a 19-phase verification pipeline.
 
 ### Tier 1: Server-Side Independent Recalculation
 
@@ -599,7 +599,7 @@ npm run exports:check  # Find unused exports
 | Metric | Value |
 |--------|-------|
 | **Total Tests** | 4,694+ across 187+ test files |
-| **Verification Pipeline** | 15-phase verification pipeline |
+| **Verification Pipeline** | 19-phase verification pipeline |
 | **Test Coverage** | Revenue, expenses, depreciation, loan amortization, balance sheet, cash flow, management fees, scenarios, refinancing, IRR, sensitivity analysis, seasonality, luxury rentals |
 | **Verification Opinion** | UNQUALIFIED (clean — 0 critical, 0 material issues) |
 | **TypeScript** | Strict mode, 0 errors |

@@ -2,7 +2,7 @@
 
 ## Overview
 
-H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by Norfolk AI. It models a hospitality management company (default seed name: "Hospitality Management Co") and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP (ASC 230, ASC 360, ASC 470) and USALI 12th Edition standards. ~1,180 source files in `calc/`+`server/`+`client/`+`shared/`, ~192K lines. ~4,400 tests across ~227 files. 15-phase verification pipeline (498 checks). The platform delivers a premium, bespoke financial experience enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
+H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by Norfolk AI. It models a hospitality management company (default seed name: "Hospitality Management Co") and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP (ASC 230, ASC 360, ASC 470) and USALI 12th Edition standards. ~1,180 source files in `calc/`+`server/`+`client/`+`shared/`, ~192K lines. ~4,400 tests across ~227 files. 19-phase verification pipeline (508 checks). The platform delivers a premium, bespoke financial experience enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
 
 **Two AI Agents:**
 - **The Analyst** — the singular intelligence agent. Conducts research, provides ranges, conviction levels, and risk flags next to every assumption field. Always "The Analyst" (capitalized, singular). Powered by Norfolk AI Engine.
@@ -90,7 +90,7 @@ Two execution surfaces are in play. The agent must flag which one a task belongs
 The application features a React 18 frontend with TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, and framer-motion. The backend is an Express 5 application utilizing Drizzle ORM and PostgreSQL.
 
 **Core Design Principles & Features:**
-- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (~4,400 tests across ~227 files, 15-phase verification pipeline with 498 checks), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
+- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (~4,400 tests across ~227 files, 19-phase verification pipeline with 508 checks), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
 - **Modular Skill-Based Architecture:** Domain knowledge and context are managed through a skill-based system in `.claude/skills/`.
 - **Theming & UI/UX:** A robust theme engine provides consistent UI with 5 presets. All UI components are theme-compliant, and specific UI patterns are enforced.
 - **Shared Financial Calculation Layer (`calc/`):** Pure financial calculation logic in standalone modules. Both client and server import from `calc/`.
@@ -214,7 +214,7 @@ Instead, authenticate via a direct API call BEFORE any browser navigation:
 | typecheck | `npx tsc --noEmit --skipLibCheck` | Type errors |
 | lint | `npm run lint:summary` | ESLint violations (max-warnings 10) |
 | test | `npm run test:summary` | ~4,400 unit/integration tests (~227 files) |
-| verify | `npm run verify:summary` | Financial calculation accuracy (498 checks, 15 phases) |
+| verify | `npm run verify:summary` | Financial calculation accuracy (508 checks, 15 phases) |
 | parity | `tsx script/parity-check.ts` | Statement builder ↔ on-screen parity |
 
 ## Quick Commands
@@ -223,7 +223,7 @@ Instead, authenticate via a direct API call BEFORE any browser navigation:
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify + doc harmony (~90s)
 npm run test:summary   # ~4,400 tests, ~227 files (~30s)
-npm run verify:summary # 15-phase financial verification, 498 checks (~8s)
+npm run verify:summary # 19-phase financial verification, 508 checks (~8s)
 npm run lint:summary   # ESLint check (<10s)
 npm run stats          # File/line/test counts (<5s)
 npm run audit:quick    # Code quality: 13 checks (<3s)
@@ -266,7 +266,7 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - ✅ Phase 3a — `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + persona test bench + ADR-003 + 53 tests (Claude Code, `d220f4b1`, `cc6d5a0e`). Contract frozen.
 - ✅ Phase 3b — Funding + Revenue Surface Specialists; `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten on the contract; tests use real Specialists end-to-end (Replit, `ee0c6573`)
 - ⏳ Phase 4 — build remaining mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults). Persona resolution (currently hardcoded `{ L+B, luxury, US }` single-tenant) + verdict-cache table are deferred follow-ups.
-- ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + **verdict cache (ADR-004 Proposed — `docs/architecture/decisions/ADR-004-verdict-cache.md`)** + research-history reindex + guidance↔engine seam doc
+- 🟡 Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders, pending ADR-005) + **verdict cache (ADR-004 Accepted 2026-04-20 — Phase 5A Claude-side shipped `38a468b3`; migrations handoff queued at `.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`)** + research-history reindex + guidance↔engine seam doc
 
 **Parallel workstream — Operational Tooling (OT):**
 - ✅ OT-A.1 — Anthropic native prompt caching (Replit, `7326e28c`)
@@ -292,6 +292,14 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 **Boundary rule:** `.claude/**` is Claude Code's authoritative domain. Replit Agent edits limited to ≤5-line append on `.claude/session-memory.md` and `BLOCKED.md` siblings; everything else under `.claude/` goes through a handoff brief. `.agents/skills/**` is project-agnostic. `docs/**` is open editing for either agent.
 
 ## Recent Changes
+
+**Cross-check detector sweep shipped (April 20, 2026, Claude Code, end-of-day):**
+- **4 new proof tests** wired into `verify:summary` as Phases 16-19: orphan-files, any-prop-detector, literal-drift, seed-schema-sync. Total is now 19 phases / 508 checks. Each ships with a baseline + stale-entry guard for incremental cleanup.
+- **Baseline progression across the session:** orphans 29 → 0, any-prop 28 → 0, literal-drift 25 → 0, seed/schema 64 → 36. Net: 34 barrel files + 4 UNWIRED modules + 1 shim deleted (~720 LOC); 20+ files retyped from `any` to precise types; `DEFAULT_MODEL_START_DATE` centralized (closes D-1 drift pattern).
+- **3 real production bugs surfaced + fixed:** (1) IcpMarketContextTab over-broad `assetDefinition` cast, (2) InvestmentAnalysis dead `allPropertyFinancials`/`getPropertyYearly` props with mismatched-shape callers, (3) **OtherAssumptionsSection silent display bug** — cost-of-equity always showed 18% regardless of admin override, because `draft.globalAssumptions?.costOfEquity` ran on a type with no `globalAssumptions` field.
+- **ADR-004 verdict cache Accepted** (`66f3df90`). Phase 5A Claude-side (cache-key utilities + 21 tests) shipped (`38a468b3`). Phase 5A migrations queued for Replit at `.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`.
+- **ADR-005 workspace reorganization Proposed** (docs-only). 4 open questions resolved; Phase 1 handoff queued at `.claude/replit-handoffs/phase-1-workspace-bootstrap.md` (tooling-only, zero file moves). Status stays Proposed until Phase 1 + 2 land cleanly per ADR's own acceptance criteria.
+- **Lint 348 → 40 warnings** (88% reduction) across 9 atomic sub-batches this session + prior sessions.
 
 **Forward-discipline playbook (April 20, 2026, Replit, docs-only):**
 - `best-practices.md` (project root) — 22-rule forward-looking distillation of `rewritetax.md`'s 7 cost vectors. Categories: multi-agent hygiene, architectural redirection, vendor decisions, AI prompt-tuning, migration hygiene, cosmetic churn, platform-specific tax. Read before starting the next project; install the rules first, ship the code second.
