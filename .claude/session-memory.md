@@ -8,7 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst: T007b gate wired into ModelDefaults
+## Session: April 20, 2026 (latest) — Interactive Analyst: replit.md docs section landed
+- Added full "Interactive Analyst — Admin Defaults slice" section to `replit.md` (before Recent Changes): goal, locked doctrine (60s cooldown, 20% single / 40% lone-blunt thresholds, no cost in tooltip), client primitives (AnalystActionButton, useAnalystRefresh, computeAnalystViolations, useAnalystSaveGate / SaveWithAnalystGate), server surface (`POST /api/analyst/refresh`, `runAnalystScoped`, reused `GET /api/guidance/company/:userId`), wired surfaces (3 sub-tabs + union-scoped save gate), what's skipped by design, what's deferred.
+- Appended "Recent Changes" entry summarizing T003–T007b in chunk order.
+- Remaining T008 work: gates (Lint/Tests/Health all still red pre-existing — triage at gate time), architect review.
+
+## Session: April 20, 2026 — Interactive Analyst: T007b gate wired into ModelDefaults
 - **T007b**: Refactored `SaveWithAnalystGate.tsx` to expose `useAnalystSaveGate` (returns `{ requestSave, dialog, violations, shouldInterrupt }`) + kept the wrapper component for local-save surfaces. `ModelDefaultsTab.tsx` uses the hook, unions the three populated sub-tab field lists into `ALL_MODEL_DEFAULTS_ANALYST_FIELDS`, lifts `requestSave` (not the raw save) through `onSaveStateChange`, and renders the dialog at the bottom.
 - **Next (T008)**: docs update in `replit.md`, run all gates (TS/Lint/Tests/Verify/Parity/Health), architect review.
 

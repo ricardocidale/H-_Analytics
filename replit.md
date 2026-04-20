@@ -291,7 +291,93 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 
 **Boundary rule:** `.claude/**` is Claude Code's authoritative domain. Replit Agent edits limited to ≤5-line append on `.claude/session-memory.md` and `BLOCKED.md` siblings; everything else under `.claude/` goes through a handoff brief. `.agents/skills/**` is project-agnostic. `docs/**` is open editing for either agent.
 
+## Interactive Analyst — Admin Defaults slice (in flight, April 20, 2026)
+
+**Goal:** every admin-editable assumption value carries a visible "Analyst"
+button + a Save-time soft-gate, with one set of universal primitives that
+will later roll out to property edit and CompanyAssumptions without change.
+
+**Doctrine (locked this slice):**
+- Constants → Defaults → Assumptions cascade. Admin Defaults is the
+  "Defaults" layer; the Analyst produces ranges that gate "blunt"
+  violations of high-confidence guidance, never the constants themselves.
+- Cooldown: 60s per user, enforced server-side (in-memory) and mirrored
+  client-side via `retryAfterMs`.
+- Blunt-violation thresholds: `confidence==="high"` AND value >20% past
+  the nearest band edge. Interrupt when ≥2 fields violate OR a single
+  field is >40% past the edge.
+- Never show token/cost in the tooltip.
+
+**Primitives (all under `client/src/components/analyst/`):**
+- `AnalystActionButton` — shadcn outline + amber accent + Sparkles icon.
+  Variants `header` / `save-row` / `modal`. Pulses while running, shows
+  cooldown countdown in tooltip. `data-testid="button-analyst[-suffix]"`.
+- `useAnalystRefresh({ scope, invalidateKeys })` — POSTs
+  `/api/analyst/refresh`, syncs local 60s cooldown with server
+  `retryAfterMs`, invalidates caller's query keys, surfaces toasts.
+- `computeAnalystViolations({ draft, guidance, fields })` — pure helper
+  returning `{ violations, shouldInterrupt, maxOutOfBandPct }`. Exports
+  `ANALYST_VIOLATION_THRESHOLD=0.2` and
+  `ANALYST_SINGLE_FIELD_BLUNT_THRESHOLD=0.4`.
+- `useAnalystSaveGate({...})` + `<SaveWithAnalystGate />` — returns
+  `{ requestSave, dialog }` (hook form) or a drop-in wrapper (component
+  form). The dialog offers `[Cancel]` `[Save Anyway]` `[Analyst ✨]`.
+  In-dialog rerun auto-closes + saves when violations clear; background
+  rerun from a header button does not hijack the dialog
+  (separate `awaitingRerun` state).
+
+**Server surface:**
+- `POST /api/analyst/refresh` — body `{ scope: "global-assumptions",
+  fields?: string[] }`; guards `requireAuth` + `requireAdminGuard`;
+  60s per-user cooldown → 429 `{ retryAfterMs }`; returns guidance
+  inline so the UI doesn't need a second fetch. Translates
+  `"global-assumptions"` → runner's `"company"` dialect. Exports
+  `__resetAnalystCooldown` test hook.
+  (`server/routes/analyst-admin.ts`, registered in `server/routes.ts`.)
+- `runAnalystScoped({ scope:"company", userId, fields? })` — non-HTTP
+  entry point. Mirrors the company branch of `/api/market-research`
+  without streaming: drains orchestrator → parses → `extractGuidance` →
+  creates `research_runs` row → upserts `assumption_guidance` → fire-
+  and-forgets vector index. `fields` filters only the **returned**
+  slice; every record is persisted so overlapping tabs don't re-run.
+  (`server/ai/analyst-scoped-runner.ts`.)
+- `GET /api/guidance/company/:userId` — reused unchanged; feeds the
+  admin-side inline range indicators.
+
+**Wired surfaces:** `ModelDefaultsTab` renders the Analyst button in
+three sub-tabs (Company, Market & Macro, Property Underwriting), each
+scoped to its own canonical field list at
+`client/src/components/admin/model-defaults/analyst-fields.ts`. The
+parent fetches `/api/guidance/company/:userId` once (admin-gated via
+`useAuth().isAdmin`) and shares one cooldown clock across tabs. Save is
+intercepted via `useAnalystSaveGate` with the union of all three field
+lists; the gate routes through `onSaveStateChange` so AdminPage's Save
+button picks up the gate without knowing it exists.
+
+**Skipped by design:** Model Constants, LLM Defaults, Required Fields —
+their content is registry / model config / metadata, not assumption
+values, so the guidance extractor has no vocabulary for them.
+
+**Deferred (explicitly not in this slice):** Analyst button on property
+edit sections; same button on CompanyAssumptions and Scenarios;
+scheduled/batch pre-population worker; promotion of Analyst values into
+Property scalar columns (owned by the later property-edit slice —
+`server/ai/analyst-promotion.ts` is drafted but shelved).
+
+**Recent Changes** entries for this slice are appended below in chunk
+order so the chronology is preserved.
+
 ## Recent Changes
+
+**Interactive Analyst — Admin Defaults, chunks T003–T007b (April 20, 2026, Replit):**
+- T003: `AnalystActionButton` with three variants, amber Sparkles, cooldown tooltip.
+- T004: `runAnalystScoped` non-HTTP entry point (~260 LOC). Persists all records, filters return slice only.
+- T005: `POST /api/analyst/refresh` (~110 LOC). 60s cooldown → 429; activity-logged; did **not** reuse the bigger `analystRefreshGuards()` composer (that's for the separate analyst-tables feature — 10/hr, CSRF, audit logs).
+- T006a: `useAnalystRefresh` hook + per-tab canonical field map + parent guidance query + CompanyTab pilot.
+- T006b: MarketMacroTab + PropertyUnderwritingTab wired; ModelConstants/LlmDefaults/RequiredFields skipped as planned.
+- T007a: `computeAnalystViolations` pure helper + `<SaveWithAnalystGate />` dialog (high-confidence + 20% single / 40% lone-blunt thresholds; in-dialog rerun auto-proceeds).
+- T007b: Refactor extracts `useAnalystSaveGate` hook; `ModelDefaultsTab.tsx` unions all three sub-tab field lists and routes the lifted `onSave` through `requestSave` before AdminPage ever sees it.
+- Remaining (T008): docs polish, gates, architect review.
 
 **Defaults overlay read path landed (April 20, 2026, Replit):**
 - The 46 seeded `model_defaults` rows (all `mc.*` universal scope) are now reachable. New reader primitive at `server/defaults.ts` exposes `resolveDefault<T>(key, scope?)` and `resolveDefaultsByCard(cat, subTab, cardKey, scope?)`. Contract: candidates must be scope-compatible (each column is NULL or equal to the passed scope); highest specificity wins; ties broken by `id DESC`.
