@@ -35,6 +35,9 @@ import { PropertyImagePicker } from "@/features/property-images";
 import { CurrencyInput } from "./CurrencyInput";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
+const safeInt = (s: string) => { const v = parseInt(s); return Number.isFinite(v) ? v : 0; };
+const safeFloat = (s: string) => { const v = parseFloat(s); return Number.isFinite(v) ? v : 0; };
+
 export interface AddPropertyFormData {
   name: string;
   location: string;
@@ -283,7 +286,7 @@ export function AddPropertyDialog({
                 type="number"
                 data-testid="input-room-count"
                 value={formData.roomCount}
-                onChange={(e) => setFormData(prev => ({ ...prev, roomCount: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, roomCount: safeInt(e.target.value) }))}
               />
             </div>
             <div className="space-y-2">
@@ -316,7 +319,7 @@ export function AddPropertyDialog({
                   data-testid="input-catering-boost-pct"
                   className="pr-7"
                   value={(formData.cateringBoostPercent * 100).toFixed(0)}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cateringBoostPercent: (parseFloat(e.target.value) || 0) / 100 }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cateringBoostPercent: (safeFloat(e.target.value)) / 100 }))}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
               </div>
@@ -422,7 +425,7 @@ export function AddPropertyDialog({
                   data-testid="input-adr-growth"
                   className="pr-7"
                   value={(formData.adrGrowthRate * 100).toFixed(1)}
-                  onChange={(e) => setFormData(prev => ({ ...prev, adrGrowthRate: (parseFloat(e.target.value) || 0) / 100 }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, adrGrowthRate: (safeFloat(e.target.value)) / 100 }))}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
               </div>
@@ -439,7 +442,7 @@ export function AddPropertyDialog({
                   data-testid="input-start-occupancy"
                   className="pr-7"
                   value={(formData.startOccupancy * 100).toFixed(0)}
-                  onChange={(e) => setFormData(prev => ({ ...prev, startOccupancy: (parseFloat(e.target.value) || 0) / 100 }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, startOccupancy: (safeFloat(e.target.value)) / 100 }))}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
               </div>
@@ -456,7 +459,7 @@ export function AddPropertyDialog({
                   data-testid="input-max-occupancy"
                   className="pr-7"
                   value={(formData.maxOccupancy * 100).toFixed(0)}
-                  onChange={(e) => setFormData(prev => ({ ...prev, maxOccupancy: (parseFloat(e.target.value) || 0) / 100 }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, maxOccupancy: (safeFloat(e.target.value)) / 100 }))}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
               </div>

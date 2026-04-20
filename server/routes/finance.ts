@@ -212,9 +212,9 @@ export function registerFinanceRoutes(router: Router): void {
       const serviceTemplates = allTemplates.map(t => ({
         id: t.id,
         name: t.name,
-        defaultRate: Number(t.defaultRate) || 0,
+        defaultRate: (v => Number.isFinite(v) ? v : 0)(Number(t.defaultRate)),
         serviceModel: t.serviceModel as "centralized" | "direct",
-        serviceMarkup: Number(t.serviceMarkup) || 0,
+        serviceMarkup: (v => Number.isFinite(v) ? v : 0)(Number(t.serviceMarkup)),
         isActive: t.isActive,
         sortOrder: t.sortOrder ?? 0,
       }));
@@ -331,9 +331,9 @@ export function registerFinanceRoutes(router: Router): void {
       const serviceTemplates = allTemplates.map(t => ({
         id: t.id,
         name: t.name,
-        defaultRate: Number(t.defaultRate) || 0,
+        defaultRate: (v => Number.isFinite(v) ? v : 0)(Number(t.defaultRate)),
         serviceModel: t.serviceModel as "centralized" | "direct",
-        serviceMarkup: Number(t.serviceMarkup) || 0,
+        serviceMarkup: (v => Number.isFinite(v) ? v : 0)(Number(t.serviceMarkup)),
         isActive: t.isActive,
         sortOrder: t.sortOrder ?? 0,
       }));

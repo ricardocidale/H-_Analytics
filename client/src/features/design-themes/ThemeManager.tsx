@@ -13,7 +13,7 @@ import { ThemeFormDialog, DeleteConfirmDialog, BLANK_THEME, type NewThemeState }
 
 function softenHex(hex: string, factor = 0.75): string {
   const h = hex.replace(/^#/, "");
-  const parse = (i: number) => parseInt(h.slice(i, i + 2), 16) || 0;
+  const parse = (i: number) => { const v = parseInt(h.slice(i, i + 2), 16); return Number.isFinite(v) ? v : 0; };
   const [r, g, b] = [0, 2, 4].map(parse);
   const s = (c: number) => Math.min(255, Math.round(c + (255 - c) * factor));
   return `#${[r, g, b].map(s).map(c => c.toString(16).padStart(2, "0")).join("")}`;

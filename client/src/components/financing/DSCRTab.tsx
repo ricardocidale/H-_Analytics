@@ -54,7 +54,7 @@ export function DSCRTab() {
             interest_rate_annual: parseFloat(rate) / 100,
             term_months: parseInt(termMonths),
             amortization_months: parseInt(amortMonths),
-            io_months: parseInt(ioMonths) || 0,
+            io_months: (v => Number.isFinite(v) ? v : 0)(parseInt(ioMonths)),
             min_dscr: parseFloat(minDscr),
             purchase_price: parseFloat(purchasePrice) || undefined,
             ltv_max: parseFloat(ltvMax) / 100 || undefined,

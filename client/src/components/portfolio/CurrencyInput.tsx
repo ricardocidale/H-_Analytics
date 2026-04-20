@@ -19,7 +19,7 @@ function formatCurrencyDisplay(value: number): string {
 }
 
 function parseCurrencyInput(raw: string): number {
-  return parseFloat(raw.replace(/[^0-9.]/g, "")) || 0;
+  const v = parseFloat(raw.replace(/[^0-9.]/g, "")); return Number.isFinite(v) ? v : 0;
 }
 
 export function CurrencyInput({

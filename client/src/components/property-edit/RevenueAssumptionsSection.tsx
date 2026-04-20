@@ -457,7 +457,7 @@ function OccupancyRampCurveEditor({ draft, onChange }: { draft: any; onChange: P
                   value={val}
                   onChange={(e) => {
                     const c = [...curve];
-                    c[i] = parseFloat(e.target.value) || 0;
+                    const parsed = parseFloat(e.target.value); c[i] = Number.isFinite(parsed) ? parsed : 0;
                     onChange("occupancyRampCurve", c);
                   }}
                   className="w-24 bg-card border-primary/30 text-sm"

@@ -58,7 +58,7 @@ export function StressTestTab() {
             interest_rate_annual: parseFloat(rate) / 100,
             amortization_months: parseInt(amortMonths),
             term_months: parseInt(termMonths),
-            io_months: parseInt(ioMonths) || 0,
+            io_months: (v => Number.isFinite(v) ? v : 0)(parseInt(ioMonths)),
             rate_shocks_bps: rateShocks,
             noi_shocks_pct: noiShocks,
             min_dscr: parseFloat(minDscr),
