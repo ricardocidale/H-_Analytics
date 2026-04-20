@@ -139,15 +139,12 @@ const BASELINE_KNOWN_ORPHANS = new Set<string>([
   "server/replit_integrations/auth/index.ts",
   "statements/index.ts",
 
-  // SHIM — thin re-export wrappers
-  "server/utils/batch.ts", // re-exports from ../replit_integrations/batch
-
-  // UNWIRED — feature modules built but never consumed by production code
-  "server/ai/agentSkillsExport.ts", // 175 LOC; theme-resolver export helper
-  "server/ai/prompt/benchmark-injector.ts", // 95 LOC; intended for prompt assembly
-  "server/report/executive-summary-section.ts", // 134 LOC; export integration helper
-  "server/routes/export-json-utils.ts", // 88 LOC; JSON repair utilities
-  "shared/chat.ts", // 34 LOC; drizzle schema for a chat table
+  // NOTE: 6 concrete entries (server/utils/batch.ts, 4 UNWIRED modules,
+  // and the duplicate shared/chat.ts schema) were deleted 2026-04-20 as
+  // part of the baseline cleanup sweep. Only barrel `index.ts` files
+  // remain in the baseline — those are a follow-up cleanup item (either
+  // wire them up, or delete alongside a whole-directory audit when the
+  // directory itself is shown to be abandoned).
 ]);
 
 // -- File enumeration --------------------------------------------------------
