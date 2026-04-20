@@ -181,6 +181,42 @@ describe("analyst-fields ↔ draft parity", () => {
     expect(keys).not.toContain("salesCommissionRate");
   });
 
+  it("union across all tabs never maps the same draftKey to two different guidanceKeys", () => {
+    // Invariant: a given UI control can only correspond to ONE guidance key.
+    // If two tab lists disagreed (e.g. one says costOfEquity, another says
+    // costEquity for the same draft key), `unionAnalystFieldSpecs`'s
+    // first-wins dedup would silently hide the second mapping. Fail loudly.
+    const all: AnalystFieldSpec[] = [
+      ...COMPANY_TAB_ANALYST_FIELDS,
+      ...MARKET_MACRO_TAB_ANALYST_FIELDS,
+      ...PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS,
+    ];
+    const byDraft = new Map<string, string>();
+    for (const spec of all) {
+      const prev = byDraft.get(spec.draftKey);
+      if (prev !== undefined && prev !== spec.guidanceKey) {
+        throw new Error(
+          `Conflicting mapping for draftKey "${spec.draftKey}": "${prev}" vs "${spec.guidanceKey}"`,
+        );
+      }
+      byDraft.set(spec.draftKey, spec.guidanceKey);
+    }
+    // Also: no two different draft keys should reduce to the same guidance
+    // key within a single tab (would double-count on Save).
+    for (const fixture of FIXTURES) {
+      const seen = new Map<string, string>();
+      for (const spec of fixture.fields) {
+        const prior = seen.get(spec.guidanceKey);
+        if (prior !== undefined && prior !== spec.draftKey) {
+          throw new Error(
+            `${fixture.name}: guidanceKey "${spec.guidanceKey}" mapped by two draft keys ("${prior}", "${spec.draftKey}")`,
+          );
+        }
+        seen.set(spec.guidanceKey, spec.draftKey);
+      }
+    }
+  });
+
   it("guidance matched to a mismatched draftKey yields no violation (the bug T009 fixed)", () => {
     // Regression guard: before T009, CompanyTab's salesCommissionRate was
     // looked up as draft["dispositionCommission"] → undefined → no

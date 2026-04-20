@@ -8,7 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst: T009 draft↔guidance adapter landed
+## Session: April 20, 2026 (latest) — Interactive Analyst: T009 architect review + conflict-invariant test
+- Architect post-T009 review: **PASS**. Core bridge (AnalystFieldSpec + toGuidanceKeys + unionAnalystFieldSpecs) correctly closes the silent no-op; end-to-end usage coherent across violation helper, save-gate, three tab refresh buttons, and Model Defaults union. AnalystViolation shape (field=draftKey + guidanceKey) judged correct.
+- Architect suggested three non-blocking enhancements; implemented the smallest one inline: added a conflict-invariant test that fails if the same draftKey maps to different guidanceKeys across tab lists (first-wins dedup could otherwise hide a future misconfig), and within a single tab the same guidanceKey mapping to two different draftKeys (would double-count on Save). Parity tests now 10/10 green.
+- Deferred (worth their own slice): (a) integration-level click/assert that tab refresh buttons actually send guidance keys to `triggerRefresh`; (b) typed key registries so mapping drift is a compile-time error — both rightly belong to the property-edit rollout where typed surface-specific unions will be designed up front.
+
+## Session: April 20, 2026 — Interactive Analyst: T009 draft↔guidance adapter landed
 - T009 shipped: `AnalystFieldSpec = { guidanceKey, draftKey }` replaces the old plain `string[]` field lists in `client/src/components/admin/model-defaults/analyst-fields.ts`. Added `toGuidanceKeys()` (spec → guidanceKey[] for the refresh API) and `unionAnalystFieldSpecs()` (merges the three tab lists deduped by draftKey — previously `costOfEquity` and `inflationRate` double-counted).
 - `computeAnalystViolations` now reads `draft[spec.draftKey]` while matching guidance on `spec.guidanceKey`. `AnalystViolation` gained a `guidanceKey` field alongside `field` (draftKey). `useAnalystSaveGate.fields` switched to `AnalystFieldSpec[]`; handleRerun uses `toGuidanceKeys(fields)`. All three tabs now call `toGuidanceKeys(TAB_FIELDS)` instead of spreading strings.
 - Fixes the architect-surfaced silent no-op: before T009, CompanyTab's `salesCommissionRate` was looked up as `draft["dispositionCommission"]` → `undefined`; now the spec bridges the two vocabularies. Same fix pattern for `maxOccupancy` ↔ `defaultMaxOccupancy`, `adr` ↔ `defaultStartAdr`, etc.
