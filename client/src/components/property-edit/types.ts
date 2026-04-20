@@ -21,12 +21,13 @@
  * show which calendar year the disposition is modeled to occur.
  */
 import type { FeeCategoryResponse, GuidanceRecord } from "@/lib/api";
+import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 
 export interface PropertyEditSectionProps {
-  draft: any;
+  draft: PropertyResponse;
   onChange: (key: string, value: string | number | boolean | number[] | null) => void;
   onNumberChange: (key: string, value: string) => void;
-  globalAssumptions: any;
+  globalAssumptions: GlobalResponse;
   researchValues: Record<string, { display: string; mid: number; source?: string; sourceName?: string; sourceDate?: string }>;
   guidance?: GuidanceRecord[];
 }
