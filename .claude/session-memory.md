@@ -8,7 +8,11 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst: T007a soft-gate primitives
+## Session: April 20, 2026 (latest) — Interactive Analyst: T007b gate wired into ModelDefaults
+- **T007b**: Refactored `SaveWithAnalystGate.tsx` to expose `useAnalystSaveGate` (returns `{ requestSave, dialog, violations, shouldInterrupt }`) + kept the wrapper component for local-save surfaces. `ModelDefaultsTab.tsx` uses the hook, unions the three populated sub-tab field lists into `ALL_MODEL_DEFAULTS_ANALYST_FIELDS`, lifts `requestSave` (not the raw save) through `onSaveStateChange`, and renders the dialog at the bottom.
+- **Next (T008)**: docs update in `replit.md`, run all gates (TS/Lint/Tests/Verify/Parity/Health), architect review.
+
+## Session: April 20, 2026 — Interactive Analyst: T007a soft-gate primitives
 - **T007a**: `computeAnalystViolations` pure helper (thresholds 20% single / 40% lone-blunt, high-confidence only, nearest-edge metric) + `<SaveWithAnalystGate />` dialog component. Dialog offers Cancel / Save Anyway / Analyst ✨; tracks `awaitingRerun` so only in-dialog reruns auto-close on success. Barrel updated.
 - **Next (T007b)**: wire `<SaveWithAnalystGate />` into `ModelDefaultsTab` — scope `fields` to the active sub-tab (union for all-tabs save, or per-tab if we split). Current save contract lifts `onSave` via `onSaveStateChange`; we'll route that through the gate.
 - Lint/Health/Run-Tests still red pre-existing; gates at T008.

@@ -17,6 +17,23 @@ import {
   useAnalystRefresh,
   type AnalystGuidanceRecord,
 } from "@/components/analyst/useAnalystRefresh";
+import { useAnalystSaveGate } from "@/components/analyst/SaveWithAnalystGate";
+import {
+  COMPANY_TAB_ANALYST_FIELDS,
+  MARKET_MACRO_TAB_ANALYST_FIELDS,
+  PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS,
+} from "./model-defaults/analyst-fields";
+
+/**
+ * Union of all canonical Analyst-valued field lists across the Model
+ * Defaults sub-tabs. The Save button here writes every tab's values in
+ * one mutation, so the gate must consider violations from any tab.
+ */
+const ALL_MODEL_DEFAULTS_ANALYST_FIELDS = [
+  ...COMPANY_TAB_ANALYST_FIELDS,
+  ...MARKET_MACRO_TAB_ANALYST_FIELDS,
+  ...PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS,
+] as const;
 
 interface ModelDefaultsTabProps {
   onSaveStateChange?: (state: AdminSaveState | null) => void;
@@ -111,11 +128,29 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
   const saveRef = useRef<(() => void) | undefined>(undefined);
   saveRef.current = () => saveMutation.mutate(draftRef.current);
 
+  // Soft-gate: intercepts Save and compares the draft against Analyst
+  // high-confidence ranges. Interrupts only on "blunt" violations.
+  const {
+    requestSave,
+    dialog: analystGateDialog,
+  } = useAnalystSaveGate({
+    draft,
+    guidance,
+    fields: ALL_MODEL_DEFAULTS_ANALYST_FIELDS,
+    onSave: () => saveRef.current?.(),
+    onAnalystRerun: (fields) => analyst.triggerRefresh(fields),
+    analystRunning: analyst.running,
+    analystCooldownMs: analyst.cooldownRemainingMs,
+  });
+
+  const requestSaveRef = useRef<(() => void) | undefined>(undefined);
+  requestSaveRef.current = requestSave;
+
   useEffect(() => {
     onSaveStateChange?.({
       isDirty,
       isPending: saveMutation.isPending,
-      onSave: () => saveRef.current?.(),
+      onSave: () => requestSaveRef.current?.(),
     });
     return () => onSaveStateChange?.(null);
   }, [isDirty, saveMutation.isPending, onSaveStateChange]);
@@ -185,6 +220,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
           <RequiredFieldsTab />
         </TabsContent>
       </Tabs>
+      {analystGateDialog}
     </div>
   );
 }

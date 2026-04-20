@@ -1,26 +1,28 @@
 /**
  * SaveWithAnalystGate — the Save-time soft-gate.
  *
- * Wraps a parent's Save action. On click:
- *   1. Compute violations against Analyst guidance for the canonical field list.
- *   2. If no "blunt" violations → invoke onSave directly (no modal, no friction).
- *   3. Otherwise → open a dialog that restates the violations, lists the
- *      Analyst's ranges + reasoning, and offers three explicit actions:
- *          [Cancel]  [Save Anyway]  [Analyst ✨]
+ * Two shapes:
+ *   1. `<SaveWithAnalystGate />` — a drop-in wrapper that renders its own
+ *      Save button and dialog. Best for surfaces that own the Save button
+ *      locally (property edit page, CompanyAssumptions).
+ *   2. `useAnalystSaveGate({...})` — returns `{ requestSave, dialog }`.
+ *      Use when the Save button lives elsewhere (e.g. `ModelDefaultsTab`
+ *      lifts Save to the parent AdminPage via a save-state bridge).
  *
- * When the user picks Analyst ✨, onAnalystRerun fires and the dialog stays
- * open with a running indicator. When the rerun completes (analystRunning
- * transitions true→false), violations are re-computed from the freshly-
- * invalidated guidance; if the new draft is now within band, the dialog
- * auto-closes and Save proceeds. Otherwise the dialog restates the
- * remaining violations and the user can still Save Anyway.
+ * Doctrine: the Save click is intercepted. If no "blunt" violations are
+ * found the save proceeds silently. If there are violations the dialog
+ * opens with three actions: [Cancel] [Save Anyway] [Analyst ✨]. When
+ * the user picks Analyst ✨ from inside the dialog the rerun fires,
+ * violations are recomputed against the fresh guidance, and — if the
+ * draft is now within band — the dialog auto-closes and Save proceeds.
+ * A rerun triggered from the header button does NOT auto-close the
+ * dialog (we track `awaitingRerun` to distinguish).
  *
- * This component DOES NOT own the Save mutation — it just intercepts the
- * click. The parent stays the source of truth for dirty state, loading
- * spinners, and the actual API call.
+ * The component does NOT own the Save mutation — it just intercepts
+ * the click.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
 import {
   Dialog,
@@ -38,41 +40,44 @@ import {
 } from "./analyst-violations";
 import type { AnalystGuidanceRecord } from "./useAnalystRefresh";
 
-export interface SaveWithAnalystGateProps {
+export interface UseAnalystSaveGateOptions {
   /** Current form state. Flat keys only — pre-flatten envelopes if needed. */
   draft: Record<string, unknown>;
-  /** Guidance records for the relevant scope (company / property / etc). */
+  /** Guidance records for the relevant scope. */
   guidance: AnalystGuidanceRecord[];
   /** Canonical assumption keys covered by this Save action. */
   fields: readonly string[];
-  /** Invoked when the Save should proceed (either silently or via "Save Anyway"). */
+  /** Invoked when the Save should proceed (silently or via "Save Anyway"). */
   onSave: () => void;
   /** Fires a scoped Analyst rerun. Called when the user picks "Analyst ✨". */
   onAnalystRerun: (fields?: string[]) => void;
   /** Parent-driven run + cooldown state from `useAnalystRefresh`. */
   analystRunning?: boolean;
   analystCooldownMs?: number;
-  /** Passed through to the inner Save button. */
-  saveLabel?: string;
-  saveVariant?: ButtonProps["variant"];
-  saveSize?: ButtonProps["size"];
-  saveDisabled?: boolean;
-  saveClassName?: string;
-  testIdSuffix?: string;
+}
+
+export interface UseAnalystSaveGateResult {
+  /** Invoke in place of the raw onSave — runs the gate. */
+  requestSave: () => void;
+  /** Render this somewhere in the tree. It's a controlled dialog. */
+  dialog: ReactNode;
+  /** Current violation list (empty if none). */
+  violations: AnalystViolation[];
+  /** True when the current draft would trigger the gate on Save. */
+  shouldInterrupt: boolean;
 }
 
 function formatPct(fraction: number): string {
   return `${Math.round(fraction * 100)}%`;
 }
 
-/** Human-ish display for the draft value and the band — no unit knowledge
- *  here; we show raw numbers. Callers whose fields need "%" or "$" display
- *  can render a richer row themselves via a follow-up iteration. */
 function renderBand(v: AnalystViolation): string {
   return `value ${v.value} vs Analyst range [${v.low} – ${v.high}]`;
 }
 
-export function SaveWithAnalystGate(props: SaveWithAnalystGateProps) {
+export function useAnalystSaveGate(
+  options: UseAnalystSaveGateOptions,
+): UseAnalystSaveGateResult {
   const {
     draft,
     guidance,
@@ -81,18 +86,11 @@ export function SaveWithAnalystGate(props: SaveWithAnalystGateProps) {
     onAnalystRerun,
     analystRunning = false,
     analystCooldownMs = 0,
-    saveLabel = "Save",
-    saveVariant = "default",
-    saveSize,
-    saveDisabled = false,
-    saveClassName,
-    testIdSuffix,
-  } = props;
+  } = options;
 
   const [open, setOpen] = useState(false);
-  // True only while the user is waiting for an in-dialog rerun to finish.
-  // Separate from analystRunning so a background rerun triggered from a
-  // header button doesn't auto-close the dialog.
+  // Separate from analystRunning so a background rerun (from a header
+  // button) doesn't auto-close the dialog.
   const [awaitingRerun, setAwaitingRerun] = useState(false);
 
   const { violations, shouldInterrupt } = useMemo(
@@ -100,18 +98,14 @@ export function SaveWithAnalystGate(props: SaveWithAnalystGateProps) {
     [draft, guidance, fields],
   );
 
-  // Track the analystRunning transition to detect "rerun just finished".
+  // Watch for "rerun just finished" — only matters while we're waiting.
   const prevRunning = useRef<boolean>(analystRunning);
   useEffect(() => {
     const justFinished = prevRunning.current && !analystRunning;
     prevRunning.current = analystRunning;
-    if (!justFinished) return;
-    if (!awaitingRerun) return;
+    if (!justFinished || !awaitingRerun) return;
 
     setAwaitingRerun(false);
-    // Recompute from the freshest guidance prop (already propagated via
-    // query invalidation in useAnalystRefresh). If the draft is now
-    // within band, auto-close and save.
     const { shouldInterrupt: stillInterrupt } = computeAnalystViolations({
       draft,
       guidance,
@@ -123,29 +117,130 @@ export function SaveWithAnalystGate(props: SaveWithAnalystGateProps) {
     }
   }, [analystRunning, awaitingRerun, draft, guidance, fields, onSave]);
 
-  const handleSaveClick = () => {
+  const requestSave = useCallback(() => {
     if (!shouldInterrupt) {
       onSave();
       return;
     }
     setOpen(true);
-  };
+  }, [shouldInterrupt, onSave]);
 
-  const handleSaveAnyway = () => {
+  const handleSaveAnyway = useCallback(() => {
     setOpen(false);
     onSave();
-  };
+  }, [onSave]);
 
-  const handleRerun = () => {
+  const handleRerun = useCallback(() => {
     setAwaitingRerun(true);
     onAnalystRerun([...fields]);
-  };
+  }, [onAnalystRerun, fields]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setOpen(false);
     setAwaitingRerun(false);
-  };
+  }, []);
 
+  const dialog = (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) handleCancel();
+        else setOpen(next);
+      }}
+    >
+      <DialogContent data-testid="dialog-analyst-gate">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Values look far from the Analyst's range
+          </DialogTitle>
+          <DialogDescription>
+            {violations.length === 1
+              ? "One field is outside a high-confidence range. You can save anyway, re-run the Analyst, or cancel."
+              : `${violations.length} fields are outside high-confidence ranges. You can save anyway, re-run the Analyst, or cancel.`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <ul
+          className="mt-2 space-y-3 max-h-72 overflow-y-auto"
+          data-testid="list-analyst-violations"
+        >
+          {violations.map((v) => (
+            <li
+              key={v.field}
+              className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm"
+              data-testid={`violation-${v.field}`}
+            >
+              <div className="font-medium text-foreground">{v.field}</div>
+              <div className="text-muted-foreground">{renderBand(v)}</div>
+              <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                {formatPct(v.outOfBandPct)} {v.direction} range
+                {v.sourceName ? ` · source: ${v.sourceName}` : ""}
+              </div>
+              {v.reasoning && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {v.reasoning}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleCancel}
+            data-testid="button-gate-cancel"
+            disabled={awaitingRerun}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSaveAnyway}
+            data-testid="button-gate-save-anyway"
+            disabled={awaitingRerun}
+          >
+            Save Anyway
+          </Button>
+          <AnalystActionButton
+            variant="modal"
+            onClick={handleRerun}
+            running={analystRunning || awaitingRerun}
+            cooldownRemainingMs={analystCooldownMs}
+            testIdSuffix="gate"
+          />
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  return { requestSave, dialog, violations, shouldInterrupt };
+}
+
+export interface SaveWithAnalystGateProps extends UseAnalystSaveGateOptions {
+  saveLabel?: string;
+  saveVariant?: ButtonProps["variant"];
+  saveSize?: ButtonProps["size"];
+  saveDisabled?: boolean;
+  saveClassName?: string;
+  testIdSuffix?: string;
+}
+
+export function SaveWithAnalystGate(props: SaveWithAnalystGateProps) {
+  const {
+    saveLabel = "Save",
+    saveVariant = "default",
+    saveSize,
+    saveDisabled = false,
+    saveClassName,
+    testIdSuffix,
+    ...gateOptions
+  } = props;
+
+  const { requestSave, dialog } = useAnalystSaveGate(gateOptions);
   const testIdSave = testIdSuffix
     ? `button-save-${testIdSuffix}`
     : "button-save";
@@ -158,86 +253,12 @@ export function SaveWithAnalystGate(props: SaveWithAnalystGateProps) {
         size={saveSize}
         className={saveClassName}
         disabled={saveDisabled}
-        onClick={handleSaveClick}
+        onClick={requestSave}
         data-testid={testIdSave}
       >
         {saveLabel}
       </Button>
-
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          if (!next) handleCancel();
-          else setOpen(next);
-        }}
-      >
-        <DialogContent data-testid="dialog-analyst-gate">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Values look far from the Analyst's range
-            </DialogTitle>
-            <DialogDescription>
-              {violations.length === 1
-                ? "One field is outside a high-confidence range. You can save anyway, re-run the Analyst, or cancel."
-                : `${violations.length} fields are outside high-confidence ranges. You can save anyway, re-run the Analyst, or cancel.`}
-            </DialogDescription>
-          </DialogHeader>
-
-          <ul
-            className="mt-2 space-y-3 max-h-72 overflow-y-auto"
-            data-testid="list-analyst-violations"
-          >
-            {violations.map((v) => (
-              <li
-                key={v.field}
-                className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm"
-                data-testid={`violation-${v.field}`}
-              >
-                <div className="font-medium text-foreground">{v.field}</div>
-                <div className="text-muted-foreground">{renderBand(v)}</div>
-                <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                  {formatPct(v.outOfBandPct)} {v.direction} range
-                  {v.sourceName ? ` · source: ${v.sourceName}` : ""}
-                </div>
-                {v.reasoning && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {v.reasoning}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleCancel}
-              data-testid="button-gate-cancel"
-              disabled={awaitingRerun}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSaveAnyway}
-              data-testid="button-gate-save-anyway"
-              disabled={awaitingRerun}
-            >
-              Save Anyway
-            </Button>
-            <AnalystActionButton
-              variant="modal"
-              onClick={handleRerun}
-              running={analystRunning || awaitingRerun}
-              cooldownRemainingMs={analystCooldownMs}
-              testIdSuffix="gate"
-            />
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {dialog}
     </>
   );
 }
