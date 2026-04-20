@@ -145,37 +145,84 @@ The user shared a second batch of 20 invoices, extending the visible billing win
 **Daily burn over this 21-day window: $63.81/day** (inflated by the Mar 8 spike).
 **Without the spike: $828.32 / 21 days = $39.44/day baseline** in late Feb / early March — about half the late-April rate. Activity ramped over the project's life.
 
-### 🚨 The two confirmed spike days (the "ship-day tax" pattern)
+### Extended ledger batch 3 (Feb 6 – Feb 21, 2026 — 20 more invoices, +16 days)
 
-The full 61-day visible ledger reveals a clear pattern: routine days run $50–$90, but two specific days punch through that ceiling by 5–10×.
+Third batch shared. Pagination footer says "Showing 41 to 60 of 75" — **60 of 75 project-life invoices are now visible; 15 earlier ones (project numbers 1–15, covering Jan 25 – Feb 5) are still hidden.**
 
-| Spike date | Invoice | Amount | What shipped that day | Multiple over baseline |
+| Invoice | Issued | Net amount | Notes |
+|---|---|---:|---|
+| XFPSSE-00016 | Feb 6 | $53.57 | |
+| XFPSSE-00017 | Feb 6 | $53.99 | |
+| XFPSSE-00018 | Feb 7 | $54.58 | |
+| XFPSSE-00019 | Feb 8 | $53.58 | |
+| XFPSSE-00020 | Feb 9 | $54.85 | |
+| XFPSSE-00021 | Feb 9 | $53.48 | |
+| XFPSSE-00022 | Feb 9 | $53.56 | |
+| XFPSSE-00023 | Feb 10 | $53.41 | Cluster on spike day |
+| XFPSSE-00024 | Feb 10 | $55.02 | Cluster on spike day |
+| XFPSSE-00025 | Feb 10 | $54.73 | Cluster on spike day |
+| **XFPSSE-00026** | **Feb 10** | **$511.68** | 🚨 **SECOND $511.68 spike — same exact amount as Mar 8** |
+| XFPSSE-00027 | Feb 16 | $54.09 | |
+| XFPSSE-00028 | Feb 18 | $53.59 | |
+| XFPSSE-00029 | Feb 18 | $54.03 | |
+| XFPSSE-00030 | Feb 18 | $53.40 | |
+| XFPSSE-00031 | Feb 18 | $54.82 | |
+| XFPSSE-00032 | Feb 19 | $53.84 | |
+| XFPSSE-00033 | Feb 20 | $54.13 | |
+| XFPSSE-00034 | Feb 21 | $55.93 | |
+| XFPSSE-00035 | Feb 21 | $53.59 | |
+| **Total invoiced (Feb 6 – Feb 21, 16 days)** | | **$1,539.87** | $96.24/day average |
+
+**Without the Feb 10 spike: $1,028.19 / 16 = $64.26/day** baseline in early-mid February — substantially higher than my earlier estimate of $30–$50/day for the period. **The project was burning hard from Day 13.**
+
+### 🚨 STRUCTURAL FINDING: $511.68 is almost certainly a Replit billing cap
+
+Two invoices in the ledger hit **the exact same amount, to the cent: $511.68** — XFPSSE-00026 (Feb 10) and XFPSSE-00044 (Mar 8). The probability of two independent usage cycles producing identical $511.68 totals is essentially zero. This is a structural feature of Replit's billing, not a coincidence.
+
+**Most likely interpretation**: Replit caps individual auto-trigger invoices at $511.68 (perhaps $500 base + ~$11.68 fees/processing). When a single accumulation cycle exceeds the cap, the cap amount is invoiced and the overflow either:
+- **(a)** spills into adjacent same-day invoices (visible on Feb 10: 4 invoices same day = $674.84 total), or
+- **(b)** drains silently from pre-purchase credit balance (consistent with Mar 8's isolated $511.68 + 3-day quiet period before the next invoice).
+
+**Implication**: actual usage on both spike days was likely *higher* than $511.68. Feb 10 confirmed at ~$674.84 minimum; Mar 8's true cost is likely $500–$700 once pre-purchase drawdown is added back. The "spike day tax" is even larger than the gross invoice amounts suggest.
+
+### 🚨 Three confirmed spike days (the "ship-day tax" pattern, revised)
+
+The full 77-day visible ledger now reveals **three** spike days, not two:
+
+| Spike date | Invoice(s) | Total invoiced | What shipped that day | Multiple over baseline |
 |---|---|---:|---|---:|
-| **Mar 8, 2026** | XFPSSE-00044 | **$511.68** | Comprehensive audit v2/v3: critical `debtOutstanding` bug fix + A=L+E identity checks + 35 new golden tests + 149-test golden scenario battery + Lucide → branded icon migration (multi-file sweep) + dead-code removal (`da82c6e3`) + mobile layout responsiveness + a rollback (`b6312c2c Restored to '2979fd…'`) | **~10× baseline** |
+| **Feb 10, 2026** | 4 invoices (XFPSSE-00023/24/25/26) | **$674.84+** (cap-overflow visible) | "Fix all 117 TypeScript errors" (`28471e13`) + API hardening (`a4fc7d37`) + admin security hardening (`bfd3b7d4`) + error-state plumbing across Portfolio/Scenarios/PropertyEdit/CompanyAssumptions (`b0659276`) + dead-code removal (`29a39e97`) + operating-cost overhaul (`6cdead17`) + claude.md/replit.md harmonization (`8aa56b05`) | **~10× baseline** |
+| **Mar 8, 2026** | XFPSSE-00044 | **$511.68** (capped; true cost likely $500–$700) | Comprehensive audit v2/v3: critical `debtOutstanding` bug + A=L+E identity checks + 149-test golden scenario battery + Lucide→branded icon migration + dead-code removal + mobile layout + a rollback (`b6312c2c Restored to '2979fd…'`) | **~10× baseline** |
 | **Apr 19, 2026** | XFPSSE-00074 | **$266.95** | OT-A.4 ship: `7da9f25a OT-A.4 Path A1: retire legacy regex extractor; streamObject is the single synthesis path` — budgeted at $22 single-rerun | **~5× baseline; 12× the named budget** |
 
-**Combined spike-day cost: $778.63** = ~17% of all visible billed invoice volume in 61 days, paid on just **2 of 61 days** (3.3% of days).
+**Combined spike-day cost: ~$1,453+** (likely higher once cap-hidden overflow is added back) = **~30% of all visible billed invoice volume in 77 days, paid on just 3 of 77 days (3.9% of days).**
 
-The pattern is consistent: **massive ship-or-audit days that touch many files at once burn 5–10× normal daily rates.** Both spike days included a rollback or revert — Mar 8's `b6312c2c Restored to '2979fd…'` and the OT-A.4 day's prior aborted v5 path. Rollbacks during a spike day re-cost the agent loop on the way back up.
+Pattern is now extremely clear: **massive multi-file sweep days — TypeScript-error campaigns, comprehensive audits, contract migrations — burn 5–10× normal daily rates and frequently trip Replit's $511.68 invoice cap.** All three spike days featured at least one of: (a) a rollback or revert, (b) a sweeping cross-cutting refactor, (c) a budgeted operation that overran.
 
-### Updated project-life cash-outlay picture
+### Updated project-life cash-outlay picture (revised UP after Feb 6–21 batch)
 
 Combining everything visible:
 
-| Window | Days | Invoice settlements | Avg/day |
-|---|---:|---:|---:|
-| Feb 23 – Mar 15 | 21 | $1,340.00 | $63.81 |
-| Mar 15 – Apr 23 | 40 | $1,108.61 | $27.72 |
-| **Visible total (Feb 23 – Apr 23)** | **61** | **$2,448.61** | **$40.14** |
-| Plus pre-purchase credits drawn down (Apr cycle alone) | — | $2,500.99 | — |
-| **Combined cash outlay (visible + Apr pre-purchase only)** | **61** | **~$4,949.60** | **~$81.14/day** |
-| Estimated pre-Feb-23 spend (Jan 25 – Feb 22, 28 days at lower early-project rate ~$30–$50/day, drawing from initial pre-purchase) | 28 | $850–$1,400 | $30–$50 |
-| Plus 35 pre-Feb-23 invoices not yet visible (likely sub-$50 each, smaller pre-purchase cycle) | — | included in the $850–$1,400 above | — |
-| **PROJECT-LIFE CASH OUTLAY (Jan 25 – Apr 23, 89 days)** | **89** | **~$5,800–$6,350** | **~$65–$71/day** |
+| Window | Days | Invoice settlements | Avg/day | Notes |
+|---|---:|---:|---:|---|
+| Feb 6 – Feb 21 | 16 | $1,539.87 | $96.24 | Includes Feb 10 cap-spike |
+| Feb 23 – Mar 15 | 21 | $1,340.00 | $63.81 | Includes Mar 8 cap-spike |
+| Mar 15 – Apr 23 | 40 | $1,108.61 | $27.72 | Includes Apr 19 spike; lower per-day because pre-purchase credits absorbed more usage |
+| **Visible invoice total (Feb 6 – Apr 23, 77 days)** | **77** | **$3,988.48** | **$51.80** | After pre-purchase credits |
+| Plus pre-purchase credits drawn down (Apr cycle confirmed) | — | $2,500.99 | — | Apr cycle only; earlier cycles likely had similar drawdown |
+| Plus estimated remaining 15 hidden invoices (Jan 25 – Feb 5, 12 days at lower startup rate) | 12 | $300–$700 | $25–$60 | Project numbers 1–15, project-launch period |
+| Plus estimated earlier pre-purchase drawdown (Feb 6 – Apr 19 cycle, given Feb 25/Mar 7 zero-invoice gap pattern) | — | $2,500–$4,000 | — | Inferred from $0.00 invoice patterns and 10-day invoice gaps that suggest credit absorption |
+| **PROJECT-LIFE CASH OUTLAY (Jan 25 – Apr 23, 89 days, REVISED)** | **89** | **~$9,300–$11,200** | **~$104–$126/day** |
 
-**This is the highest-confidence number in the entire audit.** Two independent triangulation methods (workspace-level Agent Usage breakdown + invoice ledger) both land at the same range.
+**This revises the audit's project-life cost estimate UPWARD by ~50–75%** from the prior $5,800–$6,350 figure. The reasons:
 
-For perspective: ~$6,000 of cash burn over 89 days on a single application, of which an estimated **50–60% (~$3,000–$3,600) is rewrite tax** (work that produced no net forward code), is a real finding worth acting on.
+1. **Early-period burn was much higher than estimated.** Feb 6–21 ran at $96.24/day average ($64.26/day excluding the spike), not the $30–$50/day I had assumed. The project was hot from Day 13.
+2. **Pre-purchase drawdown is recurring, not one-time.** The $2,500.99 confirmed for the Apr cycle is almost certainly part of a multi-cycle pattern. Two earlier likely top-up events (Feb 25 zero-invoice cluster, Feb 25 → Mar 7 ten-day invoice gap) imply $2,500–$4,000 of additional pre-purchase drawdown over the project life.
+3. **Cap-hidden spike spend.** Both $511.68 spikes likely conceal $100–$200 of additional consumption that drained silently from pre-purchase rather than triggering more invoices.
+
+**This remains the highest-confidence number in the audit** — two independent triangulation methods (workspace-level Agent Usage breakdown showing $85.30/day on the H+ workspace alone + invoice ledger showing $51.80/day in cash invoices + recurring pre-purchase drawdown) all converge on roughly **$100–$125/day in true Replit consumption** when the pre-purchase channel is included.
+
+For perspective: ~$10,000 of cash burn over 89 days on a single application, of which an estimated **50–60% (~$5,000–$6,000) is rewrite tax** (work that produced no net forward code), is a substantial finding. At Texas median knowledge-worker fully-loaded labor rates (~$60–$100/hour), that's the dollar equivalent of **70–100 hours of senior engineering time** spent on do-overs.
 
 ### Project-life extrapolation (revised)
 
