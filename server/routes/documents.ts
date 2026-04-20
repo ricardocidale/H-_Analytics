@@ -10,6 +10,8 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { MAX_DOC_SIZE } from "../constants";
+import { DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
+import { resolveDefault } from "../defaults";
 
 const documentAIService = new DocumentAIService();
 
@@ -345,12 +347,16 @@ export function register(app: Express) {
 
       const senderName = [getAuthUser(req).firstName, getAuthUser(req).lastName].filter(Boolean).join(" ") || getAuthUser(req).email;
 
+      const defaultExitCapRate =
+        (await resolveDefault<number>("mc.tax_exit.exitCapRate")) ?? DEFAULT_EXIT_CAP_RATE;
+
       const rendered = renderTemplate(
         data.templateId,
         property,
         globalAssumptions,
         senderName,
-        data.recipientName
+        data.recipientName,
+        defaultExitCapRate,
       );
 
       res.json({ html: rendered.html, subject: rendered.subject });

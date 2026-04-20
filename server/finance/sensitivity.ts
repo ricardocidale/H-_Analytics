@@ -13,6 +13,7 @@ import { generatePropertyProForma } from "./core/property-pipeline";
 import { withModelConstants } from "./apply-model-constants";
 import { computeIRR } from "../../analytics/returns/irr.js";
 import { storage } from "../storage";
+import { resolveDefault } from "../defaults";
 import type { PropertyInput, GlobalInput } from "@engine/types";
 import {
   DEFAULT_COST_RATE_INSURANCE,
@@ -28,6 +29,11 @@ import type {
   SensitivityHeatMapCell,
   SensitivityResponse,
 } from "@shared/sensitivity-types";
+
+interface ResolvedDefaults {
+  exitCapRate: number;
+  commissionRate: number;
+}
 
 export type {
   SensitivityScenarioResult,
@@ -57,6 +63,7 @@ function runScenario(
   overrides: ScenarioOverrides,
   projectionMonths: number,
   projectionYears: number,
+  resolved: ResolvedDefaults,
 ): SensitivityScenarioResult {
   let totalRevenue = 0;
   let totalNOI = 0;
@@ -108,10 +115,10 @@ function runScenario(
     const lastYearNOI = financials.slice(-12).reduce((s, m) => s + m.noi, 0);
     const capRate = Math.max(
       0.01,
-      (prop.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) +
+      (prop.exitCapRate ?? global.exitCapRate ?? resolved.exitCapRate) +
         (overrides.exitCapRate ?? 0) / 100,
     );
-    const commissionRate = prop.dispositionCommission ?? DEFAULT_COMMISSION_RATE;
+    const commissionRate = prop.dispositionCommission ?? resolved.commissionRate;
     const grossExit = lastYearNOI / capRate;
     const netExit   = grossExit * (1 - commissionRate);
     const debtAtExit = financials[financials.length - 1]?.debtOutstanding ?? 0;
@@ -181,16 +188,26 @@ export async function computeSensitivityAnalysis(
   const projectionYears = (rawGlobal.projectionYears as number | null) ?? 10;
   const projectionMonths = projectionYears * MONTHS_PER_YEAR;
 
+  // Resolve admin-managed defaults once (DB overlay → TS constant fallback).
+  // runScenario is sync and called 40× per request (base + 14 tornado + 25 heatmap),
+  // so the awaited resolution lives here, not inside the hot loop.
+  const resolved: ResolvedDefaults = {
+    exitCapRate:
+      (await resolveDefault<number>("mc.tax_exit.exitCapRate")) ?? DEFAULT_EXIT_CAP_RATE,
+    commissionRate:
+      (await resolveDefault<number>("mc.tax_exit.commissionRate")) ?? DEFAULT_COMMISSION_RATE,
+  };
+
   // Base run
-  const base = runScenario(targetProps, globalInput, {}, projectionMonths, projectionYears);
+  const base = runScenario(targetProps, globalInput, {}, projectionMonths, projectionYears, resolved);
 
   // Tornado: one pass per variable × 2 shocks — derive both chart types simultaneously
   const tornado: SensitivityTornadoItem[] = [];
   const tornadoVariables: SensitivityTornadoVariable[] = [];
 
   for (const v of SENSITIVITY_VARIABLES) {
-    const upResult   = runScenario(targetProps, globalInput, { [v.id]: v.swingPct },  projectionMonths, projectionYears);
-    const downResult = runScenario(targetProps, globalInput, { [v.id]: -v.swingPct }, projectionMonths, projectionYears);
+    const upResult   = runScenario(targetProps, globalInput, { [v.id]: v.swingPct },  projectionMonths, projectionYears, resolved);
+    const downResult = runScenario(targetProps, globalInput, { [v.id]: -v.swingPct }, projectionMonths, projectionYears, resolved);
 
     const irrUpDelta   = (upResult.irr   - base.irr)   * 100;
     const irrDownDelta = (downResult.irr  - base.irr)   * 100;
@@ -247,6 +264,7 @@ export async function computeSensitivityAnalysis(
         { occupancy: occupancyShocks[ri], adrGrowth: adrShocks[ci] / 2 },
         projectionMonths,
         projectionYears,
+        resolved,
       );
       const equityMultipleValue = result.totalRevenue > 0
         ? result.totalNOI / result.totalRevenue

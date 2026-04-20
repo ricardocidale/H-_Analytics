@@ -316,6 +316,23 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - `DEFAULT_PROJECTION_YEARS` also referenced at `server/calculation-checker/index.ts:54` but the enclosing `runIndependentVerification()` is sync — wiring it requires an async refactor, deferred.
 - All gates green: TS 0, Lint 0, Tests PASS, Verify UNQUALIFIED (20 phases / 555 checks incl. 47 drift), Parity PASS, Health ALL CLEAR.
 
+**Bulk wire-through increment 2 (April 20, 2026, Replit, same session):**
+- Three more byte-identical swaps landed, using the "hoist-and-inject" pattern so sync code paths stay sync:
+  - `server/finance/sensitivity.ts` — `DEFAULT_EXIT_CAP_RATE` and `DEFAULT_COMMISSION_RATE` resolved once at the top of `computeSensitivityAnalysis()` (async) and threaded into the sync `runScenario()` as a new `ResolvedDefaults` bag. Keeps the 40-run hot loop (base + 14 tornado + 25 heatmap) free of awaits while still DB-authoritative.
+  - `server/document-ai/templates.ts` — removed the direct `DEFAULT_EXIT_CAP_RATE` import. `renderTemplate`, `renderLOI`, and `renderInvestmentMemo` now take a `defaultExitCapRate: number` parameter.
+  - `server/routes/documents.ts` — async route handler now resolves `mc.tax_exit.exitCapRate` once per request and passes it into `renderTemplate`.
+- Running tally: **8 of 46 seeded values** now consumed via `resolveDefault()`. Drift guard still 47/47.
+- Pattern established: for calc-path or rendered-output code that is sync, resolve the default in the nearest async boundary (route or orchestrator) and inject it as an explicit argument. This preserves engine/renderer purity without introducing async cascades.
+- Sweep exhaustive for remaining async-reachable consumers. The last wirable `DEFAULT_*` constant still hardcoded in server code is `DEFAULT_PROJECTION_YEARS` / `DEFAULT_LTV` / `DEFAULT_OCCUPANCY_RAMP_MONTHS` inside `server/calculation-checker/index.ts` — blocked by `runIndependentVerification()` being a sync top-level entry point. Would need the same hoist pattern applied one level up (at the scheduler or API route that triggers it).
+- All gates green: TS 0, Lint 0, Tests PASS, Verify UNQUALIFIED (20 phases / 555 checks incl. 47 drift), Parity PASS, Health ALL CLEAR.
+
+**Template display/calc consistency fix (April 20, 2026, same session, post code-review):**
+- Code review of increment 2 caught a latent bug: although `estimatedNOI` in `renderLOI` / `renderInvestmentMemo` used the resolved fallback, three displayed cap-rate rows still called `formatPercent(property.exitCapRate)` directly. With a null `property.exitCapRate`, this would render `NaN%` to the document while the NOI number used the fallback — silent calc/display divergence.
+- Fix: each renderer now computes `const effectiveExitCapRate = property.exitCapRate || defaultExitCapRate` (or `capRate` in investment memo) **once**, and uses the same variable for both the numeric calc AND every displayed cap-rate cell. `renderManagementAgreement` was extended with the same `defaultExitCapRate` param for consistency, and `renderTemplate` threads it into all three renderers.
+- Added `tests/server/document-templates.test.ts` (5 tests): asserts no `NaN%` leaks for any of the three templates when `property.exitCapRate` is null, verifies LOI calc↔display parity (display cap rate and NOI both derived from the same effective value), and confirms explicit `property.exitCapRate` still wins over the fallback.
+- Re-review: PASS, bug closed, increment accepted.
+- Final state: 8/46 values wired, TS 0, Lint 0, 20/20 verify phases (555 checks, 47 drift), 5 new template regression tests, Parity PASS.
+
 **Cross-check detector sweep shipped (April 20, 2026, Claude Code, end-of-day):**
 - **4 new proof tests** wired into `verify:summary` as Phases 16-19: orphan-files, any-prop-detector, literal-drift, seed-schema-sync. Total is now 19 phases / 508 checks. Each ships with a baseline + stale-entry guard for incremental cleanup.
 - **Baseline progression across the session:** orphans 29 → 0, any-prop 28 → 0, literal-drift 25 → 0, seed/schema 64 → 36. Net: 34 barrel files + 4 UNWIRED modules + 1 shim deleted (~720 LOC); 20+ files retyped from `any` to precise types; `DEFAULT_MODEL_START_DATE` centralized (closes D-1 drift pattern).

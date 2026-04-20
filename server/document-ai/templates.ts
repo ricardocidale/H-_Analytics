@@ -1,5 +1,4 @@
 import type { Property, GlobalAssumptions } from "@shared/schema";
-import { DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
 
 export interface DocumentTemplate {
   id: string;
@@ -51,15 +50,16 @@ export function renderTemplate(
   property: Property,
   globalAssumptions: GlobalAssumptions,
   senderName: string,
-  recipientName: string
+  recipientName: string,
+  defaultExitCapRate: number,
 ): { html: string; subject: string } {
   switch (templateId) {
     case "loi":
-      return renderLOI(property, globalAssumptions, senderName, recipientName);
+      return renderLOI(property, globalAssumptions, senderName, recipientName, defaultExitCapRate);
     case "investment-memo":
-      return renderInvestmentMemo(property, globalAssumptions, senderName);
+      return renderInvestmentMemo(property, globalAssumptions, senderName, defaultExitCapRate);
     case "management-agreement":
-      return renderManagementAgreement(property, globalAssumptions, senderName, recipientName);
+      return renderManagementAgreement(property, globalAssumptions, senderName, recipientName, defaultExitCapRate);
     default:
       throw new Error(`Unknown template: ${templateId}`);
   }
@@ -69,10 +69,12 @@ function renderLOI(
   property: Property,
   globalAssumptions: GlobalAssumptions,
   senderName: string,
-  recipientName: string
+  recipientName: string,
+  defaultExitCapRate: number,
 ): { html: string; subject: string } {
   const totalInvestment = property.purchasePrice + property.buildingImprovements + property.preOpeningCosts;
-  const estimatedNOI = property.purchasePrice * (property.exitCapRate || DEFAULT_EXIT_CAP_RATE);
+  const effectiveExitCapRate = property.exitCapRate || defaultExitCapRate;
+  const estimatedNOI = property.purchasePrice * effectiveExitCapRate;
 
   const html = `
 <!DOCTYPE html>
@@ -120,7 +122,7 @@ function renderLOI(
       <tr><td>Pre-Opening Costs</td><td>${formatCurrency(property.preOpeningCosts)}</td></tr>
       <tr><td>Total Investment</td><td>${formatCurrency(totalInvestment)}</td></tr>
       <tr><td>Operating Reserve</td><td>${formatCurrency(property.operatingReserve)}</td></tr>
-      <tr><td>Projected Cap Rate</td><td>${formatPercent(property.exitCapRate)}</td></tr>
+      <tr><td>Projected Cap Rate</td><td>${formatPercent(effectiveExitCapRate)}</td></tr>
       <tr><td>Estimated NOI</td><td>${formatCurrency(estimatedNOI)}</td></tr>
     </table>
   </div>
@@ -167,14 +169,15 @@ function renderLOI(
 function renderInvestmentMemo(
   property: Property,
   globalAssumptions: GlobalAssumptions,
-  senderName: string
+  senderName: string,
+  defaultExitCapRate: number,
 ): { html: string; subject: string } {
   const totalInvestment = property.purchasePrice + property.buildingImprovements + property.preOpeningCosts;
   const estimatedRevPAR = property.startAdr * property.startOccupancy;
   const annualRoomRevenue = estimatedRevPAR * property.roomCount * 365;
   const _totalRevenue = annualRoomRevenue * (1 + (property.revShareFB || 0) + (property.revShareEvents || 0) + (property.revShareOther || 0));
-  const estimatedNOI = property.purchasePrice * (property.exitCapRate || DEFAULT_EXIT_CAP_RATE);
-  const capRate = property.exitCapRate || DEFAULT_EXIT_CAP_RATE;
+  const capRate = property.exitCapRate || defaultExitCapRate;
+  const estimatedNOI = property.purchasePrice * capRate;
 
   const html = `
 <!DOCTYPE html>
@@ -264,7 +267,7 @@ function renderInvestmentMemo(
   <div class="section">
     <h2>Exit Strategy</h2>
     <table>
-      <tr><td>Exit Cap Rate</td><td>${formatPercent(property.exitCapRate)}</td></tr>
+      <tr><td>Exit Cap Rate</td><td>${formatPercent(capRate)}</td></tr>
       <tr><td>Disposition Commission</td><td>${formatPercent(property.dispositionCommission)}</td></tr>
       <tr><td>Tax Rate</td><td>${formatPercent(property.taxRate)}</td></tr>
     </table>
@@ -294,8 +297,10 @@ function renderManagementAgreement(
   property: Property,
   globalAssumptions: GlobalAssumptions,
   senderName: string,
-  recipientName: string
+  recipientName: string,
+  defaultExitCapRate: number,
 ): { html: string; subject: string } {
+  const effectiveExitCapRate = property.exitCapRate || defaultExitCapRate;
   const html = `
 <!DOCTYPE html>
 <html>
@@ -353,7 +358,7 @@ function renderManagementAgreement(
       <tr><td>Target ADR (Year 1)</td><td>${formatCurrency(property.startAdr)}</td></tr>
       <tr><td>Target Occupancy (Stabilized)</td><td>${formatPercent(property.maxOccupancy)}</td></tr>
       <tr><td>Stabilization Period</td><td>${property.occupancyRampMonths} months</td></tr>
-      <tr><td>Exit Cap Rate Target</td><td>${formatPercent(property.exitCapRate)}</td></tr>
+      <tr><td>Exit Cap Rate Target</td><td>${formatPercent(effectiveExitCapRate)}</td></tr>
     </table>
   </div>
 
