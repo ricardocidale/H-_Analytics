@@ -179,7 +179,65 @@ Each page in scope must ship with tests that prove:
 
 ---
 
-## 7. Why this pattern is the canonical example
+## 7. Defaults — locked tree
+
+This is the authoritative tree under Steady State → Defaults. Anything not in this tree is not a Default and must live elsewhere (Constants, Themes & Appearance, Reports & Exports, Users, Analyst, App Settings, or as a runtime user artifact).
+
+```
+Steady State
+└── Defaults
+    │   PRIMARY TABS  (horizontal, sticky, ?tab= URL param)
+    │
+    ├── 1. Management Company         ← canonical example, mirrors front-of-app exactly
+    │   SUB-TABS  (mirror the 6 front-of-app CompanyAssumptions tabs verbatim)
+    │   ├── Company             [card grid]
+    │   ├── Funding             [card grid]   ← includes cost of equity, exit revenue multiple
+    │   ├── Revenue Model       [card grid]
+    │   ├── Compensation        [card grid]
+    │   ├── Overhead            [card grid]
+    │   └── Property Defaults   [card grid]   ← per-property template seeds the MC applies
+    │
+    ├── 2. Property                   ← collection-level concerns; per-type seed values live under MC → Property Defaults
+    │   SUB-TABS
+    │   ├── Type Catalogue      [card grid]   ← what property types exist (luxury, upper-upscale, etc.)
+    │   ├── Service Catalogue   [card grid]   ← services / amenities that can be attached
+    │   ├── Asset Defaults      [card grid]   ← default photos, hero images, brand placeholders
+    │   └── Lifecycle           [card grid]   ← acquisition, hold, disposition seeds per type
+    │
+    └── 3. Macro & Market             ← only Norfolk-curated seeds; authority feeds (FRED, Treasury, STR) live on the Constants page
+        SUB-TABS
+        ├── Macro                [card grid]   ← inflation seed, WACC component weights
+        └── Market               [card grid]   ← comp-set catalogue, seasonality curves, market benchmark seeds
+```
+
+### 7.1 Excluded from Defaults — and where each lives instead
+
+| Concept | Lives in | Reason |
+|---|---|---|
+| Scenarios (named snapshots of assumptions + properties) | Front-of-app `Scenarios` page | User-created runtime artifact, not a seed value |
+| Report layouts, KPI surfacing, export formats | Reports & Exports sidebar block | Presentation preference, not a model assumption |
+| Theme colors, fonts, dark/light | Themes & Appearance | Presentation, not a model assumption |
+| Default user role, RBAC | Users sidebar block | Governance, not a model assumption |
+| Rebecca persona / voice | Rebecca sidebar block | Operational behavior, not a seed value |
+| Analyst model selection, conviction thresholds | Analyst sidebar block | Engine config, not a seed value |
+| FX rates (FRED), risk-free rate (Treasury), STR/CBRE benchmarks (licensed) | Steady State → Constants | Authority-published, sourced and dated; admin-overridable only with reason field |
+
+### 7.2 Counts and sizing targets
+
+- 3 primary tabs · 12 sub-tabs total · target ≈30–45 cards.
+- Each card has 2–6 fields.
+- Each sub-tab has at least 2 cards.
+
+### 7.3 Open design questions still to resolve before build
+
+- **Save granularity** — per-card vs per-sub-tab. Unresolved.
+- **Macro & Market splits** — final per-row constants/defaults assignment when we draft the Constants page (FRED feeds, Treasury, STR licensing) is provisional until source-by-source verification.
+- **Provenance display density** — full provenance line on every card vs collapsed-by-default.
+- **Analyst-suggests UX** — inline accept on the card vs a separate Pending Proposals queue.
+
+---
+
+## 8. Why this pattern is the canonical example
 
 The Management Company Defaults tab is built first because it is the simplest case (single entity, no sub-collections, all seeds are scalar or short list values). Once that is shipped:
 

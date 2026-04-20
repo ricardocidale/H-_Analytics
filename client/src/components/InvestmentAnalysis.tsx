@@ -23,6 +23,7 @@ import { formatMoney, getFiscalYearForModelYear } from "@/lib/financialEngine";
 import { PROJECTION_YEARS } from "@/lib/constants";
 import { propertyEquityInvested, acquisitionYearIndex } from "@/lib/financial/equityCalculations";
 import { computeIRR } from "@analytics/returns/irr.js";
+import type { GlobalResponse } from "@/lib/api/types";
 import type { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
 import { FCFAnalysisTable } from "./investment/FCFAnalysisTable";
 import { PropertyIRRTable } from "./investment/PropertyIRRTable";
@@ -39,7 +40,7 @@ interface InvestmentAnalysisProps {
   allPropertyYearlyCF: ReturnType<typeof aggregateCashFlowByYear>[];
   getPropertyYearly: (propIndex: number, yearIndex: number) => any;
   getYearlyConsolidated: (yearIndex: number) => any;
-  global: any;
+  global: GlobalResponse;
   expandedRows: Set<string>;
   toggleRow: (rowId: string) => void;
 }
