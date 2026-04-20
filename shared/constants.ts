@@ -233,6 +233,11 @@ export const DEFAULT_PROJECTION_YEARS = 10;
 // ──────────────────────────────────────────────────────────
 // MODEL TIMELINE DEFAULTS
 // ──────────────────────────────────────────────────────────
+// Financial model start date — the t=0 month for all projections. Drives
+// Zustand initial state, checker manual, seed data, sync helpers. Previously
+// drifted across 4 files as the literal "2026-04-01" before being centralized.
+export const DEFAULT_MODEL_START_DATE = "2026-04-01";
+
 // Date the management company begins operations by default. Drives seed
 // data, DB column defaults, sync helpers, and UI fallbacks. Keeping this
 // in one place prevents the literal from drifting across call sites.

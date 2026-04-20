@@ -114,37 +114,15 @@ const EXEMPT_PATTERNS: RegExp[] = [
  *   §"Pattern 2 — Half-finished implementations".
  */
 const BASELINE_KNOWN_ORPHANS = new Set<string>([
-  // BARREL — re-export index files without current consumers
-  "analytics/fcf/index.ts",
-  "analytics/returns/index.ts",
-  "calc/analysis/index.ts",
-  "calc/financing/index.ts",
-  "calc/funding/index.ts",
-  "calc/research/index.ts",
-  "calc/returns/index.ts",
-  "calc/services/index.ts",
-  "calc/shared/index.ts",
-  "calc/validation/index.ts",
-  "domain/ledger/index.ts",
-  "domain/types/index.ts",
-  "engine/analyst/index.ts",
-  "engine/index.ts",
-  "engine/posting/index.ts",
-  "server/ai/ambient/index.ts",
-  "server/ai/comparables/index.ts",
-  "server/ai/context-pack/index.ts",
-  "server/ai/guidance/index.ts",
-  "server/ai/prompt/index.ts",
-  "server/providers/index.ts",
-  "server/replit_integrations/auth/index.ts",
-  "statements/index.ts",
-
-  // NOTE: 6 concrete entries (server/utils/batch.ts, 4 UNWIRED modules,
-  // and the duplicate shared/chat.ts schema) were deleted 2026-04-20 as
-  // part of the baseline cleanup sweep. Only barrel `index.ts` files
-  // remain in the baseline — those are a follow-up cleanup item (either
-  // wire them up, or delete alongside a whole-directory audit when the
-  // directory itself is shown to be abandoned).
+  // All 29 original baseline entries resolved 2026-04-20:
+  // - 6 concrete entries deleted (server/utils/batch.ts shim + its now-dead
+  //   target server/replit_integrations/batch/, 4 UNWIRED modules, and the
+  //   duplicate shared/chat.ts schema).
+  // - 23 barrel `index.ts` files deleted after verifying each had zero
+  //   importers (consumers went direct to the concrete sibling files).
+  //
+  // Going forward: any orphan flagged is a real find. Either wire it up,
+  // delete it, or annotate with `// UNWIRED — blocking on: <reason>`.
 ]);
 
 // -- File enumeration --------------------------------------------------------

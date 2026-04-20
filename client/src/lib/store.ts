@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { PropertyStatus } from "@shared/constants";
+import { PropertyStatus, DEFAULT_MODEL_START_DATE } from "@shared/constants";
 import {
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
@@ -105,7 +105,7 @@ interface AppState {
 
 // --- INITIAL DATA ---
 const INITIAL_GLOBAL: StoreGlobalAssumptions = {
-  modelStartDate: "2026-04-01",
+  modelStartDate: DEFAULT_MODEL_START_DATE,
   inflationRate: 0.03,
   partnerSalary: 150000,
   staffSalary: DEFAULT_STAFF_SALARY,

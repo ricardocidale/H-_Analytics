@@ -71,12 +71,10 @@ const EXEMPT_FILE_PATTERNS: RegExp[] = [
  * this array is the baseline snapshot at time of landing.
  */
 const BASELINE_KNOWN_DATE_DRIFT: string[] = [
-  // "2026-04-01" — DEFAULT_MODEL_START_DATE duplicated across files that
-  // should import the constant instead.
-  "client/src/lib/store.ts:108:2026-04-01",
-  "client/src/pages/checker-manual/sections/Section04GlobalAssumptions.tsx:34:2026-04-01",
-  "server/seeds/properties.ts:72:2026-04-01",
-  "server/syncHelpers.ts:37:2026-04-01",
+  // "2026-04-01" — DEFAULT_MODEL_START_DATE drift closed 2026-04-20.
+  // Constant promoted to shared/constants.ts; all 4 sites now import from it.
+  // (Previously drifted across store.ts, Section04GlobalAssumptions, seeds/properties,
+  // and syncHelpers.)
 
   // "2026-06-01" — DEFAULT_COMPANY_OPS_START_DATE / DEFAULT_CAPITAL_RAISE_1_DATE.
   // store.ts:145 and property-data.ts:53 are row defaults; 366 is a per-property

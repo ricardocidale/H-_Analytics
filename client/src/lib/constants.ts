@@ -92,8 +92,10 @@ export const DEFAULT_BUSINESS_INSURANCE = _BIC;
 export const PROJECTION_YEARS = 10;
 export const PROJECTION_MONTHS = PROJECTION_YEARS * _MPY;
 
-// Default model start date fallback
-export const DEFAULT_MODEL_START_DATE = '2026-04-01';
+// Default model start date — re-exported from shared/constants so client
+// and server use the same literal. Kept here for backward-compat of the
+// existing client-side import path.
+export { DEFAULT_MODEL_START_DATE } from "@shared/constants";
 
 // All operating reserve, funding buffer, partner count, and refinance defaults
 // are now in shared/constants.ts and re-exported above.

@@ -3,6 +3,7 @@ import { SectionCard } from "@/components/ui/section-card";
   import { Callout } from "@/components/ui/callout";
   import { IconSettings } from "@/components/icons";
   import {
+    DEFAULT_MODEL_START_DATE,
     DEFAULT_COMPANY_OPS_START_DATE,
     DEFAULT_CAPITAL_RAISE_1_DATE,
     DEFAULT_CAPITAL_RAISE_2_DATE,
@@ -31,7 +32,7 @@ interface SectionProps {
             ["companyName", "Display name for management company", "Hospitality Business Company", "text", "Both"],
             ["companyLogo", "URL to uploaded company logo", "null", "URL", "Both"],
             ["propertyLabel", "Label for property type throughout UI", "Boutique Hotel", "text", "Both"],
-            ["modelStartDate", "First month of the financial model", "2026-04-01", "date", "Both"],
+            ["modelStartDate", "First month of the financial model", DEFAULT_MODEL_START_DATE, "date", "Both"],
             ["projectionYears", "Number of years to project", "10", "count", "Both"],
             ["companyOpsStartDate", "Date Management Company begins operations", DEFAULT_COMPANY_OPS_START_DATE, "date", "Mgmt Co."],
             ["fiscalYearStartMonth", "Month number when fiscal year begins (1=Jan)", "1", "count (1–12)", "Both"],
