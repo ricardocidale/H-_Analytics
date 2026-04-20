@@ -1,0 +1,62 @@
+#!/usr/bin/env sh
+# stage-collision-check — warn when staged files include edits by an author
+# other than the current session's.
+#
+# Context: agent-collision-hygiene.md documents 10 observed Claude↔Replit
+# commits where `git add -A` bundled one agent's work under another's
+# commit message. This hook detects the pattern:
+#
+#   Symptom: staged files include modifications whose most recent commit
+#   author differs from the last commit made in the current working tree.
+#
+# The fix is behavioral (per-file `git add <path>` instead of `-A`), so
+# this hook is advisory only. Exit code 0 always — warning, not a block.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+# Who was the last commit author in this repo?
+last_author=$(git log -1 --format='%an' 2>/dev/null)
+[ -z "$last_author" ] && exit 0
+
+# For each staged file, find the most recent author that touched it
+# (excluding the working-tree state). If any file's last-touched author
+# differs from last_author AND the staged file touches a pattern we know
+# to be Replit-owned (opengraph.jpg, STEADY-STATE, replit.md, memory.md,
+# billing/*, .replit), flag it.
+collision=""
+for f in $staged; do
+  # Use git log over committed history; if the file was last committed
+  # by someone other than last_author and is an "other-agent" file, warn.
+  file_last_author=$(git log -1 --format='%an' -- "$f" 2>/dev/null)
+  if [ -n "$file_last_author" ] && [ "$file_last_author" != "$last_author" ]; then
+    # Known Replit-owned file patterns (from rewritetax.md pattern #2)
+    case "$f" in
+      memory.md|replit.md|rewritetax.md|best-practices.md|COST-MONITOR-REPLIT.md|.replit)
+        collision="$collision $f (last by: $file_last_author)"
+        ;;
+      client/public/opengraph.jpg|client/public/*.jpg|client/public/*.png)
+        collision="$collision $f (last by: $file_last_author)"
+        ;;
+      docs/architecture/STEADY-STATE.md|docs/billing/*|shared/schema/replit-billing.ts)
+        collision="$collision $f (last by: $file_last_author)"
+        ;;
+    esac
+  fi
+done
+
+if [ -n "$collision" ]; then
+  echo ""
+  echo "⚠️  Potential agent-collision — staged files last touched by another author:"
+  for entry in $collision; do echo "    $entry"; done
+  echo ""
+  echo "Per agent-collision-hygiene.md rule #2: prefer explicit per-file"
+  echo "\`git add <path>\` instead of \`git add -A\`/\`git add .\` when another"
+  echo "agent has in-flight work. Review \`git status\` — if any file above"
+  echo "isn't part of THIS commit's scope, unstage with \`git reset HEAD -- <file>\`."
+  echo ""
+  echo "   To proceed anyway: commit normally (advisory warning only)."
+  echo ""
+fi
+
+exit 0

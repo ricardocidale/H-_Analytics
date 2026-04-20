@@ -1,0 +1,65 @@
+#!/usr/bin/env sh
+# cosmetic-warn — advisory hook that warns on cosmetic-only commits.
+#
+# Context: rewritetax.md scoreboard pattern #1 — 88 opengraph/social-image
+# swaps YTD, each running a full CI cycle. Budget is 1/month batched
+# (see .claude/rules/cosmetic-budget.md). This hook does NOT block; it
+# nudges by asking if the budget allows it.
+#
+# Called from .husky/pre-commit. Exit code is always 0 — warning only.
+
+# Get list of staged files
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+# Detect cosmetic patterns in staged files
+cosmetic=""
+substantive=""
+
+for f in $staged; do
+  case "$f" in
+    client/public/*.jpg|client/public/*.png|client/public/*.svg|client/public/*.ico|client/public/*.webp|client/src/assets/*.jpg|client/src/assets/*.png|client/src/assets/*.svg)
+      cosmetic="$cosmetic $f"
+      ;;
+    # Everything else is substantive
+    *)
+      substantive="$substantive $f"
+      ;;
+  esac
+done
+
+# If ANY substantive file is in the commit, it's not cosmetic-only — no warning
+if [ -n "$substantive" ]; then
+  exit 0
+fi
+
+# If no cosmetic files, nothing to warn about
+if [ -z "$cosmetic" ]; then
+  exit 0
+fi
+
+# Cosmetic-only commit — emit warning
+echo ""
+echo "⚠️  Cosmetic-only commit detected (budget: 1/month per .claude/rules/cosmetic-budget.md)"
+echo ""
+echo "Staged files are branding/image-only:"
+for f in $cosmetic; do echo "    $f"; done
+echo ""
+
+# Check recent cosmetic commits (last 30 days, opengraph.jpg as the canonical example)
+recent=$(git log --since="30 days ago" --format=oneline --diff-filter=M -- client/public/opengraph.jpg 2>/dev/null | wc -l)
+recent=$(echo "$recent" | tr -d ' ')
+
+if [ "$recent" -gt "0" ]; then
+  echo "📊 Last 30 days: $recent cosmetic commit(s) already on opengraph.jpg alone."
+  echo "   Consider batching this with the next brand sprint instead of a standalone commit."
+else
+  echo "📊 Last 30 days: no recent cosmetic commits — this one is within budget."
+fi
+
+echo ""
+echo "   To proceed anyway: commit normally (this is a warning, not a block)."
+echo "   To abort: Ctrl+C and either batch, defer, or skip."
+echo ""
+
+exit 0

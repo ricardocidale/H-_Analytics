@@ -1,1 +1,2 @@
+./.husky/cosmetic-warn
 npx lint-staged
