@@ -47,3 +47,9 @@ id = "v1-Q6FkcILYVgUROjaXf5"
 uri = "file://.local/risk-assurance-implementation-plan.md"
 type = "text"
 title = "H+ Analytics — Definitive Risk-Assurance Plan (Rev 3)"
+
+[[outputs]]
+id = "dldzxQu5TCx6Y_LSdkVGJ"
+uri = "file://rewritetax.md"
+type = "text"
+title = "Rewrite Tax Audit"
