@@ -1,5 +1,5 @@
 /**
- * Verify Summary — runs 15-phase financial verification in a single vitest invocation.
+ * Verify Summary — runs 16-phase financial verification in a single vitest invocation.
  * Outputs only failures + audit opinion. ~3x faster than running each phase separately.
  *
  * Usage: npm run verify:summary

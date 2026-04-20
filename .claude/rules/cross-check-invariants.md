@@ -98,10 +98,10 @@ Existing proof tests that catch cross-check failures:
 - `tests/proof/recalculation-enforcement.test.ts` — financial mutations call `invalidateAllFinancialQueries`
 - `tests/proof/portfolio-dynamics.test.ts` — no hardcoded property count
 - `tests/proof/rule-compliance.test.ts` — docs structure
+- `tests/proof/orphan-files.test.ts` — no new orphan files beyond documented baseline (catches the `server/ai/kb/` pattern). Shipped 2026-04-20 with 29-entry baseline to be driven toward [] in cleanup audits.
 
 Suggested additions (not yet built; next audit candidate):
 
-- **Orphan-file detector** — flag files with zero imports from code reaching production
 - **Literal drift detector** — flag magic-string dates, fees, rates that appear in more than one file and aren't in `shared/constants.ts`
 - **`any`-prop detector** — flag component props typed `any` or `any[]`
 - **Seed/schema sync detector** — for every `shared/schema` column, assert at least one seed row includes it

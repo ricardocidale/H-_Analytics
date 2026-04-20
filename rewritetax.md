@@ -744,6 +744,12 @@ Items where the rewrite tax is still being paid because no enforcement exists:
 
 ---
 
+## Addendum: Forward-Discipline Playbook (Apr 20, 2026)
+
+The 7 cost vectors and recommendations above have been distilled into a forward-looking, project-agnostic playbook at **`best-practices.md`** (project root). 22 rules across 7 categories — multi-agent hygiene, architectural redirection, vendor decisions, AI prompt-tuning, migration hygiene, cosmetic churn, and platform-specific tax. Read it before starting the next project; install the rules first, ship the code second.
+
+---
+
 ## Addendum: Live Billing Database (Apr 20, 2026)
 
 The 75-invoice ledger above has been promoted from a static markdown table to a live, queryable Postgres table set with H+-workspace attribution applied. This is the **C-then-B** approach: ratio attribution now from the data we have, with a one-step CSV-loader upgrade path when raw line items become exportable.

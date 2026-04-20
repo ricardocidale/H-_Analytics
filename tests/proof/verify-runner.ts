@@ -34,6 +34,7 @@ const phases: Phase[] = [
   { title: "PHASE 13: Regression Snapshots", file: "tests/proof/regression-snapshots.test.ts", passMsg: "All pinned engine output regressions passed", failMsg: "Regression snapshots FAILED — engine output has changed" },
   { title: "PHASE 14: Parity Numeric", file: "tests/proof/parity-numeric.test.ts", passMsg: "All statement builder numeric values match engine output", failMsg: "Parity numeric FAILED — UI values diverge from engine" },
   { title: "PHASE 15: Cache Integrity", file: "tests/proof/cache-integrity.test.ts", passMsg: "All cache hash & invalidation tests passed", failMsg: "Cache integrity FAILED — stale results possible" },
+  { title: "PHASE 16: Orphan Files", file: "tests/proof/orphan-files.test.ts", passMsg: "No new orphan files beyond baseline", failMsg: "Orphan file detection FAILED — new dead-code candidate landed" },
 ];
 
 function run() {

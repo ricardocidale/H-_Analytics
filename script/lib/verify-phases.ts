@@ -19,6 +19,7 @@ export const VERIFY_PHASES: readonly VerifyPhase[] = [
   { name: "Regression Snapshots", file: "regression-snapshots.test.ts" },
   { name: "Parity Numeric", file: "parity-numeric.test.ts" },
   { name: "Cache Integrity", file: "cache-integrity.test.ts" },
+  { name: "Orphan Files", file: "orphan-files.test.ts" },
 ] as const;
 
 export function allProofFilePaths(): string[] {
