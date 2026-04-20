@@ -8,10 +8,11 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Lint Batch 5a shipped (Category A)
-- **Batch 5a shipped (Claude, `c66896fc`):** 22 Category A `|| 0` → `?? 0` swaps across 5 files (auditBalanceSheet.ts, known-value-runner.ts, calculation-checker/index.ts, verification/test-cases.ts, runVerification.ts). Schema-nullable properties + test fixtures only — zero NaN-exposure risk. **187 → 159 warnings (54% of 348 complete).**
-- **All five gates green:** TS 0 / Lint 0 errors / Vocab 11/11 / test:summary PASS / Verify UNQUALIFIED. Atomic single-commit per agent-collision-hygiene rule.
-- **Batch 5b (Category B, ~56 sites) + 5c (Category C accumulators, ~5 sites) still pending** — those carry real NaN-exposure risk per batch-5-preaudit.md. User's Option 1/2/3 call still open for 5b/5c execution strategy.
+## Session: April 20, 2026 (latest) — Lint Batches 5a + 6a+6b shipped
+- **Batch 5a shipped (Claude, `c66896fc`):** 22 Category A `|| 0` → `?? 0` swaps across 5 audit/verification files. Schema-nullable + test fixtures only. 187 → 159 warnings.
+- **Batch 6a+6b shipped (Claude, `fb4bbbe7`):** 20 Category A+E swaps across 14 files (groupBy accumulators, schema-nullable, optional-chained array reads, chart viewBox coords). 159 → 138 warnings.
+- **Progress: 138 warnings, 60% of original 348 cleaned.** Both batches passed all five gates; atomic single-commits per agent-collision-hygiene rule.
+- **Still pending (moderate risk, user call needed):** Batch 5b/5c (Category B+C engine output, NaN-exposure risk), Batch 6c (LLM prompt builders), 6d (dashboard display), 6e (Number() coercion with `Number.isFinite` wrap), 6f (3 inspect-required sites).
 
 ## Session: April 20, 2026 (late) — OT-A.4 ship + OT-A.5 queued + observability/reorg scaffolding
 - **OT-A.4 shipped (Replit, `7da9f25a`).** Four mechanism bugs codified as rules: `field-definitions-no-prescription-hints.md`, `llm-contract-migration-parity.md`, `parity-exemption-classes.md` (+ narrative `.claude/notes/llm-migration-playbook.md`). Pinecone removed 100% across active codebase (`706aec6c`).
