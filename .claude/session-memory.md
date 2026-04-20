@@ -8,11 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst slice: button shipped (T003)
-- **`<AnalystActionButton />` shipped** (`client/src/components/analyst/AnalystActionButton.tsx`, exported from barrel). Props per plan: `onClick`, `running`, `cooldownRemainingMs`, `variant` (header|save-row|modal), `size`, `className`, `testIdSuffix`, `label`. Sparkles icon pulses while running; tooltip shows cooldown countdown; amber accent; disabled during run/cooldown; `data-testid="button-analyst"`.
-- **T002 skipped** (canvas variant exploration for a single button is heavier than the component itself). **T001 (analyst-promotion helper) shelved** — wrong target for this slice (writes Property scalars, not `model_defaults`); belongs to later property-edit slice.
-- **Unknowns locked with defaults**: 60s cooldown, >40% single-field blunt threshold, no cost in tooltip. User directive: stop all cost tracking/mentions and do not touch `rewritetax.md` until further notice.
-- **Next chunk (T004)**: `server/ai/analyst-scoped-runner.ts` — non-HTTP entry point wrapping `orchestrateResearch` for scoped field lists. Still pending after that: T005 route, T006 sub-tab wiring, T007 save-gate, T008 gates+docs.
+## Session: April 20, 2026 (latest) — Interactive Analyst slice: T003 button + T004 scoped runner
+- **T003 button shipped**: `client/src/components/analyst/AnalystActionButton.tsx` — Sparkles icon, amber accent, cooldown tooltip countdown, disabled during run/cooldown, `data-testid="button-analyst"`. Exported from `analyst/index.ts`.
+- **T004 scoped runner shipped**: `server/ai/analyst-scoped-runner.ts` — non-HTTP `runAnalystScoped({ scope:"company", userId, fields? })`. Mirrors the company branch of the research route: drain orchestrator → parse → `extractGuidance` → create research_run → upsert assumption_guidance → fire-and-forget vector index. `fields` only filters the returned slice (all records persisted). MI aggregator + web-research skipped at company scope for now (noted in code).
+- **T002 skipped** (canvas dance not worth the context); **T001 analyst-promotion shelved** (wrong target — property scalars, not model_defaults; deferred to later slice).
+- **Unknowns locked**: 60s cooldown, >40% single-field blunt threshold, no cost/tokens in UI. User directive: no cost tracking, do not touch `rewritetax.md`.
+- **Next chunk (T005)**: `POST /api/analyst/refresh` admin-only route calling runAnalystScoped, with in-memory 60s per-user cooldown → 429 on violation.
 
 ## Session: April 20, 2026 (latest) — 3 new hooks shipped from bleeding-scoreboard
 - **Commit-msg hook (`afea52dc`)** — `.husky/commit-msg` rejects subjects <15 chars or matching blocklist (c, wip, fix, commit, etc.). Ends historical 141-commit waste class going forward.
