@@ -1,2 +1,3 @@
 ./.husky/cosmetic-warn
+./.husky/stage-collision-check
 npx lint-staged
