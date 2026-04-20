@@ -94,51 +94,16 @@ const SYSTEM_COLUMN_EXEMPTIONS = new Set<string>([
  * Drive this list toward [] in follow-up audits.
  */
 const BASELINE_UNEXERCISED: string[] = [
-  // Real drift candidates — schema has a default but seed doesn't exercise it.
-  // Each of these should either (a) be added to a seed row, or (b) be removed
-  // from the schema if genuinely unused.
+  // Baseline emptied 2026-04-20:
+  // - 28 research-extracted / audit-housekeeping columns promoted to
+  //   SYSTEM_COLUMN_EXEMPTIONS (system-set, never seed-set).
+  // - 36 real drift columns added to SEED_PROPERTY_DEFAULTS in
+  //   server/seeds/property-data.ts (schema defaults exercised where they
+  //   exist; null for nullable columns).
   //
-  // Triaged 2026-04-20: 28 research-extracted / audit-housekeeping columns
-  // promoted to SYSTEM_COLUMN_EXEMPTIONS (they're system-set, never
-  // seed-set). 36 real drift entries remain below — Replit handoff queued
-  // at `.claude/replit-handoffs/seed-schema-sync-coverage.md` to add seed
-  // coverage or mark genuinely-unused columns for deletion.
-  "apDays",
-  "arDays",
-  "brandId",
-  "commercialKitchenCost",
-  "conversionCost",
-  "dayCountConvention",
-  "escalationMethod",
-  "estimatedConversionMonths",
-  "eventSpaceSqft",
-  "eventVenueCost",
-  "fbSeats",
-  "fbVenues",
-  "feeSubordination",
-  "fireCodeAdaCost",
-  "liquorLicenseCost",
-  "locationType",
-  "managementType",
-  "marketTier",
-  "maxGuests",
-  "nightlyPropertyRate",
-  "occupancyRampCurve",
-  "onMunicipalSewer",
-  "operatingDeficitReserve",
-  "ownerPriorityReturn",
-  "performanceTestEnabled",
-  "pricingModel",
-  "qualityTier",
-  "reinvestmentRate",
-  "roomAdditionCost",
-  "seasonalityProfile",
-  "serviceLevel",
-  "streetAddress2",
-  "totalBuildingSqft",
-  "totalPropertyAcreage",
-  "yearBuilt",
-  "zoningPermitCost",
+  // Any future flagged column is a real find: either add to
+  // SEED_PROPERTY_DEFAULTS, or add to SYSTEM_COLUMN_EXEMPTIONS if the
+  // column is system-managed, or delete the column if genuinely unused.
 ];
 
 // -- Schema column extraction -----------------------------------------------

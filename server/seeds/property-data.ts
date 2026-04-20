@@ -20,6 +20,9 @@ import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_LAND_VALUE_PERCENT,
+  DEFAULT_AP_DAYS,
+  DEFAULT_AR_DAYS,
+  DEFAULT_REINVESTMENT_RATE,
 } from "@shared/constants";
 
 export const SEED_PROPERTY_DEFAULTS = {
@@ -34,6 +37,54 @@ export const SEED_PROPERTY_DEFAULTS = {
   dispositionCommission: DEFAULT_COMMISSION_RATE,
   baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
+
+  // Seed-coverage additions (2026-04-20) — closes 36 fields flagged by
+  // seed-schema-sync detector. Values mirror the schema's own `.default()`
+  // where one exists; null where the schema leaves the column nullable.
+  // See `.claude/replit-handoffs/seed-schema-sync-coverage.md` for the
+  // triage plan these were derived from.
+
+  // Financial assumptions (exercise the schema default explicitly)
+  apDays: DEFAULT_AP_DAYS,
+  arDays: DEFAULT_AR_DAYS,
+  dayCountConvention: '30/360',
+  escalationMethod: 'annual',
+  reinvestmentRate: DEFAULT_REINVESTMENT_RATE,
+  performanceTestEnabled: false,
+  feeSubordination: null,
+  operatingDeficitReserve: null,
+  ownerPriorityReturn: null,
+  occupancyRampCurve: null,
+  seasonalityProfile: null,
+
+  // Property classification
+  qualityTier: 'upscale',
+  brandId: null,
+  locationType: null,
+  managementType: null,
+  marketTier: null,
+  pricingModel: null,
+  serviceLevel: null,
+  streetAddress2: null,
+  nightlyPropertyRate: null,
+
+  // Property physical
+  onMunicipalSewer: false,
+  commercialKitchenCost: null,
+  conversionCost: null,
+  estimatedConversionMonths: null,
+  eventSpaceSqft: null,
+  eventVenueCost: null,
+  fbSeats: null,
+  fbVenues: null,
+  fireCodeAdaCost: null,
+  liquorLicenseCost: null,
+  maxGuests: null,
+  roomAdditionCost: null,
+  totalBuildingSqft: null,
+  totalPropertyAcreage: null,
+  yearBuilt: null,
+  zoningPermitCost: null,
 };
 
 export const SEED_INITIAL_PROPERTIES = [
