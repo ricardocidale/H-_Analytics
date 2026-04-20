@@ -2,7 +2,7 @@
 
 ## Overview
 
-H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by Norfolk AI. It models a hospitality management company (default seed name: "Hospitality Management Co") and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP (ASC 230, ASC 360, ASC 470) and USALI 12th Edition standards. ~1,174 source files in `calc/`+`server/`+`client/`+`shared/`, ~191K lines. The platform delivers a premium, bespoke financial experience enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
+H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by Norfolk AI. It models a hospitality management company (default seed name: "Hospitality Management Co") and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP (ASC 230, ASC 360, ASC 470) and USALI 12th Edition standards. ~1,180 source files in `calc/`+`server/`+`client/`+`shared/`, ~192K lines. ~4,400 tests across ~227 files. 15-phase verification pipeline (498 checks). The platform delivers a premium, bespoke financial experience enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
 
 **Two AI Agents:**
 - **The Analyst** — the singular intelligence agent. Conducts research, provides ranges, conviction levels, and risk flags next to every assumption field. Always "The Analyst" (capitalized, singular). Powered by Norfolk AI Engine.
@@ -58,7 +58,7 @@ Two execution surfaces are in play. The agent must flag which one a task belongs
 - Simple, everyday language. Ask clarifying questions before implementing — do not assume.
 - **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
 - Always format money as currency (commas, appropriate precision).
-- Skills live in `.claude/skills/` (20 domains, 193 files). See `.claude/skills/_index.md` for the master catalog. **For Replit-specific behavior, read `.claude/skills/replit-workflow/SKILL.md` — it's authoritative for what Replit owns, session hygiene, and escalation rules.**
+- Skills live in `.claude/skills/` (~21 domains, ~195 files). See `.claude/skills/_index.md` for the master catalog. **For Replit-specific behavior, read `.claude/skills/replit-workflow/SKILL.md` — it's authoritative for what Replit owns, session hygiene, and escalation rules.**
 - **App name** is "H+ Analytics" (seed/default). Editable by super admin in Admin > App Identity. Powered by Norfolk AI.
 - **Company name** refers to the hospitality management company (seed/default: "Hospitality Management Co"). Editable by any user on the Management Company page. NOT the app name.
 - **Norfolk AI** is the technology company that created and powers H+ Analytics.
@@ -90,7 +90,7 @@ Two execution surfaces are in play. The agent must flag which one a task belongs
 The application features a React 18 frontend with TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, and framer-motion. The backend is an Express 5 application utilizing Drizzle ORM and PostgreSQL.
 
 **Core Design Principles & Features:**
-- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (~4,391 tests across 223 files, 15-phase verification pipeline with 498 checks), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
+- **Financial Accuracy & Compliance:** Highest priority, enforced by a comprehensive proof system (~4,400 tests across ~227 files, 15-phase verification pipeline with 498 checks), GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
 - **Modular Skill-Based Architecture:** Domain knowledge and context are managed through a skill-based system in `.claude/skills/`.
 - **Theming & UI/UX:** A robust theme engine provides consistent UI with 5 presets. All UI components are theme-compliant, and specific UI patterns are enforced.
 - **Shared Financial Calculation Layer (`calc/`):** Pure financial calculation logic in standalone modules. Both client and server import from `calc/`.
@@ -212,7 +212,7 @@ Instead, authenticate via a direct API call BEFORE any browser navigation:
 |------|---------|----------------|
 | typecheck | `npx tsc --noEmit --skipLibCheck` | Type errors |
 | lint | `npm run lint:summary` | ESLint violations (max-warnings 10) |
-| test | `npm run test:summary` | ~4,391 unit/integration tests (223 files) |
+| test | `npm run test:summary` | ~4,400 unit/integration tests (~227 files) |
 | verify | `npm run verify:summary` | Financial calculation accuracy (498 checks, 15 phases) |
 | parity | `tsx script/parity-check.ts` | Statement builder ↔ on-screen parity |
 
@@ -221,7 +221,7 @@ Instead, authenticate via a direct API call BEFORE any browser navigation:
 ```bash
 npm run dev            # Start dev server (port 5000)
 npm run health         # tsc + tests + verify + doc harmony (~90s)
-npm run test:summary   # ~4,391 tests, 223 files (~30s)
+npm run test:summary   # ~4,400 tests, ~227 files (~30s)
 npm run verify:summary # 15-phase financial verification, 498 checks (~8s)
 npm run lint:summary   # ESLint check (<10s)
 npm run stats          # File/line/test counts (<5s)
@@ -259,14 +259,32 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 **Architecture spine:** `docs/architecture/ANALYST.md` (two-tier: Cognitive Engine + Surface Specialists). Per-component specs under `docs/architecture/analyst/`. Decision record: `docs/architecture/decisions/ADR-001-analyst-two-tier.md` (Accepted).
 
 **Phase status:**
-- ✅ Phase 1a — docs spine + 9 per-component specs + ADR-001 (15 files under `docs/architecture/`)
-- ⏸ Phase 1b — `.claude/skills/analyst/` + 2 new rules (handed off to Claude Code; brief at `docs/architecture/analyst/HANDOFF-claude-code-phase-1b.md`)
-- ⏳ Phase 2 — `engine/analyst/` skeleton + CODEOWNERS + naming-lint + ADR-002 (Replit Agent, after 1b)
-- ✅ Phase 3a — `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + persona test bench (Claude, `d220f4b1`)
-- ✅ Phase 3b — Funding + Revenue Surface Specialists; `/save-tab` dispatches verdicts; dialog + call site consume `AnalystVerdict`; tests use real Specialists end-to-end (`ee0c6573`)
-- ⏳ Phase 4 — build remaining 4 mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults); Norfolk audit Phase 3 (Compensation) ships first under new architecture
-- ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + orchestrator cache + research-history reindex + guidance↔engine seam doc
-- 🔀 OT-A (parallel, Claude Code) — server/ai plumbing: Anthropic prompt-caching, AI-SDK + AI Gateway wrapper, synthesis A/B, optional cutover. Handoff: `docs/operational-tooling/HANDOFF-replit-phase-OT-A.md`. **Boundary:** OT-A touches `server/ai/` only; never `engine/analyst/**`, `engine/watchdog/*Evaluator.ts`, `server/routes/**`, `client/src/**`, `tests/analyst/**`.
+- ✅ Phase 1a — docs spine + 9 per-component specs + ADR-001 (Replit, `68f983fc`, `a230d968`)
+- ✅ Phase 1b — `.claude/skills/analyst/` (12 files) + `analyst-team.md` + `analyst-verdict-contract.md` (Claude Code, `14dc1f4b`, `c9a7d12b`)
+- ✅ Phase 2 — `engine/analyst/{contracts,router,voice,quality,surface}/` skeleton + CODEOWNERS + naming-lint + ADR-002 (Replit, `5ba18f29`)
+- ✅ Phase 3a — `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + persona test bench + ADR-003 + 53 tests (Claude Code, `d220f4b1`, `cc6d5a0e`). Contract frozen.
+- ✅ Phase 3b — Funding + Revenue Surface Specialists; `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten on the contract; tests use real Specialists end-to-end (Replit, `ee0c6573`)
+- ⏳ Phase 4 — build remaining mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults). Persona resolution (currently hardcoded `{ L+B, luxury, US }` single-tenant) + verdict-cache table are deferred follow-ups.
+- ⏳ Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + **verdict cache (ADR-004 Proposed — `docs/architecture/decisions/ADR-004-verdict-cache.md`)** + research-history reindex + guidance↔engine seam doc
+
+**Parallel workstream — Operational Tooling (OT):**
+- ✅ OT-A.1 — Anthropic native prompt caching (Replit, `7326e28c`)
+- ✅ OT-A.2 — Vercel AI SDK + AI Gateway BYOK wrapper (Replit, `aedebc05`, `64b37ca2`)
+- ✅ OT-A.3 — escalated + resolved. Five A/B iterations (v1→v5) surfaced **four mechanism bugs** (definition drift, mode collapse, representational mismatch, parity-against-broken-baseline). Gate re-specced from raw-output parity to per-tier value-parity with a four-class exemption taxonomy. T1 cleared 8/8 under exemption-adjusted scoring. Each bug now has a codified rule (see Codified Rules below).
+- ✅ OT-A.4 — **shipped (Replit, `7da9f25a`, 2026-04-19 18:14 UTC).** Legacy regex extractor retired; `streamObject` + `synthesisOutputToLegacyJson` adapter is the single synthesis path; `USE_AI_SDK_SYNTHESIS=true` by default; `ENGINE_VERSION` bumped v1→v2 (`v2-2026-04-20-a`); `SYNTHESIS_FINGERPRINT` `786aae35…`. Zod validation failures yield `ORCHESTRATOR_BOTH_FAILED` → single-model fallback engages cleanly. All gates green on ship.
+- 🟡 OT-A.5 — **drafting (Replit), in T+72h observation window (eligible 2026-04-22 18:14 UTC).** Section A (`inflationRate`) **DEFER** outcome (`97c5a331`): all 20 v5 cases were US-only; mono-country sample cannot test country-awareness. Filed for OT-A.6 with $3–5 mixed-country LEA trace gate. Section C.2 (`costSeg5yrPct`): v3.3 anchor confirmed byte-identical between `e5d873fe` and HEAD; v5 −26.7% bias is a real regression — strengthen with IRS Cost Seg ATG source pointer. v6 batch scope: 6 T2 USALI source-pointer anchors (B.1–B.6) + C.2 strengthen + C.1 docs-only reclassification. Drafts staged at `.local/drafts/OT-A-5-item-{3,4}-*.md`; held until gate. Single $22 v6 rerun authorized at gate clearance with explicit ack.
+- 🟡 Sentry financial contexts — handoff ready at `docs/operational-tooling/HANDOFF-replit-sentry-financial-contexts.md`; queued behind OT-A
+- 🟡 PostHog wiring — handoff ready at `docs/operational-tooling/HANDOFF-replit-posthog-wiring.md`; queued behind Sentry
+- ⏸ OT-B — Promptfoo PR-gate on persona drift (queued)
+- ⏸ OT-C — Braintrust adoption decision (after OT-A closes)
+
+**Codified rules from OT-A.3/A.4 (enforce on future LLM-pipeline migrations):**
+- `.claude/rules/field-definitions-no-prescription-hints.md` + `tests/proof/field-definitions-no-hints.test.ts` — ban numeric typical-range hints in `FIELD_DEFINITIONS` (mechanism bug #2).
+- `.claude/rules/llm-contract-migration-parity.md` — parity tests must happen at the downstream-effect layer, not raw-output (mechanism bug #3).
+- `.claude/rules/parity-exemption-classes.md` — four-class exemption taxonomy for when parity-measurement itself is the wrong question (mechanism bug #4).
+- `server/ai/engine-version.ts` + `tests/proof/engine-version-drift.test.ts` — `SYNTHESIS_FINGERPRINT` + `ENGINE_VERSION` must co-bump when `synthesis-schema.ts` or `research-prompt-builders.ts` change. Orchestrator changes (e.g. Sentry tag emission) are NOT in the fingerprint denominator.
+
+**OT/Analyst boundary:** OT-A touches `server/ai/` only; never `engine/analyst/**`, `engine/watchdog/*Evaluator.ts`, `server/routes/**`, `client/src/**`, `tests/analyst/**`.
 
 **Reusable engineering-discipline skills** (project-agnostic, under `.agents/skills/`): `pre-commit-gates`, `cross-check-invariants`, `architecture-decision-records`, `agent-handoff-briefs`, `agent-memory-files`.
 
@@ -274,8 +292,20 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 
 ## Recent Changes
 
-**Analyst Architecture Phase 3b (April 19, 2026, `ee0c6573`):**
-- Funding + Revenue evaluators now ship through `engine/analyst/surface/mgmt-co/{funding,revenue}-specialist.ts` and dispatch via `createMgmtCoRouter` from `/save-tab`. Response shape: `{ ok, savedTabs, verdict: AnalystVerdict | null }` (legacy `watchdog` field removed — single consumer).
+**OT-A.5 prep — Section A DEFER + C.2 strengthen confirmed (April 19, 2026, Replit, `97c5a331`, docs-only):**
+- Two offline verifications during the OT-A.4 T+72h observation window. **No source files touched, no API spend, engine-version-drift test stays clean.**
+- **Section A:** tabulating `(market, legacy.inflationRate.mid, new.mid)` across all 20 v5 cases revealed the sample is US-only; STAYS/PROMOTED rules from OT-A-5-design.md §A both presuppose mixed-country evidence. DEFER outcome → Section A removed from v6 batch; filed for OT-A.6 with $3–5 mixed-country LEA trace gate.
+- **Section C.2:** diffed FIELD_DEFINITIONS cost-seg block (`synthesis-schema.ts:203–205`) between `e5d873fe` and HEAD — byte-identical. v3.3 anchor intact in production; v5 −26.7% bias is a real regression. Strengthen with IRS Cost Segregation Audit Techniques Guide source pointer.
+- v6 batch now: 6 T2 USALI anchors (B.1–B.6) + C.2 strengthen + C.1 docs-only. v6 prompt LOC delta ~100–140 (down from ~120–160 without Section A).
+- Drafts for items (3) Sentry `fallback_reason` tag patch and (4) v6 prompt diff package staged at `.local/drafts/`. Held until 2026-04-22 18:14 UTC gate clearance with explicit $22 ack.
+
+**OT-A.4 — streamObject + adapter shipped (April 19, 2026, Replit, `7da9f25a`):**
+- Legacy regex extractor retired. `streamObject` (Vercel AI SDK) + `synthesisOutputToLegacyJson` (in `server/ai/synthesis-schema.ts`) is the single synthesis path. `USE_AI_SDK_SYNTHESIS=true` by default. `ENGINE_VERSION` v1 → v2 (`v2-2026-04-20-a`); `SYNTHESIS_FINGERPRINT` `786aae35…`.
+- Zod validation failures route through try/catch in `research-orchestrator.ts:467-501` to `ORCHESTRATOR_BOTH_FAILED` sentinel → single-model fallback engages cleanly.
+- All gates green on ship. T+72h production observation window opened — gate eligible 2026-04-22 18:14 UTC.
+
+**Analyst Architecture Phase 3b (April 19, 2026, Replit, `ee0c6573`):**
+- Funding + Revenue evaluators ship through `engine/analyst/surface/mgmt-co/{funding,revenue}-specialist.ts` and dispatch via `createMgmtCoRouter` from `/save-tab`. Response shape: `{ ok, savedTabs, verdict: AnalystVerdict | null }` (legacy `watchdog` field removed — single consumer).
 - `AnalystCheckDialog` rewritten on `AnalystVerdict`: renders `voice.headline` verbatim, flatten+dedupe per-dim actions, separate ghost "Save Anyway" button outside `actions[]` (contract stays frozen — `save_anyway` deliberately not in the union).
 - `tests/analyst/personas/lb.test.ts` exercises real Specialists end-to-end through Router + Voice Renderer + Quality Scorer; compensation case stays a stub for Phase 4.
 - Verified: TS 0, Lint 0, test:summary PASS, Verify UNQUALIFIED, Parity PASS, Health ALL CLEAR.
