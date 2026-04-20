@@ -1,17 +1,28 @@
-import { Redis } from "@upstash/redis";
+/**
+ * Postgres-backed cache (Neon).
+ *
+ * Replaces the previous Upstash Redis implementation per the
+ * "Neon and Neon Vector are the only databases" directive. The public API
+ * surface (`CacheService`, `cache`, `hashKey`) is identical so the 17+
+ * services that import it do not change.
+ *
+ * Storage: a single `cache_entries` table on the same Neon Postgres pool
+ * the rest of the app uses. Entries carry an optional `expires_at`; reads
+ * filter expired rows so a background sweeper isn't strictly required for
+ * correctness, only for housekeeping. A best-effort sweep runs on every
+ * write (cheap LRU-style: deletes a small batch of expired rows).
+ *
+ * Trade-offs vs Redis:
+ *   - Higher per-op latency (~1–5 ms vs sub-ms).
+ *   - Acceptable for this app's workload: research result caching, rate-feed
+ *     caching, market-intel aggregation — all high-latency upstream calls
+ *     where 1–5 ms is irrelevant.
+ *   - Shared across multiple instances at deploy time (matches Redis behavior).
+ */
+
 import { createHash } from "crypto";
+import { pool } from "./db";
 import { logger } from "./logger";
-
-let redis: Redis | null = null;
-
-function getRedis(): Redis | null {
-  if (redis) return redis;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  redis = new Redis({ url, token });
-  return redis;
-}
 
 interface CacheStats {
   hits: number;
@@ -26,36 +37,73 @@ export function hashKey(inputs: Record<string, unknown>): string {
   return createHash("sha256").update(JSON.stringify(inputs)).digest("hex").slice(0, 16);
 }
 
+/**
+ * Convert a Redis-style glob pattern (e.g. "research:*") to a SQL LIKE
+ * pattern (e.g. "research:%"). Escapes existing SQL wildcards so callers
+ * can keep using their Redis-style patterns unchanged.
+ */
+function globToLike(pattern: string): string {
+  return pattern.replace(/([%_])/g, "\\$1").replace(/\*/g, "%");
+}
+
+let lastSweepAt = 0;
+const SWEEP_INTERVAL_MS = 60_000;
+
+async function maybeSweepExpired(): Promise<void> {
+  const now = Date.now();
+  if (now - lastSweepAt < SWEEP_INTERVAL_MS) return;
+  lastSweepAt = now;
+  try {
+    await pool.query(
+      `DELETE FROM cache_entries
+       WHERE cache_key IN (
+         SELECT cache_key FROM cache_entries
+         WHERE expires_at IS NOT NULL AND expires_at <= NOW()
+         LIMIT 500
+       )`,
+    );
+  } catch (err: unknown) {
+    logger.warn(`Cache sweep error: ${err instanceof Error ? err.message : String(err)}`, "cache");
+  }
+}
+
 export class CacheService {
   async get<T>(key: string): Promise<T | null> {
-    const r = getRedis();
-    if (!r) return null;
     try {
-      const val = await r.get<T>(key);
-      if (val !== null && val !== undefined) {
+      const res = await pool.query<{ value: T }>(
+        `SELECT value FROM cache_entries
+         WHERE cache_key = $1
+           AND (expires_at IS NULL OR expires_at > NOW())`,
+        [key],
+      );
+      if (res.rowCount && res.rowCount > 0) {
         stats.hits++;
-        return val;
+        return res.rows[0].value;
       }
       stats.misses++;
       return null;
     } catch (err: unknown) {
-      logger.warn(`Cache get error for ${key}: ${err}`, "cache");
+      logger.warn(`Cache get error for ${key}: ${err instanceof Error ? err.message : String(err)}`, "cache");
       return null;
     }
   }
 
   async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
-    const r = getRedis();
-    if (!r) return;
     try {
-      if (ttlSeconds) {
-        await r.set(key, value, { ex: ttlSeconds });
-      } else {
-        await r.set(key, value);
-      }
+      const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
+      await pool.query(
+        `INSERT INTO cache_entries (cache_key, value, expires_at, updated_at)
+         VALUES ($1, $2::jsonb, $3, NOW())
+         ON CONFLICT (cache_key) DO UPDATE
+           SET value = EXCLUDED.value,
+               expires_at = EXCLUDED.expires_at,
+               updated_at = NOW()`,
+        [key, JSON.stringify(value), expiresAt],
+      );
       stats.sets++;
+      void maybeSweepExpired();
     } catch (err: unknown) {
-      logger.warn(`Cache set error for ${key}: ${err}`, "cache");
+      logger.warn(`Cache set error for ${key}: ${err instanceof Error ? err.message : String(err)}`, "cache");
     }
   }
 
@@ -89,45 +137,38 @@ export class CacheService {
   }
 
   async invalidate(pattern: string): Promise<number> {
-    const r = getRedis();
-    if (!r) return 0;
     try {
-      let cursor = "0";
-      let deleted = 0;
-      do {
-        const [nextCursor, keys] = await r.scan(Number(cursor), { match: pattern, count: 100 });
-        cursor = String(nextCursor);
-        if (keys.length > 0) {
-          await r.del(...keys);
-          deleted += keys.length;
-        }
-      } while (cursor !== "0");
+      const likePattern = globToLike(pattern);
+      const res = await pool.query(
+        `DELETE FROM cache_entries WHERE cache_key LIKE $1 ESCAPE '\\'`,
+        [likePattern],
+      );
+      const deleted = res.rowCount ?? 0;
       stats.invalidations += deleted;
       return deleted;
     } catch (err: unknown) {
-      logger.warn(`Cache invalidate error for ${pattern}: ${err}`, "cache");
+      logger.warn(`Cache invalidate error for ${pattern}: ${err instanceof Error ? err.message : String(err)}`, "cache");
       return 0;
     }
   }
 
   async getStats(): Promise<CacheStats & { keyCount: number; connected: boolean }> {
-    const r = getRedis();
-    if (!r) return { ...stats, keyCount: 0, connected: false };
     try {
-      const dbSize = await r.dbsize();
-      return { ...stats, keyCount: dbSize, connected: true };
+      const res = await pool.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM cache_entries
+         WHERE expires_at IS NULL OR expires_at > NOW()`,
+      );
+      return { ...stats, keyCount: Number(res.rows[0]?.count ?? 0), connected: true };
     } catch {
       return { ...stats, keyCount: 0, connected: false };
     }
   }
 
   async clearAll(): Promise<void> {
-    const r = getRedis();
-    if (!r) return;
     try {
-      await r.flushdb();
+      await pool.query(`TRUNCATE TABLE cache_entries`);
     } catch (err: unknown) {
-      logger.warn(`Cache clearAll error: ${err}`, "cache");
+      logger.warn(`Cache clearAll error: ${err instanceof Error ? err.message : String(err)}`, "cache");
     }
   }
 }

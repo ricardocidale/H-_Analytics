@@ -116,31 +116,6 @@ function checkEnvOnly(serviceKey: string, envVar: string): HealthCheckResult {
   return { serviceKey, healthy: true, latencyMs: Date.now() - start, checkedAt };
 }
 
-let _redisClient: { ping(): Promise<string> } | null = null;
-
-async function checkRedis(): Promise<HealthCheckResult> {
-  const start = Date.now();
-  const checkedAt = new Date();
-
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) {
-    return { serviceKey: "upstash_redis", healthy: false, latencyMs: Date.now() - start, error: "Redis URL or token not configured", checkedAt };
-  }
-
-  try {
-    if (!_redisClient) {
-      const { Redis } = await import("@upstash/redis");
-      _redisClient = new Redis({ url, token });
-    }
-    await _redisClient.ping();
-    return { serviceKey: "upstash_redis", healthy: true, latencyMs: Date.now() - start, checkedAt };
-  } catch (err: unknown) {
-    _redisClient = null; // Reset on failure so next check creates a fresh client
-    return { serviceKey: "upstash_redis", healthy: false, latencyMs: Date.now() - start, error: sanitizeError(err instanceof Error ? err.message : String(err)), checkedAt };
-  }
-}
-
 async function checkHospitalityBenchmarksDB(): Promise<HealthCheckResult> {
   const start = Date.now();
   const checkedAt = new Date();
@@ -231,8 +206,6 @@ export async function checkSourceHealth(serviceKey: string): Promise<HealthCheck
     result = await checkFred();
   } else if (serviceKey === "frankfurter") {
     result = await checkFrankfurter();
-  } else if (serviceKey === "upstash_redis") {
-    result = await checkRedis();
   } else if (serviceKey === "hospitality_benchmarks") {
     result = await checkHospitalityBenchmarksDB();
   } else if (serviceKey === "world_bank") {
@@ -270,7 +243,6 @@ export async function checkAllSources(): Promise<HealthCheckResult[]> {
     "frankfurter",
     "world_bank",
     "open_exchange_rates",
-    "upstash_redis",
     "hospitality_benchmarks",
     ...Object.keys(ENV_ONLY_SOURCES),
   ];

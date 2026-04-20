@@ -119,9 +119,10 @@ The application features a React 18 frontend with TypeScript, Wouter, TanStack Q
 - **Image Processing:** Sharp
 - **Mapping:** MapLibre GL
 - **Monitoring & Analytics:** Sentry, PostHog
-- **Caching:** Upstash Redis
+- **Caching:** Postgres-backed (`cache_entries` table on Neon) — see `server/cache.ts`
 - **AI/LLM Providers:** `@anthropic-ai/sdk`, Gemini
 - **Vector store:** Neon pgvector (`vector_chunks` table, 1536-dim cosine, HNSW index) — 7 namespaces: knowledge-base, research-history, comparables, assumption-guidance, documents, scenarios, properties. Embeddings via OpenAI `text-embedding-3-small`.
+- **Neon hostname note:** the DB hostname `helium` is Neon's internal project name, not a different provider. Replit's managed Postgres = Neon. Do NOT infer "not on Neon" from the hostname — check billing (`rewritetax.md` line 53 shows Neon compute charges) instead. Pinecone was fully removed Apr 17–19 via Task #353; only `PINECONE_API_KEY` secret remains as a vestigial env entry. Cache layer is Postgres-backed on the same Neon DB (`cache_entries` table) — no Upstash Redis.
 - **Icons:** Lucide (hardcoded — Phosphor/Material removed)
 - **Email:** Resend
 
