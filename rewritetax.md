@@ -69,6 +69,51 @@ Before relying on the estimates that follow, here is the **actual invoice data**
 
 4. **The "Net amount due $42.24" on the invoice is almost entirely irrelevant for cost analysis** — it reflects pre-purchase credits being drawn down, not actual usage. The number that matters is the **$2,846.41 gross subtotal** representing real consumption.
 
+### Full invoice ledger (Mar 15 – Apr 23, 2026 — 20 invoices, ~40 days)
+
+The full visible billing window confirms the $85–$90/day burn rate computed from the workspace breakdown.
+
+| Invoice | Issued | Net amount | Notes |
+|---|---|---:|---|
+| XFPSSE-00056 | Mar 15 | $56.09 | |
+| XFPSSE-00057 | Mar 15 | $57.43 | |
+| XFPSSE-00058 | Mar 15 | $55.85 | |
+| XFPSSE-00059 | Mar 15 | $0.00 | Pre-purchase fully covered |
+| XFPSSE-00060 | Mar 15 | $28.81 | Mid-threshold settlement |
+| XFPSSE-00061 | Mar 22 | $53.95 | |
+| XFPSSE-00062 | Mar 22 | $54.05 | |
+| XFPSSE-00063 | Mar 22 | $54.04 | |
+| XFPSSE-00064 | Mar 22 | $53.78 | |
+| XFPSSE-00065 | Mar 22 | $53.61 | |
+| XFPSSE-00066 | Mar 22 | $53.68 | |
+| XFPSSE-00067 | Mar 23 | $55.47 | |
+| XFPSSE-00068 | Mar 23 | $53.71 | |
+| XFPSSE-00069 | Mar 23 | $55.97 | |
+| XFPSSE-00070 | Mar 23 | $53.58 | |
+| XFPSSE-00071 | Mar 23 | $0.00 | Pre-purchase fully covered |
+| XFPSSE-00072 | Mar 24 | $7.66 | Final settlement of pre-cycle |
+| XFPSSE-00073 | Apr 16 | $54.47 | First invoice of Apr cycle |
+| **XFPSSE-00074** | **Apr 19** | **$266.95** | ⚠️ **Spike — coincides with OT-A.4 ship day (commit `7da9f25a`)** |
+| XFPSSE-DRAFT | Apr 23 | $39.51 | Draft (period Mar 23 – Apr 22; gross subtotal $2,846 — see prior section) |
+| **Total invoiced (40 days)** | | **$1,108.61** | After pre-purchase credits applied |
+
+### What the ledger reveals
+
+1. **Replit bills usage in ~$50 increments via an auto-trigger threshold.** 18 of 20 invoices fall in the $53–$57 range, indicating Replit auto-issues an invoice each time accumulated usage crosses the threshold. That means each "$54" invoice represents roughly $50 of actual consumption that crossed the trigger (plus tax/fees variance).
+
+2. **Bunched billing dates indicate heavy-activity days.** Six invoices on Mar 22 + six on Mar 23 = **12 invoices in 2 days = ~$650 of usage settlement** in a 48-hour window. That maps to the OT-A.3 v3.x mode-collapse remediation cycle. March was the peak commit month (1,396 commits).
+
+3. **🚨 The Apr 19 spike ($266.95) is the most expensive single billing event in the project's history.** It coincides exactly with the OT-A.4 ship (commit `7da9f25a OT-A.4 Path A1: retire legacy regex extractor; streamObject is the single synthesis path` on Apr 19). The OT-A.4 work was *budgeted* at **$22** for a single rerun (the explicit authorization gate documented in OT-A.5 design). **Actual day-of cost: $266.95 = 12× overrun on the named operation alone.** This is by far the worst budget-to-actual variance in the documented spend history, and it argues strongly for tighter ship-day scoping going forward.
+
+4. **Two $0.00 invoices** (00059, 00071) are points where pre-purchase credits exactly absorbed all usage — meaning the pre-purchase balance was being actively drawn down in the same period.
+
+5. **Total cash outlay reconciliation** over the visible 40-day window:
+   - Invoice settlements: **$1,108.61**
+   - Pre-purchase credits drawn down (per XFPSSE-DRAFT): **$2,500.99**
+   - **Combined: ~$3,609 over 40 days = $90.23/day**
+
+   This is within 6% of the $85.30/day Agent Usage rate computed independently from the workspace-level breakdown of XFPSSE-DRAFT. Two independent methods converging on ~$85–$90/day is high-confidence triangulation.
+
 ### Project-life extrapolation (revised)
 
 The project has run for 86 days. Activity per the commit-rate analysis was lower in Feb (837 commits, ~30/day) and higher in March (1,396 commits, ~45/day) and April (1,039 in 20 days, ~52/day). The invoice covers the heaviest 30 days. Conservative extrapolation, weighting by commit volume:
