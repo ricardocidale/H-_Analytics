@@ -40,6 +40,7 @@ import * as executiveSummaryRoutes from "./routes/executive-summary";
 import * as icpIntelligenceRoutes from "./routes/icp-intelligence";
 import * as renderSettingsRoutes from "./routes/render-settings";
 import * as pageVisitRoutes from "./routes/page-visits";
+import * as analystAdminRoutes from "./routes/analyst-admin";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -87,6 +88,7 @@ export async function registerRoutes(
   icpIntelligenceRoutes.register(app);
   renderSettingsRoutes.register(app);
   pageVisitRoutes.register(app);
+  analystAdminRoutes.register(app);
 
   return httpServer;
 }

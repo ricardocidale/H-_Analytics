@@ -8,7 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst slice: T003 button + T004 scoped runner
+## Session: April 20, 2026 (latest) — Interactive Analyst: T003 button + T004 runner + T005 admin route
+- **T005 route shipped**: `server/routes/analyst-admin.ts` → `POST /api/analyst/refresh` with body `{ scope:"global-assumptions", fields? }`. Guards: `requireAuth` + `requireAdminGuard` (reused). 60s per-user in-memory cooldown → 429 `{ retryAfterMs }`. Translates `scope:"global-assumptions"` → runner's `"company"` dialect. Returns guidance inline. Registered in `server/routes.ts`. Exports `__resetAnalystCooldown` test hook.
+- Did NOT reuse the bigger `analystRefreshGuards()` composer — that one is for a different feature (analyst-tables allow-listed refresh, 10/hr, CSRF, audit logs).
+- **Next chunk (T006)**: plumb guidance into `ModelDefaultsTab` + sub-tabs. Add `/api/guidance/global` read endpoint (tiny — maybe fold into analyst-admin.ts), `useQuery` in tab, per-sub-tab canonical-field list constants, render `<AnalystActionButton variant="header" />` in each sub-tab section header calling the refresh endpoint with the tab's fields.
+
+## Session: April 20, 2026 — Interactive Analyst slice: T003 button + T004 scoped runner
 - **T003 button shipped**: `client/src/components/analyst/AnalystActionButton.tsx` — Sparkles icon, amber accent, cooldown tooltip countdown, disabled during run/cooldown, `data-testid="button-analyst"`. Exported from `analyst/index.ts`.
 - **T004 scoped runner shipped**: `server/ai/analyst-scoped-runner.ts` — non-HTTP `runAnalystScoped({ scope:"company", userId, fields? })`. Mirrors the company branch of the research route: drain orchestrator → parse → `extractGuidance` → create research_run → upsert assumption_guidance → fire-and-forget vector index. `fields` only filters the returned slice (all records persisted). MI aggregator + web-research skipped at company scope for now (noted in code).
 - **T002 skipped** (canvas dance not worth the context); **T001 analyst-promotion shelved** (wrong target — property scalars, not model_defaults; deferred to later slice).
