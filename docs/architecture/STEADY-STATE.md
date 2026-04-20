@@ -19,22 +19,30 @@ Steady State exists for one reason: **nothing is ever hardcoded.** Every value, 
 
 ## 2. Admin Information Architecture
 
+Steady State sits **near the bottom of the Admin sidebar** (last position, or just above Testing & Verification / Reports & Exports). It is foundational reference data, not daily-use; surfacing it at the top would over-emphasize it relative to operational pages.
+
 ```
 Admin
-├── …
-├── Steady State                              ← new top-level section
-│   ├── Defaults                              ← admin-editable seed values
-│   │   ├── Management Company  (tab)         ← canonical example
-│   │   ├── Property            (tab)         ← same pattern, different entity
-│   │   └── …                   (tab per entity)
-│   └── Constants                             ← read-mostly authority values
-│       ├── Tax & Depreciation  (tab)
-│       ├── GAAP / USALI        (tab)
-│       ├── Macro & FX          (tab)
-│       └── …                   (tab per category)
+├── Management Company
+├── Properties
 ├── Analyst                                   ← see ANALYST.md
+├── Users
+├── Scenarios
 ├── Rebecca                                   ← see Rebecca persona docs
-└── …
+├── Themes & Appearance
+├── App Settings
+├── Reports & Exports
+├── Testing & Verification
+└── Steady State                              ← bottom of sidebar
+    ├── Defaults                              ← admin-editable seed values
+    │   ├── Management Company  (tab)         ← canonical example
+    │   ├── Property            (tab)         ← same pattern, different entity
+    │   └── …                   (tab per entity)
+    └── Constants                             ← admin-editable with strong advisory; never user-editable
+        ├── Tax & Depreciation  (tab)
+        ├── GAAP / USALI        (tab)
+        ├── Macro & FX          (tab)
+        └── …                   (tab per category)
 ```
 
 **Why two children, not one:** Constants and Defaults are governed differently. Constants change only when an external authority publishes a new rate or a new standard (release-managed, sourced, dated). Defaults change whenever The Analyst proposes a new seed and an admin approves it (workflow-managed, citation-required). Mixing them in one screen leaks the wrong mental model into Admin.
@@ -55,7 +63,16 @@ Each card shows: current default value, source pointer / citation, last-updated 
 
 ### 2.2 Constants page layout
 
-Same card-grid pattern, but each card is read-mostly. Edits require a release process (versioned source pointer, dated). The only inline write action is "Refresh from source" (when an external publisher has issued a new value).
+**Constants are never user-editable.** End users see a constant only as **FYI** — a small inline reference next to the assumption field whose calculation it informs (e.g., next to a depreciation input: *"IRS publishes 39.5 years for non-residential real property — applied automatically unless overridden in Admin."*). The user has no editing affordance for the constant itself.
+
+**Admins can edit constants** in the Constants tab, but the card UI must:
+
+- Display the **source name** (e.g., "IRS Publication 946"), the **URL**, the **date the value was acquired**, the **publisher's stated effective date**, and the **publisher's version**.
+- Show an **advisory line** above the input: *"This value is published by an external authority. Editing it makes your model deviate from authority guidance. Document why before saving."*
+- Provide a **required reason field** that captures why the admin is overriding the authority. The reason persists with the override and shows in audit logs.
+- Surface a **"Refresh from source"** action for cases where the external publisher has issued an update.
+
+The Save semantic is universal: even on a Constants edit, the admin must click Save to confirm "I have seen this and want this change effected." Save is never automatic.
 
 ### 2.3 Vocabulary in Admin
 
@@ -95,13 +112,12 @@ Each tab's Save commits **that tab's fields only** and triggers The Analyst for 
 
 ### 4.3 Navigation-away triggers a save reminder dialog
 
-When the user attempts to leave a tab or page with unsaved changes (route change, tab switch, browser back, page close), the app opens a dialog with three options:
+When the user attempts to leave a tab or page with unsaved changes (route change, tab switch, browser back, page close), the app opens a dialog with **two** options:
 
 - **Save** — commit the edits, run the analyst, then proceed with the navigation.
-- **Don't save** — discard the in-flight edits, **revert every field on this tab to the values that were in place when the user entered the tab**, then proceed. The reverted state is what was on the page at entry — *not* the original defaults, *not* an empty form. This matters: if the user came back to a tab they had previously saved, "don't save" returns them to their previously saved state, not to factory seeds.
-- **Cancel** — close the dialog and stay on the page with the edits intact.
+- **Cancel** — discard the in-flight edits, **revert every field on this tab to the values that were in place when the user entered the tab**, then proceed with the navigation. "As the user found them" means the entry-state snapshot — *not* the original defaults, *not* an empty form. If the user came back to a tab they had previously saved, Cancel returns them to their previously-saved state, not to factory seeds.
 
-The dialog uses neutral wording ("You have unsaved changes on this tab") — never a scare prompt.
+The dialog uses neutral wording ("You have unsaved changes on this tab — Save or Cancel?") — never a scare prompt. The Save semantic is universal: Save = "I have seen these values and want this change effected."
 
 ### 4.4 First-entry vs return-entry behavior is identical
 
@@ -111,6 +127,26 @@ The Save button behavior, the reminder dialog, and the revert semantics are the 
 - Return visit: the user's last-saved assumptions.
 
 The page does not distinguish in UI; the underlying state machine handles it.
+
+---
+
+## 4a. The hardcoding exception — math and physics only
+
+**Default rule: nothing is hardcoded.** Every value, threshold, label, and parameter is seeded in the database, editable by admin (or release-managed for Constants), and overridable by the user (Defaults only).
+
+**The narrow exception** — values that may be hardcoded in code:
+
+- **Mathematical identities** — `Math.PI`, `1/12 months per year`, `100 cents per dollar`. They are not subject to publisher disagreement.
+- **Physical constants** — speed of light, gravity. Not relevant to this domain but the principle is the same.
+- **Pure code structure** — array lengths, loop bounds, regex patterns governing string parsing.
+
+**The disqualifier**: if any reasonable admin might want to set the value differently, it is not eligible for hardcoding. The clearest test:
+
+- ✅ **30.5 days per month** (GAAP convention for monthly accounting averages) — *can* be hardcoded. Math/convention, no admin will rationally override it.
+- ❌ **39.5 years for non-residential depreciation** (IRS Pub 946) — *cannot* be hardcoded. An admin may have a legitimate reason to deviate from authority guidance; the value must live as a Constant in the DB with full source provenance and an advisory.
+- ❌ **A "default" inflation rate of 2.5%** — *cannot* be hardcoded. It is a Default; it must be admin-set in Steady State → Defaults.
+
+**Why the line matters**: hardcoding an authority-dictated value silently locks the model into one publisher's opinion. The first time an admin asks "can we use a different depreciation life for this scenario?" and the answer is "we'd have to ship a code change" is the moment the architecture has failed.
 
 ---
 
@@ -137,9 +173,9 @@ Each page in scope must ship with tests that prove:
 - [ ] Save button is enabled on initial render with no edits.
 - [ ] Clicking Save with no edits still commits the values as assumptions and triggers the specialist.
 - [ ] Editing a field and navigating away opens the save reminder dialog.
-- [ ] "Don't save" restores the entry snapshot exactly (every field).
 - [ ] "Save" commits and proceeds with the navigation.
-- [ ] "Cancel" stays on the page with edits intact.
+- [ ] "Cancel" restores the entry snapshot exactly (every field) and proceeds with the navigation.
+- [ ] On a Constants edit, the admin must supply the required override-reason before Save will commit.
 
 ---
 
