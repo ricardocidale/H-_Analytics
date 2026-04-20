@@ -23,8 +23,14 @@ export function identifyUser(user: {
   role?: string;
 }) {
   if (!initialized) return;
+  // Do not send email to PostHog. Handoff §63 forbids PII in capture
+  // properties, including identify-time person properties (which PostHog
+  // stores on the user profile and exposes in-UI — same PII exposure
+  // surface as event properties). Keep only `role`, which is aggregate
+  // and non-identifying.
+  // If per-user email correlation is ever genuinely needed, hash it
+  // (SHA-256 truncated) rather than sending plaintext.
   posthog.identify(String(user.id), {
-    email: user.email,
     role: user.role,
   });
 }
