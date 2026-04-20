@@ -1,10 +1,10 @@
 # Handoff: ADR-005 Phase 1 — Workspace Bootstrap
 
 **Audience:** Replit Agent
-**Status:** Ready to execute when steward authorizes
+**Status:** ✅ **AUTHORIZED 2026-04-20** — steward approved execution via chat. Go.
 **Owner:** Replit (owns `.replit`, `package.json`, build pipeline per claude-replit-split.md)
 **Risk:** Low — Phase 1 adds workspace tooling but moves zero files. Worst case: rollback is `rm -rf pnpm-workspace.yaml turbo.json && git checkout package.json`.
-**Prereq:** Steward authorization to start ADR-005 execution (ADR still Proposed per its own acceptance criteria; Phase 1 + 2 landing cleanly is what transitions it to Accepted).
+**Prereq:** ✅ Steward authorized (this line). ADR-005 stays Proposed per its own acceptance criteria; Phase 1 + 2 landing cleanly is what transitions it to Accepted.
 
 ---
 
