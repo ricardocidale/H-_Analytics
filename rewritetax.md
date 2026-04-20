@@ -744,7 +744,7 @@ Items where the rewrite tax is still being paid because no enforcement exists:
 
 ---
 
-## Addendum: Live Billing Database (Apr 23, 2026)
+## Addendum: Live Billing Database (Apr 20, 2026)
 
 The 75-invoice ledger above has been promoted from a static markdown table to a live, queryable Postgres table set with H+-workspace attribution applied. This is the **C-then-B** approach: ratio attribution now from the data we have, with a one-step CSV-loader upgrade path when raw line items become exportable.
 
