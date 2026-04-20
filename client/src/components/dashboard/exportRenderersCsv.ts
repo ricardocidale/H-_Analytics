@@ -89,7 +89,7 @@ export function exportOverviewCSV(
   lines.push("CONSOLIDATED INCOME STATEMENT");
   lines.push(`"",${incomeYears.map(String).join(",")}`);
   incomeRows.forEach((row) => {
-    const label = `"${"  ".repeat(row.indent || 0)}${row.category}"`;
+    const label = `"${"  ".repeat(row.indent ?? 0)}${row.category}"`;
     lines.push(`${label},${row.values.join(",")}`);
   });
 

@@ -85,8 +85,8 @@ const DSCR_TIER_COLORS = {
 export function getMarketColorInternational() { return getComputedThemeColor("--chart-3") || "hsl(217, 91%, 60%)"; }
 
 export function getPerformanceTier(property: any): { color: string; label: string; tier: string } {
-  const noi = property.startAdr * property.roomCount * (property.startOccupancy || 0.6) * 365;
-  const totalInvestment = (property.purchasePrice || 0) + (property.buildingImprovements || 0);
+  const noi = property.startAdr * property.roomCount * (property.startOccupancy ?? 0.6) * 365;
+  const totalInvestment = (property.purchasePrice ?? 0) + (property.buildingImprovements ?? 0);
   const debtService = totalInvestment * 0.065;
   const dscr = totalInvestment > 0 ? noi / debtService : 0;
 

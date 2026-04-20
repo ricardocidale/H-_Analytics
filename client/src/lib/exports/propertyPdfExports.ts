@@ -188,8 +188,8 @@ export async function exportUnifiedPDF(ctx: PropertyExportContext, orientation: 
       series: [
         { name: 'NOI', data: yearlyChartData.map((d) => ({ label: d.year, value: d.NOI })), color: `#${brand.LINE_HEX[3] || brand.ACCENT_HEX}` },
         { name: 'ANOI', data: yearlyChartData.map((d) => ({ label: d.year, value: d.ANOI })), color: `#${brand.LINE_HEX[0]}` },
-        { name: 'FCF', data: cashFlowData.map((cf, i) => ({ label: String(yearLabels[i]), value: cf.freeCashFlow || 0 })), color: `#${brand.LINE_HEX[1] || brand.SECONDARY_HEX}` },
-        { name: 'FCFE', data: cashFlowData.map((cf, i) => ({ label: String(yearLabels[i]), value: cf.freeCashFlowToEquity || 0 })), color: `#${brand.LINE_HEX[2] || brand.PRIMARY_HEX}` },
+        { name: 'FCF', data: cashFlowData.map((cf, i) => ({ label: String(yearLabels[i]), value: cf.freeCashFlow ?? 0 })), color: `#${brand.LINE_HEX[1] || brand.SECONDARY_HEX}` },
+        { name: 'FCFE', data: cashFlowData.map((cf, i) => ({ label: String(yearLabels[i]), value: cf.freeCashFlowToEquity ?? 0 })), color: `#${brand.LINE_HEX[2] || brand.PRIMARY_HEX}` },
       ],
       brand,
     });

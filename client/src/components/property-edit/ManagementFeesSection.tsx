@@ -157,7 +157,7 @@ export default function ManagementFeesSection({ draft, onChange, researchValues,
                 step="1"
                 min="0"
                 max="50"
-                value={(draft.ownerPriorityReturn || 0) * 100}
+                value={(draft.ownerPriorityReturn ?? 0) * 100}
                 onChange={(e) => onChange("ownerPriorityReturn", parseFloat(e.target.value) / 100 || 0)}
                 className="bg-card border-primary/30 text-foreground"
                 data-testid="input-owner-priority-return"

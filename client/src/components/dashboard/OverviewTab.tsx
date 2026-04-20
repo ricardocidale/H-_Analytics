@@ -240,7 +240,7 @@ export function OverviewTab({ financials, properties, projectionYears, getFiscal
     { text: `Markets: ${marketList}`, type: "neutral" as const },
     { text: `${investmentHorizon}-year total revenue`, metric: formatMoney(totalProjectionRevenue), type: "neutral" as const },
     { text: `${investmentHorizon}-year total NOI`, metric: formatMoney(totalProjectionNOI), type: "neutral" as const },
-    { text: `${investmentHorizon}-year total ANOI`, metric: formatMoney(financials.totalProjectionANOI || 0), type: "neutral" as const },
+    { text: `${investmentHorizon}-year total ANOI`, metric: formatMoney(financials.totalProjectionANOI ?? 0), type: "neutral" as const },
     { text: `${investmentHorizon}-year total cash flow`, metric: formatMoney(totalProjectionCashFlow), type: "neutral" as const },
   ];
 

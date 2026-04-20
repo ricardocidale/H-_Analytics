@@ -31,7 +31,7 @@ export function YearlyCashFlowStatement({ data, property, global, years = 10, st
   const equityInvested = loan.equityInvested;
   const acquisitionYear = getAcquisitionYear(loan);
 
-  const operatingReserve = property.operatingReserve || 0;
+  const operatingReserve = property.operatingReserve ?? 0;
   const cashAnalysis = analyzeMonthlyCashPosition(data, operatingReserve);
 
   const toggleSection = (section: string) => {
