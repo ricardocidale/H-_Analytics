@@ -5,9 +5,10 @@ import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { formatMoney } from "@/lib/financialEngine";
 import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_INCOME_TAX_RATE } from "@/lib/constants";
 import type { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
+import type { PropertyResponse } from "@/lib/api/types";
 
 interface FCFAnalysisTableProps {
-  properties: any[];
+  properties: PropertyResponse[];
   allPropertyYearlyCF: ReturnType<typeof aggregateCashFlowByYear>[];
   getYearlyConsolidated: (yearIndex: number) => any;
   projectionYears: number;

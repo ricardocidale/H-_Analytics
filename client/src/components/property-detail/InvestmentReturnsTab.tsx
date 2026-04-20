@@ -90,9 +90,7 @@ export default function InvestmentReturnsTab({
 
       <InvestmentAnalysis
         properties={properties}
-        allPropertyFinancials={allPropertyFinancials}
         allPropertyYearlyCF={allPropertyYearlyCF}
-        getPropertyYearly={getPropertyYearly}
         getYearlyConsolidated={getYearlyConsolidated}
         global={global}
         expandedRows={expandedRows}

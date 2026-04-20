@@ -47,9 +47,14 @@ const BASELINE_KNOWN_ANY_PROPS: string[] = [
   // where `assetDefinition` was cast to `Record<string, string>` despite its
   // actual shape being structured.
 
-  // Remaining `properties: any[]` + `allPropertyFinancials: any[]` — sub-batch 2b
-  "client/src/components/InvestmentAnalysis.tsx:38",
-  "client/src/components/InvestmentAnalysis.tsx:39",
+  // Sub-batch 2b (2026-04-20) RESOLVED — `properties: any[]` typed across
+  // InvestmentAnalysis, FCFAnalysisTable, PropertyIRRTable. Real contract
+  // drift surfaced + removed: `allPropertyFinancials` + `getPropertyYearly`
+  // were destructured-but-unused in InvestmentAnalysis while two callers
+  // passed different shapes (MonthlyFinancials[][] vs {property,financials}[]).
+  // Dead props deleted from interface + both call sites.
+  // `researchSources: any[]` in IcpDataSourcesTab replaced with a local
+  // ResearchSource type derived from actual usage.
 
   // Company-research tab content payloads — untyped LLM output shapes (sub-batch 2c)
   "client/src/components/company-research/CompetitiveLandscapeTab.tsx:13",
@@ -58,17 +63,10 @@ const BASELINE_KNOWN_ANY_PROPS: string[] = [
   "client/src/components/company-research/ServiceRevenueTab.tsx:27",
   "client/src/components/company-research/VendorCostsTab.tsx:26",
 
-  // Investment analysis — remaining properties: any[] sites (sub-batch 2b)
-  "client/src/components/investment/FCFAnalysisTable.tsx:10",
-  "client/src/components/investment/PropertyIRRTable.tsx:8",
-
-  // Property detail / edit — sub-batch 2d/2e
+  // Property detail / edit — sub-batches 2d, 2e
   "client/src/components/property-detail/BenchmarkPanel.tsx:25",
   "client/src/components/property-edit/types.ts:26",
   "client/src/components/property-edit/types.ts:29",
-
-  // ICP tabs — sub-batch 2b
-  "client/src/pages/icp/IcpDataSourcesTab.tsx:8",
 ];
 
 // -- File enumeration --------------------------------------------------------

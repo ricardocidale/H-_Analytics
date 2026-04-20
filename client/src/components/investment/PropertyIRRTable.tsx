@@ -3,9 +3,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { formatMoney } from "@/lib/financialEngine";
 import { DEFAULT_EXIT_CAP_RATE, DEFAULT_PROPERTY_INCOME_TAX_RATE, IRR_HIGHLIGHT_THRESHOLD } from "@/lib/constants";
+import type { PropertyResponse } from "@/lib/api/types";
 
 interface PropertyIRRTableProps {
-  properties: any[];
+  properties: PropertyResponse[];
   getPropertyInvestment: (prop: any) => number;
   getPropertyExitValue: (propIndex: number) => number;
   getPropertyCashFlows: (propIndex: number) => number[];

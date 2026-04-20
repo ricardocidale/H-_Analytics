@@ -58,11 +58,9 @@ export function InvestmentAnalysisTab({ financials, properties, projectionYears,
         </CardHeader>
         <CardContent ref={tabContentRef} data-export-section="investment-analysis-table">
           <div className="space-y-6">
-            <InvestmentAnalysis 
+            <InvestmentAnalysis
               properties={properties}
-              allPropertyFinancials={financials.allPropertyFinancials}
               allPropertyYearlyCF={financials.allPropertyYearlyCF}
-              getPropertyYearly={(propIdx, yearIdx) => financials.allPropertyYearlyIS[propIdx]?.[yearIdx]}
               getYearlyConsolidated={(yearIdx) => financials.yearlyConsolidatedCache[yearIdx]}
               global={global}
               expandedRows={expandedRows}

@@ -23,7 +23,7 @@ import { formatMoney, getFiscalYearForModelYear } from "@/lib/financialEngine";
 import { PROJECTION_YEARS } from "@/lib/constants";
 import { propertyEquityInvested, acquisitionYearIndex } from "@/lib/financial/equityCalculations";
 import { computeIRR } from "@analytics/returns/irr.js";
-import type { GlobalResponse } from "@/lib/api/types";
+import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 import type { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
 import { FCFAnalysisTable } from "./investment/FCFAnalysisTable";
 import { PropertyIRRTable } from "./investment/PropertyIRRTable";
@@ -35,11 +35,9 @@ function calculateIRR(cashFlows: number[]): number {
 }
 
 interface InvestmentAnalysisProps {
-  properties: any[];
-  allPropertyFinancials: any[];
+  properties: PropertyResponse[];
   allPropertyYearlyCF: ReturnType<typeof aggregateCashFlowByYear>[];
-  getPropertyYearly: (propIndex: number, yearIndex: number) => any;
-  getYearlyConsolidated: (yearIndex: number) => any;
+  getYearlyConsolidated: (yearIndex: number) => unknown;
   global: GlobalResponse;
   expandedRows: Set<string>;
   toggleRow: (rowId: string) => void;
@@ -47,11 +45,7 @@ interface InvestmentAnalysisProps {
 
 export function InvestmentAnalysis({
   properties,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  allPropertyFinancials,
   allPropertyYearlyCF,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getPropertyYearly,
   getYearlyConsolidated,
   global,
   expandedRows,
