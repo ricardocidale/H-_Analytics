@@ -8,6 +8,11 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 20, 2026 (latest) — Lint Batch 5a shipped (Category A)
+- **Batch 5a shipped (Claude, `c66896fc`):** 22 Category A `|| 0` → `?? 0` swaps across 5 files (auditBalanceSheet.ts, known-value-runner.ts, calculation-checker/index.ts, verification/test-cases.ts, runVerification.ts). Schema-nullable properties + test fixtures only — zero NaN-exposure risk. **187 → 159 warnings (54% of 348 complete).**
+- **All five gates green:** TS 0 / Lint 0 errors / Vocab 11/11 / test:summary PASS / Verify UNQUALIFIED. Atomic single-commit per agent-collision-hygiene rule.
+- **Batch 5b (Category B, ~56 sites) + 5c (Category C accumulators, ~5 sites) still pending** — those carry real NaN-exposure risk per batch-5-preaudit.md. User's Option 1/2/3 call still open for 5b/5c execution strategy.
+
 ## Session: April 20, 2026 (late) — OT-A.4 ship + OT-A.5 queued + observability/reorg scaffolding
 - **OT-A.4 shipped (Replit, `7da9f25a`).** Four mechanism bugs codified as rules: `field-definitions-no-prescription-hints.md`, `llm-contract-migration-parity.md`, `parity-exemption-classes.md` (+ narrative `.claude/notes/llm-migration-playbook.md`). Pinecone removed 100% across active codebase (`706aec6c`).
 - **OT-A.5 drafts approved (Replit).** T+72h observation window runs until 2026-04-22 18:14 UTC. Cross-check finding (`OT-A-5-section-a-crosscheck.md`): v5 test set is all US states → inflationRate reclassified Class 4 → Class 3, Section A anchor dropped from v6 batch.
