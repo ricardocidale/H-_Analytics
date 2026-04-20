@@ -164,9 +164,9 @@ export function runIndependentVerification(
         "Debt",
         "ASC 470",
         "Interest Expense + Principal Payment = Total Debt Service",
-        engineCalc.find((m) => m.debtPayment > 0)?.debtPayment || 0,
-        (engineCalc.find((m) => m.debtPayment > 0)?.interestExpense || 0) +
-        (engineCalc.find((m) => m.debtPayment > 0)?.principalPayment || 0),
+        engineCalc.find((m) => m.debtPayment > 0)?.debtPayment ?? 0,
+        (engineCalc.find((m) => m.debtPayment > 0)?.interestExpense ?? 0) +
+        (engineCalc.find((m) => m.debtPayment > 0)?.principalPayment ?? 0),
         "critical"
       ));
     }
@@ -314,7 +314,7 @@ export function runIndependentVerification(
       "critical"
     ));
 
-    const endingCash = engineCalc[engineCalc.length - 1]?.endingCash || 0;
+    const endingCash = engineCalc[engineCalc.length - 1]?.endingCash ?? 0;
     const cumulativeCashFlow = engineCalc.reduce((sum, m) => sum + m.cashFlow, 0);
     const reserveSeed = property.operatingReserve ?? 0;
     checks.push(check(

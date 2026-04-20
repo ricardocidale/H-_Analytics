@@ -81,7 +81,7 @@ function convertToAuditInput(property: any): PropertyAuditInput {
     occupancyRampMonths: property.occupancyRampMonths,
     occupancyGrowthStep: property.occupancyGrowthStep,
     purchasePrice: property.purchasePrice,
-    buildingImprovements: property.buildingImprovements || 0,
+    buildingImprovements: property.buildingImprovements ?? 0,
     landValuePercent: property.landValuePercent,
     taxRate: property.taxRate,
     type: property.type,

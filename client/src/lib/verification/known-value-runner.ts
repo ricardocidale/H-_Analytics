@@ -53,15 +53,15 @@ function buildEngineInputs(tc: TestCase): { property: any; global: any } {
     property: {
       operationsStartDate: opsDate,
       acquisitionDate: opsDate,
-      roomCount: tc.property.roomCount || 0,
-      startAdr: tc.property.startAdr || 0,
+      roomCount: tc.property.roomCount ?? 0,
+      startAdr: tc.property.startAdr ?? 0,
       adrGrowthRate: 0,
-      startOccupancy: tc.property.startOccupancy || 0,
-      maxOccupancy: tc.property.maxOccupancy || tc.property.startOccupancy || 0,
+      startOccupancy: tc.property.startOccupancy ?? 0,
+      maxOccupancy: tc.property.maxOccupancy ?? tc.property.startOccupancy ?? 0,
       occupancyRampMonths: 0,
       occupancyGrowthStep: 0,
-      purchasePrice: tc.property.purchasePrice || 0,
-      buildingImprovements: tc.property.buildingImprovements || 0,
+      purchasePrice: tc.property.purchasePrice ?? 0,
+      buildingImprovements: tc.property.buildingImprovements ?? 0,
       landValuePercent: tc.property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT,
       type: tc.property.type || "All Cash",
       acquisitionLTV: tc.property.acquisitionLTV ?? DEFAULT_LTV,
@@ -111,9 +111,9 @@ function getEngineMonth1(tc: TestCase): MonthlyFinancials | null {
 
 function buildChecksForTestCase(testCase: TestCase): KnownValueCheck[] {
   const checks: KnownValueCheck[] = [];
-  const roomCount = testCase.property.roomCount || 0;
-  const adr = testCase.property.startAdr || 0;
-  const occupancy = testCase.property.startOccupancy || 0;
+  const roomCount = testCase.property.roomCount ?? 0;
+  const adr = testCase.property.startAdr ?? 0;
+  const occupancy = testCase.property.startOccupancy ?? 0;
   const calculatedRoomRevenue = roomCount * adr * occupancy * DAYS_PER_MONTH;
 
   checks.push({
@@ -125,7 +125,7 @@ function buildChecksForTestCase(testCase: TestCase): KnownValueCheck[] {
   });
 
   const landPct = testCase.property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
-  const depreciableBasis = (testCase.property.purchasePrice || 0) * (1 - landPct) + (testCase.property.buildingImprovements || 0);
+  const depreciableBasis = (testCase.property.purchasePrice ?? 0) * (1 - landPct) + (testCase.property.buildingImprovements ?? 0);
   const calculatedDepreciation = depreciableBasis / DEPRECIATION_YEARS;
   checks.push({
     label: "Depreciation",
@@ -136,7 +136,7 @@ function buildChecksForTestCase(testCase: TestCase): KnownValueCheck[] {
   });
 
   if (testCase.property.type === "Financed") {
-    const totalInvestment = (testCase.property.purchasePrice || 0) + (testCase.property.buildingImprovements || 0);
+    const totalInvestment = (testCase.property.purchasePrice ?? 0) + (testCase.property.buildingImprovements ?? 0);
     const ltv = testCase.property.acquisitionLTV || DEFAULT_LTV;
     const loanAmount = totalInvestment * ltv;
     const rate = DEFAULT_INTEREST_RATE / MONTHS_PER_YEAR;

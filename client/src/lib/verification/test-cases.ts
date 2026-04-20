@@ -54,7 +54,7 @@ export function computeMonthlyPL(tc: TestCase) {
   const fbRev = totalRev * revShareFB;
   const otherRev = totalRev * revShareOther;
 
-  const totalPropertyValue = (tc.property.purchasePrice || 0) + (tc.property.buildingImprovements || 0);
+  const totalPropertyValue = (tc.property.purchasePrice ?? 0) + (tc.property.buildingImprovements ?? 0);
 
   const varExpenses =
     roomRev * (tc.property.costRateRooms ?? DEFAULT_COST_RATE_ROOMS) +
@@ -85,7 +85,7 @@ export function computeMonthlyPL(tc: TestCase) {
   const anoi = noi - ffeFee;
 
   const landPct = tc.property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
-  const depBasis = (tc.property.purchasePrice || 0) * (1 - landPct) + (tc.property.buildingImprovements || 0);
+  const depBasis = (tc.property.purchasePrice ?? 0) * (1 - landPct) + (tc.property.buildingImprovements ?? 0);
   const monthlyDep = depBasis / DEPRECIATION_YEARS / MONTHS_PER_YEAR;
 
   let interest = 0;

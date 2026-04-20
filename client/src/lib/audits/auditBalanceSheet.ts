@@ -22,9 +22,9 @@ export function auditBalanceSheet(
 
   const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
   const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS;
-  const depreciableBasis = (property.purchasePrice || 0) * (1 - landPct) + (property.buildingImprovements || 0);
+  const depreciableBasis = (property.purchasePrice ?? 0) * (1 - landPct) + (property.buildingImprovements ?? 0);
   const _monthlyDepreciation = depreciableBasis / effectiveDepYears / MONTHS_PER_YEAR;
-  const landValue = (property.purchasePrice || 0) * landPct;
+  const landValue = (property.purchasePrice ?? 0) * landPct;
 
   let failedPropertyValue = 0;
   let failedEquity = 0;
@@ -83,10 +83,10 @@ export function auditBalanceSheet(
   }
 
   // ── A = L + E identity check (ASC 210) ──────────────────────────────────
-  const totalPropValue = (property.purchasePrice || 0) + (property.buildingImprovements || 0);
+  const totalPropValue = (property.purchasePrice ?? 0) + (property.buildingImprovements ?? 0);
   const isFinanced = property.type === "Financed";
   const originalLoanAmount = isFinanced ? totalPropValue * (property.acquisitionLTV ?? DEFAULT_LTV) : 0;
-  const initialEquity = totalPropValue - originalLoanAmount + (property.operatingReserve || 0);
+  const initialEquity = totalPropValue - originalLoanAmount + (property.operatingReserve ?? 0);
 
   let cumulativeNetIncome = 0;
   let cumulativeRefiEquityAdj = 0;
