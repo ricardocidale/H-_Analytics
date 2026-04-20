@@ -20,7 +20,7 @@ import {
 } from "./vector-store-service";
 import type { ResearchParams } from "./research-prompt-builders";
 import type { GuidanceRecord } from "./guidance/schemas";
-import type { LlmVendor, ResearchConfig } from "@shared/schema";
+import type { LlmVendor, ResearchConfig, ContextLlmConfig } from "@shared/schema";
 
 export type AnalystScope = "company";
 
@@ -75,9 +75,12 @@ export async function runAnalystScoped(
   }
 
   const researchConfig = (ga.researchConfig as ResearchConfig) ?? {};
-  const contextLlm = researchConfig.company;
+  const contextLlm = researchConfig.companyLlm;
   const configuredVendor = (contextLlm?.llmVendor || "anthropic") as LlmVendor;
-  const model = contextLlm?.llmModel || DEFAULT_RESEARCH_MODEL;
+  const model =
+    contextLlm?.primaryLlm ||
+    researchConfig.preferredLlm ||
+    DEFAULT_RESEARCH_MODEL;
 
   const vendorKey = (["openai", "anthropic", "google"].includes(configuredVendor)
     ? configuredVendor

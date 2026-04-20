@@ -58,7 +58,7 @@ export function AnalystActionButton({
     ? "The Analyst is studying…"
     : onCooldown
       ? `Available again in ${formatCooldown(cooldownRemainingMs)}`
-      : "Ask the Analyst to research this section and suggest ranges with sources.";
+      : "Have the Analyst research this section and suggest ranges with sources.";
 
   const displayLabel = running ? "Studying…" : label;
 
