@@ -2,13 +2,43 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Section, PctField, TabBanner, MONTHS, type Draft } from "./FieldHelpers";
+import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
+import { MARKET_MACRO_TAB_ANALYST_FIELDS } from "./analyst-fields";
 
-export function MarketMacroTab({ draft, onChange }: { draft: Draft; onChange: (field: string, value: any) => void }) {
+interface MarketMacroTabProps {
+  draft: Draft;
+  onChange: (field: string, value: any) => void;
+  guidance?: AnalystGuidanceRecord[];
+  onAnalystRefresh?: (fields?: string[]) => void;
+  analystRunning?: boolean;
+  analystCooldownMs?: number;
+}
+
+export function MarketMacroTab(props: MarketMacroTabProps) {
+  const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
+    props;
+  const analystEnabled = typeof onAnalystRefresh === "function";
   return (
     <div className="space-y-5">
-      <TabBanner>
-        Global economic assumptions that affect all projections across the platform. Changes here recalculate every property and the management company model.
-      </TabBanner>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <TabBanner>
+          Global economic assumptions that affect all projections across the platform. Changes here recalculate every property and the management company model.
+        </TabBanner>
+        {analystEnabled && (
+          <div className="shrink-0">
+            <AnalystActionButton
+              variant="header"
+              running={analystRunning}
+              cooldownRemainingMs={analystCooldownMs}
+              onClick={() =>
+                onAnalystRefresh?.([...MARKET_MACRO_TAB_ANALYST_FIELDS])
+              }
+              testIdSuffix="market-macro"
+            />
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         <Section grid title="Economic Environment" description="Core macroeconomic rates used in DCF, NPV, and cost escalation calculations.">

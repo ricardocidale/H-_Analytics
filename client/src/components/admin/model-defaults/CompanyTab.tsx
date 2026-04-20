@@ -11,13 +11,45 @@ import {
   DEFAULT_EXIT_CAP_RATE,
 } from "@shared/constants";
 import { Section, PctField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
+import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
+import { COMPANY_TAB_ANALYST_FIELDS } from "./analyst-fields";
 
-export function CompanyTab({ draft, onChange }: { draft: Draft; onChange: (field: string, value: any) => void }) {
+interface CompanyTabProps {
+  draft: Draft;
+  onChange: (field: string, value: any) => void;
+  /** Analyst guidance records, scoped to the admin's company entity. */
+  guidance?: AnalystGuidanceRecord[];
+  /** Fires a scoped Analyst run for this tab's canonical field list. */
+  onAnalystRefresh?: (fields?: string[]) => void;
+  analystRunning?: boolean;
+  analystCooldownMs?: number;
+}
+
+export function CompanyTab(props: CompanyTabProps) {
+  const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
+    props;
+  const analystEnabled = typeof onAnalystRefresh === "function";
   return (
     <div className="space-y-5">
-      <TabBanner>
-        Core company identity and financial structure defaults. These apply organization-wide and seed the management company model. Changes do not affect existing properties.
-      </TabBanner>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <TabBanner>
+          Core company identity and financial structure defaults. These apply organization-wide and seed the management company model. Changes do not affect existing properties.
+        </TabBanner>
+        {analystEnabled && (
+          <div className="shrink-0">
+            <AnalystActionButton
+              variant="header"
+              running={analystRunning}
+              cooldownRemainingMs={analystCooldownMs}
+              onClick={() =>
+                onAnalystRefresh?.([...COMPANY_TAB_ANALYST_FIELDS])
+              }
+              testIdSuffix="company"
+            />
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         <Section title="Identity" description="The management company name and projection horizon used throughout the platform.">

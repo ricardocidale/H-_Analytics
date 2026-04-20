@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,6 +12,11 @@ import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTa
 import { LlmDefaultsTab } from "./model-defaults/LlmDefaultsTab";
 import { CompanyTab } from "./model-defaults/CompanyTab";
 import { RequiredFieldsTab } from "./model-defaults/RequiredFieldsTab";
+import { useAuth } from "@/lib/auth";
+import {
+  useAnalystRefresh,
+  type AnalystGuidanceRecord,
+} from "@/components/analyst/useAnalystRefresh";
 
 interface ModelDefaultsTabProps {
   onSaveStateChange?: (state: AdminSaveState | null) => void;
@@ -21,6 +26,7 @@ interface ModelDefaultsTabProps {
 export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: ModelDefaultsTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, isAdmin } = useAuth();
 
   const { data: saved, isLoading } = useQuery({
     queryKey: ["globalAssumptions"],
@@ -29,6 +35,34 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
       if (!res.ok) throw new Error("Failed to fetch global assumptions");
       return res.json();
     },
+  });
+
+  // Analyst guidance for the admin's company-scope (entityType="company",
+  // entityId=userId). Only fetched for admins — non-admins never reach this
+  // component but we guard defensively.
+  const guidanceQueryKey = useMemo(
+    () => ["analyst-guidance", "company", user?.id] as const,
+    [user?.id],
+  );
+  const { data: guidanceResp } = useQuery({
+    queryKey: guidanceQueryKey,
+    enabled: Boolean(isAdmin && user?.id),
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/guidance/company/${user!.id}`,
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error("Failed to fetch analyst guidance");
+      return res.json() as Promise<{
+        records: AnalystGuidanceRecord[];
+      }>;
+    },
+  });
+  const guidance = guidanceResp?.records ?? [];
+
+  const analyst = useAnalystRefresh({
+    scope: "global-assumptions",
+    invalidateKeys: [guidanceQueryKey],
   });
 
   const saveMutation = useMutation({
@@ -107,11 +141,25 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
         </TabsList>
 
         <TabsContent value="company">
-          <CompanyTab draft={draft} onChange={handleChange} />
+          <CompanyTab
+            draft={draft}
+            onChange={handleChange}
+            guidance={guidance}
+            onAnalystRefresh={analyst.triggerRefresh}
+            analystRunning={analyst.running}
+            analystCooldownMs={analyst.cooldownRemainingMs}
+          />
         </TabsContent>
 
         <TabsContent value="market-macro">
-          <MarketMacroTab draft={draft} onChange={handleChange} />
+          <MarketMacroTab
+            draft={draft}
+            onChange={handleChange}
+            guidance={guidance}
+            onAnalystRefresh={analyst.triggerRefresh}
+            analystRunning={analyst.running}
+            analystCooldownMs={analyst.cooldownRemainingMs}
+          />
         </TabsContent>
 
         <TabsContent value="model-constants">
@@ -119,7 +167,14 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
         </TabsContent>
 
         <TabsContent value="property-underwriting">
-          <PropertyUnderwritingTab draft={draft} onChange={handleChange} />
+          <PropertyUnderwritingTab
+            draft={draft}
+            onChange={handleChange}
+            guidance={guidance}
+            onAnalystRefresh={analyst.triggerRefresh}
+            analystRunning={analyst.running}
+            analystCooldownMs={analyst.cooldownRemainingMs}
+          />
         </TabsContent>
 
         <TabsContent value="llm-defaults">

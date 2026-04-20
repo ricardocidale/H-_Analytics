@@ -74,15 +74,43 @@ describe("Endpoint Security Audit — Auth Middleware", () => {
     return AUTH_ALLOWED.some(exempt => line.includes(exempt)) || line.includes(".test.");
   }
 
+  // Read the next N lines of source after the matched route declaration so
+  // the auth-middleware check works for multi-line declarations like:
+  //   app.post(
+  //     "/api/foo",
+  //     requireAuth,      // ← middleware on subsequent lines is common
+  //     requireAdminGuard,
+  //     async (req, res) => { ... }
+  //   );
+  function routeSlice(fileAndLine: string, contextLines = 6): string {
+    const match = fileAndLine.match(/^(.+?):(\d+):/);
+    if (!match) return fileAndLine;
+    const [, file, lineStr] = match;
+    const start = parseInt(lineStr, 10) - 1;
+    try {
+      const lines = fs.readFileSync(file, "utf-8").split("\n");
+      return lines.slice(start, start + contextLines).join("\n");
+    } catch {
+      return fileAndLine;
+    }
+  }
+
+  function isProtected(fileAndLine: string, keywords: string[]): boolean {
+    const slice = routeSlice(fileAndLine);
+    return keywords.some(kw => slice.includes(kw));
+  }
+
+  const AUTH_KEYWORDS = [
+    "requireAuth",
+    "requireAdmin",
+    "requireManagement",
+    "requireChecker",
+  ];
+
   it("all POST endpoints have authentication middleware", () => {
     const postRoutes = grepRoutes("\\.(post)\\(");
     const unprotected = postRoutes.filter(
-      line =>
-        !line.includes("requireAuth") &&
-        !line.includes("requireAdmin") &&
-        !line.includes("requireManagement") &&
-        !line.includes("requireChecker") &&
-        !isExempt(line)
+      line => !isProtected(line, AUTH_KEYWORDS) && !isExempt(line)
     );
     expect(unprotected).toEqual([]);
   });
@@ -90,11 +118,7 @@ describe("Endpoint Security Audit — Auth Middleware", () => {
   it("all PUT endpoints have authentication middleware", () => {
     const putRoutes = grepRoutes("\\.(put)\\(");
     const unprotected = putRoutes.filter(
-      line =>
-        !line.includes("requireAuth") &&
-        !line.includes("requireAdmin") &&
-        !line.includes("requireManagement") &&
-        !isExempt(line)
+      line => !isProtected(line, AUTH_KEYWORDS) && !isExempt(line)
     );
     expect(unprotected).toEqual([]);
   });
@@ -102,11 +126,7 @@ describe("Endpoint Security Audit — Auth Middleware", () => {
   it("all PATCH endpoints have authentication middleware", () => {
     const patchRoutes = grepRoutes("\\.(patch)\\(");
     const unprotected = patchRoutes.filter(
-      line =>
-        !line.includes("requireAuth") &&
-        !line.includes("requireAdmin") &&
-        !line.includes("requireManagement") &&
-        !isExempt(line)
+      line => !isProtected(line, AUTH_KEYWORDS) && !isExempt(line)
     );
     expect(unprotected).toEqual([]);
   });
@@ -114,12 +134,7 @@ describe("Endpoint Security Audit — Auth Middleware", () => {
   it("all DELETE endpoints have authentication middleware", () => {
     const deleteRoutes = grepRoutes("\\.(delete)\\(\"/api/");
     const unprotected = deleteRoutes.filter(
-      line =>
-        !line.includes("requireAuth") &&
-        !line.includes("requireAdmin") &&
-        !line.includes("requireManagement") &&
-        !line.includes("requireChecker") &&
-        !isExempt(line)
+      line => !isProtected(line, AUTH_KEYWORDS) && !isExempt(line)
     );
     expect(unprotected).toEqual([]);
   });

@@ -3,6 +3,9 @@ import { Slider } from "@/components/ui/slider";
 import { GovernedFieldWrapper } from "@/components/ui/governed-field";
 import EditableValue from "@/components/company-assumptions/EditableValue";
 import { Section, PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
+import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
+import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS } from "./analyst-fields";
 import {
   DEFAULT_START_ADR,
   DEFAULT_ADR_GROWTH_RATE,
@@ -30,9 +33,21 @@ import {
   DEFAULT_PROPERTY_INFLATION_RATE,
 } from "@shared/constants";
 
-export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onChange: (field: string, value: any) => void }) {
+interface PropertyUnderwritingTabProps {
+  draft: Draft;
+  onChange: (field: string, value: any) => void;
+  guidance?: AnalystGuidanceRecord[];
+  onAnalystRefresh?: (fields?: string[]) => void;
+  analystRunning?: boolean;
+  analystCooldownMs?: number;
+}
+
+export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
+  const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
+    props;
   const acq = draft.standardAcqPackage ?? {};
   const debt = draft.debtAssumptions ?? {};
+  const analystEnabled = typeof onAnalystRefresh === "function";
 
   const onAcq = (field: string, value: number) => {
     onChange("standardAcqPackage", { ...acq, [field]: value });
@@ -43,9 +58,24 @@ export function PropertyUnderwritingTab({ draft, onChange }: { draft: Draft; onC
 
   return (
     <div className="space-y-5">
-      <TabBanner>
-        Template values applied when creating new properties. Existing properties retain their current values. NULL fields fall back to system constants.
-      </TabBanner>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <TabBanner>
+          Template values applied when creating new properties. Existing properties retain their current values. NULL fields fall back to system constants.
+        </TabBanner>
+        {analystEnabled && (
+          <div className="shrink-0">
+            <AnalystActionButton
+              variant="header"
+              running={analystRunning}
+              cooldownRemainingMs={analystCooldownMs}
+              onClick={() =>
+                onAnalystRefresh?.([...PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS])
+              }
+              testIdSuffix="property-underwriting"
+            />
+          </div>
+        )}
+      </div>
 
       <Section grid title="Revenue Assumptions" description="Default revenue parameters pre-filled when adding a new hotel to the portfolio.">
         <DollarField

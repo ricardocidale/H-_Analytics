@@ -8,7 +8,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst: T003 button + T004 runner + T005 admin route
+## Session: April 20, 2026 (latest) — Interactive Analyst: T006 complete (a + b)
+- **T006b**: MarketMacroTab + PropertyUnderwritingTab wired to the same `useAnalystRefresh` hook via shared parent state; each renders `<AnalystActionButton variant="header" testIdSuffix="market-macro"|"property-underwriting" />` next to its `TabBanner`, firing its canonical field list from `analyst-fields.ts`. ModelConstantsTab/LlmDefaultsTab/RequiredFieldsTab skipped per plan.
+- **Next**: T007 soft-gate (`<SaveWithAnalystGate />`) — high-confidence + >20% out-of-band violations; ≥2 always interrupts, 1 only if >40%.
+- Lint Check still red pre-existing; gates run at T008.
+
+## Session: April 20, 2026 — Interactive Analyst: T006a plumbing landed
+- **T006a**: `useAnalystRefresh` hook (POST `/api/analyst/refresh`, local 60s cooldown clock synced with server `retryAfterMs`, query-key invalidation, toasts); per-tab field map at `analyst-fields.ts`; parent (`ModelDefaultsTab.tsx`) fetches `/api/guidance/company/:userId` (admin-gated) and plumbs guidance + refresh primitives down; CompanyTab pilot renders `<AnalystActionButton testIdSuffix="company" />`.
+
+## Session: April 20, 2026 — Interactive Analyst: T003 button + T004 runner + T005 admin route
 - **T005 route shipped**: `server/routes/analyst-admin.ts` → `POST /api/analyst/refresh` with body `{ scope:"global-assumptions", fields? }`. Guards: `requireAuth` + `requireAdminGuard` (reused). 60s per-user in-memory cooldown → 429 `{ retryAfterMs }`. Translates `scope:"global-assumptions"` → runner's `"company"` dialect. Returns guidance inline. Registered in `server/routes.ts`. Exports `__resetAnalystCooldown` test hook.
 - Did NOT reuse the bigger `analystRefreshGuards()` composer — that one is for a different feature (analyst-tables allow-listed refresh, 10/hr, CSRF, audit logs).
 - **Next chunk (T006)**: plumb guidance into `ModelDefaultsTab` + sub-tabs. Add `/api/guidance/global` read endpoint (tiny — maybe fold into analyst-admin.ts), `useQuery` in tab, per-sub-tab canonical-field list constants, render `<AnalystActionButton variant="header" />` in each sub-tab section header calling the refresh endpoint with the tab's fields.
