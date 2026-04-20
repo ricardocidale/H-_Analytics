@@ -1,9 +1,18 @@
 # ADR-004: Verdict Cache
 
-**Status:** Proposed
-**Date:** 2026-04-20
-**Deciders:** Claude Code (proposer), human steward, Replit Agent (implementer)
+**Status:** Accepted (2026-04-20)
+**Date:** 2026-04-20 (proposed) · 2026-04-20 (accepted)
+**Deciders:** Claude Code (proposer), human steward (accepted via chat 2026-04-20), Replit Agent (implementer)
 **Tags:** analyst, cognitive-engine, performance, cost
+
+## Acceptance
+
+Human steward authorized acceptance via chat message on 2026-04-20. Claude-side
+Phase 5A code pieces (cache-keys utilities + FIELD_GROUP_INPUT_DEPENDENCIES map)
+shipped with this acceptance. Replit-side Phase 5A migrations queued via
+`.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`.
+
+
 
 ---
 
