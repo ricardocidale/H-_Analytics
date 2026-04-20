@@ -30,6 +30,7 @@
  *   FAIL — Critical issues or formula failures detected
  */
 import { generatePropertyProForma, MonthlyFinancials } from "./financialEngine";
+import { assertFinite } from "@calc/shared/decimal";
 import { checkPropertyFormulas, checkMetricFormulas, generateFormulaReport } from "./audits/formulaChecker";
 import { checkGAAPCompliance, checkCashFlowStatement, generateComplianceReport } from "./audits/gaapComplianceChecker";
 import { runFullAudit, generateAuditWorkpaper, type PropertyAuditInput, type GlobalAuditInput } from "./financialAuditor";
@@ -323,7 +324,7 @@ function aggregateToYearly(monthlyData: MonthlyFinancials[]): Array<{
     y.noi += m.noi;
     y.expenseFFE += m.expenseFFE;
     y.anoi += m.anoi;
-    y.netIncome += (m.netIncome || 0);
+    y.netIncome += assertFinite(m.netIncome, "m.netIncome");
   }
   
   return Array.from(yearlyMap.entries()).map(([year, d]) => ({

@@ -1,5 +1,6 @@
 import { MonthlyFinancials } from "../financialEngine";
 import { differenceInMonths, startOfMonth } from "date-fns";
+import { assertFinite } from "@calc/shared/decimal";
 import {
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_LTV,
@@ -38,7 +39,7 @@ export function auditBalanceSheet(
     if (i < acqMonthIndex) continue;
     totalChecked++;
 
-    cumulativeDepreciation += (m.depreciationExpense ?? 0);
+    cumulativeDepreciation += assertFinite(m.depreciationExpense, "m.depreciationExpense");
     const expectedPropertyValue = landValue + depreciableBasis - cumulativeDepreciation;
 
     const actualPropertyValue = m.propertyValue ?? 0;
@@ -96,7 +97,7 @@ export function auditBalanceSheet(
     const m = monthlyData[i];
     if (i < acqMonthIndex) continue;
 
-    cumulativeNetIncome += (m.netIncome ?? 0);
+    cumulativeNetIncome += assertFinite(m.netIncome, "m.netIncome");
 
     // Refinancing proceeds increase cash (assets) and new debt increases liabilities,
     // but closing costs are not captured in net income.
@@ -108,7 +109,7 @@ export function auditBalanceSheet(
       const prevDebt = i > 0 ? (monthlyData[i - 1].debtOutstanding ?? 0) : 0;
       const rawDebtChange = (m.debtOutstanding ?? 0) - prevDebt;
       const refiDebtJump = rawDebtChange + (m.principalPayment ?? 0);
-      cumulativeRefiEquityAdj += (m.refinancingProceeds ?? 0) - refiDebtJump;
+      cumulativeRefiEquityAdj += assertFinite(m.refinancingProceeds, "m.refinancingProceeds") - refiDebtJump;
     }
 
     const totalAssets = (m.endingCash ?? 0) + (m.propertyValue ?? 0);

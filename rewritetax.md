@@ -741,3 +741,40 @@ Items where the rewrite tax is still being paid because no enforcement exists:
 ---
 
 *This audit is intentionally read-only. No source files were modified. The audit itself is a single docs file (`rewritetax.md`) and the commits that grew it. The discipline this audit recommends is the same discipline this audit follows: no API spend, no schema change, no workflow restart, no second pass.*
+
+---
+
+## Addendum: Live Billing Database (Apr 23, 2026)
+
+The 75-invoice ledger above has been promoted from a static markdown table to a live, queryable Postgres table set with H+-workspace attribution applied. This is the **C-then-B** approach: ratio attribution now from the data we have, with a one-step CSV-loader upgrade path when raw line items become exportable.
+
+**Tables** (in the existing project Postgres, additive only — no app code touched, no workflow restart):
+- `replit_invoices` — one row per invoice, with `is_cap_hit`, `is_spike_day`, `hplus_attributed_net`, `hplus_attributed_gross`, `hplus_attribution_ratio`, `attribution_method`
+- `replit_invoice_line_items` — workspace-scoped attribution rows (portal-exact for `XFPSSE-DRAFT`, ratio-estimated for the other 74)
+
+**Files**:
+- Schema: `shared/schema/replit-billing.ts`
+- Seeder (re-runnable): `script/seed-replit-billing.ts`
+- Report generator: `script/billing-report.ts` → writes `docs/billing/hplus-cost-report.md`
+- Workspace UUID: `e53ea481-4c36-4e2a-8bfc-80697f311b65` (H+ Analytics)
+
+**Refresh** at any time:
+```bash
+npx tsx script/seed-replit-billing.ts   # re-seed (idempotent)
+npx tsx script/billing-report.ts        # regenerate the report
+```
+
+**Headline numbers from the live DB** (matches the markdown ledger above within rounding):
+
+| Metric | Value |
+|---|---|
+| Invoices loaded | 75 |
+| Cap-hit invoices ($511.68) | 2 |
+| Spike-day invoices | 6 |
+| Zero invoices (pre-purchase covered) | 6 |
+| Total cash invoiced | $4,747.69 |
+| Pre-purchase pool consumed (Apr cycle) | $2,477.64 |
+| **H+ attributed cash** | **$4,378.41** (92.2% of total cash) |
+| H+ daily-avg cash burn | $128.78 per active day (34 active billing days) |
+
+**Upgrade path to raw line items**: drop an Orb invoice CSV at `./.local/orb-invoice-export.csv` and a follow-up loader will overwrite the line-item table with workspace-exact figures while leaving the invoice-header table untouched.

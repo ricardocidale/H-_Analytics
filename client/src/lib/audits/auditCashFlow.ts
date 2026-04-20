@@ -1,5 +1,6 @@
 import { MonthlyFinancials } from "../financialEngine";
 import { differenceInMonths, startOfMonth } from "date-fns";
+import { assertFinite } from "@calc/shared/decimal";
 import type { AuditFinding, AuditSection, PropertyAuditInput, GlobalAuditInput } from "./types";
 import { parseLocalDate, formatVariance, AUDIT_TOLERANCE_DOLLARS } from "./helpers";
 
@@ -27,7 +28,7 @@ export function auditCashFlowReconciliation(
     if (i === acqMonthIndex) {
       cumulativeCashFlow += reserveSeed;
     }
-    cumulativeCashFlow += (m.cashFlow ?? 0);
+    cumulativeCashFlow += assertFinite(m.cashFlow, "m.cashFlow");
 
     if (i < acqMonthIndex) continue;
     totalChecked++;
