@@ -8,7 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — 3 more proof tests + orphan cleanup sweep
+## Session: April 20, 2026 (latest) — ADR-004 accepted + Phase 5A Claude-side shipped
+- **ADR-004 verdict cache accepted** by human steward via chat 2026-04-20. Status Proposed → Accepted. Replit auto-committed the status change as `66f3df90` (7th collision this session, same attribution pattern).
+- **Phase 5A Claude-side code shipped (`38a468b3`):** `engine/analyst/cognitive/cache-keys.ts` (285 LOC) with `VerdictCacheKey`, `computeCacheKey()`, `computeInputContextHash()`, `canonicalJson()`, and v0 `FIELD_GROUP_INPUT_DEPENDENCIES` (conservative all-inputs fallback). 18/18 tests pass in `tests/analyst/cache-keys.test.ts`. All functions pure — no DB, no I/O, usable from Edge runtime.
+- **Phase 5A Replit handoff written** at `.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`: adds `research_runs.cache_key` (indexed), `research_runs.cache_inputs_hash`, `assumption_guidance.superseded_at`. Zero new tables. Drizzle migration + dev Neon verification spec included. Handoff explicitly scopes 5A to migrations only.
+- **Queue:** Replit executes Phase 5A migrations → Claude picks up Phase 5B (engine-client.ts read path, depends on the new columns) → Replit Phase 5C (write-after + invalidation) → Replit Phase 5D (observability).
+
+## Session: April 20, 2026 (prior) — 3 more proof tests + orphan cleanup sweep
 - **Four proof tests shipped today** (Claude Opus): orphan-files (Phase 16, `c8628ace`), any-prop-detector / literal-drift / seed-schema-sync (Phases 17/18/19, `bee2549c`). All three suggested tests from `cross-check-invariants.md` now live. `verify:summary` grows to 19 phases. Baselines: orphans 29, any-prop 28, date-drift 25, seed-coverage 64 — each a documented cleanup queue with stale-entry guard.
 - **Orphan cleanup sweep (`a08f4af9`):** deleted 8 files / 720 LOC of dead code — `shared/chat.ts` (duplicate of engagement.ts conversations), `server/utils/batch.ts` shim + its dead target `server/replit_integrations/batch/`, and 4 UNWIRED concrete modules (agentSkillsExport, benchmark-injector, executive-summary-section, export-json-utils). Baseline: 29 → 23 entries (all remaining are barrel `index.ts` files, deferred to whole-directory audit).
 - **Session memory trim:** archived April 18 + April 17 entries to restore 12-session cap.
