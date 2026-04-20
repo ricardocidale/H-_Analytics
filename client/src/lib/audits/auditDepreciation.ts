@@ -54,7 +54,7 @@ export function auditDepreciation(
   let preAcqDepFailures = 0;
   for (let i = 0; i < Math.min(acqMonthIndex, monthlyData.length); i++) {
     const m = monthlyData[i];
-    if ((m.depreciationExpense || 0) > AUDIT_TOLERANCE_DOLLARS) {
+    if ((m.depreciationExpense ?? 0) > AUDIT_TOLERANCE_DOLLARS) {
       preAcqDepFailures++;
       if (preAcqDepFailures <= 2) {
         findings.push({
@@ -65,7 +65,7 @@ export function auditDepreciation(
           passed: false,
           expected: 0,
           actual: m.depreciationExpense,
-          variance: formatVariance(0, m.depreciationExpense || 0),
+          variance: formatVariance(0, m.depreciationExpense ?? 0),
           recommendation: `Month ${i + 1}: Depreciation recorded before asset placed in service`,
           workpaperRef: `WP-DEP-003-M${i + 1}`
         });
@@ -77,7 +77,7 @@ export function auditDepreciation(
   const sampleEnd = Math.min(acqMonthIndex + AUDIT_SAMPLE_MONTHS, monthlyData.length);
   for (let i = acqMonthIndex; i < sampleEnd; i++) {
     const m = monthlyData[i];
-    const actualDep = m.depreciationExpense || 0;
+    const actualDep = m.depreciationExpense ?? 0;
     if (!withinTolerance(expectedMonthlyDep, actualDep)) {
       depFailures++;
       if (depFailures <= 3) {

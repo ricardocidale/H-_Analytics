@@ -232,9 +232,9 @@ export function crossValidateFinancingCalculators(
   // 7. Net Income Identity: ANOI - Interest - Depreciation - Tax = Net Income (GAAP)
   let niErrors = 0;
   for (const m of monthlyData) {
-    const taxableIncome = m.anoi - m.interestExpense - (m.depreciationExpense || 0);
+    const taxableIncome = m.anoi - m.interestExpense - (m.depreciationExpense ?? 0);
     const _expectedTax = taxableIncome > 0 ? taxableIncome * (m.incomeTax / Math.max(taxableIncome, 0.01)) : 0;
-    const expectedNI = m.anoi - m.interestExpense - (m.depreciationExpense || 0) - m.incomeTax;
+    const expectedNI = m.anoi - m.interestExpense - (m.depreciationExpense ?? 0) - m.incomeTax;
     if (!withinTolerance(m.netIncome, expectedNI)) {
       niErrors++;
     }
@@ -252,7 +252,7 @@ export function crossValidateFinancingCalculators(
   // 8. Cash Flow Reconciliation: Operating CF + Financing CF = Total Cash Flow (ASC 230)
   let cfErrors = 0;
   for (const m of monthlyData) {
-    const expectedCF = (m.operatingCashFlow || 0) + (m.financingCashFlow || 0);
+    const expectedCF = (m.operatingCashFlow ?? 0) + (m.financingCashFlow ?? 0);
     if (Math.abs(m.cashFlow - expectedCF) > TOLERANCE) {
       cfErrors++;
     }

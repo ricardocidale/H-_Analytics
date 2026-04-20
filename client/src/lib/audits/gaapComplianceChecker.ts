@@ -57,8 +57,8 @@ export function checkGAAPCompliance(monthlyData: MonthlyFinancials[]): Complianc
   for (let i = 0; i < Math.min(12, monthlyData.length); i++) {
     const m = monthlyData[i];
     
-    const depExp = m.depreciationExpense || 0;
-    const incomeTax = m.incomeTax || 0;
+    const depExp = m.depreciationExpense ?? 0;
+    const incomeTax = m.incomeTax ?? 0;
     const correctNetIncome = m.anoi - m.interestExpense - depExp - incomeTax;
     const incorrectNetIncome = m.anoi - m.debtPayment;
     
@@ -260,14 +260,14 @@ export function checkCashFlowStatement(monthlyData: MonthlyFinancials[]): Compli
   for (let i = 0; i < Math.min(12, monthlyData.length); i++) {
     const m = monthlyData[i];
     
-    const expectedOpCF = m.netIncome + (m.depreciationExpense || 0);
-    const opCFCorrect = Math.abs((m.operatingCashFlow || 0) - expectedOpCF) < 0.01;
+    const expectedOpCF = m.netIncome + (m.depreciationExpense ?? 0);
+    const opCFCorrect = Math.abs((m.operatingCashFlow ?? 0) - expectedOpCF) < 0.01;
     results.push({
       passed: opCFCorrect,
       category: "ASC 230 - Operating",
       rule: "Indirect Method Reconciliation",
-      description: `Month ${i + 1}: Operating CF $${(m.operatingCashFlow || 0).toFixed(0)} ${opCFCorrect ? "=" : "≠"} NI $${m.netIncome.toFixed(0)} + Dep $${(m.depreciationExpense || 0).toFixed(0)}`,
-      details: opCFCorrect ? "Operating cash flow correctly reconciles from net income + depreciation add-back" : `Expected $${expectedOpCF.toFixed(0)}, got $${(m.operatingCashFlow || 0).toFixed(0)}`,
+      description: `Month ${i + 1}: Operating CF $${(m.operatingCashFlow ?? 0).toFixed(0)} ${opCFCorrect ? "=" : "≠"} NI $${m.netIncome.toFixed(0)} + Dep $${(m.depreciationExpense ?? 0).toFixed(0)}`,
+      details: opCFCorrect ? "Operating cash flow correctly reconciles from net income + depreciation add-back" : `Expected $${expectedOpCF.toFixed(0)}, got $${(m.operatingCashFlow ?? 0).toFixed(0)}`,
       severity: "critical"
     });
   }
@@ -276,15 +276,15 @@ export function checkCashFlowStatement(monthlyData: MonthlyFinancials[]): Compli
   for (let i = 0; i < Math.min(12, monthlyData.length); i++) {
     const m = monthlyData[i];
     
-    if (m.principalPayment > 0 || (m.refinancingProceeds || 0) > 0) {
-      const expectedFinCF = -m.principalPayment + (m.refinancingProceeds || 0);
-      const finCFCorrect = Math.abs((m.financingCashFlow || 0) - expectedFinCF) < 0.01;
+    if (m.principalPayment > 0 || (m.refinancingProceeds ?? 0) > 0) {
+      const expectedFinCF = -m.principalPayment + (m.refinancingProceeds ?? 0);
+      const finCFCorrect = Math.abs((m.financingCashFlow ?? 0) - expectedFinCF) < 0.01;
       results.push({
         passed: finCFCorrect,
         category: "ASC 230 - Financing",
         rule: "Principal Classification",
-        description: `Month ${i + 1}: Financing CF $${(m.financingCashFlow || 0).toFixed(0)} ${finCFCorrect ? "=" : "≠"} -Principal $${(-m.principalPayment).toFixed(0)}${(m.refinancingProceeds || 0) > 0 ? ` + Refi $${(m.refinancingProceeds || 0).toFixed(0)}` : ""}`,
-        details: finCFCorrect ? "Principal correctly classified as financing outflow" : `Expected $${expectedFinCF.toFixed(0)}, got $${(m.financingCashFlow || 0).toFixed(0)}`,
+        description: `Month ${i + 1}: Financing CF $${(m.financingCashFlow ?? 0).toFixed(0)} ${finCFCorrect ? "=" : "≠"} -Principal $${(-m.principalPayment).toFixed(0)}${(m.refinancingProceeds ?? 0) > 0 ? ` + Refi $${(m.refinancingProceeds ?? 0).toFixed(0)}` : ""}`,
+        details: finCFCorrect ? "Principal correctly classified as financing outflow" : `Expected $${expectedFinCF.toFixed(0)}, got $${(m.financingCashFlow ?? 0).toFixed(0)}`,
         severity: "critical"
       });
     }
@@ -295,7 +295,7 @@ export function checkCashFlowStatement(monthlyData: MonthlyFinancials[]): Compli
     const m = monthlyData[i];
     
     if (m.interestExpense > 0 && m.principalPayment > 0) {
-      const interestInOperating = (m.operatingCashFlow || 0) < m.netIncome + (m.depreciationExpense || 0) + m.interestExpense;
+      const interestInOperating = (m.operatingCashFlow ?? 0) < m.netIncome + (m.depreciationExpense ?? 0) + m.interestExpense;
       results.push({
         passed: interestInOperating,
         category: "ASC 230 - Operating",

@@ -23,8 +23,8 @@ export function auditIncomeStatement(
     const isOperational = !isBefore(currentDate, opsStart);
 
     if (!isOperational) {
-      const preOpDepExp = m.depreciationExpense || 0;
-      const preOpTaxable = (m.anoi || 0) - (m.interestExpense || 0) - preOpDepExp;
+      const preOpDepExp = m.depreciationExpense ?? 0;
+      const preOpTaxable = (m.anoi ?? 0) - (m.interestExpense ?? 0) - preOpDepExp;
       if (preOpTaxable < 0) {
         auditNolBalance += Math.abs(preOpTaxable);
       }
@@ -158,7 +158,7 @@ export function auditIncomeStatement(
       });
     }
     
-    const depExp = m.depreciationExpense || 0;
+    const depExp = m.depreciationExpense ?? 0;
     const taxableForAudit = m.anoi - m.interestExpense - depExp;
     const taxRate = property.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE;
     let expectedTax: number;
@@ -208,7 +208,7 @@ export function auditIncomeStatement(
       });
     }
     
-    const expectedCashFlow = m.anoi - m.debtPayment - (m.incomeTax || 0) + (m.refinancingProceeds || 0);
+    const expectedCashFlow = m.anoi - m.debtPayment - (m.incomeTax ?? 0) + (m.refinancingProceeds ?? 0);
     const cashFlowMatch = withinTolerance(expectedCashFlow, m.cashFlow);
     
     if (!cashFlowMatch) {

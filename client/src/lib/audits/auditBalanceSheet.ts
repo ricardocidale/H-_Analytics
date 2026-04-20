@@ -38,10 +38,10 @@ export function auditBalanceSheet(
     if (i < acqMonthIndex) continue;
     totalChecked++;
 
-    cumulativeDepreciation += (m.depreciationExpense || 0);
+    cumulativeDepreciation += (m.depreciationExpense ?? 0);
     const expectedPropertyValue = landValue + depreciableBasis - cumulativeDepreciation;
 
-    const actualPropertyValue = m.propertyValue || 0;
+    const actualPropertyValue = m.propertyValue ?? 0;
 
     if (Math.abs(expectedPropertyValue - actualPropertyValue) > AUDIT_TOLERANCE_DOLLARS) {
       failedPropertyValue++;
@@ -61,8 +61,8 @@ export function auditBalanceSheet(
       }
     }
 
-    const expectedNetCF = (m.operatingCashFlow || 0) + (m.financingCashFlow || 0);
-    const actualCF = m.cashFlow || 0;
+    const expectedNetCF = (m.operatingCashFlow ?? 0) + (m.financingCashFlow ?? 0);
+    const actualCF = m.cashFlow ?? 0;
     if (Math.abs(expectedNetCF - actualCF) > AUDIT_TOLERANCE_DOLLARS) {
       failedEquity++;
       if (failedEquity <= 3) {
@@ -96,7 +96,7 @@ export function auditBalanceSheet(
     const m = monthlyData[i];
     if (i < acqMonthIndex) continue;
 
-    cumulativeNetIncome += (m.netIncome || 0);
+    cumulativeNetIncome += (m.netIncome ?? 0);
 
     // Refinancing proceeds increase cash (assets) and new debt increases liabilities,
     // but closing costs are not captured in net income.
@@ -104,15 +104,15 @@ export function auditBalanceSheet(
     // the first month's amortization on the new loan. To isolate the pure refi debt jump
     // (newLoanBeginning - prevDebt), we undo the amortization: refiDebtJump = rawDebtChange + principal.
     // Then equity adjustment = proceeds - refiDebtJump = -closingCosts.
-    if ((m.refinancingProceeds || 0) !== 0) {
-      const prevDebt = i > 0 ? (monthlyData[i - 1].debtOutstanding || 0) : 0;
-      const rawDebtChange = (m.debtOutstanding || 0) - prevDebt;
-      const refiDebtJump = rawDebtChange + (m.principalPayment || 0);
-      cumulativeRefiEquityAdj += (m.refinancingProceeds || 0) - refiDebtJump;
+    if ((m.refinancingProceeds ?? 0) !== 0) {
+      const prevDebt = i > 0 ? (monthlyData[i - 1].debtOutstanding ?? 0) : 0;
+      const rawDebtChange = (m.debtOutstanding ?? 0) - prevDebt;
+      const refiDebtJump = rawDebtChange + (m.principalPayment ?? 0);
+      cumulativeRefiEquityAdj += (m.refinancingProceeds ?? 0) - refiDebtJump;
     }
 
-    const totalAssets = (m.endingCash || 0) + (m.propertyValue || 0);
-    const totalLiabilities = m.debtOutstanding || 0;
+    const totalAssets = (m.endingCash ?? 0) + (m.propertyValue ?? 0);
+    const totalLiabilities = m.debtOutstanding ?? 0;
     const derivedEquity = initialEquity + cumulativeNetIncome + cumulativeRefiEquityAdj;
     const gap = Math.abs(totalAssets - totalLiabilities - derivedEquity);
 

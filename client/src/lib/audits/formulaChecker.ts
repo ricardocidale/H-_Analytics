@@ -152,8 +152,8 @@ export function checkPropertyFormulas(monthlyData: MonthlyFinancials[]): Formula
     });
     
     // 6. Net Income = ANOI - Interest - Depreciation - Tax (GAAP)
-    const depExp = m.depreciationExpense || 0;
-    const incomeTax = m.incomeTax || 0;
+    const depExp = m.depreciationExpense ?? 0;
+    const incomeTax = m.incomeTax ?? 0;
     const expectedNetIncome = m.anoi - m.interestExpense - depExp - incomeTax;
     results.push({
       passed: withinTolerance(expectedNetIncome, m.netIncome),
@@ -164,7 +164,7 @@ export function checkPropertyFormulas(monthlyData: MonthlyFinancials[]): Formula
     });
     
     // 7. Cash Flow = ANOI - Debt Payment - Tax + Refinancing Proceeds (ASC 230)
-    const refiProceeds = m.refinancingProceeds || 0;
+    const refiProceeds = m.refinancingProceeds ?? 0;
     const expectedCashFlow = m.anoi - m.debtPayment - incomeTax + refiProceeds;
     results.push({
       passed: withinTolerance(expectedCashFlow, m.cashFlow),

@@ -27,20 +27,20 @@ export function auditCashFlowReconciliation(
     if (i === acqMonthIndex) {
       cumulativeCashFlow += reserveSeed;
     }
-    cumulativeCashFlow += (m.cashFlow || 0);
+    cumulativeCashFlow += (m.cashFlow ?? 0);
 
     if (i < acqMonthIndex) continue;
     totalChecked++;
 
-    const netIncome = m.netIncome || 0;
-    const depreciation = m.depreciationExpense || 0;
-    const principalPayment = m.principalPayment || 0;
-    const refiProceeds = m.refinancingProceeds || 0;
+    const netIncome = m.netIncome ?? 0;
+    const depreciation = m.depreciationExpense ?? 0;
+    const principalPayment = m.principalPayment ?? 0;
+    const refiProceeds = m.refinancingProceeds ?? 0;
 
     const expectedOperatingCF = netIncome + depreciation;
     const expectedFinancingCF = -principalPayment + refiProceeds;
     const expectedNetCF = expectedOperatingCF + expectedFinancingCF;
-    const actualCashFlow = m.cashFlow || 0;
+    const actualCashFlow = m.cashFlow ?? 0;
 
     if (Math.abs(expectedNetCF - actualCashFlow) > AUDIT_TOLERANCE_DOLLARS) {
       failedNetCF++;
@@ -60,8 +60,8 @@ export function auditCashFlowReconciliation(
       }
     }
 
-    const debtPayment = m.debtPayment || 0;
-    const interestExpense = m.interestExpense || 0;
+    const debtPayment = m.debtPayment ?? 0;
+    const interestExpense = m.interestExpense ?? 0;
     const expectedTotalDebt = interestExpense + principalPayment;
     if (debtPayment > 0 && Math.abs(debtPayment - expectedTotalDebt) > 1) {
       findings.push({
