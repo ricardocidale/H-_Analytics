@@ -13,7 +13,7 @@ import {
 import { Section, PctField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
-import { COMPANY_TAB_ANALYST_FIELDS } from "./analyst-fields";
+import { COMPANY_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 
 interface CompanyTabProps {
   draft: Draft;
@@ -43,7 +43,7 @@ export function CompanyTab(props: CompanyTabProps) {
               running={analystRunning}
               cooldownRemainingMs={analystCooldownMs}
               onClick={() =>
-                onAnalystRefresh?.([...COMPANY_TAB_ANALYST_FIELDS])
+                onAnalystRefresh?.(toGuidanceKeys(COMPANY_TAB_ANALYST_FIELDS))
               }
               testIdSuffix="company"
             />

@@ -5,7 +5,7 @@ import EditableValue from "@/components/company-assumptions/EditableValue";
 import { Section, PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
-import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS } from "./analyst-fields";
+import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 import {
   DEFAULT_START_ADR,
   DEFAULT_ADR_GROWTH_RATE,
@@ -69,7 +69,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
               running={analystRunning}
               cooldownRemainingMs={analystCooldownMs}
               onClick={() =>
-                onAnalystRefresh?.([...PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS])
+                onAnalystRefresh?.(toGuidanceKeys(PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS))
               }
               testIdSuffix="property-underwriting"
             />

@@ -39,14 +39,18 @@ import {
   type AnalystViolation,
 } from "./analyst-violations";
 import type { AnalystGuidanceRecord } from "./useAnalystRefresh";
+import {
+  toGuidanceKeys,
+  type AnalystFieldSpec,
+} from "@/components/admin/model-defaults/analyst-fields";
 
 export interface UseAnalystSaveGateOptions {
   /** Current form state. Flat keys only — pre-flatten envelopes if needed. */
   draft: Record<string, unknown>;
   /** Guidance records for the relevant scope. */
   guidance: AnalystGuidanceRecord[];
-  /** Canonical assumption keys covered by this Save action. */
-  fields: readonly string[];
+  /** Canonical field specs covered by this Save action (guidance-key ↔ draft-key pairs). */
+  fields: readonly AnalystFieldSpec[];
   /** Invoked when the Save should proceed (silently or via "Save Anyway"). */
   onSave: () => void;
   /** Fires a scoped Analyst rerun. Called when the user picks "Analyst ✨". */
@@ -132,7 +136,7 @@ export function useAnalystSaveGate(
 
   const handleRerun = useCallback(() => {
     setAwaitingRerun(true);
-    onAnalystRerun([...fields]);
+    onAnalystRerun(toGuidanceKeys(fields));
   }, [onAnalystRerun, fields]);
 
   const handleCancel = useCallback(() => {

@@ -18,6 +18,7 @@
  */
 
 import type { AnalystGuidanceRecord } from "./useAnalystRefresh";
+import type { AnalystFieldSpec } from "@/components/admin/model-defaults/analyst-fields";
 
 /** Threshold, as a fraction of the nearest band edge, that makes a field a "violation". */
 export const ANALYST_VIOLATION_THRESHOLD = 0.2;
@@ -25,7 +26,10 @@ export const ANALYST_VIOLATION_THRESHOLD = 0.2;
 export const ANALYST_SINGLE_FIELD_BLUNT_THRESHOLD = 0.4;
 
 export interface AnalystViolation {
+  /** The draft-side key that was out of band (stable per UI context). */
   field: string;
+  /** The guidance-side key — useful when the two differ (e.g. salesCommissionRate ↔ dispositionCommission). */
+  guidanceKey: string;
   value: number;
   low: number;
   high: number;
@@ -69,18 +73,18 @@ export function computeAnalystViolations({
 }: {
   draft: Record<string, unknown>;
   guidance: AnalystGuidanceRecord[];
-  fields: readonly string[];
+  fields: readonly AnalystFieldSpec[];
 }): AnalystViolationResult {
   const byKey = new Map(guidance.map((g) => [g.assumptionKey, g]));
   const violations: AnalystViolation[] = [];
 
-  for (const field of fields) {
-    const g = byKey.get(field);
+  for (const spec of fields) {
+    const g = byKey.get(spec.guidanceKey);
     if (!g) continue;
     if (g.confidence !== "high") continue;
     if (g.valueLow == null || g.valueHigh == null) continue;
 
-    const v = readNumeric(draft, field);
+    const v = readNumeric(draft, spec.draftKey);
     if (v == null) continue;
 
     let direction: "below" | "above" | null = null;
@@ -99,7 +103,8 @@ export function computeAnalystViolations({
     if (outOfBandPct <= ANALYST_VIOLATION_THRESHOLD) continue;
 
     violations.push({
-      field,
+      field: spec.draftKey,
+      guidanceKey: spec.guidanceKey,
       value: v,
       low: g.valueLow,
       high: g.valueHigh,

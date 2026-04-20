@@ -4,7 +4,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Section, PctField, TabBanner, MONTHS, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
-import { MARKET_MACRO_TAB_ANALYST_FIELDS } from "./analyst-fields";
+import { MARKET_MACRO_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 
 interface MarketMacroTabProps {
   draft: Draft;
@@ -32,7 +32,7 @@ export function MarketMacroTab(props: MarketMacroTabProps) {
               running={analystRunning}
               cooldownRemainingMs={analystCooldownMs}
               onClick={() =>
-                onAnalystRefresh?.([...MARKET_MACRO_TAB_ANALYST_FIELDS])
+                onAnalystRefresh?.(toGuidanceKeys(MARKET_MACRO_TAB_ANALYST_FIELDS))
               }
               testIdSuffix="market-macro"
             />

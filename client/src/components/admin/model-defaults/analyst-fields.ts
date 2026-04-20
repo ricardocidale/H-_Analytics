@@ -1,57 +1,94 @@
 /**
- * Canonical assumption-key lists per Model Defaults sub-tab.
+ * Canonical field specs per Model Defaults sub-tab.
  *
- * Each list feeds the Analyst refresh call so the button on that sub-tab
- * asks for (and visibly updates) only the fields that live in that tab.
+ * Each entry pairs:
+ *   - `guidanceKey` — the assumption-key emitted by the server's guidance
+ *     extractor (see `server/ai/guidance/schemas.ts` →
+ *     COMPANY_ASSUMPTION_KEYS + PROPERTY_ASSUMPTION_KEYS + KEY_ALIASES).
+ *   - `draftKey` — the literal key used on the tab's Draft object
+ *     (what `onChange("…", v)` writes).
  *
- * Keys MUST match the guidance-extractor's vocabulary
- * (`server/ai/guidance/schemas.ts` → COMPANY_ASSUMPTION_KEYS +
- * KEY_ALIASES). Non-assumption defaults (companyName, projectionYears,
- * labels, ops-start dates) are intentionally omitted — the Analyst
- * doesn't produce ranges for those.
+ * These usually match, but the Model Defaults forms prefix many
+ * property-level fields (`defaultMaxOccupancy` in the draft ↔
+ * `maxOccupancy` in the guidance vocabulary), and at least one field
+ * has a plain vocabulary skew (`salesCommissionRate` in the draft ↔
+ * `dispositionCommission` in the guidance vocabulary).
+ *
+ * Keep this file as the single source of truth for both (a) which
+ * guidance keys we ask the server to refresh, and (b) which draft
+ * values the save-gate reads when computing violations.
  */
 
-export const COMPANY_TAB_ANALYST_FIELDS = [
-  "baseManagementFee",
-  "incentiveManagementFee",
-  "companyTaxRate",
-  "costOfEquity",
-  "dispositionCommission", // surfaced on CompanyTab as "Sales Commission"
-] as const;
+export interface AnalystFieldSpec {
+  /** assumption_guidance.assumption_key — matches guidance-extractor output. */
+  guidanceKey: string;
+  /** The key on the tab's Draft object — what the form writes via onChange. */
+  draftKey: string;
+}
 
-export const MARKET_MACRO_TAB_ANALYST_FIELDS = [
-  "inflationRate",
-  "interestRate",
-  "countryRiskPremium",
-] as const;
+export const COMPANY_TAB_ANALYST_FIELDS: readonly AnalystFieldSpec[] = [
+  { guidanceKey: "baseManagementFee",      draftKey: "baseManagementFee" },
+  { guidanceKey: "incentiveManagementFee", draftKey: "incentiveManagementFee" },
+  { guidanceKey: "companyTaxRate",         draftKey: "companyTaxRate" },
+  { guidanceKey: "costOfEquity",           draftKey: "costOfEquity" },
+  // Surfaced on CompanyTab as "Sales Commission"; guidance-side key is dispositionCommission.
+  { guidanceKey: "dispositionCommission",  draftKey: "salesCommissionRate" },
+];
 
-export const PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS = [
-  "adr",
-  "adrGrowth",
-  "maxOccupancy",
-  "startOccupancy",
-  "occupancyRampMonths",
-  "capRate",
-  "exitCapRate",
-  "ltv",
-  "landValue",
-  "depreciationYears",
-  "incomeTax",
-  "costRooms",
-  "costFB",
-  "costAdmin",
-  "costMarketing",
-  "costPropertyOps",
-  "costUtilities",
-  "costFFE",
-  "costIT",
-] as const;
+export const MARKET_MACRO_TAB_ANALYST_FIELDS: readonly AnalystFieldSpec[] = [
+  { guidanceKey: "inflationRate", draftKey: "inflationRate" },
+  { guidanceKey: "costOfEquity",  draftKey: "costOfEquity" },
+];
+
+export const PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS: readonly AnalystFieldSpec[] = [
+  { guidanceKey: "adr",                 draftKey: "defaultStartAdr" },
+  { guidanceKey: "adrGrowth",           draftKey: "defaultAdrGrowthRate" },
+  { guidanceKey: "startOccupancy",      draftKey: "defaultStartOccupancy" },
+  { guidanceKey: "maxOccupancy",        draftKey: "defaultMaxOccupancy" },
+  { guidanceKey: "occupancyRampMonths", draftKey: "defaultOccupancyRampMonths" },
+  { guidanceKey: "costRooms",           draftKey: "defaultCostRateRooms" },
+  { guidanceKey: "costFB",              draftKey: "defaultCostRateFb" },
+  { guidanceKey: "costAdmin",           draftKey: "defaultCostRateAdmin" },
+  { guidanceKey: "costMarketing",       draftKey: "defaultCostRateMarketing" },
+  { guidanceKey: "costPropertyOps",     draftKey: "defaultCostRatePropertyOps" },
+  { guidanceKey: "costUtilities",       draftKey: "defaultCostRateUtilities" },
+  { guidanceKey: "costIT",              draftKey: "defaultCostRateIt" },
+  { guidanceKey: "costFFE",             draftKey: "defaultCostRateFfe" },
+  { guidanceKey: "costInsurance",       draftKey: "defaultCostRateInsurance" },
+  { guidanceKey: "costTaxes",           draftKey: "defaultCostRateTaxes" },
+  { guidanceKey: "depreciationYears",   draftKey: "depreciationYears" },
+  { guidanceKey: "landValue",           draftKey: "defaultLandValuePercent" },
+  { guidanceKey: "inflationRate",       draftKey: "inflationRate" },
+];
 
 // Placeholders — these tabs currently hold constants/LLM settings/required-field
-// metadata, not admin-editable assumption values. Included for completeness so a
+// metadata, not admin-editable assumption values. Kept for completeness so a
 // later slice can attach a button without inventing new keys.
-export const MODEL_CONSTANTS_TAB_ANALYST_FIELDS: readonly string[] = [];
-export const LLM_DEFAULTS_TAB_ANALYST_FIELDS: readonly string[] = [];
-export const REQUIRED_FIELDS_TAB_ANALYST_FIELDS: readonly string[] = [];
+export const MODEL_CONSTANTS_TAB_ANALYST_FIELDS: readonly AnalystFieldSpec[] = [];
+export const LLM_DEFAULTS_TAB_ANALYST_FIELDS: readonly AnalystFieldSpec[] = [];
+export const REQUIRED_FIELDS_TAB_ANALYST_FIELDS: readonly AnalystFieldSpec[] = [];
 
-export type AnalystFieldList = ReadonlyArray<string>;
+/** Extract the guidance-side keys from a spec list (for the refresh API). */
+export function toGuidanceKeys(specs: readonly AnalystFieldSpec[]): string[] {
+  return specs.map((s) => s.guidanceKey);
+}
+
+/**
+ * Merge several spec lists into one, deduplicating by `draftKey` (the
+ * UI-facing identity). The first occurrence wins, so the caller can
+ * control ordering.
+ */
+export function unionAnalystFieldSpecs(
+  ...lists: readonly (readonly AnalystFieldSpec[])[]
+): AnalystFieldSpec[] {
+  const seen = new Set<string>();
+  const out: AnalystFieldSpec[] = [];
+  for (const list of lists) {
+    for (const spec of list) {
+      if (seen.has(spec.draftKey)) continue;
+      seen.add(spec.draftKey);
+      out.push(spec);
+    }
+  }
+  return out;
+}
