@@ -8,11 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Lint Batches 5a + 6a+6b shipped
+## Session: April 20, 2026 (latest) — Lint Batches 5a + 6a+6b shipped + claude.md refresh
 - **Batch 5a shipped (Claude, `c66896fc`):** 22 Category A `|| 0` → `?? 0` swaps across 5 audit/verification files. Schema-nullable + test fixtures only. 187 → 159 warnings.
 - **Batch 6a+6b shipped (Claude, `fb4bbbe7`):** 20 Category A+E swaps across 14 files (groupBy accumulators, schema-nullable, optional-chained array reads, chart viewBox coords). 159 → 138 warnings.
+- **claude.md lint-status line refresh (Claude) auto-committed by Replit Agent as `9ba2b495` under its attribution** ("Improve linting warnings and update audit documentation with new findings"). Collision pattern #4 — same fingerprint as prior incidents. Work is landed correctly; attribution is here. Per agent-collision-hygiene rule 5: no history rewrite.
 - **Progress: 138 warnings, 60% of original 348 cleaned.** Both batches passed all five gates; atomic single-commits per agent-collision-hygiene rule.
-- **Still pending (moderate risk, user call needed):** Batch 5b/5c (Category B+C engine output, NaN-exposure risk), Batch 6c (LLM prompt builders), 6d (dashboard display), 6e (Number() coercion with `Number.isFinite` wrap), 6f (3 inspect-required sites).
+- **Plan for remaining:** Haiku (user decision) to execute 5b/6c/6d (mechanical `?? 0`); Sonnet for 5c/6e/6f (assertFinite + Number.isFinite wraps + inspect each).
 
 ## Session: April 20, 2026 (late) — OT-A.4 ship + OT-A.5 queued + observability/reorg scaffolding
 - **OT-A.4 shipped (Replit, `7da9f25a`).** Four mechanism bugs codified as rules: `field-definitions-no-prescription-hints.md`, `llm-contract-migration-parity.md`, `parity-exemption-classes.md` (+ narrative `.claude/notes/llm-migration-playbook.md`). Pinecone removed 100% across active codebase (`706aec6c`).
