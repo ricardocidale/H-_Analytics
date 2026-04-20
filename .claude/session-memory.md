@@ -8,7 +8,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — ADR-005 driven to executable (still Proposed)
+## Session: April 20, 2026 (latest) — Plan-6 execution: all 6 solo items shipped
+- **#1 Session memory archive**: 15 → 12 sessions (Apr 19 analyst-arch, Apr 19-20 Phase 3b, Apr 20 SYSTEM-MODEL moved to archive).
+- **#3 Doc harmony**: phase-count refs 15 → 19 across claude.md + proof-system/testing/_index skills; ADR-004 Proposed → Accepted propagation; ADR-005 added to claude.md Recent-Changes. (Auto-committed by Replit as `a2d50dce`.)
+- **#6 Literal-drift baseline 21 → 0**: added `server/seeds/` + `client/src/lib/store.ts` as file-pattern exemptions (intentional fixture data); documented client/server seed-duplication as out-of-scope follow-up.
+- **#4 Seed/schema-sync triage 64 → 36**: promoted 28 research-extracted + audit fields to `SYSTEM_COLUMN_EXEMPTIONS`; wrote `.claude/replit-handoffs/seed-schema-sync-coverage.md` for the remaining 36 real-drift columns (3-batch resolution plan: financial, classification, physical).
+- **#2 any-prop baseline 28 → 0** across 5 sub-batches (2a/2b/2c/2d/2e) — 3 real contract drifts surfaced + fixed: (a) IcpMarketContextTab over-broad assetDefinition cast, (b) InvestmentAnalysis dead `allPropertyFinancials`+`getPropertyYearly` props with mismatched-shape callers, (c) **OtherAssumptionsSection silent cost-of-equity display bug** — `draft.globalAssumptions?.costOfEquity` always fell through to 0.18 because `draft` (PropertyResponse) has no `globalAssumptions` field. Real user-facing bug.
+- **Session stats**: 6 Claude commits + 4+ Replit auto-commit collisions. All gates green throughout. Plan-6 delivered end-to-end.
+
+## Session: April 20, 2026 (prior) — ADR-005 driven to executable (still Proposed)
 - **ADR-005 Phase 1 handoff shipped (Claude, `d72d849a`):** `.claude/replit-handoffs/phase-1-workspace-bootstrap.md` — PNPM + Turborepo tooling-only bootstrap (zero file moves, 7-step verification including Replit deploy dry-run, explicit rollback). Replit owns execution per claude-replit-split; ADR stays Proposed per its own acceptance criteria until Phase 1 + 2 land cleanly.
 - **4 open questions resolved in the ADR:** namespace `@norfolk/*`, deploy config deferred to Replit, strict single-version deps for year 1, co-located unit/integration tests (root only for proof+e2e).
 - **5 new structural questions flagged for Phase 2+** — features destination, test subtree movement, drizzle schema ownership, .claude/docs location (confirmed root), watchdog placement (→ engine-analyst since it returns AnalystVerdict).
