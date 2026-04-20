@@ -8,6 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 20, 2026 (latest) — Interactive Analyst slice: button shipped (T003)
+- **`<AnalystActionButton />` shipped** (`client/src/components/analyst/AnalystActionButton.tsx`, exported from barrel). Props per plan: `onClick`, `running`, `cooldownRemainingMs`, `variant` (header|save-row|modal), `size`, `className`, `testIdSuffix`, `label`. Sparkles icon pulses while running; tooltip shows cooldown countdown; amber accent; disabled during run/cooldown; `data-testid="button-analyst"`.
+- **T002 skipped** (canvas variant exploration for a single button is heavier than the component itself). **T001 (analyst-promotion helper) shelved** — wrong target for this slice (writes Property scalars, not `model_defaults`); belongs to later property-edit slice.
+- **Unknowns locked with defaults**: 60s cooldown, >40% single-field blunt threshold, no cost in tooltip. User directive: stop all cost tracking/mentions and do not touch `rewritetax.md` until further notice.
+- **Next chunk (T004)**: `server/ai/analyst-scoped-runner.ts` — non-HTTP entry point wrapping `orchestrateResearch` for scoped field lists. Still pending after that: T005 route, T006 sub-tab wiring, T007 save-gate, T008 gates+docs.
+
 ## Session: April 20, 2026 (latest) — 3 new hooks shipped from bleeding-scoreboard
 - **Commit-msg hook (`afea52dc`)** — `.husky/commit-msg` rejects subjects <15 chars or matching blocklist (c, wip, fix, commit, etc.). Ends historical 141-commit waste class going forward.
 - **Cosmetic-budget rule + advisory warn hook (`ab3f0505`)** — `.claude/rules/cosmetic-budget.md` + `.husky/cosmetic-warn`. Detects commits touching only branding/image assets; warns with last-30-day cosmetic commit count. Advisory (not blocking). Addresses rewritetax scoreboard pattern #1 (88 opengraph swaps YTD).
