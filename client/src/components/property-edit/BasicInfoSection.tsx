@@ -61,7 +61,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
     const filled: string[] = [];
 
     const fillIfEmpty = (key: string, value: string | number | null) => {
-      const current = draft[key];
+      const current = (draft as unknown as Record<string, unknown>)[key];
       if (!current || (typeof current === "string" && current.trim() === "")) {
         onChange(key, value);
         filled.push(key);

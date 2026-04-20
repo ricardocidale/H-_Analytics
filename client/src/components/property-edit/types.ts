@@ -27,7 +27,7 @@ export interface PropertyEditSectionProps {
   draft: PropertyResponse;
   onChange: (key: string, value: string | number | boolean | number[] | null) => void;
   onNumberChange: (key: string, value: string) => void;
-  globalAssumptions: GlobalResponse;
+  globalAssumptions: GlobalResponse | undefined;
   researchValues: Record<string, { display: string; mid: number; source?: string; sourceName?: string; sourceDate?: string }>;
   guidance?: GuidanceRecord[];
 }

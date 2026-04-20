@@ -30,7 +30,7 @@ import {
 } from "@/lib/constants";
 import type { OtherAssumptionsSectionProps } from "./types";
 
-export default function OtherAssumptionsSection({ draft, onChange, researchValues, exitYear }: OtherAssumptionsSectionProps) {
+export default function OtherAssumptionsSection({ draft, onChange, researchValues, exitYear, globalAssumptions }: OtherAssumptionsSectionProps) {
   const [crpLoading, setCrpLoading] = useState(false);
   const [crpCountry, setCrpCountry] = useState<string | null>(null);
   const eid = draft.id as number | undefined;
@@ -234,7 +234,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               step={0.1}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Source: Damodaran (NYU Stern) · Cost of Equity = Base Re ({((draft.globalAssumptions?.costOfEquity ?? 0.18) * 100).toFixed(0)}%) + CRP ({((draft.countryRiskPremium ?? 0) * 100).toFixed(1)}%)
+              Source: Damodaran (NYU Stern) · Cost of Equity = Base Re ({((globalAssumptions?.costOfEquity ?? 0.18) * 100).toFixed(0)}%) + CRP ({((draft.countryRiskPremium ?? 0) * 100).toFixed(1)}%)
             </p>
           </div>
         </div>

@@ -259,24 +259,55 @@ Because the default scenario is derived, it has no Admin page and no Save button
 - [ ] No row in `scenarios` table is created for the bare default — it exists only as a runtime composition until the user's first save. (User-saved scenarios continue to use the existing JSONB snapshot pattern.)
 - [ ] The bare default does not need a per-property "include" flag because every property in the catalogue is in. The future Admin → Scenarios block (§9.2) is where curation lives.
 
-### 9.2 Future Admin → Scenarios block (planned, not built)
+### 9.2 Admin → Scenarios block (locked architecture; build after MC Defaults)
 
-The bare default scenario is fine for an open beta where every investor sees the same property book. As soon as the product needs to expose **different investors to different property books** (the L+B Hospitality target operating model), Admin needs a way to:
+**Decision:** property visibility per investor is governed by **named starter scenarios assigned to users**, not by per-user property toggle grids. Locked Apr 20, 2026.
 
-- Create a **starter scenario** — a named curation of (a) which properties are included and (b) optional MC-level assumption overrides on top of Steady State defaults.
-- Assign each starter scenario to one or more users, roles, or investor segments.
-- Mark exactly one starter scenario as the **fallback default** for users with no explicit assignment (which collapses to today's "all properties ON" behavior unless an admin changes it).
+**Why this and not per-user toggles** (summary; full rationale in commit history):
 
-This will live as its own sidebar block — **Scenarios (Admin)** — sitting just above Steady State. Out of scope for the current build, but reserved in the sidebar diagram in §2 so we don't paint ourselves into a corner.
+1. **DRY** — toggle grids scale as `users × properties`; starter scenarios scale as `scenarios + assignments`. One to two orders of magnitude less admin work and far less silent drift at L+B portfolio scale.
+2. **Auditability** — investment access is a regulated act tied to subscription agreements. Counsel and auditors point at a named, versioned scenario object; they cannot meaningfully audit a per-user toggle grid.
+3. **Unifies with §9.2's other future need** — starter scenarios will eventually carry MC-level assumption overrides too. One concept, one table, one Save UX. Per-user toggles solve only half the problem.
+4. **Vocabulary** — "Fund II", "Internal Demo", "Series-A Class B" become language that traces to real artifacts. Toggles produce no nameable thing.
+5. **Onboarding** — assigning a scenario from a dropdown is O(1). Toggling N properties per new investor is not.
 
-**Boundaries to honor when we get there:**
+**Bespoke investors** are handled by creating a starter scenario named for them ("Sarah Lin — Custom"). Per-user override layers on top of an assigned scenario are deliberately *not* built speculatively; add only if real demand emerges.
 
-- Starter scenarios are **not** Defaults. They reference Defaults; they don't replace them. Editing the MC defaults in Steady State propagates to every starter scenario that doesn't explicitly override.
-- A starter scenario's MC overrides follow the same Save-UX contract as any other assumption surface (§4): Save button enabled on render, navigation-away dialog, Cancel reverts to entry-state.
-- **Open design question** — property inclusion in a starter scenario could be either (a) **set-membership by property ID** (admin edits in Steady State → Defaults → Property propagate to every starter scenario that includes that property — favored for admin-curated templates), or (b) **JSONB snapshot** matching the current user-saved `scenarios` table pattern (frozen at starter-creation time, no propagation). The current `scenarios` table uses (b). Starter scenarios may justify a different table with shape (a). Lock this when the Admin → Scenarios spec is drafted.
-- A user assigned a starter scenario lands inside it on first sign-in instead of the bare default. The cascade rule from §3 still applies — the moment the user saves, the starter scenario becomes their own scenario, and the admin's starter is no longer their source of truth.
+#### MVP shape — the smallest version that earns the architecture
 
-This block will need its own spec when we build it. Pointer reserved.
+Build this *after* the MC Defaults work ships, since starter scenarios reference Defaults.
+
+```
+Tables:
+  starter_scenarios
+    id, name, description, is_fallback_default (exactly one row may be true)
+
+  starter_scenario_properties               ← join; set-membership by property ID
+    starter_scenario_id, property_id        ← admin edits in Steady State propagate
+
+  users.starter_scenario_id                 ← nullable FK; null = fallback default
+```
+
+This resolves the previously-open snapshot-vs-reference question for *starter* scenarios specifically: **set-membership by property ID**, so property edits in Steady State → Defaults → Property propagate to every assigned user. (User-saved scenarios continue to use the existing JSONB snapshot pattern — they are point-in-time captures, a different concern.)
+
+**Sidebar UI:**
+
+- New sidebar block **Scenarios (Admin)** sitting just above Steady State (already reserved in §2).
+- List page → create / edit page (name, description, property checklist, fallback flag).
+- User card gets one dropdown: "Starter scenario."
+
+**Deliberately not in MVP** (each is a separate spec round when needed):
+
+- MC-level assumption overrides per starter scenario.
+- Role-based or investor-segment-based assignment (assignment is per-user-only at MVP).
+- Per-user override layer on top of an assigned scenario.
+
+#### Boundaries to honor when building it
+
+- Starter scenarios are **not** Defaults. They reference Defaults; they don't replace them. Editing MC defaults in Steady State propagates to every starter scenario.
+- Any per-scenario MC overrides added in a later round must follow the Save-UX contract from §4.
+- A user assigned a starter scenario lands inside it on first sign-in instead of the bare default. The cascade rule from §3 still applies — the moment the user saves, the starter scenario becomes their own scenario.
+- Exactly one starter scenario carries `is_fallback_default = true` at any time. Enforce at the DB level (partial unique index) and at the Admin UI level (toggling the flag on a different scenario flips it off the previous one in a single transaction).
 
 ---
 
