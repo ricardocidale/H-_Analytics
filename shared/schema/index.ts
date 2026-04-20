@@ -19,5 +19,7 @@ export * from "./notifications";
 export * from "./integrations";
 export * from "./page-visits";
 export * from "./vector-chunks";
-export * from "./replit-billing";
+// NOTE: ./replit-billing is intentionally NOT re-exported. Billing telemetry
+// lives in the dev_internal Postgres schema and is strictly dev tooling.
+// Dev scripts import it directly: `from "@shared/schema/replit-billing"`.
 export * from "./types/jsonb-shapes";

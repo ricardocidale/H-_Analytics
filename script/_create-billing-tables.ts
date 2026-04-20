@@ -1,7 +1,9 @@
 import { Pool } from 'pg';
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const sql = `
-CREATE TABLE IF NOT EXISTS replit_invoices (
+CREATE SCHEMA IF NOT EXISTS dev_internal;
+
+CREATE TABLE IF NOT EXISTS dev_internal.replit_invoices (
   id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   invoice_number text NOT NULL,
   issued_date timestamp NOT NULL,
@@ -23,13 +25,13 @@ CREATE TABLE IF NOT EXISTS replit_invoices (
   raw_json jsonb,
   created_at timestamp NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS replit_invoices_invoice_number_idx ON replit_invoices (invoice_number);
-CREATE INDEX IF NOT EXISTS replit_invoices_issued_date_idx ON replit_invoices (issued_date);
-CREATE INDEX IF NOT EXISTS replit_invoices_is_spike_day_idx ON replit_invoices (is_spike_day);
+CREATE UNIQUE INDEX IF NOT EXISTS replit_invoices_invoice_number_idx ON dev_internal.replit_invoices (invoice_number);
+CREATE INDEX IF NOT EXISTS replit_invoices_issued_date_idx ON dev_internal.replit_invoices (issued_date);
+CREATE INDEX IF NOT EXISTS replit_invoices_is_spike_day_idx ON dev_internal.replit_invoices (is_spike_day);
 
-CREATE TABLE IF NOT EXISTS replit_invoice_line_items (
+CREATE TABLE IF NOT EXISTS dev_internal.replit_invoice_line_items (
   id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  invoice_id integer NOT NULL REFERENCES replit_invoices(id) ON DELETE CASCADE,
+  invoice_id integer NOT NULL REFERENCES dev_internal.replit_invoices(id) ON DELETE CASCADE,
   workspace_uuid text NOT NULL,
   workspace_label text,
   units_billed numeric(14,6) NOT NULL,
@@ -39,14 +41,14 @@ CREATE TABLE IF NOT EXISTS replit_invoice_line_items (
   source text NOT NULL,
   created_at timestamp NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS replit_invoice_line_items_invoice_id_idx ON replit_invoice_line_items (invoice_id);
-CREATE INDEX IF NOT EXISTS replit_invoice_line_items_workspace_uuid_idx ON replit_invoice_line_items (workspace_uuid);
-CREATE INDEX IF NOT EXISTS replit_invoice_line_items_is_hplus_idx ON replit_invoice_line_items (is_hplus_workspace);
+CREATE INDEX IF NOT EXISTS replit_invoice_line_items_invoice_id_idx ON dev_internal.replit_invoice_line_items (invoice_id);
+CREATE INDEX IF NOT EXISTS replit_invoice_line_items_workspace_uuid_idx ON dev_internal.replit_invoice_line_items (workspace_uuid);
+CREATE INDEX IF NOT EXISTS replit_invoice_line_items_is_hplus_idx ON dev_internal.replit_invoice_line_items (is_hplus_workspace);
 `;
 async function run() {
   await pool.query(sql);
-  const r = await pool.query("SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'replit_%' ORDER BY table_name");
-  console.log('Tables created:', r.rows.map((x: any) => x.table_name).join(', '));
+  const r = await pool.query("SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema = 'dev_internal' AND table_name LIKE 'replit_%' ORDER BY table_name");
+  console.log('Tables ensured:', r.rows.map((x: any) => `${x.table_schema}.${x.table_name}`).join(', '));
   await pool.end();
 }
 run().catch(e => { console.error(e); process.exit(1); });

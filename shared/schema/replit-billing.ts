@@ -1,8 +1,24 @@
-import { pgTable, text, integer, timestamp, numeric, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
+/**
+ * Replit billing telemetry — INTERNAL DEV TOOLING.
+ *
+ * These tables live in the `dev_internal` Postgres schema, not `public`.
+ * They record Replit invoice + line-item history for the H+ Analytics
+ * project so we can reconcile spend against ship milestones. They are
+ * NOT part of the application's data model — no server route, client
+ * query, or engine calc references them.
+ *
+ * This file is intentionally not re-exported from `shared/schema/index.ts`
+ * so the main-app barrel can never pull these types into app code.
+ * Dev scripts import directly: `import { replitInvoices } from "@shared/schema/replit-billing"`.
+ */
+
+import { pgSchema, text, integer, timestamp, numeric, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const HPLUS_WORKSPACE_UUID = "e53ea481-4c36-4e2a-8bfc-80697f311b65" as const;
 
-export const replitInvoices = pgTable("replit_invoices", {
+const devInternal = pgSchema("dev_internal");
+
+export const replitInvoices = devInternal.table("replit_invoices", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   invoiceNumber: text("invoice_number").notNull(),
   issuedDate: timestamp("issued_date", { mode: "date" }).notNull(),
@@ -29,7 +45,7 @@ export const replitInvoices = pgTable("replit_invoices", {
   index("replit_invoices_is_spike_day_idx").on(table.isSpikeDay),
 ]);
 
-export const replitInvoiceLineItems = pgTable("replit_invoice_line_items", {
+export const replitInvoiceLineItems = devInternal.table("replit_invoice_line_items", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   invoiceId: integer("invoice_id").notNull().references(() => replitInvoices.id, { onDelete: "cascade" }),
   workspaceUuid: text("workspace_uuid").notNull(),
@@ -37,7 +53,7 @@ export const replitInvoiceLineItems = pgTable("replit_invoice_line_items", {
   unitsBilled: numeric("units_billed", { precision: 14, scale: 6 }).notNull(),
   unitPrice: numeric("unit_price", { precision: 10, scale: 4 }).notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  amountBasis: text("amount_basis").notNull(), // 'net' | 'gross' — what `amount` represents
+  amountBasis: text("amount_basis").notNull(),
   isHplusWorkspace: boolean("is_hplus_workspace").notNull().default(false),
   source: text("source").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

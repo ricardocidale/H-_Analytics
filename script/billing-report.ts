@@ -42,7 +42,7 @@ async function main() {
       COUNT(*) FILTER (WHERE is_cap_hit)::text             AS cap_hit_count,
       COUNT(*) FILTER (WHERE is_spike_day)::text           AS spike_day_count,
       COUNT(*) FILTER (WHERE net_amount = 0)::text         AS zero_invoice_count
-    FROM replit_invoices
+    FROM dev_internal.replit_invoices
   `);
 
   const t = totals.rows[0];
@@ -59,7 +59,7 @@ async function main() {
       SUM(net_amount)::text                    AS daily_net,
       SUM(hplus_attributed_net)::text          AS daily_hplus,
       COUNT(*)::text                            AS invoice_count
-    FROM replit_invoices
+    FROM dev_internal.replit_invoices
     GROUP BY day
     ORDER BY day
   `);
@@ -70,7 +70,7 @@ async function main() {
       SUM(net_amount)::text               AS daily_net,
       SUM(hplus_attributed_net)::text     AS daily_hplus,
       bool_or(is_spike_day)              AS has_spike
-    FROM replit_invoices
+    FROM dev_internal.replit_invoices
     GROUP BY day
     ORDER BY SUM(net_amount) DESC
     LIMIT 5
@@ -82,7 +82,7 @@ async function main() {
       SUM(net_amount)::text                     AS monthly_net,
       SUM(hplus_attributed_net)::text           AS monthly_hplus,
       COUNT(*)::text                             AS invoices
-    FROM replit_invoices
+    FROM dev_internal.replit_invoices
     GROUP BY month
     ORDER BY month
   `);
@@ -94,7 +94,7 @@ async function main() {
       COUNT(*)::text                AS line_count,
       SUM(amount)::text             AS total_amount,
       bool_or(is_hplus_workspace) AS is_hplus
-    FROM replit_invoice_line_items
+    FROM dev_internal.replit_invoice_line_items
     GROUP BY workspace_uuid
     ORDER BY SUM(amount) DESC
   `);
