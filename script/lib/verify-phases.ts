@@ -20,6 +20,9 @@ export const VERIFY_PHASES: readonly VerifyPhase[] = [
   { name: "Parity Numeric", file: "parity-numeric.test.ts" },
   { name: "Cache Integrity", file: "cache-integrity.test.ts" },
   { name: "Orphan Files", file: "orphan-files.test.ts" },
+  { name: "Any-Prop Detector", file: "any-prop-detector.test.ts" },
+  { name: "Literal Drift", file: "literal-drift.test.ts" },
+  { name: "Seed/Schema Sync", file: "seed-schema-sync.test.ts" },
 ] as const;
 
 export function allProofFilePaths(): string[] {

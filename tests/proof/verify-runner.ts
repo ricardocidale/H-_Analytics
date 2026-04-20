@@ -35,6 +35,9 @@ const phases: Phase[] = [
   { title: "PHASE 14: Parity Numeric", file: "tests/proof/parity-numeric.test.ts", passMsg: "All statement builder numeric values match engine output", failMsg: "Parity numeric FAILED — UI values diverge from engine" },
   { title: "PHASE 15: Cache Integrity", file: "tests/proof/cache-integrity.test.ts", passMsg: "All cache hash & invalidation tests passed", failMsg: "Cache integrity FAILED — stale results possible" },
   { title: "PHASE 16: Orphan Files", file: "tests/proof/orphan-files.test.ts", passMsg: "No new orphan files beyond baseline", failMsg: "Orphan file detection FAILED — new dead-code candidate landed" },
+  { title: "PHASE 17: Any-Prop Detector", file: "tests/proof/any-prop-detector.test.ts", passMsg: "No new any-typed Props beyond baseline", failMsg: "Any-prop detector FAILED — new contract-drift risk" },
+  { title: "PHASE 18: Literal Drift", file: "tests/proof/literal-drift.test.ts", passMsg: "No new duplicated date literals beyond baseline", failMsg: "Literal drift detector FAILED — magic date duplicated across files" },
+  { title: "PHASE 19: Seed/Schema Sync", file: "tests/proof/seed-schema-sync.test.ts", passMsg: "Every schema column exercised by at least one seed", failMsg: "Seed/schema sync FAILED — new schema column without seed coverage" },
 ];
 
 function run() {

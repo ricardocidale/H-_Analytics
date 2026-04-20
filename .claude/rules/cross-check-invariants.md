@@ -99,9 +99,6 @@ Existing proof tests that catch cross-check failures:
 - `tests/proof/portfolio-dynamics.test.ts` — no hardcoded property count
 - `tests/proof/rule-compliance.test.ts` — docs structure
 - `tests/proof/orphan-files.test.ts` — no new orphan files beyond documented baseline (catches the `server/ai/kb/` pattern). Shipped 2026-04-20 with 29-entry baseline to be driven toward [] in cleanup audits.
-
-Suggested additions (not yet built; next audit candidate):
-
-- **Literal drift detector** — flag magic-string dates, fees, rates that appear in more than one file and aren't in `shared/constants.ts`
-- **`any`-prop detector** — flag component props typed `any` or `any[]`
-- **Seed/schema sync detector** — for every `shared/schema` column, assert at least one seed row includes it
+- `tests/proof/any-prop-detector.test.ts` — no `any` / `any[]` fields in interfaces/types named `*Props` (catches the Phase 4 #15 `PortfolioPropertySummary.isActive` contract drift). Shipped 2026-04-20 with 28-entry baseline. Exempt via `// @allow-any-prop: <reason>`.
+- `tests/proof/literal-drift.test.ts` — no duplicated `YYYY-MM-DD` date literals across source files outside `constants.ts` (catches drift clusters D-1, D-1-B). Shipped 2026-04-20 with 25-entry baseline. Exempt via `// @allow-literal-date: <reason>`.
+- `tests/proof/seed-schema-sync.test.ts` — every column in `shared/schema/properties.ts` must appear as a key in at least one seed file. Shipped 2026-04-20 with 64-entry baseline. v1 covers properties table only; extend to other tables in a future pass.
