@@ -8,7 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst: replit.md docs section landed
+## Session: April 20, 2026 (latest) — Interactive Analyst: T008 gates + architect review + T009 queued
+- Fixed 2 slice-introduced regressions: `analyst-scoped-runner.ts` was reading `researchConfig.company.llmVendor` / `.llmModel` but that sub-object is `Partial<ResearchEventConfig>` which has no LLM fields. Switched to `researchConfig.companyLlm?.{llmVendor, primaryLlm}` with `researchConfig.preferredLlm` fallback, matching `server/routes/research.ts` pattern. Removed "Ask the Analyst" string from `AnalystActionButton.tsx` tooltip (forbidden-term violation); replaced with "Have the Analyst research this section…".
+- All gates green on rerun: TS 0, Lint 0, Tests PASS, Verify UNQUALIFIED (20 phases/555 checks), Parity PASS, Health ALL CLEAR, Quick Audit no-critical.
+- Architect review executed (`evaluate_task`, git diff included). Surfaced one real bug: **`analyst-fields.ts` uses guidance-extractor keys (`maxOccupancy`, `dispositionCommission`) but the actual tab drafts use prefixed keys (`defaultMaxOccupancy`, `salesCommissionRate`)** → `computeAnalystViolations` reads `undefined` for most fields → gate silently no-ops. Queued as T009 in `.local/session_plan.md` (plan: `AnalystFieldSpec = { guidanceKey, draftKey }` mapping + per-tab tests). Non-urgent follow-ups also captured (hard-wired scope in `useAnalystRefresh`, extractGuidance vocabulary gap for property keys, cooldown release-on-failure).
+- Memory updated: `replit.md` Recent Changes entry extended with T008 + architect findings; this memory entry.
+
+## Session: April 20, 2026 — Interactive Analyst: replit.md docs section landed
 - Added full "Interactive Analyst — Admin Defaults slice" section to `replit.md` (before Recent Changes): goal, locked doctrine (60s cooldown, 20% single / 40% lone-blunt thresholds, no cost in tooltip), client primitives (AnalystActionButton, useAnalystRefresh, computeAnalystViolations, useAnalystSaveGate / SaveWithAnalystGate), server surface (`POST /api/analyst/refresh`, `runAnalystScoped`, reused `GET /api/guidance/company/:userId`), wired surfaces (3 sub-tabs + union-scoped save gate), what's skipped by design, what's deferred.
 - Appended "Recent Changes" entry summarizing T003–T007b in chunk order.
 - Remaining T008 work: gates (Lint/Tests/Health all still red pre-existing — triage at gate time), architect review.
