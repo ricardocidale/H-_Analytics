@@ -8,7 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — ADR-004 accepted + Phase 5A Claude-side shipped
+## Session: April 20, 2026 (latest) — ADR-005 driven to executable (still Proposed)
+- **ADR-005 Phase 1 handoff shipped (Claude, `d72d849a`):** `.claude/replit-handoffs/phase-1-workspace-bootstrap.md` — PNPM + Turborepo tooling-only bootstrap (zero file moves, 7-step verification including Replit deploy dry-run, explicit rollback). Replit owns execution per claude-replit-split; ADR stays Proposed per its own acceptance criteria until Phase 1 + 2 land cleanly.
+- **4 open questions resolved in the ADR:** namespace `@norfolk/*`, deploy config deferred to Replit, strict single-version deps for year 1, co-located unit/integration tests (root only for proof+e2e).
+- **5 new structural questions flagged for Phase 2+** — features destination, test subtree movement, drizzle schema ownership, .claude/docs location (confirmed root), watchdog placement (→ engine-analyst since it returns AnalystVerdict).
+- **SYSTEM-MODEL §9 refreshed:** N2 updated to Accepted (ADR-004); N6b added (ADR-005 Tier-2, scheduled for "calm window" — NOT alongside OT-A.5 or ADR-004 impl).
+
+## Session: April 20, 2026 (prior) — ADR-004 accepted + Phase 5A Claude-side shipped
 - **ADR-004 verdict cache accepted** by human steward via chat 2026-04-20. Status Proposed → Accepted. Replit auto-committed the status change as `66f3df90` (7th collision this session, same attribution pattern).
 - **Phase 5A Claude-side code shipped (`38a468b3`):** `engine/analyst/cognitive/cache-keys.ts` (285 LOC) with `VerdictCacheKey`, `computeCacheKey()`, `computeInputContextHash()`, `canonicalJson()`, and v0 `FIELD_GROUP_INPUT_DEPENDENCIES` (conservative all-inputs fallback). 18/18 tests pass in `tests/analyst/cache-keys.test.ts`. All functions pure — no DB, no I/O, usable from Edge runtime.
 - **Phase 5A Replit handoff written** at `.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`: adds `research_runs.cache_key` (indexed), `research_runs.cache_inputs_hash`, `assumption_guidance.superseded_at`. Zero new tables. Drizzle migration + dev Neon verification spec included. Handoff explicitly scopes 5A to migrations only.
