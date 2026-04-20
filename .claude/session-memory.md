@@ -8,7 +8,14 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Plan-6 + post-audit cleanup + collision #10
+## Session: April 20, 2026 (latest) — 3 new hooks shipped from bleeding-scoreboard
+- **Commit-msg hook (`afea52dc`)** — `.husky/commit-msg` rejects subjects <15 chars or matching blocklist (c, wip, fix, commit, etc.). Ends historical 141-commit waste class going forward.
+- **Cosmetic-budget rule + advisory warn hook (`ab3f0505`)** — `.claude/rules/cosmetic-budget.md` + `.husky/cosmetic-warn`. Detects commits touching only branding/image assets; warns with last-30-day cosmetic commit count. Advisory (not blocking). Addresses rewritetax scoreboard pattern #1 (88 opengraph swaps YTD).
+- **Stage-collision-check hook (`45ff1ab7`)** — `.husky/stage-collision-check`. Warns when staged files were last touched by a different author than the current session — catches the `git add -A` footgun. Fired on its own first subsequent commit (warning on rewritetax.md last-touched-by-Replit), validating the design.
+- **Pattern #11 (client/server seed dup) downgraded 🔴 → 🟡 (`76f9398f`)**: re-assessment found it's Zustand placeholder, replaced immediately on API fetch. Not real drift. Documented in-place rather than refactored.
+- **Decimal-drift detector deferred** — preview run flagged 33 unique values across 2+ files, baseline too noisy to ship without more scoping design. Queued for future session.
+
+## Session: April 20, 2026 (prior) — Plan-6 + post-audit cleanup + collision #10
 - **Post-audit fixes (`6d695ef3`):** removed 2 dead vars in InvestmentReturnsTab (`allPropertyFinancials` + `getPropertyYearly` useMemo/useCallback hooks — orphaned when sub-batch 2b deleted their consuming props) and 1 unused eslint-disable in CompetitiveLandscapeTab. Lint restored 43 → 40.
 - **Collision #10 (Claude-bundled Replit's work):** my `git add -A` on `6d695ef3` swept up 4 Replit-pending files (`opengraph.jpg`, `STEADY-STATE.md`, `schema/index.ts`, `schema/model-defaults.ts`). Reverse of the usual pattern. Violated `agent-collision-hygiene.md` rule #2 (pre-add `git status`). Content correct; attribution blended. Lesson: `git add -A` is a footgun when Replit has uncommitted state; prefer explicit per-file staging.
 - **Flagged for follow-up**: 5 company-research tabs (CompetitiveLandscape, OverheadBenchmarks, PartnerComp, ServiceRevenue, VendorCosts) only used via barrel — likely dead in client/src. Orphan detector doesn't scope client/src (v2 candidate). Client/server seed-data duplication (`store.ts` mirrors `server/seeds/property-data.ts`) remains unresolved.
