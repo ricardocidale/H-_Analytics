@@ -378,6 +378,19 @@ export function extractGuidance(
   aiResponse: Record<string, unknown>,
   tier: 1 | 2,
   entityType: "property" | "company",
+  options?: {
+    /**
+     * Widen the acceptable key universe beyond `entityType`'s default set.
+     * Used by the admin defaults surface, which edits a union of company-
+     * scoped and property-scoped fields (the admin's "global" slice is
+     * broader than either entity's vocabulary alone). `entityType` still
+     * drives the section-based extractors (`extractFromCompanyResearch` vs
+     * `extractFromPropertyResearch`), and the persisted `entityType` in
+     * the returned result is unchanged — this only affects which
+     * `assumptionKey` values survive the filter step.
+     */
+    extraValidKeys?: ReadonlySet<string>;
+  },
 ): GuidanceExtractionResult {
   const errors: string[] = [];
   let rawRecords: GuidanceRecord[] = [];
@@ -389,7 +402,14 @@ export function extractGuidance(
       rawRecords = extractFromCompanyResearch(aiResponse);
     }
 
-    const validKeys = entityType === "property" ? PROPERTY_ASSUMPTION_KEYS : COMPANY_ASSUMPTION_KEYS;
+    const baseValidKeys = entityType === "property" ? PROPERTY_ASSUMPTION_KEYS : COMPANY_ASSUMPTION_KEYS;
+    let validKeys: Set<string>;
+    if (options?.extraValidKeys) {
+      validKeys = new Set<string>(baseValidKeys);
+      options.extraValidKeys.forEach((k) => validKeys.add(k));
+    } else {
+      validKeys = baseValidKeys;
+    }
     const genericRecords = extractFromGenericKeys(aiResponse, validKeys);
     for (const gr of genericRecords) {
       if (!rawRecords.some(r => r.assumptionKey === gr.assumptionKey)) {

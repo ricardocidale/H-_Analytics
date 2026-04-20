@@ -12,6 +12,7 @@ import { createResearchClient, resolveVendorFromModel } from "./research-client"
 import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "./clients";
 import { DEFAULT_RESEARCH_MODEL } from "./resolve-llm";
 import { extractGuidance } from "./guidance/extractor";
+import { PROPERTY_ASSUMPTION_KEYS } from "./guidance/schemas";
 import { buildCompanyContextPack } from "./context-pack/company-pack";
 import { assembleResearchPrompt } from "./prompt/assemble-research-prompt";
 import {
@@ -200,10 +201,17 @@ export async function runAnalystScoped(
     throw new Error("runAnalystScoped: engine output was not valid JSON");
   }
 
+  // Admin "global" defaults are a union of company- AND property-flavored
+  // fields (e.g., PropertyUnderwriting tab edits `adr`, `ltv`, `maxOccupancy`).
+  // Pass `PROPERTY_ASSUMPTION_KEYS` as the extra valid-key set so those
+  // keys survive the filter step; persistence still happens under
+  // `entityType="company"` (admin scope), preserving the downstream
+  // contract for the assumption_guidance table.
   const guidanceResult = extractGuidance(
     parsed as Record<string, unknown>,
     1,
     "company",
+    { extraValidKeys: PROPERTY_ASSUMPTION_KEYS },
   );
   if (guidanceResult.errors.length > 0) {
     logger.warn(

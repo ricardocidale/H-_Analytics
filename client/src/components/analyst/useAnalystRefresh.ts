@@ -115,12 +115,15 @@ export function useAnalystRefresh({
       });
     },
     onError: (err) => {
-      // Parse "429: {json}" shape thrown by apiRequest.
+      // Parse "STATUS: body" shape thrown by apiRequest.
       const msg = err.message ?? "";
-      const match = msg.match(/^429:\s*(\{.*\})/);
-      if (match) {
+      const statusMatch = msg.match(/^(\d{3}):\s*([\s\S]*)$/);
+      const status = statusMatch ? Number(statusMatch[1]) : null;
+      const bodyText = statusMatch ? statusMatch[2] : msg;
+
+      if (status === 429) {
         try {
-          const body = JSON.parse(match[1]) as { retryAfterMs?: number };
+          const body = JSON.parse(bodyText) as { retryAfterMs?: number };
           if (typeof body.retryAfterMs === "number" && body.retryAfterMs > 0) {
             setCooldownEndAt(Date.now() + body.retryAfterMs);
             toast({
@@ -133,6 +136,16 @@ export function useAnalystRefresh({
           /* fall through to generic toast */
         }
       }
+
+      // Server policy: /api/analyst/refresh HOLDS the 60s cooldown on any
+      // runner failure (5xx, upstream LLM errors). Mirror that locally so
+      // the button disables instead of letting the next click get 429'd.
+      // 400 validation errors happen BEFORE the server reserves the slot
+      // and don't burn the cooldown — skip the local hold for those.
+      if (status != null && status >= 500) {
+        setCooldownEndAt(Date.now() + 60 * 1000);
+      }
+
       toast({
         title: "Analyst failed",
         description: msg || "Unknown error",
