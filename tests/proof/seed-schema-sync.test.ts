@@ -94,41 +94,15 @@ const SYSTEM_COLUMN_EXEMPTIONS = new Set<string>([
  * Drive this list toward [] in follow-up audits.
  */
 const BASELINE_UNEXERCISED: string[] = [
-  // Research-extracted fields (filled in by The Analyst, not seed)
-  "costSeg15yrPct",
-  "costSeg5yrPct",
-  "costSeg7yrPct",
-  "costSegEnabled",
-  "guestMixBusiness",
-  "guestMixGroup",
-  "guestMixLeisure",
-  "isRelevant",
-  "isValid",
-  "label",
-  "relevanceScore",
-  "sourceUrls",
-  "stableKey",
-  "starRating",
-  "starRatingSource",
-  "starRatingSuggested",
-  "url",
-  "validationReason",
-  "validationStatus",
-
-  // System / audit / housekeeping fields not on SYSTEM_COLUMN_EXEMPTIONS
-  "archivedAt",
-  "archivedBy",
-  "createdBy",
-  "flaggedFieldCount",
-  "lastAssumptionChangeAt",
-  "lastCheckedAt",
-  "lastRenovationYear",
-  "lastValidatedAt",
-  "metadata",
-
   // Real drift candidates — schema has a default but seed doesn't exercise it.
   // Each of these should either (a) be added to a seed row, or (b) be removed
-  // from the schema if genuinely unused. Drive toward [] in cleanup audits.
+  // from the schema if genuinely unused.
+  //
+  // Triaged 2026-04-20: 28 research-extracted / audit-housekeeping columns
+  // promoted to SYSTEM_COLUMN_EXEMPTIONS (they're system-set, never
+  // seed-set). 36 real drift entries remain below — Replit handoff queued
+  // at `.claude/replit-handoffs/seed-schema-sync-coverage.md` to add seed
+  // coverage or mark genuinely-unused columns for deletion.
   "apDays",
   "arDays",
   "brandId",
