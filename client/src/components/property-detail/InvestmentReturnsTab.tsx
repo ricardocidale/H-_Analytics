@@ -53,13 +53,7 @@ export default function InvestmentReturnsTab({
   }, [yearlyIS, cashFlowData, projectionYears, getFiscalYear]);
 
   const properties = useMemo(() => [property], [property]);
-  const allPropertyFinancials = useMemo(() => [financials], [financials]);
   const allPropertyYearlyCF = useMemo(() => [cashFlowData], [cashFlowData]);
-
-  const getPropertyYearly = useCallback(
-    (_propIndex: number, yearIndex: number) => yearlyIS[yearIndex],
-    [yearlyIS]
-  );
 
   const getYearlyConsolidated = useCallback(
     (yearIndex: number) => yearlyIS[yearIndex],

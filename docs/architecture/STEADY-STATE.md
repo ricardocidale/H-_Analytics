@@ -231,12 +231,29 @@ Steady State
 - Each card has 2–6 fields.
 - Each sub-tab has at least 2 cards.
 
-### 7.3 Open design questions still to resolve before build
+### 7.3 Locked decisions (Apr 20, 2026)
 
-- **Save granularity** — per-card vs per-sub-tab. Unresolved.
-- **Macro & Market splits** — final per-row constants/defaults assignment when we draft the Constants page (FRED feeds, Treasury, STR licensing) is provisional until source-by-source verification.
-- **Provenance display density** — full provenance line on every card vs collapsed-by-default.
-- **Analyst-suggests UX** — inline accept on the card vs a separate Pending Proposals queue.
+Six foundational questions resolved. Build follows these.
+
+**Q1 — Defaults storage: pure DB-backed `model_defaults` table.** No TS factory fallback. Day-zero values arrive via a seed migration; admin owns every value from that point forward. No "factory default" mental model. Schema lives at `shared/schema/model-defaults.ts`.
+
+**Q2 — Locality scoping: universal at MVP, schema reserves space for future specialization.** Every default row has nullable `country`, `country_subdivision`, `business_type`, `size_band` columns. At MVP all rows are universal (NULL on every scope dimension). When the Analyst learns enough to specialize defaults per location / business type / size, new rows are inserted with the relevant scope columns populated — no schema migration needed. Read-time resolution picks the most-specific matching row, falling back to the universal row.
+
+**Q3 — Save granularity: per-tab by default, per-page when the cards on a page are tightly coupled.** Each card declares its save scope in front-end metadata (`saveScope: 'tab' | 'page'`). The Save UI infers grouping: if any card on the active sub-tab declares page-scope, the entire page commits as one Save; otherwise the sub-tab commits as one Save. This keeps the front-of-app symmetry (per-tab Save in CompanyAssumptions) while letting tightly-coupled card sets — e.g. fee-structure cards whose values must change together to stay coherent — commit atomically. Be elegant about this in the build; the determination is data-driven, not branched.
+
+**Q4 — Analyst proposal display: yellow range on the card + gold `i` for explanations.** When the Analyst proposes a value, the card shows the proposed range as a yellow band underneath the current value (e.g. *"Analyst suggests $4.2M – $5.0M"*). Information icons on the card follow a two-color rule:
+- **Neutral `i`** — plain documentation (definition of the field, unit, formula).
+- **Gold `i` (yellow-gold)** — Analyst-sourced intelligence (citation, conviction score, link to research run, why-this-range explanation).
+
+Gold-vs-neutral is what tells an admin at a glance "this info is the Analyst speaking" vs "this is just a definition."
+
+**Q5 — Pending proposals surface: BOTH inline-on-card AND a global Pending Proposals queue.** Admins are super users; the queue lets them triage in batch when proposal volume is high, while the inline card UX supports in-flow acceptance. Both surfaces query the same row state — proposals live in `model_defaults.proposed_*` columns, so the queue is `SELECT … WHERE proposed_value IS NOT NULL`. No second table.
+
+**Q6 — Frozen-on-save confirmed.** Once a user clicks Save on any tab, that tab's values become the source of truth for that user's scenario. Subsequent admin changes to the matching default do **not** propagate to that user. Admin changes only affect (a) users who haven't yet saved, and (b) the bare-default scenario for new sign-ins. There is no "propagate this default change to existing users" admin action — by design.
+
+### 7.4 Macro & Market provisional split (still open)
+
+Final per-row Constants vs Defaults assignment for Macro & Market is deferred until we draft the Constants page. FRED feeds, Treasury, and STR licensing each need source-by-source verification before locking.
 
 ---
 
