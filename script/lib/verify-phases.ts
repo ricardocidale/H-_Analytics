@@ -23,6 +23,7 @@ export const VERIFY_PHASES: readonly VerifyPhase[] = [
   { name: "Any-Prop Detector", file: "any-prop-detector.test.ts" },
   { name: "Literal Drift", file: "literal-drift.test.ts" },
   { name: "Seed/Schema Sync", file: "seed-schema-sync.test.ts" },
+  { name: "Defaults Drift", file: "defaults-drift.test.ts" },
 ] as const;
 
 export function allProofFilePaths(): string[] {

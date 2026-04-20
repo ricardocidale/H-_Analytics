@@ -72,7 +72,7 @@ import {
   DEFAULT_COMPANY_INFLATION_RATE,
 } from "../shared/constants";
 
-interface SeedSpec {
+export interface SeedSpec {
   key: string;           // short key, prefix added below
   card: CardKey;
   value: unknown;
@@ -80,7 +80,7 @@ interface SeedSpec {
   label: string;
 }
 
-type CardKey =
+export type CardKey =
   | "setup"
   | "funding"
   | "revenue_model"
@@ -89,7 +89,7 @@ type CardKey =
   | "tax_exit"
   | "property_defaults";
 
-const SPECS: SeedSpec[] = [
+export const SPECS: SeedSpec[] = [
   // ── Setup ────────────────────────────────────────────────────────────
   { key: "modelStartDate",        card: "setup", value: DEFAULT_MODEL_START_DATE,       unit: "date",   label: "Model start date (t=0)" },
   { key: "companyOpsStartDate",   card: "setup", value: DEFAULT_COMPANY_OPS_START_DATE, unit: "date",   label: "Company operations start date" },
@@ -151,7 +151,7 @@ const SPECS: SeedSpec[] = [
   { key: "propertyInflationRate",       card: "property_defaults", value: DEFAULT_PROPERTY_INFLATION_RATE,   unit: "%",      label: "Property-level cost inflation (annual)" },
 ];
 
-function toDefaultKey(card: CardKey, key: string): string {
+export function toDefaultKey(card: CardKey, key: string): string {
   return `mc.${card}.${key}`;
 }
 

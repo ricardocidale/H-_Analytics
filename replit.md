@@ -298,8 +298,14 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - **Architectural rule** — the financial engine stays pure (no I/O). Server code resolves defaults at the request boundary, layers the user's saved value on top, then hands a plain value/overlay into the engine as an argument. Pattern: `ga?.X ?? (await resolveDefault<T>("mc.card.X")) ?? TS_CONSTANT_X`.
 - First call-site wired: `server/routes/chat.ts:205` (`Projection Years` in Rebecca's prompt context) — byte-identical swap since DB and TS constant both = 10, zero calc-path exposure.
 - Test: `tests/server/defaults-resolver.test.ts` — 7/7 pass against the real seeded DB. Covers known-key resolution, unknown→undefined, scope→universal fallback, jsonb type decoding, card grouping, category/subTab isolation.
-- All gates green: TS 0, Lint 0, Tests PASS, Verify UNQUALIFIED, Parity PASS, Health ALL CLEAR.
-- Next safe swap targets (same byte-identical profile, different call-sites): already queued on the `mc.setup.*` card.
+
+**Defaults-drift guard wired into verify suite (April 20, 2026, Replit, same session):**
+- New proof test `tests/proof/defaults-drift.test.ts` compares every seeded `model_defaults` row against its paired TS constant (`DEFAULT_*` in `shared/constants.ts`). If anyone edits the constant without re-seeding, or edits the seed without updating the constant, the gate fails with a pointer to the remediation (`tsx script/seed-model-defaults.ts`).
+- Registered as Phase 20 in `script/lib/verify-phases.ts` → "Defaults Drift" → 47 checks (one per seeded key + one orphan-spec guard).
+- Shared source of truth: `SPECS` + `toDefaultKey()` + `CardKey` now exported from `script/seed-model-defaults.ts` so seed and guard read from the same list.
+- Current baseline: 47/47 in sync on first run — confirms no existing drift.
+- All gates green: TS 0, Lint 0, Tests PASS, Verify UNQUALIFIED (20 phases / 555 checks), Parity PASS, Health ALL CLEAR.
+- Next safe swap targets (same byte-identical profile, different call-sites): already queued on the `mc.setup.*` card — drift guard now protects them.
 
 **Cross-check detector sweep shipped (April 20, 2026, Claude Code, end-of-day):**
 - **4 new proof tests** wired into `verify:summary` as Phases 16-19: orphan-files, any-prop-detector, literal-drift, seed-schema-sync. Total is now 19 phases / 508 checks. Each ships with a baseline + stale-entry guard for incremental cleanup.
