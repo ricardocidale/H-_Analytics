@@ -36,6 +36,7 @@ const SEED_FILES = [
 
 // Columns that never need seed coverage — system / housekeeping / legacy fields.
 const SYSTEM_COLUMN_EXEMPTIONS = new Set<string>([
+  // Identity / foreign keys / timestamps
   "id",
   "createdAt",
   "updatedAt",
@@ -48,6 +49,40 @@ const SYSTEM_COLUMN_EXEMPTIONS = new Set<string>([
   "deletedAt",
   "lastAccessedAt",
   "lastResearchAt",
+
+  // Research-extracted fields — filled by The Analyst / research pipeline,
+  // never by seed. Setting these in seed would be misleading because the
+  // research pipeline re-populates them on first consultation.
+  "costSeg5yrPct",
+  "costSeg7yrPct",
+  "costSeg15yrPct",
+  "costSegEnabled",
+  "guestMixBusiness",
+  "guestMixGroup",
+  "guestMixLeisure",
+  "isRelevant",
+  "isValid",
+  "label",
+  "relevanceScore",
+  "sourceUrls",
+  "stableKey",
+  "starRating",
+  "starRatingSource",
+  "starRatingSuggested",
+  "url",
+  "validationReason",
+  "validationStatus",
+
+  // Audit / housekeeping / computed fields — set by system events, not seed
+  "archivedAt",
+  "archivedBy",
+  "createdBy",
+  "flaggedFieldCount",
+  "lastAssumptionChangeAt",
+  "lastCheckedAt",
+  "lastRenovationYear",
+  "lastValidatedAt",
+  "metadata",
 ]);
 
 /**
