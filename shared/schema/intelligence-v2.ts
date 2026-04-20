@@ -21,6 +21,12 @@ export const assumptionGuidance = pgTable("assumption_guidance", {
   comparableSet: jsonb("comparable_set").$type<Record<string, unknown>>(),
   relaxationLevel: integer("relaxation_level").default(0),
   researchRunId: integer("research_run_id"),
+  /**
+   * Set when a later research run replaces this guidance row's field.
+   * Null means "current". Phase 5C will populate this on cache invalidation.
+   * See ADR-004 — Verdict Cache.
+   */
+  supersededAt: timestamp("superseded_at"),
   /** Structured breakdown of range quality — explains WHY conviction is what it is */
   dataQuality: jsonb("data_quality").$type<{
     /** Number of independent sources that contributed to this range */
@@ -73,11 +79,21 @@ export const researchRuns = pgTable("research_runs", {
   estimatedCost: real("estimated_cost"),
   error: text("error"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  /**
+   * Verdict-cache lookup key — derived hash of (entityType, entityId,
+   * scenarioId, fields, model knobs). Indexed for hot-path reads in
+   * Phase 5B engine-client.ts. Nullable for back-compat with rows
+   * written before Phase 5C populates it. See ADR-004 — Verdict Cache.
+   */
+  cacheKey: text("cache_key"),
+  /** Hash of the input bundle used to compute cacheKey, for diagnostics. */
+  cacheInputsHash: text("cache_inputs_hash"),
 }, (table) => [
   index("research_runs_entity_idx").on(table.entityType, table.entityId),
   index("research_runs_status_idx").on(table.status),
   index("research_runs_user_idx").on(table.userId),
   index("research_runs_scenario_idx").on(table.scenarioId),
+  index("research_runs_cache_key_idx").on(table.cacheKey),
 ]);
 
 /**
