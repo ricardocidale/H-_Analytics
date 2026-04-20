@@ -10,6 +10,7 @@
 import { useMemo } from "react";
 import { Minus } from "@/components/icons/themed-icons";
 import { IconBookOpen, IconTrendingUp, IconTrendingDown } from "@/components/icons";
+import type { PropertyResponse } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/financialEngine";
 
@@ -22,7 +23,7 @@ interface BenchmarkRow {
 }
 
 interface BenchmarkPanelProps {
-  property: any;
+  property: PropertyResponse;
   yearlyChartData: { Revenue: number; GOP: number; ANOI: number }[];
 }
 

@@ -62,10 +62,22 @@ const BASELINE_KNOWN_ANY_PROPS: string[] = [
   // tab's docstring) + a specific CompensationBenchmarks type for
   // PartnerCompTab which actually reads content.compensationBenchmarks.
 
-  // Property detail / edit — sub-batches 2d, 2e
-  "client/src/components/property-detail/BenchmarkPanel.tsx:25",
-  "client/src/components/property-edit/types.ts:26",
-  "client/src/components/property-edit/types.ts:29",
+  // Sub-batch 2d + 2e (2026-04-20) RESOLVED —
+  // - PropertyEditSectionProps.draft: any → PropertyResponse
+  // - PropertyEditSectionProps.globalAssumptions: any → GlobalResponse | undefined
+  // - BenchmarkPanelProps.property: any → PropertyResponse
+  // Real production bug surfaced + fixed: OtherAssumptionsSection read
+  // `draft.globalAssumptions?.costOfEquity` but `draft` (PropertyResponse)
+  // has no `globalAssumptions` field — the value always fell through to
+  // the hardcoded 0.18 default. Corrected to read from the separately-
+  // passed `globalAssumptions` prop.
+  //
+  // Third real contract drift the detector has surfaced + the first that's
+  // a silent production display bug (cost-of-equity shown wrong for users
+  // with admin-overridden Damodaran base Re).
+  //
+  // BASELINE EMPTIED 2026-04-20. Any future flagged any-typed Props field
+  // is a real find.
 ];
 
 // -- File enumeration --------------------------------------------------------
