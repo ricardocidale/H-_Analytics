@@ -255,9 +255,9 @@ Because the default scenario is derived, it has no Admin page and no Save button
 
 **Implementation contract** for the default scenario:
 
-- [ ] Property records carry an `included_in_scenario` boolean that defaults to `true`.
-- [ ] Front-of-app first-visit logic resolves the starting state as: assumptions = MC defaults; properties = full catalogue with the flag respected.
-- [ ] No row in `scenarios` table is created for the default — it exists only as a runtime composition until the user's first save.
+- [ ] Front-of-app first-visit logic resolves the starting state as: assumptions = MC defaults from Steady State; properties = the **full live property catalogue** from the `properties` table.
+- [ ] No row in `scenarios` table is created for the bare default — it exists only as a runtime composition until the user's first save. (User-saved scenarios continue to use the existing JSONB snapshot pattern.)
+- [ ] The bare default does not need a per-property "include" flag because every property in the catalogue is in. The future Admin → Scenarios block (§9.2) is where curation lives.
 
 ### 9.2 Future Admin → Scenarios block (planned, not built)
 
@@ -273,7 +273,7 @@ This will live as its own sidebar block — **Scenarios (Admin)** — sitting ju
 
 - Starter scenarios are **not** Defaults. They reference Defaults; they don't replace them. Editing the MC defaults in Steady State propagates to every starter scenario that doesn't explicitly override.
 - A starter scenario's MC overrides follow the same Save-UX contract as any other assumption surface (§4): Save button enabled on render, navigation-away dialog, Cancel reverts to entry-state.
-- Property inclusion in a starter scenario is set-membership, not a deep copy of the property record. Property edits in Steady State → Defaults → Property still flow through to every starter scenario that includes that property.
+- **Open design question** — property inclusion in a starter scenario could be either (a) **set-membership by property ID** (admin edits in Steady State → Defaults → Property propagate to every starter scenario that includes that property — favored for admin-curated templates), or (b) **JSONB snapshot** matching the current user-saved `scenarios` table pattern (frozen at starter-creation time, no propagation). The current `scenarios` table uses (b). Starter scenarios may justify a different table with shape (a). Lock this when the Admin → Scenarios spec is drafted.
 - A user assigned a starter scenario lands inside it on first sign-in instead of the bare default. The cascade rule from §3 still applies — the moment the user saves, the starter scenario becomes their own scenario, and the admin's starter is no longer their source of truth.
 
 This block will need its own spec when we build it. Pointer reserved.
