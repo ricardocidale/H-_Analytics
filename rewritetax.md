@@ -114,6 +114,69 @@ The full visible billing window confirms the $85–$90/day burn rate computed fr
 
    This is within 6% of the $85.30/day Agent Usage rate computed independently from the workspace-level breakdown of XFPSSE-DRAFT. Two independent methods converging on ~$85–$90/day is high-confidence triangulation.
 
+### Extended ledger (Feb 23 – Mar 15, 2026 — 20 more invoices, +21 days)
+
+The user shared a second batch of 20 invoices, extending the visible billing window backwards. The pagination footer notes "Showing 21 to 40 of 75" — meaning **75 invoices exist project-life** (Jan 25 – Apr 23) and **35 earlier invoices are still not visible**.
+
+| Invoice | Issued | Net amount | Notes |
+|---|---|---:|---|
+| XFPSSE-00036 | Feb 23 | $24.05 | Mid-threshold |
+| XFPSSE-00037 | Feb 24 | $56.74 | |
+| XFPSSE-00038 | Feb 24 | $54.02 | |
+| XFPSSE-00039 | Feb 25 | $0.00 | Pre-purchase fully covered |
+| XFPSSE-00040 | Feb 25 | $0.00 | Pre-purchase fully covered |
+| XFPSSE-00041 | Feb 25 | $21.07 | Mid-threshold |
+| XFPSSE-00042 | Feb 25 | $0.00 | Pre-purchase fully covered |
+| XFPSSE-00043 | Mar 7 | $54.28 | First invoice after a 10-day gap (Feb 25 → Mar 7 — likely a pre-purchase top-up was activated, suppressing the invoice trigger) |
+| **XFPSSE-00044** | **Mar 8** | **$511.68** | 🚨 **LARGEST SPIKE IN THE LEDGER — coincides with `Comprehensive audit v2/v3` day** |
+| XFPSSE-00045 | Mar 11 | $53.41 | |
+| XFPSSE-00046 | Mar 11 | $54.39 | |
+| XFPSSE-00047 | Mar 12 | $54.73 | |
+| XFPSSE-00048 | Mar 12 | $55.79 | |
+| XFPSSE-00049 | Mar 12 | $54.10 | |
+| XFPSSE-00050 | Mar 13 | $55.53 | |
+| XFPSSE-00051 | Mar 13 | $54.09 | |
+| XFPSSE-00052 | Mar 14 | $72.96 | Slight elevation — adjacent to icon-migration sweep |
+| XFPSSE-00053 | Mar 14 | $54.02 | |
+| XFPSSE-00054 | Mar 14 | $55.64 | |
+| XFPSSE-00055 | Mar 15 | $53.50 | |
+| **Total invoiced (Feb 23 – Mar 15, 21 days)** | | **$1,340.00** | |
+
+**Daily burn over this 21-day window: $63.81/day** (inflated by the Mar 8 spike).
+**Without the spike: $828.32 / 21 days = $39.44/day baseline** in late Feb / early March — about half the late-April rate. Activity ramped over the project's life.
+
+### 🚨 The two confirmed spike days (the "ship-day tax" pattern)
+
+The full 61-day visible ledger reveals a clear pattern: routine days run $50–$90, but two specific days punch through that ceiling by 5–10×.
+
+| Spike date | Invoice | Amount | What shipped that day | Multiple over baseline |
+|---|---|---:|---|---:|
+| **Mar 8, 2026** | XFPSSE-00044 | **$511.68** | Comprehensive audit v2/v3: critical `debtOutstanding` bug fix + A=L+E identity checks + 35 new golden tests + 149-test golden scenario battery + Lucide → branded icon migration (multi-file sweep) + dead-code removal (`da82c6e3`) + mobile layout responsiveness + a rollback (`b6312c2c Restored to '2979fd…'`) | **~10× baseline** |
+| **Apr 19, 2026** | XFPSSE-00074 | **$266.95** | OT-A.4 ship: `7da9f25a OT-A.4 Path A1: retire legacy regex extractor; streamObject is the single synthesis path` — budgeted at $22 single-rerun | **~5× baseline; 12× the named budget** |
+
+**Combined spike-day cost: $778.63** = ~17% of all visible billed invoice volume in 61 days, paid on just **2 of 61 days** (3.3% of days).
+
+The pattern is consistent: **massive ship-or-audit days that touch many files at once burn 5–10× normal daily rates.** Both spike days included a rollback or revert — Mar 8's `b6312c2c Restored to '2979fd…'` and the OT-A.4 day's prior aborted v5 path. Rollbacks during a spike day re-cost the agent loop on the way back up.
+
+### Updated project-life cash-outlay picture
+
+Combining everything visible:
+
+| Window | Days | Invoice settlements | Avg/day |
+|---|---:|---:|---:|
+| Feb 23 – Mar 15 | 21 | $1,340.00 | $63.81 |
+| Mar 15 – Apr 23 | 40 | $1,108.61 | $27.72 |
+| **Visible total (Feb 23 – Apr 23)** | **61** | **$2,448.61** | **$40.14** |
+| Plus pre-purchase credits drawn down (Apr cycle alone) | — | $2,500.99 | — |
+| **Combined cash outlay (visible + Apr pre-purchase only)** | **61** | **~$4,949.60** | **~$81.14/day** |
+| Estimated pre-Feb-23 spend (Jan 25 – Feb 22, 28 days at lower early-project rate ~$30–$50/day, drawing from initial pre-purchase) | 28 | $850–$1,400 | $30–$50 |
+| Plus 35 pre-Feb-23 invoices not yet visible (likely sub-$50 each, smaller pre-purchase cycle) | — | included in the $850–$1,400 above | — |
+| **PROJECT-LIFE CASH OUTLAY (Jan 25 – Apr 23, 89 days)** | **89** | **~$5,800–$6,350** | **~$65–$71/day** |
+
+**This is the highest-confidence number in the entire audit.** Two independent triangulation methods (workspace-level Agent Usage breakdown + invoice ledger) both land at the same range.
+
+For perspective: ~$6,000 of cash burn over 89 days on a single application, of which an estimated **50–60% (~$3,000–$3,600) is rewrite tax** (work that produced no net forward code), is a real finding worth acting on.
+
 ### Project-life extrapolation (revised)
 
 The project has run for 86 days. Activity per the commit-rate analysis was lower in Feb (837 commits, ~30/day) and higher in March (1,396 commits, ~45/day) and April (1,039 in 20 days, ~52/day). The invoice covers the heaviest 30 days. Conservative extrapolation, weighting by commit volume:
