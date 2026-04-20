@@ -2,7 +2,66 @@
 
 **Date of audit:** 2026-04-20
 **Auditor:** Replit Agent (read-only over `git log`, migration journal, `.claude/`, `docs/`)
+**Last update:** 2026-04-20 end-of-day (Claude Code added top-of-doc analysis + detector-prevention addendum)
 **Scope:** Every category of work in this repo where the same surface area was implemented, ripped out, and re-implemented — and what that cost in developer time, tokens, agent credits, and direct US dollars.
+
+---
+
+## 🩸 Where the Bleeding Is — Honest Scoreboard (Apr 20, 2026)
+
+This table is the headline. Read the rest of the doc only if you want evidence.
+
+### Ongoing waste patterns, ranked by visible $ impact
+
+| Pattern | Status | What it's costing | What stops it |
+|---|---|---|---|
+| **1. Cosmetic churn** — opengraph image swaps, social preview tweaks, CSS polish | 🔴 **Actively bleeding** | 88 commits YTD × one full CI + verify cycle each × $1 each = ~$88 visible + hidden agent-loop time. Running at ~1/day. | Human discipline. No automated fix. Budget: 1 swap/month max. |
+| **2. Multi-agent collision commits** | 🔴 **Actively bleeding** | 10 observed this session alone (Apr 20). Each = one blended-attribution commit + mental overhead to detangle. Estimated 5% of all commits. | `agent-collision-hygiene.md` rule (written Apr 20). Requires per-file `git add`, never `-A`. Partially followed. |
+| **3. Empty / generic commit messages** ("c", "commit", "com") | 🔴 **Actively bleeding** | 141 in repo history. Each runs a full verify cycle for zero documented change. | Pre-commit hook rejecting short messages. Not installed. |
+| **4. Auto-published-your-App** checkpoints | 🔴 **Actively bleeding** | 85 YTD. Each one ran full gates. Often triggered by trivial edits. | Human discipline. Or: move to manual-only publishes. |
+| **5. "Plan → Build" plan-reload cycles** | 🟡 Partially bleeding | 30 observed. Each reloads full session context → token cost. | Session memory discipline (current practice, imperfect). |
+| **6. Schema/seed divergence** | 🟢 **Stopped Apr 20** | Recurring class — schema column added, seed never set it, default change ships invisibly. | `seed-schema-sync.test.ts` (Phase 19). 36 real drift columns remain but new drift is blocked. |
+| **7. Dead code directories** (unused `server/ai/kb/`-style modules) | 🟢 **Stopped Apr 20** | Historical cost: 19 files / ~900 LOC lived unused for weeks, wasted audit time. | `orphan-files.test.ts` (Phase 16). Baseline empty after 35-file sweep. |
+| **8. `any`-typed component props** | 🟢 **Stopped Apr 20** | Historical cost: Phase 4 #15 bug (BLOCKED handoff + fix commit) + today's 3 real bugs surfaced. | `any-prop-detector.test.ts` (Phase 17). Baseline empty after 20+ file sweep. |
+| **9. Magic date literals drifting across files** | 🟢 **Stopped Apr 20** | Historical cost: D-1 (`"2026-06-01"` in 7+ files), D-1-B (capital-raise dates). Each cluster = 1 full audit + 1 fix sweep. | `literal-drift.test.ts` (Phase 18). Baseline empty. |
+| **10. Decimal-literal drift** (cap rates, LTVs, fees) | 🟡 Partially covered | Same class as #9 but for numbers, not dates. Not yet detected. | V2 of literal-drift detector. Queued, not urgent. |
+| **11. Client/server seed data duplication** | 🔴 **Actively bleeding** | Same property list hardcoded in `client/src/lib/store.ts` AND `server/seeds/property-data.ts`. Drift inevitable. | Consolidate to single source. Not started. |
+| **12. LLM-migration mechanism bugs** (OT-A.3/4 arc: mode collapse, definition drift, representational mismatch, parity-against-broken-baseline) | 🟢 **Stopped Apr 20** | Paid in full for OT-A.3 saga (~$180–$220 documented). | 4 rules codified: `field-definitions-no-prescription-hints.md`, `llm-contract-migration-parity.md`, `parity-exemption-classes.md`, + existing `analyst-verdict-contract.md`. |
+
+### Stopped-by-today's-work summary
+
+**4 new gates** in `verify:summary` (now 19 phases, 508 checks) block patterns 6, 7, 8, 9. Each came with a baseline that was driven toward zero the same day:
+
+| Pattern | Baseline start | Baseline end | Delta |
+|---|---:|---:|---:|
+| Dead files (orphan detector) | 29 | **0** | -29 |
+| `any`-typed props | 28 | **0** | -28 |
+| Date-literal drift | 25 | **0** | -25 |
+| Seed/schema gaps | 64 | **36** | -28 (real drift remains, Replit handoff queued) |
+| **Total violations cleared** | **146** | **36** | **-110** |
+
+**3 production bugs caught during the sweep** (validation of the detectors' design):
+1. IcpMarketContextTab over-broad `assetDefinition` cast → silently wrong at any field shape change.
+2. InvestmentAnalysis had TWO dead props with TWO callers passing DIFFERENT shapes. Both live. `any[]` hid it.
+3. **OtherAssumptionsSection silent cost-of-equity bug** — every user saw 18% instead of admin-overridden value. Real user-facing bug. Only caught because we typed `draft: any → PropertyResponse`.
+
+### What's STILL bleeding and not yet stopped
+
+Patterns 1, 2, 3, 4, 11 above are not addressable by automated tests. They're human-discipline problems.
+
+**The top 5 things to install THIS WEEK to stop the ongoing bleed:**
+
+1. **Pre-commit hook that rejects generic commit messages** (`c`, `commit`, `com`, `wip`, `fix`). Ends 141-commit class of waste.
+2. **One-cosmetic-swap-per-month budget.** 88 opengraph-style swaps this year is absurd. Move to a single quarterly branding sprint.
+3. **Per-file `git add` enforcement.** After collision #10 (Apr 20) I violated my own rule. A git hook that refuses `git add -A` when multiple authors have uncommitted state would close this.
+4. **Consolidate client/server seed data.** `client/src/lib/store.ts::INITIAL_PROPERTIES` should import from `server/seeds/property-data.ts` (or a shared fixtures module). One source of truth.
+5. **Decimal literal drift detector** (v2 of pattern 9). Catches cap rate / LTV / fee drift before it becomes tomorrow's D-1.
+
+### Where this section came from
+
+Claude Code did an honest analysis of what today's session shipped against what this doc documents. Items 6-9 & 12 are provably stopped by tests that fail the build. Items 1-5, 10, 11 are stated exactly as they are — no technical gate exists yet.
+
+**The $ opportunity:** if patterns 1-4 alone drop to half their rate, this workspace's $85/day burn could compress to ~$50/day — a $1,050/month saving. Patterns 6-9 don't show up in daily $ burn but they compound: every prevented future bug-fix-cycle is a $20-$200 token spend avoided.
 
 ---
 

@@ -2,10 +2,13 @@
 
 A financial modeling and portfolio management platform for boutique hospitality. The portal generates GAAP-compliant monthly and yearly pro forma projections, income statements, balance sheets, cash flow statements, and investment return analyses for hospitality assets — all verified by a 4,536-test, 19-phase verification pipeline with three-tier financial verification.
 
+> 📊 **Cost audit:** For an honest scoreboard of where engineering time and agent tokens have been wasted on this project (and what's been stopped), see **[`rewritetax.md`](./rewritetax.md)** — forensic audit of rewrite patterns, current bleed rate, and the 4 new automated gates that block the biggest classes of waste.
+
 ---
 
 ## Table of Contents
 
+- [📊 Rewrite Tax / Cost Audit](./rewritetax.md) — forensic audit + bleed-rate scoreboard
 - [What This Application Does](#what-this-application-does)
 - [Business Model](#business-model)
 - [Data Sources and Sources of Truth](#data-sources-and-sources-of-truth)
