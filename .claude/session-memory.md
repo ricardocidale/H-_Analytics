@@ -8,6 +8,11 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 20, 2026 (latest) — Orphan-file detector shipped + all lint batches complete
+- **Orphan-file detector shipped (Claude, auto-committed by Replit as `c8628ace`):** `tests/proof/orphan-files.test.ts` — import graph traversal with alias + `.js` ESM-convention resolution. Wired into `script/lib/verify-phases.ts` as Phase 16 of `verify:summary`. **29-entry baseline** documents current orphans (23 barrel `index.ts` + 6 concrete: `agentSkillsExport`, `benchmark-injector`, `executive-summary-section`, `export-json-utils`, `utils/batch`, `shared/chat`). Two assertions: no new orphans + no stale baseline entries. Closes the `server/ai/kb/` dead-code pattern.
+- **5th Replit collision this session** — `c8628ace` bundled all 6 of my files under Replit attribution. Pattern is consistent; work landed correctly. Per `agent-collision-hygiene.md` rule 5: attribution lives here.
+- **Cross-check-invariants rule updated** — orphan detector moved from "Suggested additions" to "Existing proof tests". Three suggested tests remain: literal-drift, `any`-prop, seed/schema-sync.
+
 ## Session: April 20, 2026 (latest) — All lint batches complete (348→42, 88%)
 - **All 9 batches shipped:** 5a/5b/5c (audit/verification), 6a+6b/6c/6d/6e/6f (remaining codebase). Final count: **42 warnings** (88% reduction from 348). Haiku executed 5b/6c/6d (mechanical `?? 0`); Sonnet executed 5c (assertFinite on 4 accumulators) + 6e (14 `Number.isFinite` input-parsing wraps) + 6f (3 inspect-each). All gates green throughout; assertFinite surfaced no engine NaN bugs.
 - **Recurring Replit collision pattern**: commits 9ba2b495, cd64b6f5, fd509d51 auto-bundled Claude's edits mid-session (4th, 5th, 6th incidents). Work landed correctly; attribution in session memory.
