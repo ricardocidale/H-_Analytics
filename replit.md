@@ -405,33 +405,104 @@ Wiring today: all four route through the existing `ModelDefaultsTab` with a
 `visibleTabs` filter (`Admin.tsx::MODEL_DEFAULTS_VISIBLE_TABS`); the per-item
 pages reuse the existing tab components.
 
-**AI sidebar section — sole home for ALL LLM definitions.** Every LLM model
-choice, prompt template, dual-model fallback config, and per-domain LLM tuning
-lives here, organized by tabs per specialist application (e.g.
-photo-realistic image processing, synthesis, classification). **No LLM
-definitions anywhere else** in admin or on the front of the app. The existing
-`LlmDefaultsTab` will move under this section when the section is built; until
-then it stays in place but no new LLM surfaces are added outside this future
-home.
+**AI Platform sidebar section (renamed from "AI").** Owns ONLY the cross-cutting
+LLM infrastructure: vendor API keys + model registry, per-vendor health /
+latency / availability, fallback policy, AND a **Universal LLM Uses** bucket for
+non-Specialist consumers (Rebecca chat, generic embeddings, generic prompts).
+**Vendor keys and the model catalog live here exclusively.** Per-Specialist
+model picks and per-Specialist prompts do **not** live here — they live inside
+each Specialist's page (see AI Research below). The existing `LlmDefaultsTab`
+moves into AI Platform when the section is built; the Specialist-scoped
+portion of it (model+prompt-per-specialist) splits out into the Specialists.
 
-**AI Research sidebar section (NEW).** Houses all AI-research configuration
-organized by *what is being researched*. First menu item:
-- **Property** — page with tabs and cards covering everything about
-  AI research as it pertains to properties, **including Required Fields**
-  (which is migrating out of `ModelDefaultsTab`'s "required-fields" tab into
-  this page). Other property-research concerns (research field registry,
-  per-tier prompts, source priorities, validation thresholds, etc.) are
-  consolidated here.
+**AI Research sidebar section — Specialist-first IA (2026-04-21 pivot,
+SUPERSEDES the earlier "subject-first" framing above).** AI Research is a
+**collapsible 2-level tree**: `AI Research` → **Subject** → **Specialist**. The
+Specialist page is the **single source of truth** in the app for that
+specialist's configuration; nothing about a Specialist's runtime lives
+anywhere else.
 
-Future AI Research menu items (e.g. Management Company research, Market
-research) follow the same pattern: one menu item per research subject, each
-opens a tabs+cards page.
+Subjects (top-level inside AI Research):
+- **Management Company** — Specialists that operate on the MC.
+- **Property** — Specialists that operate per-property.
+- **Photos** — Specialists that operate on photographic / asset content
+  (separate top-level subject, NOT under Property, because photo enhancement
+  is its own domain that crosses MC and Property surfaces).
+- **Portfolio Ops** — Specialists that operate cross-portfolio (lifecycle /
+  validation). Watchdog lives here.
 
-**Design discipline:** "Design and UX is critical — don't just insert things;
-they must make sense and be useful to the front of the app or other parts of
-admin." New admin pages are evaluated against this bar before merging.
+**Initial Specialist set (7 total, locked 2026-04-21):**
+| Letter | Real name | Subject | Source file | Status |
+|--------|-----------|---------|-------------|--------|
+| A | Funding | Management Company | `engine/analyst/surface/mgmt-co/funding-specialist.ts` | built |
+| B | Revenue | Management Company | `engine/analyst/surface/mgmt-co/revenue-specialist.ts` | built |
+| C | ICP Intelligence | Management Company | `server/ai/icp-intelligence.ts` | exists, needs page |
+| D | Risk Intelligence | Property | `server/ai/risk-intelligence.ts` | exists, needs page |
+| E | Executive Summary | Property | `server/ai/executive-summary.ts` | exists, needs page |
+| F | Photo Enhancer | Photos | `server/ai/asset-intelligence.ts` | exists, needs page |
+| G | Watchdog | Portfolio Ops | `server/ai/analyst-watchdog.ts` | exists, needs page (admin-tunable thresholds) |
 
-**Locked decisions (2026-04-21) for the restructure phases:**
+**Plumbing — explicitly NOT user-facing Specialists** (no AI Research page):
+luxury-classifier, comparables/web-enricher, ambient/scheduler, analyst-table-refresh internals.
+Boundary criterion: a service is a Specialist iff (a) it produces a user-visible
+outcome, (b) it has specialist-specific policy worth tuning, AND (c) it has an
+independent run contract. Internal helpers that fail any of the three stay as
+plumbing.
+
+**Per-Specialist page schema — capability-driven tabs.** A Specialist page
+renders only the tabs it declares via `SpecialistDefinition.capabilities`.
+The tab catalog:
+- `Required Fields` — fields the user must define / endorse before this
+  specialist can run (e.g. country before tax-table consultation). Per-Specialist
+  list; reusable shared bundles allowed; the global "minimum to research a
+  property" is a **derived read-only aggregate** of all Specialists' required
+  fields (no separate authoring surface).
+- `LLM Config` — model pick (referencing AI Platform's registry) + prompt
+  template **for this Specialist alone**.
+- `Sources & APIs` — external data sources / API keys this Specialist
+  consumes. Shared resources allowed (see hub-and-spoke below).
+- `Tables` — internal tables this Specialist consults.
+- `Benchmarks` — comparison benchmarks this Specialist uses.
+- `Runtime / Triggers` — when does this Specialist run (on save, on schedule,
+  on demand), with cooldowns and concurrency limits.
+- `Audit` — recent runs, verdicts, evidence, drift indicators.
+
+A Specialist that doesn't need a tab simply doesn't declare the capability
+and the tab does not render. No empty tabs.
+
+**Hub-and-spoke storage (the architectural improvement on top of the user's
+spec).** Specialist pages are the **only UX edit point** for a Specialist's
+config, but persistence is **canonical resource tables + a many-to-many
+`specialist_resource_links` join table**. Editing an API key inside Specialist A
+mutates the canonical row; the same edit is reflected in every Specialist page
+that links to that resource, with an "also used by: …" impact list shown
+inline. This avoids the drift failure mode of "the same key copied into 5
+specialist sections eventually disagreeing." Resources never duplicate; views
+project them.
+
+**Sidebar tree — data shape and accessibility.** Single `ai-research` route
+with nested params. Tree node:
+```ts
+{ id, label, type: 'group' | 'subject' | 'specialist',
+  children?, specialistId?, badge? }
+```
+Interaction: click / Enter / Space toggles; ArrowRight/Left expand/collapse;
+ArrowUp/Down moves focus; full `aria-expanded`, `aria-controls`, roving
+tabindex. The same nesting primitive becomes available to other sidebar
+sections in the future, but only AI Research uses it at launch.
+
+**Specialist naming:** Display label is `Specialist A — Funding` (letter
+primary, real name secondary). Ordering is admin-rank with **alphabetical-by-real-name**
+as the fallback. Letters are stable identifiers stored on the Specialist
+definition; renaming the real name does not reshuffle letters.
+
+**Doctrine reconciliation (supersedes the prior "AI section as registry"
+hybrid).** Previously: AI section = registry; AI Research pages reference
+inline. Now: AI Platform = vendor keys + model catalog + universal LLM uses;
+**every per-Specialist model pick and prompt moves into that Specialist's
+page**. The registry stays in AI Platform; the assignment moves out.
+
+**Defaults sidebar group — locked decisions (2026-04-21) carry forward unchanged:**
 - **Defaults > Property tabs:** `Underwriting` / `Operating` / `Capital` /
   `Exit` / `Service Fees`. Each tab is cards (mimics Property Edit's section
   grouping but presented as tabs).
@@ -440,17 +511,14 @@ admin." New admin pages are evaluated against this bar before merging.
   live on the Property defaults > Service Fees tab. No fee may exist in both
   places.
 - **Business-type bucket:** Two buckets today (`hotel`, `short-term-rental`)
-  with the codebase prepared for a third. Implement as a typed enum + lookup
-  table, never a binary. Mapper: `hospitalityType === 'vrbo'` → `short-term-rental`;
-  all other 8 enum values → `hotel`. Add a `BUSINESS_TYPE` enum (in
-  `shared/schema/business-type.ts`) so adding the third bucket is a one-line
-  change.
-- **AI section ownership (hybrid):** The AI section is the **registry** of
-  available LLM models + the universal prompts (Rebecca chat, Analyst). Each
-  AI Research page (e.g. AI Research > Property) picks which registered model
-  it uses inline via a model-selector that reads from the registry. The
-  registry is the single source of truth; research pages reference, not
-  duplicate.
+  with the codebase prepared for a third. Typed enum + lookup table, never a
+  binary. Mapper: `hospitalityType === 'vrbo'` → `short-term-rental`; all
+  other 8 enum values → `hotel`. Lives in `shared/schema/business-type.ts`
+  (already shipped); adding a third bucket is a one-line change.
+
+**Design discipline:** "Design and UX is critical — don't just insert things;
+they must make sense and be useful to the front of the app or other parts of
+admin." New admin pages are evaluated against this bar before merging.
 
 **REST patterns:** model_defaults endpoints (when added) mirror
 `server/routes/admin/model-constants.ts` — `GET` list, `PUT` upsert with
