@@ -502,48 +502,67 @@ inline. Now: AI Platform = vendor keys + model catalog + universal LLM uses;
 **every per-Specialist model pick and prompt moves into that Specialist's
 page**. The registry stays in AI Platform; the assignment moves out.
 
-**Open proposal under review (2026-04-21, post-pivot) — Resources as a top-level Admin section.**
-The user surfaced a stronger separation than the hub-and-spoke pattern above: extract
-APIs and Sources (and possibly Tables, Benchmarks, Models) into a NEW top-level
-**Resources** sidebar section as their canonical edit surface. Specialist pages would
-then become **read-only assignment views** showing each wired resource with a
-green/red **health dot** and a **Test** button — the admin sees what's wired and can
-verify it's alive, but cannot rewire from inside the Specialist page (wiring is
-declared in the Specialist catalog code).
+**LOCKED 2026-04-21 (architect endorse-with-mods + 4 user confirmations) — Resources as a top-level Admin control plane. SUPERSEDES the hub-and-spoke storage pattern in the previous block; Specialist pages become read-only assignment + health surfaces.**
 
-**Why this is potentially better than the hub-and-spoke I proposed:**
-- True single-source-of-truth for resources: one canonical surface, period.
-- Discoverability: "where do I add a new API key?" has one answer (Resources > APIs),
-  not "dig into whichever Specialist needs it."
-- Eliminates the dual-write confusion the architect flagged in P5.
-- Wiring becomes git-reviewable code (Specialist catalog), not admin chrome — fewer
-  ways for an admin to accidentally break a Specialist by unlinking a resource.
-- Cleanly separates **operational health** (admin's job: green dot, Test button) from
-  **architectural wiring** (developer's job: catalog edit + PR).
+**Top-level Admin sidebar (final):** `Defaults` | `Resources` | `AI Platform` | `AI Research` | (existing non-AI sections).
 
-**Tensions to resolve before locking:**
-- The earlier "Specialist page is the ONLY place for that Specialist's configuration"
-  rule loosens: APIs/Sources are no longer Specialist-owned but shared infra the
-  Specialist *uses*. Per-Specialist LLM prompt + model pick + Required Fields +
-  Runtime/Triggers stay Specialist-owned. Need to confirm scope of "configuration."
-- Does Resources include Tables and Benchmarks too, or only APIs and Sources?
-- What's the sharp distinction between "APIs" (authenticated REST endpoints with
-  credentials?) and "Sources" (data feeds / scrape targets / uploaded datasets?)
-  — or is Sources the umbrella and APIs a subtype?
-- Does this **collapse AI Platform into Resources**? "Resources > Models" would
-  be the LLM model registry; "Resources > Vendor Keys" the API keys. AI Platform
-  may then shrink to a pure observability surface (vendor health dashboard) or
-  disappear entirely with vendor health folded into Resources > APIs.
-- Where does Rebecca chat live if AI Platform collapses? (Likely its own
-  Specialist under a new "Conversational AI" subject, or under Portfolio Ops.)
-- Wiring authority — code-only (catalog edit + PR) vs. a separate developer-admin
-  "Wiring" surface for runtime reassignment? Code-only is safer; runtime is more
-  flexible but reintroduces drift risk.
+**Resources sidebar section (NEW, canonical SoT).** Sub-pages, each is the **single canonical edit surface** for that resource kind app-wide:
+- `APIs` — authenticated executable connectors (FRED, OpenAI, Anthropic, Stripe, Twilio, etc.). Vendor key + endpoint + auth config.
+- `Sources` — content/feed/dataset origins (RSS, public CSV URLs, scrape targets, uploaded datasets). No auth or open-data auth.
+- `Tables` — internal lookup/reference tables.
+- `Benchmarks` — comparison datasets.
+- `Models` — LLM model registry (vendor + model id + capabilities). Replaces the prior AI-Platform model registry.
 
-**Status:** Architect deep-think requested for this proposal. Until architect
-returns and user confirms scope, the hub-and-spoke pattern from the previous
-block remains the working design and `.local/session_plan.md` reflects that.
-The Resources proposal will trigger a re-plan if endorsed.
+APIs and Sources are **sibling categories**, not subtype: APIs = "I can call this and it does something"; Sources = "this is where data comes from."
+
+**Each Resource record** lives in canonical `admin_resources` (typed `kind` + `config` JSON + `secretRef` + health columns). Edits are versioned with actor + diff + rollback pointer. Secrets live behind `secretRef`, never in the payload.
+
+**AI Platform sidebar section (kept, deliberately thin).** Owns:
+- **Universal LLM Uses** — non-Specialist consumers: Rebecca chat (her prompt + model pick live here), generic embeddings, generic system prompts.
+- **Routing & Fallback Policy** — cross-vendor failover rules, retry policy, cost guardrails.
+- **Cross-vendor Observability** — latency charts, error rates, spend dashboards aggregated across all consumers (Specialists + Universal).
+
+AI Platform does NOT own vendor keys or the model catalog anymore — those live in Resources.
+
+**AI Research sidebar section** — unchanged from the prior block: collapsible 2-level `AI Research → Subject → Specialist`, 7 Specialists locked, capability-driven tabs.
+
+**Specialist page tab catalog (after the loosen):**
+- `Required Fields` — Specialist-owned, per-Specialist user-input requirements.
+- `LLM Config` — Specialist-owned: **prompt + model selection** (model selection picks from Resources > Models registry, by reference).
+- `Resource Assignments` — **read-only**. Shows every Resource the Specialist's catalog declaration links to, with green/amber/red/gray **health dot** and a **Test** button. Admin cannot link or unlink from here.
+- `Runtime / Triggers` — Specialist-owned: cooldowns, concurrency, schedule, on-save vs on-demand.
+- `Audit` — Specialist-owned: recent runs, verdicts, evidence.
+- `Per-Resource Overrides` (optional, only if Specialist declares) — Specialist-owned overrides that point at a canonical Resource (e.g. rate-limit override, retry policy override). Override row is editable here; the underlying Resource is not.
+
+Tabs render only when the Specialist's catalog declaration declares the capability.
+
+**Wiring authority — code-only with break-glass.** The Specialist↔Resource link set is declared in the Specialist catalog (`engine/analyst/registry/specialist-catalog.ts`). Adding/removing a link requires a code edit + PR + deploy. **Break-glass override:** super-admin-only, audited, **time-boxed** (auto-expires; written into an `audit_break_glass_overrides` table). Used only for incident reroute (e.g. swapping a dead vendor under fire). Every override leaves a permanent audit trail and surfaces a banner on the affected Specialist page until the underlying catalog is patched.
+
+**Health-dot semantics.** Background checker runs per resource kind on its own TTL, writes to `resource_health_checks` log table. Specialist page reads cached status:
+- 🟢 **green** = last check OK AND `checkedAt` within TTL
+- 🟡 **amber** = last check OK BUT `checkedAt` past TTL (stale-green forbidden — stale is worse than red)
+- 🔴 **red** = last check failed
+- ⚪ **gray** = never checked / unknown
+
+**Test button semantics.** Per-resource-kind **probe profile**: idempotent, side-effect-free (e.g. for an LLM API, the probe is a 1-token "ping" against a free models-list endpoint, NOT a real chat completion). Rate-limited per resource per admin. Cost-guarded (probe fails fast if it would cost > $0.001). Every press is audited (actor, resource, result, timestamp).
+
+**Migration impact on the in-flight P1/P2 plan:**
+- **Keep P1 catalog work** (Specialist definitions + capability matrix). Rename `resourceRefs` → `assignmentRefs` and mark read-only.
+- **Rework P2:** drop the admin link/unlink endpoints. Replace with catalog-sync/materialization (CI job materializes the in-code catalog into the DB join table on deploy).
+- Existing `data_sources` / `LlmDefaults` / pipeline tables become **seed inputs** for Resources (not scrapped, normalized through an adapter layer).
+
+**Risks unique to this design:**
+- Centralized vendor-key edit blast radius → secret versioning + actor+diff audit + one-click rollback.
+- Test-button vendor billing/side-effects → safe-probe profiles + per-admin quotas.
+- Stale-green health risk → freshness SLA + amber downgrade past TTL.
+- Code-only lockout during incidents → break-glass override (above).
+
+**Steelman against this design (architect's 3, recorded for posterity):**
+1. Slower ops for wiring changes (PR + deploy path vs runtime edit).
+2. More split context between Specialist page and Resources page for end-to-end debugging.
+3. Higher upfront migration complexity than projecting through Specialist edit surfaces.
+
+None judged fatal; all mitigated by break-glass + thorough audit + Phase-1 contract lock.
 
 ---
 
