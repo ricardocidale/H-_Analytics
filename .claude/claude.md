@@ -16,7 +16,7 @@ GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio man
 - **The HMC does NOT buy properties.** Property owners hire the HMC for management and branding.
 - **Constants vs Defaults vs Assumptions — three distinct tiers, never collapse.** **(1) Constants** are model values nobody edits at runtime (tax-code depreciation lives, GAAP/USALI line definitions, FX rates ingested by the engine). They live behind the factory + overlay pattern in `shared/constants.ts` / `shared/countryDefaults.ts` and are read via `getEffectiveConstant` (resolution order: `manual > analyst > factory`). **(2) Defaults** are admin-editable seed values that The Analyst suggests with citations and an admin approves in Admin; they live in `model_constant_overrides` and the seed tables; the word *"default"* must not appear in user-facing copy outside Admin. **(3) Assumptions** are the working variables a user types and saves on user-facing pages (Company Assumptions, Property Edit, etc.). The instant a user clicks **Save**, every field on that page becomes an assumption — even fields they never touched. After Save, that page no longer holds defaults; it holds assumptions. The Analyst validates against assumptions, not against seeds. **Cascade direction is always constant → default → assumption; never the reverse, never collapsed into two tiers.** The word *"assumption"* in any UI label, button, tooltip, error message, AI agent text, or documentation **always means the user's working variable** — never a default. **When the user asks "where is X stored / set / configured?" lead with the assumption (the user-facing page where the working variable lives) and only mention the Admin seed location as a secondary note** — never lead with the seed and never imply the seed is where the user "works with" the value. Conflating these has caused real production losses (admin-only routing on user pages, reset buttons wiping user work, seed values treated as authoritative, agent answers that send the user to Admin when the value actually lives on a user page). Full rule in `.claude/skills/vocabulary/SKILL.md` §0.
 - **Company Assumptions page is user-facing** (ManagementRoute), not admin-only.
-- **Save is per tab.** Each tab save commits that tab's fields and triggers The Analyst.
+- **Save is per tab — UX LAW.** Each tab has its own Save button (never per page, never per card). Placement: **right next to the Analyst button** in tabs that have one; standalone otherwise. **Never grayed** — always clickable; validation surfaces post-click, not by disabling. Save commits that tab's fields and triggers The Analyst.
 - **The Analyst runs after every save** (Tier-0 instant) and on button press (Tier-1 deep research).
 - **Full product architecture:** `docs/architecture/ARCHITECTURE.md`
 - **Business model details:** `.claude/memory/project_business_model_correction.md`
@@ -398,7 +398,66 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 
 ---
 
+## Admin IA — Defaults Group + AI Section (April 21, 2026, doctrine locked)
+
+This is the canonical structure of the Admin sidebar going forward. Every future
+admin page either fits one of these groups or routes through one. **Latest
+instruction prevails in case of conflict; this section overrides earlier admin-IA
+notes.**
+
+**Defaults sidebar group — 4 items, each opens a page that mimics the
+corresponding front-end assumptions page (tabs + cards), not a flat admin form.
+Front-of-app fidelity is required so admins seed the same shape users will edit.**
+
+1. **Management Company defaults** — mirrors the user-facing Company Assumptions page.
+2. **Property defaults** — mirrors the user-facing Property Edit page. **Scoped per
+   business type** (today: `hotel`, `short-term-rental`; extensible). Mapper from
+   `properties.hospitalityType` (enum, 9 values) → coarser business type:
+   `vrbo` → `short-term-rental`; everything else → `hotel`. Storage: existing
+   `model_defaults.business_type` column (NULL = universal). Includes a
+   **Service Fees tab** for the per-property fees the management company charges
+   the owner — **except** the fees that are defined on the Management Company
+   defaults page (those live there only; no duplication).
+3. **Market & Macro defaults** — slim by design. Inflation rate is the
+   anchor "first guess" default; resist accreting fields here that belong
+   elsewhere.
+4. **Constants** — **single source of truth for ALL app constants.** No
+   constants live anywhere else in admin or on the front of the app. If a value
+   meets the Constant tier definition (external authority, never edited at
+   runtime), this is its only home.
+
+Wiring today: all four route through the existing `ModelDefaultsTab` with a
+`visibleTabs` filter (`Admin.tsx::MODEL_DEFAULTS_VISIBLE_TABS`); the per-item
+pages reuse the existing tab components.
+
+**AI sidebar section — sole home for ALL LLM definitions.** Every LLM model
+choice, prompt template, dual-model fallback config, and per-domain LLM tuning
+lives here, organized by tabs per specialist application (e.g.
+photo-realistic image processing, synthesis, classification). **No LLM
+definitions anywhere else** in admin or on the front of the app. The existing
+`LlmDefaultsTab` will move under this section when the section is built; until
+then it stays in place but no new LLM surfaces are added outside this future
+home.
+
+**Design discipline:** "Design and UX is critical — don't just insert things;
+they must make sense and be useful to the front of the app or other parts of
+admin." New admin pages are evaluated against this bar before merging.
+
+**REST patterns:** model_defaults endpoints (when added) mirror
+`server/routes/admin/model-constants.ts` — `GET` list, `PUT` upsert with
+override note, `DELETE` reset, `POST` regenerate via Analyst.
+
 ## Recent Changes
+
+**Admin IA doctrine locked + Save UX law tightened (April 21, 2026, Replit, docs-only):**
+- New "Defaults" sidebar group wired (4 items: Management Company, Property, Market & Macro, Constants), all routing through `ModelDefaultsTab` with a `visibleTabs` filter — gates green at session start.
+- Locked: AI sidebar section will be sole home for all LLM definitions; `LlmDefaultsTab` migrates there when section is built; no new LLM surfaces elsewhere in the meantime.
+- Locked: Property defaults are scoped per business type (`hotel`, `short-term-rental`) via `model_defaults.business_type`; mapper from `properties.hospitalityType` enum (`vrbo` → STR, rest → hotel).
+- Locked: Constants page is single source of truth for ALL app constants; Market & Macro stays slim (inflation rate as anchor); Property "Service Fees" tab carries the per-property fees the MC charges, minus anything already on the MC defaults page.
+- Memory: Save-per-tab rule promoted to UX LAW with explicit placement (next to Analyst button when present, standalone otherwise) and never-grayed clauses; mirrored in `replit.md` and this file.
+- Phase replan via architect was requested by the user mid-session and redirected to this memory update; phase plan is the next item to draft.
+
+
 
 **Analyst Architecture Phases 1-3b complete (April 19, 2026):**
 - Phase 1a (Replit): 15 files under `docs/architecture/` — spine, 9 per-component specs, ADR-001, ADR template, 3b handoff brief. Two-tier architecture locked.

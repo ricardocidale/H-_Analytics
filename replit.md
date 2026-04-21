@@ -15,7 +15,7 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
 - **Constants vs Defaults vs Assumptions — three distinct tiers, never collapse.** **(1) Constants** are model values nobody edits at runtime (tax-code depreciation lives, GAAP/USALI line definitions, FX rates ingested by the engine). They live behind the factory + overlay pattern in `shared/constants.ts` / `shared/countryDefaults.ts` and are read via `getEffectiveConstant` (resolution order: `manual > analyst > factory`). **(2) Default values** are admin-editable seed values that The Analyst suggests with citations and an admin approves in the Admin section; they live in `model_constant_overrides` and the seed tables, and the word *"default"* must not appear in user-facing copy outside Admin. **(3) Assumptions** are the working variables a user types and saves on user-facing pages (Company Assumptions, Property Edit, etc.). The instant a user clicks Save, every field on that page becomes an assumption — even fields they never touched. Cascade direction is always **constant → default → assumption**; never the reverse, never collapsed into two tiers. The full Defaults-vs-Assumptions rule below remains authoritative for the user-facing half of this distinction.
 - **Defaults ≠ Assumptions — DO NOT CONFUSE. MASTER RULE.** **Assumptions = user-facing working variables** (the numbers a user types, saves, and runs scenarios on, on the front of the app). **Defaults = admin-only seed values** loaded into the DB to initialize a fresh tenant. **Seed-to-assumption transition:** a default is only a *seed*. The moment the user clicks **Save** on any page, every field on that page — whether the user edited it or left the seed untouched — becomes a **working variable, i.e. an assumption**. After Save, there are no defaults on that page anymore, only assumptions. The word *"assumption"* in any UI label, button, tooltip, error message, AI agent text, or doc **always means the user's working variable** — never a default. The word *"default"* must not appear in user-facing copy outside the Admin section. **When the user asks "where is X stored / set / configured?" you must answer in terms of the assumption (the user-facing page where the working variable lives) first, and only mention the Admin seed location as a secondary note** — never lead with the seed and never imply the seed is where the user "works with" the value. Conflating these has caused real production losses (admin-only routing on user pages, reset buttons wiping user work, seed values treated as authoritative). Full rule in `.claude/skills/vocabulary/SKILL.md` §0.
 - **Company Assumptions page is user-facing** (ManagementRoute), not admin-only.
-- **Save is per tab.** Each tab save commits that tab's fields and triggers The Analyst.
+- **Save is per tab — UX LAW.** Each tab has its own Save button (never per page, never per card). Placement: **right next to the Analyst button** in tabs that have one; standalone otherwise. **Never grayed** — always clickable; validation surfaces post-click, not by disabling. Save commits that tab's fields and triggers The Analyst.
 - **The Analyst runs after every save** (Tier-0 instant) and on button press (Tier-1 deep research).
 - **Full product architecture:** `docs/architecture/ARCHITECTURE.md`
 - **Business model details:** `.claude/memory/project_business_model_correction.md`
@@ -366,6 +366,55 @@ Property scalar columns (owned by the later property-edit slice —
 
 **Recent Changes** entries for this slice are appended below in chunk
 order so the chronology is preserved.
+
+## Admin IA — Defaults Group + AI Section (April 21, 2026, doctrine locked)
+
+This is the canonical structure of the Admin sidebar going forward. Every future
+admin page either fits one of these groups or routes through one. **Latest
+instruction prevails in case of conflict; this section overrides earlier admin-IA
+notes.**
+
+**Defaults sidebar group — 4 items, each opens a page that mimics the
+corresponding front-end assumptions page (tabs + cards), not a flat admin form.
+Front-of-app fidelity is required so admins seed the same shape users will edit.**
+
+1. **Management Company defaults** — mirrors the user-facing Company Assumptions page.
+2. **Property defaults** — mirrors the user-facing Property Edit page. **Scoped per
+   business type** (today: `hotel`, `short-term-rental`; extensible). Mapper from
+   `properties.hospitalityType` (enum, 9 values) → coarser business type:
+   `vrbo` → `short-term-rental`; everything else → `hotel`. Storage: existing
+   `model_defaults.business_type` column (NULL = universal). Includes a
+   **Service Fees tab** for the per-property fees the management company charges
+   the owner — **except** the fees that are defined on the Management Company
+   defaults page (those live there only; no duplication).
+3. **Market & Macro defaults** — slim by design. Inflation rate is the
+   anchor "first guess" default; resist accreting fields here that belong
+   elsewhere.
+4. **Constants** — **single source of truth for ALL app constants.** No
+   constants live anywhere else in admin or on the front of the app. If a value
+   meets the Constant tier definition (external authority, never edited at
+   runtime), this is its only home.
+
+Wiring today: all four route through the existing `ModelDefaultsTab` with a
+`visibleTabs` filter (`Admin.tsx::MODEL_DEFAULTS_VISIBLE_TABS`); the per-item
+pages reuse the existing tab components.
+
+**AI sidebar section — sole home for ALL LLM definitions.** Every LLM model
+choice, prompt template, dual-model fallback config, and per-domain LLM tuning
+lives here, organized by tabs per specialist application (e.g.
+photo-realistic image processing, synthesis, classification). **No LLM
+definitions anywhere else** in admin or on the front of the app. The existing
+`LlmDefaultsTab` will move under this section when the section is built; until
+then it stays in place but no new LLM surfaces are added outside this future
+home.
+
+**Design discipline:** "Design and UX is critical — don't just insert things;
+they must make sense and be useful to the front of the app or other parts of
+admin." New admin pages are evaluated against this bar before merging.
+
+**REST patterns:** model_defaults endpoints (when added) mirror
+`server/routes/admin/model-constants.ts` — `GET` list, `PUT` upsert with
+override note, `DELETE` reset, `POST` regenerate via Analyst.
 
 ## Recent Changes
 
