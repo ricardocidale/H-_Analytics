@@ -462,6 +462,26 @@ opens a tabs+cards page.
 they must make sense and be useful to the front of the app or other parts of
 admin." New admin pages are evaluated against this bar before merging.
 
+**Locked decisions (2026-04-21) for the restructure phases:**
+- **Defaults > Property tabs:** `Underwriting` / `Operating` / `Capital` /
+  `Exit` / `Service Fees`. Each tab is cards (mimics Property Edit's section
+  grouping but presented as tabs).
+- **Service Fees split:** Management fees and reward fees STAY on the MC
+  defaults page (they apply MC-wide). All other per-property MC-charged fees
+  live on Property defaults > Service Fees tab. No fee may exist in both
+  places.
+- **Business-type bucket:** Two buckets today (`hotel`, `short-term-rental`)
+  with the codebase prepared for a third. Implement as a typed enum + lookup
+  table, never a binary. Mapper: `hospitalityType === 'vrbo'` → `short-term-rental`;
+  all other 8 enum values → `hotel`. Add a `BUSINESS_TYPE` enum (in
+  `shared/schema/business-type.ts`) so adding the third bucket is a one-line
+  change.
+- **AI section ownership (hybrid):** AI section is the **registry** of
+  available LLM models + the universal prompts (Rebecca chat, Analyst). Each
+  AI Research page picks which registered model it uses inline via a
+  model-selector that reads from the registry. Registry is the single source
+  of truth; research pages reference, not duplicate.
+
 **REST patterns:** model_defaults endpoints (when added) mirror
 `server/routes/admin/model-constants.ts` — `GET` list, `PUT` upsert with
 override note, `DELETE` reset, `POST` regenerate via Analyst.
