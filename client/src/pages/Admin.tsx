@@ -34,6 +34,7 @@ const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intellige
 const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/AnalystTables"));
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const PhotosRendersTab = lazy(() => import("@/components/admin/PhotosRendersTab"));
+const ResourcesTab = lazy(() => import("@/components/admin/resources/ResourcesTab"));
 
 export type { AdminSaveState };
 
@@ -64,6 +65,11 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
 
   "photos-renders":      { title: "Photos & Renders",          subtitle: "AI image generation models, prompt templates, and render settings" },
+  "resources-apis":        { title: "Resources · APIs",        subtitle: "Live external HTTP services. Canonical wiring for every Specialist." },
+  "resources-sources":     { title: "Resources · Sources",     subtitle: "Bulk data sources and scrapers feeding the warehouse." },
+  "resources-tables":      { title: "Resources · Tables",      subtitle: "Internal warehouse tables Specialists query." },
+  "resources-benchmarks":  { title: "Resources · Benchmarks",  subtitle: "Hospitality benchmark slugs (ADR, RevPAR, occupancy, etc.)." },
+  "resources-models":      { title: "Resources · Models",      subtitle: "LLM model rows (provider + secret + config)." },
 
   icp:                   { title: "Research Dashboard",       subtitle: "Intelligence observatory" },
   logos:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
@@ -179,6 +185,11 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
     case "photos-renders":   return <PhotosRendersTab />;
+    case "resources-apis":       return <ResourcesTab kind="api" />;
+    case "resources-sources":    return <ResourcesTab kind="source" />;
+    case "resources-tables":     return <ResourcesTab kind="table" />;
+    case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
+    case "resources-models":     return <ResourcesTab kind="model" />;
     default:                 return null;
   }
 }

@@ -51,7 +51,9 @@ export type AdminSection =
   | "reports-exports"
   // Steady State (Defaults & Constants)
   | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
-  | "constants";
+  | "constants"
+  // Resources control plane (P4) — canonical SoT for APIs/Sources/Tables/Benchmarks/Models
+  | "resources-apis" | "resources-sources" | "resources-tables" | "resources-benchmarks" | "resources-models";
 
 const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Legacy aliases
@@ -222,6 +224,19 @@ function buildNavGroups(): NavGroup[] {
       description: "PDF, PPTX, Excel & CSV exports",
       sections: [
         { value: "exports", label: "Reports & Exports", icon: IconExport },
+      ],
+    },
+    {
+      id: "resources",
+      label: "Resources",
+      icon: IconLayers,
+      description: "Canonical control plane: APIs, Sources, Tables, Benchmarks & Models",
+      sections: [
+        { value: "resources-apis",       label: "APIs",       icon: IconGlobe },
+        { value: "resources-sources",    label: "Sources",    icon: IconDatabase },
+        { value: "resources-tables",     label: "Tables",     icon: IconResearch },
+        { value: "resources-benchmarks", label: "Benchmarks", icon: IconResearch },
+        { value: "resources-models",     label: "Models",     icon: IconBrain },
       ],
     },
     {
