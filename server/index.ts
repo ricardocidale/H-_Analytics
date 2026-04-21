@@ -227,11 +227,30 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
 
-      // ── Phase 2: Migrations + seeds (runs after port is open) ────────
-      runMigrationsAndSeeds().catch(err => {
-        serverLog(`FATAL: Migrations/seeds failed: ${err instanceof Error ? err.message : err}`, "startup", "error");
-        process.exit(1);
-      });
+      // ── Phase 2a: Schema migrations (fatal if they fail — schema integrity matters) ──
+      runSchemaMigrationsWithRetry()
+        .then(() => {
+          // ── Phase 2b: Seeds (non-fatal — server stays up if seeds fail) ──
+          // Wrapped in setImmediate so any thrown error cannot escape into a
+          // process-killing unhandledRejection during the listen callback.
+          setImmediate(() => {
+            runSeedsSafely().catch(err => {
+              serverLog(
+                `Seeds completed with warnings (server continues serving): ${err instanceof Error ? err.message : err}`,
+                "startup",
+                "warn",
+              );
+            });
+          });
+        })
+        .catch(err => {
+          serverLog(
+            `FATAL: Schema migrations failed: ${err instanceof Error ? err.message : err}`,
+            "startup",
+            "error",
+          );
+          process.exit(1);
+        });
 
       // ── Phase 3: Ambient benchmark scheduler ────────
       import("./ai/ambient/scheduler").then(({ startAmbientScheduler }) => {
@@ -523,26 +542,106 @@ async function runSeeds() {
   const { seedMissingMarketResearch, seedDefaultLogos, seedCompanies, seedFeeCategories, seedServiceTemplates, seedPropertyPhotos, seedGlobalAssumptions, seedMedellinDuplex, seedMedellinDuplexPhotos } = await import("./seed");
   const { seedMarketRates } = await import("./seeds/market-rates");
   const { seedMarketDataTables } = await import("./seeds/market-data-tables");
-  await Promise.all([
-    seedMissingMarketResearch(),
-    seedMarketRates(),
-    seedMarketDataTables(),
-    seedDefaultLogos(),
-    seedFeeCategories(),
-    seedServiceTemplates(),
-    seedPropertyPhotos(),
-    seedGlobalAssumptions(),
-  ]);
 
-  await seedCompanies();
+  // Each seed is isolated — one failure does not cancel the others.
+  // All seeds are idempotent (skip-if-exists semantics) so partial completion
+  // on cold start is safe; the next boot will fill in whatever was missed.
+  const seedTasks: Array<{ name: string; run: () => Promise<unknown> }> = [
+    { name: "missing-market-research", run: seedMissingMarketResearch },
+    { name: "market-rates", run: seedMarketRates },
+    { name: "market-data-tables", run: seedMarketDataTables },
+    { name: "default-logos", run: seedDefaultLogos },
+    { name: "fee-categories", run: seedFeeCategories },
+    { name: "service-templates", run: seedServiceTemplates },
+    { name: "property-photos", run: seedPropertyPhotos },
+    { name: "global-assumptions", run: seedGlobalAssumptions },
+  ];
 
-  await seedMedellinDuplex();
-  await seedMedellinDuplexPhotos();
+  const results = await Promise.allSettled(seedTasks.map(t => t.run()));
+  results.forEach((r, i) => {
+    if (r.status === "rejected") {
+      serverLog(
+        `[seed:${seedTasks[i].name}] skipped (will retry next boot): ${r.reason instanceof Error ? r.reason.message : r.reason}`,
+        "startup",
+        "warn",
+      );
+    }
+  });
 
-  const { cleanOrphanedLogos } = await import("./migrations/db-hygiene-001");
-  await cleanOrphanedLogos();
+  await seedCompanies().catch(err => {
+    serverLog(`[seed:companies] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+
+  await seedMedellinDuplex().catch(err => {
+    serverLog(`[seed:medellin-duplex] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+  await seedMedellinDuplexPhotos().catch(err => {
+    serverLog(`[seed:medellin-duplex-photos] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+
+  try {
+    const { cleanOrphanedLogos } = await import("./migrations/db-hygiene-001");
+    await cleanOrphanedLogos();
+  } catch (err: unknown) {
+    serverLog(`[seed:clean-orphaned-logos] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  }
 
   indexPropertiesToVectorStoreAsync();
+}
+
+// ── Boot orchestration: schema migrations (fatal) ─────────────────────
+async function runSchemaMigrationsWithRetry(): Promise<void> {
+  const { withRetry } = await import("./db");
+  await withRetry(() => runSchemaMigrations(), {
+    retries: 3,
+    baseDelayMs: 2000,
+    label: "schema-migrations",
+  });
+}
+
+// ── Boot orchestration: seeds (non-fatal, single-replica, time-capped) ──
+// Uses a Postgres session-level advisory lock so that when Autoscale spins up
+// multiple replicas, only one runs the seed phase. Other replicas log and skip.
+// Wraps the whole phase in a 90s cap; if seeds run long, the next boot finishes them.
+const SEED_ADVISORY_LOCK_KEY = 7244911300; // arbitrary stable bigint, app-specific
+const SEED_TIMEOUT_MS = 90_000;
+
+async function runSeedsSafely(): Promise<void> {
+  const startTime = Date.now();
+  const { pool } = await import("./db");
+  const client = await pool.connect();
+  let lockAcquired = false;
+  try {
+    const lockResult = await client.query<{ pg_try_advisory_lock: boolean }>(
+      "SELECT pg_try_advisory_lock($1) AS pg_try_advisory_lock",
+      [SEED_ADVISORY_LOCK_KEY],
+    );
+    lockAcquired = lockResult.rows[0]?.pg_try_advisory_lock === true;
+
+    if (!lockAcquired) {
+      serverLog("Another replica holds the seed lock — skipping seeds on this instance", "startup", "info");
+      return;
+    }
+
+    const seedPromise = runSeeds();
+    const timeoutPromise = new Promise<void>((_, reject) => {
+      setTimeout(
+        () => reject(new Error(`seed phase exceeded ${SEED_TIMEOUT_MS}ms cap`)),
+        SEED_TIMEOUT_MS,
+      );
+    });
+    await Promise.race([seedPromise, timeoutPromise]);
+    log(`Migrations and seeds completed in ${Date.now() - startTime}ms`);
+  } finally {
+    if (lockAcquired) {
+      try {
+        await client.query("SELECT pg_advisory_unlock($1)", [SEED_ADVISORY_LOCK_KEY]);
+      } catch {
+        // best-effort unlock; advisory locks auto-release on session close
+      }
+    }
+    client.release();
+  }
 }
 
 function indexPropertiesToVectorStoreAsync() {
@@ -575,21 +674,3 @@ function indexPropertiesToVectorStoreAsync() {
   })();
 }
 
-async function runMigrationsAndSeeds() {
-  const startTime = Date.now();
-
-  const { withRetry } = await import("./db");
-  await withRetry(() => runSchemaMigrations(), {
-    retries: 3,
-    baseDelayMs: 2000,
-    label: "schema-migrations",
-  });
-
-  await withRetry(() => runSeeds(), {
-    retries: 2,
-    baseDelayMs: 1000,
-    label: "seed-data",
-  });
-
-  log(`Migrations and seeds completed in ${Date.now() - startTime}ms`);
-}
