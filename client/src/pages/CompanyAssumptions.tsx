@@ -69,7 +69,6 @@ import {
   VariableCostsSection,
   TaxSection,
   CostOfEquityCard,
-  PropertyExitDefaultsCard,
   PropertyExpenseRatesSection,
   PartnerCompSection,
   SummaryFooter,
@@ -1050,7 +1049,6 @@ export default function CompanyAssumptions() {
                   return (
                     <div className="space-y-6">
                       <PropertyExpenseRatesSection formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
-                      <PropertyExitDefaultsCard formData={formData} onChange={handleUpdate} global={global} researchValues={researchValues} />
                     </div>
                   );
               }

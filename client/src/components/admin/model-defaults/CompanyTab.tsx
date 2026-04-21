@@ -8,7 +8,6 @@ import {
   DEFAULT_COMPANY_OPS_START_DATE,
   DEFAULT_COST_OF_EQUITY,
   DEFAULT_PROJECTION_YEARS,
-  DEFAULT_EXIT_CAP_RATE,
 } from "@shared/constants";
 import { Section, PctField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
@@ -153,32 +152,6 @@ export function CompanyTab(props: CompanyTabProps) {
           />
         </Section>
 
-        <Section title="Exit Assumptions" description="Default valuation and sale parameters applied at property exit.">
-          <PctField
-            label="Exit Cap Rate"
-            tooltip="Capitalization rate used to value properties at sale. A lower cap rate implies a higher exit price. Applied to projected NOI in the exit year to calculate terminal value."
-            value={draft.exitCapRate}
-            fallback={DEFAULT_EXIT_CAP_RATE}
-            onChange={(_, v) => onChange("exitCapRate", v)}
-            min={0.03}
-            max={0.15}
-            step={0.005}
-            testId="field-exitCapRate"
-            researchRange="5%–9%"
-          />
-          <PctField
-            label="Sales Commission"
-            tooltip="Broker commission as a percentage of gross sale price, applied at property exit. New properties inherit this default but can set their own rate on the assumptions page."
-            value={draft.salesCommissionRate}
-            fallback={0.05}
-            onChange={(_, v) => onChange("salesCommissionRate", v)}
-            min={0}
-            max={0.10}
-            step={0.005}
-            testId="field-salesCommissionRate"
-            researchRange="3%–6%"
-          />
-        </Section>
       </div>
     </div>
   );

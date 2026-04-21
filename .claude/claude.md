@@ -410,14 +410,20 @@ corresponding front-end assumptions page (tabs + cards), not a flat admin form.
 Front-of-app fidelity is required so admins seed the same shape users will edit.**
 
 1. **Management Company defaults** — mirrors the user-facing Company Assumptions page.
-2. **Property defaults** — mirrors the user-facing Property Edit page. **Scoped per
-   business type** (today: `hotel`, `short-term-rental`; extensible). Mapper from
-   `properties.hospitalityType` (enum, 9 values) → coarser business type:
-   `vrbo` → `short-term-rental`; everything else → `hotel`. Storage: existing
-   `model_defaults.business_type` column (NULL = universal). Includes a
-   **Service Fees tab** for the per-property fees the management company charges
-   the owner — **except** the fees that are defined on the Management Company
-   defaults page (those live there only; no duplication).
+2. **Property defaults** — mirrors the user-facing Property Edit page (fields and
+   layout). **Single source of truth for ALL property defaults in the entire app.**
+   No property-default content may live elsewhere in admin. The legacy top-of-sidebar
+   entries that historically carried property-default content (`hotel-defaults`,
+   `rental-defaults`, and the property-fee portion of `services-fees`) are
+   **deprecated** — they must be removed from the sidebar and any unique content
+   migrated into this page. **Scoped per business type** (today: `hotel`,
+   `short-term-rental`; extensible). Mapper from `properties.hospitalityType`
+   (enum, 9 values) → coarser business type: `vrbo` → `short-term-rental`;
+   everything else → `hotel`. Storage: existing `model_defaults.business_type`
+   column (NULL = universal). Includes a **Service Fees tab** for the per-property
+   fees the management company charges the owner — **except** the fees that are
+   defined on the Management Company defaults page (those live there only; no
+   duplication).
 3. **Market & Macro defaults** — slim by design. Inflation rate is the
    anchor "first guess" default; resist accreting fields here that belong
    elsewhere.
@@ -438,6 +444,19 @@ definitions anywhere else** in admin or on the front of the app. The existing
 `LlmDefaultsTab` will move under this section when the section is built; until
 then it stays in place but no new LLM surfaces are added outside this future
 home.
+
+**AI Research sidebar section (NEW).** Houses all AI-research configuration
+organized by *what is being researched*. First menu item:
+- **Property** — page with tabs and cards covering everything about
+  AI research as it pertains to properties, **including Required Fields**
+  (which is migrating out of `ModelDefaultsTab`'s "required-fields" tab into
+  this page). Other property-research concerns (research field registry,
+  per-tier prompts, source priorities, validation thresholds, etc.) are
+  consolidated here.
+
+Future AI Research menu items (e.g. Management Company research, Market
+research) follow the same pattern: one menu item per research subject, each
+opens a tabs+cards page.
 
 **Design discipline:** "Design and UX is critical — don't just insert things;
 they must make sense and be useful to the front of the app or other parts of
