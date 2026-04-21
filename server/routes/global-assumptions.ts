@@ -233,9 +233,23 @@ export function register(app: Express) {
           storage.getAnalystWatchdogBenchmarks(userId),
         ]);
 
+        // P5: load admin-edited per-Specialist config (prompt/model). The
+        // current evaluators are deterministic and ignore these fields, but
+        // the wiring is in place so a model-or-prompt edit on the Specialist
+        // page takes effect on the next save-tab without a code change.
+        const [fundingCfg, revenueCfg] = await Promise.all([
+          storage.getOrCreateSpecialistConfig(MGMT_CO_FUNDING_ID),
+          storage.getOrCreateSpecialistConfig(MGMT_CO_REVENUE_ID),
+        ]);
         const router = createMgmtCoRouter(
           { voiceRenderer: createVoiceRenderer(), qualityScorer: createQualityScorer() },
           { funding: fundingBenchmarks, revenue: DEFAULT_REVENUE_BENCHMARKS },
+          {
+            configs: {
+              funding: { promptTemplate: fundingCfg.promptTemplate, modelResourceId: fundingCfg.modelResourceId },
+              revenue: { promptTemplate: revenueCfg.promptTemplate, modelResourceId: revenueCfg.modelResourceId },
+            },
+          },
         );
 
         // Single-tenant: hardcode the L+B luxury persona for now. Phase 4

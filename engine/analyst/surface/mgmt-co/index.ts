@@ -62,19 +62,32 @@ export interface MgmtCoBenchmarks {
  * The route handler builds one of these per request (cheap — pure objects)
  * to keep the Router stateless across concurrent requests.
  */
+export interface MgmtCoSpecialistConfigs {
+  funding?: { promptTemplate?: string; modelResourceId?: number | null };
+  revenue?: { promptTemplate?: string; modelResourceId?: number | null };
+}
+
 export function createMgmtCoRouter(
   deps: SurfaceRouterDeps,
   benchmarks: MgmtCoBenchmarks,
-  options: { evidenceAsOf?: string } = {},
+  options: { evidenceAsOf?: string; configs?: MgmtCoSpecialistConfigs } = {},
 ): SurfaceRouter {
   const router = createSurfaceRouter(deps);
   router.register(
     MGMT_CO_FUNDING_ID,
-    createFundingSpecialist(benchmarks.funding, { evidenceAsOf: options.evidenceAsOf }),
+    createFundingSpecialist(benchmarks.funding, {
+      evidenceAsOf: options.evidenceAsOf,
+      promptTemplate: options.configs?.funding?.promptTemplate,
+      modelResourceId: options.configs?.funding?.modelResourceId ?? null,
+    }),
   );
   router.register(
     MGMT_CO_REVENUE_ID,
-    createRevenueSpecialist(benchmarks.revenue, { evidenceAsOf: options.evidenceAsOf }),
+    createRevenueSpecialist(benchmarks.revenue, {
+      evidenceAsOf: options.evidenceAsOf,
+      promptTemplate: options.configs?.revenue?.promptTemplate,
+      modelResourceId: options.configs?.revenue?.modelResourceId ?? null,
+    }),
   );
   return router;
 }

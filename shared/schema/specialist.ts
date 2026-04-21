@@ -22,10 +22,21 @@
 
 import { z } from "zod";
 import {
+  pgTable,
+  text,
+  integer,
+  timestamp,
+  jsonb,
+  uniqueIndex,
+  index,
+} from "drizzle-orm/pg-core";
+import {
   AssignmentRefSchema,
   assignmentRefKey,
+  adminResources,
   type AssignmentRef,
 } from "./admin-resource";
+import { users } from "./auth";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Subject — top-level grouping inside AI Research's collapsible 2-level tree.
@@ -150,3 +161,97 @@ export function assignmentRefsByKind(
   }
   return out;
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// P5 — DRIZZLE TABLES (per-Specialist mutable config the admin edits in the
+// Specialist page). The catalog declares what's wired (and is code-only); this
+// table holds the runtime knobs (prompt, model assignment, required-field
+// subset, runtime triggers) the admin tweaks without a code deploy.
+//
+// Resource ASSIGNMENTS remain code-only (Specialist catalog → catalog-sync →
+// specialist_assignments). The Specialist page is read-only for assignments;
+// edits happen on the canonical Resources pages. The break-glass override
+// surface (P2) is the only runtime alternative for re-routing.
+// ════════════════════════════════════════════════════════════════════════════
+
+export const specialistConfigs = pgTable(
+  "specialist_configs",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    specialistId: text("specialist_id").notNull(),
+    promptTemplate: text("prompt_template").notNull().default(""),
+    modelResourceId: integer("model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    requiredFields: jsonb("required_fields").notNull().$type<string[]>().default([]),
+    runtimeConfig: jsonb("runtime_config").notNull().$type<Record<string, unknown>>().default({}),
+    version: integer("version").notNull().default(1),
+    updatedByUserId: integer("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("specialist_configs_specialist_uniq").on(t.specialistId),
+  ],
+);
+
+export type SpecialistConfigRow = typeof specialistConfigs.$inferSelect;
+
+// Append-only history; powers the Specialist Audit tab.
+export const specialistConfigVersions = pgTable(
+  "specialist_config_versions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    specialistId: text("specialist_id").notNull(),
+    version: integer("version").notNull(),
+    section: text("section").notNull(), // "llm-config" | "required-fields" | "runtime"
+    promptTemplate: text("prompt_template").notNull().default(""),
+    modelResourceId: integer("model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    requiredFields: jsonb("required_fields").notNull().$type<string[]>().default([]),
+    runtimeConfig: jsonb("runtime_config").notNull().$type<Record<string, unknown>>().default({}),
+    changeSummary: text("change_summary"),
+    changedByUserId: integer("changed_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    changedAt: timestamp("changed_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("specialist_config_versions_uniq").on(t.specialistId, t.version),
+    index("specialist_config_versions_specialist_idx").on(t.specialistId),
+  ],
+);
+
+export type SpecialistConfigVersionRow = typeof specialistConfigVersions.$inferSelect;
+
+// ────────────────────────────────────────────────────────────────────────────
+// API contracts for Specialist routes
+// ────────────────────────────────────────────────────────────────────────────
+
+export const SpecialistConfigSection = z.enum(["llm-config", "required-fields", "runtime"]);
+export type SpecialistConfigSectionType = z.infer<typeof SpecialistConfigSection>;
+
+export const updateLlmConfigSchema = z.object({
+  promptTemplate: z.string().max(20_000),
+  modelResourceId: z.number().int().positive().nullable(),
+  changeSummary: z.string().max(500).optional(),
+});
+export type UpdateLlmConfigInput = z.infer<typeof updateLlmConfigSchema>;
+
+export const updateRequiredFieldsSchema = z.object({
+  fields: z.array(z.string().min(1).max(100)).max(200),
+  changeSummary: z.string().max(500).optional(),
+});
+export type UpdateRequiredFieldsInput = z.infer<typeof updateRequiredFieldsSchema>;
+
+export const updateRuntimeSchema = z.object({
+  runtimeConfig: z.record(z.string(), z.unknown()),
+  changeSummary: z.string().max(500).optional(),
+});
+export type UpdateRuntimeInput = z.infer<typeof updateRuntimeSchema>;
+
+export const SpecialistConfigPublicViewSchema = z.object({
+  specialistId: z.string(),
+  promptTemplate: z.string(),
+  modelResourceId: z.number().int().nullable(),
+  requiredFields: z.array(z.string()),
+  runtimeConfig: z.record(z.string(), z.unknown()),
+  version: z.number().int().min(1),
+  updatedAt: z.string(),
+});
+export type SpecialistConfigPublicView = z.infer<typeof SpecialistConfigPublicViewSchema>;

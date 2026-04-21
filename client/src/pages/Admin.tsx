@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { type AdminSection, resolveSection } from "@/components/admin/AdminSidebar";
+import { type AdminSection, resolveSection, SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -35,6 +35,7 @@ const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/Anal
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const PhotosRendersTab = lazy(() => import("@/components/admin/PhotosRendersTab"));
 const ResourcesTab = lazy(() => import("@/components/admin/resources/ResourcesTab"));
+const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
 
 export type { AdminSaveState };
 
@@ -70,6 +71,16 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "resources-tables":      { title: "Resources · Tables",      subtitle: "Internal warehouse tables Specialists query." },
   "resources-benchmarks":  { title: "Resources · Benchmarks",  subtitle: "Hospitality benchmark slugs (ADR, RevPAR, occupancy, etc.)." },
   "resources-models":      { title: "Resources · Models",      subtitle: "LLM model rows (provider + secret + config)." },
+
+  // AI Research → Specialists (P5). Title/subtitle mirror the catalog
+  // letter+name so the page header reads identically to the sidebar row.
+  "specialist-mgmt-co-funding":            { title: "Specialist A — Funding",            subtitle: "Read-only assignment + health surface for the mgmt-co Funding Specialist." },
+  "specialist-mgmt-co-revenue":            { title: "Specialist B — Revenue",            subtitle: "Read-only assignment + health surface for the mgmt-co Revenue Specialist." },
+  "specialist-mgmt-co-icp-intelligence":   { title: "Specialist C — ICP Intelligence",   subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-property-risk-intelligence": { title: "Specialist D — Risk Intelligence",  subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-property-executive-summary": { title: "Specialist E — Executive Summary",  subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-photos-photo-enhancer":      { title: "Specialist F — Photo Enhancer",     subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-portfolio-ops-watchdog":     { title: "Specialist G — Watchdog",           subtitle: "Read-only assignment + health surface (evaluator pending)." },
 
   icp:                   { title: "Research Dashboard",       subtitle: "Intelligence observatory" },
   logos:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
@@ -190,7 +201,11 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "resources-tables":     return <ResourcesTab kind="table" />;
     case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
     case "resources-models":     return <ResourcesTab kind="model" />;
-    default:                 return null;
+    default: {
+      const specialistId = SPECIALIST_SECTION_TO_ID[section];
+      if (specialistId) return <SpecialistPage specialistId={specialistId} />;
+      return null;
+    }
   }
 }
 

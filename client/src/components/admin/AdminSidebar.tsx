@@ -53,7 +53,33 @@ export type AdminSection =
   | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
   | "constants"
   // Resources control plane (P4) — canonical SoT for APIs/Sources/Tables/Benchmarks/Models
-  | "resources-apis" | "resources-sources" | "resources-tables" | "resources-benchmarks" | "resources-models";
+  | "resources-apis" | "resources-sources" | "resources-tables" | "resources-benchmarks" | "resources-models"
+  // AI Research → Specialists (P5). 7 read-only assignment+health surfaces.
+  // One enum value per Specialist; the section value carries the catalog id
+  // via SPECIALIST_SECTION_TO_ID below so SpecialistPage knows what to fetch.
+  | "specialist-mgmt-co-funding"
+  | "specialist-mgmt-co-revenue"
+  | "specialist-mgmt-co-icp-intelligence"
+  | "specialist-property-risk-intelligence"
+  | "specialist-property-executive-summary"
+  | "specialist-photos-photo-enhancer"
+  | "specialist-portfolio-ops-watchdog";
+
+/**
+ * Map admin sidebar section value → canonical Specialist id used by
+ * /api/admin/specialists/:id. The section enum uses dashes throughout
+ * (URL-safe) while the catalog uses dotted ids — this table is the only
+ * place we cross the boundary.
+ */
+export const SPECIALIST_SECTION_TO_ID: Record<string, string> = {
+  "specialist-mgmt-co-funding": "mgmt-co.funding",
+  "specialist-mgmt-co-revenue": "mgmt-co.revenue",
+  "specialist-mgmt-co-icp-intelligence": "mgmt-co.icp-intelligence",
+  "specialist-property-risk-intelligence": "property.risk-intelligence",
+  "specialist-property-executive-summary": "property.executive-summary",
+  "specialist-photos-photo-enhancer": "photos.photo-enhancer",
+  "specialist-portfolio-ops-watchdog": "portfolio-ops.watchdog",
+};
 
 const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Legacy aliases
@@ -146,8 +172,20 @@ function buildNavGroups(): NavGroup[] {
       id: "ai-research",
       label: "AI Research",
       icon: IconBrain,
-      description: "Sources, LLMs & system health",
+      description: "Specialists, sources, LLMs & system health",
       sections: [
+        // Specialists (P5). One row per Specialist in the catalog. Letter
+        // prefix matches the catalog identity so admins can speak in the
+        // same vocabulary as engineering ("Specialist A — Funding").
+        { value: "specialist-mgmt-co-funding",            label: "MC · A — Funding",          icon: IconBriefcase },
+        { value: "specialist-mgmt-co-revenue",            label: "MC · B — Revenue",          icon: IconBriefcase },
+        { value: "specialist-mgmt-co-icp-intelligence",   label: "MC · C — ICP Intelligence", icon: IconBriefcase },
+        { value: "specialist-property-risk-intelligence", label: "Property · D — Risk Intelligence", icon: IconProperties },
+        { value: "specialist-property-executive-summary", label: "Property · E — Executive Summary", icon: IconProperties },
+        { value: "specialist-photos-photo-enhancer",      label: "Photos · F — Photo Enhancer", icon: IconImage },
+        { value: "specialist-portfolio-ops-watchdog",     label: "Portfolio Ops · G — Watchdog", icon: IconGauge },
+        // Legacy AI Research surfaces. Kept for now; P6 will retire those
+        // covered by the Resources/Specialist split.
         { value: "sources-apis",       label: "Sources & APIs",       icon: IconGlobe },
         { value: "llm-config",         label: "LLM Configuration",    icon: IconLayers },
         { value: "engine-health",      label: "System Health",        icon: IconGauge },

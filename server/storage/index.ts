@@ -47,6 +47,7 @@ import { PageVisitStorage } from "./page-visits";
 import { ModelConstantsStorage } from "./model-constants";
 import { ModelCanonicalsStorage } from "./model-canonicals";
 import { AdminResourceStorage } from "./admin-resource";
+import { SpecialistConfigStorage } from "./specialist-config";
 
 export interface IStorage extends
   UserStorage,
@@ -67,7 +68,8 @@ export interface IStorage extends
   PageVisitStorage,
   ModelConstantsStorage,
   ModelCanonicalsStorage,
-  AdminResourceStorage {
+  AdminResourceStorage,
+  SpecialistConfigStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -93,6 +95,7 @@ export class DatabaseStorage implements IStorage {
   private modelConstantsStore = new ModelConstantsStorage();
   private modelCanonicalsStore = new ModelCanonicalsStorage();
   private adminResourceStore = new AdminResourceStorage();
+  private specialistConfigStore = new SpecialistConfigStorage();
 
   // Admin Resources control plane (canonical APIs/Sources/Tables/Benchmarks/Models)
   listAdminResources = this.adminResourceStore.listAdminResources.bind(this.adminResourceStore);
@@ -115,6 +118,12 @@ export class DatabaseStorage implements IStorage {
   getResourceHealthView = this.adminResourceStore.getResourceHealthView.bind(this.adminResourceStore);
   listResourcesDueForHealthCheck = this.adminResourceStore.listResourcesDueForHealthCheck.bind(this.adminResourceStore);
   isAdminTestRateLimited = this.adminResourceStore.isAdminTestRateLimited.bind(this.adminResourceStore);
+
+  // Per-Specialist mutable config (P5)
+  getOrCreateSpecialistConfig = this.specialistConfigStore.getOrCreateSpecialistConfig.bind(this.specialistConfigStore);
+  getSpecialistConfig = this.specialistConfigStore.getSpecialistConfig.bind(this.specialistConfigStore);
+  listSpecialistConfigVersions = this.specialistConfigStore.listSpecialistConfigVersions.bind(this.specialistConfigStore);
+  updateSpecialistConfigSection = this.specialistConfigStore.updateSpecialistConfigSection.bind(this.specialistConfigStore);
 
   // Model Constants (governed values — DB canonical baseline + DB override layer + TS fallback)
   listModelConstantOverrides = this.modelConstantsStore.listModelConstantOverrides.bind(this.modelConstantsStore);

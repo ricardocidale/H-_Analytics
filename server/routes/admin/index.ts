@@ -14,6 +14,7 @@ import { registerTestBatteryRoutes } from "./test-batteries";
 import { registerModelConstantsRoutes } from "./model-constants";
 import { registerAdminAnalystTableRoutes } from "./analyst-tables";
 import { registerAdminResourceRoutes } from "./resources";
+import { registerAdminSpecialistRoutes } from "./specialists";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -31,4 +32,5 @@ export function register(app: Express) {
   registerModelConstantsRoutes(app);
   registerAdminAnalystTableRoutes(app);
   registerAdminResourceRoutes(app);
+  registerAdminSpecialistRoutes(app);
 }
