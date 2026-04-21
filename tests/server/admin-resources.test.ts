@@ -268,6 +268,59 @@ describe("toResourcePublicView — secret redaction", () => {
     expect(serialized).not.toContain("VERY_SECRET_FRED");
     expect(serialized).not.toContain("secretRef");
   });
+
+  it("downgrades stale parent.lastHealthStatus='green' to 'amber' on read", () => {
+    // api TTL is 60s — a 10-minute-old green must become amber on the wire.
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const now = new Date();
+    const view = toResourcePublicView(
+      makeRow({ kind: "api", lastHealthStatus: "green", lastCheckedAt: tenMinAgo }),
+      now,
+    );
+    expect(view.lastHealthStatus).toBe("amber");
+  });
+
+  it("preserves fresh green and never upgrades red/amber/gray on read", () => {
+    const now = new Date();
+    const justNow = new Date(now.getTime() - 1_000);
+    const tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
+    expect(toResourcePublicView(makeRow({ kind: "api", lastHealthStatus: "green", lastCheckedAt: justNow }), now).lastHealthStatus).toBe("green");
+    expect(toResourcePublicView(makeRow({ kind: "api", lastHealthStatus: "red", lastCheckedAt: tenMinAgo }), now).lastHealthStatus).toBe("red");
+    expect(toResourcePublicView(makeRow({ kind: "api", lastHealthStatus: "amber", lastCheckedAt: tenMinAgo }), now).lastHealthStatus).toBe("amber");
+    expect(toResourcePublicView(makeRow({ kind: "api", lastHealthStatus: "gray", lastCheckedAt: null }), now).lastHealthStatus).toBe("gray");
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Group 2b — secretRef-name redaction in probe outcomes
+// ════════════════════════════════════════════════════════════════════════════
+
+describe("runProbe — secretRef name never leaks in errorMessage", () => {
+  it("api probe with missing secret does not name the secret key", async () => {
+    const { runProbe } = await import("../../server/jobs/probes");
+    const result = await runProbe({
+      id: 1, kind: "api", slug: "x", displayName: "X", description: null,
+      config: { baseUrl: "https://example.test" }, secretRef: "VERY_DISTINCTIVE_SECRET_KEY_NAME_xyz",
+      version: 1, lastHealthStatus: "gray", lastCheckedAt: null,
+      createdByUserId: null, updatedByUserId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as AdminResourceRow);
+    expect(result.errorCode).toBe("SECRET_MISSING");
+    expect(result.errorMessage ?? "").not.toContain("VERY_DISTINCTIVE_SECRET_KEY_NAME_xyz");
+  });
+
+  it("model probe with missing secret does not name the secret key", async () => {
+    const { runProbe } = await import("../../server/jobs/probes");
+    const result = await runProbe({
+      id: 1, kind: "model", slug: "x", displayName: "X", description: null,
+      config: { provider: "openai" }, secretRef: "ANOTHER_DISTINCTIVE_KEY_NAME_abc",
+      version: 1, lastHealthStatus: "gray", lastCheckedAt: null,
+      createdByUserId: null, updatedByUserId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as AdminResourceRow);
+    expect(result.errorCode).toBe("SECRET_MISSING");
+    expect(result.errorMessage ?? "").not.toContain("ANOTHER_DISTINCTIVE_KEY_NAME_abc");
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -290,6 +343,12 @@ vi.mock("../../server/storage", () => ({
     listBreakGlassOverrides: vi.fn(),
     createBreakGlassOverride: vi.fn(),
     revokeBreakGlassOverride: vi.fn(),
+    recordProbeResult: vi.fn(),
+    getLatestHealthCheck: vi.fn(),
+    listHealthChecksForResource: vi.fn(),
+    getResourceHealthView: vi.fn(),
+    listResourcesDueForHealthCheck: vi.fn(),
+    isAdminTestRateLimited: vi.fn(),
     createActivityLog: vi.fn().mockResolvedValue(undefined),
   },
 }));
@@ -543,6 +602,178 @@ describe("flattenCatalogDeclarations", () => {
 // ════════════════════════════════════════════════════════════════════════════
 // Group 5 — Insert-schema validation contract (Zod surface area)
 // ════════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════════
+// Group 6 — Health subsystem (P3): freshness, probes, rate-limit, audit
+// ════════════════════════════════════════════════════════════════════════════
+
+describe("deriveHealthStatus — TTL freshness", () => {
+  it("returns gray when there has never been a check", async () => {
+    const { deriveHealthStatus } = await import("@shared/schema");
+    expect(deriveHealthStatus({ lastStatus: null, lastCheckedAt: null, kind: "api" })).toBe("gray");
+  });
+
+  it("returns green for an ok check within TTL", async () => {
+    const { deriveHealthStatus } = await import("@shared/schema");
+    const now = new Date("2026-04-21T12:00:00Z");
+    const checkedAt = new Date(now.getTime() - 30_000); // 30s ago, api ttl=60
+    expect(deriveHealthStatus({ lastStatus: "ok", lastCheckedAt: checkedAt, kind: "api", now })).toBe("green");
+  });
+
+  it("returns amber (NOT green) for an ok check past TTL — stale-green is impossible", async () => {
+    const { deriveHealthStatus } = await import("@shared/schema");
+    const now = new Date("2026-04-21T12:00:00Z");
+    const checkedAt = new Date(now.getTime() - 90_000); // 90s ago, api ttl=60
+    expect(deriveHealthStatus({ lastStatus: "ok", lastCheckedAt: checkedAt, kind: "api", now })).toBe("amber");
+  });
+
+  it("returns red for a failed check regardless of age", async () => {
+    const { deriveHealthStatus } = await import("@shared/schema");
+    const now = new Date("2026-04-21T12:00:00Z");
+    const checkedAt = new Date(now.getTime() - 5_000);
+    expect(deriveHealthStatus({ lastStatus: "fail", lastCheckedAt: checkedAt, kind: "api", now })).toBe("red");
+  });
+
+  it("respects per-kind TTL — table is fresh at 30 minutes; api is stale at 30 minutes", async () => {
+    const { deriveHealthStatus } = await import("@shared/schema");
+    const now = new Date("2026-04-21T12:00:00Z");
+    const checkedAt = new Date(now.getTime() - 30 * 60 * 1000);
+    expect(deriveHealthStatus({ lastStatus: "ok", lastCheckedAt: checkedAt, kind: "table", now })).toBe("green");
+    expect(deriveHealthStatus({ lastStatus: "ok", lastCheckedAt: checkedAt, kind: "api", now })).toBe("amber");
+  });
+});
+
+describe("runProbe — non-billing safety + structured outcomes", () => {
+  it("returns SECRET_MISSING for an api whose secretRef is unset in env", async () => {
+    const { runProbe } = await import("../../server/jobs/probes");
+    const result = await runProbe({
+      id: 1, kind: "api", slug: "x", displayName: "X", description: null,
+      config: { baseUrl: "https://example.test" }, secretRef: "DEFINITELY_NOT_SET_KEY_xyz123",
+      version: 1, lastHealthStatus: "gray", lastCheckedAt: null,
+      createdByUserId: null, updatedByUserId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as AdminResourceRow);
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("SECRET_MISSING");
+  });
+
+  it("returns CONFIG_INCOMPLETE for an api with no baseUrl (and no secret required)", async () => {
+    const { runProbe } = await import("../../server/jobs/probes");
+    const result = await runProbe({
+      id: 1, kind: "api", slug: "x", displayName: "X", description: null,
+      config: {}, secretRef: null,
+      version: 1, lastHealthStatus: "gray", lastCheckedAt: null,
+      createdByUserId: null, updatedByUserId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as AdminResourceRow);
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("CONFIG_INCOMPLETE");
+  });
+
+  it("returns PROVIDER_UNKNOWN for a model with an unrecognized provider", async () => {
+    const { runProbe } = await import("../../server/jobs/probes");
+    const result = await runProbe({
+      id: 1, kind: "model", slug: "x", displayName: "X", description: null,
+      config: { provider: "snake-oil" }, secretRef: null,
+      version: 1, lastHealthStatus: "gray", lastCheckedAt: null,
+      createdByUserId: null, updatedByUserId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as AdminResourceRow);
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("PROVIDER_UNKNOWN");
+  });
+
+  it("never throws — wraps probe exceptions into a structured fail outcome", async () => {
+    const { runProbe } = await import("../../server/jobs/probes");
+    // unknown kind path
+    const result = await runProbe({
+      id: 1, kind: "totally-bogus" as unknown as "api", slug: "x", displayName: "X",
+      description: null, config: {}, secretRef: null, version: 1,
+      lastHealthStatus: "gray", lastCheckedAt: null,
+      createdByUserId: null, updatedByUserId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as AdminResourceRow);
+    expect(result.status).toBe("skipped");
+    expect(result.errorCode).toBe("UNKNOWN_KIND");
+  });
+});
+
+describe("admin/resources health routes — gating + audit", () => {
+  let app: Express;
+  let handlers: Handlers;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 99, role: "super_admin" };
+    const made = makeApp();
+    app = made.app;
+    handlers = made.handlers;
+    registerAdminResourceRoutes(app);
+  });
+
+  it("GET /api/admin/resources/:id/health returns the freshness-aware view", async () => {
+    (storage.getResourceHealthView as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: "amber",
+      lastChecked: new Date("2026-04-21T12:00:00Z"),
+      lastStatus: "ok",
+      latencyMs: 12,
+      errorCode: null,
+      errorMessage: null,
+      ttlSeconds: 60,
+    });
+    const { status, body } = await invoke(handlers, "GET /api/admin/resources/:id/health", { params: { id: "1" } });
+    expect(status).toBe(200);
+    const payload = body as Record<string, unknown>;
+    expect(payload.status).toBe("amber");
+    expect(payload.lastChecked).toBe("2026-04-21T12:00:00.000Z");
+    expect(payload.ttlSeconds).toBe(60);
+  });
+
+  it("POST /api/admin/resources/:id/test rate-limits and returns 429", async () => {
+    (storage.getAdminResourceById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 1, kind: "api", slug: "fred", displayName: "FRED", description: null,
+      config: { baseUrl: "https://api.example.test" }, secretRef: "FRED_API_KEY",
+      version: 1, lastHealthStatus: "gray", lastCheckedAt: null,
+      createdByUserId: null, updatedByUserId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    });
+    (storage.isAdminTestRateLimited as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+    const { status, body } = await invoke(handlers, "POST /api/admin/resources/:id/test", { params: { id: "1" } });
+    expect(status).toBe(429);
+    expect((body as { error: string }).error).toMatch(/rate limit/i);
+    expect(storage.recordProbeResult).not.toHaveBeenCalled();
+  });
+
+  it("POST /api/admin/resources/:id/test runs probe and persists with the actor", async () => {
+    (storage.getAdminResourceById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 1, kind: "model", slug: "primary-llm", displayName: "Primary", description: null,
+      config: { provider: "anthropic" }, secretRef: null,
+      version: 1, lastHealthStatus: "gray", lastCheckedAt: null,
+      createdByUserId: null, updatedByUserId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    });
+    (storage.isAdminTestRateLimited as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+    (storage.recordProbeResult as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 7, resourceId: 1, kind: "model", status: "ok", latencyMs: 1, errorCode: null,
+      errorMessage: null, triggeredByUserId: 99, checkedAt: new Date("2026-04-21T12:00:00Z"),
+    });
+    const { status, body } = await invoke(handlers, "POST /api/admin/resources/:id/test", { params: { id: "1" } });
+    expect(status).toBe(200);
+    expect((body as { status: string }).status).toBe("ok");
+    expect(storage.recordProbeResult).toHaveBeenCalledWith(
+      1,
+      "model",
+      expect.objectContaining({ status: "ok" }),
+      99, // actor id
+    );
+  });
+
+  it("POST /api/admin/resources/:id/test rejects unauthenticated callers", async () => {
+    mockUser = null;
+    const { status } = await invoke(handlers, "POST /api/admin/resources/:id/test", { params: { id: "1" } });
+    expect(status).toBe(401);
+  });
+});
 
 describe("insert schemas", () => {
   it("insertAdminResourceSchema rejects bad slugs", () => {

@@ -266,6 +266,13 @@ app.use((req, res, next) => {
         serverLog(`[research-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3c: Resource health checker (per-kind TTL probes) ────────
+      import("./jobs/resource-health-checker").then(({ startResourceHealthChecker }) => {
+        startResourceHealthChecker();
+      }).catch(err => {
+        serverLog(`[resource-health-checker] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
@@ -503,6 +510,12 @@ async function runSchemaMigrations() {
     const { runAdminResources001 } = await import("./migrations/admin-resources-001");
     await runAdminResources001();
     await markMigrationApplied("admin_resources_001");
+  }
+
+  if (!(await isMigrationApplied("admin_resources_002"))) {
+    const { runAdminResources002 } = await import("./migrations/admin-resources-002");
+    await runAdminResources002();
+    await markMigrationApplied("admin_resources_002");
   }
 
   if (!(await isMigrationApplied("scenario_service_templates_001"))) {

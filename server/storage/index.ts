@@ -109,6 +109,12 @@ export class DatabaseStorage implements IStorage {
   listBreakGlassOverrides = this.adminResourceStore.listBreakGlassOverrides.bind(this.adminResourceStore);
   createBreakGlassOverride = this.adminResourceStore.createBreakGlassOverride.bind(this.adminResourceStore);
   revokeBreakGlassOverride = this.adminResourceStore.revokeBreakGlassOverride.bind(this.adminResourceStore);
+  recordProbeResult = this.adminResourceStore.recordProbeResult.bind(this.adminResourceStore);
+  getLatestHealthCheck = this.adminResourceStore.getLatestHealthCheck.bind(this.adminResourceStore);
+  listHealthChecksForResource = this.adminResourceStore.listHealthChecksForResource.bind(this.adminResourceStore);
+  getResourceHealthView = this.adminResourceStore.getResourceHealthView.bind(this.adminResourceStore);
+  listResourcesDueForHealthCheck = this.adminResourceStore.listResourcesDueForHealthCheck.bind(this.adminResourceStore);
+  isAdminTestRateLimited = this.adminResourceStore.isAdminTestRateLimited.bind(this.adminResourceStore);
 
   // Model Constants (governed values — DB canonical baseline + DB override layer + TS fallback)
   listModelConstantOverrides = this.modelConstantsStore.listModelConstantOverrides.bind(this.modelConstantsStore);

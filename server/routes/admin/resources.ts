@@ -37,6 +37,8 @@ import {
   toResourcePublicView,
 } from "@shared/schema";
 import { syncSpecialistCatalog } from "../../jobs/catalog-sync";
+import { runProbe } from "../../jobs/probes";
+import type { ResourceKind } from "@shared/schema";
 
 const updateResourceSchema = z.object({
   displayName: z.string().min(1).optional(),
@@ -67,7 +69,8 @@ export function registerAdminResourceRoutes(app: Express) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
       const rows = await storage.listAdminResources(parsed.data.kind);
-      res.json(rows.map(toResourcePublicView));
+      // Wrap in an arrow so Array.map's `index` arg doesn't bind to `now`.
+      res.json(rows.map((r) => toResourcePublicView(r)));
     } catch (error) {
       logAndSendError(res, "Failed to list admin resources", error);
     }
@@ -190,6 +193,80 @@ export function registerAdminResourceRoutes(app: Express) {
       res.json(impact);
     } catch (error) {
       logAndSendError(res, "Failed to load resource impact list", error);
+    }
+  });
+
+  // ── Health (current status, freshness-aware) ────────────────────
+  app.get("/api/admin/resources/:id/health", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const view = await storage.getResourceHealthView(id);
+      if (!view) return res.status(404).json({ error: "Resource not found" });
+      res.json({
+        ...view,
+        lastChecked: view.lastChecked ? view.lastChecked.toISOString() : null,
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to load resource health", error);
+    }
+  });
+
+  // ── Health history (audit trail of probes) ──────────────────────
+  app.get("/api/admin/resources/:id/health/history", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const limit = Math.min(Number(req.query.limit ?? 50), 200);
+      const rows = await storage.listHealthChecksForResource(id, limit);
+      // Drop errorMessage for non-super-admins? No — admins already see it in
+      // logActivity. Keep but never include resource secret material (probes
+      // are designed to never put secrets in errorMessage).
+      res.json(
+        rows.map((r) => ({
+          id: r.id,
+          status: r.status,
+          latencyMs: r.latencyMs,
+          errorCode: r.errorCode,
+          errorMessage: r.errorMessage,
+          triggeredByUserId: r.triggeredByUserId,
+          checkedAt: r.checkedAt.toISOString(),
+        })),
+      );
+    } catch (error) {
+      logAndSendError(res, "Failed to load resource health history", error);
+    }
+  });
+
+  // ── Test button: synchronous probe with audit + per-actor rate limit ────
+  app.post("/api/admin/resources/:id/test", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const row = await storage.getAdminResourceById(id);
+      if (!row) return res.status(404).json({ error: "Resource not found" });
+
+      const actorId = req.user!.id;
+      const kind = row.kind as ResourceKind;
+      const limited = await storage.isAdminTestRateLimited(id, actorId, kind);
+      if (limited) {
+        // Audit the throttled attempt too — every Test press leaves a trace.
+        logActivity(req, "test-admin-resource-throttled", "admin_resource", id, `${row.kind}/${row.slug}`);
+        return res.status(429).json({
+          error: "Rate limit exceeded for Test on this resource. Try again in a minute.",
+        });
+      }
+
+      const outcome = await runProbe(row);
+      const persisted = await storage.recordProbeResult(id, kind, outcome, actorId);
+      logActivity(req, "test-admin-resource", "admin_resource", id,
+        `${row.kind}/${row.slug} → ${outcome.status}${outcome.errorCode ? ` (${outcome.errorCode})` : ""}`);
+      res.json({
+        status: outcome.status,
+        latencyMs: outcome.latencyMs,
+        errorCode: outcome.errorCode ?? null,
+        errorMessage: outcome.errorMessage ?? null,
+        checkedAt: persisted.checkedAt.toISOString(),
+      });
+    } catch (error) {
+      logAndSendError(res, "Failed to test admin resource", error);
     }
   });
 

@@ -171,6 +171,47 @@ export const adminResources = pgTable(
   ],
 );
 
+// ────────────────────────────────────────────────────────────────────────────
+// Per-kind probe profiles (P3). TTL drives the freshness band on read:
+// "green" is served ONLY if the last successful check is within ttlSeconds;
+// past TTL falls back to "amber" even when the last result was OK.
+// rateLimitPerMinute caps user-driven Test-button presses per (admin, resource).
+// maxCostUsd is a budget guard — probes that would cost more must short-circuit.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const PROBE_PROFILES: Record<ResourceKind, { ttlSeconds: number; rateLimitPerMinute: number; maxCostUsd: number }> = {
+  api: { ttlSeconds: 60, rateLimitPerMinute: 6, maxCostUsd: 0.001 },
+  source: { ttlSeconds: 300, rateLimitPerMinute: 6, maxCostUsd: 0.001 },
+  model: { ttlSeconds: 300, rateLimitPerMinute: 4, maxCostUsd: 0.001 },
+  table: { ttlSeconds: 3600, rateLimitPerMinute: 6, maxCostUsd: 0.001 },
+  benchmark: { ttlSeconds: 3600, rateLimitPerMinute: 6, maxCostUsd: 0.001 },
+};
+
+export const ProbeStatusSchema = z.enum(["ok", "fail", "skipped"]);
+export type ProbeStatus = z.infer<typeof ProbeStatusSchema>;
+
+/**
+ * Pure freshness derivation. Last check + TTL → user-facing dot color.
+ *   - green: last check ok AND within TTL
+ *   - amber: last check ok BUT past TTL (stale)
+ *   - red:   last check failed
+ *   - gray:  never checked
+ */
+export function deriveHealthStatus(args: {
+  lastStatus: ProbeStatus | null;
+  lastCheckedAt: Date | null;
+  kind: ResourceKind;
+  now?: Date;
+}): ResourceHealthStatus {
+  if (!args.lastStatus || !args.lastCheckedAt) return "gray";
+  if (args.lastStatus === "fail") return "red";
+  if (args.lastStatus === "skipped") return "amber";
+  const now = args.now ?? new Date();
+  const ageMs = now.getTime() - args.lastCheckedAt.getTime();
+  const ttlMs = PROBE_PROFILES[args.kind].ttlSeconds * 1000;
+  return ageMs <= ttlMs ? "green" : "amber";
+}
+
 export const insertAdminResourceSchema = z.object({
   kind: ResourceKindSchema,
   slug: ResourceSlugSchema,
@@ -262,6 +303,37 @@ export type BreakGlassOverrideRow = typeof auditBreakGlassOverrides.$inferSelect
 export type InsertBreakGlassOverride = z.infer<typeof insertBreakGlassOverrideSchema>;
 
 // ────────────────────────────────────────────────────────────────────────────
+// resource_health_checks (P3) — append-only probe history. The latest row per
+// resource_id is the authoritative health record; the rest is audit trail.
+// We intentionally do NOT collapse history into the parent row alone, because:
+//   - "How often did this fail this week?" needs the timeline
+//   - The audit story for who pressed Test (and what came back) lives here
+// ────────────────────────────────────────────────────────────────────────────
+
+export const resourceHealthChecks = pgTable(
+  "resource_health_checks",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    resourceId: integer("resource_id")
+      .notNull()
+      .references(() => adminResources.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    status: text("status").notNull(),       // ok | fail | skipped
+    latencyMs: integer("latency_ms"),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    triggeredByUserId: integer("triggered_by_user_id").references(() => users.id, { onDelete: "set null" }), // null = scheduler
+    checkedAt: timestamp("checked_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("resource_health_checks_resource_idx").on(t.resourceId),
+    index("resource_health_checks_resource_time_idx").on(t.resourceId, t.checkedAt),
+  ],
+);
+
+export type ResourceHealthCheckRow = typeof resourceHealthChecks.$inferSelect;
+
+// ────────────────────────────────────────────────────────────────────────────
 // specialist_assignments — DB materialization of the catalog declarations.
 // Refreshed by `server/jobs/catalog-sync.ts`. Read-only from the app's
 // perspective (Specialist UI surfaces it but never edits it).
@@ -321,17 +393,28 @@ export type ResourcePublicView = z.infer<typeof ResourcePublicViewSchema>;
  * (replaced by the boolean `hasSecret`) so secret keys cannot accidentally
  * leak through any list/detail endpoint.
  */
-export function toResourcePublicView(row: AdminResourceRow): ResourcePublicView {
+export function toResourcePublicView(row: AdminResourceRow, now: Date = new Date()): ResourcePublicView {
+  // Stale-green guard: re-derive freshness on every read so a denormalized
+  // parent.lastHealthStatus="green" can never leak past its TTL window.
+  // (red/amber/gray are non-degrading and pass through unchanged.)
+  const kind = row.kind as ResourceKind;
+  const storedBand = row.lastHealthStatus as ResourceHealthStatus;
+  let band: ResourceHealthStatus = storedBand;
+  if (storedBand === "green" && row.lastCheckedAt) {
+    const ageMs = now.getTime() - row.lastCheckedAt.getTime();
+    const ttlMs = PROBE_PROFILES[kind].ttlSeconds * 1000;
+    if (ageMs > ttlMs) band = "amber";
+  }
   return {
     id: row.id,
-    kind: row.kind as ResourceKind,
+    kind,
     slug: row.slug,
     displayName: row.displayName,
     description: row.description,
     config: row.config ?? {},
     hasSecret: typeof row.secretRef === "string" && row.secretRef.length > 0,
     version: row.version,
-    lastHealthStatus: row.lastHealthStatus as ResourceHealthStatus,
+    lastHealthStatus: band,
     lastCheckedAt: row.lastCheckedAt ? row.lastCheckedAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
