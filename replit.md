@@ -502,6 +502,51 @@ inline. Now: AI Platform = vendor keys + model catalog + universal LLM uses;
 **every per-Specialist model pick and prompt moves into that Specialist's
 page**. The registry stays in AI Platform; the assignment moves out.
 
+**Open proposal under review (2026-04-21, post-pivot) — Resources as a top-level Admin section.**
+The user surfaced a stronger separation than the hub-and-spoke pattern above: extract
+APIs and Sources (and possibly Tables, Benchmarks, Models) into a NEW top-level
+**Resources** sidebar section as their canonical edit surface. Specialist pages would
+then become **read-only assignment views** showing each wired resource with a
+green/red **health dot** and a **Test** button — the admin sees what's wired and can
+verify it's alive, but cannot rewire from inside the Specialist page (wiring is
+declared in the Specialist catalog code).
+
+**Why this is potentially better than the hub-and-spoke I proposed:**
+- True single-source-of-truth for resources: one canonical surface, period.
+- Discoverability: "where do I add a new API key?" has one answer (Resources > APIs),
+  not "dig into whichever Specialist needs it."
+- Eliminates the dual-write confusion the architect flagged in P5.
+- Wiring becomes git-reviewable code (Specialist catalog), not admin chrome — fewer
+  ways for an admin to accidentally break a Specialist by unlinking a resource.
+- Cleanly separates **operational health** (admin's job: green dot, Test button) from
+  **architectural wiring** (developer's job: catalog edit + PR).
+
+**Tensions to resolve before locking:**
+- The earlier "Specialist page is the ONLY place for that Specialist's configuration"
+  rule loosens: APIs/Sources are no longer Specialist-owned but shared infra the
+  Specialist *uses*. Per-Specialist LLM prompt + model pick + Required Fields +
+  Runtime/Triggers stay Specialist-owned. Need to confirm scope of "configuration."
+- Does Resources include Tables and Benchmarks too, or only APIs and Sources?
+- What's the sharp distinction between "APIs" (authenticated REST endpoints with
+  credentials?) and "Sources" (data feeds / scrape targets / uploaded datasets?)
+  — or is Sources the umbrella and APIs a subtype?
+- Does this **collapse AI Platform into Resources**? "Resources > Models" would
+  be the LLM model registry; "Resources > Vendor Keys" the API keys. AI Platform
+  may then shrink to a pure observability surface (vendor health dashboard) or
+  disappear entirely with vendor health folded into Resources > APIs.
+- Where does Rebecca chat live if AI Platform collapses? (Likely its own
+  Specialist under a new "Conversational AI" subject, or under Portfolio Ops.)
+- Wiring authority — code-only (catalog edit + PR) vs. a separate developer-admin
+  "Wiring" surface for runtime reassignment? Code-only is safer; runtime is more
+  flexible but reintroduces drift risk.
+
+**Status:** Architect deep-think requested for this proposal. Until architect
+returns and user confirms scope, the hub-and-spoke pattern from the previous
+block remains the working design and `.local/session_plan.md` reflects that.
+The Resources proposal will trigger a re-plan if endorsed.
+
+---
+
 **Defaults sidebar group — locked decisions (2026-04-21) carry forward unchanged:**
 - **Defaults > Property tabs:** `Underwriting` / `Operating` / `Capital` /
   `Exit` / `Service Fees`. Each tab is cards (mimics Property Edit's section
