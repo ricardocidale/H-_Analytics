@@ -13,6 +13,7 @@ import { registerSourceHealthRoutes } from "./source-health";
 import { registerTestBatteryRoutes } from "./test-batteries";
 import { registerModelConstantsRoutes } from "./model-constants";
 import { registerAdminAnalystTableRoutes } from "./analyst-tables";
+import { registerAdminResourceRoutes } from "./resources";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -29,4 +30,5 @@ export function register(app: Express) {
   registerTestBatteryRoutes(app);
   registerModelConstantsRoutes(app);
   registerAdminAnalystTableRoutes(app);
+  registerAdminResourceRoutes(app);
 }

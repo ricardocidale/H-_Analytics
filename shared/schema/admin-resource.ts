@@ -13,11 +13,26 @@
  * the canonical Resources pages; Specialist pages render assignments
  * read-only with a health dot + Test button.
  *
- * P1 scope: types only. No DB tables, no routes, no UI. Storage tables and
- * REST surface land in P2.
+ * P1 scope: contracts only (Zod schemas + types).
+ * P2 scope (this file, below): Drizzle tables for canonical persistence:
+ *   - admin_resources                — canonical row, one per (kind, slug)
+ *   - admin_resource_versions        — append-only edit history for rollback
+ *   - audit_break_glass_overrides    — super-admin time-boxed reroutes
+ *   - specialist_assignments         — materialized catalog → DB join table
  */
 
 import { z } from "zod";
+import {
+  pgTable,
+  text,
+  integer,
+  timestamp,
+  jsonb,
+  boolean,
+  uniqueIndex,
+  index,
+} from "drizzle-orm/pg-core";
+import { users } from "./auth";
 
 // ────────────────────────────────────────────────────────────────────────────
 // ResourceKind — sibling categories at the canonical layer.
@@ -122,3 +137,203 @@ export const ProbeProfileSchema = z.object({
   rateLimitPerMinute: z.number().int().min(1).default(6),
 });
 export type ProbeProfile = z.infer<typeof ProbeProfileSchema>;
+
+// ════════════════════════════════════════════════════════════════════════════
+// P2 — DRIZZLE TABLES (canonical persistence for the Resources control plane)
+// ════════════════════════════════════════════════════════════════════════════
+
+// ────────────────────────────────────────────────────────────────────────────
+// admin_resources — canonical row, one per (kind, slug). Secrets live in
+// secret_ref (a key into the project secret store), never in config.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const adminResources = pgTable(
+  "admin_resources",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    kind: text("kind").notNull(),
+    slug: text("slug").notNull(),
+    displayName: text("display_name").notNull(),
+    description: text("description"),
+    config: jsonb("config").notNull().$type<Record<string, unknown>>().default({}),
+    secretRef: text("secret_ref"),
+    version: integer("version").notNull().default(1),
+    lastHealthStatus: text("last_health_status").notNull().default("gray"),
+    lastCheckedAt: timestamp("last_checked_at"),
+    createdByUserId: integer("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    updatedByUserId: integer("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("admin_resources_kind_slug_uniq").on(t.kind, t.slug),
+    index("admin_resources_kind_idx").on(t.kind),
+  ],
+);
+
+export const insertAdminResourceSchema = z.object({
+  kind: ResourceKindSchema,
+  slug: ResourceSlugSchema,
+  displayName: z.string().min(1),
+  description: z.string().nullable().optional(),
+  config: z.record(z.string(), z.unknown()).default({}),
+  secretRef: z.string().min(1).nullable().optional(),
+});
+
+export type AdminResourceRow = typeof adminResources.$inferSelect;
+export type InsertAdminResource = z.infer<typeof insertAdminResourceSchema>;
+
+// ────────────────────────────────────────────────────────────────────────────
+// admin_resource_versions — append-only edit history for rollback.
+// Every PUT to admin_resources writes a version row first, then bumps
+// admin_resources.version. Rollback re-applies a past version as a NEW
+// version (history is never rewritten).
+// ────────────────────────────────────────────────────────────────────────────
+
+export const adminResourceVersions = pgTable(
+  "admin_resource_versions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    resourceId: integer("resource_id")
+      .notNull()
+      .references(() => adminResources.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    displayName: text("display_name").notNull(),
+    description: text("description"),
+    config: jsonb("config").notNull().$type<Record<string, unknown>>().default({}),
+    secretRef: text("secret_ref"),
+    changeSummary: text("change_summary"),
+    changedByUserId: integer("changed_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    changedAt: timestamp("changed_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("admin_resource_versions_resource_version_uniq").on(t.resourceId, t.version),
+    index("admin_resource_versions_resource_idx").on(t.resourceId),
+  ],
+);
+
+export type AdminResourceVersionRow = typeof adminResourceVersions.$inferSelect;
+
+// ────────────────────────────────────────────────────────────────────────────
+// audit_break_glass_overrides — super-admin time-boxed assignment reroutes.
+// The default (steady-state) wiring is the catalog. An override re-points a
+// single (specialist_id, kind, slug, role) tuple to a different resource for
+// `expires_at - created_at`. After expiry it is silently ignored on read.
+// override_resource_id is nullable so an override can also represent
+// "unassign/disable until expiry" for incident triage.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const auditBreakGlassOverrides = pgTable(
+  "audit_break_glass_overrides",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    specialistId: text("specialist_id").notNull(),
+    assignmentKind: text("assignment_kind").notNull(),
+    assignmentSlug: text("assignment_slug").notNull(),
+    assignmentRole: text("assignment_role"),
+    overrideResourceId: integer("override_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    reason: text("reason").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdByUserId: integer("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    revokedAt: timestamp("revoked_at"),
+    revokedByUserId: integer("revoked_by_user_id").references(() => users.id, { onDelete: "set null" }),
+  },
+  (t) => [
+    index("break_glass_specialist_idx").on(t.specialistId),
+    index("break_glass_expires_idx").on(t.expiresAt),
+  ],
+);
+
+export const insertBreakGlassOverrideSchema = z.object({
+  specialistId: z.string().min(1),
+  assignmentKind: ResourceKindSchema,
+  assignmentSlug: ResourceSlugSchema,
+  assignmentRole: z.string().min(1).nullable().optional(),
+  overrideResourceId: z.number().int().positive().nullable().optional(),
+  reason: z.string().min(8, "Break-glass reason must be at least 8 characters"),
+  expiresAt: z.coerce.date(),
+  createdByUserId: z.number().int().positive(),
+});
+
+export type BreakGlassOverrideRow = typeof auditBreakGlassOverrides.$inferSelect;
+export type InsertBreakGlassOverride = z.infer<typeof insertBreakGlassOverrideSchema>;
+
+// ────────────────────────────────────────────────────────────────────────────
+// specialist_assignments — DB materialization of the catalog declarations.
+// Refreshed by `server/jobs/catalog-sync.ts`. Read-only from the app's
+// perspective (Specialist UI surfaces it but never edits it).
+// resource_id is nullable so unresolved slugs are still recorded (and surface
+// as red dots in the UI) instead of silently dropped.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const specialistAssignments = pgTable(
+  "specialist_assignments",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    specialistId: text("specialist_id").notNull(),
+    assignmentKind: text("assignment_kind").notNull(),
+    assignmentSlug: text("assignment_slug").notNull(),
+    assignmentRole: text("assignment_role"),
+    required: boolean("required").notNull().default(true),
+    resourceId: integer("resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    materializedAt: timestamp("materialized_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("specialist_assignments_uniq").on(
+      t.specialistId,
+      t.assignmentKind,
+      t.assignmentSlug,
+      t.assignmentRole,
+    ),
+    index("specialist_assignments_specialist_idx").on(t.specialistId),
+    index("specialist_assignments_resource_idx").on(t.resourceId),
+  ],
+);
+
+export type SpecialistAssignmentRow = typeof specialistAssignments.$inferSelect;
+
+// ────────────────────────────────────────────────────────────────────────────
+// API response shapes — explicit so secret material never leaks. Every route
+// that returns a Resource MUST go through `toResourcePublicView`.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const ResourcePublicViewSchema = z.object({
+  id: z.number().int(),
+  kind: ResourceKindSchema,
+  slug: ResourceSlugSchema,
+  displayName: z.string(),
+  description: z.string().nullable(),
+  config: z.record(z.string(), z.unknown()),
+  hasSecret: z.boolean(),
+  version: z.number().int().min(1),
+  lastHealthStatus: ResourceHealthStatusSchema,
+  lastCheckedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type ResourcePublicView = z.infer<typeof ResourcePublicViewSchema>;
+
+/**
+ * Convert an admin_resources row into the public API shape. Drops `secretRef`
+ * (replaced by the boolean `hasSecret`) so secret keys cannot accidentally
+ * leak through any list/detail endpoint.
+ */
+export function toResourcePublicView(row: AdminResourceRow): ResourcePublicView {
+  return {
+    id: row.id,
+    kind: row.kind as ResourceKind,
+    slug: row.slug,
+    displayName: row.displayName,
+    description: row.description,
+    config: row.config ?? {},
+    hasSecret: typeof row.secretRef === "string" && row.secretRef.length > 0,
+    version: row.version,
+    lastHealthStatus: row.lastHealthStatus as ResourceHealthStatus,
+    lastCheckedAt: row.lastCheckedAt ? row.lastCheckedAt.toISOString() : null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}

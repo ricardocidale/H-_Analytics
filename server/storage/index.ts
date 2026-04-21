@@ -46,6 +46,7 @@ import { RenderSettingsStorage } from "./render-settings";
 import { PageVisitStorage } from "./page-visits";
 import { ModelConstantsStorage } from "./model-constants";
 import { ModelCanonicalsStorage } from "./model-canonicals";
+import { AdminResourceStorage } from "./admin-resource";
 
 export interface IStorage extends
   UserStorage,
@@ -65,7 +66,8 @@ export interface IStorage extends
   RenderSettingsStorage,
   PageVisitStorage,
   ModelConstantsStorage,
-  ModelCanonicalsStorage {
+  ModelCanonicalsStorage,
+  AdminResourceStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -90,6 +92,23 @@ export class DatabaseStorage implements IStorage {
   private pageVisitStore = new PageVisitStorage();
   private modelConstantsStore = new ModelConstantsStorage();
   private modelCanonicalsStore = new ModelCanonicalsStorage();
+  private adminResourceStore = new AdminResourceStorage();
+
+  // Admin Resources control plane (canonical APIs/Sources/Tables/Benchmarks/Models)
+  listAdminResources = this.adminResourceStore.listAdminResources.bind(this.adminResourceStore);
+  getAdminResourceById = this.adminResourceStore.getAdminResourceById.bind(this.adminResourceStore);
+  getAdminResourceBySlug = this.adminResourceStore.getAdminResourceBySlug.bind(this.adminResourceStore);
+  createAdminResource = this.adminResourceStore.createAdminResource.bind(this.adminResourceStore);
+  updateAdminResource = this.adminResourceStore.updateAdminResource.bind(this.adminResourceStore);
+  deleteAdminResource = this.adminResourceStore.deleteAdminResource.bind(this.adminResourceStore);
+  listAdminResourceVersions = this.adminResourceStore.listAdminResourceVersions.bind(this.adminResourceStore);
+  rollbackAdminResource = this.adminResourceStore.rollbackAdminResource.bind(this.adminResourceStore);
+  listResourceImpact = this.adminResourceStore.listResourceImpact.bind(this.adminResourceStore);
+  listSpecialistAssignments = this.adminResourceStore.listSpecialistAssignments.bind(this.adminResourceStore);
+  syncSpecialistCatalog = this.adminResourceStore.syncSpecialistCatalog.bind(this.adminResourceStore);
+  listBreakGlassOverrides = this.adminResourceStore.listBreakGlassOverrides.bind(this.adminResourceStore);
+  createBreakGlassOverride = this.adminResourceStore.createBreakGlassOverride.bind(this.adminResourceStore);
+  revokeBreakGlassOverride = this.adminResourceStore.revokeBreakGlassOverride.bind(this.adminResourceStore);
 
   // Model Constants (governed values — DB canonical baseline + DB override layer + TS fallback)
   listModelConstantOverrides = this.modelConstantsStore.listModelConstantOverrides.bind(this.modelConstantsStore);

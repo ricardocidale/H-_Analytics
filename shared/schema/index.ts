@@ -10,6 +10,8 @@ export * from "./services";
 export * from "./scenarios";
 export * from "./scenario-results";
 export * from "./audit";
+export * from "./admin-resource";
+export * from "./specialist";
 export * from "./calc-audit";
 export * from "./intelligence";
 export * from "./intelligence-v2";
