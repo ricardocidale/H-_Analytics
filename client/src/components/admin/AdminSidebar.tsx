@@ -48,7 +48,10 @@ export type AdminSection =
   | "rebecca-config" | "themes-appearance"
   | "app-settings"
   | "testing-verification"
-  | "reports-exports";
+  | "reports-exports"
+  // Steady State (Defaults & Constants)
+  | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
+  | "constants";
 
 const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Legacy aliases
@@ -88,6 +91,12 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "app-settings": "notifications",
   "testing-verification": "verification",
   "reports-exports": "exports",
+  // Steady State → all live inside the model-defaults page; sub-tab is selected
+  // by Admin.tsx's MODEL_DEFAULTS_SUB_TAB map keyed off the alias.
+  "defaults-management-company": "model-defaults",
+  "defaults-property": "model-defaults",
+  "defaults-market-macro": "model-defaults",
+  "constants": "model-defaults",
 };
 
 export function resolveSection(section: AdminSection): AdminSection {
@@ -213,6 +222,18 @@ function buildNavGroups(): NavGroup[] {
       description: "PDF, PPTX, Excel & CSV exports",
       sections: [
         { value: "exports", label: "Reports & Exports", icon: IconExport },
+      ],
+    },
+    {
+      id: "defaults",
+      label: "Defaults",
+      icon: IconSliders,
+      description: "Defaults applied to new entities and immutable model constants",
+      sections: [
+        { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
+        { value: "defaults-property",           label: "Property",           icon: IconProperties },
+        { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
+        { value: "constants",                   label: "Constants",          icon: IconCalculator },
       ],
     },
   ];

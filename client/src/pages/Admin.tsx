@@ -97,6 +97,11 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "app-settings":        { title: "App Settings",             subtitle: "Notifications, navigation, and system configuration" },
   "testing-verification":{ title: "Testing & Verification",   subtitle: "Independent GAAP financial audit and compliance" },
   "reports-exports":     { title: "Reports & Exports",        subtitle: "Configure content, orientation, and layout for all report exports" },
+  // Defaults section (Steady State navigation)
+  "defaults-management-company": { title: "Management Company Defaults", subtitle: "Default financial parameters seeded into new entities at the management-company level" },
+  "defaults-property":           { title: "Property Defaults",            subtitle: "Default revenue, cost, and capital assumptions seeded into new properties" },
+  "defaults-market-macro":       { title: "Market & Macro Defaults",      subtitle: "Macro and market-condition defaults applied to new entities" },
+  "constants":                   { title: "Constants",                    subtitle: "Immutable model constants used across the application" },
 };
 
 /** Map sidebar alias → ModelDefaultsTab internal sub-tab value */
@@ -108,6 +113,24 @@ const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "hotel-defaults":      "property-underwriting",
   "rental-defaults":     "property-underwriting",
   "required-fields":     "required-fields",
+  // Defaults section
+  "defaults-management-company": "company",
+  "defaults-property":           "property-underwriting",
+  "defaults-market-macro":       "market-macro",
+  "constants":                   "model-constants",
+};
+
+/**
+ * Map sidebar alias → set of ModelDefaultsTab sub-tabs that should be visible
+ * when entering via that alias. When undefined, all tabs are shown (legacy
+ * behavior). Each Defaults menu item shows only the tabs relevant to it,
+ * so e.g. the Property page never surfaces Management Company defaults.
+ */
+const MODEL_DEFAULTS_VISIBLE_TABS: Partial<Record<AdminSection, readonly string[]>> = {
+  "defaults-management-company": ["company"],
+  "defaults-property":           ["property-underwriting"],
+  "defaults-market-macro":       ["market-macro"],
+  "constants":                   ["model-constants"],
 };
 
 const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {
@@ -122,7 +145,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
   const resolved = resolveSection(section);
 
   switch (resolved) {
-    case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={MODEL_DEFAULTS_SUB_TAB[section]} />;
+    case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={MODEL_DEFAULTS_SUB_TAB[section]} visibleTabs={MODEL_DEFAULTS_VISIBLE_TABS[section]} />;
     case "users":            return <PeopleTab />;
     case "activity":         return <ActivityTab />;
     case "scenarios":        return <ScenariosTab />;
