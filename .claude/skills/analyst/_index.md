@@ -19,6 +19,20 @@ Between them sit the **Surface Router** (pure dispatch, no LLM) and the **Voice 
 
 ---
 
+## Specialist governance (LOCKED 2026-04-21) — read this before touching anything Specialist-shaped
+
+The Specialist concept evolved through three doctrines in <24 hours. Current state:
+
+- **Catalog is code.** The list of Specialists, their subjects, their capability flags, and their `assignmentRefs` (links to canonical Resources) live in `engine/analyst/registry/specialist-catalog.ts`. **Adding or removing a Specialist↔Resource link is a code edit + PR + deploy.** There is intentionally no admin-runtime affordance to relink.
+- **Per-Specialist tunable config is DB.** Prompt template, model resource id, required fields, runtime knobs live in `specialist_configs` (one row per Specialist) with append-only history in `specialist_config_versions`. Edited via the Specialist's own page (capability-gated PUT routes in `server/routes/admin/specialists.ts`).
+- **Resources are canonical.** APIs / Sources / Tables / Benchmarks / Models live in `admin_resources` with versioning. Specialist pages render Resource Assignments **read-only** with a health dot — the only edit affordance is "Edit in Resources →" or the audited time-boxed super-admin break-glass override.
+- **Health-dot freshness band is enforced.** Green = OK + within TTL, amber = OK + past TTL (stale-green forbidden), red = failed, gray = unknown.
+- **The mgmt-co router reads config at dispatch.** `createMgmtCoRouter({ configs })` threads each Specialist's per-row config into the factory. Save-tab handler loads the config before constructing the router. Don't bypass.
+
+For the full architecture rationale + the two rejected predecessors (v0 flat registry, v1 hub-and-spoke), see ADR-006 (`docs/architecture/decisions/ADR-006-resources-control-plane.md`) and the doctrine block in `replit.md` "LOCKED 2026-04-21".
+
+---
+
 ## Files in this skill
 
 | File | What it covers |

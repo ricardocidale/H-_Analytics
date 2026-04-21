@@ -131,6 +131,83 @@ Per-`ResourceKind` **probe profile** (`shared/schema/admin-resource.ts`
   seed inputs for Resources via P6 adapters; legacy tables remain as
   read-only mirrors through P7.
 
+## Architecture evolution — why this doctrine, not the other two
+
+This control plane is the **third** doctrine in less than 24 hours. The
+prior two were rejected for specific reasons. ADR-006 captures the
+decision in full; the short version:
+
+- **v0 (pre-Apr 21) — AI section as flat registry.** Vendor keys, model
+  picks, prompts, and benchmark links authored inline on a single Admin
+  page. AI Research surfaces were thin reference wrappers. Worked for 2
+  Specialists; the duplication failure mode (same FRED key copied into 5
+  Specialists) made it untenable at 7.
+- **v1 (Apr 21 morning) — Hub-and-spoke storage.** Each Specialist owns
+  its own page; persistence is a many-to-many
+  `specialist_resource_links` join; editing an API key inside Specialist
+  A mutates the canonical row with an "also used by" impact list shown
+  inline. Solved duplication. Did **not** solve wiring authority — an
+  admin clicking through a Specialist page could silently rewire it away
+  from the Resource its evaluator was tested against, with no PR trail.
+- **v2 (current, LOCKED Apr 21) — this document.** Resources is the
+  canonical control plane (one edit surface per Resource, versioned).
+  Specialist pages are read-only for assignments (wiring is code-only via
+  the Specialist catalog). Code-only wiring + super-admin-only audited
+  time-boxed break-glass is the steady-state invariant + escape hatch
+  combination.
+
+The three forces v2 simultaneously resolved that v0 and v1 left open:
+single canonical SoT per Resource, diffable wiring authority, and
+audit-trail incident response.
+
+## Phase status (concrete)
+
+| Phase | Scope | Status |
+|---|---|---|
+| P1 | Specialist catalog + capability matrix; `resourceRefs` → `assignmentRefs`; read-only contract | ✅ Shipped |
+| P2 | `admin_resources` + `admin_resource_versions` + `audit_break_glass_overrides` + `specialist_assignments` materialization | ✅ Shipped |
+| P3 | Resource health checker + `resource_health_checks` + freshness-band derivation + safe-probe profiles | ✅ Shipped |
+| P4 | Resources sub-page UIs (APIs, Sources, Tables, Benchmarks, Models) + dialogs + version history | ✅ Shipped |
+| P5 | Specialist read-only surfaces (Funding + Revenue first): 6 REST routes, 5 capability tabs, 11 contract tests, mgmt-co router wiring | ✅ Shipped (commit `2346de7`) |
+| P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab` seed inputs; centralize SPECIALIST_SECTION_TO_ID; Required Fields enforcement | ⏳ Next |
+| P7 | Specialists C–G get real evaluators behind their existing pages | ⏳ Pending |
+
+## P5 — Specialist read-only surface (concrete contract)
+
+Per-Specialist mutable config storage:
+
+- `specialist_configs` (one row per `specialistId`): prompt template,
+  model resource id (FK → `admin_resources` of `kind=model`), required
+  fields (string[] jsonb), runtime config (jsonb), version, audit cols.
+- `specialist_config_versions` (append-only): snapshots the prior state
+  at version N before applying the patch that produces N+1. Tagged with
+  `section` ∈ `{llm-config, required-fields, runtime}` so the Audit tab
+  can render "edited LLM Config" without diffing.
+
+Routes (all `requireAdmin`, all in `server/routes/admin/specialists.ts`):
+
+- `GET /api/admin/specialists` — catalog list with status
+- `GET /api/admin/specialists/:id` — definition + config + assignments-with-health
+- `PUT /api/admin/specialists/:id/llm-config` — prompt + modelResourceId; validates the model resource exists AND has `kind=model`; capability-gated
+- `PUT /api/admin/specialists/:id/required-fields` — string[]; capability-gated
+- `PUT /api/admin/specialists/:id/runtime` — jsonb; capability-gated
+- `GET /api/admin/specialists/:id/audit` — append-only version history
+
+The route surface intentionally has no relink endpoint. A defensive test
+in `tests/server/admin-specialists.test.ts` scans every registered
+handler key and fails the build if any future PR adds one containing
+"assignment", "relink", or "rewire".
+
+Mgmt-co router wiring (`engine/analyst/surface/mgmt-co/index.ts`):
+`createMgmtCoRouter` accepts a `configs?: MgmtCoSpecialistConfigs`
+option that threads each Specialist's per-row config (prompt template,
+model resource id) into the factory. Evaluators stay deterministic with
+a TODO marker for the upcoming LLM upgrade. The save-tab handler
+(`server/routes/global-assumptions.ts`) loads
+`getOrCreateSpecialistConfig` for both Funding and Revenue before
+constructing the router, so admin edits take effect on the next save
+without a code change.
+
 ## Risks and mitigations
 
 | Risk                                       | Mitigation                                              |

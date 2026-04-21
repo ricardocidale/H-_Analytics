@@ -22,6 +22,22 @@ One Specialist per tab of the Company Assumptions page. The six tabs are indepen
 
 ---
 
+## Governance — Resources control plane (added 2026-04-21)
+
+Funding and Revenue Specialists each have:
+
+- A **catalog declaration** in `engine/analyst/registry/specialist-catalog.ts` listing their `assignmentRefs` (Resource ids they consume). Code-only — admin cannot rewire.
+- A **per-row config** in `specialist_configs` with promptTemplate + modelResourceId + requiredFields + runtimeConfig, edited via `PUT /api/admin/specialists/:id/{llm-config|required-fields|runtime}`.
+- An **admin page** at `client/src/pages/admin/specialist/SpecialistPage.tsx` that renders capability-driven tabs. The Resource Assignments tab is read-only (health dot + Test button + "Edit in Resources →").
+
+The save-tab handler at `server/routes/global-assumptions.ts` loads both Specialists' configs via `getOrCreateSpecialistConfig` and threads them into `createMgmtCoRouter({ configs })`. Evaluators currently stay deterministic; the LLM upgrade hook is a TODO marker but the wiring is live.
+
+When you implement Specialists C–G in P7, follow the same pattern:
+1. Add the catalog entry with `status: "built"` and the right `capabilities`.
+2. Wire the evaluator factory to accept `{ promptTemplate?, modelResourceId? }`.
+3. Add a `configs[<id>]` slot to the relevant router and load it from the save handler.
+4. The page renders automatically from the catalog — no UI work needed unless capabilities change.
+
 ## Hard rules
 
 ### 1. Tab saves are Tier-0 — no LLM calls
