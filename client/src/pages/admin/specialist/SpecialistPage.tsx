@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconLayers } from "@/components/icons";
-import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { setAdminSection } from "@/lib/admin-nav";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
@@ -404,7 +404,7 @@ function RuntimeTab({ specialistId, config }: { specialistId: string; config: Sp
   const mutation = useMutation({
     mutationFn: async () => {
       let runtimeConfig: Record<string, unknown>;
-      try { runtimeConfig = JSON.parse(text); } catch (e) {
+      try { runtimeConfig = JSON.parse(text); } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Invalid JSON";
         setParseError(msg);
         throw new Error(msg);
@@ -489,5 +489,3 @@ function AuditTab({ specialistId }: { specialistId: string }) {
   );
 }
 
-// keep unused import suppression-free
-void globalQueryClient;
