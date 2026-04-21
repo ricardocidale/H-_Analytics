@@ -599,18 +599,24 @@ async function runSchemaMigrationsWithRetry(): Promise<void> {
   });
 }
 
-// ── Boot orchestration: seeds (non-fatal, single-replica, time-capped) ──
+// ── Boot orchestration: seeds (non-fatal, single-replica) ──
 // Uses a Postgres session-level advisory lock so that when Autoscale spins up
 // multiple replicas, only one runs the seed phase. Other replicas log and skip.
-// Wraps the whole phase in a 90s cap; if seeds run long, the next boot finishes them.
+// We deliberately do NOT impose a hard timeout that releases the lock early:
+// releasing the lock while runSeeds() is still in flight would let a second
+// replica start a concurrent seed pass, defeating the single-replica guarantee.
+// If seeds genuinely run long, we log a soft-warning at SEED_SLOW_WARN_MS but
+// keep awaiting the real promise. The server is already serving traffic
+// (this whole function runs inside setImmediate after the port is open).
 const SEED_ADVISORY_LOCK_KEY = 7244911300; // arbitrary stable bigint, app-specific
-const SEED_TIMEOUT_MS = 90_000;
+const SEED_SLOW_WARN_MS = 90_000;
 
 async function runSeedsSafely(): Promise<void> {
   const startTime = Date.now();
   const { pool } = await import("./db");
   const client = await pool.connect();
   let lockAcquired = false;
+  let slowWarnTimer: NodeJS.Timeout | undefined;
   try {
     const lockResult = await client.query<{ pg_try_advisory_lock: boolean }>(
       "SELECT pg_try_advisory_lock($1) AS pg_try_advisory_lock",
@@ -623,16 +629,18 @@ async function runSeedsSafely(): Promise<void> {
       return;
     }
 
-    const seedPromise = runSeeds();
-    const timeoutPromise = new Promise<void>((_, reject) => {
-      setTimeout(
-        () => reject(new Error(`seed phase exceeded ${SEED_TIMEOUT_MS}ms cap`)),
-        SEED_TIMEOUT_MS,
+    slowWarnTimer = setTimeout(() => {
+      serverLog(
+        `Seed phase still running after ${SEED_SLOW_WARN_MS}ms — server continues serving (lock held)`,
+        "startup",
+        "warn",
       );
-    });
-    await Promise.race([seedPromise, timeoutPromise]);
+    }, SEED_SLOW_WARN_MS);
+
+    await runSeeds();
     log(`Migrations and seeds completed in ${Date.now() - startTime}ms`);
   } finally {
+    if (slowWarnTimer) clearTimeout(slowWarnTimer);
     if (lockAcquired) {
       try {
         await client.query("SELECT pg_advisory_unlock($1)", [SEED_ADVISORY_LOCK_KEY]);
