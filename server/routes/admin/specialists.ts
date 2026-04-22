@@ -84,7 +84,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
           status: d.status,
         })),
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to list specialists", error);
     }
   });
@@ -147,7 +147,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
         config: toConfigView(config),
         assignments,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch specialist", error);
     }
   });
@@ -183,7 +183,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
       );
       logActivity(req, "update-specialist-llm-config", "specialist_config", updated.id, `${id} v${updated.version}`);
       res.json(toConfigView(updated));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist LLM config", error);
     }
   });
@@ -224,7 +224,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
       );
       logActivity(req, "update-specialist-required-fields", "specialist_config", updated.id, `${id} v${updated.version}`);
       res.json(toConfigView(updated));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist required fields", error);
     }
   });
@@ -252,7 +252,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
       );
       logActivity(req, "update-specialist-runtime", "specialist_config", updated.id, `${id} v${updated.version}`);
       res.json(toConfigView(updated));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist runtime", error);
     }
   });
@@ -281,7 +281,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
           runtimeConfig: v.runtimeConfig,
         })),
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to load specialist audit history", error);
     }
   });

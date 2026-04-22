@@ -71,7 +71,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const rows = await storage.listAdminResources(parsed.data.kind);
       // Wrap in an arrow so Array.map's `index` arg doesn't bind to `now`.
       res.json(rows.map((r) => toResourcePublicView(r)));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to list admin resources", error);
     }
   });
@@ -83,7 +83,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const row = await storage.getAdminResourceById(id);
       if (!row) return res.status(404).json({ error: "Resource not found" });
       res.json(toResourcePublicView(row));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch admin resource", error);
     }
   });
@@ -104,7 +104,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const row = await storage.createAdminResource(parsed.data, actorId);
       logActivity(req, "create-admin-resource", "admin_resource", row.id, `${row.kind}/${row.slug}`);
       res.status(201).json(toResourcePublicView(row));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create admin resource", error);
     }
   });
@@ -123,7 +123,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const impact = await storage.listResourceImpact(id);
       logActivity(req, "update-admin-resource", "admin_resource", id, `v${row.version}`);
       res.json({ resource: toResourcePublicView(row), impact });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to update admin resource", error);
     }
   });
@@ -143,7 +143,7 @@ export function registerAdminResourceRoutes(app: Express) {
       }
       logActivity(req, "rollback-admin-resource", "admin_resource", id, `to v${parsed.data.targetVersion}`);
       res.json(toResourcePublicView(row));
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to rollback admin resource", error);
     }
   });
@@ -156,7 +156,7 @@ export function registerAdminResourceRoutes(app: Express) {
       if (!ok) return res.status(404).json({ error: "Resource not found" });
       logActivity(req, "delete-admin-resource", "admin_resource", id);
       res.status(204).end();
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to delete admin resource", error);
     }
   });
@@ -180,7 +180,7 @@ export function registerAdminResourceRoutes(app: Express) {
           changedAt: v.changedAt.toISOString(),
         })),
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to list resource versions", error);
     }
   });
@@ -191,7 +191,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const impact = await storage.listResourceImpact(id);
       res.json(impact);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to load resource impact list", error);
     }
   });
@@ -206,7 +206,7 @@ export function registerAdminResourceRoutes(app: Express) {
         ...view,
         lastChecked: view.lastChecked ? view.lastChecked.toISOString() : null,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to load resource health", error);
     }
   });
@@ -231,7 +231,7 @@ export function registerAdminResourceRoutes(app: Express) {
           checkedAt: r.checkedAt.toISOString(),
         })),
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to load resource health history", error);
     }
   });
@@ -265,7 +265,7 @@ export function registerAdminResourceRoutes(app: Express) {
         errorMessage: outcome.errorMessage ?? null,
         checkedAt: persisted.checkedAt.toISOString(),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to test admin resource", error);
     }
   });
@@ -277,7 +277,7 @@ export function registerAdminResourceRoutes(app: Express) {
       logActivity(req, "sync-specialist-catalog", "specialist_catalog", null,
         `${result.inserted}+/${result.updated}~/${result.removed}-`);
       res.json(result);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to sync specialist catalog", error);
     }
   });
@@ -306,7 +306,7 @@ export function registerAdminResourceRoutes(app: Express) {
       }
       const rows = await storage.listBreakGlassOverrides(parsed.data.specialistId);
       res.json(rows);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to list break-glass overrides", error);
     }
   });
@@ -334,7 +334,7 @@ export function registerAdminResourceRoutes(app: Express) {
       logActivity(req, "create-break-glass-override", "break_glass", row.id,
         `${row.specialistId} ${row.assignmentKind}/${row.assignmentSlug}`);
       res.status(201).json(row);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to create break-glass override", error);
     }
   });
@@ -347,7 +347,7 @@ export function registerAdminResourceRoutes(app: Express) {
       if (!row) return res.status(404).json({ error: "Override not found" });
       logActivity(req, "revoke-break-glass-override", "break_glass", id);
       res.json(row);
-    } catch (error) {
+    } catch (error: unknown) {
       logAndSendError(res, "Failed to revoke break-glass override", error);
     }
   });

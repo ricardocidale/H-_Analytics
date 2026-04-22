@@ -45,7 +45,7 @@ function safeJsonParse(s: string): { ok: true; value: Record<string, unknown> } 
     const v = JSON.parse(s);
     if (v && typeof v === "object" && !Array.isArray(v)) return { ok: true, value: v as Record<string, unknown> };
     return { ok: false, error: "config must be a JSON object" };
-  } catch (err) {
+  } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : "Invalid JSON" };
   }
 }

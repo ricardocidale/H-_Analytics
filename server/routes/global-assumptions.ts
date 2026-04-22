@@ -344,7 +344,7 @@ export function register(app: Express) {
                 persona,
               });
             }
-          } catch (gateErr) {
+          } catch (gateErr: unknown) {
             // Defense-in-depth: the router wrapper might still fire for the
             // funding path if pre-check missed an edge case. SurfaceRouter
             // wraps Specialist throws in SpecialistExecutionError, so unwrap

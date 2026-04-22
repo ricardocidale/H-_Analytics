@@ -484,11 +484,11 @@ export async function* orchestrateResearch(
           `[cache] synthesis usage (ai-sdk): input=${usage?.inputTokens ?? 0} output=${usage?.outputTokens ?? 0} cache_create=${provider?.cacheCreationInputTokens ?? 0} cache_read=${provider?.cacheReadInputTokens ?? 0}`,
           "orchestrator",
         );
-      } catch (err) {
+      } catch (err: unknown) {
         logger.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`, "orchestrator");
       }
     }
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn(`Synthesis streamObject failed: ${msg}`, "orchestrator");
     yield {

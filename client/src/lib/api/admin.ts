@@ -150,7 +150,7 @@ export function useRefreshAiModels() {
   });
 }
 
-export interface LlmRegistryModel {
+interface LlmRegistryModel {
   vendor: string;
   modelId: string;
   label: string;
@@ -161,7 +161,7 @@ export interface LlmRegistryModel {
   probedAt: string;
 }
 
-export interface LlmRecommendation {
+interface LlmRecommendation {
   function: string;
   vendor: string;
   modelId: string;
@@ -170,7 +170,7 @@ export interface LlmRecommendation {
   reasoning: string;
 }
 
-export interface LlmAdminIssue {
+interface LlmAdminIssue {
   domain: string;
   currentVendor: string;
   currentModel: string;
