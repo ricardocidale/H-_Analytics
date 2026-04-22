@@ -678,6 +678,80 @@ export function registerModelConstantsRoutes(app: Express) {
    * the "History" affordance on each Constants card so admins can audit
    * the chain of analyst proposals without trawling global logs.
    */
+  /**
+   * Banner data: scheduled-refresh failures the admin hasn't seen yet.
+   *
+   * GET → returns failed scheduled Constants refreshes whose `completedAt`
+   * is newer than the admin's last visit to the `admin-constants-failures`
+   * page-visit key (or the last 30d on first visit). The Constants tab
+   * renders a dismissible banner when `count > 0`.
+   *
+   * POST `.../dismiss` → records a fresh visit so subsequent loads see no
+   * failures (until the next failure occurs after the dismissal time).
+   */
+  const FAILURES_PAGE_KEY = "admin-constants-failures";
+  const FAILURES_DEFAULT_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
+
+  app.get("/api/admin/model-constants/scheduled-failures", requireAdmin, async (req, res) => {
+    try {
+      const userId = (req as { user?: { id?: number } }).user?.id;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      // "Since admin's last visit" semantics: read the previous visit
+      // timestamp, then immediately record a new visit for next time.
+      // This way the banner naturally clears across reloads — failures
+      // only re-surface when fresh ones land after the most recent view.
+      // The explicit dismiss endpoint stays as a UX shortcut for users
+      // who want to acknowledge & clear without leaving the tab.
+      const prior = await storage.getPageVisit(userId, FAILURES_PAGE_KEY);
+      const lastVisitedAt = prior?.lastVisitedAt ?? null;
+      const since = lastVisitedAt
+        ? new Date(lastVisitedAt)
+        : new Date(Date.now() - FAILURES_DEFAULT_LOOKBACK_MS);
+
+      const runs = await storage.getFailedScheduledConstantsRefreshes(since, 200);
+      const failures = runs.map((run) => {
+        const meta = (run.metadata ?? {}) as {
+          constant?: { key?: string; country?: string | null; subdivision?: string | null };
+          specialistLetter?: string | null;
+        };
+        return {
+          id: run.id,
+          key: meta.constant?.key ?? "(unknown)",
+          country: meta.constant?.country ?? null,
+          subdivision: meta.constant?.subdivision ?? null,
+          specialistLetter: meta.specialistLetter ?? null,
+          completedAt: run.completedAt?.toISOString() ?? null,
+          error: run.error ?? null,
+        };
+      });
+
+      // Record the visit AFTER computing the failure list so the next
+      // call uses this load's timestamp as the "since" boundary.
+      await storage.recordVisit(userId, FAILURES_PAGE_KEY);
+
+      res.json({
+        count: failures.length,
+        since: since.toISOString(),
+        lastVisitedAt: lastVisitedAt ? new Date(lastVisitedAt).toISOString() : null,
+        failures,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to load scheduled-refresh failures", error);
+    }
+  });
+
+  app.post("/api/admin/model-constants/scheduled-failures/dismiss", requireAdmin, async (req, res) => {
+    try {
+      const userId = (req as { user?: { id?: number } }).user?.id;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      const visit = await storage.recordVisit(userId, FAILURES_PAGE_KEY);
+      res.json({ dismissedAt: visit.lastVisitedAt });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to dismiss scheduled-refresh failures", error);
+    }
+  });
+
   app.get("/api/admin/model-constants/:key/research-history", requireAdmin, async (req, res) => {
     try {
       const key = String(req.params.key ?? "");

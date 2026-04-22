@@ -245,6 +245,31 @@ export class IntelligenceV2Storage {
     return row;
   }
 
+  /**
+   * List failed scheduled Constants refreshes whose `completedAt` is at or
+   * after `since`. Filters by the marker (`metadata.scheduledRefresh = true`)
+   * that `server/jobs/specialist-constants-refresh.ts` writes when it
+   * persists a failure row, so manual one-off refresh failures are excluded.
+   *
+   * Used by:
+   *   - the daily digest evaluator (server/notifications/constants-refresh-
+   *     failure-digest.ts) to email admins,
+   *   - the admin Constants tab banner endpoint to surface failures since
+   *     the admin's last visit.
+   */
+  async getFailedScheduledConstantsRefreshes(since: Date, limit = 200): Promise<ResearchRun[]> {
+    return db.select().from(researchRuns)
+      .where(and(
+        eq(researchRuns.entityType, "model-constant"),
+        eq(researchRuns.status, "failed"),
+        sql`${researchRuns.metadata}->>'scheduledRefresh' = 'true'`,
+        sql`${researchRuns.completedAt} IS NOT NULL`,
+        sql`${researchRuns.completedAt} >= ${since.toISOString()}`,
+      ))
+      .orderBy(desc(researchRuns.completedAt))
+      .limit(limit);
+  }
+
   async getRunningResearchEntityIds(entityType: string): Promise<number[]> {
     const rows = await db.execute(sql`
       SELECT DISTINCT entity_id AS "entityId"

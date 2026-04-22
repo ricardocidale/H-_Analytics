@@ -43,6 +43,10 @@ export const MI_CACHE_INVALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Vector benchmark latency alert check interval (ms) — 1 hour */
 export const VECTOR_LATENCY_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
+/** Constants-refresh-failure digest evaluator tick (ms) — every 6 hours.
+ *  The evaluator dedupes by UTC day so frequent ticks are safe. */
+export const CONSTANTS_REFRESH_DIGEST_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
 // ---------------------------------------------------------------------------
 // HTTP / compression / caching
 // ---------------------------------------------------------------------------

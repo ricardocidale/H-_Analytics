@@ -43,6 +43,7 @@ import {
   MI_CACHE_INVALIDATION_INTERVAL_MS,
   SCENARIO_PURGE_INTERVAL_MS,
   VECTOR_LATENCY_CHECK_INTERVAL_MS,
+  CONSTANTS_REFRESH_DIGEST_INTERVAL_MS,
 } from "./constants";
 
 initSentry();
@@ -377,6 +378,24 @@ app.use((req, res, next) => {
       };
       void runVectorLatencyAlert();
       intervalHandles.push(setInterval(runVectorLatencyAlert, VECTOR_LATENCY_CHECK_INTERVAL_MS));
+
+      // Email admins a daily digest of failed scheduled Constants refreshes
+      // (server/jobs/specialist-constants-refresh.ts → research_runs failures).
+      // Tick every CONSTANTS_REFRESH_DIGEST_INTERVAL_MS; the evaluator dedupes
+      // per UTC day so frequent ticks are safe.
+      const runConstantsRefreshDigest = async () => {
+        try {
+          const { evaluateConstantsRefreshFailureDigest } = await import("./notifications/constants-refresh-failure-digest");
+          const result = await evaluateConstantsRefreshFailureDigest();
+          if (result.status === "ok") {
+            log(`Constants refresh failure digest sent to ${result.sent}/${result.recipients} admins (failures=${result.failures}, digestKey=${result.digestKey})`);
+          }
+        } catch (err: unknown) {
+          serverLog(`Constants refresh digest error: ${err instanceof Error ? err.message : err}`, "notifications", "error");
+        }
+      };
+      void runConstantsRefreshDigest();
+      intervalHandles.push(setInterval(runConstantsRefreshDigest, CONSTANTS_REFRESH_DIGEST_INTERVAL_MS));
     },
   );
 })();

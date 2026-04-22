@@ -265,6 +265,93 @@ function ScopeChip({ scope }: { scope: ConstantRow["scope"] }) {
   );
 }
 
+interface ScheduledFailure {
+  id: number;
+  key: string;
+  country: string | null;
+  subdivision: string | null;
+  specialistLetter: string | null;
+  completedAt: string | null;
+  error: string | null;
+}
+
+interface ScheduledFailuresResponse {
+  count: number;
+  since: string;
+  lastVisitedAt: string | null;
+  failures: ScheduledFailure[];
+}
+
+function ScheduledRefreshFailuresBanner() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data } = useQuery<ScheduledFailuresResponse>({
+    queryKey: ["admin-model-constants-scheduled-failures"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/model-constants/scheduled-failures", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load scheduled refresh failures");
+      return res.json();
+    },
+  });
+
+  const dismissMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/model-constants/scheduled-failures/dismiss", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to dismiss");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-model-constants-scheduled-failures"] });
+      toast({ title: "Dismissed", description: "Scheduled-refresh failures cleared." });
+    },
+  });
+
+  if (!data || data.count === 0) return null;
+
+  const sample = data.failures.slice(0, 3);
+  return (
+    <div
+      className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm leading-relaxed"
+      data-testid="banner-scheduled-refresh-failures"
+    >
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+        <div className="flex-1 text-destructive">
+          <strong data-testid="text-scheduled-failures-count">
+            {data.count} scheduled Constants refresh{data.count === 1 ? "" : "es"} failed since your last visit.
+          </strong>
+          <ul className="mt-2 list-disc list-inside space-y-0.5 text-xs">
+            {sample.map((f) => {
+              const loc = `${f.country ?? "universal"}${f.subdivision ? ` / ${f.subdivision}` : ""}`;
+              return (
+                <li key={f.id} data-testid={`text-scheduled-failure-${f.id}`}>
+                  <strong>{f.key}</strong> ({loc}){f.error ? ` — ${f.error.slice(0, 120)}` : ""}
+                </li>
+              );
+            })}
+            {data.count > sample.length && (
+              <li className="text-muted-foreground">…and {data.count - sample.length} more.</li>
+            )}
+          </ul>
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3"
+            onClick={() => dismissMutation.mutate()}
+            disabled={dismissMutation.isPending}
+            data-testid="button-dismiss-scheduled-failures"
+          >
+            {dismissMutation.isPending ? "Dismissing…" : "Dismiss"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ModelConstantsTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -321,6 +408,7 @@ export function ModelConstantsTab() {
 
   return (
     <div className="space-y-5" data-testid="tab-content-model-constants">
+      <ScheduledRefreshFailuresBanner />
       <div className="rounded-lg border border-accent-pop/20 bg-accent-pop/10 p-4 text-sm leading-relaxed">
         <div className="flex items-start gap-2">
           <IconShieldCheck className="w-4 h-4 text-accent-pop mt-0.5 shrink-0" />
