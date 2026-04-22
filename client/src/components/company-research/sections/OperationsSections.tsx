@@ -13,7 +13,19 @@ import {
 } from "@/components/icons";
 import { EmptyState, MetricCard, SectionTitle, CustomTooltip, stagger, PIE_COLORS } from "../shared";
 
-export function RevenueFees({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
+interface CompanyResearchContent {
+  managementFees?: { baseFeeRange?: number[]; incentiveFeeRange?: number[] };
+  industryBenchmarks?: { avgBaseFee?: number; avgIncentiveFee?: number };
+  [key: string]: unknown;
+}
+
+interface SectionProps {
+  content: CompanyResearchContent | null | undefined;
+  hasData: boolean;
+  onGenerate: () => void;
+}
+
+export function RevenueFees({ content, hasData, onGenerate }: SectionProps) {
   if (!hasData || !content?.managementFees) return <EmptyState title="Revenue & Fee Benchmarks" description="Generate research to see fee structures and revenue analysis." onGenerate={onGenerate} />;
 
   const fees = content.managementFees;
@@ -96,7 +108,7 @@ export function RevenueFees({ content, hasData, onGenerate }: { content: any; ha
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function CostStructure({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
+export function CostStructure({ hasData, onGenerate }: SectionProps) {
   if (!hasData) return <EmptyState title="Cost Structure Analysis" description="Generate research to see overhead allocation and staffing benchmarks." onGenerate={onGenerate} />;
 
   const treemapData = [
@@ -153,7 +165,7 @@ export function CostStructure({ content, hasData, onGenerate }: { content: any; 
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function VendorIntelligence({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
+export function VendorIntelligence({ hasData, onGenerate }: SectionProps) {
   if (!hasData) return <EmptyState title="Vendor Intelligence" description="Generate research to see make-vs-buy analysis and vendor benchmarks." onGenerate={onGenerate} />;
 
   const matrix = [
@@ -231,7 +243,7 @@ export function VendorIntelligence({ content, hasData, onGenerate }: { content: 
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function CompetitivePosition({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
+export function CompetitivePosition({ hasData, onGenerate }: SectionProps) {
   if (!hasData) return <EmptyState title="Competitive Positioning" description="Generate research to see competitive landscape analysis." onGenerate={onGenerate} />;
 
   const scatterData = [
