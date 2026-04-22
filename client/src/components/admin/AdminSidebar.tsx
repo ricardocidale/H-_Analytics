@@ -1,13 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -407,72 +401,63 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
               );
             }
 
-            // Multi-section groups render as collapsible submenus.
+            // Multi-section groups follow shadcn `sidebar-03`: a non-clickable
+            // group label with the submenu items rendered directly below
+            // (always visible — no collapsible chevron).
             const GroupIcon = group.icon;
             return (
-              <Collapsible
-                key={group.id}
-                defaultOpen={isGroupActive}
-                className="group/collapsible"
-                asChild
-              >
-                <SidebarGroup className="p-0">
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          isActive={isGroupActive}
-                          tooltip={group.label}
-                          data-testid={`admin-nav-group-${group.id}`}
-                          className="font-medium"
-                        >
-                          <GroupIcon className="size-4 shrink-0" />
-                          <span className="truncate">{group.label}</span>
-                          {showFreshnessBadge && (
-                            <SidebarMenuBadge
-                              data-testid="intelligence-freshness-badge"
-                              className={cn(
-                                "ml-auto mr-6",
-                                freshnessSeverity === "missing"
-                                  ? "bg-red-500/15 text-red-600 dark:text-red-400"
-                                  : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                              )}
-                            >
-                              {freshnessTotal}
-                            </SidebarMenuBadge>
+              <SidebarGroup key={group.id} className="p-0">
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={isGroupActive}
+                      data-testid={`admin-nav-group-${group.id}`}
+                      className="font-medium pointer-events-none"
+                      tabIndex={-1}
+                      aria-disabled
+                    >
+                      <GroupIcon className="size-4 shrink-0" />
+                      <span className="truncate">{group.label}</span>
+                      {showFreshnessBadge && (
+                        <SidebarMenuBadge
+                          data-testid="intelligence-freshness-badge"
+                          className={cn(
+                            "ml-auto",
+                            freshnessSeverity === "missing"
+                              ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                              : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                           )}
-                          <ChevronRight className="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="overflow-hidden data-[state=closed]:hidden">
-                        <SidebarMenuSub>
-                          {group.sections.map((section) => {
-                            const sectionResolved = resolveSection(section.value);
-                            const isAlias = section.value !== sectionResolved;
-                            const isActive = isAlias
-                              ? activeSection === section.value
-                              : resolved === sectionResolved;
-                            const Icon = section.icon;
-                            return (
-                              <SidebarMenuSubItem key={section.value}>
-                                <SidebarMenuSubButton
-                                  isActive={isActive}
-                                  onClick={() => onSectionChange(section.value)}
-                                  data-testid={`admin-nav-${section.value}`}
-                                  className="cursor-pointer"
-                                >
-                                  <Icon className="size-4 shrink-0" />
-                                  <span className="truncate">{section.label}</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarGroup>
-              </Collapsible>
+                        >
+                          {freshnessTotal}
+                        </SidebarMenuBadge>
+                      )}
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      {group.sections.map((section) => {
+                        const sectionResolved = resolveSection(section.value);
+                        const isAlias = section.value !== sectionResolved;
+                        const isActive = isAlias
+                          ? activeSection === section.value
+                          : resolved === sectionResolved;
+                        const Icon = section.icon;
+                        return (
+                          <SidebarMenuSubItem key={section.value}>
+                            <SidebarMenuSubButton
+                              isActive={isActive}
+                              onClick={() => onSectionChange(section.value)}
+                              data-testid={`admin-nav-${section.value}`}
+                              className="cursor-pointer"
+                            >
+                              <Icon className="size-4 shrink-0" />
+                              <span className="truncate">{section.label}</span>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroup>
             );
           })}
 
