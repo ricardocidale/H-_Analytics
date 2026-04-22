@@ -538,8 +538,8 @@ export default function VerificationTab() {
 
             <TabsContent value="identities" className="min-h-[300px]">
               <IdentityDashboard
-                properties={properties ?? null}
-                globalAssumptions={globalAssumptions ?? null}
+                properties={(properties ?? null) as never}
+                globalAssumptions={(globalAssumptions ?? null) as never}
               />
             </TabsContent>
 
