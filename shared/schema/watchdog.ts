@@ -46,8 +46,9 @@ export const analystWatchdogBenchmarks = pgTable("analyst_watchdog_benchmarks", 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
+  // unique constraint creates an implicit unique btree index that fully covers
+  // userId lookups; a separate non-unique index would be a duplicate.
   unique("analyst_watchdog_benchmarks_user_uq").on(table.userId),
-  index("analyst_watchdog_benchmarks_user_idx").on(table.userId),
 ]);
 
 export const insertAnalystWatchdogBenchmarksSchema = createInsertSchema(analystWatchdogBenchmarks).omit({

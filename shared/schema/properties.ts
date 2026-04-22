@@ -262,6 +262,10 @@ export const properties = pgTable("properties", {
 }, (table) => [
   index("properties_user_id_idx").on(table.userId),
   index("properties_created_at_idx").on(table.createdAt),
+  // Covering indexes for FK columns — joined / filtered by admin pages.
+  index("properties_brand_id_idx").on(table.brandId),
+  index("properties_created_by_idx").on(table.createdBy),
+  index("properties_archived_by_idx").on(table.archivedBy),
   check("prop_room_count_positive", sql`${table.roomCount} > 0`),
   check("prop_start_adr_positive", sql`${table.startAdr} > 0`),
   check("prop_start_occupancy_range", sql`${table.startOccupancy} >= 0 AND ${table.startOccupancy} <= 1`),

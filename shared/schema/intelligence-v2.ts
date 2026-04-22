@@ -258,6 +258,8 @@ export const rebeccaConversations = pgTable("rebecca_conversations", {
   lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
 }, (table) => [
   index("rebecca_conversations_user_idx").on(table.userId),
+  // Covering index for FK to properties (chat panel filters by property context).
+  index("rebecca_conversations_property_idx").on(table.propertyId),
 ]);
 
 export const insertRebeccaConversationSchema = createInsertSchema(rebeccaConversations).pick({
@@ -416,6 +418,9 @@ export const engineSuggestedLines = pgTable("engine_suggested_lines", {
 }, (table) => [
   index("engine_suggested_lines_status_idx").on(table.status),
   index("engine_suggested_lines_statement_idx").on(table.statementType),
+  // Covering indexes for FKs (admin review surfaces filter by run + reviewer).
+  index("engine_suggested_lines_run_idx").on(table.suggestedByRunId),
+  index("engine_suggested_lines_reviewer_idx").on(table.reviewedBy),
 ]);
 
 export const insertEngineSuggestedLineSchema = createInsertSchema(engineSuggestedLines).pick({
