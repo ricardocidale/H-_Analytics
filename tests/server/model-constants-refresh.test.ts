@@ -58,6 +58,7 @@ vi.mock("../../server/storage", () => ({
     listModelConstantOverrides: vi.fn(async () => []),
     listCanonicals: vi.fn(async () => []),
     getResearchRunsForConstant: vi.fn(async () => [sampleRun]),
+    getLatestSuccessfulRunForConstant: vi.fn(async () => null),
   },
 }));
 
@@ -238,5 +239,70 @@ describe("GET /:key/research-history — Phase 4 history surface", () => {
     const res = await request(app).get("/api/admin/model-constants/not-a-real-key/research-history");
     expect(res.status).toBe(404);
     expect(storage.getResearchRunsForConstant).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/admin/model-constants — per-state Stale badge (Task #396)", () => {
+  let app: Express;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    app = buildApp();
+  });
+
+  it("flags isStale on a per-state row when the latest research run is older than the cadence", async () => {
+    // taxRate is country+state; cadence is 30 days. Make the latest
+    // successful run for (US, California) 90 days old → must be stale.
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    (storage.getLatestSuccessfulRunForConstant as ReturnType<typeof vi.fn>).mockImplementation(
+      async (key: string, country: string | null, sub: string | null) => {
+        if (key === "taxRate" && country === "United States" && sub === "California") {
+          return {
+            id: 999,
+            startedAt: ninetyDaysAgo,
+            completedAt: ninetyDaysAgo,
+            status: "completed",
+            metadata: { proposal: { value: 0.30, authority: "California FTB" } },
+          };
+        }
+        return null;
+      },
+    );
+
+    const res = await request(app)
+      .get("/api/admin/model-constants?country=United%20States&subdivision=California");
+
+    expect(res.status).toBe(200);
+    const taxRow = (res.body.items as { key: string; scope: { subdivision: string | null }; isStale: boolean }[])
+      .find((r) => r.key === "taxRate");
+    expect(taxRow).toBeDefined();
+    expect(taxRow!.scope.subdivision).toBe("California");
+    expect(taxRow!.isStale).toBe(true);
+  });
+
+  it("does NOT flag isStale on a per-state row whose latest run is fresh", async () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    (storage.getLatestSuccessfulRunForConstant as ReturnType<typeof vi.fn>).mockImplementation(
+      async (key: string, country: string | null, sub: string | null) => {
+        if (key === "taxRate" && country === "United States" && sub === "California") {
+          return {
+            id: 1000,
+            startedAt: yesterday,
+            completedAt: yesterday,
+            status: "completed",
+            metadata: { proposal: { value: 0.30, authority: "California FTB" } },
+          };
+        }
+        return null;
+      },
+    );
+
+    const res = await request(app)
+      .get("/api/admin/model-constants?country=United%20States&subdivision=California");
+
+    expect(res.status).toBe(200);
+    const taxRow = (res.body.items as { key: string; isStale: boolean }[])
+      .find((r) => r.key === "taxRate");
+    expect(taxRow!.isStale).toBe(false);
   });
 });

@@ -140,6 +140,37 @@ describe("runConstantsRefreshCycle", () => {
     expect(countries.has("United States")).toBe(true);
     expect(countries.has("Spain")).toBe(true);
   });
+
+  it("fans out country+state keys to per-state subdivision overrides (Task #396)", async () => {
+    // taxRate is a country+state key. An admin has been editing California
+    // at the per-state level; the scheduler must refresh that (US,
+    // California) tuple on the same cadence as the US baseline so the
+    // Constants tab Stale badge stays meaningful for the per-state row.
+    listOverrides.mockResolvedValue([
+      {
+        id: 1,
+        constantKey: "taxRate",
+        country: "United States",
+        countrySubdivision: "California",
+        createdAt: new Date(),
+      },
+    ]);
+    getLatestSuccessful.mockResolvedValue(undefined);
+    await runConstantsRefreshCycle();
+    const taxRateCalls = propose.mock.calls.filter(
+      ([a]) => (a as { key: string }).key === "taxRate",
+    );
+    const tuples = new Set(
+      taxRateCalls.map(
+        ([a]) =>
+          `${(a as { country: string | null }).country}::${(a as { subdivision: string | null }).subdivision ?? ""}`,
+      ),
+    );
+    // US baseline still refreshed.
+    expect(tuples.has("United States::")).toBe(true);
+    // Per-state row gets its own refresh — this is the new behaviour.
+    expect(tuples.has("United States::California")).toBe(true);
+  });
 });
 
 describe("failed-refresh isolation", () => {

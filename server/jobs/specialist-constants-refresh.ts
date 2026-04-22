@@ -10,11 +10,16 @@
  * What this job does on every cycle:
  *   1. Build the list of (constantKey × locality) rows worth refreshing.
  *      For universal constants that's just one row. For country / country+
- *      state constants it's the United States baseline plus every country
+ *      state constants it's the United States baseline plus every locality
  *      that already has a `model_constant_overrides` row for that key —
- *      i.e. localities the operator has already cared about. We don't
- *      sweep every supported country (would burn the grounded-search
- *      budget on rows nobody asks about).
+ *      i.e. localities the operator has already cared about. For country+
+ *      state keys this includes per-state subdivision rows: if an admin
+ *      has been editing California's taxRate, that (US, California) tuple
+ *      goes on the same cadence as the US baseline so the per-state Stale
+ *      badge stays meaningful. We don't sweep every supported country/
+ *      state (would burn the grounded-search budget on rows nobody asks
+ *      about); subdivisions without their own override row keep being
+ *      computed on demand from the country baseline.
  *   2. For each row, look up the owning Specialist's `refreshCadenceDays`
  *      (declared in `engine/analyst/registry/specialist-catalog.ts`) and
  *      the most recent `research_runs` row for that locality. If the row
@@ -110,10 +115,13 @@ function localityLabel(loc: Locality): string {
 /**
  * Build the list of localities to refresh for a single constant key.
  * Universal → one row. Country / country+state → US baseline plus every
- * country that already has an override row (i.e. localities the admin
- * has already opted into). Subdivision sweep is left for an explicit
- * future ask — today we only refresh the country level for country+state
- * keys (the per-state row is generated on demand from the country baseline).
+ * locality that already has an override row (i.e. localities the admin
+ * has already opted into). For country+state keys per-state override
+ * rows are kept as their own (country, subdivision) tuple so the
+ * scheduler refreshes them on the same cadence as the country baseline
+ * — that is what keeps the Constants tab Stale badge honest on per-state
+ * rows. Subdivisions without an override row are not swept; they
+ * continue to be computed on demand from the country baseline.
  */
 function localitiesForKey(
   key: string,
@@ -135,8 +143,11 @@ function localitiesForKey(
   for (const ov of overrides) {
     if (ov.constantKey !== key) continue;
     if (!ov.country) continue;
-    // Country+state keys: subdivisions are kept as-is; pure country keys
-    // collapse to a single country-level row.
+    // Pure country keys collapse to a single country-level row even if
+    // some legacy override row carries a subdivision. Country+state keys
+    // keep the subdivision as-is so per-state override rows (e.g. US/
+    // California taxRate) get their own scheduled refresh and the
+    // Constants tab Stale badge fires on those rows when overdue.
     if (entry.locality === "country") {
       push({ country: ov.country, subdivision: null });
     } else {
