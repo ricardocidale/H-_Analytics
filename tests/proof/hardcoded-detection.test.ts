@@ -599,6 +599,7 @@ describe("Hardcoded Value Detection", () => {
         "sentry.ts",
         "image-variants.ts",
         "admin-nav.ts",
+        "ai-intelligence-nav.ts",
         "exportConfig.ts",
         "map-utils.ts",
         "glossary.ts",
