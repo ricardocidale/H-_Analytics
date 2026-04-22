@@ -18,6 +18,7 @@
  *
  * Both exports use jsPDF for PDF rendering and jspdf-autotable for tables.
  */
+import type { Property, GlobalAssumptions } from "@shared/schema";
 import { APP_BRAND_NAME } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { apiRequest } from "@/lib/queryClient";
@@ -124,7 +125,7 @@ const REQUIRED_GLOBAL_FIELDS = [
 const REQUIRED_PROPERTY_FIELDS = ["name", "location", "roomCount", "startAdr", "purchasePrice"];
 
 /** Draw the branded dark-blue header with sage-green accent (same style as research PDFs). */
-function brandedHeader(doc: any, pageW: number, height: number) {
+function brandedHeader(doc: import("jspdf").jsPDF, pageW: number, height: number) {
   doc.setFillColor(26, 35, 50);
   doc.rect(0, 0, pageW, height, "F");
   doc.setFillColor(159, 188, 164);
@@ -230,21 +231,23 @@ export async function exportManualPDF(user: { email?: string; role?: string; com
  * Returns a list of human-readable warning strings for any missing data.
  * This runs before the full data export so the user knows if their data is incomplete.
  */
-function validateData(properties: any[], global: any): string[] {
+function validateData(properties: Property[], global: GlobalAssumptions | null | undefined): string[] {
   const warnings: string[] = [];
 
   if (!properties?.length) warnings.push("No properties found in database");
   if (!global) warnings.push("Global assumptions not found");
   if (!properties?.length || !global) return warnings;
 
+  const g = global as unknown as Record<string, unknown>;
   const missingGlobal = REQUIRED_GLOBAL_FIELDS.filter(
-    f => global[f] === null || global[f] === undefined || global[f] === ""
+    f => g[f] === null || g[f] === undefined || g[f] === ""
   );
   if (missingGlobal.length > 0) warnings.push(`Missing global fields: ${missingGlobal.join(", ")}`);
 
-  properties.forEach((p: any, idx: number) => {
+  properties.forEach((p, idx) => {
+    const pr = p as unknown as Record<string, unknown>;
     const missing = REQUIRED_PROPERTY_FIELDS.filter(
-      f => p[f] === null || p[f] === undefined || p[f] === ""
+      f => pr[f] === null || pr[f] === undefined || pr[f] === ""
     );
     if (missing.length > 0) warnings.push(`Property "${p.name || `#${idx + 1}`}" missing: ${missing.join(", ")}`);
     if ((p.roomCount ?? 0) <= 0) warnings.push(`Property "${p.name}" has invalid room count`);
@@ -315,8 +318,8 @@ export async function exportFullData(user: { email?: string; role?: string; comp
     apiRequest("GET", "/api/properties"),
     apiRequest("GET", "/api/global-assumptions"),
   ]);
-  const properties = await propertiesRes.json();
-  const global = await globalRes.json();
+  const properties = await propertiesRes.json() as Property[];
+  const global = await globalRes.json() as GlobalAssumptions;
 
   const warnings = validateData(properties, global);
   base.warnings = warnings;
@@ -397,12 +400,12 @@ export async function exportFullData(user: { email?: string; role?: string; comp
     ["Exit Cap Rate", `${((global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100).toFixed(1)}%`],
     ["Sales Commission", `Per Property (default ${(DEFAULT_COMMISSION_RATE * 100).toFixed(1)}%)`],
     ["Company Income Tax Rate", `${((global.companyTaxRate ?? COMPANY_TAX_RATE_US) * 100).toFixed(1)}%`],
-    ["Partner Base Compensation", formatMoney(global.partnerBaseCompensation ?? 15000)],
-    ["Partner Comp Cap", formatMoney(global.partnerCompensationCap ?? 30000)],
+    ["Partner Base Compensation", formatMoney((global as unknown as { partnerBaseCompensation?: number }).partnerBaseCompensation ?? 15000)],
+    ["Partner Comp Cap", formatMoney((global as unknown as { partnerCompensationCap?: number }).partnerCompensationCap ?? 30000)],
   ]);
 
   addTable("Properties Summary", ["Name", "Location", "Rooms", "ADR", "Occupancy", "Purchase Price", "LTV", "Status"],
-    properties.map((p: any) => [
+    properties.map((p) => [
       p.name,
       p.location || "—",
       String(p.roomCount ?? 0),
@@ -416,9 +419,9 @@ export async function exportFullData(user: { email?: string; role?: string; comp
 
   const includedStatements: string[] = [];
 
-  properties.forEach((p: any) => {
+  properties.forEach((p) => {
     try {
-      const financials = generatePropertyProForma(p, global, projMonths);
+      const financials = generatePropertyProForma(p as never, global as never, projMonths);
       const yearly = aggregatePropertyByYear(financials, projYears);
       const yearHeaders = ["Line Item", ...Array.from({ length: projYears }, (_, i) => `Year ${i + 1}`)];
 
@@ -458,11 +461,11 @@ export async function exportFullData(user: { email?: string; role?: string; comp
 
   let companyIncluded = false;
   try {
-    const companyData = generateCompanyProForma(properties, global, projMonths);
+    const companyData = generateCompanyProForma(properties as never, global as never, projMonths);
     const companyYearly: Record<string, number[]> = {};
     const keys = ["totalRevenue", "totalExpenses", "netIncome", "endingCash", "capitalRaiseFunding"] as const;
     keys.forEach(k => { companyYearly[k] = Array(projYears).fill(0); });
-    companyData.forEach((m: any, i: number) => {
+    companyData.forEach((m, i) => {
       const yr = Math.floor(i / MONTHS_PER_YEAR);
       if (yr < projYears) {
         keys.forEach(k => {
