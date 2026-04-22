@@ -9,22 +9,73 @@ import { PAGE_DIMS, type ThemeColor, buildBrandPalette } from "@/lib/exports/exp
 import {
 } from "@/lib/exports/excelExport";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
+import type { CompanyMonthlyFinancials } from "@engine/types";
 
 const EXPORT_BG = '#ffffff';
 
+export interface StatementRow {
+  category: string;
+  values: number[];
+  indent?: number;
+  isHeader?: boolean;
+  isTotal?: boolean;
+  isSubtotal?: boolean;
+  bold?: boolean;
+}
+export interface StatementData {
+  years: number[];
+  rows: StatementRow[];
+}
+export interface YearlyChartPoint {
+  year: string | number;
+  [seriesKey: string]: string | number;
+}
+export interface CompanyGlobal {
+  companyName?: string | null;
+  modelStartDate: string;
+  companyTaxRate?: number | null;
+  capitalRaise1Amount?: number | null;
+  capitalRaise2Amount?: number | null;
+}
+interface CompanyYearlyAggregate {
+  baseFee: number;
+  incentiveFee: number;
+  totalRevenue: number;
+  totalVendorCost: number;
+  grossProfit: number;
+  vendorCostByCategory: Record<string, number>;
+  partnerComp: number;
+  staffComp: number;
+  officeLease: number;
+  profServices: number;
+  techInfra: number;
+  businessInsurance: number;
+  travel: number;
+  itLicensing: number;
+  marketing: number;
+  miscOps: number;
+  totalExpenses: number;
+  netIncome: number;
+  capitalRaiseFunding: number;
+  cashFlow: number;
+  fundingInterestExpense: number;
+  fundingInterestPayment: number;
+  cumulativeAccruedInterest: number;
+}
+
 export const exportCompanyPDF = async (
   type: 'income' | 'cashflow' | 'balance',
-  data: { years: number[]; rows: any[] },
-  global: any,
+  data: StatementData,
+  global: CompanyGlobal,
   projectionYears: number,
-  yearlyChartData: any[],
+  yearlyChartData: YearlyChartPoint[],
   orientation: 'landscape' | 'portrait' = 'landscape',
   customFilename?: string,
   themeColors?: ThemeColor[],
   allStatements?: {
-    income: { years: number[]; rows: any[] };
-    cashflow: { years: number[]; rows: any[] };
-    balance: { years: number[]; rows: any[] };
+    income: StatementData;
+    cashflow: StatementData;
+    balance: StatementData;
   }
 ) => {
   const jsPDF = (await import("jspdf")).default;
@@ -111,7 +162,7 @@ export const exportCompanyPDF = async (
         title: `Management Company Performance (${projectionYears}-Year Projection)`,
         series: stmt.chartSeries.map(s => ({
           name: s.name,
-          data: yearlyChartData.map((d: any) => ({ label: String(d.year), value: d[s.dataKey] ?? 0 })),
+          data: yearlyChartData.map((d) => ({ label: String(d.year), value: Number(d[s.dataKey] ?? 0) })),
           color: s.color,
         })),
         brand,
@@ -129,7 +180,7 @@ export const exportCompanyPDF = async (
 
 export const exportCompanyCSV = (
   type: 'income' | 'cashflow' | 'balance',
-  data: { years: number[]; rows: any[] },
+  data: StatementData,
   companyName?: string,
   customFilename?: string
 ) => {
@@ -138,7 +189,7 @@ export const exportCompanyCSV = (
     headers.join(','),
     ...data.rows.map(row => [
       `"${(row.indent ? '  '.repeat(row.indent) : '') + row.category}"`,
-      ...row.values.map((v: number) => v.toFixed(2))
+      ...row.values.map((v) => v.toFixed(2))
     ].join(','))
   ];
 
@@ -149,18 +200,18 @@ export const exportCompanyCSV = (
 };
 
 export const exportCompanyAllStatementsCSV = (
-  incomeData: { years: number[]; rows: any[] },
-  cashFlowData: { years: number[]; rows: any[] },
-  balanceData: { years: number[]; rows: any[] },
+  incomeData: StatementData,
+  cashFlowData: StatementData,
+  balanceData: StatementData,
   companyName?: string,
   customFilename?: string
 ) => {
   const name = companyName || "Management Company";
   const headers = ['Category', ...incomeData.years.map(String)].join(',');
 
-  const buildRows = (data: { years: number[]; rows: any[] }) =>
+  const buildRows = (data: StatementData) =>
     data.rows.map(row =>
-      [`"${(row.indent ? '  '.repeat(row.indent) : '') + row.category}"`, ...row.values.map((v: number) => v.toFixed(2))].join(',')
+      [`"${(row.indent ? '  '.repeat(row.indent) : '') + row.category}"`, ...row.values.map((v) => v.toFixed(2))].join(',')
     );
 
   const sections: Array<{ label: string; data: typeof incomeData }> = [
@@ -181,9 +232,9 @@ export const exportCompanyAllStatementsCSV = (
 
 export const handleExcelExport = async (
   activeTab: string,
-  financials: any[],
+  financials: CompanyMonthlyFinancials[],
   projectionYears: number,
-  global: any,
+  global: CompanyGlobal,
   fiscalYearStartMonth: number,
   customFilename?: string
 ) => {
@@ -192,9 +243,9 @@ export const handleExcelExport = async (
 };
 
 async function exportCompanyFullWorkbook(
-  data: any[],
+  data: CompanyMonthlyFinancials[],
   years: number,
-  global: any,
+  global: CompanyGlobal,
   fiscalYearStartMonth: number,
   customFilename?: string
 ) {
@@ -209,12 +260,12 @@ async function exportCompanyFullWorkbook(
     yearLabels.push(String(getFiscalYearForModelYear(modelStartDate, fiscalYearStartMonth, y)));
   }
 
-  const yearlyData: any[] = [];
+  const yearlyData: CompanyYearlyAggregate[] = [];
   for (let y = 0; y < years; y++) {
     const yearSlice = data.slice(y * MONTHS_PER_YEAR, (y + 1) * MONTHS_PER_YEAR);
     if (yearSlice.length === 0) continue;
     const vendorCostByCategory: Record<string, number> = {};
-    yearSlice.forEach((m: any) => {
+    yearSlice.forEach((m) => {
       if (m.costOfCentralizedServices) {
         for (const [catName, cat] of Object.entries(m.costOfCentralizedServices.byCategory) as Array<[string, { serviceModel: string; vendorCost: number }]>) {
           if (cat.serviceModel === 'centralized') {
@@ -224,37 +275,37 @@ async function exportCompanyFullWorkbook(
       }
     });
     yearlyData.push({
-      baseFee: yearSlice.reduce((a: number, m: any) => a + m.baseFeeRevenue, 0),
-      incentiveFee: yearSlice.reduce((a: number, m: any) => a + m.incentiveFeeRevenue, 0),
-      totalRevenue: yearSlice.reduce((a: number, m: any) => a + m.totalRevenue, 0),
-      totalVendorCost: yearSlice.reduce((a: number, m: any) => a + m.totalVendorCost, 0),
-      grossProfit: yearSlice.reduce((a: number, m: any) => a + m.grossProfit, 0),
+      baseFee: yearSlice.reduce((a, m) => a + m.baseFeeRevenue, 0),
+      incentiveFee: yearSlice.reduce((a, m) => a + m.incentiveFeeRevenue, 0),
+      totalRevenue: yearSlice.reduce((a, m) => a + m.totalRevenue, 0),
+      totalVendorCost: yearSlice.reduce((a, m) => a + m.totalVendorCost, 0),
+      grossProfit: yearSlice.reduce((a, m) => a + m.grossProfit, 0),
       vendorCostByCategory,
-      partnerComp: yearSlice.reduce((a: number, m: any) => a + m.partnerCompensation, 0),
-      staffComp: yearSlice.reduce((a: number, m: any) => a + m.staffCompensation, 0),
-      officeLease: yearSlice.reduce((a: number, m: any) => a + m.officeLease, 0),
-      profServices: yearSlice.reduce((a: number, m: any) => a + m.professionalServices, 0),
-      techInfra: yearSlice.reduce((a: number, m: any) => a + m.techInfrastructure, 0),
-      businessInsurance: yearSlice.reduce((a: number, m: any) => a + m.businessInsurance, 0),
+      partnerComp: yearSlice.reduce((a, m) => a + m.partnerCompensation, 0),
+      staffComp: yearSlice.reduce((a, m) => a + m.staffCompensation, 0),
+      officeLease: yearSlice.reduce((a, m) => a + m.officeLease, 0),
+      profServices: yearSlice.reduce((a, m) => a + m.professionalServices, 0),
+      techInfra: yearSlice.reduce((a, m) => a + m.techInfrastructure, 0),
+      businessInsurance: yearSlice.reduce((a, m) => a + m.businessInsurance, 0),
       
-      travel: yearSlice.reduce((a: number, m: any) => a + m.travelCosts, 0),
-      itLicensing: yearSlice.reduce((a: number, m: any) => a + m.itLicensing, 0),
-      marketing: yearSlice.reduce((a: number, m: any) => a + m.marketing, 0),
-      miscOps: yearSlice.reduce((a: number, m: any) => a + m.miscOps, 0),
-      totalExpenses: yearSlice.reduce((a: number, m: any) => a + m.totalExpenses, 0),
-      netIncome: yearSlice.reduce((a: number, m: any) => a + m.netIncome, 0),
-      capitalRaiseFunding: yearSlice.reduce((a: number, m: any) => a + m.capitalRaiseFunding, 0),
-      cashFlow: yearSlice.reduce((a: number, m: any) => a + m.cashFlow, 0),
-      fundingInterestExpense: yearSlice.reduce((a: number, m: any) => a + (m.fundingInterestExpense ?? 0), 0),
-      fundingInterestPayment: yearSlice.reduce((a: number, m: any) => a + (m.fundingInterestPayment ?? 0), 0),
+      travel: yearSlice.reduce((a, m) => a + m.travelCosts, 0),
+      itLicensing: yearSlice.reduce((a, m) => a + m.itLicensing, 0),
+      marketing: yearSlice.reduce((a, m) => a + m.marketing, 0),
+      miscOps: yearSlice.reduce((a, m) => a + m.miscOps, 0),
+      totalExpenses: yearSlice.reduce((a, m) => a + m.totalExpenses, 0),
+      netIncome: yearSlice.reduce((a, m) => a + m.netIncome, 0),
+      capitalRaiseFunding: yearSlice.reduce((a, m) => a + m.capitalRaiseFunding, 0),
+      cashFlow: yearSlice.reduce((a, m) => a + m.cashFlow, 0),
+      fundingInterestExpense: yearSlice.reduce((a, m) => a + (m.fundingInterestExpense ?? 0), 0),
+      fundingInterestPayment: yearSlice.reduce((a, m) => a + (m.fundingInterestPayment ?? 0), 0),
       cumulativeAccruedInterest: yearSlice.length > 0 ? (yearSlice[yearSlice.length - 1].cumulativeAccruedInterest ?? 0) : 0,
     });
   }
 
-  const hasVendorCosts = yearlyData.some((y: any) => y.totalVendorCost > 0);
+  const hasVendorCosts = yearlyData.some((y) => y.totalVendorCost > 0);
   const centralizedCategories: string[] = [];
   if (hasVendorCosts) {
-    const sample = yearlyData.find((y: any) => Object.keys(y.vendorCostByCategory).length > 0);
+    const sample = yearlyData.find((y) => Object.keys(y.vendorCostByCategory).length > 0);
     if (sample) centralizedCategories.push(...Object.keys(sample.vendorCostByCategory));
   }
 
@@ -286,7 +337,7 @@ async function exportCompanyFullWorkbook(
     isRows.push(["Gross Profit", ...yearlyData.map(y => y.grossProfit)]);
     isRows.push([]);
   }
-  const hasInterest = yearlyData.some((y: any) => y.fundingInterestExpense > 0);
+  const hasInterest = yearlyData.some((y) => y.fundingInterestExpense > 0);
   isRows.push(
     ["OPERATING EXPENSES"],
     ["  Partner Compensation", ...yearlyData.map(y => y.partnerComp)],
@@ -333,17 +384,17 @@ async function exportCompanyFullWorkbook(
   await addSheet("Income Statement", isRows);
 
   let cumulative = 0;
-  const openingCash = yearlyData.map((_: any, i: number) => {
+  const openingCash = yearlyData.map((_, i) => {
     if (i === 0) return 0;
     let cum = 0;
     for (let j = 0; j < i; j++) cum += yearlyData[j].cashFlow;
     return cum;
   });
-  const closingCash = yearlyData.map((y: any) => {
+  const closingCash = yearlyData.map((y) => {
     cumulative += y.cashFlow;
     return cumulative;
   });
-  const hasCFVendorCosts = yearlyData.some((y: any) => y.totalVendorCost > 0);
+  const hasCFVendorCosts = yearlyData.some((y) => y.totalVendorCost > 0);
 
   const cfRows: (string | number)[][] = [
     ["Cash Flow Statement", ...yearLabels],
@@ -362,7 +413,7 @@ async function exportCompanyFullWorkbook(
     ["    Fixed Overhead", ...yearlyData.map(y => -(y.officeLease + y.profServices + y.techInfra + y.businessInsurance))],
     ["    Variable Costs", ...yearlyData.map(y => -(y.travel + y.itLicensing + y.marketing + y.miscOps))],
   );
-  const cfHasInterest = yearlyData.some((y: any) => y.fundingInterestExpense > 0);
+  const cfHasInterest = yearlyData.some((y) => y.fundingInterestExpense > 0);
   if (cfHasInterest) {
     cfRows.push(
       ["  Add Back: Interest Expense", ...yearlyData.map(y => y.fundingInterestExpense)],
@@ -398,13 +449,13 @@ async function exportCompanyFullWorkbook(
   await addSheet("Cash Flow", cfRows);
 
   const totalSafeFunding = (global.capitalRaise1Amount ?? 0) + (global.capitalRaise2Amount ?? 0);
-  const cumRetainedEarnings = yearlyData.map((_: any, i: number) => {
+  const cumRetainedEarnings = yearlyData.map((_, i) => {
     let cum = 0;
     for (let j = 0; j <= i; j++) cum += yearlyData[j].netIncome;
     return cum;
   });
-  const bsHasAccruedInterest = yearlyData.some((y: any) => y.cumulativeAccruedInterest > 0);
-  const totalLiabilitiesByYear = yearlyData.map((y: any) => totalSafeFunding + y.cumulativeAccruedInterest);
+  const bsHasAccruedInterest = yearlyData.some((y) => y.cumulativeAccruedInterest > 0);
+  const totalLiabilitiesByYear = yearlyData.map((y) => totalSafeFunding + y.cumulativeAccruedInterest);
   const totalEquityByYear = cumRetainedEarnings;
   const bsRows: (string | number)[][] = [
     [`Balance Sheet`, ...yearLabels],
@@ -428,21 +479,21 @@ async function exportCompanyFullWorkbook(
     ["  Retained Earnings", ...cumRetainedEarnings],
     ["Total Equity", ...totalEquityByYear],
     [],
-    ["Total Liabilities + Equity", ...totalLiabilitiesByYear.map((l: number, i: number) => l + totalEquityByYear[i])],
+    ["Total Liabilities + Equity", ...totalLiabilitiesByYear.map((l, i) => l + totalEquityByYear[i])],
   );
   await addSheet("Balance Sheet", bsRows);
 
-  const cumRevenue = yearlyData.map((_: any, i: number) => {
+  const cumRevenue = yearlyData.map((_, i) => {
     let cum = 0;
     for (let j = 0; j <= i; j++) cum += yearlyData[j].totalRevenue;
     return cum;
   });
-  const cumNetIncome = yearlyData.map((_: any, i: number) => {
+  const cumNetIncome = yearlyData.map((_, i) => {
     let cum = 0;
     for (let j = 0; j <= i; j++) cum += yearlyData[j].netIncome;
     return cum;
   });
-  const cumCashFlow = yearlyData.map((_: any, i: number) => {
+  const cumCashFlow = yearlyData.map((_, i) => {
     let cum = 0;
     for (let j = 0; j <= i; j++) cum += yearlyData[j].cashFlow;
     return cum;
@@ -545,12 +596,12 @@ export const exportTablePNG = async (
 };
 
 export const handlePPTXExport = (
-  global: any,
+  global: CompanyGlobal,
   projectionYears: number,
   getFiscalYear: (i: number) => string,
-  incomeData: any,
-  cashFlowData: any,
-  balanceData: any,
+  incomeData: StatementData,
+  cashFlowData: StatementData,
+  balanceData: StatementData,
   customFilename?: string,
   themeColors?: ThemeColor[],
   kpiMetrics?: { label: string; value: string }[]
