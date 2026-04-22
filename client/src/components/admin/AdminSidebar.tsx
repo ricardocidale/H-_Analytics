@@ -325,8 +325,14 @@ interface AdminSidebarProps {
   onSectionChange: (section: AdminSection) => void;
 }
 
-export default function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+/**
+ * Embeddable admin nav body — renders the proper shadcn sidebar block
+ * (SidebarMenu + SidebarMenuSub) with collapsible submenus, freshness
+ * badges, and tooltips. Use this when you want to drop the admin nav
+ * inside an existing shell (e.g. Layout.tsx). For the standalone admin
+ * sidebar with its own aside / mobile drawer, use AdminSidebar (default).
+ */
+export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebarProps) {
   const navGroups = useMemo(() => buildNavGroups(), []);
 
   const { data: freshnessCounts } = useQuery<FreshnessCounts>({
@@ -336,12 +342,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
   const resolved = resolveSection(activeSection);
   const activeGroup = getGroupForSection(resolved, navGroups);
 
-  const handleSelect = (section: AdminSection) => {
-    onSectionChange(section);
-    setMobileOpen(false);
-  };
-
-  const sidebarContent = (
+  return (
     <SidebarProvider
       defaultOpen
       className="min-h-0 w-full bg-transparent"
@@ -349,7 +350,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
     >
       <Sidebar
         collapsible="none"
-        className="w-full bg-transparent text-foreground"
+        className="w-full bg-transparent text-sidebar-foreground"
       >
         <SidebarContent className="bg-transparent gap-1 px-2 py-2">
           {navGroups.map((group) => {
@@ -379,7 +380,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         isActive={isActive}
-                        onClick={() => handleSelect(only.value)}
+                        onClick={() => onSectionChange(only.value)}
                         data-testid={`admin-nav-${only.value}`}
                         tooltip={group.label}
                       >
@@ -442,7 +443,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
                               <SidebarMenuSubItem key={section.value}>
                                 <SidebarMenuSubButton
                                   isActive={isActive}
-                                  onClick={() => handleSelect(section.value)}
+                                  onClick={() => onSectionChange(section.value)}
                                   data-testid={`admin-nav-${section.value}`}
                                   className="cursor-pointer"
                                 >
@@ -467,7 +468,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={resolved === "activity"}
-                  onClick={() => handleSelect("activity")}
+                  onClick={() => onSectionChange("activity")}
                   data-testid="admin-nav-activity"
                   tooltip="Activity"
                 >
@@ -495,7 +496,19 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
       </Sidebar>
     </SidebarProvider>
   );
+}
 
+/**
+ * Standalone admin sidebar with its own aside / mobile drawer chrome.
+ * Used when an admin page wants to render its own sidebar instead of
+ * embedding the nav body in a shared shell.
+ */
+export default function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const handleSelect = (section: AdminSection) => {
+    onSectionChange(section);
+    setMobileOpen(false);
+  };
   return (
     <>
       <Button
@@ -538,7 +551,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
           </div>
 
           <div className="overflow-y-auto max-h-[calc(100vh-120px)] lg:max-h-[calc(100vh-200px)] scrollbar-thin">
-            {sidebarContent}
+            <AdminSidebarNav activeSection={activeSection} onSectionChange={handleSelect} />
           </div>
         </div>
       </aside>

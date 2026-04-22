@@ -9,7 +9,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
 
-import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconHome, IconCompass, IconMessageCircle } from "@/components/icons";
+import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle } from "@/components/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } fr
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
 import type { ColorMode, FontPreference, BgAnimation, AppearanceDefaults } from "@/lib/theme/appearance";
 import { useAdminSection } from "@/lib/admin-nav";
-import { buildNavGroups, resolveSection } from "@/components/admin/AdminSidebar";
+import { resolveSection, AdminSidebarNav } from "@/components/admin/AdminSidebar";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
@@ -270,41 +270,9 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     },
   ].filter(g => g.items.length > 0), [hasManagementAccess, isAdmin, global]);
 
-  const adminNavGroups = buildNavGroups();
-  const adminSidebarGroups: NavGroupDef[] = useMemo(() => {
-    const groups: NavGroupDef[] = [
-      {
-        label: "",
-        items: [{ href: "/", label: "Home", icon: IconHome }],
-        dividerAfter: true,
-      },
-    ];
-    for (const ag of adminNavGroups) {
-      groups.push({
-        label: ag.label,
-        items: ag.sections.map((s) => ({
-          href: `#admin-${s.value}`,
-          label: s.label,
-          icon: s.icon,
-          onClick: () => setAdminSectionState(s.value),
-        })),
-        collapsible: true,
-      });
-    }
-    groups.push({
-      label: "Logs",
-      items: [{
-        href: "#admin-activity",
-        label: "Activity",
-        icon: IconDashboard,
-        onClick: () => setAdminSectionState("activity"),
-      }],
-      collapsible: true,
-    });
-    return groups;
-  }, [adminNavGroups]);
-
-  const navGroups = onAdminRoute ? adminSidebarGroups : homeNavGroups;
+  // Admin nav is rendered via <AdminSidebarNav> (shadcn SidebarMenuSub block)
+  // when onAdminRoute is true — see desktop aside / mobile Sheet below.
+  const navGroups = homeNavGroups;
 
   const isActiveLink = (href: string) => {
     if (href.startsWith("#admin-")) {
@@ -414,7 +382,16 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     <div className="flex min-h-svh w-full">
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-svh sticky top-0">
         {sidebarHeader}
-        <SidebarNav groups={navGroups} isActiveLink={isActiveLink} />
+        {onAdminRoute ? (
+          <div className="flex-1 overflow-y-auto pt-1">
+            <AdminSidebarNav
+              activeSection={adminSection}
+              onSectionChange={setAdminSectionState}
+            />
+          </div>
+        ) : (
+          <SidebarNav groups={navGroups} isActiveLink={isActiveLink} />
+        )}
         {sidebarFooter}
       </aside>
 
@@ -424,7 +401,16 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
           {sidebarHeader}
-          <SidebarNav groups={navGroups} isActiveLink={isActiveLink} onNavigate={() => setMobileOpen(false)} />
+          {onAdminRoute ? (
+            <div className="flex-1 overflow-y-auto pt-1">
+              <AdminSidebarNav
+                activeSection={adminSection}
+                onSectionChange={(s) => { setAdminSectionState(s); setMobileOpen(false); }}
+              />
+            </div>
+          ) : (
+            <SidebarNav groups={navGroups} isActiveLink={isActiveLink} onNavigate={() => setMobileOpen(false)} />
+          )}
           {sidebarFooter}
         </SheetContent>
       </Sheet>
