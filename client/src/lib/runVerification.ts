@@ -30,6 +30,8 @@
  *   FAIL — Critical issues or formula failures detected
  */
 import { generatePropertyProForma, MonthlyFinancials } from "./financialEngine";
+import type { Property } from "@shared/schema/properties";
+import type { GlobalAssumptions } from "@shared/schema/config";
 import { assertFinite } from "@calc/shared/decimal";
 import { checkPropertyFormulas, checkMetricFormulas, generateFormulaReport } from "./audits/formulaChecker";
 import { checkGAAPCompliance, checkCashFlowStatement, generateComplianceReport } from "./audits/gaapComplianceChecker";
@@ -69,7 +71,13 @@ export interface VerificationResults {
   };
 }
 
-function convertToAuditInput(property: any): PropertyAuditInput {
+type PropertyWithExtras = Property & {
+  debtAssumptions?: { interestRate: number; amortizationYears: number };
+  feeCategories?: unknown;
+};
+
+function convertToAuditInput(property: Property): PropertyAuditInput {
+  const p = property as PropertyWithExtras;
   return {
     name: property.name || 'Unnamed Property',
     operationsStartDate: property.operationsStartDate,
@@ -90,7 +98,7 @@ function convertToAuditInput(property: any): PropertyAuditInput {
     acquisitionInterestRate: property.acquisitionInterestRate,
     acquisitionTermYears: property.acquisitionTermYears,
     operatingReserve: property.operatingReserve,
-    debtAssumptions: property.debtAssumptions,
+    debtAssumptions: p.debtAssumptions,
     willRefinance: property.willRefinance,
     refinanceDate: property.refinanceDate,
     refinanceLTV: property.refinanceLTV,
@@ -113,10 +121,10 @@ function convertToAuditInput(property: any): PropertyAuditInput {
     revShareOther: property.revShareOther,
     baseManagementFeeRate: property.baseManagementFeeRate,
     incentiveManagementFeeRate: property.incentiveManagementFeeRate,
-  };
+  } as PropertyAuditInput;
 }
 
-function convertToGlobalAuditInput(global: any): GlobalAuditInput {
+function convertToGlobalAuditInput(global: GlobalAssumptions): GlobalAuditInput {
   return {
     modelStartDate: global.modelStartDate,
     inflationRate: global.inflationRate,
@@ -129,20 +137,21 @@ function convertToGlobalAuditInput(global: any): GlobalAuditInput {
 }
 
 export function runFullVerification(
-  properties: any[],
-  globalAssumptions: any
+  properties: Property[],
+  globalAssumptions: GlobalAssumptions
 ): VerificationResults {
-  const formulaReports: any[] = [];
-  const complianceReports: any[] = [];
-  const auditReports: any[] = [];
-  const crossReports: any[] = [];
+  const formulaReports: ReturnType<typeof checkPropertyFormulas>[] = [];
+  const complianceReports: ReturnType<typeof checkGAAPCompliance>[] = [];
+  const auditReports: import("./financialAuditor").AuditReport[] = [];
+  const crossReports: CrossValidationReport[] = [];
   
   const globalAuditInput = convertToGlobalAuditInput(globalAssumptions);
   
   for (const property of properties) {
     try {
       const projectionMonths = ((globalAssumptions as Record<string, unknown>).projectionYears as number ?? PROJECTION_YEARS) * MONTHS_PER_YEAR;
-      const financials = generatePropertyProForma(property, globalAssumptions, projectionMonths);
+      const p = property as PropertyWithExtras;
+      const financials = generatePropertyProForma(property as never, globalAssumptions as never, projectionMonths);
       
       const formulaCheck = checkPropertyFormulas(financials);
       formulaReports.push(formulaCheck);
@@ -166,16 +175,16 @@ export function runFullVerification(
           purchasePrice: property.purchasePrice,
           type: property.type,
           acquisitionLTV: property.acquisitionLTV,
-          acquisitionInterestRate: property.acquisitionInterestRate ?? property.debtAssumptions?.interestRate,
-          acquisitionTermYears: property.acquisitionTermYears ?? property.debtAssumptions?.amortizationYears,
+          acquisitionInterestRate: property.acquisitionInterestRate ?? p.debtAssumptions?.interestRate,
+          acquisitionTermYears: property.acquisitionTermYears ?? p.debtAssumptions?.amortizationYears,
           landValuePercent: property.landValuePercent,
           buildingImprovements: property.buildingImprovements,
           baseManagementFeeRate: property.baseManagementFeeRate,
           incentiveManagementFeeRate: property.incentiveManagementFeeRate,
-          feeCategories: property.feeCategories,
+          feeCategories: p.feeCategories,
           costRateFFE: property.costRateFFE,
-        },
-        globalAssumptions,
+        } as never,
+        globalAssumptions as never,
         financials,
       );
       crossReports.push(crossReport);
@@ -185,7 +194,7 @@ export function runFullVerification(
       complianceReports.push({
         propertyName: property.name,
         checks: [{ rule: "verification_error", passed: false, severity: "critical" as const, message: `Verification crashed: ${errMsg}` }],
-      });
+      } as never);
     }
   }
   
