@@ -2,8 +2,9 @@ import { defineConfig } from "vitest/config";
 import path from "path";
 
 export default defineConfig({
+  esbuild: { jsx: "automatic" },
   test: {
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     exclude: ["tests/e2e/**"],
     pool: "threads",
     testTimeout: 15_000,

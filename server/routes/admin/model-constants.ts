@@ -32,6 +32,7 @@ import {
   MODEL_CONSTANTS_REGISTRY,
   REGISTERED_CONSTANT_KEYS,
   getFactoryValue,
+  getConstantUnit,
 } from "@shared/model-constants-registry";
 import { getEffectiveConstant } from "@shared/get-effective-constant";
 import { COUNTRY_DEFAULTS } from "@shared/countryDefaults";
@@ -119,7 +120,7 @@ export function registerModelConstantsRoutes(app: Express) {
         storage.listCanonicals(),
       ]);
 
-      const items = REGISTERED_CONSTANT_KEYS.map((key) => {
+      const items = await Promise.all(REGISTERED_CONSTANT_KEYS.map(async (key) => {
         const entry = MODEL_CONSTANTS_REGISTRY[key]!;
         // For "universal" constants, callers may pass a country but it is
         // irrelevant — fold to NULL/NULL so resolution and badges are honest.
@@ -159,6 +160,59 @@ export function registerModelConstantsRoutes(app: Express) {
         // time (cheap; the catalog is a frozen in-memory list).
         const owner = getSpecialistForConstant(key);
 
+        // Phase 4: pull the most recent research_run for this row so the
+        // card can render an authoritative "as of" date and conviction
+        // summary even when the verdict matched factory (no override row
+        // exists, but a research run absolutely does). Cheap — at most
+        // one DB read per row, indexed by entityType+metadata.
+        const recentRuns = await storage.getResearchRunsForConstant(
+          key,
+          localityForKey.country,
+          localityForKey.subdivision,
+          1,
+        );
+        const latest = recentRuns[0] ?? null;
+        const latestMeta = (latest?.metadata ?? {}) as {
+          proposal?: {
+            value?: unknown;
+            authority?: string;
+            isDifferentFromCurrent?: boolean;
+          };
+          sources?: { title: string; url: string }[];
+        };
+        const latestRun = latest
+          ? {
+              id: latest.id,
+              asOf: (latest.completedAt ?? latest.startedAt ?? null) as Date | string | null,
+              authority: latestMeta.proposal?.authority ?? null,
+              value: latestMeta.proposal?.value ?? null,
+              sourcesCount: (latestMeta.sources ?? []).length,
+              isDifferentFromCurrent: !!latestMeta.proposal?.isDifferentFromCurrent,
+            }
+          : null;
+
+        // Last-refreshed timestamp prefers the Specialist's most recent
+        // research run (covers no-change confirmations) and falls back
+        // to the override row's creation time. Null only if no research
+        // has ever been recorded for this row.
+        const lastRefreshedAt =
+          latestRun?.asOf ?? resolved.override?.createdAt ?? null;
+
+        // Conviction summary — a one-line provenance statement for the
+        // card. Prefers Specialist + authority + sources count when
+        // available, otherwise reports factory baseline.
+        let convictionSummary: string;
+        if (latestRun && latestRun.authority) {
+          const who = owner?.displayName ?? "AI Specialist";
+          convictionSummary =
+            `${who} verified against ${latestRun.authority}` +
+            (latestRun.sourcesCount > 0 ? ` (${latestRun.sourcesCount} source${latestRun.sourcesCount === 1 ? "" : "s"})` : "");
+        } else if (resolved.source === "factory") {
+          convictionSummary = `Factory baseline — ${entry.meta.authority}. No research recorded yet.`;
+        } else {
+          convictionSummary = `${entry.meta.authority}.`;
+        }
+
         return {
           key,
           label: entry.label,
@@ -167,6 +221,16 @@ export function registerModelConstantsRoutes(app: Express) {
           referenceUrl: entry.meta.referenceUrl,
           helperText: entry.meta.helperText,
           requestedAt: localityForKey,
+          // Phase 4: explicit per-row scope chip. The country/subdivision
+          // a row resolves to is duplicated here so the UI does not have
+          // to re-derive it from `requestedAt` + locality.
+          scope: {
+            locality: entry.locality,
+            country: localityForKey.country,
+            subdivision: localityForKey.subdivision,
+          },
+          // Phase 4: rendering unit (percent / years / days / ratio).
+          unit: getConstantUnit(key),
           factoryValue: factory,
           factoryWasFallback,
           effectiveValue: resolved.value,
@@ -180,12 +244,11 @@ export function registerModelConstantsRoutes(app: Express) {
           specialistId: owner?.id ?? null,
           specialistLetter: owner?.letter ?? null,
           specialistName: owner?.displayName ?? null,
-          // Last-refreshed timestamp drives the "Refreshed Xd ago" line on
-          // each card. Falls back to null for factory rows so the UI can
-          // render "Never refreshed" without ambiguity.
-          lastRefreshedAt: resolved.override?.createdAt ?? null,
+          lastRefreshedAt,
+          latestResearchRun: latestRun,
+          convictionSummary,
         };
-      });
+      }));
 
       res.json({
         country,
@@ -423,21 +486,22 @@ export function registerModelConstantsRoutes(app: Express) {
   });
 
   /**
-   * Phase 4 (Constants doctrine): one-shot **Refresh research**.
+   * Phase 4 (Constants doctrine): **Refresh research — preview only.**
    *
-   * Replaces the previous two-step Regenerate-then-Apply admin flow. The
-   * new doctrine is "the Specialist's verdict is the value" — admins do
-   * not type a value and do not approve a value before write. Clicking
-   * Refresh research triggers the owning Specialist (via
-   * `proposeConstantRegeneration`) and immediately persists the proposal
-   * with `source = 'analyst'`. The endpoint returns the proposal so the
-   * UI can render the new value, authority, evidence, and source list as
-   * a results panel — and a "Reset to factory" button is still available
-   * if the admin wants to roll back.
+   * Triggers the owning Specialist (via `proposeConstantRegeneration`)
+   * to re-fetch the value from its cited authority. **The proposal is
+   * NOT applied to the override table by this endpoint.** The Specialist
+   * does, however, persist a `research_runs` row carrying its reasoning
+   * and sources — that row's id is returned as `researchRunId` and is
+   * the only thing the subsequent `/apply-proposal` call needs.
    *
-   * The two-step `/regenerate` and `/apply-research` routes above are
-   * kept for back-compat (scheduler, scripted callers) but the UI no
-   * longer uses them.
+   * The admin sees a results panel with Previous / New values, the
+   * Specialist's reasoning, and the source list. They then click Apply
+   * (→ `/apply-proposal`) to write or Discard to dismiss. There is no
+   * free-form value entry on either side of this transition.
+   *
+   * Legacy `/regenerate` + `/apply-research` routes above remain for
+   * back-compat with the scheduler and scripted callers.
    */
   app.post("/api/admin/model-constants/:key/refresh", requireAdmin, async (req, res) => {
     try {
@@ -456,9 +520,6 @@ export function registerModelConstantsRoutes(app: Express) {
       }
 
       const overrides = await storage.listModelConstantOverrides();
-
-      // 1. Specialist research — produces a proposal and persists a
-      //    research_runs row with the analyst's full reasoning + sources.
       const proposal = await proposeConstantRegeneration({
         key,
         country,
@@ -466,11 +527,90 @@ export function registerModelConstantsRoutes(app: Express) {
         overrides,
       });
 
+      const loc = `${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}`;
+      logActivity(
+        req,
+        "refresh-research-preview-model-constant",
+        "model-constant",
+        0,
+        `Refresh research preview for ${key} (${loc}). Authority: ${proposal.authority}. ${
+          proposal.isDifferentFromCurrent ? "Differs from current." : "Confirmed current."
+        }`,
+      );
+
+      res.json({ proposal });
+    } catch (error: unknown) {
+      logAndSendError(res, "Refresh research failed", error);
+    }
+  });
+
+  /**
+   * Phase 4 (Constants doctrine): **Apply a Specialist proposal.**
+   *
+   * The companion to `/refresh`. The admin clicks Apply on the preview
+   * panel → the client posts the `researchRunId` returned by `/refresh`
+   * → this route loads that research_runs row, validates that the
+   * proposal it carries matches the requested constant + locality, and
+   * writes `model_constant_overrides` with `source = 'analyst'`. The
+   * value, authority, referenceUrl, and reasoning all come from the
+   * persisted Specialist run — the admin never supplies them.
+   *
+   * Doctrine guarantees this maintains:
+   *   - Admin cannot inject a value (body has no `value` field).
+   *   - The applied value is provably the same value the Specialist
+   *     produced (it's read straight out of the research_run).
+   *   - factory-equality invariant still holds (storage layer drops
+   *     the override row if proposal.value === factoryValue).
+   */
+  const applyProposalSchema = z.object({
+    researchRunId: z.number().int().positive(),
+  });
+
+  app.post("/api/admin/model-constants/:key/apply-proposal", requireAdmin, async (req, res) => {
+    try {
+      const key = String(req.params.key ?? "");
+      if (!MODEL_CONSTANTS_REGISTRY[key]) {
+        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+      }
+
+      const parsedBody = applyProposalSchema.safeParse(req.body);
+      if (!parsedBody.success) {
+        return res.status(400).json({ error: parsedBody.error.message });
+      }
+      const { researchRunId } = parsedBody.data;
+
+      const parsedQuery = localityQuerySchema.safeParse(req.query);
+      if (!parsedQuery.success) return res.status(400).json({ error: parsedQuery.error.message });
+      const { country, subdivision } = normaliseLocality(parsedQuery.data.country, parsedQuery.data.subdivision);
+
+      const localityCheck = validateLocality(key, country, subdivision);
+      if (!localityCheck.ok) {
+        return res.status(400).json({ error: localityCheck.error });
+      }
+
+      // Load the persisted Specialist verdict. We re-query through the
+      // constant-scoped helper so we cannot accidentally apply a run
+      // that belongs to a different (key, country, subdivision) tuple.
+      const candidates = await storage.getResearchRunsForConstant(key, country, subdivision, 25);
+      const run = candidates.find((r) => r.id === researchRunId) ?? null;
+      if (!run) {
+        return res.status(404).json({
+          error: `research_run ${researchRunId} not found for ${key} (${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}).`,
+        });
+      }
+
+      const meta = (run.metadata ?? {}) as {
+        proposal?: { value?: unknown; authority?: string; referenceUrl?: string | null; reasoning?: string };
+      };
+      const proposal = meta.proposal;
+      if (!proposal || proposal.value === undefined || !proposal.authority) {
+        return res.status(422).json({
+          error: `research_run ${researchRunId} does not carry a complete Specialist proposal.`,
+        });
+      }
+
       const userId = (req as { user?: { id?: number } }).user?.id ?? null;
 
-      // 2. Auto-apply. The storage layer drops the row if the proposed
-      //    value equals factory (the factory-equality invariant), so a
-      //    no-change verdict cleans up an existing override automatically.
       const result = await storage.upsertModelConstantOverride({
         constantKey: key,
         country,
@@ -479,30 +619,29 @@ export function registerModelConstantsRoutes(app: Express) {
         source: "analyst",
         authority: proposal.authority,
         referenceUrl: proposal.referenceUrl ?? null,
-        researchRunId: proposal.researchRunId ?? null,
-        overrideNote: proposal.reasoning,
+        researchRunId,
+        overrideNote: proposal.reasoning ?? null,
         createdBy: userId,
       });
 
       const loc = `${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}`;
       logActivity(
         req,
-        "refresh-research-model-constant",
+        "apply-research-model-constant",
         "model-constant",
         0,
-        proposal.isDifferentFromCurrent
-          ? `Refresh research updated ${key} (${loc}) to ${JSON.stringify(proposal.value)}. Authority: ${proposal.authority}.`
-          : `Refresh research confirmed current ${key} (${loc}) value. Authority: ${proposal.authority}.`,
+        result === null
+          ? `Applied Specialist proposal for ${key} (${loc}); matched factory — no override stored. Authority: ${proposal.authority}.`
+          : `Applied Specialist proposal for ${key} (${loc}) → ${JSON.stringify(proposal.value)}. Authority: ${proposal.authority}.`,
       );
 
       res.json({
         wasFactoryEqual: result === null,
-        wasNoChange: !proposal.isDifferentFromCurrent,
         override: result,
-        proposal,
+        appliedFromResearchRunId: researchRunId,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Refresh research failed", error);
+      logAndSendError(res, "Failed to apply Specialist proposal", error);
     }
   });
 

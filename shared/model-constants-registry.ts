@@ -181,6 +181,29 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
 
 export const REGISTERED_CONSTANT_KEYS = Object.keys(MODEL_CONSTANTS_REGISTRY);
 
+/**
+ * Display unit for a constant. Constants are rendered to admins as
+ * read-only cards; the unit suffix (`%`, `years`, `days`) clarifies
+ * what the bare numeric value means without surfacing a free-form
+ * "unit" column in the registry. Centralised here so the admin tab
+ * and any future renderers stay consistent.
+ */
+export type ConstantUnit = "percent" | "years" | "days" | "ratio";
+
+const CONSTANT_UNIT_BY_KEY: Record<string, ConstantUnit> = {
+  taxRate: "percent",
+  capitalGainsRate: "percent",
+  costRateTaxes: "percent",
+  inflationRate: "percent",
+  countryRiskPremium: "percent",
+  depreciationYears: "years",
+  daysPerMonth: "days",
+};
+
+export function getConstantUnit(key: string): ConstantUnit {
+  return CONSTANT_UNIT_BY_KEY[key] ?? "ratio";
+}
+
 export function hasStateOverlay(key: string, country: string | null | undefined): boolean {
   const entry = MODEL_CONSTANTS_REGISTRY[key];
   return !!entry && entry.locality === "country+state" && country === "United States";
