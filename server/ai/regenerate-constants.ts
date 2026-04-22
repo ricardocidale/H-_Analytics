@@ -384,7 +384,7 @@ export async function proposeConstantRegeneration(args: {
       },
     });
     researchRunId = run.id;
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     const loc = `${args.country ?? "universal"}${args.subdivision ? `/${args.subdivision}` : ""}`;
     logger.warn(
