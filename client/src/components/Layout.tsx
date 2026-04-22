@@ -9,7 +9,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
 
-import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle } from "@/components/icons";
+import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle, IconBrain } from "@/components/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -36,8 +36,10 @@ import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } fr
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
 import type { ColorMode, FontPreference, BgAnimation, AppearanceDefaults } from "@/lib/theme/appearance";
 import { useAdminSection } from "@/lib/admin-nav";
+import { useAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
 import { resolveSection, AdminSidebarNav } from "@/components/admin/AdminSidebar";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
+import { AiIntelligenceSidebarNav } from "@/components/ai-intelligence/AiIntelligenceSidebar";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
 type NavLink = { href: string; label: string; icon: any; onClick?: () => void };
@@ -242,7 +244,9 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   const sb = (key: string) => (global as unknown as Record<string, unknown>)?.[key] !== false;
   const showAnalysis = sb("sidebarSensitivity");
   const onAdminRoute = location.startsWith("/admin");
+  const onAiIntelligenceRoute = location.startsWith("/ai-intelligence");
   const [adminSection, setAdminSectionState] = useAdminSection();
+  const [aiIntelligenceSection, setAiIntelligenceSectionState] = useAiIntelligenceSection();
 
   const homeNavGroups: NavGroupDef[] = useMemo(() => [
     {
@@ -325,6 +329,20 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           </span>
         </Link>
       )}
+      {isAdmin && !onAdminRoute && !onAiIntelligenceRoute && (
+        <Link href="/ai-intelligence" onClick={() => setMobileOpen(false)}>
+          <span
+            className={cn(
+              "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors",
+              isActiveLink("/ai-intelligence") ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+            data-testid="nav-ai-intelligence"
+          >
+            <IconBrain className="w-4 h-4 shrink-0" />
+            <span>AI Intelligence</span>
+          </span>
+        </Link>
+      )}
       {isAdmin && !onAdminRoute && (
         <Link href="/admin" onClick={() => setMobileOpen(false)}>
           <span
@@ -382,7 +400,14 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     <div className="flex min-h-svh w-full">
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-svh sticky top-0">
         {sidebarHeader}
-        {onAdminRoute ? (
+        {onAiIntelligenceRoute ? (
+          <div className="flex-1 overflow-y-auto pt-1">
+            <AiIntelligenceSidebarNav
+              activeSection={aiIntelligenceSection}
+              onSectionChange={setAiIntelligenceSectionState}
+            />
+          </div>
+        ) : onAdminRoute ? (
           <div className="flex-1 overflow-y-auto pt-1">
             <AdminSidebarNav
               activeSection={adminSection}
@@ -401,7 +426,14 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
           {sidebarHeader}
-          {onAdminRoute ? (
+          {onAiIntelligenceRoute ? (
+            <div className="flex-1 overflow-y-auto pt-1">
+              <AiIntelligenceSidebarNav
+                activeSection={aiIntelligenceSection}
+                onSectionChange={(s) => { setAiIntelligenceSectionState(s); setMobileOpen(false); }}
+              />
+            </div>
+          ) : onAdminRoute ? (
             <div className="flex-1 overflow-y-auto pt-1">
               <AdminSidebarNav
                 activeSection={adminSection}

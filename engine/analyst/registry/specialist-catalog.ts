@@ -34,6 +34,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     id: "mgmt-co.funding",
     letter: "A",
     realName: "Funding",
+    displayName: "Funding Intelligence",
+    description:
+      "Tracks the management company's capital stack, runway, and refinancing posture so investors and operators can see funding risk before it hits the model.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -52,6 +55,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     id: "mgmt-co.revenue",
     letter: "B",
     realName: "Revenue",
+    displayName: "Revenue Intelligence",
+    description:
+      "Builds the revenue picture for the management company — fees, recurring contracts, and growth signals — so the simulation runs against a realistic top line, not a guess.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -70,6 +76,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     id: "mgmt-co.icp-intelligence",
     letter: "C",
     realName: "ICP Intelligence",
+    displayName: "ICP Intelligence",
+    description:
+      "Sharpens the management company's ideal customer profile from real signals — who actually buys, why, and who looks like them next — so targeting and outreach stop being guesswork.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -88,6 +97,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     id: "property.risk-intelligence",
     letter: "D",
     realName: "Risk Intelligence",
+    displayName: "Property Risk Intelligence",
+    description:
+      "Surfaces the things that could derail a property — flood, brand, regulatory, market — early enough to price them in or walk away.",
     subject: "property",
     capabilities: [
       "required-fields",
@@ -106,6 +118,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     id: "property.executive-summary",
     letter: "E",
     realName: "Executive Summary",
+    displayName: "Executive Summary",
+    description:
+      "Turns the underwriting model into a crisp one-page narrative — what this property is, why it works, and what could break it — ready to share with investors and partners.",
     subject: "property",
     capabilities: [
       "llm-config",
@@ -122,6 +137,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     id: "photos.photo-enhancer",
     letter: "F",
     realName: "Photo Enhancer",
+    displayName: "Photo Enhancer",
+    description:
+      "Cleans, brightens, and standardizes property photos so every listing looks consistently professional — no more dim phone shots dragging down a portfolio's first impression.",
     subject: "photos",
     capabilities: [
       "llm-config",
@@ -139,9 +157,13 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     id: "portfolio-ops.watchdog",
     letter: "G",
     realName: "Watchdog",
+    displayName: "Portfolio Watchdog",
+    description:
+      "Watches every property in the portfolio against custom thresholds — occupancy, ADR, DSCR, covenant tripwires — and pings the team the moment something drifts out of bounds.",
     subject: "portfolio-ops",
     capabilities: [
       "required-fields",
+      "llm-config",
       "resource-assignments",
       "runtime",
       "audit",

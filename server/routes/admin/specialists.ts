@@ -29,6 +29,7 @@ import {
   SPECIALIST_CATALOG,
   getSpecialistById,
 } from "../../../engine/analyst/registry/specialist-catalog";
+import { specialistDisplayName } from "@shared/schema/specialist";
 import {
   findInvalidRequiredFieldKeys,
   getValidRequiredFieldKeys,
@@ -79,6 +80,8 @@ export function registerAdminSpecialistRoutes(app: Express) {
           id: d.id,
           letter: d.letter,
           realName: d.realName,
+          displayName: specialistDisplayName(d),
+          description: d.description ?? null,
           subject: d.subject,
           capabilities: d.capabilities,
           status: d.status,
@@ -139,6 +142,8 @@ export function registerAdminSpecialistRoutes(app: Express) {
           id: def.id,
           letter: def.letter,
           realName: def.realName,
+          displayName: specialistDisplayName(def),
+          description: def.description ?? null,
           subject: def.subject,
           capabilities: def.capabilities,
           status: def.status,
@@ -254,6 +259,90 @@ export function registerAdminSpecialistRoutes(app: Express) {
       res.json(toConfigView(updated));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist runtime", error);
+    }
+  });
+
+  // ── Probe (dry-run "Test agent") ────────────────────────────────
+  app.post("/api/admin/specialists/:id/probe", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const def = getSpecialistById(id);
+      if (!def) return res.status(404).json({ error: "Specialist not found" });
+
+      const ranAt = new Date();
+      const rows = await storage.listSpecialistAssignments(id);
+
+      type ProbeStepStatus = "pass" | "fail" | "skipped";
+      const steps: Array<{
+        name: string;
+        description: string;
+        status: ProbeStepStatus;
+        message: string;
+      }> = [];
+
+      if (rows.length === 0) {
+        steps.push({
+          name: "Catalog declaration",
+          description: `Specialist ${def.realName} has no resource assignments.`,
+          status: "pass",
+          message: "Catalog entry validated.",
+        });
+      } else {
+        for (const row of rows) {
+          const name = row.assignmentRole
+            ? `${row.assignmentRole} (${row.assignmentSlug})`
+            : row.assignmentSlug;
+          const description = `${row.assignmentKind} · ${row.assignmentSlug}${
+            row.required ? " · required" : " · optional"
+          }`;
+
+          const resource = row.resourceId
+            ? await storage.getAdminResourceById(row.resourceId)
+            : undefined;
+
+          if (!resource) {
+            steps.push({
+              name,
+              description,
+              status: row.required ? "fail" : "skipped",
+              message: "No resource wired for this assignment.",
+            });
+            continue;
+          }
+
+          const latest = await storage.getLatestHealthCheck(resource.id);
+          const health = deriveHealthStatus({
+            lastStatus: (latest?.status as ProbeStatus | undefined) ?? null,
+            lastCheckedAt: latest?.checkedAt ?? null,
+            kind: resource.kind as ResourceKind,
+            now: ranAt,
+          });
+
+          let status: ProbeStepStatus;
+          if (health === "green") status = "pass";
+          else if (health === "red") status = "fail";
+          else status = "skipped";
+
+          const checkedAt = latest?.checkedAt
+            ? latest.checkedAt.toISOString()
+            : "never";
+          const lastStatus = latest?.status ?? "unknown";
+          steps.push({
+            name,
+            description,
+            status,
+            message: `Health=${health} · last probe=${lastStatus} @ ${checkedAt}`,
+          });
+        }
+      }
+
+      res.json({
+        specialistId: id,
+        ranAt: ranAt.toISOString(),
+        steps,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to probe specialist", error);
     }
   });
 

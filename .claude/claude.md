@@ -10,6 +10,38 @@ GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio man
 
 ---
 
+## Codebase Independence from Replit (CRITICAL)
+
+> Replit is **one supported host, not the only one**. The codebase, build,
+> runtime, and tests must remain portable to any standard Linux + Node + Postgres
+> environment without code changes — only env vars and the Postgres URL change.
+
+**One-line rule:** the app must `npm install && npm run build && npm start` on
+a non-Replit machine given only `DATABASE_URL` (and the same third-party
+secrets the Replit host gets). Lock-in is a regression and must be flagged in
+review.
+
+- No `@replit/*` imports in `client/`, `shared/`, `calc/`, `engine/`, or route
+  business logic. `@replit/vite-plugin-*` is dev-only and conditionally loaded
+  on `process.env.REPL_ID`.
+- All `process.env.REPL*` reads live in a single host adapter (e.g.
+  `server/host/replit.ts`) and no-op when the vars are absent.
+- `replitAuth` is one auth provider, not the auth contract. Routes depend on
+  the abstract user/session shape.
+- Every Replit Workflow has a matching `npm run <name>` script. `.replit` is a
+  convenience layer over `package.json`.
+- No hard-coded `*.replit.dev` / `*.repl.co` / `*.replit.app` hostnames.
+- Object storage, email, SMS go through small adapter interfaces with at least
+  one non-Replit implementation.
+- New `@replit/*` deps go in `devDependencies` only, behind a conditional load.
+
+When auditing or proposing architecture, treat any new Replit coupling as a
+finding requiring a sibling-host abstraction or an explicit waiver in the ADR.
+
+Full rule: `.claude/rules/replit-independence.md`.
+
+---
+
 ## Business Model (CRITICAL — read before any work)
 
 - **Norfolk AI** builds the app. The HMC is what's modeled. They are separate entities.

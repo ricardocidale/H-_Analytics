@@ -112,6 +112,18 @@ export const SpecialistDefinitionSchema = z
     }),
     letter: SpecialistLetterSchema,
     realName: z.string().min(1),
+    /**
+     * User-facing display name for sidebar labels and page headers. Defaults
+     * to `realName` when absent. Set this when a marketing-quality name is
+     * preferred over the engineering shorthand.
+     */
+    displayName: z.string().min(1).optional(),
+    /**
+     * 1–2 sentence plain-language description of what the agent does and the
+     * value it delivers. Rendered under the Specialist page header and used
+     * as the sidebar tooltip where supported.
+     */
+    description: z.string().min(1).max(400).optional(),
     subject: SubjectSchema,
     capabilities: z.array(SpecialistCapabilitySchema).min(1),
     assignmentRefs: z.array(AssignmentRefSchema),
@@ -141,6 +153,11 @@ export type SpecialistDefinition = z.infer<typeof SpecialistDefinitionSchema>;
 
 export function specialistDisplayLabel(def: SpecialistDefinition): string {
   return `Specialist ${def.letter} — ${def.realName}`;
+}
+
+/** User-facing display name (falls back to realName). */
+export function specialistDisplayName(def: SpecialistDefinition): string {
+  return def.displayName ?? def.realName;
 }
 
 export function specialistHasCapability(

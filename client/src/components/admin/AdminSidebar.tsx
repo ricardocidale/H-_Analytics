@@ -183,33 +183,6 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
-      id: "ai-research",
-      label: "AI Research",
-      icon: IconBrain,
-      description: "Specialists, sources, LLMs & system health",
-      sections: [
-        // Specialists (P5). One row per Specialist in the catalog. Letter
-        // prefix matches the catalog identity so admins can speak in the
-        // same vocabulary as engineering ("Specialist A — Funding").
-        { value: "specialist-mgmt-co-funding",            label: "MC · A — Funding",          icon: IconBriefcase },
-        { value: "specialist-mgmt-co-revenue",            label: "MC · B — Revenue",          icon: IconBriefcase },
-        { value: "specialist-mgmt-co-icp-intelligence",   label: "MC · C — ICP Intelligence", icon: IconBriefcase },
-        { value: "specialist-property-risk-intelligence", label: "Property · D — Risk Intelligence", icon: IconProperties },
-        { value: "specialist-property-executive-summary", label: "Property · E — Executive Summary", icon: IconProperties },
-        { value: "specialist-photos-photo-enhancer",      label: "Photos · F — Photo Enhancer", icon: IconImage },
-        { value: "specialist-portfolio-ops-watchdog",     label: "Portfolio Ops · G — Watchdog", icon: IconGauge },
-        // Legacy AI Research surfaces. Kept for now; P6 will retire those
-        // covered by the Resources/Specialist split.
-        { value: "sources-apis",       label: "Sources & APIs",       icon: IconGlobe },
-        { value: "llm-config",         label: "LLM Configuration",    icon: IconLayers },
-        { value: "engine-health",      label: "System Health",        icon: IconGauge },
-        { value: "scheduled-research", label: "Scheduled Research",   icon: IconTimer },
-        { value: "benchmarks",         label: "Hospitality Benchmarks", icon: IconResearch },
-        { value: "analyst-tables",     label: "Analyst Tables",       icon: IconResearch },
-        { value: "vector-bench",       label: "Vector Search Latency", icon: IconGauge },
-      ],
-    },
-    {
       id: "users",
       label: "Users",
       icon: IconPeople,
@@ -226,17 +199,6 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "scenarios",           label: "All Scenarios",      icon: IconScenarios },
         { value: "default-assignments", label: "Default Assignments", icon: IconUserCog },
-      ],
-    },
-    {
-      id: "rebecca",
-      label: "Rebecca AI Assistant",
-      icon: IconBot,
-      description: "Configuration, knowledge base & conversations",
-      sections: [
-        { value: "ai-agents",     label: "Configuration",  icon: IconBot },
-        { value: "knowledge-base", label: "Knowledge Base", icon: IconBookOpen },
-        { value: "conversations", label: "Conversations",   icon: IconMessageSquare },
       ],
     },
     {
@@ -329,7 +291,9 @@ interface AdminSidebarProps {
 export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebarProps) {
   const navGroups = useMemo(() => buildNavGroups(), []);
 
-  const { data: freshnessCounts } = useQuery<FreshnessCounts>({
+  // Keep the freshness query alive so the API is exercised on admin loads.
+  // The badge UI was removed when the AI Research group was retired.
+  useQuery<FreshnessCounts>({
     queryKey: ["/api/admin/intelligence/freshness-counts"],
     refetchInterval: 60_000,
   });
@@ -363,15 +327,6 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
 
           {navGroups.map((group) => {
             const isGroupActive = group.id === activeGroup;
-            const showFreshnessBadge =
-              group.id === "ai-research" &&
-              !!freshnessCounts &&
-              (freshnessCounts.stale > 0 || freshnessCounts.missing > 0);
-            const freshnessTotal = freshnessCounts
-              ? freshnessCounts.stale + freshnessCounts.missing
-              : 0;
-            const freshnessSeverity =
-              (freshnessCounts?.missing ?? 0) > 0 ? "missing" : "stale";
 
             // Single-section groups render as a flat top-level item (no submenu).
             if (group.sections.length === 1) {
@@ -418,19 +373,6 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
                     >
                       <GroupIcon className="size-4 shrink-0" />
                       <span className="truncate">{group.label}</span>
-                      {showFreshnessBadge && (
-                        <SidebarMenuBadge
-                          data-testid="intelligence-freshness-badge"
-                          className={cn(
-                            "ml-auto",
-                            freshnessSeverity === "missing"
-                              ? "bg-red-500/15 text-red-600 dark:text-red-400"
-                              : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                          )}
-                        >
-                          {freshnessTotal}
-                        </SidebarMenuBadge>
-                      )}
                     </SidebarMenuButton>
                     <SidebarMenuSub>
                       {group.sections.map((section) => {

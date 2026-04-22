@@ -12,7 +12,7 @@
  *     declare capabilities but render a stub banner — their evaluators
  *     don't exist yet.
  */
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,6 +64,8 @@ interface SpecialistDetailResponse {
     id: string;
     letter: string;
     realName: string;
+    displayName?: string;
+    description?: string;
     subject: Subject;
     capabilities: Capability[];
     status: Status;
@@ -105,8 +107,9 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
     queryKey: [`/api/admin/specialists/${specialistId}`],
   });
 
+  type TabValue = Capability | "workflow";
   const tabsList = useMemo(() => {
-    if (!data) return [] as { value: Capability; label: string }[];
+    if (!data) return [] as { value: TabValue; label: string }[];
     const order: Capability[] = ["required-fields", "llm-config", "resource-assignments", "runtime", "audit"];
     const labels: Record<Capability, string> = {
       "required-fields": "Required Fields",
@@ -115,12 +118,13 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
       "runtime": "Runtime",
       "audit": "Audit",
     };
-    return order
+    const capTabs = order
       .filter((c) => data.definition.capabilities.includes(c))
-      .map((c) => ({ value: c, label: labels[c] }));
+      .map((c) => ({ value: c as TabValue, label: labels[c] }));
+    return [{ value: "workflow" as TabValue, label: "Overview / Workflow" }, ...capTabs];
   }, [data]);
 
-  const [activeTab, setActiveTab] = useState<Capability | undefined>();
+  const [activeTab, setActiveTab] = useState<TabValue | undefined>();
 
   if (isLoading) {
     return (
@@ -144,15 +148,22 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
 
   return (
     <div className="space-y-6" data-testid={`specialist-page-${specialistId}`}>
-      <div className="flex items-center gap-3">
-        <Badge variant="outline" data-testid="badge-specialist-letter">{definition.letter}</Badge>
-        <h2 className="text-xl font-semibold" data-testid="text-specialist-name">{definition.realName}</h2>
-        <Badge variant={definition.status === "built" ? "default" : "secondary"} data-testid="badge-specialist-status">
-          {definition.status === "built" ? "Built" : "Needs page"}
-        </Badge>
-        <span className="text-sm text-muted-foreground ml-auto" data-testid="text-specialist-subject">
-          Subject: {definition.subject}
-        </span>
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" data-testid="badge-specialist-letter">{definition.letter}</Badge>
+          <h2 className="text-xl font-semibold" data-testid="text-specialist-name">
+            {definition.displayName ?? definition.realName}
+          </h2>
+          <Badge variant={definition.status === "built" ? "default" : "secondary"} data-testid="badge-specialist-status">
+            {definition.status === "built" ? "Built" : "Needs page"}
+          </Badge>
+          <span className="text-sm text-muted-foreground ml-auto" data-testid="text-specialist-subject">
+            Subject: {definition.subject}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground" data-testid="text-specialist-description">
+          {definition.description ?? ""}
+        </p>
       </div>
 
       {definition.status === "needs-page" && (
@@ -170,13 +181,20 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
       {tabsList.length === 0 ? (
         <Card><CardContent className="py-8 text-sm text-muted-foreground">This Specialist declares no capability tabs.</CardContent></Card>
       ) : (
-        <Tabs value={current} onValueChange={(v) => setActiveTab(v as Capability)}>
+        <Tabs value={current} onValueChange={(v) => setActiveTab(v as TabValue)}>
           <TabsList>
             {tabsList.map((t) => (
               <TabsTrigger key={t.value} value={t.value} data-testid={`tab-${t.value}`}>{t.label}</TabsTrigger>
             ))}
           </TabsList>
 
+          <TabsContent value="workflow">
+            <WorkflowTab
+              specialistId={specialistId}
+              description={definition.description}
+              assignments={assignments}
+            />
+          </TabsContent>
           {tabsList.find((t) => t.value === "required-fields") && (
             <TabsContent value="required-fields"><RequiredFieldsTab specialistId={specialistId} config={config} /></TabsContent>
           )}
@@ -303,6 +321,8 @@ function RequiredFieldsTab({ specialistId, config }: { specialistId: string; con
 }
 
 // ── LlmConfigTab ───────────────────────────────────────────────────────
+const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
+
 function LlmConfigTab({ specialistId, config }: { specialistId: string; config: SpecialistConfigView }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -331,34 +351,195 @@ function LlmConfigTab({ specialistId, config }: { specialistId: string; config: 
   });
 
   return (
-    <Card>
-      <CardHeader><CardTitle>LLM Configuration</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Model</label>
-          <Select value={modelId} onValueChange={setModelId}>
-            <SelectTrigger data-testid="select-llm-model"><SelectValue placeholder="Select a model resource" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">— None —</SelectItem>
-              {(models ?? []).map((m) => (
-                <SelectItem key={m.id} value={String(m.id)}>{m.displayName ?? m.slug}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader><CardTitle>LLM Configuration</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Model</label>
+            <Select value={modelId} onValueChange={setModelId}>
+              <SelectTrigger data-testid="select-llm-model"><SelectValue placeholder="Select a model resource" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— None —</SelectItem>
+                {(models ?? []).map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>{m.displayName ?? m.slug}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Models are managed in <a className="underline" data-testid="link-resources-models" onClick={() => setAdminSection("resources-models")} href="#">Resources · Models →</a>
+            </p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Prompt template</label>
+            <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={12} className="font-mono text-sm" data-testid="textarea-prompt-template" />
+          </div>
+          <Input value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Change summary (optional, recorded in audit)" data-testid="input-change-summary-llm" />
+          <div className="flex justify-end">
+            <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} data-testid="button-save-llm-config">
+              {mutation.isPending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-pipeline-config-embed">
+        <CardHeader>
+          <CardTitle>Global pipeline configuration</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Models are managed in <a className="underline" data-testid="link-resources-models" onClick={() => setAdminSection("resources-models")} href="#">Resources · Models →</a>
+            These policies apply to every specialist. Specialist-specific prompt and model are above.
           </p>
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Prompt template</label>
-          <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={12} className="font-mono text-sm" data-testid="textarea-prompt-template" />
-        </div>
-        <Input value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Change summary (optional, recorded in audit)" data-testid="input-change-summary-llm" />
-        <div className="flex justify-end">
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} data-testid="button-save-llm-config">
-            {mutation.isPending ? "Saving…" : "Save"}
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}>
+            <PipelineConfigTab />
+          </Suspense>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ── WorkflowTab ────────────────────────────────────────────────────────
+interface ProbeStep {
+  name: string;
+  description?: string;
+  status: "pass" | "fail" | "skipped";
+  message?: string;
+}
+interface ProbeResponse {
+  specialistId: string;
+  ranAt: string;
+  steps: ProbeStep[];
+}
+
+const PROBE_STATUS_CLS: Record<ProbeStep["status"], string> = {
+  pass: "bg-emerald-500",
+  fail: "bg-rose-500",
+  skipped: "bg-slate-400",
+};
+
+function WorkflowTab({
+  specialistId,
+  description,
+  assignments,
+}: {
+  specialistId: string;
+  description?: string;
+  assignments: SpecialistAssignmentView[];
+}) {
+  const { toast } = useToast();
+  const [probeResult, setProbeResult] = useState<ProbeResponse | null>(null);
+
+  const probe = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/admin/specialists/${specialistId}/probe`, {});
+      return (await res.json()) as ProbeResponse;
+    },
+    onSuccess: (data) => setProbeResult(data),
+    onError: (e: unknown) =>
+      toast({
+        title: "Test agent failed",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      }),
+  });
+
+  const workflowSteps = useMemo(() => {
+    if (assignments.length === 0) {
+      return [
+        {
+          name: "Catalog declaration",
+          description: "Specialist declared in catalog with no resource assignments.",
+          status: "green" as ResourceHealthStatus,
+        },
+      ];
+    }
+    return assignments.map((a) => ({
+      name: `${a.kind} · ${a.slug}`,
+      description: `Role: ${a.role ?? "—"} · ${a.required ? "required" : "optional"}`,
+      status: a.health.status,
+    }));
+  }, [assignments]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle>Overview / Workflow</CardTitle>
+            {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          </div>
+          <Button
+            onClick={() => probe.mutate()}
+            disabled={probe.isPending}
+            data-testid="button-test-agent"
+          >
+            {probe.isPending ? "Testing…" : "Test agent"}
           </Button>
         </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <ul className="space-y-3" data-testid="workflow-steps">
+          {workflowSteps.map((s, i) => {
+            const band = HEALTH_BAND[s.status];
+            return (
+              <li
+                key={`${s.name}-${i}`}
+                className="flex items-start gap-3"
+                data-testid={`workflow-step-${i}`}
+              >
+                <span
+                  title={band.label}
+                  aria-label={band.label}
+                  className={`mt-1.5 inline-block w-2.5 h-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/10 ${band.cls}`}
+                />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">{s.name}</p>
+                  <p className="text-xs text-muted-foreground">{s.description}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        {probeResult && (
+          <div className="rounded-md border bg-muted/30 p-4 space-y-3" data-testid="probe-results">
+            <div className="flex items-baseline justify-between">
+              <p className="text-sm font-medium">Test results</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(probeResult.ranAt).toLocaleString()}
+              </p>
+            </div>
+            <ul className="space-y-2">
+              {probeResult.steps.map((step, i) => (
+                <li
+                  key={`${step.name}-${i}`}
+                  className="flex items-start gap-3"
+                  data-testid={`probe-step-${i}`}
+                  data-status={step.status}
+                >
+                  <span
+                    title={step.status}
+                    aria-label={step.status}
+                    className={`mt-1.5 inline-block w-2.5 h-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/10 ${PROBE_STATUS_CLS[step.status]}`}
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">
+                      {step.name}{" "}
+                      <span className="text-xs uppercase text-muted-foreground">
+                        {step.status}
+                      </span>
+                    </p>
+                    {step.message && (
+                      <p className="text-xs text-muted-foreground">{step.message}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

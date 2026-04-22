@@ -8,6 +8,38 @@ H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique h
 - **The Analyst** — the singular intelligence agent. Conducts research, provides ranges, conviction levels, and risk flags next to every assumption field. Always "The Analyst" (capitalized, singular). Powered by Norfolk AI Engine.
 - **Rebecca** — the expert companion agent. Answers questions, explains what The Analyst found, guides tours, offers help. Always available in the chat panel.
 
+## Codebase Independence from Replit (CRITICAL — read before adding any dependency or host call)
+
+> Replit is **one supported host, not the only one**. The codebase, build,
+> runtime, and tests must remain portable to any standard Linux + Node + Postgres
+> environment without code changes — only env vars and the Postgres URL change.
+
+**One-line rule:** the app must `npm install && npm run build && npm start`
+on a non-Replit machine given only `DATABASE_URL` (and the same third-party
+secrets the Replit host gets). Lock-in is a regression.
+
+- No `@replit/*` imports in `client/`, `shared/`, `calc/`, `engine/`, or route
+  business logic. `@replit/vite-plugin-*` is dev-only and must be loaded
+  conditionally on `process.env.REPL_ID`.
+- All `process.env.REPL*` reads live in a single host adapter (e.g.
+  `server/host/replit.ts`) and no-op cleanly when the vars are absent.
+- `replitAuth` is one auth provider, not the auth contract. Routes depend on
+  the abstract user/session shape.
+- Every Replit Workflow has a matching `npm run <name>` script. `.replit` is a
+  convenience layer over `package.json`, never the only way to run something.
+- No hard-coded `*.replit.dev` / `*.repl.co` / `*.replit.app` hostnames. Read
+  from env (`PUBLIC_URL`, `BASE_URL`, etc.).
+- Object storage, email, SMS go through small adapter interfaces with at least
+  one non-Replit implementation alongside the Replit one.
+- New `@replit/*` deps go in `devDependencies` only, behind a conditional load.
+
+**Self-check before merging:** with all `REPL*` env vars unset and only
+`DATABASE_URL` set, `npm run build` and `npm test` must still succeed (auth-gated
+tests may skip; nothing may crash on import).
+
+Full rule (with rationale, allowances, and migration guidance):
+`.claude/rules/replit-independence.md`.
+
 ## Business Model (CRITICAL — read before any work)
 
 - **Norfolk AI** builds the app. The HMC is what's modeled. They are separate entities.
