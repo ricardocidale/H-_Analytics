@@ -59,21 +59,24 @@ A CI guardrail (`script/check-replit-independence.ts`, run in `.github/workflows
 
 ## Replit Integrations Overview
 
-All Replit-specific code lives in `server/replit_integrations/` with four modules:
+All Replit-specific code lives in `server/replit_integrations/` with six modules:
 
-| Module | Directory | What It Does |
-|--------|-----------|--------------|
+| Module | Directory / File | What It Does |
+|--------|------------------|--------------|
 | Object Storage | `object_storage/` | GCS-backed file storage via Replit sidecar (`127.0.0.1:1106`) |
 | Auth | `auth/` | OpenID Connect login via Replit identity provider |
 | Image | `image/` | OpenAI image generation (thin wrapper) |
 | Batch | `batch/` | Rate-limited batch processing utilities |
+| Connectors | `connectors.ts` | Wraps `@replit/connectors-sdk` (used by the Linear bridge) |
+| CSP | `csp.ts` | Builds the Content-Security-Policy header (frame-ancestors hosts the literal `*.replit.dev` / `*.replit.app` strings so they stay inside the allow-listed corner) |
 
-**Files that import from `replit_integrations/`** (5 total — all inside the provider abstraction):
+**Files that import from `replit_integrations/`** (6 total — all inside the provider abstraction or the CSP/connectors wrappers):
 - `server/providers/storage/replit-storage.ts` — wraps `ObjectStorageService` for the storage provider
 - `server/providers/auth/replit-auth.ts` — wraps the OIDC flow for the auth provider
-- `server/index.ts` — registers image routes and forwards storage init
-- `server/routes.ts` — registers image and object storage routes
-- `server/replit_integrations/batch/utils.ts` — internal helper
+- `server/providers/auth/local-auth.ts` — reuses the OIDC session helper for the local-auth dev path
+- `server/index.ts` — registers image routes, sets the CSP header
+- `server/routes.ts` — registers object storage routes
+- `server/integrations/linear.ts` — calls `replitProxyFetch` for OAuth proxy
 
 Everything else routes through `server/providers/`.
 
