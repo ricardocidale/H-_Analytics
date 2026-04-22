@@ -220,7 +220,7 @@ export default function VerificationTab() {
           2: { cellWidth: 22 },
           3: { cellWidth: 45 },
         },
-        didParseCell: (data: any) => {
+        didParseCell: (data: import("jspdf-autotable").CellHookData) => {
           if (data.column.index === 0 && data.cell.raw === "PASS") {
             data.cell.styles.textColor = [34, 125, 65];
           } else if (data.column.index === 0 && data.cell.raw === "FAIL") {
@@ -245,7 +245,7 @@ export default function VerificationTab() {
         startY: y, head: [["Status", "Severity", "GAAP Ref", "Metric", "Formula"]], body: rows, theme: "striped",
         headStyles: { fillColor: [45, 74, 94], fontSize: 7 }, bodyStyles: { fontSize: 6.5 },
         columnStyles: { 0: { cellWidth: 14, halign: "center", fontStyle: "bold" }, 1: { cellWidth: 18 }, 2: { cellWidth: 22 }, 3: { cellWidth: 45 } },
-        didParseCell: (data: any) => {
+        didParseCell: (data: import("jspdf-autotable").CellHookData) => {
           if (data.column.index === 0 && data.cell.raw === "PASS") data.cell.styles.textColor = [34, 125, 65];
           else if (data.column.index === 0 && data.cell.raw === "FAIL") data.cell.styles.textColor = [220, 50, 50];
         },
@@ -267,7 +267,7 @@ export default function VerificationTab() {
         startY: y, head: [["Status", "Severity", "GAAP Ref", "Metric", "Formula"]], body: rows, theme: "striped",
         headStyles: { fillColor: [45, 74, 94], fontSize: 7 }, bodyStyles: { fontSize: 6.5 },
         columnStyles: { 0: { cellWidth: 14, halign: "center", fontStyle: "bold" }, 1: { cellWidth: 18 }, 2: { cellWidth: 22 }, 3: { cellWidth: 45 } },
-        didParseCell: (data: any) => {
+        didParseCell: (data: import("jspdf-autotable").CellHookData) => {
           if (data.column.index === 0 && data.cell.raw === "PASS") data.cell.styles.textColor = [34, 125, 65];
           else if (data.column.index === 0 && data.cell.raw === "FAIL") data.cell.styles.textColor = [220, 50, 50];
         },
@@ -293,7 +293,7 @@ export default function VerificationTab() {
       autoTable(doc, {
         startY: y, head: [["Property", "Audit Section", "Checks", "Status"]], body: rows, theme: "striped",
         headStyles: { fillColor: [45, 74, 94], fontSize: 8 }, bodyStyles: { fontSize: 7 },
-        didParseCell: (data: any) => {
+        didParseCell: (data: import("jspdf-autotable").CellHookData) => {
           if (data.column.index === 3 && data.cell.raw === "PASS") data.cell.styles.textColor = [34, 125, 65];
           else if (data.column.index === 3 && data.cell.raw === "FAIL") data.cell.styles.textColor = [220, 50, 50];
           else if (data.column.index === 3 && data.cell.raw === "WARNING") data.cell.styles.textColor = [200, 150, 0];
