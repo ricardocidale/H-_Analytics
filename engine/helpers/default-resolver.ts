@@ -128,34 +128,48 @@ export function computePropertyDefaults(
   sources.incentiveFeePercent = `model:${bm}`;
 
   // ── 2. Country defaults ──────────────────────────────────────────────────
-  let incomeTaxRate = 0.25; // fallback
-  // Audit #319 R4: factory baseline pulled from the registry, locality-aware.
-  let depreciationYears = getFactoryNumber('depreciationYears', country, stateProvince);
-  let propertyTaxRate = modelDefaults.costRateTaxes;
-
+  // Audit #319 R4: tax / property-tax / depreciation come through the
+  // model-constants registry so admin/Specialist overrides are honored
+  // by every consumer. The registry's country/state resolvers read from
+  // COUNTRY_DEFAULTS internally, so factory values are unchanged.
   const countryDef = getCountryDefaults(country);
+  const stateDef =
+    country === "United States" && stateProvince
+      ? getUsStateDefaults(stateProvince)
+      : undefined;
+
+  // Unknown-country fallbacks intentionally short-circuit the registry: the
+  // registry would silently return the US baseline, but for an unknown
+  // country we prefer an explicit "no data" stance (constants fallback for
+  // tax/depreciation, business-model rate for property tax) so nothing
+  // pretends to be locality-aware when it isn't.
+  let incomeTaxRate: number;
+  let depreciationYears: number;
+  let propertyTaxRate: number;
+
   if (countryDef) {
-    incomeTaxRate = countryDef.taxRate;
-    depreciationYears = countryDef.depreciationYears;
-    propertyTaxRate = countryDef.costRateTaxes;
-    sources.incomeTaxRate = `country:${country}`;
-    sources.depreciationYears = `country:${country}:${countryDef.depreciationAuthority}`;
-    sources.propertyTaxRate = `country:${country}`;
+    incomeTaxRate = stateDef
+      ? getFactoryNumber('taxRate', country, stateProvince)
+      : getFactoryNumber('taxRate', country);
+    depreciationYears = getFactoryNumber('depreciationYears', country, stateProvince);
+    propertyTaxRate = stateDef
+      ? getFactoryNumber('costRateTaxes', country, stateProvince)
+      : getFactoryNumber('costRateTaxes', country);
+
+    sources.incomeTaxRate = stateDef
+      ? `registry:taxRate:state:${stateProvince}`
+      : `registry:taxRate:country:${country}`;
+    sources.depreciationYears = `registry:depreciationYears:country:${country}:${countryDef.depreciationAuthority}`;
+    sources.propertyTaxRate = stateDef
+      ? `registry:costRateTaxes:state:${stateProvince}`
+      : `registry:costRateTaxes:country:${country}`;
   } else {
+    incomeTaxRate = 0.25;
+    depreciationYears = getFactoryNumber('depreciationYears');
+    propertyTaxRate = modelDefaults.costRateTaxes;
     sources.incomeTaxRate = "fallback:constants";
     sources.depreciationYears = "fallback:constants";
     sources.propertyTaxRate = `model:${bm}`;
-  }
-
-  // US state override (refines federal tax + property tax)
-  if (country === "United States" && stateProvince) {
-    const stateDef = getUsStateDefaults(stateProvince);
-    if (stateDef) {
-      incomeTaxRate = stateDef.taxRate;
-      propertyTaxRate = stateDef.costRateTaxes;
-      sources.incomeTaxRate = `state:${stateProvince}`;
-      sources.propertyTaxRate = `state:${stateProvince}`;
-    }
   }
 
   // ── 3. Quality tier ADR & occupancy ──────────────────────────────────────
