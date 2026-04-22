@@ -82,29 +82,39 @@ async function autoEnhancePhoto(photoId: number, imageUrl: string, imageDataBase
 }
 
 export function register(app: Express) {
-  // GET /api/property-photos/:id/image — serve image binary stored in Neon DB.
-  // imageUrl is set to this path when imageData is present, making images
-  // persistent and independent of Replit Object Storage.
+  // GET /api/property-photos/:id/image — legacy serving endpoint.
+  // Photos historically stored base64 blobs in Postgres (image_data column).
+  // Phase B (Apr 22 2026) migrated all blobs to /objects/property-photos/<id>.png
+  // in Replit Object Storage. This endpoint now:
+  //   1. Redirects to the bucket URL (preferred path for cached refs).
+  //   2. Falls back to streaming inline base64 if a row still has image_data
+  //      (defensive — should not happen post-migration).
   app.get("/api/property-photos/:id/image", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
       if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
       const photo = await storage.getPhotoById(photoId);
-      if (!photo || !photo.imageData) {
-        return res.status(404).json({ error: "Image not found in database" });
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
       }
       if (!(await checkPropertyAccess(getAuthUser(req), photo.propertyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const buffer = Buffer.from(photo.imageData, "base64");
-      res.set({
-        "Content-Type": "image/png",
-        "Content-Length": buffer.length,
-        "Cache-Control": "private, max-age=86400",
-      });
-      res.send(buffer);
+      if (photo.imageUrl?.startsWith("/objects/")) {
+        return res.redirect(302, photo.imageUrl);
+      }
+      if (photo.imageData) {
+        const buffer = Buffer.from(photo.imageData, "base64");
+        res.set({
+          "Content-Type": "image/png",
+          "Content-Length": buffer.length,
+          "Cache-Control": "private, max-age=86400",
+        });
+        return res.send(buffer);
+      }
+      return res.status(404).json({ error: "Image not found" });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to serve photo from database", error);
+      logAndSendError(res, "Failed to serve photo", error);
     }
   });
 
