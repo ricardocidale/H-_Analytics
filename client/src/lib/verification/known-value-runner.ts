@@ -23,11 +23,14 @@ import {
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_MARKETING_RATE,
-  DEPRECIATION_YEARS,
-  DAYS_PER_MONTH,
   MONTHS_PER_YEAR,
 } from "../constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { TestCase, KNOWN_VALUE_TEST_CASES, computeMonthlyPL } from "./test-cases";
+
+// Audit #319 R4 — registry-backed factory baselines (US default).
+const DEPRECIATION_YEARS = getFactoryNumber("depreciationYears");
+const DAYS_PER_MONTH = getFactoryNumber("daysPerMonth");
 
 export interface KnownValueCheck {
   label: string;

@@ -209,8 +209,15 @@ export function hasStateOverlay(key: string, country: string | null | undefined)
   return !!entry && entry.locality === "country+state" && country === "United States";
 }
 
+/**
+ * Compile-time-checked union of every key currently registered in
+ * `MODEL_CONSTANTS_REGISTRY`. New keys added to the registry literal are
+ * picked up automatically. Audit #319 R4 — typed accessors.
+ */
+export type RegisteredConstantKey = keyof typeof MODEL_CONSTANTS_REGISTRY;
+
 export function getFactoryValue(
-  key: string,
+  key: RegisteredConstantKey,
   country?: string | null,
   subdivision?: string | null,
 ): unknown {
@@ -230,7 +237,7 @@ export function getFactoryValue(
  * `DEFAULT_*` exports are now `@deprecated`.
  */
 export function getFactoryNumber(
-  key: string,
+  key: RegisteredConstantKey,
   country?: string | null,
   subdivision?: string | null,
 ): number {

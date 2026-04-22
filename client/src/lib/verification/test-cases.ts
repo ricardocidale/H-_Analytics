@@ -23,9 +23,12 @@ import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
-  DEPRECIATION_YEARS,
   MONTHS_PER_YEAR,
 } from "../constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #319 R4 — registry-backed factory baseline (US default).
+const DEPRECIATION_YEARS = getFactoryNumber("depreciationYears");
 
 export interface TestCase {
   name: string;
