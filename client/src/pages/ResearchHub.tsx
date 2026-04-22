@@ -90,12 +90,12 @@ export default function ResearchHub() {
 
   const generateOneResearch = useCallback(async (
     type: "property" | "company" | "global",
-    property?: any,
+    property?: { id: string | number; name: string; location?: string; market?: string; roomCount?: number; startAdr?: number; maxOccupancy?: number; type?: string },
   ): Promise<boolean> => {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    const body: any = {
+    const body: Record<string, unknown> = {
       type,
       assetDefinition: globalAssumptions?.assetDefinition,
     };
@@ -140,7 +140,7 @@ export default function ResearchHub() {
     if (!properties || !researchStatus) return;
 
     const missingProps = researchStatus.properties.filter(
-      (p: any) => p.status === "missing"
+      (p: { status: string }) => p.status === "missing"
     );
     const companyMissing = researchStatus.company?.status === "missing";
     const globalMissing = researchStatus.global?.status === "missing";
@@ -159,7 +159,7 @@ export default function ResearchHub() {
       currentIdx++;
       setCurrentGenIndex(currentIdx);
       const propStatus = missingProps[i];
-      const property = properties.find((p: any) => p.id === propStatus.propertyId);
+      const property = properties.find((p) => p.id === propStatus.propertyId);
       if (!property) continue;
 
       try {
@@ -256,9 +256,9 @@ export default function ResearchHub() {
   const companyStatus = researchStatus?.company ?? { status: "missing" as const, updatedAt: null };
   const globalStatus = researchStatus?.global ?? { status: "missing" as const, updatedAt: null };
 
-  const freshCount = propertyStatuses.filter((p: any) => p.status === "fresh").length;
-  const staleCount = propertyStatuses.filter((p: any) => p.status === "stale").length;
-  const missingCount = propertyStatuses.filter((p: any) => p.status === "missing").length;
+  const freshCount = propertyStatuses.filter((p: { status: string }) => p.status === "fresh").length;
+  const staleCount = propertyStatuses.filter((p: { status: string }) => p.status === "stale").length;
+  const missingCount = propertyStatuses.filter((p: { status: string }) => p.status === "missing").length;
   const totalMissingCount = missingCount
     + (companyStatus.status === "missing" ? 1 : 0)
     + (globalStatus.status === "missing" ? 1 : 0);
@@ -471,7 +471,7 @@ export default function ResearchHub() {
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {propertyStatuses.map((prop: any, index: number) => (
+              {propertyStatuses.map((prop: { propertyId: number; name: string; location?: string; imageUrl?: string; status: "fresh" | "stale" | "missing"; updatedAt?: string | null }, index: number) => (
                 <motion.div
                   key={prop.propertyId}
                   custom={index + 3}
