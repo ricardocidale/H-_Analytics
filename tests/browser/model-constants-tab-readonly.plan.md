@@ -4,7 +4,9 @@ Two layers protect the read-only Constants doctrine at runtime:
 
 1. **`tests/client/model-constants-tab-browser.test.tsx`** — the
    automated runtime DOM render test that runs as part of `npm test`
-   (vitest, happy-dom, @testing-library/react). It mounts
+   (vitest, happy-dom, @testing-library/react) **and on every PR**
+   via the `Constants tab read-only browser test (Phase 4 doctrine)`
+   step in `.github/workflows/ci.yml`. It mounts
    `<ModelConstantsTab />` with EVERY specialist-owned key from
    `MODEL_CONSTANTS_REGISTRY` mounted at once, then asserts:
      - 0 `<input>`, 0 `<textarea>`, 0 `[contenteditable="true"]`

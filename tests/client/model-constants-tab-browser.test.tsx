@@ -240,9 +240,23 @@ describe("ModelConstantsTab — Phase 4 read-only browser test (full registry)",
         offenders.push(`${row.getAttribute("data-testid")}: ${ri} input, ${rt} textarea, ${re} contenteditable`);
       }
     }
-    expect(
-      { inputs, textareas, editables, offenders },
-    ).toEqual({ inputs: 0, textareas: 0, editables: 0, offenders: [] });
+    if (offenders.length > 0) {
+      // Surface the broken row(s) at the top of the failure so a PR
+      // author sees exactly which Constants row regressed the
+      // read-only doctrine without scrolling through a generic diff.
+      const message = [
+        "Phase 4 read-only doctrine broken on the admin Constants tab.",
+        "Constants are authority-sourced and written exclusively by AI",
+        "Specialists — admins must never be able to type a value. The",
+        "following row(s) rendered an editable element:",
+        ...offenders.map((o) => `  • ${o}`),
+        "",
+        "See tests/browser/model-constants-tab-readonly.plan.md and",
+        "client/src/components/admin/model-defaults/ModelConstantsTab.tsx.",
+      ].join("\n");
+      throw new Error(message);
+    }
+    expect({ inputs, textareas, editables }).toEqual({ inputs: 0, textareas: 0, editables: 0 });
   });
 
   it("renders a Specialist letter badge, Refresh research button, and History button on EVERY row", async () => {

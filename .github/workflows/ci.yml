@@ -70,5 +70,14 @@ jobs:
       - name: Run Tests
         run: npm run test:summary
 
+      - name: Constants tab read-only browser test (Phase 4 doctrine)
+        # Re-runs the model-constants browser test as its own named
+        # CI step so a regression that ships an editable input on the
+        # admin Constants tab fails this clearly-labeled check on the
+        # PR — instead of being buried inside the generic "Run Tests"
+        # output. The test itself is also part of `npm test`, so this
+        # step is redundant on green and informational on red.
+        run: npx vitest run tests/client/model-constants-tab-browser.test.tsx tests/client/model-constants-tab-readonly.test.tsx
+
       - name: Verify Financials
         run: npm run verify:summary
