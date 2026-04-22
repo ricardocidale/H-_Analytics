@@ -30,7 +30,7 @@ import {
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
   IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconExport, IconScenarios, IconPalette,
   IconLayers, IconShieldCheck, IconGlobe, IconTimer, IconGauge, IconMessageSquare,
-  IconCalculator,
+  IconCalculator, IconDashboard,
 } from "@/components/icons";
 import { Link } from "wouter";
 
@@ -353,6 +353,20 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
         className="w-full bg-transparent text-sidebar-foreground"
       >
         <SidebarContent className="bg-transparent gap-1 px-2 py-2">
+          {/* Home — always first; returns to the main dashboard sidebar */}
+          <SidebarGroup className="p-0">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Home">
+                  <Link href="/" data-testid="admin-nav-home">
+                    <IconDashboard className="size-4 shrink-0" />
+                    <span className="truncate">Home</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+
           {navGroups.map((group) => {
             const isGroupActive = group.id === activeGroup;
             const showFreshnessBadge =
