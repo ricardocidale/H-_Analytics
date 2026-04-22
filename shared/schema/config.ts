@@ -346,6 +346,11 @@ export const globalAssumptions = pgTable("global_assumptions", {
   check("ga_exit_cap_rate_range", sql`${table.exitCapRate} > 0 AND ${table.exitCapRate} <= 1`),
 ]);
 
+// Audit Task #319 R1 (C3): every nested JSONB schema below uses
+// `.strict()` so admin requests cannot persist unknown fields into the
+// `global_assumptions` JSONB columns. Defaults inside `assetDefinition`
+// mirror the Drizzle table defaults at line 226 so the Zod and DB
+// layers agree on what a "complete" object looks like.
 export const insertGlobalAssumptionsSchema = createInsertSchema(globalAssumptions, {
   fiscalYearStartMonth: z.number().int().min(1).max(12).default(1),
   standardAcqPackage: z.object({
@@ -354,7 +359,7 @@ export const insertGlobalAssumptionsSchema = createInsertSchema(globalAssumption
     preOpeningCosts: z.number(),
     operatingReserve: z.number(),
     monthsToOps: z.number()
-  }),
+  }).strict(),
   debtAssumptions: z.object({
     interestRate: z.number(),
     amortizationYears: z.number(),
@@ -365,23 +370,23 @@ export const insertGlobalAssumptionsSchema = createInsertSchema(globalAssumption
     refiPeriodYears: z.number().optional(),
     acqLTV: z.number(),
     acqClosingCostRate: z.number()
-  }),
+  }).strict(),
   assetDefinition: z.object({
-    minRooms: z.number(),
-    maxRooms: z.number(),
-    hasFB: z.boolean(),
-    hasEvents: z.boolean(),
-    hasWellness: z.boolean(),
-    minAdr: z.number(),
-    maxAdr: z.number(),
-    level: z.enum(["budget", "average", "luxury"]).optional().default("luxury"),
-    eventLocations: z.number().optional().default(2),
-    maxEventCapacity: z.number().optional().default(150),
-    acreage: z.number().optional().default(10),
-    privacyLevel: z.enum(["low", "moderate", "high"]).optional().default("high"),
-    parkingSpaces: z.number().optional().default(50),
-    description: z.string()
-  }).optional()
+    minRooms: z.number().default(10),
+    maxRooms: z.number().default(80),
+    hasFB: z.boolean().default(true),
+    hasEvents: z.boolean().default(true),
+    hasWellness: z.boolean().default(true),
+    minAdr: z.number().default(150),
+    maxAdr: z.number().default(600),
+    level: z.enum(["budget", "average", "luxury"]).default("luxury"),
+    eventLocations: z.number().default(2),
+    maxEventCapacity: z.number().default(150),
+    acreage: z.number().default(10),
+    privacyLevel: z.enum(["low", "moderate", "high"]).default("high"),
+    parkingSpaces: z.number().default(50),
+    description: z.string().default("Luxury boutique hotels on private estates of 10+ acres, catering to 100+ person exotic, unique, and corporate events in exclusive, secluded settings with full-service F&B, wellness programming, and curated guest experiences.")
+  }).strict().optional()
 }).omit({ updatedAt: true });
 
 export const selectGlobalAssumptionsSchema = createSelectSchema(globalAssumptions);

@@ -1,4 +1,5 @@
 import type { NotificationEvent } from "./events";
+import { ALERT_METRICS, type AlertMetric } from "@shared/schema/notifications";
 import { getEventLabel } from "./events";
 import type { Property } from "@shared/schema";
 import { sendNotificationEmail } from "../integrations/resend";
@@ -76,16 +77,24 @@ export async function evaluateAlertRules(
       }
     }
 
-    const eventType = getMetricEventType(rule.metric);
+    // Audit Task #319 R3 (H8): the DB column is `text` so validate at
+    // the boundary before invoking the now-exhaustive label functions.
+    // Unknown metrics are skipped (rather than mislabeled).
+    if (!isAlertMetric(rule.metric)) {
+      console.warn(`[notifications] skipping rule ${rule.id}: unknown metric "${rule.metric}"`);
+      continue;
+    }
+    const ruleMetric: AlertMetric = rule.metric;
+    const eventType = getMetricEventType(ruleMetric);
     const event: NotificationEvent = {
       type: eventType,
       propertyId: property.id,
       propertyName: property.name,
-      metric: rule.metric,
+      metric: ruleMetric,
       currentValue: metricValue,
       threshold: rule.threshold,
       direction: rule.operator === "<" ? "below" : "above",
-      message: `${formatMetricName(rule.metric)} is ${metricValue} (threshold: ${rule.operator} ${rule.threshold}) for ${property.name}`,
+      message: `${formatMetricName(ruleMetric)} is ${metricValue} (threshold: ${rule.operator} ${rule.threshold}) for ${property.name}`,
       link: `/property/${property.id}`,
       timestamp: new Date(),
       metadata: { ruleName: rule.name, ruleId: rule.id },
@@ -95,6 +104,10 @@ export async function evaluateAlertRules(
 
     await storage.updateAlertRule(rule.id, { lastTriggeredAt: new Date() });
   }
+}
+
+function isAlertMetric(value: string): value is AlertMetric {
+  return (ALERT_METRICS as readonly string[]).includes(value);
 }
 
 function evaluateCondition(value: number, operator: string, threshold: number): boolean {
@@ -107,22 +120,31 @@ function evaluateCondition(value: number, operator: string, threshold: number): 
   }
 }
 
-function getMetricEventType(metric: string): NotificationEvent["type"] {
+// Audit Task #319 R3 (H8): typed parameter + exhaustive switches. A new
+// AlertMetric added to ALERT_METRICS will fail the build here instead of
+// being silently mislabeled as DSCR_BREACH.
+function getMetricEventType(metric: AlertMetric): NotificationEvent["type"] {
   switch (metric) {
     case "dscr": return "DSCR_BREACH";
     case "cap_rate": return "CAP_RATE_BREACH";
     case "occupancy": return "OCCUPANCY_BREACH";
     case "noi_variance": return "NOI_VARIANCE_BREACH";
-    default: return "DSCR_BREACH";
+    default: {
+      const _exhaustive: never = metric;
+      throw new Error(`Unhandled alert metric: ${String(_exhaustive)}`);
+    }
   }
 }
 
-function formatMetricName(metric: string): string {
+function formatMetricName(metric: AlertMetric): string {
   switch (metric) {
     case "dscr": return "DSCR";
     case "cap_rate": return "Cap Rate";
     case "occupancy": return "Occupancy";
     case "noi_variance": return "NOI Variance";
-    default: return metric;
+    default: {
+      const _exhaustive: never = metric;
+      throw new Error(`Unhandled alert metric: ${String(_exhaustive)}`);
+    }
   }
 }

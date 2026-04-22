@@ -190,6 +190,14 @@ export function computePrepayment(input: PrepaymentInput): PrepaymentOutput {
       details = result.details;
       break;
     }
+    default: {
+      // Audit Task #319 R3 (H7): exhaustiveness guard. If a new
+      // prepayment_type is added to the input schema, the compiler will
+      // fail here, forcing the new branch to be implemented before
+      // `penalty` / `details` are read below.
+      const _exhaustive: never = input.prepayment_type;
+      throw new Error(`Unhandled prepayment_type: ${String(_exhaustive)}`);
+    }
   }
 
   const penaltyPct = balance > 0 ? pct(penalty / balance) : 0;

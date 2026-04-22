@@ -256,7 +256,25 @@ interface GeminiContent {
   content?: string;
 }
 
-export type LlmVendorKey = "anthropic" | "openai" | "google";
+// Audit Task #319 R2 (C4): unify with the wider `LlmVendor` union from
+// shared/schema/research-types.ts so an admin UI selection that survives
+// the type system (e.g. via DB persistence) cannot silently fall through
+// to anthropic. Vendors with no implemented client throw a typed error
+// at call time so the caller can surface "not yet supported" cleanly.
+import type { LlmVendor } from "@shared/schema/research-types";
+
+export type LlmVendorKey = LlmVendor;
+
+export class UnsupportedResearchVendorError extends Error {
+  constructor(public readonly vendor: LlmVendor) {
+    super(`Research vendor "${vendor}" is not yet implemented (no client adapter).`);
+    this.name = "UnsupportedResearchVendorError";
+  }
+}
+
+function assertNeverVendor(v: never): never {
+  throw new Error(`Unhandled research vendor branch: ${String(v)}`);
+}
 
 export function createResearchClient(
   vendor: LlmVendorKey,
@@ -279,13 +297,24 @@ export function createResearchClient(
       if (!clients.gemini) throw new Error("Gemini client not available");
       return new GeminiResearchClient(clients.gemini);
     }
+    case "xai":
+    case "tesla":
+    case "microsoft":
+    case "meta":
+    case "deepseek":
+      throw new UnsupportedResearchVendorError(vendor);
     default:
-      throw new Error(`Unsupported research vendor: ${vendor}`);
+      // Exhaustiveness guard: if shared `LlmVendor` grows, the compiler
+      // will fail here and force this switch to be updated.
+      return assertNeverVendor(vendor);
   }
 }
 
 export function resolveVendorFromModel(model: string): LlmVendorKey {
   if (model.startsWith("gpt-") || model.startsWith("o1") || model.startsWith("o3") || model.startsWith("o4")) return "openai";
   if (model.startsWith("gemini")) return "google";
+  if (model.startsWith("grok")) return "xai";
+  if (model.startsWith("deepseek")) return "deepseek";
+  if (model.startsWith("llama") || model.startsWith("meta-")) return "meta";
   return "anthropic";
 }
