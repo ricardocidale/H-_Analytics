@@ -37,6 +37,7 @@ import { getEffectiveConstant } from "@shared/get-effective-constant";
 import { COUNTRY_DEFAULTS } from "@shared/countryDefaults";
 import { proposeConstantRegeneration } from "../../ai/regenerate-constants";
 import { logger } from "../../logger";
+import { getSpecialistForConstant } from "../../../engine/analyst/registry/specialist-catalog";
 
 const overrideBodySchema = z.object({
   country: z.string().nullable().optional(),
@@ -152,6 +153,12 @@ export function registerModelConstantsRoutes(app: Express) {
           factoryWasFallback = !canonicalHit && tsHit === undefined && localityForKey.country !== "United States";
         }
 
+        // Phase 4 doctrine UI — surface the owning Specialist so the read-
+        // only Constants tab can render the H/I/J/K letter badge and label
+        // without a second round-trip to the catalog. Resolved at request
+        // time (cheap; the catalog is a frozen in-memory list).
+        const owner = getSpecialistForConstant(key);
+
         return {
           key,
           label: entry.label,
@@ -166,6 +173,17 @@ export function registerModelConstantsRoutes(app: Express) {
           source: resolved.source,
           resolvedAt: resolved.resolvedAt ?? null,
           override: resolved.override ?? null,
+          // Phase 4: Constants doctrine fields. `specialistOwned` gates
+          // the read-only UI (no number input, no Override button); the
+          // specialist triple powers the per-row letter badge.
+          specialistOwned: entry.specialistOwned,
+          specialistId: owner?.id ?? null,
+          specialistLetter: owner?.letter ?? null,
+          specialistName: owner?.displayName ?? null,
+          // Last-refreshed timestamp drives the "Refreshed Xd ago" line on
+          // each card. Falls back to null for factory rows so the UI can
+          // render "Never refreshed" without ambiguity.
+          lastRefreshedAt: resolved.override?.createdAt ?? null,
         };
       });
 
@@ -401,6 +419,121 @@ export function registerModelConstantsRoutes(app: Express) {
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to apply analyst regeneration", error);
+    }
+  });
+
+  /**
+   * Phase 4 (Constants doctrine): one-shot **Refresh research**.
+   *
+   * Replaces the previous two-step Regenerate-then-Apply admin flow. The
+   * new doctrine is "the Specialist's verdict is the value" — admins do
+   * not type a value and do not approve a value before write. Clicking
+   * Refresh research triggers the owning Specialist (via
+   * `proposeConstantRegeneration`) and immediately persists the proposal
+   * with `source = 'analyst'`. The endpoint returns the proposal so the
+   * UI can render the new value, authority, evidence, and source list as
+   * a results panel — and a "Reset to factory" button is still available
+   * if the admin wants to roll back.
+   *
+   * The two-step `/regenerate` and `/apply-research` routes above are
+   * kept for back-compat (scheduler, scripted callers) but the UI no
+   * longer uses them.
+   */
+  app.post("/api/admin/model-constants/:key/refresh", requireAdmin, async (req, res) => {
+    try {
+      const key = String(req.params.key ?? "");
+      if (!MODEL_CONSTANTS_REGISTRY[key]) {
+        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+      }
+
+      const parsed = localityQuerySchema.safeParse(req.query);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
+
+      const localityCheck = validateLocality(key, country, subdivision);
+      if (!localityCheck.ok) {
+        return res.status(400).json({ error: localityCheck.error });
+      }
+
+      const overrides = await storage.listModelConstantOverrides();
+
+      // 1. Specialist research — produces a proposal and persists a
+      //    research_runs row with the analyst's full reasoning + sources.
+      const proposal = await proposeConstantRegeneration({
+        key,
+        country,
+        subdivision,
+        overrides,
+      });
+
+      const userId = (req as { user?: { id?: number } }).user?.id ?? null;
+
+      // 2. Auto-apply. The storage layer drops the row if the proposed
+      //    value equals factory (the factory-equality invariant), so a
+      //    no-change verdict cleans up an existing override automatically.
+      const result = await storage.upsertModelConstantOverride({
+        constantKey: key,
+        country,
+        countrySubdivision: subdivision,
+        value: proposal.value,
+        source: "analyst",
+        authority: proposal.authority,
+        referenceUrl: proposal.referenceUrl ?? null,
+        researchRunId: proposal.researchRunId ?? null,
+        overrideNote: proposal.reasoning,
+        createdBy: userId,
+      });
+
+      const loc = `${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}`;
+      logActivity(
+        req,
+        "refresh-research-model-constant",
+        "model-constant",
+        0,
+        proposal.isDifferentFromCurrent
+          ? `Refresh research updated ${key} (${loc}) to ${JSON.stringify(proposal.value)}. Authority: ${proposal.authority}.`
+          : `Refresh research confirmed current ${key} (${loc}) value. Authority: ${proposal.authority}.`,
+      );
+
+      res.json({
+        wasFactoryEqual: result === null,
+        wasNoChange: !proposal.isDifferentFromCurrent,
+        override: result,
+        proposal,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Refresh research failed", error);
+    }
+  });
+
+  /**
+   * Phase 4 (Constants doctrine): per-row research history.
+   *
+   * Returns the most recent research_runs rows produced by the Constants
+   * regeneration pipeline for this (key, country, subdivision) — powers
+   * the "History" affordance on each Constants card so admins can audit
+   * the chain of analyst proposals without trawling global logs.
+   */
+  app.get("/api/admin/model-constants/:key/research-history", requireAdmin, async (req, res) => {
+    try {
+      const key = String(req.params.key ?? "");
+      if (!MODEL_CONSTANTS_REGISTRY[key]) {
+        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+      }
+
+      const parsed = localityQuerySchema.safeParse(req.query);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
+
+      const localityCheck = validateLocality(key, country, subdivision);
+      if (!localityCheck.ok) {
+        return res.status(400).json({ error: localityCheck.error });
+      }
+
+      const runs = await storage.getResearchRunsForConstant(key, country, subdivision, 10);
+      res.json({ runs });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to load research history", error);
     }
   });
 }

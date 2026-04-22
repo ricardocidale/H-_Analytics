@@ -182,6 +182,39 @@ export class IntelligenceV2Storage {
       .orderBy(desc(researchRuns.startedAt));
   }
 
+  /**
+   * Constants doctrine — list recent `research_runs` rows produced by the
+   * Constants regeneration pipeline for a specific (key, country, subdivision)
+   * triple. Powers the per-row "History" affordance on the Constants admin
+   * tab so admins can audit the chain of analyst proposals for a constant
+   * without trawling through global research-run logs.
+   *
+   * Filter keys (`metadata.constant.{key,country,subdivision}`) are written
+   * by `proposeConstantRegeneration` in `server/ai/regenerate-constants.ts`
+   * — keep those two call sites in sync if either changes.
+   */
+  async getResearchRunsForConstant(
+    constantKey: string,
+    country: string | null,
+    subdivision: string | null,
+    limit = 10,
+  ): Promise<ResearchRun[]> {
+    const conditions = [
+      eq(researchRuns.entityType, "model-constant"),
+      sql`${researchRuns.metadata}->'constant'->>'key' = ${constantKey}`,
+      country === null
+        ? sql`${researchRuns.metadata}->'constant'->>'country' IS NULL`
+        : sql`${researchRuns.metadata}->'constant'->>'country' = ${country}`,
+      subdivision === null
+        ? sql`${researchRuns.metadata}->'constant'->>'subdivision' IS NULL`
+        : sql`${researchRuns.metadata}->'constant'->>'subdivision' = ${subdivision}`,
+    ];
+    return db.select().from(researchRuns)
+      .where(and(...conditions))
+      .orderBy(desc(researchRuns.startedAt))
+      .limit(limit);
+  }
+
   async getRunningResearchEntityIds(entityType: string): Promise<number[]> {
     const rows = await db.execute(sql`
       SELECT DISTINCT entity_id AS "entityId"
