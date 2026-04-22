@@ -25,18 +25,10 @@ const ALLOW_LIST = [
   // Build-time Replit Vite plugins (cartographer, dev banner, runtime error modal).
   "vite.config.ts",
   "vite-plugin-meta-images.ts",
-  // CSP frame-ancestors lists `*.replit.dev` / `*.replit.app` so the app
-  // can be embedded inside the Replit IDE preview pane.
-  "server/index.ts",
-  // Linear bridge uses Replit Connectors SDK for OAuth credential exchange;
-  // route through `server/providers/` if/when this gets ported.
-  "server/integrations/linear.ts",
-  // One-off backfill / image-render scripts that hit the running app over its
-  // public Replit URL. Not part of the runtime hot path.
-  "server/scripts/",
-  // The guardrail itself names the patterns it bans.
-  "script/check-replit-independence.ts",
 ];
+
+// Files that the guardrail itself must not scan (it names the patterns it bans).
+const SELF_REFERENCE = "script/check-replit-independence.ts";
 
 const BANNED_PATTERNS = [
   // Direct imports of Replit-published packages
@@ -109,6 +101,7 @@ function rgFind(pattern: string): Hit[] {
 }
 
 function isAllowed(file: string): boolean {
+  if (file === SELF_REFERENCE) return true;
   return ALLOW_LIST.some((entry) => {
     if (entry.endsWith("/")) return file.startsWith(entry);
     return file === entry;

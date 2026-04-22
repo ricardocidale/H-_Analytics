@@ -7,15 +7,16 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
 # Install deps separately to maximize Docker layer caching.
-COPY package.json package-lock.json* pnpm-lock.yaml* ./
-RUN npm install --include=dev --no-audit --no-fund
+# `npm ci` enforces a clean, reproducible install from package-lock.json.
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
 
 # Copy the rest of the source and build.
 COPY . .
 RUN npm run build
 
-# Drop dev deps so we copy only what runtime needs.
-RUN npm prune --omit=dev --no-audit --no-fund
+# Drop dev deps so we copy only what runtime needs (clean reinstall from lockfile).
+RUN npm ci --omit=dev --no-audit --no-fund
 
 # ---------- Stage 2: runtime ----------
 FROM node:22-bookworm-slim AS runtime

@@ -26,6 +26,9 @@ import compression from "compression";
 import { registerRoutes } from "./routes";
 // TODO: Move image routes out of replit_integrations/ — they're not Replit-specific (they use OpenAI/Gemini directly). Blocked because they depend on ObjectStorageService from replit_integrations/object_storage.
 import { registerImageRoutes } from "./replit_integrations/image";
+import { buildContentSecurityPolicy } from "./replit_integrations/csp";
+
+const contentSecurityPolicy = buildContentSecurityPolicy();
 import { getAuthProvider } from "./providers/auth";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -67,7 +70,7 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=()");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.ingest.sentry.io https://*.sentry.io https://us.i.posthog.com https://app.posthog.com; media-src 'self' blob:; frame-ancestors 'self' https://*.replit.dev https://*.replit.app https://*.repl.co");
+  res.setHeader("Content-Security-Policy", contentSecurityPolicy);
   if (process.env.NODE_ENV === "production") {
     res.setHeader("Strict-Transport-Security", `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains`);
   }

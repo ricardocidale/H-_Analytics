@@ -1,6 +1,4 @@
-import { ReplitConnectors } from "@replit/connectors-sdk";
-
-const connectors = new ReplitConnectors();
+import { replitProxyFetch } from "../replit_integrations/connectors";
 
 export interface LinearGraphQLError {
   message: string;
@@ -27,7 +25,7 @@ export async function linearQuery<T>(
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
-  const response = await connectors.proxy("linear", "/graphql", {
+  const response = await replitProxyFetch("linear", "/graphql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),

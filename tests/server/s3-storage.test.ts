@@ -167,6 +167,19 @@ describe("S3StorageProvider", () => {
     await expect(provider.exists("k")).rejects.toThrow(/denied/);
   });
 
+  it("exists rethrows SignatureDoesNotMatch with permission semantics (403)", async () => {
+    // SignatureDoesNotMatch indicates a credential/permission problem, NOT a
+    // missing object. The provider must surface it (rethrow), never silently
+    // map it to exists()=false the way it maps NotFound/NoSuchKey.
+    const err = Object.assign(new Error("The request signature we calculated does not match"), {
+      name: "SignatureDoesNotMatch",
+      $metadata: { httpStatusCode: 403 },
+    });
+    sendMock.mockRejectedValueOnce(err);
+    const provider = await loadProvider();
+    await expect(provider.exists("k")).rejects.toThrow(/signature/i);
+  });
+
   it("delete sends a DeleteObjectCommand for the bucket+key", async () => {
     sendMock.mockResolvedValueOnce({});
     const provider = await loadProvider();

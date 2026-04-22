@@ -32,7 +32,13 @@ import { logger } from "../logger";
 import { randomUUID } from "crypto";
 
 const PROPERTY_NAME = "Medellin Duplex";
-const BASE_URL = process.env.BASE_URL ?? "https://partner-portal-landb.replit.app";
+const BASE_URL = process.env.BASE_URL;
+if (!BASE_URL) {
+  throw new Error(
+    "BASE_URL env var is required (e.g. https://your-host.example.com). " +
+      "This one-off script targets the running app over its public URL.",
+  );
+}
 
 async function uploadBuffer(buffer: Buffer): Promise<string> {
   const storageProvider = await getStorageProviderAsync();
