@@ -4,8 +4,8 @@ import { logos, companies, designThemes, globalAssumptions } from "@shared/schem
 import { logger } from "../logger";
 import { SEED_COMPANY_IDENTITY } from "./properties";
 
-const HPLUS_URL = "/logos/h-logo-glass.png";
-const LB_URL = "/logos/lb-logo.jpeg";
+const HPLUS_URL = "/api/media/h-logo-glass.png";
+const LB_URL = "/api/media/lb-logo.jpeg";
 const HPLUS_DEFAULT_MIGRATION_TAG = "branding_hplus_default_v1";
 
 /**
@@ -115,19 +115,19 @@ export async function seedDefaultLogos() {
       {
         name: "Boutique Elegance",
         companyName: "Boutique Hotel Group",
-        url: "/logos/norfolk-ai-blue.png",
+        url: "/api/media/norfolk-ai-blue.png",
         isDefault: false,
       },
       {
         name: "Classic Hospitality",
         companyName: "Hospitality Management Co.",
-        url: "/logos/norfolk-ai-yellow.png",
+        url: "/api/media/norfolk-ai-yellow.png",
         isDefault: false,
       },
       {
         name: "Modern Resort",
         companyName: "Resort Partners",
-        url: "/logos/norfolk-ai-wireframe.png",
+        url: "/api/media/norfolk-ai-wireframe.png",
         isDefault: false,
       },
     ]).returning();

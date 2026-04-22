@@ -16,6 +16,7 @@ import * as countryRiskPremiumRoutes from "./routes/country-risk-premium";
 import * as countryDefaultsRoutes from "./routes/country-defaults";
 import * as tileRoutes from "./routes/tiles";
 import * as photoRoutes from "./routes/property-photos";
+import * as mediaRoutes from "./routes/media";
 import * as chatRoutes from "./routes/chat";
 import * as aiRoutes from "./routes/ai";
 import * as premiumExportRoutes from "./routes/premium-exports";
@@ -65,6 +66,7 @@ export async function registerRoutes(
   countryDefaultsRoutes.register(app);
   tileRoutes.register(app);
   photoRoutes.register(app);
+  mediaRoutes.register(app);
   chatRoutes.register(app);
   aiRoutes.register(app);
   premiumExportRoutes.register(app);

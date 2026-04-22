@@ -48,6 +48,7 @@ import { ModelConstantsStorage } from "./model-constants";
 import { ModelCanonicalsStorage } from "./model-canonicals";
 import { AdminResourceStorage } from "./admin-resource";
 import { SpecialistConfigStorage } from "./specialist-config";
+import { MediaStorageImpl, type MediaStorage } from "./media";
 
 export interface IStorage extends
   UserStorage,
@@ -69,7 +70,8 @@ export interface IStorage extends
   ModelConstantsStorage,
   ModelCanonicalsStorage,
   AdminResourceStorage,
-  SpecialistConfigStorage {
+  SpecialistConfigStorage,
+  MediaStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -96,6 +98,10 @@ export class DatabaseStorage implements IStorage {
   private modelCanonicalsStore = new ModelCanonicalsStorage();
   private adminResourceStore = new AdminResourceStorage();
   private specialistConfigStore = new SpecialistConfigStorage();
+  private mediaStore = new MediaStorageImpl();
+
+  // Media (graphics stored as bytea in Neon — see server/storage/media.ts)
+  getMediaByFilename = this.mediaStore.getMediaByFilename.bind(this.mediaStore);
 
   // Admin Resources control plane (canonical APIs/Sources/Tables/Benchmarks/Models)
   listAdminResources = this.adminResourceStore.listAdminResources.bind(this.adminResourceStore);

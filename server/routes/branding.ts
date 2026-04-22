@@ -133,7 +133,7 @@ export function register(app: Express) {
     }
   });
 
-  app.delete("/api/logos/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/api/media/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid logo ID" });
@@ -151,7 +151,7 @@ export function register(app: Express) {
     }
   });
 
-  app.patch("/api/logos/:id/default", requireAdmin, async (req, res) => {
+  app.patch("/api/api/media/:id/default", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid logo ID" });
@@ -168,7 +168,7 @@ export function register(app: Express) {
       const ga = await storage.getGlobalAssumptions();
       res.json({
         appName: ga?.appName ?? appLogo?.companyName ?? "H+ Analytics",
-        appLogoUrl: appLogo?.url ?? "/logos/h-logo-glass.png",
+        appLogoUrl: appLogo?.url ?? "/api/media/h-logo-glass.png",
         appLogoId: appLogo?.id ?? null,
       });
     } catch (error: unknown) {
