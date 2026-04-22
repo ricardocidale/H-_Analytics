@@ -2,11 +2,13 @@
 
 This guide covers removing all Replit-managed integrations and deploying H+ Analytics as a standalone Node.js application.
 
-## Current Status (April 13, 2026)
+## Current Status (April 22, 2026)
 
-**Phase 8 (Platform Independence) — Abstraction Layer COMPLETE.**
+**Phase 8 (Platform Independence) — Code path COMPLETE.**
 
-All business logic now goes through `server/providers/` — zero direct Replit imports outside the provider wrappers. The app runs on Replit unchanged (defaults to `STORAGE_PROVIDER=replit`, `AUTH_PROVIDER=replit`).
+All business logic now goes through `server/providers/` — zero direct Replit imports outside the provider wrappers and a small allow-list (CSP headers, Linear connector bridge, one-off backfill scripts). The app runs on Replit unchanged (defaults to `STORAGE_PROVIDER=replit`, `AUTH_PROVIDER=replit`).
+
+A CI guardrail (`script/check-replit-independence.ts`, run in `.github/workflows/ci.yml`) fails the build if any new direct `@replit/`, `process.env.REPL*`, or `replit.dev`/`replit.app` reference lands outside the allow-listed locations.
 
 ### What's Done
 
@@ -14,15 +16,16 @@ All business logic now goes through `server/providers/` — zero direct Replit i
 |------|--------|---------|
 | `StorageProvider` interface | ✅ Done | 10 methods in `server/providers/storage/types.ts` |
 | `ReplitStorageProvider` | ✅ Done | Wraps existing `ObjectStorageService` |
-| `S3StorageProvider` | ⬜ Stub | Methods throw "not yet configured" — fill in when ready |
+| `S3StorageProvider` | ✅ Done | Full implementation (AWS S3 / Cloudflare R2 / MinIO) |
 | `AuthProvider` interface | ✅ Done | `server/providers/auth/types.ts` |
 | `ReplitAuthProvider` | ✅ Done | Wraps existing OIDC |
 | `LocalAuthProvider` | ✅ Done | Password-only, works without Replit |
-| Consumer rewiring | ✅ Done | 12 files rewired to use providers |
-| `getAppUrl()` | ✅ Done | Replaces `REPLIT_DOMAINS` with fallback chain |
+| Consumer rewiring | ✅ Done | All consumers route through `server/providers/` |
+| `getAppUrl()` / `isProductionDeployment()` | ✅ Done | Standardized env reads in `server/providers/config.ts` |
 | `.env.example` | ✅ Done | Complete template for standalone deployment |
-| Dockerfile | ⬜ Not started | Needed for non-Replit deployment |
-| Image routes cleanup | ⬜ Cosmetic | Move out of `replit_integrations/` (not blocking) |
+| `Dockerfile` + `.dockerignore` | ✅ Done | Multi-stage Node 22 build at repo root |
+| Independence CI guardrail | ✅ Done | `script/check-replit-independence.ts` |
+| Image routes location | ⬜ Cosmetic | Still under `server/replit_integrations/image/`; not Replit-specific (uses OpenAI/Gemini directly). Move alongside the storage provider extraction. |
 
 ### What YOU Need To Do When Ready To Move
 
@@ -31,27 +34,26 @@ All business logic now goes through `server/providers/` — zero direct Replit i
 2. Get API keys: [Anthropic](https://console.anthropic.com), [OpenAI](https://platform.openai.com), [Google AI](https://aistudio.google.com)
 3. pgvector is enabled on the DATABASE_URL Postgres instance — no separate account needed
 4. Pick an object storage: [Cloudflare R2](https://dash.cloudflare.com) (recommended, no egress fees) or AWS S3
-5. Pick a host: [Railway](https://railway.app) (easiest), [Fly.io](https://fly.io), or [Render](https://render.com)
+5. Pick a host: [Railway](https://railway.app) (easiest), [Fly.io](https://fly.io), [Render](https://render.com), or any Docker host
 
-**Step 2 — Fill in S3 storage provider (2-4 hours, or ask Claude Code)**
-- File: `server/providers/storage/s3-storage.ts`
-- Install: `npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner`
-- Implement each method using the S3 SDK (TODO comments show the pattern)
-- Test with: `STORAGE_PROVIDER=s3 npm run dev`
-
-**Step 3 — Set env vars and deploy (1-2 hours)**
+**Step 2 — Set env vars and deploy (1-2 hours)**
 - Copy `.env.example` to `.env`
 - Fill in all keys
 - Set `AUTH_PROVIDER=local` and `STORAGE_PROVIDER=s3`
+- Set the S3 credentials: `S3_BUCKET`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`. For Cloudflare R2 / MinIO also set `S3_ENDPOINT` (and `S3_FORCE_PATH_STYLE=true` for MinIO).
+- Optionally set `S3_PUBLIC_URL_BASE` for a CDN / custom domain in front of the bucket.
 - Set `APP_URL=https://your-domain.com`
+- Build and run: `docker build -t hbg . && docker run -p 5000:5000 --env-file .env hbg`
+  - Or push the image to your host's registry and let it run there.
 - Run `npm run db:push` against the new database
 - Run `npm run health` to verify everything passes
 
-**Step 4 — Cleanup (10 min, optional)**
+**Step 3 — Cleanup (10 min, optional)**
 - Delete `replit.md`, `.replit`, `replit.nix`
-- Delete `server/replit_integrations/` (after verifying nothing imports it)
-- Remove Replit-specific CSP headers from `server/index.ts`
-- Remove `REPL_ID` / `REPLIT_DOMAINS` fallbacks from `server/providers/config.ts`
+- Delete `server/replit_integrations/` (after verifying nothing imports it — the independence guardrail will catch leftovers)
+- Remove the `*.replit.dev` / `*.replit.app` entries from the `frame-ancestors` CSP directive in `server/index.ts`
+- Remove `REPL_ID` / `REPLIT_DOMAINS` / `REPLIT_DEPLOYMENT` fallbacks from `server/providers/config.ts`
+- Drop `server/integrations/linear.ts` from the independence allow-list (replace `@replit/connectors-sdk` with a direct Linear OAuth flow)
 
 ---
 
@@ -66,16 +68,14 @@ All Replit-specific code lives in `server/replit_integrations/` with four module
 | Image | `image/` | OpenAI image generation (thin wrapper) |
 | Batch | `batch/` | Rate-limited batch processing utilities |
 
-**Files that import from `replit_integrations/`** (9 total):
-- `server/index.ts` — registers auth and storage routes
+**Files that import from `replit_integrations/`** (5 total — all inside the provider abstraction):
+- `server/providers/storage/replit-storage.ts` — wraps `ObjectStorageService` for the storage provider
+- `server/providers/auth/replit-auth.ts` — wraps the OIDC flow for the auth provider
+- `server/index.ts` — registers image routes and forwards storage init
 - `server/routes.ts` — registers image and object storage routes
-- `server/routes/uploads.ts` — presigned upload URLs
-- `server/routes/documents.ts` — document storage
-- `server/image/pipeline.ts` — image generation
-- `server/integrations/document-ai.ts` — document processing
-- `server/scripts/generate-medellin-renders.ts` — image generation script
-- `server/scripts/generate-medellin-exterior.ts` — image generation script
-- `server/replit_integrations/batch/utils.ts` — internal
+- `server/replit_integrations/batch/utils.ts` — internal helper
+
+Everything else routes through `server/providers/`.
 
 ---
 
@@ -116,83 +116,69 @@ All Replit-specific code lives in `server/replit_integrations/` with four module
 
 ## Integration 3: Authentication
 
-**Current:** `server/replit_integrations/auth/` implements OpenID Connect via Replit as the identity provider. Uses `REPL_ID` as the OIDC client ID and `ISSUER_URL` defaulting to `https://replit.com/oidc`.
+**Current:** `server/replit_integrations/auth/` implements OpenID Connect via Replit as the identity provider, wrapped by `server/providers/auth/replit-auth.ts`.
 
-**Important:** The app already has Express sessions with `connect-pg-simple` and password-based login. Replit Auth is an *additional* login method, not the only one.
+**Important:** The app already has Express sessions with `connect-pg-simple`, password-based login, and a `LocalAuthProvider`. Replit Auth is an *additional* login method, not the only one.
 
 **Migration options:**
 
-**Option A — Password-only (simplest):**
-1. Remove Replit Auth routes (`/api/login`, `/api/callback`, `/api/logout` from `replitAuth.ts`)
-2. Keep the existing session middleware (`getSession()` is reusable — it just needs `DATABASE_URL` and `SESSION_SECRET`)
-3. Use the existing password login flow
+**Option A — Password-only (works today):**
+1. Set `AUTH_PROVIDER=local` in `.env`
+2. The provider abstraction will skip the Replit OIDC routes and only mount the password flow
+3. No code changes required
 
 **Option B — Add OAuth via Auth.js (recommended for production):**
-1. Install `next-auth` or `@auth/express`
+1. Install `@auth/express`
 2. Configure Google/GitHub OAuth providers
 3. Map OAuth claims to the existing user table using the same `upsertUser` pattern
+4. Add a new `OAuthProvider` implementation in `server/providers/auth/`
 
-**Session middleware** (`getSession()`) is not Replit-specific — it uses `connect-pg-simple` and can be extracted as-is.
-
-**Risk: MEDIUM** — but password login works immediately without Replit Auth.
+**Risk: MEDIUM** — but Option A works immediately without Replit Auth.
 
 ---
 
 ## Integration 4: Object Storage
 
-**Current:** `server/replit_integrations/object_storage/objectStorage.ts` uses `@google-cloud/storage` via a Replit sidecar proxy at `127.0.0.1:1106` for credential exchange and URL signing.
+**Current:** `server/replit_integrations/object_storage/objectStorage.ts` uses `@google-cloud/storage` via a Replit sidecar proxy at `127.0.0.1:1106` for credential exchange and URL signing. Wrapped by `server/providers/storage/replit-storage.ts`.
 
-**Key behaviors to replicate:**
+**Status:** ✅ `S3StorageProvider` is fully implemented at `server/providers/storage/s3-storage.ts`. Switch by setting `STORAGE_PROVIDER=s3` and the S3 credentials.
+
+**Behaviors preserved across providers:**
 - Upload via presigned PUT URLs (15-min TTL)
-- Download via streaming (`file.createReadStream()`)
-- ACL policies (public/private visibility)
-- Path normalization (`/objects/{entityId}`)
+- Download via streaming
+- Public/private cache-control on `downloadToResponse`
+- Path normalization (URL → key)
+- Delete + exists semantics
 
-**Migration — create a `StorageProvider` interface:**
+**Recommended backends (all S3-compatible):**
+- **Cloudflare R2** — no egress fees. Set `S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com`, `S3_REGION=auto`.
+- **AWS S3** — leave `S3_ENDPOINT` unset.
+- **MinIO** — self-hosted. Set `S3_ENDPOINT=https://minio.example.com`, `S3_FORCE_PATH_STYLE=true`.
+- **DigitalOcean Spaces** — set `S3_ENDPOINT=https://<region>.digitaloceanspaces.com`.
 
-```typescript
-interface StorageProvider {
-  getUploadUrl(key: string, ttlSec?: number): Promise<string>;
-  getDownloadStream(key: string): Promise<NodeJS.ReadableStream>;
-  exists(key: string): Promise<boolean>;
-  delete(key: string): Promise<void>;
-}
-```
-
-**Recommended implementations:**
-- **Cloudflare R2** — S3-compatible, no egress fees, presigned URLs via `@aws-sdk/client-s3`
-- **AWS S3** — standard choice, presigned URLs via `@aws-sdk/s3-request-presigner`
-- **Local filesystem** — for development (`fs.createReadStream`, serve via Express static)
-
-**Steps:**
-1. Create `server/storage/provider.ts` with the interface above
-2. Implement `S3StorageProvider` using `@aws-sdk/client-s3`
-3. Update the 5 importing files to use the new provider
-4. Set env vars: `STORAGE_PROVIDER=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
-
-**Risk: MEDIUM** — most work in the migration. Presigned URL logic changes from GCS sidecar to S3 SDK.
+**Risk: LOW** (code) / **MEDIUM** (data migration) — code path is done; you still need to copy any existing objects from the Replit bucket to the new bucket using `aws s3 sync` or `rclone`.
 
 ---
 
-## Integration 5: Domains
+## Integration 5: Domains & Hosting
 
 **Current:** `.replit.app` domain with auto-TLS from Replit.
 
-**Migration:** Deploy to any host and configure DNS.
+**Migration:** Build the included `Dockerfile` and deploy to any container host.
 
 **Recommended hosts:**
-- **Railway** — closest to Replit DX, `railway up` deploys from git
-- **Fly.io** — Dockerfile-based, global edge
-- **Render** — managed Node.js service
-- **VPS (Hetzner/DigitalOcean)** — full control, Dockerfile + Caddy for auto-TLS
+- **Railway** — `railway up` deploys from git, auto-builds the Dockerfile
+- **Fly.io** — `fly launch` reads the Dockerfile, global edge
+- **Render** — managed Docker service
+- **VPS (Hetzner/DigitalOcean)** — `docker run` + Caddy for auto-TLS
 
 **Steps:**
-1. Create a `Dockerfile` (or use host's buildpack)
+1. `docker build -t hbg .` to verify the image builds locally
 2. Set all env vars on the new host
 3. Configure custom domain + TLS
 4. Update any hardcoded URLs (CORS origins, OAuth callbacks)
 
-**Risk: LOW** — standard deployment.
+**Risk: LOW** — standard Docker deployment.
 
 ---
 
@@ -200,12 +186,14 @@ interface StorageProvider {
 
 | File | Purpose |
 |------|---------|
-| `replit.md` | Replit Agent project doc (knowledge now in `.claude/`) |
+| `replit.md` | Replit Agent project doc |
 | `.replit` | Workspace config (nix, workflows, run commands) |
 | `replit.nix` | Nix package definitions |
 | `server/replit_integrations/` | Entire directory (4 modules) |
 
-**Env vars to remove:** `REPL_ID`, `REPLIT_DB_URL`, `REPLIT_DOMAINS`, `ISSUER_URL`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`
+**Env vars to remove:** `REPL_ID`, `REPLIT_DB_URL`, `REPLIT_DOMAINS`, `REPLIT_DEPLOYMENT`, `REPLIT_DEV_DOMAIN`, `ISSUER_URL`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`
+
+**Allow-list cleanup:** After deleting `server/replit_integrations/`, also remove from `script/check-replit-independence.ts`'s `ALLOW_LIST`: `server/replit_integrations/`, `server/integrations/linear.ts` (port to direct Linear OAuth), `server/scripts/` (drop hard-coded `replit.app` URLs), and the `server/index.ts` CSP entry.
 
 ---
 
@@ -215,11 +203,11 @@ interface StorageProvider {
 |-------|------|--------|-----------|
 | 1 | Database — update `DATABASE_URL` | 5 min | No |
 | 2 | AI keys — set direct API keys | 10 min | No |
-| 3 | Auth — remove Replit OIDC, keep password login | 1-2 hrs | No (password works) |
-| 4 | Object Storage — implement S3 provider | 4-8 hrs | Yes (uploads break) |
-| 5 | Deploy — Dockerfile, host config, DNS | 2-4 hrs | Yes |
+| 3 | Auth — set `AUTH_PROVIDER=local` | 1 min | No (password works) |
+| 4 | Object Storage — set `STORAGE_PROVIDER=s3` + creds | 30 min | Yes (uploads break without it) |
+| 5 | Deploy — `docker build`, host config, DNS | 2-4 hrs | Yes |
 | 6 | Cleanup — delete Replit files | 10 min | No |
 
-**Total estimated effort: 1-2 days**
+**Total estimated effort: 4-6 hours** (down from 1-2 days now that S3 + Dockerfile are done).
 
-The app is well-architected for this migration — Drizzle ORM, Express sessions, and direct SDK usage mean most Replit dependencies are shallow. Object Storage is the only integration requiring significant new code.
+The app is well-architected for this migration — Drizzle ORM, Express sessions, the provider abstraction, and direct SDK usage mean the only data work left is copying objects from the Replit bucket to the new bucket.

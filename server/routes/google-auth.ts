@@ -8,6 +8,7 @@ import {
   sanitizeEmail,
 } from "../auth";
 import { logger } from "../logger";
+import { getAppUrl } from "../providers/config";
 import { ensureDefaultScenario } from "./scenario-helpers";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -30,7 +31,10 @@ setInterval(() => {
 
 function getBaseUrl(): string {
   if (process.env.BASE_URL) return process.env.BASE_URL;
-  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  // Falls back to the platform-aware getAppUrl() (APP_URL → REPLIT_DOMAINS → localhost),
+  // then to the production domain when running outside any known environment.
+  const appUrl = getAppUrl();
+  if (appUrl && !appUrl.startsWith('http://localhost')) return appUrl;
   return 'https://h-analysis.com';
 }
 

@@ -32,6 +32,13 @@ jobs:
       - name: Quick Audit
         run: npm run audit:quick
 
+      - name: Replit Independence Guardrail
+        # Fails if any new direct `@replit/`, `process.env.REPL*`, or
+        # `replit.dev` / `replit.app` reference lands outside the
+        # allow-listed locations (server/replit_integrations/,
+        # server/providers/, vite.config.ts, vite-plugin-meta-images.ts).
+        run: npx tsx script/check-replit-independence.ts
+
   test-and-verify:
     runs-on: ubuntu-latest
     env:

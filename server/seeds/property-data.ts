@@ -6,6 +6,15 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
+  /**
+   * Audit #319 R4 exception: SEED_PROPERTY_DEFAULTS is the L+B portfolio's
+   * factory baseline used both as the seeded `properties` row default AND as
+   * the schema column `.default()`. Schema-default literals must stay literal
+   * (Drizzle introspection runs at module-load time, no DB query allowed) and
+   * the seeded value intentionally matches the legacy 3.0% to keep all golden
+   * numbers stable until the audit's reconciliation pass picks the correct
+   * locality-aware number. See `@deprecated` block on `DEFAULT_COST_RATE_TAXES`.
+   */
   DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,

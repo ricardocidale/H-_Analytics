@@ -2,9 +2,10 @@ import * as Sentry from "@sentry/node";
 import type { Express, Request, Response, NextFunction } from "express";
 import { FinancialCalculationError } from "@shared/errors";
 import { log } from "./logger";
+import { isProductionDeployment } from "./providers/config";
 
 const DSN = process.env.SENTRY_DSN;
-const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
+const isProduction = isProductionDeployment();
 
 let initialized = false;
 

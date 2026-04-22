@@ -12,6 +12,14 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
+  /**
+   * Audit #319 R4 exception: this benchmark calculator is a stateless deterministic
+   * helper with no `country` argument and intentionally pre-dates the registry
+   * locality cascade. Switching to `getFactoryNumber('costRateTaxes', country)`
+   * here would silently re-baseline cached benchmark outputs (legacy 3.0% vs
+   * registry US 1.2%) — see the `@deprecated` block on `DEFAULT_COST_RATE_TAXES`.
+   * Reconciliation is tracked as the audit follow-up.
+   */
   DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
