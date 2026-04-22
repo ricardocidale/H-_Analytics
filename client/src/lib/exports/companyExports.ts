@@ -13,7 +13,7 @@ import type { CompanyMonthlyFinancials } from "@engine/types";
 
 const EXPORT_BG = '#ffffff';
 
-export interface StatementRow {
+interface StatementRow {
   category: string;
   values: number[];
   indent?: number;
@@ -22,15 +22,15 @@ export interface StatementRow {
   isSubtotal?: boolean;
   isBold?: boolean;
 }
-export interface StatementData {
+interface StatementData {
   years: number[];
   rows: StatementRow[];
 }
-export interface YearlyChartPoint {
+interface YearlyChartPoint {
   year: string | number;
   [seriesKey: string]: string | number;
 }
-export interface CompanyGlobal {
+interface CompanyGlobal {
   companyName?: string | null;
   modelStartDate: string;
   companyTaxRate?: number | null;
