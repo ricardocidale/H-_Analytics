@@ -83,7 +83,7 @@ constants
 
 **Resolution rule (USA fallback):** look up most-specific match → fall back to less-specific → finally fall back to `country = 'USA'`. The fallback chain must be deterministic and logged.
 
-**Admin UI:** dedicated `Constants` tab, organized by category (Tax / Depreciation / Reporting / Currency / Labor). Each card shows: current value, scope, authority source as a hyperlink, as-of date, last edited by/when, Edit button, "Ask The Analyst for recommended value" button.
+**Admin UI (CRITICAL — read-only + Refresh only):** dedicated `Constants` tab, organized by category (Tax / Depreciation / Reporting / Currency / Labor / Macro). Each card shows: current value, scope, authority source as a hyperlink, `asOfDate`, last refreshed by/when, conviction, evidence summary, and a single **Refresh research** button. Clicking Refresh enqueues the relevant AI Intelligence specialist to re-fetch the authority publication and write a new row (or update the existing one) with refreshed provenance. **There is no Edit button.** There is no editable input. Admin and users cannot type values into Constants rows — the legitimacy of a Constant comes from the authority + specialist provenance, not from a keystroke. The `manual` source value is deprecated for authority-derived Constants; only `source = "analyst"` (specialist verdict) is legitimate.
 
 ### Defaults → code constants in `shared/constants.ts` (or equivalent)
 
@@ -128,7 +128,8 @@ For every numeric value you are introducing, ask in order:
 | Scope | country=USA, taxBracket=C-corp |
 | Lives in | `constants` DB table |
 | USA fallback? | Yes — the row keyed `country=USA` is the fallback when no country match found |
-| Admin editable? | Yes |
+| Admin editable? | **No** — read-only display + Refresh button. Specialist re-fetches when IRS publishes a change. |
+| Writer | AI Intelligence specialist (Tax Research) only |
 
 ### Default exit cap rate for L+B luxury hotels
 
@@ -150,7 +151,8 @@ For every numeric value you are introducing, ask in order:
 | Scope | country=USA, businessType=non-residential-real |
 | Lives in | `constants` DB table (currently lives in code as `DEPRECIATION_YEARS=39` — needs migration) |
 | USA fallback? | Yes |
-| Admin editable? | Yes (when the IRS changes it, an admin updates the row) |
+| Admin editable? | **No** — read-only display + Refresh button. Specialist re-fetches IRS Pub 946 to detect publication changes. |
+| Writer | AI Intelligence specialist (Tax Research) only |
 
 ### Days per month for monthly schedule allocation
 
@@ -175,34 +177,40 @@ Inflation is the example where this skill's general rule needs project-specific 
 
 | Property | Value |
 |---|---|
-| Category | **Constant — but only with specialist-sourced authority citation.** Otherwise treat as user-facing assumption (cascade: MC assumption → property override → Macro & Market fallback). |
-| Authority (when present) | A monetary authority publication: US Federal Reserve long-run inflation target, IMF World Economic Outlook, ECB / BoE / central-bank target, etc. |
-| Writer | **AI Intelligence specialist** (e.g. a Macro Research specialist that fetches central-bank publications and produces a verdict with conviction + range + citation). Admin **does not** hand-type inflation Constants rows freehand. |
+| Category | **Constant — authority-sourced via AI Intelligence specialist.** Engine cascade still applies (MC assumption → property override → Market & Macro fallback) for runtime; the Constants row seeds Defaults and is the authority reference. |
+| Authority | A monetary authority publication: US Federal Reserve long-run inflation target, IMF World Economic Outlook, ECB / BoE / central-bank target, etc. |
+| Writer | **AI Intelligence specialist only** (Macro Research specialist that fetches central-bank publications and writes a `source = "analyst"` row with verdict id, conviction, range, evidence). Admin and users **cannot edit** the row — Constants tab shows the row read-only with a Refresh button that triggers the specialist to re-fetch. |
 | Lives in | (a) `companyAssumptions.inflationRate` — source of truth for the engine; (b) `property.inflationRate` — override; (c) `defaults.inflationRate` (Market & Macro tab) — seed + last-resort fallback; (d) `model_canonicals.inflationRate` keyed by country — optional, specialist-sourced reference layer. |
 | Engine cascade | `property.inflationRate ?? mcAssumptions.inflationRate ?? macroMarketFallback`. The Constants row does not silently overwrite the cascade — overlay onto `globalAssumptions.inflationRate` is gated by the `COUNTRY_KEYS_OVERLAID_ON_GLOBAL` set in `server/finance/apply-model-constants.ts` and requires the conditions in the inflation-cascade rule. |
 | Hard-coded TS literal? | **Never.** Even as a "floor", inflation must come through the cascade or a specialist-sourced row. |
 
 The contrast with depreciation is the point: depreciation is a regulator-published value with one right answer per jurisdiction, rarely changes, admin updates it when the regulator does. Inflation is a market estimate that varies per property and per market, central banks publish targets that shift over time, and specialists keep the canonical row fresh — humans rarely hand-edit it.
 
-## The "Ask The Analyst" pattern (Constants only)
+## The "Refresh research" pattern (Constants only)
 
-For each Constant in the admin UI, expose an "Ask The Analyst for recommended value" button. The Analyst:
+Constants surfaces in the admin UI are **read-only displays with a Refresh research button**, not editable forms. The flow:
 
-1. Receives the constant key, scope (country/bracket/businessType), and current value.
-2. Returns a verdict (per the AnalystVerdict contract) with: recommended value, range, conviction, evidence (citing the authority), and whether the current value matches the latest authority publication.
-3. Admin sees a recommendation card with an Apply button that updates the DB row in-place, recording the verdict id as audit trail.
+1. Admin opens the Constants tab and sees a row with its current value, scope (country/bracket/businessType), authority source as a hyperlink, `asOfDate`, last-refreshed timestamp, conviction, and evidence summary.
+2. Admin clicks **Refresh research**. This enqueues the relevant AI Intelligence specialist (Tax Research, Macro Research, Depreciation Research, etc.) to re-fetch the authority publication.
+3. The specialist returns a verdict (per the AnalystVerdict contract) with: latest authoritative value, range, conviction, evidence (citing the authority), and whether the prior value still matches the latest publication.
+4. The verdict is written as a new row (or updates the existing row) with `source = "analyst"`, refreshed `asOfDate`, and the verdict id for audit trail.
+5. Admin's role ends at "click Refresh and review the result." Admin does not type a number; admin does not approve a specific value; admin does not edit the row freehand. The row's value is whatever the specialist verdict says.
 
-Defaults do not get this button — recalibration of a Default is a commit-time decision with an ADR, not an admin action.
+**Why no Apply / Edit / typed-value form:** the entire legitimacy of a Constant comes from the authority + specialist provenance. The moment a human types a number into a Constants row, that legitimacy is gone — the row is now an unattributed admin opinion masquerading as authority data. A Refresh-only UI makes this physically impossible.
+
+Defaults do not get a Refresh button — recalibration of a Default is a commit-time decision with an ADR, not an admin action.
 
 ## Migration discipline
 
 When converting a code constant to a DB-backed Constant:
 
-1. Add the row to the `constants` table with full provenance.
-2. Replace the code import with a `getConstant(key, scope)` call that resolves through the DB with USA fallback.
-3. Keep the named code constant as the **last-resort default** for the resolver — if the DB read fails, the code value is the floor (logged loudly).
-4. The named code constant's docstring must point to the DB row that supersedes it.
-5. The migration commit must touch every consumer in one pass — no half-migrations.
+1. Identify the AI Intelligence specialist that owns this Constant's domain (Tax Research, Depreciation Research, Macro Research, etc.). If none exists, define one in the AI Intelligence realm before proceeding — Constants without a specialist owner have no refresh path and should not exist.
+2. Have the specialist produce the initial row(s) (`source = "analyst"`, full provenance: `authoritySource`, `authorityRef`, `asOfDate`, conviction, evidence). Do not seed the row by hand.
+3. Replace the code import with a `getConstant(key, scope)` call that resolves through the DB with USA fallback.
+4. Keep the named code constant as the **last-resort floor** for the resolver — if the DB read fails, the code value is the floor (logged loudly).
+5. The named code constant's docstring must point to the DB row that supersedes it.
+6. The migration commit must touch every consumer in one pass — no half-migrations.
+7. The Constants tab UI for the new row is read-only display + Refresh button only — never an editable form.
 
 ## Coupling with other skills
 
@@ -220,4 +228,4 @@ When converting a code constant to a DB-backed Constant:
 
 ## The one-line summary
 
-If an authority publishes the number, it's a Constant and lives in the DB. If you calibrated the number, it's a Default and lives in code. Never the other way around.
+If an authority publishes the number, it's a Constant — lives in the DB, written exclusively by an AI Intelligence specialist, exposed in the admin UI as read-only display + Refresh research button (never editable). If you calibrated the number, it's a Default and lives in code. Admins and users never type values into Constants.
