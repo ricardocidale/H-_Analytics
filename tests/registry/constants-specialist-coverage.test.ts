@@ -65,6 +65,34 @@ describe("Model Constants → Specialist ownership coverage", () => {
     expect(getSpecialistForConstant("not-a-real-constant-xyz")).toBeUndefined();
   });
 
+  it("Phase 3: every specialistOwned registry key is also claimed by a Specialist (catalog ↔ registry double-lock)", () => {
+    // The Phase 3 server guard keys off `entry.specialistOwned`. The
+    // ownership coverage test above keys off `def.constantsOwned[]`. If
+    // these two signals ever drift apart — e.g. a registry entry is
+    // marked specialistOwned but no Specialist actually claims it — the
+    // guard rejects writes that no AI Specialist will produce, leaving
+    // the constant uneditable. Lock the two signals together.
+    const drift: { key: string; reason: string }[] = [];
+    for (const [key, entry] of Object.entries(MODEL_CONSTANTS_REGISTRY)) {
+      const owner = getSpecialistForConstant(key);
+      if (entry.specialistOwned && !owner) {
+        drift.push({ key, reason: "specialistOwned=true but no Specialist claims it via constantsOwned[]" });
+      }
+      if (!entry.specialistOwned && owner) {
+        drift.push({
+          key,
+          reason: `claimed by Specialist '${owner.id}' but registry has specialistOwned=false`,
+        });
+      }
+    }
+    expect(
+      drift,
+      `Constants registry ↔ Specialist catalog drift detected:\n${drift
+        .map((d) => `  - ${d.key}: ${d.reason}`)
+        .join("\n")}`,
+    ).toHaveLength(0);
+  });
+
   it("never claims an unknown key (catalog → registry alignment)", () => {
     const knownKeys = new Set(registryKeys);
     const orphans: { specialistId: string; key: string }[] = [];

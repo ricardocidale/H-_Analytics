@@ -36,6 +36,7 @@ import {
 import { getEffectiveConstant } from "@shared/get-effective-constant";
 import { COUNTRY_DEFAULTS } from "@shared/countryDefaults";
 import { proposeConstantRegeneration } from "../../ai/regenerate-constants";
+import { logger } from "../../logger";
 
 const overrideBodySchema = z.object({
   country: z.string().nullable().optional(),
@@ -190,6 +191,22 @@ export function registerModelConstantsRoutes(app: Express) {
       const entry = MODEL_CONSTANTS_REGISTRY[key];
       if (!entry) return res.status(404).json({ error: `Unknown constant key: ${key}` });
 
+      // Phase 3 doctrine guard: Constants owned by an AI Intelligence
+      // Specialist (every entry in MODEL_CONSTANTS_REGISTRY today) are
+      // authority-sourced and cannot be hand-edited. Reject with 422 and
+      // point the caller at the analyst-apply path. The DELETE (reset to
+      // factory) route is intentionally NOT guarded — admins always retain
+      // the rollback escape hatch.
+      if (entry.specialistOwned) {
+        return res.status(422).json({
+          error:
+            `Constant '${key}' is authority-sourced and owned by an AI Intelligence Specialist. ` +
+            `Manual overrides are not permitted. Use the "Refresh research" button on the Constants tab ` +
+            `(POST /api/admin/model-constants/${key}/regenerate then /apply-research) to update the value.`,
+          code: "SPECIALIST_OWNED_CONSTANT",
+        });
+      }
+
       const parsed = overrideBodySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
 
@@ -201,8 +218,17 @@ export function registerModelConstantsRoutes(app: Express) {
       if (!localityCheck.ok) {
         return res.status(400).json({ error: localityCheck.error });
       }
-      // entry referenced for symmetry with read path; locality already validated.
-      void entry;
+
+      // Deprecation telemetry for the long tail: any non-specialist-owned
+      // key still hitting the manual path is logged so we can track and
+      // close out remaining manual usage. Today this branch is unreachable
+      // because every registered key is specialistOwned, but Phase 6 may
+      // introduce non-owned candidates and we want the trail in place.
+      logger.warn(
+        `Manual override on non-specialist-owned constant '${key}'. The manual path is deprecated; ` +
+          `assign this key to a Specialist via constantsOwned[] and flip specialistOwned to true.`,
+        "model-constants",
+      );
 
       const userId = (req as any).user?.id ?? null;
 

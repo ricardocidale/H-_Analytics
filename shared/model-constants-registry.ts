@@ -30,6 +30,17 @@ export interface ConstantRegistryEntry {
   locality: ConstantLocality;
   meta: GovernedFieldMeta;
   /**
+   * Phase 3 (Constants doctrine): when true, this constant is authority-
+   * sourced and is owned by an AI Intelligence Specialist (declared via
+   * `constantsOwned[]` in `engine/analyst/registry/specialist-catalog.ts`).
+   * The server-side guard in `PUT /api/admin/model-constants/:key` rejects
+   * any `source = 'manual'` write for these keys with HTTP 422 — the only
+   * supported writer is the analyst-apply path. Defaults to `true` for
+   * every entry below; flip to `false` only for non-authority keys that
+   * still want to allow manual overrides (none today).
+   */
+  specialistOwned: boolean;
+  /**
    * Factory-value resolver (TS fallback). For country/country+state keys,
    * falls back to the United States baseline if the requested country has
    * no entry. Returns undefined only when no US baseline is registered.
@@ -83,6 +94,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: depreciationYearsMeta.fieldName,
     locality: "country",
     meta: depreciationYearsMeta,
+    specialistOwned: true,
     factoryValue: (country) => {
       if (!country) return COUNTRY_DEFAULTS["United States"]!.depreciationYears;
       const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
@@ -94,6 +106,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: daysPerMonthMeta.fieldName,
     locality: "universal",
     meta: daysPerMonthMeta,
+    specialistOwned: true,
     factoryValue: () => DAYS_PER_MONTH,
   },
   taxRate: {
@@ -101,6 +114,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: taxRateMeta.fieldName,
     locality: "country+state",
     meta: taxRateMeta,
+    specialistOwned: true,
     factoryValue: (country, subdivision) => {
       if (country === "United States" && subdivision) {
         const st: UsStateDefaults | undefined = US_STATE_DEFAULTS[subdivision];
@@ -116,6 +130,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: costRateTaxesMeta.fieldName,
     locality: "country+state",
     meta: costRateTaxesMeta,
+    specialistOwned: true,
     factoryValue: (country, subdivision) => {
       if (country === "United States" && subdivision) {
         const st: UsStateDefaults | undefined = US_STATE_DEFAULTS[subdivision];
@@ -131,6 +146,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: countryRiskPremiumMeta.fieldName,
     locality: "country",
     meta: countryRiskPremiumMeta,
+    specialistOwned: true,
     factoryValue: (country) => {
       if (!country) return COUNTRY_DEFAULTS["United States"]!.countryRiskPremium;
       const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
@@ -142,6 +158,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: inflationRateMeta.fieldName,
     locality: "country",
     meta: inflationRateMeta,
+    specialistOwned: true,
     factoryValue: (country) => {
       if (!country) return COUNTRY_DEFAULTS["United States"]!.inflationRate;
       const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
@@ -153,6 +170,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: capitalGainsRateMeta.fieldName,
     locality: "country",
     meta: capitalGainsRateMeta,
+    specialistOwned: true,
     factoryValue: (country) => {
       if (!country) return COUNTRY_DEFAULTS["United States"]!.capitalGainsRate;
       const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
