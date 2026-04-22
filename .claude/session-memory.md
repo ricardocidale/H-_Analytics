@@ -8,7 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 20, 2026 (latest) — Interactive Analyst: T009 architect review + conflict-invariant test
+## Session: April 21, 2026 (latest) — Resources control plane + P5 Specialist surfaces + doctrine docs
+- P5 shipped (commits `2346de7` + `a6c78b54`): `specialist_configs` schema, 6 read-only-by-design REST routes, mgmt-co router config wiring, sidebar restructure, SpecialistPage with capability tabs, 11 contract tests incl. read-only invariant guard. All 5 gates green; 2 audit nits fixed.
+- Doctrine formalization landed: NEW `docs/architecture/decisions/ADR-006-resources-control-plane.md` (full v0→v1→v2 evolution + 4 alternatives rejected); `replit.md` Recent Changes + `docs/architecture/resources-control-plane.md` updated with evolution + P5 contract; `.claude/skills/analyst/_index.md` + `surface-mgmt-co.md` got the LOCKED 2026-04-21 governance block.
+- Boundary crossed once for analyst skills per user "yes". Architect (Opus) delivered plans for: (a) NEW `.claude/skills/resources/SKILL.md` directive skill (~190 lines, 10 sections), (c) consolidate phase status into `.claude/phases.md` as canonical SoT with CI drift guard. Both awaiting user approval before execution.
+- Open: P6 medium follow-ups (required-fields enforcement, audit user-name resolution, runtimeConfig schema narrowing, SPECIALIST_SECTION_TO_ID centralization), Resources adapters for legacy `data_sources`/`LlmDefaultsTab`.
+
+## Session: April 20, 2026 — Interactive Analyst: T009 architect review + conflict-invariant test
 - Architect post-T009 review: **PASS**. Core bridge (AnalystFieldSpec + toGuidanceKeys + unionAnalystFieldSpecs) correctly closes the silent no-op; end-to-end usage coherent across violation helper, save-gate, three tab refresh buttons, and Model Defaults union. AnalystViolation shape (field=draftKey + guidanceKey) judged correct.
 - Architect suggested three non-blocking enhancements; implemented the smallest one inline: added a conflict-invariant test that fails if the same draftKey maps to different guidanceKeys across tab lists (first-wins dedup could otherwise hide a future misconfig), and within a single tab the same guidanceKey mapping to two different draftKeys (would double-count on Save). Parity tests now 10/10 green.
 - Deferred (worth their own slice): (a) integration-level click/assert that tab refresh buttons actually send guidance keys to `triggerRefresh`; (b) typed key registries so mapping drift is a compile-time error — both rightly belong to the property-edit rollout where typed surface-specific unions will be designed up front.
