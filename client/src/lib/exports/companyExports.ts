@@ -20,7 +20,7 @@ export interface StatementRow {
   isHeader?: boolean;
   isTotal?: boolean;
   isSubtotal?: boolean;
-  bold?: boolean;
+  isBold?: boolean;
 }
 export interface StatementData {
   years: number[];
