@@ -356,6 +356,7 @@ export class DatabaseStorage implements IStorage {
   updateResearchRun = this.intelligenceV2.updateResearchRun.bind(this.intelligenceV2);
   getResearchRuns = this.intelligenceV2.getResearchRuns.bind(this.intelligenceV2);
   getResearchRunsForConstant = this.intelligenceV2.getResearchRunsForConstant.bind(this.intelligenceV2);
+  getLatestSuccessfulRunForConstant = this.intelligenceV2.getLatestSuccessfulRunForConstant.bind(this.intelligenceV2);
   getRunningResearchEntityIds = this.intelligenceV2.getRunningResearchEntityIds.bind(this.intelligenceV2);
   getLatestCompletedRunsPerEntity = this.intelligenceV2.getLatestCompletedRunsPerEntity.bind(this.intelligenceV2);
   getBenchmarkSnapshots = this.intelligenceV2.getBenchmarkSnapshots.bind(this.intelligenceV2);

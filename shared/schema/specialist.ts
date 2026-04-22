@@ -145,6 +145,16 @@ export const SpecialistDefinitionSchema = z
      * semantically the same as `[]`.
      */
     constantsOwned: z.array(z.string().min(1)).optional(),
+    /**
+     * Default cadence (in days) at which the scheduled Constants refresh job
+     * (`server/jobs/specialist-constants-refresh.ts`) re-runs this Specialist
+     * across every (constantKey × locality) row it owns. Authority sources
+     * publish on different rhythms — IRS annually, central banks weekly /
+     * monthly — so each Specialist declares its own cadence rather than
+     * inheriting a global one. Omitted/`null` means "no scheduled refresh"
+     * (admins still trigger refreshes on demand).
+     */
+    refreshCadenceDays: z.number().int().positive().optional(),
     status: z.enum(["built", "needs-page", "stub"]),
   })
   .refine(

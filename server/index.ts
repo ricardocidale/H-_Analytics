@@ -273,6 +273,13 @@ app.use((req, res, next) => {
         serverLog(`[resource-health-checker] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3d: Constants research refresher (per-Specialist cadence) ────────
+      import("./jobs/specialist-constants-refresh").then(({ startConstantsRefreshScheduler }) => {
+        startConstantsRefreshScheduler();
+      }).catch(err => {
+        serverLog(`[constants-refresh-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
@@ -282,6 +289,14 @@ app.use((req, res, next) => {
         isShuttingDown = true;
         serverLog(`Received ${signal}, shutting down gracefully...`, "shutdown", "info");
         for (const h of intervalHandles) clearInterval(h);
+        // Stop the Constants refresh scheduler so its hourly tick + startup
+        // delay timer don't keep the event loop alive past httpServer.close().
+        try {
+          const { stopConstantsRefreshScheduler } = await import("./jobs/specialist-constants-refresh");
+          stopConstantsRefreshScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
         const forceTimer = setTimeout(() => { serverLog("Forced exit after timeout", "shutdown", "error"); process.exit(1); }, 10_000);
         httpServer.close(() => {
           serverLog("HTTP server closed", "shutdown", "info");

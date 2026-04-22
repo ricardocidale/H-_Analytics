@@ -215,6 +215,36 @@ export class IntelligenceV2Storage {
       .limit(limit);
   }
 
+  /**
+   * Latest *successfully completed* research_run for a Constants locality.
+   * Used by the Constants-refresh scheduler and the admin Constants tab to
+   * compute "last refreshed" / staleness without letting failed attempts
+   * advance the freshness window. See server/jobs/specialist-constants-
+   * refresh.ts and the route in server/routes/admin/model-constants.ts.
+   */
+  async getLatestSuccessfulRunForConstant(
+    constantKey: string,
+    country: string | null,
+    subdivision: string | null,
+  ): Promise<ResearchRun | undefined> {
+    const conditions = [
+      eq(researchRuns.entityType, "model-constant"),
+      eq(researchRuns.status, "completed"),
+      sql`${researchRuns.metadata}->'constant'->>'key' = ${constantKey}`,
+      country === null
+        ? sql`${researchRuns.metadata}->'constant'->>'country' IS NULL`
+        : sql`${researchRuns.metadata}->'constant'->>'country' = ${country}`,
+      subdivision === null
+        ? sql`${researchRuns.metadata}->'constant'->>'subdivision' IS NULL`
+        : sql`${researchRuns.metadata}->'constant'->>'subdivision' = ${subdivision}`,
+    ];
+    const [row] = await db.select().from(researchRuns)
+      .where(and(...conditions))
+      .orderBy(desc(researchRuns.completedAt))
+      .limit(1);
+    return row;
+  }
+
   async getRunningResearchEntityIds(entityType: string): Promise<number[]> {
     const rows = await db.execute(sql`
       SELECT DISTINCT entity_id AS "entityId"

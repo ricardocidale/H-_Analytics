@@ -84,6 +84,8 @@ interface ConstantRow {
   specialistLetter: string | null;
   specialistName: string | null;
   lastRefreshedAt: string | null;
+  refreshCadenceDays: number | null;
+  isStale: boolean;
   latestResearchRun: LatestResearchRun | null;
   convictionSummary: string;
 }
@@ -208,6 +210,41 @@ function SpecialistBadge({ letter, name }: { letter: string | null; name: string
     >
       <IconSparkles className="w-3 h-3" /> {letter}
       {name && <span className="hidden sm:inline opacity-80">· {name}</span>}
+    </span>
+  );
+}
+
+function StaleBadge({
+  lastRefreshedAt,
+  cadenceDays,
+  testId,
+}: {
+  lastRefreshedAt: string | null;
+  cadenceDays: number | null;
+  testId: string;
+}) {
+  // "N days ago" copy mirrors the task spec ("Stale — last refreshed N days
+  // ago"). When no refresh has ever run we say so explicitly rather than
+  // showing a confusing "0d ago".
+  let detail: string;
+  if (!lastRefreshedAt) {
+    detail = "never refreshed";
+  } else {
+    const ms = Date.now() - new Date(lastRefreshedAt).getTime();
+    const days = Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+    detail = `last refreshed ${days} day${days === 1 ? "" : "s"} ago`;
+  }
+  const tooltip =
+    cadenceDays != null
+      ? `Scheduled cadence: every ${cadenceDays} day${cadenceDays === 1 ? "" : "s"}. ${detail}.`
+      : detail;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+      title={tooltip}
+      data-testid={testId}
+    >
+      <AlertTriangle className="w-3 h-3" /> Stale — {detail}
     </span>
   );
 }
@@ -407,7 +444,7 @@ function ConstantRowCard({
             {row.convictionSummary}
           </p>
           <p
-            className="text-xs text-muted-foreground mt-1 flex items-center gap-3"
+            className="text-xs text-muted-foreground mt-1 flex items-center gap-3 flex-wrap"
             data-testid={`text-last-refreshed-${row.key}`}
           >
             <span className="inline-flex items-center gap-1">
@@ -418,6 +455,13 @@ function ConstantRowCard({
               <span data-testid={`text-as-of-${row.key}`}>
                 As of {formatAbsolute(row.latestResearchRun.asOf)}
               </span>
+            )}
+            {row.isStale && (
+              <StaleBadge
+                lastRefreshedAt={row.lastRefreshedAt}
+                cadenceDays={row.refreshCadenceDays}
+                testId={`badge-stale-${row.key}`}
+              />
             )}
           </p>
         </div>

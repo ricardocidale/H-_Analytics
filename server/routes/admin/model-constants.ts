@@ -38,7 +38,10 @@ import { getEffectiveConstant } from "@shared/get-effective-constant";
 import { COUNTRY_DEFAULTS } from "@shared/countryDefaults";
 import { proposeConstantRegeneration } from "../../ai/regenerate-constants";
 import { logger } from "../../logger";
-import { getSpecialistForConstant } from "../../../engine/analyst/registry/specialist-catalog";
+import {
+  getSpecialistForConstant,
+  getRefreshCadenceDaysForConstant,
+} from "../../../engine/analyst/registry/specialist-catalog";
 
 const overrideBodySchema = z.object({
   country: z.string().nullable().optional(),
@@ -160,18 +163,18 @@ export function registerModelConstantsRoutes(app: Express) {
         // time (cheap; the catalog is a frozen in-memory list).
         const owner = getSpecialistForConstant(key);
 
-        // Phase 4: pull the most recent research_run for this row so the
-        // card can render an authoritative "as of" date and conviction
-        // summary even when the verdict matched factory (no override row
-        // exists, but a research run absolutely does). Cheap — at most
-        // one DB read per row, indexed by entityType+metadata.
-        const recentRuns = await storage.getResearchRunsForConstant(
+        // Phase 4: pull the most recent *successful* research_run for this
+        // row so the card renders an authoritative "as of" date and
+        // conviction summary even when the verdict matched factory (no
+        // override row exists, but a research run absolutely does). We
+        // intentionally exclude failed attempts here — a failed scheduled
+        // refresh must not advance the freshness window or replace a
+        // good earlier verdict in the UI. Cheap — one indexed read.
+        const latest = (await storage.getLatestSuccessfulRunForConstant(
           key,
           localityForKey.country,
           localityForKey.subdivision,
-          1,
-        );
-        const latest = recentRuns[0] ?? null;
+        )) ?? null;
         const latestMeta = (latest?.metadata ?? {}) as {
           proposal?: {
             value?: unknown;
@@ -197,6 +200,22 @@ export function registerModelConstantsRoutes(app: Express) {
         // has ever been recorded for this row.
         const lastRefreshedAt =
           latestRun?.asOf ?? resolved.override?.createdAt ?? null;
+
+        // Scheduled-refresh cadence + staleness flag (see
+        // server/jobs/specialist-constants-refresh.ts). Surfaced here so
+        // the Constants tab can render a "Stale" indicator without a
+        // second round-trip to the catalog.
+        const refreshCadenceDays = getRefreshCadenceDaysForConstant(key);
+        let isStale = false;
+        if (refreshCadenceDays != null) {
+          if (!lastRefreshedAt) {
+            isStale = true;
+          } else {
+            const ageMs = Date.now() - new Date(lastRefreshedAt as string | Date).getTime();
+            const ageDays = ageMs / (1000 * 60 * 60 * 24);
+            isStale = ageDays >= refreshCadenceDays;
+          }
+        }
 
         // Conviction summary — a one-line provenance statement for the
         // card. Prefers Specialist + authority + sources count when
@@ -245,6 +264,8 @@ export function registerModelConstantsRoutes(app: Express) {
           specialistLetter: owner?.letter ?? null,
           specialistName: owner?.displayName ?? null,
           lastRefreshedAt,
+          refreshCadenceDays,
+          isStale,
           latestResearchRun: latestRun,
           convictionSummary,
         };

@@ -205,6 +205,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     constantsOwned: ["taxRate", "capitalGainsRate", "costRateTaxes"],
+    // Tax statutes change on annual cycles; monthly cadence catches mid-year
+    // adjustments without spamming the Specialist or the activity log.
+    refreshCadenceDays: 30,
     status: "needs-page",
   },
   {
@@ -226,6 +229,10 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     constantsOwned: ["countryRiskPremium", "inflationRate"],
+    // Central bank moves and IMF outlook updates are fast-moving; weekly
+    // cadence keeps the discount-rate math honest without overrunning the
+    // grounded-search budget.
+    refreshCadenceDays: 7,
     status: "needs-page",
   },
   {
@@ -247,6 +254,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     constantsOwned: ["depreciationYears"],
+    // Useful-life statutes are slow-moving; quarterly cadence keeps the
+    // schedule current after annual tax-code refreshes.
+    refreshCadenceDays: 90,
     status: "needs-page",
   },
   {
@@ -268,6 +278,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     constantsOwned: ["daysPerMonth"],
+    // USALI / AHLA conventions update on multi-year cycles; an annual
+    // cadence is plenty.
+    refreshCadenceDays: 365,
     status: "needs-page",
   },
 ] as const;
@@ -338,6 +351,22 @@ export function getSpecialistForConstant(
   return SPECIALIST_CATALOG.find((d) =>
     (d.constantsOwned ?? []).includes(constantKey),
   );
+}
+
+/**
+ * Resolve the scheduled-refresh cadence (in days) for a given Constants
+ * registry key. Returns the owning Specialist's `refreshCadenceDays` if set,
+ * otherwise `null` (meaning: no scheduled refresh — admin-on-demand only).
+ *
+ * Used by `server/jobs/specialist-constants-refresh.ts` to decide which
+ * (key, locality) rows are due for a re-fetch, and by the admin Constants
+ * tab API to surface a "Stale — last refreshed N days ago" indicator.
+ */
+export function getRefreshCadenceDaysForConstant(
+  constantKey: string,
+): number | null {
+  const owner = getSpecialistForConstant(constantKey);
+  return owner?.refreshCadenceDays ?? null;
 }
 
 export const SPECIALIST_CATALOG_VALID = validation;
