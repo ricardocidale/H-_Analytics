@@ -119,7 +119,7 @@ export default function PropertyMarketResearch() {
                           content,
                           updatedAt: research?.updatedAt,
                           llmModel: research?.llmModel || undefined,
-                          promptConditions: (research as { promptConditions?: unknown })?.promptConditions || undefined,
+                          promptConditions: (research as { promptConditions?: Record<string, unknown> })?.promptConditions || undefined,
                         }, f)),
                         testId: "button-export-research-pdf",
                       },

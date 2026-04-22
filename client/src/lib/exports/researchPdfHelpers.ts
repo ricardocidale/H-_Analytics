@@ -1,3 +1,5 @@
+import type { jsPDF } from "jspdf";
+import type autoTableLib from "jspdf-autotable";
 import { type BrandPalette } from "./exportStyles";
 
 export interface BrandingData {
@@ -6,14 +8,16 @@ export interface BrandingData {
   logoUrl: string | null;
 }
 
+type AutoTableFn = typeof autoTableLib;
+
 export interface ResearchExportOptions {
   type: "property" | "company" | "global";
   title: string;
   subtitle?: string;
-  content: any;
+  content: unknown;
   updatedAt?: string;
   llmModel?: string;
-  promptConditions?: Record<string, any>;
+  promptConditions?: Record<string, unknown>;
   branding?: BrandingData;
   themeColors?: import("./exportStyles").ThemeColor[];
 }
@@ -67,14 +71,14 @@ export function sectionColors(brand: BrandPalette): [number, number, number][] {
   return unique.map(hexToRgb);
 }
 
-export function brandedHeader(doc: any, pageW: number, height: number, brand: BrandPalette) {
+export function brandedHeader(doc: jsPDF, pageW: number, height: number, brand: BrandPalette) {
   doc.setFillColor(...brand.PRIMARY_RGB);
   doc.rect(0, 0, pageW, height, "F");
   doc.setFillColor(...brand.ACCENT_RGB);
   doc.rect(0, height - 4, pageW, 2, "F");
 }
 
-export function addSectionHeader(doc: any, title: string, y: number, color: [number, number, number]): number {
+export function addSectionHeader(doc: jsPDF, title: string, y: number, color: [number, number, number]): number {
   if (y > 260) { doc.addPage(); y = 20; }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
@@ -87,7 +91,7 @@ export function addSectionHeader(doc: any, title: string, y: number, color: [num
   return y + 6;
 }
 
-export function addParagraph(doc: any, text: string, y: number, pageW: number, brand: BrandPalette): number {
+export function addParagraph(doc: jsPDF, text: string, y: number, pageW: number, brand: BrandPalette): number {
   if (!text) return y;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
@@ -101,7 +105,7 @@ export function addParagraph(doc: any, text: string, y: number, pageW: number, b
   return y + 2;
 }
 
-export function addKeyValue(doc: any, label: string, value: string, y: number, brand: BrandPalette): number {
+export function addKeyValue(doc: jsPDF, label: string, value: string, y: number, brand: BrandPalette): number {
   if (y > 275) { doc.addPage(); y = 20; }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
@@ -113,7 +117,7 @@ export function addKeyValue(doc: any, label: string, value: string, y: number, b
   return y + 5;
 }
 
-export function addBulletList(doc: any, items: string[], y: number, pageW: number, brand: BrandPalette): number {
+export function addBulletList(doc: jsPDF, items: string[], y: number, pageW: number, brand: BrandPalette): number {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...brand.FOREGROUND_RGB);
@@ -130,7 +134,7 @@ export function addBulletList(doc: any, items: string[], y: number, pageW: numbe
   return y + 2;
 }
 
-export function addTable(doc: any, autoTable: any, headers: string[], rows: string[][], y: number, color: [number, number, number], brand: BrandPalette): number {
+export function addTable(doc: jsPDF, autoTable: AutoTableFn, headers: string[], rows: string[][], y: number, color: [number, number, number], brand: BrandPalette): number {
   if (y > 240) { doc.addPage(); y = 20; }
   autoTable(doc, {
     startY: y,
