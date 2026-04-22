@@ -213,10 +213,10 @@ export default function PropertyMarketResearch() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="market"><MarketTab content={content} propertyLocation={property.location} /></TabsContent>
-              <TabsContent value="revenue"><RevenueTab content={content} /></TabsContent>
-              <TabsContent value="financial"><FinancialTab content={content} /></TabsContent>
-              <TabsContent value="operating"><OperatingTab content={content} /></TabsContent>
+              <TabsContent value="market"><MarketTab content={content as Parameters<typeof MarketTab>[0]['content']} propertyLocation={property.location} /></TabsContent>
+              <TabsContent value="revenue"><RevenueTab content={content as Parameters<typeof RevenueTab>[0]['content']} /></TabsContent>
+              <TabsContent value="financial"><FinancialTab content={content as Parameters<typeof FinancialTab>[0]['content']} /></TabsContent>
+              <TabsContent value="operating"><OperatingTab content={content as Parameters<typeof OperatingTab>[0]['content']} /></TabsContent>
               <TabsContent value="rates">
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                   <div className={`${card} p-6 space-y-6`}>
@@ -227,7 +227,7 @@ export default function PropertyMarketResearch() {
                 </motion.div>
               </TabsContent>
               <TabsContent value="sources">
-                <SourcesTab content={content} />
+                <SourcesTab content={content as Parameters<typeof SourcesTab>[0]['content']} />
               </TabsContent>
               <TabsContent value="criteria">
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
