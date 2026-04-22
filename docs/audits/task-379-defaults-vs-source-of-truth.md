@@ -66,7 +66,7 @@ How each registered value reaches the financial engine **today**:
 |---|---|---|
 | `daysPerMonth` | `global.daysPerMonth` (overlaid by `applyModelConstantsToGlobals`) | ✅ Yes — overlay covers `locality === "universal"`. |
 | `depreciationYears` | `property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS` | ✅ Yes (after this audit) — `applyModelConstantsToGlobals` now overlays `global.depreciationYears` from the canonical Model Constants layer (United States baseline) via the `COUNTRY_KEYS_OVERLAID_ON_GLOBAL` set. Per-property overrides still win the cascade. |
-| `inflationRate` | `property.inflationRate ?? global.inflationRate` | ❌ Not yet — country-locality overlay extension pending production-deviation backfill (see Section 5). |
+| `inflationRate` | `property.inflationRate ?? global.inflationRate` | ⚠️ **Cascade exception — see `.claude/rules/inflation-cascade.md`.** Inflation is not a depreciation-style regulatory constant. The Management Company assumptions row is the engine's source of truth; per-property override wins; Macro & Market is the last-resort fallback. The Constants table may hold inflation rows **only** when written by an AI Intelligence specialist with a monetary-authority citation (US Fed target, IMF WEO, central-bank target). Admin hand-edits without an authority citation are not legitimate Constant rows. Adding `inflationRate` to `COUNTRY_KEYS_OVERLAID_ON_GLOBAL` requires (a) specialist-sourced canonical rows, (b) production-deviation backfill, and (c) the behavior-preservation guard — all three. |
 | `costRateTaxes` | `property.costRateTaxes ?? modelDefaults.costRateTaxes` | ❌ No — read via business-model defaults compile-time table. |
 | `taxRate` | `property.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE` | ❌ No. |
 | `countryRiskPremium` | per-country compile-time lookup in `engine/helpers/default-resolver.ts` | ❌ No. |
@@ -199,11 +199,18 @@ resolve in this audit.
   *Defaults* group into a *Source of Truth* group is tracked under Task
   #331 and is intentionally not done here.
 - **Engine canonical-layer consumption for the remaining country and
-  country+state keys** (e.g. `inflationRate`, `costRateTaxes`) — the
-  overlay scaffold added here (`COUNTRY_KEYS_OVERLAID_ON_GLOBAL`) is
-  ready; expanding the set requires a per-key production-deviation
-  backfill so existing tenant overrides are preserved. Tracked under
-  follow-up #381. The `depreciationYears` overlay shipped in this PR
+  country+state keys** (e.g. `costRateTaxes`) — the overlay scaffold
+  added here (`COUNTRY_KEYS_OVERLAID_ON_GLOBAL`) is ready; expanding
+  the set requires a per-key production-deviation backfill so existing
+  tenant overrides are preserved. Tracked under follow-up #381.
+  **`inflationRate` is governed by the dedicated cascade rule
+  (`.claude/rules/inflation-cascade.md`)** and is not a routine
+  candidate for the overlay set: any addition requires
+  specialist-sourced canonical rows (an AI Intelligence specialist
+  writing the row from a monetary-authority publication), production-
+  deviation backfill, and the behavior-preservation guard — all three.
+  Admin hand-typed inflation values do not satisfy the writer
+  requirement. The `depreciationYears` overlay shipped in this PR
   is the reference implementation.
 
 ---

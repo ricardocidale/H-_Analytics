@@ -169,6 +169,21 @@ For every numeric value you are introducing, ask in order:
 | Lives in | `shared/constants.ts` as `DEFAULT_MGMT_FEE_RATE` |
 | Per-property override? | Yes |
 
+### Inflation rate (the subtle case — read carefully)
+
+Inflation is the example where this skill's general rule needs project-specific nuance. Full rule: `.claude/rules/inflation-cascade.md` and `.agents/skills/inflation-cascade/SKILL.md`.
+
+| Property | Value |
+|---|---|
+| Category | **Constant — but only with specialist-sourced authority citation.** Otherwise treat as user-facing assumption (cascade: MC assumption → property override → Macro & Market fallback). |
+| Authority (when present) | A monetary authority publication: US Federal Reserve long-run inflation target, IMF World Economic Outlook, ECB / BoE / central-bank target, etc. |
+| Writer | **AI Intelligence specialist** (e.g. a Macro Research specialist that fetches central-bank publications and produces a verdict with conviction + range + citation). Admin **does not** hand-type inflation Constants rows freehand. |
+| Lives in | (a) `companyAssumptions.inflationRate` — source of truth for the engine; (b) `property.inflationRate` — override; (c) `defaults.inflationRate` (Market & Macro tab) — seed + last-resort fallback; (d) `model_canonicals.inflationRate` keyed by country — optional, specialist-sourced reference layer. |
+| Engine cascade | `property.inflationRate ?? mcAssumptions.inflationRate ?? macroMarketFallback`. The Constants row does not silently overwrite the cascade — overlay onto `globalAssumptions.inflationRate` is gated by the `COUNTRY_KEYS_OVERLAID_ON_GLOBAL` set in `server/finance/apply-model-constants.ts` and requires the conditions in the inflation-cascade rule. |
+| Hard-coded TS literal? | **Never.** Even as a "floor", inflation must come through the cascade or a specialist-sourced row. |
+
+The contrast with depreciation is the point: depreciation is a regulator-published value with one right answer per jurisdiction, rarely changes, admin updates it when the regulator does. Inflation is a market estimate that varies per property and per market, central banks publish targets that shift over time, and specialists keep the canonical row fresh — humans rarely hand-edit it.
+
 ## The "Ask The Analyst" pattern (Constants only)
 
 For each Constant in the admin UI, expose an "Ask The Analyst for recommended value" button. The Analyst:

@@ -46,6 +46,23 @@ import type { ModelConstant } from "@shared/schema/model-canonicals";
  * lands here once any production deviation in `globalAssumptions` has
  * been audited as either matching the canonical or migratable to a
  * manual override.
+ *
+ * SPECIAL RULE — `inflationRate`. Inflation is NOT a depreciation-style
+ * regulatory constant. It is governed by `.claude/rules/inflation-cascade.md`
+ * and the cascade `property → companyAssumptions → marketMacroFallback`.
+ * Adding `inflationRate` to this set requires ALL THREE of:
+ *   (a) Specialist-sourced canonical rows — written by an AI Intelligence
+ *       specialist from a monetary-authority publication (US Fed target,
+ *       IMF WEO, central-bank target). Admin hand-typed canonical rows
+ *       without an `authoritySource`/`authorityRef` do NOT qualify.
+ *   (b) Production-deviation backfill — every existing tenant whose
+ *       `companyAssumptions.inflationRate` deviates from the seeded
+ *       canonical is migrated to an explicit override row preserving
+ *       their value, OR flagged for admin review before activation.
+ *   (c) The behavior-preservation guard below remains intact (overlay
+ *       only when an explicit admin override row exists; seeded
+ *       canonical rows alone do not silently overwrite tenant data).
+ * Without all three, inflationRate stays out of this set.
  */
 const COUNTRY_KEYS_OVERLAID_ON_GLOBAL = new Set<string>([
   "depreciationYears",

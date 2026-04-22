@@ -132,9 +132,15 @@ describe("applyModelConstantsToGlobals", () => {
     expect(out.depreciationYears).toBe(30);
   });
 
-  it("does not overlay other country-locality constants (e.g. inflationRate) onto global", () => {
-    // inflationRate is country-keyed but not yet in COUNTRY_KEYS_OVERLAID_ON_GLOBAL —
-    // production deviation backfill is required first. Tracked as follow-up.
+  it("does not overlay inflationRate onto global — cascade exception (see .claude/rules/inflation-cascade.md)", () => {
+    // inflationRate is governed by a dedicated cascade rule:
+    //   property.inflationRate ?? companyAssumptions.inflationRate ?? marketMacroFallback
+    // The Management Company assumptions row is the engine's source of truth.
+    // Adding inflationRate to COUNTRY_KEYS_OVERLAID_ON_GLOBAL requires
+    // specialist-sourced canonical rows + production-deviation backfill +
+    // the behavior-preservation guard — all three. An admin-typed manual
+    // override (as constructed below) does NOT satisfy the specialist-
+    // sourced requirement and must not flow into globalAssumptions.
     const overrides = [
       override({
         constantKey: "inflationRate",
