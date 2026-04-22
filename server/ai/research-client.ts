@@ -256,11 +256,6 @@ interface GeminiContent {
   content?: string;
 }
 
-// Audit Task #319 R2 (C4): unify with the wider `LlmVendor` union from
-// shared/schema/research-types.ts so an admin UI selection that survives
-// the type system (e.g. via DB persistence) cannot silently fall through
-// to anthropic. Vendors with no implemented client throw a typed error
-// at call time so the caller can surface "not yet supported" cleanly.
 import type { LlmVendor } from "@shared/schema/research-types";
 
 export type LlmVendorKey = LlmVendor;

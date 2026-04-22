@@ -77,9 +77,6 @@ export async function evaluateAlertRules(
       }
     }
 
-    // Audit Task #319 R3 (H8): the DB column is `text` so validate at
-    // the boundary before invoking the now-exhaustive label functions.
-    // Unknown metrics are skipped (rather than mislabeled).
     if (!isAlertMetric(rule.metric)) {
       console.warn(`[notifications] skipping rule ${rule.id}: unknown metric "${rule.metric}"`);
       continue;
@@ -120,9 +117,6 @@ function evaluateCondition(value: number, operator: string, threshold: number): 
   }
 }
 
-// Audit Task #319 R3 (H8): typed parameter + exhaustive switches. A new
-// AlertMetric added to ALERT_METRICS will fail the build here instead of
-// being silently mislabeled as DSCR_BREACH.
 function getMetricEventType(metric: AlertMetric): NotificationEvent["type"] {
   switch (metric) {
     case "dscr": return "DSCR_BREACH";

@@ -346,11 +346,6 @@ export const globalAssumptions = pgTable("global_assumptions", {
   check("ga_exit_cap_rate_range", sql`${table.exitCapRate} > 0 AND ${table.exitCapRate} <= 1`),
 ]);
 
-// Audit Task #319 R1 (C3): every nested JSONB schema below uses
-// `.strict()` so admin requests cannot persist unknown fields into the
-// `global_assumptions` JSONB columns. Defaults inside `assetDefinition`
-// mirror the Drizzle table defaults at line 226 so the Zod and DB
-// layers agree on what a "complete" object looks like.
 export const insertGlobalAssumptionsSchema = createInsertSchema(globalAssumptions, {
   fiscalYearStartMonth: z.number().int().min(1).max(12).default(1),
   standardAcqPackage: z.object({
