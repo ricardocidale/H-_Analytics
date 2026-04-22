@@ -1,7 +1,26 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 import { X } from "@/components/icons/themed-icons";
 import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -308,7 +327,7 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const navGroups = buildNavGroups();
+  const navGroups = useMemo(() => buildNavGroups(), []);
 
   const { data: freshnessCounts } = useQuery<FreshnessCounts>({
     queryKey: ["/api/admin/intelligence/freshness-counts"],
@@ -317,135 +336,164 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
   const resolved = resolveSection(activeSection);
   const activeGroup = getGroupForSection(resolved, navGroups);
 
+  const handleSelect = (section: AdminSection) => {
+    onSectionChange(section);
+    setMobileOpen(false);
+  };
+
   const sidebarContent = (
-    <nav className="flex flex-col gap-0.5 py-3 px-3">
-      {navGroups.map((group) => {
-        const isGroupActive = group.id === activeGroup;
+    <SidebarProvider
+      defaultOpen
+      className="min-h-0 w-full bg-transparent"
+      style={{ "--sidebar-width": "100%" } as React.CSSProperties}
+    >
+      <Sidebar
+        collapsible="none"
+        className="w-full bg-transparent text-foreground"
+      >
+        <SidebarContent className="bg-transparent gap-1 px-2 py-2">
+          {navGroups.map((group) => {
+            const isGroupActive = group.id === activeGroup;
+            const showFreshnessBadge =
+              group.id === "ai-research" &&
+              !!freshnessCounts &&
+              (freshnessCounts.stale > 0 || freshnessCounts.missing > 0);
+            const freshnessTotal = freshnessCounts
+              ? freshnessCounts.stale + freshnessCounts.missing
+              : 0;
+            const freshnessSeverity =
+              (freshnessCounts?.missing ?? 0) > 0 ? "missing" : "stale";
 
-        return (
-          <div key={group.id} className="mb-0.5">
-            <div className="px-3 pt-4 pb-1 flex items-center gap-2">
-              <span
-                className={cn(
-                  "text-[11px] font-medium",
-                  isGroupActive ? "text-primary" : "text-primary/60"
-                )}
+            // Single-section groups render as a flat top-level item (no submenu).
+            if (group.sections.length === 1) {
+              const only = group.sections[0];
+              const sectionResolved = resolveSection(only.value);
+              const isAlias = only.value !== sectionResolved;
+              const isActive = isAlias
+                ? activeSection === only.value
+                : resolved === sectionResolved;
+              const Icon = only.icon;
+              return (
+                <SidebarGroup key={group.id} className="p-0">
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        onClick={() => handleSelect(only.value)}
+                        data-testid={`admin-nav-${only.value}`}
+                        tooltip={group.label}
+                      >
+                        <Icon className="size-4 shrink-0" />
+                        <span className="truncate">{group.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroup>
+              );
+            }
+
+            // Multi-section groups render as collapsible submenus.
+            const GroupIcon = group.icon;
+            return (
+              <Collapsible
+                key={group.id}
+                defaultOpen={isGroupActive}
+                className="group/collapsible"
+                asChild
               >
-                {group.label}
-              </span>
-              {group.id === "ai-research" && freshnessCounts && (freshnessCounts.stale > 0 || freshnessCounts.missing > 0) && (
-                <span
-                  data-testid="intelligence-freshness-badge"
-                  className={cn(
-                    "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold leading-none",
-                    freshnessCounts.missing > 0
-                      ? "bg-red-500/15 text-red-600 dark:text-red-400"
-                      : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                  )}
+                <SidebarGroup className="p-0">
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          isActive={isGroupActive}
+                          tooltip={group.label}
+                          data-testid={`admin-nav-group-${group.id}`}
+                          className="font-medium"
+                        >
+                          <GroupIcon className="size-4 shrink-0" />
+                          <span className="truncate">{group.label}</span>
+                          {showFreshnessBadge && (
+                            <SidebarMenuBadge
+                              data-testid="intelligence-freshness-badge"
+                              className={cn(
+                                "ml-auto mr-6",
+                                freshnessSeverity === "missing"
+                                  ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                                  : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                              )}
+                            >
+                              {freshnessTotal}
+                            </SidebarMenuBadge>
+                          )}
+                          <ChevronRight className="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="overflow-hidden data-[state=closed]:hidden">
+                        <SidebarMenuSub>
+                          {group.sections.map((section) => {
+                            const sectionResolved = resolveSection(section.value);
+                            const isAlias = section.value !== sectionResolved;
+                            const isActive = isAlias
+                              ? activeSection === section.value
+                              : resolved === sectionResolved;
+                            const Icon = section.icon;
+                            return (
+                              <SidebarMenuSubItem key={section.value}>
+                                <SidebarMenuSubButton
+                                  isActive={isActive}
+                                  onClick={() => handleSelect(section.value)}
+                                  data-testid={`admin-nav-${section.value}`}
+                                  className="cursor-pointer"
+                                >
+                                  <Icon className="size-4 shrink-0" />
+                                  <span className="truncate">{section.label}</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroup>
+              </Collapsible>
+            );
+          })}
+
+          {/* Logs */}
+          <SidebarGroup className="p-0 mt-1 pt-2 border-t border-border/60">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={resolved === "activity"}
+                  onClick={() => handleSelect("activity")}
+                  data-testid="admin-nav-activity"
+                  tooltip="Activity"
                 >
-                  {freshnessCounts.stale + freshnessCounts.missing}
-                </span>
-              )}
-            </div>
+                  <IconActivity className="size-4 shrink-0" />
+                  <span className="truncate">Activity</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
 
-            <div className="space-y-0.5">
-              {group.sections.map((section) => {
-                const sectionResolved = resolveSection(section.value);
-                const isAlias = section.value !== sectionResolved;
-                const isActive = isAlias
-                  ? activeSection === section.value
-                  : resolved === sectionResolved;
-                const Icon = section.icon;
-                return (
-                  <Button
-                    key={section.value}
-                    variant="ghost"
-                    onClick={() => {
-                      onSectionChange(section.value);
-                      setMobileOpen(false);
-                    }}
-                    data-testid={`admin-nav-${section.value}`}
-                    className={cn(
-                      "relative w-full flex items-center gap-2.5 px-3 py-[7px] h-auto rounded-lg text-left justify-start transition-all duration-150 group/item cursor-pointer",
-                      isActive
-                        ? "bg-muted text-foreground font-medium"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "w-4 h-4 shrink-0 transition-colors",
-                        isActive
-                          ? "text-foreground"
-                          : "text-muted-foreground group-hover/item:text-muted-foreground"
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "text-[13px] transition-colors truncate",
-                        isActive ? "font-medium" : "font-normal"
-                      )}
-                    >
-                      {section.label}
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-
-      <div className="mt-1 pt-2 border-t border-border/60">
-        <div className="px-3 pt-2 pb-1">
-          <span className="text-[11px] font-medium text-primary/60">
-            Logs
-          </span>
-        </div>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            onSectionChange("activity");
-            setMobileOpen(false);
-          }}
-          data-testid="admin-nav-activity"
-          className={cn(
-            "relative w-full flex items-center gap-2.5 px-3 py-[7px] h-auto rounded-lg text-left justify-start transition-all duration-150 group/item cursor-pointer",
-            resolved === "activity"
-              ? "bg-muted text-foreground font-medium"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <IconActivity
-            className={cn(
-              "w-4 h-4 shrink-0 transition-colors",
-              resolved === "activity"
-                ? "text-foreground"
-                : "text-muted-foreground group-hover/item:text-muted-foreground"
-            )}
-          />
-          <span
-            className={cn(
-              "text-[13px] transition-colors truncate",
-              resolved === "activity" ? "font-medium" : "font-normal"
-            )}
-          >
-            Activity
-          </span>
-        </Button>
-      </div>
-
-      <div className="mt-1 pt-2 border-t border-border/60">
-        <Link
-          href="/help"
-          data-testid="admin-nav-help"
-          className="relative w-full flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-left transition-all duration-150 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        >
-          <IconHelpCircle className="w-4 h-4 shrink-0" />
-          <span className="text-[13px] font-normal">Help</span>
-        </Link>
-      </div>
-    </nav>
+          {/* Help */}
+          <SidebarGroup className="p-0 mt-1 pt-2 border-t border-border/60">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Help">
+                  <Link href="/help" data-testid="admin-nav-help">
+                    <IconHelpCircle className="size-4 shrink-0" />
+                    <span className="truncate">Help</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+    </SidebarProvider>
   );
 
   return (
