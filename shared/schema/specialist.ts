@@ -250,6 +250,14 @@ export const SpecialistConfigPublicViewSchema = z.object({
   promptTemplate: z.string(),
   modelResourceId: z.number().int().nullable(),
   requiredFields: z.array(z.string()),
+  /**
+   * Per-Specialist allow-list for `requiredFields` keys, or `null` when
+   * the Specialist has no allow-list wired (any string accepted). When
+   * non-null, the admin PUT route rejects fields outside this list and the
+   * UI surfaces them as helper text. See
+   * engine/analyst/registry/required-field-keys.ts for the source of truth.
+   */
+  validRequiredFieldKeys: z.array(z.string()).nullable(),
   runtimeConfig: z.record(z.string(), z.unknown()),
   version: z.number().int().min(1),
   updatedAt: z.string(),

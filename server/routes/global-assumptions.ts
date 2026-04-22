@@ -308,20 +308,39 @@ export function register(app: Express) {
               });
             } else {
               // Revenue specialist reads inputs from the freshly-saved row.
+              // The saved-row → dispatch-key map is the single source of truth
+              // (engine/analyst/registry/required-field-keys.ts: REVENUE_FIELD_MAPPINGS)
+              // — same map drives the admin allow-list, so the two cannot diverge.
+              const { REVENUE_FIELD_MAPPINGS } = await import(
+                "../../engine/analyst/registry/required-field-keys"
+              );
+              const REVENUE_DISPATCH_DEFAULTS: Record<
+                typeof REVENUE_FIELD_MAPPINGS[number]["dispatchKey"],
+                number
+              > = {
+                marketingRate:      c.DEFAULT_COST_RATE_MARKETING,
+                fbRevenueShare:     c.DEFAULT_REV_SHARE_FB,
+                eventsRevenueShare: c.DEFAULT_REV_SHARE_EVENTS,
+                otherRevenueShare:  c.DEFAULT_REV_SHARE_OTHER,
+                cateringBoostPct:   c.DEFAULT_CATERING_BOOST_PCT,
+              };
               const savedRow = saved as Record<string, unknown>;
               const num = (k: string) => {
                 const v = savedRow[k];
                 return typeof v === "number" && Number.isFinite(v) ? v : null;
               };
+              const revenuePayload = Object.fromEntries(
+                REVENUE_FIELD_MAPPINGS.map(({ savedRowKey, dispatchKey }) => [
+                  dispatchKey,
+                  num(savedRowKey) ?? REVENUE_DISPATCH_DEFAULTS[dispatchKey],
+                ]),
+              ) as Record<
+                typeof REVENUE_FIELD_MAPPINGS[number]["dispatchKey"],
+                number
+              >;
               verdict = await router.dispatch({
                 specialistId: MGMT_CO_REVENUE_ID,
-                payload: {
-                  marketingRate:      num("defaultCostRateMarketing") ?? c.DEFAULT_COST_RATE_MARKETING,
-                  fbRevenueShare:     num("defaultRevShareFb")        ?? c.DEFAULT_REV_SHARE_FB,
-                  eventsRevenueShare: num("defaultRevShareEvents")    ?? c.DEFAULT_REV_SHARE_EVENTS,
-                  otherRevenueShare:  num("defaultRevShareOther")     ?? c.DEFAULT_REV_SHARE_OTHER,
-                  cateringBoostPct:   num("defaultCateringBoostPct")  ?? c.DEFAULT_CATERING_BOOST_PCT,
-                },
+                payload: revenuePayload,
                 persona,
               });
             }

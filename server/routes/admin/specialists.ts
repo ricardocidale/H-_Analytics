@@ -30,6 +30,10 @@ import {
   getSpecialistById,
 } from "../../../engine/analyst/registry/specialist-catalog";
 import {
+  findInvalidRequiredFieldKeys,
+  getValidRequiredFieldKeys,
+} from "../../../engine/analyst/registry/required-field-keys";
+import {
   updateLlmConfigSchema,
   updateRequiredFieldsSchema,
   updateRuntimeSchema,
@@ -53,11 +57,13 @@ function toConfigView(row: {
   version: number;
   updatedAt: Date;
 }): SpecialistConfigPublicView {
+  const allow = getValidRequiredFieldKeys(row.specialistId);
   return {
     specialistId: row.specialistId,
     promptTemplate: row.promptTemplate,
     modelResourceId: row.modelResourceId,
     requiredFields: row.requiredFields ?? [],
+    validRequiredFieldKeys: allow === null ? null : [...allow],
     runtimeConfig: row.runtimeConfig ?? {},
     version: row.version,
     updatedAt: row.updatedAt.toISOString(),
@@ -194,6 +200,19 @@ export function registerAdminSpecialistRoutes(app: Express) {
       const parsed = updateRequiredFieldsSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      // P6a follow-up: enforce per-Specialist allow-list on requiredFields.
+      // Specialists with a wired allow-list (mgmt-co.funding,
+      // mgmt-co.revenue) reject keys outside the list. Specialists without
+      // an allow-list (`null`) accept any string for backward-compat.
+      const invalid = findInvalidRequiredFieldKeys(id, parsed.data.fields);
+      if (invalid.length > 0) {
+        const allow = getValidRequiredFieldKeys(id) ?? [];
+        return res.status(400).json({
+          error: `Unknown required-field key(s) for ${id}: ${invalid.join(", ")}. Valid keys: ${allow.join(", ")}`,
+          invalidKeys: invalid,
+          validKeys: [...allow],
+        });
       }
       const actorId = req.user!.id;
       const updated = await storage.updateSpecialistConfigSection(

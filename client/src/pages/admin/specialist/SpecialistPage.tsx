@@ -53,6 +53,8 @@ interface SpecialistConfigView {
   promptTemplate: string;
   modelResourceId: number | null;
   requiredFields: string[];
+  /** Per-Specialist allow-list for requiredFields keys; null = no allow-list. */
+  validRequiredFieldKeys: string[] | null;
   runtimeConfig: Record<string, unknown>;
   version: number;
   updatedAt: string;
@@ -203,6 +205,21 @@ function RequiredFieldsTab({ specialistId, config }: { specialistId: string; con
   const [fieldsText, setFieldsText] = useState(config.requiredFields.join("\n"));
   const [summary, setSummary] = useState("");
 
+  const allowList = config.validRequiredFieldKeys; // null = no allow-list
+  const allowSet = useMemo(() => (allowList === null ? null : new Set(allowList)), [allowList]);
+
+  // Live local-only validation: highlight keys the user has typed that
+  // aren't in the allow-list. Server is still the authority and will
+  // reject on save with 400 + invalidKeys, but inline feedback is faster.
+  const localInvalid = useMemo(() => {
+    if (allowSet === null) return [] as string[];
+    return fieldsText
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter((k) => !allowSet.has(k));
+  }, [fieldsText, allowSet]);
+
   const mutation = useMutation({
     mutationFn: async () => {
       const fields = fieldsText.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -228,6 +245,27 @@ function RequiredFieldsTab({ specialistId, config }: { specialistId: string; con
         <p className="text-sm text-muted-foreground">
           One field key per line. Research only runs once every required field is populated upstream.
         </p>
+        {allowList !== null && (
+          <div className="rounded-md border bg-muted/40 p-3 space-y-2" data-testid="hint-valid-required-field-keys">
+            <p className="text-xs font-medium text-muted-foreground">
+              Valid keys for this Specialist:
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {allowList.map((k) => (
+                <code
+                  key={k}
+                  className="rounded bg-background px-1.5 py-0.5 text-xs font-mono border"
+                  data-testid={`chip-valid-key-${k}`}
+                >
+                  {k}
+                </code>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Keys outside this list will be rejected on save.
+            </p>
+          </div>
+        )}
         <Textarea
           value={fieldsText}
           onChange={(e) => setFieldsText(e.target.value)}
@@ -235,6 +273,15 @@ function RequiredFieldsTab({ specialistId, config }: { specialistId: string; con
           data-testid="textarea-required-fields"
           className="font-mono text-sm"
         />
+        {localInvalid.length > 0 && (
+          <p
+            className="text-xs text-destructive"
+            data-testid="text-required-fields-invalid"
+          >
+            {localInvalid.length === 1 ? "Unknown key" : "Unknown keys"}:{" "}
+            <code className="font-mono">{localInvalid.join(", ")}</code>
+          </p>
+        )}
         <Input
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
@@ -242,7 +289,11 @@ function RequiredFieldsTab({ specialistId, config }: { specialistId: string; con
           data-testid="input-change-summary-required-fields"
         />
         <div className="flex justify-end">
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} data-testid="button-save-required-fields">
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || localInvalid.length > 0}
+            data-testid="button-save-required-fields"
+          >
             {mutation.isPending ? "Saving…" : "Save"}
           </Button>
         </div>
