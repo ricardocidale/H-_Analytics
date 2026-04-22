@@ -182,7 +182,7 @@ describe("ModelConstantsTab — Phase 4 read-only doctrine (runtime)", () => {
     renderTab();
     await screen.findByTestId("row-model-constant-taxRate");
 
-    await user.click(screen.getByTestId("button-refresh-research-taxRate"));
+    await user.click(screen.getByTestId("button-analyst-taxRate"));
     // Wait for the proposal to render.
     await waitFor(() => screen.getByTestId("refresh-new-taxRate"));
 
@@ -257,7 +257,7 @@ describe("ModelConstantsTab — Phase 4 read-only doctrine (runtime)", () => {
     renderTab();
     await screen.findByTestId("row-model-constant-taxRate");
 
-    await user.click(screen.getByTestId("button-refresh-research-taxRate"));
+    await user.click(screen.getByTestId("button-analyst-taxRate"));
     await waitFor(() => screen.getByTestId("refresh-new-taxRate"));
 
     await user.click(screen.getByTestId("button-discard-refresh-taxRate"));

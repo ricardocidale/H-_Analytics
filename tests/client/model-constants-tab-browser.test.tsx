@@ -267,7 +267,7 @@ describe("ModelConstantsTab — Phase 4 read-only browser test (full registry)",
     for (const row of getAllRows()) {
       const key = row.getAttribute("data-testid")!.replace(/^row-model-constant-/, "");
       const badge = row.querySelector('[data-testid^="badge-specialist-"]');
-      const refresh = within(row).queryByTestId(`button-refresh-research-${key}`);
+      const refresh = within(row).queryByTestId(`button-analyst-${key}`);
       const history = within(row).queryByTestId(`button-history-${key}`);
       if (!badge) missing.push(`${key}: no specialist badge`);
       if (!refresh) missing.push(`${key}: no refresh research button`);
@@ -282,7 +282,7 @@ describe("ModelConstantsTab — Phase 4 read-only browser test (full registry)",
     const firstKey = ALL_REGISTRY_KEYS[0];
     await screen.findByTestId(`row-model-constant-${firstKey}`);
 
-    await user.click(screen.getByTestId(`button-refresh-research-${firstKey}`));
+    await user.click(screen.getByTestId(`button-analyst-${firstKey}`));
 
     await waitFor(() => screen.getByTestId(`refresh-new-${firstKey}`));
 
@@ -303,7 +303,7 @@ describe("ModelConstantsTab — Phase 4 read-only browser test (full registry)",
     const firstKey = ALL_REGISTRY_KEYS[0];
     await screen.findByTestId(`row-model-constant-${firstKey}`);
 
-    await user.click(screen.getByTestId(`button-refresh-research-${firstKey}`));
+    await user.click(screen.getByTestId(`button-analyst-${firstKey}`));
     await waitFor(() => screen.getByTestId(`refresh-new-${firstKey}`));
 
     await user.click(screen.getByTestId(`button-discard-refresh-${firstKey}`));

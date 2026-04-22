@@ -714,13 +714,13 @@ function RefreshResearchPopover({ row, country }: { row: ConstantRow; country: s
           variant="ghost"
           size="sm"
           onClick={handleClick}
-          title="Ask the owning Specialist to re-fetch from the cited authority. Preview before applying."
-          data-testid={`button-refresh-research-${row.key}`}
+          title="Have the Analyst re-fetch this constant from the cited authority. Preview before applying."
+          data-testid={`button-analyst-${row.key}`}
         >
           {refresh.isPending
             ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
             : <IconSparkles className="w-3.5 h-3.5 mr-1.5" />}
-          Refresh research
+          {refresh.isPending ? "Studying…" : "Analyst"}
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -731,7 +731,7 @@ function RefreshResearchPopover({ row, country }: { row: ConstantRow; country: s
         <div className="space-y-3">
           <div className="text-sm font-medium flex items-center gap-2">
             <IconSparkles className="w-4 h-4 text-yellow-500" />
-            Refresh research — {row.label}
+            Analyst — {row.label}
           </div>
 
           {refresh.isPending && (

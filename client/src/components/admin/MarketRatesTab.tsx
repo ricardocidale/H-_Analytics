@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconRefreshCw, IconSave, IconClock, IconAlertTriangle, IconCheckCircle2, IconXCircle, IconTrending, IconPencil } from "@/components/icons";
+import { IconRefreshCw, IconSave, IconClock, IconAlertTriangle, IconCheckCircle2, IconXCircle, IconTrending, IconPencil, IconSparkles } from "@/components/icons";
 import {
   useMarketRates,
   useRefreshRate,
@@ -243,15 +243,21 @@ export default function MarketRatesTab() {
                           <TooltipTrigger asChild>
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
+                              size="sm"
+                              className="h-7 gap-1.5 px-2"
                               onClick={() => handleRefreshOne(rate.rateKey)}
                               disabled={refreshRate.isPending}
+                              data-testid={`button-analyst-${rate.rateKey}`}
                             >
-                              <IconRefreshCw className="w-3.5 h-3.5" />
+                              <IconSparkles className="w-3.5 h-3.5" />
+                              <span className="text-xs">
+                                {refreshRate.isPending ? "Studying…" : "Analyst"}
+                              </span>
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Refresh this rate</TooltipContent>
+                          <TooltipContent>
+                            Have the Analyst re-fetch this rate from the cited authority.
+                          </TooltipContent>
                         </Tooltip>
                       )}
                       <Tooltip>
