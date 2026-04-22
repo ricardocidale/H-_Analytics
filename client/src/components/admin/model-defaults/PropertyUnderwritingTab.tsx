@@ -22,7 +22,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -30,6 +29,10 @@ import {
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_LAND_VALUE_PERCENT,
 } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline for property tax rate (single source of truth).
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 interface PropertyUnderwritingTabProps {
   draft: Draft;

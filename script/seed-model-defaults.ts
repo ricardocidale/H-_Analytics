@@ -54,7 +54,6 @@ import {
   DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
   DEFAULT_BUSINESS_INSURANCE_START,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
@@ -71,6 +70,10 @@ import {
   DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COMPANY_INFLATION_RATE,
 } from "../shared/constants";
+import { getFactoryNumber } from "../shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 
 export interface SeedSpec {
   key: string;           // short key, prefix added below

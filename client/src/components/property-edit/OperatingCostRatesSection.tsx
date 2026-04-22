@@ -39,12 +39,15 @@ import {
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
   DEFAULT_COST_RATE_INSURANCE,
 } from "@/lib/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline for property tax rate (single source of truth).
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 import { AnalystRangeIndicator } from "@/components/analyst";
 import type { PropertyEditSectionProps } from "./types";
 

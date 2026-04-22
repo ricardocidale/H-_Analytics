@@ -21,17 +21,14 @@ import {
   DEFAULT_OTHER_EXPENSE_RATE,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   SEED_DEBT_ASSUMPTIONS,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_BUSINESS_INSURANCE_START,
 } from "../shared/constants";
 import { getFactoryNumber } from "../shared/model-constants-registry";
 
-// Audit #319 R4: registry-backed factory baseline for seed-time inflation
-// (US baseline = 0.03, equivalent to the legacy DEFAULT_PROPERTY_INFLATION_RATE).
-// `companyTaxRate` is intentionally NOT migrated — the legacy 0.30 blended
-// company-level rate is conceptually distinct from the registry's `taxRate`
-// (federal corporate, US = 0.21). Reconciliation is tracked in audit follow-up.
+// Audit #319 R4 / #406: registry-backed factory baselines.
+// inflationRate US = 0.03; taxRate US = 0.21 (federal corporate, replaces legacy 0.30).
 const SEED_INFLATION_RATE = getFactoryNumber('inflationRate', 'United States');
+const SEED_COMPANY_TAX_RATE = getFactoryNumber('taxRate', 'United States');
 
 export interface SyncResults {
   globalAssumptions: { created: number; skipped: number; filled: number };
@@ -70,7 +67,7 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   capitalRaise2Date: DEFAULT_CAPITAL_RAISE_2_DATE,
   capitalRaiseValuationCap: DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
   capitalRaiseDiscountRate: DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
-  companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
+  companyTaxRate: SEED_COMPANY_TAX_RATE,
   companyOpsStartDate: DEFAULT_COMPANY_OPS_START_DATE,
   fiscalYearStartMonth: 1,
   companyName: "Hospitality Business Group",

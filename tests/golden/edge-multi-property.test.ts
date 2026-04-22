@@ -22,8 +22,11 @@ import {
   DEFAULT_REV_SHARE_EVENTS, DEFAULT_REV_SHARE_FB, DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT, DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE, DAYS_PER_MONTH,
-  DEFAULT_COMPANY_TAX_RATE,
 } from "../../shared/constants";
+import { getFactoryNumber } from '@shared/model-constants-registry';
+// Audit #406: registry-backed US baselines (single source of truth).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber('taxRate', 'United States');
+
 import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ─── PROPERTIES ──────────────────────────────────────────────────────────
@@ -58,8 +61,7 @@ const PROP_C: PropertyInput = {
 const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01", projectionYears: 2, inflationRate: 0,
   fixedCostEscalationRate: 0, companyInflationRate: 0,
-  companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
-  companyOpsStartDate: "2026-04-01",
+  companyTaxRate: DEFAULT_COMPANY_TAX_RATE, companyOpsStartDate: "2026-04-01",
   capitalRaise1Date: "2026-04-01", capitalRaise1Amount: 800_000,
   capitalRaise2Date: null, capitalRaise2Amount: 0,
   staffSalary: 75_000, staffTier1MaxProperties: 3, staffTier1Fte: 2.5,

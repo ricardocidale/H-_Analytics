@@ -6,16 +6,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  /**
-   * Audit #319 R4 exception: SEED_PROPERTY_DEFAULTS is the L+B portfolio's
-   * factory baseline used both as the seeded `properties` row default AND as
-   * the schema column `.default()`. Schema-default literals must stay literal
-   * (Drizzle introspection runs at module-load time, no DB query allowed) and
-   * the seeded value intentionally matches the legacy 3.0% to keep all golden
-   * numbers stable until the audit's reconciliation pass picks the correct
-   * locality-aware number. See `@deprecated` block on `DEFAULT_COST_RATE_TAXES`.
-   */
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -33,12 +23,17 @@ import {
   DEFAULT_AR_DAYS,
   DEFAULT_REINVESTMENT_RATE,
 } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #406: SEED_PROPERTY_DEFAULTS sources costRateTaxes from the registry
+// (US baseline = 0.012). Same source-of-truth used by the schema column default.
+const SEED_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 export const SEED_PROPERTY_DEFAULTS = {
   costRateRooms: DEFAULT_COST_RATE_ROOMS, costRateFB: DEFAULT_COST_RATE_FB, costRateAdmin: DEFAULT_COST_RATE_ADMIN,
   costRateMarketing: DEFAULT_COST_RATE_MARKETING, costRatePropertyOps: DEFAULT_COST_RATE_PROPERTY_OPS,
   costRateUtilities: DEFAULT_COST_RATE_UTILITIES,
-  costRateTaxes: DEFAULT_COST_RATE_TAXES, costRateIT: DEFAULT_COST_RATE_IT, costRateFFE: DEFAULT_COST_RATE_FFE,
+  costRateTaxes: SEED_COST_RATE_TAXES, costRateIT: DEFAULT_COST_RATE_IT, costRateFFE: DEFAULT_COST_RATE_FFE,
   costRateOther: DEFAULT_COST_RATE_OTHER, costRateInsurance: DEFAULT_COST_RATE_INSURANCE,
   revShareEvents: DEFAULT_REV_SHARE_EVENTS,
   revShareFB: DEFAULT_REV_SHARE_FB, revShareOther: DEFAULT_REV_SHARE_OTHER,

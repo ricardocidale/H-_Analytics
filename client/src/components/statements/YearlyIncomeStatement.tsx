@@ -31,10 +31,14 @@ import type { Property } from "@shared/schema";
 import type { GlobalResponse } from "@/lib/api/types";
 import {
   DEFAULT_COST_RATE_PROPERTY_OPS, DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_ADMIN, DEFAULT_COST_RATE_TAXES, DEFAULT_COST_RATE_INSURANCE,
+  DEFAULT_COST_RATE_ADMIN, DEFAULT_COST_RATE_INSURANCE,
   DEFAULT_COST_RATE_IT, DEFAULT_COST_RATE_OTHER,
   MONTHS_PER_YEAR,
 } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline for property tax rate (single source of truth).
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 import { dPow } from "@calc/shared/decimal";
 import {
   TableShell,
@@ -59,7 +63,6 @@ import {
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
 } from "@shared/constants";
-import { getFactoryNumber } from "@shared/model-constants-registry";
 
 interface Props {
   data: MonthlyFinancials[];

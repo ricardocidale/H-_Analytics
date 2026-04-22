@@ -36,14 +36,19 @@ import {
 import {
   DEFAULT_COST_RATE_ROOMS, DEFAULT_COST_RATE_FB, DEFAULT_COST_RATE_ADMIN,
   DEFAULT_COST_RATE_MARKETING, DEFAULT_COST_RATE_PROPERTY_OPS, DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES, DEFAULT_COST_RATE_IT,
+  DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE, DEFAULT_COST_RATE_OTHER, DEFAULT_COST_RATE_INSURANCE,
   DEFAULT_EVENT_EXPENSE_RATE, DEFAULT_OTHER_EXPENSE_RATE, DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_REV_SHARE_EVENTS, DEFAULT_REV_SHARE_FB, DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT, DEFAULT_BASE_MANAGEMENT_FEE_RATE, DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  DEFAULT_COMPANY_TAX_RATE, DEFAULT_BUSINESS_INSURANCE_START,
+  DEFAULT_BUSINESS_INSURANCE_START,
   DAYS_PER_MONTH,
 } from "../../shared/constants";
+import { getFactoryNumber } from '@shared/model-constants-registry';
+// Audit #406: registry-backed US baselines (single source of truth).
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber('costRateTaxes', 'United States');
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber('taxRate', 'United States');
+
 import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 const PENNY = 2;
@@ -78,8 +83,7 @@ const makeGlobal = (overrides: Partial<GlobalInput> = {}): GlobalInput => ({
   inflationRate: 0,
   fixedCostEscalationRate: 0,
   companyInflationRate: 0,
-  companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
-  companyOpsStartDate: "2026-01-01",
+  companyTaxRate: DEFAULT_COMPANY_TAX_RATE, companyOpsStartDate: "2026-01-01",
   capitalRaise1Date: "2026-01-01",
   capitalRaise1Amount: 800_000,
   capitalRaise2Date: null,

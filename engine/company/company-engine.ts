@@ -35,7 +35,11 @@ import {
   DEFAULT_MISC_OPS_RATE,
   DEFAULT_CAPITAL_RAISE_TRANCHE,
 } from '@/lib/constants';
-import { DEFAULT_COMPANY_TAX_RATE, MONTHS_PER_YEAR } from '@shared/constants';
+import { MONTHS_PER_YEAR } from '@shared/constants';
+import { getFactoryNumber } from '@shared/model-constants-registry';
+
+// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+const DEFAULT_COMPANY_TAX_RATE_US = getFactoryNumber('taxRate', 'United States');
 import { computeCostOfServices } from '@calc/services/cost-of-services';
 import type { ServiceTemplate, AggregatedServiceCosts } from '@calc/services/types';
 import { PropertyInput, GlobalInput, CompanyMonthlyFinancials, ServiceFeeBreakdown } from '../types';
@@ -130,7 +134,7 @@ export function generateCompanyProForma(
   const itLicensePerClient = global.itLicensePerClient ?? DEFAULT_IT_LICENSE_PER_CLIENT;
   const marketingRate = global.marketingRate ?? DEFAULT_MARKETING_RATE;
   const miscOpsRate = global.miscOpsRate ?? DEFAULT_MISC_OPS_RATE;
-  const companyTaxRate = global.companyTaxRate ?? DEFAULT_COMPANY_TAX_RATE;
+  const companyTaxRate = global.companyTaxRate ?? DEFAULT_COMPANY_TAX_RATE_US;
   const capitalRaise1Amount = global.capitalRaise1Amount ?? DEFAULT_CAPITAL_RAISE_TRANCHE;
   const capitalRaise2Amount = global.capitalRaise2Amount ?? DEFAULT_CAPITAL_RAISE_TRANCHE;
   const fundingInterestRate = global.fundingInterestRate ?? 0;

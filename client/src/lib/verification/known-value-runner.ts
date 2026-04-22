@@ -14,7 +14,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -28,9 +27,10 @@ import {
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { TestCase, KNOWN_VALUE_TEST_CASES, computeMonthlyPL } from "./test-cases";
 
-// Audit #319 R4 — registry-backed factory baselines (US default).
+// Audit #319 R4 / #406 — registry-backed factory baselines (US default).
 const DEPRECIATION_YEARS = getFactoryNumber("depreciationYears");
 const DAYS_PER_MONTH = getFactoryNumber("daysPerMonth");
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 export interface KnownValueCheck {
   label: string;

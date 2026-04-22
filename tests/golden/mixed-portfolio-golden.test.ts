@@ -22,12 +22,17 @@ import {
   DEFAULT_CATERING_BOOST_PCT, DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE, DEFAULT_COST_RATE_ROOMS,
   DEFAULT_COST_RATE_FB, DEFAULT_COST_RATE_ADMIN, DEFAULT_COST_RATE_MARKETING,
-  DEFAULT_COST_RATE_TAXES, DEFAULT_COST_RATE_IT, DEFAULT_COST_RATE_FFE, DEFAULT_COST_RATE_OTHER,
+  DEFAULT_COST_RATE_IT, DEFAULT_COST_RATE_FFE, DEFAULT_COST_RATE_OTHER,
   DEFAULT_COST_RATE_PROPERTY_OPS, DEFAULT_COST_RATE_UTILITIES,
   DEFAULT_EVENT_EXPENSE_RATE, DEFAULT_OTHER_EXPENSE_RATE, DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
-  DEFAULT_COMPANY_TAX_RATE, DEFAULT_BUSINESS_INSURANCE_START, DEFAULT_COST_RATE_INSURANCE,
+  DEFAULT_BUSINESS_INSURANCE_START, DEFAULT_COST_RATE_INSURANCE,
 } from "../../shared/constants";
+import { getFactoryNumber } from '@shared/model-constants-registry';
+// Audit #406: registry-backed US baselines (single source of truth).
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber('costRateTaxes', 'United States');
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber('taxRate', 'United States');
+
 import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════
@@ -59,8 +64,7 @@ const PROP_B: PropertyInput = {
 const GLOBAL: GlobalInput = {
   modelStartDate: "2026-04-01", projectionYears: 10, inflationRate: 0,
   fixedCostEscalationRate: 0, companyInflationRate: 0,
-  companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
-  companyOpsStartDate: "2026-04-01",
+  companyTaxRate: DEFAULT_COMPANY_TAX_RATE, companyOpsStartDate: "2026-04-01",
   capitalRaise1Date: "2026-04-01", capitalRaise1Amount: 800_000,
   capitalRaise2Date: null, capitalRaise2Amount: 0,
   baseManagementFeeRate: 0.085,

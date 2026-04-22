@@ -21,11 +21,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconPercent, IconCalendar, IconReceipt } from "@/components/icons";
 import {
-  DEFAULT_COMPANY_TAX_RATE,
   // DEFAULT_COMPANY_INFLATION_RATE replaced with registry factory baseline (Audit #319 R4).
+  // DEFAULT_COMPANY_TAX_RATE replaced with registry factory baseline (Audit #406).
   DEFAULT_COMPANY_OPS_START_DATE,
   PROJECTION_YEARS,
 } from "@/lib/constants";
+
+// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 import EditableValue from "./EditableValue";
 import type { TaxSectionProps } from "./types";
 import { CITATIONS } from "@shared/citations";

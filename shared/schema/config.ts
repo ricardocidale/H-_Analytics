@@ -23,7 +23,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -41,7 +40,6 @@ import {
   DEFAULT_SERVICE_MARKUP,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_FIXED_COST_ESCALATION_RATE,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_PROJECTION_YEARS,
   DEFAULT_MAX_STALENESS_HOURS,
   DEFAULT_PROPERTY_INFLATION_RATE,
@@ -63,6 +61,10 @@ import {
   DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
 } from "../constants";
+import { getFactoryNumber } from "../model-constants-registry";
+
+// Audit #406: company tax rate column default sourced from the registry (US federal corporate baseline = 0.21).
+const US_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 
 // --- GLOBAL ASSUMPTIONS TABLE ---
 // The "Settings" page in the UI. Contains every system-wide financial assumption
@@ -180,7 +182,7 @@ export const globalAssumptions = pgTable("global_assumptions", {
   
   
   // Tax Rate (for calculating after-tax company cash flow)
-  companyTaxRate: real("company_tax_rate").notNull().default(DEFAULT_COMPANY_TAX_RATE),
+  companyTaxRate: real("company_tax_rate").notNull().default(US_COMPANY_TAX_RATE),
   
   // WACC — Cost of Equity (user-provided, not CAPM-derived; default 18% for private hospitality)
   costOfEquity: real("cost_of_equity").notNull().default(DEFAULT_COST_OF_EQUITY),

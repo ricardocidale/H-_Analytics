@@ -4,11 +4,14 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_COMPANY_OPS_START_DATE,
   DEFAULT_COST_OF_EQUITY,
   DEFAULT_PROJECTION_YEARS,
 } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 import { Section, PctField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";

@@ -26,9 +26,12 @@ import {
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COMMISSION_RATE,
   // DEFAULT_PROPERTY_INFLATION_RATE replaced with registry factory baseline (Audit #319 R4).
-  DEFAULT_COMPANY_TAX_RATE,
+  // DEFAULT_COMPANY_TAX_RATE replaced with registry factory baseline (Audit #406).
   MONTHS_PER_YEAR,
 } from "@shared/constants";
+
+// Audit #406: company tax rate default sourced from the registry (US federal corporate = 0.21).
+const COMPANY_TAX_RATE_US = getFactoryNumber("taxRate", "United States");
 
 /** Table of contents for the Checker Manual — each section maps to a chapter of the app. */
 const MANUAL_SECTIONS = [
@@ -393,7 +396,7 @@ export async function exportFullData(user: { email?: string; role?: string; comp
     ["Capital Raise 2 Date", global.capitalRaise2Date || "—"],
     ["Exit Cap Rate", `${((global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100).toFixed(1)}%`],
     ["Sales Commission", `Per Property (default ${(DEFAULT_COMMISSION_RATE * 100).toFixed(1)}%)`],
-    ["Company Income Tax Rate", `${((global.companyTaxRate ?? DEFAULT_COMPANY_TAX_RATE) * 100).toFixed(1)}%`],
+    ["Company Income Tax Rate", `${((global.companyTaxRate ?? COMPANY_TAX_RATE_US) * 100).toFixed(1)}%`],
     ["Partner Base Compensation", formatMoney(global.partnerBaseCompensation ?? 15000)],
     ["Partner Comp Cap", formatMoney(global.partnerCompensationCap ?? 30000)],
   ]);

@@ -120,34 +120,36 @@ function calculateNPV(cashFlows: number[], rate: number): number {
 // GOLDEN IRR VALUES (computed from engine, pinned as reference)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Audit #406 re-baseline: golden IRRs lifted after costRateTaxes
+// reconciled from legacy 0.03 to registry US 0.012 (single source of truth).
 const GOLDEN = {
-  base: 0.8554,
+  base: 0.9632,
 
   taxRate: {
-    0.09: 1.1800,
-    0.22: 0.9061,
-    0.25: 0.8554,
-    0.35: 0.7126,
+    0.09: 1.3835,
+    0.22: 1.0275,
+    0.25: 0.9632,
+    0.35: 0.7853,
   } as Record<number, number>,
 
   exitCapRate: {
-    0.08: 0.8583,
-    0.085: 0.8554,
-    0.09: 0.8527,
-    0.10: 0.8481,
+    0.08: 0.9655,
+    0.085: 0.9632,
+    0.09: 0.9611,
+    0.10: 0.9574,
   } as Record<number, number>,
 
   interestRate: {
-    0.07: 0.8790,
-    0.08: 0.8554,
-    0.09: 0.8315,
-    0.095: 0.8196,
+    0.07: 0.9907,
+    0.08: 0.9632,
+    0.09: 0.9354,
+    0.095: 0.9214,
   } as Record<number, number>,
 
   ltv: {
-    0.60: 0.8554,
-    0.65: 1.0351,
-    0.75: 2.0615,
+    0.60: 0.9632,
+    0.65: 1.1939,
+    0.75: 2.6655,
   } as Record<number, number>,
 };
 

@@ -7,10 +7,11 @@
  *     - Migrated "safe" keys (depreciationYears, daysPerMonth,
  *       inflationRate) must yield identical numeric values via
  *       getFactoryNumber() and via the legacy shared/constants exports.
- *     - The two intentionally-skipped keys (DEFAULT_COMPANY_TAX_RATE,
- *       DEFAULT_COST_RATE_TAXES) MUST still diverge from their registry
- *       counterparts so the next audit pass is a deliberate
- *       reconciliation, not an accidental flip.
+ *     - Audit #406 reconciliation: the previously-divergent keys
+ *       (taxRate / costRateTaxes) are now the SINGLE SOURCE OF TRUTH —
+ *       the legacy DEFAULT_COMPANY_TAX_RATE (0.30) and
+ *       DEFAULT_COST_RATE_TAXES (0.03) constants have been deleted and
+ *       all callers migrated to the registry. Parity MUST hold.
  *     - getFactoryNumber() is locality-aware: US ≠ MX inflationRate.
  *
  * (B) End-to-end apply-proposal flow
@@ -45,8 +46,6 @@ import {
   DAYS_PER_MONTH,
   DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COMPANY_INFLATION_RATE,
-  DEFAULT_COMPANY_TAX_RATE,
-  DEFAULT_COST_RATE_TAXES,
 } from "../../shared/constants";
 import {
   getFactoryNumber,
@@ -183,17 +182,13 @@ describe("Audit #319 R4 — constants registry migration invariants", () => {
     });
   });
 
-  describe("documented divergences (deliberate non-migration)", () => {
-    it("taxRate registry US baseline ≠ DEFAULT_COMPANY_TAX_RATE (concept mismatch)", () => {
-      expect(getFactoryNumber("taxRate", "United States")).not.toBe(
-        DEFAULT_COMPANY_TAX_RATE,
-      );
+  describe("Audit #406 reconciliation — parity MUST hold", () => {
+    it("taxRate registry US baseline = 0.21 (federal corporate, single source of truth)", () => {
+      expect(getFactoryNumber("taxRate", "United States")).toBe(0.21);
     });
 
-    it("costRateTaxes registry US baseline ≠ DEFAULT_COST_RATE_TAXES (locality vs flat estimate)", () => {
-      expect(getFactoryNumber("costRateTaxes", "United States")).not.toBe(
-        DEFAULT_COST_RATE_TAXES,
-      );
+    it("costRateTaxes registry US baseline = 0.012 (single source of truth)", () => {
+      expect(getFactoryNumber("costRateTaxes", "United States")).toBe(0.012);
     });
   });
 

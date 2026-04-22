@@ -13,7 +13,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -37,6 +36,11 @@ import {
   DEFAULT_STAFF_TIER2_MAX_PROPERTIES,
   DEFAULT_STABILIZATION_MONTHS,
 } from "../constants";
+import { getFactoryNumber } from "../model-constants-registry";
+
+// Audit #406: schema column default sourced from the registry (single source of truth).
+// Drizzle introspection runs at module load — getFactoryNumber returns a number eagerly.
+const US_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 // --- PROPERTIES TABLE ---
 // Each row represents a single hotel property in the portfolio. This is the most
@@ -120,7 +124,7 @@ export const properties = pgTable("properties", {
   costRateMarketing: real("cost_rate_marketing").notNull().default(DEFAULT_COST_RATE_MARKETING),
   costRatePropertyOps: real("cost_rate_property_ops").notNull().default(DEFAULT_COST_RATE_PROPERTY_OPS),
   costRateUtilities: real("cost_rate_utilities").notNull().default(DEFAULT_COST_RATE_UTILITIES),
-  costRateTaxes: real("cost_rate_taxes").notNull().default(DEFAULT_COST_RATE_TAXES),
+  costRateTaxes: real("cost_rate_taxes").notNull().default(US_COST_RATE_TAXES),
   costRateIT: real("cost_rate_it").notNull().default(DEFAULT_COST_RATE_IT),
   costRateFFE: real("cost_rate_ffe").notNull().default(DEFAULT_COST_RATE_FFE),
   costRateOther: real("cost_rate_other").notNull().default(DEFAULT_COST_RATE_OTHER),

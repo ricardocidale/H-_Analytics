@@ -18,12 +18,14 @@ import {
   DEFAULT_CAPITAL_RAISE_1_DATE,
   DEFAULT_CAPITAL_RAISE_2_DATE,
   SEED_DEBT_ASSUMPTIONS,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_BUSINESS_INSURANCE_START,
   DEFAULT_SERVICE_FEE_CATEGORIES,
   SEED_EXIT_CAP_RATE_LUXURY,
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 import {
   SEED_INITIAL_PROPERTIES,
   SEED_MEDELLIN_DUPLEX,

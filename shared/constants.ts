@@ -79,15 +79,10 @@ export const DEFAULT_COST_RATE_ADMIN = 0.08;        // General & Administrative 
 export const DEFAULT_COST_RATE_MARKETING = 0.01;    // Sales & Marketing
 export const DEFAULT_COST_RATE_PROPERTY_OPS = 0.04; // Property Operations & Maintenance (POM)
 export const DEFAULT_COST_RATE_UTILITIES = 0.05;    // Utilities (electric, water, gas, internet)
-/**
- * @deprecated Audit #319 R4. This flat 3% legacy estimate diverges from the
- * locality-aware authority-sourced value in `MODEL_CONSTANTS_REGISTRY`
- * (US baseline = 1.2% via `getFactoryNumber('costRateTaxes', 'United States')`).
- * Kept temporarily as the admin/UI fallback and as a test fixture so the existing
- * golden numbers are not silently re-baselined; reconciliation tracked in audit
- * follow-up. New code MUST use `getFactoryNumber('costRateTaxes', country, state)`.
- */
-export const DEFAULT_COST_RATE_TAXES = 0.03;        // Property/real estate taxes
+// Audit #406: DEFAULT_COST_RATE_TAXES (legacy flat 3%) deleted. Property tax rates
+// now resolve through `getFactoryNumber('costRateTaxes', country, state)` from
+// MODEL_CONSTANTS_REGISTRY (US baseline = 1.2%). All call sites — schema defaults,
+// seeds, engine fallbacks, exports, golden tests — read from the registry.
 export const DEFAULT_COST_RATE_IT = 0.005;          // Information Technology
 export const DEFAULT_COST_RATE_FFE = 0.04;          // Furniture, Fixtures & Equipment reserve (FF&E)
 export const DEFAULT_COST_RATE_OTHER = 0.05;        // Miscellaneous / other operating expenses
@@ -254,17 +249,10 @@ export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
  */
 export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
 export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RATE;
-/**
- * @deprecated Audit #319 R4. The legacy 30% blended company-level tax rate
- * is conceptually distinct from the registry's `taxRate` (federal corporate
- * income tax, US baseline = 0.21 in `COUNTRY_DEFAULTS`). Migrating call sites
- * blindly would silently change ~50 golden numbers AND apply the wrong number
- * for the management-company tier. Reconciliation — likely a new
- * `companyTaxRate` registry key sourced from a blended federal+state authority
- * — is tracked as an audit follow-up. Kept as the admin/UI fallback in the
- * interim.
- */
-export const DEFAULT_COMPANY_TAX_RATE = 0.30;
+// Audit #406: DEFAULT_COMPANY_TAX_RATE (legacy blended 30%) deleted. Company-level
+// tax rate now resolves through `getFactoryNumber('taxRate', country, state)` from
+// MODEL_CONSTANTS_REGISTRY (US federal corporate baseline = 0.21). Goldens
+// re-baselined in the same PR.
 
 // ──────────────────────────────────────────────────────────
 // PROJECTION HORIZON

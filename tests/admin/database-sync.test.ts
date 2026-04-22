@@ -4,14 +4,12 @@ import {
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COMMISSION_RATE,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_COST_RATE_ROOMS,
   DEFAULT_COST_RATE_FB,
   DEFAULT_COST_RATE_ADMIN,
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -23,6 +21,11 @@ import {
   DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
 } from "../../shared/constants.js";
+import { getFactoryNumber } from "../../shared/model-constants-registry.js";
+
+// Audit #406: registry-backed US baselines (single source of truth).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 const SEED_GLOBAL_ASSUMPTIONS = {
   modelStartDate: "2026-04-01",
@@ -51,7 +54,7 @@ const SEED_GLOBAL_ASSUMPTIONS = {
   capitalRaise2Date: "2027-04-01",
   capitalRaiseValuationCap: DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
   capitalRaiseDiscountRate: DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
-  companyTaxRate: 0.3,
+  companyTaxRate: 0.21,
   companyOpsStartDate: "2026-06-01",
   fiscalYearStartMonth: 1,
   companyName: "Hospitality Business Group",
@@ -106,8 +109,8 @@ describe("Database Sync — Seed Constants Integrity", () => {
       expect(SEED_GLOBAL_ASSUMPTIONS.commissionRate).toBe(DEFAULT_COMMISSION_RATE);
     });
 
-    it("company tax rate matches constant", () => {
-      expect(SEED_GLOBAL_ASSUMPTIONS.companyTaxRate).toBe(0.3);
+    it("company tax rate matches registry US baseline (Audit #406)", () => {
+      expect(SEED_GLOBAL_ASSUMPTIONS.companyTaxRate).toBe(0.21);
       expect(SEED_GLOBAL_ASSUMPTIONS.companyTaxRate).toBe(DEFAULT_COMPANY_TAX_RATE);
     });
 
@@ -317,8 +320,10 @@ describe("Database Sync — Seed Constants Integrity", () => {
       expect(SEED_GLOBAL_ASSUMPTIONS.baseManagementFee).toBeCloseTo(categorySum, 10);
     });
 
-    it("company tax rate (30%) exceeds property tax rate (25%)", () => {
-      expect(DEFAULT_COMPANY_TAX_RATE).toBeGreaterThan(DEFAULT_PROPERTY_INCOME_TAX_RATE);
+    it("company tax rate (US registry, 21%) is below property income tax rate (25%) — Audit #406 re-baseline", () => {
+      // After Audit #406 re-baseline: companyTaxRate now sources from registry (US federal corporate = 0.21).
+      // The legacy "30% blended > 25% property" invariant no longer applies since we now use the federal-only rate.
+      expect(DEFAULT_COMPANY_TAX_RATE).toBeLessThan(DEFAULT_PROPERTY_INCOME_TAX_RATE);
     });
 
     it("incentive fee rate exceeds base management fee rate", () => {
@@ -414,7 +419,7 @@ describe("Database Sync — Seed Constants Integrity", () => {
       expect(ga.inflationRate).toBe(0.03);
       expect(ga.exitCapRate).toBe(0.085);
       expect(ga.commissionRate).toBe(0.05);
-      expect(ga.companyTaxRate).toBe(0.3);
+      expect(ga.companyTaxRate).toBe(0.21);
     });
 
     it("each property has fee categories array", () => {

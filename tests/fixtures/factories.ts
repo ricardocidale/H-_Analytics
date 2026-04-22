@@ -15,6 +15,10 @@
 
 import type { PropertyInput, GlobalInput } from "../../engine/types";
 import { DEFAULT_PROPERTY_INFLATION_RATE } from "../../shared/constants";
+import { getFactoryNumber } from "../../shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline (single source of truth).
+const US_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 // ── Property Defaults ────────────────────────────────────────────
 
@@ -40,7 +44,7 @@ const PROPERTY_DEFAULTS: PropertyInput = {
   costRateMarketing: 0.01,
   costRatePropertyOps: 0.04,
   costRateUtilities: 0.05,
-  costRateTaxes: 0.03,
+  costRateTaxes: US_COST_RATE_TAXES,
   costRateIT: 0.005,
   costRateFFE: 0.04,
   costRateOther: 0.05,
