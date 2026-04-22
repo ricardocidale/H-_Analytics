@@ -168,7 +168,22 @@ function main(): void {
     }
   }
 
-  const violations = hits.filter((h) => !isAllowed(h.file));
+  // The deprecated-constants-guard.test.ts owns the canonical probe file
+  // `server/_deprecated_const_guard_probe.ts`. The test creates it briefly,
+  // shells out to this script, and unlinks it. When this script also runs
+  // concurrently from Quick Audit / pre-commit, the probe is sometimes on
+  // disk and gets flagged as a real violation. Ignore the probe by default;
+  // the test opts in by setting INCLUDE_GUARD_PROBE=1 so it can still
+  // assert the script catches the violation.
+  const violations = hits.filter((h) => {
+    if (
+      h.file.endsWith("server/_deprecated_const_guard_probe.ts") &&
+      !process.env.INCLUDE_GUARD_PROBE
+    ) {
+      return false;
+    }
+    return !isAllowed(h.file);
+  });
 
   if (violations.length === 0) {
     console.log(

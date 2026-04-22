@@ -78,6 +78,7 @@ describe("Deprecated-constants guard — Task #407", () => {
           encoding: "utf-8",
           timeout: 30_000,
           stdio: "pipe",
+          env: { ...process.env, INCLUDE_GUARD_PROBE: "1" },
         });
       } catch (err: unknown) {
         threw = true;

@@ -1,8 +1,9 @@
 /**
  * AnalystTables.tsx — Admin tab listing all benchmark tables that the
  * Analyst can refresh on demand. Each row shows the table name, freshness
- * (fresh / stale / missing), source count, last refresh time, and a
- * "Refresh" button that opens the full-screen Analyst theater.
+ * (fresh / stale / missing), source count, last refresh time, and an
+ * "Analyst" button (canonical Sparkles affordance) that opens the
+ * full-screen Analyst theater.
  *
  * Settings panel at top exposes the global cadence (days). Suspicious
  * activity banner is rendered above the table list when the server flags
@@ -18,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import AnalystRefreshTheater from "./AnalystRefreshTheater";
 import RefreshDiffDialog from "./RefreshDiffDialog";
 import SuspiciousActivityBanner from "./SuspiciousActivityBanner";
+import { AnalystActionButton } from "@/components/analyst";
 import { useFirstVisitBenchmarkSeed } from "@/hooks/useFirstVisitBenchmarkSeed";
 
 type Range = {
@@ -198,13 +200,12 @@ export default function AnalystTables() {
                   {t.tokensUsedLastRefresh != null && ` · ${t.tokensUsedLastRefresh.toLocaleString()} tokens`}
                 </div>
               </div>
-              <Button
+              <AnalystActionButton
                 onClick={() => handleRefresh(t)}
-                disabled={refreshMutation.isPending}
-                data-testid={`button-refresh-${t.id}`}
-              >
-                Refresh with The Analyst
-              </Button>
+                running={refreshMutation.isPending && theaterTable?.id === t.id}
+                testIdSuffix={t.id}
+                variant="header"
+              />
             </div>
 
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">

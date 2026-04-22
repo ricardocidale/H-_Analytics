@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { IconAlertTriangle, IconSparkles } from "@/components/icons";
+import { AnalystActionButton } from "./AnalystActionButton";
 import type { Property } from "@shared/schema";
 
 interface GuidanceRecord {
@@ -49,10 +50,11 @@ export function AnalystValidationBanner({ property, guidance = [], isGenerating,
           <p className="text-xs text-muted-foreground mt-0.5">Running intelligence analysis to validate your assumptions against market data.</p>
         </div>
         {onTriggerResearch && !isGenerating && (
-          <Button size="sm" variant="outline" onClick={onTriggerResearch} data-testid="button-trigger-validation">
-            <IconSparkles className="w-3.5 h-3.5 mr-1.5" />
-            Run Analysis
-          </Button>
+          <AnalystActionButton
+            onClick={onTriggerResearch}
+            testIdSuffix="validation"
+            variant="header"
+          />
         )}
       </div>
     );
@@ -136,10 +138,11 @@ export function AnalystValidationBanner({ property, guidance = [], isGenerating,
           </p>
         </div>
         {onTriggerResearch && (
-          <Button size="sm" variant="outline" onClick={onTriggerResearch} data-testid="button-refresh-intelligence">
-            <IconSparkles className="w-3.5 h-3.5 mr-1.5" />
-            Refresh Intelligence
-          </Button>
+          <AnalystActionButton
+            onClick={onTriggerResearch}
+            testIdSuffix="intelligence"
+            variant="header"
+          />
         )}
       </div>
     );
