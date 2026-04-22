@@ -212,6 +212,46 @@ describe("ModelConstantsTab — Phase 4 read-only doctrine (runtime)", () => {
     expect((applyCall.body as Record<string, unknown>).authority).toBeUndefined();
   });
 
+  it("Reset to factory issues a DELETE on the row's key", async () => {
+    const user = userEvent.setup();
+    // Reset button only renders when an override exists (source !== "factory").
+    // Override the fetch mock for this single test to surface a non-factory row.
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      const method = (init?.method ?? "GET").toUpperCase();
+      let body: unknown = undefined;
+      if (init?.body) { try { body = JSON.parse(init.body as string); } catch { body = init.body; } }
+      fetchCalls.push({ url, method, body });
+      if (method === "GET" && url.startsWith("/api/admin/model-constants?")) {
+        return new Response(JSON.stringify({
+          country: "United States", subdivision: null,
+          items: [{ ...taxRow, source: "analyst", effectiveValue: 0.30,
+                    override: { id: 5, value: 0.30, source: "analyst",
+                                authority: "FTB", referenceUrl: null,
+                                overrideNote: null, createdAt: "2026-04-21T00:00:00Z",
+                                createdByUserId: null } }],
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      if (method === "DELETE" && url.startsWith("/api/admin/model-constants/")) {
+        return new Response(JSON.stringify({ ok: true }),
+          { status: 200, headers: { "content-type": "application/json" } });
+      }
+      return new Response("", { status: 404 });
+    }) as unknown as typeof fetch;
+
+    renderTab();
+    await screen.findByTestId("row-model-constant-taxRate");
+
+    await user.click(screen.getByTestId("button-reset-taxRate"));
+
+    await waitFor(() => {
+      const c = fetchCalls.find((x) =>
+        x.method === "DELETE" && x.url.startsWith("/api/admin/model-constants/taxRate"),
+      );
+      expect(c).toBeDefined();
+    });
+  });
+
   it("Discard closes the preview without calling Apply", async () => {
     const user = userEvent.setup();
     renderTab();
