@@ -1,10 +1,3 @@
-/**
- * kbd.tsx — Keyboard shortcut badge component.
- *
- * Renders text in a <kbd> element styled to look like a physical key.
- * Used in the command palette and tooltips to show keyboard shortcuts
- * (e.g. "⌘K", "Esc").
- */
 import { cn } from "@/lib/utils"
 
 function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
