@@ -1,17 +1,24 @@
 # Replit Handoff Directory
 
-This directory holds structured task packages written by the Claude Code
-audit agent, intended for execution by Replit Agent.
+This directory holds structured packets written by the Claude Code audit
+agent, intended for execution by Replit Agent.
+
+> **2026-04-22 update:** All new packets must follow `_TEMPLATE.md`. Replit
+> Agent codes by default; Claude Code only writes code via the
+> [explicit-delegation lane](../rules/claude-replit-split.md#explicit-delegation-lane).
+> No new phase opens until its governing ADR has cleared the
+> [Doctrine Freeze Gate](../rules/claude-replit-split.md#doctrine-freeze-gate).
 
 ## Division of labor
 
-- **Claude Code (offline, this repo)** — audits code, writes plans, makes
-  pure-code refactors that don't touch running UI or DB state. Commits and
-  pushes to `main` on its own. Documents decisions in `.claude/`.
-- **Replit Agent (in the running dev container)** — executes UI changes,
-  database migrations, seed updates, and verifies the app works by
-  launching it, clicking through flows, and running the test suite. Has
-  access to the live Postgres instance and Object Storage sidecar.
+- **Claude Code (offline, this repo)** — audits code, writes plans and
+  ADRs, decomposes work into atomic execution packets. Documents decisions
+  in `.claude/`. Writes code only by explicit delegation request from
+  Replit (see `claude-replit-split.md`).
+- **Replit Agent (in the running dev container)** — executes packets,
+  runs UI/DB/migration work, verifies the app works by launching it,
+  clicking through flows, and running the test suite. Has access to the
+  live Postgres instance and Object Storage sidecar.
 
 ## Workflow
 
@@ -31,17 +38,26 @@ audit agent, intended for execution by Replit Agent.
 `phase-2-verification.md`, `phase-6-db-migration.md`. One file per logical
 batch; don't cram unrelated work together.
 
-## What every handoff must contain
+## What every packet must contain
 
-1. **Context** — one paragraph plus a link to `.claude/audit-inventory.md`
-   for the full surface map.
-2. **Task list** — each task with: file path, line numbers, exact
-   before/after or precise instruction, affected dependency surfaces
-   (S1–S13 — see inventory), expected test impact.
-3. **Verification steps** — concrete commands (`npm run …`), URLs to hit
-   in the dev server, things to look for in the UI.
-4. **Rollback notes** — any task that touches DB or deployment config
-   includes how to back out if something breaks.
+See `_TEMPLATE.md` — every section marked **MANDATORY** is binding.
+Quick summary:
+
+1. **Title** matching the filename.
+2. **Doctrine Freeze Gate check** — governing ADR is `Accepted` and stable.
+3. **Context** — ≤200 words, with links to ADR + skills + audit inventory.
+4. **Atomic-budget check** — ≤7 sub-steps, ≤3 files, ≤2 capability domains.
+   Split the packet otherwise.
+5. **Tasks** — each sub-step has files, change, surfaces, cross-check
+   invariants, objective acceptance criteria, test impact, rollback notes.
+6. **Verification** — gate commands + behavioral verification + surface-
+   specific verification, all as checklists.
+7. **Out of scope** — explicit list of what this packet does NOT do.
+8. **Surfaces footer** template for every commit.
+9. **Completion report** — filled by Replit on exit.
+
+A packet missing any mandatory section must be returned for revision
+before execution.
 
 ## Shared references Replit should always have loaded
 

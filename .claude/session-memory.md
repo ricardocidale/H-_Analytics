@@ -8,7 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 21, 2026 (latest) — Resources control plane + P5 Specialist surfaces + doctrine docs
+## Session: April 22, 2026 (latest) — Working-model revision: CC advisor / Replit executor
+- User flagged rewrite churn; architect (Opus) evaluated and ranked root cause as doctrine instability + packet-decomposition gaps, not CC code quality. Counter-proposal: keep handoff-packet contract, narrow CC's coding lane, add doctrine freeze gate.
+- LANDED: rewrote `.claude/rules/claude-replit-split.md` (Pure refactors moved out of CC's auto lane → new Explicit-delegation lane via `DELEGATE.md`; new Doctrine Freeze Gate guardrail #7; new Atomic packet budget guardrail #8 of ≤7 sub-steps / ≤3 files / ≤2 capability domains; full revision history at bottom).
+- LANDED: NEW `.claude/replit-handoffs/_TEMPLATE.md` (9 mandatory sections incl. Doctrine Freeze Gate check, atomic-budget check, per-step acceptance criteria + cross-check invariants + rollback, completion report). Updated `.claude/replit-handoffs/README.md` to point to template + summarize the 9 mandatory sections.
+- Boundary crossed (CC-domain edits) per user "draft now" + earlier session-wide "yes" authorization. (a) Resources skill + (c) `.claude/phases.md` from prior turn still queued — not yet executed.
+
+## Session: April 21, 2026 — Resources control plane + P5 Specialist surfaces + doctrine docs
 - P5 shipped (commits `2346de7` + `a6c78b54`): `specialist_configs` schema, 6 read-only-by-design REST routes, mgmt-co router config wiring, sidebar restructure, SpecialistPage with capability tabs, 11 contract tests incl. read-only invariant guard. All 5 gates green; 2 audit nits fixed.
 - Doctrine formalization landed: NEW `docs/architecture/decisions/ADR-006-resources-control-plane.md` (full v0→v1→v2 evolution + 4 alternatives rejected); `replit.md` Recent Changes + `docs/architecture/resources-control-plane.md` updated with evolution + P5 contract; `.claude/skills/analyst/_index.md` + `surface-mgmt-co.md` got the LOCKED 2026-04-21 governance block.
 - Boundary crossed once for analyst skills per user "yes". Architect (Opus) delivered plans for: (a) NEW `.claude/skills/resources/SKILL.md` directive skill (~190 lines, 10 sections), (c) consolidate phase status into `.claude/phases.md` as canonical SoT with CI drift guard. Both awaiting user approval before execution.
