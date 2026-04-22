@@ -347,23 +347,10 @@ export function runIndependentVerification(
       ));
     }
 
-    if (property.costSegEnabled) {
-      const costSegDepMonth1 = engineCalc.find(m => m.depreciationExpense > 0);
-      const depBasis = property.purchasePrice * (1 - (property.landValuePercent ?? 0.25)) + (property.buildingImprovements ?? 0);
-      const effectiveDepYears = property.depreciationYears ?? globalAssumptions.depreciationYears ?? 39;
-      const standardMonthlyDep = depBasis / effectiveDepYears / MONTHS_PER_YEAR;
-      if (costSegDepMonth1) {
-        checks.push(check(
-          "Cost Segregation Depreciation > Standard SL",
-          "Tax",
-          "IRS Pub 946 / Cost Seg Study",
-          `Cost seg depreciation $${Math.round(costSegDepMonth1.depreciationExpense).toLocaleString()}/mo vs standard SL $${Math.round(standardMonthlyDep).toLocaleString()}/mo`,
-          1,
-          costSegDepMonth1.depreciationExpense > standardMonthlyDep ? 1 : 0,
-          "info"
-        ));
-      }
-    }
+    // Cost-segregation reasonableness check removed (Phase 6 consolidation):
+    // it recomputed depreciation basis from raw inputs (purchasePrice, landValuePercent,
+    // buildingImprovements, depreciationYears), which duplicates engine math and risks
+    // silent drift. The engine itself is responsible for cost-seg vs straight-line math.
 
     let cashTieOutErrors = 0;
     for (let mi = 1; mi < engineCalc.length; mi++) {
