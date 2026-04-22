@@ -21,6 +21,8 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import NotificationCenter from "@/components/NotificationCenter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "@/components/icons/themed-icons";
 
 import GuidedWalkthrough, { useWalkthroughStore } from "@/components/GuidedWalkthrough";
 import { RebeccaChatbot } from "@/components/RebeccaChatbot";
@@ -89,60 +91,96 @@ interface NavGroupDef {
   label: string;
   items: NavLink[];
   dividerAfter?: boolean;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+}
+
+function NavItems({ items, isActiveLink, onNavigate }: { items: NavLink[]; isActiveLink: (href: string) => boolean; onNavigate?: () => void }) {
+  return (
+    <ul className="space-y-0.5">
+      {items.map((item) => {
+        const active = isActiveLink(item.href);
+        const isAction = item.href.startsWith("#");
+        return (
+          <li key={item.href}>
+            {isAction ? (
+              <Button
+                variant="ghost"
+                onClick={() => { item.onClick?.(); onNavigate?.(); }}
+                className={cn(
+                  "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors justify-start",
+                  active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <item.icon className="w-4 h-4 shrink-0" />
+                <span>{item.label}</span>
+              </Button>
+            ) : (
+              <Link href={item.href} onClick={onNavigate}>
+                <span
+                  className={cn(
+                    "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors",
+                    active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <item.icon className="w-4 h-4 shrink-0" />
+                  <span>{item.label}</span>
+                </span>
+              </Link>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function SidebarNav({ groups, isActiveLink, onNavigate }: { groups: NavGroupDef[]; isActiveLink: (href: string) => boolean; onNavigate?: () => void }) {
   return (
     <nav className="flex-1 overflow-y-auto px-2 pt-1 space-y-1">
-      {groups.filter(g => g.items.length > 0).map((group, idx) => (
-        <div key={group.label || `misc-${idx}`}>
-          <div className="py-1">
-            {group.label && (
-              <p className="text-[11px] font-medium text-muted-foreground px-3 pb-1 pt-2">{group.label}</p>
+      {groups.filter(g => g.items.length > 0).map((group, idx) => {
+        const key = group.label || `misc-${idx}`;
+        if (group.collapsible && group.label) {
+          const groupHasActive = group.items.some(it => isActiveLink(it.href));
+          const open = group.defaultOpen ?? groupHasActive;
+          return (
+            <div key={key}>
+              <Collapsible defaultOpen={open}>
+                <CollapsibleTrigger
+                  className="group/collapsible flex items-center justify-between w-full px-3 pb-1 pt-2 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid={`nav-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <span>{group.label}</span>
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0 transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden">
+                  <div className="py-1">
+                    <NavItems items={group.items} isActiveLink={isActiveLink} onNavigate={onNavigate} />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+              {group.dividerAfter && (
+                <div className="mx-3 my-1 border-b border-sidebar-border" />
+              )}
+            </div>
+          );
+        }
+        return (
+          <div key={key}>
+            <div className="py-1">
+              {group.label && (
+                <p className="text-[11px] font-medium text-muted-foreground px-3 pb-1 pt-2">{group.label}</p>
+              )}
+              <NavItems items={group.items} isActiveLink={isActiveLink} onNavigate={onNavigate} />
+            </div>
+            {group.dividerAfter && (
+              <div className="mx-3 my-1 border-b border-sidebar-border" />
             )}
-            <ul className="space-y-0.5">
-              {group.items.map((item) => {
-                const active = isActiveLink(item.href);
-                const isAction = item.href.startsWith("#");
-                return (
-                  <li key={item.href}>
-                    {isAction ? (
-                      <Button
-                        variant="ghost"
-                        onClick={() => { item.onClick?.(); onNavigate?.(); }}
-                        className={cn(
-                          "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors justify-start",
-                          active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                        data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                      >
-                        <item.icon className="w-4 h-4 shrink-0" />
-                        <span>{item.label}</span>
-                      </Button>
-                    ) : (
-                      <Link href={item.href} onClick={onNavigate}>
-                        <span
-                          className={cn(
-                            "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors",
-                            active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                          )}
-                          data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                        >
-                          <item.icon className="w-4 h-4 shrink-0" />
-                          <span>{item.label}</span>
-                        </span>
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
           </div>
-          {group.dividerAfter && (
-            <div className="mx-3 my-1 border-b border-sidebar-border" />
-          )}
-        </div>
-      ))}
+        );
+      })}
     </nav>
   );
 }
@@ -250,6 +288,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           icon: s.icon,
           onClick: () => setAdminSectionState(s.value),
         })),
+        collapsible: true,
       });
     }
     groups.push({
@@ -260,6 +299,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
         icon: IconDashboard,
         onClick: () => setAdminSectionState("activity"),
       }],
+      collapsible: true,
     });
     return groups;
   }, [adminNavGroups]);
