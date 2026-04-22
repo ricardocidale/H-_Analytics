@@ -8,6 +8,7 @@ import { z } from "zod";
 import { invalidateComputeCache } from "../finance/cache";
 import { logger } from "../logger";
 import { flag } from "../feature-flags";
+import { stripCanonicalDenylistedFields } from "./global-assumptions-denylist";
 
 const appearanceDefaultsSchema = z.object({
   defaultColorMode: z.enum(["light", "auto", "dark"]).nullable().optional(),
@@ -93,7 +94,16 @@ export function register(app: Express) {
         const error = fromZodError(bodyValidation.error);
         return res.status(400).json({ error: error.message });
       }
-      const merged = { ...(current ?? {}), ...bodyValidation.data };
+      // Task #379: certain values are canonically owned by the Model
+      // Constants tab. Strip any inbound write so a stale client (or a
+      // non-admin management user) cannot bypass the canonical edit
+      // surface. The fields remain on the existing row (no delete) — the
+      // merge with `current` below preserves them — and the engine reads
+      // via the Model Constants overlay.
+      const sanitizedBody = stripCanonicalDenylistedFields(
+        bodyValidation.data as Record<string, unknown>,
+      );
+      const merged = { ...(current ?? {}), ...sanitizedBody };
       delete (merged as Record<string, unknown>).id;
       delete (merged as Record<string, unknown>).createdAt;
       delete (merged as Record<string, unknown>).updatedAt;
@@ -186,7 +196,15 @@ export function register(app: Express) {
 
       const current = await storage.getGlobalAssumptions(userId);
       const baseRow = (current ?? {}) as Record<string, unknown>;
-      const merged = { ...baseRow, ...(patch ?? {}) };
+      // Task #379: sanitize patch to drop canonically-owned fields (e.g.
+      // `depreciationYears`) before merge. The save-tab path must enforce
+      // the same denylist as PUT /api/global-assumptions; otherwise a
+      // non-admin management user could bypass the Constants-tab admin
+      // gate by submitting a crafted `patch` payload.
+      const sanitizedPatch = stripCanonicalDenylistedFields(
+        (patch ?? {}) as Record<string, unknown>,
+      );
+      const merged = { ...baseRow, ...sanitizedPatch };
       delete merged.id; delete merged.createdAt; delete merged.updatedAt;
       delete (merged as Record<string, unknown>).companyLogoUrl;
 

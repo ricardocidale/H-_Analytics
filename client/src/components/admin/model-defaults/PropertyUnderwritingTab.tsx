@@ -1,7 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { GovernedFieldWrapper } from "@/components/ui/governed-field";
-import EditableValue from "@/components/company-assumptions/EditableValue";
 import { Section, PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
@@ -30,7 +29,6 @@ import {
   DEFAULT_COST_RATE_INSURANCE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_LAND_VALUE_PERCENT,
-  DEFAULT_PROPERTY_INFLATION_RATE,
 } from "@shared/constants";
 
 interface PropertyUnderwritingTabProps {
@@ -48,6 +46,30 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
   const acq = draft.standardAcqPackage ?? {};
   const debt = draft.debtAssumptions ?? {};
   const analystEnabled = typeof onAnalystRefresh === "function";
+
+  // depreciationYears is now sourced from the canonical Model Constants
+  // layer (Source of Truth tab), not from globalAssumptions. We fetch
+  // the resolved effective value via the same admin endpoint the
+  // Constants tab uses, so this read-only display can never drift from
+  // the Constants tab. See docs/audits/task-379-defaults-vs-source-of-truth.md.
+  const { data: depYearsResolved } = useQuery<{ value: unknown } | null>({
+    queryKey: ["admin-model-constants-depreciation-years", "United States"],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/admin/model-constants?country=${encodeURIComponent("United States")}`,
+        { credentials: "include" },
+      );
+      if (!res.ok) return null;
+      // Endpoint shape: { country, subdivision, items: [{ key, effectiveValue, ... }] }
+      // (server/routes/admin/model-constants.ts GET handler).
+      const json = (await res.json()) as { items?: Array<{ key: string; effectiveValue: unknown }> };
+      const row = json.items?.find((r) => r.key === "depreciationYears");
+      return row ? { value: row.effectiveValue } : null;
+    },
+    staleTime: 30_000,
+  });
+  const depYearsDisplay =
+    typeof depYearsResolved?.value === "number" ? depYearsResolved.value : null;
 
   const onAcq = (field: string, value: number) => {
     onChange("standardAcqPackage", { ...acq, [field]: value });
@@ -417,26 +439,26 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           <GovernedFieldWrapper
             authority="IRS Publication 946"
             label="Depreciation Years"
-            helperText={<>39 years: nonresidential real property (hotels per IRC §168(e)(2)(A)). 27.5 years applies only to residential rental property. Changing this deviates from standard tax depreciation. Consult your tax advisor.</>}
+            helperText={<>39 years: nonresidential real property (hotels per IRC §168(e)(2)(A)). 27.5 years applies only to residential rental property. This is a regulatory constant — its canonical home is the <strong>Constants</strong> tab (Source of Truth). The financial engine reads the resolved canonical value via the Model Constants overlay; per-property overrides on each property's edit page still win the cascade.</>}
             referenceUrl="https://www.irs.gov/publications/p946"
             defaultExpanded={false}
             data-testid="governed-depreciationYears"
           >
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text">Convention Value</Label>
-                <EditableValue
-                  value={draft.depreciationYears ?? 39}
-                  onChange={(v) => onChange("depreciationYears", v)}
-                  format="number"
-                  min={1} max={50} step={0.5}
-                />
+                <Label className="text-foreground label-text">Convention Value (read-only)</Label>
+                <span
+                  className="font-mono text-sm text-foreground"
+                  data-testid="text-depreciationYears-readonly"
+                >
+                  {depYearsDisplay !== null ? `${depYearsDisplay} years` : "—"}
+                </span>
               </div>
-              <Slider
-                value={[draft.depreciationYears ?? 39]}
-                onValueChange={([v]) => onChange("depreciationYears", v)}
-                min={1} max={50} step={0.5}
-              />
+              <p className="text-xs text-muted-foreground">
+                Sourced from Admin → Constants (United States baseline).
+                Edit there to change the value the engine consumes. See
+                <code className="mx-1">docs/audits/task-379-defaults-vs-source-of-truth.md</code>.
+              </p>
             </div>
           </GovernedFieldWrapper>
         </div>
@@ -460,16 +482,14 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           testId="field-defaultLandValuePercent"
           researchRange="15%–30%"
         />
-        <PctField
-          label="Property Inflation Rate"
-          tooltip="Annual cost and revenue inflation rate applied at the property level. Drives expense escalation and ADR growth when no property-specific rate is set. Typically tracks CPI (1%–4%)."
-          value={draft.inflationRate}
-          fallback={DEFAULT_PROPERTY_INFLATION_RATE}
-          onChange={(_, v) => onChange("inflationRate", v)}
-          min={0} max={0.1} step={0.005}
-          testId="field-inflationRate"
-          researchRange="2%–4%"
-        />
+        {/*
+          Inflation rate edit surface lives on the Market & Macro tab —
+          per Task #379 audit, that is the canonical home for this value
+          inside the Defaults group. The duplicate editor that used to
+          live here was removed; both surfaces wrote to the same draft
+          key so the move is behavior-neutral. See
+          docs/audits/task-379-defaults-vs-source-of-truth.md (§4.2).
+        */}
       </Section>
 
       <Section grid title="Exit & Disposition" description="Defaults for property sale/exit modeling.">
