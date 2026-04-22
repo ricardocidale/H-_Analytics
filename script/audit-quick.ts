@@ -242,6 +242,30 @@ findings.push({
   samples: stripGuardSamples,
 });
 
+// 15. Deprecated-constants guard — fails if a non-allowlisted file imports
+// one of the six @deprecated symbols from shared/constants.ts (Task #407).
+// Wired here for the same reason as the strip-pattern guard above.
+let deprecatedConstGuardCount = 0;
+const deprecatedConstGuardSamples: string[] = [];
+try {
+  execSync("tsx script/check-deprecated-constants.ts", {
+    encoding: "utf-8",
+    timeout: 30_000,
+  });
+} catch (err: unknown) {
+  deprecatedConstGuardCount = 1;
+  const msg = err instanceof Error ? err.message : String(err);
+  deprecatedConstGuardSamples.push(
+    msg.split("\n").find((l) => l.includes("[")) ?? "guard failed",
+  );
+}
+findings.push({
+  label: "Deprecated-constants guard (use getFactoryNumber)",
+  count: deprecatedConstGuardCount,
+  severity: deprecatedConstGuardCount > 0 ? "critical" : "info",
+  samples: deprecatedConstGuardSamples,
+});
+
 // Output
 console.log("");
 console.log("  Quick Audit");
