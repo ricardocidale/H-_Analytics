@@ -8,6 +8,11 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 22, 2026 (latest #2) — P6d: AdminSection ↔ section-id map cross-check (first `_TEMPLATE.md` execution)
+- LANDED P6d. Recon found architect's "two places" claim inaccurate — `SPECIALIST_SECTION_TO_ID` is single-source. Real risk was union-vs-map drift (lines 60–66 vs 74–82 in same file). Closed via `as const satisfies Record<string,string>` + derived `type SpecialistSection = keyof typeof ...`. Replaced 7 inline literals in `AdminSection` union with `| SpecialistSection`. Added `in`-guard narrowing at `Admin.tsx:205`.
+- New contract test `tests/client/admin-sidebar-section-map.test.ts` (4 cases): URL-safe key format, every value in `SPECIALIST_CATALOG`, every catalog id has sidebar entry, transform reversibility. Catches future catalog↔sidebar drift.
+- First end-to-end execution against new `_TEMPLATE.md` discipline. Atomic budget respected (3 sub-steps / 3 files / 1 domain). Packet `.claude/replit-handoffs/phase-6d-section-id-cross-check.md`. P6 parent row in `.claude/phases.md` stays unchanged; flips only when all six P6 sub-packets land.
+
 ## Session: April 22, 2026 (latest) — Working-model revision + Plan A skill + Plan C phase-status SoT
 - Architect (Opus) evaluated rewrite-churn complaint: root cause is doctrine instability + packet-decomposition gaps, not CC code quality. LANDED rule revision (`claude-replit-split.md`): Pure refactors → explicit-delegation lane via `DELEGATE.md`; Doctrine Freeze Gate (Guardrail #7); Atomic packet budget ≤7 sub-steps / ≤3 files / ≤2 domains (Guardrail #8). Plus packet template `.claude/replit-handoffs/_TEMPLATE.md` (9 mandatory sections).
 - LANDED Plan A: NEW `.claude/skills/resources/SKILL.md` (~205 lines, 10 sections — invariants, ResourceKind boundary, add-new-Kind runbook, probe-profile contract, break-glass flow, file map, cross-skill table, "wrong if…" failure modes).

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { type AdminSection, resolveSection, SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
+import { type AdminSection, resolveSection, SPECIALIST_SECTION_TO_ID, type SpecialistSection } from "@/components/admin/AdminSidebar";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -11,6 +11,10 @@ import { SaveButton } from "@/components/ui/save-button";
 import { useAdminSection } from "@/lib/admin-nav";
 import type { AdminSaveState } from "@/components/admin/save-state";
 import { Loader2 } from "@/components/icons/themed-icons";
+
+function isSpecialistSection(s: AdminSection): s is SpecialistSection {
+  return s in SPECIALIST_SECTION_TO_ID;
+}
 
 const ActivityTab = lazy(() => import("@/components/admin").then(m => ({ default: m.ActivityTab })));
 const VerificationTab = lazy(() => import("@/components/admin").then(m => ({ default: m.VerificationTab })));
@@ -202,8 +206,9 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
     case "resources-models":     return <ResourcesTab kind="model" />;
     default: {
-      const specialistId = SPECIALIST_SECTION_TO_ID[section];
-      if (specialistId) return <SpecialistPage specialistId={specialistId} />;
+      if (isSpecialistSection(section)) {
+        return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
+      }
       return null;
     }
   }

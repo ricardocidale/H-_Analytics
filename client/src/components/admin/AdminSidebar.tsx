@@ -54,24 +54,23 @@ export type AdminSection =
   | "constants"
   // Resources control plane (P4) — canonical SoT for APIs/Sources/Tables/Benchmarks/Models
   | "resources-apis" | "resources-sources" | "resources-tables" | "resources-benchmarks" | "resources-models"
-  // AI Research → Specialists (P5). 7 read-only assignment+health surfaces.
-  // One enum value per Specialist; the section value carries the catalog id
-  // via SPECIALIST_SECTION_TO_ID below so SpecialistPage knows what to fetch.
-  | "specialist-mgmt-co-funding"
-  | "specialist-mgmt-co-revenue"
-  | "specialist-mgmt-co-icp-intelligence"
-  | "specialist-property-risk-intelligence"
-  | "specialist-property-executive-summary"
-  | "specialist-photos-photo-enhancer"
-  | "specialist-portfolio-ops-watchdog";
+  // AI Research → Specialists (P5). The 7 read-only assignment+health surface
+  // sections are derived from `SPECIALIST_SECTION_TO_ID` keys below — single
+  // source of truth, compile-enforced. To add a Specialist section, edit ONLY
+  // the map; this union widens automatically. See P6d packet for the rationale.
+  | SpecialistSection;
 
 /**
  * Map admin sidebar section value → canonical Specialist id used by
  * /api/admin/specialists/:id. The section enum uses dashes throughout
  * (URL-safe) while the catalog uses dotted ids — this table is the only
  * place we cross the boundary.
+ *
+ * Single source of truth: this map's keys feed `SpecialistSection` (above)
+ * via `keyof typeof`. Test `tests/client/admin-sidebar-section-map.test.ts`
+ * asserts the map is bijective with `SPECIALIST_CATALOG`.
  */
-export const SPECIALIST_SECTION_TO_ID: Record<string, string> = {
+export const SPECIALIST_SECTION_TO_ID = {
   "specialist-mgmt-co-funding": "mgmt-co.funding",
   "specialist-mgmt-co-revenue": "mgmt-co.revenue",
   "specialist-mgmt-co-icp-intelligence": "mgmt-co.icp-intelligence",
@@ -79,7 +78,9 @@ export const SPECIALIST_SECTION_TO_ID: Record<string, string> = {
   "specialist-property-executive-summary": "property.executive-summary",
   "specialist-photos-photo-enhancer": "photos.photo-enhancer",
   "specialist-portfolio-ops-watchdog": "portfolio-ops.watchdog",
-};
+} as const satisfies Record<string, string>;
+
+export type SpecialistSection = keyof typeof SPECIALIST_SECTION_TO_ID;
 
 const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Legacy aliases
