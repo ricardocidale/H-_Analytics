@@ -118,9 +118,10 @@ export function registerModelConstantsRoutes(app: Express) {
       if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
 
-      const [allOverrides, allCanonicals] = await Promise.all([
+      const [allOverrides, allCanonicals, cadenceOverrides] = await Promise.all([
         storage.listModelConstantOverrides(),
         storage.listCanonicals(),
+        storage.getRefreshCadenceOverrides(),
       ]);
 
       const items = await Promise.all(REGISTERED_CONSTANT_KEYS.map(async (key) => {
@@ -204,8 +205,11 @@ export function registerModelConstantsRoutes(app: Express) {
         // Scheduled-refresh cadence + staleness flag (see
         // server/jobs/specialist-constants-refresh.ts). Surfaced here so
         // the Constants tab can render a "Stale" indicator without a
-        // second round-trip to the catalog.
-        const refreshCadenceDays = getRefreshCadenceDaysForConstant(key);
+        // second round-trip to the catalog. The admin override (if any)
+        // lives on `specialist_configs.refresh_cadence_days` and shadows
+        // the catalog default.
+        const overrideCadence = owner ? cadenceOverrides.get(owner.id) : undefined;
+        const refreshCadenceDays = overrideCadence ?? getRefreshCadenceDaysForConstant(key);
         let isStale = false;
         if (refreshCadenceDays != null) {
           if (!lastRefreshedAt) {

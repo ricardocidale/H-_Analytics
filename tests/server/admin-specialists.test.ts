@@ -104,6 +104,7 @@ const baseConfig = (id: string) => ({
   modelResourceId: null as number | null,
   requiredFields: [] as string[],
   runtimeConfig: {} as Record<string, unknown>,
+  refreshCadenceDays: null as number | null,
   version: 1,
   createdByUserId: null as number | null,
   updatedByUserId: null as number | null,
@@ -246,6 +247,53 @@ describe("admin/specialists routes — catalog + detail", () => {
       body: { runtimeConfig: { thresholds: { adr: 0.1 } } },
     });
     expect(status).toBe(200);
+  });
+
+  it("PUT /api/admin/specialists/:id/cadence rejects a Specialist that doesn't own constants", async () => {
+    // photos.photo-enhancer is not a Constants Specialist — the catalog entry
+    // has no `refreshCadenceDays`, so the cadence override surface must 400.
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/cadence", {
+      params: { id: "photos.photo-enhancer" },
+      body: { refreshCadenceDays: 30 },
+    });
+    expect(status).toBe(400);
+    expect((body as { error: string }).error).toMatch(/refresh cadence/);
+  });
+
+  it("PUT /api/admin/specialists/:id/cadence persists an override for a Constants Specialist", async () => {
+    // constants.macro-research is Specialist I (macro), default 7d.
+    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...baseConfig("constants.macro-research"),
+      refreshCadenceDays: 14,
+      version: 4,
+    });
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/cadence", {
+      params: { id: "constants.macro-research" },
+      body: { refreshCadenceDays: 14, changeSummary: "slow it down" },
+    });
+    expect(status).toBe(200);
+    expect(storage.updateSpecialistConfigSection).toHaveBeenCalledWith(
+      "constants.macro-research",
+      "cadence",
+      { refreshCadenceDays: 14 },
+      expect.anything(),
+      "slow it down",
+    );
+    expect(body).toMatchObject({ refreshCadenceDays: 14, refreshCadenceOverridden: true });
+  });
+
+  it("PUT /api/admin/specialists/:id/cadence accepts null to clear the override", async () => {
+    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...baseConfig("constants.macro-research"),
+      refreshCadenceDays: null,
+      version: 5,
+    });
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/cadence", {
+      params: { id: "constants.macro-research" },
+      body: { refreshCadenceDays: null },
+    });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ refreshCadenceOverridden: false });
   });
 
   it("GET /api/admin/specialists/:id/audit returns version snapshots", async () => {

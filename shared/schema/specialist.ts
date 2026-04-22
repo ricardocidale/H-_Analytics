@@ -228,6 +228,14 @@ export const specialistConfigs = pgTable(
     modelResourceId: integer("model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
     requiredFields: jsonb("required_fields").notNull().$type<string[]>().default([]),
     runtimeConfig: jsonb("runtime_config").notNull().$type<Record<string, unknown>>().default({}),
+    /**
+     * Admin override for the scheduled Constants refresh cadence (in days).
+     * Null means "no override" — the scheduler falls back to the catalog
+     * default declared in `engine/analyst/registry/specialist-catalog.ts`
+     * (`refreshCadenceDays`). Only meaningful for Constants Specialists
+     * that own one or more registry keys.
+     */
+    refreshCadenceDays: integer("refresh_cadence_days"),
     version: integer("version").notNull().default(1),
     updatedByUserId: integer("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -252,6 +260,7 @@ export const specialistConfigVersions = pgTable(
     modelResourceId: integer("model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
     requiredFields: jsonb("required_fields").notNull().$type<string[]>().default([]),
     runtimeConfig: jsonb("runtime_config").notNull().$type<Record<string, unknown>>().default({}),
+    refreshCadenceDays: integer("refresh_cadence_days"),
     changeSummary: text("change_summary"),
     changedByUserId: integer("changed_by_user_id").references(() => users.id, { onDelete: "set null" }),
     changedAt: timestamp("changed_at").defaultNow().notNull(),
@@ -268,7 +277,7 @@ export type SpecialistConfigVersionRow = typeof specialistConfigVersions.$inferS
 // API contracts for Specialist routes
 // ────────────────────────────────────────────────────────────────────────────
 
-export const SpecialistConfigSection = z.enum(["llm-config", "required-fields", "runtime"]);
+export const SpecialistConfigSection = z.enum(["llm-config", "required-fields", "runtime", "cadence"]);
 export type SpecialistConfigSectionType = z.infer<typeof SpecialistConfigSection>;
 
 export const updateLlmConfigSchema = z.object({
@@ -290,6 +299,19 @@ export const updateRuntimeSchema = z.object({
 });
 export type UpdateRuntimeInput = z.infer<typeof updateRuntimeSchema>;
 
+/**
+ * Per-Specialist override for the scheduled Constants refresh cadence.
+ * `refreshCadenceDays = null` clears the override and falls back to the
+ * catalog default. Positive integer values cap at 3650 (10 years) to
+ * keep the input sane and prevent accidental "never refresh" rows that
+ * silently disable the scheduler.
+ */
+export const updateCadenceSchema = z.object({
+  refreshCadenceDays: z.number().int().positive().max(3650).nullable(),
+  changeSummary: z.string().max(500).optional(),
+});
+export type UpdateCadenceInput = z.infer<typeof updateCadenceSchema>;
+
 export const SpecialistConfigPublicViewSchema = z.object({
   specialistId: z.string(),
   promptTemplate: z.string(),
@@ -304,6 +326,17 @@ export const SpecialistConfigPublicViewSchema = z.object({
    */
   validRequiredFieldKeys: z.array(z.string()).nullable(),
   runtimeConfig: z.record(z.string(), z.unknown()),
+  /**
+   * Effective scheduled-refresh cadence (in days) for this Specialist's
+   * Constants research. Resolved as `override ?? catalog default`. Null
+   * when neither the override nor the catalog declares a cadence — i.e.
+   * the Specialist is not a Constants Specialist.
+   */
+  refreshCadenceDays: z.number().int().positive().nullable(),
+  /** Catalog default cadence (read-only baseline used when override is null). */
+  defaultRefreshCadenceDays: z.number().int().positive().nullable(),
+  /** Whether the admin has set a per-Specialist cadence override. */
+  refreshCadenceOverridden: z.boolean(),
   version: z.number().int().min(1),
   updatedAt: z.string(),
 });

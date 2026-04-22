@@ -29,6 +29,7 @@ import {
   SPECIALIST_CATALOG,
   getSpecialistById,
 } from "../../../engine/analyst/registry/specialist-catalog";
+import type { SpecialistDefinition } from "@shared/schema/specialist";
 import { specialistDisplayName } from "@shared/schema/specialist";
 import {
   findInvalidRequiredFieldKeys,
@@ -38,6 +39,7 @@ import {
   updateLlmConfigSchema,
   updateRequiredFieldsSchema,
   updateRuntimeSchema,
+  updateCadenceSchema,
   type SpecialistConfigPublicView,
   type ResourceKind,
   toResourcePublicView,
@@ -49,16 +51,23 @@ import {
 
 const idParamSchema = z.object({ id: z.string().min(1) });
 
-function toConfigView(row: {
-  specialistId: string;
-  promptTemplate: string;
-  modelResourceId: number | null;
-  requiredFields: string[];
-  runtimeConfig: Record<string, unknown>;
-  version: number;
-  updatedAt: Date;
-}): SpecialistConfigPublicView {
+function toConfigView(
+  row: {
+    specialistId: string;
+    promptTemplate: string;
+    modelResourceId: number | null;
+    requiredFields: string[];
+    runtimeConfig: Record<string, unknown>;
+    refreshCadenceDays: number | null;
+    version: number;
+    updatedAt: Date;
+  },
+  def?: SpecialistDefinition,
+): SpecialistConfigPublicView {
   const allow = getValidRequiredFieldKeys(row.specialistId);
+  const definition = def ?? getSpecialistById(row.specialistId);
+  const catalogDefault = definition?.refreshCadenceDays ?? null;
+  const override = row.refreshCadenceDays ?? null;
   return {
     specialistId: row.specialistId,
     promptTemplate: row.promptTemplate,
@@ -66,6 +75,9 @@ function toConfigView(row: {
     requiredFields: row.requiredFields ?? [],
     validRequiredFieldKeys: allow === null ? null : [...allow],
     runtimeConfig: row.runtimeConfig ?? {},
+    refreshCadenceDays: override ?? catalogDefault,
+    defaultRefreshCadenceDays: catalogDefault,
+    refreshCadenceOverridden: override !== null,
     version: row.version,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -148,8 +160,13 @@ export function registerAdminSpecialistRoutes(app: Express) {
           capabilities: def.capabilities,
           status: def.status,
           assignmentRefs: def.assignmentRefs,
+          // Surfaced so the Specialist page can render the editable
+          // cadence card (only meaningful for Constants Specialists, i.e.
+          // ones whose catalog entry declares `refreshCadenceDays`).
+          constantsOwned: def.constantsOwned ?? [],
+          defaultRefreshCadenceDays: def.refreshCadenceDays ?? null,
         },
-        config: toConfigView(config),
+        config: toConfigView(config, def),
         assignments,
       });
     } catch (error: unknown) {
@@ -187,7 +204,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-llm-config", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated));
+      res.json(toConfigView(updated, def));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist LLM config", error);
     }
@@ -228,7 +245,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-required-fields", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated));
+      res.json(toConfigView(updated, def));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist required fields", error);
     }
@@ -256,9 +273,45 @@ export function registerAdminSpecialistRoutes(app: Express) {
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-runtime", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated));
+      res.json(toConfigView(updated, def));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist runtime", error);
+    }
+  });
+
+  // ── Update Refresh Cadence (Constants Specialists only) ─────────
+  // Per-Specialist override for the scheduled Constants refresh cadence
+  // (in days). Only valid when the catalog declares a
+  // `refreshCadenceDays` for this Specialist — i.e. it's a Constants
+  // Specialist (H–K). Body shape: { refreshCadenceDays: number | null,
+  // changeSummary?: string }. Passing `null` clears the override and the
+  // scheduler falls back to the catalog default.
+  app.put("/api/admin/specialists/:id/cadence", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const def = getSpecialistById(id);
+      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (def.refreshCadenceDays == null) {
+        return res.status(400).json({
+          error: "Specialist does not declare a scheduled refresh cadence",
+        });
+      }
+      const parsed = updateCadenceSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const actorId = req.user!.id;
+      const updated = await storage.updateSpecialistConfigSection(
+        id,
+        "cadence",
+        { refreshCadenceDays: parsed.data.refreshCadenceDays },
+        actorId,
+        parsed.data.changeSummary,
+      );
+      logActivity(req, "update-specialist-cadence", "specialist_config", updated.id, `${id} v${updated.version}`);
+      res.json(toConfigView(updated, def));
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update specialist cadence", error);
     }
   });
 
@@ -368,6 +421,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
           modelResourceId: v.modelResourceId,
           requiredFields: v.requiredFields,
           runtimeConfig: v.runtimeConfig,
+          refreshCadenceDays: v.refreshCadenceDays,
         })),
       );
     } catch (error: unknown) {

@@ -266,9 +266,15 @@ export async function runConstantsRefreshCycle(): Promise<RefreshCycleSummary> {
   isRunning = true;
   try {
     const overrides = await storage.listModelConstantOverrides();
+    // Per-Specialist admin cadence overrides (P5 follow-up). Loaded once
+    // per cycle so the per-(key, locality) loop is a Map lookup, not
+    // an N+1 query against `specialist_configs`.
+    const cadenceOverrides = await storage.getRefreshCadenceOverrides();
 
     for (const key of REGISTERED_CONSTANT_KEYS) {
-      const cadenceDays = getRefreshCadenceDaysForConstant(key);
+      const owner = getSpecialistForConstant(key);
+      const catalogCadence = getRefreshCadenceDaysForConstant(key);
+      const cadenceDays = (owner ? cadenceOverrides.get(owner.id) : undefined) ?? catalogCadence;
       if (cadenceDays == null) continue; // Specialist opted out of scheduled refresh.
 
       const localities = localitiesForKey(key, overrides);

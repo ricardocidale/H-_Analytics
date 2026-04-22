@@ -18,6 +18,7 @@ const createActivityLog = vi.fn();
 vi.mock("../../server/storage", () => ({
   storage: {
     listModelConstantOverrides: () => listOverrides(),
+    getRefreshCadenceOverrides: () => Promise.resolve(new Map<string, number>()),
     getLatestSuccessfulRunForConstant: (
       key: string,
       country: string | null,

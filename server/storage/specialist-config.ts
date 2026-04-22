@@ -30,6 +30,7 @@ export interface SpecialistConfigPatch {
   modelResourceId?: number | null;
   requiredFields?: string[];
   runtimeConfig?: Record<string, unknown>;
+  refreshCadenceDays?: number | null;
 }
 
 const EMPTY_CONFIG: Omit<SpecialistConfigRow, "id" | "specialistId" | "version" | "updatedByUserId" | "createdAt" | "updatedAt"> = {
@@ -37,6 +38,7 @@ const EMPTY_CONFIG: Omit<SpecialistConfigRow, "id" | "specialistId" | "version" 
   modelResourceId: null,
   requiredFields: [],
   runtimeConfig: {},
+  refreshCadenceDays: null,
 };
 
 export class SpecialistConfigStorage {
@@ -71,6 +73,26 @@ export class SpecialistConfigStorage {
       .from(specialistConfigs)
       .where(eq(specialistConfigs.specialistId, specialistId));
     return row || undefined;
+  }
+
+  /**
+   * Returns the per-Specialist refresh-cadence overrides as a Map. Used by
+   * the scheduled-refresh job and the Constants tab to resolve the
+   * effective cadence (override → catalog default) without an N+1 lookup.
+   * Specialists without an override are simply absent from the map.
+   */
+  async getRefreshCadenceOverrides(): Promise<Map<string, number>> {
+    const rows = await db
+      .select({
+        specialistId: specialistConfigs.specialistId,
+        refreshCadenceDays: specialistConfigs.refreshCadenceDays,
+      })
+      .from(specialistConfigs);
+    const out = new Map<string, number>();
+    for (const r of rows) {
+      if (r.refreshCadenceDays != null) out.set(r.specialistId, r.refreshCadenceDays);
+    }
+    return out;
   }
 
   async listSpecialistConfigVersions(specialistId: string, limit = 50): Promise<SpecialistConfigVersionRow[]> {
@@ -121,6 +143,7 @@ export class SpecialistConfigStorage {
         modelResourceId: current.modelResourceId,
         requiredFields: current.requiredFields,
         runtimeConfig: current.runtimeConfig,
+        refreshCadenceDays: current.refreshCadenceDays,
         changeSummary: changeSummary ?? null,
         changedByUserId: actorUserId,
       });
@@ -134,6 +157,7 @@ export class SpecialistConfigStorage {
       if (patch.modelResourceId !== undefined) next.modelResourceId = patch.modelResourceId;
       if (patch.requiredFields !== undefined) next.requiredFields = patch.requiredFields;
       if (patch.runtimeConfig !== undefined) next.runtimeConfig = patch.runtimeConfig;
+      if (patch.refreshCadenceDays !== undefined) next.refreshCadenceDays = patch.refreshCadenceDays;
 
       const [updated] = await tx
         .update(specialistConfigs)

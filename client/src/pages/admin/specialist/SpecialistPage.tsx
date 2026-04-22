@@ -56,6 +56,12 @@ interface SpecialistConfigView {
   /** Per-Specialist allow-list for requiredFields keys; null = no allow-list. */
   validRequiredFieldKeys: string[] | null;
   runtimeConfig: Record<string, unknown>;
+  /** Effective scheduled-refresh cadence (override → catalog default → null). */
+  refreshCadenceDays: number | null;
+  /** Catalog baseline used when no override is set. */
+  defaultRefreshCadenceDays: number | null;
+  /** Whether the admin has set a per-Specialist cadence override. */
+  refreshCadenceOverridden: boolean;
   version: number;
   updatedAt: string;
 }
@@ -70,6 +76,8 @@ interface SpecialistDetailResponse {
     capabilities: Capability[];
     status: Status;
     assignmentRefs: { kind: ResourceKind; slug: string; role?: string | null; required: boolean }[];
+    constantsOwned?: string[];
+    defaultRefreshCadenceDays?: number | null;
   };
   config: SpecialistConfigView;
   assignments: SpecialistAssignmentView[];
@@ -205,7 +213,14 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
             <TabsContent value="resource-assignments"><ResourceAssignmentsTab assignments={assignments} /></TabsContent>
           )}
           {tabsList.find((t) => t.value === "runtime") && (
-            <TabsContent value="runtime"><RuntimeTab specialistId={specialistId} config={config} /></TabsContent>
+            <TabsContent value="runtime">
+              <div className="space-y-6">
+                {(definition.constantsOwned ?? []).length > 0 && (
+                  <CadenceCard specialistId={specialistId} config={config} />
+                )}
+                <RuntimeTab specialistId={specialistId} config={config} />
+              </div>
+            </TabsContent>
           )}
           {tabsList.find((t) => t.value === "audit") && (
             <TabsContent value="audit"><AuditTab specialistId={specialistId} /></TabsContent>
@@ -669,6 +684,125 @@ function RuntimeTab({ specialistId, config }: { specialistId: string; config: Sp
         <Input value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Change summary (optional, recorded in audit)" data-testid="input-change-summary-runtime" />
         <div className="flex justify-end">
           <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} data-testid="button-save-runtime">
+            {mutation.isPending ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── CadenceCard ────────────────────────────────────────────────────────
+// Per-Specialist override for the scheduled Constants refresh cadence.
+// Only rendered for Constants Specialists (those whose catalog entry
+// owns one or more registry keys). Passing a blank value or clicking
+// "Reset to default" clears the override and the scheduler falls back
+// to the catalog default.
+function CadenceCard({ specialistId, config }: { specialistId: string; config: SpecialistConfigView }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState<string>(
+    config.refreshCadenceOverridden ? String(config.refreshCadenceDays ?? "") : "",
+  );
+  const [summary, setSummary] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: async (refreshCadenceDays: number | null) => {
+      const res = await apiRequest("PUT", `/api/admin/specialists/${specialistId}/cadence`, {
+        refreshCadenceDays,
+        changeSummary: summary || undefined,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Refresh cadence updated" });
+      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
+      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/audit`] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/model-constants"] });
+      setSummary("");
+    },
+    onError: (e: unknown) =>
+      toast({ title: "Save failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+  });
+
+  const parsed = draft.trim() === "" ? null : Number(draft);
+  const invalid = draft.trim() !== "" && (!Number.isInteger(parsed) || (parsed as number) < 1 || (parsed as number) > 3650);
+
+  return (
+    <Card data-testid="card-refresh-cadence">
+      <CardHeader>
+        <CardTitle>Scheduled refresh cadence</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          How often the scheduler re-runs this Specialist across the Constants it owns.
+          Leave blank to use the catalog default of{" "}
+          <span className="font-mono" data-testid="text-cadence-default">
+            {config.defaultRefreshCadenceDays ?? "—"}
+          </span>{" "}
+          days.
+        </p>
+        <div className="flex items-end gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Days between refreshes</label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={3650}
+              step={1}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={
+                config.defaultRefreshCadenceDays != null
+                  ? `Default: ${config.defaultRefreshCadenceDays}`
+                  : "e.g. 30"
+              }
+              className="w-40"
+              data-testid="input-refresh-cadence-days"
+            />
+          </div>
+          <div className="text-xs text-muted-foreground pb-2">
+            Effective:{" "}
+            <span className="font-mono" data-testid="text-cadence-effective">
+              {config.refreshCadenceDays ?? "—"}
+            </span>{" "}
+            day{config.refreshCadenceDays === 1 ? "" : "s"}
+            {config.refreshCadenceOverridden && (
+              <Badge variant="outline" className="ml-2" data-testid="badge-cadence-override">
+                Override
+              </Badge>
+            )}
+          </div>
+        </div>
+        {invalid && (
+          <p className="text-xs text-destructive" data-testid="text-cadence-invalid">
+            Enter a whole number of days between 1 and 3650, or leave blank to use the default.
+          </p>
+        )}
+        <Input
+          value={summary}
+          onChange={(e) => setSummary(e.target.value)}
+          placeholder="Change summary (optional, recorded in audit)"
+          data-testid="input-change-summary-cadence"
+        />
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setDraft("");
+              mutation.mutate(null);
+            }}
+            disabled={mutation.isPending || !config.refreshCadenceOverridden}
+            data-testid="button-reset-cadence"
+          >
+            Reset to default
+          </Button>
+          <Button
+            onClick={() => mutation.mutate(parsed === null ? null : Number(parsed))}
+            disabled={mutation.isPending || invalid}
+            data-testid="button-save-cadence"
+          >
             {mutation.isPending ? "Saving…" : "Save"}
           </Button>
         </div>

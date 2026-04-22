@@ -533,6 +533,12 @@ async function runSchemaMigrations() {
     await markMigrationApplied("admin_resources_002");
   }
 
+  if (!(await isMigrationApplied("admin_resources_003"))) {
+    const { runAdminResources003 } = await import("./migrations/admin-resources-003");
+    await runAdminResources003();
+    await markMigrationApplied("admin_resources_003");
+  }
+
   if (!(await isMigrationApplied("scenario_service_templates_001"))) {
     const { runScenarioServiceTemplates001 } = await import("./migrations/scenario-service-templates-001");
     await runScenarioServiceTemplates001();

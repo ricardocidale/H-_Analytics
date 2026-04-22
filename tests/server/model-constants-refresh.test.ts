@@ -56,6 +56,7 @@ vi.mock("../../server/storage", () => ({
     })),
     deleteModelConstantOverride: vi.fn(async () => undefined),
     listModelConstantOverrides: vi.fn(async () => []),
+    getRefreshCadenceOverrides: vi.fn(async () => new Map<string, number>()),
     listCanonicals: vi.fn(async () => []),
     getResearchRunsForConstant: vi.fn(async () => [sampleRun]),
     getLatestSuccessfulRunForConstant: vi.fn(async () => null),
