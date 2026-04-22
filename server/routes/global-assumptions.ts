@@ -216,9 +216,10 @@ export function register(app: Express) {
       // the Surface Router. Other tabs return verdict=null (no Analyst
       // gate yet — Phase 4 ships Compensation, etc.).
       let verdict = null;
+      let requiredFieldsMissing: string[] | null = null;
       if (tabKey === "funding" || tabKey === "revenue") {
         const [
-          { createMgmtCoRouter, MGMT_CO_FUNDING_ID, MGMT_CO_REVENUE_ID },
+          { createMgmtCoRouter, MGMT_CO_FUNDING_ID, MGMT_CO_REVENUE_ID, findMissingRequiredFields, RequiredFieldsMissingError },
           { createVoiceRenderer },
           { createQualityScorer },
           { DEFAULT_REVENUE_BENCHMARKS },
@@ -233,10 +234,11 @@ export function register(app: Express) {
           storage.getAnalystWatchdogBenchmarks(userId),
         ]);
 
-        // P5: load admin-edited per-Specialist config (prompt/model). The
-        // current evaluators are deterministic and ignore these fields, but
-        // the wiring is in place so a model-or-prompt edit on the Specialist
-        // page takes effect on the next save-tab without a code change.
+        // P5: load admin-edited per-Specialist config (prompt/model/required-fields).
+        // P6a: requiredFields now gates dispatch — see withRequiredFieldsGate
+        // in engine/analyst/surface/mgmt-co/index.ts. The save above is
+        // preserved either way (drafts are permissive); the gate only
+        // controls whether the Specialist runs.
         const [fundingCfg, revenueCfg] = await Promise.all([
           storage.getOrCreateSpecialistConfig(MGMT_CO_FUNDING_ID),
           storage.getOrCreateSpecialistConfig(MGMT_CO_REVENUE_ID),
@@ -246,8 +248,26 @@ export function register(app: Express) {
           { funding: fundingBenchmarks, revenue: DEFAULT_REVENUE_BENCHMARKS },
           {
             configs: {
-              funding: { promptTemplate: fundingCfg.promptTemplate, modelResourceId: fundingCfg.modelResourceId },
-              revenue: { promptTemplate: revenueCfg.promptTemplate, modelResourceId: revenueCfg.modelResourceId },
+              funding: {
+                promptTemplate: fundingCfg.promptTemplate,
+                modelResourceId: fundingCfg.modelResourceId,
+                requiredFields: fundingCfg.requiredFields ?? [],
+              },
+              revenue: {
+                promptTemplate: revenueCfg.promptTemplate,
+                modelResourceId: revenueCfg.modelResourceId,
+                // P6a: revenue gate runs at the route handler (pre-dispatch)
+                // against saved-row keys. The router-level wrapper would see
+                // the post-default-substitution dispatch payload (different
+                // namespace), so passing requiredFields here would either
+                // false-positive (admin-entered saved-row key, e.g.
+                // "defaultCostRateMarketing", missing from dispatch payload)
+                // or be a silent no-op for dispatch-payload keys (e.g.
+                // "marketingRate") because defaults always fill them. We
+                // therefore intentionally pass [] and rely on the route
+                // pre-check as the sole revenue gate.
+                requiredFields: [],
+              },
             },
           },
         );
@@ -256,34 +276,75 @@ export function register(app: Express) {
         // will plumb persona resolution through user/company settings.
         const persona = { segment: "L+B", tier: "luxury", market: "US" } as const;
 
-        if (tabKey === "funding") {
-          verdict = await router.dispatch({
-            specialistId: MGMT_CO_FUNDING_ID,
-            payload: fundingInputs ?? {},
-            persona,
-          });
+        // P6a: required-fields gate runs HERE (pre-dispatch) so the natural
+        // namespace per Specialist is the one admins author against:
+        //   - funding: keys of the dispatch payload `fundingInputs`
+        //     (i.e. CapitalRaiseInputs — runwayBufferMonths, etc.)
+        //   - revenue: keys of the freshly-saved row (defaultCostRateMarketing,
+        //     defaultRevShareFb, ...) — NOT the transformed dispatch payload,
+        //     because the transform applies `?? DEFAULT_*` fallbacks that
+        //     would mask missing values from a router-level gate.
+        // The router still wraps each Specialist with withRequiredFieldsGate
+        // as defense-in-depth (any direct router caller bypassing this
+        // handler still gets gated for funding); the wrapped revenue path is
+        // a no-op because the dispatch payload here always satisfies it.
+        const gateSource: Record<string, unknown> =
+          tabKey === "funding"
+            ? ((fundingInputs ?? {}) as Record<string, unknown>)
+            : (saved as Record<string, unknown>);
+        const gateFields = tabKey === "funding"
+          ? (fundingCfg.requiredFields ?? [])
+          : (revenueCfg.requiredFields ?? []);
+        const missing = findMissingRequiredFields(gateSource, gateFields);
+        if (missing.length > 0) {
+          requiredFieldsMissing = missing;
         } else {
-          // Revenue specialist reads inputs from the freshly-saved row.
-          const savedRow = saved as Record<string, unknown>;
-          const num = (k: string) => {
-            const v = savedRow[k];
-            return typeof v === "number" && Number.isFinite(v) ? v : null;
-          };
-          verdict = await router.dispatch({
-            specialistId: MGMT_CO_REVENUE_ID,
-            payload: {
-              marketingRate:      num("defaultCostRateMarketing") ?? c.DEFAULT_COST_RATE_MARKETING,
-              fbRevenueShare:     num("defaultRevShareFb")        ?? c.DEFAULT_REV_SHARE_FB,
-              eventsRevenueShare: num("defaultRevShareEvents")    ?? c.DEFAULT_REV_SHARE_EVENTS,
-              otherRevenueShare:  num("defaultRevShareOther")     ?? c.DEFAULT_REV_SHARE_OTHER,
-              cateringBoostPct:   num("defaultCateringBoostPct")  ?? c.DEFAULT_CATERING_BOOST_PCT,
-            },
-            persona,
-          });
+          try {
+            if (tabKey === "funding") {
+              verdict = await router.dispatch({
+                specialistId: MGMT_CO_FUNDING_ID,
+                payload: fundingInputs ?? {},
+                persona,
+              });
+            } else {
+              // Revenue specialist reads inputs from the freshly-saved row.
+              const savedRow = saved as Record<string, unknown>;
+              const num = (k: string) => {
+                const v = savedRow[k];
+                return typeof v === "number" && Number.isFinite(v) ? v : null;
+              };
+              verdict = await router.dispatch({
+                specialistId: MGMT_CO_REVENUE_ID,
+                payload: {
+                  marketingRate:      num("defaultCostRateMarketing") ?? c.DEFAULT_COST_RATE_MARKETING,
+                  fbRevenueShare:     num("defaultRevShareFb")        ?? c.DEFAULT_REV_SHARE_FB,
+                  eventsRevenueShare: num("defaultRevShareEvents")    ?? c.DEFAULT_REV_SHARE_EVENTS,
+                  otherRevenueShare:  num("defaultRevShareOther")     ?? c.DEFAULT_REV_SHARE_OTHER,
+                  cateringBoostPct:   num("defaultCateringBoostPct")  ?? c.DEFAULT_CATERING_BOOST_PCT,
+                },
+                persona,
+              });
+            }
+          } catch (gateErr) {
+            // Defense-in-depth: the router wrapper might still fire for the
+            // funding path if pre-check missed an edge case. SurfaceRouter
+            // wraps Specialist throws in SpecialistExecutionError, so unwrap
+            // one level to find the underlying RequiredFieldsMissingError.
+            const inner = (gateErr as { cause?: unknown })?.cause;
+            if (inner instanceof RequiredFieldsMissingError) {
+              requiredFieldsMissing = [...inner.missingFields];
+              verdict = null;
+            } else if (gateErr instanceof RequiredFieldsMissingError) {
+              requiredFieldsMissing = [...gateErr.missingFields];
+              verdict = null;
+            } else {
+              throw gateErr;
+            }
+          }
         }
       }
 
-      res.json({ ok: true, savedTabs: nextSaved, verdict });
+      res.json({ ok: true, savedTabs: nextSaved, verdict, requiredFieldsMissing });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to save Company Assumptions tab", error);
     }

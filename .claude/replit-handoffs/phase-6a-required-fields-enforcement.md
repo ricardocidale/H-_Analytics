@@ -156,10 +156,27 @@ Packet: .claude/replit-handoffs/phase-6a-required-fields-enforcement.md
 
 ## Completion report (filled by Replit on exit)
 
-- **Commits:** `<sha1>`, `<sha2>`, `<sha3>`, `<sha4>`
-- **Sub-steps PASSED:**
-- **Sub-steps SKIPPED with reason:**
-- **Verification gates PASSED:**
-- **Verification gates SKIPPED with reason:**
+- **Commits:** single commit (this packet shipped as one atomic landing).
+- **Sub-steps PASSED:** S1 (router gate via `withRequiredFieldsGate` wrapper — different shape than packet but same intent), S3 (contract test — written as standalone file `tests/analyst/required-fields-gate.test.ts` rather than wedged into `admin-specialists.test.ts`, 9 cases incl. helper edges), S4 (docs).
+- **Sub-steps SKIPPED with reason:** S2 — Specialist factory option-shape extension was unnecessary. The router-level wrapper does all gating; factories never need to know about `requiredFields`. Packet's S2 was speculative ("kept for caller consistency") and would have added dead options. Skipped per YAGNI; if P7 ever needs factory-level access, add then.
+- **Verification gates PASSED:** TS 0, Lint 0, test:summary PASS, verify UNQUALIFIED, health ALL CLEAR, parity PASS, phases:check PASS.
+- **Verification gates SKIPPED with reason:** Behavioral verification (manual dev-server walk-through) skipped — covered by the new contract test which exercises the exact router wiring.
 - **Out-of-scope items discovered (filed as BLOCKED or follow-up):**
-- **Session-memory entry added:** ☐
+  - **Packet-vs-contract drift (resolved inline):** The drafted packet specified a synthetic `AnalystVerdict` with `verdict: "incomplete"` / `severity: "info"`. Neither field exists on the AnalystVerdict contract (frozen by ADR-003: severities are `["ok","advisory","warning","block"]`; top-level fields are `{ specialistId, generatedAt, overallSeverity, overallQualityScore, dimensions[], voice, meta }`). User approved the reframing call to add a backward-compatible `requiredFieldsMissing: string[] | null` top-level response field instead of bending the verdict contract.
+  - **Future packet hygiene:** Authors of any packet that touches verdict shape MUST read `engine/analyst/contracts/verdict.ts` first. Adding to the doctrine note in `_TEMPLATE.md` is candidate work for the next housekeeping pass.
+  - **Path drift:** Packet referenced `engine/analyst/router/mgmt-co.ts` and `engine/analyst/specialists/{funding,revenue}.ts`. Real paths: `engine/analyst/surface/mgmt-co/index.ts` (router factory) + `engine/analyst/surface/mgmt-co/{funding,revenue}-specialist.ts`. Mechanical fix; no doctrine impact.
+- **Session-memory entry added:** ☑ (`.claude/session-memory.md` — "Session: April 22, 2026 (latest #3)")
+
+### Architect-review follow-up (same session)
+
+First architect review (FAIL) caught a real revenue-path defect: the dispatch payload applies `?? DEFAULT_*` substitution, so the router-level wrapper would either false-positive (admin-entered saved-row keys missing from the dispatch payload) or silently no-op (dispatch-payload keys always filled by defaults). Fixed in three sub-changes:
+
+1. **Pre-dispatch gate moved to route handler** (`server/routes/global-assumptions.ts`): runs `findMissingRequiredFields` against the natural namespace per Specialist (funding → `fundingInputs`, revenue → freshly-saved row) BEFORE constructing the dispatch payload. Defaults can no longer mask missingness.
+2. **Revenue wrapper made an explicit no-op:** `revenue.requiredFields: []` is passed into `createMgmtCoRouter` (was `revenueCfg.requiredFields ?? []`). Inline comment block documents the two-namespace rationale to prevent future regression. Funding wrapper retains `fundingCfg.requiredFields` (its dispatch payload IS the input namespace, so the wrapper remains effective there).
+3. **Two new tests** in `tests/analyst/required-fields-gate.test.ts` (now 11 cases, all pass): `revenue path: router with empty requiredFields is a no-op` (positive — verdict produced) and `revenue saved-row pre-check: catches missing saved-row keys before the ?? DEFAULT_* substitution` (negative — exercises real saved-row keys with mixed missing/present incl. 0 and false as present). Also rebuilt the previous bogus `vi.spyOn`-on-nothing test with a substantive spy via `createSurfaceRouter` + handcrafted SpecialistFn.
+
+Second architect review: **PASS**. All 7 gates remain GREEN.
+
+Deferred (acceptable as P6 follow-up, not P6a-blocking, per architect note):
+- Admin-side validation that admin-entered field names belong to each Specialist's documented namespace (currently silent no-op for unknown keys). Requires either per-Specialist exported field allow-lists or admin-form UI dropdown — beyond P6a's "enforcement at router" scope.
+- Route-level integration test for `/api/global-assumptions/save-tab` revenue branch. The route handler has heavy storage/persona setup not currently mocked anywhere; the unit-level coverage above proves the gate semantics directly.

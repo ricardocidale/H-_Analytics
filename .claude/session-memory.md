@@ -8,6 +8,14 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 22, 2026 (latest #3) — P6a: required-fields enforcement at Surface Router (second `_TEMPLATE.md` execution)
+- LANDED P6a. Recon caught a contract mismatch in the drafted packet: it specified a synthetic `AnalystVerdict` with `verdict: "incomplete"` / `severity: "info"` — both fields don't exist (frozen by ADR-003). Stopped, flagged 3 reframing options to the user, executed Option 3′ (router throws → handler returns `200 + requiredFieldsMissing[]`, save preserved).
+- Wired `withRequiredFieldsGate()` wrapper in `engine/analyst/surface/mgmt-co/index.ts` — wraps each registered Specialist; pre-checks `requiredFields` against payload; throws `RequiredFieldsMissingError` (caught by SurfaceRouter as `SpecialistExecutionError.cause`). Helper `findMissingRequiredFields(payload, names)` exported with semantics: `null|undefined|""|whitespace|NaN` = missing; `0|false` = present. Dot-path resolution supported.
+- Route handler in `server/routes/global-assumptions.ts` catches both wrapped + unwrapped error shapes, returns `{ verdict: null, requiredFieldsMissing: [...] }` alongside existing `savedTabs`. Backward-compatible additive field.
+- New test file `tests/analyst/required-fields-gate.test.ts` — 9 cases (4 router gate + 5 helper edge). All pass.
+- Doctrine note for next packet author: read `engine/analyst/contracts/verdict.ts` BEFORE drafting any verdict-shape change. Severities are `["ok","advisory","warning","block"]` (no "info"); top-level shape is `{ specialistId, generatedAt, overallSeverity, overallQualityScore, dimensions[], voice, meta }` (no `verdict`/`headline`/`body`/`evidenceRefs`).
+- Atomic budget: 3 sub-steps / 3 files / 2 domains (route + verification). All 7 gates GREEN.
+
 ## Session: April 22, 2026 (latest #2) — P6d: AdminSection ↔ section-id map cross-check (first `_TEMPLATE.md` execution)
 - LANDED P6d. Recon found architect's "two places" claim inaccurate — `SPECIALIST_SECTION_TO_ID` is single-source. Real risk was union-vs-map drift (lines 60–66 vs 74–82 in same file). Closed via `as const satisfies Record<string,string>` + derived `type SpecialistSection = keyof typeof ...`. Replaced 7 inline literals in `AdminSection` union with `| SpecialistSection`. Added `in`-guard narrowing at `Admin.tsx:205`.
 - New contract test `tests/client/admin-sidebar-section-map.test.ts` (4 cases): URL-safe key format, every value in `SPECIALIST_CATALOG`, every catalog id has sidebar entry, transform reversibility. Catches future catalog↔sidebar drift.
