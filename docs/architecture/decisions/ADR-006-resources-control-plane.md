@@ -144,17 +144,17 @@ Rejected because:
 
 ## Implementation notes
 
-The v2 doctrine ships in 7 phases (P1 → P7). P1–P5 are complete as of 2026-04-21:
+The v2 doctrine ships in 7 phases (P1 → P7). Live status lives in `.claude/phases.md` under the "Resources Control Plane" workstream. Planned scopes:
 
-| Phase | Scope | Status |
-|---|---|---|
-| P1 | Specialist catalog + capability matrix; rename `resourceRefs` → `assignmentRefs`; mark read-only | ✅ Shipped |
-| P2 | `admin_resources` + `admin_resource_versions` + `audit_break_glass_overrides` + `specialist_assignments` materialization job | ✅ Shipped |
-| P3 | Resource health checker (background probe) + `resource_health_checks` + freshness-band derivation + Test button safe-probes | ✅ Shipped |
-| P4 | Resources sub-page UIs (APIs, Sources, Tables, Benchmarks, Models) + dialogs + version history | ✅ Shipped |
-| P5 | Specialist read-only surfaces (Funding + Revenue first): 6 REST routes, 5 capability tabs, 11 contract tests, mgmt-co router wiring for prompt/model edits | ✅ Shipped (commit `2346de7`) |
-| P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab` seed → `admin_resources` rows; UX polish (audit-tab user names, centralized SPECIALIST_SECTION_TO_ID); Required Fields enforcement | ⏳ Next |
-| P7 | Specialists C–G (ICP Intelligence, Risk Intelligence, Executive Summary, Photo Enhancer, Watchdog) get real evaluators behind their existing pages | ⏳ Pending |
+| Phase | Scope |
+|---|---|
+| P1 | Specialist catalog + capability matrix; rename `resourceRefs` → `assignmentRefs`; mark read-only |
+| P2 | `admin_resources` + `admin_resource_versions` + `audit_break_glass_overrides` + `specialist_assignments` materialization job |
+| P3 | Resource health checker (background probe) + `resource_health_checks` + freshness-band derivation + Test button safe-probes |
+| P4 | Resources sub-page UIs (APIs, Sources, Tables, Benchmarks, Models) + dialogs + version history |
+| P5 | Specialist read-only surfaces (Funding + Revenue first): 6 REST routes, 5 capability tabs, 11 contract tests, mgmt-co router wiring for prompt/model edits |
+| P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab` seed → `admin_resources` rows; UX polish (audit-tab user names, centralized SPECIALIST_SECTION_TO_ID); Required Fields enforcement |
+| P7 | Specialists C–G (ICP Intelligence, Risk Intelligence, Executive Summary, Photo Enhancer, Watchdog) get real evaluators behind their existing pages |
 
 ### P5 surface (concrete contract)
 

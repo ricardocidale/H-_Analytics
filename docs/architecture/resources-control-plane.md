@@ -1,6 +1,6 @@
 # Resources Control Plane
 
-Status: Locked 2026-04-21. P1 (contracts) shipped; P2–P7 in `.local/session_plan.md`.
+Status: Locked 2026-04-21. Live phase status: see `.claude/phases.md`.
 
 ## What this document covers
 
@@ -160,17 +160,11 @@ The three forces v2 simultaneously resolved that v0 and v1 left open:
 single canonical SoT per Resource, diffable wiring authority, and
 audit-trail incident response.
 
-## Phase status (concrete)
+## Phase status
 
-| Phase | Scope | Status |
-|---|---|---|
-| P1 | Specialist catalog + capability matrix; `resourceRefs` → `assignmentRefs`; read-only contract | ✅ Shipped |
-| P2 | `admin_resources` + `admin_resource_versions` + `audit_break_glass_overrides` + `specialist_assignments` materialization | ✅ Shipped |
-| P3 | Resource health checker + `resource_health_checks` + freshness-band derivation + safe-probe profiles | ✅ Shipped |
-| P4 | Resources sub-page UIs (APIs, Sources, Tables, Benchmarks, Models) + dialogs + version history | ✅ Shipped |
-| P5 | Specialist read-only surfaces (Funding + Revenue first): 6 REST routes, 5 capability tabs, 11 contract tests, mgmt-co router wiring | ✅ Shipped (commit `2346de7`) |
-| P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab` seed inputs; centralize SPECIALIST_SECTION_TO_ID; Required Fields enforcement | ⏳ Next |
-| P7 | Specialists C–G get real evaluators behind their existing pages | ⏳ Pending |
+**Live phase status for this workstream lives in `.claude/phases.md`** (single source of truth across the codebase). This document carries the architectural rationale; the phase tracker carries the per-phase commit / owner / blocked-by / next.
+
+For directive rules + invariants + runbooks (add a `ResourceKind`, write a probe profile, etc.), see `.claude/skills/resources/SKILL.md`.
 
 ## P5 — Specialist read-only surface (concrete contract)
 

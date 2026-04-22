@@ -265,8 +265,7 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - ✅ Phase 2 — `engine/analyst/{contracts,router,voice,quality,surface}/` skeleton + CODEOWNERS + naming-lint + ADR-002 (Replit, `5ba18f29`)
 - ✅ Phase 3a — `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + persona test bench + ADR-003 + 53 tests (Claude Code, `d220f4b1`, `cc6d5a0e`). Contract frozen.
 - ✅ Phase 3b — Funding + Revenue Surface Specialists; `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten on the contract; tests use real Specialists end-to-end (Replit, `ee0c6573`)
-- ⏳ Phase 4 — build remaining mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults). Persona resolution (currently hardcoded `{ L+B, luxury, US }` single-tenant) + verdict-cache table are deferred follow-ups.
-- 🟡 Phase 5 — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders, pending ADR-005) + **verdict cache (ADR-004 Accepted 2026-04-20 — Phase 5A Claude-side shipped `38a468b3`; migrations handoff queued at `.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`)** + research-history reindex + guidance↔engine seam doc
+- *Live status for Phase 4, Phase 5, and all other in-flight phases lives in `.claude/phases.md`.* The historical entries above (1a–3b) are kept for narrative + commit-SHA audit trail; status tokens for active phases are not maintained here to prevent drift.
 
 **Parallel workstream — Operational Tooling (OT):**
 - ✅ OT-A.1 — Anthropic native prompt caching (Replit, `7326e28c`)
@@ -671,8 +670,8 @@ P1 (catalog + capability matrix), P2 (`admin_resources` + versions + break-glass
 - **4 new proof tests** wired into `verify:summary` as Phases 16-19: orphan-files, any-prop-detector, literal-drift, seed-schema-sync. Total is now 19 phases / 508 checks. Each ships with a baseline + stale-entry guard for incremental cleanup.
 - **Baseline progression across the session:** orphans 29 → 0, any-prop 28 → 0, literal-drift 25 → 0, seed/schema 64 → 36. Net: 34 barrel files + 4 UNWIRED modules + 1 shim deleted (~720 LOC); 20+ files retyped from `any` to precise types; `DEFAULT_MODEL_START_DATE` centralized (closes D-1 drift pattern).
 - **3 real production bugs surfaced + fixed:** (1) IcpMarketContextTab over-broad `assetDefinition` cast, (2) InvestmentAnalysis dead `allPropertyFinancials`/`getPropertyYearly` props with mismatched-shape callers, (3) **OtherAssumptionsSection silent display bug** — cost-of-equity always showed 18% regardless of admin override, because `draft.globalAssumptions?.costOfEquity` ran on a type with no `globalAssumptions` field.
-- **ADR-004 verdict cache Accepted** (`66f3df90`). Phase 5A Claude-side (cache-key utilities + 21 tests) shipped (`38a468b3`). Phase 5A migrations queued for Replit at `.claude/replit-handoffs/phase-5a-verdict-cache-migrations.md`.
-- **ADR-005 workspace reorganization Proposed** (docs-only). 4 open questions resolved; Phase 1 handoff queued at `.claude/replit-handoffs/phase-1-workspace-bootstrap.md` (tooling-only, zero file moves). Status stays Proposed until Phase 1 + 2 land cleanly per ADR's own acceptance criteria.
+- **ADR-004 verdict cache Accepted** (`66f3df90`). Decision artifact only; live phase progress (5A / 5B / 5C) tracked in `.claude/phases.md`.
+- **ADR-005 workspace reorganization Proposed** (docs-only). Decision artifact only; live phase progress tracked in `.claude/phases.md`. Per architect 2026-04-22 working-model review: paused pending Doctrine Freeze Gate clearance.
 - **Lint 348 → 40 warnings** (88% reduction) across 9 atomic sub-batches this session + prior sessions.
 
 **Forward-discipline playbook (April 20, 2026, Replit, docs-only):**

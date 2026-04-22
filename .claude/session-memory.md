@@ -8,11 +8,12 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 22, 2026 (latest) — Working-model revision: CC advisor / Replit executor
-- User flagged rewrite churn; architect (Opus) evaluated and ranked root cause as doctrine instability + packet-decomposition gaps, not CC code quality. Counter-proposal: keep handoff-packet contract, narrow CC's coding lane, add doctrine freeze gate.
-- LANDED: rewrote `.claude/rules/claude-replit-split.md` (Pure refactors moved out of CC's auto lane → new Explicit-delegation lane via `DELEGATE.md`; new Doctrine Freeze Gate guardrail #7; new Atomic packet budget guardrail #8 of ≤7 sub-steps / ≤3 files / ≤2 capability domains; full revision history at bottom).
-- LANDED: NEW `.claude/replit-handoffs/_TEMPLATE.md` (9 mandatory sections incl. Doctrine Freeze Gate check, atomic-budget check, per-step acceptance criteria + cross-check invariants + rollback, completion report). Updated `.claude/replit-handoffs/README.md` to point to template + summarize the 9 mandatory sections.
-- Boundary crossed (CC-domain edits) per user "draft now" + earlier session-wide "yes" authorization. (a) Resources skill + (c) `.claude/phases.md` from prior turn still queued — not yet executed.
+## Session: April 22, 2026 (latest) — Working-model revision + Plan A skill + Plan C phase-status SoT
+- Architect (Opus) evaluated rewrite-churn complaint: root cause is doctrine instability + packet-decomposition gaps, not CC code quality. LANDED rule revision (`claude-replit-split.md`): Pure refactors → explicit-delegation lane via `DELEGATE.md`; Doctrine Freeze Gate (Guardrail #7); Atomic packet budget ≤7 sub-steps / ≤3 files / ≤2 domains (Guardrail #8). Plus packet template `.claude/replit-handoffs/_TEMPLATE.md` (9 mandatory sections).
+- LANDED Plan A: NEW `.claude/skills/resources/SKILL.md` (~205 lines, 10 sections — invariants, ResourceKind boundary, add-new-Kind runbook, probe-profile contract, break-glass flow, file map, cross-skill table, "wrong if…" failure modes).
+- LANDED Plan C: NEW `.claude/phases.md` as canonical live-status SoT (7-col schema across 7 workstreams: Resources P1-P7, Analyst 1a-5, ADR-004 5A-5C, ADR-005, Audit-Inventory 1-8, Strategic Roadmap 8-13, OT-A/B). Migrated 6 docs (replit.md, resources-control-plane.md, ANALYST.md, ADR-006, audit-inventory.md, MASTER-PLAN-V2.md) to pointers; updated `.claude/rules/documentation.md` priority table + new "Phase status changes" section.
+- CI guard: NEW `script/check-phase-status-uniqueness.ts` (run via `tsx` — package.json edit blocked by env policy, so script is invoked directly + documented in documentation.md). Tightened to flag only tables with live status tokens (✅⏳🟡⏸🟢❌/Shipped/Pending/...), exempting checkbox checklists and planned-phase lists. Currently PASSES — `.claude/phases.md` is the only file with a live phase|status table.
+- Boundary crossed (CC-domain edits) per user "draft now" + "land a and c" + session-wide "yes". P6 still queued; ADR-005 explicitly paused per architect.
 
 ## Session: April 21, 2026 — Resources control plane + P5 Specialist surfaces + doctrine docs
 - P5 shipped (commits `2346de7` + `a6c78b54`): `specialist_configs` schema, 6 read-only-by-design REST routes, mgmt-co router config wiring, sidebar restructure, SpecialistPage with capability tabs, 11 contract tests incl. read-only invariant guard. All 5 gates green; 2 audit nits fixed.

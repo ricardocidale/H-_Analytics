@@ -328,18 +328,8 @@ Owner: Replit Agent (touches seed-runtime path + UI manual page).
 
 ---
 
-## Current state (as of April 18, 2026)
+## Current state
 
-| Phase | Status | Owner |
-|---|---|---|
-| 1 — inventory | ✅ complete | Claude |
-| 2 — drift repair (D-1/D-3/D-4) | ✅ complete | Claude |
-| 3 — audit sweep (16 files) | ✅ complete | Claude |
-| 4 — findings #9–#16 | ✅ complete | Replit |
-| 5A — citations promotion | ✅ complete | Replit |
-| 5B — KB orphan cleanup | ✅ complete (commits, code) — re-index pending user action | Replit |
-| 5C — capital-raise-date drift | ✅ complete | Replit |
-| 6 — DB migration (service description column) | ⏸ not started | Replit (future) |
-| 7–8 | ⏸ not scoped yet | TBD |
+Live status for the audit-inventory workstream lives in `.claude/phases.md` under the "Audit Inventory Sweep" workstream.
 
-Next actions: (a) Replit executes Phase 5C handoff; (b) Claude Code drafts Phase 5B handoff. Both can run in parallel.
+Historical record: Phases 1–5C completed prior to 2026-04-21 (cross-check detector sweep landed across two end-of-day Claude Code sessions; Phases 6–8 scoped-but-deferred). See `.claude/phases.md` for current status and next actions.
