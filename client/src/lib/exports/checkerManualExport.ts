@@ -19,12 +19,13 @@
  * Both exports use jsPDF for PDF rendering and jspdf-autotable for tables.
  */
 import { APP_BRAND_NAME } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { apiRequest } from "@/lib/queryClient";
 import { PAGE_DIMS } from "./exportStyles";
 import {
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COMMISSION_RATE,
-  DEFAULT_PROPERTY_INFLATION_RATE,
+  // DEFAULT_PROPERTY_INFLATION_RATE replaced with registry factory baseline (Audit #319 R4).
   DEFAULT_COMPANY_TAX_RATE,
   MONTHS_PER_YEAR,
 } from "@shared/constants";
@@ -382,7 +383,7 @@ export async function exportFullData(user: { email?: string; role?: string; comp
     ["Projection Years", String(projYears)],
     ["Company Ops Start", global.companyOpsStartDate || "—"],
     ["Fiscal Year Start Month", String(global.fiscalYearStartMonth ?? 1)],
-    ["Global Inflation Rate", `${((global.inflationRate ?? DEFAULT_PROPERTY_INFLATION_RATE) * 100).toFixed(1)}%`],
+    ["Global Inflation Rate", `${((global.inflationRate ?? getFactoryNumber('inflationRate')) * 100).toFixed(1)}%`],
     ["Company Inflation Rate", global.companyInflationRate ? `${(global.companyInflationRate * 100).toFixed(1)}%` : "Global Default"],
     ["Fixed Cost Escalation Override", global.fixedCostEscalationRate ? `${(global.fixedCostEscalationRate * 100).toFixed(1)}%` : "Global Default"],
     ["Management Fees", "Per-property (see property details)"],

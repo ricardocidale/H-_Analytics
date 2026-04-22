@@ -17,6 +17,7 @@
 import { Label } from "@/components/ui/label";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { EditableValue } from "@/components/ui/editable-value";
 import { GaapBadge } from "@/components/ui/gaap-badge";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
@@ -26,7 +27,7 @@ import {
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
-  DEFAULT_PROPERTY_INFLATION_RATE,
+  // DEFAULT_PROPERTY_INFLATION_RATE replaced with registry factory baseline (Audit #319 R4).
 } from "@/lib/constants";
 import type { OtherAssumptionsSectionProps } from "./types";
 
@@ -147,7 +148,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 guidanceContext={gc("inflationRate", "Inflation Rate")}
               />
               <EditableValue
-                value={draft.inflationRate != null ? draft.inflationRate * 100 : DEFAULT_PROPERTY_INFLATION_RATE * 100}
+                value={draft.inflationRate != null ? draft.inflationRate * 100 : getFactoryNumber('inflationRate') * 100}
                 onChange={(val) => onChange("inflationRate", val / 100)}
                 format="percent"
                 min={0}
@@ -156,7 +157,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               />
             </div>
             <Slider 
-              value={[(draft.inflationRate ?? DEFAULT_PROPERTY_INFLATION_RATE) * 100]}
+              value={[(draft.inflationRate ?? getFactoryNumber('inflationRate')) * 100]}
               onValueChange={(vals: number[]) => onChange("inflationRate", vals[0] / 100)}
               min={0}
               max={20}

@@ -5,7 +5,8 @@ import { aiRateLimit } from "../middleware/rate-limit";
 import { storage } from "../storage";
 import { buildPropertyContext } from "../ai/buildPropertyContext.js";
 import { z } from "zod";
-import { DEFAULT_PROJECTION_YEARS, DEFAULT_PROPERTY_INFLATION_RATE, isAdminRole } from "@shared/constants";
+import { DEFAULT_PROJECTION_YEARS, isAdminRole } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { resolveDefault } from "../defaults";
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
@@ -200,7 +201,7 @@ export function register(app: Express) {
         `Company: ${ga?.companyName ?? "Management Company"}`,
         `Properties in Portfolio: ${properties.length}`,
         `Projection Years: ${ga?.projectionYears ?? (await resolveDefault<number>("mc.setup.projectionYears")) ?? DEFAULT_PROJECTION_YEARS}`,
-        `Inflation Rate: ${((ga?.inflationRate ?? (await resolveDefault<number>("mc.property_defaults.propertyInflationRate")) ?? DEFAULT_PROPERTY_INFLATION_RATE) * 100).toFixed(1)}%`,
+        `Inflation Rate: ${((ga?.inflationRate ?? (await resolveDefault<number>("mc.property_defaults.propertyInflationRate")) ?? getFactoryNumber('inflationRate', 'United States')) * 100).toFixed(1)}%`,
         `Base Management Fee: ${(baseFee * 100).toFixed(1)}%`,
         `Incentive Management Fee: ${(incentiveFee * 100).toFixed(1)}%`,
         "",

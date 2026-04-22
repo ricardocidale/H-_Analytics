@@ -18,12 +18,12 @@ import {
   DEFAULT_CAPITAL_RAISE_1_DATE,
   DEFAULT_CAPITAL_RAISE_2_DATE,
   SEED_DEBT_ASSUMPTIONS,
-  DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_BUSINESS_INSURANCE_START,
   DEFAULT_SERVICE_FEE_CATEGORIES,
   SEED_EXIT_CAP_RATE_LUXURY,
 } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import {
   SEED_INITIAL_PROPERTIES,
   SEED_MEDELLIN_DUPLEX,
@@ -73,8 +73,9 @@ export async function seedGlobalAssumptions() {
     modelStartDate: DEFAULT_MODEL_START_DATE,
     companyOpsStartDate: DEFAULT_COMPANY_OPS_START_DATE,
     fiscalYearStartMonth: 1,
-    inflationRate: DEFAULT_PROPERTY_INFLATION_RATE,
-    fixedCostEscalationRate: DEFAULT_PROPERTY_INFLATION_RATE,
+    // Audit #319 R4: registry-backed factory baseline (US = 0.03).
+    inflationRate: getFactoryNumber('inflationRate', 'United States'),
+    fixedCostEscalationRate: getFactoryNumber('inflationRate', 'United States'),
     baseManagementFee: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFee: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
     capitalRaise1Amount: 1000000,

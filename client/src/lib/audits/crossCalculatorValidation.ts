@@ -1,5 +1,6 @@
 import type { MonthlyFinancials } from '../financialEngine';
 import { pmt } from '@calc/shared/pmt';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 import {
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
@@ -11,7 +12,7 @@ import {
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
-  DEPRECIATION_YEARS,
+  // DEPRECIATION_YEARS replaced with registry factory baseline (Audit #319 R4).
   MONTHS_PER_YEAR,
 } from '../constants';
 
@@ -334,7 +335,7 @@ export function crossValidateFinancingCalculators(
     const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
     const landValue = property.purchasePrice * landPct;
     const buildingValue = property.purchasePrice * (1 - landPct) + (property.buildingImprovements ?? 0);
-    const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS;
+    const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? getFactoryNumber('depreciationYears');
     const _monthlyDep = buildingValue / effectiveDepYears / MONTHS_PER_YEAR;
 
     for (let i = 0; i < operatingMonths.length; i++) {
@@ -374,7 +375,7 @@ export function crossValidateFinancingCalculators(
   if (depMonths.length > 0) {
     const depLandPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
     const buildingBasis = property.purchasePrice * (1 - depLandPct) + (property.buildingImprovements ?? 0);
-    const effectiveDepYears2 = property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS;
+    const effectiveDepYears2 = property.depreciationYears ?? global.depreciationYears ?? getFactoryNumber('depreciationYears');
     const expectedMonthlyDep = buildingBasis / effectiveDepYears2 / MONTHS_PER_YEAR;
     let depErrors = 0;
     for (const m of depMonths) {

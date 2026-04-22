@@ -56,7 +56,10 @@ import { SaveButton } from "@/components/ui/save-button";
 import { AnalystCheckDialog } from "@/components/intelligence/AnalystCheckDialog";
 import type { AnalystVerdict, VerdictAction } from "../../../engine/analyst/contracts/verdict";
 import { PageHeader } from "@/components/ui/page-header";
-import { DEFAULT_MODEL_START_DATE, DAYS_PER_MONTH } from "@/lib/constants";
+import { DEFAULT_MODEL_START_DATE } from "@/lib/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+// Audit #319 R4: registry-backed daysPerMonth (universal — same value as legacy).
+const DAYS_PER_MONTH = getFactoryNumber('daysPerMonth');
 import { useCompanyResearchStream } from "@/components/company-research/useCompanyResearchStream";
 import { ResearchTheater } from "@/components/research/ResearchTheater";
 import type { ResearchJob } from "@/components/research/ResearchTheater";

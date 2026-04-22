@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { useProperties, useGlobalAssumptions } from "@/lib/api";
 import { generatePropertyProForma } from "@/lib/financialEngine";
-import { PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, DEFAULT_PROPERTY_INFLATION_RATE, DEFAULT_COST_RATE_INSURANCE, MONTHS_PER_YEAR } from "@/lib/constants";
+import { PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, DEFAULT_COST_RATE_INSURANCE, MONTHS_PER_YEAR } from "@/lib/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { computeIRR } from "@analytics/returns/irr.js";
 import type { SensitivityResponse } from "@shared/sensitivity-types";
 import { PageHeader } from "@/components/ui/page-header";
@@ -94,7 +95,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
           inflationRate: Math.max(0, global.inflationRate + (overrides.inflation ?? 0) / 100),
           fixedCostEscalationRate: Math.max(
             0,
-            (global.fixedCostEscalationRate ?? DEFAULT_PROPERTY_INFLATION_RATE) + (overrides.expenseGrowth ?? 0) / 100
+            (global.fixedCostEscalationRate ?? getFactoryNumber('inflationRate')) + (overrides.expenseGrowth ?? 0) / 100
           ),
         };
 

@@ -4,7 +4,8 @@
  * Computes the month-by-month and yearly occupancy schedule from start
  * to stabilization, plus the RevPAR impact at each stage.
  */
-import { DAYS_PER_MONTH, MONTHS_PER_YEAR } from "../../shared/constants.js";
+import { MONTHS_PER_YEAR } from "../../shared/constants.js";
+import { getFactoryNumber } from "../../shared/model-constants-registry.js";
 import { roundCents } from "../shared/utils.js";
 
 interface OccupancyRampInput {
@@ -45,7 +46,8 @@ export function computeOccupancyRamp(input: OccupancyRampInput): OccupancyRampOu
     room_count,
   } = input;
 
-  const days = input.days_per_month ?? DAYS_PER_MONTH;
+  // Audit #319 R4: registry-backed factory baseline.
+  const days = input.days_per_month ?? getFactoryNumber('daysPerMonth');
   const stages: OccupancyStage[] = [];
   let currentOcc = start_occupancy;
   let monthsSinceLastStep = 0;

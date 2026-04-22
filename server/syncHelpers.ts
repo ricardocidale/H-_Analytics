@@ -21,10 +21,17 @@ import {
   DEFAULT_OTHER_EXPENSE_RATE,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   SEED_DEBT_ASSUMPTIONS,
-  DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_BUSINESS_INSURANCE_START,
 } from "../shared/constants";
+import { getFactoryNumber } from "../shared/model-constants-registry";
+
+// Audit #319 R4: registry-backed factory baseline for seed-time inflation
+// (US baseline = 0.03, equivalent to the legacy DEFAULT_PROPERTY_INFLATION_RATE).
+// `companyTaxRate` is intentionally NOT migrated — the legacy 0.30 blended
+// company-level rate is conceptually distinct from the registry's `taxRate`
+// (federal corporate, US = 0.21). Reconciliation is tracked in audit follow-up.
+const SEED_INFLATION_RATE = getFactoryNumber('inflationRate', 'United States');
 
 export interface SyncResults {
   globalAssumptions: { created: number; skipped: number; filled: number };
@@ -36,7 +43,7 @@ export interface SyncResults {
 
 export const SEED_GLOBAL_ASSUMPTIONS = {
   modelStartDate: DEFAULT_MODEL_START_DATE,
-  inflationRate: DEFAULT_PROPERTY_INFLATION_RATE,
+  inflationRate: SEED_INFLATION_RATE,
   baseManagementFee: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFee: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   staffSalary: 75000,
@@ -56,7 +63,7 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   standardAcqPackage: { monthsToOps: 6, purchasePrice: 3800000, preOpeningCosts: 200000, operatingReserve: 250000, buildingImprovements: 1200000 },
   debtAssumptions: SEED_DEBT_ASSUMPTIONS,
   commissionRate: DEFAULT_COMMISSION_RATE,
-  fixedCostEscalationRate: DEFAULT_PROPERTY_INFLATION_RATE,
+  fixedCostEscalationRate: SEED_INFLATION_RATE,
   capitalRaise1Amount: 1000000,
   capitalRaise1Date: DEFAULT_CAPITAL_RAISE_1_DATE,
   capitalRaise2Amount: 1000000,

@@ -12,14 +12,13 @@ import {
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
-  DEPRECIATION_YEARS,
-  DAYS_PER_MONTH,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_OCCUPANCY_RAMP_MONTHS,
   BUSINESS_MODEL_DEFAULTS,
 } from '@/lib/constants';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 import {
   DEFAULT_AR_DAYS,
   DEFAULT_AP_DAYS,
@@ -153,8 +152,12 @@ export function resolvePropertyAssumptions(
   const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
   const buildingValue = property.purchasePrice * (1 - landPct) + (property.buildingImprovements ?? 0);
 
-  const depreciationYears = (property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS) || DEPRECIATION_YEARS;
-  const daysPerMonth = global.daysPerMonth ?? DAYS_PER_MONTH;
+  // Audit #319 R4: factory baseline now flows through the model-constants registry.
+  // PropertyInput in the engine is a thin shape without `country`; the registry
+  // call resolves to the US baseline (39 years), preserving today's semantics.
+  const depFactory = getFactoryNumber('depreciationYears');
+  const depreciationYears = (property.depreciationYears ?? global.depreciationYears ?? depFactory) || depFactory;
+  const daysPerMonth = global.daysPerMonth ?? getFactoryNumber('daysPerMonth');
 
   const costSegEnabled = property.costSegEnabled ?? false;
   let monthlyDepreciation = assertFinite(dDiv(dDiv(buildingValue, depreciationYears), MONTHS_PER_YEAR), 'monthlyDepreciation');

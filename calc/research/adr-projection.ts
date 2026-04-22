@@ -4,7 +4,8 @@
  * Projects ADR forward over N years with annual growth rate and optional
  * inflation overlay. Returns yearly ADR, RevPAR, and room revenue.
  */
-import { DAYS_PER_MONTH, MONTHS_PER_YEAR } from "../../shared/constants.js";
+import { MONTHS_PER_YEAR } from "../../shared/constants.js";
+import { getFactoryNumber } from "../../shared/model-constants-registry.js";
 import { roundCents } from "../shared/utils.js";
 import { dPow } from "../shared/decimal.js";
 
@@ -44,7 +45,8 @@ export function computeADRProjection(input: ADRProjectionInput): ADRProjectionOu
     room_count,
   } = input;
 
-  const days = input.days_per_month ?? DAYS_PER_MONTH;
+  // Audit #319 R4: registry-backed factory baseline.
+  const days = input.days_per_month ?? getFactoryNumber('daysPerMonth');
   const projections: YearProjection[] = [];
 
   for (let y = 1; y <= projection_years; y++) {

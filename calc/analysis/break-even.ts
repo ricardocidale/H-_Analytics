@@ -42,7 +42,11 @@
  * Called via the dispatch layer as the "break_even" skill. Displayed in the property
  * analysis dashboard to help investors understand operating risk and downside exposure.
  */
-import { DAYS_PER_MONTH, DEFAULT_COST_RATE_FFE } from "../../shared/constants.js";
+import { DEFAULT_COST_RATE_FFE } from "../../shared/constants.js";
+import { getFactoryNumber } from "../../shared/model-constants-registry.js";
+
+// Audit #319 R4: registry-backed daysPerMonth (universal — same value as legacy).
+const DAYS_PER_MONTH = getFactoryNumber('daysPerMonth');
 
 /** Sensitivity factor: ADR drops by 10% (multiplier 0.9) */
 const SENSITIVITY_ADR_DROP = 0.9;

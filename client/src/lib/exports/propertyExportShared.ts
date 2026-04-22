@@ -1,9 +1,11 @@
 import { type ExportRowMeta, buildBrandPalette, type ThemeColor } from "@/lib/exports/exportStyles";
-import { MONTHS_PER_YEAR, DEPRECIATION_YEARS } from "@/lib/constants";
+import { MONTHS_PER_YEAR } from "@/lib/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { calculateLoanParams, type LoanParams, type GlobalLoanParams } from "@/lib/financial/loanCalculations";
 
 export function resolveExportDepreciationYears(ctx: PropertyExportContext): number {
-  return ctx.property.depreciationYears ?? ctx.global?.depreciationYears ?? DEPRECIATION_YEARS;
+  // Audit #319 R4: registry-backed factory baseline.
+  return ctx.property.depreciationYears ?? ctx.global?.depreciationYears ?? getFactoryNumber('depreciationYears');
 }
 
 export interface PropertyExportContext {

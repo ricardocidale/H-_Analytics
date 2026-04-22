@@ -219,4 +219,28 @@ export function getFactoryValue(
   return entry.factoryValue(country, subdivision);
 }
 
+/**
+ * Typed factory accessor. All seven registered keys today resolve to numbers
+ * (`taxRate`, `depreciationYears`, `inflationRate`, `costRateTaxes`,
+ * `countryRiskPremium`, `capitalGainsRate`, `daysPerMonth`). This wrapper
+ * removes the `unknown`-cast noise from call sites and throws fast if a
+ * future non-numeric key is added without updating consumers.
+ *
+ * Audit Task #319 R4 — preferred read path. Direct imports of the legacy
+ * `DEFAULT_*` exports are now `@deprecated`.
+ */
+export function getFactoryNumber(
+  key: string,
+  country?: string | null,
+  subdivision?: string | null,
+): number {
+  const value = getFactoryValue(key, country, subdivision);
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(
+      `getFactoryNumber: registry key "${key}" returned non-numeric value (got ${typeof value})`,
+    );
+  }
+  return value;
+}
+
 export type { CountryDefaults, UsStateDefaults };

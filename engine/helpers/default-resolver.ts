@@ -15,8 +15,8 @@ import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from '@shared/constan
 import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_MAX_OCCUPANCY,
-  DEPRECIATION_YEARS,
 } from '@shared/constants';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 
 // ── Quality tier ADR brackets ──────────────────────────────────────────────
 const QUALITY_TIER_ADR: Record<string, { min: number; max: number; default: number }> = {
@@ -129,7 +129,8 @@ export function computePropertyDefaults(
 
   // ── 2. Country defaults ──────────────────────────────────────────────────
   let incomeTaxRate = 0.25; // fallback
-  let depreciationYears = DEPRECIATION_YEARS;
+  // Audit #319 R4: factory baseline pulled from the registry, locality-aware.
+  let depreciationYears = getFactoryNumber('depreciationYears', country, stateProvince);
   let propertyTaxRate = modelDefaults.costRateTaxes;
 
   const countryDef = getCountryDefaults(country);

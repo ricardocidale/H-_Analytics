@@ -8,7 +8,8 @@
  * IRS Publication 946 / IRC §168(e)(2)(A): Nonresidential real property (hotels) = 39 years straight-line.
  */
 import { roundCents } from "../shared/utils.js";
-import { DEPRECIATION_YEARS, DEFAULT_PROPERTY_INCOME_TAX_RATE, RESEARCH_TAX_RATE_30_PCT, MONTHS_PER_YEAR } from "../../shared/constants.js";
+import { DEFAULT_PROPERTY_INCOME_TAX_RATE, RESEARCH_TAX_RATE_30_PCT, MONTHS_PER_YEAR } from "../../shared/constants.js";
+import { getFactoryNumber } from "../../shared/model-constants-registry.js";
 
 interface DepreciationBasisInput {
   purchase_price: number;
@@ -39,7 +40,8 @@ export function computeDepreciationBasis(input: DepreciationBasisInput): Depreci
     building_improvements = 0,
   } = input;
 
-  const depYears = input.depreciation_years ?? DEPRECIATION_YEARS;
+  // Audit #319 R4: registry-backed factory baseline.
+  const depYears = input.depreciation_years ?? getFactoryNumber('depreciationYears');
   const landValue = roundCents(purchase_price * land_value_pct);
   const buildingValue = roundCents(purchase_price * (1 - land_value_pct));
   const depreciableBasis = roundCents(buildingValue + building_improvements);
