@@ -51,6 +51,10 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialist-property-executive-summary": { title: "Executive Summary",            subtitle: "" },
   "specialist-photos-photo-enhancer":      { title: "Photo Enhancer",               subtitle: "" },
   "specialist-portfolio-ops-watchdog":     { title: "Portfolio Watchdog",           subtitle: "" },
+  "specialist-constants-tax-research":         { title: "Tax Authority Research",          subtitle: "" },
+  "specialist-constants-macro-research":       { title: "Macro Indicators Research",       subtitle: "" },
+  "specialist-constants-depreciation-research":{ title: "Depreciation Schedule Research",  subtitle: "" },
+  "specialist-constants-reporting-research":   { title: "Reporting Conventions Research",  subtitle: "" },
 };
 
 function specialistMeta(section: keyof typeof SPECIALIST_SECTION_TO_ID): { title: string; subtitle: string } {

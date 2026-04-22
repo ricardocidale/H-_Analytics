@@ -47,6 +47,7 @@ export const SUBJECTS = [
   "property",
   "photos",
   "portfolio-ops",
+  "constants",
 ] as const;
 export type Subject = typeof SUBJECTS[number];
 export const SubjectSchema = z.enum(SUBJECTS);
@@ -56,6 +57,7 @@ export const SUBJECT_LABELS: Record<Subject, string> = {
   property: "Property",
   photos: "Photos",
   "portfolio-ops": "Portfolio Ops",
+  constants: "Constants & Authority Sources",
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -72,6 +74,10 @@ export const SPECIALIST_LETTERS = [
   "E",
   "F",
   "G",
+  "H",
+  "I",
+  "J",
+  "K",
 ] as const;
 export type SpecialistLetter = typeof SPECIALIST_LETTERS[number];
 export const SpecialistLetterSchema = z.enum(SPECIALIST_LETTERS);
@@ -127,6 +133,18 @@ export const SpecialistDefinitionSchema = z
     subject: SubjectSchema,
     capabilities: z.array(SpecialistCapabilitySchema).min(1),
     assignmentRefs: z.array(AssignmentRefSchema),
+    /**
+     * Registry keys (from `shared/model-constants-registry.ts`) that this
+     * Specialist owns. A Specialist owns a Constant iff it is the sole
+     * authority allowed to write the corresponding `model_constant_overrides`
+     * row with `source = 'analyst'`. The catalog enforces uniqueness — every
+     * registry key has at most one owning Specialist (Phase 1 doctrine).
+     *
+     * Empty/omitted for non-Constants Specialists (e.g. mgmt-co, property,
+     * photos, portfolio-ops). Required-but-empty is allowed; absence is
+     * semantically the same as `[]`.
+     */
+    constantsOwned: z.array(z.string().min(1)).optional(),
     status: z.enum(["built", "needs-page", "stub"]),
   })
   .refine(

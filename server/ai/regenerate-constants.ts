@@ -36,8 +36,23 @@ import { MODEL_CONSTANTS_REGISTRY, getFactoryValue } from "@shared/model-constan
 import { getEffectiveConstant } from "@shared/get-effective-constant";
 import type { ModelConstantOverride } from "@shared/schema";
 import type { CitedSource } from "@shared/market-intelligence";
+import { storage } from "../storage";
+import { getSpecialistForConstant } from "../../engine/analyst/registry/specialist-catalog";
+import { logger } from "../logger";
 
 const ANALYST_MODEL = normalizeModelId("claude-sonnet-4-5");
+
+/**
+ * Sentinel `entity_id` used when persisting `research_runs` rows for
+ * Constants regeneration. The `research_runs.entity_id` column is `notNull
+ * integer` and was designed for property/company entities (which always have
+ * a real PK). Constants are keyed by `(constantKey, country, subdivision)` —
+ * a composite that doesn't fit. We pin entity_id to 0 and stash the real
+ * identity in `metadata.constant` so the audit trail is intact and the
+ * existing covering indexes don't get polluted with synthetic key hashes.
+ */
+const CONSTANTS_ENTITY_ID = 0;
+const CONSTANTS_ENTITY_TYPE = "model-constant";
 
 export interface ConstantRegenerationProposal {
   key: string;
@@ -60,6 +75,26 @@ export interface ConstantRegenerationProposal {
   currentValue: unknown;
   /** True iff proposed value differs from currentValue (uses deep-equal). */
   isDifferentFromCurrent: boolean;
+  /**
+   * Persistent `research_runs.id` written when this proposal was synthesized.
+   * The Apply route round-trips this id into `model_constant_overrides
+   * .research_run_id`, so every analyst-sourced override is traceable to the
+   * exact run that produced it (model knobs, duration, sources, the
+   * Specialist that owned the constant).
+   *
+   * `null` only when persistence failed (logged) — the proposal is still
+   * returned so the UI can display it, but the resulting override row will
+   * carry a null FK.
+   */
+  researchRunId: number | null;
+  /**
+   * The Specialist (`SpecialistDefinition.id`) that owned the regeneration.
+   * Resolved via `getSpecialistForConstant(key)`. Mirrored into the persisted
+   * `research_runs.metadata.specialistId` for cross-table audit lookups.
+   * Never `null` in well-formed catalogs (the coverage test asserts every
+   * registry key has an owner); typed nullable for defensive degradation.
+   */
+  specialistId: string | null;
 }
 
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -218,8 +253,20 @@ export async function proposeConstantRegeneration(args: {
   /** All current overrides — caller passes the cached list to avoid an extra DB hit. */
   overrides: ModelConstantOverride[];
 }): Promise<ConstantRegenerationProposal> {
+  const startedAt = Date.now();
   const entry = MODEL_CONSTANTS_REGISTRY[args.key];
   if (!entry) throw new Error(`Unknown constant key: ${args.key}`);
+
+  const owningSpecialist = getSpecialistForConstant(args.key);
+  if (!owningSpecialist) {
+    // Hard fail — Constants doctrine requires an owning Specialist for every
+    // governed key. The coverage test catches drifts at build time, so this
+    // is a runtime safety net, not the primary enforcement.
+    throw new Error(
+      `No AI Intelligence Specialist owns constant '${args.key}'. ` +
+      `Add it to a Specialist's constantsOwned[] in engine/analyst/registry/specialist-catalog.ts.`,
+    );
+  }
 
   // Locality validation mirrors the route helper. We re-do it here so the
   // function is safe to call from non-route contexts (scheduler, tests).
@@ -299,6 +346,52 @@ export async function proposeConstantRegeneration(args: {
   if (!parsed.reasoning) throw new Error("Analyst response missing `reasoning` field.");
 
   const value = coerceToType(parsed.value, expectedType);
+  const referenceUrl = parsed.referenceUrl ?? entry.meta.referenceUrl ?? null;
+  const durationMs = Date.now() - startedAt;
+
+  // Persist the research run BEFORE returning so the proposal carries a real
+  // FK target the Apply route can write into model_constant_overrides
+  // .research_run_id. Failures are logged and degraded to a null FK — we
+  // don't block the proposal because the analyst result is still useful.
+  let researchRunId: number | null = null;
+  try {
+    const run = await storage.createResearchRun({
+      entityType: CONSTANTS_ENTITY_TYPE,
+      entityId: CONSTANTS_ENTITY_ID,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs,
+      modelPrimary: ANALYST_MODEL,
+      metadata: {
+        specialistId: owningSpecialist.id,
+        specialistLetter: owningSpecialist.letter,
+        constant: {
+          key: args.key,
+          country: args.country,
+          subdivision: args.subdivision,
+        },
+        proposal: {
+          value,
+          authority: parsed.authority,
+          referenceUrl,
+          reasoning: parsed.reasoning,
+          factoryValue,
+          isDifferentFromCurrent: !deepEqual(value, resolved.value),
+        },
+        sources: searchSources,
+        groundedSearchUsed: searchSources.length > 0,
+      },
+    });
+    researchRunId = run.id;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const loc = `${args.country ?? "universal"}${args.subdivision ? `/${args.subdivision}` : ""}`;
+    logger.warn(
+      `Failed to persist research_run for constant '${args.key}' (${loc}); proceeding with null FK: ${msg}`,
+      "regenerate-constants",
+    );
+  }
 
   return {
     key: args.key,
@@ -307,11 +400,13 @@ export async function proposeConstantRegeneration(args: {
     subdivision: args.subdivision,
     value,
     authority: parsed.authority,
-    referenceUrl: parsed.referenceUrl ?? entry.meta.referenceUrl ?? null,
+    referenceUrl,
     reasoning: parsed.reasoning,
     sources: searchSources,
     factoryValue,
     currentValue: resolved.value,
     isDifferentFromCurrent: !deepEqual(value, resolved.value),
+    researchRunId,
+    specialistId: owningSpecialist.id,
   };
 }

@@ -85,6 +85,10 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "specialist-property-executive-summary": { title: "Specialist E — Executive Summary",  subtitle: "Read-only assignment + health surface (evaluator pending)." },
   "specialist-photos-photo-enhancer":      { title: "Specialist F — Photo Enhancer",     subtitle: "Read-only assignment + health surface (evaluator pending)." },
   "specialist-portfolio-ops-watchdog":     { title: "Specialist G — Watchdog",           subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-constants-tax-research":         { title: "Specialist H — Tax Authority Research",          subtitle: "Owns tax-rate, capital-gains, and property-tax constants. Authority-sourced; refresh per row." },
+  "specialist-constants-macro-research":       { title: "Specialist I — Macro Indicators Research",       subtitle: "Owns inflation and country risk premium. Sourced from central banks and IMF." },
+  "specialist-constants-depreciation-research":{ title: "Specialist J — Depreciation Schedule Research",  subtitle: "Owns building depreciation useful-life by country (IRS Pub. 946, CRA, CGI, etc.)." },
+  "specialist-constants-reporting-research":   { title: "Specialist K — Reporting Conventions Research",  subtitle: "Owns universal conventions (USALI/AHLA) such as days-per-month." },
 
   icp:                   { title: "Research Dashboard",       subtitle: "Intelligence observatory" },
   logos:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },

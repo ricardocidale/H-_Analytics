@@ -91,6 +91,10 @@ export const SPECIALIST_SECTION_TO_ID = {
   "specialist-property-executive-summary": "property.executive-summary",
   "specialist-photos-photo-enhancer": "photos.photo-enhancer",
   "specialist-portfolio-ops-watchdog": "portfolio-ops.watchdog",
+  "specialist-constants-tax-research": "constants.tax-research",
+  "specialist-constants-macro-research": "constants.macro-research",
+  "specialist-constants-depreciation-research": "constants.depreciation-research",
+  "specialist-constants-reporting-research": "constants.reporting-research",
 } as const satisfies Record<string, string>;
 
 export type SpecialistSection = keyof typeof SPECIALIST_SECTION_TO_ID;

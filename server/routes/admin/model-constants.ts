@@ -56,6 +56,14 @@ const applyResearchBodySchema = z.object({
   authority: z.string().min(1, "Analyst overrides must cite an authority"),
   referenceUrl: z.string().nullable().optional(),
   reasoning: z.string().min(1, "Analyst overrides must include a reasoning string"),
+  /**
+   * `research_runs.id` returned by the upstream `proposeConstantRegeneration`
+   * call. The Constants UI round-trips it from the proposal response into the
+   * Apply request so the override row is FK-linked to the exact run that
+   * produced it. Optional because legacy admin Apply paths and tests may not
+   * have a run id; the column is nullable in the schema either way.
+   */
+  researchRunId: z.number().int().positive().nullable().optional(),
 });
 
 const localityQuerySchema = z.object({
@@ -337,10 +345,13 @@ export function registerModelConstantsRoutes(app: Express) {
         source: "analyst",
         authority: parsed.data.authority,
         referenceUrl: parsed.data.referenceUrl ?? null,
-        // Analyst regenerations do not (yet) create a research_runs row —
-        // the reasoning/authority is stored inline. Phase 5 wires this into
-        // the scheduler and will set researchRunId.
-        researchRunId: null,
+        // Phase 2: every analyst regeneration writes a `research_runs` row
+        // (see `proposeConstantRegeneration` in server/ai/regenerate-
+        // constants.ts) and the proposal carries that id back to the Apply
+        // call so the override is traceable to the run that produced it.
+        // Falls back to null only when the upstream persist failed (the
+        // proposal logs a warning) or the legacy client omitted the field.
+        researchRunId: parsed.data.researchRunId ?? null,
         // Preserve the analyst's reasoning in the override row so the audit
         // trail can show *why* the value moved when the override is later
         // listed in Admin.

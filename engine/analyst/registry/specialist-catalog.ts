@@ -173,6 +173,103 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     ],
     status: "needs-page",
   },
+  // ──────────────────────────────────────────────────────────────────────────
+  // Constants & Authority Sources (letters H–K) — own the governed Model
+  // Constants registry. Per the locked principle: Constants are authority-
+  // sourced (IRS, central banks, IMF, GAAP/USALI, statutes) and ONLY these
+  // Specialists may write `model_constant_overrides` rows with
+  // `source = 'analyst'`. Admins cannot type values; the Constants tab exposes
+  // a per-row "Refresh research" button that triggers the owning Specialist.
+  //
+  // Coverage invariant (enforced below): every key in
+  // `MODEL_CONSTANTS_REGISTRY` MUST appear in exactly one Specialist's
+  // `constantsOwned[]`. Adding a new registry key requires also assigning it
+  // to the appropriate Specialist here in the same PR.
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "constants.tax-research",
+    letter: "H",
+    realName: "Tax Authority Research",
+    displayName: "Tax Authority Research",
+    description:
+      "Tracks national and sub-national tax authorities (IRS, country tax codes) and keeps income, capital gains, and property-tax constants aligned with current statute — so the model never silently drifts behind a tax change.",
+    subject: "constants",
+    capabilities: [
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
+      { kind: "api", slug: "web-search", required: true },
+    ],
+    constantsOwned: ["taxRate", "capitalGainsRate", "costRateTaxes"],
+    status: "needs-page",
+  },
+  {
+    id: "constants.macro-research",
+    letter: "I",
+    realName: "Macro Indicators Research",
+    displayName: "Macro Indicators Research",
+    description:
+      "Maintains macro inputs sourced from central banks and the IMF — country inflation outlook and country risk premium — so discounting and escalation reflect the latest published outlook, not a stale snapshot.",
+    subject: "constants",
+    capabilities: [
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
+      { kind: "api", slug: "web-search", required: true },
+    ],
+    constantsOwned: ["countryRiskPremium", "inflationRate"],
+    status: "needs-page",
+  },
+  {
+    id: "constants.depreciation-research",
+    letter: "J",
+    realName: "Depreciation Schedule Research",
+    displayName: "Depreciation Schedule Research",
+    description:
+      "Tracks depreciation useful-life rules per country (IRS Pub. 946, CRA CCA, French CGI, etc.) and keeps the building straight-line schedule aligned with the cited statute for each locality.",
+    subject: "constants",
+    capabilities: [
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
+      { kind: "api", slug: "web-search", required: true },
+    ],
+    constantsOwned: ["depreciationYears"],
+    status: "needs-page",
+  },
+  {
+    id: "constants.reporting-research",
+    letter: "K",
+    realName: "Reporting Conventions Research",
+    displayName: "Reporting Conventions Research",
+    description:
+      "Owns universal reporting conventions (USALI 11th Ed., AHLA, industry-standard period definitions). Keeps universal constants like days-per-month aligned with how the industry actually reports — not a one-off shortcut.",
+    subject: "constants",
+    capabilities: [
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
+      { kind: "api", slug: "web-search", required: true },
+    ],
+    constantsOwned: ["daysPerMonth"],
+    status: "needs-page",
+  },
 ] as const;
 
 const validation = (() => {
@@ -196,6 +293,23 @@ const validation = (() => {
     }
     letters.add(def.letter);
   }
+  // Constants ownership uniqueness — every key claimed by `constantsOwned[]`
+  // must be claimed by exactly one Specialist across the whole catalog.
+  // Prevents two Specialists from racing to write the same model_constant
+  // override row, which would silently corrupt provenance.
+  const claimedConstants = new Map<string, string>();
+  for (const def of SPECIALIST_CATALOG) {
+    const owned = def.constantsOwned ?? [];
+    for (const key of owned) {
+      const existing = claimedConstants.get(key);
+      if (existing) {
+        throw new Error(
+          `SPECIALIST_CATALOG: constant "${key}" is claimed by both "${existing}" and "${def.id}". Each constant has exactly one owning Specialist.`,
+        );
+      }
+      claimedConstants.set(key, def.id);
+    }
+  }
   return true;
 })();
 
@@ -208,6 +322,21 @@ export function getSpecialistsBySubject(
 ): SpecialistDefinition[] {
   return SPECIALIST_CATALOG.filter((d) => d.subject === subject).sort((a, b) =>
     a.realName.localeCompare(b.realName),
+  );
+}
+
+/**
+ * Resolve the AI Intelligence Specialist that owns a given Model Constants
+ * registry key. Returns `undefined` when no Specialist claims the key — the
+ * coverage test in `tests/registry/constants-specialist-coverage.test.ts`
+ * asserts every registered key has an owner, so a `undefined` here at runtime
+ * indicates a registry/catalog drift that should fail loudly at the call site.
+ */
+export function getSpecialistForConstant(
+  constantKey: string,
+): SpecialistDefinition | undefined {
+  return SPECIALIST_CATALOG.find((d) =>
+    (d.constantsOwned ?? []).includes(constantKey),
   );
 }
 

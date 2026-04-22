@@ -21,8 +21,8 @@ describe("SPECIALIST_CATALOG (P1 doctrine lock)", () => {
     expect(SPECIALIST_CATALOG_VALID).toBe(true);
   });
 
-  it("declares exactly 7 Specialists", () => {
-    expect(SPECIALIST_CATALOG).toHaveLength(7);
+  it("declares exactly 11 Specialists (A–G + Constants H–K)", () => {
+    expect(SPECIALIST_CATALOG).toHaveLength(11);
   });
 
   it("uses unique ids", () => {
@@ -30,7 +30,7 @@ describe("SPECIALIST_CATALOG (P1 doctrine lock)", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("uses unique letters drawn from A-G", () => {
+  it("uses unique letters drawn from the registered SPECIALIST_LETTERS set", () => {
     const letters = SPECIALIST_CATALOG.map((d) => d.letter);
     expect(new Set(letters).size).toBe(letters.length);
     for (const l of letters) {
