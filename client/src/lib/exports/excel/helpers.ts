@@ -1,5 +1,7 @@
+import type { WorkBook, WorkSheet } from "xlsx";
 import { getFiscalYearForModelYear } from "@/lib/financialEngine";
 import { aggregatePropertyByYear } from "@/lib/financial/yearlyAggregator";
+import type { MonthlyFinancials } from "@/lib/financialEngine";
 import { YearlyAggregation } from "./types";
 
 function encodeCell(r: number, c: number): string {
@@ -13,7 +15,7 @@ function encodeCell(r: number, c: number): string {
 }
 
 /** Trigger a browser download of the given Excel workbook. */
-export async function downloadWorkbook(wb: any, filename: string) {
+export async function downloadWorkbook(wb: WorkBook, filename: string) {
   const XLSX = await import("xlsx");
   const { saveFile } = await import("../saveFile");
   const data = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -22,7 +24,7 @@ export async function downloadWorkbook(wb: any, filename: string) {
 }
 
 /** Set Excel column widths (in character units) so labels and numbers aren't truncated. */
-export function setColumnWidths(ws: any, widths: number[]) {
+export function setColumnWidths(ws: WorkSheet, widths: number[]) {
   ws["!cols"] = widths.map((w) => ({ wch: w }));
 }
 
@@ -34,7 +36,7 @@ export function setColumnWidths(ws: any, widths: number[]) {
  * - Equity Multiple gets a decimal multiplier format (e.g. 1.85x)
  * - Everything else gets a whole-dollar currency format ($1,234)
  */
-export function applyCurrencyFormat(ws: any, rows: (string | number)[][]): void {
+export function applyCurrencyFormat(ws: WorkSheet, rows: (string | number)[][]): void {
   const currencyFormat = '#,##0';
   const negCurrencyFormat = '#,##0;(#,##0)';
   const decimalFormat = '#,##0.00';
@@ -81,7 +83,7 @@ export function applyCurrencyFormat(ws: any, rows: (string | number)[][]): void 
  * Bold section headers (ALL-CAPS labels) and total/summary rows so they
  * visually stand out in the exported spreadsheet.
  */
-export function applyHeaderStyle(ws: any, rows: (string | number)[][]): void {
+export function applyHeaderStyle(ws: WorkSheet, rows: (string | number)[][]): void {
   for (let r = 0; r < rows.length; r++) {
     const label = String(rows[r][0] || '').trim();
     if (!label) continue;
@@ -127,7 +129,7 @@ export function applyHeaderStyle(ws: any, rows: (string | number)[][]): void {
  * human-readable fiscal-year label to each bucket (e.g. "2027").
  */
 export function aggregateByYear(
-  data: any[],
+  data: MonthlyFinancials[],
   years: number,
   modelStartDate: string,
   fiscalYearStartMonth: number
