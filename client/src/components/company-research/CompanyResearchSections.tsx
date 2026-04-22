@@ -23,7 +23,40 @@ import { SectionCard } from "../property-research/SectionCard";
 import { MetricCard } from "../property-research/MetricCard";
 import { companySectionColors } from "./types";
 
-export function CompanyResearchSections({ content }: { content: any }) {
+interface FeeSource { source: string; data: string; }
+interface FeeDetails {
+  industryRange?: string;
+  boutiqueRange?: string;
+  commonBasis?: string;
+  recommended?: string;
+  gaapReference?: string;
+  sources?: FeeSource[];
+}
+interface GaapStandard { standard: string; application: string; reference: string; }
+interface OperatingExpenseRatio { category: string; range: string; source: string; }
+interface ContractTerm { term: string; typical: string; notes: string; }
+
+interface CompanyResearchContent {
+  managementFees?: { baseFee?: FeeDetails; incentiveFee?: FeeDetails };
+  gaapStandards?: GaapStandard[];
+  industryBenchmarks?: {
+    operatingExpenseRatios?: OperatingExpenseRatio[];
+    revenuePerRoom?: { economy?: string; midscale?: string; upscale?: string; luxury?: string };
+  };
+  compensationBenchmarks?: { gm?: string; director?: string; manager?: string; source?: string };
+  contractTerms?: ContractTerm[];
+  companyIncomeTax?: {
+    recommendedRate?: string;
+    confidence?: string;
+    effectiveRange?: string;
+    calculationMethodology?: string;
+    entityNotes?: string;
+    rationale?: string;
+  };
+  sources?: string[];
+}
+
+export function CompanyResearchSections({ content }: { content: CompanyResearchContent }) {
   return (
     <>
       {content.managementFees && (
@@ -52,7 +85,7 @@ export function CompanyResearchSections({ content }: { content: any }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {content.managementFees.baseFee.sources.map((s: any, i: number) => (
+                        {content.managementFees.baseFee.sources.map((s: FeeSource, i: number) => (
                           <tr key={i} className="border-b border-border">
                             <td className="p-2 text-foreground">{s.source}</td>
                             <td className="p-2 text-foreground">{s.data}</td>
@@ -88,7 +121,7 @@ export function CompanyResearchSections({ content }: { content: any }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {content.managementFees.incentiveFee.sources.map((s: any, i: number) => (
+                        {content.managementFees.incentiveFee.sources.map((s: FeeSource, i: number) => (
                           <tr key={i} className="border-b border-border">
                             <td className="p-2 text-foreground">{s.source}</td>
                             <td className="p-2 text-foreground">{s.data}</td>
@@ -107,7 +140,7 @@ export function CompanyResearchSections({ content }: { content: any }) {
       {content.gaapStandards && content.gaapStandards.length > 0 && (
         <SectionCard icon={IconScale} title="GAAP Standards & References" color={companySectionColors.gaap}>
           <div className="space-y-3">
-            {content.gaapStandards.map((s: any, i: number) => (
+            {content.gaapStandards.map((s: GaapStandard, i: number) => (
               <div key={i} className="bg-chart-1/10 rounded-lg p-4 border border-chart-1/15">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -139,7 +172,7 @@ export function CompanyResearchSections({ content }: { content: any }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {content.industryBenchmarks.operatingExpenseRatios.map((r: any, i: number) => (
+                    {content.industryBenchmarks.operatingExpenseRatios.map((r: OperatingExpenseRatio, i: number) => (
                       <tr key={i} className="border-b border-border">
                         <td className="p-3 text-foreground">{r.category}</td>
                         <td className="p-3 text-right text-primary font-medium">{r.range}</td>
@@ -191,7 +224,7 @@ export function CompanyResearchSections({ content }: { content: any }) {
                 </tr>
               </thead>
               <tbody>
-                {content.contractTerms.map((t: any, i: number) => (
+                {content.contractTerms.map((t: ContractTerm, i: number) => (
                   <tr key={i} className="border-b border-border">
                     <td className="p-3 text-foreground font-medium">{t.term}</td>
                     <td className="p-3 text-primary">{t.typical}</td>
