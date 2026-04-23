@@ -81,7 +81,7 @@ import {
   type RangePillSpec,
 } from "@/components/company-assumptions";
 import { isAdminRole } from "@shared/constants";
-import { SpecialistRequirementsPanel } from "@/components/company/SpecialistRequirementsPanel";
+import { SpecialistRequirementsPanel, PrerequisitesFailedPanel, type PrerequisiteFailure } from "@/components/company/SpecialistRequirementsPanel";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
@@ -457,6 +457,11 @@ export default function CompanyAssumptions() {
   const [watchdogResult, setWatchdogResult] = useState<AnalystVerdict | null>(null);
   const [watchdogTab, setWatchdogTab] = useState<TabKey | null>(null);
 
+  // Prerequisite-failure feedback returned by save-tab when toggled-on
+  // prerequisites fail their deterministic evaluation. Save still lands;
+  // this state drives the PrerequisitesFailedPanel below.
+  const [prerequisiteFailures, setPrerequisiteFailures] = useState<PrerequisiteFailure[]>([]);
+
   // Tabs the user has saved at least once. Drives Analyst gating — non-Company
   // tabs require Company to be saved first so the Analyst has the anchor entity
   // context (name, tax, country) before researching dependents. Hydrated from
@@ -803,13 +808,20 @@ export default function CompanyAssumptions() {
           body: JSON.stringify({ tabKey: tab, fundingInputs }),
         });
         if (res.ok) {
-          const json = await res.json() as { verdict?: AnalystVerdict | null };
+          const json = await res.json() as {
+            verdict?: AnalystVerdict | null;
+            prerequisiteFailures?: PrerequisiteFailure[] | null;
+          };
           await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
           if (json.verdict && json.verdict.overallSeverity !== "ok") {
             setWatchdogResult(json.verdict);
             setWatchdogTab(tab);
             setWatchdogOpen(true);
           }
+          // Surface prerequisite-evaluation failures from the save-tab
+          // response. We replace (not merge) so resolved failures from a
+          // prior save vanish on the next successful save.
+          setPrerequisiteFailures(json.prerequisiteFailures ?? []);
         }
       } catch (watchdogErr: unknown) {
         console.warn("Watchdog save-tab call failed:", watchdogErr);
@@ -1099,6 +1111,11 @@ export default function CompanyAssumptions() {
             );
           })}
         </Tabs>
+
+        <PrerequisitesFailedPanel
+          failures={prerequisiteFailures}
+          onDismiss={() => setPrerequisiteFailures([])}
+        />
 
         <SpecialistRequirementsPanel />
 

@@ -11,8 +11,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { IconAlertTriangle } from "@/components/icons";
 import { setAdminSection } from "@/lib/admin-nav";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
+
+export interface PrerequisiteFailure {
+  id: string;
+  specialistId: string;
+  reason: string;
+}
 
 interface SpecialistListItem {
   id: string;
@@ -159,5 +166,107 @@ function SpecialistRow({ spec }: { spec: SpecialistListItem }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * PrerequisitesFailedPanel — surfaces prerequisite-evaluation failures
+ * returned by `POST /api/global-assumptions/save-tab` so the user can see
+ * exactly *why* a Specialist refused to run after a save. The save itself
+ * still landed (drafts are permissive); this panel is informational and
+ * provides a jump link to the owning Specialist's admin page where the
+ * toggle can be turned off or the underlying condition fixed.
+ */
+export function PrerequisitesFailedPanel({
+  failures,
+  onDismiss,
+}: {
+  failures: PrerequisiteFailure[];
+  onDismiss?: () => void;
+}) {
+  const { data: specialists } = useQuery<SpecialistListItem[]>({
+    queryKey: ["/api/admin/specialists"],
+  });
+
+  if (failures.length === 0) return null;
+
+  const lookup = new Map((specialists ?? []).map((s) => [s.id, s]));
+
+  return (
+    <Card
+      className="border-destructive/50"
+      data-testid="company-prerequisite-failures-panel"
+    >
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <IconAlertTriangle className="h-4 w-4 text-destructive" />
+              Specialist prerequisites not met
+            </CardTitle>
+            <CardDescription>
+              Your save was kept, but the Specialist below could not run because
+              a toggled-on prerequisite failed. Open the Specialist to turn the
+              prerequisite off or fix the underlying condition.
+            </CardDescription>
+          </div>
+          {onDismiss && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDismiss}
+              data-testid="button-dismiss-prerequisite-failures"
+            >
+              Dismiss
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {failures.map((f) => {
+          const spec = lookup.get(f.specialistId);
+          const prereq = spec?.prerequisites.find((p) => p.id === f.id);
+          const sectionKey = SPECIALIST_SECTION[f.specialistId];
+          const specName = spec
+            ? `${spec.letter}. ${spec.displayName}`
+            : f.specialistId;
+          const prereqLabel = prereq?.label ?? f.id;
+          return (
+            <div
+              key={`${f.specialistId}:${f.id}`}
+              className="rounded-md border p-3 space-y-1"
+              data-testid={`company-prerequisite-failure-${f.specialistId}-${f.id}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-semibold text-foreground">
+                    {specName}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Prerequisite: <span className="font-medium">{prereqLabel}</span>
+                  </div>
+                </div>
+                {sectionKey && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAdminSection(sectionKey)}
+                    data-testid={`button-open-specialist-from-prereq-failure-${f.specialistId}`}
+                  >
+                    Open Specialist →
+                  </Button>
+                )}
+              </div>
+              <div
+                className="text-sm text-foreground"
+                data-testid={`text-prerequisite-failure-reason-${f.specialistId}-${f.id}`}
+              >
+                {f.reason}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }
