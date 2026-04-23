@@ -329,20 +329,6 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           </span>
         </Link>
       )}
-      {isAdmin && !onAdminRoute && !onAiIntelligenceRoute && (
-        <Link href="/ai-intelligence" onClick={() => setMobileOpen(false)}>
-          <span
-            className={cn(
-              "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors",
-              isActiveLink("/ai-intelligence") ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-            data-testid="nav-ai-intelligence"
-          >
-            <IconBrain className="w-4 h-4 shrink-0" />
-            <span>AI Intelligence</span>
-          </span>
-        </Link>
-      )}
       {isAdmin && !onAdminRoute && (
         <Link href="/admin" onClick={() => setMobileOpen(false)}>
           <span
