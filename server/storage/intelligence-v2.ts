@@ -66,18 +66,28 @@ export class IntelligenceV2Storage {
   constructor() {
     const instances = INTELLIGENCE_V2_DOMAIN_FACTORIES.map((factory) => factory(ROOT_TX));
 
-    // Bind each domain's prototype methods onto `this` so the orchestrator
-    // exposes them as own bound properties. Re-binding via `.bind(otherThis)`
-    // by callers is a no-op (an already-bound function ignores subsequent
-    // thisArgs) — DatabaseStorage's `.bind(this.intelligenceV2)` continues
-    // to work unchanged.
+    // Bind every callable surface on each domain onto `this` so the
+    // orchestrator exposes them as own bound properties. We walk both the
+    // prototype (for plain method classes like research/proposals) and
+    // own properties (ConstantsStorage installs its sub-domain methods as
+    // own bound props in its constructor — see ./intelligence/constants.ts).
+    // Re-binding via `.bind(otherThis)` by callers is a no-op (an already-
+    // bound function ignores subsequent thisArgs) — DatabaseStorage's
+    // `.bind(this.intelligenceV2)` continues to work unchanged.
     for (const instance of instances) {
-      const proto = Object.getPrototypeOf(instance) as object;
-      for (const name of Object.getOwnPropertyNames(proto)) {
-        if (name === "constructor") continue;
-        const value = (proto as Record<string, unknown>)[name];
-        if (typeof value !== "function") continue;
-        (this as Record<string, unknown>)[name] = (value as (...a: unknown[]) => unknown).bind(instance);
+      const seen = new Set<string>();
+      const sources: Array<Record<string, unknown>> = [
+        instance as unknown as Record<string, unknown>,
+        Object.getPrototypeOf(instance) as Record<string, unknown>,
+      ];
+      for (const src of sources) {
+        for (const name of Object.getOwnPropertyNames(src)) {
+          if (name === "constructor" || seen.has(name)) continue;
+          const value = src[name];
+          if (typeof value !== "function") continue;
+          seen.add(name);
+          (this as Record<string, unknown>)[name] = (value as (...a: unknown[]) => unknown).bind(instance);
+        }
       }
     }
   }

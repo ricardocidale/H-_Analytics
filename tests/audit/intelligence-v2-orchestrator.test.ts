@@ -21,12 +21,27 @@ import {
  */
 
 function publicMethodNames(instance: object): string[] {
-  const proto = Object.getPrototypeOf(instance) as object;
-  return Object.getOwnPropertyNames(proto).filter((name) => {
-    if (name === "constructor") return false;
-    const value = (proto as Record<string, unknown>)[name];
-    return typeof value === "function";
-  });
+  // Mirror the orchestrator's binding loop: walk both the prototype (for
+  // plain method classes like ResearchRunsStorage / ProposalsStorage) and
+  // own properties (ConstantsStorage installs its sub-domain methods as
+  // own bound props in its constructor — see
+  // server/storage/intelligence/constants.ts).
+  const seen = new Set<string>();
+  const sources: Array<Record<string, unknown>> = [
+    instance as Record<string, unknown>,
+    Object.getPrototypeOf(instance) as Record<string, unknown>,
+  ];
+  const names: string[] = [];
+  for (const src of sources) {
+    for (const name of Object.getOwnPropertyNames(src)) {
+      if (name === "constructor" || seen.has(name)) continue;
+      const value = src[name];
+      if (typeof value !== "function") continue;
+      seen.add(name);
+      names.push(name);
+    }
+  }
+  return names;
 }
 
 describe("IntelligenceV2Storage orchestrator — every domain method is wired", () => {
