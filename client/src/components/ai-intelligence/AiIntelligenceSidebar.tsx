@@ -27,7 +27,7 @@ import {
   IconSettingsGear,
   IconGauge,
   IconTimer,
-  IconDashboard,
+  IconShield,
 } from "@/components/icons";
 import { Link } from "wouter";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
@@ -168,10 +168,10 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
           <SidebarGroup className="p-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Home">
-                  <Link href="/" data-testid="ai-intelligence-nav-home">
-                    <IconDashboard className="size-4 shrink-0" />
-                    <span className="truncate">Home</span>
+                <SidebarMenuButton asChild tooltip="Admin">
+                  <Link href="/admin" data-testid="ai-intelligence-nav-admin">
+                    <IconShield className="size-4 shrink-0" />
+                    <span className="truncate">Admin</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
