@@ -1,5 +1,8 @@
 name: Vector Benchmark
 
+permissions:
+  contents: read
+
 # Scheduled regression check for pgvector / HNSW search latency.
 # Runs against an ephemeral pgvector postgres service — never production.
 #

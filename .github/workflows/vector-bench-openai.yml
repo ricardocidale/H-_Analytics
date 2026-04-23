@@ -1,5 +1,8 @@
 name: Vector Bench (OpenAI embeddings)
 
+permissions:
+  contents: read
+
 # Runs the pgvector / HNSW latency benchmark with *real* text-embedding-3-small
 # vectors. The sister workflow `vector-bench.yml` runs the same benchmark with
 # random unit vectors — useful for spotting index-config regressions but not
