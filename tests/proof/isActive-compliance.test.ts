@@ -116,7 +116,11 @@ describe("isActive Compliance", () => {
     });
 
     it("scenario load restores isActive with fallback", () => {
-      const content = readFile("server/storage/financial.ts");
+      // After the financial.ts orchestrator split (Task #479), the load logic
+      // moved into ./financial/scenarios-load.ts. Both files are checked so
+      // this test continues to enforce the invariant regardless of which
+      // submodule owns the helper.
+      const content = readFile("server/storage/financial/scenarios-load.ts");
       // Should restore isActive with a ?? true fallback
       expect(content).toMatch(/isActive.*\?\?\s*true/);
     });

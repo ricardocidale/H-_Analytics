@@ -18,12 +18,12 @@ describe("Non-Destructive Load — USE_STABLE_SCENARIO_LOAD feature flag", () =>
   });
 
   it("financial.ts imports USE_STABLE_SCENARIO_LOAD from shared/constants", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     expect(src).toContain('import { USE_STABLE_SCENARIO_LOAD } from "@shared/constants"');
   });
 
   it("loadScenario branches on USE_STABLE_SCENARIO_LOAD", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     const loadStart = src.indexOf("async loadScenario(");
     const loadEnd = src.indexOf("/** Fetch all fee categories");
     const loadBody = src.slice(loadStart, loadEnd);
@@ -39,7 +39,7 @@ describe("Non-Destructive Load — USE_STABLE_SCENARIO_LOAD feature flag", () =>
 });
 
 describe("Non-Destructive Load — stableLoadProperties behavior", () => {
-  const src = readFile("server/storage/financial.ts");
+  const src = readFile("server/storage/financial/scenarios-load.ts");
   const stableStart = src.indexOf("async function stableLoadProperties(");
   const destructiveStart = src.indexOf("async function destructiveLoadProperties(");
   const stableBody = src.slice(stableStart, destructiveStart);
@@ -96,7 +96,7 @@ describe("Non-Destructive Load — stableLoadProperties behavior", () => {
 });
 
 describe("Non-Destructive Load — destructiveLoadProperties fallback", () => {
-  const src = readFile("server/storage/financial.ts");
+  const src = readFile("server/storage/financial/scenarios-load.ts");
   const destructiveStart = src.indexOf("async function destructiveLoadProperties(");
   const classStart = src.indexOf("export class FinancialStorage");
   const destructiveBody = src.slice(destructiveStart, classStart);
@@ -124,7 +124,7 @@ describe("Non-Destructive Load — destructiveLoadProperties fallback", () => {
 });
 
 describe("Non-Destructive Load — photo decoupling across both paths", () => {
-  const src = readFile("server/storage/financial.ts");
+  const src = readFile("server/storage/financial/scenarios-load.ts");
   const stableStart = src.indexOf("async function stableLoadProperties(");
   const loadEnd = src.indexOf("/** Fetch all fee categories");
   const fullLoadBody = src.slice(stableStart, loadEnd);
@@ -146,7 +146,7 @@ describe("Non-Destructive Load — photo decoupling across both paths", () => {
 });
 
 describe("Non-Destructive Load — fee category sync (stableKey-based upsert)", () => {
-  const src = readFile("server/storage/financial.ts");
+  const src = readFile("server/storage/financial/scenarios-load.ts");
   const syncStart = src.indexOf("async function syncFeeCategories(");
   const classStart = src.indexOf("export class FinancialStorage");
   const syncBody = src.slice(syncStart, classStart);
@@ -198,7 +198,7 @@ describe("Non-Destructive Load — fee category sync (stableKey-based upsert)", 
 
   it("loadScenario delegates to syncFeeCategories", () => {
     const loadBody = src.slice(0, syncStart);
-    const fullSrc = readFile("server/storage/financial.ts");
+    const fullSrc = readFile("server/storage/financial/scenarios-load.ts");
     const loadStart = fullSrc.indexOf("async loadScenario(");
     const loadEnd = fullSrc.indexOf("/** Fetch all fee categories");
     const loadSection = fullSrc.slice(loadStart, loadEnd);
@@ -371,7 +371,7 @@ describe("Non-Destructive Load — behavioral: feature flag runtime", () => {
 
 describe("Non-Destructive Load — behavioral: DbOrTx and LiveProperty types", () => {
   it("stableLoadProperties function signature uses DbOrTx type (not any)", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     expect(src).toContain("type DbOrTx = Pick<typeof db,");
     const fnSig = src.match(/async function stableLoadProperties\(tx: (\w+),/);
     expect(fnSig).not.toBeNull();
@@ -379,14 +379,14 @@ describe("Non-Destructive Load — behavioral: DbOrTx and LiveProperty types", (
   });
 
   it("destructiveLoadProperties function signature uses DbOrTx type (not any)", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     const fnSig = src.match(/async function destructiveLoadProperties\(tx: (\w+),/);
     expect(fnSig).not.toBeNull();
     expect(fnSig![1]).toBe("DbOrTx");
   });
 
   it("LiveProperty interface has id, stableKey, and name fields", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     expect(src).toContain("interface LiveProperty");
     expect(src).toContain("id: number;");
     expect(src).toContain("stableKey: string | null;");
@@ -394,7 +394,7 @@ describe("Non-Destructive Load — behavioral: DbOrTx and LiveProperty types", (
   });
 
   it("no broad 'any' type in standalone function signatures", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     const stableStart = src.indexOf("async function stableLoadProperties(");
     const destructiveEnd = src.indexOf("export class FinancialStorage");
     const fnBlock = src.slice(stableStart, destructiveEnd);
@@ -410,7 +410,7 @@ describe("Non-Destructive Load — behavioral: photo FK cascade safety", () => {
   });
 
   it("stableLoadProperties soft-archives orphans (isActive=false) instead of deleting", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     const stableStart = src.indexOf("async function stableLoadProperties(");
     const stableEnd = src.indexOf("async function destructiveLoadProperties(");
     const stableBody = src.slice(stableStart, stableEnd);
@@ -419,7 +419,7 @@ describe("Non-Destructive Load — behavioral: photo FK cascade safety", () => {
   });
 
   it("stableLoadProperties sets isActive on matched and inserted properties with true fallback", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     const stableStart = src.indexOf("async function stableLoadProperties(");
     const stableEnd = src.indexOf("async function destructiveLoadProperties(");
     const stableBody = src.slice(stableStart, stableEnd);
@@ -429,7 +429,7 @@ describe("Non-Destructive Load — behavioral: photo FK cascade safety", () => {
   });
 
   it("destructiveLoadProperties DOES delete all properties (expected behavior for fallback)", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-load.ts");
     const destructiveStart = src.indexOf("async function destructiveLoadProperties(");
     const syncStart = src.indexOf("async function syncFeeCategories(");
     const destructiveBody = src.slice(destructiveStart, syncStart);
@@ -476,7 +476,7 @@ describe("Non-Destructive Load — route integration", () => {
 });
 
 describe("Non-Destructive Load — ResolvedProperty carries stableKey", () => {
-  const src = readFile("server/storage/financial.ts");
+  const src = readFile("server/storage/financial/scenarios-load.ts");
 
   it("ResolvedProperty interface includes stableKey: string | null", () => {
     expect(src).toContain("interface ResolvedProperty");
@@ -531,7 +531,7 @@ describe("Non-Destructive Load — ResolvedProperty carries stableKey", () => {
 });
 
 describe("Non-Destructive Load — stableKey-based fee mapping correctness", () => {
-  const src = readFile("server/storage/financial.ts");
+  const src = readFile("server/storage/financial/scenarios-load.ts");
   const syncStart = src.indexOf("async function syncFeeCategories(");
   const classStart = src.indexOf("export class FinancialStorage");
   const syncBody = src.slice(syncStart, classStart);

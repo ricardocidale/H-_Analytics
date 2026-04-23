@@ -87,7 +87,9 @@ describe("Scenario Lifecycle — Lock enforcement", () => {
 });
 
 describe("Scenario Lifecycle — Soft delete", () => {
-  const src = readFile("server/storage/financial.ts");
+  // Task #479 split server/storage/financial.ts into focused submodules; the
+  // soft-delete + restore + purge methods now live in scenarios-crud.ts.
+  const src = readFile("server/storage/financial/scenarios-crud.ts");
 
   it("softDeleteScenario sets deletedAt, deletedBy, and purgeAfter", () => {
     const methodStart = src.indexOf("async softDeleteScenario(");
@@ -376,7 +378,7 @@ describe("Schema & Data Model — partial unique index enforces soft-delete reus
   });
 
   it("softDeleteScenario nullifies name-guard by setting deletedAt", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-crud.ts");
     const methodStart = src.indexOf("async softDeleteScenario(");
     const methodEnd = src.indexOf("async hardDeleteScenario(");
     const body = src.slice(methodStart, methodEnd);
@@ -385,7 +387,7 @@ describe("Schema & Data Model — partial unique index enforces soft-delete reus
   });
 
   it("restoreScenario clears deletedAt (re-enables name uniqueness)", () => {
-    const src = readFile("server/storage/financial.ts");
+    const src = readFile("server/storage/financial/scenarios-crud.ts");
     expect(src).toContain("deletedAt: null, deletedBy: null, purgeAfter: null");
   });
 });
