@@ -29,13 +29,26 @@
  * declaration merging on `IntelligenceV2Storage`, callers see one flat
  * surface that matches the prior class — no signature changes downstream.
  */
-import { ROOT_TX } from "./intelligence/tx";
+import { ROOT_TX, type IntelligenceTx } from "./intelligence/tx";
 import { ConstantsStorage } from "./intelligence/constants";
 import { ResearchRunsStorage } from "./intelligence/research-runs";
 import { ProposalsStorage } from "./intelligence/proposals";
 
 export { IntelligenceRebeccaStorage } from "./intelligence-rebecca";
 export { IntelligenceTx, ROOT_TX } from "./intelligence/tx";
+
+/**
+ * Single source of truth for which domain modules the orchestrator wires up.
+ * Both the constructor below and the orchestrator audit test
+ * (`tests/audit/intelligence-v2-orchestrator.test.ts`) iterate this list, so
+ * adding a new domain here automatically extends the runtime composition AND
+ * the gate-time audit — there is no second place to update.
+ */
+export const INTELLIGENCE_V2_DOMAIN_FACTORIES = [
+  (tx: IntelligenceTx) => new ConstantsStorage(tx),
+  (tx: IntelligenceTx) => new ResearchRunsStorage(tx),
+  (tx: IntelligenceTx) => new ProposalsStorage(tx),
+] as const;
 
 // Declaration merging — the interface inherits every public method from
 // the three domain classes so consumers (IStorage, DatabaseStorage, etc.)
@@ -51,16 +64,14 @@ export interface IntelligenceV2Storage
 
 export class IntelligenceV2Storage {
   constructor() {
-    const constants = new ConstantsStorage(ROOT_TX);
-    const research = new ResearchRunsStorage(ROOT_TX);
-    const proposals = new ProposalsStorage(ROOT_TX);
+    const instances = INTELLIGENCE_V2_DOMAIN_FACTORIES.map((factory) => factory(ROOT_TX));
 
     // Bind each domain's prototype methods onto `this` so the orchestrator
     // exposes them as own bound properties. Re-binding via `.bind(otherThis)`
     // by callers is a no-op (an already-bound function ignores subsequent
     // thisArgs) — DatabaseStorage's `.bind(this.intelligenceV2)` continues
     // to work unchanged.
-    for (const instance of [constants, research, proposals] as const) {
+    for (const instance of instances) {
       const proto = Object.getPrototypeOf(instance) as object;
       for (const name of Object.getOwnPropertyNames(proto)) {
         if (name === "constructor") continue;
