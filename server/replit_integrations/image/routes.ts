@@ -1,28 +1,25 @@
 import type { Express, Request, Response } from "express";
 import { openai, generateImageBuffer, getGeminiClient } from "./client";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../../auth";
-import { getStorageProvider } from "../../providers/storage";
-import { replicateService, getAvailableStylesFromDb, isStyleEnabled, getAdminRateLimit, getDefaultImageSize, type ReplicateStyleKey } from "../../integrations/replicate";
+import { getAvailableStylesFromDb, getAdminRateLimit } from "../../integrations/replicate";
 import { z } from "zod";
 import { logApiCost, estimateCost, unitCost } from "../../middleware/cost-logger";
 import { storage } from "../../storage";
 import { resolveLlm, getVendorService } from "../../ai/resolve-llm";
 import type { ResearchConfig } from "@shared/schema";
 import { logger } from "../../logger";
+import {
+  PHOTO_ENHANCER_STYLES,
+  PhotoEnhancerStyleDisabledError,
+  PhotoEnhancerInvalidSourceUrlError,
+  runPhotoEnhancerPipeline,
+} from "../../services/photo-enhancer-pipeline";
 
 const generatePropertyImageSchema = z.object({
   prompt: z.string().optional().default(""),
-  style: z.enum([
-    "standard",
-    "architectural-exterior",
-    "interior-design",
-    "renovation-concept",
-    "photo-upscale",
-    "virtual-staging",
-    "background-remove",
-    "photo-to-render",
-  ]).optional().default("standard"),
+  style: z.enum(PHOTO_ENHANCER_STYLES).optional().default("standard"),
   beforeImageUrl: z.string().min(1).optional(),
+  propertyId: z.number().int().positive().optional(),
 });
 
 export function registerImageRoutes(app: Express): void {
@@ -69,10 +66,18 @@ export function registerImageRoutes(app: Express): void {
     }
   });
 
+  // Legacy property-image endpoint. All real work is delegated to the
+  // shared Photo Enhancer pipeline so this route and the specialist
+  // console (/api/specialists/photo-enhancer/run) share one rate-limit
+  // bucket, one SSRF guard, one OpenAI fallback, and one research_runs
+  // call-log stream. Kept on the URL map so existing clients (admin
+  // branding picker, legacy album buttons) keep working while callers
+  // migrate to the specialist URL.
   app.post("/api/generate-property-image", requireAuth, async (req: Request, res: Response) => {
+    const userId = getAuthUser(req).id;
     try {
       const rateLimit = await getAdminRateLimit();
-      if (isApiRateLimited(getAuthUser(req).id, "generate-image", rateLimit)) {
+      if (isApiRateLimited(userId, "generate-image", rateLimit)) {
         return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
       }
 
@@ -80,65 +85,39 @@ export function registerImageRoutes(app: Express): void {
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues[0]?.message || "Invalid request" });
       }
-      const { prompt, style, beforeImageUrl } = parsed.data;
+      const { prompt, style, beforeImageUrl, propertyId } = parsed.data;
 
-      if (style && style !== "standard") {
-        const enabled = await isStyleEnabled(style);
-        if (!enabled) {
-          return res.status(400).json({ error: `Style "${style}" is currently disabled by admin` });
-        }
-      }
+      const result = await runPhotoEnhancerPipeline({
+        userId,
+        prompt,
+        style,
+        beforeImageUrl,
+        propertyId,
+        originatedFrom: "legacy",
+        route: "/api/generate-property-image",
+      });
 
-      const isReplicateStyle = style && style !== "standard";
-      let imageBuffer: Buffer;
-      let usedFallback = false;
-
-      const adminSize = await getDefaultImageSize() as "1024x1024" | "1024x1536" | "1536x1024" | "auto";
-
-      const startTime = Date.now();
-      if (isReplicateStyle) {
-        try {
-          imageBuffer = await replicateService.generateImage(
-            style as ReplicateStyleKey,
-            prompt,
-            beforeImageUrl
-          );
-          try { logApiCost({ timestamp: new Date().toISOString(), service: "replicate", model: style, operation: "image-gen", estimatedCostUsd: unitCost("replicate-image"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
-        } catch (replicateError: unknown) {
-          logger.warn(
-            `Replicate generation failed, falling back to standard: ${replicateError instanceof Error ? replicateError.message : replicateError}`,
-            "image-gen"
-          );
-          imageBuffer = await generateImageBuffer(prompt, adminSize);
-          usedFallback = true;
-          try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
-        }
-      } else {
-        imageBuffer = await generateImageBuffer(prompt, adminSize);
-        try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-property-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
-      }
-
-      const storageProvider = getStorageProvider();
-      const objectPath = await storageProvider.uploadBuffer(
-        `generated/${Date.now()}`,
-        imageBuffer,
-        "image/png",
-      );
-
-      // Include base64 so callers can persist the image binary in Neon PostgreSQL
-      // via the imageData field on property_photos (storage-independent persistence).
-      const imageDataBase64 = imageBuffer.toString("base64");
-
+      // Legacy response shape — omit specialistRunId to keep the contract
+      // stable for old clients.
       res.json({
-        objectPath,
-        imageData: imageDataBase64,
-        isAiGenerated: true,
-        style: usedFallback ? "standard" : (style || "standard"),
-        usedFallback,
-        fallbackNotice: usedFallback ? "Using standard generation — specialized rendering unavailable" : undefined,
+        objectPath: result.objectPath,
+        imageData: result.imageData,
+        isAiGenerated: result.isAiGenerated,
+        style: result.style,
+        usedFallback: result.usedFallback,
+        fallbackNotice: result.fallbackNotice,
       });
     } catch (error: unknown) {
-      logger.error(`Error generating property image: ${error instanceof Error ? error.message : error}`, "image-gen");
+      if (error instanceof PhotoEnhancerStyleDisabledError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error instanceof PhotoEnhancerInvalidSourceUrlError) {
+        return res.status(400).json({ error: error.message });
+      }
+      logger.error(
+        `Error generating property image: ${error instanceof Error ? error.message : error}`,
+        "image-gen",
+      );
       const message = error instanceof Error ? error.message : "Failed to generate image";
       res.status(500).json({ error: message });
     }

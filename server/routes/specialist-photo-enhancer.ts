@@ -1,44 +1,33 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { requireAdmin, isApiRateLimited, getAuthUser } from "../auth";
-import { getStorageProvider } from "../providers/storage";
-import {
-  replicateService,
-  isStyleEnabled,
-  getAdminRateLimit,
-  getDefaultImageSize,
-  type ReplicateStyleKey,
-} from "../integrations/replicate";
-import { generateImageBuffer } from "../replit_integrations/image/client";
-import { logApiCost, unitCost } from "../middleware/cost-logger";
+import { getAdminRateLimit } from "../integrations/replicate";
 import { storage } from "../storage";
 import { loggerFor } from "../logger";
 import { getSpecialistById } from "../../engine/analyst/registry/specialist-catalog";
+import {
+  PHOTO_ENHANCER_SPECIALIST_ID,
+  PHOTO_ENHANCER_STYLES,
+  PhotoEnhancerStyleDisabledError,
+  PhotoEnhancerInvalidSourceUrlError,
+  runPhotoEnhancerPipeline,
+} from "../services/photo-enhancer-pipeline";
 
 // Fernanda's render pipeline. Single funnel for every Replicate-style
 // render — both the per-property album button and the specialist
-// console POST here so prompt config, rate limits, and the call log
-// are shared. Catalog entry: photos.photo-enhancer.
-const SPECIALIST_ID = "photos.photo-enhancer";
+// console POST here delegate to `runPhotoEnhancerPipeline` so prompt
+// config, rate limits, SSRF guard, research_runs writes, and the call
+// log stay shared. Catalog entry: photos.photo-enhancer.
 
 // Log key derived from the catalog so the persona can be renamed in
 // one place without desyncing the prefix.
 const fernandaLog = loggerFor(
-  getSpecialistById(SPECIALIST_ID)?.humanName ?? "specialist",
+  getSpecialistById(PHOTO_ENHANCER_SPECIALIST_ID)?.humanName ?? "specialist",
 );
 
 const runSchema = z.object({
   prompt: z.string().optional().default(""),
-  style: z.enum([
-    "standard",
-    "architectural-exterior",
-    "interior-design",
-    "renovation-concept",
-    "photo-upscale",
-    "virtual-staging",
-    "background-remove",
-    "photo-to-render",
-  ]).optional().default("standard"),
+  style: z.enum(PHOTO_ENHANCER_STYLES).optional().default("standard"),
   beforeImageUrl: z.string().min(1).optional(),
   propertyId: z.number().int().positive().optional(),
   originatedFrom: z.enum(["album", "specialist-page"]).optional().default("specialist-page"),
@@ -49,8 +38,9 @@ export function register(app: Express): void {
     const userId = getAuthUser(req).id;
     try {
       const rateLimit = await getAdminRateLimit();
-      // Shared key with /api/generate-image so users can't bypass the cap by
-      // switching between the album and the specialist page.
+      // Shared key with /api/generate-image and /api/generate-property-image
+      // so users can't bypass the cap by switching between the album, the
+      // legacy endpoint, and the specialist console.
       if (isApiRateLimited(userId, "generate-image", rateLimit)) {
         return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
       }
@@ -61,128 +51,23 @@ export function register(app: Express): void {
       }
       const { prompt, style, beforeImageUrl, propertyId, originatedFrom } = parsed.data;
 
-      if (style && style !== "standard") {
-        const enabled = await isStyleEnabled(style);
-        if (!enabled) {
-          return res.status(400).json({ error: `Style "${style}" is currently disabled by admin` });
-        }
-      }
-
-      const isReplicateStyle = style && style !== "standard";
-      const adminSize = (await getDefaultImageSize()) as "1024x1024" | "1024x1536" | "1536x1024" | "auto";
-
-      const startedAt = Date.now();
-      const runRecord = await storage.createResearchRun({
-        entityType: propertyId ? "property" : "specialist-run",
-        entityId: propertyId ?? 0,
-        tier: 1,
-        status: "running",
-        modelPrimary: isReplicateStyle ? `replicate:${style}` : "openai:gpt-image-1",
-        metadata: {
-          specialistId: SPECIALIST_ID,
-          style,
-          propertyId: propertyId ?? null,
-          originatedFrom,
-          hasSourcePhoto: !!beforeImageUrl,
-        },
+      const result = await runPhotoEnhancerPipeline({
+        userId,
+        prompt,
+        style,
+        beforeImageUrl,
+        propertyId,
+        originatedFrom,
+        route: "/api/specialists/photo-enhancer/run",
       });
-
-      let imageBuffer: Buffer;
-      let usedFallback = false;
-      try {
-        if (isReplicateStyle) {
-          try {
-            imageBuffer = await replicateService.generateImage(
-              style as ReplicateStyleKey,
-              prompt,
-              beforeImageUrl,
-            );
-            try { logApiCost({ timestamp: new Date().toISOString(), service: "replicate", model: style, operation: "image-gen", estimatedCostUsd: unitCost("replicate-image"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photo-enhancer/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
-          } catch (replicateError: unknown) {
-            fernandaLog.warn(
-              `Replicate generation failed, falling back: ${replicateError instanceof Error ? replicateError.message : replicateError}`,
-            );
-            imageBuffer = await generateImageBuffer(prompt, adminSize);
-            usedFallback = true;
-            try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photo-enhancer/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
-          }
-        } else {
-          imageBuffer = await generateImageBuffer(prompt, adminSize);
-          try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photo-enhancer/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
-        }
-      } catch (genError: unknown) {
-        const message = genError instanceof Error ? genError.message : "Image generation failed";
-        await storage.updateResearchRun(runRecord.id, {
-          status: "failed",
-          completedAt: new Date(),
-          durationMs: Date.now() - startedAt,
-          error: message.slice(0, 1000),
-        });
-        throw genError;
-      }
-
-      let objectPath: string;
-      const finalStyle = usedFallback ? "standard" : (style || "standard");
-      try {
-        const storageProvider = getStorageProvider();
-        objectPath = await storageProvider.uploadBuffer(
-          `generated/${Date.now()}`,
-          imageBuffer,
-          "image/png",
-        );
-
-        await storage.updateResearchRun(runRecord.id, {
-          status: "completed",
-          completedAt: new Date(),
-          durationMs: Date.now() - startedAt,
-          metadata: {
-            specialistId: SPECIALIST_ID,
-            style,
-            finalStyle,
-            propertyId: propertyId ?? null,
-            originatedFrom,
-            hasSourcePhoto: !!beforeImageUrl,
-            usedFallback,
-            objectPath,
-          },
-        });
-      } catch (postError: unknown) {
-        const message = postError instanceof Error ? postError.message : "Post-generation failure";
-        await storage.updateResearchRun(runRecord.id, {
-          status: "failed",
-          completedAt: new Date(),
-          durationMs: Date.now() - startedAt,
-          error: message.slice(0, 1000),
-        }).catch(() => undefined);
-        throw postError;
-      }
-
-      // Phase 4 (Task #454) — C–G parity: stamp observed-missing for
-      // the photo-enhancer specialist (F) at each successful run. Its
-      // catalog entry has no candidate fields, so the recorded list is
-      // always empty; the purpose of the write is to refresh
-      // `last_observed_missing` so the Catalog Calibration dashboard
-      // can tell "F has run recently" apart from "F has never run on
-      // this install." Best-effort — a telemetry failure never fails
-      // the render response.
-      try {
-        await storage.recordObservedMissingFields(SPECIALIST_ID, []);
-      } catch (telErr: unknown) {
-        fernandaLog.warn(
-          `Photo-enhancer observed-missing stamp failed: ${telErr instanceof Error ? telErr.message : telErr}`,
-        );
-      }
-
-      res.json({
-        objectPath,
-        imageData: imageBuffer.toString("base64"),
-        isAiGenerated: true,
-        style: finalStyle,
-        usedFallback,
-        fallbackNotice: usedFallback ? "Using standard generation — specialized rendering unavailable" : undefined,
-        specialistRunId: runRecord.id,
-      });
+      res.json(result);
     } catch (error: unknown) {
+      if (error instanceof PhotoEnhancerStyleDisabledError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error instanceof PhotoEnhancerInvalidSourceUrlError) {
+        return res.status(400).json({ error: error.message });
+      }
       fernandaLog.error(
         `Error running photos-and-renders specialist: ${error instanceof Error ? error.message : error}`,
       );
@@ -195,9 +80,9 @@ export function register(app: Express): void {
     try {
       const limitRaw = Number(req.query.limit);
       const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 200) : 50;
-      const runs = await storage.getResearchRunsForSpecialist(SPECIALIST_ID, limit);
+      const runs = await storage.getResearchRunsForSpecialist(PHOTO_ENHANCER_SPECIALIST_ID, limit);
       res.json({
-        specialistId: SPECIALIST_ID,
+        specialistId: PHOTO_ENHANCER_SPECIALIST_ID,
         runs: runs.map((r) => ({
           id: r.id,
           startedAt: r.startedAt,

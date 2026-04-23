@@ -31,6 +31,7 @@ import { getStorageProvider } from "../providers/storage";
 import { logApiCost, unitCost } from "../middleware/cost-logger";
 import { storage } from "../storage";
 import { logger } from "../logger";
+import { isBlockedHostResolved } from "../routes/ssrf-guard";
 
 export const PHOTO_ENHANCER_SPECIALIST_ID = "photos.photo-enhancer";
 
@@ -73,6 +74,51 @@ export class PhotoEnhancerStyleDisabledError extends Error {
   }
 }
 
+export class PhotoEnhancerInvalidSourceUrlError extends Error {
+  constructor(message = "Invalid source image URL") {
+    super(message);
+    this.name = "PhotoEnhancerInvalidSourceUrlError";
+  }
+}
+
+/**
+ * SSRF guard for `beforeImageUrl`. Replicate fetches this URL from their
+ * infrastructure — blocking private/loopback/metadata hosts here prevents
+ * admins from leaking internal URLs (object-storage presigned links,
+ * file:// paths, etc.) into third-party logs, and closes the well-known
+ * "specify 169.254.169.254 as source image" exfil vector.
+ *
+ * Rules:
+ *   - Must parse as absolute URL.
+ *   - Scheme must be https (or http for explicit Replit object-storage
+ *     CDN reuse — kept to match existing album paths that hand back
+ *     `/objects/...` style references via the hosting redirect).
+ *   - Hostname must not resolve to a blocked IP (RFC1918, loopback,
+ *     link-local, .internal, localhost, metadata endpoints).
+ */
+export async function assertSafeBeforeImageUrl(url: string): Promise<void> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new PhotoEnhancerInvalidSourceUrlError("beforeImageUrl is not a valid absolute URL");
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new PhotoEnhancerInvalidSourceUrlError(
+      `beforeImageUrl scheme "${parsed.protocol}" is not allowed`,
+    );
+  }
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
+  if (!hostname) {
+    throw new PhotoEnhancerInvalidSourceUrlError("beforeImageUrl has no hostname");
+  }
+  if (await isBlockedHostResolved(hostname)) {
+    throw new PhotoEnhancerInvalidSourceUrlError(
+      `beforeImageUrl points at a blocked host (${hostname})`,
+    );
+  }
+}
+
 /**
  * Run one render attempt. Creates a research_runs row, performs generation
  * (with OpenAI fallback for Replicate styles), uploads the resulting image
@@ -84,6 +130,10 @@ export async function runPhotoEnhancerPipeline(
   input: PhotoEnhancerInput,
 ): Promise<PhotoEnhancerOutput> {
   const { prompt, style, beforeImageUrl, propertyId, originatedFrom, userId, route } = input;
+
+  if (beforeImageUrl) {
+    await assertSafeBeforeImageUrl(beforeImageUrl);
+  }
 
   if (style && style !== "standard") {
     const enabled = await isStyleEnabled(style);
