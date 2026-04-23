@@ -245,19 +245,6 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
-      id: "resources",
-      label: "Resources",
-      icon: IconLayers,
-      description: "Canonical control plane: APIs, Sources, Tables, Benchmarks & Models",
-      sections: [
-        { value: "resources-apis",       label: "APIs",       icon: IconGlobe },
-        { value: "resources-sources",    label: "Sources",    icon: IconDatabase },
-        { value: "resources-tables",     label: "Tables",     icon: IconResearch },
-        { value: "resources-benchmarks", label: "Benchmarks", icon: IconResearch },
-        { value: "resources-models",     label: "Models",     icon: IconBrain },
-      ],
-    },
-    {
       id: "defaults",
       label: "Steady State",
       icon: IconSliders,

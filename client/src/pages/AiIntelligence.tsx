@@ -17,11 +17,9 @@ import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog"
 
 const AIAgentsTab = lazy(() => import("@/components/admin/AIAgentsTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
-const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
 const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligence/ScheduledResearchPanel"));
-const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
-const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/AnalystTables"));
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
+const ResourcesTab = lazy(() => import("@/components/admin/resources/ResourcesTab"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
 
 const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
@@ -38,12 +36,14 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "ai-agents":           { title: "Rebecca Configuration", subtitle: "System prompt, personality, and configuration for your AI assistant" },
   "knowledge-base":      { title: "Knowledge Base",        subtitle: "Documents, training data, and research sources for Rebecca" },
   "conversations":       { title: "Conversations",         subtitle: "Chat history, feedback, and conversation analytics" },
-  "sources-apis":        { title: "Sources & APIs",        subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
   "engine-health":       { title: "System Health",         subtitle: "Coverage, freshness, costs, and system health" },
   "scheduled-research":  { title: "Scheduled Research",    subtitle: "Automated research workflows that keep intelligence fresh" },
-  "benchmarks":          { title: "Hospitality Benchmarks", subtitle: "Industry benchmark values powering AI research ranges" },
-  "analyst-tables":      { title: "Analyst Tables",        subtitle: "Admin-only LLM refresh of benchmark tables" },
   "vector-bench":        { title: "Vector Search Latency", subtitle: "pgvector / HNSW p50 and p95 query latency over time" },
+  "resources-apis":        { title: "Resources · APIs",        subtitle: "Live external HTTP services. Canonical wiring for every Specialist." },
+  "resources-sources":     { title: "Resources · Sources",     subtitle: "Bulk data sources and scrapers feeding the warehouse." },
+  "resources-tables":      { title: "Resources · Tables",      subtitle: "Internal warehouse tables Specialists query." },
+  "resources-benchmarks":  { title: "Resources · Benchmarks",  subtitle: "Hospitality benchmark slugs (ADR, RevPAR, occupancy, etc.)." },
+  "resources-models":      { title: "Resources · Models",      subtitle: "LLM model rows (provider + secret + config)." },
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
   "specialist-mgmt-co-revenue":            { title: "Revenue Intelligence",         subtitle: "" },
   "specialist-mgmt-co-icp-intelligence":   { title: "ICP Intelligence",             subtitle: "" },
@@ -87,12 +87,14 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
           <AIAgentsTab initialTab={REBECCA_SUB_TAB[section]} />
         </ErrorBoundary>
       );
-    case "sources-apis":       return <DataSourcesTab />;
     case "engine-health":      return <EngineDashboard />;
     case "scheduled-research": return <ScheduledResearchPanel />;
-    case "benchmarks":         return <HospitalityBenchmarksTab />;
-    case "analyst-tables":     return <AnalystTablesTab />;
     case "vector-bench":       return <VectorBenchTrendsTab />;
+    case "resources-apis":       return <ResourcesTab kind="api" />;
+    case "resources-sources":    return <ResourcesTab kind="source" />;
+    case "resources-tables":     return <ResourcesTab kind="table" />;
+    case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
+    case "resources-models":     return <ResourcesTab kind="model" />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;

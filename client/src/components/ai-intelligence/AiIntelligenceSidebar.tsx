@@ -39,12 +39,14 @@ export type AiIntelligenceSection =
   | "ai-agents"
   | "knowledge-base"
   | "conversations"
-  | "sources-apis"
   | "engine-health"
   | "scheduled-research"
-  | "benchmarks"
-  | "analyst-tables"
-  | "vector-bench";
+  | "vector-bench"
+  | "resources-apis"
+  | "resources-sources"
+  | "resources-tables"
+  | "resources-benchmarks"
+  | "resources-models";
 
 interface SectionItem {
   value: AiIntelligenceSection;
@@ -112,15 +114,24 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
+      id: "resources",
+      label: "Resources",
+      icon: IconLayers,
+      sections: [
+        { value: "resources-apis",       label: "APIs",       icon: IconGlobe },
+        { value: "resources-sources",    label: "Sources",    icon: IconDatabase },
+        { value: "resources-tables",     label: "Tables",     icon: IconResearch },
+        { value: "resources-benchmarks", label: "Benchmarks", icon: IconResearch },
+        { value: "resources-models",     label: "Models",     icon: IconBrain },
+      ],
+    },
+    {
       id: "system",
       label: "System",
       icon: IconSettingsGear,
       sections: [
-        { value: "sources-apis",       label: "Sources & APIs",        icon: IconGlobe },
         { value: "engine-health",      label: "System Health",         icon: IconGauge },
         { value: "scheduled-research", label: "Scheduled Research",    icon: IconTimer },
-        { value: "benchmarks",         label: "Hospitality Benchmarks", icon: IconDatabase },
-        { value: "analyst-tables",     label: "Analyst Tables",        icon: IconResearch },
         { value: "vector-bench",       label: "Vector Search Latency", icon: IconBrain },
       ],
     },

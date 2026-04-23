@@ -26,8 +26,9 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconLayers } from "@/components/icons";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { setAdminSection } from "@/lib/admin-nav";
-import type { AdminSection } from "@/components/admin/AdminSidebar";
+import { setAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
+import type { AiIntelligenceSection } from "@/components/ai-intelligence/AiIntelligenceSidebar";
+import { useLocation } from "wouter";
 import type {
   ResourcePublicView,
   ResourceHealthStatus,
@@ -102,13 +103,21 @@ const HEALTH_BAND: Record<ResourceHealthStatus, { label: string; cls: string }> 
   gray:  { label: "Never checked",      cls: "bg-slate-400" },
 };
 
-const RESOURCE_KIND_TO_SECTION: Record<ResourceKind, AdminSection> = {
+const RESOURCE_KIND_TO_SECTION: Record<ResourceKind, AiIntelligenceSection> = {
   api: "resources-apis",
   source: "resources-sources",
   table: "resources-tables",
   benchmark: "resources-benchmarks",
   model: "resources-models",
 };
+
+function navigateToResources(
+  setLocation: (path: string) => void,
+  section: AiIntelligenceSection,
+) {
+  setAiIntelligenceSection(section);
+  setLocation("/ai-intelligence");
+}
 
 export default function SpecialistPage({ specialistId }: { specialistId: string }) {
   const { data, isLoading, error } = useQuery<SpecialistDetailResponse>({
@@ -341,6 +350,7 @@ const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/Pip
 function LlmConfigTab({ specialistId, config }: { specialistId: string; config: SpecialistConfigView }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [, setLocation] = useLocation();
   const [prompt, setPrompt] = useState(config.promptTemplate);
   const [modelId, setModelId] = useState<string>(config.modelResourceId ? String(config.modelResourceId) : "none");
   const [summary, setSummary] = useState("");
@@ -382,7 +392,7 @@ function LlmConfigTab({ specialistId, config }: { specialistId: string; config: 
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Models are managed in <a className="underline" data-testid="link-resources-models" onClick={() => setAdminSection("resources-models")} href="#">Resources · Models →</a>
+              Models are managed in <a className="underline" data-testid="link-resources-models" onClick={(e) => { e.preventDefault(); navigateToResources(setLocation, "resources-models"); }} href="#">Resources · Models →</a>
             </p>
           </div>
           <div className="space-y-2">
@@ -562,6 +572,7 @@ function WorkflowTab({
 
 // ── ResourceAssignmentsTab (READ-ONLY) ─────────────────────────────────
 function ResourceAssignmentsTab({ assignments }: { assignments: SpecialistAssignmentView[] }) {
+  const [, setLocation] = useLocation();
   if (assignments.length === 0) {
     return <Card><CardContent className="py-8 text-sm text-muted-foreground">No Resource assignments declared.</CardContent></Card>;
   }
@@ -623,7 +634,7 @@ function ResourceAssignmentsTab({ assignments }: { assignments: SpecialistAssign
                       <Button
                         variant="link"
                         size="sm"
-                        onClick={() => setAdminSection(RESOURCE_KIND_TO_SECTION[a.kind])}
+                        onClick={() => navigateToResources(setLocation, RESOURCE_KIND_TO_SECTION[a.kind])}
                         data-testid={`link-edit-resource-${a.kind}-${a.slug}`}
                       >
                         Edit in Resources →
