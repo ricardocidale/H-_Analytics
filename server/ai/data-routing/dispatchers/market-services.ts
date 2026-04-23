@@ -10,7 +10,7 @@ import type { DispatchHandler } from "./_shared";
 
 const amadeus: DispatchHandler = async (_serviceKey, _field, rCtx, ctx, svc) => {
   if (!ctx.latitude || !ctx.longitude) return null;
-  const amadeus: AmadeusService = svc.instance;
+  const amadeus = svc.instance as AmadeusService;
   const result = await amadeus.fetchAdrBenchmark(ctx.latitude, ctx.longitude, rCtx.qualityTier);
   if (!result || result.value == null) return null;
   const v = result.value;
@@ -23,7 +23,7 @@ const amadeus: DispatchHandler = async (_serviceKey, _field, rCtx, ctx, svc) => 
 
 const costar: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
   if (!rCtx.location) return null;
-  const costar: CoStarService = svc.instance;
+  const costar = svc.instance as CoStarService;
   const data = await costar.fetchMarketData({
     location: rCtx.location,
     state: rCtx.state,
@@ -51,7 +51,7 @@ const costar: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
 
 const hospitalityBenchmarks: DispatchHandler = async (_serviceKey, field, rCtx, ctx, svc) => {
   if (!rCtx.location) return null;
-  const hb: HospitalityBenchmarkService = svc.instance;
+  const hb = svc.instance as HospitalityBenchmarkService;
   const data = await hb.fetchBenchmarks({
     city: rCtx.city ?? rCtx.location,
     state: rCtx.state,
@@ -78,7 +78,7 @@ const hospitalityBenchmarks: DispatchHandler = async (_serviceKey, field, rCtx, 
 
 const xotelo: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
   if (!rCtx.location || field !== "startAdr") return null;
-  const xot: XoteloService = svc.instance;
+  const xot = svc.instance as XoteloService;
   const benchmark = await xot.fetchAdrBenchmark(rCtx.location);
   if (!benchmark || benchmark.value == null) return null;
   return {

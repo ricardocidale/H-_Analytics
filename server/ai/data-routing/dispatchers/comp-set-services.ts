@@ -9,7 +9,7 @@ import type { DispatchHandler } from "./_shared";
 
 const apify: DispatchHandler = async (serviceKey, field, rCtx, _ctx, svc) => {
   if (!rCtx.location) return null;
-  const apify: ApifyService = svc.instance;
+  const apify = svc.instance as ApifyService;
   const data = await apify.fetchCompSetData(rCtx.location);
   if (!data) return null;
 
@@ -41,7 +41,7 @@ const apify: DispatchHandler = async (serviceKey, field, rCtx, _ctx, svc) => {
 
 const rapidApiBooking: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
   if (!rCtx.location) return null;
-  const rapid: RapidApiHospitalityService = svc.instance;
+  const rapid = svc.instance as RapidApiHospitalityService;
   const data = await rapid.fetchCompSetData(rCtx.location);
   if (!data || !data.booking) return null;
   if (field === "startAdr" && data.booking.avgNightlyRate) {

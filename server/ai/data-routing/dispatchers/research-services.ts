@@ -4,9 +4,17 @@
  */
 import type { DispatchHandler, RelaxedContext, RoutingContext } from "./_shared";
 
+interface GroundedResearchInstance {
+  search: (queries: Array<{ query: string; focusSites?: string[] }>) => Promise<Array<{
+    query: string;
+    answer?: unknown;
+    sources: unknown[];
+  }>>;
+}
+
 const groundedResearch: DispatchHandler = async (_serviceKey, field, rCtx, ctx, svc) => {
   if (!rCtx.location) return null;
-  const gr = svc.instance;
+  const gr = svc.instance as GroundedResearchInstance;
   const queries = buildFieldSpecificQuery(field, rCtx, ctx);
   if (!queries.length) return null;
 

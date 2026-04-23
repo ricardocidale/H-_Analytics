@@ -8,7 +8,7 @@ import type { WorldBankService } from "../../../services/WorldBankService";
 import type { DispatchHandler } from "./_shared";
 
 const fred: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
-  const fred: FREDService = svc.instance;
+  const fred = svc.instance as FREDService;
   if (field === "acquisitionInterestRate") {
     const rates = await fred.fetchAllRates();
     const sofr = rates.sofr?.current?.value;
@@ -57,7 +57,7 @@ const fred: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
 };
 
 const alphaVantage: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
-  const av: AlphaVantageService = svc.instance;
+  const av = svc.instance as AlphaVantageService;
   const data = await av.fetchMarketData();
   if (!data) return null;
   if (field === "acquisitionInterestRate") {
@@ -73,7 +73,7 @@ const alphaVantage: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc
 
 const worldBank: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
   if (!rCtx.country) return null;
-  const wb: WorldBankService = svc.instance;
+  const wb = svc.instance as WorldBankService;
   const data = await wb.fetchCountryData(rCtx.country);
   if (!data) return null;
   if (field === "taxRate" && data.inflation) {

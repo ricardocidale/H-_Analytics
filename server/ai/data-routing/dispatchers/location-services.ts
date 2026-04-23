@@ -10,7 +10,7 @@ import type { DispatchHandler } from "./_shared";
 
 const weather: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
   if (!rCtx.location || field !== "costRateUtilities") return null;
-  const w: WeatherService = svc.instance;
+  const w = svc.instance as WeatherService;
   const data = await w.fetchWeatherData(rCtx.location);
   if (!data) return null;
   const avgTemp = data.forecast.reduce((s, f) => s + f.avgTempC, 0) / (data.forecast.length || 1);
@@ -22,7 +22,7 @@ const weather: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => 
 
 const walkScore: DispatchHandler = async (_serviceKey, _field, rCtx, ctx, svc) => {
   if (!ctx.latitude || !ctx.longitude || !ctx.propertyId) return null;
-  const ws: WalkScoreService = svc.instance;
+  const ws = svc.instance as WalkScoreService;
   const data = await ws.fetchScores({
     address: ctx.location || "",
     lat: ctx.latitude,
@@ -38,7 +38,7 @@ const walkScore: DispatchHandler = async (_serviceKey, _field, rCtx, ctx, svc) =
 
 const realty: DispatchHandler = async (_serviceKey, _field, rCtx, _ctx, svc) => {
   if (!rCtx.location) return null;
-  const _realty: RealtyService = svc.instance;
+  const _realty = svc.instance as RealtyService;
   // Realty service requires specific search params; defer to the service.
   return null;
 };

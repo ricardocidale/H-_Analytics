@@ -8,7 +8,7 @@
 import type { DispatchResult, RelaxedContext, RoutingContext } from "../types";
 
 export interface DispatcherService {
-  instance: any;
+  instance: unknown;
   isAvailable: () => boolean;
 }
 
