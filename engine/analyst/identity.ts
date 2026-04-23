@@ -88,8 +88,28 @@ const PRONOUNS: Record<Gender, PronounSet> = {
  * flipping a Specialist's gender via the Phase-3 admin override propagates
  * to every callsite.
  */
-export function pronounSet(gender: Gender): PronounSet {
-  return PRONOUNS[gender];
+export function pronounSet(gender: Gender | string): PronounSet {
+  // Defensive: the type annotation is a compile-time hint, but the value
+  // can originate from a DB row (override) or a stale catalog field that
+  // bypasses Zod (manual SQL, future enum extension, etc.). Indexing
+  // `PRONOUNS[gender]` directly would return undefined for an unknown
+  // value and `.possessive` on undefined throws TypeError far from the
+  // bad-data origin. Switch + neutral fallback keeps narration safe.
+  switch (gender) {
+    case "female": return PRONOUNS.female;
+    case "male":   return PRONOUNS.male;
+    case "neutral": return PRONOUNS.neutral;
+    default: {
+      // Lazy logger import — identity.ts is consumed by both server and
+      // client bundles; keep the cold-path warning out of the hot path.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+        const { logger } = require("../../server/logger");
+        logger?.warn?.(`pronounSet fallback: unknown gender "${String(gender)}"`, "identity");
+      } catch { /* client bundle — silently fall back */ }
+      return PRONOUNS.neutral;
+    }
+  }
 }
 
 export interface ResolvedIdentitySource {

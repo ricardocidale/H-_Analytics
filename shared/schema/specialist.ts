@@ -562,7 +562,12 @@ export const SpecialistIdentityPublicViewSchema = z.object({
   /** Admin override (null when no override exists). */
   override: z
     .object({
-      humanName: z.string().nullable(),
+      // .min(1) mirrors `updateSpecialistIdentitySchema` so a stray empty
+      // string in the table (manual SQL, future migration drift) is
+      // rejected on read instead of silently rendering "In effect: " with
+      // no name in the admin header. The route layer must canonicalize
+      // "" → null on write to keep this contract honest.
+      humanName: z.string().min(1).nullable(),
       gender: SpecialistGenderSchema.nullable(),
       updatedByUserId: z.number().int().nullable(),
       updatedAt: z.string(),

@@ -210,13 +210,36 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
   },
 ] as const;
 
+// Boot-time catalog reference used by the IIFE below. Imported here (not
+// lazily) because specialist-catalog.ts does not import specialist-tools —
+// no cycle risk — and ESM has no `require` at runtime.
+import { SPECIALIST_CATALOG } from "./specialist-catalog";
+
 const validation = (() => {
+  const catalogIds = new Set(SPECIALIST_CATALOG.map((s) => s.id));
   const ids = new Set<string>();
   for (const tool of SPECIALIST_TOOLS) {
     if (ids.has(tool.id)) {
       throw new Error(`SPECIALIST_TOOLS: duplicate tool id "${tool.id}"`);
     }
     ids.add(tool.id);
+    // Boot-time referential integrity: every ownerSpecialistId AND every
+    // calledBy entry must resolve to a real Specialist in the catalog.
+    // Without this, a typo or a stale entry ships fine — the first
+    // admin-UI fetch falls back to the raw ID string as humanName. Fail
+    // loud at boot instead of silently at first-user-click.
+    if (!catalogIds.has(tool.ownerSpecialistId)) {
+      throw new Error(
+        `SPECIALIST_TOOLS: tool "${tool.id}" has unknown ownerSpecialistId "${tool.ownerSpecialistId}"`,
+      );
+    }
+    for (const caller of tool.calledBy) {
+      if (!catalogIds.has(caller)) {
+        throw new Error(
+          `SPECIALIST_TOOLS: tool "${tool.id}" has unknown calledBy entry "${caller}"`,
+        );
+      }
+    }
   }
   return true;
 })();
