@@ -205,10 +205,15 @@ const BULLETIN_SOURCES: readonly BulletinSource[] = [
   },
 ];
 
-/** Trust threshold for the deterministic path. parseConfidence below this
- *  triggers LLM fallback in the caller. Set conservatively — we'd rather
- *  fall back to LLM than ship a half-parsed bulletin as authoritative. */
-export const MIN_PARSE_CONFIDENCE_FOR_TRUST = 0.5 as const;
+/** Trust threshold for the deterministic path. parseConfidence STRICTLY
+ *  BELOW this triggers LLM fallback in the caller. Set to 1.0 — we'd
+ *  rather fall back to LLM than ship a half-parsed bulletin as
+ *  authoritative. With this threshold, ANY missing expected field forces
+ *  the caller to LLM, which is the conservative posture for governed
+ *  constants whose downstream consumers cannot tolerate "best guess"
+ *  inputs. Per-source relaxation can be added later by widening this
+ *  to a function of the BulletinSource. */
+export const MIN_PARSE_CONFIDENCE_FOR_TRUST = 1.0 as const;
 
 /** Owning Specialist for telemetry. Kept here (not just in SPECIALIST_TOOLS)
  *  so callers don't need to import the registry to attribute a run. */
