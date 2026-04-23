@@ -196,7 +196,7 @@ function buildNavGroups(): NavGroup[] {
   return [
     {
       id: "financial-defaults",
-      label: "Financial Defaults",
+      label: "Steady State",
       icon: IconSliders,
       description: "Defaults applied to new entities and immutable model constants",
       sections: [

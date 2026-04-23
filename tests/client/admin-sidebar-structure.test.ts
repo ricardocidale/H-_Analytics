@@ -22,7 +22,7 @@ describe("admin sidebar — buildNavGroups() canonical structure", () => {
     expect(shape).toEqual([
       {
         id: "financial-defaults",
-        label: "Financial Defaults",
+        label: "Steady State",
         sections: [
           { value: "defaults-management-company", label: "Management Company" },
           { value: "defaults-property",           label: "Property" },
