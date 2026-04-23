@@ -51,6 +51,14 @@ export type AiIntelligenceSection =
 interface SectionItem {
   value: AiIntelligenceSection;
   label: string;
+  /**
+   * Quieter secondary line shown beneath the primary label. Used by
+   * Specialist rows to keep the role label (e.g. "Funding Intelligence")
+   * visible while leading with the human name (e.g. "Ana"). Optional
+   * because non-Specialist rows (Rebecca, Resources, System) are
+   * already keyed by role and have no persona name to surface.
+   */
+  secondary?: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
@@ -61,9 +69,33 @@ interface NavGroup {
   sections: SectionItem[];
 }
 
-function specialistLabel(specialistId: string, fallback: string): string {
+/**
+ * Sidebar copy for a Specialist row: lead with the human name, fall back
+ * to displayName / realName when the catalog hasn't been migrated yet.
+ * The role label rides along as the secondary line so admins can still
+ * trace the slug at a glance.
+ */
+function specialistRow(
+  specialistId: string,
+  fallbackPrimary: string,
+): { primary: string; secondary?: string } {
   const def = SPECIALIST_CATALOG.find((d) => d.id === specialistId);
-  return def?.displayName ?? def?.realName ?? fallback;
+  if (!def) return { primary: fallbackPrimary };
+  const role = def.displayName ?? def.realName;
+  if (def.humanName && def.humanName !== role) {
+    return { primary: def.humanName, secondary: role };
+  }
+  return { primary: role };
+}
+
+function specialistSection(
+  value: AiIntelligenceSection,
+  specialistId: string,
+  fallbackPrimary: string,
+  icon: React.ComponentType<{ className?: string }>,
+): SectionItem {
+  const { primary, secondary } = specialistRow(specialistId, fallbackPrimary);
+  return { value, label: primary, secondary, icon };
 }
 
 function buildNavGroups(): NavGroup[] {
@@ -73,9 +105,9 @@ function buildNavGroups(): NavGroup[] {
       label: "Management Company",
       icon: IconBriefcase,
       sections: [
-        { value: "specialist-mgmt-co-funding",          label: specialistLabel("mgmt-co.funding", "Funding"),                 icon: IconBriefcase },
-        { value: "specialist-mgmt-co-revenue",          label: specialistLabel("mgmt-co.revenue", "Revenue"),                 icon: IconBriefcase },
-        { value: "specialist-mgmt-co-icp-intelligence", label: specialistLabel("mgmt-co.icp-intelligence", "ICP Intelligence"), icon: IconBriefcase },
+        specialistSection("specialist-mgmt-co-funding",          "mgmt-co.funding",          "Funding",          IconBriefcase),
+        specialistSection("specialist-mgmt-co-revenue",          "mgmt-co.revenue",          "Revenue",          IconBriefcase),
+        specialistSection("specialist-mgmt-co-icp-intelligence", "mgmt-co.icp-intelligence", "ICP Intelligence", IconBriefcase),
       ],
     },
     {
@@ -83,8 +115,8 @@ function buildNavGroups(): NavGroup[] {
       label: "Property",
       icon: IconProperties,
       sections: [
-        { value: "specialist-property-risk-intelligence", label: specialistLabel("property.risk-intelligence", "Risk Intelligence"),  icon: IconProperties },
-        { value: "specialist-property-executive-summary", label: specialistLabel("property.executive-summary", "Executive Summary"), icon: IconProperties },
+        specialistSection("specialist-property-risk-intelligence", "property.risk-intelligence", "Risk Intelligence",  IconProperties),
+        specialistSection("specialist-property-executive-summary", "property.executive-summary", "Executive Summary", IconProperties),
       ],
     },
     {
@@ -95,7 +127,7 @@ function buildNavGroups(): NavGroup[] {
         // Fernanda owns both photo enhancement and the render pipeline
         // as two jobs of one Specialist. Manual render controls live
         // inside her SpecialistPage (Runtime tab) — no separate entry.
-        { value: "specialist-photos-photo-enhancer", label: specialistLabel("photos.photo-enhancer", "Photo Enhancer & Renders"), icon: IconImage },
+        specialistSection("specialist-photos-photo-enhancer", "photos.photo-enhancer", "Photo Enhancer & Renders", IconImage),
       ],
     },
     {
@@ -103,13 +135,36 @@ function buildNavGroups(): NavGroup[] {
       label: "Portfolio Ops",
       icon: IconLayers,
       sections: [
-        { value: "specialist-portfolio-ops-watchdog", label: specialistLabel("portfolio-ops.watchdog", "Portfolio Watchdog"), icon: IconLayers },
+        specialistSection("specialist-portfolio-ops-watchdog", "portfolio-ops.watchdog", "Portfolio Watchdog", IconLayers),
       ],
     },
-    // Letícia (Resource Builder, letter L) is a catalog stub in Phase 2a.
-    // Her admin surface ships in Phase 2b, so the sidebar group is
-    // intentionally absent here. Section metadata + routing in
-    // AiIntelligence.tsx are in place so 2b can wire it up.
+    {
+      // Constants & Authority Sources — Helena, Isadora, Júlia, Kamila each
+      // own a slice of the Model Constants registry. Surfacing them in the
+      // sidebar by human name makes the authority-sourced layer reachable
+      // the same way the mgmt-co / property specialists are.
+      id: "constants",
+      label: "Constants & Authority Sources",
+      icon: IconDatabase,
+      sections: [
+        specialistSection("specialist-constants-tax-research",          "constants.tax-research",          "Tax Authority Research",         IconDatabase),
+        specialistSection("specialist-constants-macro-research",        "constants.macro-research",        "Macro Indicators Research",      IconDatabase),
+        specialistSection("specialist-constants-depreciation-research", "constants.depreciation-research", "Depreciation Schedule Research", IconDatabase),
+        specialistSection("specialist-constants-reporting-research",    "constants.reporting-research",    "Reporting Conventions Research", IconDatabase),
+      ],
+    },
+    {
+      // Letícia (Resource Builder, letter L) is a catalog stub — her admin
+      // surface ships later — but she is now reachable from the sidebar by
+      // human name like the other Specialists. Clicking through lands on
+      // the SpecialistPage stub, which still shows the new summary panel.
+      id: "resources-builder",
+      label: "Resources Builder",
+      icon: IconLayers,
+      sections: [
+        specialistSection("specialist-resources-builder", "resources.builder", "Resource Builder", IconLayers),
+      ],
+    },
     {
       id: "rebecca",
       label: "Rebecca AI Assistant",
@@ -212,10 +267,27 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                               isActive={isActive}
                               onClick={() => onSectionChange(section.value)}
                               data-testid={`ai-intelligence-nav-${section.value}`}
-                              className="cursor-pointer"
+                              className={`cursor-pointer ${section.secondary ? "h-auto py-1.5" : ""}`}
                             >
                               <Icon className="size-4 shrink-0" />
-                              <span className="truncate">{section.label}</span>
+                              {section.secondary ? (
+                                <span className="flex flex-col min-w-0 leading-tight">
+                                  <span
+                                    className="truncate"
+                                    data-testid={`ai-intelligence-nav-${section.value}-primary`}
+                                  >
+                                    {section.label}
+                                  </span>
+                                  <span
+                                    className="truncate text-[11px] font-normal text-muted-foreground"
+                                    data-testid={`ai-intelligence-nav-${section.value}-secondary`}
+                                  >
+                                    {section.secondary}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="truncate">{section.label}</span>
+                              )}
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         );

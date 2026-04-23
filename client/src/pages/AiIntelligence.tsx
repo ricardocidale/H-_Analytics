@@ -61,8 +61,15 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
 function specialistMeta(section: keyof typeof SPECIALIST_SECTION_TO_ID): { title: string; subtitle: string } {
   const id = SPECIALIST_SECTION_TO_ID[section];
   const def = SPECIALIST_CATALOG.find((d) => d.id === id);
+  const role = def?.displayName ?? def?.realName ?? sectionMeta[section].title;
+  // Persona-first header: lead with the human name (e.g. "Ana"), keep the
+  // role label visible as a quieter trailing segment so admins can still
+  // trace the slug. Falls back gracefully when humanName is absent.
+  const title = def?.humanName && def.humanName !== role
+    ? `${def.humanName} · ${role}`
+    : role;
   return {
-    title: def?.displayName ?? def?.realName ?? sectionMeta[section].title,
+    title,
     subtitle: def?.description ?? "",
   };
 }
@@ -119,6 +126,17 @@ export default function AiIntelligence() {
   const meta = isSpecialistSection(activeSection)
     ? specialistMeta(activeSection)
     : sectionMeta[activeSection];
+
+  // Persona-first browser tab title: matches the in-app PageHeader so
+  // admins glancing at the tab strip see the human name first ("Ana ·
+  // Funding Intelligence | …") instead of just the role label.
+  useEffect(() => {
+    const previous = document.title;
+    document.title = `${meta.title} | H+ Analytics`;
+    return () => {
+      document.title = previous;
+    };
+  }, [meta.title]);
 
   return (
     <AnimatedPage>
