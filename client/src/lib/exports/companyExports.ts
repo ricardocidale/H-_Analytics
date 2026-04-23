@@ -13,7 +13,7 @@ import type { CompanyMonthlyFinancials } from "@engine/types";
 
 const EXPORT_BG = '#ffffff';
 
-interface StatementRow {
+export interface StatementRow {
   category: string;
   values: number[];
   indent?: number;

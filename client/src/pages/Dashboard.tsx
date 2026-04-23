@@ -454,9 +454,10 @@ export default function Dashboard() {
           const gfy = (i: number) => getFiscalYearForModelYear(global.modelStartDate, fsm, i);
           const summaryOnly = version === "short";
           const totalRooms = properties.reduce((sum, p) => sum + p.roomCount, 0);
-          const mapRows = (d: { years: number[]; rows: any[] }) => ({
+          type RawStmtRow = { category: string; values: (number | string)[]; indent?: number; isBold?: boolean; isHeader?: boolean; isItalic?: boolean; format?: string };
+          const mapRows = (d: { years: number[]; rows: RawStmtRow[] }) => ({
             years: d.years.map(String),
-            rows: d.rows.map((r: any) => ({ category: r.category, values: r.values, indent: r.indent, isBold: r.isBold ?? r.isHeader, isHeader: r.isHeader, isItalic: r.isItalic, format: r.format })),
+            rows: d.rows.map((r) => ({ category: r.category, values: r.values, indent: r.indent, isBold: r.isBold ?? r.isHeader, isHeader: r.isHeader, isItalic: r.isItalic, format: r.format })),
           });
           const baseMetrics = [
             { label: "Portfolio IRR", value: `${(financials.portfolioIRR * 100).toFixed(1)}%` },
@@ -468,7 +469,7 @@ export default function Dashboard() {
 
           const incomeData = generatePortfolioIncomeData(financials.yearlyConsolidatedCache, py, gfy, summaryOnly);
 
-          let statements: Array<{ title: string; years: string[]; rows: any[]; includeTable?: boolean; includeChart?: boolean }>;
+          let statements: Array<{ title: string; years: string[]; rows: RawStmtRow[]; includeTable?: boolean; includeChart?: boolean }>;
           let statementType: string;
 
           if (activeTab === "overview") {
