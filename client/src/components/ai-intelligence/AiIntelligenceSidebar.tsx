@@ -114,7 +114,13 @@ function buildNavGroups(): NavGroup[] {
       label: "Resource Builder",
       icon: IconLayers,
       sections: [
-        { value: "specialist-resources-builder", label: specialistLabel("resources.builder", "Resource Builder"), icon: IconLayers },
+        // Letícia (Resource Builder) is in the catalog as a stub for
+        // Phase 2a but her admin surface ships in Phase 2b. The sidebar
+        // entry is intentionally withheld until then so we don't expose
+        // a placeholder page. The section metadata + routing in
+        // AiIntelligence.tsx remain in place so the entry can be turned
+        // on with a one-line change once Phase 2b lands.
+        // { value: "specialist-resources-builder", label: specialistLabel("resources.builder", "Resource Builder"), icon: IconLayers },
       ],
     },
     {

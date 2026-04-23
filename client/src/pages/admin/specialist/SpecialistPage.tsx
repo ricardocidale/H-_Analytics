@@ -38,8 +38,9 @@ import type {
 
 // ── API contract (mirrors server/routes/admin/specialists.ts) ──────────
 type Capability = "required-fields" | "llm-config" | "resource-assignments" | "runtime" | "audit";
-type Subject = "mgmt-co" | "property" | "photos" | "portfolio-ops";
-type Status = "built" | "needs-page";
+type Subject = "mgmt-co" | "property" | "photos" | "portfolio-ops" | "resources" | "constants";
+type Status = "built" | "needs-page" | "stub";
+type Gender = "male" | "female" | "neutral";
 
 interface SpecialistAssignmentView {
   kind: ResourceKind;
@@ -80,6 +81,10 @@ interface SpecialistDetailResponse {
     letter: string;
     realName: string;
     displayName?: string;
+    /** Persona first name (e.g. "Helena"). Mirrors catalog `humanName`. */
+    humanName?: string;
+    /** Pronoun set used by narration helpers. */
+    gender?: Gender;
     description?: string;
     subject: Subject;
     capabilities: Capability[];
@@ -179,10 +184,21 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
         <div className="flex items-center gap-3">
           <Badge variant="outline" data-testid="badge-specialist-letter">{definition.letter}</Badge>
           <h2 className="text-xl font-semibold" data-testid="text-specialist-name">
-            {definition.displayName ?? definition.realName}
+            {/* Persona-first header: humanName ("Helena") leads, with the
+                catalog displayName / realName shown beside it as a quiet
+                subtitle so admins can still trace the slug. */}
+            {definition.humanName ?? definition.displayName ?? definition.realName}
+            {definition.humanName && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground" data-testid="text-specialist-role">
+                · {definition.displayName ?? definition.realName}
+              </span>
+            )}
           </h2>
-          <Badge variant={definition.status === "built" ? "default" : "secondary"} data-testid="badge-specialist-status">
-            {definition.status === "built" ? "Built" : "Needs page"}
+          <Badge
+            variant={definition.status === "built" ? "default" : "secondary"}
+            data-testid="badge-specialist-status"
+          >
+            {definition.status === "built" ? "Built" : definition.status === "stub" ? "Stub" : "Needs page"}
           </Badge>
           <span className="text-sm text-muted-foreground ml-auto" data-testid="text-specialist-subject">
             Subject: {definition.subject}
