@@ -89,6 +89,7 @@ export const SPECIALIST_SECTION_TO_ID = {
   "specialist-property-risk-intelligence": "property.risk-intelligence",
   "specialist-property-executive-summary": "property.executive-summary",
   "specialist-photos-photo-enhancer": "photos.photo-enhancer",
+  "specialist-photos-photos-and-renders": "photos.photos-and-renders",
   "specialist-portfolio-ops-watchdog": "portfolio-ops.watchdog",
   "specialist-constants-tax-research": "constants.tax-research",
   "specialist-constants-macro-research": "constants.macro-research",

@@ -154,6 +154,26 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     status: "needs-page",
   },
   {
+    id: "photos.photos-and-renders",
+    letter: "L",
+    realName: "Photos & Renders",
+    displayName: "Photos & Renders",
+    description:
+      "Transforms admin-supplied photos and text prompts into polished renders and avatars — one place to drive image transformations and creations using the existing render pipeline.",
+    subject: "photos",
+    capabilities: [
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "api", slug: "image-enhancement-api", required: true },
+      { kind: "model", slug: "vision-llm", role: "image-analysis", required: true },
+    ],
+    status: "needs-page",
+  },
+  {
     id: "portfolio-ops.watchdog",
     letter: "G",
     realName: "Watchdog",

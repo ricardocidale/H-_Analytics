@@ -93,6 +93,7 @@ function buildNavGroups(): NavGroup[] {
       icon: IconImage,
       sections: [
         { value: "specialist-photos-photo-enhancer", label: specialistLabel("photos.photo-enhancer", "Photo Enhancer"), icon: IconImage },
+        { value: "specialist-photos-photos-and-renders", label: specialistLabel("photos.photos-and-renders", "Photos & Renders"), icon: IconImage },
       ],
     },
     {

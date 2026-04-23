@@ -21,8 +21,8 @@ describe("SPECIALIST_CATALOG (P1 doctrine lock)", () => {
     expect(SPECIALIST_CATALOG_VALID).toBe(true);
   });
 
-  it("declares exactly 11 Specialists (A–G + Constants H–K)", () => {
-    expect(SPECIALIST_CATALOG).toHaveLength(11);
+  it("declares exactly 12 Specialists (A–G + Constants H–K + Photos & Renders L)", () => {
+    expect(SPECIALIST_CATALOG).toHaveLength(12);
   });
 
   it("uses unique ids", () => {
