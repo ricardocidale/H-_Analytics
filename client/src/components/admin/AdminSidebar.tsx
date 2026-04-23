@@ -23,8 +23,8 @@ import {
   IconPanelLeft, IconProperties,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
-  IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconExport, IconScenarios, IconPalette,
-  IconLayers, IconShieldCheck, IconGlobe, IconTimer, IconGauge, IconMessageSquare,
+  IconBriefcase, IconBookOpen, IconPhone, IconExport, IconScenarios, IconPalette,
+  IconShieldCheck, IconGlobe, IconTimer, IconGauge, IconMessageSquare,
   IconCalculator, IconDashboard,
 } from "@/components/icons";
 import { Link } from "wouter";
@@ -66,8 +66,6 @@ export type AdminSection =
   // Steady State (Defaults & Constants)
   | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
   | "constants"
-  // Resources control plane (P4) — canonical SoT for APIs/Sources/Tables/Benchmarks/Models
-  | "resources-apis" | "resources-sources" | "resources-tables" | "resources-benchmarks" | "resources-models"
   // AI Research → Specialists (P5). The 7 read-only assignment+health surface
   // sections are derived from `SPECIALIST_SECTION_TO_ID` keys below — single
   // source of truth, compile-enforced. To add a Specialist section, edit ONLY
@@ -145,6 +143,29 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "defaults-market-macro": "model-defaults",
   "constants": "model-defaults",
 };
+
+/**
+ * Legacy in-memory deep-link aliases that are no longer part of the
+ * `AdminSection` union. The Resources surface (APIs/Sources/Tables/
+ * Benchmarks/Models) used to render under /admin via these section ids;
+ * it now lives only under /ai-intelligence. We still accept the strings
+ * here so any code that calls `setAdminSection("resources-…")` lands on
+ * a sensible Admin page instead of a blank one.
+ */
+const LEGACY_ADMIN_SECTION_REDIRECTS: Record<string, AdminSection> = {
+  "resources-apis": "services-fees",
+  "resources-sources": "services-fees",
+  "resources-tables": "services-fees",
+  "resources-benchmarks": "services-fees",
+  "resources-models": "services-fees",
+};
+
+export function normalizeAdminSection(section: AdminSection | string): AdminSection {
+  if (typeof section === "string" && section in LEGACY_ADMIN_SECTION_REDIRECTS) {
+    return LEGACY_ADMIN_SECTION_REDIRECTS[section];
+  }
+  return section as AdminSection;
+}
 
 export function resolveSection(section: AdminSection): AdminSection {
   let current: AdminSection = section;

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { AdminSection } from "@/components/admin/AdminSidebar";
+import { normalizeAdminSection, type AdminSection } from "@/components/admin/AdminSidebar";
 
 let currentSection: AdminSection = "defaults-management-company";
 const listeners = new Set<() => void>();
@@ -13,8 +13,8 @@ function getSnapshot() {
   return currentSection;
 }
 
-export function setAdminSection(section: AdminSection) {
-  currentSection = section;
+export function setAdminSection(section: AdminSection | string) {
+  currentSection = normalizeAdminSection(section);
   listeners.forEach((fn) => fn());
 }
 
