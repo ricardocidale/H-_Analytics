@@ -49,7 +49,7 @@ export interface KnownValueTestResult {
 function r2(v: number) { return Math.round(v * 100) / 100; }
 function match(a: number, b: number) { return Math.abs(a - b) < 1; }
 
-function buildEngineInputs(tc: TestCase): { property: any; global: any } {
+function buildEngineInputs(tc: TestCase): { property: import("@engine/types").PropertyInput; global: import("@engine/types").GlobalInput } {
   const today = new Date();
   const opsDate = `${today.getFullYear()}-01-01`;
   return {
@@ -97,6 +97,10 @@ function buildEngineInputs(tc: TestCase): { property: any; global: any } {
       inflationRate: 0,
       marketingRate: DEFAULT_MARKETING_RATE,
       fixedCostEscalationRate: 0,
+      debtAssumptions: {
+        interestRate: DEFAULT_INTEREST_RATE,
+        amortizationYears: DEFAULT_TERM_YEARS,
+      },
     },
   };
 }

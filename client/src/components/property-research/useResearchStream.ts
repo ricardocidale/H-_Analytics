@@ -15,11 +15,12 @@ import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fireResearchConfetti } from "@/lib/confetti";
 import { useResearchQueue, getBackoffDelay } from "@/lib/research-queue";
+import type { PropertyResponse, GlobalResponse } from "@/lib/api/types";
 
 interface UseResearchStreamOptions {
-  property: any;
+  property: PropertyResponse | null | undefined;
   propertyId: number;
-  global: any;
+  global: GlobalResponse | null | undefined;
 }
 
 export interface OrchestratorMeta {
@@ -55,15 +56,15 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "property",
-        propertyId: property.id,
+        propertyId: property?.id,
         propertyContext: {
-          name: property.name,
-          location: property.location,
-          market: property.market,
-          roomCount: property.roomCount,
-          startAdr: property.startAdr,
-          maxOccupancy: property.maxOccupancy,
-          type: property.type,
+          name: property?.name,
+          location: property?.location,
+          market: property?.market,
+          roomCount: property?.roomCount,
+          startAdr: property?.startAdr,
+          maxOccupancy: property?.maxOccupancy,
+          type: property?.type,
         },
         assetDefinition: global?.assetDefinition,
       }),
@@ -141,7 +142,7 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
     const queueId = `property-${propertyId}-${Date.now()}`;
     getQueue().enqueue({
       id: queueId,
-      label: property.name || `Property ${propertyId}`,
+      label: property?.name || `Property ${propertyId}`,
       propertyId,
       type: "property",
     });

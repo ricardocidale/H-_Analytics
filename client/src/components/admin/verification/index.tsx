@@ -14,7 +14,7 @@ import { VerificationResults } from "./VerificationResults";
 import { VerificationHistory } from "./VerificationHistory";
 import { AIReviewPanel } from "./AIReviewPanel";
 import { SuiteSelector, SUITE_DEFINITIONS } from "./SuiteSelector";
-import { GoldenScenarioResults } from "./GoldenScenarioResults";
+import { GoldenScenarioResults, type GoldenData } from "./GoldenScenarioResults";
 import { IdentityDashboard } from "./IdentityDashboard";
 import type { VerificationResult, SuiteId, SuiteRunResult } from "./types";
 
@@ -58,7 +58,7 @@ export default function VerificationTab() {
       // If independent recheck ran, also set verificationResults for the detailed view
       const recheckResult = results.get("independent-recheck");
       if (recheckResult?.data) {
-        setVerificationResults(recheckResult.data);
+        setVerificationResults(recheckResult.data as VerificationResult);
       }
     }
   );
@@ -522,12 +522,12 @@ export default function VerificationTab() {
 
                   <VerificationResults results={verificationResults} />
 
-                  {suiteResults.get("golden-scenarios")?.data && (
-                    <GoldenScenarioResults data={suiteResults.get("golden-scenarios")!.data} />
+                  {Boolean(suiteResults.get("golden-scenarios")?.data) && (
+                    <GoldenScenarioResults data={suiteResults.get("golden-scenarios")!.data as GoldenData | null} />
                   )}
                 </div>
               ) : suiteResults.get("golden-scenarios")?.data ? (
-                <GoldenScenarioResults data={suiteResults.get("golden-scenarios")!.data} />
+                <GoldenScenarioResults data={suiteResults.get("golden-scenarios")!.data as GoldenData | null} />
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
                   <IconPlayCircle className="w-12 h-12 opacity-20" />
