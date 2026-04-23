@@ -25,6 +25,7 @@ import {
   type ProbeStatus,
 } from "@shared/schema";
 import { idParamSchema, toConfigView } from "./_shared";
+import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
 
 export function registerRuntimeRoutes(app: Express) {
   // ── Update Runtime ──────────────────────────────────────────────
@@ -49,7 +50,7 @@ export function registerRuntimeRoutes(app: Express) {
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-runtime", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def));
+      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist runtime", error);
     }
@@ -85,7 +86,7 @@ export function registerRuntimeRoutes(app: Express) {
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-cadence", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def));
+      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist cadence", error);
     }

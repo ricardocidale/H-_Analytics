@@ -14,7 +14,11 @@ import { z } from "zod";
 import { getSpecialistById } from "../../../../engine/analyst/registry/specialist-catalog";
 import type { SpecialistDefinition } from "@shared/schema/specialist";
 import { getValidRequiredFieldKeys } from "../../../../engine/analyst/registry/required-field-keys";
-import type { SpecialistConfigPublicView } from "@shared/schema";
+import type {
+  SpecialistConfigPublicView,
+  SpecialistGlobalLlmDefaults,
+  SpecialistWorkflowOverrides,
+} from "@shared/schema";
 import {
   GASPAR_IDENTITY,
   ORCHESTRATOR_SPECIALIST_ID,
@@ -53,6 +57,12 @@ export function toConfigView(
     specialistId: string;
     promptTemplate: string;
     modelResourceId: number | null;
+    analystAModelResourceId: number | null;
+    analystBModelResourceId: number | null;
+    synthesisModelResourceId: number | null;
+    fallbackModelResourceId: number | null;
+    multiModelEnabled: boolean | null;
+    workflowOverrides: SpecialistWorkflowOverrides | null;
     requiredFields: string[];
     fieldRequirements: Record<string, "hard" | "recommended" | "off">;
     prerequisiteToggles: Record<string, boolean>;
@@ -63,7 +73,8 @@ export function toConfigView(
     version: number;
     updatedAt: Date;
   },
-  def?: SpecialistDefinition,
+  def: SpecialistDefinition | undefined,
+  globalLlmDefaults: SpecialistGlobalLlmDefaults,
 ): SpecialistConfigPublicView {
   const allow = getValidRequiredFieldKeys(row.specialistId);
   const definition = def ?? getSpecialistById(row.specialistId);
@@ -73,6 +84,13 @@ export function toConfigView(
     specialistId: row.specialistId,
     promptTemplate: row.promptTemplate,
     modelResourceId: row.modelResourceId,
+    analystAModelResourceId: row.analystAModelResourceId,
+    analystBModelResourceId: row.analystBModelResourceId,
+    synthesisModelResourceId: row.synthesisModelResourceId,
+    fallbackModelResourceId: row.fallbackModelResourceId,
+    multiModelEnabled: row.multiModelEnabled,
+    workflowOverrides: row.workflowOverrides ?? null,
+    globalLlmDefaults,
     requiredFields: row.requiredFields ?? [],
     validRequiredFieldKeys: allow === null ? null : [...allow],
     fieldRequirements: row.fieldRequirements ?? {},

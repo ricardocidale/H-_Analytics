@@ -114,6 +114,13 @@ export const researchGenerateSchema = z.object({
     timeHorizon: z.string().optional(),
     customQuestions: z.string().optional(),
   }).optional(),
+  /**
+   * Optional Specialist scope (Task #495). When the caller knows which
+   * Specialist initiated this run (e.g. a Specialist-page "Run" button),
+   * the orchestrator + relaxation engine resolve that Specialist's
+   * persisted overrides instead of the global defaults.
+   */
+  specialistId: z.string().min(1).optional(),
 });
 
 export const VALID_RESEARCH_TYPES = ["property", "company", "global"] as const;

@@ -50,9 +50,21 @@ const DEFAULT_SYNTHESIS_MODEL  = "claude-opus-4-6";
 const SYNTHESIS_TOKENS = 12_000;
 
 export interface OrchestratorModelOverrides {
+  /** Specialist's primary single-shot model (Task #495). Used by the
+   *  legacy `generateResearchWithToolsStream` path when no orchestrator
+   *  is dispatched. The orchestrator itself does not consume this. */
+  primaryModel?: string;
   analystAModel?: string;
   analystBModel?: string;
   synthesisModel?: string;
+  fallbackModel?: string;
+  /**
+   * Multi-model bypass switch (Task #495). When `false`, callers should NOT
+   * dispatch the parallel analyst panel + synthesis path; the orchestrator
+   * caller instead falls back to single-model `generateResearchWithToolsStream`.
+   * `undefined` = honour caller's `useOrchestrator` decision unchanged.
+   */
+  multiModelEnabled?: boolean;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -320,12 +332,27 @@ Now synthesize the above into a single authoritative research report JSON.`;
 export async function* orchestrateResearch(
   params: ResearchParams,
   v2Prompt?: string,
-  relaxationContext?: { researchRunId: number; userId: number; contextPack: import("./context-pack/types").PropertyContextPack },
+  relaxationContext?: { researchRunId: number; userId: number; contextPack: import("./context-pack/types").PropertyContextPack; specialistId?: string | null },
   modelOverrides?: OrchestratorModelOverrides,
+  specialistId?: string | null,
 ): AsyncGenerator<OrchestratorEvent> {
-  const ANALYST_A_MODEL  = modelOverrides?.analystAModel  ?? DEFAULT_ANALYST_A_MODEL;
-  const ANALYST_B_MODEL  = modelOverrides?.analystBModel  ?? DEFAULT_ANALYST_B_MODEL;
-  const SYNTHESIS_MODEL  = modelOverrides?.synthesisModel  ?? DEFAULT_SYNTHESIS_MODEL;
+  // Per-Specialist override layer (Task #495). When the caller knows which
+  // Specialist initiated this research run, resolve persisted overrides
+  // and use them ONLY where the caller did not pass an explicit value —
+  // user-picked models in the chat UI still win over a stale persisted
+  // override.
+  let resolved: OrchestratorModelOverrides | undefined;
+  if (specialistId) {
+    try {
+      const { resolveSpecialistOrchestratorOverrides } = await import("./specialist-llm-resolver");
+      resolved = await resolveSpecialistOrchestratorOverrides(specialistId);
+    } catch {
+      resolved = undefined;
+    }
+  }
+  const ANALYST_A_MODEL  = modelOverrides?.analystAModel  ?? resolved?.analystAModel  ?? DEFAULT_ANALYST_A_MODEL;
+  const ANALYST_B_MODEL  = modelOverrides?.analystBModel  ?? resolved?.analystBModel  ?? DEFAULT_ANALYST_B_MODEL;
+  const SYNTHESIS_MODEL  = modelOverrides?.synthesisModel ?? resolved?.synthesisModel ?? DEFAULT_SYNTHESIS_MODEL;
 
   const location    = params.propertyContext?.location ?? params.propertyContext?.market ?? "unknown";
   const propType    = params.propertyContext?.type ?? "boutique hotel";
@@ -342,6 +369,7 @@ export async function* orchestrateResearch(
         contextPack: relaxationContext.contextPack,
         researchRunId: relaxationContext.researchRunId,
         userId: relaxationContext.userId,
+        specialistId: relaxationContext.specialistId ?? specialistId ?? null,
       });
       compsBlock = formatCompsForPrompt(relaxResult);
       yield { type: "phase", data: `Relaxation complete — L${relaxResult.selectedLevel}, ${relaxResult.comps.length} comparables (evidence: ${relaxResult.evidenceScore.toFixed(2)})` };

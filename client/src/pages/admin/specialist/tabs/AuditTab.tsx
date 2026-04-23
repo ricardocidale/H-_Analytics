@@ -36,7 +36,19 @@ export function AuditTab({ specialistId }: { specialistId: string }) {
                   <tr key={e.id} className="border-t" data-testid={`audit-row-${e.id}`}>
                     <td className="p-2 font-mono text-xs">v{e.version}</td>
                     <td className="p-2">{e.section}</td>
-                    <td className="p-2">{e.changeSummary ?? "—"}</td>
+                    <td className="p-2">
+                      <div>{e.changeSummary ?? "—"}</div>
+                      {e.changedFieldLabels && e.changedFieldLabels.length > 0 && (
+                        <ul
+                          className="mt-1 list-disc pl-4 text-xs text-muted-foreground"
+                          data-testid={`audit-row-${e.id}-fields`}
+                        >
+                          {e.changedFieldLabels.map((label, i) => (
+                            <li key={i}>{label}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
                     <td className="p-2 font-mono text-xs">{e.changedByUserId ?? "—"}</td>
                     <td className="p-2 text-xs text-muted-foreground">{new Date(e.changedAt).toLocaleString()}</td>
                   </tr>

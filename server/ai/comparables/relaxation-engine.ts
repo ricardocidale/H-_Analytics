@@ -47,7 +47,22 @@ const DEFAULT_POLICY: PolicyThresholds = {
   relaxationMaxLevel: 5,
 };
 
-async function loadPolicy(): Promise<PolicyThresholds> {
+async function loadPolicy(specialistId?: string | null): Promise<PolicyThresholds> {
+  // Per-Specialist policy override layer (Task #495). Resolution order is
+  // specialist override → tier1_property pipeline policy → DEFAULT_POLICY.
+  if (specialistId) {
+    try {
+      const { resolveSpecialistPolicyThresholds } = await import("../specialist-llm-resolver");
+      const resolved = await resolveSpecialistPolicyThresholds(specialistId);
+      return {
+        minEvidenceScore: resolved.minEvidenceScore,
+        minCompCount: resolved.minCompCount,
+        relaxationMaxLevel: Math.min(resolved.relaxationMaxLevel, 5) as RelaxLevel,
+      };
+    } catch {
+      // Fall through to global path on resolver failure.
+    }
+  }
   try {
     const policies = await storage.getPipelinePolicies();
     const tier1 = policies.find(p => p.policyKey === "tier1_property" || p.tier === 1);
@@ -300,9 +315,13 @@ export async function progressiveRelax(options: {
   contextPack: PropertyContextPack;
   researchRunId: number;
   userId: number;
+  /** Per-Specialist override scope (Task #495). When provided, that
+   * Specialist's persisted policy overrides take precedence over
+   * tier1_property pipeline defaults. */
+  specialistId?: string | null;
 }): Promise<RelaxationResult> {
-  const { contextPack, researchRunId, userId } = options;
-  const policy = await loadPolicy();
+  const { contextPack, researchRunId, userId, specialistId } = options;
+  const policy = await loadPolicy(specialistId);
   const builder = new ComparableQueryBuilder(contextPack);
   const targetStar = contextPack.classification.starRating ?? contextPack.classification.starRatingSuggested;
   const targetBusinessModel = contextPack.classification.businessModel ?? "hotel";

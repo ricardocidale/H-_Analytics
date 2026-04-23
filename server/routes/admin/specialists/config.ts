@@ -29,8 +29,10 @@ import {
   updateRequiredFieldsSchema,
   updateFieldTogglesSchema,
   updatePrerequisiteTogglesSchema,
+  type UpdateLlmConfigInput,
 } from "@shared/schema";
 import { idParamSchema, toConfigView } from "./_shared";
+import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
 
 export function registerConfigRoutes(app: Express) {
   // ── Update LLM config (promptTemplate + modelResourceId) ────────
@@ -46,24 +48,47 @@ export function registerConfigRoutes(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
-      // Validate the model resource (if any) exists and is kind=model.
-      if (parsed.data.modelResourceId !== null) {
-        const resource = await storage.getAdminResourceById(parsed.data.modelResourceId);
-        if (!resource) return res.status(400).json({ error: "modelResourceId not found" });
+      // Validate every supplied model resource id exists and is kind=model.
+      // Each of {primary, analystA, analystB, synthesis, fallback} can be
+      // null (= "clear override"), a positive int (= "use this model"), or
+      // omitted (= "leave the field unchanged").
+      const modelFieldKeys: Array<keyof UpdateLlmConfigInput> = [
+        "modelResourceId",
+        "analystAModelResourceId",
+        "analystBModelResourceId",
+        "synthesisModelResourceId",
+        "fallbackModelResourceId",
+      ];
+      for (const key of modelFieldKeys) {
+        const value = parsed.data[key] as number | null | undefined;
+        if (value == null) continue; // null or undefined: nothing to look up
+        const resource = await storage.getAdminResourceById(value);
+        if (!resource) {
+          return res.status(400).json({ error: `${key} not found` });
+        }
         if (resource.kind !== "model") {
-          return res.status(400).json({ error: "modelResourceId must reference a Resource of kind=model" });
+          return res.status(400).json({ error: `${key} must reference a Resource of kind=model` });
         }
       }
       const actorId = req.user!.id;
       const updated = await storage.updateSpecialistConfigSection(
         id,
         "llm-config",
-        { promptTemplate: parsed.data.promptTemplate, modelResourceId: parsed.data.modelResourceId },
+        {
+          promptTemplate: parsed.data.promptTemplate,
+          modelResourceId: parsed.data.modelResourceId,
+          analystAModelResourceId: parsed.data.analystAModelResourceId,
+          analystBModelResourceId: parsed.data.analystBModelResourceId,
+          synthesisModelResourceId: parsed.data.synthesisModelResourceId,
+          fallbackModelResourceId: parsed.data.fallbackModelResourceId,
+          multiModelEnabled: parsed.data.multiModelEnabled,
+          workflowOverrides: parsed.data.workflowOverrides,
+        },
         actorId,
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-llm-config", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def));
+      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist LLM config", error);
     }
@@ -104,7 +129,7 @@ export function registerConfigRoutes(app: Express) {
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-required-fields", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def));
+      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist required fields", error);
     }
@@ -216,7 +241,7 @@ export function registerConfigRoutes(app: Express) {
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-field-toggles", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def));
+      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist field toggles", error);
     }
@@ -254,7 +279,7 @@ export function registerConfigRoutes(app: Express) {
         parsed.data.changeSummary,
       );
       logActivity(req, "update-specialist-prerequisite-toggles", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def));
+      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist prerequisite toggles", error);
     }

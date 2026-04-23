@@ -26,12 +26,19 @@ import {
   type SpecialistConfigSectionType,
   type SpecialistRecommendationAction,
   type SpecialistRecommendationEventRow,
+  type SpecialistWorkflowOverrides,
 } from "@shared/schema";
 import { sql } from "drizzle-orm";
 
 export interface SpecialistConfigPatch {
   promptTemplate?: string;
   modelResourceId?: number | null;
+  analystAModelResourceId?: number | null;
+  analystBModelResourceId?: number | null;
+  synthesisModelResourceId?: number | null;
+  fallbackModelResourceId?: number | null;
+  multiModelEnabled?: boolean | null;
+  workflowOverrides?: SpecialistWorkflowOverrides | null;
   requiredFields?: string[];
   fieldRequirements?: Record<string, "hard" | "recommended" | "off">;
   prerequisiteToggles?: Record<string, boolean>;
@@ -42,6 +49,12 @@ export interface SpecialistConfigPatch {
 const EMPTY_CONFIG: Omit<SpecialistConfigRow, "id" | "specialistId" | "version" | "updatedByUserId" | "createdAt" | "updatedAt"> = {
   promptTemplate: "",
   modelResourceId: null,
+  analystAModelResourceId: null,
+  analystBModelResourceId: null,
+  synthesisModelResourceId: null,
+  fallbackModelResourceId: null,
+  multiModelEnabled: null,
+  workflowOverrides: null,
   requiredFields: [],
   fieldRequirements: {},
   prerequisiteToggles: {},
@@ -287,6 +300,12 @@ export class SpecialistConfigStorage {
         section,
         promptTemplate: current.promptTemplate,
         modelResourceId: current.modelResourceId,
+        analystAModelResourceId: current.analystAModelResourceId,
+        analystBModelResourceId: current.analystBModelResourceId,
+        synthesisModelResourceId: current.synthesisModelResourceId,
+        fallbackModelResourceId: current.fallbackModelResourceId,
+        multiModelEnabled: current.multiModelEnabled,
+        workflowOverrides: current.workflowOverrides,
         requiredFields: current.requiredFields,
         fieldRequirements: current.fieldRequirements,
         prerequisiteToggles: current.prerequisiteToggles,
@@ -303,6 +322,12 @@ export class SpecialistConfigStorage {
       };
       if (patch.promptTemplate !== undefined) next.promptTemplate = patch.promptTemplate;
       if (patch.modelResourceId !== undefined) next.modelResourceId = patch.modelResourceId;
+      if (patch.analystAModelResourceId !== undefined) next.analystAModelResourceId = patch.analystAModelResourceId;
+      if (patch.analystBModelResourceId !== undefined) next.analystBModelResourceId = patch.analystBModelResourceId;
+      if (patch.synthesisModelResourceId !== undefined) next.synthesisModelResourceId = patch.synthesisModelResourceId;
+      if (patch.fallbackModelResourceId !== undefined) next.fallbackModelResourceId = patch.fallbackModelResourceId;
+      if (patch.multiModelEnabled !== undefined) next.multiModelEnabled = patch.multiModelEnabled;
+      if (patch.workflowOverrides !== undefined) next.workflowOverrides = patch.workflowOverrides;
       if (patch.requiredFields !== undefined) next.requiredFields = patch.requiredFields;
       if (patch.fieldRequirements !== undefined) next.fieldRequirements = patch.fieldRequirements;
       if (patch.prerequisiteToggles !== undefined) next.prerequisiteToggles = patch.prerequisiteToggles;

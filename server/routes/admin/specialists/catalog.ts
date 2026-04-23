@@ -31,6 +31,7 @@ import {
   resolveSpecialistIdentity,
 } from "../../../../engine/analyst/identity";
 import { idParamSchema, toConfigView } from "./_shared";
+import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
 
 export function registerCatalogRoutes(app: Express) {
   // ── List catalog ────────────────────────────────────────────────
@@ -202,7 +203,7 @@ export function registerCatalogRoutes(app: Express) {
             description: PREREQUISITES[id]?.description ?? "",
           })),
         },
-        config: toConfigView(config, def),
+        config: toConfigView(config, def, await getSpecialistGlobalLlmDefaults()),
         assignments,
       });
     } catch (error: unknown) {

@@ -25,6 +25,7 @@ import {
   pgTable,
   text,
   integer,
+  boolean,
   timestamp,
   jsonb,
   uniqueIndex,
@@ -266,6 +267,38 @@ export function assignmentRefsByKind(
   return out;
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// SpecialistWorkflowOverrides — per-Specialist overrides for the Tier-1
+// pipeline policy knobs. Mirrors the field set on the global Pipeline
+// Policies form. Every field is independently nullable so a Specialist
+// can override one knob (e.g. shorter staleness) without re-stating the
+// rest. Absent / null ⇒ inherit the global default at resolution time.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const SpecialistWorkflowOverridesSchema = z.object({
+  stalenessThresholdHours: z.number().int().min(0).max(8760).nullable().optional(),
+  maxConcurrentRuns: z.number().int().min(1).max(20).nullable().optional(),
+  dailyTokenBudget: z.number().int().min(0).max(10_000_000).nullable().optional(),
+  monthlyTokenBudget: z.number().int().min(0).max(100_000_000).nullable().optional(),
+  relaxationMaxLevel: z.number().int().min(0).max(5).nullable().optional(),
+  minEvidenceScore: z.number().min(0).max(1).nullable().optional(),
+  minCompCount: z.number().int().min(0).max(50).nullable().optional(),
+  autoRefreshIntervalHours: z.number().int().min(1).max(8760).nullable().optional(),
+});
+export type SpecialistWorkflowOverrides = z.infer<typeof SpecialistWorkflowOverridesSchema>;
+
+/** Workflow override field keys exposed to the UI banner / audit renderer. */
+export const SPECIALIST_WORKFLOW_OVERRIDE_KEYS = [
+  "stalenessThresholdHours",
+  "maxConcurrentRuns",
+  "dailyTokenBudget",
+  "monthlyTokenBudget",
+  "relaxationMaxLevel",
+  "minEvidenceScore",
+  "minCompCount",
+  "autoRefreshIntervalHours",
+] as const satisfies readonly (keyof SpecialistWorkflowOverrides)[];
+
 // ════════════════════════════════════════════════════════════════════════════
 // P5 — DRIZZLE TABLES (per-Specialist mutable config the admin edits in the
 // Specialist page). The catalog declares what's wired (and is code-only); this
@@ -285,6 +318,24 @@ export const specialistConfigs = pgTable(
     specialistId: text("specialist_id").notNull(),
     promptTemplate: text("prompt_template").notNull().default(""),
     modelResourceId: integer("model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    /**
+     * Per-Specialist N+1 multi-model orchestrator overrides. All nullable so
+     * `null` ⇒ inherit the global default. (analystAModel, analystBModel) is
+     * the dual-panel; synthesisModel is the +1 reconciler; fallback is N+2.
+     */
+    analystAModelResourceId: integer("analyst_a_model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    analystBModelResourceId: integer("analyst_b_model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    synthesisModelResourceId: integer("synthesis_model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    fallbackModelResourceId: integer("fallback_model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    /** Tri-state: true / false / null = inherit global. */
+    multiModelEnabled: boolean("multi_model_enabled"),
+    /**
+     * Per-Specialist overrides for the Tier-1 pipeline policy knobs. Stored
+     * as a JSON object so the column is forward-compatible with new knobs
+     * without a migration. Keys with `null` (or absent) inherit the global
+     * pipeline policy. See `SpecialistWorkflowOverridesSchema`.
+     */
+    workflowOverrides: jsonb("workflow_overrides").$type<SpecialistWorkflowOverrides | null>(),
     requiredFields: jsonb("required_fields").notNull().$type<string[]>().default([]),
     /**
      * Per-candidate-field toggle state. Keyed by the catalog `candidateFields[].key`.
@@ -345,6 +396,12 @@ export const specialistConfigVersions = pgTable(
     section: text("section").notNull(), // "llm-config" | "required-fields" | "runtime"
     promptTemplate: text("prompt_template").notNull().default(""),
     modelResourceId: integer("model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    analystAModelResourceId: integer("analyst_a_model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    analystBModelResourceId: integer("analyst_b_model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    synthesisModelResourceId: integer("synthesis_model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    fallbackModelResourceId: integer("fallback_model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
+    multiModelEnabled: boolean("multi_model_enabled"),
+    workflowOverrides: jsonb("workflow_overrides").$type<SpecialistWorkflowOverrides | null>(),
     requiredFields: jsonb("required_fields").notNull().$type<string[]>().default([]),
     fieldRequirements: jsonb("field_requirements").notNull().$type<Record<string, "hard" | "recommended" | "off">>().default({}),
     prerequisiteToggles: jsonb("prerequisite_toggles").notNull().$type<Record<string, boolean>>().default({}),
@@ -379,6 +436,19 @@ export type SpecialistConfigSectionType = z.infer<typeof SpecialistConfigSection
 export const updateLlmConfigSchema = z.object({
   promptTemplate: z.string().max(20_000),
   modelResourceId: z.number().int().positive().nullable(),
+  /** N+1 multi-model orchestrator overrides. `null` ⇒ inherit global default. */
+  analystAModelResourceId: z.number().int().positive().nullable().optional(),
+  analystBModelResourceId: z.number().int().positive().nullable().optional(),
+  synthesisModelResourceId: z.number().int().positive().nullable().optional(),
+  /** N+2 fallback model. `null` ⇒ inherit global default. */
+  fallbackModelResourceId: z.number().int().positive().nullable().optional(),
+  /** Tri-state multi-model toggle. `null` ⇒ inherit global default. */
+  multiModelEnabled: z.boolean().nullable().optional(),
+  /**
+   * Workflow-policy overrides. Send `null` to clear all overrides; send an
+   * object to merge field-by-field (omitted / null fields inherit global).
+   */
+  workflowOverrides: SpecialistWorkflowOverridesSchema.nullable().optional(),
   changeSummary: z.string().max(500).optional(),
 });
 export type UpdateLlmConfigInput = z.infer<typeof updateLlmConfigSchema>;
@@ -435,10 +505,44 @@ export const updateCadenceSchema = z.object({
 });
 export type UpdateCadenceInput = z.infer<typeof updateCadenceSchema>;
 
+/**
+ * Snapshot of the global defaults that the LLM Config tab shows as the
+ * "Inheriting global default" placeholder for each overridable field.
+ * Pulled from the global pipeline policies + N+1 orchestrator constants
+ * server-side so the UI doesn't have to re-resolve them per render.
+ */
+export const SpecialistGlobalLlmDefaultsSchema = z.object({
+  multiModelEnabled: z.boolean(),
+  analystAModelLabel: z.string().nullable(),
+  analystBModelLabel: z.string().nullable(),
+  synthesisModelLabel: z.string().nullable(),
+  fallbackModelLabel: z.string().nullable(),
+  workflow: z.object({
+    stalenessThresholdHours: z.number().int().nullable(),
+    maxConcurrentRuns: z.number().int().nullable(),
+    dailyTokenBudget: z.number().int().nullable(),
+    monthlyTokenBudget: z.number().int().nullable(),
+    relaxationMaxLevel: z.number().int().nullable(),
+    minEvidenceScore: z.number().nullable(),
+    minCompCount: z.number().int().nullable(),
+    autoRefreshIntervalHours: z.number().int().nullable(),
+  }),
+});
+export type SpecialistGlobalLlmDefaults = z.infer<typeof SpecialistGlobalLlmDefaultsSchema>;
+
 export const SpecialistConfigPublicViewSchema = z.object({
   specialistId: z.string(),
   promptTemplate: z.string(),
   modelResourceId: z.number().int().nullable(),
+  /** N+1 multi-model orchestrator overrides. `null` ⇒ inherit global default. */
+  analystAModelResourceId: z.number().int().nullable(),
+  analystBModelResourceId: z.number().int().nullable(),
+  synthesisModelResourceId: z.number().int().nullable(),
+  fallbackModelResourceId: z.number().int().nullable(),
+  multiModelEnabled: z.boolean().nullable(),
+  workflowOverrides: SpecialistWorkflowOverridesSchema.nullable(),
+  /** Resolved global defaults shown as inherit placeholders in the UI. */
+  globalLlmDefaults: SpecialistGlobalLlmDefaultsSchema,
   requiredFields: z.array(z.string()),
   /**
    * Per-Specialist allow-list for `requiredFields` keys, or `null` when

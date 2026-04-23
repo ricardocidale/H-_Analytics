@@ -152,7 +152,7 @@ export function register(app: Express) {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
 
-      const { type, propertyId, propertyContext, assetDefinition, researchVariables } = validation.data;
+      const { type, propertyId, propertyContext, assetDefinition, researchVariables, specialistId } = validation.data;
 
       if (propertyId && !(await checkPropertyAccess(getAuthUser(req), propertyId))) {
         return res.status(403).json({ error: "Access denied" });
@@ -463,7 +463,20 @@ export function register(app: Express) {
           logger.warn(`Research prompt assembly failed: ${err instanceof Error ? err.message : err}`, "research");
         }
 
-      const useOrchestrator = type === "property" && isOrchestratorAvailable();
+      // Per-Specialist override resolution (Task #495). When the Specialist
+      // disables N+1 multi-model synthesis, force the legacy single-shot
+      // path and use the Specialist's configured fallback/primary model.
+      let specialistOverrides: OrchestratorModelOverrides | undefined;
+      if (specialistId) {
+        try {
+          const { resolveSpecialistOrchestratorOverrides } = await import("../ai/specialist-llm-resolver");
+          specialistOverrides = await resolveSpecialistOrchestratorOverrides(specialistId);
+        } catch {
+          specialistOverrides = undefined;
+        }
+      }
+      const multiModelDisabled = specialistOverrides?.multiModelEnabled === false;
+      const useOrchestrator = type === "property" && isOrchestratorAvailable() && !multiModelDisabled;
       let earlyRunId: number | undefined;
       if (useOrchestrator && propertyContextPack && propertyId) {
         const earlyRun = await storage.createResearchRun({
@@ -485,15 +498,31 @@ export function register(app: Express) {
         earlyRunId = earlyRun.id;
       }
       const relaxCtx = (useOrchestrator && propertyContextPack && propertyId && earlyRunId)
-        ? { researchRunId: earlyRunId, userId: getAuthUser(req).id, contextPack: propertyContextPack }
+        ? { researchRunId: earlyRunId, userId: getAuthUser(req).id, contextPack: propertyContextPack, specialistId }
         : undefined;
+      // Per-Specialist model resolution chain (Task #495):
+      //   • Analyst A/B: request `model`/`secondaryModel` only when the
+      //     caller actually passed values; otherwise leave undefined so
+      //     the orchestrator's specialist→default resolver wins. This
+      //     stops a default request `model` from masking the Specialist's
+      //     persisted Analyst-A override.
+      //   • Primary single-shot model: specialist override → request model.
+      //   • Fallback (N+2): specialist override → primary fallback chain.
+      // When the Specialist has its own Analyst-A/B override we leave the
+      // orchestrator slot undefined so the in-orchestrator resolver wins;
+      // otherwise we fall back to the request-context primary/secondary
+      // model so existing behavior is preserved when no Specialist override
+      // exists. Prevents a default request `model` from masking a
+      // persisted Specialist Analyst-A model.
       const orchestratorModels: OrchestratorModelOverrides | undefined = useOrchestrator ? {
-        analystAModel: model,
-        analystBModel: secondaryModel || undefined,
+        analystAModel: specialistOverrides?.analystAModel ? undefined : model,
+        analystBModel: specialistOverrides?.analystBModel ? undefined : (secondaryModel || undefined),
       } : undefined;
+      const primaryModel = specialistOverrides?.primaryModel ?? model;
+      const fallbackModel = specialistOverrides?.fallbackModel ?? primaryModel;
       const stream = useOrchestrator
-        ? orchestrateResearch(params, v2Prompt, relaxCtx, orchestratorModels)
-        : generateResearchWithToolsStream(params, researchClient, model, secondaryModel, v2Prompt);
+        ? orchestrateResearch(params, v2Prompt, relaxCtx, orchestratorModels, specialistId)
+        : generateResearchWithToolsStream(params, researchClient, primaryModel, secondaryModel, v2Prompt);
 
       // ── Stream loop — accumulate content, forward events to client ──
       let fullContent = "";
@@ -502,7 +531,7 @@ export function register(app: Express) {
         // Orchestrator hard failure — fall back to single-model
         if (chunk.type === "error" && chunk.data.startsWith("ORCHESTRATOR_BOTH_FAILED")) {
           res.write(`data: ${JSON.stringify({ type: "phase", data: "Falling back to single-model research…" })}\n\n`);
-          const fallback = generateResearchWithToolsStream(params, researchClient, model, secondaryModel, v2Prompt);
+          const fallback = generateResearchWithToolsStream(params, researchClient, fallbackModel, secondaryModel, v2Prompt);
           for await (const fb of fallback) {
             res.write(`data: ${JSON.stringify(fb)}\n\n`);
             if (fb.type === "content") fullContent += fb.data;

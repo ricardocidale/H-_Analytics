@@ -8,7 +8,11 @@ import type {
   ResourceHealthStatus,
   ProbeStatus,
   ResourceKind,
+  SpecialistGlobalLlmDefaults,
+  SpecialistWorkflowOverrides,
 } from "@shared/schema";
+
+export type { SpecialistGlobalLlmDefaults, SpecialistWorkflowOverrides };
 
 export type Capability =
   | "required-fields"
@@ -43,6 +47,18 @@ export interface SpecialistConfigView {
   specialistId: string;
   promptTemplate: string;
   modelResourceId: number | null;
+  /** N+1 multi-model orchestrator overrides. `null` ⇒ inherit global default. */
+  analystAModelResourceId: number | null;
+  analystBModelResourceId: number | null;
+  synthesisModelResourceId: number | null;
+  /** N+2 fallback model. */
+  fallbackModelResourceId: number | null;
+  /** Tri-state: true / false / null = inherit global. */
+  multiModelEnabled: boolean | null;
+  /** Per-Specialist tier-1 workflow overrides. */
+  workflowOverrides: SpecialistWorkflowOverrides | null;
+  /** Resolved global defaults to render as "Inheriting global default" placeholders. */
+  globalLlmDefaults: SpecialistGlobalLlmDefaults;
   requiredFields: string[];
   /** Per-Specialist allow-list for requiredFields keys; null = no allow-list. */
   validRequiredFieldKeys: string[] | null;
@@ -99,6 +115,7 @@ export interface SpecialistAuditEntry {
   version: number;
   section: "llm-config" | "required-fields" | "runtime";
   changeSummary: string | null;
+  changedFieldLabels: string[];
   changedByUserId: number | null;
   changedAt: string;
   promptTemplate: string;
