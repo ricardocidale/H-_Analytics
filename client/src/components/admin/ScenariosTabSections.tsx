@@ -85,7 +85,7 @@ export function DeletedScenariosSection() {
 
   if (!deleted?.length && !isLoading) return null;
 
-  const renderScenarioRow = (s: any, isExpired: boolean) => {
+  const renderScenarioRow = (s: { id: number; name: string; deletedAt: string; purgeAfter: string | null; ownerName: string | null; ownerEmail: string }, isExpired: boolean) => {
     const daysSince = getDaysSinceDeleted(s.deletedAt);
     const daysLeft = getDaysUntilPurge(s.purgeAfter);
 
