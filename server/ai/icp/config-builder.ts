@@ -55,12 +55,6 @@ export function buildIcpConfigFromPortfolio(
     return { lo: fallbackMin, hi: fallbackMax };
   }
 
-  function _fromAggSingle(agg: { mean: number } | null, fallback: number): number {
-    if (agg && agg.mean > 0) { fromPortfolio++; return Math.round(agg.mean); }
-    fromDefaults++;
-    return fallback;
-  }
-
   // Rooms
   const rooms = fromAgg(analysis.rooms, FALLBACK.roomsMin, FALLBACK.roomsMax, 0.15);
   const roomsSweet = analysis.rooms.max > 0
