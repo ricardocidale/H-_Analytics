@@ -280,7 +280,7 @@ export function buildPremiumExportPayload(ctx: PropertyExportContext, version: E
     return closeCash[i] + Math.max(totalPropertyCost - depPerYear * (i + 1), 0);
   }), isBold: true });
   bsRows.push({ category: "LIABILITIES", values: yearlyDetails.map(() => 0), isHeader: true });
-  const loanBalances = yearlyDetails.map((_: any, i: number) => {
+  const loanBalances = yearlyDetails.map((_unused, i: number) => {
     if (i === 0) cumLoanBalance = loan.loanAmount;
     if (i > 0) cumLoanBalance -= cashFlowData[i - 1].principalPayment;
     return Math.max(cumLoanBalance - cashFlowData[i].principalPayment, 0);
@@ -288,7 +288,7 @@ export function buildPremiumExportPayload(ctx: PropertyExportContext, version: E
   bsRows.push({ category: "Loan Balance", values: loanBalances, indent: 1 });
   bsRows.push({ category: "Total Liabilities", values: loanBalances, isBold: true });
   bsRows.push({ category: "EQUITY", values: yearlyDetails.map(() => 0), isHeader: true });
-  bsRows.push({ category: "Total Equity", values: yearlyDetails.map((_: any, i: number) => {
+  bsRows.push({ category: "Total Equity", values: yearlyDetails.map((_unused, i: number) => {
     const depPerYear = totalPropertyCost / depYears;
     const totalAssets = closeCash[i] + Math.max(totalPropertyCost - depPerYear * (i + 1), 0);
     return totalAssets - loanBalances[i];

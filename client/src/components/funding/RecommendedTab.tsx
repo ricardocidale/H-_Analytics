@@ -13,8 +13,8 @@ export function RecommendedTab({ analysis, fundingLabel, chartData, gapType, pro
   chartData: { month: number; withFunding: number; withoutFunding: number }[];
   gapType: string;
   projectionYears: number;
-  global: any;
-  marketRates: any;
+  global: import("@/lib/api/types").GlobalResponse | null | undefined;
+  marketRates: import("@/lib/api/market-rates").MarketRateResponse[] | null | undefined;
 }) {
   return (
     <>
