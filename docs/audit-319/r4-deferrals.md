@@ -10,7 +10,7 @@ Three files >1000 lines remain unsplit at the close of R4. Each is a single-comp
 | `client/src/components/admin/model-defaults/ModelConstantsTab.tsx` | 1053 → 409 | DONE (T006) |
 | `client/src/pages/CompanyAssumptions.tsx` | 1117 | **DEFERRED** |
 | `server/storage/intelligence-v2.ts` | 1199 | **DEFERRED** |
-| `server/ai/data-routing.ts` | 1150 | **DEFERRED** |
+| `server/ai/data-routing.ts` | 1150 → 192 | DONE (T470) |
 | `server/ai/risk-intelligence.ts` | 1012 | **DEFERRED** |
 
 All gates remain PASS UNQUALIFIED; `audit:quick` reports 0 critical, prop `:any` count = 9 (objective ≤ 40 met).
@@ -39,14 +39,21 @@ All gates remain PASS UNQUALIFIED; `audit:quick` reports 0 critical, prop `:any`
 
 **Required precursor:** introduce a transaction-scoped session object (`IntelligenceTx`) so domain modules can be split without losing transactional guarantees.
 
-## server/ai/data-routing.ts (1150 lines) — Deferred
+## server/ai/data-routing.ts (1150 → 192 lines) — DONE (T470)
 
-**Why not split now:**
+The original deferral text described a hypothetical model-router shape (`pickModel` / `recordDecision` / `applyAdminOverride` / `enforceBudget` / `recentDecisions`) that was never actually present in the file. The file on disk was — and still is — the **smart data router**: a routing table mapping assumption fields to external services, with a per-service dispatcher and progressive-relaxation fallback.
 
-- Hosts the live router that selects models by domain × admin override × budget × probe-result. Every clause is exercised by a different test file; splitting changes import paths for 11 test files in one PR.
-- Internal helpers `pickModel`, `recordDecision`, `applyAdminOverride`, `enforceBudget` share a private cache (`recentDecisions`) and a probe-result map. The file is intentionally monolithic so one git blame surfaces every routing change.
+The spirit of the precursor still applied: an in-module mutable cache (`_enabledMap` + `_enabledMapFetchedAt`) was the only state coupling that prevented a clean split. T470 extracted that cache into an **injectable integration-status sink** and then split the file along its existing section boundaries:
 
-**Required precursor:** decouple `recentDecisions` into an injectable telemetry sink, then helpers become independently testable and movable.
+- `server/ai/data-routing/types.ts` — shared types
+- `server/ai/data-routing/routing-table.ts` — `DATA_ROUTING_TABLE` (pure data)
+- `server/ai/data-routing/integration-status-sink.ts` — `IntegrationStatusSink` interface + default TTL-cached implementation, with `getIntegrationStatusSink` / `setIntegrationStatusSink` for tests
+- `server/ai/data-routing/service-registry.ts` — lazy service singletons + `isServiceEnabled` (consumes the sink)
+- `server/ai/data-routing/relaxation.ts` — `buildRelaxedContexts`, `relaxQualityTier`, `confidenceFromRelaxation`
+- `server/ai/data-routing/dispatchers.ts` — `callServiceForField` + `buildFieldSpecificQuery`
+- `server/ai/data-routing.ts` — orchestrator (`fetchFieldData`, `fetchMultipleFields`, plus utility exports). Re-exports the public types/values so existing callers (`research-data-injector.ts`, `routes/research.ts`, the test suite) need no changes.
+
+All 30 `tests/ai/data-routing.test.ts` tests and the 17 `tests/ai/research-data-injector.test.ts` tests pass. TypeScript and lint are clean.
 
 ## server/ai/risk-intelligence.ts (1012 lines) — Deferred
 
