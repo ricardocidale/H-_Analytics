@@ -35,6 +35,24 @@ import {
 // pipeline can both depend on them without a shared adapter.
 // ───────────────────────────────────────────────────────────────────────────
 
+/**
+ * Jurisdiction identifier contract.
+ *
+ * `country` is a HUMAN-READABLE country NAME (e.g. "United States",
+ * "Spain", "Colombia"), NOT an ISO-3166 code. This matches the locality
+ * convention used everywhere else in the model-constants pipeline
+ * (`MODEL_CONSTANTS_REGISTRY`, `getEffectiveConstant`, `model_constant_overrides.country`).
+ * If we ever migrate constants to ISO codes, this tool migrates with
+ * them — until then, callers MUST use the country name exactly as it
+ * appears in the registry. `getBulletinSource` does an exact-match
+ * lookup, so casing and spelling are significant.
+ *
+ * `subdivision` is `null` for country-level / federal sources and a
+ * human-readable subdivision name (e.g. a US state) when present.
+ * Storage rows coerce `null` to the empty string for the unique index;
+ * the tool surface keeps `null` so callers do not need to know that
+ * detail.
+ */
 export interface JurisdictionKey {
   readonly country: string;
   /** `null` for federal-level / country-only sources. */
