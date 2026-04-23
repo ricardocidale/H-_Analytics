@@ -269,6 +269,10 @@ export const globalAssumptions = pgTable("global_assumptions", {
   rebeccaDisplayName: text("rebecca_display_name").notNull().default("Rebecca"),
   rebeccaSystemPrompt: text("rebecca_system_prompt"),
   rebeccaChatEngine: text("rebecca_chat_engine").notNull().default("gemini"),
+  // Task #499 — full Rebecca persona/voice/llm/source configuration. Stored as
+  // jsonb so existing rows fall back to coded defaults; merged via
+  // mergeRebeccaSettings() in shared/rebecca-settings.ts.
+  rebeccaConfig: jsonb("rebecca_config"),
 
   // Research Configuration — per-event admin control over AI research behavior
   researchConfig: jsonb("research_config").$type<ResearchConfig>().default({}),

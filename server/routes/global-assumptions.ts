@@ -9,6 +9,7 @@ import { invalidateComputeCache } from "../finance/cache";
 import { logger } from "../logger";
 import { flag } from "../feature-flags";
 import { stripCanonicalDenylistedFields } from "./global-assumptions-denylist";
+import { rebeccaSettingsPatchSchema, mergeRebeccaSettings } from "@shared/rebecca-settings";
 
 const appearanceDefaultsSchema = z.object({
   defaultColorMode: z.enum(["light", "auto", "dark"]).nullable().optional(),
@@ -63,6 +64,8 @@ export function register(app: Express) {
     rebeccaDisplayName: z.string().min(1).max(50).optional(),
     rebeccaSystemPrompt: z.string().max(5000).nullable().optional(),
     rebeccaChatEngine: z.enum(["gemini", "perplexity"]).optional(),
+    // Task #499 — full Rebecca config payload (deep-merged on top of stored row).
+    rebeccaConfig: rebeccaSettingsPatchSchema.optional(),
   });
 
   app.patch("/api/global-assumptions", requireAdmin, async (req, res) => {
@@ -77,6 +80,24 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Global assumptions not found" });
       }
       const patch: Record<string, unknown> = { ...validation.data, updatedAt: new Date() };
+      if (validation.data.rebeccaConfig) {
+        // Deep-merge incoming partial config on top of stored row, then strip any
+        // unknown keys via mergeRebeccaSettings to keep the column shape canonical.
+        const merged = mergeRebeccaSettings({
+          ...(current.rebeccaConfig ?? {}),
+          ...validation.data.rebeccaConfig,
+          identity: { ...((current.rebeccaConfig as any)?.identity ?? {}), ...(validation.data.rebeccaConfig.identity ?? {}) },
+          personality: { ...((current.rebeccaConfig as any)?.personality ?? {}), ...(validation.data.rebeccaConfig.personality ?? {}) },
+          voice: { ...((current.rebeccaConfig as any)?.voice ?? {}), ...(validation.data.rebeccaConfig.voice ?? {}) },
+          behavior: { ...((current.rebeccaConfig as any)?.behavior ?? {}), ...(validation.data.rebeccaConfig.behavior ?? {}) },
+          llm: { ...((current.rebeccaConfig as any)?.llm ?? {}), ...(validation.data.rebeccaConfig.llm ?? {}) },
+          sources: {
+            ...((current.rebeccaConfig as any)?.sources ?? {}),
+            ...(validation.data.rebeccaConfig.sources ?? {}),
+          },
+        });
+        patch.rebeccaConfig = merged;
+      }
       const updated = await storage.patchGlobalAssumptions(current.id, patch);
       logActivity(req, "update", "global_assumptions", updated.id, "Rebecca Config");
       res.json(updated);
