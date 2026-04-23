@@ -780,20 +780,43 @@ function RecommendationsCard({
   // "admin saw this and walked away" apart from "admin has not loaded
   // this page yet." We capture the current visible list in a ref so the
   // cleanup closure reads the latest snapshot at unmount time.
+  //
+  // Dedup (Phase 4 pt.2): React Strict Mode double-mounts and tab
+  // switches would otherwise fire multiple passive-ignore events per
+  // (specialistId, fieldKey). `beaconedRef` holds a Set of
+  // `${fieldKey}:ignore-passive` keys we've already fired this mount
+  // session; it resets on `specialistId` change.
   const visibleRef = useRef<string[]>([]);
   visibleRef.current = recommendations;
+  const beaconedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
+    beaconedRef.current = new Set();
     return () => {
       const keys = visibleRef.current;
       if (keys.length === 0) return;
       const url = `/api/admin/specialists/${specialistId}/recommendation-event`;
       for (const key of keys) {
+        const dedupKey = `${key}:ignore-passive`;
+        if (beaconedRef.current.has(dedupKey)) continue;
+        beaconedRef.current.add(dedupKey);
         try {
           const blob = new Blob(
             [JSON.stringify({ fieldKey: key, action: "ignore", passive: true })],
             { type: "application/json" },
           );
-          navigator.sendBeacon?.(url, blob);
+          // sendBeacon returns false if the UA refused to queue the
+          // request (payload too large, disabled, etc). Warn loudly so
+          // an in-prod failure mode doesn't silently nuke the
+          // calibration signal. A 401 from the server (expiring
+          // session) will still surface server-side in the activity
+          // log; there's no response body we can read from beacon.
+          const queued = navigator.sendBeacon?.(url, blob) ?? false;
+          if (!queued) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[specialist-telemetry] passive-ignore beacon not queued for ${specialistId}/${key}`,
+            );
+          }
         } catch {
           /* best-effort — telemetry only */
         }

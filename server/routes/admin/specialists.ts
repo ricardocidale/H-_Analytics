@@ -24,6 +24,7 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
+import { aiRateLimit } from "../../middleware/rate-limit";
 import { logActivity, logAndSendError } from "../helpers";
 import {
   SPECIALIST_CATALOG,
@@ -418,7 +419,7 @@ export function registerAdminSpecialistRoutes(app: Express) {
   // delete the prior promote signal. Ignore actions are pure telemetry —
   // they do not touch the toggle state, only inform the catalog calibration
   // (high ignore-ratio means "candidate is noise, drop from catalog").
-  app.post("/api/admin/specialists/:id/recommendation-event", requireAdmin, async (req, res) => {
+  app.post("/api/admin/specialists/:id/recommendation-event", requireAdmin, aiRateLimit(100, 60_000), async (req, res) => {
     try {
       const { id } = idParamSchema.parse(req.params);
       const def = getSpecialistById(id);
