@@ -254,7 +254,7 @@ export async function buildRebeccaContext(
       if (match.sourceName) parts.push(`Source: ${match.sourceName}${match.sourceDate ? ` (${match.sourceDate})` : ""}`);
       if (match.relaxationLevel != null) parts.push(`Comparable search relaxation level: L${match.relaxationLevel}`);
 
-      const compSet = match.comparableSet as any;
+      const compSet = match.comparableSet as { comparables?: unknown[]; count?: number } | null | undefined;
       if (compSet && typeof compSet === "object") {
         const compCount = Array.isArray(compSet.comparables) ? compSet.comparables.length : (compSet.count ?? 0);
         if (compCount > 0) parts.push(`Based on ${compCount} comparable properties`);

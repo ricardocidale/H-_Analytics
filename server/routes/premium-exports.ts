@@ -110,7 +110,7 @@ async function generateViaTemplatePipeline(
         logger.info(`[weasyprint] Generating PDF via HTML templates + WeasyPrint...`, "premium-export");
         try {
           // Build sections from financial data — tables + charts only (no cover/TOC)
-          const sections = buildPdfSectionsFromData(data as any);
+          const sections = buildPdfSectionsFromData(data as unknown as Parameters<typeof buildPdfSectionsFromData>[0]);
           const financialSections = sections.filter(s =>
             s.type === "financial_table" || s.type === "line_chart" || s.type === "metrics_dashboard"
           );

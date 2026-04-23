@@ -270,7 +270,7 @@ export default function IcpStudio() {
         icpGeneratedPrompt: activePrompt,
         icpPromptMode: promptMode,
         icpVersionHistory: updatedVersions,
-      } as any);
+      } as unknown as Partial<import("@/lib/api").GlobalResponse>);
       setVersions(updatedVersions);
       toast({ title: "ICP saved", description: "Profile and prompt updated successfully." });
     } catch {

@@ -62,7 +62,11 @@ function useClientPortfolioFinancials(
         newCache.set(p.id, cached);
         return cached;
       }
-      const financials = generatePropertyProForma(p as any, global as any, projectionMonths);
+      const financials = generatePropertyProForma(
+        p as unknown as Parameters<typeof generatePropertyProForma>[0],
+        global as unknown as Parameters<typeof generatePropertyProForma>[1],
+        projectionMonths,
+      );
       const entry: CachedPropertyResult = { property: p, financials, updatedAtMs };
       newCache.set(p.id, entry);
       return entry;

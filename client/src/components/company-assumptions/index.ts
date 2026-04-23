@@ -60,4 +60,7 @@ export type { TabValidationWarning } from "./TabActions";
 export { RangePillsLayer } from "./RangePillsLayer";
 export type { RangePillSpec } from "./RangePillsLayer";
 export { default as SummaryFooter } from "./SummaryFooter";
+export { CompanyAssumptionsHeaderBar } from "./CompanyAssumptionsHeaderBar";
+export { CompanyAssumptionsTabsView } from "./CompanyAssumptionsTabsView";
+export { CompanyAnalystOverlay } from "./CompanyAnalystOverlay";
 export type * from "./types";

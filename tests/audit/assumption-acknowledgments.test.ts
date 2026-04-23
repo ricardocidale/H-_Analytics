@@ -138,7 +138,10 @@ describe("TabActions.handleKeep — fail loudly + invalidate cache", () => {
 });
 
 describe("CompanyAssumptions — ack lifecycle on edit + save", () => {
-  const src = read("client/src/pages/CompanyAssumptions.tsx");
+  // Behavior moved into the useCompanyAssumptionsForm hook during the
+  // page-shell decomposition (task 471). The contract is unchanged; only
+  // the file location moved.
+  const src = read("client/src/hooks/useCompanyAssumptionsForm.ts");
 
   it("uses useQueryClient (needed to invalidate ack cache on field edit)", () => {
     expect(src).toContain("useQueryClient");
@@ -163,8 +166,8 @@ describe("CompanyAssumptions — ack lifecycle on edit + save", () => {
     // The architect flagged that computeTabWarnings(touched, ...) reports
     // a tab as clean while a previously-flagged untouched field remains.
     // The fix: pass `keys` (the full TAB_FIELDS[tab]) instead of `touched`.
-    expect(src).toMatch(/computeTabWarnings\(\s*keys\s*,\s*formData\s*\)/);
-    expect(src).not.toMatch(/computeTabWarnings\(\s*touched\s*,\s*formData\s*\)/);
+    expect(src).toMatch(/computeTabWarnings\(\s*keys\s*,\s*formData\b/);
+    expect(src).not.toMatch(/computeTabWarnings\(\s*touched\s*,\s*formData\b/);
   });
 });
 
@@ -193,17 +196,21 @@ describe("RangePillsLayer — re-evaluates on tab change without a global observ
 });
 
 describe("CompanyAssumptions — passes the active tab as the RangePillsLayer reKey", () => {
-  const src = read("client/src/pages/CompanyAssumptions.tsx");
+  // RangePillsLayer is now rendered from the extracted HeaderBar section
+  // (task 471 page-shell decomposition); the page wraps activeTab through.
+  const headerBarSrc = read("client/src/components/company-assumptions/CompanyAssumptionsHeaderBar.tsx");
+  const pageSrc = read("client/src/pages/CompanyAssumptions.tsx");
 
   it("passes activeTab as reKey to RangePillsLayer", () => {
-    expect(src).toContain("<RangePillsLayer pills={pills} reKey={activeTab} />");
+    expect(headerBarSrc).toContain("<RangePillsLayer pills={pills} reKey={activeTab} />");
   });
 
   it("does not introduce a tabPanelRef ref-passing pattern (caused hooks-order bug)", () => {
     // The previous attempt added `useRef` + a conditional ref on TabsContent
     // which interacted poorly with Radix/HMR. The reKey approach is safer
     // and requires no extra hook in the page.
-    expect(src).not.toMatch(/tabPanelRef/);
+    expect(pageSrc).not.toMatch(/tabPanelRef/);
+    expect(headerBarSrc).not.toMatch(/tabPanelRef/);
   });
 });
 

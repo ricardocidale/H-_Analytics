@@ -97,7 +97,7 @@ export class PropertyStorage {
   /** Insert a new property into the portfolio. Returns the created record with generated ID. */
   async createProperty(data: InsertProperty): Promise<Property> {
     // Defense-in-depth: strip any non-column keys that may have leaked through
-    // `as any` casts from callers (syncHelpers, route handlers, etc.)
+    // loose casts from callers (syncHelpers, route handlers, etc.)
     const safeData = stripToColumns(properties, data as Record<string, unknown>);
     const [property] = await db
       .insert(properties)

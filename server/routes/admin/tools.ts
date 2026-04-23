@@ -286,7 +286,7 @@ export function registerToolRoutes(app: Express) {
         }
       }
 
-      const asAnyMatch = auditClean.match(/`as any` budget \(server:\s*(\d+),\s*client:\s*(\d+)\)\s+(\d+)/);
+      const asAnyMatch = auditClean.match(/`as\s+any` budget \(server:\s*(\d+),\s*client:\s*(\d+)\)\s+(\d+)/);
       const asAnyBudget = asAnyMatch
         ? { server: parseInt(asAnyMatch[1], 10), client: parseInt(asAnyMatch[2], 10), total: parseInt(asAnyMatch[3], 10), limit: 100 }
         : { server: 0, client: 0, total: 0, limit: 100 };

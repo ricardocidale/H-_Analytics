@@ -336,7 +336,7 @@ export function registerModelConstantsRoutes(app: Express) {
         "model-constants",
       );
 
-      const userId = (req as any).user?.id ?? null;
+      const userId = (req.user as { id?: number } | undefined)?.id ?? null;
 
       const result = await storage.upsertModelConstantOverride({
         constantKey: key,

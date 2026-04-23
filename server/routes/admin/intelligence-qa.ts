@@ -211,13 +211,13 @@ export function registerQaRoutes(app: Express) {
       }
 
       const researchConfig = ga?.researchConfig as ResearchConfig | undefined;
-      const resolved = resolveLlm(researchConfig, domain as any);
+      const resolved = resolveLlm(researchConfig, domain);
       const vendorKey = getVendorService(resolved.vendor);
 
       const supportedVendor: "anthropic" | "openai" | "google" =
         vendorKey === "gemini" ? "google" : vendorKey === "anthropic" ? "anthropic" : "openai";
 
-      const clients: Record<string, unknown> = {};
+      const clients: Parameters<typeof createResearchClient>[1] = {};
       try {
         if (supportedVendor === "google") clients.gemini = getGeminiClient();
         else if (supportedVendor === "anthropic") clients.anthropic = getAnthropicClient();
@@ -227,7 +227,7 @@ export function registerQaRoutes(app: Express) {
         return res.status(503).json({ error: msg });
       }
 
-      const researchClient = createResearchClient(supportedVendor, clients as any);
+      const researchClient = createResearchClient(supportedVendor, clients);
       const startTime = Date.now();
 
       const response = await researchClient.createMessage({

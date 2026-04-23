@@ -1,6 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type OpenAI from "openai";
-import type { GoogleGenAI } from "@google/genai";
+import type { GoogleGenAI, ToolUnion } from "@google/genai";
 
 export interface ToolCall {
   id: string;
@@ -191,7 +191,7 @@ export class GeminiResearchClient implements ResearchClient {
       config: {
         maxOutputTokens: params.maxTokens,
         systemInstruction: params.system,
-        tools: geminiTools as any,
+        tools: geminiTools as ToolUnion[] | undefined,
       },
     });
 
@@ -238,8 +238,8 @@ export class GeminiResearchClient implements ResearchClient {
 
   convertTools(tools: Anthropic.Tool[]): unknown[] {
     const declarations = tools.map((t) => {
-      const params = { ...t.input_schema };
-      delete (params as any).additionalProperties;
+      const params: Record<string, unknown> = { ...t.input_schema };
+      delete params.additionalProperties;
       return {
         name: t.name,
         description: t.description,
