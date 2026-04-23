@@ -386,12 +386,12 @@ export class FinancialStorage {
   }
 
   async updateScenarioSnapshot(scenarioId: number, data: {
-    globalAssumptions: any;
-    properties: any;
-    feeCategories?: any;
-    propertyPhotos?: any;
-    serviceTemplates?: any;
-    computedResults?: any;
+    globalAssumptions: import("@shared/schema/types/jsonb-shapes").ScenarioGlobalAssumptionsSnapshot;
+    properties: import("@shared/schema/types/jsonb-shapes").ScenarioPropertySnapshot[];
+    feeCategories?: Record<string, import("@shared/schema/types/jsonb-shapes").ScenarioFeeCategorySnapshot[]>;
+    propertyPhotos?: Record<string, import("@shared/schema/types/jsonb-shapes").ScenarioPhotoSnapshot[]>;
+    serviceTemplates?: import("@shared/schema/types/jsonb-shapes").ScenarioServiceTemplateSnapshot[];
+    computedResults?: import("@shared/schema").ComputedResultsSnapshot | null;
     computeHash?: string | null;
   }): Promise<Scenario | undefined> {
     const { globalAssumptions, properties: props, feeCategories, propertyPhotos: photos, serviceTemplates, computedResults, computeHash } = data;

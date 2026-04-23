@@ -203,9 +203,9 @@ export function buildPdfSectionsFromData(data: PdfExportData): PdfSection[] {
         };
 
         for (const row of filteredRows) {
-          if (row.type === "header" && !row.indent && majorSections.has(row.category.trim())) {
+          if (row.type === "header" && !row.indent && majorSections.has((row.category || "").trim())) {
             flushSection();
-            pendingTitle = row.category.trim();
+            pendingTitle = (row.category || "").trim();
             pending = [row];
           } else {
             pending.push(row);

@@ -55,8 +55,19 @@ export function monotoneCubicPath(pts: Array<{x: number; y: number}>): string {
   return d;
 }
 
-export function renderLineChartSection(section: any, d: PdfTemplateData): string {
-  const series: any[] = section.content?.series || [];
+interface LineSeries {
+  label?: string;
+  values?: (number | null | undefined)[];
+  color?: string;
+}
+
+interface LineChartSection {
+  title?: string;
+  content?: { series?: LineSeries[]; years?: string[] };
+}
+
+export function renderLineChartSection(section: LineChartSection, d: PdfTemplateData): string {
+  const series: LineSeries[] = section.content?.series || [];
   const years: string[] = section.content?.years || [];
   if (!series.length || !years.length) return "";
   const isL = d.orientation === "landscape";
@@ -99,7 +110,7 @@ export function renderLineChartSection(section: any, d: PdfTemplateData): string
   const palette = buildChartPalette(d.colors);
 
   let defsSvg = "";
-  series.forEach((s: any, si: number) => {
+  series.forEach((s, si) => {
     const color = s.color || palette[si % palette.length];
     const gradId = `area-grad-${si}`;
     defsSvg += `
@@ -110,9 +121,9 @@ export function renderLineChartSection(section: any, d: PdfTemplateData): string
   });
 
   let seriesSvg = "";
-  series.forEach((s: any, si: number) => {
+  series.forEach((s, si) => {
     const color = s.color || palette[si % palette.length];
-    const values: number[] = (s.values || []).map((v: any) => typeof v === "number" ? v : 0);
+    const values: number[] = (s.values || []).map((v) => typeof v === "number" ? v : 0);
     if (values.length < 2) return;
 
     const pts = values.map((v, i) => ({
@@ -136,7 +147,7 @@ export function renderLineChartSection(section: any, d: PdfTemplateData): string
 
   const legendY = svgH - 6;
   const legendSpacing = isL ? 170 : 135;
-  const legendItems = series.map((s: any, si: number) => {
+  const legendItems = series.map((s, si) => {
     const color = s.color || palette[si % palette.length];
     const xOff = si * legendSpacing;
     return `

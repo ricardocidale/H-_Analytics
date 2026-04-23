@@ -1,6 +1,24 @@
 import type { PdfTemplateData } from "./theme-resolver";
 import { esc, pageHeader } from "./theme-resolver";
 
+type RenderableValue = number | string | null | undefined;
+
+interface RenderableRow {
+  category?: string;
+  values?: RenderableValue[];
+  type?: "header" | "data" | "total" | "subtotal" | "formula";
+  isHeader?: boolean;
+  isBold?: boolean;
+  isItalic?: boolean;
+  indent?: number;
+  format?: string;
+}
+
+interface RenderableTableSection {
+  title?: string;
+  content?: { years?: (string | number)[]; rows?: RenderableRow[] };
+}
+
 export function isPercentageRow(category: string): boolean {
   const c = (category || "").toLowerCase();
   return c.includes("(%)") || c.includes("margin") || c === "occupancy"
@@ -12,7 +30,7 @@ export function isMultiplierRow(category: string): boolean {
   return c.includes("equity multiple") || c.includes("dscr");
 }
 
-export function formatTableValue(v: any, category: string, format?: string): string {
+export function formatTableValue(v: RenderableValue, category: string, format?: string): string {
   if (typeof v === "string") return esc(v);
   if (typeof v !== "number") return esc(String(v ?? ""));
   if (isNaN(v)) return "\u2014";
@@ -36,10 +54,10 @@ export function formatTableValue(v: any, category: string, format?: string): str
   return v < 0 ? `<span class="val-neg">(${s})</span>` : s;
 }
 
-export function renderFinancialTableSection(section: any, d: PdfTemplateData): string {
+export function renderFinancialTableSection(section: RenderableTableSection, d: PdfTemplateData): string {
   const title = esc(section.title || "Financial Statement");
-  const years: string[] = section.content?.years || [];
-  const rows: any[] = section.content?.rows || [];
+  const years = section.content?.years || [];
+  const rows = section.content?.rows || [];
 
   if (!years.length || !rows.length) {
     return `
@@ -49,18 +67,18 @@ export function renderFinancialTableSection(section: any, d: PdfTemplateData): s
       </div>`;
   }
 
-  const yearHeaders = years.map((yr: any) =>
+  const yearHeaders = years.map((yr) =>
     `<th class="tbl-year">FY ${esc(String(yr))}</th>`
   ).join("");
 
-  const bodyRows = rows.map((r: any, idx: number) => {
+  const bodyRows = rows.map((r, idx) => {
     const isHeader = r.type === "header" || r.isHeader;
     const isTotal = r.type === "total" || r.type === "subtotal" || r.isBold;
     const isFormula = r.isItalic || r.type === "formula";
     const indent = r.indent ?? 0;
     const category = (r.category || "").trim();
 
-    if (!category && (r.values || []).every((v: any) => v === 0 || v === null || v === "")) {
+    if (!category && (r.values || []).every((v) => v === 0 || v === null || v === "")) {
       return `<tr class="row-spacer"><td colspan="${years.length + 1}" style="height:3mm;border:none"></td></tr>`;
     }
 
@@ -73,8 +91,8 @@ export function renderFinancialTableSection(section: any, d: PdfTemplateData): s
     const indentPx = indent * 14;
     const label = esc(category);
 
-    const allZero = (r.values || []).every((v: any) => v === 0 || v === null || v === "");
-    const vals = (r.values || []).map((v: any) =>
+    const allZero = (r.values || []).every((v) => v === 0 || v === null || v === "");
+    const vals = (r.values || []).map((v) =>
       `<td class="tbl-val">${allZero && isHeader ? "" : formatTableValue(v, category, r.format)}</td>`
     ).join("");
 
