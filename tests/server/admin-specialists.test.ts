@@ -22,6 +22,10 @@ vi.mock("../../server/storage", () => ({
     getAdminResourceById: vi.fn(),
     getLatestHealthCheck: vi.fn(),
     createActivityLog: vi.fn().mockResolvedValue(undefined),
+    // Phase 3 (#453): list/detail now overlay identity overrides; tests
+    // default to "no overrides set" so behavior matches catalog defaults.
+    listIdentityOverrides: vi.fn().mockResolvedValue([]),
+    getIdentityOverride: vi.fn().mockResolvedValue(null),
   },
 }));
 
@@ -129,7 +133,10 @@ describe("admin/specialists routes — catalog + detail", () => {
     const { status, body } = await invoke(handlers, "GET /api/admin/specialists");
     expect(status).toBe(200);
     const items = body as Array<{ id: string; status: string; capabilities: string[] }>;
-    expect(items).toHaveLength(SPECIALIST_CATALOG.length);
+    // Phase 3 (#453): list now prepends a synthetic Gaspar row so the
+    // orchestrator can be navigated to from the same sidebar.
+    expect(items).toHaveLength(SPECIALIST_CATALOG.length + 1);
+    expect(items[0].id).toBe("gaspar");
     expect(items.find((i) => i.id === "mgmt-co.funding")?.status).toBe("built");
     expect(items.find((i) => i.id === "portfolio-ops.watchdog")?.status).toBe("needs-page");
   });
