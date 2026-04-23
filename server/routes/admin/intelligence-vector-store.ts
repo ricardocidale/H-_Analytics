@@ -1,8 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
-import { requireAdmin, getAuthUser } from "../../auth";
-import { logAndSendError, logActivity, parseRouteId } from "../helpers";
-import { z } from "zod";
+import { requireAdmin } from "../../auth";
+import { logAndSendError, logActivity } from "../helpers";
 
 import { isVectorStoreAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type VectorNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/vector-store-service";
 import { mapCategoryToKpis } from "../../ai/vector-indexing";
@@ -12,69 +11,6 @@ import { checkVendorAvailability, getRecommendedDefaults } from "../../ai/resolv
 import { logger } from "../../logger";
 
 export function registerVectorStoreRoutes(app: Express) {
-  app.get("/api/admin/intelligence/financial-lines", requireAdmin, async (req, res) => {
-    try {
-      const status = z.enum(["all", "pending", "approved", "rejected"]).optional().safeParse(req.query.status);
-      const filter = status.success ? status.data : undefined;
-      const [lines, counts] = await Promise.all([
-        storage.getEngineSuggestedLines(filter),
-        storage.getEngineSuggestedLineCounts(),
-      ]);
-      res.json({ lines, counts });
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch financial line suggestions", error);
-    }
-  });
-
-  app.patch("/api/admin/intelligence/financial-lines/:id/approve", requireAdmin, async (req, res) => {
-    try {
-      const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
-      const user = getAuthUser(req);
-      const existing = await storage.getEngineSuggestedLineById(id);
-      if (!existing) return res.status(404).json({ error: "Suggestion not found" });
-      const updated = await storage.approveEngineSuggestedLine(id, user.id);
-      logActivity(req, "approve-financial-line", "financial_line_suggestion", id, existing.lineName);
-
-      if (updated) {
-        try {
-          const { indexToKnowledgeBase } = await import("../../ai/vector-store-service");
-          const text = `Approved financial line suggestion: ${updated.lineName} (${updated.statementType} / ${updated.category}). ${updated.description ?? ""} ${updated.justification ?? ""}`;
-          await indexToKnowledgeBase(`financial-line-${updated.id}`, text, {
-            type: "financial-line-suggestion",
-            statementType: updated.statementType,
-            category: updated.category,
-            lineName: updated.lineName,
-            status: "approved",
-          });
-        } catch {
-          logger.warn("Failed to index approved financial line to vector store", "financial-lines");
-        }
-      }
-
-      res.json(updated);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to approve financial line suggestion", error);
-    }
-  });
-
-  app.patch("/api/admin/intelligence/financial-lines/:id/reject", requireAdmin, async (req, res) => {
-    try {
-      const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
-      const body = z.object({ reason: z.string().min(1).max(500) }).safeParse(req.body);
-      if (!body.success) return res.status(400).json({ error: "Rejection reason is required (1-500 chars)" });
-      const user = getAuthUser(req);
-      const existing = await storage.getEngineSuggestedLineById(id);
-      if (!existing) return res.status(404).json({ error: "Suggestion not found" });
-      const updated = await storage.rejectEngineSuggestedLine(id, user.id, body.data.reason);
-      logActivity(req, "reject-financial-line", "financial_line_suggestion", id, existing.lineName, { reason: body.data.reason });
-      res.json(updated);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to reject financial line suggestion", error);
-    }
-  });
-
   app.get("/api/admin/system-intelligence-status", requireAdmin, async (_req, res) => {
     try {
       const vendors = checkVendorAvailability();

@@ -54,6 +54,8 @@ export type AdminSection =
   | "system-intelligence" | "research"
   // Sidebar item that lands on the Scenarios page with default-assignment intent.
   | "default-assignments"
+  // Canonical read-only roll-up across every Specialist's required fields.
+  | "required-fields"
   // Steady State (Defaults & Constants)
   | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
   | "constants"
@@ -127,22 +129,37 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
  * Legacy in-memory deep-link aliases that are no longer part of the
  * `AdminSection` union. The Resources surface (APIs/Sources/Tables/
  * Benchmarks/Models) used to render under /admin via these section ids;
- * it now lives only under /ai-intelligence. We still accept the strings
- * here so any code that calls `setAdminSection("resources-…")` lands on
- * a sensible Admin page instead of a blank one.
+ * it now lives only under /ai-intelligence and is intercepted by
+ * `setAdminSection` in `client/src/lib/admin-nav.ts` (which navigates
+ * to /ai-intelligence and sets the AiIntelligenceSection). They are
+ * intentionally NOT listed here — `setAdminSection` handles them
+ * before this map is consulted.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const LEGACY_ADMIN_SECTION_REDIRECTS: Record<string, AdminSection> = {
-  "resources-apis": "defaults-management-company",
-  "resources-sources": "defaults-management-company",
-  "resources-tables": "defaults-management-company",
-  "resources-benchmarks": "defaults-management-company",
-  "resources-models": "defaults-management-company",
-  // Admin Required Fields tab was removed — global required-field metadata now
-  // lives per-Specialist (see SpecialistPage's RequiredFieldsTab). The
-  // Properties sidebar group was also removed, so old deep links land on the
-  // App Defaults page (a visible, still-existing Admin section).
-  "required-fields": "model-defaults",
+  // No legacy admin-only string aliases remain after Phase 1.
+  // `required-fields` is now a real canonical AdminSection (see union above)
+  // rendered by `RequiredFieldsRollup`; resources-* keys are intercepted by
+  // `setAdminSection` and routed to /ai-intelligence.
 };
+
+/**
+ * Legacy resources-* deep-link aliases that now live under /ai-intelligence.
+ * Exported so `setAdminSection` (admin-nav.ts) and tests can recognise them
+ * from the same source of truth.
+ */
+export const RESOURCES_LEGACY_SECTIONS = [
+  "resources-apis",
+  "resources-sources",
+  "resources-tables",
+  "resources-benchmarks",
+  "resources-models",
+] as const;
+export type ResourcesLegacySection = typeof RESOURCES_LEGACY_SECTIONS[number];
+
+export function isResourcesLegacySection(section: string): section is ResourcesLegacySection {
+  return (RESOURCES_LEGACY_SECTIONS as readonly string[]).includes(section);
+}
 
 export function normalizeAdminSection(section: AdminSection | string): AdminSection {
   if (typeof section === "string" && section in LEGACY_ADMIN_SECTION_REDIRECTS) {

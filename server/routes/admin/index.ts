@@ -14,6 +14,7 @@ import { registerModelConstantsRoutes } from "./model-constants";
 import { registerAdminAnalystTableRoutes } from "./analyst-tables";
 import { registerAdminResourceRoutes } from "./resources";
 import { registerAdminSpecialistRoutes } from "./specialists";
+import { registerRequiredFieldsRoutes } from "./required-fields";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -31,4 +32,5 @@ export function register(app: Express) {
   registerAdminAnalystTableRoutes(app);
   registerAdminResourceRoutes(app);
   registerAdminSpecialistRoutes(app);
+  registerRequiredFieldsRoutes(app);
 }
