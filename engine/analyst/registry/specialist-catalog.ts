@@ -49,6 +49,17 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
       { kind: "benchmark", slug: "funding-benchmarks", required: true },
     ],
+    candidateFields: [
+      { key: "runwayBufferMonths",     label: "Runway buffer (months)",      surface: "company-assumptions" },
+      { key: "sizingOvershootPct",     label: "Sizing overshoot %",          surface: "company-assumptions" },
+      { key: "trancheGapMonths",       label: "Tranche gap (months)",        surface: "company-assumptions" },
+      { key: "revenueRampDelayMonths", label: "Revenue ramp delay (months)", surface: "company-assumptions" },
+      { key: "burnFlexDownPct",        label: "Burn flex-down %",            surface: "company-assumptions" },
+    ],
+    prerequisites: [
+      "company-profile-saved",
+      "all-properties-financials-computed",
+    ],
     status: "built",
   },
   {
@@ -69,6 +80,17 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     assignmentRefs: [
       { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
       { kind: "benchmark", slug: "revenue-benchmarks", required: true },
+    ],
+    candidateFields: [
+      { key: "defaultCostRateMarketing", label: "Marketing cost %",   surface: "company-assumptions" },
+      { key: "defaultRevShareFb",        label: "F&B revenue share %", surface: "company-assumptions" },
+      { key: "defaultRevShareEvents",    label: "Events revenue share %", surface: "company-assumptions" },
+      { key: "defaultRevShareOther",     label: "Other revenue share %", surface: "company-assumptions" },
+      { key: "defaultCateringBoostPct",  label: "Catering boost %",     surface: "company-assumptions" },
+    ],
+    prerequisites: [
+      "company-profile-saved",
+      "all-properties-financials-computed",
     ],
     status: "built",
   },
@@ -91,6 +113,14 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
       { kind: "api", slug: "web-search", required: true },
     ],
+    candidateFields: [
+      { key: "companyTaxRate",         label: "Company tax rate",         surface: "company-assumptions" },
+      { key: "baseManagementFee",      label: "Base management fee",      surface: "company-assumptions" },
+      { key: "incentiveManagementFee", label: "Incentive management fee", surface: "company-assumptions" },
+    ],
+    prerequisites: [
+      "company-profile-saved",
+    ],
     status: "needs-page",
   },
   {
@@ -112,6 +142,12 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
       { kind: "api", slug: "web-search", required: true },
     ],
+    candidateFields: [
+      { key: "country",      label: "Country",      surface: "property-edit" },
+      { key: "city",         label: "City",         surface: "property-edit" },
+      { key: "propertyType", label: "Property type", surface: "property-edit" },
+    ],
+    prerequisites: [],
     status: "needs-page",
   },
   {
@@ -131,6 +167,12 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     assignmentRefs: [
       { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
     ],
+    candidateFields: [
+      { key: "name",         label: "Property name", surface: "property-edit" },
+      { key: "country",      label: "Country",       surface: "property-edit" },
+      { key: "propertyType", label: "Property type", surface: "property-edit" },
+    ],
+    prerequisites: [],
     status: "needs-page",
   },
   {
@@ -151,6 +193,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "image-enhancement-api", required: true },
       { kind: "model", slug: "vision-llm", role: "image-analysis", required: true },
     ],
+    candidateFields: [],
+    prerequisites: [],
     status: "needs-page",
   },
   {
@@ -191,6 +235,11 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     assignmentRefs: [
       { kind: "table", slug: "watchdog-thresholds", required: true },
     ],
+    candidateFields: [],
+    prerequisites: [
+      "all-properties-financials-computed",
+      "all-properties-required-fields-complete",
+    ],
     status: "needs-page",
   },
   // ──────────────────────────────────────────────────────────────────────────
@@ -225,6 +274,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     constantsOwned: ["taxRate", "capitalGainsRate", "costRateTaxes"],
+    candidateFields: [],
+    prerequisites: ["constants-refreshed-within-cadence"],
     // Tax statutes change on annual cycles; monthly cadence catches mid-year
     // adjustments without spamming the Specialist or the activity log.
     refreshCadenceDays: 30,
@@ -249,6 +300,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     constantsOwned: ["countryRiskPremium", "inflationRate"],
+    candidateFields: [],
+    prerequisites: ["constants-refreshed-within-cadence"],
     // Central bank moves and IMF outlook updates are fast-moving; weekly
     // cadence keeps the discount-rate math honest without overrunning the
     // grounded-search budget.
@@ -274,6 +327,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     constantsOwned: ["depreciationYears"],
+    candidateFields: [],
+    prerequisites: ["constants-refreshed-within-cadence"],
     // Useful-life statutes are slow-moving; quarterly cadence keeps the
     // schedule current after annual tax-code refreshes.
     refreshCadenceDays: 90,
@@ -298,6 +353,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     constantsOwned: ["daysPerMonth"],
+    candidateFields: [],
+    prerequisites: ["constants-refreshed-within-cadence"],
     // USALI / AHLA conventions update on multi-year cycles; an annual
     // cadence is plenty.
     refreshCadenceDays: 365,

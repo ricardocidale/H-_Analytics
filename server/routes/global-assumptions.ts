@@ -235,6 +235,7 @@ export function register(app: Express) {
       // gate yet — Phase 4 ships Compensation, etc.).
       let verdict = null;
       let requiredFieldsMissing: string[] | null = null;
+      let prerequisiteFailures: { id: string; specialistId: string; reason: string }[] | null = null;
       if (tabKey === "funding" || tabKey === "revenue") {
         const [
           { createMgmtCoRouter, MGMT_CO_FUNDING_ID, MGMT_CO_REVENUE_ID, findMissingRequiredFields, RequiredFieldsMissingError },
@@ -243,6 +244,9 @@ export function register(app: Express) {
           { DEFAULT_REVENUE_BENCHMARKS },
           c,
           fundingBenchmarks,
+          { deriveHardRequiredFieldKeys },
+          { evaluatePrerequisites },
+          { getSpecialistById },
         ] = await Promise.all([
           import("../../engine/analyst/surface/mgmt-co"),
           import("../../engine/analyst/voice/voice-renderer"),
@@ -250,6 +254,9 @@ export function register(app: Express) {
           import("@shared/constants-revenue-benchmarks"),
           import("@shared/constants"),
           storage.getAnalystWatchdogBenchmarks(userId),
+          import("./admin/specialists"),
+          import("../../engine/analyst/registry/prerequisite-registry"),
+          import("../../engine/analyst/registry/specialist-catalog"),
         ]);
 
         // P5: load admin-edited per-Specialist config (prompt/model/required-fields).
@@ -310,11 +317,35 @@ export function register(app: Express) {
           tabKey === "funding"
             ? ((fundingInputs ?? {}) as Record<string, unknown>)
             : (saved as Record<string, unknown>);
-        const gateFields = tabKey === "funding"
-          ? (fundingCfg.requiredFields ?? [])
-          : (revenueCfg.requiredFields ?? []);
+        // Prefer the per-Specialist toggle state (`fieldRequirements`) over the
+        // legacy `requiredFields` column. `deriveHardRequiredFieldKeys` falls
+        // back to the legacy list only if no toggle has been set yet, so
+        // Specialists migrated to the toggle UI gate against the truthful
+        // catalog-driven hard set.
+        const activeCfg = tabKey === "funding" ? fundingCfg : revenueCfg;
+        const gateFields = deriveHardRequiredFieldKeys(
+          (activeCfg as { fieldRequirements?: Record<string, "hard" | "recommended" | "off"> }).fieldRequirements,
+          activeCfg.requiredFields,
+        );
+        const activeSpecialistId = tabKey === "funding" ? MGMT_CO_FUNDING_ID : MGMT_CO_REVENUE_ID;
+        const activeDef = getSpecialistById(activeSpecialistId);
+        const toggledOnPrereqs = Object.entries(
+          (activeCfg as { prerequisiteToggles?: Record<string, boolean> }).prerequisiteToggles ?? {},
+        )
+          .filter(([id, on]) => on === true && (activeDef?.prerequisites ?? []).includes(id))
+          .map(([id]) => id);
+        const prereqFails = toggledOnPrereqs.length === 0
+          ? []
+          : await evaluatePrerequisites(toggledOnPrereqs, { storage, userId });
         const missing = findMissingRequiredFields(gateSource, gateFields);
-        if (missing.length > 0) {
+        if (prereqFails.length > 0) {
+          prerequisiteFailures = prereqFails.map((f) => ({
+            id: f.id,
+            specialistId: activeSpecialistId,
+            reason: f.reason,
+          }));
+          if (missing.length > 0) requiredFieldsMissing = missing;
+        } else if (missing.length > 0) {
           requiredFieldsMissing = missing;
         } else {
           try {

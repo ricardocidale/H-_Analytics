@@ -38,6 +38,7 @@ const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/Anal
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const PhotosRendersTab = lazy(() => import("@/components/admin/PhotosRendersTab"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
+const RequiredFieldsRollup = lazy(() => import("@/components/admin/required-fields/RequiredFieldsRollup"));
 
 export type { AdminSaveState };
 
@@ -100,6 +101,7 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   // New 10-block navigation entries
   "financial-defaults":  { title: "Defaults",                 subtitle: "Management company default financial parameters and seed values" },
   "rental-defaults":     { title: "Property Defaults",        subtitle: "Default revenue, cost, and capital assumptions for new properties" },
+  "required-fields":     { title: "Required Fields",          subtitle: "Read-only roll-up across every Specialist's required fields and prerequisites. Edit on the owning Specialist's Required Fields tab." },
   "sources-apis":        { title: "Sources & APIs",           subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
   "llm-config":          { title: "LLM Configuration",        subtitle: "Language model routing and pipeline policies" },
   "engine-health":       { title: "System Health",            subtitle: "Coverage, freshness, and system health" },
@@ -173,6 +175,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
 
   switch (resolved) {
     case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={lookupAlongChain(section, MODEL_DEFAULTS_SUB_TAB)} visibleTabs={lookupAlongChain(section, MODEL_DEFAULTS_VISIBLE_TABS)} />;
+    case "required-fields":  return <RequiredFieldsRollup />;
     case "users":            return <PeopleTab />;
     case "activity":         return <ActivityTab />;
     case "scenarios":        return <ScenariosTab />;

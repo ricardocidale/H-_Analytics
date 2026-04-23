@@ -38,6 +38,8 @@ import {
 import {
   updateLlmConfigSchema,
   updateRequiredFieldsSchema,
+  updateFieldTogglesSchema,
+  updatePrerequisiteTogglesSchema,
   updateRuntimeSchema,
   updateCadenceSchema,
   type SpecialistConfigPublicView,
@@ -48,6 +50,7 @@ import {
   type ResourceHealthStatus,
   type ProbeStatus,
 } from "@shared/schema";
+import { PREREQUISITES } from "../../../engine/analyst/registry/prerequisites";
 
 const idParamSchema = z.object({ id: z.string().min(1) });
 
@@ -57,6 +60,8 @@ function toConfigView(
     promptTemplate: string;
     modelResourceId: number | null;
     requiredFields: string[];
+    fieldRequirements: Record<string, "hard" | "recommended" | "off">;
+    prerequisiteToggles: Record<string, boolean>;
     runtimeConfig: Record<string, unknown>;
     refreshCadenceDays: number | null;
     version: number;
@@ -74,6 +79,8 @@ function toConfigView(
     modelResourceId: row.modelResourceId,
     requiredFields: row.requiredFields ?? [],
     validRequiredFieldKeys: allow === null ? null : [...allow],
+    fieldRequirements: row.fieldRequirements ?? {},
+    prerequisiteToggles: row.prerequisiteToggles ?? {},
     runtimeConfig: row.runtimeConfig ?? {},
     refreshCadenceDays: override ?? catalogDefault,
     defaultRefreshCadenceDays: catalogDefault,
@@ -81,6 +88,29 @@ function toConfigView(
     version: row.version,
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+/**
+ * Derive the "effective hard-required field keys" for the specialist gate
+ * during the toggle-UI transition. A field is hard-required iff its catalog
+ * candidate entry's `fieldRequirements[key]` is `"hard"`. The legacy
+ * `requiredFields` column remains writable through the legacy route, but
+ * the gate prefers `fieldRequirements` when any candidate row is set so a
+ * Specialist that has migrated to the toggle UI is gated correctly even
+ * if the legacy column is stale.
+ */
+export function deriveHardRequiredFieldKeys(
+  fieldRequirements: Record<string, "hard" | "recommended" | "off"> | null | undefined,
+  fallbackLegacy: string[] | null | undefined,
+): string[] {
+  const map = fieldRequirements ?? {};
+  const hardKeys = Object.entries(map)
+    .filter(([, level]) => level === "hard")
+    .map(([k]) => k);
+  if (hardKeys.length > 0 || Object.keys(map).length > 0) return hardKeys;
+  // No toggle state set yet — fall back to legacy list to preserve current
+  // gate behavior on Specialists that haven't been migrated.
+  return [...(fallbackLegacy ?? [])];
 }
 
 export function registerAdminSpecialistRoutes(app: Express) {
@@ -97,6 +127,12 @@ export function registerAdminSpecialistRoutes(app: Express) {
           subject: d.subject,
           capabilities: d.capabilities,
           status: d.status,
+          candidateFields: d.candidateFields ?? [],
+          prerequisites: (d.prerequisites ?? []).map((id) => ({
+            id,
+            label: PREREQUISITES[id]?.label ?? id,
+            description: PREREQUISITES[id]?.description ?? "",
+          })),
         })),
       );
     } catch (error: unknown) {
@@ -165,6 +201,12 @@ export function registerAdminSpecialistRoutes(app: Express) {
           // ones whose catalog entry declares `refreshCadenceDays`).
           constantsOwned: def.constantsOwned ?? [],
           defaultRefreshCadenceDays: def.refreshCadenceDays ?? null,
+          candidateFields: def.candidateFields ?? [],
+          prerequisites: (def.prerequisites ?? []).map((id) => ({
+            id,
+            label: PREREQUISITES[id]?.label ?? id,
+            description: PREREQUISITES[id]?.description ?? "",
+          })),
         },
         config: toConfigView(config, def),
         assignments,
@@ -248,6 +290,97 @@ export function registerAdminSpecialistRoutes(app: Express) {
       res.json(toConfigView(updated, def));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update specialist required fields", error);
+    }
+  });
+
+  // ── Update Field Toggles (toggle UI) ────────────────────────────
+  // Body: { fieldRequirements: Record<key,"hard"|"recommended"|"off">,
+  //         changeSummary?: string }
+  // Validates each key against the catalog `candidateFields[]` declaration.
+  // Mirrors the hard-required subset into the legacy `requiredFields`
+  // column so the in-flight surface-router gate stays honest during the
+  // transition (see deriveHardRequiredFieldKeys helper).
+  app.put("/api/admin/specialists/:id/field-toggles", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const def = getSpecialistById(id);
+      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def.capabilities.includes("required-fields")) {
+        return res.status(400).json({ error: "Specialist does not declare required-fields capability" });
+      }
+      const parsed = updateFieldTogglesSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const candidateKeys = new Set((def.candidateFields ?? []).map((c) => c.key));
+      const invalid = Object.keys(parsed.data.fieldRequirements).filter(
+        (k) => !candidateKeys.has(k),
+      );
+      if (invalid.length > 0) {
+        return res.status(400).json({
+          error: `Unknown candidate field key(s) for ${id}: ${invalid.join(", ")}. Valid keys: ${Array.from(candidateKeys).join(", ")}`,
+          invalidKeys: invalid,
+          validKeys: Array.from(candidateKeys),
+        });
+      }
+      const hardKeys = Object.entries(parsed.data.fieldRequirements)
+        .filter(([, v]) => v === "hard")
+        .map(([k]) => k);
+      const actorId = req.user!.id;
+      const updated = await storage.updateSpecialistConfigSection(
+        id,
+        "field-toggles",
+        {
+          fieldRequirements: parsed.data.fieldRequirements,
+          // Mirror hard subset into legacy column so existing readers
+          // (surface-router gate, ModelDefaults rollup) stay correct.
+          requiredFields: hardKeys,
+        },
+        actorId,
+        parsed.data.changeSummary,
+      );
+      logActivity(req, "update-specialist-field-toggles", "specialist_config", updated.id, `${id} v${updated.version}`);
+      res.json(toConfigView(updated, def));
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update specialist field toggles", error);
+    }
+  });
+
+  // ── Update Prerequisite Toggles ─────────────────────────────────
+  // Body: { prerequisiteToggles: Record<prereqId, boolean>, changeSummary?: string }
+  // Each prereqId must appear in the Specialist's catalog `prerequisites[]`.
+  app.put("/api/admin/specialists/:id/prerequisite-toggles", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const def = getSpecialistById(id);
+      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      const parsed = updatePrerequisiteTogglesSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const allowedPrereqs = new Set(def.prerequisites ?? []);
+      const invalid = Object.keys(parsed.data.prerequisiteToggles).filter(
+        (k) => !allowedPrereqs.has(k),
+      );
+      if (invalid.length > 0) {
+        return res.status(400).json({
+          error: `Unknown prerequisite id(s) for ${id}: ${invalid.join(", ")}. Valid ids: ${Array.from(allowedPrereqs).join(", ")}`,
+          invalidIds: invalid,
+          validIds: Array.from(allowedPrereqs),
+        });
+      }
+      const actorId = req.user!.id;
+      const updated = await storage.updateSpecialistConfigSection(
+        id,
+        "prerequisite-toggles",
+        { prerequisiteToggles: parsed.data.prerequisiteToggles },
+        actorId,
+        parsed.data.changeSummary,
+      );
+      logActivity(req, "update-specialist-prerequisite-toggles", "specialist_config", updated.id, `${id} v${updated.version}`);
+      res.json(toConfigView(updated, def));
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update specialist prerequisite toggles", error);
     }
   });
 
@@ -420,6 +553,8 @@ export function registerAdminSpecialistRoutes(app: Express) {
           promptTemplate: v.promptTemplate,
           modelResourceId: v.modelResourceId,
           requiredFields: v.requiredFields,
+          fieldRequirements: v.fieldRequirements,
+          prerequisiteToggles: v.prerequisiteToggles,
           runtimeConfig: v.runtimeConfig,
           refreshCadenceDays: v.refreshCadenceDays,
         })),

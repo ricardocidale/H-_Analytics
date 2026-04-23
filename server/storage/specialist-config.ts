@@ -29,6 +29,8 @@ export interface SpecialistConfigPatch {
   promptTemplate?: string;
   modelResourceId?: number | null;
   requiredFields?: string[];
+  fieldRequirements?: Record<string, "hard" | "recommended" | "off">;
+  prerequisiteToggles?: Record<string, boolean>;
   runtimeConfig?: Record<string, unknown>;
   refreshCadenceDays?: number | null;
 }
@@ -37,6 +39,8 @@ const EMPTY_CONFIG: Omit<SpecialistConfigRow, "id" | "specialistId" | "version" 
   promptTemplate: "",
   modelResourceId: null,
   requiredFields: [],
+  fieldRequirements: {},
+  prerequisiteToggles: {},
   runtimeConfig: {},
   refreshCadenceDays: null,
 };
@@ -142,6 +146,8 @@ export class SpecialistConfigStorage {
         promptTemplate: current.promptTemplate,
         modelResourceId: current.modelResourceId,
         requiredFields: current.requiredFields,
+        fieldRequirements: current.fieldRequirements,
+        prerequisiteToggles: current.prerequisiteToggles,
         runtimeConfig: current.runtimeConfig,
         refreshCadenceDays: current.refreshCadenceDays,
         changeSummary: changeSummary ?? null,
@@ -156,6 +162,8 @@ export class SpecialistConfigStorage {
       if (patch.promptTemplate !== undefined) next.promptTemplate = patch.promptTemplate;
       if (patch.modelResourceId !== undefined) next.modelResourceId = patch.modelResourceId;
       if (patch.requiredFields !== undefined) next.requiredFields = patch.requiredFields;
+      if (patch.fieldRequirements !== undefined) next.fieldRequirements = patch.fieldRequirements;
+      if (patch.prerequisiteToggles !== undefined) next.prerequisiteToggles = patch.prerequisiteToggles;
       if (patch.runtimeConfig !== undefined) next.runtimeConfig = patch.runtimeConfig;
       if (patch.refreshCadenceDays !== undefined) next.refreshCadenceDays = patch.refreshCadenceDays;
 

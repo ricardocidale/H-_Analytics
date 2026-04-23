@@ -147,6 +147,35 @@ export const SpecialistDefinitionSchema = z
      */
     constantsOwned: z.array(z.string().min(1)).optional(),
     /**
+     * Candidate fields the Specialist could require. Admins toggle these on or
+     * off (and pick "hard-required" vs "recommended") on the Required Fields
+     * tab. The catalog is the SOLE place where new candidates can appear —
+     * admins cannot add free-form keys. Each entry pairs the field key (the
+     * draft/payload key the form writes to) with a human label and the
+     * "owning surface" so the roll-up page can group rows by surface.
+     */
+    candidateFields: z
+      .array(
+        z.object({
+          key: z.string().min(1),
+          label: z.string().min(1),
+          surface: z.enum([
+            "company-assumptions",
+            "property-edit",
+            "market-macro",
+            "constants",
+          ]),
+        }),
+      )
+      .optional(),
+    /**
+     * Prerequisite condition ids this Specialist may enforce. Each id MUST
+     * appear in `engine/analyst/registry/prerequisites.ts`. Admins toggle
+     * each on/off via the Required Fields tab. New conditions are added in
+     * the library + here, never by admins.
+     */
+    prerequisites: z.array(z.string().min(1)).optional(),
+    /**
      * Default cadence (in days) at which the scheduled Constants refresh job
      * (`server/jobs/specialist-constants-refresh.ts`) re-runs this Specialist
      * across every (constantKey × locality) row it owns. Authority sources
@@ -228,6 +257,20 @@ export const specialistConfigs = pgTable(
     promptTemplate: text("prompt_template").notNull().default(""),
     modelResourceId: integer("model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
     requiredFields: jsonb("required_fields").notNull().$type<string[]>().default([]),
+    /**
+     * Per-candidate-field toggle state. Keyed by the catalog `candidateFields[].key`.
+     * Values: "hard" (gate aborts when missing), "recommended" (visible on
+     * Required Fields tab + the per-surface panel, but does not gate the
+     * run), or "off" (default — equivalent to absence). The catalog is the
+     * sole source of valid keys.
+     */
+    fieldRequirements: jsonb("field_requirements").notNull().$type<Record<string, "hard" | "recommended" | "off">>().default({}),
+    /**
+     * Per-prerequisite toggle state. Keyed by `engine/analyst/registry/prerequisites.ts`
+     * id. True = the prerequisite is enforced before this Specialist runs.
+     * Absent / false = unenforced.
+     */
+    prerequisiteToggles: jsonb("prerequisite_toggles").notNull().$type<Record<string, boolean>>().default({}),
     runtimeConfig: jsonb("runtime_config").notNull().$type<Record<string, unknown>>().default({}),
     /**
      * Admin override for the scheduled Constants refresh cadence (in days).
@@ -260,6 +303,8 @@ export const specialistConfigVersions = pgTable(
     promptTemplate: text("prompt_template").notNull().default(""),
     modelResourceId: integer("model_resource_id").references(() => adminResources.id, { onDelete: "set null" }),
     requiredFields: jsonb("required_fields").notNull().$type<string[]>().default([]),
+    fieldRequirements: jsonb("field_requirements").notNull().$type<Record<string, "hard" | "recommended" | "off">>().default({}),
+    prerequisiteToggles: jsonb("prerequisite_toggles").notNull().$type<Record<string, boolean>>().default({}),
     runtimeConfig: jsonb("runtime_config").notNull().$type<Record<string, unknown>>().default({}),
     refreshCadenceDays: integer("refresh_cadence_days"),
     changeSummary: text("change_summary"),
@@ -278,7 +323,14 @@ export type SpecialistConfigVersionRow = typeof specialistConfigVersions.$inferS
 // API contracts for Specialist routes
 // ────────────────────────────────────────────────────────────────────────────
 
-export const SpecialistConfigSection = z.enum(["llm-config", "required-fields", "runtime", "cadence"]);
+export const SpecialistConfigSection = z.enum([
+  "llm-config",
+  "required-fields",
+  "field-toggles",
+  "prerequisite-toggles",
+  "runtime",
+  "cadence",
+]);
 export type SpecialistConfigSectionType = z.infer<typeof SpecialistConfigSection>;
 
 export const updateLlmConfigSchema = z.object({
@@ -307,6 +359,33 @@ export type UpdateRuntimeInput = z.infer<typeof updateRuntimeSchema>;
  * keep the input sane and prevent accidental "never refresh" rows that
  * silently disable the scheduler.
  */
+/**
+ * Per-Specialist field toggle update. Body shape:
+ *   { fieldRequirements: { [fieldKey]: "hard"|"recommended"|"off" } }
+ *
+ * The route validates each fieldKey against the Specialist's catalog
+ * `candidateFields[]` declaration — keys outside the candidate set are
+ * rejected. Admins cannot add free-form keys; only flip switches.
+ */
+export const updateFieldTogglesSchema = z.object({
+  fieldRequirements: z.record(
+    z.string().min(1),
+    z.enum(["hard", "recommended", "off"]),
+  ),
+  changeSummary: z.string().max(500).optional(),
+});
+export type UpdateFieldTogglesInput = z.infer<typeof updateFieldTogglesSchema>;
+
+/**
+ * Per-Specialist prerequisite toggle update. Body shape:
+ *   { prerequisiteToggles: { [prereqId]: boolean } }
+ */
+export const updatePrerequisiteTogglesSchema = z.object({
+  prerequisiteToggles: z.record(z.string().min(1), z.boolean()),
+  changeSummary: z.string().max(500).optional(),
+});
+export type UpdatePrerequisiteTogglesInput = z.infer<typeof updatePrerequisiteTogglesSchema>;
+
 export const updateCadenceSchema = z.object({
   refreshCadenceDays: z.number().int().positive().max(3650).nullable(),
   changeSummary: z.string().max(500).optional(),
@@ -326,6 +405,16 @@ export const SpecialistConfigPublicViewSchema = z.object({
    * engine/analyst/registry/required-field-keys.ts for the source of truth.
    */
   validRequiredFieldKeys: z.array(z.string()).nullable(),
+  /**
+   * Per-candidate-field toggle state. Keys come from the catalog
+   * `candidateFields[].key`. Absent keys are equivalent to `"off"`.
+   */
+  fieldRequirements: z.record(z.string(), z.enum(["hard", "recommended", "off"])),
+  /**
+   * Per-prerequisite toggle state. Keys come from the catalog
+   * `prerequisites[]`. Absent keys are equivalent to `false`.
+   */
+  prerequisiteToggles: z.record(z.string(), z.boolean()),
   runtimeConfig: z.record(z.string(), z.unknown()),
   /**
    * Effective scheduled-refresh cadence (in days) for this Specialist's

@@ -56,6 +56,10 @@ interface SpecialistConfigView {
   requiredFields: string[];
   /** Per-Specialist allow-list for requiredFields keys; null = no allow-list. */
   validRequiredFieldKeys: string[] | null;
+  /** Per-candidate-field toggle state (catalog-keyed). */
+  fieldRequirements: Record<string, "hard" | "recommended" | "off">;
+  /** Per-prerequisite toggle state (catalog-keyed). */
+  prerequisiteToggles: Record<string, boolean>;
   runtimeConfig: Record<string, unknown>;
   /** Effective scheduled-refresh cadence (override → catalog default → null). */
   refreshCadenceDays: number | null;
@@ -79,6 +83,8 @@ interface SpecialistDetailResponse {
     assignmentRefs: { kind: ResourceKind; slug: string; role?: string | null; required: boolean }[];
     constantsOwned?: string[];
     defaultRefreshCadenceDays?: number | null;
+    candidateFields?: { key: string; label: string; surface: string }[];
+    prerequisites?: { id: string; label: string; description: string }[];
   };
   config: SpecialistConfigView;
   assignments: SpecialistAssignmentView[];
@@ -213,7 +219,14 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
             />
           </TabsContent>
           {tabsList.find((t) => t.value === "required-fields") && (
-            <TabsContent value="required-fields"><RequiredFieldsTab specialistId={specialistId} config={config} /></TabsContent>
+            <TabsContent value="required-fields">
+              <RequiredFieldsTab
+                specialistId={specialistId}
+                config={config}
+                candidateFields={data.definition.candidateFields ?? []}
+                prerequisites={data.definition.prerequisites ?? []}
+              />
+            </TabsContent>
           )}
           {tabsList.find((t) => t.value === "llm-config") && (
             <TabsContent value="llm-config"><LlmConfigTab specialistId={specialistId} config={config} /></TabsContent>
@@ -241,106 +254,236 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
 }
 
 // ── RequiredFieldsTab ──────────────────────────────────────────────────
-function RequiredFieldsTab({ specialistId, config }: { specialistId: string; config: SpecialistConfigView }) {
+// Catalog-driven toggle UI. Each candidate field renders as a 3-way control
+// (Off / Recommended / Hard-required) and each prerequisite as an On/Off
+// switch. There is intentionally NO free-form input — the catalog
+// (`engine/analyst/registry/specialist-catalog.ts`) is the only place new
+// candidate fields or prerequisites can appear.
+type FieldLevel = "hard" | "recommended" | "off";
+
+function RequiredFieldsTab({
+  specialistId,
+  config,
+  candidateFields,
+  prerequisites,
+}: {
+  specialistId: string;
+  config: SpecialistConfigView;
+  candidateFields: { key: string; label: string; surface: string }[];
+  prerequisites: { id: string; label: string; description: string }[];
+}) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [fieldsText, setFieldsText] = useState(config.requiredFields.join("\n"));
   const [summary, setSummary] = useState("");
+  const [fieldState, setFieldState] = useState<Record<string, FieldLevel>>(() => {
+    const init: Record<string, FieldLevel> = {};
+    for (const c of candidateFields) init[c.key] = (config.fieldRequirements?.[c.key] ?? "off") as FieldLevel;
+    return init;
+  });
+  const [prereqState, setPrereqState] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const p of prerequisites) init[p.id] = config.prerequisiteToggles?.[p.id] === true;
+    return init;
+  });
 
-  const allowList = config.validRequiredFieldKeys; // null = no allow-list
-  const allowSet = useMemo(() => (allowList === null ? null : new Set(allowList)), [allowList]);
+  const fieldsBySurface = useMemo(() => {
+    const out = new Map<string, typeof candidateFields>();
+    for (const c of candidateFields) {
+      const list = out.get(c.surface) ?? [];
+      list.push(c);
+      out.set(c.surface, list);
+    }
+    return out;
+  }, [candidateFields]);
 
-  // Live local-only validation: highlight keys the user has typed that
-  // aren't in the allow-list. Server is still the authority and will
-  // reject on save with 400 + invalidKeys, but inline feedback is faster.
-  const localInvalid = useMemo(() => {
-    if (allowSet === null) return [] as string[];
-    return fieldsText
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .filter((k) => !allowSet.has(k));
-  }, [fieldsText, allowSet]);
-
-  const mutation = useMutation({
+  const fieldMutation = useMutation({
     mutationFn: async () => {
-      const fields = fieldsText.split("\n").map((s) => s.trim()).filter(Boolean);
-      const res = await apiRequest("PUT", `/api/admin/specialists/${specialistId}/required-fields`, {
-        fields,
+      const res = await apiRequest("PUT", `/api/admin/specialists/${specialistId}/field-toggles`, {
+        fieldRequirements: fieldState,
         changeSummary: summary || undefined,
       });
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Required fields updated" });
+      toast({ title: "Required-field toggles saved" });
       qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
       qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/audit`] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/specialists"] });
       setSummary("");
     },
     onError: (e: unknown) => toast({ title: "Save failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
+  const prereqMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PUT", `/api/admin/specialists/${specialistId}/prerequisite-toggles`, {
+        prerequisiteToggles: prereqState,
+        changeSummary: summary || undefined,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Prerequisite toggles saved" });
+      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
+      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/audit`] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/specialists"] });
+      setSummary("");
+    },
+    onError: (e: unknown) => toast({ title: "Save failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+  });
+
+  const noCandidates = candidateFields.length === 0;
+  const noPrereqs = prerequisites.length === 0;
+
   return (
-    <Card>
-      <CardHeader><CardTitle>Required Fields</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          One field key per line. Research only runs once every required field is populated upstream.
-        </p>
-        {allowList !== null && (
-          <div className="rounded-md border bg-muted/40 p-3 space-y-2" data-testid="hint-valid-required-field-keys">
-            <p className="text-xs font-medium text-muted-foreground">
-              Valid keys for this Specialist:
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {allowList.map((k) => (
-                <code
-                  key={k}
-                  className="rounded bg-background px-1.5 py-0.5 text-xs font-mono border"
-                  data-testid={`chip-valid-key-${k}`}
-                >
-                  {k}
-                </code>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Keys outside this list will be rejected on save.
-            </p>
-          </div>
-        )}
-        <Textarea
-          value={fieldsText}
-          onChange={(e) => setFieldsText(e.target.value)}
-          rows={8}
-          data-testid="textarea-required-fields"
-          className="font-mono text-sm"
-        />
-        {localInvalid.length > 0 && (
-          <p
-            className="text-xs text-destructive"
-            data-testid="text-required-fields-invalid"
-          >
-            {localInvalid.length === 1 ? "Unknown key" : "Unknown keys"}:{" "}
-            <code className="font-mono">{localInvalid.join(", ")}</code>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle>Candidate fields</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Toggle each candidate field for this Specialist. <strong>Hard-required</strong> fields gate the
+            Specialist's run (research aborts if missing). <strong>Recommended</strong> fields are
+            surfaced to the user as nudges but do not block. The catalog is the only place new
+            candidates can be added.
           </p>
-        )}
-        <Input
-          value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          placeholder="Change summary (optional, recorded in audit)"
-          data-testid="input-change-summary-required-fields"
-        />
-        <div className="flex justify-end">
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || localInvalid.length > 0}
-            data-testid="button-save-required-fields"
-          >
-            {mutation.isPending ? "Saving…" : "Save"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          {noCandidates && (
+            <p className="text-sm text-muted-foreground italic" data-testid="empty-candidate-fields">
+              This Specialist has no candidate fields declared in the catalog.
+            </p>
+          )}
+          {Array.from(fieldsBySurface.entries()).map(([surface, fields]) => (
+            <div key={surface}>
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+                {surface}
+              </div>
+              <div className="border rounded-md divide-y">
+                {fields.map((f) => (
+                  <div
+                    key={f.key}
+                    className="flex items-center justify-between px-3 py-2 text-sm gap-3"
+                    data-testid={`field-toggle-row-${f.key}`}
+                  >
+                    <div>
+                      <div className="font-medium text-foreground">{f.label}</div>
+                      <div className="text-xs font-mono text-muted-foreground">{f.key}</div>
+                    </div>
+                    <Select
+                      value={fieldState[f.key] ?? "off"}
+                      onValueChange={(v) =>
+                        setFieldState((s) => ({ ...s, [f.key]: v as FieldLevel }))
+                      }
+                    >
+                      <SelectTrigger
+                        className="w-[180px]"
+                        data-testid={`select-field-level-${f.key}`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="off" data-testid={`select-field-level-${f.key}-off`}>Off</SelectItem>
+                        <SelectItem value="recommended" data-testid={`select-field-level-${f.key}-recommended`}>Recommended</SelectItem>
+                        <SelectItem value="hard" data-testid={`select-field-level-${f.key}-hard`}>Hard-required</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {!noCandidates && (
+            <>
+              <Input
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                placeholder="Change summary (optional, recorded in audit)"
+                data-testid="input-change-summary-field-toggles"
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => fieldMutation.mutate()}
+                  disabled={fieldMutation.isPending}
+                  data-testid="button-save-field-toggles"
+                >
+                  {fieldMutation.isPending ? "Saving…" : "Save fields"}
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Prerequisite conditions</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Conditions larger than a single field. When enforced, the Specialist refuses to run
+            until the condition is met (e.g. every property must have a fully-computed financial
+            statement).
+          </p>
+          {noPrereqs && (
+            <p className="text-sm text-muted-foreground italic" data-testid="empty-prerequisites">
+              This Specialist has no prerequisite conditions declared in the catalog.
+            </p>
+          )}
+          {prerequisites.length > 0 && (
+            <div className="border rounded-md divide-y">
+              {prerequisites.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between px-3 py-2 text-sm gap-3"
+                  data-testid={`prereq-toggle-row-${p.id}`}
+                >
+                  <div>
+                    <div className="font-medium text-foreground">{p.label}</div>
+                    {p.description && (
+                      <div className="text-xs text-muted-foreground">{p.description}</div>
+                    )}
+                  </div>
+                  <Select
+                    value={prereqState[p.id] ? "on" : "off"}
+                    onValueChange={(v) =>
+                      setPrereqState((s) => ({ ...s, [p.id]: v === "on" }))
+                    }
+                  >
+                    <SelectTrigger
+                      className="w-[140px]"
+                      data-testid={`select-prereq-${p.id}`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="off">Off</SelectItem>
+                      <SelectItem value="on">Enforced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+              <div className="px-3 py-3">
+                <Button
+                  size="sm"
+                  onClick={() => prereqMutation.mutate()}
+                  disabled={prereqMutation.isPending}
+                  data-testid="button-save-prereq-toggles"
+                >
+                  {prereqMutation.isPending ? "Saving…" : "Save prerequisites"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Recommendations from last run</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground italic" data-testid="empty-recommendations">
+            No recommendations yet. After this Specialist runs, any fields it observed as
+            "missing but materially useful" will appear here so you can promote them to
+            Recommended or Hard-required.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

@@ -126,6 +126,9 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "company-profile": "model-defaults",
   "financial-defaults": "model-defaults",
   "rental-defaults": "model-defaults",
+  // `required-fields` is the canonical roll-up section now (Admin → Properties
+  // → Required Fields). It renders a read-only aggregate across every
+  // Specialist's `candidateFields` + `fieldRequirements`. No redirect.
   "sources-apis": "data-sources",
   "llm-config": "pipeline-config",
   "engine-health": "engine-dashboard",

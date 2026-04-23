@@ -81,6 +81,7 @@ import {
   type RangePillSpec,
 } from "@/components/company-assumptions";
 import { isAdminRole } from "@shared/constants";
+import { SpecialistRequirementsPanel } from "@/components/company/SpecialistRequirementsPanel";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
@@ -1098,6 +1099,8 @@ export default function CompanyAssumptions() {
             );
           })}
         </Tabs>
+
+        <SpecialistRequirementsPanel />
 
         <SummaryFooter formData={formData} onChange={handleUpdate} global={global} activeTab={activeTab} />
       </div>
