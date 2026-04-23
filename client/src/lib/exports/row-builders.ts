@@ -41,8 +41,8 @@ export function yearValues<T>(years: number[], cache: T[], accessor: (item: T) =
 
 export function consolidate(
   years: number[],
-  allPropertyData: any[][],
-  accessor: (item: any) => number
+  allPropertyData: unknown[][],
+  accessor: (item: unknown) => number
 ): number[] {
   return years.map((_, y) =>
     allPropertyData.reduce((sum, prop) => sum + (prop[y] ? accessor(prop[y]) : 0), 0)

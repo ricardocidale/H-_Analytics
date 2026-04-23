@@ -11,7 +11,7 @@ import { StatRow, CashRunwayChart } from "./shared";
 export function CurrentPlanTab({ analysis, fundingLabel, global, chartData, navigate }: {
   analysis: NonNullable<ReturnType<typeof analyzeFundingNeeds>>;
   fundingLabel: string;
-  global: any;
+  global: import("@/lib/api/types").GlobalResponse;
   chartData: { month: number; withFunding: number; withoutFunding: number }[];
   navigate: (to: string) => void;
 }) {

@@ -42,7 +42,7 @@ import type { AdminSection } from "@/components/admin/AdminSidebar";
 import { AiIntelligenceSidebarNav } from "@/components/ai-intelligence/AiIntelligenceSidebar";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
-type NavLink = { href: string; label: string; icon: any; onClick?: () => void };
+type NavLink = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; onClick?: () => void };
 
 function ScenarioIndicator() {
   const { isDirty, activeScenarioName } = useScenarioDirtyState();

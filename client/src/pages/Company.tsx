@@ -342,7 +342,8 @@ export default function Company() {
           const incomeData = generateCompanyIncomeData(financials, years, properties, propertyFinancials, summaryOnly);
           const cashFlowData = generateCompanyCashFlowData(financials, years, properties, propertyFinancials, fundingLabel, summaryOnly);
           const balanceData = generateCompanyBalanceData(financials, years, fundingLabel, summaryOnly);
-          const mapRows = (rows: any[]) => rows.map((r: any) => ({
+          type RawStmtRow = { category: string; values: (number | string)[]; indent?: number; isBold?: boolean; isHeader?: boolean; isItalic?: boolean; format?: string };
+          const mapRows = (rows: RawStmtRow[]) => rows.map((r) => ({
             category: r.category,
             values: r.values,
             indent: r.indent,
@@ -362,7 +363,7 @@ export default function Company() {
             ],
             projectionYears,
             densePagination: loadExportConfig().statements.densePagination,
-            themeColors: brandingData?.themeColors?.map((c: any) => ({ name: c.name, hexCode: c.hexCode, rank: c.rank })),
+            themeColors: brandingData?.themeColors?.map((c: { name: string; hexCode: string; rank: number }) => ({ name: c.name, hexCode: c.hexCode, rank: c.rank })),
           } as PremiumExportPayload;
         } : undefined}
         serverExportConfig={exportType !== 'chart' ? { entityType: "company", reportScope: (activeTab === "income" || activeTab === "cashflow" || activeTab === "balance") ? activeTab : "all" } : undefined}
