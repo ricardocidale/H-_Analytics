@@ -12,9 +12,19 @@ import {
 import { generateImageBuffer } from "../replit_integrations/image/client";
 import { logApiCost, unitCost } from "../middleware/cost-logger";
 import { storage } from "../storage";
-import { logger, loggerFor } from "../logger";
+import { loggerFor } from "../logger";
 import { getSpecialistById } from "../../engine/analyst/registry/specialist-catalog";
 
+// COMPATIBILITY ALIAS UNDER FERNANDA (Phase 2a, scope-locked):
+// The catalog entry `photos.photos-and-renders` was removed and folded
+// into Fernanda (`photos.photo-enhancer`) as a second job. The HTTP
+// surface below intentionally keeps the legacy `/api/specialists/
+// photos-and-renders/*` paths so the per-property album button
+// (client/src/features/property-images/useGenerateImage.ts) keeps
+// working without a cascading frontend change. From a Specialist
+// ownership standpoint these endpoints belong to Fernanda — every log
+// line narrates under her persona below.
+//
 // Single funnel for every Replicate-style render. Both the per-property
 // album button and the specialist console POST here so prompt config,
 // rate limits, and the call log are shared. The render pipeline is owned
@@ -25,11 +35,11 @@ import { getSpecialistById } from "../../engine/analyst/registry/specialist-cata
 // working without a frontend change.
 const SPECIALIST_ID = "photos.photo-enhancer";
 
-// Route-level errors narrate under Fernanda's persona name, derived
-// from the catalog so the persona can be renamed in one place without
-// desyncing the log prefix. Nested cost-logger try/catches keep their
-// `cost-logger` source — those failures belong to the cost middleware,
-// not Fernanda's job.
+// All log lines emitted by this route narrate under Fernanda's persona,
+// derived from the catalog so renaming her in one place updates the log
+// prefix everywhere. This intentionally folds the previously
+// "cost-logger"-tagged failures under [fernanda] too so admins can
+// trace every render-pipeline event back to the Specialist that owns it.
 const fernandaLog = loggerFor(
   getSpecialistById(SPECIALIST_ID)?.humanName ?? "specialist",
 );
@@ -104,19 +114,18 @@ export function register(app: Express): void {
               prompt,
               beforeImageUrl,
             );
-            try { logApiCost({ timestamp: new Date().toISOString(), service: "replicate", model: style, operation: "image-gen", estimatedCostUsd: unitCost("replicate-image"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+            try { logApiCost({ timestamp: new Date().toISOString(), service: "replicate", model: style, operation: "image-gen", estimatedCostUsd: unitCost("replicate-image"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
           } catch (replicateError: unknown) {
-            logger.warn(
+            fernandaLog.warn(
               `Replicate generation failed, falling back: ${replicateError instanceof Error ? replicateError.message : replicateError}`,
-              "specialist-photos-renders",
             );
             imageBuffer = await generateImageBuffer(prompt, adminSize);
             usedFallback = true;
-            try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+            try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
           }
         } else {
           imageBuffer = await generateImageBuffer(prompt, adminSize);
-          try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+          try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
         }
       } catch (genError: unknown) {
         const message = genError instanceof Error ? genError.message : "Image generation failed";
