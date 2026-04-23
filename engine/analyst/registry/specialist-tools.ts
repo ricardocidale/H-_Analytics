@@ -48,7 +48,7 @@ export type ToolLastBuiltSource =
    *  `lastBuiltAt`. The storage hook knows which column to read per
    *  table (e.g. `vector_chunks.updated_at`,
    *  `market_adr_index.fetched_at`, `benchmark_snapshots.fetched_at`). */
-  | { readonly kind: "table"; readonly table: "vector_chunks" | "market_adr_index" | "benchmark_snapshots" }
+  | { readonly kind: "table"; readonly table: "vector_chunks" | "market_adr_index" | "benchmark_snapshots" | "tax_bulletin_cache" }
   /** Newest `research_runs` row whose `metadata.specialistId` matches.
    *  Used for tools whose only durable artefact is the research-run
    *  audit trail (Replicate pipeline, OpenAI image fallback). */
@@ -181,6 +181,18 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
       kind: "research-runs-specialist",
       specialistId: "photos.photo-enhancer",
     },
+  },
+  {
+    id: "tax-bulletin-diff",
+    displayName: "Tax Bulletin Diff",
+    description:
+      "Deterministic-first proof tool: fetches a tax-authority publication, parses governed constants out of it, and diffs them against the cached payload. Helena consults this before falling back to LLM-driven research.",
+    kind: "deterministic",
+    ownerSpecialistId: "constants.tax-research",
+    calledBy: ["constants.tax-research"],
+    sourceFile: "server/ai/tools/tax-bulletin-diff.ts",
+    citation: "U.S. IRS (per-jurisdiction sources cited in tool source)",
+    lastBuiltSource: { kind: "table", table: "tax_bulletin_cache" },
   },
   {
     id: "openai-image-fallback",

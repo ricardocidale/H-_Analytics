@@ -5,6 +5,8 @@ import {
   assumptionChangeLog,
   assumptionAcknowledgments,
   hospitalityBenchmarks,
+  taxBulletinCache,
+  type TaxBulletinCache, type InsertTaxBulletinCache,
   analystWatchdogBenchmarks,
   type AnalystWatchdogBenchmarks,
   type InsertAnalystWatchdogBenchmarks,
@@ -510,6 +512,64 @@ export class IntelligenceV2Storage {
         eq(assumptionAcknowledgments.fieldName, fieldName),
         eq(assumptionAcknowledgments.userId, userId),
       ));
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // Tax bulletin cache (Phase 2c — Helena's tax-bulletin-diff tool).
+  //
+  // One row per (country, subdivision). `subdivision` is stored as the empty
+  // string for federal-level / no-subdivision sources so the unique
+  // constraint actually fires (Postgres treats NULLs as distinct in unique
+  // indexes).
+  //
+  // The tool calls `getTaxBulletinCache` to fetch the prior payload before
+  // diffing, then `upsertTaxBulletinCache` to persist the new one. Both
+  // paths loud-fail; persistence errors are NOT swallowed — Helena's
+  // pipeline catches the throw and falls back to LLM with the failure
+  // recorded in the run metadata.
+  // ────────────────────────────────────────────────────────────
+  async getTaxBulletinCache(
+    country: string,
+    subdivision: string | null,
+  ): Promise<TaxBulletinCache | undefined> {
+    const sub = subdivision ?? "";
+    const [row] = await db.select().from(taxBulletinCache)
+      .where(and(
+        eq(taxBulletinCache.country, country),
+        eq(taxBulletinCache.subdivision, sub),
+      ))
+      .limit(1);
+    return row;
+  }
+
+  async upsertTaxBulletinCache(data: InsertTaxBulletinCache): Promise<TaxBulletinCache> {
+    const sub = data.subdivision ?? "";
+    return db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(taxBulletinCache)
+        .where(and(
+          eq(taxBulletinCache.country, data.country),
+          eq(taxBulletinCache.subdivision, sub),
+        ))
+        .limit(1);
+      if (existing) {
+        const [updated] = await tx.update(taxBulletinCache)
+          .set({
+            sourceUrl: data.sourceUrl,
+            publisher: data.publisher,
+            bulletinHash: data.bulletinHash,
+            parsedValues: data.parsedValues,
+            rawExcerpt: data.rawExcerpt,
+            fetchedAt: new Date(),
+          })
+          .where(eq(taxBulletinCache.id, existing.id))
+          .returning();
+        return updated;
+      }
+      const [inserted] = await tx.insert(taxBulletinCache)
+        .values({ ...data, subdivision: sub } as typeof taxBulletinCache.$inferInsert)
+        .returning();
+      return inserted;
+    });
   }
 
   async createCoverageSnapshot(data: InsertCoverageSnapshot): Promise<CoverageSnapshot> {
@@ -1223,6 +1283,11 @@ async function resolveToolLastBuilt(source: ToolLastBuiltSource): Promise<Date |
         case "benchmark_snapshots": {
           const [row] = await db.select({ at: sql<Date | null>`max(${benchmarkSnapshots.fetchedAt})` })
             .from(benchmarkSnapshots);
+          return row?.at ?? null;
+        }
+        case "tax_bulletin_cache": {
+          const [row] = await db.select({ at: sql<Date | null>`max(${taxBulletinCache.fetchedAt})` })
+            .from(taxBulletinCache);
           return row?.at ?? null;
         }
         default: {

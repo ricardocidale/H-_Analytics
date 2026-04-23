@@ -372,6 +372,8 @@ export class DatabaseStorage implements IStorage {
   getFailedScheduledConstantsRefreshes = this.intelligenceV2.getFailedScheduledConstantsRefreshes.bind(this.intelligenceV2);
   getRunningResearchEntityIds = this.intelligenceV2.getRunningResearchEntityIds.bind(this.intelligenceV2);
   getLatestCompletedRunsPerEntity = this.intelligenceV2.getLatestCompletedRunsPerEntity.bind(this.intelligenceV2);
+  getTaxBulletinCache = this.intelligenceV2.getTaxBulletinCache.bind(this.intelligenceV2);
+  upsertTaxBulletinCache = this.intelligenceV2.upsertTaxBulletinCache.bind(this.intelligenceV2);
   getBenchmarkSnapshots = this.intelligenceV2.getBenchmarkSnapshots.bind(this.intelligenceV2);
   upsertBenchmarkSnapshot = this.intelligenceV2.upsertBenchmarkSnapshot.bind(this.intelligenceV2);
   createRelaxationTrace = this.intelligenceV2.createRelaxationTrace.bind(this.intelligenceV2);
