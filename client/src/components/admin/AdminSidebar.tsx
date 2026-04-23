@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -293,6 +294,8 @@ interface AdminSidebarProps {
  */
 export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebarProps) {
   const navGroups = useMemo(() => buildNavGroups(), []);
+  const [location] = useLocation();
+  const isAiIntelligenceActive = location.startsWith("/ai-intelligence");
 
   // Keep the freshness query alive so the API is exercised on admin loads.
   // The badge UI was removed when the AI Research group was retired.
@@ -322,6 +325,20 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
                   <Link href="/" data-testid="admin-nav-home">
                     <IconDashboard className="size-4 shrink-0" />
                     <span className="truncate">Home</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+
+          {/* AI Intelligence — top-level link to the dedicated AI Intelligence area */}
+          <SidebarGroup className="p-0">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isAiIntelligenceActive} tooltip="AI Intelligence">
+                  <Link href="/ai-intelligence" data-testid="admin-nav-ai-intelligence">
+                    <IconBrain className="size-4 shrink-0" />
+                    <span className="truncate">AI Intelligence</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
