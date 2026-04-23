@@ -52,16 +52,8 @@ export type AdminSection =
   | "cache-services" | "integrations" | "api-dashboard"
   | "coverage-analytics" | "pipeline-policies" | "source-registry"
   | "system-intelligence" | "research"
-  // New 10-block navigation aliases
-  | "financial-defaults" | "services-fees" | "company-profile" | "management-company"
-  | "rental-defaults"
-  | "sources-apis" | "llm-config" | "engine-health"
-  | "user-management"
+  // Sidebar item that lands on the Scenarios page with default-assignment intent.
   | "default-assignments"
-  | "rebecca-config" | "themes-appearance"
-  | "app-settings"
-  | "testing-verification"
-  | "reports-exports"
   // Steady State (Defaults & Constants)
   | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
   | "constants"
@@ -119,24 +111,10 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Groups and companies removed — redirect to users
   "groups": "users",
   "companies": "users",
-  "services-fees": "defaults-management-company",
-  "management-company": "defaults-management-company",
-  "company-profile": "model-defaults",
-  "financial-defaults": "model-defaults",
-  "rental-defaults": "model-defaults",
   // `required-fields` is the canonical roll-up section now (Admin → Properties
   // → Required Fields). It renders a read-only aggregate across every
   // Specialist's `candidateFields` + `fieldRequirements`. No redirect.
-  "sources-apis": "data-sources",
-  "llm-config": "pipeline-config",
-  "engine-health": "engine-dashboard",
-  "user-management": "users",
   "default-assignments": "scenarios",
-  "rebecca-config": "ai-agents",
-  "themes-appearance": "brand",
-  "app-settings": "notifications",
-  "testing-verification": "verification",
-  "reports-exports": "exports",
   // Steady State → all live inside the model-defaults page; sub-tab is selected
   // by Admin.tsx's MODEL_DEFAULTS_SUB_TAB map keyed off the alias.
   "defaults-management-company": "model-defaults",
@@ -154,11 +132,11 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
  * a sensible Admin page instead of a blank one.
  */
 const LEGACY_ADMIN_SECTION_REDIRECTS: Record<string, AdminSection> = {
-  "resources-apis": "services-fees",
-  "resources-sources": "services-fees",
-  "resources-tables": "services-fees",
-  "resources-benchmarks": "services-fees",
-  "resources-models": "services-fees",
+  "resources-apis": "defaults-management-company",
+  "resources-sources": "defaults-management-company",
+  "resources-tables": "defaults-management-company",
+  "resources-benchmarks": "defaults-management-company",
+  "resources-models": "defaults-management-company",
   // Admin Required Fields tab was removed — global required-field metadata now
   // lives per-Specialist (see SpecialistPage's RequiredFieldsTab). The
   // Properties sidebar group was also removed, so old deep links land on the

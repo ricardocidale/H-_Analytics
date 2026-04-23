@@ -94,20 +94,8 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "source-registry":     { title: "Data Sources",             subtitle: "Source registry and trust scores" },
   "system-intelligence": { title: "Research Dashboard",       subtitle: "System intelligence status" },
   research:              { title: "Research Dashboard",       subtitle: "Research center" },
-  // New 10-block navigation entries
-  "financial-defaults":  { title: "Defaults",                 subtitle: "Management company default financial parameters and seed values" },
-  "rental-defaults":     { title: "Property Defaults",        subtitle: "Default revenue, cost, and capital assumptions for new properties" },
   "required-fields":     { title: "Required Fields",          subtitle: "Read-only roll-up across every Specialist's required fields and prerequisites. Edit on the owning Specialist's Required Fields tab." },
-  "sources-apis":        { title: "Sources & APIs",           subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
-  "llm-config":          { title: "LLM Configuration",        subtitle: "Language model routing and pipeline policies" },
-  "engine-health":       { title: "System Health",            subtitle: "Coverage, freshness, and system health" },
-  "user-management":     { title: "Users",                    subtitle: "Manage user accounts and assignments" },
   "default-assignments": { title: "Default Assignments",      subtitle: "Assign default scenarios per user with property toggles" },
-  "rebecca-config":      { title: "Rebecca Configuration",    subtitle: "System prompt, personality, and configuration for your AI assistant" },
-  "themes-appearance":   { title: "Themes & Appearance",      subtitle: "Logos, themes, and icon customization" },
-  "app-settings":        { title: "App Settings",             subtitle: "Notifications, navigation, and system configuration" },
-  "testing-verification":{ title: "Testing & Verification",   subtitle: "Independent GAAP financial audit and compliance" },
-  "reports-exports":     { title: "Reports & Exports",        subtitle: "Configure content, orientation, and layout for all report exports" },
   // Defaults section (Steady State navigation)
   "defaults-management-company": { title: "Management Company Defaults", subtitle: "Default financial parameters seeded into new entities at the management-company level" },
   "defaults-property":           { title: "Property Defaults",            subtitle: "Default revenue, cost, and capital assumptions seeded into new properties" },
@@ -118,8 +106,6 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
 /** Map sidebar alias → ModelDefaultsTab internal sub-tab value */
 const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "model-defaults":      "company",
-  "financial-defaults":  "company",
-  "rental-defaults":     "property-underwriting",
   // Defaults section
   "defaults-management-company": "company",
   "defaults-property":           "property-underwriting",
@@ -142,7 +128,6 @@ const MODEL_DEFAULTS_VISIBLE_TABS: Partial<Record<AdminSection, readonly string[
 
 const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "ai-agents":       "configuration",
-  "rebecca-config":  "configuration",
   "knowledge-base":  "knowledge-base",
   "conversations":   "conversations",
 };
