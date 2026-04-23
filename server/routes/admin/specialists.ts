@@ -42,7 +42,9 @@ import {
   updatePrerequisiteTogglesSchema,
   updateRuntimeSchema,
   updateCadenceSchema,
+  updateSpecialistIdentitySchema,
   type SpecialistConfigPublicView,
+  type SpecialistIdentityPublicView,
   type ResourceKind,
   toResourcePublicView,
   deriveHealthStatus,
@@ -51,6 +53,29 @@ import {
   type ProbeStatus,
 } from "@shared/schema";
 import { PREREQUISITES } from "../../../engine/analyst/registry/prerequisites";
+import {
+  GASPAR_IDENTITY,
+  ORCHESTRATOR_SPECIALIST_ID,
+  resolveSpecialistIdentity,
+  type Gender,
+  type IdentityCatalogDefault,
+} from "../../../engine/analyst/identity";
+
+/**
+ * Look up the catalog factory-default identity for any id accepted by the
+ * Phase-3 identity routes. Returns the orchestrator default for "gaspar"
+ * (which is not part of SPECIALIST_CATALOG), or the catalog entry for one
+ * of the 12 specialists. Returns null for unknown ids so the route can
+ * 404 cleanly.
+ */
+function getIdentityCatalogDefault(id: string): IdentityCatalogDefault | null {
+  if (id === ORCHESTRATOR_SPECIALIST_ID) {
+    return { humanName: GASPAR_IDENTITY.humanName, gender: GASPAR_IDENTITY.gender };
+  }
+  const def = getSpecialistById(id);
+  if (!def) return null;
+  return { humanName: def.humanName, gender: def.gender };
+}
 
 const idParamSchema = z.object({ id: z.string().min(1) });
 
@@ -539,6 +564,127 @@ export function registerAdminSpecialistRoutes(app: Express) {
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to probe specialist", error);
+    }
+  });
+
+  // ── Identity (Phase 3 — admin-editable humanName + gender) ──────
+  //
+  // Accepts the 12 catalog specialist ids AND the synthetic id "gaspar"
+  // (the orchestrator). The catalog supplies factory defaults; the
+  // override row in `specialist_identity_overrides` wins per-field when
+  // present. Per-field nullability lets an admin override only humanName
+  // (e.g. spelling change) while leaving gender at the catalog default.
+  app.get("/api/admin/specialists/:id/identity", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const catalog = getIdentityCatalogDefault(id);
+      if (!catalog) return res.status(404).json({ error: "Specialist not found" });
+      const override = await storage.getIdentityOverride(id);
+      const resolved = resolveSpecialistIdentity(catalog, override);
+      const view: SpecialistIdentityPublicView = {
+        specialistId: id,
+        catalog,
+        override: override
+          ? {
+              humanName: override.humanName,
+              gender: override.gender,
+              updatedByUserId: override.updatedByUserId,
+              updatedAt: override.updatedAt.toISOString(),
+            }
+          : null,
+        resolved,
+      };
+      res.json(view);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to load specialist identity", error);
+    }
+  });
+
+  app.put("/api/admin/specialists/:id/identity", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const catalog = getIdentityCatalogDefault(id);
+      if (!catalog) return res.status(404).json({ error: "Specialist not found" });
+      const parsed = updateSpecialistIdentitySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const actorId = req.user!.id;
+      const updated = await storage.upsertIdentityOverride(
+        id,
+        { humanName: parsed.data.humanName, gender: parsed.data.gender },
+        actorId,
+        parsed.data.changeSummary,
+      );
+      logActivity(
+        req,
+        "update-specialist-identity",
+        "specialist_identity_override",
+        null,
+        `${id}: humanName=${parsed.data.humanName ?? "(default)"}, gender=${parsed.data.gender ?? "(default)"}`,
+      );
+      const resolved = resolveSpecialistIdentity(catalog, updated);
+      const view: SpecialistIdentityPublicView = {
+        specialistId: id,
+        catalog,
+        override: {
+          humanName: updated.humanName,
+          gender: updated.gender,
+          updatedByUserId: updated.updatedByUserId,
+          updatedAt: updated.updatedAt.toISOString(),
+        },
+        resolved,
+      };
+      res.json(view);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update specialist identity", error);
+    }
+  });
+
+  app.delete("/api/admin/specialists/:id/identity", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const catalog = getIdentityCatalogDefault(id);
+      if (!catalog) return res.status(404).json({ error: "Specialist not found" });
+      const actorId = req.user!.id;
+      const changeSummary = typeof req.body?.changeSummary === "string" ? req.body.changeSummary : undefined;
+      await storage.resetIdentityOverride(id, actorId, changeSummary);
+      logActivity(req, "reset-specialist-identity", "specialist_identity_override", null, id);
+      const resolved = resolveSpecialistIdentity(catalog, null);
+      const view: SpecialistIdentityPublicView = {
+        specialistId: id,
+        catalog,
+        override: null,
+        resolved,
+      };
+      res.json(view);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to reset specialist identity", error);
+    }
+  });
+
+  app.get("/api/admin/specialists/:id/identity/history", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const catalog = getIdentityCatalogDefault(id);
+      if (!catalog) return res.status(404).json({ error: "Specialist not found" });
+      const limit = Math.min(Number(req.query.limit ?? 50), 200);
+      const rows = await storage.listIdentityOverrideHistory(id, limit);
+      res.json(
+        rows.map((r) => ({
+          id: r.id,
+          action: r.action,
+          prevHumanName: r.prevHumanName,
+          prevGender: r.prevGender as Gender | null,
+          nextHumanName: r.nextHumanName,
+          nextGender: r.nextGender as Gender | null,
+          changeSummary: r.changeSummary,
+          changedByUserId: r.changedByUserId,
+          changedAt: r.changedAt.toISOString(),
+        })),
+      );
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to load specialist identity history", error);
     }
   });
 
