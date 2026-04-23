@@ -99,6 +99,46 @@ export class SpecialistConfigStorage {
     return out;
   }
 
+  /**
+   * Returns the union of hard-required field keys configured for every
+   * Specialist whose id appears in `propertySubjectSpecialistIds`. Used by the
+   * `all-properties-required-fields-complete` prerequisite evaluator
+   * (engine/analyst/registry/prerequisite-registry.ts) to decide which keys
+   * must be populated on every property in scope before a portfolio-level
+   * Specialist runs. "Hard" matches the `deriveHardRequiredFieldKeys`
+   * resolution: prefer per-candidate `fieldRequirements[key] === "hard"`,
+   * fall back to the legacy `requiredFields` array when no toggle state has
+   * been written yet, so Specialists migrated to the toggle UI are honored
+   * correctly even when the legacy column is stale.
+   */
+  async listHardRequiredFieldKeysForSpecialists(
+    specialistIds: readonly string[],
+  ): Promise<string[]> {
+    if (specialistIds.length === 0) return [];
+    const rows = await db
+      .select({
+        specialistId: specialistConfigs.specialistId,
+        requiredFields: specialistConfigs.requiredFields,
+        fieldRequirements: specialistConfigs.fieldRequirements,
+      })
+      .from(specialistConfigs);
+    const wanted = new Set(specialistIds);
+    const out = new Set<string>();
+    for (const r of rows) {
+      if (!wanted.has(r.specialistId)) continue;
+      const map = r.fieldRequirements ?? {};
+      const hardKeys = Object.entries(map)
+        .filter(([, level]) => level === "hard")
+        .map(([k]) => k);
+      if (hardKeys.length > 0 || Object.keys(map).length > 0) {
+        for (const k of hardKeys) out.add(k);
+      } else {
+        for (const k of r.requiredFields ?? []) out.add(k);
+      }
+    }
+    return Array.from(out);
+  }
+
   async listSpecialistConfigVersions(specialistId: string, limit = 50): Promise<SpecialistConfigVersionRow[]> {
     return db
       .select()

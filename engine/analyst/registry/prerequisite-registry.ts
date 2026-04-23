@@ -15,14 +15,43 @@
  *      "no evaluator registered" — a hard fail, not a silent pass).
  */
 import { isPrerequisiteId, type PrerequisiteId } from "./prerequisites";
+import { SPECIALIST_CATALOG, getRefreshCadenceDaysForConstant } from "./specialist-catalog";
+import { REGISTERED_CONSTANT_KEYS } from "@shared/model-constants-registry";
 
 /**
  * Storage-shape we depend on. Kept as a structural type so this module does
  * not pull the whole `IStorage` interface (and its many transitive imports)
- * into the engine layer.
+ * into the engine layer. Real `IStorage` satisfies this shape; tests pass a
+ * minimal fake.
  */
+export interface PrereqProperty {
+  id: number;
+  name?: string | null;
+  /** Per-property "financial model fully computed" timestamp; null = never. */
+  financialsComputedAt?: Date | null;
+  /** Other property fields are addressable as dot-paths (see findMissing). */
+  [key: string]: unknown;
+}
+
+export interface PrereqResearchRun {
+  completedAt?: Date | null;
+  startedAt?: Date | null;
+}
+
 export interface PrerequisiteStorage {
-  getAllProperties(userId?: number): Promise<Array<{ id: number; name?: string | null }>>;
+  getAllProperties(userId?: number): Promise<PrereqProperty[]>;
+  /** True iff at least one active management-company row exists. */
+  hasManagementCompanyProfile(): Promise<boolean>;
+  /** Latest successful research_run for a constants (key, locality) tuple. */
+  getLatestSuccessfulRunForConstant(
+    constantKey: string,
+    country: string | null,
+    subdivision: string | null,
+  ): Promise<PrereqResearchRun | undefined>;
+  /** Union of hard-required field keys across the given Specialist ids. */
+  listHardRequiredFieldKeysForSpecialists(
+    specialistIds: readonly string[],
+  ): Promise<string[]>;
 }
 
 export interface PrerequisiteContext {
@@ -93,21 +122,56 @@ export async function evaluatePrerequisites(
   return failures;
 }
 
+// ── Internal helpers ───────────────────────────────────────────────────
+
+/** Resolve a dot-path against an arbitrary value. Returns undefined on miss. */
+function resolvePath(obj: unknown, path: string): unknown {
+  const segments = path.split(".");
+  let cur: unknown = obj;
+  for (const seg of segments) {
+    if (cur === null || typeof cur !== "object") return undefined;
+    cur = (cur as Record<string, unknown>)[seg];
+    if (cur === undefined) return undefined;
+  }
+  return cur;
+}
+
+/**
+ * Returns the subset of `keys` that are "missing" on `obj`. Missing =
+ * `null | undefined | "" | NaN`. Mirrors the helper in
+ * `engine/analyst/surface/mgmt-co/index.ts` so the prerequisite gate uses
+ * the same definition of "populated" the per-Specialist required-fields
+ * gate uses — there can't be two different answers to "is this field set".
+ */
+function missingKeys(obj: unknown, keys: readonly string[]): string[] {
+  const missing: string[] = [];
+  for (const k of keys) {
+    const v = resolvePath(obj, k);
+    if (v === null || v === undefined) { missing.push(k); continue; }
+    if (typeof v === "string" && v.trim() === "") { missing.push(k); continue; }
+    if (typeof v === "number" && Number.isNaN(v)) { missing.push(k); continue; }
+  }
+  return missing;
+}
+
+function summarizeNames(items: string[], max = 3): string {
+  if (items.length <= max) return items.join(", ");
+  return `${items.slice(0, max).join(", ")}, +${items.length - max} more`;
+}
+
+/** Property-subject Specialist ids (declared in the catalog). */
+function propertySubjectSpecialistIds(): string[] {
+  return SPECIALIST_CATALOG.filter((d) => d.subject === "property").map((d) => d.id);
+}
+
 // ── Built-in evaluators ────────────────────────────────────────────────
 
 /**
- * `all-properties-financials-computed` — minimum scaffolding evaluator.
- *
- * Today this checks property presence in the user's scope (shared portfolio
- * + user-owned). The "financials computed" flag does not yet have a
- * persisted column on `properties`; once it does, this evaluator should be
- * upgraded to read that column instead of property presence. The fail mode
- * is loud, not silent — that is the contract: never report `ok` for a
- * prerequisite we cannot actually verify.
- *
- * If the user has zero properties, the prerequisite fails with a clear
- * reason; specialists that explicitly want "no properties is fine" should
- * not toggle this prerequisite on.
+ * `all-properties-financials-computed` — every property in scope must have a
+ * non-null `financialsComputedAt` timestamp. Replaces the old "property
+ * presence" smoke check now that the column exists on `properties`. Fails
+ * loudly with the count + first few offenders so the operator knows exactly
+ * which properties to compute before retrying.
  */
 registerPrerequisiteEvaluator(
   "all-properties-financials-computed",
@@ -117,6 +181,128 @@ registerPrerequisiteEvaluator(
       return {
         ok: false,
         reason: "No properties in scope. Add at least one property before running this Specialist.",
+      };
+    }
+    const uncomputed = props.filter((p) => !p.financialsComputedAt);
+    if (uncomputed.length > 0) {
+      const names = uncomputed.map((p) => p.name?.trim() || `property #${p.id}`);
+      return {
+        ok: false,
+        reason: `${uncomputed.length} of ${props.length} property(ies) have no computed financial statement: ${summarizeNames(names)}. Run the financial model on each before this Specialist.`,
+      };
+    }
+    return { ok: true };
+  },
+);
+
+/**
+ * `all-properties-required-fields-complete` — every property in scope must
+ * satisfy the union of hard-required field keys declared by the
+ * property-subject Specialists' configs (specialist_configs.fieldRequirements
+ * with fall back to the legacy `requiredFields` column). When no
+ * property-subject Specialist has any hard requirements yet, the gate
+ * passes — the operator hasn't asked for anything to be enforced.
+ */
+registerPrerequisiteEvaluator(
+  "all-properties-required-fields-complete",
+  async ({ storage, userId }) => {
+    const props = await storage.getAllProperties(userId);
+    if (props.length === 0) {
+      return {
+        ok: false,
+        reason: "No properties in scope. Add at least one property before running this Specialist.",
+      };
+    }
+    const requiredKeys = await storage.listHardRequiredFieldKeysForSpecialists(
+      propertySubjectSpecialistIds(),
+    );
+    if (requiredKeys.length === 0) return { ok: true };
+    const offenders: string[] = [];
+    for (const p of props) {
+      const missing = missingKeys(p, requiredKeys);
+      if (missing.length > 0) {
+        const label = p.name?.trim() || `property #${p.id}`;
+        offenders.push(`${label} (missing: ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""})`);
+      }
+    }
+    if (offenders.length > 0) {
+      return {
+        ok: false,
+        reason: `${offenders.length} of ${props.length} property(ies) missing required fields: ${summarizeNames(offenders)}.`,
+      };
+    }
+    return { ok: true };
+  },
+);
+
+/**
+ * `company-profile-saved` — at least one active management-company row must
+ * exist. The mgmt-co Specialists reason about the operator's company; if
+ * the profile has never been saved the run is a zero-state guess.
+ */
+registerPrerequisiteEvaluator(
+  "company-profile-saved",
+  async ({ storage }) => {
+    const present = await storage.hasManagementCompanyProfile();
+    if (!present) {
+      return {
+        ok: false,
+        reason: "No management-company profile saved yet. Save the company profile (name, segment, target market) before running this Specialist.",
+      };
+    }
+    return { ok: true };
+  },
+);
+
+/**
+ * `constants-refreshed-within-cadence` — every owned Model Constant must
+ * have a successful refresh within the owning Specialist's cadence at the
+ * United States baseline locality. Constants without a declared cadence
+ * (catalog `refreshCadenceDays` undefined) are skipped — they are admin-
+ * on-demand only and not subject to staleness.
+ *
+ * We check the US baseline rather than every override locality on purpose:
+ * the scheduled refresh job (server/jobs/specialist-constants-refresh.ts)
+ * keys the cadence off the baseline plus opted-in overrides; the baseline
+ * is the universal "have we ever touched this in the cadence window"
+ * heuristic that catches the operationally common "nobody has refreshed
+ * anything in a month" failure mode without dragging the gate into per-
+ * locality bookkeeping.
+ *
+ * Cadence source: this gate uses the catalog's declared
+ * `refreshCadenceDays` per Specialist. Admin per-Specialist cadence
+ * overrides used by the scheduler/UI are intentionally NOT consulted here
+ * — the gate is the catalog floor; tightening or relaxing the cadence in
+ * admin only affects when the scheduler runs, not when the gate fails.
+ * Aligning the two is tracked as a follow-up.
+ */
+registerPrerequisiteEvaluator(
+  "constants-refreshed-within-cadence",
+  async ({ storage }) => {
+    const stale: string[] = [];
+    const now = Date.now();
+    for (const key of REGISTERED_CONSTANT_KEYS) {
+      const cadenceDays = getRefreshCadenceDaysForConstant(key);
+      if (cadenceDays == null) continue;
+      const latest = await storage.getLatestSuccessfulRunForConstant(key, "United States", null);
+      if (!latest) {
+        stale.push(`${key} (never refreshed)`);
+        continue;
+      }
+      const ts = latest.completedAt ?? latest.startedAt ?? null;
+      if (!ts) {
+        stale.push(`${key} (no timestamp)`);
+        continue;
+      }
+      const ageDays = (now - new Date(ts).getTime()) / (1000 * 60 * 60 * 24);
+      if (ageDays >= cadenceDays) {
+        stale.push(`${key} (${Math.floor(ageDays)}d old, cadence ${cadenceDays}d)`);
+      }
+    }
+    if (stale.length > 0) {
+      return {
+        ok: false,
+        reason: `${stale.length} constant(s) overdue for refresh: ${summarizeNames(stale)}. Run the Constants refresh job (or refresh manually) before this Specialist.`,
       };
     }
     return { ok: true };

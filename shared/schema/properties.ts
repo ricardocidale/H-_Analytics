@@ -252,6 +252,14 @@ export const properties = pgTable("properties", {
   validationStatus: text("validation_status").notNull().default("pending_validation"),
   lastValidatedAt: timestamp("last_validated_at"),
   flaggedFieldCount: integer("flagged_field_count").notNull().default(0),
+  // When this property's full financial model (revenue + cost lines + capital
+  // stack) was last successfully computed. Read by the
+  // `all-properties-financials-computed` prerequisite evaluator
+  // (engine/analyst/registry/prerequisite-registry.ts) to decide whether
+  // every property in scope has a fresh financial statement before a gated
+  // Specialist runs. Null = never computed; the gate fails loudly so the
+  // operator runs the model first.
+  financialsComputedAt: timestamp("financials_computed_at"),
   // Why The Analyst excluded this property (null if not excluded)
   validationReason: text("validation_reason"),
 

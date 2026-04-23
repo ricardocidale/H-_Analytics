@@ -55,6 +55,7 @@ export const SEED_PROPERTY_DEFAULTS = {
   escalationMethod: 'annual',
   reinvestmentRate: DEFAULT_REINVESTMENT_RATE,
   performanceTestEnabled: false,
+  financialsComputedAt: null,
   feeSubordination: null,
   operatingDeficitReserve: null,
   ownerPriorityReturn: null,
