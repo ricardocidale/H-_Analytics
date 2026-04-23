@@ -3,6 +3,12 @@
  *
  * Renders a rich markdown ICP narrative for injection into research prompts.
  * Replaces the weak 5-field `buildIcpNarrative()` in company-pack.ts.
+ *
+ * Field access is dynamic because the inputs may be either the strongly-typed
+ * generated objects or the raw record persisted on `globalAssumptions`. We
+ * read through `Record<string, unknown>` casts and coerce per slot, which
+ * preserves the legacy `c.x ?? "?"` / `d.x || ""` rendering exactly while
+ * avoiding `any`.
  */
 
 import type {
@@ -16,17 +22,26 @@ export function buildFullIcpNarrative(
   descriptive: GeneratedIcpDescriptive | Record<string, unknown>,
   companyName: string,
 ): string {
-  // Cast to a permissive map for dynamic field access; templates tolerate
-  // missing fields by emitting a `?` placeholder.
   const c = config as Record<string, unknown>;
   const d = descriptive as Record<string, unknown>;
 
-  const num = (key: string): number =>
-    typeof c[key] === "number" ? (c[key] as number) : 0;
-  const val = (key: string): string | number =>
-    (c[key] as string | number | undefined) ?? "?";
-  const str = (key: string): string =>
-    typeof d[key] === "string" ? (d[key] as string) : "";
+  /** Mirror legacy `c.x ?? "?"` for display values that may be number|string. */
+  const v = (key: string): string | number => {
+    const raw = c[key];
+    return raw == null ? "?" : (raw as string | number);
+  };
+
+  /** Mirror legacy `c.x ?? 0` for numeric formatting via fmtK. */
+  const n = (key: string): number => {
+    const raw = c[key];
+    return typeof raw === "number" ? raw : 0;
+  };
+
+  /** Mirror legacy `d.x || ""` for descriptive prose. */
+  const s = (key: string): string => {
+    const raw = d[key];
+    return typeof raw === "string" ? raw : "";
+  };
 
   const sections: string[] = [];
 
@@ -34,30 +49,30 @@ export function buildFullIcpNarrative(
 
   // Property targeting
   sections.push(`### Target Property Profile
-- **Rooms:** ${val("roomsMin")}–${val("roomsMax")} (sweet spot ${val("roomsSweetSpotMin")}–${val("roomsSweetSpotMax")})
-- **Land:** ${val("landAcresMin")}–${val("landAcresMax")} acres
-- **Building:** ${fmtK(num("builtSqFtMin"))}–${fmtK(num("builtSqFtMax"))} sqft
-- **ADR Target:** $${val("adrMin")}–$${val("adrMax")}
-- **Occupancy Target:** ${val("occupancyMin")}%–${val("occupancyMax")}%
-- **F&B Rating:** ${val("fbRating")}/5
-- **Property Types:** ${str("propertyTypes") || "Not specified"}`);
+- **Rooms:** ${v("roomsMin")}–${v("roomsMax")} (sweet spot ${v("roomsSweetSpotMin")}–${v("roomsSweetSpotMax")})
+- **Land:** ${v("landAcresMin")}–${v("landAcresMax")} acres
+- **Building:** ${fmtK(n("builtSqFtMin"))}–${fmtK(n("builtSqFtMax"))} sqft
+- **ADR Target:** $${v("adrMin")}–$${v("adrMax")}
+- **Occupancy Target:** ${v("occupancyMin")}%–${v("occupancyMax")}%
+- **F&B Rating:** ${v("fbRating")}/5
+- **Property Types:** ${s("propertyTypes") || "Not specified"}`);
 
   // Financial targets
   sections.push(`### Financial Criteria
-- **Acquisition:** $${fmtK(num("acquisitionMin"))}–$${fmtK(num("acquisitionMax"))} (target $${fmtK(num("acquisitionTargetMin"))}–$${fmtK(num("acquisitionTargetMax"))})
-- **Total Investment:** $${fmtK(num("totalInvestmentMin"))}–$${fmtK(num("totalInvestmentMax"))}
-- **Renovation:** $${fmtK(num("renovationMin"))}–$${fmtK(num("renovationMax"))}
-- **Target IRR:** ${val("targetIrr")}%
-- **Equity Multiple:** ${val("equityMultipleMin")}x–${val("equityMultipleMax")}x
-- **Hold Period:** ${val("holdYearsMin")}–${val("holdYearsMax")} years
-- **Exit Cap Rate:** ${val("exitCapRateMin")}%–${val("exitCapRateMax")}%`);
+- **Acquisition:** $${fmtK(n("acquisitionMin"))}–$${fmtK(n("acquisitionMax"))} (target $${fmtK(n("acquisitionTargetMin"))}–$${fmtK(n("acquisitionTargetMax"))})
+- **Total Investment:** $${fmtK(n("totalInvestmentMin"))}–$${fmtK(n("totalInvestmentMax"))}
+- **Renovation:** $${fmtK(n("renovationMin"))}–$${fmtK(n("renovationMax"))}
+- **Target IRR:** ${v("targetIrr")}%
+- **Equity Multiple:** ${v("equityMultipleMin")}x–${v("equityMultipleMax")}x
+- **Hold Period:** ${v("holdYearsMin")}–${v("holdYearsMax")} years
+- **Exit Cap Rate:** ${v("exitCapRateMin")}%–${v("exitCapRateMax")}%`);
 
   // Revenue mix
   sections.push(`### Revenue Mix Targets
-- **F&B Share:** ${val("fbShareMin")}%–${val("fbShareMax")}%
-- **Events Share:** ${val("eventsShareMin")}%–${val("eventsShareMax")}%
-- **Total Ancillary:** ${val("totalAncillaryMin")}%–${val("totalAncillaryMax")}%
-- **Management Fee:** ${val("baseMgmtFeeMin")}%–${val("baseMgmtFeeMax")}% base, ${val("incentiveFeeMin")}%–${val("incentiveFeeMax")}% incentive`);
+- **F&B Share:** ${v("fbShareMin")}%–${v("fbShareMax")}%
+- **Events Share:** ${v("eventsShareMin")}%–${v("eventsShareMax")}%
+- **Total Ancillary:** ${v("totalAncillaryMin")}%–${v("totalAncillaryMax")}%
+- **Management Fee:** ${v("baseMgmtFeeMin")}%–${v("baseMgmtFeeMax")}% base, ${v("incentiveFeeMin")}%–${v("incentiveFeeMax")}% incentive`);
 
   // Key amenities
   const mustHave: string[] = [];
@@ -72,20 +87,20 @@ export function buildFullIcpNarrative(
 - **Major Plus:** ${majorPlus.join(", ") || "none specified"}`);
   }
 
-  // Location
-  const locChars = str("locationCharacteristics");
-  const locDetails = str("locationDetails");
+  // Location — preserve legacy template exactly (note the literal blank line
+  // when locationCharacteristics is empty).
+  const locChars = d.locationCharacteristics;
+  const locDetails = d.locationDetails;
   if (locChars || locDetails) {
     sections.push(`### Location Strategy
-${locChars}
+${locChars || ""}
 ${locDetails ? `\n**Markets:**\n${locDetails}` : ""}`);
   }
 
   // Exclusions
-  const exclusions = str("exclusions");
-  if (exclusions) {
+  if (d.exclusions) {
     sections.push(`### Exclusions
-${exclusions}`);
+${d.exclusions}`);
   }
 
   return sections.join("\n\n");
