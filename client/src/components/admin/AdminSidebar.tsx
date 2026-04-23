@@ -258,7 +258,7 @@ function buildNavGroups(): NavGroup[] {
     },
     {
       id: "defaults",
-      label: "Defaults",
+      label: "Steady State",
       icon: IconSliders,
       description: "Defaults applied to new entities and immutable model constants",
       sections: [
