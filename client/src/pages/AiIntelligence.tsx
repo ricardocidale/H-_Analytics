@@ -21,7 +21,11 @@ const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligenc
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const ResourcesTab = lazy(() => import("@/components/admin/resources/ResourcesTab"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
-const PhotosAndRendersConsole = lazy(() => import("@/pages/ai-intelligence/PhotosAndRendersSpecialistPage"));
+// Standalone render console — Fernanda's manual-job surface, kept as a
+// separate sidebar entry under Photos so admins can drive renders by hand
+// without opening her full Specialist page. Phase 5 will fold this into a
+// "Runtime → Render Console" tab on Fernanda's catalog page.
+const RenderConsole = lazy(() => import("@/pages/ai-intelligence/PhotosAndRendersSpecialistPage"));
 
 const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -51,6 +55,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialist-property-risk-intelligence": { title: "Property Risk Intelligence",   subtitle: "" },
   "specialist-property-executive-summary": { title: "Executive Summary",            subtitle: "" },
   "specialist-photos-photo-enhancer":      { title: "Photo Enhancer & Renders",     subtitle: "" },
+  "render-console":                        { title: "Render Console",               subtitle: "Fernanda's manual render & avatar jobs." },
   "specialist-portfolio-ops-watchdog":     { title: "Portfolio Watchdog",           subtitle: "" },
   "specialist-resources-builder":          { title: "Resource Builder",             subtitle: "" },
   "specialist-constants-tax-research":         { title: "Tax Authority Research",          subtitle: "" },
@@ -97,13 +102,8 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "resources-tables":     return <ResourcesTab kind="table" />;
     case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
     case "resources-models":     return <ResourcesTab kind="model" />;
+    case "render-console":       return <RenderConsole />;
     default: {
-      if (section === "specialist-photos-photo-enhancer") {
-        // Fernanda owns both photo enhancement and the render pipeline.
-        // Render her standalone job console here while the catalog-driven
-        // SpecialistPage tabs are unified into the same surface (Phase 5).
-        return <PhotosAndRendersConsole />;
-      }
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
       }

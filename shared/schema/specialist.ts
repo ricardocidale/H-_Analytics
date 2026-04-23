@@ -139,9 +139,12 @@ export const SpecialistDefinitionSchema = z
     /**
      * Persona gender. Used by `engine/analyst/identity.ts` and the log
      * prefix helper to drive pronoun selection in narration. The
-     * orchestrator Gaspar is male; the 12 Specialists are female.
+     * orchestrator Gaspar is male; the 12 Specialists are female today.
+     * `"neutral"` is reserved for future personas (a Specialist whose
+     * persona prefers they/them, or an automated tool persona surfaced
+     * in narration without a gendered pronoun).
      */
-    gender: z.enum(["male", "female"]),
+    gender: z.enum(["male", "female", "neutral"]),
     /**
      * 1–2 sentence plain-language description of what the agent does and the
      * value it delivers. Rendered under the Specialist page header and used

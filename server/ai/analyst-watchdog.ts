@@ -22,7 +22,14 @@
 import { storage } from "../storage";
 import { COUNTRY_DEFAULTS, type CountryDefaults } from "@shared/countryDefaults";
 import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, meetsConvictionFloor, insufficientDataMessage } from "./benchmark-lookups";
-import { logger } from "../logger";
+import { logger, loggerFor } from "../logger";
+import { GASPAR_IDENTITY } from "../../engine/analyst/identity";
+
+// The watchdog runs as Gaspar (the orchestrator persona) — it reconciles
+// the team's outputs against staleness/consistency rules, no single
+// Specialist owns it. Routing through the persona-prefixed helper keeps
+// the activity log readable: `[gaspar] Analyst staleness check: …`.
+const watchdogLog = loggerFor(GASPAR_IDENTITY.logKey);
 
 // Fields where country_defaults is authoritative — deviation > threshold = auto-flag
 const HARD_FLOOR_FIELDS: Array<{
@@ -435,12 +442,12 @@ export async function checkStaleness(): Promise<number> {
     }
 
     if (staleCount > 0) {
-      logger.info(`Analyst staleness check: ${staleCount} properties marked stale`, "analyst-watchdog");
+      watchdogLog.info(`Analyst staleness check: ${staleCount} properties marked stale`);
     }
 
     return staleCount;
   } catch (err: unknown) {
-    logger.warn(`Analyst staleness check failed: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+    watchdogLog.warn(`Analyst staleness check failed: ${err instanceof Error ? err.message : err}`);
     return 0;
   }
 }
@@ -500,11 +507,11 @@ export async function checkPortfolioConsistency(): Promise<string[]> {
     }
 
     if (warnings.length > 0) {
-      logger.info(`Analyst portfolio check: ${warnings.length} warnings`, "analyst-watchdog");
+      watchdogLog.info(`Analyst portfolio check: ${warnings.length} warnings`);
     }
 
   } catch (err: unknown) {
-    logger.warn(`Analyst portfolio check failed: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+    watchdogLog.warn(`Analyst portfolio check failed: ${err instanceof Error ? err.message : err}`);
   }
 
   return warnings;

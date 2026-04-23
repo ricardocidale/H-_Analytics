@@ -32,7 +32,14 @@ import { buildUserPrompt, type ResearchParams } from "./research-prompt-builders
 import { loadSkill } from "./research-resources";
 import { retrieveSimilarResearch, indexResearchResult, isVectorStoreAvailable } from "./vector-store-service";
 
-import { logger } from "../logger";
+import { logger, loggerFor } from "../logger";
+import { GASPAR_IDENTITY } from "../../engine/analyst/identity";
+
+// Orchestrator-side log channel — Gaspar narrates panel + synthesis
+// failures so the activity stream reads as `[gaspar] …` instead of
+// the legacy `[orchestrator] …`. Specialist-owned errors should use
+// their own loggerFor(humanName) channel (Phase 4).
+const gasparLog = loggerFor(GASPAR_IDENTITY.logKey);
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 
 // ── Model defaults (used when caller does not supply resolved overrides) ──────
@@ -128,7 +135,7 @@ async function runAnalystPanel(
 
     return { model, role, output, durationMs: Date.now() - start };
   } catch (err: unknown) {
-    logger.warn(`Analyst panel failed (${model}): ${err instanceof Error ? err.message : err}`, "orchestrator");
+    gasparLog.warn(`Analyst panel failed (${model}): ${err instanceof Error ? err.message : err}`);
     return {
       model, role,
       output: {},
@@ -490,7 +497,7 @@ export async function* orchestrateResearch(
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.warn(`Synthesis streamObject failed: ${msg}`, "orchestrator");
+    gasparLog.warn(`Synthesis streamObject failed: ${msg}`);
     yield {
       type: "error",
       data: `ORCHESTRATOR_BOTH_FAILED: synthesis path failed (${msg.slice(0, 200)}) — falling back to single-model research.`,

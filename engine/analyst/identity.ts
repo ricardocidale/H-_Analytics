@@ -1,8 +1,3 @@
-// UNWIRED — blocking on: Phase 3 (Task #453 — Gaspar identity + pronoun helper)
-//   This module is the persona seam landed in Phase 2a so Phase 3 can wire
-//   pronoun helpers and orchestrator narration without touching the catalog
-//   again. First import lands when the orchestrator dispatch path adopts
-//   `GASPAR_IDENTITY` for activity-log subheadings.
 /**
  * Gaspar — orchestrator identity.
  *

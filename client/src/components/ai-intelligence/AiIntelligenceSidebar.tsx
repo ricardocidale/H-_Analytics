@@ -46,7 +46,8 @@ export type AiIntelligenceSection =
   | "resources-sources"
   | "resources-tables"
   | "resources-benchmarks"
-  | "resources-models";
+  | "resources-models"
+  | "render-console";
 
 interface SectionItem {
   value: AiIntelligenceSection;
@@ -93,6 +94,11 @@ function buildNavGroups(): NavGroup[] {
       icon: IconImage,
       sections: [
         { value: "specialist-photos-photo-enhancer", label: specialistLabel("photos.photo-enhancer", "Photo Enhancer & Renders"), icon: IconImage },
+        // Fernanda's manual render-job console. Not a Specialist section —
+        // it's a tool surface that hits the same render pipeline she owns,
+        // so it sits under her group but is excluded from
+        // SPECIALIST_SECTION_TO_ID (it has no catalog id).
+        { value: "render-console", label: "Render Console", icon: IconImage },
       ],
     },
     {
