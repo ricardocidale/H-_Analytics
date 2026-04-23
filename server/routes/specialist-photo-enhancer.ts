@@ -15,31 +15,14 @@ import { storage } from "../storage";
 import { loggerFor } from "../logger";
 import { getSpecialistById } from "../../engine/analyst/registry/specialist-catalog";
 
-// COMPATIBILITY ALIAS UNDER FERNANDA (Phase 2a, scope-locked):
-// The catalog entry `photos.photos-and-renders` was removed and folded
-// into Fernanda (`photos.photo-enhancer`) as a second job. The HTTP
-// surface below intentionally keeps the legacy `/api/specialists/
-// photos-and-renders/*` paths so the per-property album button
-// (client/src/features/property-images/useGenerateImage.ts) keeps
-// working without a cascading frontend change. From a Specialist
-// ownership standpoint these endpoints belong to Fernanda — every log
-// line narrates under her persona below.
-//
-// Single funnel for every Replicate-style render. Both the per-property
-// album button and the specialist console POST here so prompt config,
-// rate limits, and the call log are shared. The render pipeline is owned
-// by Fernanda (`photos.photo-enhancer`) — see
-// engine/analyst/registry/specialist-catalog.ts for the catalog entry.
-// Route paths keep the legacy `/photos-and-renders` slug so the album
-// button (client/src/features/property-images/useGenerateImage.ts) keeps
-// working without a frontend change.
+// Fernanda's render pipeline. Single funnel for every Replicate-style
+// render — both the per-property album button and the specialist
+// console POST here so prompt config, rate limits, and the call log
+// are shared. Catalog entry: photos.photo-enhancer.
 const SPECIALIST_ID = "photos.photo-enhancer";
 
-// All log lines emitted by this route narrate under Fernanda's persona,
-// derived from the catalog so renaming her in one place updates the log
-// prefix everywhere. This intentionally folds the previously
-// "cost-logger"-tagged failures under [fernanda] too so admins can
-// trace every render-pipeline event back to the Specialist that owns it.
+// Log key derived from the catalog so the persona can be renamed in
+// one place without desyncing the prefix.
 const fernandaLog = loggerFor(
   getSpecialistById(SPECIALIST_ID)?.humanName ?? "specialist",
 );

@@ -93,11 +93,8 @@ function buildNavGroups(): NavGroup[] {
       icon: IconImage,
       sections: [
         // Fernanda owns both photo enhancement and the render pipeline
-        // as two jobs of one Specialist. The manual render console lives
-        // inside her SpecialistPage (Runtime tab) — there is no separate
-        // sidebar entry. The legacy /api/specialists/photos-and-renders/*
-        // endpoints stay live (useGenerateImage depends on them) but are
-        // now narrated under Fernanda.
+        // as two jobs of one Specialist. Manual render controls live
+        // inside her SpecialistPage (Runtime tab) — no separate entry.
         { value: "specialist-photos-photo-enhancer", label: specialistLabel("photos.photo-enhancer", "Photo Enhancer & Renders"), icon: IconImage },
       ],
     },
