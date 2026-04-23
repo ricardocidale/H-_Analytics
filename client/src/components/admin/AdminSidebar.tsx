@@ -46,7 +46,6 @@ export type AdminSection =
   | "ai-agents" | "knowledge-base" | "conversations"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "vector-bench"
   | "navigation" | "notifications" | "verification" | "database"
-  | "photos-renders"
   // Legacy aliases (redirect to canonical)
   | "logos" | "themes" | "icons"
   | "llms" | "sources" | "model-routing"

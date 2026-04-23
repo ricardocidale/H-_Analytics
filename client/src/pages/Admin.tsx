@@ -36,7 +36,6 @@ const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/Pip
 const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
 const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/AnalystTables"));
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
-const PhotosRendersTab = lazy(() => import("@/components/admin/PhotosRendersTab"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
 const RequiredFieldsRollup = lazy(() => import("@/components/admin/required-fields/RequiredFieldsRollup"));
 
@@ -66,8 +65,6 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   navigation:            { title: "Navigation",               subtitle: "Control which sidebar pages are visible to users" },
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
-
-  "photos-renders":      { title: "Photos & Renders",          subtitle: "AI image generation models, prompt templates, and render settings" },
 
   // AI Research → Specialists (P5). Title/subtitle mirror the catalog
   // letter+name so the page header reads identically to the sidebar row.
@@ -206,7 +203,6 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "navigation":       return <NavigationTab />;
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
-    case "photos-renders":   return <PhotosRendersTab />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
