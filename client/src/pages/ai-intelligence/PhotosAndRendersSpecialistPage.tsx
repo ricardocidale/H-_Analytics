@@ -103,7 +103,7 @@ export default function PhotosAndRendersSpecialistPage() {
     queryKey: ["/api/replicate/styles"],
   });
   const { data: callsResp, isLoading: callsLoading } = useQuery<{ runs: SpecialistCallRun[] }>({
-    queryKey: ["/api/specialists/photos-and-renders/calls"],
+    queryKey: ["/api/specialists/photo-enhancer/calls"],
   });
   const calls = callsResp?.runs ?? [];
   const enabledStyles = useMemo(
@@ -166,7 +166,7 @@ export default function PhotosAndRendersSpecialistPage() {
       };
       if (sourcePreview) body.beforeImageUrl = sourcePreview;
 
-      const res = await fetch("/api/specialists/photos-and-renders/run", {
+      const res = await fetch("/api/specialists/photo-enhancer/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...body, originatedFrom: "specialist-page" }),
@@ -189,7 +189,7 @@ export default function PhotosAndRendersSpecialistPage() {
       };
       setResults((prev) => [result, ...prev]);
       // Refresh the specialist call log so this run appears immediately.
-      queryClient.invalidateQueries({ queryKey: ["/api/specialists/photos-and-renders/calls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/specialists/photo-enhancer/calls"] });
       if (data.usedFallback && data.fallbackNotice) {
         toast({ title: "Fallback used", description: data.fallbackNotice });
       } else {

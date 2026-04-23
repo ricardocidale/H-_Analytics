@@ -62,7 +62,7 @@ const runSchema = z.object({
 });
 
 export function register(app: Express): void {
-  app.post("/api/specialists/photos-and-renders/run", requireAdmin, async (req: Request, res: Response) => {
+  app.post("/api/specialists/photo-enhancer/run", requireAdmin, async (req: Request, res: Response) => {
     const userId = getAuthUser(req).id;
     try {
       const rateLimit = await getAdminRateLimit();
@@ -114,18 +114,18 @@ export function register(app: Express): void {
               prompt,
               beforeImageUrl,
             );
-            try { logApiCost({ timestamp: new Date().toISOString(), service: "replicate", model: style, operation: "image-gen", estimatedCostUsd: unitCost("replicate-image"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
+            try { logApiCost({ timestamp: new Date().toISOString(), service: "replicate", model: style, operation: "image-gen", estimatedCostUsd: unitCost("replicate-image"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photo-enhancer/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
           } catch (replicateError: unknown) {
             fernandaLog.warn(
               `Replicate generation failed, falling back: ${replicateError instanceof Error ? replicateError.message : replicateError}`,
             );
             imageBuffer = await generateImageBuffer(prompt, adminSize);
             usedFallback = true;
-            try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
+            try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen-fallback", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photo-enhancer/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
           }
         } else {
           imageBuffer = await generateImageBuffer(prompt, adminSize);
-          try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photos-and-renders/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
+          try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startedAt, userId, route: "/api/specialists/photo-enhancer/run" }); } catch (e: unknown) { fernandaLog.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`); }
         }
       } catch (genError: unknown) {
         const message = genError instanceof Error ? genError.message : "Image generation failed";
@@ -192,7 +192,7 @@ export function register(app: Express): void {
     }
   });
 
-  app.get("/api/specialists/photos-and-renders/calls", requireAdmin, async (req: Request, res: Response) => {
+  app.get("/api/specialists/photo-enhancer/calls", requireAdmin, async (req: Request, res: Response) => {
     try {
       const limitRaw = Number(req.query.limit);
       const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 200) : 50;
