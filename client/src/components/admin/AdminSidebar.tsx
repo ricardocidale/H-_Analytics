@@ -19,7 +19,7 @@ import {
 import { X } from "@/components/icons/themed-icons";
 import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  IconMenu, IconHelpCircle, IconPeople, IconUserCog, IconActivity, IconImage, IconSwatchBook,
+  IconMenu, IconHelpCircle, IconPeople, IconUserCog, IconActivity, IconSwatchBook,
   IconPanelLeft, IconProperties,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
@@ -161,9 +161,10 @@ const LEGACY_ADMIN_SECTION_REDIRECTS: Record<string, AdminSection> = {
   "resources-benchmarks": "services-fees",
   "resources-models": "services-fees",
   // Admin Required Fields tab was removed — global required-field metadata now
-  // lives per-Specialist (see SpecialistPage's RequiredFieldsTab). Any old
-  // deep link lands on the Properties group's remaining section.
-  "required-fields": "photos-renders",
+  // lives per-Specialist (see SpecialistPage's RequiredFieldsTab). The
+  // Properties sidebar group was also removed, so old deep links land on the
+  // App Defaults page (a visible, still-existing Admin section).
+  "required-fields": "model-defaults",
 };
 
 export function normalizeAdminSection(section: AdminSection | string): AdminSection {
@@ -228,15 +229,6 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "scenarios",           label: "All Scenarios",       icon: IconScenarios },
         { value: "default-assignments", label: "Default Assignments", icon: IconUserCog },
-      ],
-    },
-    {
-      id: "photos-renders",
-      label: "Photos & Renders",
-      icon: IconImage,
-      description: "AI image generation models and render settings",
-      sections: [
-        { value: "photos-renders", label: "Photos & Renders", icon: IconImage },
       ],
     },
     {
