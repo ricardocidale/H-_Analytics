@@ -218,7 +218,7 @@ function buildNavGroups(): NavGroup[] {
       icon: IconPeople,
       description: "Manage user accounts and assignments",
       sections: [
-        { value: "users", label: "Users", icon: IconPeople },
+        { value: "users", label: "All Users", icon: IconPeople },
       ],
     },
     {
@@ -237,7 +237,7 @@ function buildNavGroups(): NavGroup[] {
       icon: IconPalette,
       description: "Logos, themes, and icon customization",
       sections: [
-        { value: "brand", label: "Brand & Appearance", icon: IconPalette },
+        { value: "brand", label: "Brand Settings", icon: IconPalette },
       ],
     },
     {
@@ -246,7 +246,7 @@ function buildNavGroups(): NavGroup[] {
       icon: IconExport,
       description: "PDF, PPTX, Excel & CSV exports",
       sections: [
-        { value: "exports", label: "Reports & Exports", icon: IconExport },
+        { value: "exports", label: "All Exports", icon: IconExport },
       ],
     },
     {
