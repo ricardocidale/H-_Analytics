@@ -113,6 +113,27 @@
       "when": 1777507200000,
       "tag": "0015_drop_required_fields_config",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1778112000000,
+      "tag": "0016_tax_bulletin_cache",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1778716800000,
+      "tag": "0017_specialist_identity_overrides",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1779321600000,
+      "tag": "0018_specialist_recommendation_events",
+      "breakpoints": true
     }
   ]
 }

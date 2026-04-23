@@ -48,6 +48,7 @@ import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
 import { Switch } from "@/components/ui/switch";
+import { PrerequisitesFailedPanel, type PrerequisiteFailure } from "@/components/company/SpecialistRequirementsPanel";
 import {
   PROJECTION_YEARS,
   DEFAULT_MODEL_START_DATE,
@@ -91,6 +92,7 @@ export default function PropertyEdit() {
   const [intelligenceClicked, setIntelligenceClicked] = useState(false);
   const intelligencePromptShown = useRef(false);
   const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
+  const [prerequisiteFailures, setPrerequisiteFailures] = useState<PrerequisiteFailure[]>([]);
   const wasGeneratingRef = useRef(false);
   const [researchStartedAt, setResearchStartedAt] = useState<number | null>(null);
   const { data: marketRates } = useMarketRates();
@@ -492,32 +494,14 @@ export default function PropertyEdit() {
         // { prerequisiteFailures, requiredFieldsMissing } when the
         // property-subject Specialists (D Risk Intelligence, E Executive
         // Summary) have toggled-on prerequisites that the deterministic
-        // evaluator flagged on this save. The save itself has landed —
-        // we only surface the failures as a toast so the admin knows
-        // which Specialists will still gate their next run. Mirrors the
-        // PrerequisitesFailedPanel wiring on Company Assumptions.
+        // evaluator flagged on this save. Shape is the flat
+        // PrerequisiteFailure = { id, specialistId, reason } — the same
+        // contract Company Assumptions consumes — so we render the shared
+        // PrerequisitesFailedPanel rather than a toast.
         const prereqRes = res as {
-          prerequisiteFailures?: Array<{
-            specialistId: string;
-            specialistLabel?: string;
-            failures: Array<{ code: string; description?: string }>;
-          }>;
+          prerequisiteFailures?: PrerequisiteFailure[] | null;
         };
-        const prereqs = prereqRes.prerequisiteFailures ?? [];
-        if (prereqs.length > 0) {
-          const lines = prereqs
-            .map((p) => {
-              const codes = p.failures.map((f) => f.code).join(", ");
-              const label = p.specialistLabel ?? p.specialistId;
-              return `${label}: ${codes}`;
-            })
-            .join(" • ");
-          toast({
-            title: "Saved — some Specialists still gated",
-            description: lines,
-            duration: 10000,
-          });
-        }
+        setPrerequisiteFailures(prereqRes.prerequisiteFailures ?? []);
         if (feeDraft) {
           updateFeeCategories.mutate({ propertyId, categories: feeDraft }, {
             onSuccess: () => { finishSave(); },
@@ -738,6 +722,10 @@ export default function PropertyEdit() {
         </DialogContent>
       </Dialog>
 
+      <PrerequisitesFailedPanel
+        failures={prerequisiteFailures}
+        onDismiss={() => setPrerequisiteFailures([])}
+      />
       <ApplyResearchDialog
         open={showApplyDialog}
         onOpenChange={setShowApplyDialog}
