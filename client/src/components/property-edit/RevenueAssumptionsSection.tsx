@@ -355,7 +355,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DEFAULT_PROFILE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 
-function SeasonalityProfileEditor({ draft, onChange }: { draft: any; onChange: PropertyEditSectionProps["onChange"] }) {
+function SeasonalityProfileEditor({ draft, onChange }: { draft: PropertyEditSectionProps["draft"]; onChange: PropertyEditSectionProps["onChange"] }) {
   const [isOpen, setIsOpen] = useState(false);
   const profile: number[] = draft.seasonalityProfile || DEFAULT_PROFILE;
 
@@ -415,7 +415,7 @@ function SeasonalityProfileEditor({ draft, onChange }: { draft: any; onChange: P
   );
 }
 
-function OccupancyRampCurveEditor({ draft, onChange }: { draft: any; onChange: PropertyEditSectionProps["onChange"] }) {
+function OccupancyRampCurveEditor({ draft, onChange }: { draft: PropertyEditSectionProps["draft"]; onChange: PropertyEditSectionProps["onChange"] }) {
   const [isOpen, setIsOpen] = useState(false);
   const curve: number[] = draft.occupancyRampCurve || [];
 

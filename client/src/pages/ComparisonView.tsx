@@ -72,10 +72,10 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
     return dir === "high" ? Math.max(...values) : Math.min(...values);
   };
 
-  const formatValue = (value: any, format: "text" | "money" | "percent"): string => {
+  const formatValue = (value: unknown, format: "text" | "money" | "percent"): string => {
     if (value === null || value === undefined) return "—";
-    if (format === "money") return fmtMoney(value);
-    if (format === "percent") return fmtPct(value);
+    if (format === "money") return fmtMoney(value as number);
+    if (format === "percent") return fmtPct(value as number);
     return String(value);
   };
 

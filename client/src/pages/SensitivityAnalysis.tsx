@@ -300,7 +300,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
     tornadoD3Ref,
   });
 
-  const handleExport = useCallback((orientation: "landscape" | "portrait", _version?: any, customFilename?: string) => {
+  const handleExport = useCallback((orientation: "landscape" | "portrait", _version?: unknown, customFilename?: string) => {
     if (exportType === "pdf") handleExportPDF(orientation, customFilename);
     else handleExportChart(orientation, customFilename);
   }, [exportType, handleExportPDF, handleExportChart]);
