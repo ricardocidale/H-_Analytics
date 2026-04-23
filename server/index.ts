@@ -569,6 +569,29 @@ async function runSchemaMigrations() {
     await markMigrationApplied("specialist_observed_missing_001");
   }
 
+  if (!(await isMigrationApplied("specialist_recommendation_events_001"))) {
+    const { runSpecialistRecommendationEvents001 } = await import(
+      "./migrations/specialist-recommendation-events-001"
+    );
+    await runSpecialistRecommendationEvents001();
+    await markMigrationApplied("specialist_recommendation_events_001");
+  }
+
+  // Phase 4 — Task #454. `properties.financials_computed_at` is the
+  // single source of truth for "this property's numbers are fresh as of
+  // T". Specialist gating (engine/analyst/registry/prerequisite-registry.ts
+  // → all-properties-financials-computed) depends on this column.
+  // Non-destructive: ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("properties_financials_computed_at_001"))) {
+    const { db: dbRef } = await import("./db");
+    const { sql: sqlTag } = await import("drizzle-orm");
+    await dbRef.execute(sqlTag`
+      ALTER TABLE properties
+        ADD COLUMN IF NOT EXISTS financials_computed_at timestamp
+    `);
+    await markMigrationApplied("properties_financials_computed_at_001");
+  }
+
   if (!(await isMigrationApplied("scenario_service_templates_001"))) {
     const { runScenarioServiceTemplates001 } = await import("./migrations/scenario-service-templates-001");
     await runScenarioServiceTemplates001();

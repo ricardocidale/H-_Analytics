@@ -487,7 +487,37 @@ export default function PropertyEdit() {
 
   const handleSave = () => {
     updateProperty.mutate({ id: propertyId, data: draft }, {
-      onSuccess: () => {
+      onSuccess: (res) => {
+        // Phase 4 (Task #454): PATCH /api/properties/:id returns
+        // { prerequisiteFailures, requiredFieldsMissing } when the
+        // property-subject Specialists (D Risk Intelligence, E Executive
+        // Summary) have toggled-on prerequisites that the deterministic
+        // evaluator flagged on this save. The save itself has landed —
+        // we only surface the failures as a toast so the admin knows
+        // which Specialists will still gate their next run. Mirrors the
+        // PrerequisitesFailedPanel wiring on Company Assumptions.
+        const prereqRes = res as {
+          prerequisiteFailures?: Array<{
+            specialistId: string;
+            specialistLabel?: string;
+            failures: Array<{ code: string; description?: string }>;
+          }>;
+        };
+        const prereqs = prereqRes.prerequisiteFailures ?? [];
+        if (prereqs.length > 0) {
+          const lines = prereqs
+            .map((p) => {
+              const codes = p.failures.map((f) => f.code).join(", ");
+              const label = p.specialistLabel ?? p.specialistId;
+              return `${label}: ${codes}`;
+            })
+            .join(" • ");
+          toast({
+            title: "Saved — some Specialists still gated",
+            description: lines,
+            duration: 10000,
+          });
+        }
         if (feeDraft) {
           updateFeeCategories.mutate({ propertyId, categories: feeDraft }, {
             onSuccess: () => { finishSave(); },

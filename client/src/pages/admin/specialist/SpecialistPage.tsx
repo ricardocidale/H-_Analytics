@@ -12,7 +12,7 @@
  *     declare capabilities but render a stub banner — their evaluators
  *     don't exist yet.
  */
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -752,6 +752,14 @@ function RecommendationsCard({
   const { toast } = useToast();
   const qc = useQueryClient();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  // Declared up here (not adjacent to ignoreMutation) so the
+  // `recommendations` filter below can reference it without a TDZ
+  // ReferenceError. Ignore is telemetry-only — no toggle change. We POST
+  // the event and then locally suppress the row from the recommendations
+  // list (the server will re-include it on the next observed-missing run
+  // if the field is still empty, which is the desired behavior — Ignore
+  // means "not interesting to me right now," not "remove permanently").
+  const [ignoredKeys, setIgnoredKeys] = useState<Set<string>>(new Set());
   const labelByKey = useMemo(() => {
     const m = new Map<string, { label: string; surface: string }>();
     for (const c of candidateFields) m.set(c.key, { label: c.label, surface: c.surface });
@@ -764,6 +772,35 @@ function RecommendationsCard({
   const recommendations = (config.lastObservedMissing ?? []).filter(
     (k) => labelByKey.has(k) && (fieldState[k] ?? "off") === "off" && !ignoredKeys.has(k),
   );
+
+  // Passive-ignore emission: if the admin navigates away or the card
+  // unmounts while recommendations are still on screen (not promoted,
+  // not explicitly ignored), emit a best-effort "ignore" event for each
+  // unacted key via sendBeacon so the catalog calibration job can tell
+  // "admin saw this and walked away" apart from "admin has not loaded
+  // this page yet." We capture the current visible list in a ref so the
+  // cleanup closure reads the latest snapshot at unmount time.
+  const visibleRef = useRef<string[]>([]);
+  visibleRef.current = recommendations;
+  useEffect(() => {
+    return () => {
+      const keys = visibleRef.current;
+      if (keys.length === 0) return;
+      const url = `/api/admin/specialists/${specialistId}/recommendation-event`;
+      for (const key of keys) {
+        try {
+          const blob = new Blob(
+            [JSON.stringify({ fieldKey: key, action: "ignore", passive: true })],
+            { type: "application/json" },
+          );
+          navigator.sendBeacon?.(url, blob);
+        } catch {
+          /* best-effort — telemetry only */
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specialistId]);
 
   const promoteMutation = useMutation({
     mutationFn: async ({ key, level }: { key: string; level: "recommended" | "hard" }) => {
@@ -797,12 +834,9 @@ function RecommendationsCard({
     onSettled: () => setPendingKey(null),
   });
 
-  // Ignore is telemetry-only — no toggle change. We POST the event and
-  // then locally suppress the row from the recommendations list (the
-  // server will re-include it on the next observed-missing run if the
-  // field is still empty, which is the desired behavior — Ignore means
-  // "not interesting to me right now," not "remove permanently").
-  const [ignoredKeys, setIgnoredKeys] = useState<Set<string>>(new Set());
+  // `ignoredKeys` was moved to the top of this component so the
+  // `recommendations` filter and the passive-ignore useEffect can read
+  // it without hitting the TDZ.
   const ignoreMutation = useMutation({
     mutationFn: async ({ key }: { key: string }) => {
       await apiRequest("POST", `/api/admin/specialists/${specialistId}/recommendation-event`, {

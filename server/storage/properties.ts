@@ -135,26 +135,22 @@ export class PropertyStorage {
    * on every recompute" DRY across four routes — adding a fifth entrypoint
    * means one line: `await storage.markPropertiesFinancialsComputed(ids)`.
    *
-   * Best-effort: a write failure is logged and swallowed so a Postgres
-   * blip never breaks the user's compute response — the stamp is
-   * telemetry, not the result.
+   * Fails loudly. The Specialist gating contract says "if the numbers
+   * are fresh, the timestamp reflects that." A silently-swallowed write
+   * would leave the gate open against stale numbers. The caller — every
+   * compute entrypoint — is expected to let the error propagate to the
+   * request handler, which responds 500. A blip here is a real
+   * correctness problem, not a telemetry footnote.
    */
   async markPropertiesFinancialsComputed(
     ids: readonly number[],
     at: Date = new Date(),
   ): Promise<void> {
     if (ids.length === 0) return;
-    try {
-      await db
-        .update(properties)
-        .set({ financialsComputedAt: at })
-        .where(inArray(properties.id, [...ids]));
-    } catch (err: unknown) {
-      logger.warn(
-        `markPropertiesFinancialsComputed failed for ids ${ids.join(",")}: ${err instanceof Error ? err.message : String(err)}`,
-        "properties",
-      );
-    }
+    await db
+      .update(properties)
+      .set({ financialsComputedAt: at })
+      .where(inArray(properties.id, [...ids]));
   }
 
   /** Soft-delete: archive a property instead of permanently destroying data. */
