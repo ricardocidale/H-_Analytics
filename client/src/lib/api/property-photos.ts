@@ -49,6 +49,19 @@ async function reorderPhotos(propertyId: number, orderedIds: number[]): Promise<
   if (!res.ok) throw new Error("Failed to reorder photos");
 }
 
+async function movePhotos(sourcePropertyId: number, photoIds: number[], destinationPropertyId: number, mode: "move" | "copy"): Promise<{ count: number }> {
+  const res = await fetch(`/api/properties/${sourcePropertyId}/photos/move`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ photoIds, destinationPropertyId, mode }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Failed" }));
+    throw new Error(body.error || "Failed to move photos");
+  }
+  return res.json();
+}
+
 async function enhancePhoto(photoId: number): Promise<{ success: boolean; previewUrl: string; photoId: number }> {
   const res = await fetch(`/api/property-photos/${photoId}/enhance`, { method: "POST" });
   if (!res.ok) {
@@ -137,6 +150,19 @@ export function useReorderPhotos() {
       reorderPhotos(propertyId, orderedIds),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
+    },
+  });
+}
+
+export function useMovePhotos() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sourcePropertyId, photoIds, destinationPropertyId, mode }: { sourcePropertyId: number; photoIds: number[]; destinationPropertyId: number; mode: "move" | "copy" }) =>
+      movePhotos(sourcePropertyId, photoIds, destinationPropertyId, mode),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.sourcePropertyId] });
+      queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.destinationPropertyId] });
+      invalidateAllFinancialQueries(queryClient);
     },
   });
 }

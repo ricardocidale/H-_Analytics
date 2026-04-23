@@ -297,6 +297,8 @@ export class DatabaseStorage implements IStorage {
   deletePropertyPhoto = this.photos.deletePropertyPhoto.bind(this.photos);
   setHeroPhoto = this.photos.setHeroPhoto.bind(this.photos);
   reorderPhotos = this.photos.reorderPhotos.bind(this.photos);
+  movePhotos = this.photos.movePhotos.bind(this.photos);
+  copyPhotos = this.photos.copyPhotos.bind(this.photos);
 
   // Document Intelligence
   createDocumentExtraction = this.documents.createDocumentExtraction.bind(this.documents);

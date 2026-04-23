@@ -278,6 +278,52 @@ export function register(app: Express) {
     }
   });
 
+  // POST /api/properties/:id/photos/move — admin: move or copy selected photos to another property
+  app.post("/api/properties/:id/photos/move", requireAdmin, async (req, res) => {
+    try {
+      const sourcePropertyId = parseRouteId(req.params.id);
+      if (!sourcePropertyId) return res.status(400).json({ error: "Invalid property ID" });
+      const user = getAuthUser(req);
+      if (!(await checkPropertyAccess(user, sourcePropertyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const schema = z.object({
+        photoIds: z.array(z.number().int().positive()).min(1),
+        destinationPropertyId: z.number().int().positive(),
+        mode: z.enum(["move", "copy"]).default("move"),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const { photoIds, destinationPropertyId, mode } = parsed.data;
+
+      if (destinationPropertyId === sourcePropertyId) {
+        return res.status(400).json({ error: "Destination must be a different property" });
+      }
+      if (!(await checkPropertyAccess(user, destinationPropertyId))) {
+        return res.status(403).json({ error: "Access denied to destination property" });
+      }
+
+      // Ensure all photo ids actually belong to source
+      for (const pid of photoIds) {
+        const p = await storage.getPhotoById(pid);
+        if (!p || p.propertyId !== sourcePropertyId) {
+          return res.status(400).json({ error: `Photo ${pid} does not belong to source property` });
+        }
+      }
+
+      const result = mode === "copy"
+        ? await storage.copyPhotos(photoIds, destinationPropertyId)
+        : await storage.movePhotos(photoIds, destinationPropertyId);
+
+      res.json({ success: true, mode, count: result.length, photos: result });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to move photos", error);
+    }
+  });
+
   const pendingEnhancements = new Map<number, string>();
 
   app.get("/api/property-photos/:id/enhanced-image", requireAuth, async (req, res) => {
