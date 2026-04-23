@@ -67,7 +67,7 @@ export function LlmDefaultsTab() {
         Default LLM vendor and model for each functional area. Individual cards on the LLMs page can override these. Resolution order: card-level explicit → tab default → system hardcoded default.
         {registry?.status === "ready" && (
           <span className="block mt-1 text-[11px] text-muted-foreground/70">
-            The Analyst has probed {registry.models.length} models and tagged recommendations below.
+            Gaspar has probed {registry.models.length} models and tagged recommendations below.
           </span>
         )}
       </TabBanner>

@@ -16,7 +16,13 @@
  *     this as a successful refresh so the audit log isn't blocked.
  */
 import { getOpenAIClient } from "./clients";
-import { logger } from "../logger";
+import { logger, loggerFor } from "../logger";
+import { GASPAR_IDENTITY } from "../../engine/analyst/identity";
+
+// Table-refresh runs as Gaspar dispatching specialist tools — narrate
+// the path under his persona so admin logs read uniformly with the rest
+// of the orchestrator surface.
+const refreshLog = loggerFor(GASPAR_IDENTITY.logKey);
 import { storage } from "../storage";
 import type { CapitalRaiseBenchmark, ExitMultiple } from "@shared/schema";
 
@@ -82,7 +88,7 @@ Respond ONLY in valid JSON with this exact shape:
   try {
     openai = getOpenAIClient();
   } catch (err: unknown) {
-    logger.warn(`OpenAI unavailable, using fallback ranges: ${String(err)}`, "analyst-refresh");
+    refreshLog.warn(`OpenAI unavailable, using fallback ranges: ${String(err)}`);
     return fallback(dims);
   }
 
@@ -121,7 +127,7 @@ Respond ONLY in valid JSON with this exact shape:
 
     return { proposedRanges, narration, sourceCount, tokensUsed, evidence };
   } catch (err: unknown) {
-    logger.warn(`Analyst refresh LLM call failed, using fallback: ${String(err)}`, "analyst-refresh");
+    refreshLog.warn(`Analyst refresh LLM call failed, using fallback: ${String(err)}`);
     return fallback(dims);
   }
 }
@@ -226,10 +232,8 @@ export async function applyWatchdogCapitalRaiseSnapshot(
     });
     auditId = audit.id;
   } catch (err: unknown) {
-    logger.warn(
-      `Watchdog ingest could not open audit log (continuing): ${String(err)}`,
-      "analyst-refresh",
-    );
+    refreshLog.warn(
+      `Watchdog ingest could not open audit log (continuing): ${String(err)}`);
   }
 
   if (!snapshot.observations || snapshot.observations.length === 0) {
@@ -270,20 +274,16 @@ export async function applyWatchdogCapitalRaiseSnapshot(
           evidence: snapshot.evidence ?? [],
         },
       }).catch(err =>
-        logger.warn(`Watchdog ingest finalize failed: ${String(err)}`, "analyst-refresh"),
+        refreshLog.warn(`Watchdog ingest finalize failed: ${String(err)}`),
       );
     }
 
     if (skipped.length > 0) {
-      logger.warn(
-        `Watchdog ingest skipped unknown dimensions: ${skipped.join(", ")}`,
-        "analyst-refresh",
-      );
+      refreshLog.warn(
+        `Watchdog ingest skipped unknown dimensions: ${skipped.join(", ")}`);
     }
-    logger.info(
-      `Watchdog ingest applied ${appliedDimensions.length} capital-raise benchmark dimension(s)`,
-      "analyst-refresh",
-    );
+    refreshLog.info(
+      `Watchdog ingest applied ${appliedDimensions.length} capital-raise benchmark dimension(s)`);
 
     return {
       tableId,
@@ -347,7 +347,7 @@ Respond ONLY in valid JSON with this exact shape:
   try {
     openai = getOpenAIClient();
   } catch (err: unknown) {
-    logger.warn(`OpenAI unavailable, using fallback exit multiples: ${String(err)}`, "analyst-refresh");
+    refreshLog.warn(`OpenAI unavailable, using fallback exit multiples: ${String(err)}`);
     return exitMultiplesFallback(dims);
   }
 
@@ -386,7 +386,7 @@ Respond ONLY in valid JSON with this exact shape:
 
     return { proposedRanges, narration, sourceCount, tokensUsed, evidence };
   } catch (err: unknown) {
-    logger.warn(`Exit-multiples LLM call failed, using fallback: ${String(err)}`, "analyst-refresh");
+    refreshLog.warn(`Exit-multiples LLM call failed, using fallback: ${String(err)}`);
     return exitMultiplesFallback(dims);
   }
 }

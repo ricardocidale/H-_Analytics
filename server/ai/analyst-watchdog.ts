@@ -216,10 +216,8 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
           });
         } else {
           // Below conviction floor — log but don't present as advice
-          logger.info(
-            `Analyst withheld advice on ${result.fieldName} for property ${propertyId}: ${insufficientDataMessage(result.fieldName, quality)}`,
-            "analyst-watchdog",
-          );
+          watchdogLog.info(
+            `Analyst withheld advice on ${result.fieldName} for property ${propertyId}: ${insufficientDataMessage(result.fieldName, quality)}`);
           noData++; // Count as no_data, not a flag
           flags.pop(); // Remove the flag we just pushed — insufficient data to justify it
         }
@@ -273,10 +271,8 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
     flags,
   };
 
-  logger.info(
-    `Analyst validation: ${resultSummary.propertyName} — ${status} (${withinRange} ok, ${flags.length} flagged, ${noData} no data)`,
-    "analyst-watchdog",
-  );
+  watchdogLog.info(
+    `Analyst validation: ${resultSummary.propertyName} — ${status} (${withinRange} ok, ${flags.length} flagged, ${noData} no data)`);
 
   return resultSummary;
 }
@@ -293,10 +289,8 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
       const result = await validatePropertyAssumptions(prop.id);
       results.push(result);
     } catch (err: unknown) {
-      logger.error(
-        `Analyst validation failed for property ${prop.id}: ${err instanceof Error ? err.message : err}`,
-        "analyst-watchdog",
-      );
+      watchdogLog.error(
+        `Analyst validation failed for property ${prop.id}: ${err instanceof Error ? err.message : err}`);
     }
   }
 
@@ -305,10 +299,8 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
   const flagged = results.filter(r => r.status === "flagged").length;
   const totalFlags = results.reduce((s, r) => s + r.flagged, 0);
 
-  logger.info(
-    `Analyst validation complete: ${total} properties (${validated} validated, ${flagged} flagged, ${totalFlags} total flags)`,
-    "analyst-watchdog",
-  );
+  watchdogLog.info(
+    `Analyst validation complete: ${total} properties (${validated} validated, ${flagged} flagged, ${totalFlags} total flags)`);
 
   return results;
 }
@@ -416,7 +408,7 @@ export async function validateFieldChanges(
 
     return alerts;
   } catch (err: unknown) {
-    logger.warn(`Analyst watchdog error for property ${propertyId}: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+    watchdogLog.warn(`Analyst watchdog error for property ${propertyId}: ${err instanceof Error ? err.message : err}`);
     return [];
   }
 }

@@ -12,7 +12,13 @@ import {
 import { generateImageBuffer } from "../replit_integrations/image/client";
 import { logApiCost, unitCost } from "../middleware/cost-logger";
 import { storage } from "../storage";
-import { logger } from "../logger";
+import { logger, loggerFor } from "../logger";
+
+// Fernanda owns the photo-enhancer + render pipeline. Route-level
+// errors (failed runs, listing failures) narrate under her name; the
+// nested cost-logger try/catches keep their `cost-logger` source
+// because they're failures of the cost middleware, not Fernanda's job.
+const fernandaLog = loggerFor("fernanda");
 
 // Single funnel for every Replicate-style render. Both the per-property
 // album button and the specialist console POST here so prompt config,
@@ -165,9 +171,8 @@ export function register(app: Express): void {
         specialistRunId: runRecord.id,
       });
     } catch (error: unknown) {
-      logger.error(
+      fernandaLog.error(
         `Error running photos-and-renders specialist: ${error instanceof Error ? error.message : error}`,
-        "specialist-photos-renders",
       );
       const message = error instanceof Error ? error.message : "Failed to generate image";
       res.status(500).json({ error: message });
@@ -195,9 +200,8 @@ export function register(app: Express): void {
         })),
       });
     } catch (error: unknown) {
-      logger.error(
+      fernandaLog.error(
         `Error listing photos-and-renders specialist calls: ${error instanceof Error ? error.message : error}`,
-        "specialist-photos-renders",
       );
       res.status(500).json({ error: "Failed to list specialist calls" });
     }

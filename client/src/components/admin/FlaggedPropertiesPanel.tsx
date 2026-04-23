@@ -18,7 +18,7 @@ export default function FlaggedPropertiesPanel() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <IconAlertTriangle className="w-5 h-5 text-red-500" />
-        <h3 className="text-lg font-display text-foreground">The Analyst — Flagged Properties</h3>
+        <h3 className="text-lg font-display text-foreground">Gaspar — Flagged Properties</h3>
       </div>
 
       {flaggedOrPending.length === 0 ? (

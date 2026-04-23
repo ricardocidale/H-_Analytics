@@ -375,7 +375,7 @@ export async function* orchestrateResearch(
         yield { type: "phase", data: `Retrieved ${urlChunks.length} validated property URLs from knowledge base` };
       }
     } catch (e: unknown) {
-      logger.warn(`Failed to retrieve property URLs from Vector store: ${(e instanceof Error ? e.message : String(e))}`, "research-orchestrator");
+      gasparLog.warn(`Failed to retrieve property URLs from Vector store: ${(e instanceof Error ? e.message : String(e))}`);
     }
   }
 
@@ -487,12 +487,10 @@ export async function* orchestrateResearch(
               cacheReadInputTokens?: number;
             }
           | undefined;
-        logger.info(
-          `[cache] synthesis usage (ai-sdk): input=${usage?.inputTokens ?? 0} output=${usage?.outputTokens ?? 0} cache_create=${provider?.cacheCreationInputTokens ?? 0} cache_read=${provider?.cacheReadInputTokens ?? 0}`,
-          "orchestrator",
-        );
+        gasparLog.info(
+          `[cache] synthesis usage (ai-sdk): input=${usage?.inputTokens ?? 0} output=${usage?.outputTokens ?? 0} cache_create=${provider?.cacheCreationInputTokens ?? 0} cache_read=${provider?.cacheReadInputTokens ?? 0}`);
       } catch (err: unknown) {
-        logger.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`, "orchestrator");
+        gasparLog.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`);
       }
     }
   } catch (err: unknown) {
@@ -550,7 +548,7 @@ export async function* orchestrateResearch(
       type:         params.type,
       summary,
       completedAt:  new Date().toISOString(),
-    }).catch(err => logger.warn(`Failed to index research to Vector store: ${err}`, "orchestrator"));
+    }).catch(err => gasparLog.warn(`Failed to index research to Vector store: ${err}`));
   }
 
   yield { type: "done", data: "" };
