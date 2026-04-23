@@ -7,7 +7,6 @@ import { registerExportConfigRoutes } from "./exports";
 import { registerAdminScenarioRoutes } from "./scenarios";
 import { registerIntelligenceRoutes } from "./intelligence";
 import { registerUserDefaultRoutes } from "./user-defaults";
-import { registerRequiredFieldsRoutes } from "./required-fields";
 import { registerHospitalityBenchmarkRoutes } from "./hospitality-benchmarks";
 import { registerSourceHealthRoutes } from "./source-health";
 import { registerTestBatteryRoutes } from "./test-batteries";
@@ -25,7 +24,6 @@ export function register(app: Express) {
   registerAdminScenarioRoutes(app);
   registerIntelligenceRoutes(app);
   registerUserDefaultRoutes(app);
-  registerRequiredFieldsRoutes(app);
   registerHospitalityBenchmarkRoutes(app);
   registerSourceHealthRoutes(app);
   registerTestBatteryRoutes(app);

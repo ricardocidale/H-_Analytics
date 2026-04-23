@@ -100,7 +100,6 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   // New 10-block navigation entries
   "financial-defaults":  { title: "Defaults",                 subtitle: "Management company default financial parameters and seed values" },
   "rental-defaults":     { title: "Property Defaults",        subtitle: "Default revenue, cost, and capital assumptions for new properties" },
-  "required-fields":     { title: "Required Fields",          subtitle: "Configure which property fields are required before research runs" },
   "sources-apis":        { title: "Sources & APIs",           subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
   "llm-config":          { title: "LLM Configuration",        subtitle: "Language model routing and pipeline policies" },
   "engine-health":       { title: "System Health",            subtitle: "Coverage, freshness, and system health" },
@@ -123,7 +122,6 @@ const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "model-defaults":      "company",
   "financial-defaults":  "company",
   "rental-defaults":     "property-underwriting",
-  "required-fields":     "required-fields",
   // Defaults section
   "defaults-management-company": "company",
   "defaults-property":           "property-underwriting",

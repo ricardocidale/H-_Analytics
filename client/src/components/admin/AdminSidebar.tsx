@@ -55,7 +55,7 @@ export type AdminSection =
   | "system-intelligence" | "research"
   // New 10-block navigation aliases
   | "financial-defaults" | "services-fees" | "company-profile" | "management-company"
-  | "rental-defaults" | "required-fields"
+  | "rental-defaults"
   | "sources-apis" | "llm-config" | "engine-health"
   | "user-management"
   | "default-assignments"
@@ -125,7 +125,6 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "company-profile": "model-defaults",
   "financial-defaults": "model-defaults",
   "rental-defaults": "model-defaults",
-  "required-fields": "model-defaults",
   "sources-apis": "data-sources",
   "llm-config": "pipeline-config",
   "engine-health": "engine-dashboard",
@@ -158,6 +157,10 @@ const LEGACY_ADMIN_SECTION_REDIRECTS: Record<string, AdminSection> = {
   "resources-tables": "services-fees",
   "resources-benchmarks": "services-fees",
   "resources-models": "services-fees",
+  // Admin Required Fields tab was removed — global required-field metadata now
+  // lives per-Specialist (see SpecialistPage's RequiredFieldsTab). Any old
+  // deep link lands on the Properties group's remaining section.
+  "required-fields": "photos-renders",
 };
 
 export function normalizeAdminSection(section: AdminSection | string): AdminSection {
@@ -197,9 +200,8 @@ function buildNavGroups(): NavGroup[] {
       id: "properties",
       label: "Properties",
       icon: IconProperties,
-      description: "Property defaults, required fields & photos",
+      description: "Property defaults & photos",
       sections: [
-        { value: "required-fields", label: "Required Fields",              icon: IconFileCheck },
         { value: "photos-renders",  label: "Photos & Renders",             icon: IconImage },
       ],
     },

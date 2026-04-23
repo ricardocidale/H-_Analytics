@@ -56,21 +56,6 @@ export interface ExportConfig {
   analysis?: ExportConfigAnalysis;
 }
 
-export interface RequiredFieldsConfig {
-  name?: boolean;
-  location?: boolean;
-  country?: boolean;
-  roomCount?: boolean;
-  startAdr?: boolean;
-  startOccupancy?: boolean;
-  purchasePrice?: boolean;
-  qualityTier?: boolean;
-  businessModel?: boolean;
-  serviceLevel?: boolean;
-  locationType?: boolean;
-  [key: string]: boolean | undefined;
-}
-
 export interface MarketResearchContent {
   sections?: Array<{ title: string; body: string }>;
   summary?: string;

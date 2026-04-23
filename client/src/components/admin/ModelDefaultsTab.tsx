@@ -11,7 +11,6 @@ import { ModelConstantsTab } from "./model-defaults/ModelConstantsTab";
 import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTab";
 import { LlmDefaultsTab } from "./model-defaults/LlmDefaultsTab";
 import { CompanyTab } from "./model-defaults/CompanyTab";
-import { RequiredFieldsTab } from "./model-defaults/RequiredFieldsTab";
 import { useAuth } from "@/lib/auth";
 import {
   useAnalystRefresh,
@@ -200,9 +199,6 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
           {showTab("llm-defaults") && (
             <TabsTrigger value="llm-defaults" data-testid="tab-llm-defaults">LLM Defaults</TabsTrigger>
           )}
-          {showTab("required-fields") && (
-            <TabsTrigger value="required-fields" data-testid="tab-required-fields">Required Fields</TabsTrigger>
-          )}
         </TabsList>
 
         {showTab("company") && (
@@ -253,12 +249,6 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
         {showTab("llm-defaults") && (
           <TabsContent value="llm-defaults">
             <LlmDefaultsTab />
-          </TabsContent>
-        )}
-
-        {showTab("required-fields") && (
-          <TabsContent value="required-fields">
-            <RequiredFieldsTab />
           </TabsContent>
         )}
       </Tabs>
