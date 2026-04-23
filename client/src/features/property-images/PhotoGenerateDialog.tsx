@@ -190,6 +190,8 @@ export function PhotoGenerateDialog({
   const [generatedImageData, setGeneratedImageData] = useState<string | null>(null);
 
   const { generateImage, isGenerating, generationStatus } = useGenerateImage({
+    propertyId,
+    originatedFrom: "album",
     onSuccess: (objectPath, result) => {
       setGeneratedUrl(objectPath);
       setGeneratedStyle(result.style);

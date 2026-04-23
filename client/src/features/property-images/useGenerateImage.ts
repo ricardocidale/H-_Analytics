@@ -21,6 +21,10 @@ interface GenerateImageResult {
 interface UseGenerateImageOptions {
   onSuccess?: (objectPath: string, result: GenerateImageResult) => void;
   onError?: (error: Error) => void;
+  // Tagged into the specialist call log so album-driven runs group under
+  // the originating property.
+  propertyId?: number;
+  originatedFrom?: "album" | "specialist-page";
 }
 
 export function useGenerateImage(options: UseGenerateImageOptions = {}) {
@@ -43,10 +47,16 @@ export function useGenerateImage(options: UseGenerateImageOptions = {}) {
       );
 
       try {
-        const res = await fetch("/api/generate-property-image", {
+        const res = await fetch("/api/specialists/photos-and-renders/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, style, beforeImageUrl }),
+          body: JSON.stringify({
+            prompt,
+            style,
+            beforeImageUrl,
+            propertyId: options.propertyId,
+            originatedFrom: options.originatedFrom ?? "album",
+          }),
         });
 
         if (!res.ok) {

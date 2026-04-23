@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,11 +83,29 @@ async function fileToDataUri(file: File): Promise<string> {
   });
 }
 
+interface SpecialistCallRun {
+  id: number;
+  startedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  status: string;
+  modelPrimary: string | null;
+  entityType: string;
+  entityId: number;
+  error: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
 export default function PhotosAndRendersSpecialistPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: stylesResp, isLoading: stylesLoading } = useQuery<{ styles: StyleOption[] }>({
     queryKey: ["/api/replicate/styles"],
   });
+  const { data: callsResp, isLoading: callsLoading } = useQuery<{ runs: SpecialistCallRun[] }>({
+    queryKey: ["/api/specialists/photos-and-renders/calls"],
+  });
+  const calls = callsResp?.runs ?? [];
   const enabledStyles = useMemo(
     () => (stylesResp?.styles ?? []).filter((s) => s.enabled),
     [stylesResp],
@@ -148,10 +166,10 @@ export default function PhotosAndRendersSpecialistPage() {
       };
       if (sourcePreview) body.beforeImageUrl = sourcePreview;
 
-      const res = await fetch("/api/generate-property-image", {
+      const res = await fetch("/api/specialists/photos-and-renders/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, originatedFrom: "specialist-page" }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({} as Record<string, string>));
@@ -170,6 +188,8 @@ export default function PhotosAndRendersSpecialistPage() {
         createdAt: Date.now(),
       };
       setResults((prev) => [result, ...prev]);
+      // Refresh the specialist call log so this run appears immediately.
+      queryClient.invalidateQueries({ queryKey: ["/api/specialists/photos-and-renders/calls"] });
       if (data.usedFallback && data.fallbackNotice) {
         toast({ title: "Fallback used", description: data.fallbackNotice });
       } else {
@@ -309,6 +329,85 @@ export default function PhotosAndRendersSpecialistPage() {
               <AlertTitle>Job failed</AlertTitle>
               <AlertDescription>{runError}</AlertDescription>
             </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-specialist-call-log">
+        <CardHeader>
+          <CardTitle>Specialist call log</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {callsLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="status-call-log-loading">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading recent jobs…
+            </div>
+          ) : calls.length === 0 ? (
+            <p className="text-sm text-muted-foreground" data-testid="empty-call-log">
+              No jobs yet. Render jobs from this page and from per-property album buttons will appear here.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="py-2 pr-3 font-medium">When</th>
+                    <th className="py-2 pr-3 font-medium">Style</th>
+                    <th className="py-2 pr-3 font-medium">Origin</th>
+                    <th className="py-2 pr-3 font-medium">Property</th>
+                    <th className="py-2 pr-3 font-medium">Status</th>
+                    <th className="py-2 pr-3 font-medium">Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calls.map((c) => {
+                    const meta = (c.metadata ?? {}) as Record<string, unknown>;
+                    const callStyle = (meta.style as string) ?? "—";
+                    const origin = (meta.originatedFrom as string) ?? "—";
+                    const propId = (meta.propertyId as number | null) ?? (c.entityType === "property" ? c.entityId : null);
+                    const usedFallback = !!meta.usedFallback;
+                    const duration = c.durationMs != null ? `${(c.durationMs / 1000).toFixed(1)}s` : "—";
+                    return (
+                      <tr key={c.id} className="border-t" data-testid={`row-call-${c.id}`}>
+                        <td className="py-2 pr-3 whitespace-nowrap text-xs text-muted-foreground">
+                          {new Date(c.startedAt).toLocaleString()}
+                        </td>
+                        <td className="py-2 pr-3">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-[10px]" data-testid={`badge-call-style-${c.id}`}>
+                              {callStyle}
+                            </Badge>
+                            {usedFallback && (
+                              <Badge variant="outline" className="text-[10px]">Fallback</Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2 pr-3 text-xs">{origin}</td>
+                        <td className="py-2 pr-3 text-xs" data-testid={`text-call-property-${c.id}`}>
+                          {propId ? `#${propId}` : "—"}
+                        </td>
+                        <td className="py-2 pr-3">
+                          <Badge
+                            variant={c.status === "completed" ? "secondary" : c.status === "failed" ? "destructive" : "outline"}
+                            className="text-[10px]"
+                            data-testid={`badge-call-status-${c.id}`}
+                          >
+                            {c.status}
+                          </Badge>
+                          {c.error && (
+                            <p className="text-[10px] text-destructive mt-0.5 truncate max-w-[200px]" title={c.error}>
+                              {c.error}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-xs text-muted-foreground">{duration}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

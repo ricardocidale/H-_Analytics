@@ -270,6 +270,20 @@ export class IntelligenceV2Storage {
       .limit(limit);
   }
 
+  /**
+   * List recent `research_runs` rows attributed to a Specialist via
+   * `metadata.specialistId`. Powers the per-Specialist call log surfaces
+   * (e.g. Photos & Renders specialist page) so admins can see every render
+   * job that flowed through the specialist regardless of where it was
+   * triggered (album button or specialist page).
+   */
+  async getResearchRunsForSpecialist(specialistId: string, limit = 50): Promise<ResearchRun[]> {
+    return db.select().from(researchRuns)
+      .where(sql`${researchRuns.metadata}->>'specialistId' = ${specialistId}`)
+      .orderBy(desc(researchRuns.startedAt))
+      .limit(limit);
+  }
+
   async getRunningResearchEntityIds(entityType: string): Promise<number[]> {
     const rows = await db.execute(sql`
       SELECT DISTINCT entity_id AS "entityId"
