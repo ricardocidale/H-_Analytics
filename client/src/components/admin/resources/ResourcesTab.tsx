@@ -12,6 +12,7 @@ import { HealthDot, LastCheckedText, TestButton } from "./health-bits";
 import {
   CreateResourceDialog, EditResourceDialog, VersionHistoryDialog, DeleteResourceDialog,
 } from "./resource-dialogs";
+import LeticiaToolbox from "./LeticiaToolbox";
 
 const KIND_BLURBS: Record<ResourceKind, string> = {
   api: "Live external HTTP services (FRED, vendor proxies, etc.). Each row is wired to Specialists in code via the catalog.",
@@ -52,7 +53,9 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
   }, [resources, search]);
 
   return (
-    <Card data-testid={`resources-tab-${kind}`}>
+    <div className="space-y-4">
+      <LeticiaToolbox />
+      <Card data-testid={`resources-tab-${kind}`}>
       <CardHeader>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -130,5 +133,6 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
       <VersionHistoryDialog resource={historyTarget} open={historyTarget !== null} onOpenChange={(o) => !o && setHistoryTarget(null)} />
       <DeleteResourceDialog resource={deleteTarget} open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)} />
     </Card>
+    </div>
   );
 }

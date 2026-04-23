@@ -41,7 +41,15 @@ import { eq, and, desc, lte, sql, isNull } from "drizzle-orm";
 export { IntelligenceRebeccaStorage } from "./intelligence-rebecca";
 import { indexBenchmarkSnapshot } from "../ai/vector-store-service";
 import { mapCategoryToKpis } from "../ai/vector-indexing";
+import { vectorChunks } from "@shared/schema/vector-chunks";
 import { logger } from "../logger";
+import {
+  SPECIALIST_TOOLS,
+  type SpecialistTool,
+  type ToolLastBuiltSource,
+} from "../../engine/analyst/registry/specialist-tools";
+
+const SERVER_BOOT_AT = new Date();
 
 export class IntelligenceV2Storage {
   async getAssumptionGuidance(scenarioId: number | null, entityType: string, entityId: number): Promise<AssumptionGuidance[]> {
@@ -1140,6 +1148,35 @@ export class IntelligenceV2Storage {
     return row;
   }
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Specialist tool freshness lookup (Phase 2b — Resources inspectability).
+  //
+  // Resolves `lastBuiltAt` for a registered Specialist tool by dispatching
+  // on the registry's `lastBuiltSource` discriminant. Loud-fails on unknown
+  // table names so adding a new source kind to the registry without wiring
+  // it here is caught at first call rather than silently returning null.
+  // ────────────────────────────────────────────────────────────────────────
+  async getSpecialistToolLastBuilt(tool: SpecialistTool): Promise<Date | null> {
+    return resolveToolLastBuilt(tool.lastBuiltSource);
+  }
+
+  async listSpecialistToolsWithFreshness(): Promise<
+    Array<{ tool: SpecialistTool; lastBuiltAt: Date | null }>
+  > {
+    return Promise.all(
+      SPECIALIST_TOOLS.map(async (tool) => ({
+        tool,
+        lastBuiltAt: await resolveToolLastBuilt(tool.lastBuiltSource).catch((err) => {
+          logger.warn(
+            `specialist-tools: lastBuilt resolution failed for ${tool.id}: ${err instanceof Error ? err.message : String(err)}`,
+            "intelligence-v2",
+          );
+          return null;
+        }),
+      })),
+    );
+  }
+
   async upsertFbBenchmark(data: InsertFbBenchmark): Promise<FbBenchmark> {
     const [existing] = await db.select().from(fbBenchmarks)
       .where(and(eq(fbBenchmarks.market, data.market), eq(fbBenchmarks.propertyType, data.propertyType)))
@@ -1155,6 +1192,55 @@ export class IntelligenceV2Storage {
       .values(data as typeof fbBenchmarks.$inferInsert)
       .returning();
     return inserted;
+  }
+}
+
+// Module-private freshness resolver — kept out of the class so the
+// dispatch table is exhaustively type-checked at compile time.
+async function resolveToolLastBuilt(source: ToolLastBuiltSource): Promise<Date | null> {
+  switch (source.kind) {
+    case "static": {
+      const d = new Date(source.isoDate);
+      if (Number.isNaN(d.getTime())) {
+        throw new Error(`specialist-tools: invalid static isoDate "${source.isoDate}"`);
+      }
+      return d;
+    }
+    case "build-time":
+      return SERVER_BOOT_AT;
+    case "table": {
+      switch (source.table) {
+        case "vector_chunks": {
+          const [row] = await db.select({ at: sql<Date | null>`max(${vectorChunks.updatedAt})` })
+            .from(vectorChunks);
+          return row?.at ?? null;
+        }
+        case "market_adr_index": {
+          const [row] = await db.select({ at: sql<Date | null>`max(${marketAdrIndex.updatedAt})` })
+            .from(marketAdrIndex);
+          return row?.at ?? null;
+        }
+        case "benchmark_snapshots": {
+          const [row] = await db.select({ at: sql<Date | null>`max(${benchmarkSnapshots.fetchedAt})` })
+            .from(benchmarkSnapshots);
+          return row?.at ?? null;
+        }
+        default: {
+          const _exhaustive: never = source.table;
+          throw new Error(`specialist-tools: unwired table source "${_exhaustive}"`);
+        }
+      }
+    }
+    case "research-runs-specialist": {
+      const [row] = await db.select({ at: sql<Date | null>`max(${researchRuns.startedAt})` })
+        .from(researchRuns)
+        .where(sql`${researchRuns.metadata}->>'specialistId' = ${source.specialistId}`);
+      return row?.at ?? null;
+    }
+    default: {
+      const _exhaustive: never = source;
+      throw new Error(`specialist-tools: unwired lastBuiltSource kind "${(_exhaustive as { kind: string }).kind}"`);
+    }
   }
 }
 

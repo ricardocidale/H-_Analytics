@@ -88,7 +88,7 @@ export class DatabaseStorage implements IStorage {
   private services = new ServiceStorage();
   private notifications = new NotificationStorage();
   private integrationStore = new IntegrationStorage();
-  private intelligenceV2 = new IntelligenceV2Storage();
+  intelligenceV2 = new IntelligenceV2Storage();
   private rebecca = new IntelligenceRebeccaStorage();
   private propertyUrlStore = new PropertyUrlStorage();
   private calcAudit = new CalcAuditStorage();
@@ -124,6 +124,10 @@ export class DatabaseStorage implements IStorage {
   getResourceHealthView = this.adminResourceStore.getResourceHealthView.bind(this.adminResourceStore);
   listResourcesDueForHealthCheck = this.adminResourceStore.listResourcesDueForHealthCheck.bind(this.adminResourceStore);
   isAdminTestRateLimited = this.adminResourceStore.isAdminTestRateLimited.bind(this.adminResourceStore);
+
+  // Specialist tool registry freshness (Phase 2b — Resources inspectability)
+  getSpecialistToolLastBuilt = this.intelligenceV2.getSpecialistToolLastBuilt.bind(this.intelligenceV2);
+  listSpecialistToolsWithFreshness = this.intelligenceV2.listSpecialistToolsWithFreshness.bind(this.intelligenceV2);
 
   // Per-Specialist mutable config (P5)
   getOrCreateSpecialistConfig = this.specialistConfigStore.getOrCreateSpecialistConfig.bind(this.specialistConfigStore);
