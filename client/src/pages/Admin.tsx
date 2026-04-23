@@ -107,7 +107,6 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "financial-defaults":  { title: "Defaults",                 subtitle: "Management company default financial parameters and seed values" },
   "services-fees":       { title: "Services & Fees",          subtitle: "Management company service categories and fee templates" },
   "company-profile":     { title: "Company Profile",          subtitle: "Management company identity and settings" },
-  "hotel-defaults":      { title: "Property Defaults",        subtitle: "Default revenue, cost, and capital assumptions for new properties" },
   "rental-defaults":     { title: "Property Defaults",        subtitle: "Default revenue, cost, and capital assumptions for new properties" },
   "required-fields":     { title: "Required Fields",          subtitle: "Configure which property fields are required before research runs" },
   "sources-apis":        { title: "Sources & APIs",           subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
@@ -133,7 +132,6 @@ const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "financial-defaults":  "company",
   "company-profile":     "company",
   "services-fees":       "company",
-  "hotel-defaults":      "property-underwriting",
   "rental-defaults":     "property-underwriting",
   "required-fields":     "required-fields",
   // Defaults section

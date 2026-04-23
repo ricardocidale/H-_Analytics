@@ -55,7 +55,7 @@ export type AdminSection =
   | "system-intelligence" | "research"
   // New 10-block navigation aliases
   | "financial-defaults" | "services-fees" | "company-profile"
-  | "hotel-defaults" | "rental-defaults" | "required-fields"
+  | "rental-defaults" | "required-fields"
   | "sources-apis" | "llm-config" | "engine-health"
   | "user-management"
   | "default-assignments"
@@ -125,7 +125,6 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   "services-fees": "model-defaults",
   "company-profile": "model-defaults",
   "financial-defaults": "model-defaults",
-  "hotel-defaults": "model-defaults",
   "rental-defaults": "model-defaults",
   "required-fields": "model-defaults",
   "sources-apis": "data-sources",
@@ -181,7 +180,6 @@ function buildNavGroups(): NavGroup[] {
       icon: IconProperties,
       description: "Property defaults, required fields & photos",
       sections: [
-        { value: "hotel-defaults",  label: "Defaults",                     icon: IconSliders },
         { value: "required-fields", label: "Required Fields",              icon: IconFileCheck },
         { value: "photos-renders",  label: "Photos & Renders",             icon: IconImage },
       ],
