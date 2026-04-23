@@ -56,7 +56,9 @@ describe("Acknowledgments — schema (per-user uniqueness)", () => {
 });
 
 describe("Acknowledgments — storage (userId in every query)", () => {
-  const src = read("server/storage/intelligence-v2.ts");
+  // Acknowledgment storage now lives in the proposals domain module
+  // (intelligence-v2.ts is a thin orchestrator). Read from there.
+  const src = read("server/storage/intelligence/proposals.ts");
 
   it("getAcknowledgment requires userId param and filters on it", () => {
     expect(src).toMatch(/getAcknowledgment\([\s\S]*?userId:\s*number/);
