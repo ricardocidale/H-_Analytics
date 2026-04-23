@@ -13,6 +13,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
+
+const LETICIA = SPECIALIST_CATALOG.find((d) => d.id === "resources.builder");
+const LETICIA_HEADER = LETICIA
+  ? `${LETICIA.humanName} · ${LETICIA.displayName ?? LETICIA.realName} (Specialist ${LETICIA.letter})`
+  : "Resource Builder";
 
 interface ToolCalledBy {
   id: string;
@@ -63,9 +69,7 @@ export default function LeticiaToolbox() {
       <CardHeader>
         <div className="flex items-baseline justify-between gap-3 flex-wrap">
           <div>
-            <CardTitle data-testid="text-leticia-header">
-              Letícia · Resource Builder (Specialist L)
-            </CardTitle>
+            <CardTitle data-testid="text-leticia-header">{LETICIA_HEADER}</CardTitle>
             <CardDescription>
               I keep the deterministic capabilities the rest of the team relies on — regulatory tables, the FRED reader, the vector store, finance compute, and the render pipelines. Every entry below tracks its own freshness and the Specialists that call it.
             </CardDescription>
