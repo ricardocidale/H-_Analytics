@@ -13,12 +13,7 @@ import { generateImageBuffer } from "../replit_integrations/image/client";
 import { logApiCost, unitCost } from "../middleware/cost-logger";
 import { storage } from "../storage";
 import { logger, loggerFor } from "../logger";
-
-// Fernanda owns the photo-enhancer + render pipeline. Route-level
-// errors (failed runs, listing failures) narrate under her name; the
-// nested cost-logger try/catches keep their `cost-logger` source
-// because they're failures of the cost middleware, not Fernanda's job.
-const fernandaLog = loggerFor("fernanda");
+import { getSpecialistById } from "../../engine/analyst/registry/specialist-catalog";
 
 // Single funnel for every Replicate-style render. Both the per-property
 // album button and the specialist console POST here so prompt config,
@@ -29,6 +24,15 @@ const fernandaLog = loggerFor("fernanda");
 // button (client/src/features/property-images/useGenerateImage.ts) keeps
 // working without a frontend change.
 const SPECIALIST_ID = "photos.photo-enhancer";
+
+// Route-level errors narrate under Fernanda's persona name, derived
+// from the catalog so the persona can be renamed in one place without
+// desyncing the log prefix. Nested cost-logger try/catches keep their
+// `cost-logger` source — those failures belong to the cost middleware,
+// not Fernanda's job.
+const fernandaLog = loggerFor(
+  getSpecialistById(SPECIALIST_ID)?.humanName ?? "specialist",
+);
 
 const runSchema = z.object({
   prompt: z.string().optional().default(""),

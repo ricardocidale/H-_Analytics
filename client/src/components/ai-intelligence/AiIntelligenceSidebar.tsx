@@ -46,8 +46,7 @@ export type AiIntelligenceSection =
   | "resources-sources"
   | "resources-tables"
   | "resources-benchmarks"
-  | "resources-models"
-  | "render-console";
+  | "resources-models";
 
 interface SectionItem {
   value: AiIntelligenceSection;
@@ -93,12 +92,13 @@ function buildNavGroups(): NavGroup[] {
       label: "Photos",
       icon: IconImage,
       sections: [
+        // Fernanda owns both photo enhancement and the render pipeline
+        // as two jobs of one Specialist. The manual render console lives
+        // inside her SpecialistPage (Runtime tab) — there is no separate
+        // sidebar entry. The legacy /api/specialists/photos-and-renders/*
+        // endpoints stay live (useGenerateImage depends on them) but are
+        // now narrated under Fernanda.
         { value: "specialist-photos-photo-enhancer", label: specialistLabel("photos.photo-enhancer", "Photo Enhancer & Renders"), icon: IconImage },
-        // Fernanda's manual render-job console. Not a Specialist section —
-        // it's a tool surface that hits the same render pipeline she owns,
-        // so it sits under her group but is excluded from
-        // SPECIALIST_SECTION_TO_ID (it has no catalog id).
-        { value: "render-console", label: "Render Console", icon: IconImage },
       ],
     },
     {
