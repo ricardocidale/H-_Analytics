@@ -21,8 +21,24 @@ describe("SPECIALIST_CATALOG (P1 doctrine lock)", () => {
     expect(SPECIALIST_CATALOG_VALID).toBe(true);
   });
 
-  it("declares exactly 12 Specialists (A–G + Constants H–K + Photos & Renders L)", () => {
+  it("declares exactly 12 Specialists (A–G + Constants H–K + Resource Builder L)", () => {
     expect(SPECIALIST_CATALOG).toHaveLength(12);
+  });
+
+  it("assigns a unique humanName and a gender to every Specialist", () => {
+    const names = SPECIALIST_CATALOG.map((d) => d.humanName);
+    expect(new Set(names).size).toBe(names.length);
+    for (const def of SPECIALIST_CATALOG) {
+      expect(def.humanName).toMatch(/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ ]*$/);
+      expect(["male", "female"]).toContain(def.gender);
+    }
+  });
+
+  it("places Letícia (Resource Builder) at letter L", () => {
+    const leticia = SPECIALIST_CATALOG.find((d) => d.letter === "L");
+    expect(leticia?.id).toBe("resources.builder");
+    expect(leticia?.humanName).toBe("Letícia");
+    expect(leticia?.subject).toBe("resources");
   });
 
   it("uses unique ids", () => {

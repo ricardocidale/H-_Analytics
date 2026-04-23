@@ -15,10 +15,14 @@ import { storage } from "../storage";
 import { logger } from "../logger";
 
 // Single funnel for every Replicate-style render. Both the per-property
-// album button and the specialist page POST here so prompt config, rate
-// limits, and the call log are shared. See engine/analyst/registry/
-// specialist-catalog.ts for the catalog entry.
-const SPECIALIST_ID = "photos.photos-and-renders";
+// album button and the specialist console POST here so prompt config,
+// rate limits, and the call log are shared. The render pipeline is owned
+// by Fernanda (`photos.photo-enhancer`) — see
+// engine/analyst/registry/specialist-catalog.ts for the catalog entry.
+// Route paths keep the legacy `/photos-and-renders` slug so the album
+// button (client/src/features/property-images/useGenerateImage.ts) keeps
+// working without a frontend change.
+const SPECIALIST_ID = "photos.photo-enhancer";
 
 const runSchema = z.object({
   prompt: z.string().optional().default(""),

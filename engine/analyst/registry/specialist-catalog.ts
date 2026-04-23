@@ -35,6 +35,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "A",
     realName: "Funding",
     displayName: "Funding Intelligence",
+    humanName: "Ana",
+    gender: "female",
     description:
       "Tracks the management company's capital stack, runway, and refinancing posture so investors and operators can see funding risk before it hits the model.",
     subject: "mgmt-co",
@@ -67,6 +69,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "B",
     realName: "Revenue",
     displayName: "Revenue Intelligence",
+    humanName: "Bia",
+    gender: "female",
     description:
       "Builds the revenue picture for the management company — fees, recurring contracts, and growth signals — so the simulation runs against a realistic top line, not a guess.",
     subject: "mgmt-co",
@@ -99,6 +103,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "C",
     realName: "ICP Intelligence",
     displayName: "ICP Intelligence",
+    humanName: "Cecília",
+    gender: "female",
     description:
       "Sharpens the management company's ideal customer profile from real signals — who actually buys, why, and who looks like them next — so targeting and outreach stop being guesswork.",
     subject: "mgmt-co",
@@ -128,6 +134,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "D",
     realName: "Risk Intelligence",
     displayName: "Property Risk Intelligence",
+    humanName: "Daniela",
+    gender: "female",
     description:
       "Surfaces the things that could derail a property — flood, brand, regulatory, market — early enough to price them in or walk away.",
     subject: "property",
@@ -155,6 +163,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "E",
     realName: "Executive Summary",
     displayName: "Executive Summary",
+    humanName: "Eloá",
+    gender: "female",
     description:
       "Turns the underwriting model into a crisp one-page narrative — what this property is, why it works, and what could break it — ready to share with investors and partners.",
     subject: "property",
@@ -179,9 +189,11 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     id: "photos.photo-enhancer",
     letter: "F",
     realName: "Photo Enhancer",
-    displayName: "Photo Enhancer",
+    displayName: "Photo Enhancer & Renders",
+    humanName: "Fernanda",
+    gender: "female",
     description:
-      "Cleans, brightens, and standardizes property photos so every listing looks consistently professional — no more dim phone shots dragging down a portfolio's first impression.",
+      "Cleans, brightens, and standardizes property photos and drives the render/avatar pipeline — both the per-album generators and the standalone render jobs run through Fernanda so prompt config and rate limits stay shared.",
     subject: "photos",
     capabilities: [
       "llm-config",
@@ -198,30 +210,12 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     status: "needs-page",
   },
   {
-    id: "photos.photos-and-renders",
-    letter: "L",
-    realName: "Photos & Renders",
-    displayName: "Photos & Renders",
-    description:
-      "Transforms admin-supplied photos and text prompts into polished renders and avatars — one place to drive image transformations and creations using the existing render pipeline.",
-    subject: "photos",
-    capabilities: [
-      "llm-config",
-      "resource-assignments",
-      "runtime",
-      "audit",
-    ],
-    assignmentRefs: [
-      { kind: "api", slug: "image-enhancement-api", required: true },
-      { kind: "model", slug: "vision-llm", role: "image-analysis", required: true },
-    ],
-    status: "needs-page",
-  },
-  {
     id: "portfolio-ops.watchdog",
     letter: "G",
     realName: "Watchdog",
     displayName: "Portfolio Watchdog",
+    humanName: "Giovanna",
+    gender: "female",
     description:
       "Watches every property in the portfolio against custom thresholds — occupancy, ADR, DSCR, covenant tripwires — and pings the team the moment something drifts out of bounds.",
     subject: "portfolio-ops",
@@ -260,6 +254,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "H",
     realName: "Tax Authority Research",
     displayName: "Tax Authority Research",
+    humanName: "Helena",
+    gender: "female",
     description:
       "Tracks national and sub-national tax authorities (IRS, country tax codes) and keeps income, capital gains, and property-tax constants aligned with current statute — so the model never silently drifts behind a tax change.",
     subject: "constants",
@@ -286,6 +282,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "I",
     realName: "Macro Indicators Research",
     displayName: "Macro Indicators Research",
+    humanName: "Isadora",
+    gender: "female",
     description:
       "Maintains macro inputs sourced from central banks and the IMF — country inflation outlook and country risk premium — so discounting and escalation reflect the latest published outlook, not a stale snapshot.",
     subject: "constants",
@@ -313,6 +311,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "J",
     realName: "Depreciation Schedule Research",
     displayName: "Depreciation Schedule Research",
+    humanName: "Júlia",
+    gender: "female",
     description:
       "Tracks depreciation useful-life rules per country (IRS Pub. 946, CRA CCA, French CGI, etc.) and keeps the building straight-line schedule aligned with the cited statute for each locality.",
     subject: "constants",
@@ -339,6 +339,8 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "K",
     realName: "Reporting Conventions Research",
     displayName: "Reporting Conventions Research",
+    humanName: "Kamila",
+    gender: "female",
     description:
       "Owns universal reporting conventions (USALI 11th Ed., AHLA, industry-standard period definitions). Keeps universal constants like days-per-month aligned with how the industry actually reports — not a one-off shortcut.",
     subject: "constants",
@@ -359,6 +361,33 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     // cadence is plenty.
     refreshCadenceDays: 365,
     status: "needs-page",
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // Resource Builder (letter L) — Letícia. Maintains the deterministic tools
+  // the other Specialists call (lookup tables, source-of-truth scrapers,
+  // benchmark loaders, etc.). She does not herself produce model outputs;
+  // she keeps the toolbox sharp so the other 11 Specialists can stay
+  // deterministic and inspectable. Stub only in P2a — the Resource Builder
+  // page lands in Phase 5.
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id: "resources.builder",
+    letter: "L",
+    realName: "Resource Builder",
+    displayName: "Resource Builder",
+    humanName: "Letícia",
+    gender: "female",
+    description:
+      "Maintains the deterministic tools and lookup tables the other Specialists call — keeps the toolbox sharp so every research run stays inspectable and reproducible.",
+    subject: "resources",
+    capabilities: [
+      "resource-assignments",
+      "audit",
+    ],
+    assignmentRefs: [],
+    candidateFields: [],
+    prerequisites: [],
+    status: "stub",
   },
 ] as const;
 

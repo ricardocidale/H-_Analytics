@@ -21,7 +21,7 @@ const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligenc
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const ResourcesTab = lazy(() => import("@/components/admin/resources/ResourcesTab"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
-const PhotosAndRendersSpecialistPage = lazy(() => import("@/pages/ai-intelligence/PhotosAndRendersSpecialistPage"));
+const PhotosAndRendersConsole = lazy(() => import("@/pages/ai-intelligence/PhotosAndRendersSpecialistPage"));
 
 const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -50,9 +50,9 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialist-mgmt-co-icp-intelligence":   { title: "ICP Intelligence",             subtitle: "" },
   "specialist-property-risk-intelligence": { title: "Property Risk Intelligence",   subtitle: "" },
   "specialist-property-executive-summary": { title: "Executive Summary",            subtitle: "" },
-  "specialist-photos-photo-enhancer":      { title: "Photo Enhancer",               subtitle: "" },
-  "specialist-photos-photos-and-renders":  { title: "Photos & Renders",             subtitle: "" },
+  "specialist-photos-photo-enhancer":      { title: "Photo Enhancer & Renders",     subtitle: "" },
   "specialist-portfolio-ops-watchdog":     { title: "Portfolio Watchdog",           subtitle: "" },
+  "specialist-resources-builder":          { title: "Resource Builder",             subtitle: "" },
   "specialist-constants-tax-research":         { title: "Tax Authority Research",          subtitle: "" },
   "specialist-constants-macro-research":       { title: "Macro Indicators Research",       subtitle: "" },
   "specialist-constants-depreciation-research":{ title: "Depreciation Schedule Research",  subtitle: "" },
@@ -98,8 +98,11 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
     case "resources-models":     return <ResourcesTab kind="model" />;
     default: {
-      if (section === "specialist-photos-photos-and-renders") {
-        return <PhotosAndRendersSpecialistPage />;
+      if (section === "specialist-photos-photo-enhancer") {
+        // Fernanda owns both photo enhancement and the render pipeline.
+        // Render her standalone job console here while the catalog-driven
+        // SpecialistPage tabs are unified into the same surface (Phase 5).
+        return <PhotosAndRendersConsole />;
       }
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;

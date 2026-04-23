@@ -92,8 +92,7 @@ function buildNavGroups(): NavGroup[] {
       label: "Photos",
       icon: IconImage,
       sections: [
-        { value: "specialist-photos-photo-enhancer", label: specialistLabel("photos.photo-enhancer", "Photo Enhancer"), icon: IconImage },
-        { value: "specialist-photos-photos-and-renders", label: specialistLabel("photos.photos-and-renders", "Photos & Renders"), icon: IconImage },
+        { value: "specialist-photos-photo-enhancer", label: specialistLabel("photos.photo-enhancer", "Photo Enhancer & Renders"), icon: IconImage },
       ],
     },
     {
@@ -102,6 +101,14 @@ function buildNavGroups(): NavGroup[] {
       icon: IconLayers,
       sections: [
         { value: "specialist-portfolio-ops-watchdog", label: specialistLabel("portfolio-ops.watchdog", "Portfolio Watchdog"), icon: IconLayers },
+      ],
+    },
+    {
+      id: "resource-builder",
+      label: "Resource Builder",
+      icon: IconLayers,
+      sections: [
+        { value: "specialist-resources-builder", label: specialistLabel("resources.builder", "Resource Builder"), icon: IconLayers },
       ],
     },
     {

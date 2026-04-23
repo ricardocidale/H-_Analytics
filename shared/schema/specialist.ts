@@ -48,6 +48,7 @@ export const SUBJECTS = [
   "photos",
   "portfolio-ops",
   "constants",
+  "resources",
 ] as const;
 export type Subject = typeof SUBJECTS[number];
 export const SubjectSchema = z.enum(SUBJECTS);
@@ -58,6 +59,7 @@ export const SUBJECT_LABELS: Record<Subject, string> = {
   photos: "Photos",
   "portfolio-ops": "Portfolio Ops",
   constants: "Constants & Authority Sources",
+  resources: "Resource Builder",
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -125,6 +127,21 @@ export const SpecialistDefinitionSchema = z
      * preferred over the engineering shorthand.
      */
     displayName: z.string().min(1).optional(),
+    /**
+     * Humanized first name for the Specialist persona. The orchestrator
+     * (Gaspar) and the 12 Specialists use first names in narration and
+     * activity logs to make the engine feel like a team rather than a
+     * faceless pipeline. The persona is fixed in the catalog — admins
+     * cannot rename a Specialist at runtime (that would corrupt the
+     * activity-log narrative across the audit history).
+     */
+    humanName: z.string().min(1).max(40),
+    /**
+     * Persona gender. Used by `engine/analyst/identity.ts` and the log
+     * prefix helper to drive pronoun selection in narration. The
+     * orchestrator Gaspar is male; the 12 Specialists are female.
+     */
+    gender: z.enum(["male", "female"]),
     /**
      * 1–2 sentence plain-language description of what the agent does and the
      * value it delivers. Rendered under the Specialist page header and used
@@ -216,6 +233,15 @@ export function specialistDisplayLabel(def: SpecialistDefinition): string {
 /** User-facing display name (falls back to realName). */
 export function specialistDisplayName(def: SpecialistDefinition): string {
   return def.displayName ?? def.realName;
+}
+
+/**
+ * Persona label used in narration and activity logs:
+ *   "Helena (Tax Authority Research)"
+ * The persona name comes from the catalog and never changes at runtime.
+ */
+export function specialistPersonaLabel(def: SpecialistDefinition): string {
+  return `${def.humanName} (${specialistDisplayName(def)})`;
 }
 
 export function specialistHasCapability(
