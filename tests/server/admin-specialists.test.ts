@@ -107,8 +107,12 @@ const baseConfig = (id: string) => ({
   promptTemplate: "",
   modelResourceId: null as number | null,
   requiredFields: [] as string[],
+  fieldRequirements: {} as Record<string, "hard" | "recommended" | "off">,
+  prerequisiteToggles: {} as Record<string, boolean>,
   runtimeConfig: {} as Record<string, unknown>,
   refreshCadenceDays: null as number | null,
+  lastObservedMissing: [] as string[],
+  lastObservedMissingAt: null as Date | null,
   version: 1,
   createdByUserId: null as number | null,
   updatedByUserId: null as number | null,
@@ -171,10 +175,15 @@ describe("admin/specialists routes — catalog + detail", () => {
       params: { id: "mgmt-co.funding" },
     });
     expect(status).toBe(200);
-    const payload = body as { definition: { id: string; capabilities: string[] }; config: { version: number }; assignments: Array<{ kind: string; resource: unknown; health: { status: string } }> };
+    const payload = body as { definition: { id: string; capabilities: string[] }; config: { version: number; fieldRequirements: Record<string, string>; prerequisiteToggles: Record<string, boolean> }; assignments: Array<{ kind: string; resource: unknown; health: { status: string } }> };
     expect(payload.definition.id).toBe("mgmt-co.funding");
     expect(payload.definition.capabilities).toContain("llm-config");
     expect(payload.config.version).toBe(1);
+    // Task #488 regression: these fields previously caused a 500 because
+    // the columns were missing from the DB schema. Ensure they are part
+    // of the `config` payload.
+    expect(payload.config.fieldRequirements).toEqual({});
+    expect(payload.config.prerequisiteToggles).toEqual({});
     expect(payload.assignments).toHaveLength(1);
     expect(payload.assignments[0].kind).toBe("model");
     expect(payload.assignments[0].resource).not.toBeNull();

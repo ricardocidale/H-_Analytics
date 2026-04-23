@@ -134,6 +134,13 @@
       "when": 1779321600000,
       "tag": "0018_specialist_recommendation_events",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1779926400000,
+      "tag": "0019_specialist_config_missing_columns",
+      "breakpoints": true
     }
   ]
 }
