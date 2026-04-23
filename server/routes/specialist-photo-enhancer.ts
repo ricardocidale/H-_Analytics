@@ -157,6 +157,22 @@ export function register(app: Express): void {
         throw postError;
       }
 
+      // Phase 4 (Task #454) — C–G parity: stamp observed-missing for
+      // the photo-enhancer specialist (F) at each successful run. Its
+      // catalog entry has no candidate fields, so the recorded list is
+      // always empty; the purpose of the write is to refresh
+      // `last_observed_missing` so the Catalog Calibration dashboard
+      // can tell "F has run recently" apart from "F has never run on
+      // this install." Best-effort — a telemetry failure never fails
+      // the render response.
+      try {
+        await storage.recordObservedMissingFields(SPECIALIST_ID, []);
+      } catch (telErr: unknown) {
+        fernandaLog.warn(
+          `Photo-enhancer observed-missing stamp failed: ${telErr instanceof Error ? telErr.message : telErr}`,
+        );
+      }
+
       res.json({
         objectPath,
         imageData: imageBuffer.toString("base64"),

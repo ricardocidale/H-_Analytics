@@ -302,6 +302,20 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
   watchdogLog.info(
     `Analyst validation complete: ${total} properties (${validated} validated, ${flagged} flagged, ${totalFlags} total flags)`);
 
+  // Phase 4 (Task #454) — C–G parity: stamp observed-missing for the
+  // watchdog specialist (G) at the end of each run. Gaspar's catalog
+  // entry has no candidate fields, so the recorded list is always
+  // empty; the purpose of the write is to refresh `last_observed_missing`
+  // so the Catalog Calibration dashboard can tell "G has run recently"
+  // apart from "G has never run on this install." Best-effort.
+  try {
+    await storage.recordObservedMissingFields("portfolio-ops.watchdog", []);
+  } catch (err: unknown) {
+    watchdogLog.warn(
+      `Watchdog observed-missing stamp failed: ${err instanceof Error ? err.message : err}`,
+    );
+  }
+
   return results;
 }
 
