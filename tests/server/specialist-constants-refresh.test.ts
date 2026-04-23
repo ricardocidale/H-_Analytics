@@ -14,11 +14,12 @@ const getLatestSuccessful = vi.fn();
 const createRun = vi.fn();
 const propose = vi.fn();
 const createActivityLog = vi.fn();
+const cadenceOverrides = vi.fn();
 
 vi.mock("../../server/storage", () => ({
   storage: {
     listModelConstantOverrides: () => listOverrides(),
-    getRefreshCadenceOverrides: () => Promise.resolve(new Map<string, number>()),
+    getRefreshCadenceOverrides: () => cadenceOverrides(),
     getLatestSuccessfulRunForConstant: (
       key: string,
       country: string | null,
@@ -60,10 +61,12 @@ beforeEach(() => {
   createRun.mockReset();
   propose.mockReset();
   createActivityLog.mockReset();
+  cadenceOverrides.mockReset();
   listOverrides.mockResolvedValue([]);
   createRun.mockResolvedValue({ id: 1 });
   propose.mockResolvedValue({ ok: true });
   createActivityLog.mockResolvedValue({ id: 1 });
+  cadenceOverrides.mockResolvedValue(new Map<string, number>());
 });
 
 describe("runConstantsRefreshCycle", () => {
@@ -208,6 +211,60 @@ describe("failed-refresh isolation", () => {
     // across multiple keys/locations, so we just assert mixed outcome.
     expect(summary.refreshed).toBeGreaterThan(0);
     expect(summary.skipped).toBeGreaterThan(0);
+  });
+});
+
+describe("per-Specialist cadence override", () => {
+  it("honours an admin-set cadence override over the catalog default", async () => {
+    // mgmt-co.macro-market owns inflationRate (catalog cadence = 7d).
+    // Admin overrides that Specialist's cadence to 365d. A successful
+    // run 30 days ago is well past the catalog default (would refresh)
+    // but well inside the override (must skip).
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    cadenceOverrides.mockResolvedValue(
+      new Map<string, number>([["constants.macro-research", 365]]),
+    );
+    getLatestSuccessful.mockImplementation((key: string) => {
+      // Only inflationRate has the recent run; other rows still due.
+      if (key === "inflationRate") {
+        return Promise.resolve({
+          startedAt: thirtyDaysAgo,
+          completedAt: thirtyDaysAgo,
+          status: "completed",
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    await runConstantsRefreshCycle();
+
+    const inflationCalls = propose.mock.calls.filter(
+      ([a]) => (a as { key: string }).key === "inflationRate",
+    );
+    // Override (365d) wins over catalog (7d) — no refresh triggered.
+    expect(inflationCalls).toHaveLength(0);
+  });
+
+  it("falls back to the catalog cadence when no override is set", async () => {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // No override map entry → catalog default (7d) governs → past due.
+    getLatestSuccessful.mockImplementation((key: string) => {
+      if (key === "inflationRate") {
+        return Promise.resolve({
+          startedAt: thirtyDaysAgo,
+          completedAt: thirtyDaysAgo,
+          status: "completed",
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    await runConstantsRefreshCycle();
+
+    const inflationCalls = propose.mock.calls.filter(
+      ([a]) => (a as { key: string }).key === "inflationRate",
+    );
+    expect(inflationCalls.length).toBeGreaterThan(0);
   });
 });
 

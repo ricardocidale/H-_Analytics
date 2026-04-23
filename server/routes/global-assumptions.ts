@@ -236,6 +236,40 @@ export function register(app: Express) {
       let verdict = null;
       let requiredFieldsMissing: string[] | null = null;
       let prerequisiteFailures: { id: string; specialistId: string; reason: string }[] | null = null;
+      // Phase 4: emit observed-missing telemetry for Specialist C
+      // (`mgmt-co.icp-intelligence`) when the Company Assumptions tab is
+      // saved. C is a stub specialist (no dispatch yet), but its
+      // candidateFields live on this surface (companyTaxRate,
+      // baseManagementFee, incentiveManagementFee), so admins can already
+      // begin promoting them via the Required Fields tab.
+      if (tabKey === "company") {
+        try {
+          const [
+            { findObservedMissingCandidateFields },
+            { getSpecialistById },
+          ] = await Promise.all([
+            import("../../engine/analyst/surface/mgmt-co"),
+            import("../../engine/analyst/registry/specialist-catalog"),
+          ]);
+          const ICP_ID = "mgmt-co.icp-intelligence";
+          const def = getSpecialistById(ICP_ID);
+          if (def) {
+            const cfg = await storage.getOrCreateSpecialistConfig(ICP_ID);
+            const observed = findObservedMissingCandidateFields(
+              saved as Record<string, unknown>,
+              def.candidateFields ?? [],
+              (cfg as { fieldRequirements?: Record<string, "hard" | "recommended" | "off"> }).fieldRequirements,
+            );
+            await storage.recordObservedMissingFields(ICP_ID, observed);
+          }
+        } catch (icpErr: unknown) {
+          logger.warn(
+            `ICP observed-missing emission failed: ${icpErr instanceof Error ? icpErr.message : String(icpErr)}`,
+            "global-assumptions",
+          );
+        }
+      }
+
       if (tabKey === "funding" || tabKey === "revenue") {
         const [
           { createMgmtCoRouter, MGMT_CO_FUNDING_ID, MGMT_CO_REVENUE_ID, findMissingRequiredFields, findObservedMissingCandidateFields, RequiredFieldsMissingError },

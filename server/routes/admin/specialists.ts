@@ -411,6 +411,65 @@ export function registerAdminSpecialistRoutes(app: Express) {
     }
   });
 
+  // ── Promote/Ignore observed-missing telemetry ────────────────────
+  // Body: { fieldKey: string, action: "promote-recommended"|"promote-hard"|"ignore" }
+  // Append-only. Promote actions ALSO flip the toggle (functional), but the
+  // event row is independent so a toggle revert by another admin does not
+  // delete the prior promote signal. Ignore actions are pure telemetry —
+  // they do not touch the toggle state, only inform the catalog calibration
+  // (high ignore-ratio means "candidate is noise, drop from catalog").
+  app.post("/api/admin/specialists/:id/recommendation-event", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const def = getSpecialistById(id);
+      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      const { recordRecommendationEventSchema } = await import("@shared/schema");
+      const parsed = recordRecommendationEventSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      // Validate fieldKey against the catalog candidate-fields list — admins
+      // can only act on declared candidates, never arbitrary strings.
+      const candidateKeys = new Set((def.candidateFields ?? []).map((c) => c.key));
+      if (!candidateKeys.has(parsed.data.fieldKey)) {
+        return res.status(400).json({
+          error: `Field key "${parsed.data.fieldKey}" is not a declared candidate of ${id}`,
+        });
+      }
+      const actorId = req.user!.id;
+      const event = await storage.recordRecommendationEvent(
+        id,
+        parsed.data.fieldKey,
+        parsed.data.action,
+        actorId,
+      );
+      logActivity(
+        req,
+        "specialist-recommendation-event",
+        "specialist_config",
+        event.id,
+        `${id} ${parsed.data.action} ${parsed.data.fieldKey}`,
+      );
+      res.json(event);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to record specialist recommendation event", error);
+    }
+  });
+
+  // GET stats for the Required Fields tab — promote-vs-ignore counts per
+  // candidate field. Drives the calibration hint shown next to each row.
+  app.get("/api/admin/specialists/:id/recommendation-stats", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const def = getSpecialistById(id);
+      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      const stats = await storage.getRecommendationEventStats(id);
+      res.json(stats);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to load specialist recommendation stats", error);
+    }
+  });
+
   // ── Update Field Toggles (toggle UI) ────────────────────────────
   // Body: { fieldRequirements: Record<key,"hard"|"recommended"|"off">,
   //         changeSummary?: string }

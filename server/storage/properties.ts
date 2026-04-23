@@ -120,6 +120,43 @@ export class PropertyStorage {
     return property || undefined;
   }
 
+  /**
+   * Stamp `properties.financialsComputedAt = now()` for a set of property
+   * IDs. Called from every finance compute entrypoint
+   * (`/api/finance/compute`, `/api/finance/property/:id`,
+   * `/api/finance/company`, `/api/verification/run`) immediately after the
+   * engine returns a successful result.
+   *
+   * The stamp drives the `all-properties-financials-computed` prerequisite
+   * (engine/analyst/registry/prerequisite-registry.ts) which gates
+   * portfolio-level Specialists. Without this single helper enforced at
+   * every entrypoint, the gate is effectively dead because no path ever
+   * sets the timestamp. Centralizing here is the only way to keep "stamp
+   * on every recompute" DRY across four routes — adding a fifth entrypoint
+   * means one line: `await storage.markPropertiesFinancialsComputed(ids)`.
+   *
+   * Best-effort: a write failure is logged and swallowed so a Postgres
+   * blip never breaks the user's compute response — the stamp is
+   * telemetry, not the result.
+   */
+  async markPropertiesFinancialsComputed(
+    ids: readonly number[],
+    at: Date = new Date(),
+  ): Promise<void> {
+    if (ids.length === 0) return;
+    try {
+      await db
+        .update(properties)
+        .set({ financialsComputedAt: at })
+        .where(inArray(properties.id, [...ids]));
+    } catch (err: unknown) {
+      logger.warn(
+        `markPropertiesFinancialsComputed failed for ids ${ids.join(",")}: ${err instanceof Error ? err.message : String(err)}`,
+        "properties",
+      );
+    }
+  }
+
   /** Soft-delete: archive a property instead of permanently destroying data. */
   async deleteProperty(id: number, archivedByUserId?: number): Promise<void> {
     await db.update(properties)

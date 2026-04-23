@@ -57,6 +57,15 @@ export function register(app: Express) {
         globalAssumptions,
       );
 
+      // Stamp `financialsComputedAt` for every property in scope. The
+      // verification path is a full recompute under the hood, so it must
+      // satisfy the same prerequisite as the user-facing finance routes
+      // (engine/analyst/registry/prerequisite-registry.ts —
+      // `all-properties-financials-computed`). Without this, an admin who
+      // only ever runs Verification would never satisfy the gate.
+      const verifiedIds = properties.map((p) => p.id);
+      await storage.markPropertiesFinancialsComputed(verifiedIds);
+
       const run = await storage.createVerificationRun({
         userId: getAuthUser(req).id,
         passed: report.summary.totalPassed,

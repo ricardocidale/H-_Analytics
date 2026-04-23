@@ -762,7 +762,7 @@ function RecommendationsCard({
   // toggled "off". A key the admin has already promoted should disappear
   // from the recommendations list immediately.
   const recommendations = (config.lastObservedMissing ?? []).filter(
-    (k) => labelByKey.has(k) && (fieldState[k] ?? "off") === "off",
+    (k) => labelByKey.has(k) && (fieldState[k] ?? "off") === "off" && !ignoredKeys.has(k),
   );
 
   const promoteMutation = useMutation({
@@ -772,6 +772,15 @@ function RecommendationsCard({
         fieldRequirements: next,
         changeSummary: `Promoted ${key} to ${level} from last-run recommendation`,
       });
+      // Telemetry sibling-write (Phase 4): record the promote event in the
+      // append-only events table so the catalog calibration job can later
+      // read promote-vs-ignore ratios. Best-effort: a telemetry failure
+      // does not roll back the toggle change above (the toggle is the
+      // user's intent; the event is just signal for catalog tuning).
+      apiRequest("POST", `/api/admin/specialists/${specialistId}/recommendation-event`, {
+        fieldKey: key,
+        action: level === "hard" ? "promote-hard" : "promote-recommended",
+      }).catch(() => { /* swallow — telemetry only */ });
       return { json: await res.json(), key, level };
     },
     onMutate: ({ key }) => setPendingKey(key),
@@ -780,12 +789,49 @@ function RecommendationsCard({
       toast({ title: `Promoted ${labelByKey.get(key)?.label ?? key} to ${level === "hard" ? "Hard-required" : "Recommended"}` });
       qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
       qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/audit`] });
+      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/recommendation-stats`] });
       qc.invalidateQueries({ queryKey: ["/api/admin/specialists"] });
     },
     onError: (e: unknown) =>
       toast({ title: "Promote failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
     onSettled: () => setPendingKey(null),
   });
+
+  // Ignore is telemetry-only — no toggle change. We POST the event and
+  // then locally suppress the row from the recommendations list (the
+  // server will re-include it on the next observed-missing run if the
+  // field is still empty, which is the desired behavior — Ignore means
+  // "not interesting to me right now," not "remove permanently").
+  const [ignoredKeys, setIgnoredKeys] = useState<Set<string>>(new Set());
+  const ignoreMutation = useMutation({
+    mutationFn: async ({ key }: { key: string }) => {
+      await apiRequest("POST", `/api/admin/specialists/${specialistId}/recommendation-event`, {
+        fieldKey: key,
+        action: "ignore",
+      });
+      return { key };
+    },
+    onMutate: ({ key }) => setPendingKey(key),
+    onSuccess: ({ key }) => {
+      setIgnoredKeys((s) => new Set(s).add(key));
+      toast({ title: `Ignored ${labelByKey.get(key)?.label ?? key}` });
+      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/recommendation-stats`] });
+    },
+    onError: (e: unknown) =>
+      toast({ title: "Ignore failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onSettled: () => setPendingKey(null),
+  });
+
+  // Promote-vs-ignore stats per field — informs the admin which candidates
+  // are mostly noise (high ignore-ratio) without leaving the page.
+  const { data: stats } = useQuery<
+    Array<{ fieldKey: string; promoteRecommended: number; promoteHard: number; ignore: number }>
+  >({ queryKey: [`/api/admin/specialists/${specialistId}/recommendation-stats`] });
+  const statsByKey = useMemo(() => {
+    const m = new Map<string, { promoteRecommended: number; promoteHard: number; ignore: number }>();
+    for (const s of stats ?? []) m.set(s.fieldKey, s);
+    return m;
+  }, [stats]);
 
   const lastRunLabel = config.lastObservedMissingAt
     ? new Date(config.lastObservedMissingAt).toLocaleString()
@@ -831,12 +877,35 @@ function RecommendationsCard({
                       <div className="text-xs font-mono text-muted-foreground">
                         {key} · {meta.surface}
                       </div>
+                      {(() => {
+                        const s = statsByKey.get(key);
+                        if (!s) return null;
+                        const total = s.promoteRecommended + s.promoteHard + s.ignore;
+                        if (total === 0) return null;
+                        return (
+                          <div
+                            className="text-xs text-muted-foreground mt-1"
+                            data-testid={`stats-${key}`}
+                          >
+                            promoted {s.promoteRecommended + s.promoteHard} · ignored {s.ignore}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <Button
                         size="sm"
+                        variant="ghost"
+                        disabled={isAnyPending || ignoreMutation.isPending}
+                        onClick={() => ignoreMutation.mutate({ key })}
+                        data-testid={`button-ignore-${key}`}
+                      >
+                        {pendingKey === key && ignoreMutation.isPending ? "Ignoring…" : "Ignore"}
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="outline"
-                        disabled={isAnyPending}
+                        disabled={isAnyPending || ignoreMutation.isPending}
                         onClick={() => promoteMutation.mutate({ key, level: "recommended" })}
                         data-testid={`button-promote-recommended-${key}`}
                       >
@@ -844,7 +913,7 @@ function RecommendationsCard({
                       </Button>
                       <Button
                         size="sm"
-                        disabled={isAnyPending}
+                        disabled={isAnyPending || ignoreMutation.isPending}
                         onClick={() => promoteMutation.mutate({ key, level: "hard" })}
                         data-testid={`button-promote-hard-${key}`}
                       >

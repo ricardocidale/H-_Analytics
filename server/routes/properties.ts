@@ -332,7 +332,78 @@ export function register(app: Express) {
         }
       }
 
-      res.json(property);
+      // Phase 4: surface prerequisite failures + observed-missing telemetry
+      // for property-subject Specialists (D — Risk Intelligence; E —
+      // Executive Summary). Mirrors the shape that Company Assumptions'
+      // /save-tab handler returns, so the UI can render the same
+      // PrerequisitesFailedPanel above the Property Edit form. Best-effort:
+      // the property save itself has already succeeded above; if Specialist
+      // evaluation throws (catalog import, prereq evaluator, etc.) we log
+      // and return the property unchanged rather than 500ing on a save.
+      let prerequisiteFailures: { id: string; specialistId: string; reason: string }[] | null = null;
+      let requiredFieldsMissing: { specialistId: string; keys: string[] }[] | null = null;
+      try {
+        const [
+          { findMissingRequiredFields, findObservedMissingCandidateFields },
+          { evaluatePrerequisites },
+          { getSpecialistById, SPECIALIST_CATALOG },
+          { deriveHardRequiredFieldKeys },
+        ] = await Promise.all([
+          import("../../engine/analyst/surface/mgmt-co/index"),
+          import("../../engine/analyst/registry/prerequisite-registry"),
+          import("../../engine/analyst/registry/specialist-catalog"),
+          import("./admin/specialists"),
+        ]);
+        const propertySpecialistIds = SPECIALIST_CATALOG
+          .filter((d) => d.subject === "property")
+          .map((d) => d.id);
+        const failures: { id: string; specialistId: string; reason: string }[] = [];
+        const reqMissing: { specialistId: string; keys: string[] }[] = [];
+        for (const sid of propertySpecialistIds) {
+          const def = getSpecialistById(sid);
+          if (!def) continue;
+          const cfg = await storage.getOrCreateSpecialistConfig(sid);
+          const candidates = def.candidateFields ?? [];
+          const observed = findObservedMissingCandidateFields(
+            property as Record<string, unknown>,
+            candidates,
+            cfg.fieldRequirements as Record<string, "hard" | "recommended" | "off"> | undefined,
+          );
+          await storage.recordObservedMissingFields(sid, observed);
+
+          const hardFields = deriveHardRequiredFieldKeys(
+            cfg.fieldRequirements as Record<string, "hard" | "recommended" | "off"> | undefined,
+            cfg.requiredFields,
+          );
+          const missing = findMissingRequiredFields(
+            property as Record<string, unknown>,
+            hardFields,
+          );
+          if (missing.length > 0) reqMissing.push({ specialistId: sid, keys: missing });
+
+          const toggledOnPrereqs = Object.entries(
+            (cfg as { prerequisiteToggles?: Record<string, boolean> }).prerequisiteToggles ?? {},
+          )
+            .filter(([id, on]) => on === true && (def.prerequisites ?? []).includes(id))
+            .map(([id]) => id);
+          if (toggledOnPrereqs.length > 0) {
+            const fails = await evaluatePrerequisites(toggledOnPrereqs, {
+              storage,
+              userId: getAuthUser(req).id,
+            });
+            for (const f of fails) failures.push({ id: f.id, specialistId: sid, reason: f.reason });
+          }
+        }
+        if (failures.length > 0) prerequisiteFailures = failures;
+        if (reqMissing.length > 0) requiredFieldsMissing = reqMissing;
+      } catch (specErr: unknown) {
+        logger.warn(
+          `Property Specialist gating failed (property #${propertyId}): ${specErr instanceof Error ? specErr.message : String(specErr)}`,
+          "properties",
+        );
+      }
+
+      res.json({ ...property, prerequisiteFailures, requiredFieldsMissing });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update property", error);
     }

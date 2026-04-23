@@ -140,6 +140,8 @@ export class DatabaseStorage implements IStorage {
   getRefreshCadenceOverrides = this.specialistConfigStore.getRefreshCadenceOverrides.bind(this.specialistConfigStore);
   listHardRequiredFieldKeysForSpecialists = this.specialistConfigStore.listHardRequiredFieldKeysForSpecialists.bind(this.specialistConfigStore);
   recordObservedMissingFields = this.specialistConfigStore.recordObservedMissingFields.bind(this.specialistConfigStore);
+  recordRecommendationEvent = this.specialistConfigStore.recordRecommendationEvent.bind(this.specialistConfigStore);
+  getRecommendationEventStats = this.specialistConfigStore.getRecommendationEventStats.bind(this.specialistConfigStore);
 
   // Per-Specialist identity overrides (Phase 3 — admin-editable humanName + gender)
   getIdentityOverride = this.specialistIdentityStore.getIdentityOverride.bind(this.specialistIdentityStore);
@@ -194,6 +196,7 @@ export class DatabaseStorage implements IStorage {
   createProperty = this.properties.createProperty.bind(this.properties);
   updateProperty = this.properties.updateProperty.bind(this.properties);
   deleteProperty = this.properties.deleteProperty.bind(this.properties);
+  markPropertiesFinancialsComputed = this.properties.markPropertiesFinancialsComputed.bind(this.properties);
   restoreProperty = this.properties.restoreProperty.bind(this.properties);
   getDistinctPropertyLocations = this.properties.getDistinctPropertyLocations.bind(this.properties);
 

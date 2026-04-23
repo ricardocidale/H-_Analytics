@@ -586,6 +586,60 @@ export const SpecialistIdentityPublicViewSchema = z.object({
 });
 export type SpecialistIdentityPublicView = z.infer<typeof SpecialistIdentityPublicViewSchema>;
 
+// ════════════════════════════════════════════════════════════════════════════
+// Phase 4 — Specialist recommendation telemetry (promote vs ignore)
+//
+// The Required Fields tab surfaces `lastObservedMissing` candidate-field keys
+// as one-click promote-to-Recommended / promote-to-Hard-required actions.
+// Until now, the only signal was a side effect on `field_requirements` (a
+// successful promote bumped the toggle). Ignored recommendations left no
+// trace, so we couldn't tell whether a key is being ignored on purpose vs
+// the admin simply hasn't seen the page yet.
+//
+// This table is append-only telemetry: every promote action AND every
+// explicit "Ignore" action writes one row. Aggregating by (specialistId,
+// fieldKey) yields the promote-vs-ignore ratio that calibrates whether
+// the catalog should declare a key "recommended" by default in a future
+// release.
+// ════════════════════════════════════════════════════════════════════════════
+
+export const SPECIALIST_RECOMMENDATION_ACTIONS = [
+  "promote-recommended",
+  "promote-hard",
+  "ignore",
+] as const;
+export type SpecialistRecommendationAction =
+  typeof SPECIALIST_RECOMMENDATION_ACTIONS[number];
+export const SpecialistRecommendationActionSchema = z.enum(
+  SPECIALIST_RECOMMENDATION_ACTIONS,
+);
+
+export const specialistRecommendationEvents = pgTable(
+  "specialist_recommendation_events",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    specialistId: text("specialist_id").notNull(),
+    fieldKey: text("field_key").notNull(),
+    action: text("action").$type<SpecialistRecommendationAction>().notNull(),
+    actorUserId: integer("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    occurredAt: timestamp("occurred_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("specialist_rec_events_specialist_idx").on(t.specialistId),
+    index("specialist_rec_events_specialist_field_idx").on(t.specialistId, t.fieldKey),
+  ],
+);
+export type SpecialistRecommendationEventRow =
+  typeof specialistRecommendationEvents.$inferSelect;
+
+export const recordRecommendationEventSchema = z.object({
+  fieldKey: z.string().min(1).max(100),
+  action: SpecialistRecommendationActionSchema,
+});
+export type RecordRecommendationEventInput = z.infer<
+  typeof recordRecommendationEventSchema
+>;
+
 export const SpecialistIdentityHistoryEntrySchema = z.object({
   id: z.number().int(),
   action: z.enum(["upsert", "reset"]),

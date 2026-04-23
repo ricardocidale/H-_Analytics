@@ -20,10 +20,14 @@ import { desc, eq } from "drizzle-orm";
 import {
   specialistConfigs,
   specialistConfigVersions,
+  specialistRecommendationEvents,
   type SpecialistConfigRow,
   type SpecialistConfigVersionRow,
   type SpecialistConfigSectionType,
+  type SpecialistRecommendationAction,
+  type SpecialistRecommendationEventRow,
 } from "@shared/schema";
+import { sql } from "drizzle-orm";
 
 export interface SpecialistConfigPatch {
   promptTemplate?: string;
@@ -164,6 +168,77 @@ export class SpecialistConfigStorage {
         lastObservedMissingAt: occurredAt,
       })
       .where(eq(specialistConfigs.specialistId, specialistId));
+  }
+
+  /**
+   * Append-only telemetry: an admin clicked "Promote to Recommended",
+   * "Promote to Hard-required", or "Ignore" on an observed-missing
+   * candidate row. We aggregate by (specialistId, fieldKey) to compute
+   * the promote-vs-ignore ratio that decides whether a future catalog
+   * release should bake "recommended" in by default.
+   *
+   * Promote actions are downstream-functional too — the SpecialistPage
+   * still calls the existing config-section update to flip the toggle.
+   * This row is independent telemetry, no version bump.
+   */
+  async recordRecommendationEvent(
+    specialistId: string,
+    fieldKey: string,
+    action: SpecialistRecommendationAction,
+    actorUserId: number,
+  ): Promise<SpecialistRecommendationEventRow> {
+    const [row] = await db
+      .insert(specialistRecommendationEvents)
+      .values({ specialistId, fieldKey, action, actorUserId })
+      .returning();
+    return row;
+  }
+
+  /**
+   * Promote-vs-ignore counts grouped by `fieldKey` for one Specialist.
+   * The Required Fields tab renders these next to the field name so an
+   * admin can see "ignored 8 / promoted 2 — likely noise" at a glance.
+   */
+  async getRecommendationEventStats(
+    specialistId: string,
+  ): Promise<
+    Array<{
+      fieldKey: string;
+      promoteRecommended: number;
+      promoteHard: number;
+      ignore: number;
+    }>
+  > {
+    const rows = await db
+      .select({
+        fieldKey: specialistRecommendationEvents.fieldKey,
+        action: specialistRecommendationEvents.action,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(specialistRecommendationEvents)
+      .where(eq(specialistRecommendationEvents.specialistId, specialistId))
+      .groupBy(
+        specialistRecommendationEvents.fieldKey,
+        specialistRecommendationEvents.action,
+      );
+    const byField = new Map<
+      string,
+      { fieldKey: string; promoteRecommended: number; promoteHard: number; ignore: number }
+    >();
+    for (const r of rows) {
+      const existing =
+        byField.get(r.fieldKey) ?? {
+          fieldKey: r.fieldKey,
+          promoteRecommended: 0,
+          promoteHard: 0,
+          ignore: 0,
+        };
+      if (r.action === "promote-recommended") existing.promoteRecommended = r.count;
+      else if (r.action === "promote-hard") existing.promoteHard = r.count;
+      else if (r.action === "ignore") existing.ignore = r.count;
+      byField.set(r.fieldKey, existing);
+    }
+    return Array.from(byField.values());
   }
 
   async listSpecialistConfigVersions(specialistId: string, limit = 50): Promise<SpecialistConfigVersionRow[]> {
