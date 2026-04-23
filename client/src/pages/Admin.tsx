@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { type AdminSection, resolveSection, SPECIALIST_SECTION_TO_ID, type SpecialistSection } from "@/components/admin/AdminSidebar";
+import { type AdminSection, resolveSection, SECTION_REDIRECTS, SPECIALIST_SECTION_TO_ID, type SpecialistSection } from "@/components/admin/AdminSidebar";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -42,7 +42,7 @@ const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPag
 
 export type { AdminSaveState };
 
-const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
+const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: string }>> = {
   "model-defaults":      { title: "App Defaults",           subtitle: "Financial defaults and seed values for new entities" },
   users:                 { title: "Users",                   subtitle: "Manage user accounts and assignments" },
   activity:              { title: "Activity",                subtitle: "Login logs, audit trail, and session monitoring" },
@@ -105,8 +105,6 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   research:              { title: "Research Dashboard",       subtitle: "Research center" },
   // New 10-block navigation entries
   "financial-defaults":  { title: "Defaults",                 subtitle: "Management company default financial parameters and seed values" },
-  "services-fees":       { title: "Services & Fees",          subtitle: "Management company service categories and fee templates" },
-  "company-profile":     { title: "Company Profile",          subtitle: "Management company identity and settings" },
   "rental-defaults":     { title: "Property Defaults",        subtitle: "Default revenue, cost, and capital assumptions for new properties" },
   "required-fields":     { title: "Required Fields",          subtitle: "Configure which property fields are required before research runs" },
   "sources-apis":        { title: "Sources & APIs",           subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
@@ -130,8 +128,6 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
 const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "model-defaults":      "company",
   "financial-defaults":  "company",
-  "company-profile":     "company",
-  "services-fees":       "company",
   "rental-defaults":     "property-underwriting",
   "required-fields":     "required-fields",
   // Defaults section
@@ -161,12 +157,30 @@ const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "conversations":   "conversations",
 };
 
+/**
+ * Walk the SECTION_REDIRECTS chain starting at `section` and return the first
+ * value found in `map`. Lets us look up sub-tab / visible-tab config by an
+ * alias (e.g. `services-fees`) and have it resolve to the entry registered
+ * under the canonical Steady-State section it redirects to.
+ */
+function lookupAlongChain<T>(section: AdminSection, map: Partial<Record<AdminSection, T>>): T | undefined {
+  let current: AdminSection | undefined = section;
+  const seen = new Set<AdminSection>();
+  while (current && !seen.has(current)) {
+    const value = map[current];
+    if (value !== undefined) return value;
+    seen.add(current);
+    current = SECTION_REDIRECTS[current];
+  }
+  return undefined;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function SectionContent({ section, onNavigate, onSaveStateChange }: { section: AdminSection; onNavigate: (s: AdminSection) => void; onSaveStateChange: (state: AdminSaveState | null) => void }) {
   const resolved = resolveSection(section);
 
   switch (resolved) {
-    case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={MODEL_DEFAULTS_SUB_TAB[section]} visibleTabs={MODEL_DEFAULTS_VISIBLE_TABS[section]} />;
+    case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={lookupAlongChain(section, MODEL_DEFAULTS_SUB_TAB)} visibleTabs={lookupAlongChain(section, MODEL_DEFAULTS_VISIBLE_TABS)} />;
     case "users":            return <PeopleTab />;
     case "activity":         return <ActivityTab />;
     case "scenarios":        return <ScenariosTab />;
@@ -226,7 +240,7 @@ export default function Admin() {
   }, []);
 
   const resolved = resolveSection(activeSection);
-  const meta = sectionMeta[activeSection] ?? sectionMeta[resolved];
+  const meta = lookupAlongChain(activeSection, sectionMeta) ?? sectionMeta[resolved] ?? { title: "Admin", subtitle: "" };
 
   return (
     <AnimatedPage>

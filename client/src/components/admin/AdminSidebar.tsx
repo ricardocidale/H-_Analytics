@@ -54,7 +54,7 @@ export type AdminSection =
   | "coverage-analytics" | "pipeline-policies" | "source-registry"
   | "system-intelligence" | "research"
   // New 10-block navigation aliases
-  | "financial-defaults" | "services-fees" | "company-profile"
+  | "financial-defaults" | "services-fees" | "company-profile" | "management-company"
   | "rental-defaults" | "required-fields"
   | "sources-apis" | "llm-config" | "engine-health"
   | "user-management"
@@ -100,7 +100,7 @@ export const SPECIALIST_SECTION_TO_ID = {
 
 export type SpecialistSection = keyof typeof SPECIALIST_SECTION_TO_ID;
 
-const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
+export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Legacy aliases
   "icp": "engine-dashboard",
   "logos": "brand",
@@ -122,7 +122,8 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Groups and companies removed — redirect to users
   "groups": "users",
   "companies": "users",
-  "services-fees": "model-defaults",
+  "services-fees": "defaults-management-company",
+  "management-company": "defaults-management-company",
   "company-profile": "model-defaults",
   "financial-defaults": "model-defaults",
   "rental-defaults": "model-defaults",
@@ -146,7 +147,13 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
 };
 
 export function resolveSection(section: AdminSection): AdminSection {
-  return SECTION_REDIRECTS[section] ?? section;
+  let current: AdminSection = section;
+  const seen = new Set<AdminSection>();
+  while (SECTION_REDIRECTS[current] && !seen.has(current)) {
+    seen.add(current);
+    current = SECTION_REDIRECTS[current]!;
+  }
+  return current;
 }
 
 interface SectionItem {
@@ -165,15 +172,6 @@ interface NavGroup {
 
 function buildNavGroups(): NavGroup[] {
   return [
-    {
-      id: "management-company",
-      label: "Management Company",
-      icon: IconBriefcase,
-      description: "Services & fees",
-      sections: [
-        { value: "services-fees",      label: "Services & Fees",           icon: IconBriefcase },
-      ],
-    },
     {
       id: "properties",
       label: "Properties",
@@ -262,7 +260,7 @@ function getGroupForSection(section: AdminSection, groups: NavGroup[]): string {
   for (const group of groups) {
     if (group.sections.some((s) => resolveSection(s.value) === resolved || s.value === resolved)) return group.id;
   }
-  return "management-company";
+  return "defaults";
 }
 
 interface AdminSidebarProps {
