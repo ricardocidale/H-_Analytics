@@ -79,6 +79,18 @@ function getIdentityCatalogDefault(id: string): IdentityCatalogDefault | null {
 
 const idParamSchema = z.object({ id: z.string().min(1) });
 
+// Phase 3 (#453) — Zod-validated payloads for the identity routes that
+// previously used ad-hoc parsing. Keeps the contract uniform with
+// updateSpecialistIdentitySchema (the PUT body) and avoids edge-case
+// parsing issues on Number(req.query.limit) for the history endpoint.
+const resetIdentityBodySchema = z.object({
+  changeSummary: z.string().min(1).max(500).optional(),
+}).strict();
+
+const identityHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(200).optional(),
+});
+
 function toConfigView(
   row: {
     specialistId: string;
@@ -717,9 +729,14 @@ export function registerAdminSpecialistRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const catalog = getIdentityCatalogDefault(id);
       if (!catalog) return res.status(404).json({ error: "Specialist not found" });
+      // Body is optional — admins reset by clicking "Restore default" with
+      // no payload. When present, only `changeSummary` is accepted.
+      const parsedBody = resetIdentityBodySchema.safeParse(req.body ?? {});
+      if (!parsedBody.success) {
+        return res.status(400).json({ error: fromZodError(parsedBody.error).message });
+      }
       const actorId = req.user!.id;
-      const changeSummary = typeof req.body?.changeSummary === "string" ? req.body.changeSummary : undefined;
-      await storage.resetIdentityOverride(id, actorId, changeSummary);
+      await storage.resetIdentityOverride(id, actorId, parsedBody.data.changeSummary);
       logActivity(req, "reset-specialist-identity", "specialist_identity_override", null, id);
       const resolved = resolveSpecialistIdentity(catalog, null);
       const view: SpecialistIdentityPublicView = {
@@ -739,7 +756,11 @@ export function registerAdminSpecialistRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const catalog = getIdentityCatalogDefault(id);
       if (!catalog) return res.status(404).json({ error: "Specialist not found" });
-      const limit = Math.min(Number(req.query.limit ?? 50), 200);
+      const parsedQuery = identityHistoryQuerySchema.safeParse(req.query);
+      if (!parsedQuery.success) {
+        return res.status(400).json({ error: fromZodError(parsedQuery.error).message });
+      }
+      const limit = parsedQuery.data.limit ?? 50;
       const rows = await storage.listIdentityOverrideHistory(id, limit);
       res.json(
         rows.map((r) => ({
