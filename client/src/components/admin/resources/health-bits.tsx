@@ -80,6 +80,12 @@ export function TestButton({ resourceId, kindLabel }: { resourceId: number; kind
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resourceId}/health`] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resourceId}/health/history`] });
+      // Task #500: also invalidate the new transparency views so the
+      // Working pill, gaps banner, and detail dialog reflect the probe
+      // result instantly instead of waiting for the 60s refetchInterval.
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/transparency`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resourceId}/transparency`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/gaps`] });
       const variant = result.status === "ok" ? "default" : "destructive";
       toast({
         title: `${kindLabel}: ${result.status.toUpperCase()}${result.errorCode ? ` (${result.errorCode})` : ""}`,

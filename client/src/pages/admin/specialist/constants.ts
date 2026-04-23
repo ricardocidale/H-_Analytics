@@ -32,3 +32,17 @@ export function navigateToResources(
   setAiIntelligenceSection(section);
   setLocation("/ai-intelligence");
 }
+
+/**
+ * Open the per-resource transparency detail. The detail is URL-addressable
+ * via `?resource=<id>` so deep links, browser back/forward, and shareable
+ * URLs all work — the dialog is just a UX wrapper around the route.
+ */
+export function navigateToResourceDetail(
+  setLocation: (path: string) => void,
+  section: AiIntelligenceSection,
+  resourceId: number,
+) {
+  setAiIntelligenceSection(section);
+  setLocation(`/ai-intelligence?resource=${resourceId}`);
+}

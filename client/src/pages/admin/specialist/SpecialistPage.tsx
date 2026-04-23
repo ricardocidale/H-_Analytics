@@ -165,7 +165,7 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
             <TabsContent value="llm-config"><LlmConfigTab specialistId={specialistId} config={config} /></TabsContent>
           )}
           {tabsList.find((t) => t.value === "resource-assignments") && (
-            <TabsContent value="resource-assignments"><ResourceAssignmentsTab assignments={assignments} /></TabsContent>
+            <TabsContent value="resource-assignments"><ResourceAssignmentsTab specialistId={specialistId} assignments={assignments} /></TabsContent>
           )}
           {tabsList.find((t) => t.value === "runtime") && (
             <TabsContent value="runtime">

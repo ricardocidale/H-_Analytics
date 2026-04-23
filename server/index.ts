@@ -561,6 +561,12 @@ async function runSchemaMigrations() {
     await markMigrationApplied("admin_resources_003");
   }
 
+  if (!(await isMigrationApplied("admin_resources_004"))) {
+    const { runAdminResources004 } = await import("./migrations/admin-resources-004");
+    await runAdminResources004();
+    await markMigrationApplied("admin_resources_004");
+  }
+
   if (!(await isMigrationApplied("specialist_observed_missing_001"))) {
     const { runSpecialistObservedMissing001 } = await import(
       "./migrations/specialist-observed-missing-001"

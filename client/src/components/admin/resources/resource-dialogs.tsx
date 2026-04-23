@@ -89,6 +89,11 @@ export function CreateResourceDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/resources", kind] });
+      // The Resources tab now reads from the transparency endpoint and the
+      // gaps banner from /gaps — refresh both so a freshly-created resource
+      // shows up immediately without waiting for the periodic refetch.
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources/transparency", kind] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources/gaps", kind] });
       toast({ title: "Resource created" });
       onOpenChange(false);
     },
@@ -189,9 +194,12 @@ export function EditResourceDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/resources", resource?.kind] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources/transparency", resource?.kind] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources/gaps", resource?.kind] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resource?.id}/impact`] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resource?.id}/versions`] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resource?.id}/health`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resource?.id}/transparency`] });
       toast({ title: "Resource updated", description: "A new version was recorded." });
       onOpenChange(false);
     },
@@ -313,7 +321,10 @@ export function VersionHistoryDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/resources", resource?.kind] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources/transparency", resource?.kind] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources/gaps", resource?.kind] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resource?.id}/versions`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resource?.id}/transparency`] });
       toast({ title: "Rolled back", description: "A new version was recorded with the prior contents." });
       setRollbackTarget(null);
       onOpenChange(false);
@@ -420,6 +431,8 @@ export function DeleteResourceDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/resources", resource?.kind] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources/transparency", resource?.kind] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources/gaps", resource?.kind] });
       toast({ title: "Resource deleted" });
       onOpenChange(false);
     },

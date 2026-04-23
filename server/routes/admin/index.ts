@@ -13,6 +13,7 @@ import { registerTestBatteryRoutes } from "./test-batteries";
 import { registerModelConstantsRoutes } from "./model-constants";
 import { registerAdminAnalystTableRoutes } from "./analyst-tables";
 import { registerAdminResourceRoutes } from "./resources";
+import { registerResourceTransparencyRoutes } from "./resources-transparency";
 import { registerAdminSpecialistRoutes } from "./specialists";
 import { registerAdminSpecialistToolRoutes } from "./specialist-tools";
 import { registerRequiredFieldsRoutes } from "./required-fields";
@@ -31,6 +32,10 @@ export function register(app: Express) {
   registerTestBatteryRoutes(app);
   registerModelConstantsRoutes(app);
   registerAdminAnalystTableRoutes(app);
+  // Order matters: transparency uses static path segments
+  // (`/transparency`, `/gaps`) that must register BEFORE the
+  // `/api/admin/resources/:id` numeric-id catch-all.
+  registerResourceTransparencyRoutes(app);
   registerAdminResourceRoutes(app);
   registerAdminSpecialistRoutes(app);
   registerAdminSpecialistToolRoutes(app);

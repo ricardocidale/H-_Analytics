@@ -368,6 +368,51 @@ export const specialistAssignments = pgTable(
 export type SpecialistAssignmentRow = typeof specialistAssignments.$inferSelect;
 
 // ────────────────────────────────────────────────────────────────────────────
+// specialist_research_quality_snapshots — lightweight per-Specialist quality
+// store powering the AI Intelligence transparency hub (Task #500).
+//
+// One row per (specialistId) is the "current" snapshot; older rows are kept
+// as history (queried by changedAt DESC). The score is a 0–100 blend of:
+//   - probe health of required resources       (weight 35)
+//   - missing required-fields penalty          (weight 20)
+//   - run freshness                            (weight 15)
+//   - data availability (has any run yet)      (weight 10)
+//   - confidence (run reliability + self-reported)
+//                                              (weight 20)
+// `gaps` is an array of { code, label, severity } objects describing the
+// most actionable issues (max ~6). `signals` records the raw inputs so the
+// formula stays auditable in code review without re-querying every source.
+// The canonical implementation (with a per-signal explanation block) lives
+// in `server/ai/research-quality.ts` — keep these weights in sync.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const specialistResearchQualitySnapshots = pgTable(
+  "specialist_research_quality_snapshots",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    specialistId: text("specialist_id").notNull(),
+    score: integer("score").notNull(),
+    gaps: jsonb("gaps").notNull().$type<QualityGap[]>().default([]),
+    signals: jsonb("signals").notNull().$type<Record<string, unknown>>().default({}),
+    computedAt: timestamp("computed_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("specialist_quality_specialist_idx").on(t.specialistId),
+    index("specialist_quality_specialist_time_idx").on(t.specialistId, t.computedAt),
+  ],
+);
+
+export type QualityGapSeverity = "info" | "warning" | "critical";
+export interface QualityGap {
+  code: string;
+  label: string;
+  severity: QualityGapSeverity;
+}
+
+export type SpecialistResearchQualitySnapshotRow =
+  typeof specialistResearchQualitySnapshots.$inferSelect;
+
+// ────────────────────────────────────────────────────────────────────────────
 // API response shapes — explicit so secret material never leaks. Every route
 // that returns a Resource MUST go through `toResourcePublicView`.
 // ────────────────────────────────────────────────────────────────────────────

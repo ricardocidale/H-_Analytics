@@ -31,6 +31,7 @@ import { AdminResourceVersioningStorage } from "./admin-resource/versioning";
 import { AdminResourceAssignmentsStorage } from "./admin-resource/specialist-assignments";
 import { AdminResourceBreakGlassStorage } from "./admin-resource/break-glass";
 import { AdminResourceHealthChecksStorage } from "./admin-resource/health-checks";
+import { AdminResourceQualitySnapshotsStorage } from "./admin-resource/quality-snapshots";
 
 export type {
   ResourceImpactEntry,
@@ -52,6 +53,7 @@ export const ADMIN_RESOURCE_DOMAIN_FACTORIES = [
   () => new AdminResourceAssignmentsStorage(),
   () => new AdminResourceBreakGlassStorage(),
   () => new AdminResourceHealthChecksStorage(),
+  () => new AdminResourceQualitySnapshotsStorage(),
 ] as const;
 
 export interface AdminResourceStorage
@@ -59,7 +61,8 @@ export interface AdminResourceStorage
     AdminResourceVersioningStorage,
     AdminResourceAssignmentsStorage,
     AdminResourceBreakGlassStorage,
-    AdminResourceHealthChecksStorage {}
+    AdminResourceHealthChecksStorage,
+    AdminResourceQualitySnapshotsStorage {}
 
 export class AdminResourceStorage {
   constructor() {
