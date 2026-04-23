@@ -53,6 +53,7 @@ const EXEMPT_FILE_PATTERNS: RegExp[] = [
   // Per-country / citation tables — intentional literal tables
   /^shared\/countryDefaults\.ts$/,
   /^shared\/citations\.ts$/,
+  /^shared\/regulatory\//,
 
   // Seed files are by definition collections of literal fixture data.
   // Per-property acquisition and operations dates are genuinely per-row;
