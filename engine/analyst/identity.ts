@@ -53,6 +53,88 @@ export interface OrchestratorIdentity {
   };
 }
 
+/**
+ * Synthetic specialistId reserved for the orchestrator. The Phase-3 admin
+ * identity routes accept this id alongside the catalog-declared specialist
+ * ids so Gaspar's humanName/gender can be edited through the same surface.
+ */
+export const ORCHESTRATOR_SPECIALIST_ID = "gaspar" as const;
+
+export type Gender = "male" | "female" | "neutral";
+
+export interface PronounSet {
+  /** Subject pronoun: "she", "he", "they". */
+  readonly subject: string;
+  /** Object pronoun: "her", "him", "them". */
+  readonly object: string;
+  /** Possessive determiner: "her", "his", "their" (used as "her work"). */
+  readonly possessive: string;
+  /** Possessive pronoun: "hers", "his", "theirs" (used as "the work is hers"). */
+  readonly possessivePronoun: string;
+  /** Reflexive: "herself", "himself", "themself". */
+  readonly reflexive: string;
+}
+
+const PRONOUNS: Record<Gender, PronounSet> = {
+  female:  { subject: "she",  object: "her",  possessive: "her",   possessivePronoun: "hers",   reflexive: "herself" },
+  male:    { subject: "he",   object: "him",  possessive: "his",   possessivePronoun: "his",    reflexive: "himself" },
+  neutral: { subject: "they", object: "them", possessive: "their", possessivePronoun: "theirs", reflexive: "themself" },
+};
+
+/**
+ * Resolve a gender-correct pronoun set for narration. Used everywhere the
+ * engine writes Specialist-attributable copy — never hard-code "she/her" or
+ * "he/his" in narration strings; always read through this helper so that
+ * flipping a Specialist's gender via the Phase-3 admin override propagates
+ * to every callsite.
+ */
+export function pronounSet(gender: Gender): PronounSet {
+  return PRONOUNS[gender];
+}
+
+export interface ResolvedIdentitySource {
+  readonly humanName: "override" | "catalog";
+  readonly gender: "override" | "catalog";
+}
+
+export interface ResolvedIdentity {
+  readonly humanName: string;
+  readonly gender: Gender;
+  readonly source: ResolvedIdentitySource;
+}
+
+export interface IdentityCatalogDefault {
+  readonly humanName: string;
+  readonly gender: Gender;
+}
+
+export interface IdentityOverridePatch {
+  readonly humanName: string | null;
+  readonly gender: Gender | null;
+}
+
+/**
+ * Merge the catalog factory default with an admin override. Per-field
+ * resolution: override-when-non-null, catalog otherwise. Pure function —
+ * shared between server (logger/route) and client (SpecialistPage display)
+ * via `engine/` so behavior cannot drift between the two surfaces.
+ */
+export function resolveSpecialistIdentity(
+  catalog: IdentityCatalogDefault,
+  override: IdentityOverridePatch | null | undefined,
+): ResolvedIdentity {
+  const humanName = override?.humanName ?? catalog.humanName;
+  const gender = override?.gender ?? catalog.gender;
+  return {
+    humanName,
+    gender,
+    source: {
+      humanName: override?.humanName != null ? "override" : "catalog",
+      gender: override?.gender != null ? "override" : "catalog",
+    },
+  };
+}
+
 export const GASPAR_IDENTITY: OrchestratorIdentity = {
   humanName: "Gaspar",
   name: "Gaspar",

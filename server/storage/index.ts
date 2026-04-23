@@ -48,6 +48,7 @@ import { ModelConstantsStorage } from "./model-constants";
 import { ModelCanonicalsStorage } from "./model-canonicals";
 import { AdminResourceStorage } from "./admin-resource";
 import { SpecialistConfigStorage } from "./specialist-config";
+import { SpecialistIdentityStorage } from "./specialist-identity";
 import { MediaStorageImpl, type MediaStorage } from "./media";
 
 export interface IStorage extends
@@ -71,6 +72,7 @@ export interface IStorage extends
   ModelCanonicalsStorage,
   AdminResourceStorage,
   SpecialistConfigStorage,
+  SpecialistIdentityStorage,
   MediaStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
@@ -98,6 +100,7 @@ export class DatabaseStorage implements IStorage {
   private modelCanonicalsStore = new ModelCanonicalsStorage();
   private adminResourceStore = new AdminResourceStorage();
   private specialistConfigStore = new SpecialistConfigStorage();
+  private specialistIdentityStore = new SpecialistIdentityStorage();
   private mediaStore = new MediaStorageImpl();
 
   // Media (graphics stored as bytea in Neon — see server/storage/media.ts)
@@ -137,6 +140,13 @@ export class DatabaseStorage implements IStorage {
   getRefreshCadenceOverrides = this.specialistConfigStore.getRefreshCadenceOverrides.bind(this.specialistConfigStore);
   listHardRequiredFieldKeysForSpecialists = this.specialistConfigStore.listHardRequiredFieldKeysForSpecialists.bind(this.specialistConfigStore);
   recordObservedMissingFields = this.specialistConfigStore.recordObservedMissingFields.bind(this.specialistConfigStore);
+
+  // Per-Specialist identity overrides (Phase 3 — admin-editable humanName + gender)
+  getIdentityOverride = this.specialistIdentityStore.getIdentityOverride.bind(this.specialistIdentityStore);
+  listIdentityOverrides = this.specialistIdentityStore.listIdentityOverrides.bind(this.specialistIdentityStore);
+  upsertIdentityOverride = this.specialistIdentityStore.upsertIdentityOverride.bind(this.specialistIdentityStore);
+  resetIdentityOverride = this.specialistIdentityStore.resetIdentityOverride.bind(this.specialistIdentityStore);
+  listIdentityOverrideHistory = this.specialistIdentityStore.listIdentityOverrideHistory.bind(this.specialistIdentityStore);
 
   // Model Constants (governed values — DB canonical baseline + DB override layer + TS fallback)
   listModelConstantOverrides = this.modelConstantsStore.listModelConstantOverrides.bind(this.modelConstantsStore);
