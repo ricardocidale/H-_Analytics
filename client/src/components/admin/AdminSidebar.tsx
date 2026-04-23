@@ -48,7 +48,7 @@ export type AdminSection =
   | "navigation" | "notifications" | "verification" | "database"
   | "photos-renders"
   // Legacy aliases (redirect to canonical)
-  | "icp" | "logos" | "themes" | "icons"
+  | "logos" | "themes" | "icons"
   | "llms" | "sources" | "model-routing"
   | "cache-services" | "integrations" | "api-dashboard"
   | "coverage-analytics" | "pipeline-policies" | "source-registry"
@@ -101,7 +101,6 @@ export type SpecialistSection = keyof typeof SPECIALIST_SECTION_TO_ID;
 
 export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Legacy aliases
-  "icp": "engine-dashboard",
   "logos": "brand",
   "themes": "brand",
   "icons": "brand",
@@ -201,21 +200,24 @@ interface NavGroup {
 function buildNavGroups(): NavGroup[] {
   return [
     {
-      id: "properties",
-      label: "Properties",
-      icon: IconProperties,
-      description: "Property defaults & photos",
+      id: "financial-defaults",
+      label: "Financial Defaults",
+      icon: IconSliders,
+      description: "Defaults applied to new entities and immutable model constants",
       sections: [
-        { value: "photos-renders",  label: "Photos & Renders",             icon: IconImage },
+        { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
+        { value: "defaults-property",           label: "Property",           icon: IconProperties },
+        { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
+        { value: "constants",                   label: "Constants",          icon: IconCalculator },
       ],
     },
     {
       id: "users",
       label: "Users",
       icon: IconPeople,
-      description: "User accounts and assignments",
+      description: "Manage user accounts and assignments",
       sections: [
-        { value: "users", label: "User Management", icon: IconPeople },
+        { value: "users", label: "Users", icon: IconPeople },
       ],
     },
     {
@@ -224,28 +226,35 @@ function buildNavGroups(): NavGroup[] {
       icon: IconScenarios,
       description: "Scenario management and assignments",
       sections: [
-        { value: "scenarios",           label: "All Scenarios",      icon: IconScenarios },
+        { value: "scenarios",           label: "All Scenarios",       icon: IconScenarios },
         { value: "default-assignments", label: "Default Assignments", icon: IconUserCog },
       ],
     },
     {
-      id: "themes",
-      label: "Themes & Appearance",
-      icon: IconSwatchBook,
+      id: "photos-renders",
+      label: "Photos & Renders",
+      icon: IconImage,
+      description: "AI image generation models and render settings",
+      sections: [
+        { value: "photos-renders", label: "Photos & Renders", icon: IconImage },
+      ],
+    },
+    {
+      id: "brand",
+      label: "Brand & Appearance",
+      icon: IconPalette,
       description: "Logos, themes, and icon customization",
       sections: [
         { value: "brand", label: "Brand & Appearance", icon: IconPalette },
       ],
     },
     {
-      id: "app-settings",
-      label: "App Settings",
-      icon: IconSettingsGear,
-      description: "Notifications, navigation & system",
+      id: "reports",
+      label: "Reports & Exports",
+      icon: IconExport,
+      description: "PDF, PPTX, Excel & CSV exports",
       sections: [
-        { value: "notifications", label: "Notifications", icon: IconPhone },
-        { value: "navigation",    label: "Navigation",    icon: IconPanelLeft },
-        { value: "database",      label: "Database",      icon: IconDatabase },
+        { value: "exports", label: "Reports & Exports", icon: IconExport },
       ],
     },
     {
@@ -259,24 +268,15 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
-      id: "reports",
-      label: "Reports & Exports",
-      icon: IconExport,
-      description: "PDF, PPTX, Excel & CSV exports",
+      id: "app-settings",
+      label: "App Settings",
+      icon: IconSettingsGear,
+      description: "Notifications, navigation, system & activity logs",
       sections: [
-        { value: "exports", label: "Reports & Exports", icon: IconExport },
-      ],
-    },
-    {
-      id: "defaults",
-      label: "Steady State",
-      icon: IconSliders,
-      description: "Defaults applied to new entities and immutable model constants",
-      sections: [
-        { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
-        { value: "defaults-property",           label: "Property",           icon: IconProperties },
-        { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
-        { value: "constants",                   label: "Constants",          icon: IconCalculator },
+        { value: "notifications", label: "Notifications", icon: IconPhone },
+        { value: "navigation",    label: "Navigation",    icon: IconPanelLeft },
+        { value: "database",      label: "Database",      icon: IconDatabase },
+        { value: "activity",      label: "Activity",      icon: IconActivity },
       ],
     },
   ];
@@ -287,7 +287,7 @@ function getGroupForSection(section: AdminSection, groups: NavGroup[]): string {
   for (const group of groups) {
     if (group.sections.some((s) => resolveSection(s.value) === resolved || s.value === resolved)) return group.id;
   }
-  return "defaults";
+  return "financial-defaults";
 }
 
 interface AdminSidebarProps {
@@ -432,23 +432,6 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
               </SidebarGroup>
             );
           })}
-
-          {/* Logs */}
-          <SidebarGroup className="p-0 mt-1 pt-2 border-t border-border/60">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={resolved === "activity"}
-                  onClick={() => onSectionChange("activity")}
-                  data-testid="admin-nav-activity"
-                  tooltip="Activity"
-                >
-                  <IconActivity className="size-4 shrink-0" />
-                  <span className="truncate">Activity</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
 
           {/* Help */}
           <SidebarGroup className="p-0 mt-1 pt-2 border-t border-border/60">

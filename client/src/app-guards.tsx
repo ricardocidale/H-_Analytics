@@ -3,7 +3,6 @@ import { Redirect } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { UserRole } from "@shared/constants";
-import { setAdminSection as setAdminSectionFn } from "@/lib/admin-nav";
 
 export const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -96,6 +95,5 @@ export function IcpRedirect() {
   if (isLoading) return <PageLoader />;
   if (!user) return <Redirect to="/login" />;
   if (!hasManagementAccess) return <Redirect to="/" />;
-  setAdminSectionFn("icp");
-  return <Redirect to="/admin" />;
+  return <Redirect to="/ai-intelligence" />;
 }

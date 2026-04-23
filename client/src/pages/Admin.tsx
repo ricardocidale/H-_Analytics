@@ -83,7 +83,6 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "specialist-constants-depreciation-research":{ title: "Specialist J — Depreciation Schedule Research",  subtitle: "Owns building depreciation useful-life by country (IRS Pub. 946, CRA, CGI, etc.)." },
   "specialist-constants-reporting-research":   { title: "Specialist K — Reporting Conventions Research",  subtitle: "Owns universal conventions (USALI/AHLA) such as days-per-month." },
 
-  icp:                   { title: "Research Dashboard",       subtitle: "Intelligence observatory" },
   logos:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
   themes:                { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
   icons:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
