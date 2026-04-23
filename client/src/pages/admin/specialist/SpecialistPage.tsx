@@ -67,6 +67,10 @@ interface SpecialistConfigView {
   defaultRefreshCadenceDays: number | null;
   /** Whether the admin has set a per-Specialist cadence override. */
   refreshCadenceOverridden: boolean;
+  /** Catalog candidate-field keys observed missing on the most recent run. */
+  lastObservedMissing: string[];
+  /** ISO timestamp of the run that produced lastObservedMissing, or null. */
+  lastObservedMissingAt: string | null;
   version: number;
   updatedAt: string;
 }
@@ -473,17 +477,145 @@ function RequiredFieldsTab({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Recommendations from last run</CardTitle></CardHeader>
-        <CardContent>
+      <RecommendationsCard
+        specialistId={specialistId}
+        config={config}
+        candidateFields={candidateFields}
+        fieldState={fieldState}
+        setFieldState={setFieldState}
+      />
+    </div>
+  );
+}
+
+// ── RecommendationsCard ────────────────────────────────────────────────
+// Renders the most recent run's "missing but materially useful" candidate
+// fields with one-click "promote to Recommended" / "promote to Hard-required"
+// affordances. Promotion calls the existing field-toggles endpoint so the
+// audit trail and gate semantics stay unified with manual edits.
+function RecommendationsCard({
+  specialistId,
+  config,
+  candidateFields,
+  fieldState,
+  setFieldState,
+}: {
+  specialistId: string;
+  config: SpecialistConfigView;
+  candidateFields: { key: string; label: string; surface: string }[];
+  fieldState: Record<string, FieldLevel>;
+  setFieldState: (updater: (prev: Record<string, FieldLevel>) => Record<string, FieldLevel>) => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const labelByKey = useMemo(() => {
+    const m = new Map<string, { label: string; surface: string }>();
+    for (const c of candidateFields) m.set(c.key, { label: c.label, surface: c.surface });
+    return m;
+  }, [candidateFields]);
+
+  // Defensive filter: only surface keys still in the catalog AND still
+  // toggled "off". A key the admin has already promoted should disappear
+  // from the recommendations list immediately.
+  const recommendations = (config.lastObservedMissing ?? []).filter(
+    (k) => labelByKey.has(k) && (fieldState[k] ?? "off") === "off",
+  );
+
+  const promoteMutation = useMutation({
+    mutationFn: async ({ key, level }: { key: string; level: "recommended" | "hard" }) => {
+      const next = { ...fieldState, [key]: level };
+      const res = await apiRequest("PUT", `/api/admin/specialists/${specialistId}/field-toggles`, {
+        fieldRequirements: next,
+        changeSummary: `Promoted ${key} to ${level} from last-run recommendation`,
+      });
+      return { json: await res.json(), key, level };
+    },
+    onMutate: ({ key }) => setPendingKey(key),
+    onSuccess: ({ key, level }) => {
+      setFieldState((s) => ({ ...s, [key]: level }));
+      toast({ title: `Promoted ${labelByKey.get(key)?.label ?? key} to ${level === "hard" ? "Hard-required" : "Recommended"}` });
+      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
+      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/audit`] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/specialists"] });
+    },
+    onError: (e: unknown) =>
+      toast({ title: "Promote failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onSettled: () => setPendingKey(null),
+  });
+
+  const lastRunLabel = config.lastObservedMissingAt
+    ? new Date(config.lastObservedMissingAt).toLocaleString()
+    : null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Recommendations from last run</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {lastRunLabel && (
+          <p className="text-xs text-muted-foreground" data-testid="text-last-run-time">
+            Last run: {lastRunLabel}
+          </p>
+        )}
+        {recommendations.length === 0 ? (
           <p className="text-sm text-muted-foreground italic" data-testid="empty-recommendations">
             No recommendations yet. After this Specialist runs, any fields it observed as
             "missing but materially useful" will appear here so you can promote them to
             Recommended or Hard-required.
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              The last run flagged these candidate fields as missing-but-useful. Promote
+              one to surface it on the user-facing nudge ("Recommended") or to gate the
+              Specialist's run until it's filled in ("Hard-required").
+            </p>
+            <div className="border rounded-md divide-y">
+              {recommendations.map((key) => {
+                const meta = labelByKey.get(key)!;
+                const isThisRowPending = pendingKey === key && promoteMutation.isPending;
+                const isAnyPending = promoteMutation.isPending;
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between px-3 py-2 text-sm gap-3"
+                    data-testid={`recommendation-row-${key}`}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium text-foreground">{meta.label}</div>
+                      <div className="text-xs font-mono text-muted-foreground">
+                        {key} · {meta.surface}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isAnyPending}
+                        onClick={() => promoteMutation.mutate({ key, level: "recommended" })}
+                        data-testid={`button-promote-recommended-${key}`}
+                      >
+                        {isThisRowPending ? "Promoting…" : "Promote to Recommended"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={isAnyPending}
+                        onClick={() => promoteMutation.mutate({ key, level: "hard" })}
+                        data-testid={`button-promote-hard-${key}`}
+                      >
+                        {isThisRowPending ? "Promoting…" : "Promote to Hard-required"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

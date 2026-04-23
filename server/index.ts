@@ -561,6 +561,14 @@ async function runSchemaMigrations() {
     await markMigrationApplied("admin_resources_003");
   }
 
+  if (!(await isMigrationApplied("specialist_observed_missing_001"))) {
+    const { runSpecialistObservedMissing001 } = await import(
+      "./migrations/specialist-observed-missing-001"
+    );
+    await runSpecialistObservedMissing001();
+    await markMigrationApplied("specialist_observed_missing_001");
+  }
+
   if (!(await isMigrationApplied("scenario_service_templates_001"))) {
     const { runScenarioServiceTemplates001 } = await import("./migrations/scenario-service-templates-001");
     await runScenarioServiceTemplates001();

@@ -132,6 +132,7 @@ export class DatabaseStorage implements IStorage {
   updateSpecialistConfigSection = this.specialistConfigStore.updateSpecialistConfigSection.bind(this.specialistConfigStore);
   getRefreshCadenceOverrides = this.specialistConfigStore.getRefreshCadenceOverrides.bind(this.specialistConfigStore);
   listHardRequiredFieldKeysForSpecialists = this.specialistConfigStore.listHardRequiredFieldKeysForSpecialists.bind(this.specialistConfigStore);
+  recordObservedMissingFields = this.specialistConfigStore.recordObservedMissingFields.bind(this.specialistConfigStore);
 
   // Model Constants (governed values — DB canonical baseline + DB override layer + TS fallback)
   listModelConstantOverrides = this.modelConstantsStore.listModelConstantOverrides.bind(this.modelConstantsStore);

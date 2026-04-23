@@ -280,6 +280,20 @@ export const specialistConfigs = pgTable(
      * that own one or more registry keys.
      */
     refreshCadenceDays: integer("refresh_cadence_days"),
+    /**
+     * Candidate-field keys that the most recent Specialist run observed as
+     * "missing but materially useful" — i.e. catalog `candidateFields[].key`
+     * entries that are currently toggled "off" yet were absent from the
+     * payload at run time. The Required Fields tab surfaces these as
+     * one-click "promote to Recommended / Hard-required" recommendations.
+     *
+     * This is run-time telemetry, NOT admin config: writes do NOT bump
+     * `version`, do NOT snapshot to `specialist_config_versions`, and do
+     * NOT appear in the Audit tab. Each run overwrites the prior list.
+     */
+    lastObservedMissing: jsonb("last_observed_missing").notNull().$type<string[]>().default([]),
+    /** Wallclock of the run that produced `lastObservedMissing`. */
+    lastObservedMissingAt: timestamp("last_observed_missing_at"),
     version: integer("version").notNull().default(1),
     updatedByUserId: integer("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -427,6 +441,15 @@ export const SpecialistConfigPublicViewSchema = z.object({
   defaultRefreshCadenceDays: z.number().int().positive().nullable(),
   /** Whether the admin has set a per-Specialist cadence override. */
   refreshCadenceOverridden: z.boolean(),
+  /**
+   * Candidate-field keys observed missing on the most recent Specialist
+   * run. The Required Fields tab renders these as one-click "promote to
+   * Recommended / Hard-required" recommendations. Always a subset of the
+   * Specialist's catalog `candidateFields[].key` set.
+   */
+  lastObservedMissing: z.array(z.string()),
+  /** ISO timestamp of the run that produced `lastObservedMissing`, or null. */
+  lastObservedMissingAt: z.string().nullable(),
   version: z.number().int().min(1),
   updatedAt: z.string(),
 });

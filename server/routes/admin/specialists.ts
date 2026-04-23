@@ -64,6 +64,8 @@ function toConfigView(
     prerequisiteToggles: Record<string, boolean>;
     runtimeConfig: Record<string, unknown>;
     refreshCadenceDays: number | null;
+    lastObservedMissing: string[];
+    lastObservedMissingAt: Date | null;
     version: number;
     updatedAt: Date;
   },
@@ -85,6 +87,10 @@ function toConfigView(
     refreshCadenceDays: override ?? catalogDefault,
     defaultRefreshCadenceDays: catalogDefault,
     refreshCadenceOverridden: override !== null,
+    lastObservedMissing: row.lastObservedMissing ?? [],
+    lastObservedMissingAt: row.lastObservedMissingAt
+      ? row.lastObservedMissingAt.toISOString()
+      : null,
     version: row.version,
     updatedAt: row.updatedAt.toISOString(),
   };

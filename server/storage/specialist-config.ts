@@ -43,6 +43,8 @@ const EMPTY_CONFIG: Omit<SpecialistConfigRow, "id" | "specialistId" | "version" 
   prerequisiteToggles: {},
   runtimeConfig: {},
   refreshCadenceDays: null,
+  lastObservedMissing: [],
+  lastObservedMissingAt: null,
 };
 
 export class SpecialistConfigStorage {
@@ -137,6 +139,31 @@ export class SpecialistConfigStorage {
       }
     }
     return Array.from(out);
+  }
+
+  /**
+   * Records the candidate-field keys the most recent Specialist run
+   * observed as missing-but-useful. Telemetry-only: does NOT bump
+   * `version`, write a `specialist_config_versions` row, or appear in the
+   * Audit tab. Each call overwrites the prior list.
+   *
+   * Lazily creates the row if absent so callers don't have to pre-create.
+   */
+  async recordObservedMissingFields(
+    specialistId: string,
+    keys: readonly string[],
+    occurredAt: Date = new Date(),
+  ): Promise<void> {
+    // Ensure the row exists (the dispatch site usually loaded the config
+    // already, but recording must not silently no-op for a fresh Specialist).
+    await this.getOrCreateSpecialistConfig(specialistId);
+    await db
+      .update(specialistConfigs)
+      .set({
+        lastObservedMissing: [...keys],
+        lastObservedMissingAt: occurredAt,
+      })
+      .where(eq(specialistConfigs.specialistId, specialistId));
   }
 
   async listSpecialistConfigVersions(specialistId: string, limit = 50): Promise<SpecialistConfigVersionRow[]> {

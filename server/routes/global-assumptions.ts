@@ -238,7 +238,7 @@ export function register(app: Express) {
       let prerequisiteFailures: { id: string; specialistId: string; reason: string }[] | null = null;
       if (tabKey === "funding" || tabKey === "revenue") {
         const [
-          { createMgmtCoRouter, MGMT_CO_FUNDING_ID, MGMT_CO_REVENUE_ID, findMissingRequiredFields, RequiredFieldsMissingError },
+          { createMgmtCoRouter, MGMT_CO_FUNDING_ID, MGMT_CO_REVENUE_ID, findMissingRequiredFields, findObservedMissingCandidateFields, RequiredFieldsMissingError },
           { createVoiceRenderer },
           { createQualityScorer },
           { DEFAULT_REVENUE_BENCHMARKS },
@@ -338,6 +338,20 @@ export function register(app: Express) {
           ? []
           : await evaluatePrerequisites(toggledOnPrereqs, { storage, userId });
         const missing = findMissingRequiredFields(gateSource, gateFields);
+
+        // Telemetry: record candidate-field keys this run observed as
+        // missing-but-useful (toggle="off"). The Required Fields tab
+        // surfaces these as "promote to Recommended / Hard-required"
+        // recommendations (see SpecialistPage.tsx). We persist regardless
+        // of whether the dispatch ultimately runs — even gated runs
+        // produce a useful signal about what the user typically omits.
+        const observedMissing = findObservedMissingCandidateFields(
+          gateSource,
+          activeDef?.candidateFields ?? [],
+          (activeCfg as { fieldRequirements?: Record<string, "hard" | "recommended" | "off"> }).fieldRequirements,
+        );
+        await storage.recordObservedMissingFields(activeSpecialistId, observedMissing);
+
         if (prereqFails.length > 0) {
           prerequisiteFailures = prereqFails.map((f) => ({
             id: f.id,

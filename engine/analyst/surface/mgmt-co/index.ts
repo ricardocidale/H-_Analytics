@@ -128,6 +128,27 @@ export function findMissingRequiredFields(
 }
 
 /**
+ * Returns the subset of catalog `candidateFields[].key` entries that are
+ * absent from the payload AND not currently required-or-recommended (i.e.
+ * the toggle is "off"). The Required Fields tab surfaces these as
+ * one-click "promote to Recommended / Hard-required" recommendations.
+ *
+ * Only "off" candidates are surfaced because "hard" / "recommended" keys
+ * are already actioned — they appear in their own UI elsewhere on the tab.
+ */
+export function findObservedMissingCandidateFields(
+  payload: unknown,
+  candidateFields: ReadonlyArray<{ key: string }>,
+  fieldRequirements: Record<string, "hard" | "recommended" | "off"> | null | undefined,
+): string[] {
+  const reqs = fieldRequirements ?? {};
+  const offKeys = candidateFields
+    .map((c) => c.key)
+    .filter((k) => (reqs[k] ?? "off") === "off");
+  return findMissingRequiredFields(payload, offKeys);
+}
+
+/**
  * Wraps a SpecialistFn with a deterministic required-fields pre-check.
  * If `requiredFields` is empty/undefined, the wrapper is a no-op and the
  * inner Specialist is invoked unchanged. Otherwise the wrapper throws
