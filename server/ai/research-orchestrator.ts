@@ -296,10 +296,10 @@ async function buildSynthesisUserPrompt(
 
 ## SYNTHESIS INPUTS
 
-### Analyst A — Quantitative Panel (${panelA.model}, ${(panelA.durationMs / 1000).toFixed(1)}s)
+### Quantitative Panel (${panelA.model}, ${(panelA.durationMs / 1000).toFixed(1)}s)
 ${formatPanelForSynthesis(panelA)}
 
-### Analyst B — Market Strategy Panel (${panelB.model}, ${(panelB.durationMs / 1000).toFixed(1)}s)
+### Market Strategy Panel (${panelB.model}, ${(panelB.durationMs / 1000).toFixed(1)}s)
 ${formatPanelForSynthesis(panelB)}
 
 ### API Validation Results (live market data cross-check)
@@ -360,8 +360,8 @@ export async function* orchestrateResearch(
   // ── Phase 1: Parallel analyst panels ──
 
   yield { type: "phase", data: "Launching parallel research panels…" };
-  yield { type: "phase", data: `Analyst A (${ANALYST_A_MODEL}): quantitative market analysis` };
-  yield { type: "phase", data: `Analyst B (${ANALYST_B_MODEL}): market strategy analysis` };
+  yield { type: "phase", data: `Gaspar dispatching quantitative panel (${ANALYST_A_MODEL})` };
+  yield { type: "phase", data: `Gaspar dispatching market-strategy panel (${ANALYST_B_MODEL})` };
 
   let propertyUrlContext = "";
   if (params.propertyId && isVectorStoreAvailable()) {
@@ -389,7 +389,7 @@ export async function* orchestrateResearch(
 
   const bothFailed = !!panelA.error && !!panelB.error;
   if (bothFailed) {
-    yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both analyst panels failed — falling back to single-model research." };
+    yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both research panels failed — Gaspar falling back to single-model research." };
     return;
   }
 

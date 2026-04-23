@@ -106,20 +106,10 @@ function buildNavGroups(): NavGroup[] {
         { value: "specialist-portfolio-ops-watchdog", label: specialistLabel("portfolio-ops.watchdog", "Portfolio Watchdog"), icon: IconLayers },
       ],
     },
-    {
-      id: "resource-builder",
-      label: "Resource Builder",
-      icon: IconLayers,
-      sections: [
-        // Letícia (Resource Builder) is in the catalog as a stub for
-        // Phase 2a but her admin surface ships in Phase 2b. The sidebar
-        // entry is intentionally withheld until then so we don't expose
-        // a placeholder page. The section metadata + routing in
-        // AiIntelligence.tsx remain in place so the entry can be turned
-        // on with a one-line change once Phase 2b lands.
-        // { value: "specialist-resources-builder", label: specialistLabel("resources.builder", "Resource Builder"), icon: IconLayers },
-      ],
-    },
+    // Letícia (Resource Builder, letter L) is a catalog stub in Phase 2a.
+    // Her admin surface ships in Phase 2b, so the sidebar group is
+    // intentionally absent here. Section metadata + routing in
+    // AiIntelligence.tsx are in place so 2b can wire it up.
     {
       id: "rebecca",
       label: "Rebecca AI Assistant",
