@@ -8,6 +8,7 @@ import type { Property } from "@shared/schema";
 import type { RiskInsight } from "@shared/risk-types";
 import { pmt } from "../../../calc/shared/pmt";
 import {
+  computeTotalCostRate,
   dollars,
   estimateAnnualDebtService,
   estimateAnnualRevenue,
@@ -27,11 +28,7 @@ export function generateStressTestInsights(properties: Property[]): RiskInsight[
     // Stress: occupancy drops 15%
     const stressedOccupancy = (p.maxOccupancy ?? 0.7) * 0.85;
     const stressedRevenue = baseRevenue * (stressedOccupancy / (p.maxOccupancy ?? 0.7));
-    const totalCostRate = (p.costRateRooms ?? 0) + (p.costRateFB ?? 0) + (p.costRateAdmin ?? 0) +
-      (p.costRateMarketing ?? 0) + (p.costRatePropertyOps ?? 0) + (p.costRateUtilities ?? 0) +
-      (p.costRateTaxes ?? 0) + (p.costRateIT ?? 0) + (p.costRateFFE ?? 0) + (p.costRateOther ?? 0) +
-      (p.costRateInsurance ?? 0);
-    const stressedNOI = stressedRevenue * (1 - totalCostRate);
+    const stressedNOI = stressedRevenue * (1 - computeTotalCostRate(p));
     const noiDelta = stressedNOI - baseNOI;
     const cashAfterDebt = stressedNOI - debtService;
 
