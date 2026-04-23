@@ -14,6 +14,7 @@ import { registerModelConstantsRoutes } from "./model-constants";
 import { registerAdminAnalystTableRoutes } from "./analyst-tables";
 import { registerAdminResourceRoutes } from "./resources";
 import { registerResourceTransparencyRoutes } from "./resources-transparency";
+import { registerSourcesTabRoutes } from "./sources-tab";
 import { registerAdminSpecialistRoutes } from "./specialists";
 import { registerAdminSpecialistToolRoutes } from "./specialist-tools";
 import { registerRequiredFieldsRoutes } from "./required-fields";
@@ -37,6 +38,7 @@ export function register(app: Express) {
   // `/api/admin/resources/:id` numeric-id catch-all.
   registerResourceTransparencyRoutes(app);
   registerAdminResourceRoutes(app);
+  registerSourcesTabRoutes(app);
   registerAdminSpecialistRoutes(app);
   registerAdminSpecialistToolRoutes(app);
   registerRequiredFieldsRoutes(app);

@@ -413,6 +413,95 @@ export type SpecialistResearchQualitySnapshotRow =
   typeof specialistResearchQualitySnapshots.$inferSelect;
 
 // ────────────────────────────────────────────────────────────────────────────
+// resource_specialist_connections (Task #496) — admin-editable many-to-many
+// link between an admin_resources row (any kind) and a "target" — either a
+// specific Specialist (`specialist:<id>`) or the Analyst itself (`analyst`).
+//
+// This is intentionally separate from `specialist_assignments` (which is the
+// catalog-driven, code-only declaration). The catalog stays the source of
+// truth for runtime wiring; this table layers the admin-editable surface
+// that powers the Sources tab on the Specialist & Analyst pages and the
+// "Connected to" column in the Resources area. On first migration the join
+// rows are seeded from `specialist_assignments` so existing wiring shows up
+// immediately.
+// ────────────────────────────────────────────────────────────────────────────
+
+export const ANALYST_CONNECTION_TARGET = "analyst" as const;
+export const SPECIALIST_TARGET_PREFIX = "specialist:" as const;
+
+export const ConnectionTargetSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (v) => v === ANALYST_CONNECTION_TARGET || v.startsWith(SPECIALIST_TARGET_PREFIX),
+    {
+      message: `target must be "${ANALYST_CONNECTION_TARGET}" or start with "${SPECIALIST_TARGET_PREFIX}"`,
+    },
+  );
+export type ConnectionTarget = z.infer<typeof ConnectionTargetSchema>;
+
+export const resourceSpecialistConnections = pgTable(
+  "resource_specialist_connections",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    resourceId: integer("resource_id")
+      .notNull()
+      .references(() => adminResources.id, { onDelete: "cascade" }),
+    target: text("target").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("resource_specialist_connections_uniq").on(t.resourceId, t.target),
+    index("resource_specialist_connections_target_idx").on(t.target),
+  ],
+);
+
+export type ResourceSpecialistConnectionRow =
+  typeof resourceSpecialistConnections.$inferSelect;
+
+/**
+ * Visible groups in the Sources tab. Tables, APIs/Links, Bulk sources, and
+ * Uploaded files are the four "source" categories users care about. Models
+ * and Benchmarks are intentionally excluded — they have their own dedicated
+ * pages in the Resources area.
+ */
+export const SOURCE_GROUPS = ["tables", "apis", "uploaded-files", "bulk-sources"] as const;
+export type SourceGroup = typeof SOURCE_GROUPS[number];
+
+export const SOURCE_GROUP_LABELS: Record<SourceGroup, string> = {
+  tables: "Tables",
+  apis: "APIs / Links",
+  "uploaded-files": "Uploaded files",
+  "bulk-sources": "Bulk sources",
+};
+
+/**
+ * Bucket a resource into one of the four Sources tab groups, or `null` when
+ * it belongs to a kind (model/benchmark) that lives elsewhere in the UI.
+ *
+ * Uploaded files are surfaced as `kind = "source"` rows tagged with
+ * `config.uploadedFile === true`. This convention avoids inventing a new
+ * resource kind while keeping the per-card status semantics consistent.
+ */
+export function bucketResourceForSourcesTab(row: {
+  kind: string;
+  config?: Record<string, unknown> | null;
+}): SourceGroup | null {
+  switch (row.kind) {
+    case "table":
+      return "tables";
+    case "api":
+      return "apis";
+    case "source": {
+      const cfg = row.config ?? {};
+      return cfg["uploadedFile"] === true ? "uploaded-files" : "bulk-sources";
+    }
+    default:
+      return null;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // API response shapes — explicit so secret material never leaks. Every route
 // that returns a Resource MUST go through `toResourcePublicView`.
 // ────────────────────────────────────────────────────────────────────────────

@@ -36,6 +36,7 @@ import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog"
 
 export type AiIntelligenceSection =
   | SpecialistSection
+  | "analyst-orchestrator"
   | "ai-agents"
   | "knowledge-base"
   | "conversations"
@@ -100,6 +101,19 @@ function specialistSection(
 
 function buildNavGroups(): NavGroup[] {
   return [
+    {
+      // Task #496 — Gaspar (the Analyst orchestrator) gets a top-level
+      // sidebar entry so admins can reach the Sources tab on the Analyst
+      // page directly. Routes through the same SpecialistPage as the 12
+      // catalog Specialists; the orchestrator id ("gaspar") is resolved
+      // server-side to the `analyst` connection target.
+      id: "analyst",
+      label: "The Analyst",
+      icon: IconBrain,
+      sections: [
+        { value: "analyst-orchestrator", label: "Gaspar (Orchestrator)", icon: IconBrain },
+      ],
+    },
     {
       id: "management-company",
       label: "Management Company",

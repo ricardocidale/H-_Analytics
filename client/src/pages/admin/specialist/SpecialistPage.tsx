@@ -27,6 +27,7 @@ import { IconAlertTriangle } from "@/components/icons";
 
 import type { Capability, SpecialistDetailResponse } from "./types";
 import { IdentityTab } from "./tabs/IdentityTab";
+import { SourcesTab } from "./tabs/SourcesTab";
 import { RequiredFieldsTab } from "./tabs/RequiredFieldsTab";
 import { LlmConfigTab } from "./tabs/LlmConfigTab";
 import { ResourceAssignmentsTab } from "./tabs/ResourceAssignmentsTab";
@@ -43,7 +44,9 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
   // "identity" is a synthetic tab — always present, regardless of declared
   // capabilities. Phase 3 (Task #453) makes humanName + gender admin-editable
   // for every Specialist (and for Gaspar through the same surface).
-  type TabValue = Capability | "workflow" | "identity";
+  // "identity" + "sources" are synthetic tabs — always present, even for
+  // Specialists (and Gaspar) that declare no editable capability tabs.
+  type TabValue = Capability | "workflow" | "identity" | "sources";
   const tabsList = useMemo(() => {
     if (!data) return [] as { value: TabValue; label: string }[];
     const order: Capability[] = ["required-fields", "llm-config", "resource-assignments", "runtime", "audit"];
@@ -60,6 +63,7 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
     return [
       { value: "workflow" as TabValue, label: "Overview / Workflow" },
       { value: "identity" as TabValue, label: "Identity" },
+      { value: "sources" as TabValue, label: "Sources" },
       ...capTabs,
     ];
   }, [data]);
@@ -150,6 +154,9 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
           </TabsContent>
           <TabsContent value="identity">
             <IdentityTab specialistId={specialistId} />
+          </TabsContent>
+          <TabsContent value="sources">
+            <SourcesTab specialistId={specialistId} />
           </TabsContent>
           {tabsList.find((t) => t.value === "required-fields") && (
             <TabsContent value="required-fields">

@@ -14,6 +14,7 @@ import {
 } from "@/components/ai-intelligence/AiIntelligenceSidebar";
 import { useRefreshLlmRegistry } from "@/lib/api/admin";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
+import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 
 const AIAgentsTab = lazy(() => import("@/components/admin/AIAgentsTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
@@ -44,6 +45,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "resources-tables":      { title: "Resources · Tables",      subtitle: "Internal warehouse tables Specialists query." },
   "resources-benchmarks":  { title: "Resources · Benchmarks",  subtitle: "Hospitality benchmark slugs (ADR, RevPAR, occupancy, etc.)." },
   "resources-models":      { title: "Resources · Models",      subtitle: "LLM model rows (provider + secret + config)." },
+  "analyst-orchestrator":  { title: "Gaspar · The Analyst",    subtitle: "Orchestrator persona that routes work across the 12 Specialists." },
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
   "specialist-mgmt-co-revenue":            { title: "Revenue Intelligence",         subtitle: "" },
   "specialist-mgmt-co-icp-intelligence":   { title: "ICP Intelligence",             subtitle: "" },
@@ -103,6 +105,7 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "resources-tables":     return <ResourcesTab kind="table" />;
     case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
     case "resources-models":     return <ResourcesTab kind="model" />;
+    case "analyst-orchestrator": return <SpecialistPage specialistId={ORCHESTRATOR_SPECIALIST_ID} />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;

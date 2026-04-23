@@ -18,6 +18,7 @@ import {
   type ResourceHealthStatus,
 } from "@shared/schema";
 import { TestButton } from "./health-bits";
+import { ConnectedToCell } from "./ConnectedToCell";
 import {
   CreateResourceDialog, EditResourceDialog, VersionHistoryDialog, DeleteResourceDialog,
 } from "./resource-dialogs";
@@ -349,6 +350,12 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
                   <TableHead>Quality</TableHead>
                   <TableHead>Secret</TableHead>
                   <TableHead>Version</TableHead>
+                  {/* "Connected to" (Task #496) — admin-editable specialist/analyst
+                      links. Only shown for source-relevant kinds (Tables/APIs/
+                      Sources); benchmarks/models render an n/a placeholder so
+                      the column doesn't suggest editability where it's out of
+                      scope. */}
+                  <TableHead>Connected to</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -412,6 +419,18 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
                           : <Badge variant="outline" data-testid={`badge-secret-${r.id}`}>—</Badge>}
                       </TableCell>
                       <TableCell className="font-mono text-xs">v{r.version}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {kind === "table" || kind === "api" || kind === "source" ? (
+                          <ConnectedToCell resourceId={r.id} />
+                        ) : (
+                          <span
+                            className="text-xs text-muted-foreground italic"
+                            data-testid={`connected-to-na-${r.id}`}
+                          >
+                            n/a
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="inline-flex items-center gap-1">
                           <TestButton resourceId={r.id} kindLabel={RESOURCE_KIND_LABELS[kind]} />
