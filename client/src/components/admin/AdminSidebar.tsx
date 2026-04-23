@@ -43,7 +43,7 @@ export type AdminSection =
   | "companies" | "groups" | "scenarios" // companies kept as alias → redirects to users
   | "brand" | "exports"
   | "ai-agents" | "knowledge-base" | "conversations"
-  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines" | "benchmarks" | "analyst-tables" | "vector-bench"
+  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "vector-bench"
   | "navigation" | "notifications" | "verification" | "database"
   | "photos-renders"
   // Legacy aliases (redirect to canonical)
@@ -169,10 +169,9 @@ function buildNavGroups(): NavGroup[] {
       id: "management-company",
       label: "Management Company",
       icon: IconBriefcase,
-      description: "Services, fees & financial statement lines",
+      description: "Services & fees",
       sections: [
         { value: "services-fees",      label: "Services & Fees",           icon: IconBriefcase },
-        { value: "financial-lines",    label: "Financial Statement Lines", icon: IconCalculator },
       ],
     },
     {

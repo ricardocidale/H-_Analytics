@@ -33,7 +33,6 @@ const EngineDashboard = lazy(() => import("@/components/admin/intelligence/Engin
 const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
 const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
 // KnowledgeBaseTab is now rendered as a sub-tab inside AIAgentsTab/RebeccaAdminTabs
-const FinancialLinesTab = lazy(() => import("@/components/admin/intelligence/FinancialLinesTab"));
 const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
 const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/AnalystTables"));
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
@@ -60,7 +59,6 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "pipeline-config":     { title: "Pipeline Config",          subtitle: "Staleness thresholds, token budgets, model routing, and refresh schedules" },
   "qa-sandbox":          { title: "QA Sandbox",               subtitle: "Preview context packs and prompts before running research" },
   "scheduled-research":  { title: "Scheduled Research",       subtitle: "Automated research workflows that keep intelligence fresh" },
-  "financial-lines":     { title: "Financial Lines",           subtitle: "Suggested calculation additions for financial statements" },
   benchmarks:            { title: "Hospitality Benchmarks",    subtitle: "Industry benchmark values powering AI research ranges" },
   "analyst-tables":      { title: "Analyst Tables",             subtitle: "Admin-only LLM refresh of benchmark tables (capital raise, etc.)" },
   "vector-bench":        { title: "Vector Search Latency",      subtitle: "Trend lines for pgvector / HNSW p50 and p95 query latency over time" },
@@ -195,7 +193,6 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "pipeline-config":  return <PipelineConfigTab onSaveStateChange={onSaveStateChange} />;
     case "qa-sandbox":       return <QASandbox />;
     case "scheduled-research": return <ScheduledResearchPanel />;
-    case "financial-lines":  return <FinancialLinesTab />;
     case "benchmarks":       return <HospitalityBenchmarksTab />;
     case "analyst-tables":   return <AnalystTablesTab />;
     case "vector-bench":     return <VectorBenchTrendsTab />;
