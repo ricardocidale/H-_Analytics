@@ -338,6 +338,78 @@ describe("admin/specialists routes — catalog + detail", () => {
     }
   });
 
+  // catalog-locked hard tier guards on /field-toggles.
+  // The catalog is the SSoT for hard-required fields; admins may only
+  // toggle other candidates between Off ↔ Recommended.
+  it("PUT /api/admin/specialists/:id/field-toggles rejects demoting a locked-hard field", async () => {
+    // property.risk-intelligence has country/hospitalityType/name marked
+    // lockedHard: true in the catalog. Trying to set country to
+    // "recommended" must 400 with a lockViolations payload.
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/field-toggles", {
+      params: { id: "property.risk-intelligence" },
+      body: {
+        fieldRequirements: { country: "recommended" },
+      },
+    });
+    expect(status).toBe(400);
+    const payload = body as {
+      error: string;
+      lockViolations: { key: string; attemptedLevel: string; reason: string }[];
+      lockedHardKeys: string[];
+    };
+    expect(payload.lockViolations).toHaveLength(1);
+    expect(payload.lockViolations[0]).toMatchObject({ key: "country", attemptedLevel: "recommended" });
+    expect(payload.lockedHardKeys).toContain("country");
+    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/admin/specialists/:id/field-toggles rejects promoting a non-locked field to hard", async () => {
+    // property.risk-intelligence exposes `city` as a candidate
+    // that is NOT locked-hard; promoting it to "hard" must 400.
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/field-toggles", {
+      params: { id: "property.risk-intelligence" },
+      body: {
+        fieldRequirements: { city: "hard" },
+      },
+    });
+    expect(status).toBe(400);
+    const payload = body as {
+      lockViolations: { key: string; attemptedLevel: string; reason: string }[];
+    };
+    expect(payload.lockViolations.some((v) => v.key === "city" && v.attemptedLevel === "hard")).toBe(true);
+    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/admin/specialists/:id/field-toggles allows toggling non-locked fields between off and recommended", async () => {
+    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...baseConfig("property.risk-intelligence"),
+      // The persisted payload should include locked-hard keys as "hard"
+      // (auto-merged) plus the admin's chosen "recommended" toggle.
+      fieldRequirements: { country: "hard", hospitalityType: "hard", city: "recommended" },
+      requiredFields: ["country", "hospitalityType"],
+      version: 6,
+    });
+    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/field-toggles", {
+      params: { id: "property.risk-intelligence" },
+      body: {
+        fieldRequirements: { city: "recommended" },
+      },
+    });
+    expect(status).toBe(200);
+    expect(storage.updateSpecialistConfigSection).toHaveBeenCalledTimes(1);
+    const callArgs = (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mock.calls[0];
+    const sectionPayload = callArgs[2] as {
+      fieldRequirements: Record<string, string>;
+      requiredFields: string[];
+    };
+    // Catalog-locked keys auto-merged as "hard" even though the request omitted them.
+    expect(sectionPayload.fieldRequirements.country).toBe("hard");
+    expect(sectionPayload.fieldRequirements.hospitalityType).toBe("hard");
+    expect(sectionPayload.fieldRequirements.city).toBe("recommended");
+    // Legacy mirror reflects the locked-hard set.
+    expect(new Set(sectionPayload.requiredFields)).toEqual(new Set(["country", "hospitalityType"]));
+  });
+
   it("rejects unauthenticated callers", async () => {
     mockUser = null;
     const { status } = await invoke(handlers, "GET /api/admin/specialists");

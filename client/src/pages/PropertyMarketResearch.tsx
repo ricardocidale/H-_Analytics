@@ -17,6 +17,7 @@ import { useRoute } from "wouter";
 import { downloadResearchPDF } from "@/lib/exports/researchPdfExport";
 import { useToast } from "@/hooks/use-toast";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import { ResearchFreshnessBadge } from "@/components/research/ResearchFreshnessBadge";
 import { ResearchLoadingOverlay } from "@/components/research/ResearchLoadingOverlay";
 import { ResearchCriteriaTab } from "@/components/research/ResearchCriteriaTab";
@@ -37,11 +38,26 @@ export default function PropertyMarketResearch() {
   const { toast } = useToast();
 
   const { requestSave, SaveDialog } = useExportSave();
+  // when the server's catalog hard-required gate rejects a
+  // property research run, surface the deep-link prompt instead of a
+  // generic toast.
+  const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
+    open: boolean;
+    specialistId: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }>({ open: false, specialistId: "", missingFields: [] });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
     property,
     propertyId,
     global,
+    onMissingRequiredFields: (info) => {
+      setMissingFieldsPrompt({
+        open: true,
+        specialistId: info.specialistId,
+        missingFields: info.missingFields,
+      });
+    },
   });
 
   if (propertyLoading || researchLoading) {
@@ -239,6 +255,15 @@ export default function PropertyMarketResearch() {
           )}
         </div>
       </AnimatedPage>
+      <MissingRequiredFieldsPrompt
+        open={missingFieldsPrompt.open}
+        onOpenChange={(open) =>
+          setMissingFieldsPrompt((p) => ({ ...p, open }))
+        }
+        specialistLabel="Property research"
+        missingFields={missingFieldsPrompt.missingFields}
+        navContext={{ propertyId }}
+      />
     </Layout>
   );
 }

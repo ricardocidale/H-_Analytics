@@ -64,6 +64,13 @@ export interface SpecialistConfigView {
   validRequiredFieldKeys: string[] | null;
   /** Per-candidate-field toggle state (catalog-keyed). */
   fieldRequirements: Record<string, "hard" | "recommended" | "off">;
+  /**
+   * Catalog-locked hard-required candidate keys. Always
+   * persisted as "hard"; admins can neither demote them nor promote a
+   * sibling to "hard". The Required Fields UI renders these rows
+   * read-only with a "Locked by catalog" hint.
+   */
+  lockedHardKeys: string[];
   /** Per-prerequisite toggle state (catalog-keyed). */
   prerequisiteToggles: Record<string, boolean>;
   runtimeConfig: Record<string, unknown>;
@@ -103,7 +110,7 @@ export interface SpecialistDetailResponse {
     }[];
     constantsOwned?: string[];
     defaultRefreshCadenceDays?: number | null;
-    candidateFields?: { key: string; label: string; surface: string }[];
+    candidateFields?: { key: string; label: string; surface: string; lockedHard?: boolean; surfaceAnchor?: string }[];
     prerequisites?: { id: string; label: string; description: string }[];
   };
   config: SpecialistConfigView;

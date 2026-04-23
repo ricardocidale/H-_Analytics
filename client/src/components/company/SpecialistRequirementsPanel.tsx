@@ -14,6 +14,11 @@ import { Button } from "@/components/ui/button";
 import { IconAlertTriangle } from "@/components/icons";
 import { setAdminSection } from "@/lib/admin-nav";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
+import {
+  resolveCandidateFieldNavTarget,
+  navTargetHref,
+} from "@/lib/specialist-nav";
+import { useLocation } from "wouter";
 
 export interface PrerequisiteFailure {
   id: string;
@@ -52,7 +57,18 @@ const SPECIALIST_SECTION: Record<string, AdminSection> = {
   "portfolio-ops.watchdog":   "specialist-portfolio-ops-watchdog",
 };
 
-export function SpecialistRequirementsPanel() {
+export function SpecialistRequirementsPanel({
+  entityValues,
+}: {
+  /**
+   * current values of the surface (e.g. the loaded
+   * GlobalAssumptions draft). When provided, hard-required fields whose
+   * value resolves to null/undefined/empty render a red "Missing" badge
+   * so users can see at a glance which inputs are blocking a Specialist
+   * run before clicking Refresh research.
+   */
+  entityValues?: Record<string, unknown>;
+} = {}) {
   const { data: specialists } = useQuery<SpecialistListItem[]>({
     queryKey: ["/api/admin/specialists"],
   });
@@ -74,14 +90,39 @@ export function SpecialistRequirementsPanel() {
       </CardHeader>
       <CardContent className="space-y-3">
         {companyScope.map((spec) => (
-          <SpecialistRow key={spec.id} spec={spec} />
+          <SpecialistRow key={spec.id} spec={spec} entityValues={entityValues} />
         ))}
       </CardContent>
     </Card>
   );
 }
 
-function SpecialistRow({ spec }: { spec: SpecialistListItem }) {
+/**
+ * true when the value at `entityValues[key]` is missing
+ * (null, undefined, empty string, or NaN). Mirrors the server-side
+ * `findMissingRequiredFields` definition so the badge and the gate
+ * never disagree.
+ */
+function isFieldMissing(
+  entityValues: Record<string, unknown> | undefined,
+  key: string,
+): boolean {
+  if (!entityValues) return false;
+  const v = entityValues[key];
+  if (v === null || v === undefined) return true;
+  if (typeof v === "string" && v.trim() === "") return true;
+  if (typeof v === "number" && Number.isNaN(v)) return true;
+  return false;
+}
+
+function SpecialistRow({
+  spec,
+  entityValues,
+}: {
+  spec: SpecialistListItem;
+  entityValues?: Record<string, unknown>;
+}) {
+  const [, setLocation] = useLocation();
   const { data: detail } = useQuery<SpecialistDetail>({
     queryKey: [`/api/admin/specialists/${spec.id}`],
   });
@@ -92,6 +133,10 @@ function SpecialistRow({ spec }: { spec: SpecialistListItem }) {
   const hard = spec.candidateFields.filter((f) => fieldReqs[f.key] === "hard");
   const recommended = spec.candidateFields.filter((f) => fieldReqs[f.key] === "recommended");
   const enforcedPrereqs = spec.prerequisites.filter((p) => prereqState[p.id] === true);
+  // the subset of hard-required fields that are currently
+  // missing on this surface. When `entityValues` is omitted, this stays
+  // empty and the panel falls back to the previous label-only display.
+  const missingHard = hard.filter((f) => isFieldMissing(entityValues, f.key));
 
   const sectionKey = SPECIALIST_SECTION[spec.id];
 
@@ -124,15 +169,41 @@ function SpecialistRow({ spec }: { spec: SpecialistListItem }) {
         {hard.length === 0 ? (
           <span className="italic text-muted-foreground">none</span>
         ) : (
-          hard.map((f) => (
-            <Badge
-              key={f.key}
-              variant="destructive"
-              data-testid={`company-specialist-${spec.id}-hard-${f.key}`}
-            >
-              {f.label}
-            </Badge>
-          ))
+          hard.map((f) => {
+            const missing = missingHard.some((m) => m.key === f.key);
+            const target = missing
+              ? resolveCandidateFieldNavTarget(f, undefined)
+              : null;
+            return (
+              <span key={f.key} className="inline-flex items-center gap-1">
+                <Badge
+                  variant="destructive"
+                  data-testid={`company-specialist-${spec.id}-hard-${f.key}`}
+                >
+                  {f.label}
+                  {missing && (
+                    <span
+                      className="ml-1 rounded bg-background/30 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                      data-testid={`company-specialist-${spec.id}-missing-${f.key}`}
+                    >
+                      Missing
+                    </span>
+                  )}
+                </Badge>
+                {missing && target && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px]"
+                    onClick={() => setLocation(navTargetHref(target))}
+                    data-testid={`button-go-fill-company-${spec.id}-${f.key}`}
+                  >
+                    Fix →
+                  </Button>
+                )}
+              </span>
+            );
+          })
         )}
       </div>
 

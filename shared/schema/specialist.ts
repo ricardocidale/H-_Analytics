@@ -186,6 +186,25 @@ export const SpecialistDefinitionSchema = z
             "market-macro",
             "constants",
           ]),
+          /**
+           * Catalog-locked hard-required marker. When `true`, this field is
+           * hard-required for the Specialist to run AND admins cannot demote
+           * it (or promote a non-locked field to "hard"). The minimum
+           * requirements are a product/engineering decision and live here in
+           * the catalog — the admin Required Fields UI renders these rows
+           * read-only with a "Locked by catalog" hint, and the
+           * `/field-toggles` endpoint rejects payloads that attempt to
+           * change them.
+           */
+          lockedHard: z.boolean().optional(),
+          /**
+           * Optional sub-anchor inside the surface so the
+           * `MissingRequiredFieldsPrompt` deep-link can land the user on the
+           * exact tab/section. The frontend `resolveCandidateFieldNavTarget`
+           * helper interprets this together with `surface` and the entity
+           * context. Omitted = land at the surface root.
+           */
+          surfaceAnchor: z.string().min(1).max(80).optional(),
         }),
       )
       .optional(),
@@ -557,6 +576,14 @@ export const SpecialistConfigPublicViewSchema = z.object({
    * `candidateFields[].key`. Absent keys are equivalent to `"off"`.
    */
   fieldRequirements: z.record(z.string(), z.enum(["hard", "recommended", "off"])),
+  /**
+   * catalog-locked hard-required candidate keys. The admin
+   * Required Fields tab renders rows with these keys read-only ("Hard
+   * required (locked by catalog)") and disables any UI that would attempt
+   * to demote them or promote a sibling to "hard". Always a subset of
+   * `candidateFields[].key` from the catalog.
+   */
+  lockedHardKeys: z.array(z.string()),
   /**
    * Per-prerequisite toggle state. Keys come from the catalog
    * `prerequisites[]`. Absent keys are equivalent to `false`.

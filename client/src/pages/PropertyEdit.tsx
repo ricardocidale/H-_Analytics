@@ -43,6 +43,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Link, useRoute, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import { AnalystWorkingView } from "@/components/research/AnalystWorkingView";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
@@ -97,10 +98,23 @@ export default function PropertyEdit() {
   const [researchStartedAt, setResearchStartedAt] = useState<number | null>(null);
   const { data: marketRates } = useMarketRates();
 
+  const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
+    open: boolean;
+    specialistId: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }>({ open: false, specialistId: "", missingFields: [] });
+
   const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
     property: property ?? null,
     propertyId,
     global: globalAssumptions,
+    onMissingRequiredFields: (info) => {
+      setMissingFieldsPrompt({
+        open: true,
+        specialistId: info.specialistId,
+        missingFields: info.missingFields,
+      });
+    },
   });
 
   const researchUpdatedAt = research?.updatedAt ?? null;
@@ -735,6 +749,15 @@ export default function PropertyEdit() {
         onChange={(key, value) => {
           handleChange(key, value);
         }}
+      />
+      <MissingRequiredFieldsPrompt
+        open={missingFieldsPrompt.open}
+        onOpenChange={(open) =>
+          setMissingFieldsPrompt((s) => ({ ...s, open }))
+        }
+        specialistLabel="Property Intelligence"
+        missingFields={missingFieldsPrompt.missingFields}
+        navContext={{ propertyId }}
       />
       </AnimatedPage>
     </Layout>

@@ -27,7 +27,7 @@ export function RecommendationsCard({
 }: {
   specialistId: string;
   config: SpecialistConfigView;
-  candidateFields: { key: string; label: string; surface: string }[];
+  candidateFields: { key: string; label: string; surface: string; lockedHard?: boolean }[];
   fieldState: Record<string, FieldLevel>;
   setFieldState: (updater: (prev: Record<string, FieldLevel>) => Record<string, FieldLevel>) => void;
 }) {
@@ -250,14 +250,13 @@ export function RecommendationsCard({
                       >
                         {isThisRowPending ? "Promoting…" : "Promote to Recommended"}
                       </Button>
-                      <Button
-                        size="sm"
-                        disabled={isAnyPending || ignoreMutation.isPending}
-                        onClick={() => promoteMutation.mutate({ key, level: "hard" })}
-                        data-testid={`button-promote-hard-${key}`}
-                      >
-                        {isThisRowPending ? "Promoting…" : "Promote to Hard-required"}
-                      </Button>
+                      {/* Promote-to-Hard removed. The hard tier
+                          is owned by the catalog (see `lockedHard` in
+                          engine/analyst/registry/specialist-catalog.ts);
+                          any non-locked candidate is rejected by the
+                          server-side `/field-toggles` endpoint. Locked
+                          candidates already render as "hard" up top, so
+                          there is nothing for this button to do. */}
                     </div>
                   </div>
                 );

@@ -151,9 +151,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "api", slug: "web-search", required: true },
     ],
     candidateFields: [
-      { key: "country",      label: "Country",      surface: "property-edit" },
-      { key: "city",         label: "City",         surface: "property-edit" },
-      { key: "propertyType", label: "Property type", surface: "property-edit" },
+      { key: "country",      label: "Country",      surface: "property-edit", lockedHard: true,  surfaceAnchor: "location" },
+      { key: "city",         label: "City",         surface: "property-edit",                    surfaceAnchor: "location" },
+      { key: "hospitalityType", label: "Property type", surface: "property-edit", lockedHard: true, surfaceAnchor: "basics"   },
     ],
     prerequisites: [],
     status: "needs-page",
@@ -178,9 +178,9 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
     ],
     candidateFields: [
-      { key: "name",         label: "Property name", surface: "property-edit" },
-      { key: "country",      label: "Country",       surface: "property-edit" },
-      { key: "propertyType", label: "Property type", surface: "property-edit" },
+      { key: "name",         label: "Property name", surface: "property-edit", lockedHard: true, surfaceAnchor: "basics"   },
+      { key: "country",      label: "Country",       surface: "property-edit", lockedHard: true, surfaceAnchor: "location" },
+      { key: "hospitalityType", label: "Property type", surface: "property-edit",                   surfaceAnchor: "basics"   },
     ],
     prerequisites: [],
     status: "needs-page",
@@ -476,3 +476,56 @@ export function getRefreshCadenceDaysForConstant(
 }
 
 export const SPECIALIST_CATALOG_VALID = validation;
+
+/**
+ * Catalog-locked hard-required candidate-field keys for a Specialist.
+ *
+ * Source of truth for the admin lock and server-side enforcement:
+ * these keys cannot be demoted by admins, and any other key cannot be
+ * promoted to "hard". Returns an empty array when the Specialist declares
+ * no candidate fields or none of them are locked.
+ */
+export function getLockedHardCandidateKeys(
+  specialistId: string,
+): string[] {
+  const def = getSpecialistById(specialistId);
+  if (!def?.candidateFields) return [];
+  return def.candidateFields.filter((c) => c.lockedHard === true).map((c) => c.key);
+}
+
+/** True when the Specialist's catalog declares the given candidate key as locked-hard. */
+export function isLockedHardCandidate(
+  specialistId: string,
+  fieldKey: string,
+): boolean {
+  return getLockedHardCandidateKeys(specialistId).includes(fieldKey);
+}
+
+/**
+ * Full locked-hard candidate-field entries (key + label + surface +
+ * surfaceAnchor) for a Specialist. Used by run-trigger preflight checks
+ * to build the `MissingRequiredFieldsPrompt` payload — the
+ * client modal needs the human label and deep-link anchor, not just the
+ * raw key.
+ */
+export interface LockedHardCandidateField {
+  key: string;
+  label: string;
+  surface: string;
+  surfaceAnchor?: string;
+}
+export function getLockedHardCandidateFields(
+  specialistId: string,
+): LockedHardCandidateField[] {
+  const def = getSpecialistById(specialistId);
+  if (!def?.candidateFields) return [];
+  return def.candidateFields
+    .filter((c) => c.lockedHard === true)
+    .map((c) => ({
+      key: c.key,
+      label: c.label,
+      surface: c.surface,
+      surfaceAnchor: c.surfaceAnchor,
+    }));
+}
+

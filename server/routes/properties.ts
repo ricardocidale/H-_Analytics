@@ -371,9 +371,13 @@ export function register(app: Express) {
           );
           await storage.recordObservedMissingFields(sid, observed);
 
+          const { getLockedHardCandidateKeys: _getLocked } = await import(
+            "../../engine/analyst/registry/specialist-catalog"
+          );
           const hardFields = deriveHardRequiredFieldKeys(
             cfg.fieldRequirements as Record<string, "hard" | "recommended" | "off"> | undefined,
             cfg.requiredFields,
+            _getLocked(sid),
           );
           const missing = findMissingRequiredFields(
             property as Record<string, unknown>,

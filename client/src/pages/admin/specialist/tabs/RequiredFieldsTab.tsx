@@ -12,6 +12,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,9 +35,13 @@ export function RequiredFieldsTab({
 }: {
   specialistId: string;
   config: SpecialistConfigView;
-  candidateFields: { key: string; label: string; surface: string }[];
+  candidateFields: { key: string; label: string; surface: string; lockedHard?: boolean; surfaceAnchor?: string }[];
   prerequisites: { id: string; label: string; description: string }[];
 }) {
+  const lockedHard = useMemo(
+    () => new Set(config.lockedHardKeys ?? candidateFields.filter((c) => c.lockedHard).map((c) => c.key)),
+    [config.lockedHardKeys, candidateFields],
+  );
   const { toast } = useToast();
   const qc = useQueryClient();
   const [summary, setSummary] = useState("");
@@ -122,36 +127,63 @@ export function RequiredFieldsTab({
                 {surface}
               </div>
               <div className="border rounded-md divide-y">
-                {fields.map((f) => (
-                  <div
-                    key={f.key}
-                    className="flex items-center justify-between px-3 py-2 text-sm gap-3"
-                    data-testid={`field-toggle-row-${f.key}`}
-                  >
-                    <div>
-                      <div className="font-medium text-foreground">{f.label}</div>
-                      <div className="text-xs font-mono text-muted-foreground">{f.key}</div>
-                    </div>
-                    <Select
-                      value={fieldState[f.key] ?? "off"}
-                      onValueChange={(v) =>
-                        setFieldState((s) => ({ ...s, [f.key]: v as FieldLevel }))
-                      }
+                {fields.map((f) => {
+                  const isLocked = lockedHard.has(f.key);
+                  return (
+                    <div
+                      key={f.key}
+                      className="flex items-center justify-between px-3 py-2 text-sm gap-3"
+                      data-testid={`field-toggle-row-${f.key}`}
                     >
-                      <SelectTrigger
-                        className="w-[180px]"
-                        data-testid={`select-field-level-${f.key}`}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="off" data-testid={`select-field-level-${f.key}-off`}>Off</SelectItem>
-                        <SelectItem value="recommended" data-testid={`select-field-level-${f.key}-recommended`}>Recommended</SelectItem>
-                        <SelectItem value="hard" data-testid={`select-field-level-${f.key}-hard`}>Hard-required</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
+                      <div>
+                        <div className="font-medium text-foreground flex items-center gap-2">
+                          {f.label}
+                          {isLocked && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] uppercase tracking-wide"
+                              data-testid={`badge-locked-hard-${f.key}`}
+                              title="Hard-required by the catalog. Admins cannot change this tier."
+                            >
+                              Locked
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs font-mono text-muted-foreground">{f.key}</div>
+                      </div>
+                      {isLocked ? (
+                        <div
+                          className="w-[220px] text-right text-xs text-muted-foreground"
+                          data-testid={`field-locked-hint-${f.key}`}
+                        >
+                          Hard-required (locked by catalog)
+                        </div>
+                      ) : (
+                        <Select
+                          value={fieldState[f.key] ?? "off"}
+                          onValueChange={(v) =>
+                            setFieldState((s) => ({ ...s, [f.key]: v as FieldLevel }))
+                          }
+                        >
+                          <SelectTrigger
+                            className="w-[180px]"
+                            data-testid={`select-field-level-${f.key}`}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="off" data-testid={`select-field-level-${f.key}-off`}>Off</SelectItem>
+                            <SelectItem value="recommended" data-testid={`select-field-level-${f.key}-recommended`}>Recommended</SelectItem>
+                            {/* Hard-required is owned by the catalog. The admin
+                                UI deliberately omits it from the dropdown for non-locked rows;
+                                the server `/field-toggles` endpoint also rejects this transition
+                                as a defense-in-depth check. */}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}

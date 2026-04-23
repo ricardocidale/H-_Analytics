@@ -378,9 +378,13 @@ export function register(app: Express) {
         // Specialists migrated to the toggle UI gate against the truthful
         // catalog-driven hard set.
         const activeCfg = tabKey === "funding" ? fundingCfg : revenueCfg;
+        const { getLockedHardCandidateKeys: _getLocked } = await import(
+          "../../engine/analyst/registry/specialist-catalog"
+        );
         const gateFields = deriveHardRequiredFieldKeys(
           (activeCfg as { fieldRequirements?: Record<string, "hard" | "recommended" | "off"> }).fieldRequirements,
           activeCfg.requiredFields,
+          _getLocked(tabKey === "funding" ? MGMT_CO_FUNDING_ID : MGMT_CO_REVENUE_ID),
         );
         const activeSpecialistId = tabKey === "funding" ? MGMT_CO_FUNDING_ID : MGMT_CO_REVENUE_ID;
         const activeDef = getSpecialistById(activeSpecialistId);

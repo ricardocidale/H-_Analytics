@@ -280,7 +280,7 @@ export default function CompanyAssumptions() {
             onDismiss={() => formApi.setPrerequisiteFailures([])}
           />
 
-          <SpecialistRequirementsPanel />
+          <SpecialistRequirementsPanel entityValues={global as unknown as Record<string, unknown> | undefined} />
 
           <SummaryFooter
             formData={formApi.formData}

@@ -191,6 +191,50 @@ export function register(app: Express) {
         }
       }
 
+      // Catalog locked-hard gate (property runs).
+      if (type === "property" && propertyId) {
+        const property = await storage.getProperty(propertyId);
+        if (!property) {
+          return res.status(404).json({ error: "Property not found" });
+        }
+        const [{ getLockedHardCandidateFields }, { findMissingRequiredFields }] = await Promise.all([
+          import("../../engine/analyst/registry/specialist-catalog"),
+          import("../../engine/analyst/surface/mgmt-co"),
+        ]);
+        const specialistIds = ["property.risk-intelligence", "property.executive-summary"] as const;
+        const seen = new Set<string>();
+        const missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[] = [];
+        for (const sid of specialistIds) {
+          const lockedFields = getLockedHardCandidateFields(sid);
+          if (lockedFields.length === 0) continue;
+          const missingKeys = findMissingRequiredFields(
+            property as unknown as Record<string, unknown>,
+            lockedFields.map((f) => f.key),
+          );
+          for (const key of missingKeys) {
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const meta = lockedFields.find((f) => f.key === key)!;
+            missingFields.push({
+              key,
+              label: meta.label,
+              surface: meta.surface,
+              surfaceAnchor: meta.surfaceAnchor,
+            });
+          }
+        }
+        if (missingFields.length > 0) {
+          return res.status(400).json({
+            error: `Required field${missingFields.length === 1 ? "" : "s"} missing on this property: ${missingFields
+              .map((m) => m.label)
+              .join(", ")}. Fill them in on Property Edit before running research.`,
+            code: "REQUIRED_FIELDS_MISSING",
+            specialistId: "property.risk-intelligence",
+            missingFields,
+          });
+        }
+      }
+
       // Resolve admin-configured event config for this research type
       const researchConfig = (ga?.researchConfig as ResearchConfig) ?? {};
       const contextKey = type === "property" ? "propertyLlm" : type === "global" ? "marketLlm" : "companyLlm";

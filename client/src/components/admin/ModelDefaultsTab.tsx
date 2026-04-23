@@ -17,6 +17,7 @@ import {
   type AnalystGuidanceRecord,
 } from "@/components/analyst/useAnalystRefresh";
 import { useAnalystSaveGate } from "@/components/analyst/SaveWithAnalystGate";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import {
   COMPANY_TAB_ANALYST_FIELDS,
   MARKET_MACRO_TAB_ANALYST_FIELDS,
@@ -86,9 +87,25 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
   });
   const guidance = guidanceResp?.records ?? [];
 
+  // surface the catalog locked-hard preflight gate. The
+  // hook checks `entityValues` (the loaded admin defaults) against the
+  // catalog before posting; if any locked-hard field is missing the
+  // prompt opens and no API call is made.
+  const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
+    open: boolean;
+    specialistId: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }>({ open: false, specialistId: "", missingFields: [] });
   const analyst = useAnalystRefresh({
     scope: "global-assumptions",
     invalidateKeys: [guidanceQueryKey],
+    entityValues: saved as Record<string, unknown> | undefined,
+    onMissingRequiredFields: (info) =>
+      setMissingFieldsPrompt({
+        open: true,
+        specialistId: info.specialistId,
+        missingFields: info.missingFields,
+      }),
   });
 
   const saveMutation = useMutation({
@@ -253,6 +270,12 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
         )}
       </Tabs>
       {analystGateDialog}
+      <MissingRequiredFieldsPrompt
+        open={missingFieldsPrompt.open}
+        onOpenChange={(open) => setMissingFieldsPrompt((p) => ({ ...p, open }))}
+        specialistLabel="Analyst refresh"
+        missingFields={missingFieldsPrompt.missingFields}
+      />
     </div>
   );
 }

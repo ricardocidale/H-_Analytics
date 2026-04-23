@@ -11,7 +11,10 @@
  *     specialists plus the synthetic id "gaspar" (orchestrator).
  */
 import { z } from "zod";
-import { getSpecialistById } from "../../../../engine/analyst/registry/specialist-catalog";
+import {
+  getSpecialistById,
+  getLockedHardCandidateKeys,
+} from "../../../../engine/analyst/registry/specialist-catalog";
 import type { SpecialistDefinition } from "@shared/schema/specialist";
 import { getValidRequiredFieldKeys } from "../../../../engine/analyst/registry/required-field-keys";
 import type {
@@ -80,6 +83,12 @@ export function toConfigView(
   const definition = def ?? getSpecialistById(row.specialistId);
   const catalogDefault = definition?.refreshCadenceDays ?? null;
   const override = row.refreshCadenceDays ?? null;
+  // Catalog-locked keys are immutable; legacy "hard" values are kept.
+  const lockedHard = getLockedHardCandidateKeys(row.specialistId);
+  const fieldReqs: Record<string, "hard" | "recommended" | "off"> = {
+    ...(row.fieldRequirements ?? {}),
+  };
+  for (const k of lockedHard) fieldReqs[k] = "hard";
   return {
     specialistId: row.specialistId,
     promptTemplate: row.promptTemplate,
@@ -93,7 +102,8 @@ export function toConfigView(
     globalLlmDefaults,
     requiredFields: row.requiredFields ?? [],
     validRequiredFieldKeys: allow === null ? null : [...allow],
-    fieldRequirements: row.fieldRequirements ?? {},
+    fieldRequirements: fieldReqs,
+    lockedHardKeys: lockedHard,
     prerequisiteToggles: row.prerequisiteToggles ?? {},
     runtimeConfig: row.runtimeConfig ?? {},
     refreshCadenceDays: override ?? catalogDefault,
@@ -124,13 +134,16 @@ export function toConfigView(
 export function deriveHardRequiredFieldKeys(
   fieldRequirements: Record<string, "hard" | "recommended" | "off"> | null | undefined,
   fallbackLegacy: string[] | null | undefined,
+  /** Catalog-locked hard keys. Always present in the result. */
+  lockedHard: readonly string[] = [],
 ): string[] {
   const map = fieldRequirements ?? {};
-  const hardKeys = Object.entries(map)
-    .filter(([, level]) => level === "hard")
-    .map(([k]) => k);
-  if (hardKeys.length > 0 || Object.keys(map).length > 0) return hardKeys;
-  // No toggle state set yet — fall back to legacy list to preserve current
-  // gate behavior on Specialists that haven't been migrated.
-  return [...(fallbackLegacy ?? [])];
+  const result = new Set<string>(lockedHard);
+  for (const [k, v] of Object.entries(map)) {
+    if (v === "hard") result.add(k);
+  }
+  if (Object.keys(map).length === 0 && result.size === 0) {
+    for (const k of fallbackLegacy ?? []) result.add(k);
+  }
+  return Array.from(result);
 }

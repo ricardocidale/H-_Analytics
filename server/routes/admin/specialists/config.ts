@@ -19,7 +19,10 @@ import { storage } from "../../../storage";
 import { requireAdmin } from "../../../auth";
 import { aiRateLimit } from "../../../middleware/rate-limit";
 import { logActivity, logAndSendError } from "../../helpers";
-import { getSpecialistById } from "../../../../engine/analyst/registry/specialist-catalog";
+import {
+  getSpecialistById,
+  getLockedHardCandidateKeys,
+} from "../../../../engine/analyst/registry/specialist-catalog";
 import {
   findInvalidRequiredFieldKeys,
   getValidRequiredFieldKeys,
@@ -160,6 +163,19 @@ export function registerConfigRoutes(app: Express) {
           error: `Field key "${parsed.data.fieldKey}" is not a declared candidate of ${id}`,
         });
       }
+      // reject `promote-hard` events on candidates that are not
+      // catalog-locked. The hard tier is owned by the catalog; a recommendation
+      // event cannot create one. (`promote-recommended` and `ignore` remain
+      // free; `promote-hard` on an already-locked field is a no-op-but-allowed.)
+      if (parsed.data.action === "promote-hard") {
+        const lockedHard = new Set(getLockedHardCandidateKeys(id));
+        if (!lockedHard.has(parsed.data.fieldKey)) {
+          return res.status(400).json({
+            error: `Cannot promote "${parsed.data.fieldKey}" to hard-required: not catalog-locked. The hard tier is owned by the catalog.`,
+            lockedHardKeys: Array.from(lockedHard),
+          });
+        }
+      }
       const actorId = req.user!.id;
       const event = await storage.recordRecommendationEvent(
         id,
@@ -224,7 +240,56 @@ export function registerConfigRoutes(app: Express) {
           validKeys: Array.from(candidateKeys),
         });
       }
-      const hardKeys = Object.entries(parsed.data.fieldRequirements)
+
+      // catalog-locked hard tier enforcement.
+      // The catalog (engine/analyst/registry/specialist-catalog.ts) is the
+      // SOLE place where the hard-required tier is decided. Admins can flip
+      // OTHER candidates between Off ↔ Recommended, but they cannot:
+      //   (a) demote a `lockedHard: true` field out of "hard", or
+      //   (b) promote a non-locked field to "hard".
+      // The PUT request is rejected loudly so the UI surfaces the lock and
+      // never silently degrades the gate. The toggle UI also renders these
+      // rows read-only — this is the defense-in-depth check.
+      const lockedHard = new Set(getLockedHardCandidateKeys(id));
+      const lockViolations: { key: string; attemptedLevel: string; reason: string }[] = [];
+      for (const [k, v] of Object.entries(parsed.data.fieldRequirements)) {
+        if (lockedHard.has(k) && v !== "hard") {
+          lockViolations.push({
+            key: k,
+            attemptedLevel: v,
+            reason: "catalog-locked hard-required; cannot demote",
+          });
+        }
+        if (!lockedHard.has(k) && v === "hard") {
+          lockViolations.push({
+            key: k,
+            attemptedLevel: v,
+            reason: "not catalog-locked; admins cannot promote to hard",
+          });
+        }
+      }
+      if (lockViolations.length > 0) {
+        return res.status(400).json({
+          error: `Catalog hard-tier lock rejected ${lockViolations.length} change(s) for ${id}. The hard-required set is decided in the catalog and cannot be changed by admins.`,
+          lockViolations,
+          lockedHardKeys: Array.from(lockedHard),
+        });
+      }
+
+      // Auto-merge: ensure every locked-hard key is present in the saved
+      // payload as "hard", regardless of whether the client included it.
+      // This guarantees the persisted toggle state and the legacy
+      // `requiredFields` mirror always reflect the catalog lock — no race
+      // where a partial payload could omit a locked key and leave the
+      // gate effectively unprotected.
+      const merged: Record<string, "hard" | "recommended" | "off"> = {
+        ...parsed.data.fieldRequirements,
+      };
+      lockedHard.forEach((k) => {
+        merged[k] = "hard";
+      });
+
+      const hardKeys = Object.entries(merged)
         .filter(([, v]) => v === "hard")
         .map(([k]) => k);
       const actorId = req.user!.id;
@@ -232,7 +297,7 @@ export function registerConfigRoutes(app: Express) {
         id,
         "field-toggles",
         {
-          fieldRequirements: parsed.data.fieldRequirements,
+          fieldRequirements: merged,
           // Mirror hard subset into legacy column so existing readers
           // (surface-router gate, ModelDefaults rollup) stay correct.
           requiredFields: hardKeys,

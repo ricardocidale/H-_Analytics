@@ -23,6 +23,8 @@ import MarketRatesTab from "@/components/admin/MarketRatesTab";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
+import { collectMissingLockedHardFields } from "@/lib/locked-hard-preflight";
 
 function StatusBadge({ status }: { status: "fresh" | "stale" | "missing" }) {
   const config = {
@@ -87,6 +89,16 @@ export default function ResearchHub() {
   const [currentGenIndex, setCurrentGenIndex] = useState(0);
   const [totalToGenerate, setTotalToGenerate] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const skippedRef = useRef<{
+    propertyId: number;
+    name: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }[]>([]);
+  const [skippedPrompt, setSkippedPrompt] = useState<{
+    open: boolean;
+    firstSkipped: { propertyId: number; name: string; missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[] } | null;
+    totalSkipped: number;
+  }>({ open: false, firstSkipped: null, totalSkipped: 0 });
 
   const generateOneResearch = useCallback(async (
     type: "property" | "company" | "global",
@@ -122,6 +134,15 @@ export default function ResearchHub() {
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
+      if (errBody?.code === "REQUIRED_FIELDS_MISSING") {
+        // Server-side fallback for callers that bypass client preflight.
+        skippedRef.current.push({
+          propertyId: type === "property" && property ? Number(property.id) : 0,
+          name: property?.name ?? type,
+          missingFields: Array.isArray(errBody.missingFields) ? errBody.missingFields : [],
+        });
+        return false;
+      }
       throw new Error(errBody.error || `Server returned ${response.status}`);
     }
 
@@ -150,6 +171,7 @@ export default function ResearchHub() {
 
     setIsGeneratingAll(true);
     setTotalToGenerate(totalItems);
+    skippedRef.current = [];
 
     let completedCount = 0;
     let currentIdx = 0;
@@ -161,6 +183,21 @@ export default function ResearchHub() {
       const propStatus = missingProps[i];
       const property = properties.find((p) => p.id === propStatus.propertyId);
       if (!property) continue;
+
+      // Client preflight: skip the API call entirely for properties
+      // missing locked-hard fields so no spinner/queue slot is burned.
+      const missing = collectMissingLockedHardFields(
+        ["property.risk-intelligence", "property.executive-summary"],
+        property as unknown as Record<string, unknown>,
+      );
+      if (missing.length > 0) {
+        skippedRef.current.push({
+          propertyId: Number(property.id),
+          name: property.name,
+          missingFields: missing,
+        });
+        continue;
+      }
 
       try {
         await generateOneResearch("property", property);
@@ -207,7 +244,18 @@ export default function ResearchHub() {
     setCurrentGenIndex(0);
     setTotalToGenerate(0);
 
-    if (failedNames.length > 0 && completedCount === 0) {
+    const skippedList = skippedRef.current;
+    if (skippedList.length > 0) {
+      setSkippedPrompt({
+        open: true,
+        firstSkipped: skippedList[0],
+        totalSkipped: skippedList.length,
+      });
+    }
+
+    if (failedNames.length === 0 && completedCount === 0 && skippedList.length > 0) {
+      // All items were preflight-skipped; the prompt already explains why.
+    } else if (failedNames.length > 0 && completedCount === 0) {
       toast({
         title: "Research generation failed",
         description: `Could not generate research for: ${failedNames.join(", ")}. Check that the AI service is available.`,
@@ -546,6 +594,23 @@ export default function ResearchHub() {
           <MarketRatesTab />
         </motion.div>
       </div>
+      <MissingRequiredFieldsPrompt
+        open={skippedPrompt.open}
+        onOpenChange={(open) =>
+          setSkippedPrompt((s) => ({ ...s, open }))
+        }
+        specialistLabel={
+          skippedPrompt.totalSkipped > 1
+            ? `${skippedPrompt.firstSkipped?.name ?? "Property"} (+${skippedPrompt.totalSkipped - 1} more skipped)`
+            : (skippedPrompt.firstSkipped?.name ?? "Property")
+        }
+        missingFields={skippedPrompt.firstSkipped?.missingFields ?? []}
+        navContext={
+          skippedPrompt.firstSkipped?.propertyId
+            ? { propertyId: skippedPrompt.firstSkipped.propertyId }
+            : undefined
+        }
+      />
     </Layout>
   );
 }

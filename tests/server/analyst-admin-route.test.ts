@@ -35,6 +35,9 @@ vi.mock("../../server/auth", () => ({
 // synchronous read+write on the JS Map is atomic with respect to the event
 // loop, just as the SQL primitive is atomic with respect to other DB clients.
 const cooldownStore = new Map<number, Date>();
+// per-user GA stand-in so the locked-hard gate has data to
+// inspect. Tests can mutate this map to simulate missing-fields cases.
+const gaStore = new Map<number, Record<string, unknown>>();
 vi.mock("../../server/storage", () => ({
   storage: {
     tryReserveAnalystCooldown: vi.fn(async (
@@ -54,6 +57,7 @@ vi.mock("../../server/storage", () => ({
       if (userId == null) cooldownStore.clear();
       else cooldownStore.delete(userId);
     }),
+    getGlobalAssumptions: vi.fn(async (userId: number) => gaStore.get(userId) ?? null),
   },
 }));
 
