@@ -349,6 +349,10 @@ async function tryTaxBulletinDiff(args: {
   }
 
   // Persist the cache so the next refresh produces a real diff.
+  // Loud-fail doctrine: a cache write failure means the next deterministic
+  // run cannot reproduce its diff baseline. We do NOT silently fall back to
+  // LLM here — that would mask the persistence regression. Record the
+  // failure and re-throw so the operator (and the audit trail) sees it.
   try {
     await storage.upsertTaxBulletinCache({
       country: args.country,
@@ -360,14 +364,31 @@ async function tryTaxBulletinDiff(args: {
       rawExcerpt: diff.rawExcerpt,
     });
   } catch (err: unknown) {
-    // Cache persistence failure is loud — without it, the next diff is wrong.
-    // Drop back to LLM rather than ship a proposal we can't reproduce.
     const msg = err instanceof Error ? err.message : String(err);
     logger.error(
-      `tax-bulletin-diff cache upsert failed for ${args.country}/${args.subdivision ?? "federal"}; refusing to use deterministic result: ${msg}`,
+      `tax-bulletin-diff cache upsert failed for ${args.country}/${args.subdivision ?? "federal"}; refusing to ship a non-reproducible deterministic result: ${msg}`,
       "regenerate-constants",
     );
-    return null;
+    try {
+      await storage.createResearchRun({
+        entityType: CONSTANTS_ENTITY_TYPE,
+        entityId: CONSTANTS_ENTITY_ID,
+        tier: 1,
+        status: "failed",
+        completedAt: new Date(),
+        durationMs: Date.now() - startedAt,
+        error: `cache_write_failed: ${msg}`,
+        metadata: {
+          specialistId: args.owningSpecialistId,
+          toolId: TAX_BULLETIN_DIFF_TOOL_ID,
+          constant: { key: args.key, country: args.country, subdivision: args.subdivision },
+          stage: "cache-upsert",
+        },
+      });
+    } catch { /* swallow audit failure; we are about to throw anyway */ }
+    throw new Error(
+      `tax-bulletin-diff cache persistence failed for ${args.country}/${args.subdivision ?? "federal"}: ${msg}`,
+    );
   }
 
   const value = parsed;
