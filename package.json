@@ -95,7 +95,7 @@
     "decimal.js": "^10.6.0",
     "docx": "^9.6.1",
     "dom-to-image-more": "^3.7.2",
-    "dompurify": "^3.3.3",
+    "dompurify": "^3.4.1",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "^0.7.1",
     "embla-carousel-react": "^8.6.0",
