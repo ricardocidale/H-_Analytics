@@ -15,12 +15,14 @@ export const card = "bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-
 export const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
 export const fadeUp = { hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45 } } };
 
-export function ChartTooltip({ active, payload, label }: any) {
+type RechartsPayload = { name?: string; value?: number | string; color?: string };
+
+export function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: RechartsPayload[]; label?: string | number }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white/90 dark:bg-card/90 backdrop-blur-xl rounded-xl border border-primary/15 shadow-xl px-4 py-2.5 text-xs">
       {label && <p className="font-display font-semibold mb-1 text-foreground">{label}</p>}
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }} className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
           {p.name}: <span className="font-semibold">{typeof p.value === "number" ? p.value.toLocaleString() : p.value}</span>
@@ -79,7 +81,14 @@ export function CapRateGauge({ value, min, max }: { value: number; min: number; 
   );
 }
 
-export function BenchmarkBanner({ content, metrics }: { content: any; metrics: { key: string; label: string; format: (v: number) => string }[] }) {
+type BenchmarkContent = {
+  _marketIntelligence?: { benchmarks?: Record<string, { value: number; source?: string }> };
+  adrAnalysis?: { recommendedAdr?: number; revpar?: number } & Record<string, unknown>;
+  occupancyAnalysis?: { stabilizedOccupancy?: number } & Record<string, unknown>;
+  capRateAnalysis?: { recommendedCapRate?: number; capRate?: number } & Record<string, unknown>;
+} & Record<string, unknown>;
+
+export function BenchmarkBanner({ content, metrics }: { content: BenchmarkContent; metrics: { key: string; label: string; format: (v: number) => string }[] }) {
   const mi = content?._marketIntelligence;
   const benchmarks = mi?.benchmarks;
 

@@ -403,7 +403,7 @@ export function RevenueTab({ content }: { content: ResearchTabContent }) {
   return (
     <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-6">
       <BenchmarkBanner
-        content={content}
+        content={content as never}
         metrics={[
           { key: "adr", label: "ADR", format: (v) => `$${Math.round(v)}` },
           { key: "revpar", label: "RevPAR", format: (v) => `$${Math.round(v)}` },
@@ -516,7 +516,7 @@ export function FinancialTab({ content }: { content: ResearchTabContent }) {
   return (
     <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-6">
       <BenchmarkBanner
-        content={content}
+        content={content as never}
         metrics={[
           { key: "capRate", label: "Cap Rate", format: (v) => `${v.toFixed(1)}%` },
         ]}
