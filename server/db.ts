@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
+import { requireDbUrl } from "@shared/db-url";
 import {
   DB_POOL_MAX_CONNECTIONS,
   DB_POOL_MIN_CONNECTIONS,
@@ -13,17 +14,10 @@ import { logger } from "./logger";
 
 const { Pool } = pg;
 
-// Prefer POSTGRES_URL (Vercel/Neon convention, used for the Replit-escape cutover)
-// over Replit-injected DATABASE_URL. This lets us point at Neon without fighting
-// Replit's reserved DATABASE_URL slot. Falls back to DATABASE_URL when unset.
-const connectionString =
-  process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error(
-    "POSTGRES_URL or DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+// Resolution: POSTGRES_URL ?? DATABASE_URL — see shared/db-url.ts for the
+// rationale (Replit reserves DATABASE_URL for its managed Helium Postgres,
+// so the Neon/Vercel cutover routes through POSTGRES_URL).
+const connectionString = requireDbUrl();
 
 export const pool = new Pool({
   connectionString,

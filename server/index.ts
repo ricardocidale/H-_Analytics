@@ -35,6 +35,7 @@ import { createServer } from "http";
 import { authMiddleware, requireAuth, seedAdminUser, cleanupRateLimitMaps } from "./auth";
 import { storage } from "./storage";
 import { log as serverLog } from "./logger";
+import { hasDbUrl } from "@shared/db-url";
 import { initSentry, sentryRequestHandler, setupSentryExpressErrorHandler } from "./sentry";
 import {
   COMPRESSION_THRESHOLD_BYTES,
@@ -173,14 +174,14 @@ app.use((req, res, next) => {
     }
   }
 
-  const hasVectorStore = !!process.env.DATABASE_URL;
+  const hasVectorStore = hasDbUrl();
   const hasEmbeddingKey = !!(process.env.OPENAI_EMBEDDING_KEY || process.env.OPENAI_API_KEY);
   if (hasVectorStore && hasEmbeddingKey) {
     serverLog("Vector store (pgvector) + embeddings: ready (knowledge learning active)", "startup", "info");
   } else if (hasVectorStore && !hasEmbeddingKey) {
     serverLog("Vector store: configured but embeddings unavailable — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.", "startup", "warn");
   } else {
-    serverLog("Vector store: DATABASE_URL not set — vector indexing disabled", "startup", "warn");
+    serverLog("Vector store: POSTGRES_URL/DATABASE_URL not set — vector indexing disabled", "startup", "warn");
   }
 
   const { initStorageProvider } = await import("./providers/storage");

@@ -30,7 +30,7 @@ export function registerVectorStoreRoutes(app: Express) {
           message: knowledgeLearning
             ? "Knowledge learning is active — research results are indexed for future retrieval"
             : !vectorStore
-              ? "Vector store not configured (DATABASE_URL) — knowledge learning disabled"
+              ? "Vector store not configured (POSTGRES_URL or DATABASE_URL) — knowledge learning disabled"
               : "Embedding API not available — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.",
         },
         missingKeys: {

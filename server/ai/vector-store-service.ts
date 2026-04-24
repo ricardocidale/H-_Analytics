@@ -11,6 +11,7 @@
  */
 
 import OpenAI from "openai";
+import { hasDbUrl } from "@shared/db-url";
 import { logger } from "../logger";
 import { vectorStorePool as pool } from "../storage/vector-store";
 
@@ -98,7 +99,7 @@ const AVAILABILITY_TTL_MS = 60_000;
  * checkVectorStoreReady()` instead.
  */
 export function isVectorStoreAvailable(): boolean {
-  if (!process.env.DATABASE_URL) return false;
+  if (!hasDbUrl()) return false;
   if (_storeReady !== null && Date.now() - _availabilityCachedAt < AVAILABILITY_TTL_MS) {
     return _storeReady;
   }
@@ -109,12 +110,13 @@ export function isVectorStoreAvailable(): boolean {
 }
 
 /**
- * Async readiness check that verifies DATABASE_URL is set, the `vector`
- * extension is installed, and the `vector_chunks` table exists. Result is
- * cached for {@link AVAILABILITY_TTL_MS} ms.
+ * Async readiness check that verifies the database URL is set
+ * (`POSTGRES_URL ?? DATABASE_URL`), the `vector` extension is installed, and
+ * the `vector_chunks` table exists. Result is cached for
+ * {@link AVAILABILITY_TTL_MS} ms.
  */
 export async function checkVectorStoreReady(): Promise<boolean> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDbUrl()) {
     _storeReady = false;
     _availabilityCachedAt = Date.now();
     return false;

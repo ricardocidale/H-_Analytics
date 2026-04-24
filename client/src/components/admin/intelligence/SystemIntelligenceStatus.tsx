@@ -149,7 +149,7 @@ export default function SystemIntelligenceStatus() {
     .map(([key]) => {
       switch (key) {
         case "fredApiKey": return "FRED_API_KEY (macro rates: SOFR, Treasury, CPI)";
-        case "vectorStore": return "DATABASE_URL (vector store / pgvector)";
+        case "vectorStore": return "POSTGRES_URL or DATABASE_URL (vector store / pgvector)";
         case "embeddingKey": return "OPENAI_EMBEDDING_KEY (vector embeddings for learning)";
         default: return key;
       }
