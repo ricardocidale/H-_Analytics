@@ -9,7 +9,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
 
-import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle, IconBrain } from "@/components/icons";
+import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle } from "@/components/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -343,26 +343,24 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           </span>
         </Link>
       )}
-      {!onAiIntelligenceRoute && <Separator className="my-2" />}
-      {user && !onAiIntelligenceRoute && (
+      <Separator className="my-2" />
+      {user && (
         <div className="flex items-center px-3 py-1.5" data-testid="sidebar-user-info">
           <span className="text-[12px] text-muted-foreground/80 truncate" data-testid="sidebar-user-firstname">
             {user.name || user.firstName || user.email}
           </span>
         </div>
       )}
-      {!onAiIntelligenceRoute && <Separator className="my-2" />}
-      {!onAiIntelligenceRoute && (
-        <Button
-          variant="ghost"
-          onClick={() => { requestLogout(); setMobileOpen(false); }}
-          className="flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors justify-start"
-          data-testid="button-logout"
-        >
-          <IconLogOut className="w-4 h-4 shrink-0" />
-          <span>Sign Out</span>
-        </Button>
-      )}
+      <Separator className="my-2" />
+      <Button
+        variant="ghost"
+        onClick={() => { requestLogout(); setMobileOpen(false); }}
+        className="flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors justify-start"
+        data-testid="button-logout"
+      >
+        <IconLogOut className="w-4 h-4 shrink-0" />
+        <span>Sign Out</span>
+      </Button>
       <div className="flex items-center justify-center gap-2 pt-2 px-3">
         <Link href="/about" onClick={() => setMobileOpen(false)}>
           <span className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors">About</span>

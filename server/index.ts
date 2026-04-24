@@ -117,6 +117,7 @@ const PUBLIC_API_PATHS = new Set([
 const PUBLIC_API_PREFIXES = [
   "/api/public/",
   "/api/letter-logo/",
+  "/api/media/",
 ];
 
 app.use((req: Request, res: Response, next: NextFunction) => {
