@@ -218,7 +218,6 @@ export function useCompanyAssumptionsForm(
       }
     });
     // intentionally only depends on dirtyFields; pruning warnings should react to user edits
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirtyFields]);
 
   const handleUpdate = <K extends keyof GlobalResponse>(field: K, value: GlobalResponse[K]) => {

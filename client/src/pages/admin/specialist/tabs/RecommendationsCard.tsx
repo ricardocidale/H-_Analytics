@@ -104,7 +104,6 @@ export function RecommendationsCard({
         }
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [specialistId]);
 
   const promoteMutation = useMutation({
