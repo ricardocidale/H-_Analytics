@@ -58,7 +58,7 @@ title = "Rewrite Tax Audit (FINAL — complete 75-invoice ledger)"
 id = "80F1_7EGOXua0yhdg3joY"
 uri = "file://backups/heliumdb-data-only-20260424T174432Z.sql.gz"
 type = "unspecified"
-title = "Data-only dump (RESTORE INTO NEON) — 126 MB"
+title = "Data-only dump (RESTORE INTO NEW DB) — 126 MB"
 
 [[outputs]]
 id = "hGJYNxHBuJiroDdfXunHo"
