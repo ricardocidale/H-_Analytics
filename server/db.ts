@@ -13,14 +13,20 @@ import { logger } from "./logger";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
+// Prefer POSTGRES_URL (Vercel/Neon convention, used for the Replit-escape cutover)
+// over Replit-injected DATABASE_URL. This lets us point at Neon without fighting
+// Replit's reserved DATABASE_URL slot. Falls back to DATABASE_URL when unset.
+const connectionString =
+  process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
+
+if (!connectionString) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "POSTGRES_URL or DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   max: DB_POOL_MAX_CONNECTIONS,
   min: DB_POOL_MIN_CONNECTIONS,
   idleTimeoutMillis: DB_IDLE_TIMEOUT_MS,
