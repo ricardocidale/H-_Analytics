@@ -54,6 +54,11 @@ jobs:
       HUSKY: 0
       DATABASE_URL: postgresql://ci:ci@localhost:5432/hbg_test
       NODE_ENV: test
+      # Dummy key so eager `new OpenAI({ apiKey })` constructors at module
+      # load (e.g. server/replit_integrations/image/client.ts) don't throw
+      # during test-file imports. No real API calls are made — every test
+      # that exercises an OpenAI/Anthropic/Gemini call mocks the client.
+      AI_INTEGRATIONS_OPENAI_API_KEY: sk-test-ci-dummy-not-a-real-key
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -82,6 +87,18 @@ jobs:
         run: sudo apt-get install -y ripgrep
 
       - run: npm install
+
+      - name: Push Drizzle schema to test Postgres
+        # Real-DB tests (tests/db/*.integration.test.ts, admin-resources, etc.)
+        # query a fully-migrated schema. Without this step they fail because
+        # the postgres service container starts empty.
+        run: npm run db:push -- --force
+
+      - name: Seed model_defaults from shared/constants.ts
+        # tests/proof/defaults-drift.test.ts expects every spec in
+        # script/seed-model-defaults.ts to be present in the DB. This is the
+        # same one-liner the test's failure message instructs you to run.
+        run: npx tsx script/seed-model-defaults.ts
 
       - name: Run Tests
         run: npm run test:summary

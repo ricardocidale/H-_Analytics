@@ -103,26 +103,33 @@ describe("Storage Layer — stripAutoFields integration (static analysis)", () =
 });
 
 describe("Storage Layer — all update methods use stripAutoFields", () => {
-  describe("financial.ts", () => {
-    const src = readStorageFile("financial.ts");
+  describe("financial submodules", () => {
+    // Post-split: financial.ts is just an orchestrator. Each method now lives
+    // in financial/<sub>.ts (one level deeper, so the utils import path is
+    // "../utils", not "./utils").
+    const globalSrc = readStorageFile("financial/global-assumptions.ts");
+    const crudSrc = readStorageFile("financial/scenarios-crud.ts");
+    const loadSrc = readStorageFile("financial/scenarios-load.ts");
     const feesSrc = readStorageFile("financial-fees.ts");
 
-    it("imports strip helpers from utils", () => {
-      expect(src).toContain('from "./utils"');
-      expect(src).toMatch(/stripAutoFields|stripToColumns/);
+    it("imports strip helpers from utils (split submodules)", () => {
+      for (const src of [globalSrc, crudSrc, loadSrc]) {
+        expect(src).toContain('from "../utils"');
+        expect(src).toMatch(/stripAutoFields|stripToColumns/);
+      }
     });
 
     it("upsertGlobalAssumptions uses stripAutoFields in update path", () => {
-      const methodStart = src.indexOf("async upsertGlobalAssumptions(");
-      const methodEnd = src.indexOf("async createScenario(");
-      const body = src.slice(methodStart, methodEnd);
+      const methodStart = globalSrc.indexOf("async upsertGlobalAssumptions(");
+      const methodEnd = globalSrc.indexOf("async patchGlobalAssumptions(");
+      const body = globalSrc.slice(methodStart, methodEnd);
       expect(body).toContain("stripAutoFields(");
     });
 
     it("updateScenario uses stripAutoFields", () => {
-      const methodStart = src.indexOf("async updateScenario(");
-      const methodEnd = src.indexOf("async updateScenarioComputedResults(");
-      const body = src.slice(methodStart, methodEnd);
+      const methodStart = crudSrc.indexOf("async updateScenario(");
+      const methodEnd = crudSrc.indexOf("async updateScenarioComputedResults(");
+      const body = crudSrc.slice(methodStart, methodEnd);
       expect(body).toContain("stripAutoFields(");
     });
 
@@ -134,9 +141,9 @@ describe("Storage Layer — all update methods use stripAutoFields", () => {
     });
 
     it("loadScenario strips auto fields from restored global assumptions", () => {
-      const methodStart = src.indexOf("async loadScenario(");
-      const methodEnd = src.indexOf("async getFeeCategoriesByProperty(");
-      const body = src.slice(methodStart, methodEnd);
+      // loadScenario is the last method in scenarios-load.ts, so slice to EOF.
+      const methodStart = loadSrc.indexOf("async loadScenario(");
+      const body = loadSrc.slice(methodStart);
       expect(body).toContain("id: _gaId");
       expect(body).toContain("createdAt: _gaCreated");
       expect(body).toContain("updatedAt: _gaUpdated");

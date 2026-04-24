@@ -61,6 +61,13 @@ vi.mock("../../server/ai/analyst-table-refresh", () => ({
   researchExitMultiples: vi.fn(),
 }));
 
+// Phase 3 (#453) added a `narrateSpecialistHandoff(...)` call in the
+// /refresh handler. The real implementation reads from storage, so without
+// a mock the test's success path throws and the handler returns 500.
+vi.mock("../../server/lib/specialist-identity-resolver", () => ({
+  narrateSpecialistHandoff: vi.fn().mockResolvedValue(""),
+}));
+
 vi.mock("../../server/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
