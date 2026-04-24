@@ -111,7 +111,17 @@ export class AdminResourceCrudStorage {
   }
 
   async deleteAdminResource(id: number): Promise<boolean> {
-    const result = await db.delete(adminResources).where(eq(adminResources.id, id)).returning({ id: adminResources.id });
-    return result.length > 0;
+    // Explicitly clear the version log inside a transaction before deleting
+    // the resource. The schema declares ON DELETE CASCADE on
+    // admin_resource_versions.resource_id, but `drizzle-kit push` against a
+    // fresh CI Postgres has been observed to create the FK without the
+    // cascade clause — making the parent DELETE leave orphan version rows.
+    // Doing the cascade in code makes the behaviour DDL-independent and
+    // keeps the whole "delete resource + its history" operation atomic.
+    return db.transaction(async (tx) => {
+      await tx.delete(adminResourceVersions).where(eq(adminResourceVersions.resourceId, id));
+      const result = await tx.delete(adminResources).where(eq(adminResources.id, id)).returning({ id: adminResources.id });
+      return result.length > 0;
+    });
   }
 }
