@@ -46,9 +46,13 @@ export function resolveCandidateFieldNavTarget(
     }
     case "property-edit": {
       if (context.propertyId == null) return null;
+      // Anchor intentionally dropped: PropertyEdit has no DOM ids matching
+      // surfaceAnchor values (e.g. "basics", "location") and no hash-reading
+      // scroll logic. Linking with #basics would land at the page top with a
+      // dead hash. Tracked as follow-up: add data-section ids + scrollIntoView.
       return {
         path: `/property/${context.propertyId}/edit`,
-        anchor,
+        anchor: undefined,
         label: "Open Property Edit",
       };
     }

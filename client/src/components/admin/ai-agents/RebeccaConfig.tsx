@@ -307,7 +307,7 @@ export function RebeccaConfig({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="label-text font-medium text-xs">Tone Preset</Label>
-            <Select value={settings.voice.tonePreset} onValueChange={(v) => update("voice", { tonePreset: v as any })}>
+            <Select value={settings.voice.tonePreset} onValueChange={(v) => update("voice", { tonePreset: v as (typeof REBECCA_TONE_PRESETS)[number] })}>
               <SelectTrigger data-testid="select-tone-preset"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REBECCA_TONE_PRESETS.map(p => <SelectItem key={p} value={p} data-testid={`option-tone-${p}`}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
@@ -316,7 +316,7 @@ export function RebeccaConfig({
           </div>
           <div className="space-y-1.5">
             <Label className="label-text font-medium text-xs">Length Preference</Label>
-            <Select value={settings.voice.lengthPreference} onValueChange={(v) => update("voice", { lengthPreference: v as any })}>
+            <Select value={settings.voice.lengthPreference} onValueChange={(v) => update("voice", { lengthPreference: v as (typeof REBECCA_LENGTH_PREFERENCES)[number] })}>
               <SelectTrigger data-testid="select-length-preference"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REBECCA_LENGTH_PREFERENCES.map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
@@ -325,7 +325,7 @@ export function RebeccaConfig({
           </div>
           <div className="space-y-1.5">
             <Label className="label-text font-medium text-xs">Reading Level</Label>
-            <Select value={settings.voice.readingLevel} onValueChange={(v) => update("voice", { readingLevel: v as any })}>
+            <Select value={settings.voice.readingLevel} onValueChange={(v) => update("voice", { readingLevel: v as (typeof REBECCA_READING_LEVELS)[number] })}>
               <SelectTrigger data-testid="select-reading-level"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REBECCA_READING_LEVELS.map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
@@ -364,7 +364,7 @@ export function RebeccaConfig({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="label-text font-medium text-xs">Citation Style</Label>
-            <Select value={settings.behavior.citationStyle} onValueChange={(v) => update("behavior", { citationStyle: v as any })}>
+            <Select value={settings.behavior.citationStyle} onValueChange={(v) => update("behavior", { citationStyle: v as (typeof REBECCA_CITATION_STYLES)[number] })}>
               <SelectTrigger data-testid="select-citation-style"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REBECCA_CITATION_STYLES.map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
@@ -373,7 +373,7 @@ export function RebeccaConfig({
           </div>
           <div className="space-y-1.5">
             <Label className="label-text font-medium text-xs">Uncertainty Handling</Label>
-            <Select value={settings.behavior.uncertaintyHandling} onValueChange={(v) => update("behavior", { uncertaintyHandling: v as any })}>
+            <Select value={settings.behavior.uncertaintyHandling} onValueChange={(v) => update("behavior", { uncertaintyHandling: v as (typeof REBECCA_UNCERTAINTY)[number] })}>
               <SelectTrigger data-testid="select-uncertainty"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REBECCA_UNCERTAINTY.map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
@@ -412,7 +412,17 @@ export function RebeccaConfig({
               value={settings.llm.provider}
               onValueChange={(v) => {
                 const provider = v as RebeccaLlmProvider;
-                update("llm", { provider, model: REBECCA_DEFAULT_MODEL[provider] });
+                const patch: Partial<typeof settings.llm> = {
+                  provider,
+                  model: REBECCA_DEFAULT_MODEL[provider],
+                };
+                // If the new primary equals the current fallback, clear the
+                // fallback so failover never silently retries the same engine.
+                if (settings.llm.fallbackProvider === provider) {
+                  patch.fallbackProvider = null;
+                  patch.fallbackModel = null;
+                }
+                update("llm", patch);
                 if (provider === "gemini" || provider === "perplexity") {
                   onChatEngineChange(provider);
                 }

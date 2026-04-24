@@ -78,6 +78,10 @@ export default function MarketRatesTab() {
   const [overrideDialog, setOverrideDialog] = useState<MarketRateResponse | null>(null);
   const [overrideValue, setOverrideValue] = useState("");
   const [overrideNote, setOverrideNote] = useState("");
+  // Per-row pending key: the shared `useRefreshRate()` mutation reports a
+  // single `isPending`, so without this we'd disable & relabel every row when
+  // the user clicks Analyst on one row. Track which rateKey is in flight.
+  const [pendingRateKey, setPendingRateKey] = useState<string | null>(null);
 
   const handleRefreshAll = () => {
     refreshAll.mutate(undefined, {
@@ -87,9 +91,11 @@ export default function MarketRatesTab() {
   };
 
   const handleRefreshOne = (rateKey: string) => {
+    setPendingRateKey(rateKey);
     refreshRate.mutate(rateKey, {
       onSuccess: () => toast({ title: "Rate refreshed" }),
       onError: (err) => toast({ title: "Refresh failed", description: err.message, variant: "destructive" }),
+      onSettled: () => setPendingRateKey((k) => (k === rateKey ? null : k)),
     });
   };
 
@@ -246,12 +252,12 @@ export default function MarketRatesTab() {
                               size="sm"
                               className="h-7 gap-1.5 px-2"
                               onClick={() => handleRefreshOne(rate.rateKey)}
-                              disabled={refreshRate.isPending}
+                              disabled={pendingRateKey === rate.rateKey}
                               data-testid={`button-analyst-${rate.rateKey}`}
                             >
                               <IconSparkles className="w-3.5 h-3.5" />
                               <span className="text-xs">
-                                {refreshRate.isPending ? "Studying…" : "Analyst"}
+                                {pendingRateKey === rate.rateKey ? "Studying…" : "Analyst"}
                               </span>
                             </Button>
                           </TooltipTrigger>

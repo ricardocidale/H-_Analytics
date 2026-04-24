@@ -83,18 +83,21 @@ export function register(app: Express) {
       if (validation.data.rebeccaConfig) {
         // Deep-merge incoming partial config on top of stored row, then strip any
         // unknown keys via mergeRebeccaSettings to keep the column shape canonical.
+        // Stored shape is opaque JSONB; alias once to a string-keyed map so we can
+        // spread sub-objects without per-line `as any` casts.
+        const currentRebecca = (current.rebeccaConfig ?? {}) as Record<
+          string,
+          Record<string, unknown> | undefined
+        >;
         const merged = mergeRebeccaSettings({
           ...(current.rebeccaConfig ?? {}),
           ...validation.data.rebeccaConfig,
-          identity: { ...((current.rebeccaConfig as any)?.identity ?? {}), ...(validation.data.rebeccaConfig.identity ?? {}) },
-          personality: { ...((current.rebeccaConfig as any)?.personality ?? {}), ...(validation.data.rebeccaConfig.personality ?? {}) },
-          voice: { ...((current.rebeccaConfig as any)?.voice ?? {}), ...(validation.data.rebeccaConfig.voice ?? {}) },
-          behavior: { ...((current.rebeccaConfig as any)?.behavior ?? {}), ...(validation.data.rebeccaConfig.behavior ?? {}) },
-          llm: { ...((current.rebeccaConfig as any)?.llm ?? {}), ...(validation.data.rebeccaConfig.llm ?? {}) },
-          sources: {
-            ...((current.rebeccaConfig as any)?.sources ?? {}),
-            ...(validation.data.rebeccaConfig.sources ?? {}),
-          },
+          identity:    { ...(currentRebecca.identity    ?? {}), ...(validation.data.rebeccaConfig.identity    ?? {}) },
+          personality: { ...(currentRebecca.personality ?? {}), ...(validation.data.rebeccaConfig.personality ?? {}) },
+          voice:       { ...(currentRebecca.voice       ?? {}), ...(validation.data.rebeccaConfig.voice       ?? {}) },
+          behavior:    { ...(currentRebecca.behavior    ?? {}), ...(validation.data.rebeccaConfig.behavior    ?? {}) },
+          llm:         { ...(currentRebecca.llm         ?? {}), ...(validation.data.rebeccaConfig.llm         ?? {}) },
+          sources:     { ...(currentRebecca.sources     ?? {}), ...(validation.data.rebeccaConfig.sources     ?? {}) },
         });
         patch.rebeccaConfig = merged;
       }
@@ -485,7 +488,7 @@ export function register(app: Express) {
         }
       }
 
-      res.json({ ok: true, savedTabs: nextSaved, verdict, requiredFieldsMissing });
+      res.json({ ok: true, savedTabs: nextSaved, verdict, requiredFieldsMissing, prerequisiteFailures });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to save Company Assumptions tab", error);
     }
