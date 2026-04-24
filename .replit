@@ -34,13 +34,13 @@ args = "Parity Check"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 -m http.server 5000 --bind 0.0.0.0 --directory /home/runner/workspace/backups"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Health Check"
