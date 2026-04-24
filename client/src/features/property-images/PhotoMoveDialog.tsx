@@ -57,7 +57,7 @@ export function PhotoMoveDialog({
       setSearch("");
       onComplete?.();
       onOpenChange(false);
-    } catch (e) {
+    } catch (e: unknown) {
       toast({
         title: mode === "move" ? "Move failed" : "Copy failed",
         description: e instanceof Error ? e.message : "An error occurred",

@@ -382,7 +382,7 @@ export async function runTaxBulletinDiff(args: {
   let raw: { status: number; text: string };
   try {
     raw = await fetcher(source.url);
-  } catch (err) {
+  } catch (err: unknown) {
     throw new BulletinFetchError(source.url, err);
   }
   if (raw.status < 200 || raw.status >= 300) {

@@ -608,7 +608,7 @@ export function register(app: Express) {
       try {
         const r = await callLlm(provider, model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id);
         responseText = r.text;
-      } catch (primaryErr) {
+      } catch (primaryErr: unknown) {
         logger.warn(`Primary LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
         if (fallback) {
           logger.info(`Falling back to ${fallback.provider}:${fallback.model}`, "chat");

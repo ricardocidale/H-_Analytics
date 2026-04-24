@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ComponentType } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -65,7 +65,7 @@ const SOURCE_LABELS: Record<RebeccaSourceKey, { label: string; description: stri
 };
 
 function SectionCard({ icon: Icon, accent, title, description, onReset, children }: {
-  icon: any; accent: string; title: string; description: string; onReset?: () => void; children: React.ReactNode;
+  icon: ComponentType<{ className?: string }>; accent: string; title: string; description: string; onReset?: () => void; children: React.ReactNode;
 }) {
   return (
     <Card className="bg-card border border-border/80 shadow-sm">

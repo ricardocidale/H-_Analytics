@@ -8,9 +8,9 @@
  *   • All page components (except Login and NotFound) are lazy-loaded so the initial
  *     bundle stays small. Each page is wrapped in <Suspense> with a spinner fallback.
  *   • Four route-guard wrappers enforce role-based access:
- *       – ProtectedRoute: any authenticated user
+ *       – ProtectedRoute: all authenticated users
  *       – AdminRoute: admin role only
- *       – ManagementRoute: any role except "investor"
+ *       – ManagementRoute: all roles except "investor"
  *       – CheckerRoute: admin or checker roles
  *   • Financial pages are additionally wrapped in <FinancialErrorBoundary> so a
  *     calculation error in one page doesn't crash the whole app.

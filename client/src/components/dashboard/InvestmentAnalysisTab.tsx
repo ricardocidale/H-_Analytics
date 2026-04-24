@@ -2,12 +2,13 @@ import React, { useRef, useMemo } from "react";
 import { useExportSave } from "@/hooks/useExportSave";
 import { InvestmentAnalysis } from "@/components/InvestmentAnalysis";
 import { DashboardTabProps } from "./types";
+import type { GlobalResponse } from "@/lib/api/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { FinancialChart } from "@/components/ui/financial-chart";
 import { useExpandableRows } from "./useExpandableRows";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function InvestmentAnalysisTab({ financials, properties, projectionYears, getFiscalYear, showCalcDetails, global }: DashboardTabProps & { global: any }) {
+export function InvestmentAnalysisTab({ financials, properties, projectionYears, getFiscalYear, showCalcDetails, global }: DashboardTabProps & { global: GlobalResponse }) {
   const INV_ROW_KEYS = React.useMemo(() => ["metrics", "returns", "composition"], []);
   const { expandedRows, toggleRow } = useExpandableRows(INV_ROW_KEYS);
   const tabContentRef = useRef<HTMLDivElement>(null);

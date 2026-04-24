@@ -3,6 +3,8 @@ import Layout from "@/components/Layout";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { IconCalculator, IconCompare, IconTimeline, IconSliders, IconWallet } from "@/components/icons";
+import type { ComponentType } from "react";
+import type { IconProps } from "@/components/icons/icon-utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
 import SensitivityAnalysis from "./SensitivityAnalysis";
@@ -16,7 +18,7 @@ type AnalysisTab = "sensitivity" | "compare" | "timeline" | "financing" | "capit
 export default function Analysis() {
   const [tab, setTab] = useState<AnalysisTab>("sensitivity");
 
-  const tabs: { id: AnalysisTab; label: string; icon: any }[] = [
+  const tabs: { id: AnalysisTab; label: string; icon: ComponentType<IconProps> }[] = [
     { id: "sensitivity", label: "Sensitivity", icon: IconSliders },
     { id: "compare", label: "Compare", icon: IconCompare },
     { id: "timeline", label: "Timeline", icon: IconTimeline },

@@ -1,6 +1,7 @@
 import maplibregl from "maplibre-gl";
 import { PropertyStatus } from "@shared/constants";
 import { getComputedThemeColor } from "./theme-utils";
+import type { PropertyResponse } from "@/lib/api/types";
 
 const KNOWN_COORDS: Record<string, [number, number]> = {
   "medellín, antioquia, colombia": [-75.6266, 6.2553],
@@ -111,7 +112,7 @@ function getStatusColorDefault() { return { bg: "hsl(var(--muted) / 0.3)", text:
 export const statusColor = (status: string) =>
   getStatusColorMap()[status] ?? getStatusColorDefault();
 
-export function formatLocation(property: any): string {
+export function formatLocation(property: PropertyResponse): string {
   const parts = [property.city];
   if (property.stateProvince) parts.push(property.stateProvince);
   parts.push(property.country);
@@ -119,7 +120,7 @@ export function formatLocation(property: any): string {
 }
 
 export type GeoProperty = {
-  property: any;
+  property: PropertyResponse;
   coords: [number, number];
 };
 

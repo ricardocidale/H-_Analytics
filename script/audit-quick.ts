@@ -208,10 +208,21 @@ findings.push({
   samples: brandHexRaw.slice(0, 3),
 });
 
-// 13. Prop `any` tracker — `: any` or `?: any` in component interfaces
+// 13. Prop `any` tracker — `: any` or `?: any` in component interfaces.
+// Excludes index signatures (`[k: string]: any`) — those are bag-typings, not
+// component props — and JSDoc/line comments where "any" appears as English text.
 const propAnyRaw = [
   ...grep(":\\s*any[\\[;,\\s]|\\?:\\s*any[\\[;,\\s]", "client/src/", "*.{ts,tsx}"),
-].filter(line => !line.includes(".test.") && !line.includes("node_modules"));
+].filter(line => {
+  if (line.includes(".test.") || line.includes("node_modules")) return false;
+  // Strip "file:line:" prefix to inspect actual source
+  const src = line.replace(/^[^:]+:\d+:/, "");
+  // Skip JSDoc / line comments — "any" is just English here
+  if (/^\s*(\*|\/\/)/.test(src)) return false;
+  // Skip TS index signatures: `[k: string]: any`
+  if (/\[\s*\w+\s*:\s*\w+\s*\]\s*:\s*any\b/.test(src)) return false;
+  return true;
+});
 findings.push({
   label: "Prop `: any` in component types",
   count: propAnyRaw.length,

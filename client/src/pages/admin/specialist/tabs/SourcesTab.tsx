@@ -180,7 +180,7 @@ export function SourcesTab({ specialistId }: { specialistId: string }) {
         queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resourceId}/health`] });
         queryClient.invalidateQueries({ queryKey: [`/api/admin/resources/${resourceId}/health/history`] });
         return result;
-      } catch (err) {
+      } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Test failed";
         const rateLimited = msg.startsWith("429");
         if (rateLimited) {

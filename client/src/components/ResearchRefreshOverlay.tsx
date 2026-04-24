@@ -175,7 +175,7 @@ export function ResearchRefreshOverlay({ onComplete }: ResearchRefreshOverlayPro
         "@/lib/locked-hard-preflight"
       );
       const skipped: SkippedRecord[] = [];
-      const generate = async (type: "property" | "company" | "global", id?: number, context?: any, entity?: Record<string, unknown>) => {
+      const generate = async (type: "property" | "company" | "global", id?: number, context?: unknown, entity?: Record<string, unknown>) => {
         try {
           // Preflight against the full entity; surface skips via prompt.
           if (type === "property" && entity && id !== undefined) {
