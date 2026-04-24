@@ -54,6 +54,7 @@ vi.mock("@aws-sdk/s3-request-presigner", () => {
 });
 
 const ENV_KEYS = [
+  "STORAGE_PROVIDER",
   "S3_BUCKET",
   "S3_REGION",
   "S3_ENDPOINT",
@@ -62,6 +63,13 @@ const ENV_KEYS = [
   "AWS_ACCESS_KEY_ID",
   "AWS_SECRET_ACCESS_KEY",
   "PUBLIC_OBJECT_SEARCH_PATHS",
+  // R2 shortcut env vars — must be cleared so they don't bleed across tests
+  // and silently satisfy the S3_BUCKET / credential requirements.
+  "R2_BUCKET",
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_PUBLIC_URL_BASE",
 ];
 
 function setEnv(vars: Record<string, string | undefined>) {
@@ -93,10 +101,75 @@ afterEach(() => {
 });
 
 describe("S3StorageProvider", () => {
-  it("throws if S3_BUCKET is missing", async () => {
+  it("throws if neither S3_BUCKET nor R2_BUCKET is set", async () => {
+    // setEnv({}) clears both S3_BUCKET and R2_BUCKET (see ENV_KEYS) so the
+    // provider has no source for the bucket name and must reject.
     setEnv({});
     const mod = await import("../../server/providers/storage/s3-storage");
     expect(() => new mod.S3StorageProvider()).toThrow(/S3_BUCKET/);
+  });
+
+  it("falls back to R2_* env vars (R2 shortcut) and derives the endpoint from R2_ACCOUNT_ID", async () => {
+    // Clears S3_/AWS_ vars, leaving only R2_* + STORAGE_PROVIDER=r2.
+    // Provider must construct successfully and route requests to the derived
+    // R2 endpoint+bucket.
+    setEnv({
+      STORAGE_PROVIDER: "r2",
+      R2_BUCKET: "r2-bucket",
+      R2_ACCOUNT_ID: "myacct",
+      R2_ACCESS_KEY_ID: "r2-key",
+      R2_SECRET_ACCESS_KEY: "r2-secret",
+    });
+    sendMock.mockResolvedValueOnce({});
+    const mod = await import("../../server/providers/storage/s3-storage");
+    const provider = new mod.S3StorageProvider();
+    await provider.delete("foo/bar");
+    const cmd = sendMock.mock.calls[0][0] as { input: { Bucket: string; Key: string } };
+    expect(cmd.input.Bucket).toBe("r2-bucket");
+    expect(cmd.input.Key).toBe("foo/bar");
+    // normalizePath must strip the derived R2 endpoint URL even though
+    // S3_ENDPOINT was never set (proves the instance tracks the effective
+    // endpoint, not just process.env.S3_ENDPOINT).
+    expect(
+      provider.normalizePath(
+        "https://myacct.r2.cloudflarestorage.com/r2-bucket/folder/x.txt",
+      ),
+    ).toBe("folder/x.txt");
+  });
+
+  it("R2 fallback is gated on STORAGE_PROVIDER=r2 — does not silently take effect in s3 mode", async () => {
+    // R2_* env vars present but STORAGE_PROVIDER is not "r2" — the provider
+    // must NOT borrow R2_BUCKET / R2_ACCESS_KEY_ID. This protects vanilla
+    // AWS / MinIO deployments that share a secret store with an R2 setup.
+    setEnv({
+      STORAGE_PROVIDER: "s3",
+      R2_BUCKET: "leaky-r2-bucket",
+      R2_ACCOUNT_ID: "leaky",
+      R2_ACCESS_KEY_ID: "leaky-key",
+      R2_SECRET_ACCESS_KEY: "leaky-secret",
+    });
+    const mod = await import("../../server/providers/storage/s3-storage");
+    expect(() => new mod.S3StorageProvider()).toThrow(/S3_BUCKET/);
+  });
+
+  it("does not mix credentials across AWS_* and R2_* namespaces", async () => {
+    // Only an AWS access key (no AWS secret) plus a complete R2 pair —
+    // the provider must NOT pair the AWS key with the R2 secret. In r2
+    // mode it should fall through to the R2 pair; the test asserts the
+    // request still goes through (no auth crash on construction).
+    setEnv({
+      STORAGE_PROVIDER: "r2",
+      R2_BUCKET: "b",
+      R2_ACCOUNT_ID: "acct",
+      AWS_ACCESS_KEY_ID: "AKIA-AWS-ONLY",
+      R2_ACCESS_KEY_ID: "r2key",
+      R2_SECRET_ACCESS_KEY: "r2secret",
+    });
+    sendMock.mockResolvedValueOnce({});
+    const mod = await import("../../server/providers/storage/s3-storage");
+    const provider = new mod.S3StorageProvider();
+    await provider.delete("k");
+    expect(sendMock).toHaveBeenCalledTimes(1);
   });
 
   it("getUploadUrl returns a presigned URL with 15-min default TTL and a UUID-scoped key", async () => {

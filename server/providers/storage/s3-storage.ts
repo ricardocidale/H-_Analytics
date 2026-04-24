@@ -20,7 +20,7 @@ import type { StorageProvider } from "./types";
  * other S3-API-compatible backend. Set `S3_ENDPOINT` to point at non-AWS
  * providers (R2, MinIO, etc.); leave it unset for native AWS S3.
  *
- * Required env vars:
+ * Required env vars (S3 mode):
  *   S3_BUCKET                 – bucket name
  *   S3_REGION                 – e.g. us-east-1 (use "auto" for R2)
  *   AWS_ACCESS_KEY_ID         – or use IAM role on AWS
@@ -30,46 +30,85 @@ import type { StorageProvider } from "./types";
  *   S3_ENDPOINT               – custom endpoint URL (R2 / MinIO / Spaces)
  *   S3_PUBLIC_URL_BASE        – CDN / custom domain for public URLs
  *   S3_FORCE_PATH_STYLE       – "true" to use path-style addressing (MinIO)
+ *
+ * Cloudflare R2 shortcut (when STORAGE_PROVIDER=r2):
+ *   R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID
+ *   The endpoint is auto-derived as https://<account>.r2.cloudflarestorage.com
+ *   and region defaults to "auto". R2_PUBLIC_URL_BASE may be supplied for a
+ *   custom or r2.dev public hostname.
  */
 
 const DEFAULT_PRESIGN_TTL_SEC = 15 * 60; // 15 minutes — matches Replit semantics
 
-function requireEnv(name: string): string {
+function requireEnv(name: string, alts: string[] = []): string {
   const v = process.env[name];
-  if (!v) {
-    throw new Error(
-      `S3 storage requires ${name}. Set it in the environment or use STORAGE_PROVIDER=replit.`,
-    );
+  if (v) return v;
+  for (const alt of alts) {
+    const av = process.env[alt];
+    if (av) return av;
   }
-  return v;
+  const all = [name, ...alts].join(" / ");
+  throw new Error(
+    `S3 storage requires ${all}. Set it in the environment or use STORAGE_PROVIDER=replit.`,
+  );
 }
 
 export class S3StorageProvider implements StorageProvider {
   private readonly client: S3Client;
   private readonly bucket: string;
   private readonly publicUrlBase: string | null;
+  /** Effective endpoint (explicit S3_ENDPOINT or derived R2 host); null for native AWS S3. */
+  private readonly endpoint: string | null;
 
   constructor() {
-    this.bucket = requireEnv("S3_BUCKET");
-    const region = process.env.S3_REGION || "us-east-1";
+    // R2 shortcut is opt-in via STORAGE_PROVIDER=r2. We never silently change
+    // S3 behavior just because R2_* happen to be present in the env — that
+    // would break vanilla AWS / MinIO deployments that share the same secret
+    // store with an R2 staging environment.
+    const isR2 = process.env.STORAGE_PROVIDER === "r2";
+
+    // Bucket: prefer S3_BUCKET; only fall back to R2_BUCKET in r2 mode.
+    this.bucket = isR2
+      ? requireEnv("S3_BUCKET", ["R2_BUCKET"])
+      : requireEnv("S3_BUCKET");
+
+    const region = process.env.S3_REGION || (isR2 ? "auto" : "us-east-1");
+
+    // Endpoint: explicit S3_ENDPOINT always wins (works for any provider).
+    // Otherwise derive `https://<account>.r2.cloudflarestorage.com` only in
+    // r2 mode and only if R2_ACCOUNT_ID is set.
+    let endpoint: string | null = null;
+    if (process.env.S3_ENDPOINT) {
+      endpoint = process.env.S3_ENDPOINT;
+    } else if (isR2 && process.env.R2_ACCOUNT_ID) {
+      endpoint = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    }
+    this.endpoint = endpoint;
 
     const config: S3ClientConfig = { region };
-    if (process.env.S3_ENDPOINT) {
-      config.endpoint = process.env.S3_ENDPOINT;
-    }
+    if (endpoint) config.endpoint = endpoint;
     if (process.env.S3_FORCE_PATH_STYLE === "true") {
       config.forcePathStyle = true;
     }
-    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-      config.credentials = {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      };
+
+    // Credentials: load from a single namespace at a time so we never mix an
+    // AWS access key with an R2 secret (or vice-versa). AWS_* wins when both
+    // are complete; otherwise R2_* is used in r2 mode.
+    const awsKey = process.env.AWS_ACCESS_KEY_ID;
+    const awsSecret = process.env.AWS_SECRET_ACCESS_KEY;
+    const r2Key = process.env.R2_ACCESS_KEY_ID;
+    const r2Secret = process.env.R2_SECRET_ACCESS_KEY;
+    if (awsKey && awsSecret) {
+      config.credentials = { accessKeyId: awsKey, secretAccessKey: awsSecret };
+    } else if (isR2 && r2Key && r2Secret) {
+      config.credentials = { accessKeyId: r2Key, secretAccessKey: r2Secret };
     }
     // else: rely on default AWS credential chain (IAM role, ~/.aws/credentials, etc.)
 
     this.client = new S3Client(config);
-    this.publicUrlBase = process.env.S3_PUBLIC_URL_BASE || null;
+    this.publicUrlBase =
+      process.env.S3_PUBLIC_URL_BASE ||
+      (isR2 ? process.env.R2_PUBLIC_URL_BASE || null : null);
   }
 
   // ------------------------------------------------------------------ upload
@@ -260,7 +299,10 @@ export class S3StorageProvider implements StorageProvider {
     }
 
     // Strip custom endpoint host (R2/MinIO): https://endpoint/bucket/key  or  https://endpoint/key
-    if (process.env.S3_ENDPOINT) {
+    // Uses the *effective* endpoint resolved at construction time (handles the
+    // R2 shortcut where the endpoint is derived from R2_ACCOUNT_ID and never
+    // appears in S3_ENDPOINT).
+    if (this.endpoint) {
       try {
         const url = new URL(rawPath);
         let path = url.pathname.replace(/^\//, "");

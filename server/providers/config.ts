@@ -18,9 +18,9 @@ export function getAppUrl(): string {
 }
 
 /** Get the storage provider name */
-export function getStorageProviderName(): 'replit' | 's3' | 'local' {
+export function getStorageProviderName(): 'replit' | 's3' | 'r2' | 'local' {
   const val = process.env.STORAGE_PROVIDER;
-  if (val === 's3' || val === 'local') return val;
+  if (val === 's3' || val === 'r2' || val === 'local') return val;
   return 'replit';
 }
 

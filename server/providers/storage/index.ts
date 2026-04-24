@@ -10,7 +10,10 @@ async function createProvider(): Promise<StorageProvider> {
       const { ReplitStorageProvider } = await import("./replit-storage");
       return new ReplitStorageProvider();
     }
-    case "s3": {
+    case "s3":
+    case "r2": {
+      // "r2" is an alias for the S3 adapter; it auto-derives the endpoint
+      // from R2_ACCOUNT_ID and falls back to R2_* credentials.
       const { S3StorageProvider } = await import("./s3-storage");
       return new S3StorageProvider();
     }
