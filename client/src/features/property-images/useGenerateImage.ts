@@ -47,7 +47,7 @@ export function useGenerateImage(options: UseGenerateImageOptions = {}) {
       );
 
       try {
-        const res = await fetch("/api/specialists/photo-enhancer/run", {
+        const res = await fetch("/api/generate-property-image", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -55,7 +55,6 @@ export function useGenerateImage(options: UseGenerateImageOptions = {}) {
             style,
             beforeImageUrl,
             propertyId: options.propertyId,
-            originatedFrom: options.originatedFrom ?? "album",
           }),
         });
 

@@ -8,7 +8,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -23,8 +22,8 @@ import {
   IconPanelLeft, IconProperties,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
-  IconBriefcase, IconBookOpen, IconPhone, IconExport, IconScenarios, IconPalette,
-  IconShieldCheck, IconGlobe, IconTimer, IconGauge, IconMessageSquare,
+  IconBriefcase, IconPhone, IconExport, IconScenarios, IconPalette,
+  IconShieldCheck, IconGlobe,
   IconCalculator, IconDashboard,
 } from "@/components/icons";
 import { Link } from "wouter";
@@ -135,7 +134,6 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
  * intentionally NOT listed here — `setAdminSection` handles them
  * before this map is consulted.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const LEGACY_ADMIN_SECTION_REDIRECTS: Record<string, AdminSection> = {
   // No legacy admin-only string aliases remain after Phase 1.
   // `required-fields` is now a real canonical AdminSection (see union above)
@@ -204,6 +202,15 @@ function buildNavGroups(): NavGroup[] {
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
         { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
+      ],
+    },
+    {
+      id: "properties",
+      label: "Properties",
+      icon: IconProperties,
+      description: "Property-wide admin surfaces",
+      sections: [
+        { value: "required-fields", label: "Required Fields", icon: IconFileCheck },
       ],
     },
     {
