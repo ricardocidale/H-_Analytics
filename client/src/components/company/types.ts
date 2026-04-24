@@ -15,7 +15,7 @@
  *                               funding inflows, partner draws, closing cash) used
  *                               by the Cash Flow tab's summary cards
  */
-import type { CompanyMonthlyFinancials } from "@/lib/financialEngine";
+import type { CompanyMonthlyFinancials, MonthlyFinancials } from "@/lib/financialEngine";
 import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 
 export interface CompanyChartDataPoint {
@@ -55,7 +55,7 @@ export interface CompanyTabProps {
   fundingLabel: string;
   tableRef?: React.RefObject<HTMLDivElement | null>;
   activeTab?: string;
-  propertyFinancials: { property: PropertyResponse; financials: unknown[] }[];
+  propertyFinancials: { property: PropertyResponse; financials: MonthlyFinancials[] }[];
   yearlyChartData?: CompanyChartDataPoint[];
 }
 

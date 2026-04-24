@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { applyModelConstantsToGlobals } from "../../server/finance/apply-model-constants";
 import type { ModelConstantOverride } from "../../shared/schema/model-constants";
+import type { ModelConstant } from "../../shared/schema/model-canonicals";
 import { DAYS_PER_MONTH } from "../../shared/constants";
 
 function override(partial: Partial<ModelConstantOverride>): ModelConstantOverride {
@@ -18,6 +19,22 @@ function override(partial: Partial<ModelConstantOverride>): ModelConstantOverrid
     setAt: new Date(),
     ...partial,
   } as ModelConstantOverride;
+}
+
+function canonical(partial: Partial<ModelConstant>): ModelConstant {
+  return {
+    id: 1,
+    constantKey: "depreciationYears",
+    country: "United States",
+    countrySubdivision: null,
+    value: 39,
+    unit: "years",
+    authoritySource: "IRS Pub 946",
+    authorityRef: null,
+    notes: null,
+    updatedAt: new Date(),
+    ...partial,
+  } as ModelConstant;
 }
 
 describe("applyModelConstantsToGlobals", () => {
@@ -56,9 +73,11 @@ describe("applyModelConstantsToGlobals", () => {
     expect(out.costOfEquity).toBe(0.18);
   });
 
-  it("does not overlay country-locality constants (depreciationYears) onto global", () => {
-    // depreciationYears is locality='country' — engine resolves per-property,
-    // so it must not be silently overlaid on the universal global object.
+  it("overlays country-locality depreciationYears onto global from the United States baseline", () => {
+    // Per Task #379, depreciationYears is now overlaid onto the universal
+    // global object using the United States jurisdiction baseline. A
+    // per-property override still wins the engine cascade
+    // (`property.X ?? global.X`).
     const overrides = [
       override({
         constantKey: "depreciationYears",
@@ -72,7 +91,70 @@ describe("applyModelConstantsToGlobals", () => {
       { daysPerMonth: 30.5, depreciationYears: 39 },
       overrides,
     );
-    expect(out.depreciationYears).toBe(39);
+    expect(out.depreciationYears).toBe(27.5);
+  });
+
+  it("does NOT overlay depreciationYears when only a seeded canonical row exists (historical-tenant preservation)", () => {
+    // Behavior-preservation invariant for Task #379:
+    // The seeded canonical row for the United States (39 years) is not
+    // a sufficient signal to overwrite a tenant's pre-existing
+    // `globalAssumptions.depreciationYears`. Tenants who historically
+    // set a non-default value via the old editable control must keep
+    // that value in the engine until an admin explicitly saves an
+    // override in the Constants tab.
+    const canonicals = [canonical({ value: 39 })];
+    const out = applyModelConstantsToGlobals(
+      { depreciationYears: 27.5 },
+      [],
+      canonicals,
+    );
+    expect(out.depreciationYears).toBe(27.5);
+  });
+
+  it("does NOT overlay depreciationYears from TS factory when no canonical row or override exists", () => {
+    // Same preservation invariant: TS factory fallback must not silently
+    // overwrite the global value either.
+    const out = applyModelConstantsToGlobals(
+      { depreciationYears: 27.5 },
+      [],
+    );
+    expect(out.depreciationYears).toBe(27.5);
+  });
+
+  it("preserves historical tenant deviations in globalAssumptions.depreciationYears across the overlay (parity test)", () => {
+    // A tenant who had set 30 years in the old editor must continue to
+    // see 30 years in `global.depreciationYears` after this PR ships,
+    // even with the canonical row seeded for the United States.
+    const canonicals = [canonical({ value: 39 })];
+    const overrides: ModelConstantOverride[] = [];
+    const tenantHistoricalGlobal = { depreciationYears: 30 };
+    const out = applyModelConstantsToGlobals(tenantHistoricalGlobal, overrides, canonicals);
+    expect(out.depreciationYears).toBe(30);
+  });
+
+  it("does not overlay inflationRate onto global — cascade exception (see .claude/rules/inflation-cascade.md)", () => {
+    // inflationRate is governed by a dedicated cascade rule:
+    //   property.inflationRate ?? companyAssumptions.inflationRate ?? marketMacroFallback
+    // The Management Company assumptions row is the engine's source of truth.
+    // Adding inflationRate to COUNTRY_KEYS_OVERLAID_ON_GLOBAL requires
+    // specialist-sourced canonical rows + production-deviation backfill +
+    // the behavior-preservation guard — all three. An admin-typed manual
+    // override (as constructed below) does NOT satisfy the specialist-
+    // sourced requirement and must not flow into globalAssumptions.
+    const overrides = [
+      override({
+        constantKey: "inflationRate",
+        country: "United States",
+        countrySubdivision: null,
+        value: 0.05,
+        source: "manual",
+      }),
+    ];
+    const out = applyModelConstantsToGlobals(
+      { daysPerMonth: 30.5, inflationRate: 0.03 },
+      overrides,
+    );
+    expect(out.inflationRate).toBe(0.03);
   });
 
   it("returns a new object — does not mutate input", () => {

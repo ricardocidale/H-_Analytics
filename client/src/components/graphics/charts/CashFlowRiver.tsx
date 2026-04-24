@@ -29,18 +29,18 @@ interface CashFlowRiverProps {
   "data-testid"?: string;
 }
 
-function CustomTooltip({ active, payload, label, formatValue }: { active?: boolean; payload?: any[]; label?: string; formatValue: (v: number) => string }) {
+function CustomTooltip({ active, payload, label, formatValue }: { active?: boolean; payload?: Array<{ name?: string; value?: number; color?: string; dataKey?: string }>; label?: string; formatValue: (v: number) => string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-xl text-sm max-w-xs">
       <p className="font-semibold text-foreground mb-2 border-b pb-1">{label}</p>
-      {payload.map((entry: any, i: number) => (
+      {payload.map((entry, i: number) => (
         <div key={i} className="flex items-center justify-between gap-4 py-0.5">
           <span className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="text-muted-foreground">{entry.name}</span>
           </span>
-          <span className="font-mono font-medium text-foreground">{formatValue(entry.value)}</span>
+          <span className="font-mono font-medium text-foreground">{formatValue(entry.value ?? 0)}</span>
         </div>
       ))}
     </div>

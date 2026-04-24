@@ -1,6 +1,6 @@
-import { designThemes, logos, assetDescriptions, researchQuestions, type DesignTheme, type InsertDesignTheme, type Logo, type InsertLogo, type AssetDescription, type ResearchQuestion, type InsertResearchQuestion } from "@shared/schema";
+import { designThemes, logos, assetDescriptions, researchQuestions, companies, type DesignTheme, type InsertDesignTheme, type Logo, type InsertLogo, type AssetDescription, type ResearchQuestion, type InsertResearchQuestion } from "@shared/schema";
 import { db } from "../db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
 
 export class AdminStorage {
@@ -148,4 +148,22 @@ export class AdminStorage {
     await db.delete(researchQuestions).where(eq(researchQuestions.id, id));
   }
 
+  // ── Companies ──────────────────────────────────────────────────
+  /**
+   * Returns true if at least one active management-company row exists. Used by
+   * the `company-profile-saved` prerequisite evaluator
+   * (engine/analyst/registry/prerequisite-registry.ts) to decide whether the
+   * mgmt-co Specialists may run. We treat any active row of type "management"
+   * as "the operator has saved their company profile at least once" — the
+   * companies table is the canonical home for the management entity in the
+   * single-tenant model.
+   */
+  async hasManagementCompanyProfile(): Promise<boolean> {
+    const [row] = await db
+      .select({ id: companies.id })
+      .from(companies)
+      .where(sql`${companies.type} = 'management' AND ${companies.isActive} = true`)
+      .limit(1);
+    return Boolean(row);
+  }
 }

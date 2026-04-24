@@ -1,133 +1,51 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+/**
+ * Legacy Model-Defaults → Required Fields tab.
+ *
+ * This UI was retired by Task #413. Required fields are now owned per
+ * Specialist (the catalog is the single source of truth). The roll-up
+ * across all 11 Specialists lives at Admin → Required Fields, and
+ * per-Specialist editing happens on each Specialist page.
+ *
+ * The component is kept (instead of being deleted) so that any
+ * still-mounted Model-Defaults sub-tab in the wild renders an explicit
+ * banner rather than a 404. The legacy `PUT /api/admin/required-fields`
+ * endpoint now returns 410 Gone — there is intentionally no save path
+ * here.
+ */
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "@/components/icons/themed-icons";
-import { useToast } from "@/hooks/use-toast";
-
-interface FieldDef {
-  key: string;
-  label: string;
-}
-
-const FIELD_DEFS: FieldDef[] = [
-  { key: "name", label: "Property Name" },
-  { key: "location", label: "Location" },
-  { key: "country", label: "Country" },
-  { key: "roomCount", label: "Room Count" },
-  { key: "startAdr", label: "Starting ADR" },
-  { key: "startOccupancy", label: "Starting Occupancy" },
-  { key: "purchasePrice", label: "Purchase Price" },
-  { key: "qualityTier", label: "Quality Tier" },
-  { key: "businessModel", label: "Business Model" },
-  { key: "serviceLevel", label: "Service Level" },
-  { key: "locationType", label: "Location Type" },
-];
-
-const DEFAULT_CONFIG: Record<string, boolean> = {
-  name: true,
-  location: true,
-  roomCount: true,
-  startAdr: true,
-  purchasePrice: true,
-  country: false,
-  startOccupancy: false,
-  qualityTier: false,
-  businessModel: false,
-  serviceLevel: false,
-  locationType: false,
-};
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { IconAlertTriangle } from "@/components/icons";
+import { setAdminSection } from "@/lib/admin-nav";
 
 export function RequiredFieldsTab() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [config, setConfig] = useState<Record<string, boolean>>(DEFAULT_CONFIG);
-  const [isDirty, setIsDirty] = useState(false);
-
-  const { data: savedConfig, isLoading } = useQuery<Record<string, boolean>>({
-    queryKey: ["admin", "required-fields"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/required-fields", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
-  });
-
-  useEffect(() => {
-    if (savedConfig) {
-      setConfig({ ...DEFAULT_CONFIG, ...savedConfig });
-      setIsDirty(false);
-    }
-  }, [savedConfig]);
-
-  const saveMutation = useMutation({
-    mutationFn: async (data: Record<string, boolean>) => {
-      const res = await fetch("/api/admin/required-fields", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to save");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "required-fields"] });
-      toast({ title: "Required fields updated" });
-      setIsDirty(false);
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to save required fields config.", variant: "destructive" });
-    },
-  });
-
-  const toggleField = (key: string) => {
-    setConfig(prev => ({ ...prev, [key]: !prev[key] }));
-    setIsDirty(true);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  const enabledCount = Object.values(config).filter(Boolean).length;
-
   return (
-    <Card>
+    <Card data-testid="legacy-required-fields-banner">
       <CardHeader>
-        <CardTitle className="text-base">Required Fields Before Research Can Run</CardTitle>
-        <CardDescription>Toggle ON = field must have a value before AI research engines will process this property. {enabledCount} of {FIELD_DEFS.length} fields required.</CardDescription>
+        <CardTitle className="text-base">Required Fields</CardTitle>
+        <CardDescription>
+          Required fields are now owned per Specialist.
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-1">
-          {FIELD_DEFS.map(({ key, label }) => (
-            <div key={key} className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-muted/50 transition-colors" data-testid={`required-field-row-${key}`}>
-              <div className="flex items-center gap-3">
-                <span className={`w-2 h-2 rounded-full ${config[key] ? "bg-green-500" : "bg-muted-foreground/30"}`} />
-                <span className="text-sm font-medium">{label}</span>
-              </div>
-              <Switch
-                checked={config[key] ?? false}
-                onCheckedChange={() => toggleField(key)}
-                data-testid={`switch-required-${key}`}
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="flex justify-end mt-6">
+      <CardContent className="space-y-4">
+        <Alert>
+          <IconAlertTriangle className="h-4 w-4" />
+          <AlertTitle>This panel was moved</AlertTitle>
+          <AlertDescription>
+            The single global required-fields list has been replaced. Each
+            Specialist now declares its own candidate fields and prerequisite
+            conditions in the catalog, and admins toggle each one as
+            <em> hard-required</em>, <em>recommended</em>, or <em>off</em> on
+            that Specialist&apos;s page. Use the Required Fields page for the
+            roll-up view across all Specialists.
+          </AlertDescription>
+        </Alert>
+        <div className="flex gap-2">
           <Button
-            onClick={() => saveMutation.mutate(config)}
-            disabled={!isDirty || saveMutation.isPending}
-            data-testid="button-save-required-fields"
+            onClick={() => setAdminSection("required-fields")}
+            data-testid="button-open-required-fields-rollup"
           >
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Save
+            Open Required Fields roll-up →
           </Button>
         </div>
       </CardContent>

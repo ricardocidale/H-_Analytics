@@ -1,3 +1,5 @@
+import type { jsPDF } from "jspdf";
+import type autoTableLib from "jspdf-autotable";
 import { PAGE_DIMS, type BrandPalette, buildBrandPalette } from "./exportStyles";
 import {
   type ResearchExportOptions,
@@ -12,26 +14,96 @@ import {
   addTable,
 } from "./researchPdfHelpers";
 
-export function renderPropertyResearch(doc: any, autoTable: any, content: any, y: number, pageW: number, brand: BrandPalette): number {
+type AutoTableFn = typeof autoTableLib;
+
+interface PropertyResearchContent {
+  marketOverview?: { summary?: string; keyMetrics?: { label: string; value: string; source?: string }[] };
+  stabilizationTimeline?: {
+    summary?: string;
+    phases?: { phase: string; duration: string; description: string; occupancyTarget?: string }[];
+    totalMonths?: string;
+  };
+  adrAnalysis?: {
+    marketAverage?: string; boutiqueRange?: string; recommendedRange?: string; rationale?: string;
+    comparables?: { name: string; adr: string; type?: string }[];
+  };
+  occupancyAnalysis?: {
+    marketAverage?: string; rampUpTimeline?: string;
+    seasonalPattern?: { season: string; occupancy: string; notes?: string }[];
+  };
+  eventDemand?: Record<string, unknown> & {
+    estimatedEventRevShare?: string; keyDrivers?: string[];
+  };
+  cateringAnalysis?: { recommendedBoostPercent?: string; marketRange?: string; rationale?: string; factors?: string[] };
+  capRateAnalysis?: {
+    marketRange?: string; boutiqueRange?: string; recommendedRange?: string; rationale?: string;
+    comparables?: { name: string; capRate: string; saleYear?: string; notes?: string }[];
+  };
+  landValueAllocation?: { recommendedPercent?: string; marketRange?: string; assessmentMethod?: string; rationale?: string; factors?: string[] };
+  competitiveSet?: { name: string; rooms?: number | string; adr?: string; positioning?: string }[];
+  risks?: { risk: string; mitigation: string }[];
+  sources?: string[];
+}
+
+interface GlobalResearchContent {
+  industryOverview?: { marketSize?: string; growthRate?: string; boutiqueShare?: string; keyTrends?: string[] };
+  eventHospitality?: Record<string, { marketSize?: string; growth?: string } | undefined>;
+  financialBenchmarks?: {
+    adrTrends?: { year: string; national: string; boutique?: string; luxury?: string }[];
+    occupancyTrends?: { year: string; national: string; boutique?: string; luxury?: string }[];
+  };
+  investmentReturns?: { capRates?: { economyMidscale?: string; upscale?: string; luxury?: string; boutique?: string } };
+  debtMarket?: { currentConditions?: string; typicalTerms?: { term: string; value: string }[] };
+  emergingTrends?: (string | { trend: string; description: string })[];
+  sources?: string[];
+}
+
+interface PromptConditions {
+  generatedAt?: string;
+  llmModel?: string;
+  propertyLabel?: string;
+  inflationRate?: number;
+  projectionYears?: number;
+  timeHorizon?: string;
+  propertyContext?: { name?: string; location?: string; market?: string; roomCount?: number; startAdr?: number };
+  assetDefinition?: { level?: string; minRooms?: number; maxRooms?: number; minAdr?: number; maxAdr?: number; hasFB?: boolean; hasEvents?: boolean; hasWellness?: boolean };
+  focusAreas?: string[];
+  regions?: string[];
+  customQuestions?: string;
+}
+
+interface CompanyResearchContent {
+  managementFees?: {
+    baseFee?: { industryRange?: string; boutiqueRange?: string; recommended?: string; gaapReference?: string };
+    incentiveFee?: { industryRange?: string; commonBasis?: string; recommended?: string };
+  };
+  gaapStandards?: { standard: string; reference: string; application: string }[];
+  industryBenchmarks?: { operatingExpenseRatios?: { category: string; range: string; source?: string }[] };
+  compensationBenchmarks?: { gm?: string; director?: string; manager?: string; source?: string };
+  contractTerms?: { term: string; typical: string; notes?: string }[];
+  sources?: string[];
+}
+
+export function renderPropertyResearch(doc: jsPDF, autoTable: AutoTableFn, content: PropertyResearchContent, y: number, pageW: number, brand: BrandPalette): number {
   const colors = sectionColors(brand);
   const c = (i: number) => colors[i % colors.length];
 
   if (content.marketOverview) {
     y = addSectionHeader(doc, "Market Overview", y, c(0));
-    y = addParagraph(doc, content.marketOverview.summary, y, pageW, brand);
+    y = addParagraph(doc, content.marketOverview.summary ?? "", y, pageW, brand);
     if (content.marketOverview.keyMetrics?.length) {
       y = addTable(doc, autoTable, ["Metric", "Value", "Source"],
-        content.marketOverview.keyMetrics.map((m: any) => [m.label, m.value, m.source || ""]),
+        content.marketOverview.keyMetrics.map((m) => [m.label, m.value, m.source || ""]),
         y, c(0), brand);
     }
   }
 
   if (content.stabilizationTimeline) {
     y = addSectionHeader(doc, "Stabilization Timeline", y, c(1));
-    y = addParagraph(doc, content.stabilizationTimeline.summary, y, pageW, brand);
+    y = addParagraph(doc, content.stabilizationTimeline.summary ?? "", y, pageW, brand);
     if (content.stabilizationTimeline.phases?.length) {
       y = addTable(doc, autoTable, ["Phase", "Duration", "Description", "Occupancy Target"],
-        content.stabilizationTimeline.phases.map((p: any) => [p.phase, p.duration, p.description, p.occupancyTarget || ""]),
+        content.stabilizationTimeline.phases.map((p) => [p.phase, p.duration, p.description, p.occupancyTarget || ""]),
         y, c(1), brand);
     }
     if (content.stabilizationTimeline.totalMonths) {
@@ -44,10 +116,10 @@ export function renderPropertyResearch(doc: any, autoTable: any, content: any, y
     y = addKeyValue(doc, "Market Average ADR", content.adrAnalysis.marketAverage || "N/A", y, brand);
     y = addKeyValue(doc, "Boutique Range", content.adrAnalysis.boutiqueRange || "N/A", y, brand);
     y = addKeyValue(doc, "Recommended Range", content.adrAnalysis.recommendedRange || "N/A", y, brand);
-    y = addParagraph(doc, content.adrAnalysis.rationale, y, pageW, brand);
+    y = addParagraph(doc, content.adrAnalysis.rationale ?? "", y, pageW, brand);
     if (content.adrAnalysis.comparables?.length) {
       y = addTable(doc, autoTable, ["Property", "ADR", "Type"],
-        content.adrAnalysis.comparables.map((c: any) => [c.name, c.adr, c.type || ""]),
+        content.adrAnalysis.comparables.map((c) => [c.name, c.adr, c.type || ""]),
         y, c(2), brand);
     }
   }
@@ -58,7 +130,7 @@ export function renderPropertyResearch(doc: any, autoTable: any, content: any, y
     y = addKeyValue(doc, "Ramp-Up Timeline", content.occupancyAnalysis.rampUpTimeline || "N/A", y, brand);
     if (content.occupancyAnalysis.seasonalPattern?.length) {
       y = addTable(doc, autoTable, ["Season", "Occupancy", "Notes"],
-        content.occupancyAnalysis.seasonalPattern.map((s: any) => [s.season, s.occupancy, s.notes || ""]),
+        content.occupancyAnalysis.seasonalPattern.map((s) => [s.season, s.occupancy, s.notes || ""]),
         y, c(3), brand);
     }
   }
@@ -74,7 +146,7 @@ export function renderPropertyResearch(doc: any, autoTable: any, content: any, y
     for (const et of eventTypes) {
       if (content.eventDemand[et.key]) {
         y = addKeyValue(doc, et.label, "", y, brand);
-        y = addParagraph(doc, content.eventDemand[et.key], y, pageW, brand);
+        y = addParagraph(doc, String(content.eventDemand[et.key] ?? ""), y, pageW, brand);
       }
     }
     if (content.eventDemand.estimatedEventRevShare) {
@@ -89,7 +161,7 @@ export function renderPropertyResearch(doc: any, autoTable: any, content: any, y
     y = addSectionHeader(doc, "Catering & F&B Boost Analysis", y, c(5));
     y = addKeyValue(doc, "Recommended Boost", content.cateringAnalysis.recommendedBoostPercent || "N/A", y, brand);
     y = addKeyValue(doc, "Market Range", content.cateringAnalysis.marketRange || "N/A", y, brand);
-    y = addParagraph(doc, content.cateringAnalysis.rationale, y, pageW, brand);
+    y = addParagraph(doc, content.cateringAnalysis.rationale ?? "", y, pageW, brand);
     if (content.cateringAnalysis.factors?.length) {
       y = addBulletList(doc, content.cateringAnalysis.factors, y, pageW, brand);
     }
@@ -100,10 +172,10 @@ export function renderPropertyResearch(doc: any, autoTable: any, content: any, y
     y = addKeyValue(doc, "Market Range", content.capRateAnalysis.marketRange || "N/A", y, brand);
     y = addKeyValue(doc, "Boutique Range", content.capRateAnalysis.boutiqueRange || "N/A", y, brand);
     y = addKeyValue(doc, "Recommended Range", content.capRateAnalysis.recommendedRange || "N/A", y, brand);
-    y = addParagraph(doc, content.capRateAnalysis.rationale, y, pageW, brand);
+    y = addParagraph(doc, content.capRateAnalysis.rationale ?? "", y, pageW, brand);
     if (content.capRateAnalysis.comparables?.length) {
       y = addTable(doc, autoTable, ["Property", "Cap Rate", "Sale Year", "Notes"],
-        content.capRateAnalysis.comparables.map((c: any) => [c.name, c.capRate, c.saleYear || "", c.notes || ""]),
+        content.capRateAnalysis.comparables.map((c) => [c.name, c.capRate, c.saleYear || "", c.notes || ""]),
         y, c(6), brand);
     }
   }
@@ -113,7 +185,7 @@ export function renderPropertyResearch(doc: any, autoTable: any, content: any, y
     y = addKeyValue(doc, "Recommended Land %", content.landValueAllocation.recommendedPercent || "N/A", y, brand);
     y = addKeyValue(doc, "Market Range", content.landValueAllocation.marketRange || "N/A", y, brand);
     y = addKeyValue(doc, "Assessment Method", content.landValueAllocation.assessmentMethod || "N/A", y, brand);
-    y = addParagraph(doc, content.landValueAllocation.rationale, y, pageW, brand);
+    y = addParagraph(doc, content.landValueAllocation.rationale ?? "", y, pageW, brand);
     if (content.landValueAllocation.factors?.length) {
       y = addBulletList(doc, content.landValueAllocation.factors, y, pageW, brand);
     }
@@ -122,14 +194,14 @@ export function renderPropertyResearch(doc: any, autoTable: any, content: any, y
   if (content.competitiveSet?.length) {
     y = addSectionHeader(doc, "Competitive Set", y, c(8));
     y = addTable(doc, autoTable, ["Property", "Rooms", "ADR", "Positioning"],
-      content.competitiveSet.map((c: any) => [c.name, String(c.rooms || ""), c.adr || "", c.positioning || ""]),
+      content.competitiveSet.map((c) => [c.name, String(c.rooms || ""), c.adr || "", c.positioning || ""]),
       y, c(0), brand);
   }
 
   if (content.risks?.length) {
     y = addSectionHeader(doc, "Risks & Mitigations", y, brand.PRIMARY_RGB);
     y = addTable(doc, autoTable, ["Risk", "Mitigation"],
-      content.risks.map((r: any) => [r.risk, r.mitigation]),
+      content.risks.map((r) => [r.risk, r.mitigation]),
       y, brand.PRIMARY_RGB, brand);
   }
 
@@ -141,7 +213,7 @@ export function renderPropertyResearch(doc: any, autoTable: any, content: any, y
   return y;
 }
 
-export function renderGlobalResearch(doc: any, autoTable: any, content: any, y: number, pageW: number, brand: BrandPalette): number {
+export function renderGlobalResearch(doc: jsPDF, autoTable: AutoTableFn, content: GlobalResearchContent, y: number, pageW: number, brand: BrandPalette): number {
   const colors = sectionColors(brand);
   const c = (i: number) => colors[i % colors.length];
 
@@ -172,12 +244,12 @@ export function renderGlobalResearch(doc: any, autoTable: any, content: any, y: 
     y = addSectionHeader(doc, "Financial Benchmarks", y, c(2));
     if (content.financialBenchmarks.adrTrends?.length) {
       y = addTable(doc, autoTable, ["Year", "National", "Boutique", "Luxury"],
-        content.financialBenchmarks.adrTrends.map((t: any) => [t.year, t.national, t.boutique || "", t.luxury || ""]),
+        content.financialBenchmarks.adrTrends.map((t) => [t.year, t.national, t.boutique || "", t.luxury || ""]),
         y, c(2), brand);
     }
     if (content.financialBenchmarks.occupancyTrends?.length) {
       y = addTable(doc, autoTable, ["Year", "National", "Boutique", "Luxury"],
-        content.financialBenchmarks.occupancyTrends.map((t: any) => [t.year, t.national, t.boutique || "", t.luxury || ""]),
+        content.financialBenchmarks.occupancyTrends.map((t) => [t.year, t.national, t.boutique || "", t.luxury || ""]),
         y, c(2), brand);
     }
   }
@@ -198,14 +270,14 @@ export function renderGlobalResearch(doc: any, autoTable: any, content: any, y: 
     if (content.debtMarket.currentConditions) y = addParagraph(doc, content.debtMarket.currentConditions, y, pageW, brand);
     if (content.debtMarket.typicalTerms?.length) {
       y = addTable(doc, autoTable, ["Term", "Value"],
-        content.debtMarket.typicalTerms.map((t: any) => [t.term, t.value]),
+        content.debtMarket.typicalTerms.map((t) => [t.term, t.value]),
         y, c(4), brand);
     }
   }
 
   if (content.emergingTrends?.length) {
     y = addSectionHeader(doc, "Emerging Trends", y, c(5));
-    y = addBulletList(doc, content.emergingTrends.map((t: any) => typeof t === 'string' ? t : `${t.trend}: ${t.description}`), y, pageW, brand);
+    y = addBulletList(doc, content.emergingTrends.map((t) => typeof t === 'string' ? t : `${t.trend}: ${t.description}`), y, pageW, brand);
   }
 
   if (content.sources?.length) {
@@ -216,7 +288,7 @@ export function renderGlobalResearch(doc: any, autoTable: any, content: any, y: 
   return y;
 }
 
-export function renderCompanyResearch(doc: any, autoTable: any, content: any, y: number, pageW: number, brand: BrandPalette): number {
+export function renderCompanyResearch(doc: jsPDF, autoTable: AutoTableFn, content: CompanyResearchContent, y: number, pageW: number, brand: BrandPalette): number {
   const colors = sectionColors(brand);
   const c = (i: number) => colors[i % colors.length];
 
@@ -241,7 +313,7 @@ export function renderCompanyResearch(doc: any, autoTable: any, content: any, y:
   if (content.gaapStandards?.length) {
     y = addSectionHeader(doc, "GAAP Standards", y, c(1));
     y = addTable(doc, autoTable, ["Standard", "Reference", "Application"],
-      content.gaapStandards.map((s: any) => [s.standard, s.reference, s.application]),
+      content.gaapStandards.map((s) => [s.standard, s.reference, s.application]),
       y, c(1), brand);
   }
 
@@ -249,7 +321,7 @@ export function renderCompanyResearch(doc: any, autoTable: any, content: any, y:
     y = addSectionHeader(doc, "Industry Benchmarks", y, c(2));
     if (content.industryBenchmarks.operatingExpenseRatios?.length) {
       y = addTable(doc, autoTable, ["Category", "Range", "Source"],
-        content.industryBenchmarks.operatingExpenseRatios.map((r: any) => [r.category, r.range, r.source || ""]),
+        content.industryBenchmarks.operatingExpenseRatios.map((r) => [r.category, r.range, r.source || ""]),
         y, c(2), brand);
     }
   }
@@ -266,7 +338,7 @@ export function renderCompanyResearch(doc: any, autoTable: any, content: any, y:
   if (content.contractTerms?.length) {
     y = addSectionHeader(doc, "Contract Terms", y, c(4));
     y = addTable(doc, autoTable, ["Term", "Typical", "Notes"],
-      content.contractTerms.map((t: any) => [t.term, t.typical, t.notes || ""]),
+      content.contractTerms.map((t) => [t.term, t.typical, t.notes || ""]),
       y, c(4), brand);
   }
 
@@ -278,7 +350,7 @@ export function renderCompanyResearch(doc: any, autoTable: any, content: any, y:
   return y;
 }
 
-export function renderPromptConditions(doc: any, conditions: Record<string, any>, y: number, pageW: number, brand: BrandPalette): number {
+export function renderPromptConditions(doc: jsPDF, conditions: PromptConditions, y: number, pageW: number, brand: BrandPalette): number {
   y = addSectionHeader(doc, "Research Conditions", y, brand.SECONDARY_RGB);
 
   doc.setFillColor(...brand.SURFACE_RGB);
@@ -410,15 +482,15 @@ async function buildResearchDoc(options: ResearchExportOptions) {
   let y = 70;
 
   if (options.promptConditions) {
-    y = renderPromptConditions(doc, options.promptConditions, y, pageW, brand);
+    y = renderPromptConditions(doc, options.promptConditions as PromptConditions, y, pageW, brand);
   }
 
   if (options.type === "property") {
-    y = renderPropertyResearch(doc, autoTable, options.content, y, pageW, brand);
+    y = renderPropertyResearch(doc, autoTable, options.content as PropertyResearchContent, y, pageW, brand);
   } else if (options.type === "global") {
-    y = renderGlobalResearch(doc, autoTable, options.content, y, pageW, brand);
+    y = renderGlobalResearch(doc, autoTable, options.content as GlobalResearchContent, y, pageW, brand);
   } else if (options.type === "company") {
-    y = renderCompanyResearch(doc, autoTable, options.content, y, pageW, brand);
+    y = renderCompanyResearch(doc, autoTable, options.content as CompanyResearchContent, y, pageW, brand);
   }
   void y;
 

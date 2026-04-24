@@ -29,9 +29,9 @@ interface DonutChartProps {
   "data-testid"?: string;
 }
 
-function CustomTooltip({ active, payload, formatValue }: { active?: boolean; payload?: any[]; formatValue: (v: number) => string }) {
+function CustomTooltip({ active, payload, formatValue }: { active?: boolean; payload?: Array<{ name?: string; value?: number; payload?: { color?: string } }>; formatValue: (v: number) => string }) {
   if (!active || !payload?.length) return null;
-  const { name, value } = payload[0];
+  const { name, value = 0 } = payload[0];
   return (
     <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg text-sm">
       <p className="font-medium text-foreground">{name}</p>

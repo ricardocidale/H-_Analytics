@@ -14,7 +14,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -23,11 +22,15 @@ import {
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_MARKETING_RATE,
-  DEPRECIATION_YEARS,
-  DAYS_PER_MONTH,
   MONTHS_PER_YEAR,
 } from "../constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { TestCase, KNOWN_VALUE_TEST_CASES, computeMonthlyPL } from "./test-cases";
+
+// Audit #319 R4 / #406 — registry-backed factory baselines (US default).
+const DEPRECIATION_YEARS = getFactoryNumber("depreciationYears");
+const DAYS_PER_MONTH = getFactoryNumber("daysPerMonth");
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 export interface KnownValueCheck {
   label: string;
@@ -46,7 +49,7 @@ export interface KnownValueTestResult {
 function r2(v: number) { return Math.round(v * 100) / 100; }
 function match(a: number, b: number) { return Math.abs(a - b) < 1; }
 
-function buildEngineInputs(tc: TestCase): { property: any; global: any } {
+function buildEngineInputs(tc: TestCase): { property: import("@engine/types").PropertyInput; global: import("@engine/types").GlobalInput } {
   const today = new Date();
   const opsDate = `${today.getFullYear()}-01-01`;
   return {
@@ -94,6 +97,10 @@ function buildEngineInputs(tc: TestCase): { property: any; global: any } {
       inflationRate: 0,
       marketingRate: DEFAULT_MARKETING_RATE,
       fixedCostEscalationRate: 0,
+      debtAssumptions: {
+        interestRate: DEFAULT_INTEREST_RATE,
+        amortizationYears: DEFAULT_TERM_YEARS,
+      },
     },
   };
 }

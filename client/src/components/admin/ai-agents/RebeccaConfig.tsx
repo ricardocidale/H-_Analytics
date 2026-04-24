@@ -1,20 +1,40 @@
+import { useState, useEffect, type ComponentType } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import {
   IconMessageCircle,
   IconBrain,
   IconPlay,
   IconUser,
-  IconSparkles,
   IconZap,
+  IconShield,
+  IconRefreshCw,
+  IconSparkles,
 } from "@/components/icons";
 import { motion } from "framer-motion";
+import {
+  DEFAULT_REBECCA_SETTINGS,
+  REBECCA_LLM_PROVIDERS,
+  REBECCA_PROVIDER_MODELS,
+  REBECCA_DEFAULT_MODEL,
+  REBECCA_TONE_PRESETS,
+  REBECCA_LENGTH_PREFERENCES,
+  REBECCA_READING_LEVELS,
+  REBECCA_CITATION_STYLES,
+  REBECCA_UNCERTAINTY,
+  REBECCA_SOURCE_KEYS,
+  type RebeccaSettings,
+  type RebeccaLlmProvider,
+  type RebeccaSourceKey,
+} from "@shared/rebecca-settings";
 
 export const DEFAULT_PROMPT = `You are Rebecca, the sharpest analyst at H+ Analytics. You know the portfolio inside out — every property's ADR, every cap rate assumption, every USALI line item. You have opinions about this work, backed by quiet confidence from watching the data compound.`;
 
@@ -23,13 +43,81 @@ export interface RebeccaConfigProps {
   displayName: string;
   systemPrompt: string;
   chatEngine: "gemini" | "perplexity";
+  settings: RebeccaSettings;
   onEnabledChange: (v: boolean) => void;
   onDisplayNameChange: (v: string) => void;
   onSystemPromptChange: (v: string) => void;
   onChatEngineChange: (v: "gemini" | "perplexity") => void;
+  onSettingsChange: (next: RebeccaSettings) => void;
   onSave: () => void;
   isSaving: boolean;
   isDirty: boolean;
+  guardrailCount?: number;
+}
+
+const SOURCE_LABELS: Record<RebeccaSourceKey, { label: string; description: string }> = {
+  knowledgeBase: { label: "Knowledge Base", description: "Admin-curated KB entries (RAG over the Knowledge Base tab)." },
+  portfolio: { label: "Portfolio Data", description: "Live property metrics, scenarios, and company assumptions." },
+  research: { label: "Research History", description: "Past research jobs and assumption guidance." },
+  documents: { label: "Documents", description: "Uploaded property documents indexed in the vector store." },
+  webSearch: { label: "Web Search", description: "Live web grounding via Perplexity (only used when provider is Perplexity)." },
+  uploadedFiles: { label: "Asset Library", description: "Uploaded photos, logos, and visual assets." },
+};
+
+function SectionCard({ icon: Icon, accent, title, description, onReset, children }: {
+  icon: ComponentType<{ className?: string }>; accent: string; title: string; description: string; onReset?: () => void; children: React.ReactNode;
+}) {
+  return (
+    <Card className="bg-card border border-border/80 shadow-sm">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-lg ${accent} flex items-center justify-center`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+              <CardDescription className="label-text mt-0.5">{description}</CardDescription>
+            </div>
+          </div>
+          {onReset && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={onReset}
+              data-testid={`button-reset-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+            >
+              <IconRefreshCw className="w-3.5 h-3.5" /> Reset
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+function DialRow({ label, hint, value, onChange, testId }: {
+  label: string; hint: string; value: number; onChange: (v: number) => void; testId: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="label-text font-medium text-xs">{label}</Label>
+        <span className="text-xs font-mono text-muted-foreground" data-testid={`value-${testId}`}>{value}/100</span>
+      </div>
+      <Slider
+        value={[value]}
+        min={0}
+        max={100}
+        step={5}
+        onValueChange={(v) => onChange(v[0] ?? 0)}
+        data-testid={`slider-${testId}`}
+      />
+      <p className="text-[11px] text-muted-foreground/70">{hint}</p>
+    </div>
+  );
 }
 
 export function RebeccaConfig({
@@ -37,14 +125,72 @@ export function RebeccaConfig({
   displayName,
   systemPrompt,
   chatEngine,
+  settings,
   onEnabledChange,
   onDisplayNameChange,
   onSystemPromptChange,
   onChatEngineChange,
-  
-  
-  
+  onSettingsChange,
+  onSave,
+  isSaving,
+  isDirty,
+  guardrailCount,
 }: RebeccaConfigProps) {
+  const { toast } = useToast();
+  const update = <K extends keyof RebeccaSettings>(section: K, patch: Partial<RebeccaSettings[K]>) => {
+    onSettingsChange({ ...settings, [section]: { ...(settings[section] as object), ...patch } as RebeccaSettings[K] });
+  };
+  const updateSource = (key: RebeccaSourceKey, patch: Partial<RebeccaSettings["sources"][RebeccaSourceKey]>) => {
+    onSettingsChange({
+      ...settings,
+      sources: { ...settings.sources, [key]: { ...settings.sources[key], ...patch } },
+    });
+  };
+  const resetSection = <K extends keyof RebeccaSettings>(section: K) => {
+    onSettingsChange({ ...settings, [section]: DEFAULT_REBECCA_SETTINGS[section] });
+  };
+
+  const providerModels = REBECCA_PROVIDER_MODELS[settings.llm.provider];
+  const fallbackModels = settings.llm.fallbackProvider ? REBECCA_PROVIDER_MODELS[settings.llm.fallbackProvider] : [];
+
+  // Test chat preview state
+  const [testInput, setTestInput] = useState("");
+  const [testReply, setTestReply] = useState<string | null>(null);
+  const [testRunning, setTestRunning] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+
+  useEffect(() => { setTestReply(null); setTestError(null); }, [settings.llm.provider, settings.llm.model]);
+
+  const runTest = async () => {
+    if (!testInput.trim()) return;
+    setTestRunning(true);
+    setTestError(null);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: testInput,
+          history: [],
+          newConversation: true,
+          responseMode: "standard",
+          previewSettings: settings,
+          preview: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Request failed");
+      setTestReply(data.response ?? "(empty response)");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Test failed";
+      setTestError(msg);
+      toast({ title: "Test chat failed", description: msg, variant: "destructive" });
+    } finally {
+      setTestRunning(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -59,227 +205,424 @@ export function RebeccaConfig({
             {displayName || "Rebecca"} Configuration
           </h3>
           <p className="text-muted-foreground text-xs mt-0.5">
-            Text chat agent — answers portfolio questions using pre-computed
-            metrics.
+            Persona, voice, model, and knowledge sources for the chat agent.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isDirty && (
+            <Badge variant="outline" className="text-xs" data-testid="badge-rebecca-dirty">Unsaved changes</Badge>
+          )}
+          <Button
+            onClick={onSave}
+            disabled={!isDirty || isSaving}
+            size="sm"
+            data-testid="button-rebecca-save"
+          >
+            {isSaving ? "Saving…" : "Save"}
+          </Button>
         </div>
       </div>
 
-      <Card className="bg-card border border-border/80 shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <IconMessageCircle className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-semibold text-foreground">
-                Agent Identity
-              </CardTitle>
-              <CardDescription className="label-text mt-0.5">
-                Display settings and behavior for the text chat agent.
-              </CardDescription>
-            </div>
+      {/* Identity & Persona */}
+      <SectionCard
+        icon={IconUser}
+        accent="bg-primary/10 text-primary"
+        title="Identity & Persona"
+        description="How the agent introduces itself and signs off."
+        onReset={() => resetSection("identity")}
+      >
+        <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+          <div>
+            <Label className="label-text font-medium">Enable {displayName || "Rebecca"}</Label>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">Show in sidebar and header for all users</p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl border border-muted/60">
-            <div>
-              <Label className="label-text font-medium">
-                Enable {displayName || "Rebecca"}
-              </Label>
-              <p className="text-xs text-muted-foreground/70 mt-0.5">
-                Show in sidebar and header for all users
-              </p>
-            </div>
-            <Switch
-              checked={enabled}
-              onCheckedChange={onEnabledChange}
-              data-testid="switch-rebecca-enabled"
-            />
+          <Switch checked={enabled} onCheckedChange={onEnabledChange} data-testid="switch-rebecca-enabled" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Display Name</Label>
+            <Input value={displayName} onChange={(e) => onDisplayNameChange(e.target.value)} placeholder="Rebecca" data-testid="input-rebecca-name" />
           </div>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Avatar Initials</Label>
+            <Input maxLength={4} value={settings.identity.avatarInitials} onChange={(e) => update("identity", { avatarInitials: e.target.value.toUpperCase() })} placeholder="RB" data-testid="input-rebecca-initials" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Subtitle / Tagline</Label>
+            <Input value={settings.identity.subtitle} onChange={(e) => update("identity", { subtitle: e.target.value })} placeholder="Your portfolio analyst" data-testid="input-rebecca-subtitle" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Role / Title</Label>
+            <Input value={settings.identity.roleTitle} onChange={(e) => update("identity", { roleTitle: e.target.value })} placeholder="Senior Portfolio Analyst" data-testid="input-rebecca-role" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Pronouns</Label>
+            <Input value={settings.identity.pronouns} onChange={(e) => update("identity", { pronouns: e.target.value })} placeholder="she/her" data-testid="input-rebecca-pronouns" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Sign-off</Label>
+            <Input value={settings.identity.signoff} onChange={(e) => update("identity", { signoff: e.target.value })} placeholder="— Rebecca" data-testid="input-rebecca-signoff" />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="label-text font-medium text-xs">Opening Greeting</Label>
+          <Textarea rows={2} value={settings.identity.greeting} onChange={(e) => update("identity", { greeting: e.target.value })} placeholder="Hi! I'm Rebecca. What would you like to dig into today?" data-testid="input-rebecca-greeting" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="label-text font-medium text-xs">Fallback "I don't know" Message</Label>
+          <Textarea rows={2} value={settings.identity.fallbackMessage} onChange={(e) => update("identity", { fallbackMessage: e.target.value })} placeholder="I don't have enough data to answer that confidently — want me to flag it for research?" data-testid="input-rebecca-fallback" />
+        </div>
+      </SectionCard>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <IconUser className="w-4 h-4 text-muted-foreground/60" />
-              <Label className="label-text font-medium text-xs uppercase tracking-wider text-muted-foreground/70">
-                Display Name
-              </Label>
-            </div>
-            <Input
-              value={displayName}
-              onChange={(e) => onDisplayNameChange(e.target.value)}
-              placeholder="Rebecca"
-              className="bg-card border-border focus:border-border transition-colors max-w-sm"
-              data-testid="input-rebecca-name"
-            />
-            <p className="text-xs text-muted-foreground/70 pl-6">
-              Name shown in the sidebar and chat panel header.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Personality */}
+      <SectionCard
+        icon={IconSparkles}
+        accent="bg-chart-3/10 text-chart-3"
+        title="Personality"
+        description="Adjust the dials that shape how the agent feels in conversation."
+        onReset={() => resetSection("personality")}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <DialRow label="Warmth" hint="Cool & detached → warm & supportive" value={settings.personality.warmth} onChange={(v) => update("personality", { warmth: v })} testId="warmth" />
+          <DialRow label="Formality" hint="Casual → formal" value={settings.personality.formality} onChange={(v) => update("personality", { formality: v })} testId="formality" />
+          <DialRow label="Humor / Dry Wit" hint="None → dry wit welcome" value={settings.personality.humor} onChange={(v) => update("personality", { humor: v })} testId="humor" />
+          <DialRow label="Verbosity" hint="Brief → thorough" value={settings.personality.verbosity} onChange={(v) => update("personality", { verbosity: v })} testId="verbosity" />
+          <DialRow label="Confidence" hint="Tentative → decisive" value={settings.personality.confidence} onChange={(v) => update("personality", { confidence: v })} testId="confidence" />
+          <DialRow label="Proactiveness" hint="Answer-only → anticipates next questions" value={settings.personality.proactiveness} onChange={(v) => update("personality", { proactiveness: v })} testId="proactiveness" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="label-text font-medium text-xs">Personality Notes</Label>
+          <Textarea rows={3} value={settings.personality.notes} onChange={(e) => update("personality", { notes: e.target.value })} placeholder="Free-form nuance, e.g. 'be skeptical about owner-supplied ADRs'…" data-testid="input-personality-notes" />
+        </div>
+      </SectionCard>
 
-      <Card className="bg-card border border-border/80 shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-pop/10 flex items-center justify-center">
-              <IconZap className="w-5 h-5 text-accent-pop" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-semibold text-foreground">
-                AI Engine
-              </CardTitle>
-              <CardDescription className="label-text mt-0.5">
-                Choose the AI model that powers {displayName || "Rebecca"}'s responses.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <Label className="label-text font-medium text-xs uppercase tracking-wider text-muted-foreground/70">
-              Chat Engine
-            </Label>
-            <Select
-              value={chatEngine}
-              onValueChange={(v) => onChatEngineChange(v as "gemini" | "perplexity")}
-            >
-              <SelectTrigger className="max-w-sm bg-card border-border" data-testid="select-rebecca-engine">
-                <SelectValue />
-              </SelectTrigger>
+      {/* Voice & Tone */}
+      <SectionCard
+        icon={IconMessageCircle}
+        accent="bg-accent-pop/10 text-accent-pop"
+        title="Voice & Tone"
+        description="Tone preset, length, reading level, and locale."
+        onReset={() => resetSection("voice")}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Tone Preset</Label>
+            <Select value={settings.voice.tonePreset} onValueChange={(v) => update("voice", { tonePreset: v as (typeof REBECCA_TONE_PRESETS)[number] })}>
+              <SelectTrigger data-testid="select-tone-preset"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="gemini" data-testid="option-engine-gemini">Gemini</SelectItem>
-                <SelectItem value="perplexity" data-testid="option-engine-perplexity">Perplexity</SelectItem>
+                {REBECCA_TONE_PRESETS.map(p => <SelectItem key={p} value={p} data-testid={`option-tone-${p}`}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground/70">
-              {chatEngine === "perplexity"
-                ? "Perplexity uses grounded web search — responses include citations from live sources."
-                : "Gemini answers from portfolio data and training knowledge."}
-            </p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Length Preference</Label>
+            <Select value={settings.voice.lengthPreference} onValueChange={(v) => update("voice", { lengthPreference: v as (typeof REBECCA_LENGTH_PREFERENCES)[number] })}>
+              <SelectTrigger data-testid="select-length-preference"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {REBECCA_LENGTH_PREFERENCES.map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Reading Level</Label>
+            <Select value={settings.voice.readingLevel} onValueChange={(v) => update("voice", { readingLevel: v as (typeof REBECCA_READING_LEVELS)[number] })}>
+              <SelectTrigger data-testid="select-reading-level"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {REBECCA_READING_LEVELS.map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Locale</Label>
+            <Input value={settings.voice.locale} onChange={(e) => update("voice", { locale: e.target.value })} placeholder="en-US" data-testid="input-locale" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <Label className="label-text text-xs">Use emoji</Label>
+            <Switch checked={settings.voice.useEmoji} onCheckedChange={(v) => update("voice", { useEmoji: v })} data-testid="switch-use-emoji" />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <Label className="label-text text-xs">First-person voice</Label>
+            <Switch checked={settings.voice.useFirstPerson} onCheckedChange={(v) => update("voice", { useFirstPerson: v })} data-testid="switch-first-person" />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <Label className="label-text text-xs">Ask clarifying Qs</Label>
+            <Switch checked={settings.voice.askClarifying} onCheckedChange={(v) => update("voice", { askClarifying: v })} data-testid="switch-ask-clarifying" />
+          </div>
+        </div>
+      </SectionCard>
 
-      <Card className="bg-card border border-border/80 shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-chart-3/10 flex items-center justify-center">
-              <IconBrain className="w-5 h-5 text-chart-3" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-semibold text-foreground">
-                System Prompt
-              </CardTitle>
-              <CardDescription className="label-text mt-0.5">
-                Customize how {displayName || "Rebecca"} responds. Portfolio
-                data is always appended automatically.
-              </CardDescription>
-            </div>
+      {/* Conversation Behavior */}
+      <SectionCard
+        icon={IconBrain}
+        accent="bg-chart-2/10 text-chart-2"
+        title="Conversation Behavior"
+        description="How Rebecca opens, cites, hedges, and pushes back."
+        onReset={() => resetSection("behavior")}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Citation Style</Label>
+            <Select value={settings.behavior.citationStyle} onValueChange={(v) => update("behavior", { citationStyle: v as (typeof REBECCA_CITATION_STYLES)[number] })}>
+              <SelectTrigger data-testid="select-citation-style"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {REBECCA_CITATION_STYLES.map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            value={systemPrompt}
-            onChange={(e) => onSystemPromptChange(e.target.value)}
-            placeholder={DEFAULT_PROMPT}
-            rows={10}
-            className="font-mono text-xs bg-card border-border"
-            data-testid="input-rebecca-prompt"
-          />
-          <p className="text-[11px] text-muted-foreground/50">
-            Leave empty to use the default prompt. Portfolio data is always
-            appended automatically.
-          </p>
-        </CardContent>
-      </Card>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Uncertainty Handling</Label>
+            <Select value={settings.behavior.uncertaintyHandling} onValueChange={(v) => update("behavior", { uncertaintyHandling: v as (typeof REBECCA_UNCERTAINTY)[number] })}>
+              <SelectTrigger data-testid="select-uncertainty"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {REBECCA_UNCERTAINTY.map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <Label className="label-text text-xs">Proactive follow-ups</Label>
+            <Switch checked={settings.behavior.proactiveFollowups} onCheckedChange={(v) => update("behavior", { proactiveFollowups: v })} data-testid="switch-proactive-followups" />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <Label className="label-text text-xs">Summarize long answers</Label>
+            <Switch checked={settings.behavior.summarizeLong} onCheckedChange={(v) => update("behavior", { summarizeLong: v })} data-testid="switch-summarize-long" />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <Label className="label-text text-xs">Push back on assumptions</Label>
+            <Switch checked={settings.behavior.pushBackOnAssumptions} onCheckedChange={(v) => update("behavior", { pushBackOnAssumptions: v })} data-testid="switch-pushback" />
+          </div>
+        </div>
+      </SectionCard>
 
-      <Card className="bg-card border border-border/80 shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <IconPlay className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-semibold text-foreground">
-                Test Chat Preview
-              </CardTitle>
-              <CardDescription className="label-text mt-0.5">
-                Preview how {displayName || "Rebecca"} will appear to users.
-              </CardDescription>
-            </div>
+      {/* LLM & Engine */}
+      <SectionCard
+        icon={IconZap}
+        accent="bg-accent-pop/10 text-accent-pop"
+        title="LLM & Engine"
+        description="Provider, model, sampling parameters, and fallback engine."
+        onReset={() => resetSection("llm")}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Primary Provider</Label>
+            <Select
+              value={settings.llm.provider}
+              onValueChange={(v) => {
+                const provider = v as RebeccaLlmProvider;
+                const patch: Partial<typeof settings.llm> = {
+                  provider,
+                  model: REBECCA_DEFAULT_MODEL[provider],
+                };
+                // If the new primary equals the current fallback, clear the
+                // fallback so failover never silently retries the same engine.
+                if (settings.llm.fallbackProvider === provider) {
+                  patch.fallbackProvider = null;
+                  patch.fallbackModel = null;
+                }
+                update("llm", patch);
+                if (provider === "gemini" || provider === "perplexity") {
+                  onChatEngineChange(provider);
+                }
+              }}
+            >
+              <SelectTrigger data-testid="select-llm-provider"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {REBECCA_LLM_PROVIDERS.map(p => <SelectItem key={p} value={p} data-testid={`option-provider-${p}`}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-xl border border-border/60 bg-gradient-to-br from-muted/20 to-muted/5 p-4 space-y-3">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-border/40">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <IconMessageCircle className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {displayName || "Rebecca"}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {enabled ? "Online" : "Offline"}
-                </p>
-              </div>
-              <div className="ml-auto">
-                <div
-                  className={cn(
-                    "w-2 h-2 rounded-full",
-                    enabled ? "bg-primary" : "bg-muted-foreground/30",
-                  )}
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Model</Label>
+            <Select value={settings.llm.model} onValueChange={(v) => update("llm", { model: v })}>
+              <SelectTrigger data-testid="select-llm-model"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {providerModels.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="label-text font-medium text-xs">Temperature</Label>
+              <span className="text-xs font-mono text-muted-foreground" data-testid="value-temperature">{settings.llm.temperature.toFixed(2)}</span>
+            </div>
+            <Slider value={[settings.llm.temperature]} min={0} max={2} step={0.05} onValueChange={(v) => update("llm", { temperature: v[0] ?? 0.7 })} data-testid="slider-temperature" />
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="label-text font-medium text-xs">Top-p</Label>
+              <span className="text-xs font-mono text-muted-foreground" data-testid="value-topp">{settings.llm.topP.toFixed(2)}</span>
+            </div>
+            <Slider value={[settings.llm.topP]} min={0} max={1} step={0.05} onValueChange={(v) => update("llm", { topP: v[0] ?? 0.95 })} data-testid="slider-topp" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="label-text font-medium text-xs">Max output tokens</Label>
+            <Input
+              type="number"
+              min={64}
+              max={16000}
+              value={settings.llm.maxOutputTokens}
+              onChange={(e) => update("llm", { maxOutputTokens: Math.max(64, Math.min(16000, Number(e.target.value) || 2048)) })}
+              data-testid="input-max-tokens"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 border-t border-border/40">
+          <div className="space-y-1.5 pt-3">
+            <Label className="label-text font-medium text-xs">Fallback Provider</Label>
+            <Select
+              value={settings.llm.fallbackProvider ?? "__none"}
+              onValueChange={(v) => update("llm", v === "__none" ? { fallbackProvider: null, fallbackModel: null } : { fallbackProvider: v as RebeccaLlmProvider, fallbackModel: REBECCA_DEFAULT_MODEL[v as RebeccaLlmProvider] })}
+            >
+              <SelectTrigger data-testid="select-fallback-provider"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">None</SelectItem>
+                {REBECCA_LLM_PROVIDERS.filter(p => p !== settings.llm.provider).map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5 pt-3">
+            <Label className="label-text font-medium text-xs">Fallback Model</Label>
+            <Select
+              value={settings.llm.fallbackModel ?? ""}
+              onValueChange={(v) => update("llm", { fallbackModel: v })}
+              disabled={!settings.llm.fallbackProvider}
+            >
+              <SelectTrigger data-testid="select-fallback-model"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                {fallbackModels.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground/70">
+          Legacy chat engine: <span className="font-mono">{chatEngine}</span> (kept for back-compat; the primary provider above wins when set).
+        </p>
+      </SectionCard>
+
+      {/* Knowledge & Sources */}
+      <SectionCard
+        icon={IconBrain}
+        accent="bg-primary/10 text-primary"
+        title="Knowledge & Sources"
+        description="Toggle which context sources Rebecca is allowed to draw from, with relative weight."
+        onReset={() => resetSection("sources")}
+      >
+        <div className="space-y-3">
+          {REBECCA_SOURCE_KEYS.map((key) => {
+            const src = settings.sources[key];
+            const meta = SOURCE_LABELS[key];
+            return (
+              <div key={key} className="p-3 rounded-lg border border-border/60 bg-muted/20 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Label className="label-text font-medium text-sm">{meta.label}</Label>
+                      <Badge variant="outline" className="text-[10px] font-mono" data-testid={`weight-${key}`}>w {src.weight}</Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground/70 mt-0.5">{meta.description}</p>
+                  </div>
+                  <Switch
+                    checked={src.enabled}
+                    onCheckedChange={(v) => updateSource(key, { enabled: v })}
+                    data-testid={`switch-source-${key}`}
+                  />
+                </div>
+                <Slider
+                  value={[src.weight]}
+                  min={0}
+                  max={100}
+                  step={5}
+                  disabled={!src.enabled}
+                  onValueChange={(v) => updateSource(key, { weight: v[0] ?? 0 })}
+                  data-testid={`slider-source-${key}`}
                 />
               </div>
-            </div>
+            );
+          })}
+        </div>
+      </SectionCard>
 
-            <div className="space-y-2.5">
-              <div className="flex gap-2">
-                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <IconMessageCircle className="w-3 h-3 text-primary" />
-                </div>
-                <div className="bg-muted/50 rounded-xl rounded-tl-sm px-3 py-2 max-w-[80%]">
-                  <p className="text-xs text-foreground">
-                    Hello! I am {displayName || "Rebecca"}, your portfolio
-                    analyst. How can I help you today?
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <div className="bg-primary/10 rounded-xl rounded-tr-sm px-3 py-2 max-w-[80%]">
-                  <p className="text-xs text-foreground/80">
-                    What is our portfolio's average occupancy rate?
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <IconMessageCircle className="w-3 h-3 text-primary" />
-                </div>
-                <div className="bg-muted/50 rounded-xl rounded-tl-sm px-3 py-2 max-w-[80%]">
-                  <p className="text-xs text-muted-foreground/60 italic">
-                    {enabled
-                      ? "Ready to answer from live portfolio data..."
-                      : "Enable the agent to start responding."}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2 border-t border-border/40">
-              <div className="flex-1 bg-muted/30 rounded-lg px-3 py-2">
-                <p className="text-xs text-muted-foreground/40">
-                  Type a message...
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <IconSparkles className="w-4 h-4 text-primary/40" />
-              </div>
-            </div>
+      {/* Guardrails Summary */}
+      <SectionCard
+        icon={IconShield}
+        accent="bg-chart-4/10 text-chart-4"
+        title="Guardrails"
+        description="Read-only summary of admin-configured guardrails."
+      >
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border/40">
+          <div>
+            <p className="text-sm font-medium" data-testid="text-guardrail-count">
+              {guardrailCount ?? 0} active guardrail{(guardrailCount ?? 0) === 1 ? "" : "s"}
+            </p>
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+              Guardrails are managed on the Guardrails tab and applied to every response.
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
+
+      {/* System Prompt */}
+      <SectionCard
+        icon={IconBrain}
+        accent="bg-chart-3/10 text-chart-3"
+        title="System Prompt"
+        description="Base instructions that anchor every conversation. Persona, tone, and behavior are layered on top."
+      >
+        <Textarea
+          value={systemPrompt}
+          onChange={(e) => onSystemPromptChange(e.target.value)}
+          placeholder={DEFAULT_PROMPT}
+          rows={8}
+          className="font-mono text-xs"
+          data-testid="input-rebecca-prompt"
+        />
+        <p className="text-[11px] text-muted-foreground/50">
+          Leave empty to use the default prompt. Portfolio data, persona overlay, and guardrails are appended automatically.
+        </p>
+      </SectionCard>
+
+      {/* Test Chat Preview */}
+      <SectionCard
+        icon={IconPlay}
+        accent="bg-primary/10 text-primary"
+        title="Test Chat Preview"
+        description="Send a real message through the current (unsaved) configuration."
+      >
+        <div className="space-y-3">
+          <Textarea
+            rows={2}
+            value={testInput}
+            onChange={(e) => setTestInput(e.target.value)}
+            placeholder="Type a test message — e.g. 'Give me a one-line summary of the portfolio.'"
+            data-testid="input-test-message"
+          />
+          <div className="flex items-center gap-2">
+            <Button onClick={runTest} disabled={testRunning || !testInput.trim()} size="sm" data-testid="button-run-test">
+              {testRunning ? "Sending…" : "Send test message"}
+            </Button>
+            <span className="text-[11px] text-muted-foreground/70">
+              Uses the unsaved settings above. Will not appear in saved Conversations.
+            </span>
+          </div>
+          {testError && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive" data-testid="text-test-error">
+              {testError}
+            </div>
+          )}
+          {testReply && (
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/40 whitespace-pre-wrap text-sm" data-testid="text-test-reply">
+              {testReply}
+            </div>
+          )}
+        </div>
+      </SectionCard>
     </motion.div>
   );
 }

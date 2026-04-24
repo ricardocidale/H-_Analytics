@@ -1,3 +1,26 @@
-./.husky/cosmetic-warn
-./.husky/stage-collision-check
+#!/usr/bin/env sh
+# pre-commit — run lint-staged + advisory hooks (cosmetic + agent-collision).
+#
+# Why these are inline rather than auto-discovered:
+# husky v9 only invokes files literally named `pre-commit`, `commit-msg`,
+# `pre-push`, etc. Sibling shell scripts (cosmetic-warn,
+# stage-collision-check) need explicit invocation or they're orphaned —
+# which they were until 2026-04-24.
+#
+# Both advisory hooks exit 0 always; they nudge, never block. The blocking
+# layer is `lint-staged` (lint + per-file typecheck on staged files).
+
+set -e
+
+# 1) Blocking gate — lint-staged config in .lintstagedrc.json:
+#    - calc/, engine/, server/, client/, shared/ → eslint --max-warnings 0
+#    - server/ also runs tsc --noEmit
+#    - calc/, engine/ also run audit-deep --staged
 npx lint-staged
+
+# 2) Advisory — warn on cosmetic-only commits (per cosmetic-budget rule).
+sh "$(dirname "$0")/cosmetic-warn" || true
+
+# 3) Advisory — warn on staged files last touched by another agent
+#    (per agent-collision-hygiene rule).
+sh "$(dirname "$0")/stage-collision-check" || true

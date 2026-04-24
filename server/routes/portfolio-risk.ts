@@ -32,7 +32,7 @@ export function register(app: Express): void {
       }
 
       const report = computePortfolioRiskScore(active);
-      logActivity(req, "generate-portfolio-risk", "portfolio", null, `${active.length} properties`, { propertyCount: active.length, overallScore: (report as any).overallScore });
+      logActivity(req, "generate-portfolio-risk", "portfolio", null, `${active.length} properties`, { propertyCount: active.length, overallScore: report.overallScore });
       return res.json(report);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Portfolio risk score computation failed";

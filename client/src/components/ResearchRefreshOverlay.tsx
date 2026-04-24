@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fireResearchConfetti } from "@/lib/confetti";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 
 function CSSBackground() {
   return (
@@ -114,7 +115,18 @@ interface ResearchRefreshOverlayProps {
   onComplete: (skipped?: boolean) => void;
 }
 
+interface SkippedRecord {
+  propertyId: number;
+  name: string;
+  missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+}
+
 export function ResearchRefreshOverlay({ onComplete }: ResearchRefreshOverlayProps) {
+  const [skippedPrompt, setSkippedPrompt] = useState<{
+    open: boolean;
+    firstSkipped: SkippedRecord | null;
+    totalSkipped: number;
+  }>({ open: false, firstSkipped: null, totalSkipped: 0 });
   const [progress, setProgress] = useState(0);
   const [currentProperty, setCurrentProperty] = useState("");
   const [phase, setPhase] = useState<"loading" | "researching" | "done">("loading");
@@ -159,8 +171,27 @@ export function ResearchRefreshOverlay({ onComplete }: ResearchRefreshOverlayPro
         return true;
       };
 
-      const generate = async (type: "property" | "company" | "global", id?: number, context?: any) => {
+      const { collectMissingLockedHardFields } = await import(
+        "@/lib/locked-hard-preflight"
+      );
+      const skipped: SkippedRecord[] = [];
+      const generate = async (type: "property" | "company" | "global", id?: number, context?: unknown, entity?: Record<string, unknown>) => {
         try {
+          // Preflight against the full entity; surface skips via prompt.
+          if (type === "property" && entity && id !== undefined) {
+            const missing = collectMissingLockedHardFields(
+              ["property.risk-intelligence", "property.executive-summary"],
+              entity,
+            );
+            if (missing.length > 0) {
+              skipped.push({
+                propertyId: id,
+                name: String(entity.name ?? `Property ${id}`),
+                missingFields: missing,
+              });
+              return;
+            }
+          }
           const res = await fetch("/api/research/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -197,7 +228,7 @@ export function ResearchRefreshOverlay({ onComplete }: ResearchRefreshOverlayPro
             location: prop.location,
             market: prop.market,
             roomCount: prop.roomCount,
-          });
+          }, prop as Record<string, unknown>);
         }
         completedSteps++;
         setCompletedCount(i + 1);
@@ -224,6 +255,16 @@ export function ResearchRefreshOverlay({ onComplete }: ResearchRefreshOverlayPro
       setProgress(100);
       setPhase("done");
       fireResearchConfetti();
+      if (skipped.length > 0) {
+        // Hold the overlay open until the prompt is dismissed so the
+        // user can act on the deep links.
+        setSkippedPrompt({
+          open: true,
+          firstSkipped: skipped[0],
+          totalSkipped: skipped.length,
+        });
+        return;
+      }
       await new Promise((r) => setTimeout(r, 1500));
       onComplete();
     } catch {
@@ -298,6 +339,20 @@ export function ResearchRefreshOverlay({ onComplete }: ResearchRefreshOverlayPro
           </motion.button>
         </div>
       </motion.div>
+      <MissingRequiredFieldsPrompt
+        open={skippedPrompt.open}
+        onOpenChange={(open) => {
+          setSkippedPrompt((s) => ({ ...s, open }));
+          if (!open) onComplete();
+        }}
+        specialistLabel={
+          skippedPrompt.totalSkipped > 1
+            ? `${skippedPrompt.firstSkipped?.name ?? "Property"} (+${skippedPrompt.totalSkipped - 1} more skipped)`
+            : (skippedPrompt.firstSkipped?.name ?? "Property")
+        }
+        missingFields={skippedPrompt.firstSkipped?.missingFields ?? []}
+        navContext={{ propertyId: skippedPrompt.firstSkipped?.propertyId }}
+      />
     </AnimatePresence>
   );
 }

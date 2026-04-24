@@ -13,6 +13,7 @@
  * forward net operating losses / NOLs).
  */
 import { Slider } from "@/components/ui/slider";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { Label } from "@/components/ui/label";
@@ -20,11 +21,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconPercent, IconCalendar, IconReceipt } from "@/components/icons";
 import {
-  DEFAULT_COMPANY_TAX_RATE,
-  DEFAULT_COMPANY_INFLATION_RATE,
+  // DEFAULT_COMPANY_INFLATION_RATE replaced with registry factory baseline (Audit #319 R4).
+  // DEFAULT_COMPANY_TAX_RATE replaced with registry factory baseline (Audit #406).
   DEFAULT_COMPANY_OPS_START_DATE,
   PROJECTION_YEARS,
 } from "@/lib/constants";
+
+// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 import EditableValue from "./EditableValue";
 import type { TaxSectionProps } from "./types";
 import { CITATIONS } from "@shared/citations";
@@ -160,7 +164,7 @@ export default function TaxSection({ formData, onChange, global, researchValues 
               </span>
             </div>
             <Slider
-              value={[((formData.companyInflationRate ?? global.companyInflationRate ?? DEFAULT_COMPANY_INFLATION_RATE) as number) * 100]}
+              value={[((formData.companyInflationRate ?? global.companyInflationRate ?? getFactoryNumber('inflationRate')) as number) * 100]}
               onValueChange={([v]) => onChange("companyInflationRate", v / 100)}
               min={0}
               max={10}

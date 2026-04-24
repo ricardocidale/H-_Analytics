@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Search, Check, X, Loader2 } from "@/components/icons/themed-icons";
 import { IconGlobe, IconMessageSquare, IconPencil, IconTrash, IconRefreshCw, IconPlus } from "@/components/icons";
-import { DEFAULT_PROPERTY_INFLATION_RATE } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { useGlobalAssumptions, useResearchQuestions, useCreateResearchQuestion, useUpdateResearchQuestion, useDeleteResearchQuestion } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -156,7 +156,7 @@ export function IndustryResearchTab() {
             </div>
             <div className="rounded-xl p-3 bg-accent-pop/10 border border-accent-pop/20">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Inflation</p>
-              <p className="text-sm font-semibold text-foreground" data-testid="text-research-inflation">{((currentGlobal.inflationRate ?? DEFAULT_PROPERTY_INFLATION_RATE) * 100).toFixed(1)}%</p>
+              <p className="text-sm font-semibold text-foreground" data-testid="text-research-inflation">{((currentGlobal.inflationRate ?? getFactoryNumber('inflationRate')) * 100).toFixed(1)}%</p>
             </div>
             <div className="rounded-xl p-3 bg-accent-pop/10 border border-accent-pop/20">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Model Duration</p>

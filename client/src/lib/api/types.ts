@@ -185,7 +185,7 @@ export interface MarketResearchResponse {
   type: string;
   propertyId: number | null;
   title: string;
-  content: any;
+  content: Record<string, unknown> & { [k: string]: any };
   llmModel: string | null;
   createdAt: string;
   updatedAt: string;

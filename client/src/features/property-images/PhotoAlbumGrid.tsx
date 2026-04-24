@@ -1,17 +1,21 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImagePlus, Sparkles, Images } from "@/components/icons/themed-icons";
-import { LayoutGrid, GalleryHorizontal } from "lucide-react";
+import { ImagePlus, Sparkles, Images, Trash2 } from "@/components/icons/themed-icons";
+import { LayoutGrid, GalleryHorizontal, FolderInput, CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement } from "@/lib/api";
 import { PhotoCard } from "./PhotoCard";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { PhotoGenerateDialog } from "./PhotoGenerateDialog";
 import { EnhancePreviewDialog } from "./EnhancePreviewDialog";
+import { PhotoMoveDialog } from "./PhotoMoveDialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 
 type ViewMode = "grid" | "carousel";
 
@@ -40,7 +44,11 @@ export function PhotoAlbumGrid({
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
   const { data: photos = [], isLoading } = usePropertyPhotos(propertyId);
   const setHero = useSetHeroPhoto();
@@ -116,6 +124,43 @@ export function PhotoAlbumGrid({
     setEnhancedPreviewUrl(null);
   };
 
+  const togglePhotoSelected = (photoId: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(photoId)) next.delete(photoId);
+      else next.add(photoId);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedIds(new Set(photos.map((p) => p.id)));
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    let ok = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        await deletePhoto.mutateAsync({ propertyId, photoId: id });
+        ok++;
+      } catch {
+        failed++;
+      }
+    }
+    setBulkDeleteOpen(false);
+    clearSelection();
+    if (failed === 0) {
+      toast({ title: `${ok} photo${ok !== 1 ? "s" : ""} deleted` });
+    } else {
+      toast({
+        title: `Deleted ${ok}, failed ${failed}`,
+        description: "Some photos could not be deleted.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleRejectEnhance = () => {
     if (enhancingPhotoId) {
       rejectEnhancement.mutate({ photoId: enhancingPhotoId, propertyId });
@@ -184,31 +229,90 @@ export function PhotoAlbumGrid({
               </button>
             </div>
           )}
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setGenerateOpen(true)} data-testid="button-generate-photo">
-            <Sparkles className="w-3.5 h-3.5" />
-            Generate
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setUploadOpen(true)} data-testid="button-upload-photo">
-            <ImagePlus className="w-3.5 h-3.5" />
-            Upload
-          </Button>
+          {isAdmin && (
+            <>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setGenerateOpen(true)} data-testid="button-generate-photo">
+                <Sparkles className="w-3.5 h-3.5" />
+                Generate
+              </Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setUploadOpen(true)} data-testid="button-upload-photo">
+                <ImagePlus className="w-3.5 h-3.5" />
+                Upload
+              </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Bulk-action toolbar — admin only, when something is selected */}
+      {isAdmin && photos.length > 0 && (
+        <div className="flex items-center justify-between gap-2 flex-wrap p-2 rounded-md bg-muted/40 border border-border" data-testid="bulk-toolbar">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => (selectedIds.size === photos.length ? clearSelection() : selectAll())}
+              className="flex items-center gap-1.5 text-xs font-medium text-foreground hover:text-primary"
+              data-testid="button-select-all"
+              aria-label={selectedIds.size === photos.length ? "Clear selection" : "Select all photos"}
+            >
+              {selectedIds.size === photos.length && photos.length > 0 ? (
+                <CheckSquare className="w-3.5 h-3.5" />
+              ) : (
+                <Square className="w-3.5 h-3.5" />
+              )}
+              {selectedIds.size === photos.length && photos.length > 0 ? "Clear selection" : "Select all"}
+            </button>
+            <span className="text-xs text-muted-foreground" data-testid="text-selected-count">
+              {selectedIds.size} of {photos.length} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => setMoveOpen(true)}
+              disabled={selectedIds.size === 0}
+              data-testid="button-bulk-move"
+            >
+              <FolderInput className="w-3.5 h-3.5" />
+              Move to property…
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1.5 text-destructive hover:text-destructive"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={selectedIds.size === 0}
+              data-testid="button-bulk-delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Empty state */}
       {photos.length === 0 ? (
         <div className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center">
           <Images className="w-10 h-10 mx-auto text-primary/30 mb-3" />
           <p className="text-sm font-medium text-muted-foreground">No photos yet</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">Upload photos or generate them with AI</p>
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}>
-              <ImagePlus className="w-4 h-4 mr-1.5" />Upload
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setGenerateOpen(true)}>
-              <Sparkles className="w-4 h-4 mr-1.5" />Generate
-            </Button>
-          </div>
+          {isAdmin ? (
+            <>
+              <p className="text-xs text-muted-foreground/70 mt-1">Upload photos or generate them with AI</p>
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)} data-testid="button-empty-upload">
+                  <ImagePlus className="w-4 h-4 mr-1.5" />Upload
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setGenerateOpen(true)} data-testid="button-empty-generate">
+                  <Sparkles className="w-4 h-4 mr-1.5" />Generate
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground/70 mt-1">An administrator hasn't added any photos for this property yet.</p>
+          )}
         </div>
       ) : viewMode === "carousel" ? (
         /* ── Carousel view ── */
@@ -348,16 +452,39 @@ export function PhotoAlbumGrid({
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
               >
-                <PhotoCard
-                  photo={photo}
-                  onSetHero={handleSetHero}
-                  onDelete={handleDelete}
-                  onUpdateCaption={handleUpdateCaption}
-                  onEnhance={handleEnhance}
-                  isSettingHero={setHero.isPending}
-                  isDeleting={deletePhoto.isPending}
-                  isEnhancing={enhancePhoto.isPending && enhancingPhotoId === photo.id}
-                />
+                <div className="relative">
+                  {isAdmin && (
+                    <div className="absolute top-2 left-2 z-20">
+                      <div
+                        className={cn(
+                          "rounded-md p-0.5 backdrop-blur-sm transition-opacity",
+                          selectedIds.has(photo.id)
+                            ? "bg-primary/90 opacity-100"
+                            : "bg-black/50 opacity-0 group-hover:opacity-100"
+                        )}
+                      >
+                        <Checkbox
+                          checked={selectedIds.has(photo.id)}
+                          onCheckedChange={() => togglePhotoSelected(photo.id)}
+                          aria-label={`Select photo ${photo.id}`}
+                          data-testid={`checkbox-photo-${photo.id}`}
+                          className="border-white/70 data-[state=checked]:bg-white data-[state=checked]:text-primary"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <PhotoCard
+                    photo={photo}
+                    onSetHero={handleSetHero}
+                    onDelete={isAdmin ? handleDelete : () => {}}
+                    onUpdateCaption={handleUpdateCaption}
+                    onEnhance={isAdmin ? handleEnhance : undefined}
+                    isSettingHero={setHero.isPending}
+                    isDeleting={deletePhoto.isPending}
+                    isEnhancing={enhancePhoto.isPending && enhancingPhotoId === photo.id}
+                    readOnly={!isAdmin}
+                  />
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -394,6 +521,30 @@ export function PhotoAlbumGrid({
         photoCaption={enhancingPhotoId ? (photos.find(p => p.id === enhancingPhotoId)?.caption || undefined) : undefined}
       />
       <PhotoUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} propertyId={propertyId} />
+      <PhotoMoveDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        sourcePropertyId={propertyId}
+        sourcePropertyName={propertyName}
+        selectedPhotoIds={Array.from(selectedIds)}
+        onComplete={clearSelection}
+      />
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent data-testid="dialog-bulk-delete">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} photo{selectedIds.size !== 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The selected photos will be permanently removed from this album. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} disabled={deletePhoto.isPending} data-testid="button-confirm-bulk-delete">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <PhotoGenerateDialog
         open={generateOpen}
         onOpenChange={setGenerateOpen}

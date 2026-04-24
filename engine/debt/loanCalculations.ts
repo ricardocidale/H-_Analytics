@@ -112,8 +112,10 @@ import {
   DEFAULT_MODEL_START_DATE,
   MONTHS_PER_YEAR,
 } from '@/lib/constants';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 
-// Re-export constants for backwards compatibility
+// Re-export constants for backwards compatibility (legacy callers).
+// New code should read `getFactoryNumber('depreciationYears', country?)` instead.
 export { 
   DEFAULT_LTV, 
   DEFAULT_INTEREST_RATE, 
@@ -154,7 +156,8 @@ export function calculateLoanParams(
   // Depreciable basis: land doesn't depreciate (IRS Publication 946 / ASC 360)
   const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
   const buildingValue = property.purchasePrice * (1 - landPct) + (property.buildingImprovements ?? 0);
-  const effectiveDepYears = property.depreciationYears ?? global?.depreciationYears ?? DEPRECIATION_YEARS;
+  // Audit #319 R4: registry-backed factory fallback (US baseline = 39 yrs).
+  const effectiveDepYears = property.depreciationYears ?? global?.depreciationYears ?? getFactoryNumber('depreciationYears');
   const annualDepreciation = buildingValue / effectiveDepYears;
   
   const monthlyRate = interestRate / MONTHS_PER_YEAR;

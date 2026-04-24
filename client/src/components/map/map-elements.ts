@@ -7,8 +7,9 @@ import {
   getMarketColorInternational,
   type ColorMode,
 } from "@/lib/map-utils";
+import type { PropertyResponse } from "@/lib/api/types";
 
-export function createMarkerElement(property: any, isSelected: boolean, colorMode: ColorMode) {
+export function createMarkerElement(property: PropertyResponse, isSelected: boolean, colorMode: ColorMode) {
   const perf = getPerformanceTier(property);
   const color = colorMode === "performance"
     ? perf.color

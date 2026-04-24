@@ -1,10 +1,11 @@
 import { MonthlyFinancials } from "../financialEngine";
 import { differenceInMonths, startOfMonth } from "date-fns";
 import { assertFinite } from "@calc/shared/decimal";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import {
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_LTV,
-  DEPRECIATION_YEARS,
+  // DEPRECIATION_YEARS replaced with registry factory baseline (Audit #319 R4).
   MONTHS_PER_YEAR,
 } from '../constants';
 import type { AuditFinding, AuditSection, PropertyAuditInput, GlobalAuditInput } from "./types";
@@ -22,7 +23,7 @@ export function auditBalanceSheet(
   const acqMonthIndex = differenceInMonths(acqDate, modelStart);
 
   const landPct = property.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT;
-  const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS;
+  const effectiveDepYears = property.depreciationYears ?? global.depreciationYears ?? getFactoryNumber('depreciationYears');
   const depreciableBasis = (property.purchasePrice ?? 0) * (1 - landPct) + (property.buildingImprovements ?? 0);
   const _monthlyDepreciation = depreciableBasis / effectiveDepYears / MONTHS_PER_YEAR;
   const landValue = (property.purchasePrice ?? 0) * landPct;

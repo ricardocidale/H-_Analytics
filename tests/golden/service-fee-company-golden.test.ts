@@ -28,12 +28,15 @@ import {
   DEFAULT_SERVICE_MARKUP,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_PROPERTY_INFLATION_RATE,
-  DEFAULT_COMPANY_TAX_RATE,
   DAYS_PER_MONTH,
 } from "../../shared/constants.js";
 import { vendorCostFromFee } from "../../calc/services/margin-calculator.js";
 import type { ServiceTemplate } from "../../calc/services/types.js";
 import { makePropertyInput as makeProperty, makeGlobalInput as makeGlobal } from "../fixtures/factories.js";
+import { getFactoryNumber } from '@shared/model-constants-registry';
+// Audit #406: registry-backed US baselines (single source of truth).
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber('taxRate', 'United States');
+
 
 // ── Service templates (all 6 default categories, with IDs) ──────────────
 const serviceTemplates: ServiceTemplate[] = DEFAULT_SERVICE_TEMPLATES.map((t, i) => ({
@@ -342,8 +345,7 @@ describe("Service Fee Company Golden — End-to-End Flow", () => {
           expect(m.companyIncomeTax).toBe(0);
         } else {
           expect(m.companyIncomeTax).toBeCloseTo(
-            m.preTaxIncome * DEFAULT_COMPANY_TAX_RATE,
-            4,
+            m.preTaxIncome * 4,
           );
         }
       }

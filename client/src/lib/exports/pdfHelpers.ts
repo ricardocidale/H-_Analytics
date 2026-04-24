@@ -12,16 +12,17 @@
  *   addFooters(doc, "My Company");   // call LAST — iterates all pages
  */
 
+import type { jsPDF } from "jspdf";
 import { BRAND, PAGE_DIMS, type BrandPalette, type ExportRowMeta, classifyRow, indentLabel, formatByType, normalizeCaps } from "./exportStyles";
 
-export function drawBrandedHeader(doc: any, pageW: number, height = 28, brand: BrandPalette = BRAND) {
+export function drawBrandedHeader(doc: jsPDF, pageW: number, height = 28, brand: BrandPalette = BRAND) {
   doc.setFillColor(...brand.PRIMARY_RGB);
   doc.rect(0, 0, pageW, height, "F");
   doc.setFillColor(...brand.SECONDARY_RGB);
   doc.rect(0, height - 2, pageW, 2, "F");
 }
 
-export function drawTitle(doc: any, text: string, x: number, y: number, opts?: {
+export function drawTitle(doc: jsPDF, text: string, x: number, y: number, opts?: {
   fontSize?: number; color?: [number, number, number]; bold?: boolean;
 }, brand: BrandPalette = BRAND) {
   const { fontSize = 18, color = brand.FOREGROUND_RGB, bold = true } = opts || {};
@@ -31,7 +32,7 @@ export function drawTitle(doc: any, text: string, x: number, y: number, opts?: {
   doc.text(text, x, y);
 }
 
-export function drawSubtitle(doc: any, text: string, x: number, y: number, opts?: {
+export function drawSubtitle(doc: jsPDF, text: string, x: number, y: number, opts?: {
   fontSize?: number; color?: [number, number, number];
 }, brand: BrandPalette = BRAND) {
   const { fontSize = 10, color = brand.BORDER_RGB } = opts || {};
@@ -41,7 +42,7 @@ export function drawSubtitle(doc: any, text: string, x: number, y: number, opts?
   doc.text(text, x, y);
 }
 
-export function drawSubtitleRow(doc: any, leftText: string, rightText: string, x: number, y: number, pageW: number, opts?: {
+export function drawSubtitleRow(doc: jsPDF, leftText: string, rightText: string, x: number, y: number, pageW: number, opts?: {
   fontSize?: number; color?: [number, number, number]; rightColor?: [number, number, number];
 }, brand: BrandPalette = BRAND) {
   const { fontSize = 10, color = brand.BORDER_RGB, rightColor = brand.ACCENT_RGB } = opts || {};
@@ -62,7 +63,7 @@ export interface DashboardSummaryMetric {
 }
 
 export function drawDashboardSummaryPage(
-  doc: any,
+  doc: jsPDF,
   pageW: number,
   entityTag: string,
   companyName: string,
@@ -179,7 +180,7 @@ export function drawDashboardSummaryPage(
   }
 }
 
-export function drawSectionHeader(doc: any, title: string, y: number, color?: [number, number, number], brand: BrandPalette = BRAND): number {
+export function drawSectionHeader(doc: jsPDF, title: string, y: number, color?: [number, number, number], brand: BrandPalette = BRAND): number {
   if (!color) color = brand.ACCENT_RGB;
   if (y > 260) { doc.addPage(); y = 20; }
   doc.setFont("helvetica", "bold");
@@ -192,7 +193,7 @@ export function drawSectionHeader(doc: any, title: string, y: number, color?: [n
   return y + 8;
 }
 
-export function drawParagraph(doc: any, text: string, y: number, pageW: number, opts?: {
+export function drawParagraph(doc: jsPDF, text: string, y: number, pageW: number, opts?: {
   fontSize?: number; indent?: number; italic?: boolean;
 }, brand: BrandPalette = BRAND): number {
   if (!text) return y;
@@ -209,7 +210,7 @@ export function drawParagraph(doc: any, text: string, y: number, pageW: number, 
   return y + 2;
 }
 
-export function drawKeyValue(doc: any, label: string, value: string, y: number, x = 18, brand: BrandPalette = BRAND): number {
+export function drawKeyValue(doc: jsPDF, label: string, value: string, y: number, x = 18, brand: BrandPalette = BRAND): number {
   if (y > 275) { doc.addPage(); y = 20; }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
@@ -327,7 +328,7 @@ export function buildFinancialTableConfig(
 }
 
 export function drawCanvasAsImage(
-  doc: any,
+  doc: jsPDF,
   canvas: HTMLCanvasElement,
   x: number,
   y: number,
@@ -346,8 +347,8 @@ export function drawCanvasAsImage(
   return y + drawH + 4;
 }
 
-export function addFooters(doc: any, companyName: string, opts?: { skipPages?: Set<number> }, brand: BrandPalette = BRAND) {
-  const totalPages = doc.internal.getNumberOfPages();
+export function addFooters(doc: jsPDF, companyName: string, opts?: { skipPages?: Set<number> }, brand: BrandPalette = BRAND) {
+  const totalPages = doc.getNumberOfPages();
   const pageH = doc.internal.pageSize.getHeight();
   const pageW = doc.internal.pageSize.getWidth();
   const skipPages = opts?.skipPages;

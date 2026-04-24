@@ -5,7 +5,7 @@ import { isAdminRole } from "@shared/constants";
 import { createResearchClient, resolveVendorFromModel } from "../research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient, normalizeModelId } from "../clients";
 import { DEFAULT_RESEARCH_MODEL } from "../resolve-llm";
-import type { ResearchConfig, LlmVendor, ScheduledResearchWorkflow } from "@shared/schema";
+import type { ResearchConfig, LlmVendor, ScheduledResearchWorkflow, ContextLlmConfig } from "@shared/schema";
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 let startupTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -56,7 +56,7 @@ export async function executeScheduledWorkflow(
     const researchConfig = (ga?.researchConfig as ResearchConfig) ?? {};
 
     const contextKey = "marketLlm";
-    const contextLlm = researchConfig[contextKey as keyof ResearchConfig] as any;
+    const contextLlm = researchConfig[contextKey as keyof ResearchConfig] as ContextLlmConfig | undefined;
     const model = normalizeModelId(
       contextLlm?.primaryLlm || researchConfig.preferredLlm || ga?.preferredLlm || DEFAULT_RESEARCH_MODEL,
     );
@@ -289,7 +289,7 @@ async function runScheduledCheckCycle(): Promise<void> {
 
     const ga = await storage.getGlobalAssumptions(adminUser.id);
     const researchConfig = (ga?.researchConfig as ResearchConfig) ?? {};
-    const contextLlm = researchConfig["marketLlm" as keyof ResearchConfig] as any;
+    const contextLlm = researchConfig["marketLlm" as keyof ResearchConfig] as ContextLlmConfig | undefined;
     const model = normalizeModelId(
       contextLlm?.primaryLlm || researchConfig.preferredLlm || ga?.preferredLlm || DEFAULT_RESEARCH_MODEL,
     );

@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, lazy, Suspense, useCallback } from "react";
-import { DEPRECIATION_YEARS, USE_SERVER_COMPUTE, USE_SERVER_EXPORTS } from "@shared/constants";
+import { USE_SERVER_COMPUTE, USE_SERVER_EXPORTS } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import Layout from "@/components/Layout";
 import { useProperty, useGlobalAssumptions } from "@/lib/api";
 import { usePropertyPhotos } from "@/lib/api/property-photos";
@@ -134,7 +135,8 @@ export default function PropertyDetail() {
     const loanProps = property as LoanParams;
     const loan = calculateLoanParams(loanProps, global as GlobalLoanParams);
     const totalCost = loanProps.purchasePrice + (loanProps.buildingImprovements ?? 0) + (loanProps.preOpeningCosts ?? 0);
-    const depPerYear = totalCost > 0 ? totalCost / DEPRECIATION_YEARS : 0;
+    // Audit #319 R4: registry-backed factory baseline.
+    const depPerYear = totalCost > 0 ? totalCost / getFactoryNumber('depreciationYears') : 0;
     let runCash = 0;
     let cumPrincipal = 0;
     return yearlyChartData.map((d, i) => {

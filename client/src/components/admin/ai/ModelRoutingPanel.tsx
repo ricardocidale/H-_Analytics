@@ -199,7 +199,7 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
 
       {registry?.adminIssues && registry.adminIssues.length > 0 && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1" data-testid="llm-issues-banner">
-          <p className="text-xs font-medium text-destructive">The Analyst detected configuration issues:</p>
+          <p className="text-xs font-medium text-destructive">Gaspar detected configuration issues:</p>
           {registry.adminIssues.map((issue, i) => (
             <p key={i} className="text-[11px] text-destructive/80">{issue.message}</p>
           ))}

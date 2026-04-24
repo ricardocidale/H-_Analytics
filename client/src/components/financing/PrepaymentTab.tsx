@@ -22,7 +22,7 @@ export function PrepaymentTab() {
   const [error, setError] = useState("");
 
   const calculatePenalty = async (type: string) => {
-    const body: any = {
+    const body: Record<string, unknown> = {
       outstanding_balance: parseFloat(balance),
       prepayment_month: parseInt(prepayMonth),
       loan_rate_annual: parseFloat(loanRate) / 100,

@@ -242,16 +242,24 @@ describe("Scenario Save/Load Code Path Verification", () => {
     path.resolve(__dirname, "../../server/routes/scenario-helpers.ts"),
     "utf-8"
   );
-  const financialSrc = fs.readFileSync(
-    path.resolve(__dirname, "../../server/storage/financial.ts"),
-    "utf-8"
-  ) + fs.readFileSync(
-    path.resolve(__dirname, "../../server/storage/financial-sharing.ts"),
-    "utf-8"
-  ) + fs.readFileSync(
-    path.resolve(__dirname, "../../server/storage/financial-fees.ts"),
-    "utf-8"
-  );
+  // Post-split: financial.ts is just a thin orchestrator. The actual scenario
+  // CRUD methods live in financial/{scenarios-crud,scenarios-load,
+  // global-assumptions,property-overrides}.ts, and the listing query that
+  // surfaces computedResults/computeHash lives in financial-sharing/listing.ts.
+  // Concatenating every file the assertions below scan keeps the
+  // `.toContain(...)` checks behaviour-equivalent to the pre-split version.
+  const financialSrc = [
+    "../../server/storage/financial.ts",
+    "../../server/storage/financial/scenarios-crud.ts",
+    "../../server/storage/financial/scenarios-load.ts",
+    "../../server/storage/financial/global-assumptions.ts",
+    "../../server/storage/financial/property-overrides.ts",
+    "../../server/storage/financial-sharing.ts",
+    "../../server/storage/financial-sharing/listing.ts",
+    "../../server/storage/financial-fees.ts",
+  ]
+    .map((rel) => fs.readFileSync(path.resolve(__dirname, rel), "utf-8"))
+    .join("\n");
   const schemaSrc = fs.readFileSync(
     path.resolve(__dirname, "../../shared/schema/scenarios.ts"),
     "utf-8"

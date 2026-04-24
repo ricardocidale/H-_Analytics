@@ -97,7 +97,7 @@ export class PropertyStorage {
   /** Insert a new property into the portfolio. Returns the created record with generated ID. */
   async createProperty(data: InsertProperty): Promise<Property> {
     // Defense-in-depth: strip any non-column keys that may have leaked through
-    // `as any` casts from callers (syncHelpers, route handlers, etc.)
+    // loose casts from callers (syncHelpers, route handlers, etc.)
     const safeData = stripToColumns(properties, data as Record<string, unknown>);
     const [property] = await db
       .insert(properties)
@@ -118,6 +118,39 @@ export class PropertyStorage {
       _indexPropertyAsync(property).catch(() => { /* ignore: Vector store indexing is async best-effort */ });
     }
     return property || undefined;
+  }
+
+  /**
+   * Stamp `properties.financialsComputedAt = now()` for a set of property
+   * IDs. Called from every finance compute entrypoint
+   * (`/api/finance/compute`, `/api/finance/property/:id`,
+   * `/api/finance/company`, `/api/verification/run`) immediately after the
+   * engine returns a successful result.
+   *
+   * The stamp drives the `all-properties-financials-computed` prerequisite
+   * (engine/analyst/registry/prerequisite-registry.ts) which gates
+   * portfolio-level Specialists. Without this single helper enforced at
+   * every entrypoint, the gate is effectively dead because no path ever
+   * sets the timestamp. Centralizing here is the only way to keep "stamp
+   * on every recompute" DRY across four routes — adding a fifth entrypoint
+   * means one line: `await storage.markPropertiesFinancialsComputed(ids)`.
+   *
+   * Fails loudly. The Specialist gating contract says "if the numbers
+   * are fresh, the timestamp reflects that." A silently-swallowed write
+   * would leave the gate open against stale numbers. The caller — every
+   * compute entrypoint — is expected to let the error propagate to the
+   * request handler, which responds 500. A blip here is a real
+   * correctness problem, not a telemetry footnote.
+   */
+  async markPropertiesFinancialsComputed(
+    ids: readonly number[],
+    at: Date = new Date(),
+  ): Promise<void> {
+    if (ids.length === 0) return;
+    await db
+      .update(properties)
+      .set({ financialsComputedAt: at })
+      .where(inArray(properties.id, [...ids]));
   }
 
   /** Soft-delete: archive a property instead of permanently destroying data. */

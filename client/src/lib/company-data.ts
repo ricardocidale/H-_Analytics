@@ -1,10 +1,13 @@
-import { CompanyMonthlyFinancials } from "./financialEngine";
+import { CompanyMonthlyFinancials, MonthlyFinancials } from "./financialEngine";
+import type { Property } from "@shared/schema";
+
+interface PropertyFinancialsBundle { financials: MonthlyFinancials[] }
 
 export function generateCompanyIncomeData(
   financials: CompanyMonthlyFinancials[],
   years: number[],
-  properties: any[],
-  propertyFinancials: any[],
+  properties: Property[],
+  propertyFinancials: PropertyFinancialsBundle[],
   summaryOnly?: boolean
 ) {
   const rows: { category: string; values: number[]; isHeader?: boolean; indent?: number }[] = [];
@@ -38,7 +41,7 @@ export function generateCompanyIncomeData(
         const getPropertyYearlyBaseFee = (propIdx: number, year: number) => {
           const pf = propertyFinancials[propIdx].financials;
           const yd = pf.slice(year * 12, (year + 1) * 12);
-          return yd.reduce((a: number, m: any) => a + m.feeBase, 0);
+          return yd.reduce((a: number, m: MonthlyFinancials) => a + m.feeBase, 0);
         };
         rows.push({ category: prop.name, values: years.map((_, y) => getPropertyYearlyBaseFee(idx, y)), indent: 2 });
       });
@@ -185,8 +188,8 @@ export function generateCompanyIncomeData(
 export function generateCompanyCashFlowData(
   financials: CompanyMonthlyFinancials[],
   years: number[],
-  properties: any[],
-  propertyFinancials: any[],
+  properties: Property[],
+  propertyFinancials: PropertyFinancialsBundle[],
   fundingLabel: string,
   summaryOnly?: boolean
 ) {
@@ -223,7 +226,7 @@ export function generateCompanyCashFlowData(
         const getPropertyYearlyBaseFee = (propIdx: number, year: number) => {
           const pf = propertyFinancials[propIdx].financials;
           const yd = pf.slice(year * 12, (year + 1) * 12);
-          return yd.reduce((a: number, m: any) => a + m.feeBase, 0);
+          return yd.reduce((a: number, m: MonthlyFinancials) => a + m.feeBase, 0);
         };
         rows.push({ category: prop.name, values: years.map((_, y) => getPropertyYearlyBaseFee(idx, y)), indent: 3 });
       });

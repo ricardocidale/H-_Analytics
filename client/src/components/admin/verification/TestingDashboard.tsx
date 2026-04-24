@@ -165,7 +165,7 @@ function AuditFindings({ findings, asAnyBudget }: {
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="font-mono text-xs" data-testid="badge-as-any-budget">
-              as any: {asAnyBudget.total}/{asAnyBudget.limit}
+              {"as-any"}: {asAnyBudget.total}/{asAnyBudget.limit}
             </Badge>
             <Progress
               value={(asAnyBudget.total / asAnyBudget.limit) * 100}

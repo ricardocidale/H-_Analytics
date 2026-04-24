@@ -10,6 +10,8 @@ export * from "./services";
 export * from "./scenarios";
 export * from "./scenario-results";
 export * from "./audit";
+export * from "./admin-resource";
+export * from "./specialist";
 export * from "./calc-audit";
 export * from "./intelligence";
 export * from "./intelligence-v2";
@@ -19,6 +21,7 @@ export * from "./notifications";
 export * from "./integrations";
 export * from "./page-visits";
 export * from "./vector-chunks";
+export * from "./media-assets";
 // NOTE: ./replit-billing is intentionally NOT re-exported. Billing telemetry
 // lives in the dev_internal Postgres schema and is strictly dev tooling.
 // Dev scripts import it directly: `from "@shared/schema/replit-billing"`.

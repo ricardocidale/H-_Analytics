@@ -59,5 +59,5 @@ export interface SuiteRunResult {
   timestamp: string;
   status: "PASS" | "WARNING" | "FAIL";
   summary: { total: number; passed: number; failed: number; critical: number };
-  data: any;
+  data: unknown;
 }

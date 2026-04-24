@@ -75,6 +75,8 @@ export interface CashFlowDataPoint {
   freeCashFlow: number;
   freeCashFlowToEquity: number;
   netCashFlowToInvestors: number;
+  depreciation: number;
+  debtService: number;
 }
 
 export interface PPECostBasisScheduleProps {

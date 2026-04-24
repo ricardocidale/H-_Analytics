@@ -1,6 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type OpenAI from "openai";
-import type { GoogleGenAI } from "@google/genai";
+import type { GoogleGenAI, ToolUnion } from "@google/genai";
 
 export interface ToolCall {
   id: string;
@@ -191,7 +191,7 @@ export class GeminiResearchClient implements ResearchClient {
       config: {
         maxOutputTokens: params.maxTokens,
         systemInstruction: params.system,
-        tools: geminiTools as any,
+        tools: geminiTools as ToolUnion[] | undefined,
       },
     });
 
@@ -238,8 +238,8 @@ export class GeminiResearchClient implements ResearchClient {
 
   convertTools(tools: Anthropic.Tool[]): unknown[] {
     const declarations = tools.map((t) => {
-      const params = { ...t.input_schema };
-      delete (params as any).additionalProperties;
+      const params: Record<string, unknown> = { ...t.input_schema };
+      delete params.additionalProperties;
       return {
         name: t.name,
         description: t.description,
@@ -256,7 +256,20 @@ interface GeminiContent {
   content?: string;
 }
 
-export type LlmVendorKey = "anthropic" | "openai" | "google";
+import type { LlmVendor } from "@shared/schema/research-types";
+
+export type LlmVendorKey = LlmVendor;
+
+export class UnsupportedResearchVendorError extends Error {
+  constructor(public readonly vendor: LlmVendor) {
+    super(`Research vendor "${vendor}" is not yet implemented (no client adapter).`);
+    this.name = "UnsupportedResearchVendorError";
+  }
+}
+
+function assertNeverVendor(v: never): never {
+  throw new Error(`Unhandled research vendor branch: ${String(v)}`);
+}
 
 export function createResearchClient(
   vendor: LlmVendorKey,
@@ -279,13 +292,24 @@ export function createResearchClient(
       if (!clients.gemini) throw new Error("Gemini client not available");
       return new GeminiResearchClient(clients.gemini);
     }
+    case "xai":
+    case "tesla":
+    case "microsoft":
+    case "meta":
+    case "deepseek":
+      throw new UnsupportedResearchVendorError(vendor);
     default:
-      throw new Error(`Unsupported research vendor: ${vendor}`);
+      // Exhaustiveness guard: if shared `LlmVendor` grows, the compiler
+      // will fail here and force this switch to be updated.
+      return assertNeverVendor(vendor);
   }
 }
 
 export function resolveVendorFromModel(model: string): LlmVendorKey {
   if (model.startsWith("gpt-") || model.startsWith("o1") || model.startsWith("o3") || model.startsWith("o4")) return "openai";
   if (model.startsWith("gemini")) return "google";
+  if (model.startsWith("grok")) return "xai";
+  if (model.startsWith("deepseek")) return "deepseek";
+  if (model.startsWith("llama") || model.startsWith("meta-")) return "meta";
   return "anthropic";
 }

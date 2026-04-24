@@ -79,7 +79,10 @@ export const DEFAULT_COST_RATE_ADMIN = 0.08;        // General & Administrative 
 export const DEFAULT_COST_RATE_MARKETING = 0.01;    // Sales & Marketing
 export const DEFAULT_COST_RATE_PROPERTY_OPS = 0.04; // Property Operations & Maintenance (POM)
 export const DEFAULT_COST_RATE_UTILITIES = 0.05;    // Utilities (electric, water, gas, internet)
-export const DEFAULT_COST_RATE_TAXES = 0.03;        // Property/real estate taxes
+// Audit #406: DEFAULT_COST_RATE_TAXES (legacy flat 3%) deleted. Property tax rates
+// now resolve through `getFactoryNumber('costRateTaxes', country, state)` from
+// MODEL_CONSTANTS_REGISTRY (US baseline = 1.2%). All call sites — schema defaults,
+// seeds, engine fallbacks, exports, golden tests — read from the registry.
 export const DEFAULT_COST_RATE_IT = 0.005;          // Information Technology
 export const DEFAULT_COST_RATE_FFE = 0.04;          // Furniture, Fixtures & Equipment reserve (FF&E)
 export const DEFAULT_COST_RATE_OTHER = 0.05;        // Miscellaneous / other operating expenses
@@ -161,8 +164,16 @@ export const SEED_EXIT_CAP_RATE_LUXURY = 0.062;
 
 export const DEFAULT_LAND_VALUE_PERCENT = 0.25;
 
-// Default depreciation period — US nonresidential real property (hotels) per
-// IRS Publication 946, IRC §168(e)(2)(A), straight-line MACRS over 39 years.
+/**
+ * @deprecated Audit #319 R4. The model-constants registry is now the canonical
+ * source for the depreciation life. Use
+ * `getFactoryNumber('depreciationYears', country, state)` from
+ * `@shared/model-constants-registry` instead. Retained for back-compat re-exports
+ * (e.g. `engine/debt/loanCalculations`), schema column defaults, and tests.
+ *
+ * Default depreciation period — US nonresidential real property (hotels) per
+ * IRS Publication 946, IRC §168(e)(2)(A), straight-line MACRS over 39 years.
+ */
 export const DEPRECIATION_YEARS = 39;
 
 // ──────────────────────────────────────────────────────────
@@ -170,6 +181,11 @@ export const DEPRECIATION_YEARS = 39;
 // ──────────────────────────────────────────────────────────
 
 export const MONTHS_PER_YEAR = 12;
+/**
+ * @deprecated Audit #319 R4. Use `getFactoryNumber('daysPerMonth')` from
+ * `@shared/model-constants-registry` (universal locality, identical numeric
+ * value). Retained for schema column defaults and tests.
+ */
 export const DAYS_PER_MONTH = 30.5;
 
 // ──────────────────────────────────────────────────────────
@@ -219,10 +235,24 @@ export const DEFAULT_STABILIZATION_MONTHS = 36;
 // INFLATION & COST ESCALATION
 // ──────────────────────────────────────────────────────────
 
+/**
+ * @deprecated Audit #319 R4. Use
+ * `getFactoryNumber('inflationRate', country, state)` from
+ * `@shared/model-constants-registry` (US baseline = 0.03, identical value;
+ * other countries pick up locality-aware rates). Retained for schema column
+ * defaults and tests.
+ */
 export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
+/**
+ * @deprecated Audit #319 R4. Same as `DEFAULT_PROPERTY_INFLATION_RATE` —
+ * route through `getFactoryNumber('inflationRate', country, state)`.
+ */
 export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
 export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RATE;
-export const DEFAULT_COMPANY_TAX_RATE = 0.30;
+// Audit #406: DEFAULT_COMPANY_TAX_RATE (legacy blended 30%) deleted. Company-level
+// tax rate now resolves through `getFactoryNumber('taxRate', country, state)` from
+// MODEL_CONSTANTS_REGISTRY (US federal corporate baseline = 0.21). Goldens
+// re-baselined in the same PR.
 
 // ──────────────────────────────────────────────────────────
 // PROJECTION HORIZON

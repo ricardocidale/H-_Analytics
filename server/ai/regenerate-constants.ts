@@ -36,8 +36,43 @@ import { MODEL_CONSTANTS_REGISTRY, getFactoryValue } from "@shared/model-constan
 import { getEffectiveConstant } from "@shared/get-effective-constant";
 import type { ModelConstantOverride } from "@shared/schema";
 import type { CitedSource } from "@shared/market-intelligence";
+import { storage } from "../storage";
+import { getSpecialistForConstant } from "../../engine/analyst/registry/specialist-catalog";
+import { logger } from "../logger";
+import {
+  runTaxBulletinDiff,
+  isJurisdictionSupported,
+  MIN_PARSE_CONFIDENCE_FOR_TRUST,
+  TAX_BULLETIN_DIFF_TOOL_ID,
+  TAX_BULLETIN_DIFF_OWNER_SPECIALIST_ID,
+  type BulletinDiffResult,
+  type BulletinFetcher,
+} from "./tools/tax-bulletin-diff";
 
 const ANALYST_MODEL = normalizeModelId("claude-sonnet-4-5");
+
+/**
+ * Sentinel `entity_id` used when persisting `research_runs` rows for
+ * Constants regeneration. The `research_runs.entity_id` column is `notNull
+ * integer` and was designed for property/company entities (which always have
+ * a real PK). Constants are keyed by `(constantKey, country, subdivision)` —
+ * a composite that doesn't fit. We pin entity_id to 0 and stash the real
+ * identity in `metadata.constant` so the audit trail is intact and the
+ * existing covering indexes don't get polluted with synthetic key hashes.
+ */
+const CONSTANTS_ENTITY_ID = 0;
+const CONSTANTS_ENTITY_TYPE = "model-constant";
+
+/**
+ * Telemetry tag stamped into `research_runs.metadata.toolId` so the audit
+ * trail records which capability produced a given proposal.
+ *   - `tax-bulletin-diff` — Helena's deterministic tool succeeded.
+ *   - `llm-fallback` — every other proposal (the LLM Analyst path).
+ *
+ * Do NOT remove either constant — `tests/server/tax-bulletin-diff.test.ts`
+ * asserts both surface in the metadata.
+ */
+export const LLM_FALLBACK_TOOL_ID = "llm-fallback" as const;
 
 export interface ConstantRegenerationProposal {
   key: string;
@@ -60,6 +95,26 @@ export interface ConstantRegenerationProposal {
   currentValue: unknown;
   /** True iff proposed value differs from currentValue (uses deep-equal). */
   isDifferentFromCurrent: boolean;
+  /**
+   * Persistent `research_runs.id` written when this proposal was synthesized.
+   * The Apply route round-trips this id into `model_constant_overrides
+   * .research_run_id`, so every analyst-sourced override is traceable to the
+   * exact run that produced it (model knobs, duration, sources, the
+   * Specialist that owned the constant).
+   *
+   * `null` only when persistence failed (logged) — the proposal is still
+   * returned so the UI can display it, but the resulting override row will
+   * carry a null FK.
+   */
+  researchRunId: number | null;
+  /**
+   * The Specialist (`SpecialistDefinition.id`) that owned the regeneration.
+   * Resolved via `getSpecialistForConstant(key)`. Mirrored into the persisted
+   * `research_runs.metadata.specialistId` for cross-table audit lookups.
+   * Never `null` in well-formed catalogs (the coverage test asserts every
+   * registry key has an owner); typed nullable for defensive degradation.
+   */
+  specialistId: string | null;
 }
 
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -208,8 +263,219 @@ function parseAnalystJson(raw: string): AnalystJson {
 }
 
 /**
+ * Try Helena's deterministic tax-bulletin-diff tool BEFORE the LLM path.
+ *
+ * Returns a fully-formed `ConstantRegenerationProposal` (and persists a
+ * `research_runs` row tagged `metadata.toolId = "tax-bulletin-diff"`) when:
+ *   - The owning Specialist is Helena (`constants.tax-research`).
+ *   - The jurisdiction is in `BULLETIN_SOURCES`.
+ *   - The tool fetches + parses the bulletin successfully.
+ *   - The parsed value for the requested constant key is present.
+ *   - `parseConfidence >= MIN_PARSE_CONFIDENCE_FOR_TRUST`.
+ *
+ * Returns `null` when ANY precondition fails — the caller then falls through
+ * to the LLM Analyst path. The reason is logged for observability and (when
+ * the tool actually ran) recorded as a failed `research_runs` row so the
+ * Resources surface can show "tool fell back" telemetry.
+ *
+ * `fetcher` is injectable for testing — production calls leave it undefined
+ * to use the default `fetch`-based implementation.
+ */
+async function tryTaxBulletinDiff(args: {
+  key: string;
+  country: string | null;
+  subdivision: string | null;
+  owningSpecialistId: string;
+  resolvedValue: unknown;
+  factoryValue: unknown;
+  fetcher?: BulletinFetcher;
+}): Promise<ConstantRegenerationProposal | null> {
+  if (args.owningSpecialistId !== TAX_BULLETIN_DIFF_OWNER_SPECIALIST_ID) return null;
+  if (!args.country) return null;
+  const jurisdiction = { country: args.country, subdivision: args.subdivision };
+  if (!isJurisdictionSupported(jurisdiction)) return null;
+
+  const startedAt = Date.now();
+  let diff: BulletinDiffResult;
+  try {
+    const cached = await storage.getTaxBulletinCache(args.country, args.subdivision);
+    diff = await runTaxBulletinDiff({
+      jurisdiction,
+      cached: cached
+        ? {
+            bulletinHash: cached.bulletinHash,
+            parsedValues: cached.parsedValues,
+            fetchedAt: cached.fetchedAt.toISOString(),
+          }
+        : null,
+      fetcher: args.fetcher,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn(
+      `tax-bulletin-diff failed for ${args.country}/${args.subdivision ?? "federal"} (key=${args.key}); falling back to LLM: ${msg}`,
+      "regenerate-constants",
+    );
+    // Persist the failure as a research_run so the audit trail records the
+    // attempt — without this the Resources surface would show "tool never
+    // ran" when in fact it ran and failed.
+    try {
+      await storage.createResearchRun({
+        entityType: CONSTANTS_ENTITY_TYPE,
+        entityId: CONSTANTS_ENTITY_ID,
+        tier: 1,
+        status: "failed",
+        completedAt: new Date(),
+        durationMs: Date.now() - startedAt,
+        error: msg,
+        metadata: {
+          specialistId: args.owningSpecialistId,
+          toolId: TAX_BULLETIN_DIFF_TOOL_ID,
+          constant: { key: args.key, country: args.country, subdivision: args.subdivision },
+        },
+      });
+    } catch { /* swallow audit-logging failure; we're already on fallback */ }
+    return null;
+  }
+
+  const parsed = diff.parsedValues[args.key];
+  if (parsed === undefined) return null;
+  if (diff.parseConfidence < MIN_PARSE_CONFIDENCE_FOR_TRUST) {
+    logger.warn(
+      `tax-bulletin-diff parseConfidence=${diff.parseConfidence.toFixed(2)} below trust threshold for ${args.country}/${args.subdivision ?? "federal"}; falling back to LLM`,
+      "regenerate-constants",
+    );
+    return null;
+  }
+
+  // Persist the cache so the next refresh produces a real diff.
+  // Loud-fail doctrine: a cache write failure means the next deterministic
+  // run cannot reproduce its diff baseline. We do NOT silently fall back to
+  // LLM here — that would mask the persistence regression. Record the
+  // failure and re-throw so the operator (and the audit trail) sees it.
+  try {
+    await storage.upsertTaxBulletinCache({
+      country: args.country,
+      subdivision: args.subdivision ?? "",
+      sourceUrl: diff.sourceUrl,
+      publisher: diff.publisher,
+      bulletinHash: diff.bulletinHash,
+      parsedValues: diff.parsedValues as Record<string, unknown>,
+      rawExcerpt: diff.rawExcerpt,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(
+      `tax-bulletin-diff cache upsert failed for ${args.country}/${args.subdivision ?? "federal"}; refusing to ship a non-reproducible deterministic result: ${msg}`,
+      "regenerate-constants",
+    );
+    try {
+      await storage.createResearchRun({
+        entityType: CONSTANTS_ENTITY_TYPE,
+        entityId: CONSTANTS_ENTITY_ID,
+        tier: 1,
+        status: "failed",
+        completedAt: new Date(),
+        durationMs: Date.now() - startedAt,
+        error: `cache_write_failed: ${msg}`,
+        metadata: {
+          specialistId: args.owningSpecialistId,
+          toolId: TAX_BULLETIN_DIFF_TOOL_ID,
+          constant: { key: args.key, country: args.country, subdivision: args.subdivision },
+          stage: "cache-upsert",
+        },
+      });
+    } catch { /* swallow audit failure; we are about to throw anyway */ }
+    throw new Error(
+      `tax-bulletin-diff cache persistence failed for ${args.country}/${args.subdivision ?? "federal"}: ${msg}`,
+    );
+  }
+
+  const value = parsed;
+  const citation = diff.citations[0];
+  const reasoning = diff.changedFields.length > 0
+    ? `Deterministic fetch + parse from ${diff.publisher}. ${diff.changedFields.length} field(s) changed since last refresh.`
+    : `Deterministic fetch from ${diff.publisher}; value unchanged since last refresh.`;
+  const sources: CitedSource[] = diff.citations.map((c) => ({
+    title: c.publisher,
+    url: c.url,
+    snippet: c.rawExcerpt,
+  }));
+
+  let researchRunId: number | null = null;
+  try {
+    const run = await storage.createResearchRun({
+      entityType: CONSTANTS_ENTITY_TYPE,
+      entityId: CONSTANTS_ENTITY_ID,
+      tier: 0,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - startedAt,
+      modelPrimary: null,
+      metadata: {
+        specialistId: args.owningSpecialistId,
+        toolId: TAX_BULLETIN_DIFF_TOOL_ID,
+        constant: { key: args.key, country: args.country, subdivision: args.subdivision },
+        proposal: {
+          value,
+          authority: diff.publisher,
+          referenceUrl: diff.sourceUrl,
+          reasoning,
+          factoryValue: args.factoryValue,
+          isDifferentFromCurrent: !deepEqual(value, args.resolvedValue),
+        },
+        bulletin: {
+          hash: diff.bulletinHash,
+          fetchedAt: diff.fetchedAt,
+          parseConfidence: diff.parseConfidence,
+          changedFields: diff.changedFields.map((f) => f.fieldKey),
+        },
+        sources,
+      },
+    });
+    researchRunId = run.id;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn(
+      `Failed to persist research_run for tax-bulletin-diff (${args.country}/${args.subdivision ?? "federal"}); proceeding with null FK: ${msg}`,
+      "regenerate-constants",
+    );
+  }
+
+  const entry = MODEL_CONSTANTS_REGISTRY[args.key]!;
+  return {
+    key: args.key,
+    label: entry.label,
+    country: args.country,
+    subdivision: args.subdivision,
+    value,
+    authority: citation?.publisher ?? diff.publisher,
+    referenceUrl: diff.sourceUrl,
+    reasoning,
+    sources,
+    factoryValue: args.factoryValue,
+    currentValue: args.resolvedValue,
+    isDifferentFromCurrent: !deepEqual(value, args.resolvedValue),
+    researchRunId,
+    specialistId: args.owningSpecialistId,
+  };
+}
+
+/**
  * Produce a regeneration proposal for a single constant at a single
- * locality. Does NOT persist anything.
+ * locality. Does NOT persist anything other than the audit `research_run`
+ * (and, on Helena's deterministic path, the bulletin cache).
+ *
+ * Pipeline (Phase 2c addition):
+ *   1. Resolve the owning Specialist; validate locality.
+ *   2. If the owner is Helena AND the jurisdiction is supported by the
+ *      tax-bulletin-diff tool, run the tool first. On success, return the
+ *      tool's proposal directly — no LLM call.
+ *   3. Otherwise, fall through to the LLM Analyst path (unchanged from
+ *      Phase 3). The proposal is tagged `metadata.toolId = "llm-fallback"`.
+ *
+ * `fetcher` is wired through to the deterministic tool so tests can stub
+ * HTTP without touching live tax-authority endpoints.
  */
 export async function proposeConstantRegeneration(args: {
   key: string;
@@ -217,9 +483,23 @@ export async function proposeConstantRegeneration(args: {
   subdivision: string | null;
   /** All current overrides — caller passes the cached list to avoid an extra DB hit. */
   overrides: ModelConstantOverride[];
+  /** Test seam — production callers leave undefined to use real `fetch`. */
+  bulletinFetcher?: BulletinFetcher;
 }): Promise<ConstantRegenerationProposal> {
+  const startedAt = Date.now();
   const entry = MODEL_CONSTANTS_REGISTRY[args.key];
   if (!entry) throw new Error(`Unknown constant key: ${args.key}`);
+
+  const owningSpecialist = getSpecialistForConstant(args.key);
+  if (!owningSpecialist) {
+    // Hard fail — Constants doctrine requires an owning Specialist for every
+    // governed key. The coverage test catches drifts at build time, so this
+    // is a runtime safety net, not the primary enforcement.
+    throw new Error(
+      `No AI Intelligence Specialist owns constant '${args.key}'. ` +
+      `Add it to a Specialist's constantsOwned[] in engine/analyst/registry/specialist-catalog.ts.`,
+    );
+  }
 
   // Locality validation mirrors the route helper. We re-do it here so the
   // function is safe to call from non-route contexts (scheduler, tests).
@@ -241,6 +521,21 @@ export async function proposeConstantRegeneration(args: {
     overrides: args.overrides,
   });
   const expectedType = expectedTypeOf(factoryValue);
+
+  // 0. Deterministic-first: try Helena's tax-bulletin-diff before any LLM
+  //    call. Returns a fully-formed proposal on success, `null` to fall
+  //    through to the LLM Analyst path. See `tryTaxBulletinDiff` for the
+  //    full set of preconditions.
+  const deterministicProposal = await tryTaxBulletinDiff({
+    key: args.key,
+    country: args.country,
+    subdivision: args.subdivision,
+    owningSpecialistId: owningSpecialist.id,
+    resolvedValue: resolved.value,
+    factoryValue,
+    fetcher: args.bulletinFetcher,
+  });
+  if (deterministicProposal) return deterministicProposal;
 
   // 1. Grounded search (best-effort).
   let searchAnswer = "";
@@ -299,6 +594,56 @@ export async function proposeConstantRegeneration(args: {
   if (!parsed.reasoning) throw new Error("Analyst response missing `reasoning` field.");
 
   const value = coerceToType(parsed.value, expectedType);
+  const referenceUrl = parsed.referenceUrl ?? entry.meta.referenceUrl ?? null;
+  const durationMs = Date.now() - startedAt;
+
+  // Persist the research run BEFORE returning so the proposal carries a real
+  // FK target the Apply route can write into model_constant_overrides
+  // .research_run_id. Failures are logged and degraded to a null FK — we
+  // don't block the proposal because the analyst result is still useful.
+  let researchRunId: number | null = null;
+  try {
+    const run = await storage.createResearchRun({
+      entityType: CONSTANTS_ENTITY_TYPE,
+      entityId: CONSTANTS_ENTITY_ID,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs,
+      modelPrimary: ANALYST_MODEL,
+      metadata: {
+        specialistId: owningSpecialist.id,
+        specialistLetter: owningSpecialist.letter,
+        // Phase 2c — every Helena run records WHICH capability produced the
+        // proposal. The deterministic path stamps "tax-bulletin-diff"; this
+        // path is the catch-all LLM Analyst.
+        toolId: LLM_FALLBACK_TOOL_ID,
+        constant: {
+          key: args.key,
+          country: args.country,
+          subdivision: args.subdivision,
+        },
+        proposal: {
+          value,
+          authority: parsed.authority,
+          referenceUrl,
+          reasoning: parsed.reasoning,
+          factoryValue,
+          isDifferentFromCurrent: !deepEqual(value, resolved.value),
+        },
+        sources: searchSources,
+        groundedSearchUsed: searchSources.length > 0,
+      },
+    });
+    researchRunId = run.id;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const loc = `${args.country ?? "universal"}${args.subdivision ? `/${args.subdivision}` : ""}`;
+    logger.warn(
+      `Failed to persist research_run for constant '${args.key}' (${loc}); proceeding with null FK: ${msg}`,
+      "regenerate-constants",
+    );
+  }
 
   return {
     key: args.key,
@@ -307,11 +652,13 @@ export async function proposeConstantRegeneration(args: {
     subdivision: args.subdivision,
     value,
     authority: parsed.authority,
-    referenceUrl: parsed.referenceUrl ?? entry.meta.referenceUrl ?? null,
+    referenceUrl,
     reasoning: parsed.reasoning,
     sources: searchSources,
     factoryValue,
     currentValue: resolved.value,
     isDifferentFromCurrent: !deepEqual(value, resolved.value),
+    researchRunId,
+    specialistId: owningSpecialist.id,
   };
 }

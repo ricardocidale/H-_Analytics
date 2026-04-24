@@ -18,7 +18,33 @@ export interface IcpResearchReport {
   generatedAt: string;
   model: string;
   sections: IcpResearchSection[];
-  extractedMetrics: Record<string, any>;
+  extractedMetrics: IcpExtractedMetrics;
+}
+
+export interface MetricObject {
+  value?: string | number;
+  unit?: string;
+  range?: string;
+  description?: string;
+  [k: string]: unknown;
+}
+export type MetricValue = string | number | MetricObject;
+
+function isMetricObject(v: unknown): v is MetricObject {
+  return !!v && typeof v === "object" && "value" in (v as object);
+}
+export interface IcpExtractedMetrics {
+  locationMetrics?: Array<Record<string, MetricValue> & { locationKey?: string; location?: string }>;
+  [key: string]: unknown;
+}
+
+export interface ParsedIcpResponse {
+  generalMarket?: { title?: string; content?: string };
+  locations?: Array<{ title?: string; locationKey?: string; content?: string }>;
+  conclusion?: { title?: string; content?: string };
+  rawResponse?: string;
+  extractedMetrics?: IcpExtractedMetrics;
+  [key: string]: unknown;
 }
 
 export interface IcpResearchSection {
@@ -55,7 +81,7 @@ export function buildIcpResearchPrompt(
 
   const locations = (icpConfig._locations || []) as IcpLocation[];
   const descriptive = (icpConfig._descriptive || {}) as Record<string, string>;
-  const sources = icpConfig._sources as { urls?: any[]; files?: any[]; allowUnrestricted?: boolean } | undefined;
+  const sources = icpConfig._sources as { urls?: Array<{ label?: string; url?: string }>; files?: Array<{ name?: string }>; allowUnrestricted?: boolean } | undefined;
 
   let locationBlock = "";
   if (ctx.location !== false) {
@@ -70,8 +96,8 @@ export function buildIcpResearchPrompt(
 
   let sourcesBlock = "";
   {
-    const urlList = (sources?.urls || []).map((u: any) => `- ${u.label}: ${u.url}`).join("\n");
-    const fileList = (sources?.files || []).map((f: any) => {
+    const urlList = (sources?.urls || []).map((u) => `- ${u.label}: ${u.url}`).join("\n");
+    const fileList = (sources?.files || []).map((f) => {
       return `- [Uploaded] ${f.name}`;
     }).join("\n");
     const companySrcList = (companySources || []).map((s) => `- ${s.label}: ${s.url}`).join("\n");
@@ -217,7 +243,7 @@ export function buildMarkdownFromReport(report: IcpResearchReport, propertyLabel
     lines.push("|--------|-------|------|");
     for (const [key, val] of Object.entries(report.extractedMetrics)) {
       if (key === "locationMetrics") continue;
-      if (val && typeof val === "object" && "value" in val) {
+      if (isMetricObject(val)) {
         const range = val.range ? ` (${val.range})` : "";
         lines.push(`| ${val.description || key} | ${val.value}${range} | ${val.unit || ""} |`);
       }
@@ -237,7 +263,7 @@ export function buildMarkdownFromReport(report: IcpResearchReport, propertyLabel
           ["Incentive Fee Range", loc.incentiveFeeRange],
         ];
         for (const [label, metric] of entries) {
-          if (metric && typeof metric === "object" && "value" in metric) {
+          if (isMetricObject(metric)) {
             const range = metric.range ? ` (${metric.range})` : "";
             lines.push(`| ${label} | ${metric.value}${range} ${metric.unit || ""} |`);
           }
@@ -256,16 +282,16 @@ export function buildMarkdownFromReport(report: IcpResearchReport, propertyLabel
   return lines.join("\n");
 }
 
-export function parseResearchResponse(fullContent: string): any {
+export function parseResearchResponse(fullContent: string): ParsedIcpResponse {
   try {
     const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-    return JSON.parse(jsonMatch ? jsonMatch[0] : fullContent);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : fullContent) as ParsedIcpResponse;
   } catch {
     return { rawResponse: fullContent };
   }
 }
 
-export function buildReportFromParsed(parsed: any, model: string): IcpResearchReport {
+export function buildReportFromParsed(parsed: ParsedIcpResponse, model: string): IcpResearchReport {
   const report: IcpResearchReport = {
     generatedAt: new Date().toISOString(),
     model,
@@ -308,9 +334,16 @@ export function buildReportFromParsed(parsed: any, model: string): IcpResearchRe
 }
 
 export function buildFinancialSummary(
-  ga: any,
-  mgmtCompany: any,
-  managedProps: any[],
+  ga: { baseManagementFee?: number; incentiveManagementFee?: number; [k: string]: unknown },
+  mgmtCompany: { name?: string; [k: string]: unknown } | null,
+  managedProps: Array<{
+    name?: string;
+    roomCount?: number;
+    startAdr?: number;
+    startOccupancy?: number;
+    adrGrowthRate?: number;
+    [k: string]: unknown;
+  }>,
 ): string {
   const lines: string[] = [];
   if (mgmtCompany) lines.push(`Management Company: ${mgmtCompany.name}`);
@@ -417,7 +450,7 @@ export async function exportReportPdf(
     const metrics = report.extractedMetrics;
     for (const [key, val] of Object.entries(metrics)) {
       if (key === "locationMetrics") continue;
-      if (val && typeof val === "object" && "value" in val) {
+      if (isMetricObject(val)) {
         checkPage(6);
         doc.text(`${val.description || key}: ${val.value} ${val.unit || ""}`, margin + 2, y);
         y += 5;
@@ -441,7 +474,7 @@ export async function exportReportPdf(
           ["Demand Growth", loc.demandGrowthRate],
         ];
         for (const [label, metric] of locEntries) {
-          if (metric && typeof metric === "object" && "value" in metric) {
+          if (isMetricObject(metric)) {
             checkPage(5);
             doc.text(`  ${label}: ${metric.value} ${metric.unit || ""}`, margin + 4, y);
             y += 4.5;
@@ -476,7 +509,7 @@ export async function exportReportDocx(
     PageOrientation, AlignmentType, BorderStyle,
   } = docx;
 
-  const children: any[] = [];
+  const children: Array<import("docx").Paragraph | import("docx").Table> = [];
 
   children.push(
     new Paragraph({
@@ -524,7 +557,7 @@ export async function exportReportDocx(
     const metrics = report.extractedMetrics;
     for (const [key, val] of Object.entries(metrics)) {
       if (key === "locationMetrics") continue;
-      if (val && typeof val === "object" && "value" in val) {
+      if (isMetricObject(val)) {
         children.push(
           new Paragraph({
             children: [
@@ -557,7 +590,7 @@ export async function exportReportDocx(
           ["Investment Rating", loc.investmentRating ? { value: loc.investmentRating, unit: "" } : null],
         ];
         for (const [label, metric] of locEntries) {
-          if (metric && typeof metric === "object" && "value" in metric) {
+          if (isMetricObject(metric)) {
             children.push(
               new Paragraph({
                 children: [
@@ -574,7 +607,7 @@ export async function exportReportDocx(
     }
   }
 
-  const docConfig: any = {
+  const docConfig: ConstructorParameters<typeof import("docx").Document>[0] = {
     sections: [{
       properties: {
         page: {

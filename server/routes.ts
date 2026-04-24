@@ -16,6 +16,7 @@ import * as countryRiskPremiumRoutes from "./routes/country-risk-premium";
 import * as countryDefaultsRoutes from "./routes/country-defaults";
 import * as tileRoutes from "./routes/tiles";
 import * as photoRoutes from "./routes/property-photos";
+import * as mediaRoutes from "./routes/media";
 import * as chatRoutes from "./routes/chat";
 import * as aiRoutes from "./routes/ai";
 import * as premiumExportRoutes from "./routes/premium-exports";
@@ -41,6 +42,7 @@ import * as icpIntelligenceRoutes from "./routes/icp-intelligence";
 import * as renderSettingsRoutes from "./routes/render-settings";
 import * as pageVisitRoutes from "./routes/page-visits";
 import * as analystAdminRoutes from "./routes/analyst-admin";
+import * as specialistPhotoEnhancerRoutes from "./routes/specialist-photo-enhancer";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -65,6 +67,7 @@ export async function registerRoutes(
   countryDefaultsRoutes.register(app);
   tileRoutes.register(app);
   photoRoutes.register(app);
+  mediaRoutes.register(app);
   chatRoutes.register(app);
   aiRoutes.register(app);
   premiumExportRoutes.register(app);
@@ -89,6 +92,7 @@ export async function registerRoutes(
   renderSettingsRoutes.register(app);
   pageVisitRoutes.register(app);
   analystAdminRoutes.register(app);
+  specialistPhotoEnhancerRoutes.register(app);
 
   return httpServer;
 }

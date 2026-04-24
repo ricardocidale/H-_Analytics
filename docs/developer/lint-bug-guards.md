@@ -57,3 +57,8 @@ Always add a `--` comment explaining *why*. Do **not** add file-level
 - `tests/audit/no-raw-number-params.test.ts` — bans `Number(req.params.*)` in
   route handlers.
 - `tests/audit/vocabulary-compliance.test.ts` — UI copy guard.
+- `tests/client/model-constants-tab-browser.test.tsx` — runtime DOM browser
+  test that asserts the admin Constants tab is read-only (Phase 4 doctrine).
+  Runs in `npm test` and as the dedicated `Constants tab read-only browser
+  test (Phase 4 doctrine)` step in `.github/workflows/ci.yml`. See
+  `tests/browser/README.md`.

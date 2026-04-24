@@ -50,6 +50,11 @@ describe("NOL Carryforward — High-Cost Property with Early Losses", () => {
     landValuePercent: 0.25,
     buildingImprovements: 0,
     taxRate: DEFAULT_PROPERTY_INCOME_TAX_RATE, // 0.25
+    // Audit #406: factory default (registry US 0.012) is too low to drive
+    // this scenario into early losses. Pin the legacy 0.03 here — this test
+    // intentionally constructs a HIGH-COST property to exercise NOL accrual,
+    // not to assert the canonical US property-tax rate.
+    costRateTaxes: 0.03,
     operatingReserve: 0,
   });
 

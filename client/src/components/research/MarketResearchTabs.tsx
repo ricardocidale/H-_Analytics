@@ -19,6 +19,146 @@ import {
 
 const MAX_OTA_CHANNELS_SHOWN = 6;
 
+interface Competitor {
+  name?: string;
+  adr?: number;
+  occupancy?: number;
+  revpar?: number;
+  roomCount?: number;
+  quality?: number;
+  reviewScore?: number;
+}
+
+interface SupplyPipelineItem {
+  name?: string;
+  rooms?: number;
+  units?: number;
+  status?: string;
+}
+
+interface DemandDriver {
+  name?: string;
+  driver?: string;
+  distance?: string;
+  impact?: number;
+  impactScore?: number;
+}
+
+interface AdrProjection {
+  year?: string;
+  adr?: number;
+  base?: number;
+  upside?: number;
+  downside?: number;
+}
+
+interface OccupancyRampPoint {
+  month?: string;
+  label?: string;
+  occupancy?: number;
+  value?: number;
+}
+
+interface DepartmentCost {
+  name?: string;
+  department?: string;
+  labor?: number;
+  other?: number;
+  expenses?: number;
+}
+
+interface BenchmarkValue {
+  value: number;
+  source: string;
+}
+
+interface ResearchSourceItem {
+  title: string;
+  url: string;
+  snippet: string;
+  publishedDate?: string;
+}
+
+interface GroundedResearchResult {
+  query?: string;
+  answer?: string;
+  fetchedAt?: string;
+  sources?: ResearchSourceItem[];
+}
+
+interface MarketIntelligenceMeta {
+  groundedResearch?: GroundedResearchResult[];
+  errors?: string[];
+  benchmarks?: {
+    submarket?: string;
+    revpar?: BenchmarkValue;
+    adr?: BenchmarkValue;
+    occupancy?: BenchmarkValue;
+    capRate?: BenchmarkValue;
+  };
+}
+
+interface ResearchTabContent {
+  marketOverview?: {
+    supplyPipeline?: SupplyPipelineItem[];
+    demandDrivers?: DemandDriver[];
+    positioning?: string;
+  };
+  competitiveSet?: { competitors?: Competitor[] };
+  adrAnalysis?: {
+    recommendedAdr?: number;
+    confidence?: number;
+    revpar?: number;
+    projections?: AdrProjection[];
+  };
+  occupancyAnalysis?: {
+    stabilizedOccupancy?: number;
+    ramp?: OccupancyRampPoint[];
+  };
+  cateringAnalysis?: {
+    foodAndBevRevenue?: number;
+    cateringRevenue?: number;
+  };
+  eventDemand?: unknown;
+  capRateAnalysis?: {
+    recommendedCapRate?: number;
+    capRate?: number;
+    marketRange?: { low?: number; high?: number };
+    rangeMin?: number;
+    rangeMax?: number;
+    sensitivity?: {
+      capRateUp?: number;
+      capRateDown?: number;
+      adrUp?: number;
+      adrDown?: number;
+      occUp?: number;
+      occDown?: number;
+    };
+    ltv?: number;
+    dscr?: number;
+    debtYield?: number;
+  };
+  landValueAllocation?: { ltv?: number; dscr?: number };
+  operatingCosts?: {
+    departments?: DepartmentCost[];
+    roomsLabor?: number; roomsOther?: number;
+    fbLabor?: number; fbOther?: number;
+    adminLabor?: number; adminOther?: number;
+    maintLabor?: number; maintOther?: number;
+    mktLabor?: number; mktOther?: number;
+    laborPct?: number; totalLabor?: number;
+    utilitiesPct?: number; utilities?: number;
+    costPerRoom?: number;
+    laborPerKey?: number;
+    staffingRatios?: Record<string, number | string>;
+  };
+  propertyValueCosts?: {
+    propertyTax?: number;
+    propertyTaxPct?: number;
+  };
+  _marketIntelligence?: MarketIntelligenceMeta;
+}
+
 function HotelCompSection({ location }: { location: string }) {
   const parts = location.split(",").map((s) => s.trim());
   const city = parts[0] || location;
@@ -138,22 +278,22 @@ function HotelCompSection({ location }: { location: string }) {
   );
 }
 
-export function MarketTab({ content, propertyLocation }: { content: any; propertyLocation?: string }) {
+export function MarketTab({ content, propertyLocation }: { content: ResearchTabContent; propertyLocation?: string }) {
   const mo = content?.marketOverview;
   const cs = content?.competitiveSet;
   if (!mo && !cs && !propertyLocation) return <EmptySection />;
 
-  const compRadar = cs?.competitors?.slice(0, 6).map((c: any) => ({
+  const compRadar = cs?.competitors?.slice(0, 6).map((c: Competitor) => ({
     subject: c.name?.slice(0, 14) || "Comp",
     ADR: c.adr ?? 0, Occupancy: c.occupancy ?? 0, RevPAR: c.revpar ?? 0,
     Rooms: c.roomCount ?? 0, Quality: c.quality ?? 50, Reviews: c.reviewScore ?? 50,
   })) || [];
 
-  const supplyData = mo?.supplyPipeline?.map((s: any, i: number) => ({
+  const supplyData = mo?.supplyPipeline?.map((s: SupplyPipelineItem, i: number) => ({
     name: s.name || `Pipeline ${i + 1}`, rooms: s.rooms ?? s.units ?? 0, status: s.status || PropertyStatus.PLANNED,
   })) || [];
 
-  const drivers = mo?.demandDrivers?.slice(0, 5) || [];
+  const drivers: DemandDriver[] = mo?.demandDrivers?.slice(0, 5) || [];
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-6">
@@ -197,7 +337,7 @@ export function MarketTab({ content, propertyLocation }: { content: any; propert
         <motion.div variants={fadeUp}>
           <h3 className="font-display text-lg font-semibold mb-3">Demand Drivers</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {drivers.map((d: any, i: number) => (
+            {drivers.map((d: DemandDriver, i: number) => (
               <motion.div key={i} variants={fadeUp} className={`${card} p-4`}>
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${COLORS[i % COLORS.length]}22` }}>
@@ -229,13 +369,13 @@ export function MarketTab({ content, propertyLocation }: { content: any; propert
   );
 }
 
-export function RevenueTab({ content }: { content: any }) {
+export function RevenueTab({ content }: { content: ResearchTabContent }) {
   const adr = content?.adrAnalysis;
   const occ = content?.occupancyAnalysis;
   const cat = content?.cateringAnalysis;
   if (!adr && !occ && !cat) return <EmptySection />;
 
-  const adrProj = adr?.projections?.map((p: any, i: number) => ({
+  const adrProj = adr?.projections?.map((p: AdrProjection, i: number) => ({
     year: p.year || `Y${i + 1}`, base: p.base ?? p.adr ?? 0,
     upside: p.upside ?? (p.base ?? p.adr ?? 0) * 1.1,
     downside: p.downside ?? (p.base ?? p.adr ?? 0) * 0.9,
@@ -245,7 +385,7 @@ export function RevenueTab({ content }: { content: any }) {
     { year: "Y3", base: adr.recommendedAdr * 1.06, upside: adr.recommendedAdr * 1.16, downside: adr.recommendedAdr * 0.95 },
   ] : []);
 
-  const occRamp = occ?.ramp?.map((r: any, i: number) => ({
+  const occRamp = occ?.ramp?.map((r: OccupancyRampPoint, i: number) => ({
     month: r.month || r.label || `M${i + 1}`, occupancy: r.occupancy ?? r.value ?? 0,
   })) || (occ?.stabilizedOccupancy ? [
     { month: "M1", occupancy: (occ.stabilizedOccupancy * 0.4) },
@@ -263,7 +403,7 @@ export function RevenueTab({ content }: { content: any }) {
   return (
     <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-6">
       <BenchmarkBanner
-        content={content}
+        content={content as never}
         metrics={[
           { key: "adr", label: "ADR", format: (v) => `$${Math.round(v)}` },
           { key: "revpar", label: "RevPAR", format: (v) => `$${Math.round(v)}` },
@@ -352,7 +492,7 @@ export function RevenueTab({ content }: { content: any }) {
   );
 }
 
-export function FinancialTab({ content }: { content: any }) {
+export function FinancialTab({ content }: { content: ResearchTabContent }) {
   const cap = content?.capRateAnalysis;
   const land = content?.landValueAllocation;
   if (!cap && !land) return <EmptySection />;
@@ -376,7 +516,7 @@ export function FinancialTab({ content }: { content: any }) {
   return (
     <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-6">
       <BenchmarkBanner
-        content={content}
+        content={content as never}
         metrics={[
           { key: "capRate", label: "Cap Rate", format: (v) => `${v.toFixed(1)}%` },
         ]}
@@ -439,12 +579,12 @@ export function FinancialTab({ content }: { content: any }) {
   );
 }
 
-export function OperatingTab({ content }: { content: any }) {
+export function OperatingTab({ content }: { content: ResearchTabContent }) {
   const ops = content?.operatingCosts;
   const pv = content?.propertyValueCosts;
   if (!ops && !pv) return <EmptySection />;
 
-  const depts = ops?.departments?.map((d: any) => ({
+  const depts = ops?.departments?.map((d: DepartmentCost) => ({
     name: d.name || d.department, labor: d.labor ?? 0, other: d.other ?? d.expenses ?? 0,
   })) || (ops ? [
     { name: "Rooms", labor: ops.roomsLabor ?? 25, other: ops.roomsOther ?? 10 },
@@ -515,7 +655,7 @@ export function OperatingTab({ content }: { content: any }) {
         <motion.div variants={fadeUp}>
           <h3 className="font-display text-lg font-semibold mb-3">Staffing Ratios</h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {Object.entries(ops.staffingRatios).slice(0, 4).map(([k, v]: [string, any]) => (
+            {Object.entries(ops.staffingRatios).slice(0, 4).map(([k, v]) => (
               <MetricCard key={k} label={k.replace(/([A-Z])/g, " $1").trim()} value={typeof v === "number" ? v.toFixed(2) : String(v)} sub="per room" />
             ))}
           </div>
@@ -525,12 +665,12 @@ export function OperatingTab({ content }: { content: any }) {
   );
 }
 
-export function SourcesTab({ content }: { content: any }) {
+export function SourcesTab({ content }: { content: ResearchTabContent }) {
   const sources = content?._marketIntelligence?.groundedResearch || [];
   const benchmarkSource = content?._marketIntelligence?.benchmarks;
   const rateErrors = content?._marketIntelligence?.errors || [];
 
-  const allSources: { title: string; url: string; snippet: string; publishedDate?: string }[] = [];
+  const allSources: ResearchSourceItem[] = [];
   for (const result of sources) {
     if (result.sources) {
       allSources.push(...result.sources);
@@ -579,7 +719,7 @@ export function SourcesTab({ content }: { content: any }) {
         <motion.div variants={fadeUp} className={`${card} p-6`}>
           <h3 className="font-display text-lg font-semibold mb-3">Research Queries</h3>
           <div className="space-y-4">
-            {sources.map((result: any, i: number) => (
+            {sources.map((result: GroundedResearchResult, i: number) => (
               <div key={i} className="p-4 rounded-xl bg-chart-1/10 dark:bg-chart-1/5 border border-chart-1/15 dark:border-chart-1/10">
                 <div className="flex items-center gap-2 mb-2">
                   <ProvenanceBadge provenance="cited" />

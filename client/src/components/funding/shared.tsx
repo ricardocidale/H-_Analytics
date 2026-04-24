@@ -3,18 +3,22 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ContentPanel } from "@/components/ui/content-panel";
 import { analyzeFundingNeeds } from "@/lib/financial/funding-predictor";
 
-export function RunwayTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
+type FundingAnalysis = NonNullable<ReturnType<typeof analyzeFundingNeeds>>;
+type Tranche = FundingAnalysis["tranches"][number];
+type RechartsTooltipPayload = { name?: string; value?: number; color?: string };
+
+export function RunwayTooltip({ active, payload, label }: { active?: boolean; payload?: RechartsTooltipPayload[]; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-xl text-sm max-w-xs">
       <p className="font-semibold text-foreground mb-2 border-b pb-1">Month {label}</p>
-      {payload.map((entry: any, i: number) => (
+      {payload.map((entry, i) => (
         <div key={i} className="flex items-center justify-between gap-4 py-0.5">
           <span className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="text-muted-foreground">{entry.name}</span>
           </span>
-          <span className="font-mono font-medium text-foreground">{formatMoney(entry.value)}</span>
+          <span className="font-mono font-medium text-foreground">{formatMoney(entry.value ?? 0)}</span>
         </div>
       ))}
     </div>
@@ -31,7 +35,7 @@ export function StatRow({ label, value, muted }: { label: string; value: React.R
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function TrancheCard({ tranche, totalTranches }: { tranche: any; totalTranches: number }) {
+export function TrancheCard({ tranche, totalTranches }: { tranche: Tranche; totalTranches: number }) {
   return (
     <ContentPanel data-testid={`card-tranche-${tranche.index}`}>
       <div className="flex items-center gap-2 mb-3">

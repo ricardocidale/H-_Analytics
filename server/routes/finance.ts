@@ -254,6 +254,11 @@ export function registerFinanceRoutes(router: Router): void {
       res.setHeader("X-Finance-Output-Hash", result.outputHash);
       if (result.cached) res.setHeader("X-Finance-Cache-Hit", "true");
 
+      // Stamp every property in scope as "financials computed". Drives the
+      // `all-properties-financials-computed` prerequisite that gates
+      // portfolio Specialists. See storage helper for the why.
+      await storage.markPropertiesFinancialsComputed(propertyIds);
+
       return sendSuperjson(res, result);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Server computation failed";
@@ -298,6 +303,9 @@ export function registerFinanceRoutes(router: Router): void {
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);
       res.setHeader("X-Finance-Output-Hash", result.outputHash);
       if (result.cached) res.setHeader("X-Finance-Cache-Hit", "true");
+
+      // Stamp `financialsComputedAt` for the single property in scope.
+      await storage.markPropertiesFinancialsComputed([routeId]);
 
       return sendSuperjson(res, result);
     } catch (err: unknown) {
@@ -348,6 +356,12 @@ export function registerFinanceRoutes(router: Router): void {
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);
       res.setHeader("X-Finance-Output-Hash", result.outputHash);
       if (result.cached) res.setHeader("X-Finance-Cache-Hit", "true");
+
+      // Stamp every property included in the company roll-up.
+      const companyPropertyIds = properties
+        .map((p: Record<string, unknown>) => p.id)
+        .filter((id): id is number => typeof id === "number");
+      await storage.markPropertiesFinancialsComputed(companyPropertyIds);
 
       return sendSuperjson(res, result);
     } catch (err: unknown) {

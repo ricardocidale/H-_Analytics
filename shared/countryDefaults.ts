@@ -29,14 +29,41 @@
  * CRP values aligned with countryRiskPremiums.ts (Damodaran, Jan 2026).
  */
 
+/**
+ * Country-level financial defaults.
+ *
+ * Audit #319 R4 — Source-of-truth note. Six numeric fields on this interface
+ * are also registered in `shared/model-constants-registry.ts` and consumed
+ * at runtime through `getFactoryNumber(<key>, country, state)`:
+ *   - `taxRate`, `costRateTaxes`, `countryRiskPremium`, `inflationRate`,
+ *     `depreciationYears`, `capitalGainsRate`
+ *
+ * The COUNTRY_DEFAULTS table below remains the registry's underlying TS
+ * data source — do NOT delete or duplicate it. **New consumers should
+ * read these six values through `getFactoryNumber` (or the runtime
+ * `getEffectiveConstant` resolver) instead of dotting into
+ * `getCountryDefaults(...)?.<field>` directly.** Direct field reads bypass
+ * the admin / Specialist override path and silently return the factory
+ * baseline forever, so they're allowed only for:
+ *   - new-property auto-fill in the Add Property dialog,
+ *   - non-numeric metadata (currency, depreciationAuthority, etc.),
+ *   - server-side AI prompts/risk scoring that explicitly want the
+ *     un-overridden country baseline.
+ */
 export interface CountryDefaults {
+  /** @deprecated For runtime reads use `getFactoryNumber('taxRate', country, state)`. */
   taxRate: number;
+  /** @deprecated For runtime reads use `getFactoryNumber('costRateTaxes', country, state)`. */
   costRateTaxes: number;
+  /** @deprecated For runtime reads use `getFactoryNumber('countryRiskPremium', country)`. */
   countryRiskPremium: number;
+  /** @deprecated For runtime reads use `getFactoryNumber('inflationRate', country)`. */
   inflationRate: number;
+  /** @deprecated For runtime reads use `getFactoryNumber('depreciationYears', country)`. */
   depreciationYears: number;
   depreciationMethod: "straight_line";
   depreciationAuthority: string;
+  /** @deprecated For runtime reads use `getFactoryNumber('capitalGainsRate', country)`. */
   capitalGainsRate: number;
   currency: string;
   currencySymbol: string;
@@ -281,8 +308,16 @@ export function getCountryDefaults(country: string): CountryDefaults | null {
 // Top 10 US hospitality markets by transaction volume and STR activity.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Audit #319 R4 — Same source-of-truth note as CountryDefaults applies to
+ * the two numeric fields here. Use
+ * `getFactoryNumber('taxRate' | 'costRateTaxes', 'United States', state)`
+ * for runtime reads so admin / Specialist overrides are honored.
+ */
 export interface UsStateDefaults {
+  /** @deprecated For runtime reads use `getFactoryNumber('taxRate', 'United States', state)`. */
   taxRate: number;        // Federal 21% + state corporate income tax
+  /** @deprecated For runtime reads use `getFactoryNumber('costRateTaxes', 'United States', state)`. */
   costRateTaxes: number;  // Property tax as % of revenue
   label: string;          // Display name
 }

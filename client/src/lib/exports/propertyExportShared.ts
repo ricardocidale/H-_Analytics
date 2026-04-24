@@ -1,23 +1,28 @@
 import { type ExportRowMeta, buildBrandPalette, type ThemeColor } from "@/lib/exports/exportStyles";
-import { MONTHS_PER_YEAR, DEPRECIATION_YEARS } from "@/lib/constants";
+import { MONTHS_PER_YEAR } from "@/lib/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { calculateLoanParams, type LoanParams, type GlobalLoanParams } from "@/lib/financial/loanCalculations";
+import type { YearlyDetail, CashFlowDataPoint } from "@/components/property-detail/types";
+import type { MonthlyFinancials } from "@/lib/financialEngine";
+import type { PropertyResponse, GlobalResponse } from "@/lib/api/types";
 
 export function resolveExportDepreciationYears(ctx: PropertyExportContext): number {
-  return ctx.property.depreciationYears ?? ctx.global?.depreciationYears ?? DEPRECIATION_YEARS;
+  // Audit #319 R4: registry-backed factory baseline.
+  return ctx.property.depreciationYears ?? ctx.global?.depreciationYears ?? getFactoryNumber('depreciationYears');
 }
 
 export interface PropertyExportContext {
-  property: any;
-  global: any;
-  yearlyDetails: any[];
-  cashFlowData: any[];
+  property: PropertyResponse;
+  global: GlobalResponse;
+  yearlyDetails: YearlyDetail[];
+  cashFlowData: CashFlowDataPoint[];
   yearlyChartData: { year: string; Revenue: number; GOP: number; AGOP: number; NOI: number; ANOI: number; CashFlow: number }[];
   years: number;
   startYear: number;
   projectionYears: number;
   projectionMonths: number;
   fiscalYearStartMonth: number;
-  financials: any[];
+  financials: MonthlyFinancials[];
   activeTab: string;
   brandingData: { themeColors: Array<{ rank: number; name: string; hexCode: string; description?: string }> | null } | undefined;
   incomeChartRef: React.RefObject<HTMLDivElement | null>;

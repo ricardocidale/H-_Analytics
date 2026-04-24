@@ -10,7 +10,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -31,6 +30,7 @@ import {
   DEFAULT_TERM_YEARS,
   SEED_DEBT_ASSUMPTIONS,
 } from "./constants";
+import { getFactoryNumber } from "./model-constants-registry";
 
 export type FieldType = "rate" | "currency" | "integer" | "decimal";
 export type FieldScope = "property";
@@ -277,7 +277,7 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     type: "rate",
     scope: "property",
     category: "cost-rate",
-    fallback: DEFAULT_COST_RATE_TAXES,
+    fallback: getFactoryNumber("costRateTaxes", "United States"),
     gaSource: { kind: "direct", gaField: "defaultCostRateTaxes" },
     engineImpact: true,
     validationMin: 0,

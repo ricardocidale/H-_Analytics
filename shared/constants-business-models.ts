@@ -32,7 +32,7 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     costRateMarketing: 0.01,       // 1% — Sales & Marketing (= DEFAULT_COST_RATE_MARKETING)
     costRatePropertyOps: 0.04,     // 4% — POM (= DEFAULT_COST_RATE_PROPERTY_OPS)
     costRateUtilities: 0.05,       // 5% — Utilities (= DEFAULT_COST_RATE_UTILITIES)
-    costRateTaxes: 0.03,           // 3% — Property taxes (= DEFAULT_COST_RATE_TAXES)
+    costRateTaxes: 0.012,          // 1.2% — Property taxes (US baseline; matches getFactoryNumber('costRateTaxes','United States'))
     costRateIT: 0.005,             // 0.5% — IT (= DEFAULT_COST_RATE_IT)
     costRateFFE: 0.04,             // 4% — FF&E reserve (= DEFAULT_COST_RATE_FFE)
     costRateOther: 0.05,           // 5% — Other (= DEFAULT_COST_RATE_OTHER)

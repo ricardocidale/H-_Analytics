@@ -56,9 +56,14 @@ export const PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS: readonly AnalystFieldSpec
   { guidanceKey: "costFFE",             draftKey: "defaultCostRateFfe" },
   { guidanceKey: "costInsurance",       draftKey: "defaultCostRateInsurance" },
   { guidanceKey: "costTaxes",           draftKey: "defaultCostRateTaxes" },
-  { guidanceKey: "depreciationYears",   draftKey: "depreciationYears" },
+  // depreciationYears is a regulatory constant (IRS Pub 946); canonical home is the
+  // Constants tab. Removed from this list per Task #379 audit so the Analyst soft-gate
+  // does not fire on a non-business-input value. See
+  // docs/audits/task-379-defaults-vs-source-of-truth.md.
   { guidanceKey: "landValue",           draftKey: "defaultLandValuePercent" },
-  { guidanceKey: "inflationRate",       draftKey: "inflationRate" },
+  // inflationRate's canonical Defaults home is MarketMacroTab (the duplicate editor on
+  // PropertyUnderwritingTab was removed per Task #379 audit §4.2). The MarketMacroTab
+  // soft-gate already covers inflationRate.
 ];
 
 // Placeholders — these tabs currently hold constants/LLM settings/required-field

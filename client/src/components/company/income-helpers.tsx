@@ -2,7 +2,7 @@ import React from "react";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { ChevronRight, ChevronDown } from "@/components/icons/themed-icons";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
-import type { CompanyMonthlyFinancials } from "@/lib/financialEngine";
+import type { CompanyMonthlyFinancials, MonthlyFinancials } from "@/lib/financialEngine";
 import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
 
 export interface IncomeRowsProps {
@@ -12,7 +12,7 @@ export interface IncomeRowsProps {
   projectionYears: number;
   expandedRows: Set<string>;
   toggleRow: (rowId: string) => void;
-  propertyFinancials: { property: PropertyResponse; financials: unknown[] }[];
+  propertyFinancials: { property: PropertyResponse; financials: MonthlyFinancials[] }[];
 }
 
 export function FormulaRow({
@@ -64,11 +64,11 @@ export function FormulaRow({
 }
 
 export function getPropertyYearlyBaseFee(
-  propertyFinancials: { property: any; financials: any[] }[],
+  propertyFinancials: { property: PropertyResponse; financials: MonthlyFinancials[] }[],
   propIdx: number,
   year: number,
 ) {
   const pf = propertyFinancials[propIdx].financials;
   const yearData = pf.slice(year * MONTHS_PER_YEAR, (year + 1) * MONTHS_PER_YEAR);
-  return yearData.reduce((a: number, m: any) => a + m.feeBase, 0);
+  return yearData.reduce((a, m) => a + m.feeBase, 0);
 }

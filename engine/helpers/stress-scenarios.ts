@@ -12,8 +12,12 @@
  *   5. Combined: occupancy -10% AND costs +10% (stagflation)
  */
 
-import { DAYS_PER_MONTH, MONTHS_PER_YEAR } from '@shared/constants';
+import { MONTHS_PER_YEAR } from '@shared/constants';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 import { pmt } from '../../calc/shared/pmt';
+
+// Audit #319 R4: registry-backed daysPerMonth (universal — same value as legacy).
+const DAYS_PER_MONTH = getFactoryNumber('daysPerMonth');
 
 export interface StressResult {
   scenario: string;

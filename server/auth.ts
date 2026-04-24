@@ -314,6 +314,21 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
+ * Express middleware that enforces SUPER_ADMIN-level access. Strictly stricter
+ * than `requireAdmin` — regular admins are rejected. Reserved for audited
+ * destructive operations such as the Resources break-glass override surface.
+ */
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  if (req.user.role !== UserRole.SUPER_ADMIN) {
+    return res.status(403).json({ error: "Super-admin access required" });
+  }
+  next();
+}
+
+/**
  * Express middleware that enforces checker or admin-level access. Returns a 401 response
  * if the user is not authenticated, or a 403 response if the user does not have
  * a "checker" or "admin" role.

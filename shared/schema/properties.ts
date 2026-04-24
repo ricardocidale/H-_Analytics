@@ -13,7 +13,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -37,6 +36,11 @@ import {
   DEFAULT_STAFF_TIER2_MAX_PROPERTIES,
   DEFAULT_STABILIZATION_MONTHS,
 } from "../constants";
+import { getFactoryNumber } from "../model-constants-registry";
+
+// Audit #406: schema column default sourced from the registry (single source of truth).
+// Drizzle introspection runs at module load — getFactoryNumber returns a number eagerly.
+const US_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 // --- PROPERTIES TABLE ---
 // Each row represents a single hotel property in the portfolio. This is the most
@@ -120,7 +124,7 @@ export const properties = pgTable("properties", {
   costRateMarketing: real("cost_rate_marketing").notNull().default(DEFAULT_COST_RATE_MARKETING),
   costRatePropertyOps: real("cost_rate_property_ops").notNull().default(DEFAULT_COST_RATE_PROPERTY_OPS),
   costRateUtilities: real("cost_rate_utilities").notNull().default(DEFAULT_COST_RATE_UTILITIES),
-  costRateTaxes: real("cost_rate_taxes").notNull().default(DEFAULT_COST_RATE_TAXES),
+  costRateTaxes: real("cost_rate_taxes").notNull().default(US_COST_RATE_TAXES),
   costRateIT: real("cost_rate_it").notNull().default(DEFAULT_COST_RATE_IT),
   costRateFFE: real("cost_rate_ffe").notNull().default(DEFAULT_COST_RATE_FFE),
   costRateOther: real("cost_rate_other").notNull().default(DEFAULT_COST_RATE_OTHER),
@@ -248,6 +252,14 @@ export const properties = pgTable("properties", {
   validationStatus: text("validation_status").notNull().default("pending_validation"),
   lastValidatedAt: timestamp("last_validated_at"),
   flaggedFieldCount: integer("flagged_field_count").notNull().default(0),
+  // When this property's full financial model (revenue + cost lines + capital
+  // stack) was last successfully computed. Read by the
+  // `all-properties-financials-computed` prerequisite evaluator
+  // (engine/analyst/registry/prerequisite-registry.ts) to decide whether
+  // every property in scope has a fresh financial statement before a gated
+  // Specialist runs. Null = never computed; the gate fails loudly so the
+  // operator runs the model first.
+  financialsComputedAt: timestamp("financials_computed_at"),
   // Why The Analyst excluded this property (null if not excluded)
   validationReason: text("validation_reason"),
 
@@ -262,6 +274,10 @@ export const properties = pgTable("properties", {
 }, (table) => [
   index("properties_user_id_idx").on(table.userId),
   index("properties_created_at_idx").on(table.createdAt),
+  // Covering indexes for FK columns — joined / filtered by admin pages.
+  index("properties_brand_id_idx").on(table.brandId),
+  index("properties_created_by_idx").on(table.createdBy),
+  index("properties_archived_by_idx").on(table.archivedBy),
   check("prop_room_count_positive", sql`${table.roomCount} > 0`),
   check("prop_start_adr_positive", sql`${table.startAdr} > 0`),
   check("prop_start_occupancy_range", sql`${table.startOccupancy} >= 0 AND ${table.startOccupancy} <= 1`),

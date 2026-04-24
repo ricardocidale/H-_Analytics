@@ -12,7 +12,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -25,6 +24,10 @@ import {
   DEFAULT_COMMISSION_RATE,
   DEFAULT_EXIT_CAP_RATE,
 } from "../../shared/constants";
+import { getFactoryNumber } from '@shared/model-constants-registry';
+// Audit #406: registry-backed US baselines (single source of truth).
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber('costRateTaxes', 'United States');
+
 
 /**
  * NPV helper for cross-checking IRR results.

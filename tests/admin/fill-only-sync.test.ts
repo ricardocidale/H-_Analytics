@@ -11,11 +11,14 @@ import {
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COMMISSION_RATE,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
   DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
   DEFAULT_SERVICE_FEE_CATEGORIES,
 } from "../../shared/constants";
+import { getFactoryNumber } from "../../shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline.
+const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 
 describe("Fill-Only Sync — isFieldEmpty", () => {
   it("treats null as empty", () => {

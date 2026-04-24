@@ -11,7 +11,7 @@ import {
 import { EmptyState, MetricCard, SectionTitle, CustomTooltip, stagger } from "../shared";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function HospitalityOverview({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
+export function HospitalityOverview({ content, hasData, onGenerate }: { content: Record<string, unknown> | null | undefined; hasData: boolean; onGenerate: () => void }) {
   if (!hasData) return <EmptyState title="Hospitality Overview" description="Generate research to see industry KPIs and investment sentiment." onGenerate={onGenerate} />;
 
   const yoyData = [
@@ -70,7 +70,7 @@ export function HospitalityOverview({ content, hasData, onGenerate }: { content:
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function SupplyDemand({ content, hasData, onGenerate }: { content: any; hasData: boolean; onGenerate: () => void }) {
+export function SupplyDemand({ content, hasData, onGenerate }: { content: Record<string, unknown> | null | undefined; hasData: boolean; onGenerate: () => void }) {
   if (!hasData) return <EmptyState title="Supply & Demand" description="Generate research to see construction pipeline and absorption analysis." onGenerate={onGenerate} />;
 
   const pipelineData = [

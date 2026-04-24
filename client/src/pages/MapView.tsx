@@ -59,7 +59,7 @@ export default function MapView() {
       maxZoom: 14,
     });
 
-    const points: Supercluster.PointFeature<{ propertyId: number; property: any }>[] = geoProperties.map(({ property, coords }) => ({
+    const points: Supercluster.PointFeature<{ propertyId: number; property: GeoProperty["property"] }>[] = geoProperties.map(({ property, coords }) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: coords },
       properties: { propertyId: property.id, property },

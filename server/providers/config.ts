@@ -35,3 +35,15 @@ export function getAuthProviderName(): 'replit' | 'local' {
 export function isReplit(): boolean {
   return !!process.env.REPL_ID;
 }
+
+/**
+ * Check if running in a production deployment.
+ *
+ * Honours `NODE_ENV=production` (standard) and Replit's `REPLIT_DEPLOYMENT=1`
+ * marker for backward compatibility while the app still runs on Replit.
+ */
+export function isProductionDeployment(): boolean {
+  if (process.env.NODE_ENV === "production") return true;
+  if (process.env.REPLIT_DEPLOYMENT === "1") return true;
+  return false;
+}

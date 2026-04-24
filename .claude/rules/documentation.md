@@ -11,7 +11,18 @@ All project knowledge lives exclusively inside `.claude/`. If there is ever a co
 | 1 | `.claude/claude.md` | Master doc — always loaded |
 | 2 | `.claude/rules/*.md` | Binding rules |
 | 3 | `.claude/skills/**` | Reference — load on demand |
-| 4 | `.claude/session-memory.md` | Session persistence |
+| 4 | `.claude/phases.md` | **Single source of truth for live phase status across all workstreams** |
+| 5 | `.claude/session-memory.md` | Session persistence |
+
+## Phase status changes
+
+When a phase's status changes (Pending → In progress → Shipped, etc.), update **`.claude/phases.md` only**. Do not add or update phase|status tables elsewhere — they will drift.
+
+- Other docs may reference `.claude/phases.md` (pointer line: *"Live status: see `.claude/phases.md`"*).
+- ADRs may list **planned** "Implementation phases" without live-status tokens (✅/⏳/🟡/⏸); the CI guard `npm run phases:check` exempts ADRs as long as they don't carry live tokens.
+- `replit.md` Recent Changes may carry historical narrative entries with commit SHAs (✅ shipped X at commit Y) — that is permitted as audit trail. What's prohibited is **live tables** (Phase | Status | Owner …) outside `.claude/phases.md`.
+
+Enforcement: `npm run phases:check` (script: `script/check-phase-status-uniqueness.ts`).
 
 ## After ANY Codebase Edit
 

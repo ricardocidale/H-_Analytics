@@ -32,10 +32,20 @@ import {
   type AnalystTableId,
 } from "../../middleware/analyst-refresh-guards";
 import { researchCapitalRaiseBenchmarks, researchExitMultiples } from "../../ai/analyst-table-refresh";
+import { narrateSpecialistHandoff } from "../../lib/specialist-identity-resolver";
 
 const TABLE_LABELS: Record<AnalystTableId, string> = {
   capital_raise_benchmarks: "Capital Raise Benchmarks",
   exit_multiples: "Exit Multiples",
+};
+
+// Phase 3 (#453) — owning specialist per analyst table. Used to
+// narrate the handoff line at the head of `narration[]` with the
+// override-resolved humanName + gender-derived pronoun. Both refresh
+// jobs are dispatched by the funding specialist (Beatriz by default).
+const TABLE_OWNER_SPECIALIST_ID: Record<AnalystTableId, string> = {
+  capital_raise_benchmarks: "mgmt-co.funding",
+  exit_multiples: "mgmt-co.funding",
 };
 
 export function registerAdminAnalystTableRoutes(app: Express) {
@@ -150,11 +160,20 @@ export function registerAdminAnalystTableRoutes(app: Express) {
           tokensUsed: llmResult.tokensUsed,
           sourceCount: llmResult.sourceCount,
         });
+        // Phase 3 (#453) — prepend a deterministic, pronoun-aware
+        // handoff line that uses the override-resolved humanName +
+        // gender. Renaming the funding specialist or flipping pronouns
+        // through /identity flows directly into this narration on the
+        // very next refresh, with no restart.
+        const handoff = await narrateSpecialistHandoff(
+          TABLE_OWNER_SPECIALIST_ID[tableId],
+          `${TABLE_LABELS[tableId]} refresh`,
+        );
         res.json({
           tableId,
           auditId,
           proposedRanges: llmResult.proposedRanges,
-          narration: llmResult.narration,
+          narration: [handoff, ...llmResult.narration],
           sourceCount: llmResult.sourceCount,
           tokensUsed: llmResult.tokensUsed,
           evidence: llmResult.evidence,

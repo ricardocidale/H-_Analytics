@@ -213,7 +213,7 @@ export async function exportFullPropertyWorkbook(
   property: LoanParams,
   properties: LoanParams[],
   global: GlobalLoanParams | undefined,
-  globalAssumptions: any,
+  globalAssumptions: import("@/lib/api/types").GlobalResponse | undefined,
   allProFormas: { property: LoanParams; data: MonthlyFinancials[] }[],
   propertyName: string,
   years: number,

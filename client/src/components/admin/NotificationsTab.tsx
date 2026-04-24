@@ -39,7 +39,7 @@ const SCOPE_OPTIONS = [
 ];
 
 function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
+  const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ComponentType<{ className?: string }> }> = {
     sent: { variant: "default", icon: CheckCircle },
     delivered: { variant: "default", icon: CheckCircle },
     pending: { variant: "secondary", icon: Clock },
@@ -130,8 +130,8 @@ export default function NotificationsTab() {
         toast({ title: `Test email sent to ${data.sent} recipient${data.sent === 1 ? "" : "s"}` });
       }
     },
-    onError: async (err: any) => {
-      const msg = err?.message || "Failed to send test email";
+    onError: async (err: unknown) => {
+      const msg = (err as { message?: string })?.message || "Failed to send test email";
       toast({ title: "Test email failed", description: msg, variant: "destructive" });
     },
   });
@@ -169,7 +169,7 @@ export default function NotificationsTab() {
   });
 
   const createRuleMutation = useMutation({
-    mutationFn: async (rule: any) => {
+    mutationFn: async (rule: { id?: number | string; [key: string]: unknown }) => {
       if (rule.id) {
         await apiRequest("PATCH", `/api/notifications/alert-rules/${rule.id}`, rule);
       } else {
@@ -488,7 +488,7 @@ export default function NotificationsTab() {
                       </tr>
                     </thead>
                     <tbody>
-                      {logs.map((log: any) => (
+                      {logs.map((log: { id: number; createdAt: string; eventType: string; channel: string; recipient?: string; status: string }) => (
                         <tr key={log.id} className="border-b" data-testid={`row-log-${log.id}`}>
                           <td className="py-2 px-3 text-muted-foreground whitespace-nowrap">
                             {new Date(log.createdAt).toLocaleString()}
@@ -673,7 +673,7 @@ function VectorLatencyAlertsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {vectorLogs.map((log: any) => {
+                {vectorLogs.map((log: { id: number; createdAt: string; recipient?: string; status: string; metadata?: { test?: boolean } | null; [key: string]: unknown }) => {
                   const isTest = !!(log.metadata && (log.metadata as { test?: boolean }).test);
                   return (
                     <tr

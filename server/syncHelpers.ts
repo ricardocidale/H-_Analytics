@@ -21,10 +21,14 @@ import {
   DEFAULT_OTHER_EXPENSE_RATE,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   SEED_DEBT_ASSUMPTIONS,
-  DEFAULT_PROPERTY_INFLATION_RATE,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_BUSINESS_INSURANCE_START,
 } from "../shared/constants";
+import { getFactoryNumber } from "../shared/model-constants-registry";
+
+// Audit #319 R4 / #406: registry-backed factory baselines.
+// inflationRate US = 0.03; taxRate US = 0.21 (federal corporate, replaces legacy 0.30).
+const SEED_INFLATION_RATE = getFactoryNumber('inflationRate', 'United States');
+const SEED_COMPANY_TAX_RATE = getFactoryNumber('taxRate', 'United States');
 
 export interface SyncResults {
   globalAssumptions: { created: number; skipped: number; filled: number };
@@ -36,7 +40,7 @@ export interface SyncResults {
 
 export const SEED_GLOBAL_ASSUMPTIONS = {
   modelStartDate: DEFAULT_MODEL_START_DATE,
-  inflationRate: DEFAULT_PROPERTY_INFLATION_RATE,
+  inflationRate: SEED_INFLATION_RATE,
   baseManagementFee: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFee: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   staffSalary: 75000,
@@ -56,14 +60,14 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   standardAcqPackage: { monthsToOps: 6, purchasePrice: 3800000, preOpeningCosts: 200000, operatingReserve: 250000, buildingImprovements: 1200000 },
   debtAssumptions: SEED_DEBT_ASSUMPTIONS,
   commissionRate: DEFAULT_COMMISSION_RATE,
-  fixedCostEscalationRate: DEFAULT_PROPERTY_INFLATION_RATE,
+  fixedCostEscalationRate: SEED_INFLATION_RATE,
   capitalRaise1Amount: 1000000,
   capitalRaise1Date: DEFAULT_CAPITAL_RAISE_1_DATE,
   capitalRaise2Amount: 1000000,
   capitalRaise2Date: DEFAULT_CAPITAL_RAISE_2_DATE,
   capitalRaiseValuationCap: DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
   capitalRaiseDiscountRate: DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
-  companyTaxRate: DEFAULT_COMPANY_TAX_RATE,
+  companyTaxRate: SEED_COMPANY_TAX_RATE,
   companyOpsStartDate: DEFAULT_COMPANY_OPS_START_DATE,
   fiscalYearStartMonth: 1,
   companyName: "Hospitality Business Group",

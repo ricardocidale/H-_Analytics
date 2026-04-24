@@ -35,7 +35,7 @@ If your project has fewer than five distinct gates, write the missing ones befor
 
 ## Setting it up in a new project
 
-1. **Inventory** what already exists. Most projects have type-check + lint + tests but not the domain-compliance or invariant gates. Add those last two if the project has any business invariants worth protecting.
+1. **Inventory** what already exists — *thoroughly*. In a mature repo this is the single most important step and the one most often skipped. Before writing any new hook, script, or rule, run the 60-second inventory pass from `.agents/skills/inventory-before-build/SKILL.md` (list `script/`, `.husky/`, `.github/workflows/`, `.claude/rules/`, `.lintstagedrc*`, and the `package.json` scripts block). The most common finding is that the gates exist but are orphaned (script written, nothing calls it) or partial (`lint-staged` covers half the source tree). Extend, don't duplicate. Most projects have type-check + lint + tests but not the domain-compliance or invariant gates. Add those last two if the project has any business invariants worth protecting.
 2. **Add a "summary" wrapper** for each command that exits 0 on pass and ≠0 on fail with a one-line summary line (e.g., `PASS 11/11 tests` or `FAIL 3 errors`). Wrappers make output diffable and CI-friendly.
 3. **Document the five commands** in a single rule file (e.g., `RULES/pre-commit-gates.md` or `.cursor/rules/pre-commit-gates.md`) that every contributor reads.
 4. **Add commit-message convention**: every commit message includes a verification line such as `Verified: TS 0, Lint 0, Compliance 11/11, Tests PASS, Invariants UNQUALIFIED`.
@@ -67,6 +67,26 @@ Every one of these is cheap to prevent with a 30-second local gate and expensive
 ## Relationship to CI
 
 CI is the safety net, not the gate. CI catches what local gates miss; if CI is doing the catching for routine issues, the local gate isn't being enforced. A healthy ratio: CI failures should be rare (network, flaky integration tests, environment drift) — not "I forgot to run lint".
+
+## When you ARE iterating against CI
+
+Sometimes the gate genuinely lives only in CI — environment-only failures (real Postgres, real OpenAI key, real GitHub secrets) that local gates can't reproduce. When that happens, the discipline is **batch the fix, never iterate per-failure**:
+
+1. **Read the CI failure summary in full**, not just the first stack trace. The first failure listed is rarely the only one — vitest, pytest, and most runners surface failures top-to-bottom and a summary block at the end.
+2. **Classify every failure by root cause** before fixing anything:
+   - Same structural pattern repeated across N test files? → one fix, N edits, one push.
+   - Independent failures from independent causes? → fix in parallel, one push.
+   - Pre-existing failure unrelated to your change? → file a `BLOCKED.md`, don't carry it.
+3. **For pattern failures, search the codebase for sibling instances**:
+   - Test reads a file that no longer exists / has been split? `rg -l "readFileSync.*<oldFile>" tests/`
+   - Mock missing for a newly-added handler dependency? `rg "import.*<missingMock>" tests/`
+   - Schema field referenced by static-analysis test? `rg -l "<fieldName>" tests/`
+4. **Run every matched file locally** in a single `vitest run` invocation. Confirm green before pushing.
+5. **Push once.** A second CI cycle for the same root cause is a process failure, not a discovery.
+
+**Anti-pattern — "I'll fix what CI shows me and re-push."** Every CI cycle costs the user real time (minutes per push, plus context switch). Three cycles to fix one structural bug across three files is two cycles of waste. The cost of a 60-second `rg` sweep is dwarfed by the cost of a 4-minute CI cycle.
+
+> **Real example**: a storage-layer file split into submodules took **three CI cycles** to fully fix because each cycle exposed one more static-analysis test that read the now-empty parent file. Each fix was structurally identical. A single `rg -l "readFileSync.*financial.ts" tests/` after the first failure would have found all three at once. See `cross-check-invariants` Pattern 4.
 
 ## Composition with other skills
 

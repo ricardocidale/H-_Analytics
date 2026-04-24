@@ -30,6 +30,17 @@ export interface ConstantRegistryEntry {
   locality: ConstantLocality;
   meta: GovernedFieldMeta;
   /**
+   * Phase 3 (Constants doctrine): when true, this constant is authority-
+   * sourced and is owned by an AI Intelligence Specialist (declared via
+   * `constantsOwned[]` in `engine/analyst/registry/specialist-catalog.ts`).
+   * The server-side guard in `PUT /api/admin/model-constants/:key` rejects
+   * any `source = 'manual'` write for these keys with HTTP 422 — the only
+   * supported writer is the analyst-apply path. Defaults to `true` for
+   * every entry below; flip to `false` only for non-authority keys that
+   * still want to allow manual overrides (none today).
+   */
+  specialistOwned: boolean;
+  /**
    * Factory-value resolver (TS fallback). For country/country+state keys,
    * falls back to the United States baseline if the requested country has
    * no entry. Returns undefined only when no US baseline is registered.
@@ -83,6 +94,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: depreciationYearsMeta.fieldName,
     locality: "country",
     meta: depreciationYearsMeta,
+    specialistOwned: true,
     factoryValue: (country) => {
       if (!country) return COUNTRY_DEFAULTS["United States"]!.depreciationYears;
       const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
@@ -94,6 +106,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: daysPerMonthMeta.fieldName,
     locality: "universal",
     meta: daysPerMonthMeta,
+    specialistOwned: true,
     factoryValue: () => DAYS_PER_MONTH,
   },
   taxRate: {
@@ -101,6 +114,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: taxRateMeta.fieldName,
     locality: "country+state",
     meta: taxRateMeta,
+    specialistOwned: true,
     factoryValue: (country, subdivision) => {
       if (country === "United States" && subdivision) {
         const st: UsStateDefaults | undefined = US_STATE_DEFAULTS[subdivision];
@@ -116,6 +130,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: costRateTaxesMeta.fieldName,
     locality: "country+state",
     meta: costRateTaxesMeta,
+    specialistOwned: true,
     factoryValue: (country, subdivision) => {
       if (country === "United States" && subdivision) {
         const st: UsStateDefaults | undefined = US_STATE_DEFAULTS[subdivision];
@@ -131,6 +146,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: countryRiskPremiumMeta.fieldName,
     locality: "country",
     meta: countryRiskPremiumMeta,
+    specialistOwned: true,
     factoryValue: (country) => {
       if (!country) return COUNTRY_DEFAULTS["United States"]!.countryRiskPremium;
       const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
@@ -142,6 +158,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: inflationRateMeta.fieldName,
     locality: "country",
     meta: inflationRateMeta,
+    specialistOwned: true,
     factoryValue: (country) => {
       if (!country) return COUNTRY_DEFAULTS["United States"]!.inflationRate;
       const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
@@ -153,6 +170,7 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     label: capitalGainsRateMeta.fieldName,
     locality: "country",
     meta: capitalGainsRateMeta,
+    specialistOwned: true,
     factoryValue: (country) => {
       if (!country) return COUNTRY_DEFAULTS["United States"]!.capitalGainsRate;
       const def: CountryDefaults | undefined = COUNTRY_DEFAULTS[country];
@@ -163,19 +181,73 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
 
 export const REGISTERED_CONSTANT_KEYS = Object.keys(MODEL_CONSTANTS_REGISTRY);
 
+/**
+ * Display unit for a constant. Constants are rendered to admins as
+ * read-only cards; the unit suffix (`%`, `years`, `days`) clarifies
+ * what the bare numeric value means without surfacing a free-form
+ * "unit" column in the registry. Centralised here so the admin tab
+ * and any future renderers stay consistent.
+ */
+export type ConstantUnit = "percent" | "years" | "days" | "ratio";
+
+const CONSTANT_UNIT_BY_KEY: Record<string, ConstantUnit> = {
+  taxRate: "percent",
+  capitalGainsRate: "percent",
+  costRateTaxes: "percent",
+  inflationRate: "percent",
+  countryRiskPremium: "percent",
+  depreciationYears: "years",
+  daysPerMonth: "days",
+};
+
+export function getConstantUnit(key: string): ConstantUnit {
+  return CONSTANT_UNIT_BY_KEY[key] ?? "ratio";
+}
+
 export function hasStateOverlay(key: string, country: string | null | undefined): boolean {
   const entry = MODEL_CONSTANTS_REGISTRY[key];
   return !!entry && entry.locality === "country+state" && country === "United States";
 }
 
+/**
+ * Compile-time-checked union of every key currently registered in
+ * `MODEL_CONSTANTS_REGISTRY`. New keys added to the registry literal are
+ * picked up automatically. Audit #319 R4 — typed accessors.
+ */
+export type RegisteredConstantKey = keyof typeof MODEL_CONSTANTS_REGISTRY;
+
 export function getFactoryValue(
-  key: string,
+  key: RegisteredConstantKey,
   country?: string | null,
   subdivision?: string | null,
 ): unknown {
   const entry = MODEL_CONSTANTS_REGISTRY[key];
   if (!entry) return undefined;
   return entry.factoryValue(country, subdivision);
+}
+
+/**
+ * Typed factory accessor. All seven registered keys today resolve to numbers
+ * (`taxRate`, `depreciationYears`, `inflationRate`, `costRateTaxes`,
+ * `countryRiskPremium`, `capitalGainsRate`, `daysPerMonth`). This wrapper
+ * removes the `unknown`-cast noise from call sites and throws fast if a
+ * future non-numeric key is added without updating consumers.
+ *
+ * Audit Task #319 R4 — preferred read path. Direct imports of the legacy
+ * `DEFAULT_*` exports are now `@deprecated`.
+ */
+export function getFactoryNumber(
+  key: RegisteredConstantKey,
+  country?: string | null,
+  subdivision?: string | null,
+): number {
+  const value = getFactoryValue(key, country, subdivision);
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(
+      `getFactoryNumber: registry key "${key}" returned non-numeric value (got ${typeof value})`,
+    );
+  }
+  return value;
 }
 
 export type { CountryDefaults, UsStateDefaults };

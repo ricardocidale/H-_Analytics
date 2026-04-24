@@ -182,7 +182,7 @@ export function useSharedWithMe() {
   });
 }
 
-async function shareScenario(data: { recipientEmail: string; mode: "single" | "all"; scenarioId?: number }): Promise<{ shares: any[]; recipientName: string }> {
+async function shareScenario(data: { recipientEmail: string; mode: "single" | "all"; scenarioId?: number }): Promise<{ shares: unknown[]; recipientName: string }> {
   const res = await fetch("/api/scenarios/shares", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

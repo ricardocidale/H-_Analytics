@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { collectMissingLockedHardFields } from "@/lib/locked-hard-preflight";
 
 export type AnalystRefreshScope = "global-assumptions";
 
@@ -32,6 +33,25 @@ export interface UseAnalystRefreshOptions {
    * refetch. The caller owns which keys matter.
    */
   invalidateKeys?: ReadonlyArray<ReadonlyArray<unknown>>;
+  /**
+   * current values of the surface (e.g. the loaded
+   * GlobalAssumptions). Used by the client-side preflight that checks
+   * catalog locked-hard fields BEFORE the API call so the user sees
+   * the missing-fields prompt immediately, without burning the 60s
+   * cooldown or showing a spinner. Optional for back-compat; when
+   * omitted, the hook still honors a server 400 response.
+   */
+  entityValues?: Record<string, unknown> | null | undefined;
+  /**
+   * Invoked when the locked-hard preflight (or the server's matching
+   * 400 response) determines a refresh would be blocked. The host
+   * component is expected to open `MissingRequiredFieldsPrompt` with
+   * these fields.
+   */
+  onMissingRequiredFields?: (info: {
+    specialistId: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }) => void;
 }
 
 export interface UseAnalystRefreshResult {
@@ -59,6 +79,8 @@ const TICK_MS = 1000;
 export function useAnalystRefresh({
   scope,
   invalidateKeys = [],
+  entityValues,
+  onMissingRequiredFields,
 }: UseAnalystRefreshOptions): UseAnalystRefreshResult {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -101,6 +123,10 @@ export function useAnalystRefresh({
       });
       return (await res.json()) as RefreshResponse;
     },
+    // server-side mirror of the preflight. If the user
+    // managed to bypass the local check (stale catalog, race) and the
+    // server returns 400 with the REQUIRED_FIELDS_MISSING shape, surface
+    // the prompt instead of the generic "Analyst failed" toast.
     onSuccess: (data) => {
       setLastRunId(data.runId);
       setLastGuidance(data.guidance);
@@ -120,6 +146,25 @@ export function useAnalystRefresh({
       const statusMatch = msg.match(/^(\d{3}):\s*([\s\S]*)$/);
       const status = statusMatch ? Number(statusMatch[1]) : null;
       const bodyText = statusMatch ? statusMatch[2] : msg;
+
+      if (status === 400 && onMissingRequiredFields) {
+        try {
+          const body = JSON.parse(bodyText) as {
+            code?: string;
+            specialistId?: string;
+            missingFields?: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+          };
+          if (body.code === "REQUIRED_FIELDS_MISSING" && Array.isArray(body.missingFields)) {
+            onMissingRequiredFields({
+              specialistId: body.specialistId ?? "mgmt-co",
+              missingFields: body.missingFields,
+            });
+            return;
+          }
+        } catch {
+          /* fall through to generic toast */
+        }
+      }
 
       if (status === 429) {
         try {
@@ -158,9 +203,35 @@ export function useAnalystRefresh({
     (fields?: string[]) => {
       if (mutation.isPending) return;
       if (cooldownEndAt != null && Date.now() < cooldownEndAt) return;
+
+      // client-side preflight. Compute missing locked-hard
+      // fields locally from the catalog + provided entityValues; if any
+      // are missing, fire the prompt and skip the API call so the user
+      // doesn't see a spinner or burn the cooldown for a known-bad run.
+      if (entityValues && onMissingRequiredFields) {
+        // Both company-scope Specialists are gated together so the user
+        // fixes everything in one trip back to Company Assumptions.
+        const missing = collectMissingLockedHardFields(
+          [
+            "mgmt-co.funding",
+            "mgmt-co.revenue",
+            "mgmt-co.icp-intelligence",
+            "portfolio-ops.watchdog",
+          ],
+          entityValues,
+        );
+        if (missing.length > 0) {
+          onMissingRequiredFields({
+            specialistId: "mgmt-co",
+            missingFields: missing,
+          });
+          return;
+        }
+      }
+
       mutation.mutate({ fields });
     },
-    [mutation, cooldownEndAt],
+    [mutation, cooldownEndAt, entityValues, onMissingRequiredFields],
   );
 
   const cooldownRemainingMs =

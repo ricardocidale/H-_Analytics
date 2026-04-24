@@ -8,9 +8,9 @@
  *   • All page components (except Login and NotFound) are lazy-loaded so the initial
  *     bundle stays small. Each page is wrapped in <Suspense> with a spinner fallback.
  *   • Four route-guard wrappers enforce role-based access:
- *       – ProtectedRoute: any authenticated user
+ *       – ProtectedRoute: all authenticated users
  *       – AdminRoute: admin role only
- *       – ManagementRoute: any role except "investor"
+ *       – ManagementRoute: all roles except "investor"
  *       – CheckerRoute: admin or checker roles
  *   • Financial pages are additionally wrapped in <FinancialErrorBoundary> so a
  *     calculation error in one page doesn't crash the whole app.
@@ -81,6 +81,7 @@ const CompanyIcpDefinition = lazy(() => import("@/pages/CompanyIcpDefinition"));
 const CompanyGuidance = lazy(() => import("@/pages/CompanyGuidance"));
 const _ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
+const AiIntelligence = lazy(() => import("@/pages/AiIntelligence"));
 const Scenarios = lazy(() => import("@/pages/Scenarios"));
 const PropertyFinder = lazy(() => import("@/pages/PropertyFinder"));
 const Analysis = lazy(() => import("@/pages/Analysis"));
@@ -259,6 +260,9 @@ function Router() {
         </Route>
         <Route path="/admin">
           <AdminRoute component={Admin} />
+        </Route>
+        <Route path="/ai-intelligence">
+          <AdminRoute component={AiIntelligence} />
         </Route>
         <Route path="/admin/logos">
           <Redirect to="/admin" />

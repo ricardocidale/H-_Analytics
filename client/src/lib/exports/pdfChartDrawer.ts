@@ -26,7 +26,7 @@ interface ChartSeries {
 }
 
 interface DrawChartOptions {
-  doc: any;
+  doc: import("jspdf").jsPDF;
   x: number;
   y: number;
   width: number;

@@ -17,12 +17,12 @@ export const stagger = {
   item: { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } },
 };
 
-export function CustomTooltip({ active, payload, label }: any) {
+export function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name?: string; value?: number | string; color?: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card/95 backdrop-blur-xl border border-border rounded-lg px-3 py-2 shadow-xl">
       <p className="text-xs font-medium text-foreground mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i: number) => (
         <p key={i} className="text-xs text-muted-foreground">
           <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: p.color }} />
           {p.name}: {typeof p.value === "number" ? p.value.toLocaleString() : p.value}

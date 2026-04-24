@@ -8,13 +8,15 @@ import { analyzeFundingNeeds } from "@/lib/financial/funding-predictor";
 import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from "@/lib/constants";
 import { DEFAULT_CAPITAL_RAISE_VALUATION_CAP, DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE, DEFAULT_TRANCHE_BUFFER_MULTIPLIER, DEFAULT_EARLY_STAGE_CAP_DISCOUNT, DEFAULT_EARLY_STAGE_DISCOUNT_PREMIUM, DEFAULT_FUNDING_ROUNDING_INCREMENT } from "@shared/constants";
 import { StatRow } from "./shared";
+import type { MarketRateResponse } from "@/lib/api/market-rates";
+import type { GlobalResponse } from "@/lib/api/types";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ResearchTab({ analysis, fundingLabel, marketRates, global, navigate }: {
   analysis: NonNullable<ReturnType<typeof analyzeFundingNeeds>>;
   fundingLabel: string;
-  marketRates: any;
-  global: any;
+  marketRates: MarketRateResponse[] | null | undefined;
+  global: GlobalResponse | null | undefined;
   navigate: (to: string) => void;
 }) {
   const rateCards = [
@@ -39,7 +41,7 @@ export function ResearchTab({ analysis, fundingLabel, marketRates, global, navig
           {marketRates && marketRates.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
               {rateCards.map(({ key, label, description }) => {
-                const rate = marketRates.find((r: any) => r.rateKey === key);
+                const rate = marketRates.find((r) => r.rateKey === key);
                 return (
                   <div key={key} className="rounded-lg bg-muted/50 p-3 border border-border/50" data-testid={`metric-rate-${key}`}>
                     <p className="text-xs font-medium text-foreground">{label}</p>

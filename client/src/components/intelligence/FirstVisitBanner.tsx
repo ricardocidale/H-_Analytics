@@ -30,7 +30,7 @@ export function FirstVisitBanner({ className }: FirstVisitBannerProps) {
       <NeuralGlow size={32} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-blue-700 dark:text-blue-400" data-testid="text-first-visit-message">
-          The Analyst hasn't reviewed these assumptions yet
+          Gaspar hasn't reviewed these assumptions yet
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
           Press the <span className="font-medium">Analyst</span> button in the page header to study market data and provide conviction-scored ranges for every field.

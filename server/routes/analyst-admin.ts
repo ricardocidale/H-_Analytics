@@ -43,6 +43,69 @@ export async function analystRefreshHandler(req: Request, res: Response) {
 
   const user = getAuthUser(req);
   const userId = user.id;
+
+  // catalog hard-required gate. Mirrors the gate on
+  // /api/research/generate so a stale or scripted client cannot bypass
+  // the admin UI's locked-hard rules. We check BEFORE reserving the
+  // 60s cooldown so a missing-field rejection doesn't burn the user's
+  // budget. The gate enumerates locked-hard candidate fields across
+  // all company-scope Specialists (mgmt-co + portfolio-ops) and
+  // verifies them against the user's GlobalAssumptions row.
+  try {
+    const [
+      { getLockedHardCandidateFields, SPECIALIST_CATALOG },
+      { findMissingRequiredFields },
+    ] = await Promise.all([
+      import("../../engine/analyst/registry/specialist-catalog"),
+      import("../../engine/analyst/surface/mgmt-co"),
+    ]);
+    const ga = await storage.getGlobalAssumptions(userId);
+    if (ga) {
+      const companySpecs = SPECIALIST_CATALOG.filter(
+        (s) => s.subject === "mgmt-co" || s.subject === "portfolio-ops",
+      );
+      const seen = new Set<string>();
+      const missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[] = [];
+      let firstSpecialistId: string | undefined;
+      for (const spec of companySpecs) {
+        const lockedFields = getLockedHardCandidateFields(spec.id);
+        if (lockedFields.length === 0) continue;
+        const missingKeys = findMissingRequiredFields(
+          ga as unknown as Record<string, unknown>,
+          lockedFields.map((f) => f.key),
+        );
+        for (const key of missingKeys) {
+          if (seen.has(key)) continue;
+          seen.add(key);
+          if (!firstSpecialistId) firstSpecialistId = spec.id;
+          const meta = lockedFields.find((f) => f.key === key)!;
+          missingFields.push({
+            key,
+            label: meta.label,
+            surface: meta.surface,
+            surfaceAnchor: meta.surfaceAnchor,
+          });
+        }
+      }
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          error: `Required field${missingFields.length === 1 ? "" : "s"} missing on Company Assumptions: ${missingFields
+            .map((m) => m.label)
+            .join(", ")}. Fill them in before refreshing the Analyst.`,
+          code: "REQUIRED_FIELDS_MISSING",
+          specialistId: firstSpecialistId ?? "mgmt-co",
+          missingFields,
+        });
+      }
+    }
+  } catch (gateErr: unknown) {
+    // Defense-in-depth: log and fall through if catalog import fails.
+    logger.warn(
+      `analyst-refresh required-fields gate skipped: ${gateErr instanceof Error ? gateErr.message : String(gateErr)}`,
+      "analyst-admin",
+    );
+  }
+
   // Single atomic admission step: tryReserveAnalystCooldown either acquires
   // the slot in one DB round-trip or rejects with retryAfterMs. A separate
   // read-then-reserve sequence here would race — two concurrent admin clicks

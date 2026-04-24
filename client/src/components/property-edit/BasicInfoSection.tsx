@@ -307,7 +307,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
   );
 }
 
-function PropertyDescriptorsSection({ draft, onChange, onNumberChange }: { draft: any; onChange: PropertyEditSectionProps["onChange"]; onNumberChange: PropertyEditSectionProps["onNumberChange"] }) {
+function PropertyDescriptorsSection({ draft, onChange, onNumberChange }: { draft: PropertyEditSectionProps["draft"]; onChange: PropertyEditSectionProps["onChange"]; onNumberChange: PropertyEditSectionProps["onNumberChange"] }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (

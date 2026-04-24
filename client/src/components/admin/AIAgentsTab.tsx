@@ -17,6 +17,11 @@ import { cn } from "@/lib/utils";
 
 import { PageSkeleton } from "./ai-agents/agent-shared";
 import RebeccaAdminTabs from "./ai/RebeccaAdminTabs";
+import {
+  DEFAULT_REBECCA_SETTINGS,
+  mergeRebeccaSettings,
+  type RebeccaSettings,
+} from "@shared/rebecca-settings";
 
 interface AIAgentsTabProps {
   onSaveStateChange?: (state: import("@/components/admin/save-state").AdminSaveState | null) => void;
@@ -44,9 +49,20 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
   const [rebeccaDisplayName, setRebeccaDisplayName] = useState("Rebecca");
   const [rebeccaSystemPrompt, setRebeccaSystemPrompt] = useState("");
   const [rebeccaChatEngine, setRebeccaChatEngine] = useState<"gemini" | "perplexity">("gemini");
+  const [rebeccaSettings, setRebeccaSettings] = useState<RebeccaSettings>(DEFAULT_REBECCA_SETTINGS);
   const [rebeccaInitialized, setRebeccaInitialized] = useState(false);
   const [rebeccaDirty, setRebeccaDirty] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+
+  const { data: guardrails } = useQuery<Array<{ id: number; isActive: boolean }>>({
+    queryKey: ["/api/rebecca/guardrails"],
+    queryFn: async () => {
+      const res = await fetch("/api/rebecca/guardrails", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+  const guardrailCount = (guardrails ?? []).filter(g => g.isActive).length;
 
   useEffect(() => {
     if (globalData && !rebeccaInitialized) {
@@ -54,6 +70,7 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
       setRebeccaDisplayName(globalData.rebeccaDisplayName ?? "Rebecca");
       setRebeccaSystemPrompt(globalData.rebeccaSystemPrompt ?? "");
       setRebeccaChatEngine((globalData.rebeccaChatEngine as "gemini" | "perplexity") ?? "gemini");
+      setRebeccaSettings(mergeRebeccaSettings(globalData.rebeccaConfig));
       setRebeccaInitialized(true);
     }
   }, [globalData, rebeccaInitialized]);
@@ -69,6 +86,7 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
           rebeccaDisplayName: rebeccaDisplayName || "Rebecca",
           rebeccaSystemPrompt: rebeccaSystemPrompt || null,
           rebeccaChatEngine,
+          rebeccaConfig: rebeccaSettings,
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
@@ -287,9 +305,15 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
             setRebeccaChatEngine(v);
             setRebeccaDirty(true);
           },
+          settings: rebeccaSettings,
+          onSettingsChange: (next) => {
+            setRebeccaSettings(next);
+            setRebeccaDirty(true);
+          },
           onSave: () => saveRebeccaMutation.mutate(),
           isSaving: saveRebeccaMutation.isPending,
           isDirty: rebeccaDirty,
+          guardrailCount,
         }}
       />
     </div>

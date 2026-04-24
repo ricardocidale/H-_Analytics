@@ -161,9 +161,13 @@ export async function searchWithPerplexity(
     });
 
     const message = response.choices?.[0]?.message;
-    const rawCitations: string[] = (response as any).citations ?? [];
+    const perplexityResponse = response as unknown as {
+      citations?: string[];
+      search_results?: Array<{ url?: string; title?: string; snippet?: string; date?: string; last_updated?: string }>;
+    };
+    const rawCitations: string[] = perplexityResponse.citations ?? [];
     const searchResults: Array<{ url?: string; title?: string; snippet?: string; date?: string; last_updated?: string }> =
-      (response as any).search_results ?? [];
+      perplexityResponse.search_results ?? [];
 
     const citations: WebResearchCitation[] = rawCitations.map((url: string) => {
       const match = searchResults.find((sr) => sr.url === url);

@@ -31,10 +31,14 @@ import type { Property } from "@shared/schema";
 import type { GlobalResponse } from "@/lib/api/types";
 import {
   DEFAULT_COST_RATE_PROPERTY_OPS, DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_ADMIN, DEFAULT_COST_RATE_TAXES, DEFAULT_COST_RATE_INSURANCE,
+  DEFAULT_COST_RATE_ADMIN, DEFAULT_COST_RATE_INSURANCE,
   DEFAULT_COST_RATE_IT, DEFAULT_COST_RATE_OTHER,
   MONTHS_PER_YEAR,
 } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #406: registry-backed US baseline for property tax rate (single source of truth).
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 import { dPow } from "@calc/shared/decimal";
 import {
   TableShell,
@@ -53,12 +57,11 @@ import {
 import { aggregatePropertyByYear } from "@/lib/financial/yearlyAggregator";
 import { TableRow, TableCell } from "@/components/ui/table";
 import {
-  DAYS_PER_MONTH,
+  // DAYS_PER_MONTH and DEFAULT_PROPERTY_INFLATION_RATE replaced with registry factory baselines (Audit #319 R4).
   DEFAULT_REV_SHARE_EVENTS,
   DEFAULT_REV_SHARE_FB,
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
-  DEFAULT_PROPERTY_INFLATION_RATE,
 } from "@shared/constants";
 
 interface Props {
@@ -96,7 +99,7 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
     const cateringBoostPct = property.cateringBoostPercent ?? DEFAULT_CATERING_BOOST_PCT;
     const cateringBoostMultiplier = 1 + cateringBoostPct;
 
-    const resolvedDaysPerMonth = global.daysPerMonth ?? DAYS_PER_MONTH;
+    const resolvedDaysPerMonth = global.daysPerMonth ?? getFactoryNumber('daysPerMonth');
     const baseMonthlyRoomRev = property.roomCount * resolvedDaysPerMonth * property.startAdr * property.startOccupancy;
     const baseMonthlyEventsRev = baseMonthlyRoomRev * revShareEvents;
     const baseMonthlyFBRev = baseMonthlyRoomRev * revShareFB * cateringBoostMultiplier;
@@ -104,7 +107,7 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
     baseMonthlyTotalRev = baseMonthlyRoomRev + baseMonthlyEventsRev + baseMonthlyFBRev + baseMonthlyOtherRev;
 
     totalPropertyValue = property.purchasePrice + (property.buildingImprovements ?? 0);
-    fixedEscRate = global.fixedCostEscalationRate ?? property.inflationRate ?? global.inflationRate ?? DEFAULT_PROPERTY_INFLATION_RATE;
+    fixedEscRate = global.fixedCostEscalationRate ?? property.inflationRate ?? global.inflationRate ?? getFactoryNumber('inflationRate');
     costRates = {
       propertyOps: property.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS,
       utilities: property.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES,

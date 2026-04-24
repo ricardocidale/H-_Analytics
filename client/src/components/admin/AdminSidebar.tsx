@@ -1,17 +1,30 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 import { X } from "@/components/icons/themed-icons";
 import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  IconMenu, IconHelpCircle, IconPeople, IconUserCog, IconActivity, IconImage, IconSwatchBook,
+  IconMenu, IconHelpCircle, IconPeople, IconUserCog, IconActivity, IconSwatchBook,
   IconPanelLeft, IconProperties,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
-  IconBriefcase, IconResearch, IconBookOpen, IconPhone, IconExport, IconScenarios, IconPalette,
-  IconLayers, IconShieldCheck, IconGlobe, IconTimer, IconGauge, IconMessageSquare,
-  IconCalculator,
+  IconBriefcase, IconPhone, IconExport, IconScenarios, IconPalette,
+  IconShieldCheck, IconGlobe,
+  IconCalculator, IconDashboard,
 } from "@/components/icons";
 import { Link } from "wouter";
 
@@ -30,29 +43,56 @@ export type AdminSection =
   | "companies" | "groups" | "scenarios" // companies kept as alias → redirects to users
   | "brand" | "exports"
   | "ai-agents" | "knowledge-base" | "conversations"
-  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "financial-lines" | "benchmarks" | "analyst-tables" | "vector-bench"
+  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "vector-bench"
   | "navigation" | "notifications" | "verification" | "database"
-  | "photos-renders"
   // Legacy aliases (redirect to canonical)
-  | "icp" | "logos" | "themes" | "icons"
+  | "logos" | "themes" | "icons"
   | "llms" | "sources" | "model-routing"
   | "cache-services" | "integrations" | "api-dashboard"
   | "coverage-analytics" | "pipeline-policies" | "source-registry"
   | "system-intelligence" | "research"
-  // New 10-block navigation aliases
-  | "financial-defaults" | "services-fees" | "company-profile"
-  | "hotel-defaults" | "rental-defaults" | "required-fields"
-  | "sources-apis" | "llm-config" | "engine-health"
-  | "user-management"
+  // Sidebar item that lands on the Scenarios page with default-assignment intent.
   | "default-assignments"
-  | "rebecca-config" | "themes-appearance"
-  | "app-settings"
-  | "testing-verification"
-  | "reports-exports";
+  // Canonical read-only roll-up across every Specialist's required fields.
+  | "required-fields"
+  // Steady State (Defaults & Constants)
+  | "defaults-management-company" | "defaults-property" | "defaults-market-macro"
+  | "constants"
+  // AI Research → Specialists (P5). The 7 read-only assignment+health surface
+  // sections are derived from `SPECIALIST_SECTION_TO_ID` keys below — single
+  // source of truth, compile-enforced. To add a Specialist section, edit ONLY
+  // the map; this union widens automatically. See P6d packet for the rationale.
+  | SpecialistSection;
 
-const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
+/**
+ * Map admin sidebar section value → canonical Specialist id used by
+ * /api/admin/specialists/:id. The section enum uses dashes throughout
+ * (URL-safe) while the catalog uses dotted ids — this table is the only
+ * place we cross the boundary.
+ *
+ * Single source of truth: this map's keys feed `SpecialistSection` (above)
+ * via `keyof typeof`. Test `tests/client/admin-sidebar-section-map.test.ts`
+ * asserts the map is bijective with `SPECIALIST_CATALOG`.
+ */
+export const SPECIALIST_SECTION_TO_ID = {
+  "specialist-mgmt-co-funding": "mgmt-co.funding",
+  "specialist-mgmt-co-revenue": "mgmt-co.revenue",
+  "specialist-mgmt-co-icp-intelligence": "mgmt-co.icp-intelligence",
+  "specialist-property-risk-intelligence": "property.risk-intelligence",
+  "specialist-property-executive-summary": "property.executive-summary",
+  "specialist-photos-photo-enhancer": "photos.photo-enhancer",
+  "specialist-portfolio-ops-watchdog": "portfolio-ops.watchdog",
+  "specialist-resources-builder": "resources.builder",
+  "specialist-constants-tax-research": "constants.tax-research",
+  "specialist-constants-macro-research": "constants.macro-research",
+  "specialist-constants-depreciation-research": "constants.depreciation-research",
+  "specialist-constants-reporting-research": "constants.reporting-research",
+} as const satisfies Record<string, string>;
+
+export type SpecialistSection = keyof typeof SPECIALIST_SECTION_TO_ID;
+
+export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Legacy aliases
-  "icp": "engine-dashboard",
   "logos": "brand",
   "themes": "brand",
   "icons": "brand",
@@ -72,26 +112,68 @@ const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
   // Groups and companies removed — redirect to users
   "groups": "users",
   "companies": "users",
-  "services-fees": "model-defaults",
-  "company-profile": "model-defaults",
-  "financial-defaults": "model-defaults",
-  "hotel-defaults": "model-defaults",
-  "rental-defaults": "model-defaults",
-  "required-fields": "model-defaults",
-  "sources-apis": "data-sources",
-  "llm-config": "pipeline-config",
-  "engine-health": "engine-dashboard",
-  "user-management": "users",
+  // `required-fields` is the canonical roll-up section now (Admin → Properties
+  // → Required Fields). It renders a read-only aggregate across every
+  // Specialist's `candidateFields` + `fieldRequirements`. No redirect.
   "default-assignments": "scenarios",
-  "rebecca-config": "ai-agents",
-  "themes-appearance": "brand",
-  "app-settings": "notifications",
-  "testing-verification": "verification",
-  "reports-exports": "exports",
+  // Steady State → all live inside the model-defaults page; sub-tab is selected
+  // by Admin.tsx's MODEL_DEFAULTS_SUB_TAB map keyed off the alias.
+  "defaults-management-company": "model-defaults",
+  "defaults-property": "model-defaults",
+  "defaults-market-macro": "model-defaults",
+  "constants": "model-defaults",
 };
 
+/**
+ * Legacy in-memory deep-link aliases that are no longer part of the
+ * `AdminSection` union. The Resources surface (APIs/Sources/Tables/
+ * Benchmarks/Models) used to render under /admin via these section ids;
+ * it now lives only under /ai-intelligence and is intercepted by
+ * `setAdminSection` in `client/src/lib/admin-nav.ts` (which navigates
+ * to /ai-intelligence and sets the AiIntelligenceSection). They are
+ * intentionally NOT listed here — `setAdminSection` handles them
+ * before this map is consulted.
+ */
+const LEGACY_ADMIN_SECTION_REDIRECTS: Record<string, AdminSection> = {
+  // No legacy admin-only string aliases remain after Phase 1.
+  // `required-fields` is now a real canonical AdminSection (see union above)
+  // rendered by `RequiredFieldsRollup`; resources-* keys are intercepted by
+  // `setAdminSection` and routed to /ai-intelligence.
+};
+
+/**
+ * Legacy resources-* deep-link aliases that now live under /ai-intelligence.
+ * Exported so `setAdminSection` (admin-nav.ts) and tests can recognise them
+ * from the same source of truth.
+ */
+export const RESOURCES_LEGACY_SECTIONS = [
+  "resources-apis",
+  "resources-sources",
+  "resources-tables",
+  "resources-benchmarks",
+  "resources-models",
+] as const;
+export type ResourcesLegacySection = typeof RESOURCES_LEGACY_SECTIONS[number];
+
+export function isResourcesLegacySection(section: string): section is ResourcesLegacySection {
+  return (RESOURCES_LEGACY_SECTIONS as readonly string[]).includes(section);
+}
+
+export function normalizeAdminSection(section: AdminSection | string): AdminSection {
+  if (typeof section === "string" && section in LEGACY_ADMIN_SECTION_REDIRECTS) {
+    return LEGACY_ADMIN_SECTION_REDIRECTS[section];
+  }
+  return section as AdminSection;
+}
+
 export function resolveSection(section: AdminSection): AdminSection {
-  return SECTION_REDIRECTS[section] ?? section;
+  let current: AdminSection = section;
+  const seen = new Set<AdminSection>();
+  while (SECTION_REDIRECTS[current] && !seen.has(current)) {
+    seen.add(current);
+    current = SECTION_REDIRECTS[current]!;
+  }
+  return current;
 }
 
 interface SectionItem {
@@ -111,48 +193,33 @@ interface NavGroup {
 function buildNavGroups(): NavGroup[] {
   return [
     {
-      id: "management-company",
-      label: "Management Company",
-      icon: IconBriefcase,
-      description: "Services, fees & financial statement lines",
+      id: "financial-defaults",
+      label: "Steady State",
+      icon: IconSliders,
+      description: "Defaults applied to new entities and immutable model constants",
       sections: [
-        { value: "services-fees",      label: "Services & Fees",           icon: IconBriefcase },
-        { value: "financial-lines",    label: "Financial Statement Lines", icon: IconCalculator },
+        { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
+        { value: "defaults-property",           label: "Property",           icon: IconProperties },
+        { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
+        { value: "constants",                   label: "Constants",          icon: IconCalculator },
       ],
     },
     {
       id: "properties",
       label: "Properties",
       icon: IconProperties,
-      description: "Property defaults, required fields & photos",
+      description: "Property-wide admin surfaces",
       sections: [
-        { value: "hotel-defaults",  label: "Defaults",                     icon: IconSliders },
-        { value: "required-fields", label: "Required Fields",              icon: IconFileCheck },
-        { value: "photos-renders",  label: "Photos & Renders",             icon: IconImage },
-      ],
-    },
-    {
-      id: "ai-research",
-      label: "AI Research",
-      icon: IconBrain,
-      description: "Sources, LLMs & system health",
-      sections: [
-        { value: "sources-apis",       label: "Sources & APIs",       icon: IconGlobe },
-        { value: "llm-config",         label: "LLM Configuration",    icon: IconLayers },
-        { value: "engine-health",      label: "System Health",        icon: IconGauge },
-        { value: "scheduled-research", label: "Scheduled Research",   icon: IconTimer },
-        { value: "benchmarks",         label: "Hospitality Benchmarks", icon: IconResearch },
-        { value: "analyst-tables",     label: "Analyst Tables",       icon: IconResearch },
-        { value: "vector-bench",       label: "Vector Search Latency", icon: IconGauge },
+        { value: "required-fields", label: "Required Fields", icon: IconFileCheck },
       ],
     },
     {
       id: "users",
       label: "Users",
       icon: IconPeople,
-      description: "User accounts and assignments",
+      description: "Manage user accounts and assignments",
       sections: [
-        { value: "users", label: "User Management", icon: IconPeople },
+        { value: "users", label: "All Users", icon: IconPeople },
       ],
     },
     {
@@ -161,39 +228,26 @@ function buildNavGroups(): NavGroup[] {
       icon: IconScenarios,
       description: "Scenario management and assignments",
       sections: [
-        { value: "scenarios",           label: "All Scenarios",      icon: IconScenarios },
+        { value: "scenarios",           label: "All Scenarios",       icon: IconScenarios },
         { value: "default-assignments", label: "Default Assignments", icon: IconUserCog },
       ],
     },
     {
-      id: "rebecca",
-      label: "Rebecca AI Assistant",
-      icon: IconBot,
-      description: "Configuration, knowledge base & conversations",
-      sections: [
-        { value: "ai-agents",     label: "Configuration",  icon: IconBot },
-        { value: "knowledge-base", label: "Knowledge Base", icon: IconBookOpen },
-        { value: "conversations", label: "Conversations",   icon: IconMessageSquare },
-      ],
-    },
-    {
-      id: "themes",
-      label: "Themes & Appearance",
-      icon: IconSwatchBook,
+      id: "brand",
+      label: "Brand & Appearance",
+      icon: IconPalette,
       description: "Logos, themes, and icon customization",
       sections: [
-        { value: "brand", label: "Brand & Appearance", icon: IconPalette },
+        { value: "brand", label: "Brand Settings", icon: IconPalette },
       ],
     },
     {
-      id: "app-settings",
-      label: "App Settings",
-      icon: IconSettingsGear,
-      description: "Notifications, navigation & system",
+      id: "reports",
+      label: "Reports & Exports",
+      icon: IconExport,
+      description: "PDF, PPTX, Excel & CSV exports",
       sections: [
-        { value: "notifications", label: "Notifications", icon: IconPhone },
-        { value: "navigation",    label: "Navigation",    icon: IconPanelLeft },
-        { value: "database",      label: "Database",      icon: IconDatabase },
+        { value: "exports", label: "All Exports", icon: IconExport },
       ],
     },
     {
@@ -207,12 +261,15 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
-      id: "reports",
-      label: "Reports & Exports",
-      icon: IconExport,
-      description: "PDF, PPTX, Excel & CSV exports",
+      id: "app-settings",
+      label: "App Settings",
+      icon: IconSettingsGear,
+      description: "Notifications, navigation, system & activity logs",
       sections: [
-        { value: "exports", label: "Reports & Exports", icon: IconExport },
+        { value: "notifications", label: "Notifications", icon: IconPhone },
+        { value: "navigation",    label: "Navigation",    icon: IconPanelLeft },
+        { value: "database",      label: "Database",      icon: IconDatabase },
+        { value: "activity",      label: "Activity",      icon: IconActivity },
       ],
     },
   ];
@@ -223,7 +280,7 @@ function getGroupForSection(section: AdminSection, groups: NavGroup[]): string {
   for (const group of groups) {
     if (group.sections.some((s) => resolveSection(s.value) === resolved || s.value === resolved)) return group.id;
   }
-  return "management-company";
+  return "financial-defaults";
 }
 
 interface AdminSidebarProps {
@@ -231,148 +288,174 @@ interface AdminSidebarProps {
   onSectionChange: (section: AdminSection) => void;
 }
 
-export default function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const navGroups = buildNavGroups();
+/**
+ * Embeddable admin nav body — renders the proper shadcn sidebar block
+ * (SidebarMenu + SidebarMenuSub) with collapsible submenus, freshness
+ * badges, and tooltips. Use this when you want to drop the admin nav
+ * inside an existing shell (e.g. Layout.tsx). For the standalone admin
+ * sidebar with its own aside / mobile drawer, use AdminSidebar (default).
+ */
+export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebarProps) {
+  const navGroups = useMemo(() => buildNavGroups(), []);
+  const [location] = useLocation();
+  const isAiIntelligenceActive = location.startsWith("/ai-intelligence");
 
-  const { data: freshnessCounts } = useQuery<FreshnessCounts>({
+  // Keep the freshness query alive so the API is exercised on admin loads.
+  // The badge UI was removed when the AI Research group was retired.
+  useQuery<FreshnessCounts>({
     queryKey: ["/api/admin/intelligence/freshness-counts"],
     refetchInterval: 60_000,
   });
   const resolved = resolveSection(activeSection);
   const activeGroup = getGroupForSection(resolved, navGroups);
 
-  const sidebarContent = (
-    <nav className="flex flex-col gap-0.5 py-3 px-3">
-      {navGroups.map((group) => {
-        const isGroupActive = group.id === activeGroup;
+  return (
+    <SidebarProvider
+      defaultOpen
+      className="min-h-0 w-full bg-transparent"
+      style={{ "--sidebar-width": "100%" } as React.CSSProperties}
+    >
+      <Sidebar
+        collapsible="none"
+        className="w-full bg-transparent text-sidebar-foreground"
+      >
+        <SidebarContent className="bg-transparent gap-1 px-2 py-2">
+          {/* Home — always first; returns to the main dashboard sidebar */}
+          <SidebarGroup className="p-0">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Home">
+                  <Link href="/" data-testid="admin-nav-home">
+                    <IconDashboard className="size-4 shrink-0" />
+                    <span className="truncate">Home</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
 
-        return (
-          <div key={group.id} className="mb-0.5">
-            <div className="px-3 pt-4 pb-1 flex items-center gap-2">
-              <span
-                className={cn(
-                  "text-[11px] font-medium",
-                  isGroupActive ? "text-primary" : "text-primary/60"
-                )}
-              >
-                {group.label}
-              </span>
-              {group.id === "ai-research" && freshnessCounts && (freshnessCounts.stale > 0 || freshnessCounts.missing > 0) && (
-                <span
-                  data-testid="intelligence-freshness-badge"
-                  className={cn(
-                    "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold leading-none",
-                    freshnessCounts.missing > 0
-                      ? "bg-red-500/15 text-red-600 dark:text-red-400"
-                      : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                  )}
-                >
-                  {freshnessCounts.stale + freshnessCounts.missing}
-                </span>
-              )}
-            </div>
+          {/* AI Intelligence — top-level link to the dedicated AI Intelligence area */}
+          <SidebarGroup className="p-0">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isAiIntelligenceActive} tooltip="AI Intelligence">
+                  <Link href="/ai-intelligence" data-testid="admin-nav-ai-intelligence">
+                    <IconBrain className="size-4 shrink-0" />
+                    <span className="truncate">AI Intelligence</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
 
-            <div className="space-y-0.5">
-              {group.sections.map((section) => {
-                const sectionResolved = resolveSection(section.value);
-                const isAlias = section.value !== sectionResolved;
-                const isActive = isAlias
-                  ? activeSection === section.value
-                  : resolved === sectionResolved;
-                const Icon = section.icon;
-                return (
-                  <Button
-                    key={section.value}
-                    variant="ghost"
-                    onClick={() => {
-                      onSectionChange(section.value);
-                      setMobileOpen(false);
-                    }}
-                    data-testid={`admin-nav-${section.value}`}
-                    className={cn(
-                      "relative w-full flex items-center gap-2.5 px-3 py-[7px] h-auto rounded-lg text-left justify-start transition-all duration-150 group/item cursor-pointer",
-                      isActive
-                        ? "bg-muted text-foreground font-medium"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "w-4 h-4 shrink-0 transition-colors",
-                        isActive
-                          ? "text-foreground"
-                          : "text-muted-foreground group-hover/item:text-muted-foreground"
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "text-[13px] transition-colors truncate",
-                        isActive ? "font-medium" : "font-normal"
-                      )}
+          {navGroups.map((group) => {
+            const isGroupActive = group.id === activeGroup;
+
+            // Single-section groups render as a flat top-level item (no submenu).
+            if (group.sections.length === 1) {
+              const only = group.sections[0];
+              const sectionResolved = resolveSection(only.value);
+              const isAlias = only.value !== sectionResolved;
+              const isActive = isAlias
+                ? activeSection === only.value
+                : resolved === sectionResolved;
+              const Icon = only.icon;
+              return (
+                <SidebarGroup key={group.id} className="p-0">
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        onClick={() => onSectionChange(only.value)}
+                        data-testid={`admin-nav-${only.value}`}
+                        tooltip={group.label}
+                      >
+                        <Icon className="size-4 shrink-0" />
+                        <span className="truncate">{group.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroup>
+              );
+            }
+
+            // Multi-section groups follow shadcn `sidebar-03`: a non-clickable
+            // group label with the submenu items rendered directly below
+            // (always visible — no collapsible chevron).
+            const GroupIcon = group.icon;
+            return (
+              <SidebarGroup key={group.id} className="p-0">
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={isGroupActive}
+                      data-testid={`admin-nav-group-${group.id}`}
+                      className="font-medium pointer-events-none"
+                      tabIndex={-1}
+                      aria-disabled
                     >
-                      {section.label}
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+                      <GroupIcon className="size-4 shrink-0" />
+                      <span className="truncate">{group.label}</span>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      {group.sections.map((section) => {
+                        const sectionResolved = resolveSection(section.value);
+                        const isAlias = section.value !== sectionResolved;
+                        const isActive = isAlias
+                          ? activeSection === section.value
+                          : resolved === sectionResolved;
+                        const Icon = section.icon;
+                        return (
+                          <SidebarMenuSubItem key={section.value}>
+                            <SidebarMenuSubButton
+                              isActive={isActive}
+                              onClick={() => onSectionChange(section.value)}
+                              data-testid={`admin-nav-${section.value}`}
+                              className="cursor-pointer"
+                            >
+                              <Icon className="size-4 shrink-0" />
+                              <span className="truncate">{section.label}</span>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroup>
+            );
+          })}
 
-      <div className="mt-1 pt-2 border-t border-border/60">
-        <div className="px-3 pt-2 pb-1">
-          <span className="text-[11px] font-medium text-primary/60">
-            Logs
-          </span>
-        </div>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            onSectionChange("activity");
-            setMobileOpen(false);
-          }}
-          data-testid="admin-nav-activity"
-          className={cn(
-            "relative w-full flex items-center gap-2.5 px-3 py-[7px] h-auto rounded-lg text-left justify-start transition-all duration-150 group/item cursor-pointer",
-            resolved === "activity"
-              ? "bg-muted text-foreground font-medium"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          <IconActivity
-            className={cn(
-              "w-4 h-4 shrink-0 transition-colors",
-              resolved === "activity"
-                ? "text-foreground"
-                : "text-muted-foreground group-hover/item:text-muted-foreground"
-            )}
-          />
-          <span
-            className={cn(
-              "text-[13px] transition-colors truncate",
-              resolved === "activity" ? "font-medium" : "font-normal"
-            )}
-          >
-            Activity
-          </span>
-        </Button>
-      </div>
-
-      <div className="mt-1 pt-2 border-t border-border/60">
-        <Link
-          href="/help"
-          data-testid="admin-nav-help"
-          className="relative w-full flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-left transition-all duration-150 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        >
-          <IconHelpCircle className="w-4 h-4 shrink-0" />
-          <span className="text-[13px] font-normal">Help</span>
-        </Link>
-      </div>
-    </nav>
+          {/* Help */}
+          <SidebarGroup className="p-0 mt-1 pt-2 border-t border-border/60">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Help">
+                  <Link href="/help" data-testid="admin-nav-help">
+                    <IconHelpCircle className="size-4 shrink-0" />
+                    <span className="truncate">Help</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+    </SidebarProvider>
   );
+}
 
+/**
+ * Standalone admin sidebar with its own aside / mobile drawer chrome.
+ * Used when an admin page wants to render its own sidebar instead of
+ * embedding the nav body in a shared shell.
+ */
+export default function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const handleSelect = (section: AdminSection) => {
+    onSectionChange(section);
+    setMobileOpen(false);
+  };
   return (
     <>
       <Button
@@ -415,7 +498,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
           </div>
 
           <div className="overflow-y-auto max-h-[calc(100vh-120px)] lg:max-h-[calc(100vh-200px)] scrollbar-thin">
-            {sidebarContent}
+            <AdminSidebarNav activeSection={activeSection} onSectionChange={handleSelect} />
           </div>
         </div>
       </aside>

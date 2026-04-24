@@ -12,12 +12,16 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
   DEFAULT_COST_RATE_INSURANCE,
 } from "../../shared/constants.js";
+import { getFactoryNumber } from "../../shared/model-constants-registry.js";
+
+// Audit #406: stateless benchmark calculator sources US property tax rate from the registry.
+// This calculator has no `country` argument; callers needing locality must pass `cost_rate_taxes` explicitly.
+const DEFAULT_COST_RATE_TAXES_US = getFactoryNumber("costRateTaxes", "United States");
 
 interface CostBenchmarksInput {
   annual_room_revenue: number;
@@ -66,7 +70,7 @@ export function computeCostBenchmarks(input: CostBenchmarksInput): CostBenchmark
     cost_rate_marketing = DEFAULT_COST_RATE_MARKETING,
     cost_rate_property_ops = DEFAULT_COST_RATE_PROPERTY_OPS,
     cost_rate_utilities = DEFAULT_COST_RATE_UTILITIES,
-    cost_rate_taxes = DEFAULT_COST_RATE_TAXES,
+    cost_rate_taxes = DEFAULT_COST_RATE_TAXES_US,
     cost_rate_insurance = DEFAULT_COST_RATE_INSURANCE,
     cost_rate_it = DEFAULT_COST_RATE_IT,
     cost_rate_ffe = DEFAULT_COST_RATE_FFE,

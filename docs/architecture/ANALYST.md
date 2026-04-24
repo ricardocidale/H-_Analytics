@@ -170,14 +170,17 @@ If you find an internal team term in user-facing code, it's a bug. The vocabular
 
 ## Phased roadmap
 
-| Phase | Scope | Status |
-|---|---|---|
-| **1a** | This spine + per-component docs + ADR-001 + ADR template | **Shipping now** |
-| **1b** | `.claude/skills/analyst/` + `.claude/rules/analyst-team.md` + `.claude/rules/analyst-verdict-contract.md` | Handoff to Claude Code; brief at `docs/architecture/analyst/HANDOFF-claude-code-phase-1b.md` |
-| **2** | `engine/analyst/` skeleton (re-exports only) + CODEOWNERS + naming-lint rule + ADR-002 | After 1a + 1b accepted |
-| **3** | `AnalystVerdict` contract + Surface Router + Voice Renderer + backfill 2 existing evaluators + persona-keyed test bench | Project task |
-| **4** | Build remaining Surface Specialists (Compensation, Overhead, Company, Property-Defaults, ICP, Cross-Portfolio, Staleness, per-tab Property Specialists) | Incremental, one PR each |
-| **5** | Cognitive Engine reorg (`server/ai/` 41 flat files into 6 capability folders) + Claude Code's open questions (orchestrator cache, research-history reindex, guidance↔engine seam) | Mechanical move + targeted hardening |
+The phase plan (1a / 1b / 2 / 3 / 4 / 5 + their scopes) is the architectural decomposition.
+
+**Live status for each phase lives in `.claude/phases.md`** under the "Analyst Architecture" workstream. This document carries the architectural shape; the phase tracker carries the per-phase commit / owner / blocked-by / next.
+
+Planned scopes:
+- **1a** — This spine + per-component docs + ADR-001 + ADR template
+- **1b** — `.claude/skills/analyst/` + `analyst-team.md` + `analyst-verdict-contract.md`
+- **2** — `engine/analyst/` skeleton (re-exports only) + CODEOWNERS + naming-lint + ADR-002
+- **3** — `AnalystVerdict` contract + Surface Router + Voice Renderer + backfill 2 evaluators + persona-keyed test bench
+- **4** — Remaining Surface Specialists (Compensation, Overhead, Company, Property-Defaults, ICP, Cross-Portfolio, Staleness, per-tab Property Specialists)
+- **5** — Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) + open questions (orchestrator cache, research-history reindex, guidance↔engine seam)
 
 ---
 

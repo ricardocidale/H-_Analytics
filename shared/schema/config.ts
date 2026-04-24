@@ -4,7 +4,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { logos } from "./core";
 import { users } from "./auth";
-import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition, RequiredFieldsConfig } from "./types/jsonb-shapes";
+import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition } from "./types/jsonb-shapes";
 import {
   DEFAULT_COMPANY_OPS_START_DATE,
   DEFAULT_CAPITAL_RAISE_1_DATE,
@@ -23,7 +23,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -41,7 +40,6 @@ import {
   DEFAULT_SERVICE_MARKUP,
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   DEFAULT_FIXED_COST_ESCALATION_RATE,
-  DEFAULT_COMPANY_TAX_RATE,
   DEFAULT_PROJECTION_YEARS,
   DEFAULT_MAX_STALENESS_HOURS,
   DEFAULT_PROPERTY_INFLATION_RATE,
@@ -63,6 +61,10 @@ import {
   DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
 } from "../constants";
+import { getFactoryNumber } from "../model-constants-registry";
+
+// Audit #406: company tax rate column default sourced from the registry (US federal corporate baseline = 0.21).
+const US_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 
 // --- GLOBAL ASSUMPTIONS TABLE ---
 // The "Settings" page in the UI. Contains every system-wide financial assumption
@@ -180,7 +182,7 @@ export const globalAssumptions = pgTable("global_assumptions", {
   
   
   // Tax Rate (for calculating after-tax company cash flow)
-  companyTaxRate: real("company_tax_rate").notNull().default(DEFAULT_COMPANY_TAX_RATE),
+  companyTaxRate: real("company_tax_rate").notNull().default(US_COMPANY_TAX_RATE),
   
   // WACC — Cost of Equity (user-provided, not CAPM-derived; default 18% for private hospitality)
   costOfEquity: real("cost_of_equity").notNull().default(DEFAULT_COST_OF_EQUITY),
@@ -207,20 +209,6 @@ export const globalAssumptions = pgTable("global_assumptions", {
   icpConfig: jsonb("icp_config").$type<IcpConfig>(),
 
   exportConfig: jsonb("export_config").$type<ExportConfig>(),
-
-  requiredFieldsConfig: jsonb("required_fields_config").$type<RequiredFieldsConfig>().default({
-    name: true,
-    location: true,
-    roomCount: true,
-    startAdr: true,
-    purchasePrice: true,
-    country: false,
-    startOccupancy: false,
-    qualityTier: false,
-    businessModel: false,
-    serviceLevel: false,
-    locationType: false,
-  }),
 
   // Asset Definition
   assetDefinition: jsonb("asset_definition").notNull().$type<AssetDefinition>().default({
@@ -281,6 +269,10 @@ export const globalAssumptions = pgTable("global_assumptions", {
   rebeccaDisplayName: text("rebecca_display_name").notNull().default("Rebecca"),
   rebeccaSystemPrompt: text("rebecca_system_prompt"),
   rebeccaChatEngine: text("rebecca_chat_engine").notNull().default("gemini"),
+  // Task #499 — full Rebecca persona/voice/llm/source configuration. Stored as
+  // jsonb so existing rows fall back to coded defaults; merged via
+  // mergeRebeccaSettings() in shared/rebecca-settings.ts.
+  rebeccaConfig: jsonb("rebecca_config"),
 
   // Research Configuration — per-event admin control over AI research behavior
   researchConfig: jsonb("research_config").$type<ResearchConfig>().default({}),
@@ -354,7 +346,7 @@ export const insertGlobalAssumptionsSchema = createInsertSchema(globalAssumption
     preOpeningCosts: z.number(),
     operatingReserve: z.number(),
     monthsToOps: z.number()
-  }),
+  }).strict(),
   debtAssumptions: z.object({
     interestRate: z.number(),
     amortizationYears: z.number(),
@@ -365,23 +357,23 @@ export const insertGlobalAssumptionsSchema = createInsertSchema(globalAssumption
     refiPeriodYears: z.number().optional(),
     acqLTV: z.number(),
     acqClosingCostRate: z.number()
-  }),
+  }).strict(),
   assetDefinition: z.object({
-    minRooms: z.number(),
-    maxRooms: z.number(),
-    hasFB: z.boolean(),
-    hasEvents: z.boolean(),
-    hasWellness: z.boolean(),
-    minAdr: z.number(),
-    maxAdr: z.number(),
-    level: z.enum(["budget", "average", "luxury"]).optional().default("luxury"),
-    eventLocations: z.number().optional().default(2),
-    maxEventCapacity: z.number().optional().default(150),
-    acreage: z.number().optional().default(10),
-    privacyLevel: z.enum(["low", "moderate", "high"]).optional().default("high"),
-    parkingSpaces: z.number().optional().default(50),
-    description: z.string()
-  }).optional()
+    minRooms: z.number().default(10),
+    maxRooms: z.number().default(80),
+    hasFB: z.boolean().default(true),
+    hasEvents: z.boolean().default(true),
+    hasWellness: z.boolean().default(true),
+    minAdr: z.number().default(150),
+    maxAdr: z.number().default(600),
+    level: z.enum(["budget", "average", "luxury"]).default("luxury"),
+    eventLocations: z.number().default(2),
+    maxEventCapacity: z.number().default(150),
+    acreage: z.number().default(10),
+    privacyLevel: z.enum(["low", "moderate", "high"]).default("high"),
+    parkingSpaces: z.number().default(50),
+    description: z.string().default("Luxury boutique hotels on private estates of 10+ acres, catering to 100+ person exotic, unique, and corporate events in exclusive, secluded settings with full-service F&B, wellness programming, and curated guest experiences.")
+  }).strict().optional()
 }).omit({ updatedAt: true });
 
 export const selectGlobalAssumptionsSchema = createSelectSchema(globalAssumptions);

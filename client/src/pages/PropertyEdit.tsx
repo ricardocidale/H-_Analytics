@@ -43,11 +43,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Link, useRoute, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import { AnalystWorkingView } from "@/components/research/AnalystWorkingView";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
 import { Switch } from "@/components/ui/switch";
+import { PrerequisitesFailedPanel, type PrerequisiteFailure } from "@/components/company/SpecialistRequirementsPanel";
 import {
   PROJECTION_YEARS,
   DEFAULT_MODEL_START_DATE,
@@ -91,14 +93,28 @@ export default function PropertyEdit() {
   const [intelligenceClicked, setIntelligenceClicked] = useState(false);
   const intelligencePromptShown = useRef(false);
   const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
+  const [prerequisiteFailures, setPrerequisiteFailures] = useState<PrerequisiteFailure[]>([]);
   const wasGeneratingRef = useRef(false);
   const [researchStartedAt, setResearchStartedAt] = useState<number | null>(null);
   const { data: marketRates } = useMarketRates();
+
+  const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
+    open: boolean;
+    specialistId: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }>({ open: false, specialistId: "", missingFields: [] });
 
   const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
     property: property ?? null,
     propertyId,
     global: globalAssumptions,
+    onMissingRequiredFields: (info) => {
+      setMissingFieldsPrompt({
+        open: true,
+        specialistId: info.specialistId,
+        missingFields: info.missingFields,
+      });
+    },
   });
 
   const researchUpdatedAt = research?.updatedAt ?? null;
@@ -487,7 +503,19 @@ export default function PropertyEdit() {
 
   const handleSave = () => {
     updateProperty.mutate({ id: propertyId, data: draft }, {
-      onSuccess: () => {
+      onSuccess: (res) => {
+        // Phase 4 (Task #454): PATCH /api/properties/:id returns
+        // { prerequisiteFailures, requiredFieldsMissing } when the
+        // property-subject Specialists (D Risk Intelligence, E Executive
+        // Summary) have toggled-on prerequisites that the deterministic
+        // evaluator flagged on this save. Shape is the flat
+        // PrerequisiteFailure = { id, specialistId, reason } — the same
+        // contract Company Assumptions consumes — so we render the shared
+        // PrerequisitesFailedPanel rather than a toast.
+        const prereqRes = res as {
+          prerequisiteFailures?: PrerequisiteFailure[] | null;
+        };
+        setPrerequisiteFailures(prereqRes.prerequisiteFailures ?? []);
         if (feeDraft) {
           updateFeeCategories.mutate({ propertyId, categories: feeDraft }, {
             onSuccess: () => { finishSave(); },
@@ -708,6 +736,10 @@ export default function PropertyEdit() {
         </DialogContent>
       </Dialog>
 
+      <PrerequisitesFailedPanel
+        failures={prerequisiteFailures}
+        onDismiss={() => setPrerequisiteFailures([])}
+      />
       <ApplyResearchDialog
         open={showApplyDialog}
         onOpenChange={setShowApplyDialog}
@@ -717,6 +749,15 @@ export default function PropertyEdit() {
         onChange={(key, value) => {
           handleChange(key, value);
         }}
+      />
+      <MissingRequiredFieldsPrompt
+        open={missingFieldsPrompt.open}
+        onOpenChange={(open) =>
+          setMissingFieldsPrompt((s) => ({ ...s, open }))
+        }
+        specialistLabel="Property Intelligence"
+        missingFields={missingFieldsPrompt.missingFields}
+        navContext={{ propertyId }}
       />
       </AnimatedPage>
     </Layout>

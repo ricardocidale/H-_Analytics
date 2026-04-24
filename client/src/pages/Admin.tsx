@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { type AdminSection, resolveSection } from "@/components/admin/AdminSidebar";
+import { type AdminSection, resolveSection, SECTION_REDIRECTS, SPECIALIST_SECTION_TO_ID, type SpecialistSection } from "@/components/admin/AdminSidebar";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
@@ -11,6 +11,10 @@ import { SaveButton } from "@/components/ui/save-button";
 import { useAdminSection } from "@/lib/admin-nav";
 import type { AdminSaveState } from "@/components/admin/save-state";
 import { Loader2 } from "@/components/icons/themed-icons";
+
+function isSpecialistSection(s: AdminSection): s is SpecialistSection {
+  return s in SPECIALIST_SECTION_TO_ID;
+}
 
 const ActivityTab = lazy(() => import("@/components/admin").then(m => ({ default: m.ActivityTab })));
 const VerificationTab = lazy(() => import("@/components/admin").then(m => ({ default: m.VerificationTab })));
@@ -29,15 +33,15 @@ const EngineDashboard = lazy(() => import("@/components/admin/intelligence/Engin
 const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
 const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
 // KnowledgeBaseTab is now rendered as a sub-tab inside AIAgentsTab/RebeccaAdminTabs
-const FinancialLinesTab = lazy(() => import("@/components/admin/intelligence/FinancialLinesTab"));
 const HospitalityBenchmarksTab = lazy(() => import("@/components/admin/intelligence/HospitalityBenchmarksTab"));
 const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/AnalystTables"));
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
-const PhotosRendersTab = lazy(() => import("@/components/admin/PhotosRendersTab"));
+const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
+const RequiredFieldsRollup = lazy(() => import("@/components/admin/required-fields/RequiredFieldsRollup"));
 
 export type { AdminSaveState };
 
-const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
+const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: string }>> = {
   "model-defaults":      { title: "App Defaults",           subtitle: "Financial defaults and seed values for new entities" },
   users:                 { title: "Users",                   subtitle: "Manage user accounts and assignments" },
   activity:              { title: "Activity",                subtitle: "Login logs, audit trail, and session monitoring" },
@@ -54,7 +58,6 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "pipeline-config":     { title: "Pipeline Config",          subtitle: "Staleness thresholds, token budgets, model routing, and refresh schedules" },
   "qa-sandbox":          { title: "QA Sandbox",               subtitle: "Preview context packs and prompts before running research" },
   "scheduled-research":  { title: "Scheduled Research",       subtitle: "Automated research workflows that keep intelligence fresh" },
-  "financial-lines":     { title: "Financial Lines",           subtitle: "Suggested calculation additions for financial statements" },
   benchmarks:            { title: "Hospitality Benchmarks",    subtitle: "Industry benchmark values powering AI research ranges" },
   "analyst-tables":      { title: "Analyst Tables",             subtitle: "Admin-only LLM refresh of benchmark tables (capital raise, etc.)" },
   "vector-bench":        { title: "Vector Search Latency",      subtitle: "Trend lines for pgvector / HNSW p50 and p95 query latency over time" },
@@ -63,9 +66,20 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
 
-  "photos-renders":      { title: "Photos & Renders",          subtitle: "AI image generation models, prompt templates, and render settings" },
+  // AI Research → Specialists (P5). Title/subtitle mirror the catalog
+  // letter+name so the page header reads identically to the sidebar row.
+  "specialist-mgmt-co-funding":            { title: "Specialist A — Funding",            subtitle: "Read-only assignment + health surface for the mgmt-co Funding Specialist." },
+  "specialist-mgmt-co-revenue":            { title: "Specialist B — Revenue",            subtitle: "Read-only assignment + health surface for the mgmt-co Revenue Specialist." },
+  "specialist-mgmt-co-icp-intelligence":   { title: "Specialist C — ICP Intelligence",   subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-property-risk-intelligence": { title: "Specialist D — Risk Intelligence",  subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-property-executive-summary": { title: "Specialist E — Executive Summary",  subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-photos-photo-enhancer":      { title: "Specialist F — Photo Enhancer",     subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-portfolio-ops-watchdog":     { title: "Specialist G — Watchdog",           subtitle: "Read-only assignment + health surface (evaluator pending)." },
+  "specialist-constants-tax-research":         { title: "Specialist H — Tax Authority Research",          subtitle: "Owns tax-rate, capital-gains, and property-tax constants. Authority-sourced; refresh per row." },
+  "specialist-constants-macro-research":       { title: "Specialist I — Macro Indicators Research",       subtitle: "Owns inflation and country risk premium. Sourced from central banks and IMF." },
+  "specialist-constants-depreciation-research":{ title: "Specialist J — Depreciation Schedule Research",  subtitle: "Owns building depreciation useful-life by country (IRS Pub. 946, CRA, CGI, etc.)." },
+  "specialist-constants-reporting-research":   { title: "Specialist K — Reporting Conventions Research",  subtitle: "Owns universal conventions (USALI/AHLA) such as days-per-month." },
 
-  icp:                   { title: "Research Dashboard",       subtitle: "Intelligence observatory" },
   logos:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
   themes:                { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
   icons:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
@@ -80,49 +94,69 @@ const sectionMeta: Record<AdminSection, { title: string; subtitle: string }> = {
   "source-registry":     { title: "Data Sources",             subtitle: "Source registry and trust scores" },
   "system-intelligence": { title: "Research Dashboard",       subtitle: "System intelligence status" },
   research:              { title: "Research Dashboard",       subtitle: "Research center" },
-  // New 10-block navigation entries
-  "financial-defaults":  { title: "Defaults",                 subtitle: "Management company default financial parameters and seed values" },
-  "services-fees":       { title: "Services & Fees",          subtitle: "Management company service categories and fee templates" },
-  "company-profile":     { title: "Company Profile",          subtitle: "Management company identity and settings" },
-  "hotel-defaults":      { title: "Property Defaults",        subtitle: "Default revenue, cost, and capital assumptions for new properties" },
-  "rental-defaults":     { title: "Property Defaults",        subtitle: "Default revenue, cost, and capital assumptions for new properties" },
-  "required-fields":     { title: "Required Fields",          subtitle: "Configure which property fields are required before research runs" },
-  "sources-apis":        { title: "Sources & APIs",           subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
-  "llm-config":          { title: "LLM Configuration",        subtitle: "Language model routing and pipeline policies" },
-  "engine-health":       { title: "System Health",            subtitle: "Coverage, freshness, and system health" },
-  "user-management":     { title: "Users",                    subtitle: "Manage user accounts and assignments" },
+  "required-fields":     { title: "Required Fields",          subtitle: "Read-only roll-up across every Specialist's required fields and prerequisites. Edit on the owning Specialist's Required Fields tab." },
   "default-assignments": { title: "Default Assignments",      subtitle: "Assign default scenarios per user with property toggles" },
-  "rebecca-config":      { title: "Rebecca Configuration",    subtitle: "System prompt, personality, and configuration for your AI assistant" },
-  "themes-appearance":   { title: "Themes & Appearance",      subtitle: "Logos, themes, and icon customization" },
-  "app-settings":        { title: "App Settings",             subtitle: "Notifications, navigation, and system configuration" },
-  "testing-verification":{ title: "Testing & Verification",   subtitle: "Independent GAAP financial audit and compliance" },
-  "reports-exports":     { title: "Reports & Exports",        subtitle: "Configure content, orientation, and layout for all report exports" },
+  // Defaults section (Steady State navigation)
+  "defaults-management-company": { title: "Management Company Defaults", subtitle: "Default financial parameters seeded into new entities at the management-company level" },
+  "defaults-property":           { title: "Property Defaults",            subtitle: "Default revenue, cost, and capital assumptions seeded into new properties" },
+  "defaults-market-macro":       { title: "Market & Macro Defaults",      subtitle: "Macro and market-condition defaults applied to new entities" },
+  "constants":                   { title: "Constants",                    subtitle: "Immutable model constants used across the application" },
 };
 
 /** Map sidebar alias → ModelDefaultsTab internal sub-tab value */
 const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "model-defaults":      "company",
-  "financial-defaults":  "company",
-  "company-profile":     "company",
-  "services-fees":       "company",
-  "hotel-defaults":      "property-underwriting",
-  "rental-defaults":     "property-underwriting",
-  "required-fields":     "required-fields",
+  // Defaults section
+  "defaults-management-company": "company",
+  "defaults-property":           "property-underwriting",
+  "defaults-market-macro":       "market-macro",
+  "constants":                   "model-constants",
+};
+
+/**
+ * Map sidebar alias → set of ModelDefaultsTab sub-tabs that should be visible
+ * when entering via that alias. When undefined, all tabs are shown (legacy
+ * behavior). Each Defaults menu item shows only the tabs relevant to it,
+ * so e.g. the Property page never surfaces Management Company defaults.
+ */
+const MODEL_DEFAULTS_VISIBLE_TABS: Partial<Record<AdminSection, readonly string[]>> = {
+  "defaults-management-company": ["company"],
+  "defaults-property":           ["property-underwriting"],
+  "defaults-market-macro":       ["market-macro"],
+  "constants":                   ["model-constants"],
 };
 
 const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "ai-agents":       "configuration",
-  "rebecca-config":  "configuration",
   "knowledge-base":  "knowledge-base",
   "conversations":   "conversations",
 };
+
+/**
+ * Walk the SECTION_REDIRECTS chain starting at `section` and return the first
+ * value found in `map`. Lets us look up sub-tab / visible-tab config by an
+ * alias (e.g. `services-fees`) and have it resolve to the entry registered
+ * under the canonical Steady-State section it redirects to.
+ */
+function lookupAlongChain<T>(section: AdminSection, map: Partial<Record<AdminSection, T>>): T | undefined {
+  let current: AdminSection | undefined = section;
+  const seen = new Set<AdminSection>();
+  while (current && !seen.has(current)) {
+    const value = map[current];
+    if (value !== undefined) return value;
+    seen.add(current);
+    current = SECTION_REDIRECTS[current];
+  }
+  return undefined;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function SectionContent({ section, onNavigate, onSaveStateChange }: { section: AdminSection; onNavigate: (s: AdminSection) => void; onSaveStateChange: (state: AdminSaveState | null) => void }) {
   const resolved = resolveSection(section);
 
   switch (resolved) {
-    case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={MODEL_DEFAULTS_SUB_TAB[section]} />;
+    case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={lookupAlongChain(section, MODEL_DEFAULTS_SUB_TAB)} visibleTabs={lookupAlongChain(section, MODEL_DEFAULTS_VISIBLE_TABS)} />;
+    case "required-fields":  return <RequiredFieldsRollup />;
     case "users":            return <PeopleTab />;
     case "activity":         return <ActivityTab />;
     case "scenarios":        return <ScenariosTab />;
@@ -147,7 +181,6 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "pipeline-config":  return <PipelineConfigTab onSaveStateChange={onSaveStateChange} />;
     case "qa-sandbox":       return <QASandbox />;
     case "scheduled-research": return <ScheduledResearchPanel />;
-    case "financial-lines":  return <FinancialLinesTab />;
     case "benchmarks":       return <HospitalityBenchmarksTab />;
     case "analyst-tables":   return <AnalystTablesTab />;
     case "vector-bench":     return <VectorBenchTrendsTab />;
@@ -155,8 +188,12 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "navigation":       return <NavigationTab />;
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
-    case "photos-renders":   return <PhotosRendersTab />;
-    default:                 return null;
+    default: {
+      if (isSpecialistSection(section)) {
+        return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
+      }
+      return null;
+    }
   }
 }
 
@@ -173,7 +210,7 @@ export default function Admin() {
   }, []);
 
   const resolved = resolveSection(activeSection);
-  const meta = sectionMeta[activeSection] ?? sectionMeta[resolved];
+  const meta = lookupAlongChain(activeSection, sectionMeta) ?? sectionMeta[resolved] ?? { title: "Admin", subtitle: "" };
 
   return (
     <AnimatedPage>

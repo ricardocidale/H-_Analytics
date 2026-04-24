@@ -171,7 +171,7 @@ export function useRunSuites(
           const projYears = globalAssumptions?.projectionYears ?? 10;
           const projMonths = projYears * MONTHS_PER_YEAR;
           let totalChecks = 0, totalPassed = 0;
-          const propertyResults: any[] = [];
+          const propertyResults: Array<ReturnType<typeof validateFinancialIdentities> & { property: string; year: number }> = [];
 
           for (const prop of properties) {
             const financials = generatePropertyProForma(prop, globalAssumptions, projMonths);
@@ -180,7 +180,7 @@ export function useRunSuites(
               const yearMonths = financials.slice(startIdx, Math.min(startIdx + 12, financials.length));
               if (yearMonths.length === 0) continue;
               const yearEnd = yearMonths[yearMonths.length - 1];
-              const sum = (fn: (m: any) => number) => yearMonths.reduce((s, m) => s + fn(m), 0);
+              const sum = (fn: (m: import("@engine/types").MonthlyFinancials) => number) => yearMonths.reduce((s, m) => s + fn(m), 0);
 
               const idResult = validateFinancialIdentities({
                 period_label: `${prop.name} Year ${y + 1}`,

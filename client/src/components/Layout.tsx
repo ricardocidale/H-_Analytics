@@ -9,7 +9,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
 
-import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconHome, IconCompass, IconMessageCircle } from "@/components/icons";
+import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle } from "@/components/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import NotificationCenter from "@/components/NotificationCenter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "@/components/icons/themed-icons";
 
 import GuidedWalkthrough, { useWalkthroughStore } from "@/components/GuidedWalkthrough";
 import { RebeccaChatbot } from "@/components/RebeccaChatbot";
@@ -34,11 +36,13 @@ import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } fr
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
 import type { ColorMode, FontPreference, BgAnimation, AppearanceDefaults } from "@/lib/theme/appearance";
 import { useAdminSection } from "@/lib/admin-nav";
-import { buildNavGroups, resolveSection } from "@/components/admin/AdminSidebar";
+import { useAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
+import { resolveSection, AdminSidebarNav } from "@/components/admin/AdminSidebar";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
+import { AiIntelligenceSidebarNav } from "@/components/ai-intelligence/AiIntelligenceSidebar";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
-type NavLink = { href: string; label: string; icon: any; onClick?: () => void };
+type NavLink = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; onClick?: () => void };
 
 function ScenarioIndicator() {
   const { isDirty, activeScenarioName } = useScenarioDirtyState();
@@ -89,60 +93,96 @@ interface NavGroupDef {
   label: string;
   items: NavLink[];
   dividerAfter?: boolean;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+}
+
+function NavItems({ items, isActiveLink, onNavigate }: { items: NavLink[]; isActiveLink: (href: string) => boolean; onNavigate?: () => void }) {
+  return (
+    <ul className="space-y-0.5">
+      {items.map((item) => {
+        const active = isActiveLink(item.href);
+        const isAction = item.href.startsWith("#");
+        return (
+          <li key={item.href}>
+            {isAction ? (
+              <Button
+                variant="ghost"
+                onClick={() => { item.onClick?.(); onNavigate?.(); }}
+                className={cn(
+                  "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors justify-start",
+                  active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <item.icon className="w-4 h-4 shrink-0" />
+                <span>{item.label}</span>
+              </Button>
+            ) : (
+              <Link href={item.href} onClick={onNavigate}>
+                <span
+                  className={cn(
+                    "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors",
+                    active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <item.icon className="w-4 h-4 shrink-0" />
+                  <span>{item.label}</span>
+                </span>
+              </Link>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function SidebarNav({ groups, isActiveLink, onNavigate }: { groups: NavGroupDef[]; isActiveLink: (href: string) => boolean; onNavigate?: () => void }) {
   return (
     <nav className="flex-1 overflow-y-auto px-2 pt-1 space-y-1">
-      {groups.filter(g => g.items.length > 0).map((group, idx) => (
-        <div key={group.label || `misc-${idx}`}>
-          <div className="py-1">
-            {group.label && (
-              <p className="text-[11px] font-medium text-muted-foreground px-3 pb-1 pt-2">{group.label}</p>
+      {groups.filter(g => g.items.length > 0).map((group, idx) => {
+        const key = group.label || `misc-${idx}`;
+        if (group.collapsible && group.label) {
+          const groupHasActive = group.items.some(it => isActiveLink(it.href));
+          const open = group.defaultOpen ?? groupHasActive;
+          return (
+            <div key={key}>
+              <Collapsible defaultOpen={open}>
+                <CollapsibleTrigger
+                  className="group/collapsible flex items-center justify-between w-full px-3 pb-1 pt-2 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid={`nav-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <span>{group.label}</span>
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0 transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden">
+                  <div className="py-1">
+                    <NavItems items={group.items} isActiveLink={isActiveLink} onNavigate={onNavigate} />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+              {group.dividerAfter && (
+                <div className="mx-3 my-1 border-b border-sidebar-border" />
+              )}
+            </div>
+          );
+        }
+        return (
+          <div key={key}>
+            <div className="py-1">
+              {group.label && (
+                <p className="text-[11px] font-medium text-muted-foreground px-3 pb-1 pt-2">{group.label}</p>
+              )}
+              <NavItems items={group.items} isActiveLink={isActiveLink} onNavigate={onNavigate} />
+            </div>
+            {group.dividerAfter && (
+              <div className="mx-3 my-1 border-b border-sidebar-border" />
             )}
-            <ul className="space-y-0.5">
-              {group.items.map((item) => {
-                const active = isActiveLink(item.href);
-                const isAction = item.href.startsWith("#");
-                return (
-                  <li key={item.href}>
-                    {isAction ? (
-                      <Button
-                        variant="ghost"
-                        onClick={() => { item.onClick?.(); onNavigate?.(); }}
-                        className={cn(
-                          "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors justify-start",
-                          active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                        data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                      >
-                        <item.icon className="w-4 h-4 shrink-0" />
-                        <span>{item.label}</span>
-                      </Button>
-                    ) : (
-                      <Link href={item.href} onClick={onNavigate}>
-                        <span
-                          className={cn(
-                            "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors",
-                            active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                          )}
-                          data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                        >
-                          <item.icon className="w-4 h-4 shrink-0" />
-                          <span>{item.label}</span>
-                        </span>
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
           </div>
-          {group.dividerAfter && (
-            <div className="mx-3 my-1 border-b border-sidebar-border" />
-          )}
-        </div>
-      ))}
+        );
+      })}
     </nav>
   );
 }
@@ -204,7 +244,9 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   const sb = (key: string) => (global as unknown as Record<string, unknown>)?.[key] !== false;
   const showAnalysis = sb("sidebarSensitivity");
   const onAdminRoute = location.startsWith("/admin");
+  const onAiIntelligenceRoute = location.startsWith("/ai-intelligence");
   const [adminSection, setAdminSectionState] = useAdminSection();
+  const [aiIntelligenceSection, setAiIntelligenceSectionState] = useAiIntelligenceSection();
 
   const homeNavGroups: NavGroupDef[] = useMemo(() => [
     {
@@ -232,39 +274,9 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     },
   ].filter(g => g.items.length > 0), [hasManagementAccess, isAdmin, global]);
 
-  const adminNavGroups = buildNavGroups();
-  const adminSidebarGroups: NavGroupDef[] = useMemo(() => {
-    const groups: NavGroupDef[] = [
-      {
-        label: "",
-        items: [{ href: "/", label: "Home", icon: IconHome }],
-        dividerAfter: true,
-      },
-    ];
-    for (const ag of adminNavGroups) {
-      groups.push({
-        label: ag.label,
-        items: ag.sections.map((s) => ({
-          href: `#admin-${s.value}`,
-          label: s.label,
-          icon: s.icon,
-          onClick: () => setAdminSectionState(s.value),
-        })),
-      });
-    }
-    groups.push({
-      label: "Logs",
-      items: [{
-        href: "#admin-activity",
-        label: "Activity",
-        icon: IconDashboard,
-        onClick: () => setAdminSectionState("activity"),
-      }],
-    });
-    return groups;
-  }, [adminNavGroups]);
-
-  const navGroups = onAdminRoute ? adminSidebarGroups : homeNavGroups;
+  // Admin nav is rendered via <AdminSidebarNav> (shadcn SidebarMenuSub block)
+  // when onAdminRoute is true — see desktop aside / mobile Sheet below.
+  const navGroups = homeNavGroups;
 
   const isActiveLink = (href: string) => {
     if (href.startsWith("#admin-")) {
@@ -290,7 +302,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
 
   const sidebarFooter = (
     <div className="px-2 pb-3 pt-1 space-y-0.5">
-      {!onAdminRoute && (
+      {!onAdminRoute && !onAiIntelligenceRoute && (
         <button
           onClick={() => {
             setMobileOpen(false);
@@ -317,7 +329,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           </span>
         </Link>
       )}
-      {isAdmin && !onAdminRoute && (
+      {isAdmin && !onAdminRoute && !onAiIntelligenceRoute && (
         <Link href="/admin" onClick={() => setMobileOpen(false)}>
           <span
             className={cn(
@@ -374,7 +386,23 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     <div className="flex min-h-svh w-full">
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-svh sticky top-0">
         {sidebarHeader}
-        <SidebarNav groups={navGroups} isActiveLink={isActiveLink} />
+        {onAiIntelligenceRoute ? (
+          <div className="flex-1 overflow-y-auto pt-1">
+            <AiIntelligenceSidebarNav
+              activeSection={aiIntelligenceSection}
+              onSectionChange={setAiIntelligenceSectionState}
+            />
+          </div>
+        ) : onAdminRoute ? (
+          <div className="flex-1 overflow-y-auto pt-1">
+            <AdminSidebarNav
+              activeSection={adminSection}
+              onSectionChange={setAdminSectionState}
+            />
+          </div>
+        ) : (
+          <SidebarNav groups={navGroups} isActiveLink={isActiveLink} />
+        )}
         {sidebarFooter}
       </aside>
 
@@ -384,7 +412,23 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
           {sidebarHeader}
-          <SidebarNav groups={navGroups} isActiveLink={isActiveLink} onNavigate={() => setMobileOpen(false)} />
+          {onAiIntelligenceRoute ? (
+            <div className="flex-1 overflow-y-auto pt-1">
+              <AiIntelligenceSidebarNav
+                activeSection={aiIntelligenceSection}
+                onSectionChange={(s) => { setAiIntelligenceSectionState(s); setMobileOpen(false); }}
+              />
+            </div>
+          ) : onAdminRoute ? (
+            <div className="flex-1 overflow-y-auto pt-1">
+              <AdminSidebarNav
+                activeSection={adminSection}
+                onSectionChange={(s) => { setAdminSectionState(s); setMobileOpen(false); }}
+              />
+            </div>
+          ) : (
+            <SidebarNav groups={navGroups} isActiveLink={isActiveLink} onNavigate={() => setMobileOpen(false)} />
+          )}
           {sidebarFooter}
         </SheetContent>
       </Sheet>

@@ -15,11 +15,22 @@ import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fireResearchConfetti } from "@/lib/confetti";
 import { useResearchQueue, getBackoffDelay } from "@/lib/research-queue";
+import type { PropertyResponse, GlobalResponse } from "@/lib/api/types";
 
 interface UseResearchStreamOptions {
-  property: any;
+  property: PropertyResponse | null | undefined;
   propertyId: number;
-  global: any;
+  global: GlobalResponse | null | undefined;
+  onMissingRequiredFields?: (info: {
+    specialistId: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }) => void;
+}
+
+interface RequiredFieldsMissingPayload {
+  code: "REQUIRED_FIELDS_MISSING";
+  specialistId: string;
+  missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
 }
 
 export interface OrchestratorMeta {
@@ -37,7 +48,7 @@ export interface OrchestratorMeta {
   }>;
 }
 
-export function useResearchStream({ property, propertyId, global }: UseResearchStreamOptions) {
+export function useResearchStream({ property, propertyId, global, onMissingRequiredFields }: UseResearchStreamOptions) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
   const [phases, setPhases] = useState<string[]>([]);
@@ -55,15 +66,15 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "property",
-        propertyId: property.id,
+        propertyId: property?.id,
         propertyContext: {
-          name: property.name,
-          location: property.location,
-          market: property.market,
-          roomCount: property.roomCount,
-          startAdr: property.startAdr,
-          maxOccupancy: property.maxOccupancy,
-          type: property.type,
+          name: property?.name,
+          location: property?.location,
+          market: property?.market,
+          roomCount: property?.roomCount,
+          startAdr: property?.startAdr,
+          maxOccupancy: property?.maxOccupancy,
+          type: property?.type,
         },
         assetDefinition: global?.assetDefinition,
       }),
@@ -84,6 +95,21 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
     }
 
     if (!response.ok) {
+      if (response.status === 400 && onMissingRequiredFields) {
+        try {
+          const body = (await response.clone().json()) as Partial<RequiredFieldsMissingPayload>;
+          if (body?.code === "REQUIRED_FIELDS_MISSING" && Array.isArray(body.missingFields)) {
+            onMissingRequiredFields({
+              specialistId: body.specialistId ?? "property.risk-intelligence",
+              missingFields: body.missingFields,
+            });
+            useResearchQueue.getState().markComplete(queueId);
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
+      }
       throw new Error(`Research request failed: ${response.status}`);
     }
 
@@ -133,6 +159,29 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
 
   const generateResearch = useCallback(async () => {
     if (!property) return;
+
+    const { collectMissingLockedHardFields } = await import(
+      "@/lib/locked-hard-preflight"
+    );
+    const missing = collectMissingLockedHardFields(
+      ["property.risk-intelligence", "property.executive-summary"],
+      property as unknown as Record<string, unknown>,
+    );
+    if (missing.length > 0) {
+      if (onMissingRequiredFields) {
+        onMissingRequiredFields({
+          specialistId: "property.risk-intelligence",
+          missingFields: missing,
+        });
+      } else if (typeof window !== "undefined") {
+        const labels = missing.map((m) => m.label).join(", ");
+        window.alert(
+          `Cannot run research — required field${missing.length === 1 ? "" : "s"} missing: ${labels}. Open Property Edit to fill them in.`,
+        );
+      }
+      return;
+    }
+
     setIsGenerating(true);
     setStreamedContent("");
     setPhases([]);
@@ -141,7 +190,7 @@ export function useResearchStream({ property, propertyId, global }: UseResearchS
     const queueId = `property-${propertyId}-${Date.now()}`;
     getQueue().enqueue({
       id: queueId,
-      label: property.name || `Property ${propertyId}`,
+      label: property?.name || `Property ${propertyId}`,
       propertyId,
       type: "property",
     });

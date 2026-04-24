@@ -88,10 +88,10 @@ const NUMERIC_LITERAL = /(?<![a-zA-Z_$.'"`])(\d+\.?\d*|\.\d+)(?![a-zA-Z_$])/g;
 const FORBIDDEN_LITERALS: Record<string, string> = {
   "0.085": "DEFAULT_BASE_MANAGEMENT_FEE_RATE or DEFAULT_EXIT_CAP_RATE",
   "0.12": "DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE",
-  "0.30": "DEFAULT_REV_SHARE_FB / DEFAULT_COMPANY_TAX_RATE",
+  "0.30": "DEFAULT_REV_SHARE_FB",
   "0.18": "DEFAULT_REV_SHARE_EVENTS",
   "0.05": "DEFAULT_COST_RATE_UTILITIES / DEFAULT_COMMISSION_RATE / DEFAULT_COST_RATE_OTHER",
-  "0.03": "DEFAULT_REV_SHARE_OTHER / DEFAULT_COST_RATE_TAXES",
+  "0.03": "DEFAULT_REV_SHARE_OTHER",
   "0.20": "DEFAULT_COST_RATE_ROOMS / DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE",
   "0.65": "DEFAULT_EVENT_EXPENSE_RATE",
   "0.60": "DEFAULT_OTHER_EXPENSE_RATE / DEFAULT_UTILITIES_VARIABLE_SPLIT",
@@ -501,7 +501,6 @@ describe("Hardcoded Value Detection", () => {
         "DEFAULT_COST_RATE_MARKETING",
         "DEFAULT_COST_RATE_PROPERTY_OPS",
         "DEFAULT_COST_RATE_UTILITIES",
-        "DEFAULT_COST_RATE_TAXES",
         "DEFAULT_COST_RATE_IT",
         "DEFAULT_COST_RATE_FFE",
         "DEFAULT_COST_RATE_OTHER",
@@ -514,7 +513,6 @@ describe("Hardcoded Value Detection", () => {
         "DEFAULT_SERVICE_MARKUP",
         "DEFAULT_OCCUPANCY_RAMP_MONTHS",
         "DEFAULT_FIXED_COST_ESCALATION_RATE",
-        "DEFAULT_COMPANY_TAX_RATE",
         "DEFAULT_PROJECTION_YEARS",
       ];
 
@@ -599,6 +597,7 @@ describe("Hardcoded Value Detection", () => {
         "sentry.ts",
         "image-variants.ts",
         "admin-nav.ts",
+        "ai-intelligence-nav.ts",
         "exportConfig.ts",
         "map-utils.ts",
         "glossary.ts",
@@ -606,6 +605,8 @@ describe("Hardcoded Value Detection", () => {
         "panel-manager.ts",
         "rebecca-insights.ts",
         "research-queue.ts",
+        "locked-hard-preflight.ts",
+        "specialist-nav.ts",
       ]);
 
       const allLibFiles = fs.readdirSync(libDir)

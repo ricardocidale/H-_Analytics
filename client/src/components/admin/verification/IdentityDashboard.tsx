@@ -13,6 +13,10 @@ import { generatePropertyProForma } from "@/lib/financialEngine";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import { validateFinancialIdentities } from "@calc/validation/financial-identities";
 import { DEFAULT_ROUNDING } from "@calc/shared/utils";
+import type { MonthlyFinancials } from "@/../../engine/types";
+
+type GlobalsLike = { projectionYears?: number; [key: string]: unknown };
+type PropertyLike = { id: number; name: string; [key: string]: unknown };
 
 interface IdentityCheck {
   identity: string;
@@ -45,14 +49,14 @@ const IDENTITY_COLUMNS = [
 ];
 
 function buildIdentityResults(
-  properties: any[],
-  globalAssumptions: any
+  properties: PropertyLike[],
+  globalAssumptions: GlobalsLike
 ): PropertyYearResult[] {
   const projYears = globalAssumptions?.projectionYears ?? 10;
   const projMonths = projYears * MONTHS_PER_YEAR;
 
   return properties.map((prop) => {
-    const financials = generatePropertyProForma(prop, globalAssumptions, projMonths);
+    const financials = generatePropertyProForma(prop as never, globalAssumptions as never, projMonths);
     const years: PropertyYearResult["years"] = [];
 
     for (let y = 0; y < projYears; y++) {
@@ -62,7 +66,7 @@ function buildIdentityResults(
       if (yearMonths.length === 0) continue;
 
       const yearEnd = yearMonths[yearMonths.length - 1];
-      const sum = (fn: (m: any) => number) => yearMonths.reduce((s, m) => s + fn(m), 0);
+      const sum = (fn: (m: MonthlyFinancials) => number) => yearMonths.reduce((s, m) => s + fn(m), 0);
 
       const result = validateFinancialIdentities({
         period_label: `Year ${y + 1}`,
@@ -253,8 +257,8 @@ export function IdentityDashboard({
   properties,
   globalAssumptions,
 }: {
-  properties: any[] | null;
-  globalAssumptions: any | null;
+  properties: PropertyLike[] | null;
+  globalAssumptions: GlobalsLike | null;
 }) {
   const [results, setResults] = useState<PropertyYearResult[] | null>(null);
   const [loading, setLoading] = useState(false);

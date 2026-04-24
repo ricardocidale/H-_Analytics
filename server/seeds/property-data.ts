@@ -6,7 +6,6 @@ import {
   DEFAULT_COST_RATE_MARKETING,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
-  DEFAULT_COST_RATE_TAXES,
   DEFAULT_COST_RATE_IT,
   DEFAULT_COST_RATE_FFE,
   DEFAULT_COST_RATE_OTHER,
@@ -24,12 +23,17 @@ import {
   DEFAULT_AR_DAYS,
   DEFAULT_REINVESTMENT_RATE,
 } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Audit #406: SEED_PROPERTY_DEFAULTS sources costRateTaxes from the registry
+// (US baseline = 0.012). Same source-of-truth used by the schema column default.
+const SEED_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 export const SEED_PROPERTY_DEFAULTS = {
   costRateRooms: DEFAULT_COST_RATE_ROOMS, costRateFB: DEFAULT_COST_RATE_FB, costRateAdmin: DEFAULT_COST_RATE_ADMIN,
   costRateMarketing: DEFAULT_COST_RATE_MARKETING, costRatePropertyOps: DEFAULT_COST_RATE_PROPERTY_OPS,
   costRateUtilities: DEFAULT_COST_RATE_UTILITIES,
-  costRateTaxes: DEFAULT_COST_RATE_TAXES, costRateIT: DEFAULT_COST_RATE_IT, costRateFFE: DEFAULT_COST_RATE_FFE,
+  costRateTaxes: SEED_COST_RATE_TAXES, costRateIT: DEFAULT_COST_RATE_IT, costRateFFE: DEFAULT_COST_RATE_FFE,
   costRateOther: DEFAULT_COST_RATE_OTHER, costRateInsurance: DEFAULT_COST_RATE_INSURANCE,
   revShareEvents: DEFAULT_REV_SHARE_EVENTS,
   revShareFB: DEFAULT_REV_SHARE_FB, revShareOther: DEFAULT_REV_SHARE_OTHER,
@@ -51,6 +55,7 @@ export const SEED_PROPERTY_DEFAULTS = {
   escalationMethod: 'annual',
   reinvestmentRate: DEFAULT_REINVESTMENT_RATE,
   performanceTestEnabled: false,
+  financialsComputedAt: null,
   feeSubordination: null,
   operatingDeficitReserve: null,
   ownerPriorityReturn: null,
@@ -99,7 +104,7 @@ export const SEED_INITIAL_PROPERTIES = [
     country: "Colombia",
     location: "Antioquia, Medellín",
     market: "Latin America",
-    imageUrl: "/images/property-medellin.png",
+    imageUrl: "/api/media/property-medellin.png",
     status: PropertyStatus.PLANNED,
     acquisitionDate: "2026-06-01",
     operationsStartDate: "2026-12-01",
@@ -154,7 +159,7 @@ export const SEED_INITIAL_PROPERTIES = [
     country: "United States",
     location: "Sullivan County, New York",
     market: "North America",
-    imageUrl: "/images/property-loch-sheldrake.png",
+    imageUrl: "/api/media/property-loch-sheldrake.png",
     status: PropertyStatus.PLANNED,
     acquisitionDate: "2026-11-01",
     operationsStartDate: "2027-05-01",
@@ -209,7 +214,7 @@ export const SEED_INITIAL_PROPERTIES = [
     country: "United States",
     location: "Western Catskills, New York",
     market: "North America",
-    imageUrl: "/images/property-belleayre.png",
+    imageUrl: "/api/media/property-belleayre.png",
     status: PropertyStatus.PLANNED,
     acquisitionDate: "2027-03-01",
     operationsStartDate: "2027-09-01",
@@ -264,7 +269,7 @@ export const SEED_INITIAL_PROPERTIES = [
     country: "United States",
     location: "Ogden Valley, Utah",
     market: "North America",
-    imageUrl: "/images/property-eden.png",
+    imageUrl: "/api/media/property-eden.png",
     status: PropertyStatus.PLANNED,
     acquisitionDate: "2027-08-01",
     operationsStartDate: "2028-02-01",
@@ -370,7 +375,7 @@ export const SEED_INITIAL_PROPERTIES = [
     country: "Colombia",
     location: "Cartagena, Colombia",
     market: "Latin America",
-    imageUrl: "/images/property-cartagena.png",
+    imageUrl: "/api/media/property-cartagena.png",
     status: PropertyStatus.PLANNED,
     acquisitionDate: "2028-04-01",
     operationsStartDate: "2028-10-01",
@@ -414,11 +419,11 @@ export const SEED_INITIAL_PROPERTIES = [
 ];
 
 export const SEED_SYNC_PROPERTIES = [
-  { ...SEED_PROPERTY_DEFAULTS, name: "The Hudson Estate", streetAddress: "142 Old Post Road", city: "Millbrook", stateProvince: "NY", zipPostalCode: "12545", country: "United States", location: "Hudson Valley, New York", market: "North America", imageUrl: "/images/property-ny.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-06-01", operationsStartDate: "2026-12-01", purchasePrice: 3800000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 385, adrGrowthRate: 0.025, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: 0.22, exitCapRate: 0.08, willRefinance: "Yes", refinanceDate: "2029-12-01", refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.30 },
-  { ...SEED_PROPERTY_DEFAULTS, name: "Eden Summit Lodge", streetAddress: "3850 Nordic Valley Road", city: "Eden", stateProvince: "UT", zipPostalCode: "84310", location: "Ogden Valley, Utah", market: "North America", imageUrl: "/images/property-utah.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-01-01", operationsStartDate: "2027-07-01", purchasePrice: 4000000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 425, adrGrowthRate: 0.025, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: 0.25, willRefinance: "Yes", refinanceDate: "2030-07-01", refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.30 },
-  { ...SEED_PROPERTY_DEFAULTS, name: "Austin Hillside", streetAddress: "4100 Mount Bonnell Drive", city: "Austin", stateProvince: "TX", zipPostalCode: "78731", location: "Hill Country, Texas", market: "North America", imageUrl: "/images/property-austin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-04-01", operationsStartDate: "2028-01-01", purchasePrice: 3500000, buildingImprovements: 1100000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 320, adrGrowthRate: 0.025, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.09, costRateIT: 0.005, cateringBoostPercent: 0.20, willRefinance: "Yes", refinanceDate: "2031-01-01", refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.28 },
-  { ...SEED_PROPERTY_DEFAULTS, name: "Casa Medellín", streetAddress: "Carrera 43A #7-50, El Poblado", city: "Medellín", stateProvince: "Antioquia", zipPostalCode: "050021", country: "Colombia", location: "El Poblado, Medellín", market: "Latin America", imageUrl: "/images/property-medellin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-09-01", operationsStartDate: "2028-07-01", purchasePrice: 3800000, buildingImprovements: 1000000, preOpeningCosts: 200000, operatingReserve: 600000, roomCount: 30, startAdr: 210, adrGrowthRate: 0.04, startOccupancy: 0.50, maxOccupancy: 0.78, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Financed", costRateFB: 0.075, costRateIT: 0.005, cateringBoostPercent: 0.18, exitCapRate: 0.095, acquisitionLTV: 0.60, acquisitionInterestRate: 0.095, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02, revShareEvents: 0.25, depreciationYears: 20 },
-  { ...SEED_PROPERTY_DEFAULTS, name: "Blue Ridge Manor", streetAddress: "275 Elk Mountain Scenic Highway", city: "Asheville", stateProvince: "NC", zipPostalCode: "28804", location: "Blue Ridge Mountains, North Carolina", market: "North America", imageUrl: "/images/property-asheville.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-07-01", operationsStartDate: "2028-07-01", purchasePrice: 6000000, buildingImprovements: 1500000, preOpeningCosts: 250000, operatingReserve: 500000, roomCount: 30, startAdr: 375, adrGrowthRate: 0.025, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Financed", costRateFB: 0.10, costRateIT: 0.005, cateringBoostPercent: 0.25, exitCapRate: 0.09, acquisitionLTV: 0.60, acquisitionInterestRate: 0.09, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02, revShareEvents: 0.28 },
+  { ...SEED_PROPERTY_DEFAULTS, name: "The Hudson Estate", streetAddress: "142 Old Post Road", city: "Millbrook", stateProvince: "NY", zipPostalCode: "12545", country: "United States", location: "Hudson Valley, New York", market: "North America", imageUrl: "/api/media/property-ny.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-06-01", operationsStartDate: "2026-12-01", purchasePrice: 3800000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 385, adrGrowthRate: 0.025, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: 0.22, exitCapRate: 0.08, willRefinance: "Yes", refinanceDate: "2029-12-01", refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.30 },
+  { ...SEED_PROPERTY_DEFAULTS, name: "Eden Summit Lodge", streetAddress: "3850 Nordic Valley Road", city: "Eden", stateProvince: "UT", zipPostalCode: "84310", location: "Ogden Valley, Utah", market: "North America", imageUrl: "/api/media/property-utah.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-01-01", operationsStartDate: "2027-07-01", purchasePrice: 4000000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 425, adrGrowthRate: 0.025, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: 0.25, willRefinance: "Yes", refinanceDate: "2030-07-01", refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.30 },
+  { ...SEED_PROPERTY_DEFAULTS, name: "Austin Hillside", streetAddress: "4100 Mount Bonnell Drive", city: "Austin", stateProvince: "TX", zipPostalCode: "78731", location: "Hill Country, Texas", market: "North America", imageUrl: "/api/media/property-austin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-04-01", operationsStartDate: "2028-01-01", purchasePrice: 3500000, buildingImprovements: 1100000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 320, adrGrowthRate: 0.025, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.09, costRateIT: 0.005, cateringBoostPercent: 0.20, willRefinance: "Yes", refinanceDate: "2031-01-01", refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.28 },
+  { ...SEED_PROPERTY_DEFAULTS, name: "Casa Medellín", streetAddress: "Carrera 43A #7-50, El Poblado", city: "Medellín", stateProvince: "Antioquia", zipPostalCode: "050021", country: "Colombia", location: "El Poblado, Medellín", market: "Latin America", imageUrl: "/api/media/property-medellin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-09-01", operationsStartDate: "2028-07-01", purchasePrice: 3800000, buildingImprovements: 1000000, preOpeningCosts: 200000, operatingReserve: 600000, roomCount: 30, startAdr: 210, adrGrowthRate: 0.04, startOccupancy: 0.50, maxOccupancy: 0.78, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Financed", costRateFB: 0.075, costRateIT: 0.005, cateringBoostPercent: 0.18, exitCapRate: 0.095, acquisitionLTV: 0.60, acquisitionInterestRate: 0.095, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02, revShareEvents: 0.25, depreciationYears: 20 },
+  { ...SEED_PROPERTY_DEFAULTS, name: "Blue Ridge Manor", streetAddress: "275 Elk Mountain Scenic Highway", city: "Asheville", stateProvince: "NC", zipPostalCode: "28804", location: "Blue Ridge Mountains, North Carolina", market: "North America", imageUrl: "/api/media/property-asheville.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-07-01", operationsStartDate: "2028-07-01", purchasePrice: 6000000, buildingImprovements: 1500000, preOpeningCosts: 250000, operatingReserve: 500000, roomCount: 30, startAdr: 375, adrGrowthRate: 0.025, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Financed", costRateFB: 0.10, costRateIT: 0.005, cateringBoostPercent: 0.25, exitCapRate: 0.09, acquisitionLTV: 0.60, acquisitionInterestRate: 0.09, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02, revShareEvents: 0.28 },
 ];
 
 export const SEED_MEDELLIN_DUPLEX = {
@@ -432,7 +437,7 @@ export const SEED_MEDELLIN_DUPLEX = {
   country: "Colombia",
   location: "El Poblado, Medellín, Colombia",
   market: "Latin America",
-  imageUrl: "/images/medellin-duplex-1.jpeg",
+  imageUrl: "/api/media/medellin-duplex-1.jpeg",
   status: PropertyStatus.ACQUIRED,
   acquisitionDate: "2025-03-01",
   operationsStartDate: "2025-09-01",
@@ -480,7 +485,7 @@ export const SEED_MEDELLIN_DUPLEX = {
 };
 
 export const SEED_MEDELLIN_DUPLEX_PHOTOS = [
-  { imageUrl: "/images/medellin-duplex-1.jpeg", caption: "Open-concept living and dining area with Calacatta marble island and floating staircase", sortOrder: 0, isHero: true },
-  { imageUrl: "/images/medellin-duplex-2.jpeg", caption: "Chef's kitchen with marble waterfall island and panoramic Andes mountain views", sortOrder: 1, isHero: false },
-  { imageUrl: "/images/medellin-duplex-3.jpeg", caption: "Master suite with floor-to-ceiling windows overlooking Medellín's skyline and mountains", sortOrder: 2, isHero: false },
+  { imageUrl: "/api/media/medellin-duplex-1.jpeg", caption: "Open-concept living and dining area with Calacatta marble island and floating staircase", sortOrder: 0, isHero: true },
+  { imageUrl: "/api/media/medellin-duplex-2.jpeg", caption: "Chef's kitchen with marble waterfall island and panoramic Andes mountain views", sortOrder: 1, isHero: false },
+  { imageUrl: "/api/media/medellin-duplex-3.jpeg", caption: "Master suite with floor-to-ceiling windows overlooking Medellín's skyline and mountains", sortOrder: 2, isHero: false },
 ];

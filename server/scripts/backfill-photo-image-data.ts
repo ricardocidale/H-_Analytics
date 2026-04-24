@@ -20,7 +20,13 @@ import { eq } from "drizzle-orm";
 import { logger } from "../logger";
 import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 
-const BASE_URL = process.env.BASE_URL ?? "https://partner-portal-landb.replit.app";
+const BASE_URL = process.env.BASE_URL;
+if (!BASE_URL) {
+  throw new Error(
+    "BASE_URL env var is required (e.g. https://your-host.example.com). " +
+      "This one-off script targets the running app over its public URL.",
+  );
+}
 const TAG = "backfill-photo-image-data";
 
 async function fetchImageAsBase64(url: string): Promise<string> {

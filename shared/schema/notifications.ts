@@ -21,6 +21,7 @@ export const NOTIFICATION_EVENT_TYPES = [
   "NOI_VARIANCE_BREACH",
   "LLM_MODEL_ISSUE",
   "VECTOR_LATENCY_BREACH",
+  "CONSTANTS_REFRESH_FAILED",
 ] as const;
 export type NotificationEventType = typeof NOTIFICATION_EVENT_TYPES[number];
 

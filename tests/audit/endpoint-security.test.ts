@@ -103,6 +103,7 @@ describe("Endpoint Security Audit — Auth Middleware", () => {
   const AUTH_KEYWORDS = [
     "requireAuth",
     "requireAdmin",
+    "requireSuperAdmin",
     "requireManagement",
     "requireChecker",
   ];

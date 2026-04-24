@@ -22,7 +22,14 @@
 import { storage } from "../storage";
 import { COUNTRY_DEFAULTS, type CountryDefaults } from "@shared/countryDefaults";
 import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, meetsConvictionFloor, insufficientDataMessage } from "./benchmark-lookups";
-import { logger } from "../logger";
+import { logger, loggerFor } from "../logger";
+import { GASPAR_IDENTITY } from "../../engine/analyst/identity";
+
+// The watchdog runs as Gaspar (the orchestrator persona) — it reconciles
+// the team's outputs against staleness/consistency rules, no single
+// Specialist owns it. Routing through the persona-prefixed helper keeps
+// the activity log readable: `[gaspar] Analyst staleness check: …`.
+const watchdogLog = loggerFor(GASPAR_IDENTITY.logKey);
 
 // Fields where country_defaults is authoritative — deviation > threshold = auto-flag
 const HARD_FLOOR_FIELDS: Array<{
@@ -209,10 +216,8 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
           });
         } else {
           // Below conviction floor — log but don't present as advice
-          logger.info(
-            `Analyst withheld advice on ${result.fieldName} for property ${propertyId}: ${insufficientDataMessage(result.fieldName, quality)}`,
-            "analyst-watchdog",
-          );
+          watchdogLog.info(
+            `Analyst withheld advice on ${result.fieldName} for property ${propertyId}: ${insufficientDataMessage(result.fieldName, quality)}`);
           noData++; // Count as no_data, not a flag
           flags.pop(); // Remove the flag we just pushed — insufficient data to justify it
         }
@@ -266,10 +271,8 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
     flags,
   };
 
-  logger.info(
-    `Analyst validation: ${resultSummary.propertyName} — ${status} (${withinRange} ok, ${flags.length} flagged, ${noData} no data)`,
-    "analyst-watchdog",
-  );
+  watchdogLog.info(
+    `Analyst validation: ${resultSummary.propertyName} — ${status} (${withinRange} ok, ${flags.length} flagged, ${noData} no data)`);
 
   return resultSummary;
 }
@@ -286,10 +289,8 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
       const result = await validatePropertyAssumptions(prop.id);
       results.push(result);
     } catch (err: unknown) {
-      logger.error(
-        `Analyst validation failed for property ${prop.id}: ${err instanceof Error ? err.message : err}`,
-        "analyst-watchdog",
-      );
+      watchdogLog.error(
+        `Analyst validation failed for property ${prop.id}: ${err instanceof Error ? err.message : err}`);
     }
   }
 
@@ -298,10 +299,22 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
   const flagged = results.filter(r => r.status === "flagged").length;
   const totalFlags = results.reduce((s, r) => s + r.flagged, 0);
 
-  logger.info(
-    `Analyst validation complete: ${total} properties (${validated} validated, ${flagged} flagged, ${totalFlags} total flags)`,
-    "analyst-watchdog",
-  );
+  watchdogLog.info(
+    `Analyst validation complete: ${total} properties (${validated} validated, ${flagged} flagged, ${totalFlags} total flags)`);
+
+  // Phase 4 (Task #454) — C–G parity: stamp observed-missing for the
+  // watchdog specialist (G) at the end of each run. Gaspar's catalog
+  // entry has no candidate fields, so the recorded list is always
+  // empty; the purpose of the write is to refresh `last_observed_missing`
+  // so the Catalog Calibration dashboard can tell "G has run recently"
+  // apart from "G has never run on this install." Best-effort.
+  try {
+    await storage.recordObservedMissingFields("portfolio-ops.watchdog", []);
+  } catch (err: unknown) {
+    watchdogLog.warn(
+      `Watchdog observed-missing stamp failed: ${err instanceof Error ? err.message : err}`,
+    );
+  }
 
   return results;
 }
@@ -409,7 +422,7 @@ export async function validateFieldChanges(
 
     return alerts;
   } catch (err: unknown) {
-    logger.warn(`Analyst watchdog error for property ${propertyId}: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+    watchdogLog.warn(`Analyst watchdog error for property ${propertyId}: ${err instanceof Error ? err.message : err}`);
     return [];
   }
 }
@@ -435,12 +448,12 @@ export async function checkStaleness(): Promise<number> {
     }
 
     if (staleCount > 0) {
-      logger.info(`Analyst staleness check: ${staleCount} properties marked stale`, "analyst-watchdog");
+      watchdogLog.info(`Analyst staleness check: ${staleCount} properties marked stale`);
     }
 
     return staleCount;
   } catch (err: unknown) {
-    logger.warn(`Analyst staleness check failed: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+    watchdogLog.warn(`Analyst staleness check failed: ${err instanceof Error ? err.message : err}`);
     return 0;
   }
 }
@@ -500,11 +513,11 @@ export async function checkPortfolioConsistency(): Promise<string[]> {
     }
 
     if (warnings.length > 0) {
-      logger.info(`Analyst portfolio check: ${warnings.length} warnings`, "analyst-watchdog");
+      watchdogLog.info(`Analyst portfolio check: ${warnings.length} warnings`);
     }
 
   } catch (err: unknown) {
-    logger.warn(`Analyst portfolio check failed: ${err instanceof Error ? err.message : err}`, "analyst-watchdog");
+    watchdogLog.warn(`Analyst portfolio check failed: ${err instanceof Error ? err.message : err}`);
   }
 
   return warnings;

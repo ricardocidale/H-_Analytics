@@ -511,14 +511,16 @@ These rules apply to ALL phases and ALL tasks. Violation of any rule is a blocke
 
 ## Timeline Estimates
 
-| Phase | Estimated Duration | Status | Key Risk |
-|-------|-------------------|--------|----------|
-| **8: Platform Independence** | 4-6 weeks | In progress (8.1 done) | Auth migration may surface undocumented Replit dependencies |
-| **9: Research Excellence** | -- | **DONE** (backend); UI in Replit T001-T007 | -- |
-| **10: Scenario Intelligence** | -- | **DONE** (backend); UI in Replit T006 | -- |
-| **11: Export Excellence** | 3-5 weeks | Not started | Template design requires graphic design input |
-| **12: Knowledge & Onboarding** | 4-6 weeks | Not started | Video content production is a separate workstream |
-| **13: Scale & Performance** | 6-8 weeks | Not started | Multi-org migration is the riskiest schema change |
+Live status for Phases 8–13 lives in `.claude/phases.md` under the "Strategic Roadmap (MASTER-PLAN-V2)" workstream. Planned scopes + estimates:
+
+| Phase | Estimated Duration | Key Risk |
+|-------|-------------------|----------|
+| **8: Platform Independence** | 4-6 weeks | Auth migration may surface undocumented Replit dependencies |
+| **9: Research Excellence** | — | — |
+| **10: Scenario Intelligence** | — | — |
+| **11: Export Excellence** | 3-5 weeks | Template design requires graphic design input |
+| **12: Knowledge & Onboarding** | 4-6 weeks | Video content production is a separate workstream |
+| **13: Scale & Performance** | 6-8 weeks | Multi-org migration is the riskiest schema change |
 
 **Remaining estimated: 13-19 weeks** (3-5 months) for Phases 8 (remainder), 11, 12, 13.
 

@@ -17,9 +17,10 @@ interface PhotoCardProps {
   isSettingHero?: boolean;
   isDeleting?: boolean;
   isEnhancing?: boolean;
+  readOnly?: boolean;
 }
 
-export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhance, isSettingHero, isDeleting, isEnhancing }: PhotoCardProps) {
+export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhance, isSettingHero, isDeleting, isEnhancing, readOnly = false }: PhotoCardProps) {
   const [editingCaption, setEditingCaption] = useState(false);
   const [captionDraft, setCaptionDraft] = useState(photo.caption || "");
 
@@ -62,21 +63,23 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
       </div>
 
       {/* Hero star */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => !photo.isHero && onSetHero(photo.id)}
-        disabled={isSettingHero}
-        className={cn(
-          "absolute top-2 right-2 z-10 p-1.5 rounded-full h-auto w-auto",
-          photo.isHero
-            ? "bg-accent-pop/80 text-accent-pop shadow-lg shadow-accent-pop/30"
-            : "bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 hover:bg-accent-pop/80 hover:text-accent-pop"
-        )}
-        title={photo.isHero ? "Current hero image" : "Set as hero image"}
-      >
-        <Star className={cn("w-4 h-4", photo.isHero && "fill-current")} />
-      </Button>
+      {(photo.isHero || !readOnly) && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => !photo.isHero && !readOnly && onSetHero(photo.id)}
+          disabled={isSettingHero || readOnly}
+          className={cn(
+            "absolute top-2 right-2 z-10 p-1.5 rounded-full h-auto w-auto",
+            photo.isHero
+              ? "bg-accent-pop/80 text-accent-pop shadow-lg shadow-accent-pop/30"
+              : "bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 hover:bg-accent-pop/80 hover:text-accent-pop"
+          )}
+          title={photo.isHero ? "Current hero image" : "Set as hero image"}
+        >
+          <Star className={cn("w-4 h-4", photo.isHero && "fill-current")} />
+        </Button>
+      )}
 
       {photo.enhancedImageData && (
         <div className="absolute top-2 left-10 z-10">
@@ -145,18 +148,26 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }}
-              className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate h-auto px-0 justify-start"
-              title="Click to edit caption"
-            >
-              {photo.caption || "Add caption..."}
-            </Button>
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }} aria-label="Edit caption">
-                <Pencil className="w-3 h-3" />
+            {readOnly ? (
+              <div className="flex-1 text-left text-xs text-muted-foreground truncate h-auto px-0">
+                {photo.caption || ""}
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }}
+                className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate h-auto px-0 justify-start"
+                title="Click to edit caption"
+              >
+                {photo.caption || "Add caption..."}
               </Button>
+            )}
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {!readOnly && (
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }} aria-label="Edit caption">
+                  <Pencil className="w-3 h-3" />
+                </Button>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleDownload(false)} aria-label="Download photo" data-testid={`button-download-${photo.id}`}>
@@ -176,9 +187,10 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
                   <TooltipContent side="bottom"><p className="text-xs">Download AI enhanced</p></TooltipContent>
                 </Tooltip>
               )}
+              {!readOnly && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" aria-label="Delete photo">
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" aria-label="Delete photo" data-testid={`button-delete-${photo.id}`}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 </AlertDialogTrigger>
@@ -198,6 +210,7 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              )}
             </div>
           </div>
         )}

@@ -71,10 +71,8 @@ const PROPERTY_UNDERWRITING_DRAFT_SAMPLE: Record<string, number> = {
   defaultCostRateFfe: 0.04,
   defaultCostRateInsurance: 0.015,
   defaultCostRateOther: 0.01,
-  depreciationYears: 39,
   defaultPropertyTaxRate: 0.015,
   defaultLandValuePercent: 0.2,
-  inflationRate: 0.03,
 };
 
 let nextGuidanceId = 1;

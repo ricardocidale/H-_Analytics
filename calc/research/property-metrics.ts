@@ -8,8 +8,8 @@
  * research generation.
  */
 import { roundCents } from "../shared/utils.js";
+import { getFactoryNumber } from "../../shared/model-constants-registry.js";
 import {
-  DAYS_PER_MONTH,
   DEFAULT_COST_RATE_ADMIN,
   DEFAULT_COST_RATE_PROPERTY_OPS,
   DEFAULT_COST_RATE_UTILITIES,
@@ -94,7 +94,8 @@ export function computePropertyMetrics(input: PropertyMetricsInput): PropertyMet
     incentive_management_fee_rate = RESEARCH_INCENTIVE_MGMT_FEE_RATE,
   } = input;
 
-  const days = input.days_per_month ?? DAYS_PER_MONTH;
+  // Audit #319 R4: registry-backed factory baseline.
+  const days = input.days_per_month ?? getFactoryNumber('daysPerMonth');
 
   // RevPAR
   const revpar = roundCents(adr * occupancy);

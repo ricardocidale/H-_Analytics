@@ -29,7 +29,34 @@ import { SectionCard } from "./SectionCard";
 import { MetricCard } from "./MetricCard";
 import { sectionColors } from "./types";
 
-export function ResearchSections({ content }: { content: any }) {
+interface KeyMetric { label: string; value: string; source?: string; }
+interface StabilizationPhase { phase: string; duration: string; description: string; occupancyTarget?: string; }
+interface AdrComparable { name: string; adr: string; type: string; }
+interface SeasonalEntry { season: string; occupancy: string; notes: string; }
+interface CapRateComparable { name: string; capRate: string; saleYear: string | number; notes: string; }
+interface CompetitorEntry { name: string; rooms: string | number; adr: string; positioning: string; }
+interface RiskEntry { risk: string; mitigation: string; }
+interface RatedItem { recommendedRate?: string; confidence?: string; rationale?: string; industryRange?: string; }
+
+interface PropertyResearchContent {
+  marketOverview?: { summary?: string; keyMetrics?: KeyMetric[] };
+  stabilizationTimeline?: { summary?: string; phases?: StabilizationPhase[]; totalMonths?: string };
+  adrAnalysis?: { marketAverage?: string; boutiqueRange?: string; recommendedRange?: string; confidence?: string; rationale?: string; comparables?: AdrComparable[] };
+  occupancyAnalysis?: { marketAverage?: string; rampUpTimeline?: string; confidence?: string; seasonalPattern?: SeasonalEntry[] };
+  eventDemand?: { corporateEvents?: string; exoticEvents?: string; wellnessRetreats?: string; weddingsPrivate?: string; estimatedEventRevShare?: string; keyDrivers?: string[] };
+  cateringAnalysis?: { recommendedBoostPercent?: string; marketRange?: string; confidence?: string; rationale?: string; eventMixBreakdown?: { fullyCatered?: string; partiallyCatered?: string; noCatering?: string }; factors?: string[] };
+  capRateAnalysis?: { marketRange?: string; boutiqueRange?: string; recommendedRange?: string; confidence?: string; rationale?: string; comparables?: CapRateComparable[] };
+  landValueAllocation?: { recommendedPercent?: string; marketRange?: string; assessmentMethod?: string; confidence?: string; rationale?: string; factors?: string[] };
+  operatingCostAnalysis?: { totalOperatingCostRatio?: string; roomRevenueBased?: { housekeeping?: RatedItem; fbCostOfSales?: RatedItem }; totalRevenueBased?: Record<string, RatedItem>; sources?: string[] };
+  propertyValueCostAnalysis?: { propertyTaxes?: RatedItem };
+  managementServiceFeeAnalysis?: Record<string, RatedItem | undefined>;
+  incomeTaxAnalysis?: { recommendedRate?: string; confidence?: string; effectiveRange?: string; calculationMethodology?: string; rateBreakdown?: { federal?: string; state?: string; local?: string }; rationale?: string; factors?: string[] };
+  competitiveSet?: CompetitorEntry[];
+  risks?: RiskEntry[];
+  sources?: string[];
+}
+
+export function ResearchSections({ content }: { content: PropertyResearchContent }) {
   return (
     <div className="space-y-5">
       {content.marketOverview && (
@@ -37,7 +64,7 @@ export function ResearchSections({ content }: { content: any }) {
           <p className="text-sm text-foreground leading-relaxed mb-5">{content.marketOverview.summary}</p>
           {content.marketOverview.keyMetrics && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {content.marketOverview.keyMetrics.map((m: any, i: number) => (
+              {content.marketOverview.keyMetrics.map((m: KeyMetric, i: number) => (
                 <MetricCard key={i} label={m.label} value={m.value} source={m.source} color={sectionColors.market} />
               ))}
             </div>
@@ -50,7 +77,7 @@ export function ResearchSections({ content }: { content: any }) {
           <p className="text-sm text-foreground leading-relaxed mb-5">{content.stabilizationTimeline.summary}</p>
           {content.stabilizationTimeline.phases && content.stabilizationTimeline.phases.length > 0 && (
             <div className="space-y-3">
-              {content.stabilizationTimeline.phases.map((phase: any, i: number) => (
+              {content.stabilizationTimeline.phases.map((phase: StabilizationPhase, i: number) => (
                 <div key={i} className="flex gap-4 items-start">
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-accent-pop/15 border-2 border-accent-pop/30 flex items-center justify-center">
                     <span className="text-sm font-bold text-accent-pop">{i + 1}</span>
@@ -103,7 +130,7 @@ export function ResearchSections({ content }: { content: any }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {content.adrAnalysis.comparables.map((c: any, i: number) => (
+                    {content.adrAnalysis.comparables.map((c, i: number) => (
                       <tr key={i} className="border-t border-border hover:bg-chart-1/5 transition-colors">
                         <td className="p-3 text-foreground font-medium">{c.name}</td>
                         <td className="p-3 text-right font-semibold text-chart-1">{c.adr}</td>
@@ -137,7 +164,7 @@ export function ResearchSections({ content }: { content: any }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {content.occupancyAnalysis.seasonalPattern.map((s: any, i: number) => (
+                    {content.occupancyAnalysis.seasonalPattern.map((s: SeasonalEntry, i: number) => (
                       <tr key={i} className="border-t border-border hover:bg-chart-3/5 transition-colors">
                         <td className="p-3 text-foreground font-medium">{s.season}</td>
                         <td className="p-3 text-right font-semibold text-chart-3">{s.occupancy}</td>
@@ -298,7 +325,7 @@ export function ResearchSections({ content }: { content: any }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {content.capRateAnalysis.comparables.map((c: any, i: number) => (
+                  {content.capRateAnalysis.comparables.map((c, i: number) => (
                     <tr key={i} className="border-t border-border hover:bg-accent-pop-2/5 transition-colors" data-testid={`row-cap-rate-comp-${i}`}>
                       <td className="p-3 text-foreground font-medium">{c.name}</td>
                       <td className="p-3 text-right font-semibold text-accent-pop-2">{c.capRate}</td>
@@ -556,7 +583,7 @@ export function ResearchSections({ content }: { content: any }) {
                 </tr>
               </thead>
               <tbody>
-                {content.competitiveSet.map((c: any, i: number) => (
+                {content.competitiveSet.map((c: CompetitorEntry, i: number) => (
                   <tr key={i} className="border-t border-border hover:bg-primary/10 transition-colors">
                     <td className="p-3 text-foreground font-medium">{c.name}</td>
                     <td className="p-3 text-right text-muted-foreground">{c.rooms}</td>
@@ -573,7 +600,7 @@ export function ResearchSections({ content }: { content: any }) {
       {content.risks && content.risks.length > 0 && (
         <SectionCard icon={IconAlertTriangle} title="Risks & Mitigations" color={sectionColors.risks}>
           <div className="space-y-3">
-            {content.risks.map((r: any, i: number) => (
+            {content.risks.map((r: RiskEntry, i: number) => (
               <div key={i} className="rounded-xl overflow-hidden border border-border">
                 <div className="bg-destructive/10 px-4 py-3 border-b border-destructive/15">
                   <div className="flex items-center gap-2">

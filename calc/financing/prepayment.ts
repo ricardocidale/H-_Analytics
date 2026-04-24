@@ -190,6 +190,10 @@ export function computePrepayment(input: PrepaymentInput): PrepaymentOutput {
       details = result.details;
       break;
     }
+    default: {
+      const _exhaustive: never = input.prepayment_type;
+      throw new Error(`Unhandled prepayment_type: ${String(_exhaustive)}`);
+    }
   }
 
   const penaltyPct = balance > 0 ? pct(penalty / balance) : 0;

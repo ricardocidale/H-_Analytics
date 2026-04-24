@@ -264,6 +264,8 @@ export const rebeccaConversations = pgTable("rebecca_conversations", {
   lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
 }, (table) => [
   index("rebecca_conversations_user_idx").on(table.userId),
+  // Covering index for FK to properties (chat panel filters by property context).
+  index("rebecca_conversations_property_idx").on(table.propertyId),
 ]);
 
 export const insertRebeccaConversationSchema = createInsertSchema(rebeccaConversations).pick({
@@ -422,6 +424,9 @@ export const engineSuggestedLines = pgTable("engine_suggested_lines", {
 }, (table) => [
   index("engine_suggested_lines_status_idx").on(table.status),
   index("engine_suggested_lines_statement_idx").on(table.statementType),
+  // Covering indexes for FKs (admin review surfaces filter by run + reviewer).
+  index("engine_suggested_lines_run_idx").on(table.suggestedByRunId),
+  index("engine_suggested_lines_reviewer_idx").on(table.reviewedBy),
 ]);
 
 export const insertEngineSuggestedLineSchema = createInsertSchema(engineSuggestedLines).pick({
@@ -761,3 +766,37 @@ export const insertFbBenchmarkSchema = createInsertSchema(fbBenchmarks).pick({
 });
 export type FbBenchmark = typeof fbBenchmarks.$inferSelect;
 export type InsertFbBenchmark = z.infer<typeof insertFbBenchmarkSchema>;
+
+// ---------------------------------------------------------------------------
+// Tax Bulletin Cache — Phase 2c (Helena's tax-bulletin-diff tool).
+//
+// Persists the latest fetched tax-authority bulletin per jurisdiction so
+// Helena's deterministic tool can compute incremental diffs across refreshes
+// instead of full re-reads. One row per (country, subdivision); upserts on
+// every successful fetch. `bulletinHash` is sha256 of the normalized raw
+// payload — equality short-circuits the diff to "no change".
+//
+// `subdivision` is stored as the empty string (not NULL) so the unique
+// constraint actually enforces one row per (country, subdivision); Postgres
+// treats NULLs as distinct, which would let duplicates accumulate.
+// ---------------------------------------------------------------------------
+export const taxBulletinCache = pgTable("tax_bulletin_cache", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  country: text("country").notNull(),
+  subdivision: text("subdivision").notNull().default(""),
+  sourceUrl: text("source_url").notNull(),
+  publisher: text("publisher").notNull(),
+  bulletinHash: text("bulletin_hash").notNull(),
+  parsedValues: jsonb("parsed_values").$type<Record<string, unknown>>().notNull(),
+  rawExcerpt: text("raw_excerpt").notNull(),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+}, (table) => [
+  unique("uq_tax_bulletin_jurisdiction").on(table.country, table.subdivision),
+]);
+
+export const insertTaxBulletinCacheSchema = createInsertSchema(taxBulletinCache).pick({
+  country: true, subdivision: true, sourceUrl: true, publisher: true,
+  bulletinHash: true, parsedValues: true, rawExcerpt: true,
+});
+export type TaxBulletinCache = typeof taxBulletinCache.$inferSelect;
+export type InsertTaxBulletinCache = z.infer<typeof insertTaxBulletinCacheSchema>;

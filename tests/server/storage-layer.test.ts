@@ -49,10 +49,12 @@ describe("Storage Layer — PropertyStorage", () => {
 });
 
 describe("Storage Layer — FinancialStorage (Global Assumptions)", () => {
-  const src = readStorageFile("financial.ts");
+  // Post-split: GlobalAssumptionsStorage lives in financial/global-assumptions.ts.
+  // The orchestrator (financial.ts) just wires it into FinancialStorage.
+  const src = readStorageFile("financial/global-assumptions.ts");
 
   it("getGlobalAssumptions uses ORDER BY DESC for shared row", () => {
-    expect(src).toContain("orderBy(desc(globalAssumptions.id))");
+    expect(src).toContain("desc(globalAssumptions.id)");
   });
 
   it("getGlobalAssumptions filters shared rows with isNull", () => {
@@ -76,7 +78,8 @@ describe("Storage Layer — FinancialStorage (Global Assumptions)", () => {
 });
 
 describe("Storage Layer — FinancialStorage (Scenarios)", () => {
-  const src = readStorageFile("financial.ts");
+  // Post-split: ScenariosCrudStorage lives in financial/scenarios-crud.ts.
+  const src = readStorageFile("financial/scenarios-crud.ts");
 
   it("getScenariosByUser filters by userId", () => {
     expect(src).toContain("eq(scenarios.userId, userId)");
@@ -106,17 +109,21 @@ describe("Storage Layer — FinancialStorage (Scenarios)", () => {
 });
 
 describe("Storage Layer — loadScenario integrity", () => {
-  const src = readStorageFile("financial.ts");
+  // Post-split: loadScenario + stable/destructive helpers live in
+  // financial/scenarios-load.ts. loadScenario is the last method in the
+  // class, so we slice from its start to end-of-file.
+  const src = readStorageFile("financial/scenarios-load.ts");
 
   const loadStart = src.indexOf("async loadScenario(");
-  const loadEnd = src.indexOf("/** Fetch all fee categories");
-  const loadBody = src.slice(loadStart, loadEnd);
+  const loadBody = src.slice(loadStart);
 
   const stableStart = src.indexOf("async function stableLoadProperties(");
   const destructiveStart = src.indexOf("async function destructiveLoadProperties(");
   const stableBody = src.slice(stableStart, destructiveStart);
-  const classStart = src.indexOf("export class FinancialStorage");
-  const destructiveBody = src.slice(destructiveStart, classStart);
+  // Destructive helper runs until the next non-helper marker — in scenarios-load.ts
+  // the next thing after the helpers is `async function syncFeeCategories(`.
+  const syncFeeStart = src.indexOf("async function syncFeeCategories(");
+  const destructiveBody = src.slice(destructiveStart, syncFeeStart > 0 ? syncFeeStart : src.length);
 
   it("runs inside a transaction", () => {
     expect(loadBody).toContain("db.transaction(");
@@ -246,10 +253,10 @@ describe("Storage Layer — PhotoStorage", () => {
 });
 
 describe("Storage Layer — loadScenario photo decoupling", () => {
-  const src = readStorageFile("financial.ts");
+  // Post-split: loadScenario lives in financial/scenarios-load.ts.
+  const src = readStorageFile("financial/scenarios-load.ts");
   const loadStart = src.indexOf("async loadScenario(");
-  const loadEnd = src.indexOf("/** Fetch all fee categories");
-  const loadBody = src.slice(loadStart, loadEnd);
+  const loadBody = src.slice(loadStart);
 
   it("loadScenario accepts savedPropertyPhotos parameter for backward compat", () => {
     expect(loadBody).toContain("_savedPropertyPhotos");
@@ -296,8 +303,14 @@ describe("Storage Layer — Index delegates to sub-modules", () => {
   });
 
   it("binds scenario methods from financial sub-module", () => {
-    expect(src).toContain("getScenariosByUser");
-    expect(src).toContain("createScenario");
-    expect(src).toContain("loadScenario");
+    // Post-split: DatabaseStorage uses a factory loop that walks each domain
+    // storage's own properties + prototype and rebinds every callable onto
+    // `this`, instead of hand-listing every method. Verifying the loop is
+    // present and that FinancialStorage is wired in is the structural check
+    // that scenario methods (getScenariosByUser/createScenario/loadScenario,
+    // all defined on FinancialStorage's submodules) reach DatabaseStorage.
+    expect(src).toContain("new FinancialStorage()");
+    expect(src).toContain("Object.getOwnPropertyNames");
+    expect(src).toContain("Object.getPrototypeOf(instance)");
   });
 });

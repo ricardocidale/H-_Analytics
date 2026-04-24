@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import type PptxGenJSType from "pptxgenjs";
 import {
   type ExportRowMeta,
   type BrandPalette,
@@ -16,15 +17,20 @@ export const SLIDE_W = 13.33;
 export const SLIDE_H = 7.5;
 const MARGIN_X = 0.3;
 
+type PptxPres = PptxGenJSType;
+type PptxSlide = ReturnType<PptxGenJSType["addSlide"]>;
+type PptxTableRow = PptxGenJSType.TableRow;
+type PptxTableCell = PptxGenJSType.TableCell;
+
 export interface SlideContext {
-  pres: any;
+  pres: PptxPres;
   companyName: string;
   brand: BrandPalette;
 }
 
 export function addAllFooters(ctx: SlideContext, skipFirst = true) {
   const B = ctx.brand;
-  const slides = ctx.pres.slides as any[];
+  const slides = (ctx.pres as unknown as { slides?: PptxSlide[] }).slides;
   if (!slides) return;
   const total = slides.length;
   for (let i = 0; i < total; i++) {
@@ -240,7 +246,7 @@ export function addFinancialTableSlide(
           { type: "solid", pt: 1.5, color: B.SECONDARY_HEX },
           { type: "solid", pt: 1, color: B.SECONDARY_HEX },
           { type: "solid", pt: 1.5, color: B.SECONDARY_HEX },
-        ],
+        ] as [PptxGenJSType.BorderProps, PptxGenJSType.BorderProps, PptxGenJSType.BorderProps, PptxGenJSType.BorderProps],
       },
     },
     ...years.map((y, yi) => ({
@@ -256,12 +262,12 @@ export function addFinancialTableSlide(
             : { type: "solid", pt: 0.5, color: B.BORDER_LIGHT_HEX },
           { type: "solid", pt: 1, color: B.SECONDARY_HEX },
           { type: "solid", pt: 0.5, color: B.BORDER_LIGHT_HEX },
-        ],
+        ] as [PptxGenJSType.BorderProps, PptxGenJSType.BorderProps, PptxGenJSType.BorderProps, PptxGenJSType.BorderProps],
       },
     })),
   ];
 
-  const tableRows: any[][] = [headerCells];
+  const tableRows: PptxTableRow[] = [headerCells];
   const filteredRows = rows.filter((r) => r.category !== "");
   let dataRowIdx = 0;
 
@@ -290,7 +296,7 @@ export function addFinancialTableSlide(
       ? { type: "solid" as const, pt: 1.5, color: B.SECONDARY_HEX }
       : { type: "solid" as const, pt: 0.3, color: B.BORDER_LIGHT_HEX };
 
-    const makeBorder = (colIdx: number) => [
+    const makeBorder = (colIdx: number): [PptxGenJSType.BorderProps, PptxGenJSType.BorderProps, PptxGenJSType.BorderProps, PptxGenJSType.BorderProps] => [
       topBorder,
       colIdx === years.length
         ? { type: "solid" as const, pt: 1.5, color: B.SECONDARY_HEX }
@@ -301,7 +307,7 @@ export function addFinancialTableSlide(
         : { type: "solid" as const, pt: 0.3, color: B.BORDER_LIGHT_HEX },
     ];
 
-    const labelCell: any = {
+    const labelCell: PptxTableCell = {
       text: label,
       options: {
         fontFace: "Arial",
@@ -368,7 +374,7 @@ export function addOverviewSlides(ctx: SlideContext, overview: OverviewExportDat
   });
   propIRRSlide.addShape("rect", { x: MARGIN_X, y: 0.78, w: SLIDE_W - 2 * MARGIN_X, h: 0.02, fill: { color: B.SECONDARY_HEX } });
 
-  const pRows: any[][] = [
+  const pRows: PptxTableRow[] = [
     [
       { text: "#", options: { fill: { color: B.SECONDARY_HEX }, color: B.WHITE_HEX, bold: true, fontFace: "Arial", fontSize: 8 } },
       { text: "Property", options: { fill: { color: B.SECONDARY_HEX }, color: B.WHITE_HEX, bold: true, fontFace: "Arial", fontSize: 8 } },
@@ -410,7 +416,7 @@ export function addOverviewSlides(ctx: SlideContext, overview: OverviewExportDat
     fontSize: 9, fontFace: "Arial", color: B.BORDER_HEX,
   });
   revSlide.addShape("rect", { x: MARGIN_X, y: 0.78, w: SLIDE_W - 2 * MARGIN_X, h: 0.02, fill: { color: B.SECONDARY_HEX } });
-  const revRows: any[][] = [
+  const revRows: PptxTableRow[] = [
     [
       { text: "Year", options: { fill: { color: B.SECONDARY_HEX }, color: B.WHITE_HEX, bold: true, fontFace: "Arial", fontSize: 8 } },
       { text: "Revenue", options: { fill: { color: B.SECONDARY_HEX }, color: B.WHITE_HEX, bold: true, fontFace: "Arial", fontSize: 8, align: "right" as const } },
@@ -451,7 +457,7 @@ export function addOverviewSlides(ctx: SlideContext, overview: OverviewExportDat
   const totalEquity = kpis.totalInitialEquity;
   const totalDebt = cs.totalPurchasePrice - totalEquity;
   const weightedLTV = cs.totalPurchasePrice > 0 ? totalDebt / cs.totalPurchasePrice : 0;
-  const capRows: any[][] = [
+  const capRows: PptxTableRow[] = [
     [{ text: "Capital Structure", options: { fill: { color: B.PRIMARY_HEX }, color: B.WHITE_HEX, bold: true, fontFace: "Arial", fontSize: 8 } }, { text: "Value", options: { fill: { color: B.PRIMARY_HEX }, color: B.WHITE_HEX, bold: true, fontFace: "Arial", fontSize: 8, align: "right" as const } }],
     [{ text: "Total Equity", options: { fontFace: "Arial", fontSize: 8, fill: { color: B.SURFACE_HEX }, color: B.FOREGROUND_HEX } }, { text: fmtUSD(totalEquity), options: { fontFace: "Arial", fontSize: 8, fill: { color: B.SURFACE_HEX }, color: B.ACCENT_HEX, bold: true, align: "right" as const } }],
     [{ text: "Total Debt", options: { fontFace: "Arial", fontSize: 8, fill: { color: B.WHITE_HEX }, color: B.FOREGROUND_HEX } }, { text: fmtUSD(totalDebt), options: { fontFace: "Arial", fontSize: 8, fill: { color: B.WHITE_HEX }, color: B.FOREGROUND_HEX, align: "right" as const } }],
@@ -466,7 +472,7 @@ export function addOverviewSlides(ctx: SlideContext, overview: OverviewExportDat
   ];
   compSlide.addTable(capRows, { x: MARGIN_X, y: 0.9, w: 5.5, colW: [3.3, 2.2], rowH: 0.28 });
 
-  const mktRows: any[][] = [
+  const mktRows: PptxTableRow[] = [
     [
       { text: "Market", options: { fill: { color: B.SECONDARY_HEX }, color: B.WHITE_HEX, bold: true, fontFace: "Arial", fontSize: 8 } },
       { text: "Count", options: { fill: { color: B.SECONDARY_HEX }, color: B.WHITE_HEX, bold: true, fontFace: "Arial", fontSize: 8, align: "right" as const } },
@@ -510,7 +516,7 @@ export function addOverviewSlides(ctx: SlideContext, overview: OverviewExportDat
   const { yearLabels, waterfallRows } = overview;
   const wfFontSize = pptxFontSize(yearLabels.length);
   const { labelW, dataW, tableW } = pptxColumnWidths(yearLabels.length, SLIDE_W, MARGIN_X);
-  const wfTableRows: any[][] = [
+  const wfTableRows: PptxTableRow[] = [
     [
       { text: "", options: { fill: { color: B.SECONDARY_HEX }, fontFace: "Arial", fontSize: wfFontSize, color: B.WHITE_HEX, bold: true } },
       ...yearLabels.map((yr) => ({

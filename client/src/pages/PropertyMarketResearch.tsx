@@ -17,6 +17,7 @@ import { useRoute } from "wouter";
 import { downloadResearchPDF } from "@/lib/exports/researchPdfExport";
 import { useToast } from "@/hooks/use-toast";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import { ResearchFreshnessBadge } from "@/components/research/ResearchFreshnessBadge";
 import { ResearchLoadingOverlay } from "@/components/research/ResearchLoadingOverlay";
 import { ResearchCriteriaTab } from "@/components/research/ResearchCriteriaTab";
@@ -37,11 +38,26 @@ export default function PropertyMarketResearch() {
   const { toast } = useToast();
 
   const { requestSave, SaveDialog } = useExportSave();
+  // when the server's catalog hard-required gate rejects a
+  // property research run, surface the deep-link prompt instead of a
+  // generic toast.
+  const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
+    open: boolean;
+    specialistId: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }>({ open: false, specialistId: "", missingFields: [] });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
     property,
     propertyId,
     global,
+    onMissingRequiredFields: (info) => {
+      setMissingFieldsPrompt({
+        open: true,
+        specialistId: info.specialistId,
+        missingFields: info.missingFields,
+      });
+    },
   });
 
   if (propertyLoading || researchLoading) {
@@ -119,7 +135,7 @@ export default function PropertyMarketResearch() {
                           content,
                           updatedAt: research?.updatedAt,
                           llmModel: research?.llmModel || undefined,
-                          promptConditions: (research as { promptConditions?: unknown })?.promptConditions || undefined,
+                          promptConditions: (research as { promptConditions?: Record<string, unknown> })?.promptConditions || undefined,
                         }, f)),
                         testId: "button-export-research-pdf",
                       },
@@ -213,10 +229,10 @@ export default function PropertyMarketResearch() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="market"><MarketTab content={content} propertyLocation={property.location} /></TabsContent>
-              <TabsContent value="revenue"><RevenueTab content={content} /></TabsContent>
-              <TabsContent value="financial"><FinancialTab content={content} /></TabsContent>
-              <TabsContent value="operating"><OperatingTab content={content} /></TabsContent>
+              <TabsContent value="market"><MarketTab content={content as Parameters<typeof MarketTab>[0]['content']} propertyLocation={property.location} /></TabsContent>
+              <TabsContent value="revenue"><RevenueTab content={content as Parameters<typeof RevenueTab>[0]['content']} /></TabsContent>
+              <TabsContent value="financial"><FinancialTab content={content as Parameters<typeof FinancialTab>[0]['content']} /></TabsContent>
+              <TabsContent value="operating"><OperatingTab content={content as Parameters<typeof OperatingTab>[0]['content']} /></TabsContent>
               <TabsContent value="rates">
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                   <div className={`${card} p-6 space-y-6`}>
@@ -227,7 +243,7 @@ export default function PropertyMarketResearch() {
                 </motion.div>
               </TabsContent>
               <TabsContent value="sources">
-                <SourcesTab content={content} />
+                <SourcesTab content={content as Parameters<typeof SourcesTab>[0]['content']} />
               </TabsContent>
               <TabsContent value="criteria">
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -239,6 +255,15 @@ export default function PropertyMarketResearch() {
           )}
         </div>
       </AnimatedPage>
+      <MissingRequiredFieldsPrompt
+        open={missingFieldsPrompt.open}
+        onOpenChange={(open) =>
+          setMissingFieldsPrompt((p) => ({ ...p, open }))
+        }
+        specialistLabel="Property research"
+        missingFields={missingFieldsPrompt.missingFields}
+        navContext={{ propertyId }}
+      />
     </Layout>
   );
 }

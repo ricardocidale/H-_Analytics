@@ -36,6 +36,8 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("users_phone_number_idx").on(table.phoneNumber),
+  // Covering index for FK to design_themes (used in profile + theme list joins).
+  index("users_selected_theme_id_idx").on(table.selectedThemeId),
 ]);
 
 export const VALID_USER_ROLES = ["super_admin", "admin", "user", "checker", "investor"] as const;

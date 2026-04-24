@@ -104,7 +104,7 @@ export function register(app: Express) {
 
         await storage.updateDocumentExtraction(extraction.id, {
           status: "completed",
-          rawExtractionData: result as any,
+          rawExtractionData: result as unknown as Record<string, unknown>,
           processedAt: new Date(),
         });
 

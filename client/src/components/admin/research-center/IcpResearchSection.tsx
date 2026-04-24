@@ -289,7 +289,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
             <div className="text-center py-12">
               <IconFlaskConical className="w-8 h-8 mx-auto mb-3 text-muted-foreground/40" />
               <p className="text-sm font-medium text-muted-foreground" data-testid="text-no-research">Not yet reviewed</p>
-              <p className="text-xs text-muted-foreground mt-1">Click <strong>Consult</strong> to get a market analysis from The Analyst.</p>
+              <p className="text-xs text-muted-foreground mt-1">Click <strong>Consult</strong> to get a market analysis from Gaspar.</p>
             </div>
           )}
 
@@ -356,7 +356,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
 
                   {h.report.extractedMetrics.locationMetrics && Array.isArray(h.report.extractedMetrics.locationMetrics) && (
                     <div className="space-y-3">
-                      {h.report.extractedMetrics.locationMetrics.map((loc: any, li: number) => (
+                      {h.report.extractedMetrics.locationMetrics.map((loc: Record<string, unknown> & { location: string }, li: number) => (
                         <div key={li} className="bg-muted/30 rounded-lg p-3 border border-border/40" data-testid={`location-metric-${li}`}>
                           <h4 className="text-xs font-semibold text-foreground mb-2">{loc.location}</h4>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -373,13 +373,13 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
                                 </div>
                               );
                             })}
-                            {loc.competitiveIntensity && (
+                            {typeof loc.competitiveIntensity === "string" && (
                               <div className="text-center">
                                 <p className="text-sm font-bold text-foreground capitalize">{loc.competitiveIntensity}</p>
                                 <p className="text-[10px] text-muted-foreground">Competition</p>
                               </div>
                             )}
-                            {loc.investmentRating && (
+                            {typeof loc.investmentRating === "string" && (
                               <div className="text-center">
                                 <p className="text-sm font-bold text-foreground">{loc.investmentRating}</p>
                                 <p className="text-[10px] text-muted-foreground">Rating</p>

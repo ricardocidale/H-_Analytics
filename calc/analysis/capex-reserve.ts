@@ -44,9 +44,9 @@
 import type { RoundingPolicy } from "../../domain/types/rounding.js";
 import { roundTo } from "../../domain/types/rounding.js";
 import { rounder, RATIO_ROUNDING, sumArray } from "../shared/utils.js";
+import { getFactoryNumber } from "../../shared/model-constants-registry.js";
 import {
   DEFAULT_COST_RATE_FFE,
-  DEFAULT_PROPERTY_INFLATION_RATE,
   CAPEX_ELEVATOR_MECHANICAL_COST,
   CAPEX_ROOF_EXTERIOR_COST,
   CAPEX_FB_EQUIPMENT_COST,
@@ -135,8 +135,10 @@ export function computeCapexReserve(input: CapexReserveInput): CapexReserveOutpu
   const ratio = (v: number) => roundTo(v, RATIO_ROUNDING);
 
   const ffeRate = input.ffe_reserve_rate ?? DEFAULT_COST_RATE_FFE;
-  const revenueGrowth = input.revenue_growth_rate ?? DEFAULT_PROPERTY_INFLATION_RATE;
-  const inflationRate = input.inflation_rate ?? DEFAULT_PROPERTY_INFLATION_RATE;
+  // Audit #319 R4: registry-backed factory baseline (US inflation 0.03).
+  const inflationFactory = getFactoryNumber('inflationRate');
+  const revenueGrowth = input.revenue_growth_rate ?? inflationFactory;
+  const inflationRate = input.inflation_rate ?? inflationFactory;
   const initialBalance = input.initial_reserve_balance ?? 0;
 
   const annual_reserve_amount = r(input.annual_revenue * ffeRate);

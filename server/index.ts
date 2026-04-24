@@ -26,6 +26,9 @@ import compression from "compression";
 import { registerRoutes } from "./routes";
 // TODO: Move image routes out of replit_integrations/ — they're not Replit-specific (they use OpenAI/Gemini directly). Blocked because they depend on ObjectStorageService from replit_integrations/object_storage.
 import { registerImageRoutes } from "./replit_integrations/image";
+import { buildContentSecurityPolicy } from "./replit_integrations/csp";
+
+const contentSecurityPolicy = buildContentSecurityPolicy();
 import { getAuthProvider } from "./providers/auth";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -43,6 +46,7 @@ import {
   MI_CACHE_INVALIDATION_INTERVAL_MS,
   SCENARIO_PURGE_INTERVAL_MS,
   VECTOR_LATENCY_CHECK_INTERVAL_MS,
+  CONSTANTS_REFRESH_DIGEST_INTERVAL_MS,
 } from "./constants";
 
 initSentry();
@@ -66,7 +70,7 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=()");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.ingest.sentry.io https://*.sentry.io https://us.i.posthog.com https://app.posthog.com; media-src 'self' blob:; frame-ancestors 'self' https://*.replit.dev https://*.replit.app https://*.repl.co");
+  res.setHeader("Content-Security-Policy", contentSecurityPolicy);
   if (process.env.NODE_ENV === "production") {
     res.setHeader("Strict-Transport-Security", `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains`);
   }
@@ -113,6 +117,7 @@ const PUBLIC_API_PATHS = new Set([
 const PUBLIC_API_PREFIXES = [
   "/api/public/",
   "/api/letter-logo/",
+  "/api/media/",
 ];
 
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -227,11 +232,30 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
 
-      // ── Phase 2: Migrations + seeds (runs after port is open) ────────
-      runMigrationsAndSeeds().catch(err => {
-        serverLog(`FATAL: Migrations/seeds failed: ${err instanceof Error ? err.message : err}`, "startup", "error");
-        process.exit(1);
-      });
+      // ── Phase 2a: Schema migrations (fatal if they fail — schema integrity matters) ──
+      runSchemaMigrationsWithRetry()
+        .then(() => {
+          // ── Phase 2b: Seeds (non-fatal — server stays up if seeds fail) ──
+          // Wrapped in setImmediate so any thrown error cannot escape into a
+          // process-killing unhandledRejection during the listen callback.
+          setImmediate(() => {
+            runSeedsSafely().catch(err => {
+              serverLog(
+                `Seeds completed with warnings (server continues serving): ${err instanceof Error ? err.message : err}`,
+                "startup",
+                "warn",
+              );
+            });
+          });
+        })
+        .catch(err => {
+          serverLog(
+            `FATAL: Schema migrations failed: ${err instanceof Error ? err.message : err}`,
+            "startup",
+            "error",
+          );
+          process.exit(1);
+        });
 
       // ── Phase 3: Ambient benchmark scheduler ────────
       import("./ai/ambient/scheduler").then(({ startAmbientScheduler }) => {
@@ -247,6 +271,20 @@ app.use((req, res, next) => {
         serverLog(`[research-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3c: Resource health checker (per-kind TTL probes) ────────
+      import("./jobs/resource-health-checker").then(({ startResourceHealthChecker }) => {
+        startResourceHealthChecker();
+      }).catch(err => {
+        serverLog(`[resource-health-checker] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      // ── Phase 3d: Constants research refresher (per-Specialist cadence) ────────
+      import("./jobs/specialist-constants-refresh").then(({ startConstantsRefreshScheduler }) => {
+        startConstantsRefreshScheduler();
+      }).catch(err => {
+        serverLog(`[constants-refresh-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
@@ -256,6 +294,14 @@ app.use((req, res, next) => {
         isShuttingDown = true;
         serverLog(`Received ${signal}, shutting down gracefully...`, "shutdown", "info");
         for (const h of intervalHandles) clearInterval(h);
+        // Stop the Constants refresh scheduler so its hourly tick + startup
+        // delay timer don't keep the event loop alive past httpServer.close().
+        try {
+          const { stopConstantsRefreshScheduler } = await import("./jobs/specialist-constants-refresh");
+          stopConstantsRefreshScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
         const forceTimer = setTimeout(() => { serverLog("Forced exit after timeout", "shutdown", "error"); process.exit(1); }, 10_000);
         httpServer.close(() => {
           serverLog("HTTP server closed", "shutdown", "info");
@@ -336,6 +382,24 @@ app.use((req, res, next) => {
       };
       void runVectorLatencyAlert();
       intervalHandles.push(setInterval(runVectorLatencyAlert, VECTOR_LATENCY_CHECK_INTERVAL_MS));
+
+      // Email admins a daily digest of failed scheduled Constants refreshes
+      // (server/jobs/specialist-constants-refresh.ts → research_runs failures).
+      // Tick every CONSTANTS_REFRESH_DIGEST_INTERVAL_MS; the evaluator dedupes
+      // per UTC day so frequent ticks are safe.
+      const runConstantsRefreshDigest = async () => {
+        try {
+          const { evaluateConstantsRefreshFailureDigest } = await import("./notifications/constants-refresh-failure-digest");
+          const result = await evaluateConstantsRefreshFailureDigest();
+          if (result.status === "ok") {
+            log(`Constants refresh failure digest sent to ${result.sent}/${result.recipients} admins (failures=${result.failures}, digestKey=${result.digestKey})`);
+          }
+        } catch (err: unknown) {
+          serverLog(`Constants refresh digest error: ${err instanceof Error ? err.message : err}`, "notifications", "error");
+        }
+      };
+      void runConstantsRefreshDigest();
+      intervalHandles.push(setInterval(runConstantsRefreshDigest, CONSTANTS_REFRESH_DIGEST_INTERVAL_MS));
     },
   );
 })();
@@ -480,6 +544,61 @@ async function runSchemaMigrations() {
     await markMigrationApplied("calc_audit_001");
   }
 
+  if (!(await isMigrationApplied("admin_resources_001"))) {
+    const { runAdminResources001 } = await import("./migrations/admin-resources-001");
+    await runAdminResources001();
+    await markMigrationApplied("admin_resources_001");
+  }
+
+  if (!(await isMigrationApplied("admin_resources_002"))) {
+    const { runAdminResources002 } = await import("./migrations/admin-resources-002");
+    await runAdminResources002();
+    await markMigrationApplied("admin_resources_002");
+  }
+
+  if (!(await isMigrationApplied("admin_resources_003"))) {
+    const { runAdminResources003 } = await import("./migrations/admin-resources-003");
+    await runAdminResources003();
+    await markMigrationApplied("admin_resources_003");
+  }
+
+  if (!(await isMigrationApplied("admin_resources_004"))) {
+    const { runAdminResources004 } = await import("./migrations/admin-resources-004");
+    await runAdminResources004();
+    await markMigrationApplied("admin_resources_004");
+  }
+
+  if (!(await isMigrationApplied("specialist_observed_missing_001"))) {
+    const { runSpecialistObservedMissing001 } = await import(
+      "./migrations/specialist-observed-missing-001"
+    );
+    await runSpecialistObservedMissing001();
+    await markMigrationApplied("specialist_observed_missing_001");
+  }
+
+  if (!(await isMigrationApplied("specialist_recommendation_events_001"))) {
+    const { runSpecialistRecommendationEvents001 } = await import(
+      "./migrations/specialist-recommendation-events-001"
+    );
+    await runSpecialistRecommendationEvents001();
+    await markMigrationApplied("specialist_recommendation_events_001");
+  }
+
+  // Phase 4 — Task #454. `properties.financials_computed_at` is the
+  // single source of truth for "this property's numbers are fresh as of
+  // T". Specialist gating (engine/analyst/registry/prerequisite-registry.ts
+  // → all-properties-financials-computed) depends on this column.
+  // Non-destructive: ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("properties_financials_computed_at_001"))) {
+    const { db: dbRef } = await import("./db");
+    const { sql: sqlTag } = await import("drizzle-orm");
+    await dbRef.execute(sqlTag`
+      ALTER TABLE properties
+        ADD COLUMN IF NOT EXISTS financials_computed_at timestamp
+    `);
+    await markMigrationApplied("properties_financials_computed_at_001");
+  }
+
   if (!(await isMigrationApplied("scenario_service_templates_001"))) {
     const { runScenarioServiceTemplates001 } = await import("./migrations/scenario-service-templates-001");
     await runScenarioServiceTemplates001();
@@ -523,26 +642,114 @@ async function runSeeds() {
   const { seedMissingMarketResearch, seedDefaultLogos, seedCompanies, seedFeeCategories, seedServiceTemplates, seedPropertyPhotos, seedGlobalAssumptions, seedMedellinDuplex, seedMedellinDuplexPhotos } = await import("./seed");
   const { seedMarketRates } = await import("./seeds/market-rates");
   const { seedMarketDataTables } = await import("./seeds/market-data-tables");
-  await Promise.all([
-    seedMissingMarketResearch(),
-    seedMarketRates(),
-    seedMarketDataTables(),
-    seedDefaultLogos(),
-    seedFeeCategories(),
-    seedServiceTemplates(),
-    seedPropertyPhotos(),
-    seedGlobalAssumptions(),
-  ]);
 
-  await seedCompanies();
+  // Each seed is isolated — one failure does not cancel the others.
+  // All seeds are idempotent (skip-if-exists semantics) so partial completion
+  // on cold start is safe; the next boot will fill in whatever was missed.
+  const seedTasks: Array<{ name: string; run: () => Promise<unknown> }> = [
+    { name: "missing-market-research", run: seedMissingMarketResearch },
+    { name: "market-rates", run: seedMarketRates },
+    { name: "market-data-tables", run: seedMarketDataTables },
+    { name: "default-logos", run: seedDefaultLogos },
+    { name: "fee-categories", run: seedFeeCategories },
+    { name: "service-templates", run: seedServiceTemplates },
+    { name: "property-photos", run: seedPropertyPhotos },
+    { name: "global-assumptions", run: seedGlobalAssumptions },
+  ];
 
-  await seedMedellinDuplex();
-  await seedMedellinDuplexPhotos();
+  const results = await Promise.allSettled(seedTasks.map(t => t.run()));
+  results.forEach((r, i) => {
+    if (r.status === "rejected") {
+      serverLog(
+        `[seed:${seedTasks[i].name}] skipped (will retry next boot): ${r.reason instanceof Error ? r.reason.message : r.reason}`,
+        "startup",
+        "warn",
+      );
+    }
+  });
 
-  const { cleanOrphanedLogos } = await import("./migrations/db-hygiene-001");
-  await cleanOrphanedLogos();
+  await seedCompanies().catch(err => {
+    serverLog(`[seed:companies] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+
+  await seedMedellinDuplex().catch(err => {
+    serverLog(`[seed:medellin-duplex] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+  await seedMedellinDuplexPhotos().catch(err => {
+    serverLog(`[seed:medellin-duplex-photos] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+
+  try {
+    const { cleanOrphanedLogos } = await import("./migrations/db-hygiene-001");
+    await cleanOrphanedLogos();
+  } catch (err: unknown) {
+    serverLog(`[seed:clean-orphaned-logos] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  }
 
   indexPropertiesToVectorStoreAsync();
+}
+
+// ── Boot orchestration: schema migrations (fatal) ─────────────────────
+async function runSchemaMigrationsWithRetry(): Promise<void> {
+  const { withRetry } = await import("./db");
+  await withRetry(() => runSchemaMigrations(), {
+    retries: 3,
+    baseDelayMs: 2000,
+    label: "schema-migrations",
+  });
+}
+
+// ── Boot orchestration: seeds (non-fatal, single-replica) ──
+// Uses a Postgres session-level advisory lock so that when Autoscale spins up
+// multiple replicas, only one runs the seed phase. Other replicas log and skip.
+// We deliberately do NOT impose a hard timeout that releases the lock early:
+// releasing the lock while runSeeds() is still in flight would let a second
+// replica start a concurrent seed pass, defeating the single-replica guarantee.
+// If seeds genuinely run long, we log a soft-warning at SEED_SLOW_WARN_MS but
+// keep awaiting the real promise. The server is already serving traffic
+// (this whole function runs inside setImmediate after the port is open).
+const SEED_ADVISORY_LOCK_KEY = 7244911300; // arbitrary stable bigint, app-specific
+const SEED_SLOW_WARN_MS = 90_000;
+
+async function runSeedsSafely(): Promise<void> {
+  const startTime = Date.now();
+  const { pool } = await import("./db");
+  const client = await pool.connect();
+  let lockAcquired = false;
+  let slowWarnTimer: NodeJS.Timeout | undefined;
+  try {
+    const lockResult = await client.query<{ pg_try_advisory_lock: boolean }>(
+      "SELECT pg_try_advisory_lock($1) AS pg_try_advisory_lock",
+      [SEED_ADVISORY_LOCK_KEY],
+    );
+    lockAcquired = lockResult.rows[0]?.pg_try_advisory_lock === true;
+
+    if (!lockAcquired) {
+      serverLog("Another replica holds the seed lock — skipping seeds on this instance", "startup", "info");
+      return;
+    }
+
+    slowWarnTimer = setTimeout(() => {
+      serverLog(
+        `Seed phase still running after ${SEED_SLOW_WARN_MS}ms — server continues serving (lock held)`,
+        "startup",
+        "warn",
+      );
+    }, SEED_SLOW_WARN_MS);
+
+    await runSeeds();
+    log(`Migrations and seeds completed in ${Date.now() - startTime}ms`);
+  } finally {
+    if (slowWarnTimer) clearTimeout(slowWarnTimer);
+    if (lockAcquired) {
+      try {
+        await client.query("SELECT pg_advisory_unlock($1)", [SEED_ADVISORY_LOCK_KEY]);
+      } catch {
+        // best-effort unlock; advisory locks auto-release on session close
+      }
+    }
+    client.release();
+  }
 }
 
 function indexPropertiesToVectorStoreAsync() {
@@ -575,21 +782,3 @@ function indexPropertiesToVectorStoreAsync() {
   })();
 }
 
-async function runMigrationsAndSeeds() {
-  const startTime = Date.now();
-
-  const { withRetry } = await import("./db");
-  await withRetry(() => runSchemaMigrations(), {
-    retries: 3,
-    baseDelayMs: 2000,
-    label: "schema-migrations",
-  });
-
-  await withRetry(() => runSeeds(), {
-    retries: 2,
-    baseDelayMs: 1000,
-    label: "seed-data",
-  });
-
-  log(`Migrations and seeds completed in ${Date.now() - startTime}ms`);
-}

@@ -32,7 +32,14 @@ import { buildUserPrompt, type ResearchParams } from "./research-prompt-builders
 import { loadSkill } from "./research-resources";
 import { retrieveSimilarResearch, indexResearchResult, isVectorStoreAvailable } from "./vector-store-service";
 
-import { logger } from "../logger";
+import { logger, loggerFor } from "../logger";
+import { GASPAR_IDENTITY } from "../../engine/analyst/identity";
+
+// Orchestrator-side log channel — Gaspar narrates panel + synthesis
+// failures so the activity stream reads as `[gaspar] …` instead of
+// the legacy `[orchestrator] …`. Specialist-owned errors should use
+// their own loggerFor(humanName) channel (Phase 4).
+const gasparLog = loggerFor(GASPAR_IDENTITY.logKey);
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 
 // ── Model defaults (used when caller does not supply resolved overrides) ──────
@@ -43,9 +50,21 @@ const DEFAULT_SYNTHESIS_MODEL  = "claude-opus-4-6";
 const SYNTHESIS_TOKENS = 12_000;
 
 export interface OrchestratorModelOverrides {
+  /** Specialist's primary single-shot model (Task #495). Used by the
+   *  legacy `generateResearchWithToolsStream` path when no orchestrator
+   *  is dispatched. The orchestrator itself does not consume this. */
+  primaryModel?: string;
   analystAModel?: string;
   analystBModel?: string;
   synthesisModel?: string;
+  fallbackModel?: string;
+  /**
+   * Multi-model bypass switch (Task #495). When `false`, callers should NOT
+   * dispatch the parallel analyst panel + synthesis path; the orchestrator
+   * caller instead falls back to single-model `generateResearchWithToolsStream`.
+   * `undefined` = honour caller's `useOrchestrator` decision unchanged.
+   */
+  multiModelEnabled?: boolean;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -128,7 +147,7 @@ async function runAnalystPanel(
 
     return { model, role, output, durationMs: Date.now() - start };
   } catch (err: unknown) {
-    logger.warn(`Analyst panel failed (${model}): ${err instanceof Error ? err.message : err}`, "orchestrator");
+    gasparLog.warn(`Analyst panel failed (${model}): ${err instanceof Error ? err.message : err}`);
     return {
       model, role,
       output: {},
@@ -289,10 +308,10 @@ async function buildSynthesisUserPrompt(
 
 ## SYNTHESIS INPUTS
 
-### Analyst A — Quantitative Panel (${panelA.model}, ${(panelA.durationMs / 1000).toFixed(1)}s)
+### Quantitative Panel (${panelA.model}, ${(panelA.durationMs / 1000).toFixed(1)}s)
 ${formatPanelForSynthesis(panelA)}
 
-### Analyst B — Market Strategy Panel (${panelB.model}, ${(panelB.durationMs / 1000).toFixed(1)}s)
+### Market Strategy Panel (${panelB.model}, ${(panelB.durationMs / 1000).toFixed(1)}s)
 ${formatPanelForSynthesis(panelB)}
 
 ### API Validation Results (live market data cross-check)
@@ -313,12 +332,27 @@ Now synthesize the above into a single authoritative research report JSON.`;
 export async function* orchestrateResearch(
   params: ResearchParams,
   v2Prompt?: string,
-  relaxationContext?: { researchRunId: number; userId: number; contextPack: import("./context-pack/types").PropertyContextPack },
+  relaxationContext?: { researchRunId: number; userId: number; contextPack: import("./context-pack/types").PropertyContextPack; specialistId?: string | null },
   modelOverrides?: OrchestratorModelOverrides,
+  specialistId?: string | null,
 ): AsyncGenerator<OrchestratorEvent> {
-  const ANALYST_A_MODEL  = modelOverrides?.analystAModel  ?? DEFAULT_ANALYST_A_MODEL;
-  const ANALYST_B_MODEL  = modelOverrides?.analystBModel  ?? DEFAULT_ANALYST_B_MODEL;
-  const SYNTHESIS_MODEL  = modelOverrides?.synthesisModel  ?? DEFAULT_SYNTHESIS_MODEL;
+  // Per-Specialist override layer (Task #495). When the caller knows which
+  // Specialist initiated this research run, resolve persisted overrides
+  // and use them ONLY where the caller did not pass an explicit value —
+  // user-picked models in the chat UI still win over a stale persisted
+  // override.
+  let resolved: OrchestratorModelOverrides | undefined;
+  if (specialistId) {
+    try {
+      const { resolveSpecialistOrchestratorOverrides } = await import("./specialist-llm-resolver");
+      resolved = await resolveSpecialistOrchestratorOverrides(specialistId);
+    } catch {
+      resolved = undefined;
+    }
+  }
+  const ANALYST_A_MODEL  = modelOverrides?.analystAModel  ?? resolved?.analystAModel  ?? DEFAULT_ANALYST_A_MODEL;
+  const ANALYST_B_MODEL  = modelOverrides?.analystBModel  ?? resolved?.analystBModel  ?? DEFAULT_ANALYST_B_MODEL;
+  const SYNTHESIS_MODEL  = modelOverrides?.synthesisModel ?? resolved?.synthesisModel ?? DEFAULT_SYNTHESIS_MODEL;
 
   const location    = params.propertyContext?.location ?? params.propertyContext?.market ?? "unknown";
   const propType    = params.propertyContext?.type ?? "boutique hotel";
@@ -335,6 +369,7 @@ export async function* orchestrateResearch(
         contextPack: relaxationContext.contextPack,
         researchRunId: relaxationContext.researchRunId,
         userId: relaxationContext.userId,
+        specialistId: relaxationContext.specialistId ?? specialistId ?? null,
       });
       compsBlock = formatCompsForPrompt(relaxResult);
       yield { type: "phase", data: `Relaxation complete — L${relaxResult.selectedLevel}, ${relaxResult.comps.length} comparables (evidence: ${relaxResult.evidenceScore.toFixed(2)})` };
@@ -353,8 +388,8 @@ export async function* orchestrateResearch(
   // ── Phase 1: Parallel analyst panels ──
 
   yield { type: "phase", data: "Launching parallel research panels…" };
-  yield { type: "phase", data: `Analyst A (${ANALYST_A_MODEL}): quantitative market analysis` };
-  yield { type: "phase", data: `Analyst B (${ANALYST_B_MODEL}): market strategy analysis` };
+  yield { type: "phase", data: `Gaspar dispatching quantitative panel (${ANALYST_A_MODEL})` };
+  yield { type: "phase", data: `Gaspar dispatching market-strategy panel (${ANALYST_B_MODEL})` };
 
   let propertyUrlContext = "";
   if (params.propertyId && isVectorStoreAvailable()) {
@@ -368,7 +403,7 @@ export async function* orchestrateResearch(
         yield { type: "phase", data: `Retrieved ${urlChunks.length} validated property URLs from knowledge base` };
       }
     } catch (e: unknown) {
-      logger.warn(`Failed to retrieve property URLs from Vector store: ${(e instanceof Error ? e.message : String(e))}`, "research-orchestrator");
+      gasparLog.warn(`Failed to retrieve property URLs from Vector store: ${(e instanceof Error ? e.message : String(e))}`);
     }
   }
 
@@ -382,7 +417,7 @@ export async function* orchestrateResearch(
 
   const bothFailed = !!panelA.error && !!panelB.error;
   if (bothFailed) {
-    yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both analyst panels failed — falling back to single-model research." };
+    yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both research panels failed — Gaspar falling back to single-model research." };
     return;
   }
 
@@ -480,17 +515,15 @@ export async function* orchestrateResearch(
               cacheReadInputTokens?: number;
             }
           | undefined;
-        logger.info(
-          `[cache] synthesis usage (ai-sdk): input=${usage?.inputTokens ?? 0} output=${usage?.outputTokens ?? 0} cache_create=${provider?.cacheCreationInputTokens ?? 0} cache_read=${provider?.cacheReadInputTokens ?? 0}`,
-          "orchestrator",
-        );
-      } catch (err) {
-        logger.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`, "orchestrator");
+        gasparLog.info(
+          `[cache] synthesis usage (ai-sdk): input=${usage?.inputTokens ?? 0} output=${usage?.outputTokens ?? 0} cache_create=${provider?.cacheCreationInputTokens ?? 0} cache_read=${provider?.cacheReadInputTokens ?? 0}`);
+      } catch (err: unknown) {
+        gasparLog.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`);
       }
     }
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.warn(`Synthesis streamObject failed: ${msg}`, "orchestrator");
+    gasparLog.warn(`Synthesis streamObject failed: ${msg}`);
     yield {
       type: "error",
       data: `ORCHESTRATOR_BOTH_FAILED: synthesis path failed (${msg.slice(0, 200)}) — falling back to single-model research.`,
@@ -543,7 +576,7 @@ export async function* orchestrateResearch(
       type:         params.type,
       summary,
       completedAt:  new Date().toISOString(),
-    }).catch(err => logger.warn(`Failed to index research to Vector store: ${err}`, "orchestrator"));
+    }).catch(err => gasparLog.warn(`Failed to index research to Vector store: ${err}`));
   }
 
   yield { type: "done", data: "" };

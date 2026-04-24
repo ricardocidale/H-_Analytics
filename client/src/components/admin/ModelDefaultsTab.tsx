@@ -11,13 +11,13 @@ import { ModelConstantsTab } from "./model-defaults/ModelConstantsTab";
 import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTab";
 import { LlmDefaultsTab } from "./model-defaults/LlmDefaultsTab";
 import { CompanyTab } from "./model-defaults/CompanyTab";
-import { RequiredFieldsTab } from "./model-defaults/RequiredFieldsTab";
 import { useAuth } from "@/lib/auth";
 import {
   useAnalystRefresh,
   type AnalystGuidanceRecord,
 } from "@/components/analyst/useAnalystRefresh";
 import { useAnalystSaveGate } from "@/components/analyst/SaveWithAnalystGate";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import {
   COMPANY_TAB_ANALYST_FIELDS,
   MARKET_MACRO_TAB_ANALYST_FIELDS,
@@ -41,9 +41,16 @@ const ALL_MODEL_DEFAULTS_ANALYST_FIELDS = unionAnalystFieldSpecs(
 interface ModelDefaultsTabProps {
   onSaveStateChange?: (state: AdminSaveState | null) => void;
   initialTab?: string;
+  /**
+   * If provided, only the listed sub-tabs are rendered. Used by the Defaults
+   * section in the admin sidebar so each menu item (Management Company,
+   * Property, Market & Macro, Constants) shows only its own defaults.
+   * When undefined, all tabs are shown (legacy entry point behavior).
+   */
+  visibleTabs?: readonly string[];
 }
 
-export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: ModelDefaultsTabProps) {
+export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibleTabs }: ModelDefaultsTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAdmin } = useAuth();
@@ -80,9 +87,25 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
   });
   const guidance = guidanceResp?.records ?? [];
 
+  // surface the catalog locked-hard preflight gate. The
+  // hook checks `entityValues` (the loaded admin defaults) against the
+  // catalog before posting; if any locked-hard field is missing the
+  // prompt opens and no API call is made.
+  const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
+    open: boolean;
+    specialistId: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }>({ open: false, specialistId: "", missingFields: [] });
   const analyst = useAnalystRefresh({
     scope: "global-assumptions",
     invalidateKeys: [guidanceQueryKey],
+    entityValues: saved as Record<string, unknown> | undefined,
+    onMissingRequiredFields: (info) =>
+      setMissingFieldsPrompt({
+        open: true,
+        specialistId: info.specialistId,
+        missingFields: info.missingFields,
+      }),
   });
 
   const saveMutation = useMutation({
@@ -166,64 +189,93 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab }: Mode
     );
   }
 
+  // When `visibleTabs` is provided, we render only those sub-tabs and clamp
+  // the default selection so we don't fall through to a hidden tab.
+  const showTab = (tab: string) => !visibleTabs || visibleTabs.includes(tab);
+  const resolvedInitialTab =
+    initialTab && showTab(initialTab)
+      ? initialTab
+      : (visibleTabs && visibleTabs[0]) ?? "company";
+
   return (
     <div data-testid="admin-app-defaults">
-      <Tabs defaultValue={initialTab ?? "company"} key={initialTab} className="space-y-4">
+      <Tabs defaultValue={resolvedInitialTab} key={resolvedInitialTab} className="space-y-4">
         <TabsList className="bg-muted/50 border border-border/60">
-          <TabsTrigger value="company" data-testid="tab-company">Company</TabsTrigger>
-          <TabsTrigger value="market-macro" data-testid="tab-market-macro">Market & Macro</TabsTrigger>
-          <TabsTrigger value="model-constants" data-testid="tab-model-constants">Model Constants</TabsTrigger>
-          <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
-          <TabsTrigger value="llm-defaults" data-testid="tab-llm-defaults">LLM Defaults</TabsTrigger>
-          <TabsTrigger value="required-fields" data-testid="tab-required-fields">Required Fields</TabsTrigger>
+          {showTab("company") && (
+            <TabsTrigger value="company" data-testid="tab-company">Company</TabsTrigger>
+          )}
+          {showTab("market-macro") && (
+            <TabsTrigger value="market-macro" data-testid="tab-market-macro">Market & Macro</TabsTrigger>
+          )}
+          {showTab("model-constants") && (
+            <TabsTrigger value="model-constants" data-testid="tab-model-constants">Model Constants</TabsTrigger>
+          )}
+          {showTab("property-underwriting") && (
+            <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
+          )}
+          {showTab("llm-defaults") && (
+            <TabsTrigger value="llm-defaults" data-testid="tab-llm-defaults">LLM Defaults</TabsTrigger>
+          )}
         </TabsList>
 
-        <TabsContent value="company">
-          <CompanyTab
-            draft={draft}
-            onChange={handleChange}
-            guidance={guidance}
-            onAnalystRefresh={analyst.triggerRefresh}
-            analystRunning={analyst.running}
-            analystCooldownMs={analyst.cooldownRemainingMs}
-          />
-        </TabsContent>
+        {showTab("company") && (
+          <TabsContent value="company">
+            <CompanyTab
+              draft={draft}
+              onChange={handleChange}
+              guidance={guidance}
+              onAnalystRefresh={analyst.triggerRefresh}
+              analystRunning={analyst.running}
+              analystCooldownMs={analyst.cooldownRemainingMs}
+            />
+          </TabsContent>
+        )}
 
-        <TabsContent value="market-macro">
-          <MarketMacroTab
-            draft={draft}
-            onChange={handleChange}
-            guidance={guidance}
-            onAnalystRefresh={analyst.triggerRefresh}
-            analystRunning={analyst.running}
-            analystCooldownMs={analyst.cooldownRemainingMs}
-          />
-        </TabsContent>
+        {showTab("market-macro") && (
+          <TabsContent value="market-macro">
+            <MarketMacroTab
+              draft={draft}
+              onChange={handleChange}
+              guidance={guidance}
+              onAnalystRefresh={analyst.triggerRefresh}
+              analystRunning={analyst.running}
+              analystCooldownMs={analyst.cooldownRemainingMs}
+            />
+          </TabsContent>
+        )}
 
-        <TabsContent value="model-constants">
-          <ModelConstantsTab />
-        </TabsContent>
+        {showTab("model-constants") && (
+          <TabsContent value="model-constants">
+            <ModelConstantsTab />
+          </TabsContent>
+        )}
 
-        <TabsContent value="property-underwriting">
-          <PropertyUnderwritingTab
-            draft={draft}
-            onChange={handleChange}
-            guidance={guidance}
-            onAnalystRefresh={analyst.triggerRefresh}
-            analystRunning={analyst.running}
-            analystCooldownMs={analyst.cooldownRemainingMs}
-          />
-        </TabsContent>
+        {showTab("property-underwriting") && (
+          <TabsContent value="property-underwriting">
+            <PropertyUnderwritingTab
+              draft={draft}
+              onChange={handleChange}
+              guidance={guidance}
+              onAnalystRefresh={analyst.triggerRefresh}
+              analystRunning={analyst.running}
+              analystCooldownMs={analyst.cooldownRemainingMs}
+            />
+          </TabsContent>
+        )}
 
-        <TabsContent value="llm-defaults">
-          <LlmDefaultsTab />
-        </TabsContent>
-
-        <TabsContent value="required-fields">
-          <RequiredFieldsTab />
-        </TabsContent>
+        {showTab("llm-defaults") && (
+          <TabsContent value="llm-defaults">
+            <LlmDefaultsTab />
+          </TabsContent>
+        )}
       </Tabs>
       {analystGateDialog}
+      <MissingRequiredFieldsPrompt
+        open={missingFieldsPrompt.open}
+        onOpenChange={(open) => setMissingFieldsPrompt((p) => ({ ...p, open }))}
+        specialistLabel="Analyst refresh"
+        missingFields={missingFieldsPrompt.missingFields}
+      />
     </div>
   );
 }

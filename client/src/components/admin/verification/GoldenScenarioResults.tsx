@@ -19,7 +19,7 @@ interface GoldenScenario {
   assertions: GoldenAssertion[];
 }
 
-interface GoldenData {
+export interface GoldenData {
   timestamp: string;
   totalFiles: number;
   totalTests: number;

@@ -1,5 +1,39 @@
 import type { ReportDefinition } from "../../report/types";
 
+type ExcelCell = string | number | null;
+type ExcelRow = ExcelCell[];
+
+export interface AISheetRow {
+  category?: string;
+  indent?: number;
+  values?: ExcelCell[];
+  formula_notes?: string;
+  isItalic?: boolean;
+  isHeader?: boolean;
+  isBold?: boolean;
+  type?: string;
+  format?: string;
+}
+
+interface AISheet {
+  name?: string;
+  title?: string;
+  subtitle?: string;
+  years?: (string | number)[];
+  summary_metrics?: { label: string; value: ExcelCell }[];
+  rows?: AISheetRow[];
+}
+
+interface AIExcelResult {
+  sheets?: AISheet[];
+}
+
+interface StatementInput {
+  title: string;
+  years: string[];
+  rows: AISheetRow[];
+}
+
 export async function generateExcelFromReport(report: ReportDefinition): Promise<Buffer> {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
@@ -7,13 +41,13 @@ export async function generateExcelFromReport(report: ReportDefinition): Promise
   for (const section of report.sections) {
     if (section.kind !== "table") continue;
 
-    const wsData: any[][] = [];
+    const wsData: ExcelRow[] = [];
     wsData.push(["", ...section.years.map(y => `FY ${y}`)]);
 
     for (const row of section.rows) {
       const indent = row.indent ? "  ".repeat(row.indent) : "";
       const label = indent + (row.category || "");
-      const values = row.rawValues.map((v: any) => {
+      const values: ExcelCell[] = row.rawValues.map((v) => {
         if (typeof v === "number") return v;
         if (typeof v === "string" && v === "\u2014") return "";
         return v;
@@ -40,13 +74,13 @@ export async function generateExcelFromReport(report: ReportDefinition): Promise
   return Buffer.from(buf);
 }
 
-export async function generateExcelBuffer(aiResult: any, _data: { companyName?: string; entityName: string; years?: string[] }): Promise<Buffer> {
+export async function generateExcelBuffer(aiResult: AIExcelResult, _data: { companyName?: string; entityName: string; years?: string[] }): Promise<Buffer> {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
 
   if (aiResult.sheets) {
     for (const sheet of aiResult.sheets) {
-      const wsData: any[][] = [];
+      const wsData: ExcelRow[] = [];
 
       if (sheet.title) {
         wsData.push([sheet.title]);
@@ -55,7 +89,7 @@ export async function generateExcelBuffer(aiResult: any, _data: { companyName?: 
       }
 
       if (sheet.summary_metrics?.length) {
-        sheet.summary_metrics.forEach((m: any) => {
+        sheet.summary_metrics.forEach((m) => {
           wsData.push([m.label, m.value]);
         });
         wsData.push([]);
@@ -69,7 +103,7 @@ export async function generateExcelBuffer(aiResult: any, _data: { companyName?: 
         for (const row of sheet.rows) {
           const indent = row.indent ? "  ".repeat(row.indent) : "";
           const label = indent + (row.category || "");
-          const values = (row.values || []).map((v: any) => {
+          const values: ExcelCell[] = (row.values || []).map((v) => {
             if (typeof v === "number") return v;
             if (typeof v === "string" && v === "\u2014") return "";
             return v;
@@ -97,25 +131,25 @@ export async function generateExcelBuffer(aiResult: any, _data: { companyName?: 
   return Buffer.from(buf);
 }
 
-export function filterFormulaRows(rows: any[]): any[] {
+export function filterFormulaRows<T extends { isItalic?: boolean; type?: string }>(rows: T[]): T[] {
   return rows.filter(r => !r.isItalic && r.type !== "formula");
 }
 
-export async function generateExcelFromData(data: { statements?: Array<{ title: string; years: string[]; rows: any[] }> }): Promise<Buffer> {
+export async function generateExcelFromData(data: { statements?: StatementInput[] }): Promise<Buffer> {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
   const statements = data.statements || [];
 
   for (const stmt of statements) {
     const rows = filterFormulaRows(stmt.rows);
-    const wsData: any[][] = [];
+    const wsData: ExcelRow[] = [];
 
     wsData.push(["", ...stmt.years.map(y => `FY ${y}`)]);
 
     for (const row of rows) {
       const indent = row.indent ? "  ".repeat(row.indent) : "";
       const label = indent + (row.category || "");
-      const values = (row.values || []).map((v: any) => {
+      const values: ExcelCell[] = (row.values || []).map((v) => {
         if (typeof v === "number") return v;
         if (typeof v === "string" && v === "\u2014") return "";
         return v;

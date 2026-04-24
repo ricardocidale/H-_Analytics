@@ -26,7 +26,8 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { IconInfo } from "@/components/icons";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { DEPRECIATION_YEARS, DAYS_PER_MONTH, DEFAULT_LAND_VALUE_PERCENT, DEFAULT_REV_SHARE_EVENTS, DEFAULT_REV_SHARE_FB, DEFAULT_REV_SHARE_OTHER, DEFAULT_CATERING_BOOST_PCT, MONTHS_PER_YEAR } from "@shared/constants";
+import { DEFAULT_LAND_VALUE_PERCENT, DEFAULT_REV_SHARE_EVENTS, DEFAULT_REV_SHARE_FB, DEFAULT_REV_SHARE_OTHER, DEFAULT_CATERING_BOOST_PCT, MONTHS_PER_YEAR } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { DEFAULT_LTV } from "@/lib/financial/loanCalculations";
 import type { PPECostBasisScheduleProps } from "./types";
 
@@ -58,7 +59,7 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
   const totalDepreciableBasis = buildingValue + buildingImprovements;
   // Straight-line depreciation: spread evenly over the useful life
   // Resolution order: property → globalAssumptions → hardcoded constant
-  const resolvedDepreciationYears = property.depreciationYears ?? global.depreciationYears ?? DEPRECIATION_YEARS;
+  const resolvedDepreciationYears = property.depreciationYears ?? global.depreciationYears ?? getFactoryNumber('depreciationYears');
   const annualDepreciation = totalDepreciableBasis / resolvedDepreciationYears;
   const monthlyDepreciation = annualDepreciation / MONTHS_PER_YEAR;
   // Total project cost includes non-depreciable items (pre-opening, reserves)
@@ -74,7 +75,7 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
   const _cateringBoostMultiplier = 1 + cateringBoostPct;
 
   // Base monthly room revenue = rooms × days/month × nightly rate × occupancy
-  const resolvedDaysPerMonth = global.daysPerMonth ?? DAYS_PER_MONTH;
+  const resolvedDaysPerMonth = global.daysPerMonth ?? getFactoryNumber('daysPerMonth');
   const baseMonthlyRoomRev = property.roomCount * resolvedDaysPerMonth * property.startAdr * property.startOccupancy;
   // Total revenue derived from room revenue and ancillary shares of total
   const ancillaryShare = revShareEvents + revShareFB + revShareOther;

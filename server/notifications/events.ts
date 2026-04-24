@@ -37,6 +37,7 @@ export function getEventLabel(type: NotificationEventType): string {
     NOI_VARIANCE_BREACH: "NOI Variance Threshold Breach",
     LLM_MODEL_ISSUE: "AI Model Configuration Issue",
     VECTOR_LATENCY_BREACH: "Vector Search Latency Threshold Breach",
+    CONSTANTS_REFRESH_FAILED: "Scheduled Constants Refresh Failures",
   };
   return labels[type] || type;
 }

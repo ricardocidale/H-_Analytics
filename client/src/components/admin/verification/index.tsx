@@ -14,7 +14,7 @@ import { VerificationResults } from "./VerificationResults";
 import { VerificationHistory } from "./VerificationHistory";
 import { AIReviewPanel } from "./AIReviewPanel";
 import { SuiteSelector, SUITE_DEFINITIONS } from "./SuiteSelector";
-import { GoldenScenarioResults } from "./GoldenScenarioResults";
+import { GoldenScenarioResults, type GoldenData } from "./GoldenScenarioResults";
 import { IdentityDashboard } from "./IdentityDashboard";
 import type { VerificationResult, SuiteId, SuiteRunResult } from "./types";
 
@@ -58,7 +58,7 @@ export default function VerificationTab() {
       // If independent recheck ran, also set verificationResults for the detailed view
       const recheckResult = results.get("independent-recheck");
       if (recheckResult?.data) {
-        setVerificationResults(recheckResult.data);
+        setVerificationResults(recheckResult.data as VerificationResult);
       }
     }
   );
@@ -220,7 +220,7 @@ export default function VerificationTab() {
           2: { cellWidth: 22 },
           3: { cellWidth: 45 },
         },
-        didParseCell: (data: any) => {
+        didParseCell: (data: import("jspdf-autotable").CellHookData) => {
           if (data.column.index === 0 && data.cell.raw === "PASS") {
             data.cell.styles.textColor = [34, 125, 65];
           } else if (data.column.index === 0 && data.cell.raw === "FAIL") {
@@ -245,7 +245,7 @@ export default function VerificationTab() {
         startY: y, head: [["Status", "Severity", "GAAP Ref", "Metric", "Formula"]], body: rows, theme: "striped",
         headStyles: { fillColor: [45, 74, 94], fontSize: 7 }, bodyStyles: { fontSize: 6.5 },
         columnStyles: { 0: { cellWidth: 14, halign: "center", fontStyle: "bold" }, 1: { cellWidth: 18 }, 2: { cellWidth: 22 }, 3: { cellWidth: 45 } },
-        didParseCell: (data: any) => {
+        didParseCell: (data: import("jspdf-autotable").CellHookData) => {
           if (data.column.index === 0 && data.cell.raw === "PASS") data.cell.styles.textColor = [34, 125, 65];
           else if (data.column.index === 0 && data.cell.raw === "FAIL") data.cell.styles.textColor = [220, 50, 50];
         },
@@ -267,7 +267,7 @@ export default function VerificationTab() {
         startY: y, head: [["Status", "Severity", "GAAP Ref", "Metric", "Formula"]], body: rows, theme: "striped",
         headStyles: { fillColor: [45, 74, 94], fontSize: 7 }, bodyStyles: { fontSize: 6.5 },
         columnStyles: { 0: { cellWidth: 14, halign: "center", fontStyle: "bold" }, 1: { cellWidth: 18 }, 2: { cellWidth: 22 }, 3: { cellWidth: 45 } },
-        didParseCell: (data: any) => {
+        didParseCell: (data: import("jspdf-autotable").CellHookData) => {
           if (data.column.index === 0 && data.cell.raw === "PASS") data.cell.styles.textColor = [34, 125, 65];
           else if (data.column.index === 0 && data.cell.raw === "FAIL") data.cell.styles.textColor = [220, 50, 50];
         },
@@ -293,7 +293,7 @@ export default function VerificationTab() {
       autoTable(doc, {
         startY: y, head: [["Property", "Audit Section", "Checks", "Status"]], body: rows, theme: "striped",
         headStyles: { fillColor: [45, 74, 94], fontSize: 8 }, bodyStyles: { fontSize: 7 },
-        didParseCell: (data: any) => {
+        didParseCell: (data: import("jspdf-autotable").CellHookData) => {
           if (data.column.index === 3 && data.cell.raw === "PASS") data.cell.styles.textColor = [34, 125, 65];
           else if (data.column.index === 3 && data.cell.raw === "FAIL") data.cell.styles.textColor = [220, 50, 50];
           else if (data.column.index === 3 && data.cell.raw === "WARNING") data.cell.styles.textColor = [200, 150, 0];
@@ -522,12 +522,12 @@ export default function VerificationTab() {
 
                   <VerificationResults results={verificationResults} />
 
-                  {suiteResults.get("golden-scenarios")?.data && (
-                    <GoldenScenarioResults data={suiteResults.get("golden-scenarios")!.data} />
+                  {Boolean(suiteResults.get("golden-scenarios")?.data) && (
+                    <GoldenScenarioResults data={suiteResults.get("golden-scenarios")!.data as GoldenData | null} />
                   )}
                 </div>
               ) : suiteResults.get("golden-scenarios")?.data ? (
-                <GoldenScenarioResults data={suiteResults.get("golden-scenarios")!.data} />
+                <GoldenScenarioResults data={suiteResults.get("golden-scenarios")!.data as GoldenData | null} />
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4">
                   <IconPlayCircle className="w-12 h-12 opacity-20" />
@@ -538,8 +538,8 @@ export default function VerificationTab() {
 
             <TabsContent value="identities" className="min-h-[300px]">
               <IdentityDashboard
-                properties={properties ?? null}
-                globalAssumptions={globalAssumptions ?? null}
+                properties={(properties ?? null) as never}
+                globalAssumptions={(globalAssumptions ?? null) as never}
               />
             </TabsContent>
 

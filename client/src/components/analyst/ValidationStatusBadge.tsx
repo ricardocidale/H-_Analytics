@@ -11,12 +11,12 @@ interface ValidationStatusBadgeProps {
 
 const statusConfig: Record<ValidationStatus, { label: (count: number) => string; classes: string; dot: string }> = {
   pending_validation: {
-    label: () => "Awaiting The Analyst",
+    label: () => "Awaiting Gaspar",
     classes: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
     dot: "bg-amber-500 animate-pulse",
   },
   validated: {
-    label: () => "Validated by The Analyst",
+    label: () => "Validated by Gaspar",
     classes: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
     dot: "bg-emerald-500",
   },

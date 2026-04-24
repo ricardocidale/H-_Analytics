@@ -239,6 +239,14 @@ export interface FundingSpecialistOptions {
    *  rows. Defaults to today (UTC midnight) for determinism in tests when
    *  Date is mocked. */
   evidenceAsOf?: string;
+  /** Admin-edited prompt template (P5). The current evaluator is pure
+   *  deterministic JS and ignores this; threaded through so the upcoming
+   *  LLM-backed dimension upgrade can pick it up without changing the
+   *  factory contract. Empty string means "no admin override". */
+  promptTemplate?: string;
+  /** admin_resources.id of the model resource the admin selected for this
+   *  Specialist (P5). Same TODO note as promptTemplate. */
+  modelResourceId?: number | null;
 }
 
 /**

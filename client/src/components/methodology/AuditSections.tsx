@@ -1,5 +1,5 @@
 import { SectionCard } from "@/components/ui/section-card";
-import { DEPRECIATION_YEARS } from "@/lib/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 
 interface AuditSectionsProps {
   expandedSections: Set<string>;
@@ -16,7 +16,7 @@ export function AuditSections({
   icon,
   depreciationYears,
 }: AuditSectionsProps) {
-  const resolvedDepreciationYears = depreciationYears ?? DEPRECIATION_YEARS;
+  const resolvedDepreciationYears = depreciationYears ?? getFactoryNumber('depreciationYears');
   return (
     <SectionCard
       id="verification"

@@ -27,9 +27,13 @@ import { aggregatePropertyByYear } from "../../client/src/lib/financial/yearlyAg
 import { aggregateCashFlowByYear } from "../../client/src/lib/financial/cashFlowAggregator";
 import {
   DEFAULT_BASE_MANAGEMENT_FEE_RATE, DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  DEFAULT_COST_RATE_FFE, DEFAULT_COST_RATE_TAXES, DEFAULT_COST_RATE_INSURANCE,
+  DEFAULT_COST_RATE_FFE, DEFAULT_COST_RATE_INSURANCE,
   DAYS_PER_MONTH, DEPRECIATION_YEARS, DEFAULT_LAND_VALUE_PERCENT,
 } from "../../shared/constants";
+import { getFactoryNumber } from '@shared/model-constants-registry';
+// Audit #406: registry-backed US baselines (single source of truth).
+const DEFAULT_COST_RATE_TAXES = getFactoryNumber('costRateTaxes', 'United States');
+
 import type { PropertyInput, GlobalInput } from "../../engine/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
