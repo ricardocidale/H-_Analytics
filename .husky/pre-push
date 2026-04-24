@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+# pre-push — run the fast gate set before any push leaves the machine.
+#
+# Why this exists:
+# pre-commit runs only on staged files (lint-staged). It catches the file
+# you're touching, but misses regressions in code your change indirectly
+# affects (a renamed export breaking an unrelated importer, a moved file
+# breaking a static-analysis test that greps it, etc).
+#
+# This hook runs the project's own summary wrappers — same gates the
+# automated validation runs after a task — so CI cycles aren't burned on
+# things local checks could have caught.
+#
+# Discipline reference:
+#   .agents/skills/pre-commit-gates/SKILL.md  ("When you ARE iterating against CI")
+#   .agents/skills/cross-check-invariants/SKILL.md  (Pattern 4)
+#
+# To bypass in a true emergency: `git push --no-verify` (and follow up
+# with a descriptive amend explaining why).
+
+set -e
+
+echo "▶ pre-push gate 1/2 — typecheck (npx tsc --noEmit --skipLibCheck)"
+npx tsc --noEmit --skipLibCheck
+
+echo "▶ pre-push gate 2/2 — lint summary (npm run lint:summary)"
+npm run lint:summary
+
+echo "✓ pre-push gates passed"

@@ -35,7 +35,7 @@ If your project has fewer than five distinct gates, write the missing ones befor
 
 ## Setting it up in a new project
 
-1. **Inventory** what already exists. Most projects have type-check + lint + tests but not the domain-compliance or invariant gates. Add those last two if the project has any business invariants worth protecting.
+1. **Inventory** what already exists — *thoroughly*. In a mature repo this is the single most important step and the one most often skipped. Before writing any new hook, script, or rule, run the 60-second inventory pass from `.agents/skills/inventory-before-build/SKILL.md` (list `script/`, `.husky/`, `.github/workflows/`, `.claude/rules/`, `.lintstagedrc*`, and the `package.json` scripts block). The most common finding is that the gates exist but are orphaned (script written, nothing calls it) or partial (`lint-staged` covers half the source tree). Extend, don't duplicate. Most projects have type-check + lint + tests but not the domain-compliance or invariant gates. Add those last two if the project has any business invariants worth protecting.
 2. **Add a "summary" wrapper** for each command that exits 0 on pass and ≠0 on fail with a one-line summary line (e.g., `PASS 11/11 tests` or `FAIL 3 errors`). Wrappers make output diffable and CI-friendly.
 3. **Document the five commands** in a single rule file (e.g., `RULES/pre-commit-gates.md` or `.cursor/rules/pre-commit-gates.md`) that every contributor reads.
 4. **Add commit-message convention**: every commit message includes a verification line such as `Verified: TS 0, Lint 0, Compliance 11/11, Tests PASS, Invariants UNQUALIFIED`.
