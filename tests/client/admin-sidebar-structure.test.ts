@@ -31,6 +31,13 @@ describe("admin sidebar — buildNavGroups() canonical structure", () => {
         ],
       },
       {
+        id: "properties",
+        label: "Properties",
+        sections: [
+          { value: "required-fields", label: "Required Fields" },
+        ],
+      },
+      {
         id: "users",
         label: "Users",
         sections: [
