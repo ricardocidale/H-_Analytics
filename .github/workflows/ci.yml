@@ -27,6 +27,9 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Install ripgrep (needed by audit:quick deprecated-constants guard)
+        run: sudo apt-get install -y ripgrep
+
       - run: npm install
 
       - name: ESLint (bug guards across calc/engine/server/shared/client)

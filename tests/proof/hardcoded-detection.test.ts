@@ -605,6 +605,8 @@ describe("Hardcoded Value Detection", () => {
         "panel-manager.ts",
         "rebecca-insights.ts",
         "research-queue.ts",
+        "locked-hard-preflight.ts",
+        "specialist-nav.ts",
       ]);
 
       const allLibFiles = fs.readdirSync(libDir)
