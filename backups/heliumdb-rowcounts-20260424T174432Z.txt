@@ -1,0 +1,9 @@
+ schemaname |        table        | rows 
+------------+---------------------+------
+ public     | vector_chunks       |   38
+ public     | benchmark_snapshots |   37
+ public     | users               |   19
+ public     | logos               |    8
+ public     | _applied_migrations |    6
+(5 rows)
+
