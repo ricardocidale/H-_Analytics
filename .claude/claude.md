@@ -370,6 +370,16 @@ git add -A && git commit --no-verify -m "fix: ci hygiene"
 git push origin main --no-verify
 ```
 
+### Iterating against CI — batch, don't ping-pong (Apr 24, 2026)
+
+When a push fails CI for a reason local gates can't reproduce (real Postgres, real OpenAI key, real GitHub secrets), **never re-push after fixing only the first failure**. Read the full failure summary, classify by root cause, and search the codebase for siblings of the same pattern *before* the next push:
+
+- Test reads a file that was split / renamed? `rg -l "readFileSync.*<oldFile>" tests/`
+- Mock missing for a newly-added handler dep? `rg "import.*<missingMock>" tests/`
+- Schema field referenced by static-analysis test? `rg -l "<fieldName>" tests/`
+
+Run every matched file locally as one `vitest run`. Push once. A second CI cycle for the same root cause is a process failure, not a discovery. Full discipline: `.agents/skills/pre-commit-gates/SKILL.md` "When you ARE iterating against CI" + `.agents/skills/cross-check-invariants/SKILL.md` Pattern 4.
+
 ---
 
 ## Documentation
