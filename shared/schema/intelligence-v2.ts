@@ -1,4 +1,5 @@
 import { pgTable, text, real, integer, timestamp, jsonb, boolean, index, unique, date, doublePrecision, serial } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./auth";
@@ -93,7 +94,12 @@ export const researchRuns = pgTable("research_runs", {
   index("research_runs_status_idx").on(table.status),
   index("research_runs_user_idx").on(table.userId),
   index("research_runs_scenario_idx").on(table.scenarioId),
-  index("research_runs_cache_key_idx").on(table.cacheKey),
+  // Partial index — cacheKey is NULL for every row written before Phase 5C
+  // populates it, and that NULL slice is the majority of the table for the
+  // foreseeable future. Postgres indexes NULL values in btrees by default;
+  // restricting the index to non-null rows keeps it ~the size of the actual
+  // verdict-cache lookup set instead of the whole table.
+  index("research_runs_cache_key_idx").on(table.cacheKey).where(sql`${table.cacheKey} IS NOT NULL`),
 ]);
 
 /**
