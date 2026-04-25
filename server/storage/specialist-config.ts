@@ -16,7 +16,7 @@
  * incident reroutes go through the break-glass override (P2).
  */
 import { db } from "../db";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import {
   specialistConfigs,
   specialistConfigVersions,
@@ -406,6 +406,59 @@ export class SpecialistConfigStorage {
         : null;
     }
     return Array.from(byField.values());
+  }
+
+  /**
+   * Task #614 — cross-Specialist roll-up of "perennial offender" candidate
+   * fields: rows where `appearances >= 3` AND `lastPromotedAt IS NULL`,
+   * meaning a Specialist has surfaced the same candidate field at least
+   * three runs in a row without any admin ever promoting it. Surfaced on
+   * the cross-Specialist Required Fields roll-up so admins can act on the
+   * top offenders without visiting every Specialist's Recommendations card
+   * one by one.
+   *
+   * Ordered by `appearances DESC` then `lastObservedAt DESC` so the most
+   * persistent and most recent offenders rise to the top. Capped server-
+   * side by `limit` (default 20) — the UI is a list, not a table.
+   */
+  async getTopPerennialRecommendationOffenders(
+    limit = 20,
+  ): Promise<
+    Array<{
+      specialistId: string;
+      fieldKey: string;
+      appearances: number;
+      firstObservedAt: string;
+      lastObservedAt: string;
+    }>
+  > {
+    const rows = await db
+      .select({
+        specialistId: specialistRecommendationCounters.specialistId,
+        fieldKey: specialistRecommendationCounters.fieldKey,
+        appearances: specialistRecommendationCounters.appearances,
+        firstObservedAt: specialistRecommendationCounters.firstObservedAt,
+        lastObservedAt: specialistRecommendationCounters.lastObservedAt,
+      })
+      .from(specialistRecommendationCounters)
+      .where(
+        and(
+          gte(specialistRecommendationCounters.appearances, 3),
+          isNull(specialistRecommendationCounters.lastPromotedAt),
+        ),
+      )
+      .orderBy(
+        desc(specialistRecommendationCounters.appearances),
+        desc(specialistRecommendationCounters.lastObservedAt),
+      )
+      .limit(limit);
+    return rows.map((r) => ({
+      specialistId: r.specialistId,
+      fieldKey: r.fieldKey,
+      appearances: r.appearances,
+      firstObservedAt: r.firstObservedAt.toISOString(),
+      lastObservedAt: r.lastObservedAt.toISOString(),
+    }));
   }
 
   async listSpecialistConfigVersions(specialistId: string, limit = 50): Promise<SpecialistConfigVersionRow[]> {

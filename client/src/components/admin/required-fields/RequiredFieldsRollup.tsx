@@ -18,11 +18,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { useAdminSection } from "@/lib/admin-nav";
+import { setAiIntelligenceTabHint } from "@/lib/ai-intelligence-nav";
 import {
   SPECIALIST_SECTION_TO_ID,
   type AdminSection,
   type SpecialistSection,
 } from "@/components/admin/AdminSidebar";
+
+interface PerennialOffender {
+  specialistId: string;
+  specialistLetter: string;
+  specialistRealName: string;
+  specialistDisplayName: string;
+  fieldKey: string;
+  fieldLabel: string;
+  fieldSurface: "company-assumptions" | "property-edit" | "market-macro" | "constants";
+  appearances: number;
+  firstObservedAt: string;
+  lastObservedAt: string;
+}
 
 interface CandidateField {
   key: string;
@@ -93,6 +107,27 @@ export default function RequiredFieldsRollup() {
     queryKey: ["/api/admin/specialists"],
   });
 
+  // Task #614 — cross-Specialist roll-up of "perennial offender" candidate
+  // fields (appearances >= 3, never promoted). Surfaced as a dedicated
+  // panel above the per-Specialist breakdown so admins can act on the
+  // most-ignored recommendations without visiting each Specialist's
+  // Recommendations card one by one.
+  const offendersQuery = useQuery<PerennialOffender[]>({
+    queryKey: ["/api/admin/specialists/perennial-offenders"],
+  });
+
+  // Click-through: navigate to the offending Specialist's section AND
+  // pre-select the Required Fields tab (where the Recommendations card
+  // lives). The tab hint is consumed once on SpecialistPage mount, so a
+  // back-button + re-click works correctly thanks to the nonce in the
+  // hint store.
+  const openRecommendations = (specialistId: string) => {
+    const sectionValue = specialistSectionForId(specialistId);
+    if (!sectionValue) return;
+    setAiIntelligenceTabHint(specialistId, "required-fields");
+    setSection(sectionValue as AdminSection);
+  };
+
   // Fetch each Specialist's config in parallel. Disabled until the list
   // resolves so we don't fire 11 placeholder requests against `/api/admin/
   // specialists/undefined`.
@@ -125,6 +160,66 @@ export default function RequiredFieldsRollup() {
             Recommended fields are surfaced to the user but do not block.
           </CardDescription>
         </CardHeader>
+      </Card>
+
+      <Card data-testid="card-perennial-offenders">
+        <CardHeader>
+          <CardTitle>Perennial recommendations</CardTitle>
+          <CardDescription>
+            Candidate fields a Specialist has surfaced at least three runs in a row without
+            ever being promoted. Click a row to jump straight to that Specialist's
+            Recommendations card and either promote the field or dismiss it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {offendersQuery.isLoading ? (
+            <div
+              className="flex items-center justify-center py-6"
+              data-testid="perennial-offenders-loading"
+            >
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : !offendersQuery.data || offendersQuery.data.length === 0 ? (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="text-perennial-offenders-empty"
+            >
+              No perennial offenders right now — every recurring recommendation has
+              either been promoted or appeared fewer than three times.
+            </p>
+          ) : (
+            <div className="border rounded-md divide-y" data-testid="list-perennial-offenders">
+              {offendersQuery.data.map((o) => (
+                <button
+                  key={`${o.specialistId}:${o.fieldKey}`}
+                  type="button"
+                  onClick={() => openRecommendations(o.specialistId)}
+                  className="w-full flex items-center justify-between px-3 py-2 text-sm text-left hover:bg-muted/40 transition-colors"
+                  data-testid={`perennial-offender-${o.specialistId}-${o.fieldKey}`}
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground truncate">
+                      {o.fieldLabel}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      Specialist {o.specialistLetter} — {o.specialistRealName} ·{" "}
+                      {SURFACE_LABEL[o.fieldSurface] ?? o.fieldSurface} · {o.fieldKey}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <Badge
+                      variant="secondary"
+                      data-testid={`perennial-offender-appearances-${o.specialistId}-${o.fieldKey}`}
+                    >
+                      {o.appearances} appearances
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">Open →</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {specialists.map((spec, idx) => {

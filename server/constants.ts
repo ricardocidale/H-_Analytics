@@ -47,6 +47,17 @@ export const VECTOR_LATENCY_CHECK_INTERVAL_MS = 60 * 60 * 1000;
  *  The evaluator dedupes by UTC day so frequent ticks are safe. */
 export const CONSTANTS_REFRESH_DIGEST_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
+/** Perennial-recommendations digest evaluator tick (ms) — every 6 hours.
+ *  The evaluator dedupes by UTC day so frequent ticks are safe. */
+export const PERENNIAL_RECOMMENDATIONS_DIGEST_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+/** Max rows pulled from storage for the perennial-recommendations digest. */
+export const PERENNIAL_RECOMMENDATIONS_DIGEST_LIMIT = 100;
+
+/** Min appearances threshold the digest narrative quotes back to admins.
+ *  Storage filters at this same threshold (see specialist-config). */
+export const PERENNIAL_RECOMMENDATIONS_MIN_APPEARANCES = 3;
+
 // ---------------------------------------------------------------------------
 // HTTP / compression / caching
 // ---------------------------------------------------------------------------

@@ -33,6 +33,10 @@ vi.mock("../../server/storage", () => ({
     // Task #438 — telemetry endpoints for the Recommendations card.
     recordRecommendationEvent: vi.fn(),
     getRecommendationEventStats: vi.fn(),
+    // Task #614 — cross-Specialist roll-up of perennial offender candidate
+    // fields. Default to an empty array so tests that don't care about
+    // this surface render a clean "no offenders" response.
+    getTopPerennialRecommendationOffenders: vi.fn().mockResolvedValue([]),
     // Task #502 — catalog list overlays a per-row hasLlmOverrides flag
     // by batch-loading specialist_configs rows. Default to "no overrides"
     // so existing assertions on the shape of the catalog response remain
@@ -226,6 +230,81 @@ describe("admin/specialists routes — catalog + detail", () => {
       params: { id: "does-not-exist" },
     });
     expect(status).toBe(404);
+  });
+
+  it("GET /api/admin/specialists/perennial-offenders enriches storage rows with catalog metadata", async () => {
+    const now = new Date("2026-04-25T12:00:00Z");
+    (
+      storage.getTopPerennialRecommendationOffenders as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce([
+      {
+        specialistId: "mgmt-co.funding",
+        fieldKey: "runwayBufferMonths",
+        appearances: 7,
+        firstObservedAt: now.toISOString(),
+        lastObservedAt: now.toISOString(),
+      },
+      {
+        specialistId: "mgmt-co.funding",
+        fieldKey: "this-key-was-removed-from-the-catalog",
+        appearances: 5,
+        firstObservedAt: now.toISOString(),
+        lastObservedAt: now.toISOString(),
+      },
+      {
+        specialistId: "ghost-specialist-no-longer-in-catalog",
+        fieldKey: "anything",
+        appearances: 4,
+        firstObservedAt: now.toISOString(),
+        lastObservedAt: now.toISOString(),
+      },
+    ]);
+
+    const { status, body } = await invoke(
+      handlers,
+      "GET /api/admin/specialists/perennial-offenders",
+      { query: { limit: "10" } },
+    );
+    expect(status).toBe(200);
+    const items = body as Array<{
+      specialistId: string;
+      specialistLetter: string;
+      fieldKey: string;
+      fieldLabel: string;
+      fieldSurface: string;
+      appearances: number;
+    }>;
+    // Only the catalog-resolvable row survives — orphan field key and
+    // orphan specialist id are dropped server-side so the UI never tries
+    // to deep-link to a row it cannot render.
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      specialistId: "mgmt-co.funding",
+      specialistLetter: "A",
+      fieldKey: "runwayBufferMonths",
+      fieldLabel: "Runway buffer (months)",
+      fieldSurface: "company-assumptions",
+      appearances: 7,
+    });
+    // Limit was forwarded to storage as a parsed integer.
+    expect(
+      (storage.getTopPerennialRecommendationOffenders as ReturnType<typeof vi.fn>)
+        .mock.calls[0][0],
+    ).toBe(10);
+  });
+
+  it("GET /api/admin/specialists/perennial-offenders defaults the limit and tolerates an empty result set", async () => {
+    const { status, body } = await invoke(
+      handlers,
+      "GET /api/admin/specialists/perennial-offenders",
+    );
+    expect(status).toBe(200);
+    expect(body).toEqual([]);
+    // Bad/missing query → default of 20.
+    expect(
+      (storage.getTopPerennialRecommendationOffenders as ReturnType<typeof vi.fn>)
+        .mock.calls[0][0],
+    ).toBe(20);
   });
 
   it("PUT /api/admin/specialists/:id/required-fields rejects a Specialist that doesn't declare the capability", async () => {

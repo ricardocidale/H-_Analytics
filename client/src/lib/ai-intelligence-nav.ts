@@ -34,7 +34,12 @@ export function useAiIntelligenceSection(): [AiIntelligenceSection, typeof setAi
 // Internal-only hint type. The set of admissible tabs is closed and
 // callers always pass a string literal, so we don't need to expose the
 // type to consumers (and exporting it triggers the unused-exports audit).
-type AiIntelligenceTabHint = "llm-config";
+// "required-fields" added per Task #614 so the cross-Specialist
+// perennial-offenders panel on the Required Fields roll-up can deep-link
+// straight to the owning Specialist's Recommendations card (which lives
+// inside the RequiredFieldsTab) instead of dropping the admin on the
+// default Overview tab.
+type AiIntelligenceTabHint = "llm-config" | "required-fields";
 type PendingHint = { specialistId: string; tab: AiIntelligenceTabHint; nonce: number };
 
 let pendingTabHint: PendingHint | null = null;

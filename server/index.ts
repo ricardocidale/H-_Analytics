@@ -45,6 +45,7 @@ import {
   SCENARIO_PURGE_INTERVAL_MS,
   VECTOR_LATENCY_CHECK_INTERVAL_MS,
   CONSTANTS_REFRESH_DIGEST_INTERVAL_MS,
+  PERENNIAL_RECOMMENDATIONS_DIGEST_INTERVAL_MS,
 } from "./constants";
 
 const contentSecurityPolicy = buildContentSecurityPolicy();
@@ -462,6 +463,24 @@ app.use((req, res, next) => {
       };
       void runConstantsRefreshDigest();
       intervalHandles.push(setInterval(runConstantsRefreshDigest, CONSTANTS_REFRESH_DIGEST_INTERVAL_MS));
+
+      // Email admins a daily digest of perennial Specialist recommendations
+      // (candidate fields with appearances >= 3 AND lastPromotedAt IS NULL).
+      // Tick every PERENNIAL_RECOMMENDATIONS_DIGEST_INTERVAL_MS; the
+      // evaluator dedupes per UTC day so frequent ticks are safe.
+      const runPerennialRecommendationsDigest = async () => {
+        try {
+          const { evaluatePerennialRecommendationsDigest } = await import("./notifications/perennial-recommendations-digest");
+          const result = await evaluatePerennialRecommendationsDigest();
+          if (result.status === "ok") {
+            log(`Perennial recommendations digest sent to ${result.sent}/${result.recipients} admins (offenders=${result.offenders}, digestKey=${result.digestKey})`);
+          }
+        } catch (err: unknown) {
+          serverLog(`Perennial recommendations digest error: ${err instanceof Error ? err.message : err}`, "notifications", "error");
+        }
+      };
+      void runPerennialRecommendationsDigest();
+      intervalHandles.push(setInterval(runPerennialRecommendationsDigest, PERENNIAL_RECOMMENDATIONS_DIGEST_INTERVAL_MS));
     },
   );
 })();

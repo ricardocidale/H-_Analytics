@@ -43,6 +43,7 @@ export function getEventLabel(type: NotificationEventType): string {
     REBECCA_FIXTURE_DRIFTED: "Rebecca Preview Fixture Drift",
     LEGACY_STORAGE_URLS_FOUND: "Legacy Storage URLs Detected in Database",
     SCHEDULER_STALE: "Background Scheduler Stale",
+    PERENNIAL_RECOMMENDATIONS_DIGEST: "Perennial Specialist Recommendations Never Promoted",
   };
   return labels[type] || type;
 }

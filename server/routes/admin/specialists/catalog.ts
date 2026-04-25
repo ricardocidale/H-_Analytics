@@ -113,6 +113,60 @@ export function registerCatalogRoutes(app: Express) {
     }
   });
 
+  // ── Cross-Specialist perennial-offender roll-up (Task #614) ──────
+  // Surfaces the top N (specialistId, fieldKey) pairs where a Specialist
+  // keeps recommending a candidate field (`appearances >= 3`) without
+  // ever having been promoted (`lastPromotedAt IS NULL`). Joined with
+  // catalog metadata (Specialist letter+name, field label+surface) so
+  // the UI can render a deep-link list without a follow-up round-trip
+  // per row. Path is registered BEFORE `/:id` so the literal segment
+  // wins over the params route. Catalog-orphan rows (the field has been
+  // removed from the Specialist's candidate list since the counter was
+  // bumped) are filtered out — they cannot be acted on from the UI.
+  app.get(
+    "/api/admin/specialists/perennial-offenders",
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const rawLimit = Number.parseInt(String(req.query.limit ?? ""), 10);
+        const limit =
+          Number.isFinite(rawLimit) && rawLimit > 0 && rawLimit <= 100
+            ? rawLimit
+            : 20;
+        const rows = await storage.getTopPerennialRecommendationOffenders(limit);
+        const enriched = rows
+          .map((r) => {
+            const def = getSpecialistById(r.specialistId);
+            if (!def) return null;
+            const cand = (def.candidateFields ?? []).find(
+              (c) => c.key === r.fieldKey,
+            );
+            if (!cand) return null;
+            return {
+              specialistId: r.specialistId,
+              specialistLetter: def.letter,
+              specialistRealName: def.realName,
+              specialistDisplayName: specialistDisplayName(def),
+              fieldKey: r.fieldKey,
+              fieldLabel: cand.label,
+              fieldSurface: cand.surface,
+              appearances: r.appearances,
+              firstObservedAt: r.firstObservedAt,
+              lastObservedAt: r.lastObservedAt,
+            };
+          })
+          .filter((r): r is NonNullable<typeof r> => r !== null);
+        res.json(enriched);
+      } catch (error: unknown) {
+        logAndSendError(
+          res,
+          "Failed to load perennial recommendation offenders",
+          error,
+        );
+      }
+    },
+  );
+
   // ── Detail (definition + config + assignments-with-health) ──────
   // Accepts id="gaspar" via a synthetic detail response so the orchestrator
   // can be edited through the same SpecialistPage as the 12 catalog
