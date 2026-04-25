@@ -22,6 +22,13 @@ import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERL
 import { registerInsightRoute } from "./chat-insight";
 import { logActivity, parseRouteId } from "./helpers";
 import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH } from "../constants";
+import {
+  collectChatSources,
+  type DocumentHit,
+  type KnowledgeBaseHit,
+  type ResearchHit,
+  type AssetHit,
+} from "./chat-sources";
 
 const fieldContextSchema = z.object({
   entityType: z.enum(["property", "company"]),
@@ -424,19 +431,24 @@ export function register(app: Express) {
         scenarioContextBlock,
       ].join("\n");
 
-      // Task #539 — collect every retrieved chunk that actually made it into
-      // the prompt so we can surface a "Sources used" panel in the preview UI.
-      // Each entry carries the raw similarity score plus the configured source
-      // weight so the client can show the score directly and the server can
-      // order entries by weighted score (= score × weight ÷ 100). That makes
-      // the Knowledge & Sources sliders observable from the test transcript.
-      type ChatSourceUsed = {
-        title: string;
-        namespace: string;
-        score: number;
-        weight: number;
+      // Task #539 / #551 — every retrieval branch fills a typed slot on
+      // `retrievalBuckets` instead of pushing directly to a sources array.
+      // The single `collectChatSources(...)` call below then becomes the
+      // sole registration point for the "Sources used" preview panel:
+      // forgetting to wire a new RAG branch into a slot is a TypeScript
+      // error, and the unit tests in tests/server/chat-sources.test.ts
+      // assert that every populated slot ends up in the response.
+      const retrievalBuckets: {
+        documents: DocumentHit[];
+        knowledgeBase: KnowledgeBaseHit[];
+        research: ResearchHit[];
+        uploadedFiles: AssetHit[];
+      } = {
+        documents: [],
+        knowledgeBase: [],
+        research: [],
+        uploadedFiles: [],
       };
-      const sourcesUsed: ChatSourceUsed[] = [];
 
       // Task #532 — track which Knowledge & Sources blocks actually
       // contributed content this turn so the admin Test Chat can show
@@ -466,13 +478,11 @@ export function register(app: Express) {
           );
           documentContextBlock = `\n\nRELEVANT DOCUMENTS:\n${docLines.join("\n\n")}`;
           blockPresence.documents = true;
-          const docWeight = rebeccaSettings.sources.documents.weight;
           for (const d of docResults) {
-            sourcesUsed.push({
-              title: `${d.propertyName} — ${d.documentType}`,
-              namespace: "documents",
+            retrievalBuckets.documents.push({
+              propertyName: d.propertyName,
+              documentType: d.documentType,
               score: d.score,
-              weight: docWeight,
             });
           }
         }
@@ -493,26 +503,24 @@ export function register(app: Express) {
         const MAX_RAG_CHARS = 3000;
         let ragChars = 0;
 
-        const kbWeight = rebeccaSettings.sources.knowledgeBase.weight;
         for (const chunk of kbChunks) {
           if (chunk.score < 0.45) continue;
           const entry = `[${chunk.source}] ${chunk.title} (${chunk.score.toFixed(2)}):\n${chunk.content.slice(0, 600)}`;
           if (ragChars + entry.length > MAX_RAG_CHARS) break;
           ragParts.push(entry);
           ragChars += entry.length;
-          sourcesUsed.push({
-            title: chunk.title || chunk.source || "Knowledge entry",
-            namespace: "knowledge-base",
+          retrievalBuckets.knowledgeBase.push({
+            title: chunk.title,
+            source: chunk.source,
             score: chunk.score,
-            weight: kbWeight,
           });
           blockPresence.knowledgeBase = true;
         }
 
-        const researchWeight = rebeccaSettings.sources.research.weight;
         const userPropertyIds = new Set(properties.map(p => p.id));
         for (const match of multiResults) {
           if (match.score < 0.45) continue;
+          if (match.namespace !== "research-history" && match.namespace !== "assumption-guidance") continue;
           const matchPropId = Number(match.metadata.propertyId ?? 0);
           if (matchPropId > 0 && !userPropertyIds.has(matchPropId)) continue;
           let body: string;
@@ -533,11 +541,11 @@ export function register(app: Express) {
           if (ragChars + entry.length > MAX_RAG_CHARS) break;
           ragParts.push(entry);
           ragChars += entry.length;
-          sourcesUsed.push({
-            title: title || String(match.id),
+          retrievalBuckets.research.push({
+            id: String(match.id),
+            title,
             namespace: match.namespace,
             score: match.score,
-            weight: researchWeight,
           });
           blockPresence.research = true;
         }
@@ -563,15 +571,13 @@ export function register(app: Express) {
           if (matchedAssets.length > 0) {
             assetContextBlock = "\n\n" + buildAssetContext(matchedAssets);
             blockPresence.uploadedFiles = true;
-            const assetWeight = rebeccaSettings.sources.uploadedFiles.weight;
             for (const asset of matchedAssets) {
-              const baseTitle = asset.caption?.trim() || `${asset.type[0].toUpperCase()}${asset.type.slice(1)} #${asset.id}`;
-              const title = asset.propertyName ? `${asset.propertyName} — ${baseTitle}` : baseTitle;
-              sourcesUsed.push({
-                title,
-                namespace: "uploaded-files",
+              retrievalBuckets.uploadedFiles.push({
+                id: asset.id,
+                type: asset.type,
+                caption: asset.caption,
+                propertyName: asset.propertyName,
                 score: asset.score,
-                weight: assetWeight,
               });
             }
           }
@@ -772,21 +778,35 @@ export function register(app: Express) {
       // settings have ever been written (still informative for logs).
       void legacyEngine;
 
-      // Task #539 — order surfaced sources by weighted score so the
-      // Knowledge & Sources sliders visibly affect the displayed list.
-      // Identical (namespace, title) pairs (e.g. multiple chunks from the
-      // same KB entry) collapse into the highest-scoring representative.
+      // Task #539 / #551 — single registration point for the "Sources used"
+      // panel. Each retrieval branch above filled its slot on
+      // `retrievalBuckets`; this call applies the configured weights,
+      // dedupes by (namespace, title), and sorts by weighted score.
       // Task #550 — compute this BEFORE persisting the assistant message so
       // the sorted list can be saved on the message metadata and shown in
       // the saved Rebecca chat too (not just the admin Test Chat preview).
-      const sourcesByKey = new Map<string, ChatSourceUsed>();
-      for (const s of sourcesUsed) {
-        const key = `${s.namespace}::${s.title}`;
-        const prev = sourcesByKey.get(key);
-        if (!prev || s.score > prev.score) sourcesByKey.set(key, s);
-      }
-      const sourcesUsedSorted = Array.from(sourcesByKey.values())
-        .sort((a, b) => (b.score * (b.weight / 100)) - (a.score * (a.weight / 100)));
+      const sourcesUsedSorted = collectChatSources({
+        documents: {
+          enabled: rebeccaSettings.sources.documents.enabled,
+          weight: rebeccaSettings.sources.documents.weight,
+          results: retrievalBuckets.documents,
+        },
+        knowledgeBase: {
+          enabled: rebeccaSettings.sources.knowledgeBase.enabled,
+          weight: rebeccaSettings.sources.knowledgeBase.weight,
+          chunks: retrievalBuckets.knowledgeBase,
+        },
+        research: {
+          enabled: rebeccaSettings.sources.research.enabled,
+          weight: rebeccaSettings.sources.research.weight,
+          matches: retrievalBuckets.research,
+        },
+        uploadedFiles: {
+          enabled: rebeccaSettings.sources.uploadedFiles.enabled,
+          weight: rebeccaSettings.sources.uploadedFiles.weight,
+          assets: retrievalBuckets.uploadedFiles,
+        },
+      });
 
       if (!isPreview) {
         await storage.addRebeccaMessage({
