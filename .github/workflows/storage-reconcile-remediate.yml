@@ -53,7 +53,14 @@ on:
         default: "manual remediation sweep"
 
 permissions:
+  # `contents: read` for the checkout. `actions: read` so the alerting
+  # step can list prior runs of THIS workflow to count consecutive
+  # scheduled failures. `issues: write` so it can open / update / close
+  # the single tracking issue used to surface a multi-night backlog
+  # without spamming a fresh issue every red night.
   contents: read
+  actions: read
+  issues: write
 
 concurrency:
   # Serialise remediation runs against each other so a manual dispatch
@@ -231,3 +238,188 @@ jobs:
             echo "::warning::Reconciler exited $code — residual unresolved references remain after auto-remediation. See job summary for the manual triage."
             exit "$code"
           fi
+
+      - name: Alert on consecutive scheduled failures
+        # Only escalate when:
+        #   1. THIS run is failing (the re-assert step above just exited
+        #      non-zero, so `failure()` is true), AND
+        #   2. it's a scheduled run — manual `workflow_dispatch` is usually
+        #      an operator already mid-triage; we don't want to file a
+        #      ticket on top of their own debugging session.
+        # The `if` short-circuits both conditions so we never page on a
+        # one-off red night, only on a 2+ night backlog.
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Pull the most recent completed scheduled runs of THIS workflow
+            // so we can count consecutive failures going backwards from the
+            // present. The current run is still in-flight (this step runs
+            // before the run conclusion is recorded) so it won't appear in
+            // the list — count it as failure #1 explicitly.
+            const { data: { workflow_runs } } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'storage-reconcile-remediate.yml',
+              event: 'schedule',
+              status: 'completed',
+              per_page: 10,
+            });
+
+            let consecutive = 1; // current (in-flight) failing run
+            for (const run of workflow_runs) {
+              if (run.id === context.runId) continue;
+              if (run.conclusion === 'failure') {
+                consecutive++;
+              } else {
+                break;
+              }
+            }
+
+            // Single red night is expected (legacy bucket can have transient
+            // 5xx hiccups, a row gets deleted between scan and copy, etc.).
+            // Two in a row means the residual buckets aren't draining.
+            if (consecutive < 2) {
+              core.info(`Only ${consecutive} consecutive scheduled failure(s); not alerting yet.`);
+              return;
+            }
+
+            // Pull the terminal bucket counts straight from the reconciler
+            // log so the alert tells the operator WHAT is residual, not
+            // just THAT something is residual. We grab the LAST `OK` line
+            // (i.e. the [RE-VERIFY] pass) and the four count lines that
+            // follow it, matching the script's print order in
+            // `script/r2-cutover-reconcile.ts` lines 383-387.
+            let countsBlock = '(counts unavailable — reconciler log missing)';
+            try {
+              const log = fs.readFileSync('artifacts/r2-cutover-remediate.log', 'utf8');
+              const lines = log.split('\n');
+              let lastOkIdx = -1;
+              for (let i = lines.length - 1; i >= 0; i--) {
+                if (/^ {6}OK\s+:/.test(lines[i])) { lastOkIdx = i; break; }
+              }
+              if (lastOkIdx >= 0) {
+                countsBlock = lines.slice(lastOkIdx, lastOkIdx + 5).join('\n');
+              }
+            } catch (e) {
+              core.warning(`Failed to read reconciler log for counts: ${e.message}`);
+            }
+
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const ALERT_LABEL = 'storage-drift-sweep-alert';
+
+            // Ensure the label exists (idempotent). Swallow the 422 we get
+            // when it already does — we don't care which run created it.
+            try {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: ALERT_LABEL,
+                color: 'B60205',
+                description: 'Storage drift auto-remediation sweep has been red for 2+ consecutive nights',
+              });
+            } catch (e) {
+              if (e.status !== 422) throw e;
+            }
+
+            // We use a single tracking issue keyed off the label, not a
+            // fresh issue per failure — otherwise the inbox fills up with
+            // duplicates while the underlying backlog (the same handful of
+            // MISSING-media rows) sits unfixed.
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ALERT_LABEL,
+              state: 'open',
+              per_page: 5,
+            });
+
+            const title = `Storage drift sweep failing for ${consecutive} consecutive nights`;
+            const body = [
+              `The nightly storage drift sweep (\`.github/workflows/storage-reconcile-remediate.yml\`) has now exited non-zero on **${consecutive} consecutive scheduled runs**. Residual unfixable references (\`MISSING-media\`, \`MISSING-photo\`, or non-rewritable \`SKIPPED\` shapes) are accumulating without being triaged.`,
+              ``,
+              `**Failing run:** ${runUrl}`,
+              ``,
+              `**Residual bucket counts (from the [RE-VERIFY] pass of this run):**`,
+              '',
+              '```',
+              countsBlock,
+              '```',
+              ``,
+              `This does **not** block deploys — the read-only \`Pre-Deploy Storage Reconcile\` gate is the source of truth for whether \`main\` is deployable, and it will trip on its own if any of these residual rows ever turn into deploy-blocking shapes. But the backlog grows every night this stays red.`,
+              ``,
+              `See \`docs/developer/migration-from-replit.md\` → "Auto-remediation sweep (Task #523)" for the manual triage runbook.`,
+              ``,
+              `_This issue auto-closes the next time the scheduled sweep exits 0._`,
+            ].join('\n');
+
+            if (existing.length > 0) {
+              // Update the existing issue's title (the consecutive count
+              // changed) and append a comment with this run's link + counts
+              // so the timeline shows the trajectory.
+              const issue = existing[0];
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                title,
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body,
+              });
+              core.notice(`Updated existing alert issue #${issue.number} (${consecutive} consecutive failures).`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: [ALERT_LABEL],
+              });
+              core.notice(`Opened alert issue #${created.number} (${consecutive} consecutive failures).`);
+            }
+
+      - name: Auto-resolve alert issue on green run
+        # Mirror of the alert step: when a scheduled run goes green, close
+        # any open tracking issue so the next failure starts a fresh
+        # streak and the inbox doesn't carry stale alerts. Uses
+        # `if: success()` so it only runs when every prior step succeeded
+        # (which means the re-assert step above accepted exit code 0).
+        if: success() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ALERT_LABEL = 'storage-drift-sweep-alert';
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ALERT_LABEL,
+              state: 'open',
+              per_page: 10,
+            });
+            if (existing.length === 0) {
+              core.info('No open alert issue to auto-resolve.');
+              return;
+            }
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            for (const issue of existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Auto-resolved: scheduled storage drift sweep exited 0 on ${runUrl}.`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              core.notice(`Auto-resolved alert issue #${issue.number}.`);
+            }

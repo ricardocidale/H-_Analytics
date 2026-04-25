@@ -273,6 +273,8 @@ npx tsx script/r2-cutover-reconcile.ts --rewrite-legacy-hosts --copy-from-replit
 
 **What is NOT remediated.** `MISSING-media` and `MISSING-photo` are not mechanically fixable — the underlying row is gone or its `image_url` has rotted. The sweep workflow exits non-zero when these remain after auto-remediation, so the run shows red in Actions and the operator gets the manual-triage signal in the morning. **It does not block deploys** (nothing depends on it as a required check).
 
+**Consecutive-failure alerting (Task #527).** A red Actions tab is easy to miss for several days in a row, which is exactly the failure mode the sweep is meant to prevent. After the re-assert step, the workflow checks the previous scheduled run via the GitHub API: if it also failed, the workflow opens (or updates) a single tracking issue labelled `storage-drift-sweep-alert` with a link to the failing run and the residual bucket counts pulled from the reconciler log's `[RE-VERIFY]` pass. A single red night is **not** alerted on — only 2+ consecutive nights — to avoid pager fatigue from transient legacy-bucket hiccups. Manual `workflow_dispatch` runs never alert (they're usually an operator already mid-triage). When the sweep next exits 0 on a scheduled run, the same tracking issue is auto-closed. The pre-deploy gate intentionally does **not** alert this way — it already blocks deploys, which is its own escalation channel.
+
 **Required GitHub Actions secrets.** Same five as the deploy gate (`PROD_POSTGRES_URL`, `R2_BUCKET`, `R2_S3_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`). Two additional optional secrets enable the `--copy-from-replit-bucket` branch:
 
 | Secret | Purpose |
