@@ -104,7 +104,7 @@
     "docx": "^9.6.1",
     "dom-to-image-more": "^3.7.2",
     "dompurify": "^3.4.1",
-    "drizzle-orm": "^0.39.3",
+    "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.7.1",
     "embla-carousel-react": "^8.6.0",
     "express": "^5.0.1",
