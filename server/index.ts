@@ -793,6 +793,33 @@ async function runSchemaMigrations() {
     await runAssumptionGuidanceDedupe001();
     await markMigrationApplied("assumption_guidance_dedupe_001");
   }
+
+  // Audit follow-up — same regression class as Task #573, this time on
+  // benchmark_snapshots.snapshot_key (declared `.unique()` in
+  // shared/schema/intelligence-v2.ts but never applied to the live DB).
+  // Without this, `npm run db:push` blocks on a destructive truncate
+  // prompt in non-TTY environments and the Task #715 CI gate fails.
+  if (!(await isMigrationApplied("benchmark_snapshots_unique_001"))) {
+    const { runBenchmarkSnapshotsUnique001 } = await import(
+      "./migrations/benchmark-snapshots-unique-001"
+    );
+    await runBenchmarkSnapshotsUnique001();
+    await markMigrationApplied("benchmark_snapshots_unique_001");
+  }
+
+  // Audit follow-up — sweep the remaining single-column UNIQUE constraints
+  // declared in shared/schema/** but never applied to the live DB
+  // (properties.stable_key, media_assets.filename, source_registry.service_key,
+  // pipeline_policies.policy_key, scheduled_research_workflows.workflow_key,
+  // external_integrations.service_key, capital_raise_benchmarks.dimension_key,
+  // exit_multiples.dimension_key). Same fix pattern.
+  if (!(await isMigrationApplied("audit_unique_constraints_001"))) {
+    const { runAuditUniqueConstraints001 } = await import(
+      "./migrations/audit-unique-constraints-001"
+    );
+    await runAuditUniqueConstraints001();
+    await markMigrationApplied("audit_unique_constraints_001");
+  }
 }
 
 async function runSeeds() {
