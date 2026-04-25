@@ -25,6 +25,10 @@ import type {
   TabValidationWarning,
 } from "@/components/company-assumptions";
 import type { PrerequisiteFailure } from "@/components/company/SpecialistRequirementsPanel";
+import {
+  computeExitMultipleWarning,
+  type ExitMultipleBand,
+} from "./exit-multiple-warning";
 
 const DAYS_PER_MONTH = getFactoryNumber("daysPerMonth");
 
@@ -110,6 +114,7 @@ const hydrateSavedTabs = (raw: unknown): Set<TabKey> => {
 
 type AckRow = { fieldName: string; valueAtAck: number; rangeLowAtAck: number; rangeHighAtAck: number };
 
+
 type SaveDeps = {
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
   generateResearch: () => void | Promise<void>;
@@ -179,6 +184,19 @@ export function useCompanyAssumptionsForm(
     },
     refetchOnWindowFocus: false,
   });
+
+  // Admin-managed exit-multiple bands. Shares the cache key with
+  // PropertyExitDefaultsCard so the inline card warning and the save-flow
+  // warning never disagree about which range a vertical lives in.
+  const { data: exitMultiples = [] } = useQuery<ExitMultipleBand[]>({
+    queryKey: ["/api/exit-multiples"],
+    queryFn: async () => {
+      const res = await fetch("/api/exit-multiples", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const ackByField = useMemo(() => {
     const m = new Map<string, AckRow>();
     for (const a of acks) m.set(a.fieldName, a);
@@ -226,10 +244,38 @@ export function useCompanyAssumptionsForm(
     setIsDirty(true);
     markGlobalDirty();
 
-    // Editing a previously-acked field invalidates the override.
+    // Editing a previously-acked field invalidates the override. Editing
+    // industryVertical also invalidates an existing exitRevenueMultiple ack
+    // because changing the vertical changes the band — a snapshot taken
+    // under the old band must not silently suppress the new warning.
     if (ackByField.has(String(field))) {
+      const extras: string[] =
+        String(field) === "industryVertical" && ackByField.has("exitRevenueMultiple")
+          ? ["exitRevenueMultiple"]
+          : [];
+      void Promise.all(
+        [String(field), ...extras].map((f) =>
+          fetch(
+            `/api/assumption-acknowledgments/${encodeURIComponent(f)}?entityType=company&entityId=0`,
+            { method: "DELETE" },
+          ),
+        ),
+      ).then((results) => {
+        const res = results[0];
+        if (res.ok) {
+          void queryClient.invalidateQueries({
+            queryKey: ["assumption-acknowledgments", "company", 0],
+          });
+        }
+      });
+    } else if (
+      String(field) === "industryVertical" &&
+      ackByField.has("exitRevenueMultiple")
+    ) {
+      // Vertical changed but no ack on vertical itself — still clear the
+      // exit-multiple ack so the new band is evaluated against fresh state.
       void fetch(
-        `/api/assumption-acknowledgments/${encodeURIComponent(String(field))}?entityType=company&entityId=0`,
+        `/api/assumption-acknowledgments/${encodeURIComponent("exitRevenueMultiple")}?entityType=company&entityId=0`,
         { method: "DELETE" },
       ).then((res) => {
         if (res.ok) {
@@ -297,6 +343,23 @@ export function useCompanyAssumptionsForm(
         });
       }
     }
+
+    // Exit revenue multiple — admin-managed band check (separate from the
+    // Analyst research ranges above). The PropertyExitDefaultsCard already
+    // surfaces this inline, but at save time we also push it into
+    // tabWarnings so the post-save toast count and the warnings panel
+    // include it — making it harder to miss when batching multiple edits.
+    if (keys.includes("exitRevenueMultiple" as keyof GlobalResponse)) {
+      const merged = { ...(global ?? {}), ...data } as Partial<GlobalResponse>;
+      const exitWarning = computeExitMultipleWarning({
+        industryVertical: merged.industryVertical,
+        exitRevenueMultiple: merged.exitRevenueMultiple,
+        bands: exitMultiples,
+        ack: ackByField.get("exitRevenueMultiple") ?? null,
+      });
+      if (exitWarning) out.push(exitWarning);
+    }
+
     return out;
   };
 
