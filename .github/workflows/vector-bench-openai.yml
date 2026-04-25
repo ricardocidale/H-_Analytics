@@ -27,7 +27,7 @@ on:
         required: false
         default: "50"
       min_recall:
-        description: "Fail the run if any size's mean OR worst-decile (p5) recall@K falls below this fraction (0..1). 0 disables."
+        description: "Fail the run if any size's mean, worst-decile (p5), or absolute-worst (min) recall@K falls below this fraction (0..1). 0 disables."
         required: false
         default: "0.85"
       warn_recall:

@@ -804,15 +804,22 @@ async function main(): Promise<void> {
 
       // Task #568 — recall@K gate. Random-vector runs report null recall by
       // design (every "match" is noise), so we only enforce on real
-      // embeddings. We evaluate BOTH the mean and the worst-decile (p5)
-      // recall against the same threshold: a p5 collapse with a stable mean
-      // is the canonical signature of an HNSW config that returns garbage on
-      // a small slice of queries, which is exactly the regression this gate
-      // exists to catch.
+      // embeddings. We evaluate THREE recall stats against the same
+      // threshold so the gate covers both possible readings of "worst-case
+      // recall regression":
+      //   - meanAtK: average recall across all queries (overall quality)
+      //   - p5AtK:   worst-decile recall (catches partial-collapse where
+      //              most queries are fine but a small slice returns garbage
+      //              — the canonical signature of an HNSW misconfig)
+      //   - minAtK:  absolute-worst single-query recall (catches the case
+      //              where one query returns nothing at all from the index)
+      // Failing on any of the three means we don't have to pick which
+      // interpretation of "worst-case" the gate enforces.
       if (r.recall && (args.minRecall > 0 || args.warnRecall > 0)) {
         const recallChecks: Array<{ label: string; value: number }> = [
           { label: `size=${size} recall@${r.recall.topK} mean`, value: r.recall.meanAtK },
           { label: `size=${size} recall@${r.recall.topK} p5 (worst-decile)`, value: r.recall.p5AtK },
+          { label: `size=${size} recall@${r.recall.topK} min (worst single query)`, value: r.recall.minAtK },
         ];
         for (const c of recallChecks) {
           if (args.minRecall > 0 && c.value < args.minRecall) {
