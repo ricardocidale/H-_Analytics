@@ -347,6 +347,18 @@ export class BenchmarksStorage {
 
 // Module-private freshness resolver — kept out of the class so the
 // dispatch table is exhaustively type-checked at compile time.
+//
+// `max(timestamp)` over a raw `sql\`...\`` aggregate bypasses Drizzle's
+// per-column type cast and the pg driver hands the value back as an ISO
+// string. Centralise the Date coercion here so downstream callers can
+// safely call `.toISOString()` on the result, as the return type promises.
+function toDate(raw: unknown): Date | null {
+  if (raw === null || raw === undefined) return null;
+  if (raw instanceof Date) return raw;
+  const d = new Date(raw as string | number);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 async function resolveToolLastBuilt(tx: IntelligenceTx, source: ToolLastBuiltSource): Promise<Date | null> {
   switch (source.kind) {
     case "static": {
@@ -363,22 +375,22 @@ async function resolveToolLastBuilt(tx: IntelligenceTx, source: ToolLastBuiltSou
         case "vector_chunks": {
           const [row] = await tx.db.select({ at: sql<Date | null>`max(${vectorChunks.updatedAt})` })
             .from(vectorChunks);
-          return row?.at ?? null;
+          return toDate(row?.at);
         }
         case "market_adr_index": {
           const [row] = await tx.db.select({ at: sql<Date | null>`max(${marketAdrIndex.updatedAt})` })
             .from(marketAdrIndex);
-          return row?.at ?? null;
+          return toDate(row?.at);
         }
         case "benchmark_snapshots": {
           const [row] = await tx.db.select({ at: sql<Date | null>`max(${benchmarkSnapshots.fetchedAt})` })
             .from(benchmarkSnapshots);
-          return row?.at ?? null;
+          return toDate(row?.at);
         }
         case "tax_bulletin_cache": {
           const [row] = await tx.db.select({ at: sql<Date | null>`max(${taxBulletinCache.fetchedAt})` })
             .from(taxBulletinCache);
-          return row?.at ?? null;
+          return toDate(row?.at);
         }
         default: {
           const _exhaustive: never = source.table;
@@ -390,7 +402,7 @@ async function resolveToolLastBuilt(tx: IntelligenceTx, source: ToolLastBuiltSou
       const [row] = await tx.db.select({ at: sql<Date | null>`max(${researchRuns.startedAt})` })
         .from(researchRuns)
         .where(sql`${researchRuns.metadata}->>'specialistId' = ${source.specialistId}`);
-      return row?.at ?? null;
+      return toDate(row?.at);
     }
     default: {
       const _exhaustive: never = source;

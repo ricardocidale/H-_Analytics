@@ -7,6 +7,7 @@ import {
   LETICIA_SPECIALIST_ID,
   getSpecialistTool,
   getToolsByOwner,
+  getToolsByResourceSlug,
 } from "../../engine/analyst/registry/specialist-tools";
 import { SPECIALIST_CATALOG } from "../../engine/analyst/registry/specialist-catalog";
 
@@ -72,5 +73,26 @@ describe("SPECIALIST_TOOLS registry (Phase 2b inspectability)", () => {
   it("getSpecialistTool resolves by id", () => {
     expect(getSpecialistTool("regulatory-profiles")?.displayName).toBe("Regulatory Profiles");
     expect(getSpecialistTool("unknown")).toBeUndefined();
+  });
+
+  // Locks the per-row-strip mapping behind the Resources tab. Adding /
+  // removing entries here is intentional, but breaking either of these
+  // (e.g. forgetting to declare a slug after rewiring a tool) would
+  // silently empty the strip — assert it instead.
+  it("maps benchmark-snapshots beneath both benchmark Resource rows", () => {
+    const fundingTools = getToolsByResourceSlug("funding-benchmarks");
+    const revenueTools = getToolsByResourceSlug("revenue-benchmarks");
+    expect(fundingTools.map((t) => t.id)).toContain("benchmark-snapshots");
+    expect(revenueTools.map((t) => t.id)).toContain("benchmark-snapshots");
+  });
+
+  it("maps both image-render tools beneath the image-enhancement-api row", () => {
+    const ids = getToolsByResourceSlug("image-enhancement-api").map((t) => t.id);
+    expect(ids).toEqual(expect.arrayContaining(["replicate-render-pipeline", "openai-image-fallback"]));
+  });
+
+  it("returns an empty array for slugs no tool has claimed", () => {
+    expect(getToolsByResourceSlug("primary-llm")).toEqual([]);
+    expect(getToolsByResourceSlug("not-a-real-slug")).toEqual([]);
   });
 });

@@ -9,60 +9,18 @@
  * tab keeps the strip near the resource rows it describes without
  * coupling the registry to the admin_resources slug space.
  */
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
+import { formatLastBuilt, useSpecialistTools } from "./specialist-tools-shared";
 
 const LETICIA = SPECIALIST_CATALOG.find((d) => d.id === "resources.builder");
 const LETICIA_HEADER = LETICIA
   ? `${LETICIA.humanName} · ${LETICIA.displayName ?? LETICIA.realName} (Specialist ${LETICIA.letter})`
   : "Resource Builder";
 
-interface ToolCalledBy {
-  id: string;
-  humanName: string;
-  displayName: string;
-}
-
-interface ToolView {
-  id: string;
-  displayName: string;
-  description: string;
-  kind: "deterministic" | "llm" | "hybrid";
-  sourceFile: string;
-  citation: string | null;
-  resourceSlug: string | null;
-  owner: { specialistId: string; humanName: string; displayName: string };
-  calledBy: ToolCalledBy[];
-  lastBuiltAt: string | null;
-  lastBuiltSource: { kind: string } & Record<string, unknown>;
-}
-
-interface ToolsResponse {
-  catalogSize: number;
-  tools: ToolView[];
-}
-
-function formatLastBuilt(iso: string | null, sourceKind: string): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  const rel = formatDistanceToNow(d, { addSuffix: true });
-  if (sourceKind === "build-time") return `since deploy (${rel})`;
-  return rel;
-}
-
 export default function LeticiaToolbox() {
-  const { data, isLoading, isError } = useQuery<ToolsResponse>({
-    queryKey: ["/api/admin/specialist-tools"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/specialist-tools", { credentials: "include" });
-      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
-      return res.json();
-    },
-  });
+  const { data, isLoading, isError } = useSpecialistTools();
 
   return (
     <Card data-testid="card-leticia-toolbox" className="border-l-4 border-l-amber-500">
@@ -102,11 +60,16 @@ export default function LeticiaToolbox() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium" data-testid={`text-tool-name-${t.id}`}>{t.displayName}</span>
                         <Badge variant="secondary" className="font-mono text-[10px]">{t.kind}</Badge>
-                        {t.resourceSlug && (
-                          <Badge variant="outline" className="font-mono text-[10px]" data-testid={`badge-tool-slug-${t.id}`}>
-                            {t.resourceSlug}
+                        {t.resourceSlugs.map((slug) => (
+                          <Badge
+                            key={slug}
+                            variant="outline"
+                            className="font-mono text-[10px]"
+                            data-testid={`badge-tool-slug-${t.id}-${slug}`}
+                          >
+                            {slug}
                           </Badge>
-                        )}
+                        ))}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">{t.description}</p>
                       <p className="text-xs text-muted-foreground mt-1 font-mono" data-testid={`text-tool-source-${t.id}`}>

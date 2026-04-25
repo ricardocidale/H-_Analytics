@@ -26,7 +26,7 @@ const mockResponse = {
       kind: "deterministic" as const,
       sourceFile: "shared/regulatory/profiles-na.ts",
       citation: null,
-      resourceSlug: null,
+      resourceSlugs: [],
       owner: {
         specialistId: "resources.builder",
         humanName: "Letícia",
@@ -46,7 +46,7 @@ const mockResponse = {
       kind: "deterministic" as const,
       sourceFile: "engine/property/property-engine.ts",
       citation: null,
-      resourceSlug: null,
+      resourceSlugs: [],
       owner: {
         specialistId: "resources.builder",
         humanName: "Letícia",

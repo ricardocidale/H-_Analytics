@@ -83,11 +83,16 @@ export interface SpecialistTool {
   readonly citation?: string;
   /** Freshness source — see `ToolLastBuiltSource` above. */
   readonly lastBuiltSource: ToolLastBuiltSource;
-  /** Optional admin-Resource slug this tool surfaces under. The
-   *  Resources tab uses this to render the per-row inspectability
-   *  strip. Tools without a Resource slug still appear in the admin
-   *  registry endpoint but don't decorate any Resource row. */
-  readonly resourceSlug?: string;
+  /** Optional admin-Resource slugs this tool surfaces under. The
+   *  Resources tab uses these to render the per-row inspectability
+   *  strip beneath any matching `admin_resources` row. A single tool
+   *  may back multiple Resource rows (e.g. one ingest pipeline that
+   *  feeds both the funding and revenue benchmark resources), and a
+   *  single Resource row may be backed by multiple tools (e.g. the
+   *  primary render API and its image-fallback both surface beneath
+   *  `image-enhancement-api`). Tools without any Resource slug still
+   *  appear in the admin registry endpoint but don't decorate any row. */
+  readonly resourceSlugs?: readonly string[];
 }
 
 /**
@@ -151,6 +156,9 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
     calledBy: ["mgmt-co.funding", "mgmt-co.revenue", "property.executive-summary"],
     sourceFile: "server/storage/intelligence-v2.ts",
     lastBuiltSource: { kind: "table", table: "benchmark_snapshots" },
+    // The same snapshots table feeds both the funding and the revenue
+    // benchmark Resource rows — surface this tool beneath each.
+    resourceSlugs: ["funding-benchmarks", "revenue-benchmarks"],
   },
   {
     id: "finance-compute",
@@ -181,6 +189,7 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
       kind: "research-runs-specialist",
       specialistId: "photos.photo-enhancer",
     },
+    resourceSlugs: ["image-enhancement-api"],
   },
   {
     id: "tax-bulletin-diff",
@@ -207,6 +216,9 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
       kind: "research-runs-specialist",
       specialistId: "photos.photo-enhancer",
     },
+    // Same Resource row as the Replicate primary — admins viewing
+    // `image-enhancement-api` should see both backings inline.
+    resourceSlugs: ["image-enhancement-api"],
   },
 ] as const;
 
@@ -254,6 +266,6 @@ export function getToolsByOwner(specialistId: string): SpecialistTool[] {
   return SPECIALIST_TOOLS.filter((t) => t.ownerSpecialistId === specialistId);
 }
 
-export function getToolByResourceSlug(slug: string): SpecialistTool | undefined {
-  return SPECIALIST_TOOLS.find((t) => t.resourceSlug === slug);
+export function getToolsByResourceSlug(slug: string): SpecialistTool[] {
+  return SPECIALIST_TOOLS.filter((t) => t.resourceSlugs?.includes(slug) ?? false);
 }

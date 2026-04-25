@@ -50,7 +50,7 @@ export function registerAdminSpecialistToolRoutes(app: Express) {
           kind: tool.kind,
           sourceFile: tool.sourceFile,
           citation: tool.citation ?? null,
-          resourceSlug: tool.resourceSlug ?? null,
+          resourceSlugs: tool.resourceSlugs ?? [],
           owner: {
             specialistId: tool.ownerSpecialistId,
             humanName: ownerResolved?.humanName ?? owner?.humanName ?? tool.ownerSpecialistId,

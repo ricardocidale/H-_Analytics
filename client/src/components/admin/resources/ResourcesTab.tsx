@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { Fragment, useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import {
 } from "./resource-dialogs";
 import LeticiaToolbox from "./LeticiaToolbox";
 import { ResourceDetailDialog } from "./ResourceDetailDialog";
+import { formatLastBuilt, useSpecialistTools, type ToolView } from "./specialist-tools-shared";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/ai-intelligence/AiIntelligenceSidebar";
 import { setAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
 
@@ -296,6 +297,21 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
     refetchInterval: 60_000,
   });
 
+  // Per-row tool strip — for each admin_resources slug, find every
+  // SPECIALIST_TOOLS entry that declares it in `resourceSlugs`. The
+  // request is shared (deduped) with `LeticiaToolbox`'s query.
+  const { data: toolData } = useSpecialistTools();
+  const toolsBySlug = useMemo(() => {
+    const map = new Map<string, ToolView[]>();
+    for (const t of toolData?.tools ?? []) {
+      for (const slug of t.resourceSlugs) {
+        const list = map.get(slug);
+        if (list) list.push(t); else map.set(slug, [t]);
+      }
+    }
+    return map;
+  }, [toolData]);
+
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
     const q = search.toLowerCase();
@@ -372,9 +388,14 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
                     ? `\nLast failure: ${[health.lastFailureCode, health.lastFailureMessage].filter(Boolean).join(" — ")}`
                     : "";
                   const pillTitle = `${pill.label}${lastCheckedSuffix}${failureSuffix}`;
+                  // Per-row strip — every SPECIALIST_TOOLS entry that
+                  // declares this row's slug in `resourceSlugs` shows up
+                  // as a "Built by … · last refreshed … · called by …"
+                  // line beneath the row. Empty list ⇒ no strip rendered.
+                  const matchingTools = toolsBySlug.get(r.slug) ?? [];
                   return (
+                    <Fragment key={r.id}>
                     <TableRow
-                      key={r.id}
                       data-testid={`row-resource-${r.id}`}
                       className="cursor-pointer hover:bg-muted/30"
                       onClick={() => openDetail(r.id)}
@@ -440,6 +461,42 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
                         </div>
                       </TableCell>
                     </TableRow>
+                    {matchingTools.length > 0 && (
+                      <TableRow
+                        data-testid={`row-tool-strip-${r.id}`}
+                        className="bg-muted/20 border-t-0 hover:bg-muted/20 cursor-default"
+                      >
+                        <TableCell colSpan={9} className="py-1.5 px-3">
+                          <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+                            {matchingTools.map((t) => {
+                              const ownerLabel = t.owner.specialistId === "resources.builder"
+                                ? "Letícia"
+                                : t.owner.humanName;
+                              const calledByLabel = t.calledBy.length === 0
+                                ? "no Specialists yet"
+                                : t.calledBy.map((c) => c.humanName).join(", ");
+                              return (
+                                <li
+                                  key={t.id}
+                                  data-testid={`tool-strip-line-${r.id}-${t.id}`}
+                                >
+                                  <span className="font-medium text-foreground">{t.displayName}</span>
+                                  <span className="opacity-60"> — Built by </span>
+                                  <span data-testid={`tool-strip-owner-${r.id}-${t.id}`}>{ownerLabel}</span>
+                                  <span className="opacity-60"> · last refreshed </span>
+                                  <span data-testid={`tool-strip-freshness-${r.id}-${t.id}`}>
+                                    {formatLastBuilt(t.lastBuiltAt, t.lastBuiltSource.kind)}
+                                  </span>
+                                  <span className="opacity-60"> · called by </span>
+                                  <span data-testid={`tool-strip-called-by-${r.id}-${t.id}`}>{calledByLabel}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </Fragment>
                   );
                 })}
               </TableBody>
