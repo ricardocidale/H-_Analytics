@@ -153,15 +153,42 @@ export class ResearchRunsStorage {
    * job that flowed through the specialist regardless of where it was
    * triggered (album button or specialist page).
    *
-   * Pagination: `offset` is supported alongside `limit` so the Photos &
-   * Renders gallery can pull a server-backed history page-by-page rather
-   * than holding the whole stream in memory. Callers that don't paginate
-   * (existing per-property album call log) can omit `offset` and keep the
-   * legacy "first N rows" semantics.
+   * Pagination: `options.offset` is supported alongside `limit` so the
+   * Photos & Renders gallery can pull a server-backed history page-by-page
+   * rather than holding the whole stream in memory. Callers that don't
+   * paginate can omit it and keep the legacy "first N rows" semantics.
+   *
+   * Pass `options.propertyId` to additionally scope the result to a single
+   * property — used by the per-property album "Render history" section so
+   * admins can see "what AI runs were tried for this property" without
+   * leaving the property page (Task #439). The filter matches both the
+   * indexed `entity_type/entity_id` columns (the album path) and the
+   * `metadata.propertyId` JSON field (defensive — covers any older rows
+   * the pipeline wrote before entity_type was switched to "property").
+   *
+   * The third argument also accepts a bare number for back-compat with the
+   * gallery callsite that passes `offset` positionally.
    */
-  async getResearchRunsForSpecialist(specialistId: string, limit = 50, offset = 0): Promise<ResearchRun[]> {
+  async getResearchRunsForSpecialist(
+    specialistId: string,
+    limit = 50,
+    options?: number | { offset?: number; propertyId?: number },
+  ): Promise<ResearchRun[]> {
+    const offset = typeof options === "number"
+      ? options
+      : (options?.offset ?? 0);
+    const propertyId = typeof options === "object" && options !== null
+      ? options.propertyId
+      : undefined;
+    const conditions = [sql`${researchRuns.metadata}->>'specialistId' = ${specialistId}`];
+    if (propertyId !== undefined) {
+      conditions.push(sql`(
+        (${researchRuns.entityType} = 'property' AND ${researchRuns.entityId} = ${propertyId})
+        OR (${researchRuns.metadata}->>'propertyId' = ${String(propertyId)})
+      )`);
+    }
     return this._rtx.db.select().from(researchRuns)
-      .where(sql`${researchRuns.metadata}->>'specialistId' = ${specialistId}`)
+      .where(and(...conditions))
       .orderBy(desc(researchRuns.startedAt))
       .limit(limit)
       .offset(offset);

@@ -83,17 +83,44 @@ const updateResearchRun = vi.fn(async (id: number, patch: any) => {
   if (row) Object.assign(row, patch);
   return row;
 });
-const getResearchRunsForSpecialist = vi.fn(async (_specialistId: string, limit?: number, offset?: number) => {
-  // Mirror the real Postgres semantics for the gallery endpoint: most
-  // recent first, then apply offset/limit so pagination tests don't
-  // accidentally see seed rows in insertion order.
-  const sorted = [...researchRunRows].reverse();
-  const start = offset ?? 0;
-  const end = start + (limit ?? sorted.length);
-  return sorted.slice(start, end);
-});
+// Combined mock signature: third arg is either a positional offset (gallery
+// pagination — Task #433) or an options bag with a propertyId filter (per-
+// property album render history — Task #439). Mirrors the real Postgres
+// semantics: most recent first, then propertyId scoping, then offset/limit.
+const getResearchRunsForSpecialist = vi.fn(
+  async (
+    _id: string,
+    limit?: number,
+    optionsOrOffset?: number | { offset?: number; propertyId?: number },
+  ) => {
+    const offset = typeof optionsOrOffset === "number"
+      ? optionsOrOffset
+      : (optionsOrOffset?.offset ?? 0);
+    const propertyId = typeof optionsOrOffset === "object" && optionsOrOffset !== null
+      ? optionsOrOffset.propertyId
+      : undefined;
+    let pool = [...researchRunRows];
+    if (propertyId !== undefined) {
+      pool = pool.filter((r) =>
+        (r.entityType === "property" && r.entityId === propertyId)
+        || (r.metadata && r.metadata.propertyId === propertyId),
+      );
+    }
+    const sorted = pool.reverse();
+    const end = offset + (limit ?? sorted.length);
+    return sorted.slice(offset, end);
+  },
+);
 const countResearchRunsForSpecialist = vi.fn(async () => researchRunRows.length);
-const getUserById = vi.fn(async (_id: number) => undefined);
+// Task #439 — return a real user shape so both the gallery's
+// userDisplayName logic (Task #433) and the album's triggeredBy enrichment
+// pass against the same mock.
+const getUserById = vi.fn(async (id: number) => ({
+  id,
+  email: `user${id}@example.com`,
+  firstName: "Test",
+  lastName: `User${id}`,
+}));
 const recordObservedMissingFields = vi.fn(async () => undefined);
 // Task #433 — both the specialist route and the engine evaluator now read
 // the admin-edited config to honor `promptTemplate` + `modelResourceId` at
@@ -192,6 +219,7 @@ beforeEach(() => {
   createResearchRun.mockClear();
   updateResearchRun.mockClear();
   getResearchRunsForSpecialist.mockClear();
+  getUserById.mockClear();
   recordObservedMissingFields.mockClear();
   isStyleEnabledMock.mockReset();
   isStyleEnabledMock.mockResolvedValue(true);
@@ -402,6 +430,42 @@ describe("Photo Enhancer — specialist calls endpoint surfaces shared runs", ()
     // Both renders (legacy + specialist) are visible through the same log.
     expect(Array.isArray(res.body.runs)).toBe(true);
     expect(res.body.runs.length).toBeGreaterThanOrEqual(2);
+    // triggeredBy is enriched from getUserById so the album "Render
+    // history" section can show "who triggered" without an extra round-trip.
+    const enriched = res.body.runs.find((r: any) => r.triggeredBy !== null);
+    expect(enriched).toBeDefined();
+    expect(enriched.triggeredBy.id).toBe(authedUserId);
+    expect(enriched.triggeredBy.name).toContain("Test");
+  });
+
+  it("GET /api/specialists/photo-enhancer/calls?propertyId=N scopes to that property (Task #439)", async () => {
+    const app = await buildApp();
+    // Two renders for property 7, one render for property 8.
+    await request(app)
+      .post("/api/generate-property-image")
+      .send({ prompt: "a", style: "standard", propertyId: 7 });
+    await request(app)
+      .post("/api/specialists/photo-enhancer/run")
+      .send({ prompt: "b", style: "architectural-exterior", propertyId: 7, originatedFrom: "album" });
+    await request(app)
+      .post("/api/generate-property-image")
+      .send({ prompt: "c", style: "standard", propertyId: 8 });
+
+    const res = await request(app).get("/api/specialists/photo-enhancer/calls?propertyId=7");
+    expect(res.status).toBe(200);
+    expect(getResearchRunsForSpecialist).toHaveBeenCalledWith(
+      "photos.photo-enhancer",
+      expect.any(Number),
+      { propertyId: 7 },
+    );
+    expect(res.body.runs).toHaveLength(2);
+    expect(res.body.runs.every((r: any) => r.entityId === 7)).toBe(true);
+  });
+
+  it("GET /api/specialists/photo-enhancer/calls?propertyId=bad rejects non-positive ids", async () => {
+    const app = await buildApp();
+    const res = await request(app).get("/api/specialists/photo-enhancer/calls?propertyId=-1");
+    expect(res.status).toBe(400);
   });
 
   // Task #432 — gallery survives across sessions because every record now

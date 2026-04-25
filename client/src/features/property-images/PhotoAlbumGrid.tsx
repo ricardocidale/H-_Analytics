@@ -32,6 +32,7 @@ import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { PhotoGenerateDialog } from "./PhotoGenerateDialog";
 import { EnhancePreviewDialog } from "./EnhancePreviewDialog";
 import { PhotoMoveDialog } from "./PhotoMoveDialog";
+import { RenderHistorySection } from "./RenderHistorySection";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
@@ -569,6 +570,12 @@ export function PhotoAlbumGrid({
           Gold star = hero image shown on portfolio cards and headers
           <InfoTooltip text="The hero photo represents this property across the platform — portfolio cards, property header, and exported reports." />
         </p>
+      )}
+
+      {/* Render history (Task #439) — admin-only, gated to match the
+          render/generate buttons above so non-admins never see it. */}
+      {isAdmin && (
+        <RenderHistorySection propertyId={propertyId} />
       )}
 
       {/* Dialogs */}

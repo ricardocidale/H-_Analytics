@@ -205,6 +205,8 @@ export async function runPhotoEnhancerPipeline(
   // before/after metadata stays consistent.
   const persistedPrompt = (prompt ?? "").slice(0, 2000);
   const runRecord = await storage.createResearchRun({
+    // userId persisted so the per-property album "Render history" section
+    // (Task #439) can show "who triggered" each run by joining users.
     userId,
     entityType: propertyId ? "property" : "specialist-run",
     entityId: propertyId ?? 0,

@@ -221,6 +221,51 @@ export function useRejectEnhancement() {
   });
 }
 
+// --- Render history (Task #439) ---
+// Per-property view of the Photos & Renders specialist call log. The
+// backend filters research_runs by `metadata.specialistId` plus the
+// requested propertyId so the album surfaces only renders that targeted
+// this property, regardless of where they were triggered (album button
+// or specialist page).
+
+export interface SpecialistRenderCall {
+  id: number;
+  startedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  status: string;
+  modelPrimary: string | null;
+  entityType: string;
+  entityId: number;
+  error: string | null;
+  metadata: Record<string, unknown> | null;
+  triggeredBy: { id: number; name: string; email: string | null } | null;
+}
+
+interface SpecialistCallsResponse {
+  specialistId: string;
+  runs: SpecialistRenderCall[];
+}
+
+async function fetchPhotoEnhancerCalls(propertyId: number, limit = 25): Promise<SpecialistRenderCall[]> {
+  const res = await fetch(`/api/specialists/photo-enhancer/calls?propertyId=${propertyId}&limit=${limit}`);
+  if (!res.ok) {
+    if (res.status === 403) return [];
+    throw new Error("Failed to load render history");
+  }
+  const body = (await res.json()) as SpecialistCallsResponse;
+  return body.runs ?? [];
+}
+
+export function usePropertyRenderHistory(propertyId: number, enabled = true) {
+  return useQuery({
+    queryKey: ["propertyRenderHistory", propertyId],
+    queryFn: () => fetchPhotoEnhancerCalls(propertyId),
+    enabled: enabled && !!propertyId,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useRemoveEnhancement() {
   const queryClient = useQueryClient();
   return useMutation({

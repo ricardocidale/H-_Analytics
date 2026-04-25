@@ -44,6 +44,10 @@ interface PhotoEnhancerGalleryRow {
   // shows "Unknown admin" for those legacy rows rather than dropping them.
   userId: number | null;
   userDisplayName: string | null;
+  // Task #439 — structured "who triggered" object consumed by the per-property
+  // album Render history section. Mirrors the userId/userDisplayName fields
+  // above but in the shape the album client expects.
+  triggeredBy: { id: number; name: string; email: string | null } | null;
   metadata: Record<string, unknown> | null;
 }
 
@@ -142,13 +146,36 @@ export function register(app: Express): void {
         ? Math.floor(offsetRaw)
         : 0;
 
+      // Optional ?propertyId= filter (Task #439) so the per-property album
+      // "Render history" section can show only runs scoped to that property.
+      let propertyIdFilter: number | undefined;
+      if (req.query.propertyId !== undefined) {
+        const pidRaw = Number(req.query.propertyId);
+        if (!Number.isFinite(pidRaw) || pidRaw <= 0 || !Number.isInteger(pidRaw)) {
+          return res.status(400).json({ error: "propertyId must be a positive integer" });
+        }
+        propertyIdFilter = pidRaw;
+      }
+
       // Fetch one page of runs plus the total so the client can render a
       // "Showing N of M" badge and a Load more button without a second
-      // round-trip.
-      const [runs, total] = await Promise.all([
-        storage.getResearchRunsForSpecialist(PHOTO_ENHANCER_SPECIALIST_ID, limit, offset),
-        storage.countResearchRunsForSpecialist(PHOTO_ENHANCER_SPECIALIST_ID),
-      ]);
+      // round-trip. When scoped to a single property (album view), skip the
+      // count round-trip and use the page length — the album is a single
+      // page of recent renders, not a paginated grid.
+      const runs = propertyIdFilter !== undefined
+        ? await storage.getResearchRunsForSpecialist(
+            PHOTO_ENHANCER_SPECIALIST_ID,
+            limit,
+            { propertyId: propertyIdFilter },
+          )
+        : await storage.getResearchRunsForSpecialist(
+            PHOTO_ENHANCER_SPECIALIST_ID,
+            limit,
+            offset,
+          );
+      const total = propertyIdFilter !== undefined
+        ? runs.length
+        : await storage.countResearchRunsForSpecialist(PHOTO_ENHANCER_SPECIALIST_ID);
 
       // Resolve admin attribution in one batch instead of N+1 lookups —
       // the gallery typically shows the same admin many times in a row, and
@@ -158,12 +185,15 @@ export function register(app: Express): void {
       const uniqueUserIds = Array.from(new Set(
         runs.map((r) => r.userId).filter((id): id is number => typeof id === "number"),
       ));
-      const userMap = new Map<number, string>();
+      const userDisplayNames = new Map<number, string>();
+      const userTriggeredBy = new Map<number, { id: number; name: string; email: string | null }>();
       await Promise.all(uniqueUserIds.map(async (userId) => {
-        const user = await storage.getUserById(userId);
+        const user = await storage.getUserById(userId).catch(() => undefined);
         if (user) {
           const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
-          userMap.set(userId, fullName || user.email || `User #${userId}`);
+          const name = fullName || user.email || `User #${userId}`;
+          userDisplayNames.set(userId, name);
+          userTriggeredBy.set(userId, { id: user.id, name, email: user.email ?? null });
         }
       }));
 
@@ -202,7 +232,15 @@ export function register(app: Express): void {
           usedFallback,
           userId: r.userId ?? null,
           userDisplayName: r.userId !== null && r.userId !== undefined
-            ? (userMap.get(r.userId) ?? null)
+            ? (userDisplayNames.get(r.userId) ?? null)
+            : null,
+          // Task #439 — structured "who triggered" object consumed by the
+          // per-property album Render history section. Falls back to a
+          // synthetic stub for legacy/unknown user ids so the UI can still
+          // distinguish "triggered by someone" from "no attribution at all".
+          triggeredBy: r.userId !== null && r.userId !== undefined
+            ? (userTriggeredBy.get(r.userId)
+                ?? { id: r.userId, name: `User ${r.userId}`, email: null })
             : null,
           metadata: (r.metadata ?? null) as Record<string, unknown> | null,
         };
