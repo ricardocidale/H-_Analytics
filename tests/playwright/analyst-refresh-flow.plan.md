@@ -15,12 +15,12 @@ dev because `server/dev-flags.ts` sets `DEV_SKIP_AUTH = true`, so the
 subagent lands on `/admin` already logged in as the seeded super_admin
 (`ricardo.cidale@norfolkgroup.io`). No login step is needed in dev.
 
-The Analyst Tables admin section is currently orphaned in the sidebar
-(it has no `admin-nav-analyst-tables` button). To reach it from a test
-the plan uses `window.__setAdminSection`, a dev/test-only escape hatch
-exposed by `client/src/lib/admin-nav.ts` and gated by
-`import.meta.env.DEV`. The hook never ships in production bundles —
-it mirrors the existing `DEV_SKIP_AUTH` affordance.
+The Analyst Tables admin section is reachable from the admin sidebar
+under the "Steady State" group via the
+`admin-nav-analyst-tables` button (Task #598). The dev/test-only
+`window.__setAdminSection` escape hatch in `client/src/lib/admin-nav.ts`
+remains in place as a fallback for sections that have no sidebar
+entry, but this plan exercises the real navigation path.
 
 The refresh endpoint (`POST /api/admin/analyst-tables/:id/refresh`) is
 guarded against missing OpenAI keys: `researchCapitalRaiseBenchmarks` /
@@ -36,8 +36,8 @@ so the test does not require a live `AI_INTEGRATIONS_OPENAI_API_KEY`.
 3. [Verify] The admin page is rendered:
    - data-testid="admin-content-defaults-management-company" is visible
      (default landing section).
-4. [Browser] Run JS in the page:
-     window.__setAdminSection('analyst-tables')
+4. [Browser] Click the sidebar entry that opens Analyst Tables:
+   - data-testid="admin-nav-analyst-tables" (under the "Steady State" group).
    This switches the in-memory admin section to Analyst Tables. No URL
    change is required — the Admin page subscribes via useSyncExternalStore.
 5. [Verify] The Analyst Tables tab is rendered:

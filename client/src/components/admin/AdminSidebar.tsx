@@ -189,6 +189,7 @@ function buildNavGroups(): NavGroup[] {
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
         { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
+        { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
       ],
     },
     {
