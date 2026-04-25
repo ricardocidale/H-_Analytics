@@ -76,6 +76,22 @@ export const sessions = pgTable("sessions", {
 
 export type Session = typeof sessions.$inferSelect;
 
+// --- OIDC SESSIONS TABLE ---
+// Express-session storage backing the Replit OIDC login flow (connect-pg-simple).
+// connect-pg-simple has a fixed three-column shape (sid, sess, expire) and cannot
+// share the custom `sessions` table above (which is keyed by `id`/`user_id`/
+// `expires_at`). They live side by side: `sessions` for our own cookie-based auth,
+// `user_sessions` for passport + OIDC.
+export const userSessions = pgTable("user_sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+}, (table) => [
+  index("IDX_user_sessions_expire").on(table.expire),
+]);
+
+export type UserSession = typeof userSessions.$inferSelect;
+
 export const userDefaultProperties = pgTable("user_default_properties", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
