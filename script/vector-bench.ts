@@ -44,7 +44,7 @@
  * Requires DATABASE_URL pointing at a Postgres instance with the `vector`
  * extension and the `vector_chunks` table (migration 0012_pgvector_store.sql).
  */
-import { mkdir, appendFile, readFile, writeFile } from "node:fs/promises";
+import { mkdir, appendFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { vectorStorePool as pool } from "../server/storage/vector-store";
 import {
@@ -54,6 +54,15 @@ import {
   isEmbeddingAvailable,
   type VectorNamespace,
 } from "../server/ai/vector-store-service";
+import {
+  recordBenchRun,
+  VECTOR_BENCH_THRESHOLDS,
+  type EmbedSource,
+  type BenchStats as Stats,
+  type BenchRecallStats as RecallStats,
+  type VectorBenchHistoryRun,
+  type VectorBenchHistory,
+} from "./lib/vector-bench-history";
 
 const EMBED_DIMS = 1536;
 const BENCH_NAMESPACE: VectorNamespace = "knowledge-base";
@@ -61,20 +70,10 @@ const BENCH_ID_PREFIX = "bench:vector-bench:";
 const RESULTS_PATH = "docs/vector-bench-results.md";
 const HISTORY_PATH = "docs/vector-bench-history.json";
 
-/**
- * Latency thresholds (ms) used by the trends chart to highlight regressions.
- * Single-namespace queries hit a single HNSW index; multi-namespace queries
- * fan out across {@link ALL_NAMESPACES} in parallel and pay the slowest.
- */
-export const VECTOR_BENCH_THRESHOLDS = {
-  singleP95Ms: 50,
-  singleP50Ms: 25,
-  multiP95Ms: 600,
-  multiP50Ms: 300,
-} as const;
-const HISTORY_MAX_RUNS = 500;
-
-type EmbedSource = "openai" | "random";
+// Re-export the schema constants & types so existing consumers that
+// import them from this module continue to work.
+export { VECTOR_BENCH_THRESHOLDS };
+export type { VectorBenchHistoryRun, VectorBenchHistory };
 
 interface Args {
   sizes: number[];
@@ -335,28 +334,14 @@ async function seedTo(target: number, batchSize: number, embedSource: EmbedSourc
   console.log(` done in ${secs}s`);
 }
 
-interface Stats {
-  count: number;
-  meanMs: number;
-  p50Ms: number;
-  p95Ms: number;
-  maxMs: number;
-}
-
 /**
- * Recall@K quality stats. Each per-query sample is the fraction of the
- * brute-force top-K that the HNSW result also contains, so values live in
- * [0, 1]. We track the mean, the worst single query (`minAtK`) and the p5
- * tail to catch HNSW configs that look fine on average but fail on a few
- * queries.
+ * Recall@K quality stats are imported as `RecallStats` from
+ * `script/lib/vector-bench-history`. Each per-query sample is the fraction
+ * of the brute-force top-K that the HNSW result also contains, so values
+ * live in [0, 1]. We track the mean, the worst single query (`minAtK`) and
+ * the p5 tail to catch HNSW configs that look fine on average but fail on
+ * a few queries.
  */
-interface RecallStats {
-  count: number;
-  topK: number;
-  meanAtK: number;
-  minAtK: number;
-  p5AtK: number;
-}
 
 function summarise(samples: number[]): Stats {
   const sorted = [...samples].sort((a, b) => a - b);
@@ -671,103 +656,34 @@ interface BenchOutcome {
   warned: string[];
 }
 
-export interface VectorBenchHistoryRun {
-  timestamp: string;
-  node: string;
-  dbHint: string;
-  queries: number;
-  topK: number;
-  sizes: number[];
-  source: "vector-bench" | "backfill";
-  /** Embedding source — older runs (before recall measurement) omit this. */
-  embedSource?: EmbedSource;
-  results: Array<{
-    size: number;
-    totalRowsAtRun: number;
-    single: Stats;
-    multi: Stats;
-    /**
-     * Recall@K stats; only populated for `embedSource === "openai"` runs.
-     * Older history entries omit this field — keep it optional so the
-     * backfill script and chart consumer stay backwards-compatible.
-     */
-    recall?: RecallStats | null;
-  }>;
-}
-
-export interface VectorBenchHistory {
-  thresholds: typeof VECTOR_BENCH_THRESHOLDS;
-  namespaces: number;
-  updatedAt: string;
-  runs: VectorBenchHistoryRun[];
-}
-
 async function recordHistory(
   path: string,
   rows: Array<Awaited<ReturnType<typeof benchAtSize>>>,
   args: Args,
 ): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  let history: VectorBenchHistory = {
-    thresholds: VECTOR_BENCH_THRESHOLDS,
-    namespaces: ALL_NAMESPACES.length,
-    updatedAt: new Date().toISOString(),
-    runs: [],
-  };
-  try {
-    const raw = await readFile(path, "utf8");
-    const parsed = JSON.parse(raw) as Partial<VectorBenchHistory>;
-    if (parsed && Array.isArray(parsed.runs)) {
-      history.runs = parsed.runs.filter(
-        (r): r is VectorBenchHistoryRun =>
-          !!r && typeof r.timestamp === "string" && Array.isArray(r.results),
-      );
-    }
-  } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") {
-      console.warn(
-        `  warning: could not parse existing history at ${path}: ${
-          err instanceof Error ? err.message : err
-        } (starting fresh)`,
-      );
-    }
-  }
-
-  const ts = new Date().toISOString();
   const dbHint = process.env.DATABASE_URL?.includes("neon") ? "Neon" : "Postgres";
-  history.runs.push({
-    timestamp: ts,
-    node: process.version,
-    dbHint,
-    queries: args.queries,
-    topK: args.topK,
-    sizes: args.sizes,
-    source: "vector-bench",
-    embedSource: args.embedSource,
-    results: rows.map((r) => ({
-      size: r.size,
-      totalRowsAtRun: r.totalRowsAtRun,
-      single: r.single,
-      multi: r.multi,
-      recall: r.recall,
-    })),
-  });
-
-  // Keep runs sorted oldest -> newest so the chart's time-series renders
-  // consistently regardless of when older entries (e.g. backfill) are merged in.
-  history.runs.sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  const written = await recordBenchRun(
+    path,
+    {
+      timestamp: new Date().toISOString(),
+      node: process.version,
+      dbHint,
+      queries: args.queries,
+      topK: args.topK,
+      sizes: args.sizes,
+      embedSource: args.embedSource,
+      results: rows.map((r) => ({
+        size: r.size,
+        totalRowsAtRun: r.totalRowsAtRun,
+        single: r.single,
+        multi: r.multi,
+        recall: r.recall,
+      })),
+      namespaceCount: ALL_NAMESPACES.length,
+    },
+    (msg) => console.warn(`  warning: ${msg}`),
   );
-
-  if (history.runs.length > HISTORY_MAX_RUNS) {
-    history.runs = history.runs.slice(-HISTORY_MAX_RUNS);
-  }
-  history.updatedAt = ts;
-  history.thresholds = VECTOR_BENCH_THRESHOLDS;
-  history.namespaces = ALL_NAMESPACES.length;
-
-  await writeFile(path, JSON.stringify(history, null, 2) + "\n");
-  console.log(`  recorded history to ${path} (${history.runs.length} runs)`);
+  console.log(`  recorded history to ${path} (${written.runs.length} runs)`);
 }
 
 async function main(): Promise<void> {
