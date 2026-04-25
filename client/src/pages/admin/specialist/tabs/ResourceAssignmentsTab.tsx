@@ -9,6 +9,7 @@
  * and live gap list without leaving the Specialist page. Quality auto-
  * recomputes on read when older than the server-side TTL.
  */
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,11 +46,25 @@ function ScorePill({ score }: { score: number }) {
   );
 }
 
+// Range options for the quality history chart. The endpoint already
+// accepts ?limit=1..100, so this is purely a frontend toggle (Task #553).
+// 30 is the default to match the original sparkline window.
+const HISTORY_RANGES = [7, 30, 90] as const;
+type HistoryRange = (typeof HISTORY_RANGES)[number];
+const DEFAULT_HISTORY_RANGE: HistoryRange = 30;
+
 function QualityCard({ specialistId }: { specialistId: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [historyRange, setHistoryRange] = useState<HistoryRange>(DEFAULT_HISTORY_RANGE);
   const qKey = [`/api/admin/specialists/${specialistId}/quality`];
-  const historyKey = [`/api/admin/specialists/${specialistId}/quality/history`];
+  // Base history key (range-agnostic) — used as a prefix for invalidation
+  // so a recompute refreshes every cached window (7/30/90), not just the
+  // one currently on screen.
+  const historyKeyBase = [`/api/admin/specialists/${specialistId}/quality/history`];
+  // Include the range in the query key so React Query caches each window
+  // separately and refetches when the admin toggles 7 / 30 / 90.
+  const historyKey = [...historyKeyBase, historyRange];
   const { data, isLoading } = useQuery<QualityResponse>({
     queryKey: qKey,
     queryFn: async () => {
@@ -61,9 +76,10 @@ function QualityCard({ specialistId }: { specialistId: string }) {
   const { data: history } = useQuery<QualityHistoryResponse>({
     queryKey: historyKey,
     queryFn: async () => {
-      // Request 30 — nightly recompute appends one row per day, so this
-      // covers the last ~30 days of scores per Task #540.
-      const res = await fetch(`/api/admin/specialists/${specialistId}/quality/history?limit=30`, { credentials: "include" });
+      // Nightly recompute appends one row per day, so limit ≈ days. The
+      // 7 / 30 / 90 toggle (Task #553) lets admins zoom in on acute
+      // regressions or zoom out for long-running drift.
+      const res = await fetch(`/api/admin/specialists/${specialistId}/quality/history?limit=${historyRange}`, { credentials: "include" });
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
       return res.json();
     },
@@ -75,7 +91,10 @@ function QualityCard({ specialistId }: { specialistId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qKey });
-      queryClient.invalidateQueries({ queryKey: historyKey });
+      // Invalidate every cached range (7 / 30 / 90) for this specialist,
+      // not just the one currently on screen, so toggling after recompute
+      // doesn't show stale points from a previously-viewed window.
+      queryClient.invalidateQueries({ queryKey: historyKeyBase });
       toast({ title: "Quality recomputed" });
     },
     onError: (err: unknown) => {
@@ -108,9 +127,37 @@ function QualityCard({ specialistId }: { specialistId: string }) {
               </Button>
             </div>
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Score history — last {history?.points.length ?? 0} day{(history?.points.length ?? 0) === 1 ? "" : "s"}</span>
-                <span className="font-mono">green ≥ 80 · amber ≥ 60 · red &lt; 60</span>
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span data-testid="quality-history-legend">
+                  Score history — last {historyRange} days
+                </span>
+                <div className="flex items-center gap-2">
+                  <div
+                    role="group"
+                    aria-label="History range"
+                    className="inline-flex items-center rounded-md border bg-background p-0.5"
+                    data-testid="quality-history-range"
+                  >
+                    {HISTORY_RANGES.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setHistoryRange(r)}
+                        aria-pressed={historyRange === r}
+                        className={cn(
+                          "px-2 py-0.5 text-xs font-mono rounded-sm transition-colors",
+                          historyRange === r
+                            ? "bg-muted text-foreground"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                        data-testid={`button-quality-history-range-${r}`}
+                      >
+                        {r}d
+                      </button>
+                    ))}
+                  </div>
+                  <span className="font-mono">green ≥ 80 · amber ≥ 60 · red &lt; 60</span>
+                </div>
               </div>
               <QualityHistoryChart points={history?.points ?? []} />
             </div>
