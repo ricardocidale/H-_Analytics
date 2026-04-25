@@ -286,6 +286,13 @@ app.use((req, res, next) => {
         serverLog(`[constants-refresh-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3e: Nightly Specialist quality-score recompute ────────
+      import("./jobs/specialist-quality-recompute").then(({ startSpecialistQualityRecomputeScheduler }) => {
+        startSpecialistQualityRecomputeScheduler();
+      }).catch(err => {
+        serverLog(`[specialist-quality-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
@@ -300,6 +307,12 @@ app.use((req, res, next) => {
         try {
           const { stopConstantsRefreshScheduler } = await import("./jobs/specialist-constants-refresh");
           stopConstantsRefreshScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopSpecialistQualityRecomputeScheduler } = await import("./jobs/specialist-quality-recompute");
+          stopSpecialistQualityRecomputeScheduler();
         } catch {
           /* best-effort — module may not have loaded yet */
         }
