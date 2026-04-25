@@ -183,7 +183,6 @@ export function useMovePhotos() {
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.sourcePropertyId] });
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.destinationPropertyId] });
-      invalidateAllFinancialQueries(queryClient);
     },
   });
 }

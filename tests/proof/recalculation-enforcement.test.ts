@@ -84,12 +84,10 @@ const FINANCIAL_MUTATIONS = [
   "useUpdateCompanyServiceTemplate",
   "useDeleteServiceTemplate",
   "useSyncServiceTemplates",
-  // Property photos (hero changes affect properties.imageUrl;
-  // moving photos between properties also re-attributes their value source)
+  // Property photos (hero changes affect properties.imageUrl)
   "useAddPropertyPhoto",
   "useDeletePropertyPhoto",
   "useSetHeroPhoto",
-  "useMovePhotos",
   "useShareScenario",
 ];
 
@@ -109,11 +107,12 @@ const NON_FINANCIAL_MUTATIONS = [
   "useSaveResearchConfig",  // Admin research prompt config — does not affect financial calculations
   "useRefreshAiModels",     // Admin AI model list refresh — does not affect financial calculations
   "useUpdateAdminConfig",   // Non-financial global_assumptions (branding, ICP, sidebar, asset def) — only invalidates globalAssumptions query
-  // Property photos (caption/reorder/enhance don't affect financial data;
-  // useMovePhotos lives in FINANCIAL_MUTATIONS — moving photos between
-  // properties re-attributes their value source.)
+  // Property photos (caption/reorder/enhance/move don't affect financial data —
+  // moving photos between properties only reshuffles imageUrl/hero, which is
+  // visual metadata, not a financial input.)
   "useUpdatePropertyPhoto",
   "useReorderPhotos",
+  "useMovePhotos",
   "useEnhancePhoto",
   "useAcceptEnhancement",
   "useRejectEnhancement",
