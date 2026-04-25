@@ -26,6 +26,14 @@ on:
         description: "Queries per size."
         required: false
         default: "50"
+      min_recall:
+        description: "Fail the run if any size's mean OR worst-decile (p5) recall@K falls below this fraction (0..1). 0 disables."
+        required: false
+        default: "0.85"
+      warn_recall:
+        description: "Surface a recall warning (without failing) when any size sits between this and min_recall. 0 disables."
+        required: false
+        default: "0.90"
 
 jobs:
   bench:
@@ -38,6 +46,11 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       SIZES: ${{ github.event.inputs.sizes || '1000,10000' }}
       QUERIES: ${{ github.event.inputs.queries || '50' }}
+      # Task #568 — fail the run when HNSW recall against brute-force regresses.
+      # 0.85 mean recall@8 is the floor we've seen on stable HNSW configs over
+      # the last quarter; anything lower is a config regression worth blocking.
+      MIN_RECALL: ${{ github.event.inputs.min_recall || '0.85' }}
+      WARN_RECALL: ${{ github.event.inputs.warn_recall || '0.90' }}
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -91,6 +104,8 @@ jobs:
             --embed-source=openai \
             --sizes="${SIZES}" \
             --queries="${QUERIES}" \
+            --min-recall="${MIN_RECALL}" \
+            --warn-recall="${WARN_RECALL}" \
             --append-docs \
             --json-out=artifacts/vector-bench-openai.json \
             2>&1 | tee artifacts/vector-bench-openai.log
@@ -102,8 +117,34 @@ jobs:
             echo "## Vector Benchmark (OpenAI embeddings)"
             echo ""
             echo "Sizes: \`${SIZES}\`  |  Queries: \`${QUERIES}\`  |  Embedding source: \`openai\` (text-embedding-3-small)"
+            echo "Recall gates: min=\`${MIN_RECALL}\`  warn=\`${WARN_RECALL}\`"
             echo ""
             if [ -f artifacts/vector-bench-openai.json ]; then
+              # Surface threshold breaches at the very top of the summary so a
+              # regression is visible from the workflow run page without
+              # scrolling through the JSON or hunting through logs. Task #568.
+              node -e '
+                const fs = require("fs");
+                const o = JSON.parse(fs.readFileSync("artifacts/vector-bench-openai.json", "utf8"));
+                const failed = Array.isArray(o.failed) ? o.failed : [];
+                const warned = Array.isArray(o.warned) ? o.warned : [];
+                if (failed.length > 0) {
+                  console.log("### Threshold FAILURES");
+                  console.log("");
+                  for (const m of failed) console.log("- " + m);
+                  console.log("");
+                }
+                if (warned.length > 0) {
+                  console.log("### Threshold warnings");
+                  console.log("");
+                  for (const m of warned) console.log("- " + m);
+                  console.log("");
+                }
+                if (failed.length === 0 && warned.length === 0) {
+                  console.log("All latency and recall gates passed.");
+                  console.log("");
+                }
+              '
               # Pull recall@K out of the JSON summary so a regression in HNSW
               # quality is visible at a glance from the workflow run page —
               # not just buried in the log or the markdown history file.

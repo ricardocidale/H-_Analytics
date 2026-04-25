@@ -84,6 +84,20 @@ interface Args {
   insertBatch: number;
   thresholdP95Ms: number;
   warnP95Ms: number;
+  /**
+   * Task #568 — fail the run if mean recall@K for any size falls below
+   * this fraction (0..1). 0 disables the gate. Only meaningful when
+   * --embed-source=openai (random-vector runs report null recall and
+   * are always skipped, no matter the threshold).
+   */
+  minRecall: number;
+  /**
+   * Task #568 — softer companion to `--min-recall`: when set, a size
+   * whose mean recall sits between `warnRecall` and `minRecall` is
+   * surfaced in the warned[] section without failing the build. 0
+   * disables the warn gate.
+   */
+  warnRecall: number;
   jsonOut: string | null;
   allowProduction: boolean;
   embedSource: EmbedSource;
@@ -99,6 +113,8 @@ function parseArgs(argv: string[]): Args {
     insertBatch: 500,
     thresholdP95Ms: 0,
     warnP95Ms: 0,
+    minRecall: 0,
+    warnRecall: 0,
     jsonOut: null,
     allowProduction: false,
     embedSource: "random",
@@ -151,6 +167,12 @@ function parseArgs(argv: string[]): Args {
       case "--warn-p95-ms":
         args.warnP95Ms = Math.max(0, Number(next()) || 0);
         break;
+      case "--min-recall":
+        args.minRecall = Number(next());
+        break;
+      case "--warn-recall":
+        args.warnRecall = Number(next());
+        break;
       case "--json-out": {
         const v = next();
         args.jsonOut = v && v.length > 0 ? v : null;
@@ -174,6 +196,7 @@ function parseArgs(argv: string[]): Args {
             "                                  [--insert-batch 500] [--keep] [--no-record]\n" +
             "                                  [--append-docs] [--json-out path]\n" +
             "                                  [--threshold-p95-ms N] [--warn-p95-ms N]\n" +
+            "                                  [--min-recall 0.85] [--warn-recall 0.90]\n" +
             "                                  [--allow-production]\n" +
             "                                  [--embed-source openai|random]",
         );
@@ -191,6 +214,17 @@ function parseArgs(argv: string[]): Args {
   }
   if (!Number.isFinite(args.insertBatch) || args.insertBatch <= 0) {
     throw new Error("--insert-batch must be a positive integer");
+  }
+  // Recall thresholds are fractions in [0, 1]. 0 disables the gate, so the
+  // openly-permissive default keeps existing callers (which never pass these
+  // flags) unaffected.
+  for (const [name, val] of [["--min-recall", args.minRecall], ["--warn-recall", args.warnRecall]] as const) {
+    if (!Number.isFinite(val) || val < 0 || val > 1) {
+      throw new Error(`${name} must be a number in [0, 1] (got ${val})`);
+    }
+  }
+  if (args.warnRecall > 0 && args.minRecall > 0 && args.warnRecall < args.minRecall) {
+    throw new Error("--warn-recall must be >= --min-recall (warn is the softer gate)");
   }
   return args;
 }
@@ -643,6 +677,10 @@ interface BenchOutcome {
   topK: number;
   thresholdP95Ms: number;
   warnP95Ms: number;
+  /** Task #568 — recall@K gate (mean + p5 evaluated against this). 0 = disabled. */
+  minRecall: number;
+  /** Task #568 — softer recall warn gate. 0 = disabled. */
+  warnRecall: number;
   embedSource: EmbedSource;
   results: Array<{
     size: number;
@@ -763,6 +801,27 @@ async function main(): Promise<void> {
           warned.push(`${c.label}: p95=${fmt(c.p95)}ms > ${args.warnP95Ms}ms`);
         }
       }
+
+      // Task #568 — recall@K gate. Random-vector runs report null recall by
+      // design (every "match" is noise), so we only enforce on real
+      // embeddings. We evaluate BOTH the mean and the worst-decile (p5)
+      // recall against the same threshold: a p5 collapse with a stable mean
+      // is the canonical signature of an HNSW config that returns garbage on
+      // a small slice of queries, which is exactly the regression this gate
+      // exists to catch.
+      if (r.recall && (args.minRecall > 0 || args.warnRecall > 0)) {
+        const recallChecks: Array<{ label: string; value: number }> = [
+          { label: `size=${size} recall@${r.recall.topK} mean`, value: r.recall.meanAtK },
+          { label: `size=${size} recall@${r.recall.topK} p5 (worst-decile)`, value: r.recall.p5AtK },
+        ];
+        for (const c of recallChecks) {
+          if (args.minRecall > 0 && c.value < args.minRecall) {
+            failed.push(`${c.label}: ${fmtPct(c.value)} < min ${fmtPct(args.minRecall)}`);
+          } else if (args.warnRecall > 0 && c.value < args.warnRecall) {
+            warned.push(`${c.label}: ${fmtPct(c.value)} < warn ${fmtPct(args.warnRecall)}`);
+          }
+        }
+      }
     }
 
     console.log("\n" + renderTable(results, args.queries));
@@ -799,6 +858,8 @@ async function main(): Promise<void> {
     topK: args.topK,
     thresholdP95Ms: args.thresholdP95Ms,
     warnP95Ms: args.warnP95Ms,
+    minRecall: args.minRecall,
+    warnRecall: args.warnRecall,
     embedSource: args.embedSource,
     results: results.map((r) => ({
       size: r.size,
