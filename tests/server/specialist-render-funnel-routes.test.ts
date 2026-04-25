@@ -131,6 +131,9 @@ vi.mock("../../server/storage", () => ({
     createResearchRun,
     updateResearchRun,
     getResearchRunsForSpecialist,
+    countResearchRunsForSpecialist: vi.fn(async () => 0),
+    getSpecialistConfig: vi.fn(async () => null),
+    getUserById: vi.fn(async () => undefined),
     recordObservedMissingFields,
   },
 }));
@@ -282,6 +285,7 @@ describe("GET /api/specialists/photo-enhancer/calls — filtered by specialistId
     expect(getResearchRunsForSpecialist).toHaveBeenCalledWith(
       "photos.photo-enhancer",
       expect.any(Number),
+      expect.any(Number),
     );
   });
 
@@ -324,6 +328,7 @@ describe("GET /api/specialists/photo-enhancer/calls — filtered by specialistId
     expect(getResearchRunsForSpecialist).toHaveBeenLastCalledWith(
       "photos.photo-enhancer",
       25,
+      0,
     );
 
     // Unbounded values should be clamped, not echoed back verbatim.

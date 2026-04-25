@@ -635,7 +635,7 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                     >
                       Loading aggregate trend…
                     </div>
-                  ) : historyError || !historyData ? (
+                  ) : historyError || !historyData || !historyData.aggregate ? (
                     <div
                       className="flex items-center justify-center text-xs text-rose-600 border rounded h-[96px]"
                       data-testid="resource-aggregate-history-error"

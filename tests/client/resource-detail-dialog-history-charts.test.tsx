@@ -160,8 +160,18 @@ function mockFetch({ consumers, historyMode }: MockOptions) {
         specialistId: c.specialistId,
         points: HISTORY_POINTS,
       }));
+      // Aggregate mirrors what computeResourceAggregateTrend returns: avg+min
+      // across consumers per day. All consumers share the same HISTORY_POINTS
+      // in this fixture so avg === min === each point's score.
+      const aggregate = {
+        points: HISTORY_POINTS.map((p) => ({
+          ...p,
+          min: p.score,
+          consumerCount: cs.length,
+        })),
+      };
       return new Response(
-        JSON.stringify({ resourceId: RESOURCE_ID, histories }),
+        JSON.stringify({ resourceId: RESOURCE_ID, histories, aggregate }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
     }
