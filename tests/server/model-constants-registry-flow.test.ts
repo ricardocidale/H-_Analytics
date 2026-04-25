@@ -84,6 +84,31 @@ const sampleRun = {
   },
 };
 
+// Task #718 — non-US country override fixture. Asserts that admins can
+// research and apply a `taxRate` override for any country (here: Mexico),
+// not just the US. Picks a value distinct from Mexico's seeded factory
+// baseline (0.30) so the test can't silently match the country default.
+const sampleRunMexico = {
+  id: 888,
+  startedAt: new Date("2026-04-22T00:00:00Z"),
+  completedAt: new Date("2026-04-22T00:00:05Z"),
+  status: "completed",
+  durationMs: 5000,
+  metadata: {
+    specialistId: "constants.tax-research",
+    specialistLetter: "H",
+    constant: { key: "taxRate", country: "Mexico", subdivision: null },
+    proposal: {
+      value: 0.32,
+      authority: "SAT — Ley del Impuesto sobre la Renta (hypothetical 2026 reform)",
+      referenceUrl: "https://example.test/sat",
+      reasoning: "Hypothetical Mexican ISR change for test.",
+      isDifferentFromCurrent: true,
+    },
+    sources: [{ title: "SAT Notice", url: "https://example.test/sat-notice" }],
+  },
+};
+
 // Capture the row the route layer would persist so we can re-read it
 // through the real resolver.
 let capturedOverride: ModelConstantOverride | null = null;
@@ -114,7 +139,29 @@ vi.mock("../../server/storage", () => ({
     listModelConstantOverrides: vi.fn(async () => []),
     getRefreshCadenceOverrides: vi.fn(async () => new Map<string, number>()),
     listCanonicals: vi.fn(async () => []),
-    getResearchRunsForConstant: vi.fn(async () => [sampleRun]),
+    // Filter the returned runs by (key, country, subdivision) so the
+    // mock mirrors the production helper's locality scoping. This way
+    // the apply-proposal route can only `find` a run that actually
+    // belongs to the requested locality — protecting against a future
+    // route regression that forgets to pass country/subdivision through
+    // when looking up the run.
+    getResearchRunsForConstant: vi.fn(
+      async (
+        key: string,
+        country: string | null,
+        subdivision: string | null,
+      ) => {
+        const all = [sampleRun, sampleRunMexico];
+        return all.filter((r) => {
+          const c = r.metadata.constant;
+          return (
+            c.key === key &&
+            (c.country ?? null) === (country ?? null) &&
+            (c.subdivision ?? null) === (subdivision ?? null)
+          );
+        });
+      },
+    ),
     getLatestSuccessfulRunForConstant: vi.fn(async () => null),
   },
 }));
@@ -525,6 +572,64 @@ describe("Audit #319 R4 — constants registry migration invariants", () => {
       });
       expect(mxResolved.source).toBe("factory");
       expect(mxResolved.value).toBe(getFactoryNumber("taxRate", "Mexico"));
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Task #718 — admins can research and apply taxRate for any country.
+    //
+    // Before this task, the Constants tab UI only exposed a country
+    // selector with no way to surface a non-US (country, state)
+    // combination distinct from the existing US baseline. The route
+    // layer already accepted any country/subdivision pair — this test
+    // pins that behavior end-to-end so a future PR can't quietly
+    // regress the apply-proposal flow back to a US-only path.
+    // ─────────────────────────────────────────────────────────────────────
+    it("admin-applied Specialist proposal for taxRate/Mexico persists at the right locality", async () => {
+      const factoryMx = getFactoryNumber("taxRate", "Mexico");
+      // Sanity: chosen value (0.32) is genuinely new vs Mexico's seeded
+      // factory (0.30) — neither side of the assertion can silently match.
+      expect(factoryMx).not.toBe(0.32);
+
+      const res = await request(app)
+        .post("/api/admin/model-constants/taxRate/apply-proposal?country=Mexico")
+        .send({ researchRunId: 888 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.appliedFromResearchRunId).toBe(888);
+      expect(res.body.wasFactoryEqual).toBe(false);
+
+      // Persisted at country=Mexico (not US), subdivision=null.
+      expect(capturedOverride).not.toBeNull();
+      const row = capturedOverride!;
+      expect(row.constantKey).toBe("taxRate");
+      expect(row.country).toBe("Mexico");
+      expect(row.countrySubdivision).toBeNull();
+      expect(row.value).toBe(0.32);
+      expect(row.source).toBe("analyst");
+      expect(row.researchRunId).toBe(888);
+
+      // Resolver picks up the Mexican override at MX, but the US
+      // baseline must remain untouched — proves the override is scoped
+      // to its country, not bleeding through as a global default.
+      const mxResolved = getEffectiveConstant<number>({
+        key: "taxRate",
+        country: "Mexico",
+        subdivision: null,
+        overrides: [row],
+        canonicals: [],
+      });
+      expect(mxResolved.value).toBe(0.32);
+      expect(mxResolved.source).toBe("analyst");
+
+      const usResolved = getEffectiveConstant<number>({
+        key: "taxRate",
+        country: "United States",
+        subdivision: null,
+        overrides: [row],
+        canonicals: [],
+      });
+      expect(usResolved.source).toBe("factory");
+      expect(usResolved.value).toBe(getFactoryNumber("taxRate", "United States"));
     });
   });
 });

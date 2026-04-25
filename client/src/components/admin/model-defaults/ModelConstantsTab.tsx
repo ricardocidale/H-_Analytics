@@ -38,7 +38,7 @@ import { Button } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { IconShieldCheck } from "@/components/icons";
 import { Loader2, AlertTriangle, RefreshCw, Clock } from "@/components/icons/themed-icons";
-import { SUPPORTED_COUNTRIES } from "@shared/countryDefaults";
+import { SUPPORTED_COUNTRIES, SUPPORTED_US_STATES } from "@shared/countryDefaults";
 import {
   formatWithUnit, formatRelative, formatAbsolute,
   ProvenanceBadge, SpecialistBadge, StaleBadge, ScopeChip,
@@ -139,11 +139,28 @@ export function ModelConstantsTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [country, setCountry] = useState<string>("United States");
+  /**
+   * Optional US-state subdivision selector. Only meaningful for
+   * `country+state` keys (`taxRate`, `costRateTaxes`) when the selected
+   * country is the United States. The server folds subdivision to NULL
+   * for country-only and universal keys, so leaving this set while
+   * viewing a country-only constant doesn't pollute its row.
+   *
+   * Sentinel value `__none__` means "no state — country baseline" (e.g.
+   * federal-only US tax). Any real state name resolves to the matching
+   * `US_STATE_DEFAULTS` overlay row in the registry.
+   */
+  const STATE_SENTINEL_NONE = "__none__";
+  const [subdivision, setSubdivision] = useState<string>(STATE_SENTINEL_NONE);
+  const subdivisionParam = country === "United States" && subdivision !== STATE_SENTINEL_NONE
+    ? subdivision
+    : null;
 
   const { data, isLoading } = useQuery<ApiResponse>({
-    queryKey: ["admin-model-constants", country],
+    queryKey: ["admin-model-constants", country, subdivisionParam],
     queryFn: async () => {
       const params = new URLSearchParams({ country });
+      if (subdivisionParam) params.set("subdivision", subdivisionParam);
       const res = await fetch(`/api/admin/model-constants?${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to load model constants");
       return res.json();
@@ -154,6 +171,11 @@ export function ModelConstantsTab() {
     mutationFn: async (row: ConstantRow) => {
       const params = new URLSearchParams();
       if (row.locality !== "universal") params.set("country", country);
+      // Only country+state rows accept a subdivision; passing one to a
+      // country-only key would 400 from the server's locality validator.
+      if (row.locality === "country+state" && subdivisionParam) {
+        params.set("subdivision", subdivisionParam);
+      }
       const res = await fetch(`/api/admin/model-constants/${row.key}?${params}`, {
         method: "DELETE",
         credentials: "include",
@@ -207,10 +229,19 @@ export function ModelConstantsTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-        <Section title="Country" description="Select the jurisdiction whose constants you want to view.">
+        <Section title="Locality" description="Select the jurisdiction whose constants you want to view.">
           <div className="space-y-2 col-span-full">
             <Label className="label-text">Country</Label>
-            <Select value={country} onValueChange={setCountry}>
+            <Select
+              value={country}
+              onValueChange={(c) => {
+                setCountry(c);
+                // A US-state selection is meaningless for any other
+                // country, so reset the subdivision when the country
+                // changes away from US.
+                if (c !== "United States") setSubdivision(STATE_SENTINEL_NONE);
+              }}
+            >
               <SelectTrigger className="w-full bg-card border-border" data-testid="select-model-constants-country">
                 <SelectValue />
               </SelectTrigger>
@@ -220,6 +251,30 @@ export function ModelConstantsTab() {
                 ))}
               </SelectContent>
             </Select>
+            {country === "United States" && (
+              <>
+                <Label className="label-text mt-3">US state (optional)</Label>
+                <Select value={subdivision} onValueChange={setSubdivision}>
+                  <SelectTrigger
+                    className="w-full bg-card border-border"
+                    data-testid="select-model-constants-subdivision"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={STATE_SENTINEL_NONE}>
+                      No state — federal baseline
+                    </SelectItem>
+                    {SUPPORTED_US_STATES.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Only applies to country+state constants (income tax, property tax). Other rows resolve at the country level.
+                </p>
+              </>
+            )}
             <p className="text-xs text-muted-foreground">
               Universal constants below ignore this selection.
             </p>
@@ -234,6 +289,7 @@ export function ModelConstantsTab() {
                   key={row.key}
                   row={row}
                   country={country}
+                  subdivision={null}
                   onReset={() => resetMutation.mutate(row)}
                   isResetting={resetMutation.isPending}
                 />
@@ -244,7 +300,7 @@ export function ModelConstantsTab() {
 
         {countryItems.length > 0 && (
           <Section
-            title={`Country-keyed constants — ${country}`}
+            title={`Country-keyed constants — ${country}${subdivisionParam ? ` · ${subdivisionParam}` : ""}`}
             description="Vary by jurisdiction. Falls back to the United States baseline when not yet researched for the selected country."
           >
             <div className="space-y-3 col-span-full">
@@ -253,6 +309,10 @@ export function ModelConstantsTab() {
                   key={row.key}
                   row={row}
                   country={country}
+                  // Only forward the state selection to country+state
+                  // rows; country-only rows must always reset/refresh
+                  // at the country scope.
+                  subdivision={row.locality === "country+state" ? subdivisionParam : null}
                   onReset={() => resetMutation.mutate(row)}
                   isResetting={resetMutation.isPending}
                 />
@@ -266,10 +326,11 @@ export function ModelConstantsTab() {
 }
 
 function ConstantRowCard({
-  row, country, onReset, isResetting,
+  row, country, subdivision, onReset, isResetting,
 }: {
   row: ConstantRow;
   country: string;
+  subdivision: string | null;
   onReset: () => void;
   isResetting: boolean;
 }) {
@@ -358,8 +419,8 @@ function ConstantRowCard({
       )}
 
       <div className="mt-3 flex items-center gap-2 flex-wrap">
-        <RefreshResearchPopover row={row} country={country} />
-        <HistoryButton row={row} country={country} />
+        <RefreshResearchPopover row={row} country={country} subdivision={subdivision} />
+        <HistoryButton row={row} country={country} subdivision={subdivision} />
         {row.source !== "factory" && (
           <Button
             variant="ghost"

@@ -7,7 +7,19 @@ import { IconSparkles } from "@/components/icons";
 import { Loader2, RefreshCw } from "@/components/icons/themed-icons";
 import { formatWithUnit, type ConstantRow, type ProposalPayload } from "./_shared";
 
-export function RefreshResearchPopover({ row, country }: { row: ConstantRow; country: string }) {
+export function RefreshResearchPopover({
+  row, country, subdivision,
+}: {
+  row: ConstantRow;
+  country: string;
+  /**
+   * Optional US-state subdivision. Forwarded only when the row is
+   * registered as `country+state` (today: `taxRate`, `costRateTaxes`).
+   * For country-only and universal rows, the server folds subdivision
+   * to NULL — passing one would 400 from the locality validator.
+   */
+  subdivision: string | null;
+}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -17,6 +29,7 @@ export function RefreshResearchPopover({ row, country }: { row: ConstantRow; cou
   const localityParams = () => {
     const p = new URLSearchParams();
     if (row.locality !== "universal") p.set("country", country);
+    if (row.locality === "country+state" && subdivision) p.set("subdivision", subdivision);
     return p;
   };
 

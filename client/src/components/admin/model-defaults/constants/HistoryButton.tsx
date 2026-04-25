@@ -6,14 +6,26 @@ import { IconHistory } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { formatRelative, formatWithUnit, type ConstantRow, type ResearchRun } from "./_shared";
 
-export function HistoryButton({ row, country }: { row: ConstantRow; country: string }) {
+export function HistoryButton({
+  row, country, subdivision,
+}: {
+  row: ConstantRow;
+  country: string;
+  /**
+   * Optional US-state subdivision. Forwarded only for `country+state`
+   * rows so the history popover stays scoped to the same locality the
+   * card was rendered at (e.g. `taxRate` for Texas vs federal).
+   */
+  subdivision: string | null;
+}) {
   const [open, setOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery<{ runs: ResearchRun[] }>({
-    queryKey: ["admin-model-constants-history", row.key, country, row.locality],
+    queryKey: ["admin-model-constants-history", row.key, country, subdivision, row.locality],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (row.locality !== "universal") params.set("country", country);
+      if (row.locality === "country+state" && subdivision) params.set("subdivision", subdivision);
       const res = await fetch(
         `/api/admin/model-constants/${row.key}/research-history?${params}`,
         { credentials: "include" },
