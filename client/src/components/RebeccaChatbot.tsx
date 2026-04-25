@@ -10,6 +10,7 @@ import { RebeccaTypingIndicator } from "./rebecca/RebeccaTypingIndicator";
 import { RebeccaMarkdown } from "./rebecca/RebeccaMarkdown";
 import { RebeccaInsightBanner } from "./rebecca/RebeccaInsightBanner";
 import { RebeccaConversationHistory } from "./rebecca/RebeccaConversationHistory";
+import { SourcesUsedPanel, type ChatSourceUsed } from "./rebecca/SourcesUsedPanel";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -26,6 +27,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   assets?: AssetMatch[];
+  sources?: ChatSourceUsed[];
 }
 
 
@@ -71,10 +73,11 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
       const data = await res.json();
       if (data.messages?.length > 0) {
         setMessages(
-          data.messages.map((m: { id: number; role: string; content: string }) => ({
+          data.messages.map((m: { id: number; role: string; content: string; sources?: ChatSourceUsed[] }) => ({
             id: `db-${m.id}`,
             role: m.role as "user" | "assistant",
             content: m.content,
+            ...(m.role === "assistant" ? { sources: Array.isArray(m.sources) ? m.sources : [] } : {}),
           }))
         );
       } else {
@@ -118,7 +121,13 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
       if (!res.ok) throw new Error("Failed to get response");
       const data = await res.json();
       if (data.conversationId) setConversationId(data.conversationId);
-      setMessages((prev) => [...prev, { id: nextMsgId("assistant"), role: "assistant", content: data.response, assets: data.assets }]);
+      setMessages((prev) => [...prev, {
+        id: nextMsgId("assistant"),
+        role: "assistant",
+        content: data.response,
+        assets: data.assets,
+        sources: Array.isArray(data.sourcesUsed) ? data.sourcesUsed : [],
+      }]);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setMessages((prev) => [
@@ -207,7 +216,7 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
             )}
 
             <AnimatePresence initial={false}>
-              {messages.map((msg) => (
+              {messages.map((msg, idx) => (
                 <motion.div
                   key={msg.id}
                   initial={{ opacity: 0, y: 6 }}
@@ -219,19 +228,24 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
                   )}
                 >
                   {msg.role === "assistant" && <RebeccaAvatar size="sm" className="mt-1" />}
-                  <div
-                    className={cn(
-                      "max-w-[82%] rounded-lg px-3 py-2 text-sm",
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
-                        : "bg-muted text-foreground rounded-tl-sm"
-                    )}
-                    data-testid={`message-${msg.role}-${msg.id}`}
-                  >
-                    {msg.role === "assistant" ? (
-                      <RebeccaMarkdown content={msg.content} assets={msg.assets} />
-                    ) : (
-                      msg.content
+                  <div className="flex flex-col items-start min-w-0">
+                    <div
+                      className={cn(
+                        "max-w-[82%] rounded-lg px-3 py-2 text-sm",
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
+                          : "bg-muted text-foreground rounded-tl-sm"
+                      )}
+                      data-testid={`message-${msg.role}-${msg.id}`}
+                    >
+                      {msg.role === "assistant" ? (
+                        <RebeccaMarkdown content={msg.content} assets={msg.assets} />
+                      ) : (
+                        msg.content
+                      )}
+                    </div>
+                    {msg.role === "assistant" && msg.sources !== undefined && (
+                      <SourcesUsedPanel sources={msg.sources} turnIndex={idx} />
                     )}
                   </div>
                 </motion.div>

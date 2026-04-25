@@ -23,6 +23,7 @@ import {
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
 import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
+import { SourcesUsedPanel, type ChatSourceUsed } from "./SourcesUsedPanel";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -41,6 +42,7 @@ interface ChatMessage {
   content: string;
   assets?: AssetMatch[];
   detectedLanguage?: string;
+  sources?: ChatSourceUsed[];
 }
 
 
@@ -178,10 +180,11 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       const data = await res.json();
       if (data.messages?.length > 0) {
         setMessages(
-          data.messages.map((m: { id: number; role: string; content: string }) => ({
+          data.messages.map((m: { id: number; role: string; content: string; sources?: ChatSourceUsed[] }) => ({
             id: `db-${m.id}`,
             role: m.role as "user" | "assistant",
             content: m.content,
+            ...(m.role === "assistant" ? { sources: Array.isArray(m.sources) ? m.sources : [] } : {}),
           }))
         );
         setConversationId(convId);
@@ -266,6 +269,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         role: "assistant",
         content: greeting,
         assets: data.assets,
+        sources: Array.isArray(data.sourcesUsed) ? data.sourcesUsed : [],
       }]);
       if (data.observations?.length) {
         for (const obs of data.observations as string[]) {
@@ -355,6 +359,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             content: data.response,
             assets: data.assets,
             detectedLanguage: data.detectedLanguage,
+            sources: Array.isArray(data.sourcesUsed) ? data.sourcesUsed : [],
           },
         ]);
 
@@ -597,7 +602,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           )}
 
           <AnimatePresence initial={false}>
-            {messages.map((msg) => (
+            {messages.map((msg, idx) => (
               <motion.div
                 key={msg.id}
                 initial={{ opacity: 0, y: 8 }}
@@ -609,26 +614,31 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 )}
               >
                 {msg.role === "assistant" && <RebeccaAvatar size="sm" className="mt-1" />}
-                <div
-                  className={cn(
-                    "max-w-[82%] rounded-lg px-3 py-2 text-sm",
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
-                      : "bg-muted text-foreground rounded-tl-sm"
-                  )}
-                  data-testid={`rebecca-message-${msg.role}-${msg.id}`}
-                >
-                  {msg.role === "assistant" ? (
-                    <>
-                      {msg.detectedLanguage === "es" && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400 px-1.5 py-0.5 rounded mb-1 w-fit" data-testid="language-badge-es">
-                          ES
-                        </span>
-                      )}
-                      <RebeccaMarkdown content={msg.content} assets={msg.assets} locale={msg.detectedLanguage === "es" ? "es" : "en"} />
-                    </>
-                  ) : (
-                    msg.content
+                <div className="flex flex-col items-start min-w-0">
+                  <div
+                    className={cn(
+                      "max-w-[82%] rounded-lg px-3 py-2 text-sm",
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
+                        : "bg-muted text-foreground rounded-tl-sm"
+                    )}
+                    data-testid={`rebecca-message-${msg.role}-${msg.id}`}
+                  >
+                    {msg.role === "assistant" ? (
+                      <>
+                        {msg.detectedLanguage === "es" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400 px-1.5 py-0.5 rounded mb-1 w-fit" data-testid="language-badge-es">
+                            ES
+                          </span>
+                        )}
+                        <RebeccaMarkdown content={msg.content} assets={msg.assets} locale={msg.detectedLanguage === "es" ? "es" : "en"} />
+                      </>
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                  {msg.role === "assistant" && msg.sources !== undefined && (
+                    <SourcesUsedPanel sources={msg.sources} turnIndex={idx} />
                   )}
                 </div>
               </motion.div>

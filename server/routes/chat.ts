@@ -260,12 +260,29 @@ export function register(app: Express) {
         conversationId: conv.id,
         contextType: conv.contextType,
         contextKey: conv.contextKey,
-        messages: messages.map(m => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          createdAt: m.createdAt,
-        })),
+        messages: messages.map(m => {
+          // Task #550 — surface persisted retrieval sources alongside each
+          // assistant message so the user-facing chat can render the same
+          // "Sources used" panel as the admin Test Chat preview when
+          // reloading a conversation.
+          const meta = (m.metadata ?? {}) as Record<string, unknown>;
+          const rawSources = Array.isArray(meta.sources) ? meta.sources : [];
+          const sources = rawSources
+            .filter((s: unknown): s is Record<string, unknown> => !!s && typeof s === "object")
+            .map((s) => ({
+              title: String(s.title ?? ""),
+              namespace: String(s.namespace ?? ""),
+              score: typeof s.score === "number" ? s.score : Number(s.score) || 0,
+              weight: typeof s.weight === "number" ? s.weight : Number(s.weight) || 0,
+            }));
+          return {
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            createdAt: m.createdAt,
+            ...(m.role === "assistant" ? { sources } : {}),
+          };
+        }),
       });
     } catch (error: unknown) {
       logger.error(`Failed to load conversation: ${error instanceof Error ? error.message : String(error)}`, "chat");
@@ -755,6 +772,22 @@ export function register(app: Express) {
       // settings have ever been written (still informative for logs).
       void legacyEngine;
 
+      // Task #539 — order surfaced sources by weighted score so the
+      // Knowledge & Sources sliders visibly affect the displayed list.
+      // Identical (namespace, title) pairs (e.g. multiple chunks from the
+      // same KB entry) collapse into the highest-scoring representative.
+      // Task #550 — compute this BEFORE persisting the assistant message so
+      // the sorted list can be saved on the message metadata and shown in
+      // the saved Rebecca chat too (not just the admin Test Chat preview).
+      const sourcesByKey = new Map<string, ChatSourceUsed>();
+      for (const s of sourcesUsed) {
+        const key = `${s.namespace}::${s.title}`;
+        const prev = sourcesByKey.get(key);
+        if (!prev || s.score > prev.score) sourcesByKey.set(key, s);
+      }
+      const sourcesUsedSorted = Array.from(sourcesByKey.values())
+        .sort((a, b) => (b.score * (b.weight / 100)) - (a.score * (a.weight / 100)));
+
       if (!isPreview) {
         await storage.addRebeccaMessage({
           conversationId,
@@ -764,6 +797,10 @@ export function register(app: Express) {
             responseMode: responseMode ?? "standard",
             model: resolvedModelName,
             engine: resolvedProvider,
+            // Task #550 — persist the per-turn retrieved sources so the
+            // user-facing chat can render the same "Sources used" panel
+            // even after a page reload.
+            sources: sourcesUsedSorted,
           },
         });
       }
@@ -771,19 +808,6 @@ export function register(app: Express) {
       const totalMessages = dbHistory.length + 2;
       const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
       logActivity(req, "rebecca-chat", "rebecca_conversation", conversationId, null, { responseMode, detectedLanguage, totalMessages });
-
-      // Task #539 — order surfaced sources by weighted score so the
-      // Knowledge & Sources sliders visibly affect the displayed list.
-      // Identical (namespace, title) pairs (e.g. multiple chunks from the
-      // same KB entry) collapse into the highest-scoring representative.
-      const sourcesByKey = new Map<string, ChatSourceUsed>();
-      for (const s of sourcesUsed) {
-        const key = `${s.namespace}::${s.title}`;
-        const prev = sourcesByKey.get(key);
-        if (!prev || s.score > prev.score) sourcesByKey.set(key, s);
-      }
-      const sourcesUsedSorted = Array.from(sourcesByKey.values())
-        .sort((a, b) => (b.score * (b.weight / 100)) - (a.score * (a.weight / 100)));
 
       // Task #532 — admin-only payload describing exactly which Knowledge &
       // Sources blocks made it into the system prompt for this turn. The
