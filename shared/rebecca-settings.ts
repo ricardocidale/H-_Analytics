@@ -197,3 +197,63 @@ export function buildPersonaOverlay(s: RebeccaSettings, displayName: string): st
 
   return lines.join("\n");
 }
+
+/**
+ * Pre-built blocks supplied to {@link assembleSystemPrompt}. Blocks that are
+ * gated by an admin Knowledge & Sources toggle (portfolio, knowledge base,
+ * research, documents, uploaded-files) are passed in already-formatted; the
+ * assembler is responsible for honoring the toggle and dropping the block
+ * entirely when the source is disabled.
+ *
+ * Blocks that are NOT source-gated (guardrails, response-mode overlay,
+ * language overlay, prompt-injection guard, focused-entity field block) are
+ * always concatenated when supplied. This mirrors the exact assembly order
+ * used in `server/routes/chat.ts`.
+ */
+export interface SystemPromptParts {
+  baseSystem: string;
+  personaOverlay: string;
+  guardrailBlock?: string;
+  modePromptOverlay?: string;
+  languageOverlay?: string;
+  promptInjectionGuard?: string;
+  /** Source-gated by `sources.portfolio.enabled`. */
+  portfolioBlock?: string;
+  /** Always included when present (focused entity context, not source-gated). */
+  fieldBlock?: string;
+  /**
+   * Source-gated by `sources.knowledgeBase.enabled || sources.research.enabled`.
+   * The caller is expected to have already filtered RAG content to whichever
+   * of those two sources are enabled before producing this combined block.
+   */
+  ragBlock?: string;
+  /** Source-gated by `sources.documents.enabled`. */
+  documentBlock?: string;
+  /** Source-gated by `sources.uploadedFiles.enabled`. */
+  assetBlock?: string;
+}
+
+/**
+ * Concatenate a Rebecca system prompt from its constituent blocks while
+ * honoring the admin's Knowledge & Sources toggles. Disabling a source
+ * toggle removes the corresponding block entirely from the assembled
+ * prompt, even if a non-empty block string is supplied. This is the single
+ * source of truth for source-block gating so it can be exercised by tests
+ * without standing up the full chat route.
+ */
+export function assembleSystemPrompt(
+  parts: SystemPromptParts,
+  sources: RebeccaSettings["sources"],
+): string {
+  const portfolio = sources.portfolio.enabled ? (parts.portfolioBlock ?? "") : "";
+  const ragEnabled = sources.knowledgeBase.enabled || sources.research.enabled;
+  const rag = ragEnabled ? (parts.ragBlock ?? "") : "";
+  const docs = sources.documents.enabled ? (parts.documentBlock ?? "") : "";
+  const assets = sources.uploadedFiles.enabled ? (parts.assetBlock ?? "") : "";
+  const guard = parts.guardrailBlock ?? "";
+  const mode = parts.modePromptOverlay ?? "";
+  const lang = parts.languageOverlay ?? "";
+  const inject = parts.promptInjectionGuard ?? "";
+  const field = parts.fieldBlock ?? "";
+  return `${parts.baseSystem}${parts.personaOverlay}${guard}${mode}${lang}${inject}\n\n${portfolio}${field}${rag}${docs}${assets}`;
+}
