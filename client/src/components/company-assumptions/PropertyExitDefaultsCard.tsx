@@ -37,6 +37,12 @@ interface ExitMultipleBand {
   valueHigh: number | null;
 }
 
+interface IndustryVerticalSuggestion {
+  dimensionKey: string;
+  label: string;
+  rationale: string;
+}
+
 export default function PropertyExitDefaultsCard({ formData, onChange, global, researchValues }: PropertyExitDefaultsCardProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
 
@@ -54,6 +60,26 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
   });
 
   const selectedVertical = (formData.industryVertical ?? global.industryVertical) || "";
+
+  // Analyst-style suggestion based on the user's portfolio profile (avg ADR,
+  // room count, dominant quality tier, hospitality type). Only fetched while
+  // no vertical is selected — non-binding, the user opts in via "Use suggestion".
+  const { data: suggestionResp } = useQuery<{ suggestion: IndustryVerticalSuggestion | null }>({
+    queryKey: ["/api/exit-multiples/suggestion"],
+    queryFn: async () => {
+      const res = await fetch("/api/exit-multiples/suggestion", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load vertical suggestion");
+      return res.json();
+    },
+    enabled: !selectedVertical,
+    staleTime: 5 * 60 * 1000,
+  });
+  const suggestion = !selectedVertical ? suggestionResp?.suggestion ?? null : null;
+  // Only show a suggestion that still exists in the live verticals list — guards
+  // against a stale cache after an admin reseed.
+  const suggestionStillValid = !!(
+    suggestion && exitMultiples.some(m => m.dimensionKey === suggestion.dimensionKey)
+  );
   const selectedMultipleRaw = formData.exitRevenueMultiple ?? global.exitRevenueMultiple;
   const selectedMultiple = typeof selectedMultipleRaw === "number" ? selectedMultipleRaw : null;
   const band = exitMultiples.find(m => m.dimensionKey === selectedVertical) ?? null;
@@ -140,6 +166,30 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
                     ))}
                   </SelectContent>
                 </Select>
+                {suggestion && suggestionStillValid && (
+                  <div
+                    className="rounded-md border border-sky-300/70 bg-sky-50 dark:bg-sky-950/40 dark:border-sky-700/50 p-2 text-xs text-sky-900 dark:text-sky-200"
+                    data-testid="suggestion-industry-vertical"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-medium">Analyst suggestion:</span>{" "}
+                        <span data-testid="text-suggested-vertical-label">{suggestion.label}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="shrink-0 underline underline-offset-2 hover:text-sky-700 dark:hover:text-sky-100"
+                        onClick={() => onChange("industryVertical", suggestion.dimensionKey)}
+                        data-testid="button-apply-vertical-suggestion"
+                      >
+                        Use suggestion
+                      </button>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-snug opacity-90" data-testid="text-suggested-vertical-rationale">
+                      {suggestion.rationale}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">

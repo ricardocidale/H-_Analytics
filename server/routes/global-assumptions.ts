@@ -44,6 +44,27 @@ export function register(app: Express) {
     }
   });
 
+  // Analyst-style heuristic that picks an industry vertical from the
+  // admin-managed exit_multiples list based on the caller's portfolio profile
+  // (avg ADR, avg room count, dominant quality tier / hospitality type, etc.).
+  // Used by the Property Defaults card to pre-suggest a vertical when the user
+  // has not chosen one yet. Returns `{ suggestion: null }` if there are no
+  // verticals or no properties to base a suggestion on.
+  app.get("/api/exit-multiples/suggestion", requireAuth, async (req, res) => {
+    try {
+      const userId = getAuthUser(req).id;
+      const [verticals, properties] = await Promise.all([
+        storage.getExitMultiples(),
+        storage.getAllProperties(userId),
+      ]);
+      const { suggestIndustryVertical } = await import("../ai/exit-vertical-suggestion");
+      const suggestion = suggestIndustryVertical(properties, verticals);
+      res.json({ suggestion });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to compute industry vertical suggestion", error);
+    }
+  });
+
   app.get("/api/global-assumptions", requireAuth, async (req, res) => {
     try {
       const assumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
