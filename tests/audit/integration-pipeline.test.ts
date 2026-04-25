@@ -393,7 +393,12 @@ describe("Server Code Structure Verification (File-Based)", () => {
   });
 
   it("no hardcoded API keys or secrets in server source", () => {
-    const secretPattern = /(sk-[a-zA-Z0-9]{10,}|api_key\s*=\s*["'][a-zA-Z0-9]+|secret_key\s*=\s*["'][a-zA-Z0-9]+)/;
+    // The `sk-` arm uses a left-side lookbehind `(?<![\w-])` so it only fires
+    // when `sk-` is at the start of a token (e.g. inside a string literal),
+    // not when it appears mid-identifier like `risk-intelligence` or
+    // `task-management`. This makes the scan robust to new hyphenated names
+    // without per-string allowlist entries.
+    const secretPattern = /(?<![\w-])sk-[a-zA-Z0-9][a-zA-Z0-9_-]{10,}|(?:api_key|secret_key)\s*=\s*["'][a-zA-Z0-9]+/;
     function scanDir(dir: string): string[] {
       const violations: string[] = [];
       if (!fs.existsSync(dir)) return violations;
@@ -405,8 +410,7 @@ describe("Server Code Structure Verification (File-Based)", () => {
           const content = fs.readFileSync(full, "utf-8");
           const lines = content.split("\n");
           for (let i = 0; i < lines.length; i++) {
-            const isFalsePositive = /risk-intelligence/.test(lines[i]) || /["':].*risk-manag/.test(lines[i]);
-            if (secretPattern.test(lines[i]) && !lines[i].includes("example") && !lines[i].includes("placeholder") && !isFalsePositive) {
+            if (secretPattern.test(lines[i]) && !lines[i].includes("example") && !lines[i].includes("placeholder")) {
               violations.push(`${full}:${i + 1}: ${lines[i].trim()}`);
             }
           }
