@@ -56,7 +56,7 @@ vi.mock("../../server/integrations/replicate", () => ({
 }));
 
 const generateImageBufferMock = vi.fn(async () => Buffer.from("openai-img"));
-vi.mock("../../server/replit_integrations/image/client", () => ({
+vi.mock("../../server/image/client", () => ({
   generateImageBuffer: (...args: any[]) => generateImageBufferMock(...args),
   openai: {},
   getGeminiClient: () => ({}),
@@ -142,7 +142,7 @@ async function buildApp(): Promise<Express> {
     "../../server/routes/specialist-photo-enhancer"
   );
   const { registerImageRoutes } = await import(
-    "../../server/replit_integrations/image/routes"
+    "../../server/routes/images"
   );
   const app = express();
   app.use(express.json());

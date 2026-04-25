@@ -24,8 +24,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import compression from "compression";
 import { registerRoutes } from "./routes";
-// TODO: Move image routes out of replit_integrations/ — they're not Replit-specific (they use OpenAI/Gemini directly). Blocked because they depend on ObjectStorageService from replit_integrations/object_storage.
-import { registerImageRoutes } from "./replit_integrations/image";
+import { registerImageRoutes } from "./routes/images";
 import { buildContentSecurityPolicy } from "./replit_integrations/csp";
 import { getAuthProvider } from "./providers/auth";
 import { serveStatic } from "./static";

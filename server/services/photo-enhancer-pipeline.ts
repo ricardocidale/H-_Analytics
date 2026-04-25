@@ -26,7 +26,7 @@ import {
   getDefaultImageSize,
   type ReplicateStyleKey,
 } from "../integrations/replicate";
-import { generateImageBuffer } from "../replit_integrations/image/client";
+import { generateImageBuffer } from "../image/client";
 import { getStorageProvider } from "../providers/storage";
 import { logApiCost, unitCost } from "../middleware/cost-logger";
 import { storage } from "../storage";

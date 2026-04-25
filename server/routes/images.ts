@@ -1,19 +1,19 @@
 import type { Express, Request, Response } from "express";
-import { openai, generateImageBuffer, getGeminiClient } from "./client";
-import { requireAuth, isApiRateLimited, getAuthUser } from "../../auth";
-import { getAvailableStylesFromDb, getAdminRateLimit } from "../../integrations/replicate";
+import { openai, getGeminiClient } from "../image/client";
+import { requireAuth, isApiRateLimited, getAuthUser } from "../auth";
+import { getAvailableStylesFromDb, getAdminRateLimit } from "../integrations/replicate";
 import { z } from "zod";
-import { logApiCost, estimateCost, unitCost } from "../../middleware/cost-logger";
-import { storage } from "../../storage";
-import { resolveLlm, getVendorService } from "../../ai/resolve-llm";
+import { logApiCost, estimateCost, unitCost } from "../middleware/cost-logger";
+import { storage } from "../storage";
+import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import type { ResearchConfig } from "@shared/schema";
-import { logger } from "../../logger";
+import { logger } from "../logger";
 import {
   PHOTO_ENHANCER_STYLES,
   PhotoEnhancerStyleDisabledError,
   PhotoEnhancerInvalidSourceUrlError,
   runPhotoEnhancerPipeline,
-} from "../../services/photo-enhancer-pipeline";
+} from "../services/photo-enhancer-pipeline";
 
 const generatePropertyImageSchema = z.object({
   prompt: z.string().optional().default(""),

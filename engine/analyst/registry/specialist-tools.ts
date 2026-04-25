@@ -202,7 +202,7 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
     kind: "hybrid",
     ownerSpecialistId: "photos.photo-enhancer",
     calledBy: ["photos.photo-enhancer"],
-    sourceFile: "server/replit_integrations/image/client.ts",
+    sourceFile: "server/image/client.ts",
     lastBuiltSource: {
       kind: "research-runs-specialist",
       specialistId: "photos.photo-enhancer",

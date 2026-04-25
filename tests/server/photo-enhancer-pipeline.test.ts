@@ -21,7 +21,7 @@ const specialistRouteSrc = fs.readFileSync(
   "utf-8",
 );
 const legacyRouteSrc = fs.readFileSync(
-  path.resolve(__dirname, "../../server/replit_integrations/image/routes.ts"),
+  path.resolve(__dirname, "../../server/routes/images.ts"),
   "utf-8",
 );
 const pipelineSrc = fs.readFileSync(

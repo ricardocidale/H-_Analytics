@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import OpenAI, { toFile } from "openai";
-import { getGeminiClient } from "../../ai/clients";
+import { getGeminiClient } from "../ai/clients";
 import { Buffer } from "node:buffer";
-import { logger } from "../../logger";
+import { logger } from "../logger";
 
 export const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -10,7 +10,7 @@ export const openai = new OpenAI({
 });
 
 // getGeminiClient re-exported from centralized singleton (server/ai/clients.ts)
-export { getGeminiClient } from "../../ai/clients";
+export { getGeminiClient } from "../ai/clients";
 
 /**
  * Generate an image using Nano Banana (gemini-2.5-flash-image) and return as Buffer.
