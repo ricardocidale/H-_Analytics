@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Bell, MessageSquare, Mail, AlertTriangle, CheckCircle, XCircle, Clock } from "@/components/icons/themed-icons";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -666,7 +667,10 @@ export default function NotificationsTab() {
   );
 }
 
+type VectorLatencyFilter = "all" | "real" | "test";
+
 function VectorLatencyAlertsPanel() {
+  const [filter, setFilter] = useState<VectorLatencyFilter>("all");
   const { data: vectorLogs = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/notifications/logs", { eventType: "VECTOR_LATENCY_BREACH", limit: 10 }],
     queryFn: async () => {
@@ -676,6 +680,12 @@ function VectorLatencyAlertsPanel() {
       if (!res.ok) throw new Error(`Failed to load alerts: ${res.status}`);
       return res.json();
     },
+  });
+
+  const filteredLogs = vectorLogs.filter((log: { metadata?: { test?: boolean } | null }) => {
+    if (filter === "all") return true;
+    const isTest = !!(log.metadata && (log.metadata as { test?: boolean }).test);
+    return filter === "test" ? isTest : !isTest;
   });
 
   return (
@@ -688,13 +698,39 @@ function VectorLatencyAlertsPanel() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="flex items-center justify-between mb-4">
+          <ToggleGroup
+            type="single"
+            value={filter}
+            onValueChange={(value) => {
+              if (value === "all" || value === "real" || value === "test") {
+                setFilter(value);
+              }
+            }}
+            variant="outline"
+            size="sm"
+            data-testid={`toggle-vector-latency-filter-${filter}`}
+          >
+            <ToggleGroupItem value="all" data-testid="toggle-vector-latency-filter-all">
+              All
+            </ToggleGroupItem>
+            <ToggleGroupItem value="real" data-testid="toggle-vector-latency-filter-real">
+              Real only
+            </ToggleGroupItem>
+            <ToggleGroupItem value="test" data-testid="toggle-vector-latency-filter-test">
+              Test only
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
         {isLoading ? (
           <p className="text-center text-muted-foreground py-8" data-testid="text-vector-latency-loading">
             Loading recent alerts…
           </p>
-        ) : vectorLogs.length === 0 ? (
+        ) : filteredLogs.length === 0 ? (
           <p className="text-center text-muted-foreground py-8" data-testid="text-vector-latency-empty">
-            No vector latency alerts have been sent yet.
+            {vectorLogs.length === 0
+              ? "No vector latency alerts have been sent yet."
+              : "No vector latency alerts match the current filter."}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -708,7 +744,7 @@ function VectorLatencyAlertsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {vectorLogs.map((log: { id: number; createdAt: string; recipient?: string; status: string; metadata?: { test?: boolean } | null; [key: string]: unknown }) => {
+                {filteredLogs.map((log: { id: number; createdAt: string; recipient?: string; status: string; metadata?: { test?: boolean } | null; [key: string]: unknown }) => {
                   const isTest = !!(log.metadata && (log.metadata as { test?: boolean }).test);
                   return (
                     <tr
