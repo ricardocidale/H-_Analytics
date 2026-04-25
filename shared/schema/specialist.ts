@@ -771,6 +771,46 @@ export type RecordRecommendationEventInput = z.infer<
   typeof recordRecommendationEventSchema
 >;
 
+// ════════════════════════════════════════════════════════════════════════════
+// Task #438 — Per-(specialistId, fieldKey) appearance counters.
+//
+// `lastObservedMissing` only tells us "what was missing on the last run". To
+// help admins spot perennial offenders ("this field has been recommended N
+// times, never promoted") we need a rolling counter that is bumped every
+// time a candidate field appears in the observed-missing list.
+//
+// Promotion ANNOTATES the counter: `lastPromotedAt` is set and `appearances`
+// is reset to 0 so the count reads "since last promotion". The row is
+// preserved (not deleted) so the annotation survives a future demote.
+// ════════════════════════════════════════════════════════════════════════════
+
+export const specialistRecommendationCounters = pgTable(
+  "specialist_recommendation_counters",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    specialistId: text("specialist_id").notNull(),
+    fieldKey: text("field_key").notNull(),
+    /**
+     * Number of Specialist runs in which this candidate field appeared in
+     * the observed-missing list since the last promotion (or ever, if the
+     * field has never been promoted). Reset to 0 by a promote action.
+     */
+    appearances: integer("appearances").notNull().default(0),
+    /** First time this counter row was created. */
+    firstObservedAt: timestamp("first_observed_at").defaultNow().notNull(),
+    /** Most recent run that observed this field as missing. */
+    lastObservedAt: timestamp("last_observed_at").defaultNow().notNull(),
+    /** Last admin promotion of this field (annotation, null = never). */
+    lastPromotedAt: timestamp("last_promoted_at"),
+  },
+  (t) => [
+    uniqueIndex("specialist_rec_counters_uniq").on(t.specialistId, t.fieldKey),
+    index("specialist_rec_counters_specialist_idx").on(t.specialistId),
+  ],
+);
+export type SpecialistRecommendationCounterRow =
+  typeof specialistRecommendationCounters.$inferSelect;
+
 export const SpecialistIdentityHistoryEntrySchema = z.object({
   id: z.number().int(),
   action: z.enum(["upsert", "reset"]),

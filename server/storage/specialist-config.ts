@@ -21,6 +21,7 @@ import {
   specialistConfigs,
   specialistConfigVersions,
   specialistRecommendationEvents,
+  specialistRecommendationCounters,
   type SpecialistConfigRow,
   type SpecialistConfigVersionRow,
   type SpecialistConfigSectionType,
@@ -181,6 +182,35 @@ export class SpecialistConfigStorage {
         lastObservedMissingAt: occurredAt,
       })
       .where(eq(specialistConfigs.specialistId, specialistId));
+
+    // Task #438 — bump the per-(specialistId, fieldKey) appearance counter
+    // for every key in this run. Upsert with ON CONFLICT so the first
+    // appearance creates the row and subsequent ones increment in place.
+    // Done as one round-trip per key to keep the migration pgnative
+    // (no array unnest plumbing) — these lists are catalog-bounded
+    // (≤ 20 keys per Specialist), so the constant-factor cost is fine.
+    if (keys.length === 0) return;
+    for (const key of keys) {
+      await db
+        .insert(specialistRecommendationCounters)
+        .values({
+          specialistId,
+          fieldKey: key,
+          appearances: 1,
+          firstObservedAt: occurredAt,
+          lastObservedAt: occurredAt,
+        })
+        .onConflictDoUpdate({
+          target: [
+            specialistRecommendationCounters.specialistId,
+            specialistRecommendationCounters.fieldKey,
+          ],
+          set: {
+            appearances: sql`${specialistRecommendationCounters.appearances} + 1`,
+            lastObservedAt: occurredAt,
+          },
+        });
+    }
   }
 
   /**
@@ -204,13 +234,45 @@ export class SpecialistConfigStorage {
       .insert(specialistRecommendationEvents)
       .values({ specialistId, fieldKey, action, actorUserId })
       .returning();
+    // Task #438 — promote actions annotate the appearance counter:
+    // stamp `last_promoted_at = now()` and reset `appearances = 0` so the
+    // count reads "appearances since last promotion". The row is upserted
+    // (not deleted) so the annotation survives a future demote-and-reappear
+    // cycle. Ignore actions are intentionally ignored here — they are
+    // tracked through the events table aggregate, not the counter.
+    if (action === "promote-recommended" || action === "promote-hard") {
+      const now = new Date();
+      await db
+        .insert(specialistRecommendationCounters)
+        .values({
+          specialistId,
+          fieldKey,
+          appearances: 0,
+          firstObservedAt: now,
+          lastObservedAt: now,
+          lastPromotedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [
+            specialistRecommendationCounters.specialistId,
+            specialistRecommendationCounters.fieldKey,
+          ],
+          set: {
+            appearances: 0,
+            lastPromotedAt: now,
+          },
+        });
+    }
     return row;
   }
 
   /**
-   * Promote-vs-ignore counts grouped by `fieldKey` for one Specialist.
-   * The Required Fields tab renders these next to the field name so an
-   * admin can see "ignored 8 / promoted 2 — likely noise" at a glance.
+   * Promote-vs-ignore counts grouped by `fieldKey` for one Specialist,
+   * joined with the Task #438 appearance-counter row so the Required
+   * Fields tab can render "appeared 12 times · promoted 0 · ignored 5 —
+   * likely noise" at a glance. Counter fields are nullable on the wire
+   * because a field that has never been observed (e.g. only ever
+   * promote-then-immediately-acted) will not have a counter row.
    */
   async getRecommendationEventStats(
     specialistId: string,
@@ -220,36 +282,78 @@ export class SpecialistConfigStorage {
       promoteRecommended: number;
       promoteHard: number;
       ignore: number;
+      appearances: number;
+      firstObservedAt: string | null;
+      lastObservedAt: string | null;
+      lastPromotedAt: string | null;
     }>
   > {
-    const rows = await db
-      .select({
-        fieldKey: specialistRecommendationEvents.fieldKey,
-        action: specialistRecommendationEvents.action,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(specialistRecommendationEvents)
-      .where(eq(specialistRecommendationEvents.specialistId, specialistId))
-      .groupBy(
-        specialistRecommendationEvents.fieldKey,
-        specialistRecommendationEvents.action,
-      );
+    const [eventRows, counterRows] = await Promise.all([
+      db
+        .select({
+          fieldKey: specialistRecommendationEvents.fieldKey,
+          action: specialistRecommendationEvents.action,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(specialistRecommendationEvents)
+        .where(eq(specialistRecommendationEvents.specialistId, specialistId))
+        .groupBy(
+          specialistRecommendationEvents.fieldKey,
+          specialistRecommendationEvents.action,
+        ),
+      db
+        .select()
+        .from(specialistRecommendationCounters)
+        .where(eq(specialistRecommendationCounters.specialistId, specialistId)),
+    ]);
     const byField = new Map<
       string,
-      { fieldKey: string; promoteRecommended: number; promoteHard: number; ignore: number }
+      {
+        fieldKey: string;
+        promoteRecommended: number;
+        promoteHard: number;
+        ignore: number;
+        appearances: number;
+        firstObservedAt: string | null;
+        lastObservedAt: string | null;
+        lastPromotedAt: string | null;
+      }
     >();
-    for (const r of rows) {
-      const existing =
-        byField.get(r.fieldKey) ?? {
-          fieldKey: r.fieldKey,
+    const ensure = (key: string) => {
+      let row = byField.get(key);
+      if (!row) {
+        row = {
+          fieldKey: key,
           promoteRecommended: 0,
           promoteHard: 0,
           ignore: 0,
+          appearances: 0,
+          firstObservedAt: null,
+          lastObservedAt: null,
+          lastPromotedAt: null,
         };
+        byField.set(key, row);
+      }
+      return row;
+    };
+    for (const r of eventRows) {
+      const existing = ensure(r.fieldKey);
       if (r.action === "promote-recommended") existing.promoteRecommended = r.count;
       else if (r.action === "promote-hard") existing.promoteHard = r.count;
       else if (r.action === "ignore") existing.ignore = r.count;
-      byField.set(r.fieldKey, existing);
+    }
+    for (const c of counterRows) {
+      const existing = ensure(c.fieldKey);
+      existing.appearances = c.appearances;
+      existing.firstObservedAt = c.firstObservedAt
+        ? c.firstObservedAt.toISOString()
+        : null;
+      existing.lastObservedAt = c.lastObservedAt
+        ? c.lastObservedAt.toISOString()
+        : null;
+      existing.lastPromotedAt = c.lastPromotedAt
+        ? c.lastPromotedAt.toISOString()
+        : null;
     }
     return Array.from(byField.values());
   }

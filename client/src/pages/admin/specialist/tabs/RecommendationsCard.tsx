@@ -161,12 +161,26 @@ export function RecommendationsCard({
   });
 
   // Promote-vs-ignore stats per field — informs the admin which candidates
-  // are mostly noise (high ignore-ratio) without leaving the page.
-  const { data: stats } = useQuery<
-    Array<{ fieldKey: string; promoteRecommended: number; promoteHard: number; ignore: number }>
-  >({ queryKey: [`/api/admin/specialists/${specialistId}/recommendation-stats`] });
+  // are mostly noise (high ignore-ratio) without leaving the page. The
+  // `appearances` counter (Task #438) is the rolling count of runs in
+  // which the field has been recommended since the last promotion (or
+  // ever, if never promoted), so admins can spot perennial offenders
+  // without leaving this card.
+  type RecommendationStat = {
+    fieldKey: string;
+    promoteRecommended: number;
+    promoteHard: number;
+    ignore: number;
+    appearances: number;
+    firstObservedAt: string | null;
+    lastObservedAt: string | null;
+    lastPromotedAt: string | null;
+  };
+  const { data: stats } = useQuery<RecommendationStat[]>({
+    queryKey: [`/api/admin/specialists/${specialistId}/recommendation-stats`],
+  });
   const statsByKey = useMemo(() => {
-    const m = new Map<string, { promoteRecommended: number; promoteHard: number; ignore: number }>();
+    const m = new Map<string, RecommendationStat>();
     for (const s of stats ?? []) m.set(s.fieldKey, s);
     return m;
   }, [stats]);
@@ -218,14 +232,41 @@ export function RecommendationsCard({
                       {(() => {
                         const s = statsByKey.get(key);
                         if (!s) return null;
-                        const total = s.promoteRecommended + s.promoteHard + s.ignore;
-                        if (total === 0) return null;
+                        const promoted = s.promoteRecommended + s.promoteHard;
+                        const total = promoted + s.ignore;
+                        // Hide the line when there's literally no signal to
+                        // show — no appearances bumped yet AND no
+                        // promote/ignore events recorded.
+                        if (total === 0 && s.appearances === 0) return null;
+                        // Surface "perennial offender" when we've seen this
+                        // field many times and it has never been promoted.
+                        const perennial = s.appearances >= 3 && promoted === 0;
                         return (
                           <div
-                            className="text-xs text-muted-foreground mt-1"
+                            className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5"
                             data-testid={`stats-${key}`}
                           >
-                            promoted {s.promoteRecommended + s.promoteHard} · ignored {s.ignore}
+                            {s.appearances > 0 && (
+                              <span data-testid={`stats-appearances-${key}`}>
+                                recommended {s.appearances}{" "}
+                                {s.appearances === 1 ? "run" : "runs"}
+                                {s.lastPromotedAt ? " (since last promote)" : ""}
+                              </span>
+                            )}
+                            {total > 0 && (
+                              <span>
+                                · promoted {promoted} · ignored {s.ignore}
+                              </span>
+                            )}
+                            {perennial && (
+                              <span
+                                className="text-amber-700 dark:text-amber-400 font-medium"
+                                data-testid={`stats-perennial-${key}`}
+                                title="Recommended on multiple runs without ever being promoted — likely a perennial offender."
+                              >
+                                · perennial
+                              </span>
+                            )}
                           </div>
                         );
                       })()}

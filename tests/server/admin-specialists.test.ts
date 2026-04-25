@@ -26,6 +26,9 @@ vi.mock("../../server/storage", () => ({
     // default to "no overrides set" so behavior matches catalog defaults.
     listIdentityOverrides: vi.fn().mockResolvedValue([]),
     getIdentityOverride: vi.fn().mockResolvedValue(null),
+    // Task #438 — telemetry endpoints for the Recommendations card.
+    recordRecommendationEvent: vi.fn(),
+    getRecommendationEventStats: vi.fn(),
   },
 }));
 
@@ -408,6 +411,93 @@ describe("admin/specialists routes — catalog + detail", () => {
     expect(sectionPayload.fieldRequirements.city).toBe("recommended");
     // Legacy mirror reflects the locked-hard set.
     expect(new Set(sectionPayload.requiredFields)).toEqual(new Set(["country", "hospitalityType"]));
+  });
+
+  // Task #438 — appearance counter for the Recommendations card
+  it("GET /api/admin/specialists/:id/recommendation-stats surfaces the appearance counter", async () => {
+    (storage.getRecommendationEventStats as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        fieldKey: "city",
+        promoteRecommended: 0,
+        promoteHard: 0,
+        ignore: 2,
+        appearances: 7,
+        firstObservedAt: new Date("2026-04-01T00:00:00Z").toISOString(),
+        lastObservedAt: new Date("2026-04-23T00:00:00Z").toISOString(),
+        lastPromotedAt: null,
+      },
+      {
+        fieldKey: "neighborhood",
+        promoteRecommended: 1,
+        promoteHard: 0,
+        ignore: 0,
+        appearances: 0,
+        firstObservedAt: new Date("2026-04-10T00:00:00Z").toISOString(),
+        lastObservedAt: new Date("2026-04-15T00:00:00Z").toISOString(),
+        lastPromotedAt: new Date("2026-04-15T01:00:00Z").toISOString(),
+      },
+    ]);
+    const { status, body } = await invoke(
+      handlers,
+      "GET /api/admin/specialists/:id/recommendation-stats",
+      { params: { id: "property.risk-intelligence" } },
+    );
+    expect(status).toBe(200);
+    const stats = body as Array<{
+      fieldKey: string;
+      appearances: number;
+      lastPromotedAt: string | null;
+      ignore: number;
+    }>;
+    expect(stats).toHaveLength(2);
+    const city = stats.find((s) => s.fieldKey === "city")!;
+    expect(city.appearances).toBe(7);
+    expect(city.lastPromotedAt).toBeNull();
+    expect(city.ignore).toBe(2);
+    const promoted = stats.find((s) => s.fieldKey === "neighborhood")!;
+    expect(promoted.appearances).toBe(0);
+    expect(promoted.lastPromotedAt).not.toBeNull();
+  });
+
+  it("POST /api/admin/specialists/:id/recommendation-event records a promote event for a candidate field", async () => {
+    (storage.recordRecommendationEvent as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 42,
+      specialistId: "property.risk-intelligence",
+      fieldKey: "city",
+      action: "promote-recommended",
+      actorUserId: 99,
+      occurredAt: new Date(),
+    });
+    const { status, body } = await invoke(
+      handlers,
+      "POST /api/admin/specialists/:id/recommendation-event",
+      {
+        params: { id: "property.risk-intelligence" },
+        body: { fieldKey: "city", action: "promote-recommended" },
+      },
+    );
+    expect(status).toBe(200);
+    expect((body as { id: number }).id).toBe(42);
+    expect(storage.recordRecommendationEvent).toHaveBeenCalledWith(
+      "property.risk-intelligence",
+      "city",
+      "promote-recommended",
+      99,
+    );
+  });
+
+  it("POST /api/admin/specialists/:id/recommendation-event rejects an unknown candidate field", async () => {
+    const { status, body } = await invoke(
+      handlers,
+      "POST /api/admin/specialists/:id/recommendation-event",
+      {
+        params: { id: "property.risk-intelligence" },
+        body: { fieldKey: "not-a-real-field", action: "ignore" },
+      },
+    );
+    expect(status).toBe(400);
+    expect((body as { error: string }).error).toMatch(/declared candidate/);
+    expect(storage.recordRecommendationEvent).not.toHaveBeenCalled();
   });
 
   it("rejects unauthenticated callers", async () => {

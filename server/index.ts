@@ -613,6 +613,14 @@ async function runSchemaMigrations() {
     await markMigrationApplied("specialist_recommendation_events_001");
   }
 
+  if (!(await isMigrationApplied("specialist_recommendation_counters_001"))) {
+    const { runSpecialistRecommendationCounters001 } = await import(
+      "./migrations/specialist-recommendation-counters-001"
+    );
+    await runSpecialistRecommendationCounters001();
+    await markMigrationApplied("specialist_recommendation_counters_001");
+  }
+
   if (!(await isMigrationApplied("specialist_multi_model_001"))) {
     const { runSpecialistMultiModel001 } = await import(
       "./migrations/specialist-multi-model-001"
