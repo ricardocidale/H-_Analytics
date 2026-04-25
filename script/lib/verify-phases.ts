@@ -24,6 +24,7 @@ export const VERIFY_PHASES: readonly VerifyPhase[] = [
   { name: "Literal Drift", file: "literal-drift.test.ts" },
   { name: "Seed/Schema Sync", file: "seed-schema-sync.test.ts" },
   { name: "Defaults Drift", file: "defaults-drift.test.ts" },
+  { name: "Schema Drift", file: "schema-drift.test.ts" },
 ] as const;
 
 export function allProofFilePaths(): string[] {
