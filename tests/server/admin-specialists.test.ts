@@ -16,6 +16,10 @@ import type { Express, Request, Response, NextFunction, RequestHandler } from "e
 vi.mock("../../server/storage", () => ({
   storage: {
     getOrCreateSpecialistConfig: vi.fn(),
+    // Default to a resolved-undefined so the audit route's
+    // `storage.getSpecialistConfig?.(id).catch(...)` chain doesn't blow up
+    // for tests that don't care about the live-current diff target.
+    getSpecialistConfig: vi.fn().mockResolvedValue(undefined),
     updateSpecialistConfigSection: vi.fn(),
     listSpecialistConfigVersions: vi.fn(),
     listSpecialistAssignments: vi.fn(),
@@ -534,5 +538,313 @@ describe("admin/specialists routes — catalog + detail", () => {
     mockUser = { id: 1, role: "user" };
     const { status } = await invoke(handlers, "GET /api/admin/specialists");
     expect(status).toBe(403);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Task #503 — Per-field LLM override save + audit-diff label coverage.
+//
+// The happy-path llm-config test above asserts the route persists the legacy
+// (promptTemplate + modelResourceId) pair. The override surface added in
+// Task #495 introduced five new nullable per-field overrides plus the
+// workflowOverrides JSON object. These are silent regressions waiting to
+// happen, so we exercise:
+//   1. PUT-each-field-individually against /llm-config and assert the
+//      route forwards exactly that one field to
+//      `updateSpecialistConfigSection`, AND the returned config view
+//      reflects the new value with the bumped version number.
+//   2. PUT with `null` to clear an override and confirm the persisted
+//      patch carries `null` (= "reset to global", inheritance restored)
+//      and the response surfaces null.
+//   3. GET /audit across two consecutive snapshots + a live row, and
+//      verify the per-row `changedFieldLabels` diff is correct for both
+//      the scalar fields and the per-key workflowOverrides JSON.
+// ────────────────────────────────────────────────────────────────────────────
+
+describe("admin/specialists routes — per-field LLM overrides + audit-diff", () => {
+  let app: Express;
+  let handlers: Handlers;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 99, role: "super_admin" };
+    const made = makeApp();
+    app = made.app;
+    handlers = made.handlers;
+    registerAdminSpecialistRoutes(app);
+    // Default: every model-id lookup resolves to a kind=model resource so
+    // the per-field override validator passes for any positive integer id.
+    (storage.getAdminResourceById as ReturnType<typeof vi.fn>).mockImplementation(
+      async (resourceId: number) => ({
+        id: resourceId,
+        kind: "model",
+        slug: `model-${resourceId}`,
+        displayName: `Model ${resourceId}`,
+        description: null,
+        config: {},
+        secretRef: null,
+        version: 1,
+        lastHealthStatus: "gray",
+        lastCheckedAt: null,
+        createdByUserId: null,
+        updatedByUserId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+  });
+
+  /**
+   * Per-field PUT cases. Each case sends ONE override field (alongside the
+   * required legacy promptTemplate + modelResourceId pair which the schema
+   * still demands), and asserts the storage call carries that field with
+   * the expected value. The mocked storage response echoes the field on the
+   * returned row so we can verify `toConfigView` propagates it onto the
+   * public-view payload — guarding against a regression where the route
+   * silently drops a new field on its way back out.
+   */
+  const overrideCases: Array<{
+    name: string;
+    field: string;
+    value: number | boolean | Record<string, unknown>;
+  }> = [
+    { name: "analyst A model", field: "analystAModelResourceId", value: 21 },
+    { name: "analyst B model", field: "analystBModelResourceId", value: 22 },
+    { name: "synthesis model", field: "synthesisModelResourceId", value: 23 },
+    { name: "fallback model", field: "fallbackModelResourceId", value: 24 },
+    { name: "multi-model toggle", field: "multiModelEnabled", value: true },
+    {
+      name: "workflow overrides",
+      field: "workflowOverrides",
+      value: { stalenessThresholdHours: 12, dailyTokenBudget: 50_000 },
+    },
+  ];
+
+  for (const c of overrideCases) {
+    it(`PUT /llm-config persists ${c.name} alone and bumps version`, async () => {
+      const updatedRow = {
+        ...baseConfig("mgmt-co.funding"),
+        analystAModelResourceId: null as number | null,
+        analystBModelResourceId: null as number | null,
+        synthesisModelResourceId: null as number | null,
+        fallbackModelResourceId: null as number | null,
+        multiModelEnabled: null as boolean | null,
+        workflowOverrides: null as Record<string, unknown> | null,
+        [c.field]: c.value,
+        version: 9,
+      };
+      (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue(updatedRow);
+
+      const body: Record<string, unknown> = {
+        promptTemplate: "",
+        modelResourceId: null,
+        [c.field]: c.value,
+      };
+      const { status, body: resBody } = await invoke(
+        handlers,
+        "PUT /api/admin/specialists/:id/llm-config",
+        { params: { id: "mgmt-co.funding" }, body },
+      );
+      expect(status).toBe(200);
+
+      // Storage was invoked with exactly the override under test inside the
+      // patch object (other override fields are `undefined`, so the storage
+      // layer leaves them untouched per `SpecialistConfigPatch` semantics).
+      expect(storage.updateSpecialistConfigSection).toHaveBeenCalledTimes(1);
+      const callArgs = (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(callArgs[0]).toBe("mgmt-co.funding");
+      expect(callArgs[1]).toBe("llm-config");
+      const patch = callArgs[2] as Record<string, unknown>;
+      expect(patch[c.field]).toEqual(c.value);
+
+      // The public-view (config snapshot used to drive the version bump UI)
+      // reflects the new value at the new version number — i.e. the row +
+      // version snapshot the server persisted is what the client reads back.
+      const view = resBody as Record<string, unknown>;
+      expect(view[c.field]).toEqual(c.value);
+      expect(view.version).toBe(9);
+    });
+  }
+
+  it("PUT /llm-config with null in an override clears it (inheritance restored)", async () => {
+    // Simulate a row that previously had analystAModelResourceId=42; the
+    // admin sends `null` to "Reset to global". The persisted patch must
+    // carry `null` (NOT `undefined`, which would leave the existing value
+    // in place), and the response must surface `null` so the UI re-renders
+    // the "Inheriting global default" placeholder.
+    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...baseConfig("mgmt-co.funding"),
+      analystAModelResourceId: null,
+      multiModelEnabled: null,
+      workflowOverrides: null,
+      version: 12,
+    });
+    const { status, body } = await invoke(
+      handlers,
+      "PUT /api/admin/specialists/:id/llm-config",
+      {
+        params: { id: "mgmt-co.funding" },
+        body: {
+          promptTemplate: "",
+          modelResourceId: null,
+          analystAModelResourceId: null,
+          multiModelEnabled: null,
+          workflowOverrides: null,
+        },
+      },
+    );
+    expect(status).toBe(200);
+
+    const callArgs = (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mock.calls[0];
+    const patch = callArgs[2] as Record<string, unknown>;
+    expect(patch).toHaveProperty("analystAModelResourceId", null);
+    expect(patch).toHaveProperty("multiModelEnabled", null);
+    expect(patch).toHaveProperty("workflowOverrides", null);
+
+    const view = body as Record<string, unknown>;
+    expect(view.analystAModelResourceId).toBeNull();
+    expect(view.multiModelEnabled).toBeNull();
+    expect(view.workflowOverrides).toBeNull();
+    expect(view.version).toBe(12);
+  });
+
+  // Helper: a fully-populated version snapshot with sensible empty defaults
+  // so individual tests only have to override the fields under test.
+  const makeSnapshot = (overrides: Partial<{
+    id: number;
+    version: number;
+    section: string;
+    promptTemplate: string;
+    modelResourceId: number | null;
+    analystAModelResourceId: number | null;
+    analystBModelResourceId: number | null;
+    synthesisModelResourceId: number | null;
+    fallbackModelResourceId: number | null;
+    multiModelEnabled: boolean | null;
+    workflowOverrides: Record<string, unknown> | null;
+    requiredFields: string[];
+    fieldRequirements: Record<string, "hard" | "recommended" | "off">;
+    prerequisiteToggles: Record<string, boolean>;
+    runtimeConfig: Record<string, unknown>;
+    refreshCadenceDays: number | null;
+  }>) => ({
+    id: 1,
+    specialistId: "mgmt-co.funding",
+    version: 1,
+    section: "llm-config",
+    promptTemplate: "",
+    modelResourceId: null,
+    analystAModelResourceId: null,
+    analystBModelResourceId: null,
+    synthesisModelResourceId: null,
+    fallbackModelResourceId: null,
+    multiModelEnabled: null,
+    workflowOverrides: null,
+    requiredFields: [],
+    fieldRequirements: {},
+    prerequisiteToggles: {},
+    runtimeConfig: {},
+    refreshCadenceDays: null,
+    changeSummary: null,
+    changedByUserId: 99,
+    changedAt: new Date("2026-04-20T00:00:00Z"),
+    ...overrides,
+  });
+
+  it("GET /audit returns per-field changedFieldLabels across two consecutive saves", async () => {
+    // Setup: live current row at v4. Two prior snapshots exist:
+    //   v3 — pre-edit state before bump to v4. Admin set analystA=42 → v4.
+    //         Diff(v3 → live) must surface "Analyst A model".
+    //   v2 — pre-edit state before bump to v3. Admin updated prompt and
+    //         flipped multiModelEnabled → v3.
+    //         Diff(v2 → v3) must surface "prompt" + "multi-model toggle".
+    //
+    // listSpecialistConfigVersions returns newest-first per the storage
+    // contract (DESC by changedAt), so the route compares versions[0]
+    // against liveCurrent and versions[1] against versions[0].
+    const liveRow = {
+      ...baseConfig("mgmt-co.funding"),
+      promptTemplate: "latest",
+      analystAModelResourceId: 42,
+      analystBModelResourceId: null,
+      synthesisModelResourceId: null,
+      fallbackModelResourceId: null,
+      multiModelEnabled: true,
+      workflowOverrides: null,
+      version: 4,
+    };
+    (storage.getSpecialistConfig as ReturnType<typeof vi.fn>).mockResolvedValue(liveRow);
+
+    const v3 = makeSnapshot({
+      id: 30,
+      version: 3,
+      promptTemplate: "latest",
+      // Other fields match live EXCEPT analystAModelResourceId which is
+      // null here → the v3→live diff label surfaces "Analyst A model".
+      analystAModelResourceId: null,
+      multiModelEnabled: true,
+    });
+    const v2 = makeSnapshot({
+      id: 20,
+      version: 2,
+      promptTemplate: "old",
+      analystAModelResourceId: null,
+      multiModelEnabled: false,
+    });
+    (storage.listSpecialistConfigVersions as ReturnType<typeof vi.fn>).mockResolvedValue([v3, v2]);
+
+    const { status, body } = await invoke(
+      handlers,
+      "GET /api/admin/specialists/:id/audit",
+      { params: { id: "mgmt-co.funding" } },
+    );
+    expect(status).toBe(200);
+    const rows = body as Array<{ version: number; changedFieldLabels: string[] }>;
+    expect(rows).toHaveLength(2);
+    const v3Out = rows.find((r) => r.version === 3)!;
+    const v2Out = rows.find((r) => r.version === 2)!;
+    // v3 → live: only analystAModelResourceId changed.
+    expect(v3Out.changedFieldLabels).toEqual(["Analyst A model"]);
+    // v2 → v3: prompt + multi-model toggle. Order follows SCALAR_LABELS
+    // declaration order (prompt before multi-model toggle) so the assertion
+    // is exact, not set-based.
+    expect(v2Out.changedFieldLabels).toEqual(["prompt", "multi-model toggle"]);
+  });
+
+  it("GET /audit emits one workflowOverrides label per changed key, not one opaque label", async () => {
+    // Live row sets stalenessThresholdHours=24 and dailyTokenBudget=1000.
+    // The newest snapshot has stalenessThresholdHours=48 (different) and
+    // dailyTokenBudget=1000 (same). The diff must surface "Staleness
+    // threshold" only — "Daily token budget" is unchanged. This guards
+    // against regressing the per-key diff back into a single
+    // "edited Workflow overrides" label.
+    const liveRow = {
+      ...baseConfig("mgmt-co.funding"),
+      analystAModelResourceId: null,
+      analystBModelResourceId: null,
+      synthesisModelResourceId: null,
+      fallbackModelResourceId: null,
+      multiModelEnabled: null,
+      workflowOverrides: { stalenessThresholdHours: 24, dailyTokenBudget: 1000 } as Record<string, unknown>,
+      version: 5,
+    };
+    (storage.getSpecialistConfig as ReturnType<typeof vi.fn>).mockResolvedValue(liveRow);
+
+    const snapshot = makeSnapshot({
+      id: 40,
+      version: 4,
+      workflowOverrides: { stalenessThresholdHours: 48, dailyTokenBudget: 1000 },
+    });
+    (storage.listSpecialistConfigVersions as ReturnType<typeof vi.fn>).mockResolvedValue([snapshot]);
+
+    const { status, body } = await invoke(
+      handlers,
+      "GET /api/admin/specialists/:id/audit",
+      { params: { id: "mgmt-co.funding" } },
+    );
+    expect(status).toBe(200);
+    const rows = body as Array<{ version: number; changedFieldLabels: string[] }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].changedFieldLabels).toEqual(["Staleness threshold"]);
   });
 });
