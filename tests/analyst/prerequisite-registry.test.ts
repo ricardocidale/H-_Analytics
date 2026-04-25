@@ -15,7 +15,7 @@
  *         `storage.hasManagementCompanyProfile()`.
  *       - constants-refreshed-within-cadence → reads the latest successful
  *         research run per (key, US baseline) and compares against the
- *         catalog cadence.
+ *         effective cadence (admin override → catalog default).
  *   3. Evaluator throws are caught and reported as failures (one bad
  *      evaluator can't break the whole gate).
  */
@@ -34,6 +34,8 @@ interface FakeStorageInit {
   requiredFieldKeys?: string[];
   /** Map "<key>::<country>::<subdivision>" → research run. */
   latestRuns?: Record<string, PrereqResearchRun | undefined>;
+  /** Per-Specialist refresh-cadence overrides keyed by specialist id. */
+  cadenceOverrides?: Record<string, number>;
 }
 
 function makeStorage(init: FakeStorageInit = {}): PrerequisiteStorage {
@@ -50,6 +52,9 @@ function makeStorage(init: FakeStorageInit = {}): PrerequisiteStorage {
     },
     async listHardRequiredFieldKeysForSpecialists() {
       return init.requiredFieldKeys ?? [];
+    },
+    async getRefreshCadenceOverrides() {
+      return new Map(Object.entries(init.cadenceOverrides ?? {}));
     },
   };
 }
@@ -254,6 +259,113 @@ describe("evaluatePrerequisites", () => {
         { storage: makeStorage({ latestRuns }), userId: 1 },
       );
       expect(failures).toEqual([]);
+    });
+
+    it("uses the admin override cadence when one is set (tighter than catalog)", async () => {
+      // Pick a constant whose owning Specialist has a catalog cadence we can
+      // shrink, then prove that a tighter admin override turns a refresh
+      // that WOULD have been fresh under the catalog into a stale failure.
+      const { REGISTERED_CONSTANT_KEYS } = await import(
+        "../../shared/model-constants-registry"
+      );
+      const {
+        getRefreshCadenceDaysForConstant,
+        getSpecialistForConstant,
+      } = await import("../../engine/analyst/registry/specialist-catalog");
+      const targetKey = REGISTERED_CONSTANT_KEYS.find((k) => {
+        const c = getRefreshCadenceDaysForConstant(k);
+        return c != null && c >= 14;
+      });
+      if (!targetKey) {
+        throw new Error("no constant with cadence ≥ 14d to test override");
+      }
+      const owner = getSpecialistForConstant(targetKey);
+      if (!owner) throw new Error("no owning Specialist for target constant");
+      const catalogCadence = getRefreshCadenceDaysForConstant(targetKey)!;
+
+      // Refresh is half the catalog cadence old — fresh under catalog,
+      // stale under a 1-day admin override.
+      const halfCatalog = new Date(
+        Date.now() - 1000 * 60 * 60 * 24 * (catalogCadence / 2),
+      );
+      const fresh = new Date();
+      const latestRuns: Record<string, PrereqResearchRun> = {};
+      for (const key of REGISTERED_CONSTANT_KEYS) {
+        latestRuns[`${key}::United States::`] = { completedAt: fresh };
+      }
+      latestRuns[`${targetKey}::United States::`] = { completedAt: halfCatalog };
+
+      // Sanity: with no override, this passes (catalog cadence accommodates the age).
+      const passUnderCatalog = await evaluatePrerequisites(
+        ["constants-refreshed-within-cadence"],
+        { storage: makeStorage({ latestRuns }), userId: 1 },
+      );
+      expect(passUnderCatalog).toEqual([]);
+
+      // With a 1-day override, the half-catalog-old refresh is stale.
+      const failUnderOverride = await evaluatePrerequisites(
+        ["constants-refreshed-within-cadence"],
+        {
+          storage: makeStorage({
+            latestRuns,
+            cadenceOverrides: { [owner.id]: 1 },
+          }),
+          userId: 1,
+        },
+      );
+      expect(failUnderOverride).toHaveLength(1);
+      expect(failUnderOverride[0].reason).toMatch(new RegExp(targetKey));
+      expect(failUnderOverride[0].reason).toMatch(/cadence 1d/);
+    });
+
+    it("uses the admin override cadence when one is set (looser than catalog)", async () => {
+      // The mirror of the previous test: a refresh older than the catalog
+      // cadence passes once an admin loosens the cadence to accommodate it.
+      const { REGISTERED_CONSTANT_KEYS } = await import(
+        "../../shared/model-constants-registry"
+      );
+      const {
+        getRefreshCadenceDaysForConstant,
+        getSpecialistForConstant,
+      } = await import("../../engine/analyst/registry/specialist-catalog");
+      const targetKey = REGISTERED_CONSTANT_KEYS.find(
+        (k) => getRefreshCadenceDaysForConstant(k) != null,
+      );
+      if (!targetKey) throw new Error("no cadenced constant available");
+      const owner = getSpecialistForConstant(targetKey);
+      if (!owner) throw new Error("no owning Specialist for target constant");
+      const catalogCadence = getRefreshCadenceDaysForConstant(targetKey)!;
+
+      // Refresh is two cadence periods old — stale under catalog, fresh
+      // under an override that triples the catalog cadence.
+      const ancient = new Date(
+        Date.now() - 1000 * 60 * 60 * 24 * (catalogCadence * 2),
+      );
+      const fresh = new Date();
+      const latestRuns: Record<string, PrereqResearchRun> = {};
+      for (const key of REGISTERED_CONSTANT_KEYS) {
+        latestRuns[`${key}::United States::`] = { completedAt: fresh };
+      }
+      latestRuns[`${targetKey}::United States::`] = { completedAt: ancient };
+
+      const failUnderCatalog = await evaluatePrerequisites(
+        ["constants-refreshed-within-cadence"],
+        { storage: makeStorage({ latestRuns }), userId: 1 },
+      );
+      expect(failUnderCatalog).toHaveLength(1);
+      expect(failUnderCatalog[0].reason).toMatch(new RegExp(targetKey));
+
+      const passUnderOverride = await evaluatePrerequisites(
+        ["constants-refreshed-within-cadence"],
+        {
+          storage: makeStorage({
+            latestRuns,
+            cadenceOverrides: { [owner.id]: catalogCadence * 3 },
+          }),
+          userId: 1,
+        },
+      );
+      expect(passUnderOverride).toEqual([]);
     });
   });
 

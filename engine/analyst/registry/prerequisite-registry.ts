@@ -15,7 +15,11 @@
  *      "no evaluator registered" — a hard fail, not a silent pass).
  */
 import { isPrerequisiteId, type PrerequisiteId } from "./prerequisites";
-import { SPECIALIST_CATALOG, getRefreshCadenceDaysForConstant } from "./specialist-catalog";
+import {
+  SPECIALIST_CATALOG,
+  getRefreshCadenceDaysForConstant,
+  getSpecialistForConstant,
+} from "./specialist-catalog";
 import { REGISTERED_CONSTANT_KEYS } from "@shared/model-constants-registry";
 
 /**
@@ -52,6 +56,15 @@ export interface PrerequisiteStorage {
   listHardRequiredFieldKeysForSpecialists(
     specialistIds: readonly string[],
   ): Promise<string[]>;
+  /**
+   * Per-Specialist admin overrides for the scheduled Constants refresh
+   * cadence (in days), keyed by Specialist id. Specialists without an
+   * override are absent from the map; the prerequisite evaluator falls
+   * back to the catalog default in that case. Wired through
+   * `specialist_configs.refresh_cadence_days` (admin-editable on the
+   * Specialist page → Cadence card).
+   */
+  getRefreshCadenceOverrides(): Promise<Map<string, number>>;
 }
 
 export interface PrerequisiteContext {
@@ -269,21 +282,31 @@ registerPrerequisiteEvaluator(
  * anything in a month" failure mode without dragging the gate into per-
  * locality bookkeeping.
  *
- * Cadence source: this gate uses the catalog's declared
- * `refreshCadenceDays` per Specialist. Admin per-Specialist cadence
- * overrides used by the scheduler/UI are intentionally NOT consulted here
- * — the gate is the catalog floor; tightening or relaxing the cadence in
- * admin only affects when the scheduler runs, not when the gate fails.
- * Aligning the two is tracked as a follow-up.
+ * Cadence source: this gate uses the admin-tunable
+ * `specialist_configs.refresh_cadence_days` override (set on the
+ * Specialist page → Cadence card) when present, falling back to the
+ * catalog's declared `refreshCadenceDays` per Specialist when no
+ * override is configured. The scheduler reads the same override map
+ * (`getRefreshCadenceOverrides`), so tightening or loosening the
+ * cadence in admin moves the gate and the scheduled refresh together
+ * — a Specialist whose override is `null` keeps behaving exactly as
+ * it did before this setting was added.
  */
 registerPrerequisiteEvaluator(
   "constants-refreshed-within-cadence",
   async ({ storage }) => {
     const stale: string[] = [];
     const now = Date.now();
+    const overrides = await storage.getRefreshCadenceOverrides();
     for (const key of REGISTERED_CONSTANT_KEYS) {
-      const cadenceDays = getRefreshCadenceDaysForConstant(key);
-      if (cadenceDays == null) continue;
+      const owner = getSpecialistForConstant(key);
+      const catalogCadence = getRefreshCadenceDaysForConstant(key);
+      // Admin override only applies when the catalog declares a cadence —
+      // otherwise the constant is admin-on-demand only and not subject to
+      // staleness, regardless of any stale override that might be set.
+      if (catalogCadence == null) continue;
+      const overrideCadence = owner ? overrides.get(owner.id) ?? null : null;
+      const cadenceDays = overrideCadence ?? catalogCadence;
       const latest = await storage.getLatestSuccessfulRunForConstant(key, "United States", null);
       if (!latest) {
         stale.push(`${key} (never refreshed)`);
