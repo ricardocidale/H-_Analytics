@@ -290,6 +290,15 @@ describe("SourcesTab — task #508 live dot updates", () => {
     // and ignored any local override from a recent per-card test. So a card
     // that was just turned green by per-card Test could silently revert to its
     // old red server color when the next bulk run skipped it.
+    //
+    // We defer the bulk fetch resolution so the test can deterministically
+    // observe the post-bulk state instead of racing the mutation with a
+    // fixed timeout — once we resolve the bulk fetch and await it, all of
+    // the onSuccess writes (including setResult) have flushed.
+    let resolveBulk: (value: unknown) => void = () => {};
+    const bulkResolved = new Promise((r) => {
+      resolveBulk = r;
+    });
     mockFetch({
       perCard: (id) => ({
         status: "ok",
@@ -298,17 +307,22 @@ describe("SourcesTab — task #508 live dot updates", () => {
         errorMessage: null,
         checkedAt: new Date().toISOString(),
       }),
-      bulk: () => ({
-        target: TARGET,
-        results: [
-          {
-            id: 101,
-            status: "skipped",
-            errorCode: "rate_limited",
-            checkedAt: new Date().toISOString(),
-          },
-        ],
-      }),
+      bulk: () => {
+        // Mark the bulk fetch as called; the body is read by SourcesTab only
+        // after we resolve the gate from the test.
+        resolveBulk(undefined);
+        return {
+          target: TARGET,
+          results: [
+            {
+              id: 101,
+              status: "skipped",
+              errorCode: "rate_limited",
+              checkedAt: new Date().toISOString(),
+            },
+          ],
+        };
+      },
     });
     renderWithClient(<SourcesTab specialistId={SPECIALIST_ID} />);
     await screen.findByTestId("source-card-status-101");
@@ -321,12 +335,16 @@ describe("SourcesTab — task #508 live dot updates", () => {
     // Bulk Test → server returns 'skipped' for 101. The dot must stay green,
     // not revert to the stale red server snapshot.
     fireEvent.click(screen.getByTestId("button-test-all-sources"));
-    // Wait long enough for the bulk POST to settle and onSuccess to write
-    // through. Without that delay an assertion on dot colour would race the
-    // mutation and pass even when the colour later reverts. With the
-    // priorDots fix in place, the dot must STAY green through the skipped
-    // result; without the fix, it would silently revert to red here.
-    await new Promise((r) => setTimeout(r, 150));
+    // Wait for SourcesTab to actually call the bulk endpoint, then wait for
+    // the bulk pending spinner to clear (true → false). Once pending is back
+    // to false, onSuccess has run setResult for every row and the dot's
+    // final colour has been written.
+    await bulkResolved;
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("source-card-status-101").getAttribute("data-pending"),
+      ).toBe("false"),
+    );
     expect(dotStatus(101)).toBe("green");
   });
 });
