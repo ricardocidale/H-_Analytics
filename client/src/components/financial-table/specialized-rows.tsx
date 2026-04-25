@@ -65,7 +65,8 @@ export function MarginRow({ label, values, baseValues }: MarginRowProps) {
         {label}
       </TableCell>
       {values.map((v, i) => {
-        const base = baseValues[i] || 0;
+        const rawBase = baseValues[i];
+        const base = Number.isFinite(rawBase) ? rawBase : 0;
         const pctVal = base !== 0 ? (v / base) * 100 : 0;
         return (
           <TableCell key={i} className="text-right py-0.5 font-mono text-xs text-muted-foreground italic px-2">

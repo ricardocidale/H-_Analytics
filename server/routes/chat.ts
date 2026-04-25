@@ -276,12 +276,16 @@ export function register(app: Express) {
           const rawSources = Array.isArray(meta.sources) ? meta.sources : [];
           const sources = rawSources
             .filter((s: unknown): s is Record<string, unknown> => !!s && typeof s === "object")
-            .map((s) => ({
-              title: String(s.title ?? ""),
-              namespace: String(s.namespace ?? ""),
-              score: typeof s.score === "number" ? s.score : Number(s.score) || 0,
-              weight: typeof s.weight === "number" ? s.weight : Number(s.weight) || 0,
-            }));
+            .map((s) => {
+              const rawScore = typeof s.score === "number" ? s.score : Number(s.score);
+              const rawWeight = typeof s.weight === "number" ? s.weight : Number(s.weight);
+              return {
+                title: String(s.title ?? ""),
+                namespace: String(s.namespace ?? ""),
+                score: Number.isFinite(rawScore) ? rawScore : 0,
+                weight: Number.isFinite(rawWeight) ? rawWeight : 0,
+              };
+            });
           return {
             id: m.id,
             role: m.role,

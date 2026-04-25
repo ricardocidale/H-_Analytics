@@ -26,7 +26,10 @@ export function BarChartInteractive({
     const result: Record<string, number> = {};
     for (const s of series) {
       result[s.dataKey] = data.reduce(
-        (acc, curr) => acc + (Number(curr[s.dataKey]) || 0),
+        (acc, curr) => {
+          const n = Number(curr[s.dataKey]);
+          return acc + (Number.isFinite(n) ? n : 0);
+        },
         0
       );
     }

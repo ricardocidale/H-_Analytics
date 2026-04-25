@@ -67,8 +67,8 @@ export default function CompanyBalanceSheet({
         {(() => {
           const cumulativeNetIncome = financials.reduce((a, m) => a + m.netIncome, 0);
           
-          const capitalRaise1 = global.capitalRaise1Amount || 0;
-          const capitalRaise2 = global.capitalRaise2Amount || 0;
+          const capitalRaise1 = Number.isFinite(global.capitalRaise1Amount) ? global.capitalRaise1Amount : 0;
+          const capitalRaise2 = Number.isFinite(global.capitalRaise2Amount) ? global.capitalRaise2Amount : 0;
           const totalCapitalRaiseFunding = capitalRaise1 + capitalRaise2;
           
           const lastMonth = financials[financials.length - 1];

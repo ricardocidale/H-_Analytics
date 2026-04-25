@@ -250,7 +250,8 @@ export function MarketStatusSection({ totalProperties, marketData, marketChartCo
             <CardContent>
               <div className="flex flex-col gap-4 py-2">
                 {STATUSES.map((status) => {
-                  const count = statusCounts[status] || 0;
+                  const rawCount = statusCounts[status];
+                  const count = Number.isFinite(rawCount) ? rawCount : 0;
                   if (count === 0) return null;
                   const pct = totalProperties > 0 ? (count / totalProperties) * 100 : 0;
                   return (

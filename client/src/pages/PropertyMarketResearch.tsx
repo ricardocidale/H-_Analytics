@@ -29,7 +29,7 @@ import { card } from "@/components/research/research-chart-shared";
 
 export default function PropertyMarketResearch() {
   const [, params] = useRoute("/property/:id/research");
-  const propertyId = parseInt(params?.id || "0");
+  const propertyId = parseInt(params?.id ?? "0");
   const { data: property, isLoading: propertyLoading } = useProperty(propertyId);
   const { data: global } = useGlobalAssumptions();
   const { data: research, isLoading: researchLoading } = useMarketResearch("property", propertyId);

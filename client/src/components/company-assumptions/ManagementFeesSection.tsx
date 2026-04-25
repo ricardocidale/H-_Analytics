@@ -140,13 +140,15 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
     if (isNaN(rate) || rate < 0 || rate > 1) { toast({ title: "Rate must be between 0% and 100%", variant: "destructive" }); return; }
     if (isNaN(markup) || markup < 0 || markup > 1) { toast({ title: "Markup must be between 0% and 100%", variant: "destructive" }); return; }
 
+    const parsedSortOrder = parseInt(form.sortOrder);
+    const sortOrder = Number.isFinite(parsedSortOrder) ? parsedSortOrder : 0;
     const payload = {
       name: form.name.trim(),
       defaultRate: rate,
       serviceModel: form.serviceModel,
       serviceMarkup: markup,
       isActive: form.isActive,
-      sortOrder: parseInt(form.sortOrder) || 0,
+      sortOrder,
     };
 
     if (editingId) {
