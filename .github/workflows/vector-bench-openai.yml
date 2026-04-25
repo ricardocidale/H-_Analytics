@@ -89,7 +89,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.keycheck.outputs.skip == 'false'
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Apply database schema
         if: steps.keycheck.outputs.skip == 'false'

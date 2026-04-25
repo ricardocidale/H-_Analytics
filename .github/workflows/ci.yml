@@ -30,7 +30,7 @@ jobs:
       - name: Install ripgrep (needed by audit:quick deprecated-constants guard)
         run: sudo apt-get install -y ripgrep
 
-      - run: npm install
+      - run: npm install --ignore-scripts
 
       - name: ESLint (bug guards across calc/engine/server/shared/client)
         run: npm run lint:strict
@@ -92,7 +92,7 @@ jobs:
       - name: Install ripgrep (needed by audit tests)
         run: sudo apt-get install -y ripgrep
 
-      - run: npm install
+      - run: npm install --ignore-scripts
 
       - name: Enable pgvector extension on test Postgres
         # The pgvector/pgvector:pg16 service container ships the binary but

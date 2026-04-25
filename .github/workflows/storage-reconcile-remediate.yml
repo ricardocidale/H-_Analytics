@@ -104,7 +104,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm install
+      - run: npm install --ignore-scripts
 
       - name: Verify required secrets are configured
         # Fail loudly *before* we hit the script, so a missing secret looks
