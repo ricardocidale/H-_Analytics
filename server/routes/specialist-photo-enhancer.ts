@@ -12,6 +12,7 @@ import {
   PhotoEnhancerInvalidSourceUrlError,
   runPhotoEnhancerPipeline,
 } from "../services/photo-enhancer-pipeline";
+import { evaluatePhotoEnhancerSpecialist } from "../../engine/analyst/surface/photos/photo-enhancer-evaluator";
 
 // Photos & Renders gallery payload — one row per past render. Fully derived
 // from the research_runs metadata persisted by runPhotoEnhancerPipeline so
@@ -66,6 +67,16 @@ const runSchema = z.object({
   originatedFrom: z.enum(["album", "specialist-page"]).optional().default("specialist-page"),
 });
 
+// `dispatch` is the engine-style batch entry point — admins target one or
+// more properties in a single call. Capped to keep one click from saturating
+// the shared `generate-image` rate-limit bucket; the scheduler honors the
+// same ceiling via its runtime config.
+const dispatchSchema = z.object({
+  propertyIds: z.array(z.number().int().positive()).min(1).max(50),
+  style: z.enum(PHOTO_ENHANCER_STYLES).optional().default("standard"),
+  prompt: z.string().optional().default(""),
+});
+
 export function register(app: Express): void {
   app.post("/api/specialists/photo-enhancer/run", requireAdmin, async (req: Request, res: Response) => {
     const userId = getAuthUser(req).id;
@@ -84,6 +95,12 @@ export function register(app: Express): void {
       }
       const { prompt, style, beforeImageUrl, propertyId, originatedFrom } = parsed.data;
 
+      // Honor admin-edited config from `specialist_configs` — promptTemplate
+      // is layered onto the runtime prompt and the modelResourceId is
+      // recorded into the research_runs metadata so the call log shows the
+      // assignment that was in effect for this render.
+      const config = await storage.getSpecialistConfig(PHOTO_ENHANCER_SPECIALIST_ID);
+
       const result = await runPhotoEnhancerPipeline({
         userId,
         prompt,
@@ -92,6 +109,8 @@ export function register(app: Express): void {
         propertyId,
         originatedFrom,
         route: "/api/specialists/photo-enhancer/run",
+        promptTemplate: config?.promptTemplate ?? "",
+        modelResourceId: config?.modelResourceId ?? null,
       });
       res.json(result);
     } catch (error: unknown) {
@@ -203,4 +222,53 @@ export function register(app: Express): void {
       res.status(500).json({ error: "Failed to list specialist calls" });
     }
   });
+
+  // Engine-style batch dispatch — same code path the scheduler uses, exposed
+  // to admins so a Photos & Renders refresh across N properties can be
+  // kicked off manually without authoring N individual /run calls.
+  app.post(
+    "/api/specialists/photo-enhancer/dispatch",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      const userId = getAuthUser(req).id;
+      try {
+        const rateLimit = await getAdminRateLimit();
+        if (isApiRateLimited(userId, "generate-image", rateLimit)) {
+          return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+        }
+        const parsed = dispatchSchema.safeParse(req.body);
+        if (!parsed.success) {
+          return res.status(400).json({ error: parsed.error.issues[0]?.message || "Invalid request" });
+        }
+        const { propertyIds, style, prompt } = parsed.data;
+        const summary = await evaluatePhotoEnhancerSpecialist({
+          userId,
+          propertyIds,
+          style,
+          prompt,
+          originatedFrom: "specialist-page",
+          route: "/api/specialists/photo-enhancer/dispatch",
+        });
+        res.json(summary);
+      } catch (error: unknown) {
+        // Mirror /run: known user/config errors map to 400 even on the
+        // batch path so dashboards and admins see the same failure shape
+        // regardless of which endpoint they hit. Per-property style-
+        // disabled / SSRF failures are normally absorbed into the summary
+        // by the evaluator; this catch only fires when the failure is
+        // pre-loop (e.g. config lookup throws) or applies to the whole
+        // dispatch.
+        if (error instanceof PhotoEnhancerStyleDisabledError) {
+          return res.status(400).json({ error: error.message, style: error.style });
+        }
+        if (error instanceof PhotoEnhancerInvalidSourceUrlError) {
+          return res.status(400).json({ error: error.message });
+        }
+        fernandaLog.error(
+          `Error dispatching photos-and-renders batch: ${error instanceof Error ? error.message : error}`,
+        );
+        res.status(500).json({ error: error instanceof Error ? error.message : "Dispatch failed" });
+      }
+    },
+  );
 }

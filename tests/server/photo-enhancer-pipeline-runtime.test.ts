@@ -95,6 +95,18 @@ const getResearchRunsForSpecialist = vi.fn(async (_specialistId: string, limit?:
 const countResearchRunsForSpecialist = vi.fn(async () => researchRunRows.length);
 const getUserById = vi.fn(async (_id: number) => undefined);
 const recordObservedMissingFields = vi.fn(async () => undefined);
+// Task #433 — both the specialist route and the engine evaluator now read
+// the admin-edited config to honor `promptTemplate` + `modelResourceId` at
+// runtime. The runtime test exercises the HTTP surface only, so we return
+// the empty default config (no template, no override) — the exact same
+// shape `getSpecialistConfig` returns for a Specialist whose admin has
+// never opened the page.
+const getSpecialistConfig = vi.fn(async () => ({
+  promptTemplate: "",
+  modelResourceId: null,
+  runtimeConfig: {},
+}));
+const getAllPropertiesAdmin = vi.fn(async () => []);
 
 vi.mock("../../server/storage", () => ({
   storage: {
@@ -104,6 +116,8 @@ vi.mock("../../server/storage", () => ({
     countResearchRunsForSpecialist,
     getUserById,
     recordObservedMissingFields,
+    getSpecialistConfig,
+    getAllPropertiesAdmin,
   },
 }));
 

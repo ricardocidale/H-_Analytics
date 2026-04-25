@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import {
+  applyPhotoEnhancerPromptTemplate,
   assertSafeBeforeImageUrl,
   PhotoEnhancerInvalidSourceUrlError,
   PHOTO_ENHANCER_SPECIALIST_ID,
@@ -174,5 +175,79 @@ describe("Photo Enhancer — legacy /api/generate-property-image delegation", ()
     // The legacy client contract never had specialistRunId; leaking it
     // would be harmless but we keep the public surface stable.
     expect(legacyRouteSrc).not.toMatch(/specialistRunId\s*:/);
+  });
+});
+
+describe("Photo Enhancer — admin promptTemplate substitution (Task #433)", () => {
+  it("returns the runtime prompt unchanged when no template is set", () => {
+    expect(applyPhotoEnhancerPromptTemplate(null, "exterior", "standard")).toBe("exterior");
+    expect(applyPhotoEnhancerPromptTemplate("", "exterior", "standard")).toBe("exterior");
+    expect(applyPhotoEnhancerPromptTemplate("   ", "exterior", "standard")).toBe("exterior");
+  });
+
+  it("substitutes {{prompt}} and {{style}} tokens", () => {
+    expect(
+      applyPhotoEnhancerPromptTemplate("Render in {{style}}: {{prompt}}", "wide angle", "interior-design"),
+    ).toBe("Render in interior-design: wide angle");
+  });
+
+  it("prepends template + space when no token is present", () => {
+    expect(
+      applyPhotoEnhancerPromptTemplate("Architectural photo,", "warm tones", "standard"),
+    ).toBe("Architectural photo, warm tones");
+  });
+
+  it("uses the template alone when no runtime prompt is supplied", () => {
+    expect(applyPhotoEnhancerPromptTemplate("Hero shot", "", "standard")).toBe("Hero shot");
+  });
+
+  it("substitutes tokens even with an empty runtime prompt", () => {
+    expect(applyPhotoEnhancerPromptTemplate("Style={{style}};p={{prompt}}", "", "renovation-concept"))
+      .toBe("Style=renovation-concept;p=");
+  });
+});
+
+describe("Photo Enhancer — Task #433 evaluator + scheduler wiring", () => {
+  const evaluatorSrc = fs.readFileSync(
+    path.resolve(__dirname, "../../engine/analyst/surface/photos/photo-enhancer-evaluator.ts"),
+    "utf-8",
+  );
+  const schedulerSrc = fs.readFileSync(
+    path.resolve(__dirname, "../../server/jobs/specialist-photos-batch.ts"),
+    "utf-8",
+  );
+  const indexSrc = fs.readFileSync(
+    path.resolve(__dirname, "../../server/index.ts"),
+    "utf-8",
+  );
+
+  it("evaluator delegates to the shared pipeline (no duplicated generator calls)", () => {
+    expect(evaluatorSrc).toContain("runPhotoEnhancerPipeline");
+    expect(evaluatorSrc).not.toMatch(/replicateService\.generateImage/);
+    expect(evaluatorSrc).not.toMatch(/generateImageBuffer\(/);
+  });
+
+  it("evaluator reads admin promptTemplate + modelResourceId from specialist_configs", () => {
+    expect(evaluatorSrc).toContain("getSpecialistConfig(PHOTO_ENHANCER_SPECIALIST_ID)");
+    expect(evaluatorSrc).toContain("promptTemplate");
+    expect(evaluatorSrc).toContain("modelResourceId");
+  });
+
+  it("scheduler is registered in SCHEDULER_REGISTRY for Observability", () => {
+    const trackerSrc = fs.readFileSync(
+      path.resolve(__dirname, "../../server/jobs/scheduler-run-tracker.ts"),
+      "utf-8",
+    );
+    expect(trackerSrc).toContain('"specialist-photos-batch"');
+  });
+
+  it("scheduler dispatches via the engine evaluator (not the route layer)", () => {
+    expect(schedulerSrc).toContain("evaluatePhotoEnhancerSpecialist");
+    expect(schedulerSrc).not.toMatch(/runPhotoEnhancerPipeline/); // dispatch goes through the evaluator
+  });
+
+  it("scheduler is hooked from server/index.ts startup + shutdown blocks", () => {
+    expect(indexSrc).toContain("startSpecialistPhotosBatchScheduler");
+    expect(indexSrc).toContain("stopSpecialistPhotosBatchScheduler");
   });
 });

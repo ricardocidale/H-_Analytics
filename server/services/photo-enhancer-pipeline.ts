@@ -53,8 +53,22 @@ export interface PhotoEnhancerInput {
   style: PhotoEnhancerStyle;
   beforeImageUrl?: string;
   propertyId?: number;
-  originatedFrom: "album" | "specialist-page" | "legacy";
+  originatedFrom: "album" | "specialist-page" | "legacy" | "scheduled-batch";
   route: string;
+  /**
+   * Optional admin-edited prompt template from `specialist_configs.promptTemplate`.
+   * If supplied, `{{prompt}}` and `{{style}}` tokens are substituted with the
+   * runtime values; if no token is present the template is prepended to the
+   * runtime prompt with a separating space. Empty string ⇒ ignored.
+   */
+  promptTemplate?: string | null;
+  /**
+   * Resolved `specialist_configs.modelResourceId` recorded into the
+   * research_runs metadata so the call log shows which model assignment
+   * was honored (the underlying generator selection still keys off
+   * `style`, since renders use Replicate kinds + OpenAI fallback).
+   */
+  modelResourceId?: number | null;
 }
 
 export interface PhotoEnhancerOutput {
@@ -126,10 +140,43 @@ export async function assertSafeBeforeImageUrl(url: string): Promise<void> {
  * generation errors — on failure the research_runs row is marked failed
  * and the error rethrown so the caller can map it to an HTTP status.
  */
+/**
+ * Apply an admin-edited prompt template (from `specialist_configs.promptTemplate`)
+ * to the runtime prompt. Supports `{{prompt}}` and `{{style}}` substitution; if
+ * neither token is present, the template is prepended to the runtime prompt with
+ * a single space separator. An empty/whitespace-only template is treated as
+ * "no override" so admins can clear the field to disable templating.
+ */
+export function applyPhotoEnhancerPromptTemplate(
+  template: string | null | undefined,
+  runtimePrompt: string,
+  style: string,
+): string {
+  const trimmed = (template ?? "").trim();
+  if (!trimmed) return runtimePrompt;
+  if (trimmed.includes("{{prompt}}") || trimmed.includes("{{style}}")) {
+    return trimmed
+      .split("{{prompt}}").join(runtimePrompt)
+      .split("{{style}}").join(style);
+  }
+  if (!runtimePrompt) return trimmed;
+  return `${trimmed} ${runtimePrompt}`;
+}
+
 export async function runPhotoEnhancerPipeline(
   input: PhotoEnhancerInput,
 ): Promise<PhotoEnhancerOutput> {
-  const { prompt, style, beforeImageUrl, propertyId, originatedFrom, userId, route } = input;
+  const {
+    style,
+    beforeImageUrl,
+    propertyId,
+    originatedFrom,
+    userId,
+    route,
+    promptTemplate,
+    modelResourceId,
+  } = input;
+  const prompt = applyPhotoEnhancerPromptTemplate(promptTemplate, input.prompt, style);
 
   if (beforeImageUrl) {
     await assertSafeBeforeImageUrl(beforeImageUrl);
@@ -175,6 +222,8 @@ export async function runPhotoEnhancerPipeline(
       prompt: persistedPrompt,
       sourceImageUrl: beforeImageUrl ?? null,
       route,
+      modelResourceId: modelResourceId ?? null,
+      promptTemplateApplied: !!(promptTemplate && promptTemplate.trim()),
     },
   });
 
@@ -292,6 +341,8 @@ export async function runPhotoEnhancerPipeline(
         usedFallback,
         objectPath,
         route,
+        modelResourceId: modelResourceId ?? null,
+        promptTemplateApplied: !!(promptTemplate && promptTemplate.trim()),
       },
     });
   } catch (postError: unknown) {

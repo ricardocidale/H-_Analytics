@@ -54,6 +54,13 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Nightly recompute of every catalog Specialist's research quality score.",
   },
+  {
+    key: "specialist-photos-batch",
+    label: "Photos & Renders Batch",
+    cycleIntervalMs: 30 * 60 * 1000, // 30min poll; admin sets the actual cadence
+    description:
+      "Polls the Photos & Renders specialist (Fernanda) config and dispatches scheduled render batches across the configured property list.",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];

@@ -292,6 +292,16 @@ app.use((req, res, next) => {
         serverLog(`[specialist-quality-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3f: Photos & Renders specialist scheduled batch (Task #433) ────────
+      // Polls `specialist_configs.runtimeConfig.batchSchedule` for
+      // `photos.photo-enhancer` and dispatches the engine evaluator
+      // across the configured property list at the admin-set cadence.
+      import("./jobs/specialist-photos-batch").then(({ startSpecialistPhotosBatchScheduler }) => {
+        startSpecialistPhotosBatchScheduler();
+      }).catch(err => {
+        serverLog(`[specialist-photos-batch-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
@@ -312,6 +322,12 @@ app.use((req, res, next) => {
         try {
           const { stopSpecialistQualityRecomputeScheduler } = await import("./jobs/specialist-quality-recompute");
           stopSpecialistQualityRecomputeScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopSpecialistPhotosBatchScheduler } = await import("./jobs/specialist-photos-batch");
+          stopSpecialistPhotosBatchScheduler();
         } catch {
           /* best-effort — module may not have loaded yet */
         }
