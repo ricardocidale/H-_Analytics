@@ -33,9 +33,30 @@ secrets the Replit host gets). Lock-in is a regression.
   one non-Replit implementation alongside the Replit one.
 - New `@replit/*` deps go in `devDependencies` only, behind a conditional load.
 
+**Database — Neon is the source of truth (April 24, 2026 cutover, CRITICAL).**
+The app connects to a dedicated **Neon** Postgres project, not the Replit-managed
+"Helium" Postgres. Helium is **rollback-only** and must not be touched by any
+new code, migration, seed, test, or workflow.
+- **Connection string precedence:** `server/db.ts` reads `POSTGRES_URL ?? DATABASE_URL`.
+  `POSTGRES_URL` (Neon) wins; never hardcode either value.
+- **Why both vars exist:** Replit reserves `DATABASE_URL` for Helium and won't let
+  it be overridden, so `POSTGRES_URL` is how we point at Neon (or Vercel/local) on
+  the same Replit host. Future hosts can drop `POSTGRES_URL` and just set `DATABASE_URL`.
+- **Migrations, seeds, schema drift, audits, vector store (`vector_chunks` pgvector
+  HNSW), Postgres-backed cache (`cache_entries`)** — all run against Neon.
+- **Helium rollback dump** lives in R2 at
+  `r2://h-analysis/archive/helium-rollback-20260424/` (4 files, ~250 MB,
+  SHA-256-verified). It is the authoritative rollback path; restore runbook in
+  `docs/developer/migration-from-replit.md`. The local `backups/heliumdb-*` files
+  were `git rm`'d in Task #517 and `.gitignore` blocks re-commit.
+- **Forbidden:** any new `helium*` host string, any `@replit/database` import, any
+  workflow that targets Helium directly, any seed/migration script that assumes
+  the Replit-managed Postgres.
+
 **Self-check before merging:** with all `REPL*` env vars unset and only
-`DATABASE_URL` set, `npm run build` and `npm test` must still succeed (auth-gated
-tests may skip; nothing may crash on import).
+`POSTGRES_URL` (preferred) or `DATABASE_URL` (fallback) set, `npm run build` and
+`npm test` must still succeed (auth-gated tests may skip; nothing may crash on
+import).
 
 Full rule (with rationale, allowances, and migration guidance):
 `.claude/rules/replit-independence.md`.
