@@ -3,13 +3,13 @@
 **Scope.** This file tracks rework, retries, rewrites, and bugs that exist *because* the project lives on Replit specifically — separable from the broader rewrite tax catalogued in `rewritetax.md`. It is a living document: the bottom half is a forward-looking watchlist of failure modes we should expect to keep paying for until they are structurally fixed (or until the Vercel/Neon/R2 escape is complete).
 
 **Status of the escape (as of 2026-04-25):**
-- Database — DONE at the runtime layer (Apr 23). Helium → Neon cutover landed in commit `430ba0d7`; `shared/db-url.ts` is the resolver. **Helium add-on cancellation is NOT yet done** — the add-on still bills monthly. Cancellation is gated on moving the rollback dump off git LFS into R2 (project task filed Apr 25). Once that task merges, the user can cancel Helium in the Replit dashboard.
+- Database — DONE at the runtime layer (Apr 23). Helium → Neon cutover landed in commit `430ba0d7`; `shared/db-url.ts` is the resolver. **Helium add-on cancellation is now CLEARED to run** — the rollback dump prereq (Task #517) shipped Apr 25 and the dumps now live in R2. The user just needs to click the cancel button in the Replit dashboard; runbook in `docs/developer/migration-from-replit.md`.
 - Object storage — DONE. Replit Object Storage → Cloudflare R2 (`h-analysis` bucket) via the existing S3-compatible adapter. `STORAGE_PROVIDER=r2` is live; round-trip verified.
 - Hosting — IN PROGRESS. Vercel deployment is the next major step. Until that lands, the Replit Dependency Tax keeps accruing on every commit.
 
-**Helium cancellation thread (active; main blocker for stopping the monthly add-on bill):**
+**Helium cancellation thread (PREREQ CLEARED Apr 25 — ball is in the user's court):**
 - The runtime app is Neon-only, verified by code read on April 25 (`server/db.ts:20` calls `requireDbUrl()`, which prefers `POSTGRES_URL`; `DATABASE_URL` only matters as a never-used fallback).
-- 250 MB of Helium rollback dumps live in `backups/heliumdb-*.sql.gz` via Git LFS. They are the rollback safety net AND a recurring LFS bandwidth cost on every push. Removing them is destructive (requires `git rm` + LFS prune) so it is delegated to a project task rather than executed from the main agent session.
+- ~~250 MB of Helium rollback dumps live in `backups/heliumdb-*.sql.gz` via Git LFS.~~ **Resolved Apr 25 (Task #517):** all four files are now at `r2://h-analysis/archive/helium-rollback-20260424/`, SHA-256-verified by re-downloading. `git rm`d from the working tree and the `.gitattributes` LFS filter entries removed; future pushes don't pay LFS bandwidth on these objects. Local LFS cache (`.git/lfs/objects/`) still holds the blobs because they are referenced by historical commits — actual GitHub LFS storage reclamation requires a history rewrite (BFG / `git filter-repo`) + force push and is intentionally out of scope here.
 - `.gitignore` was updated April 25 with `backups/` and `*.sql.gz` so this category of file cannot be re-committed by accident.
 - The cancellation runbook (exact dashboard click-path, prereqs) is in `docs/developer/migration-from-replit.md` under "Cancelling the Helium Postgres add-on (when ready)".
 
@@ -140,7 +140,7 @@ This was the platform's recommended fix all along (the system's `important_datab
 **Forward cost.** $10–$30 per occurrence × ~4/month = $40–$120/month.
 
 **Structural fix candidates.**
-- Stop committing large binary artifacts to git (`backups/heliumdb-*.sql.gz` is the live offender — ~80 MB through LFS). Move ops backups to R2 or to a separate ops-only repo.
+- Stop committing large binary artifacts to git. ~~`backups/heliumdb-*.sql.gz` was the live offender (~250 MB through LFS).~~ **Resolved Apr 25 (Task #517):** moved to R2 at `archive/helium-rollback-20260424/`, removed from git, and `.gitignore` now blocks the directory. Pattern to keep applying: ops backups go to R2 (`archive/` prefix), not to git or LFS.
 - For rejected reviews caused by stale unrelated diffs, document the `skip_validation_reason` escape hatch in `replit.md` so the next agent doesn't burn the same loop figuring it out.
 
 ### W5 — Per-task context reload of large memory files

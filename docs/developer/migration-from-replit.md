@@ -12,14 +12,14 @@ This guide covers removing all Replit-managed integrations and deploying H+ Anal
 
 ### Cancelling the Helium Postgres add-on (when ready)
 
-The Helium add-on still bills monthly even though nothing reads from it. To cancel it cleanly:
+The Helium add-on still bills monthly even though nothing reads from it. The rollback prereq cleared on Apr 25 (Task #517) — the `pg_dump` snapshots that seeded the Neon migration now live at `r2://h-analysis/archive/helium-rollback-20260424/`, SHA-256-verified. Cancel it like this:
 
 1. **Verify the running app is on Neon** — `echo $POSTGRES_URL | head -c 40` should show a `neon.tech` host. If it points anywhere else, stop and figure out why before cancelling.
-2. **Make sure the rollback dump is somewhere other than the Helium DB itself.** Currently the dumps live in `backups/heliumdb-*.sql.gz` in this repo (Git LFS, ~250 MB). The follow-up task tracking the migration off git LFS into R2 is the prereq for this step — don't cancel Helium until that task is merged. Once it is, the rollback dump will live at `r2://h-analysis/archive/helium-rollback-20260424/`.
+2. **Confirm the rollback dump is in R2** — `npx tsx script/r2-list-archive.ts` should list 4 objects under `archive/helium-rollback-20260424/`: the full dump, the data-only dump, the rowcounts text file, and the sequences SQL file. **Do not cancel Helium if that list is empty.** The original local `backups/heliumdb-*` files were `git rm`d as part of Task #517 — `script/upload-helium-rollback-to-r2.ts` cannot be re-run from this repo state because its inputs are gone. To recover, fetch the four files from one of: (a) an older git ref (`git checkout 92ad89cd -- backups/`, then re-upload), (b) the local `.git/lfs/objects/` cache on a machine that cloned before the LFS prune, or (c) a fresh `pg_dump` of the live Helium DB while the add-on is still attached.
 3. **In the Replit dashboard:** open this Repl → "Tools" pane in the left sidebar → "Database" → choose "Detach / Delete" on the Helium-managed database. Confirm. Replit will keep `DATABASE_URL` set for a grace period; the app ignores it because `POSTGRES_URL` is set.
 4. **Confirm:** the next monthly invoice should not show a Helium line item. The H+ billing telemetry (`dev_internal.replit_invoices` in Neon) will surface this once invoices for the new period land — `npm run billing:report` regenerates `docs/billing/hplus-cost-report.md`.
 
-This is irreversible. Once the add-on is cancelled, the only way back is the R2 dump → restore into a fresh Postgres → re-point `POSTGRES_URL`.
+This is irreversible. Once the add-on is cancelled, the only way back is to download from R2 (`r2://h-analysis/archive/helium-rollback-20260424/heliumdb-full-20260424T174432Z.sql.gz`), `gunzip` it, `psql -f` into a fresh Postgres, and re-point `POSTGRES_URL` at the new instance. The `heliumdb-rowcounts-*.txt` row-count manifest in the same prefix is what to compare against to confirm a clean restore.
 
 ---
 

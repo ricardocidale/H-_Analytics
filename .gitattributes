@@ -1,3 +1,1 @@
 .turbo/cache/4ef2d42dbe46b27f.tar.zst filter=lfs diff=lfs merge=lfs -text
-backups/heliumdb-data-only-20260424T174432Z.sql.gz filter=lfs diff=lfs merge=lfs -text
-backups/heliumdb-full-20260424T174432Z.sql.gz filter=lfs diff=lfs merge=lfs -text
