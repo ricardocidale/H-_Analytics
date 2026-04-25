@@ -662,6 +662,11 @@ export default function PropertyEdit() {
           onAcceptRange={handleAcceptRange}
         />
 
+        <PrerequisitesFailedPanel
+          failures={prerequisiteFailures}
+          onDismiss={() => setPrerequisiteFailures([])}
+        />
+
         {isGenerating ? (
           <AnalystWorkingView
             propertyName={property.name}
@@ -736,10 +741,6 @@ export default function PropertyEdit() {
         </DialogContent>
       </Dialog>
 
-      <PrerequisitesFailedPanel
-        failures={prerequisiteFailures}
-        onDismiss={() => setPrerequisiteFailures([])}
-      />
       <ApplyResearchDialog
         open={showApplyDialog}
         onOpenChange={setShowApplyDialog}
