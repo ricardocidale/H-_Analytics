@@ -20,7 +20,7 @@ const ActivityTab = lazy(() => import("@/components/admin").then(m => ({ default
 const VerificationTab = lazy(() => import("@/components/admin").then(m => ({ default: m.VerificationTab })));
 const DatabaseTab = lazy(() => import("@/components/admin").then(m => ({ default: m.DatabaseTab })));
 const PeopleTab = lazy(() => import("@/components/admin/PeopleTab"));
-const NavigationTab = lazy(() => import("@/components/admin/NavigationTab"));
+const SidebarVisibilityTab = lazy(() => import("@/components/admin/SidebarVisibilityTab"));
 const AIAgentsTab = lazy(() => import("@/components/admin/AIAgentsTab"));
 const NotificationsTab = lazy(() => import("@/components/admin/NotificationsTab"));
 const ModelDefaultsTab = lazy(() => import("@/components/admin/ModelDefaultsTab"));
@@ -59,7 +59,7 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "analyst-tables":      { title: "Analyst Tables",             subtitle: "Admin-only LLM refresh of benchmark tables (capital raise, etc.)" },
   "vector-bench":        { title: "Vector Search Latency",      subtitle: "Trend lines for pgvector / HNSW p50 and p95 query latency over time" },
   notifications:         { title: "Notifications",            subtitle: "Email channels, alert rules, and delivery tracking" },
-  navigation:            { title: "Navigation",               subtitle: "Control which sidebar pages are visible to users" },
+  "sidebar-visibility":  { title: "Sidebar Visibility",        subtitle: "Control which sidebar pages are visible to users in the main app (does not affect the admin sidebar)" },
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
   observability:         { title: "Observability",             subtitle: "Background scheduler health, last-cycle summaries, and stale-warnings" },
@@ -174,7 +174,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "analyst-tables":   return <AnalystTablesTab />;
     case "vector-bench":     return <VectorBenchTrendsTab />;
     case "notifications":    return <NotificationsTab />;
-    case "navigation":       return <NavigationTab />;
+    case "sidebar-visibility": return <SidebarVisibilityTab />;
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
     case "observability":    return <ObservabilityTab />;

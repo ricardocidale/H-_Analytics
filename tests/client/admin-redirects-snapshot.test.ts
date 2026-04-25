@@ -48,7 +48,7 @@ const RENDERABLE_ADMIN_SECTIONS: ReadonlySet<AdminSection> = new Set<AdminSectio
   "analyst-tables",
   "vector-bench",
   "notifications",
-  "navigation",
+  "sidebar-visibility",
   "verification",
   "database",
   "observability",

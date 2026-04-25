@@ -52,7 +52,7 @@ const ADMIN_TSX_RENDERABLE_SECTIONS: ReadonlySet<AdminSection> = new Set<AdminSe
   "analyst-tables",
   "vector-bench",
   "notifications",
-  "navigation",
+  "sidebar-visibility",
   "verification",
   "database",
   "observability",

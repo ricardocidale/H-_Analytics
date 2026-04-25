@@ -44,7 +44,7 @@ export type AdminSection =
   | "brand" | "exports"
   | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "vector-bench"
-  | "navigation" | "notifications" | "verification" | "database" | "observability"
+  | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability"
   // Legacy URL aliases preserved for plausibly-bookmarked deep links.
   // Anything beyond this short list was a code-internal rename and was
   // dropped; new contributors don't need to chase a redirect chain to
@@ -252,10 +252,10 @@ function buildNavGroups(): NavGroup[] {
       id: "app-settings",
       label: "App Settings",
       icon: IconSettingsGear,
-      description: "Notifications, navigation, system & activity logs",
+      description: "Notifications, sidebar visibility, system & activity logs",
       sections: [
         { value: "notifications",  label: "Notifications",  icon: IconPhone },
-        { value: "navigation",     label: "Navigation",     icon: IconPanelLeft },
+        { value: "sidebar-visibility", label: "Sidebar Visibility", icon: IconPanelLeft },
         { value: "database",       label: "Database",       icon: IconDatabase },
         { value: "observability",  label: "Observability",  icon: IconDashboard },
         { value: "activity",       label: "Activity",       icon: IconActivity },

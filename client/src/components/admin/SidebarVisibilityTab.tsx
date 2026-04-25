@@ -1,10 +1,17 @@
 /**
- * NavigationTab.tsx — Sidebar navigation visibility controls.
+ * SidebarVisibilityTab.tsx — Controls which sidebar pages are visible to
+ * regular (non-admin) users in the main app.
  *
- * One toggle per sidebar menu item. Always-visible items are shown
- * as locked (non-toggleable) so admins see the full picture of what
- * the sidebar looks like. Hidden pages are still accessible via direct
- * URL — this is a UX simplification, not a security control.
+ * NOTE: This tab does NOT control the admin sidebar itself — it controls
+ * the user-facing sidebar rendered by `Layout.tsx`. The component used to
+ * be called `NavigationTab` but was renamed in Task #606 because it kept
+ * being confused with the admin sidebar navigation. See
+ * docs/audits/admin-section-audit-2026-04-20.md §MT.3.
+ *
+ * One toggle per sidebar menu item. Always-visible items are shown as
+ * locked (non-toggleable) so admins see the full picture of what the
+ * sidebar looks like. Hidden pages are still accessible via direct URL
+ * — this is a UX simplification, not a security control.
  *
  * Settings are persisted via GET/PUT /api/global-assumptions.
  */
@@ -65,7 +72,7 @@ const AI_ASSISTANT = {
   description: "Floating AI chat widget available on every page",
 };
 
-export default function NavigationTab() {
+export default function SidebarVisibilityTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, refetch: refetchAuth } = useAuth();
@@ -98,18 +105,18 @@ export default function NavigationTab() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(["globalAssumptions"], context.prev);
-      toast({ title: "Error", description: "Failed to save navigation settings.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to save sidebar visibility settings.", variant: "destructive" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
-      toast({ title: "Navigation updated", description: "Visibility saved for all users." });
+      toast({ title: "Sidebar visibility updated", description: "Visibility saved for all users." });
     },
   });
 
   const isOn = (key: string) => (globalAssumptions as unknown as Record<string, unknown>)?.[key] !== false;
 
   return (
-    <div className="space-y-4" data-testid="card-sidebar-settings">
+    <div className="space-y-4" data-testid="card-sidebar-visibility">
       <Card className="bg-card border border-border/80 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-semibold text-foreground">Sidebar Menu</CardTitle>
