@@ -66,15 +66,22 @@ The single edit point is **Admin → Model Defaults → Model Constants**; every
 
 #### Model Constants — placement convention
 
-Model Constants must never appear on investor-facing surfaces (Company Assumptions, Property Edit's working tabs). They have exactly one canonical edit surface — **Admin → Model Defaults → Model Constants** — and at most one read-only echo per related admin tab when context demands it (e.g. depreciation surfacing alongside Property Underwriting defaults so the admin can see the value the engine consumes without tab-hopping).
+Model Constants must never appear on investor-facing surfaces as **editable** values: Company Assumptions and Property Edit's working tabs may not surface a Model Constant alongside their editable inputs without the read-only doctrine below. They have exactly one canonical edit surface — **Admin → Model Defaults → Model Constants** — and at most one read-only echo per related surface when context demands it (e.g. depreciation surfacing alongside Property Underwriting defaults so the admin can see the value the engine consumes without tab-hopping; depreciation surfacing on Property Edit so the user can see what the per-property override is overriding).
 
-When a read-only echo is needed on another admin tab, follow the locked pattern in `client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx` (the `Depreciation Years` band):
+There are exactly **two surface classes** where a read-only echo is allowed:
 
-1. Render it as a **dedicated full-width section at the top** of the tab — never inline inside the editable Defaults grid.
-2. Use a **shield-iconed header band** ("Model Constants — Authority-Governed", `IconShieldCheck`, `accent-pop` palette) to visually separate authority-governed values from editable defaults below.
-3. Gate the section to **`super_admin`** via `useAuth().isSuperAdmin`. Plain `admin` users still see the rest of the tab; they can reach the constant itself via the dedicated Model Constants tab.
-4. Render the value as a **read-only `<Input>` + helper text** (no slider, no `EditableValue`). The helper text must (a) cite the authority, (b) point back to the canonical tab, and (c) note that per-property overrides on the property page still win the cascade.
-5. Fetch the resolved value via the same admin endpoint the Constants tab uses (`GET /api/admin/model-constants?country=...`) so the echo can never drift.
+- **Admin tab echo** — when an admin tab edits Defaults that interact with the constant (e.g. admin Property Underwriting defaults next to depreciation). Locked reference: `client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx`.
+- **Property-edit override echo** — when the property page lets the user write a per-property override of a Model Constant (depreciation life, ASC 842 lease term, etc.). The echo of the constant must sit immediately above the override input so the cascade is visible — otherwise an investor reads the override field as the regulatory value itself. Locked reference: `client/src/components/property-edit/CapitalStructureSection.tsx` (the `Depreciation Years` band).
+
+Both echo classes follow the same shield-iconed band pattern:
+
+1. Render it as a **dedicated full-width section** — never inline inside the editable grid. On admin tabs it sits at the top of the tab; on the property edit page it sits immediately above the override input it explains.
+2. Use a **shield-iconed header band** ("Model Constants — Authority-Governed", `IconShieldCheck`, `accent-pop` palette) to visually separate authority-governed values from editable inputs.
+3. **Gating** — admin-tab echoes gate to `super_admin` via `useAuth().isSuperAdmin`. The property-edit override echo is shown to anyone who can already edit the property (the echo is read-only context for an editor surface non-admins legitimately reach); when the admin endpoint is unauthorized for that viewer, the echo falls back to the static `GOVERNED_FIELDS[key]` metadata so the band still renders meaningfully.
+4. Render the value as a **read-only `<Input>` + helper text** (no slider, no `EditableValue`). The helper text must (a) cite the authority, (b) point back to the canonical tab ("Sourced from Admin → Model Defaults → Model Constants"), and (c) on the property-edit class, immediately precede a clearly-labeled "Per-Property Override" input with explicit cascade copy (per-property override → company default → authority constant).
+5. Fetch the resolved value via the same admin endpoint the Constants tab uses (`GET /api/admin/model-constants?country=...&subdivision=...`) so the echo can never drift. (See the `read-only constants resolver` follow-up for the public-safe variant that will replace this on the property-edit class.)
+
+Both classes use a `data-testid="section-model-constants-*"` shell and a `data-testid="field-<key>-readonly"` inner container, which the read-only doctrine browser tests (`tests/client/property-underwriting-readonly-band-browser.test.tsx`, `tests/client/property-edit-depreciation-band.test.tsx`) scan for ZERO editable elements. A regression that nests an editable input inside the readonly container fails those tests.
 
 This is how the next authority-governed constant (e.g. ASC 842 lease term, country-specific transfer tax band) drops in alongside without re-deciding placement.
 

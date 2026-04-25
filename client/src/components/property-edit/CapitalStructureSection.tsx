@@ -23,6 +23,7 @@
  * Research Badges appear next to key inputs when AI-generated
  * market benchmarks are available; clicking them auto-fills the input.
  */
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -32,7 +33,7 @@ import { EditableValue } from "@/components/ui/editable-value";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { GaapBadge } from "@/components/ui/gaap-badge";
-import { GovernedFieldWrapper } from "@/components/ui/governed-field";
+import { IconShieldCheck } from "@/components/icons";
 import { GOVERNED_FIELDS, DEFAULT_COST_SEG_5YR_PCT, DEFAULT_COST_SEG_7YR_PCT, DEFAULT_COST_SEG_15YR_PCT } from "@shared/constants";
 import { MarketRateBenchmark } from "@/components/property-research/MarketRateBenchmark";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/formatters";
@@ -51,6 +52,37 @@ import type { PropertyEditSectionProps } from "./types";
 export default function CapitalStructureSection({ draft, onChange, onNumberChange, globalAssumptions, researchValues }: PropertyEditSectionProps) {
   const eid = draft.id as number | undefined;
   const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
+
+  // Live resolved Model Constant for depreciationYears at this property's
+  // locality — same admin endpoint the canonical Model Constants tab and
+  // the admin Property Underwriting tab use, so the read-only echo here
+  // can never drift from the value the engine consumes.
+  // ARCHITECTURE.md §"Model Constants — placement convention" — every
+  // surface that displays a Model Constant is read-only and links back
+  // to the Model Constants tab. This is the property-edit echo.
+  // The endpoint is admin-gated; for non-admin viewers the fetch 4xx's
+  // and we fall back to the static GOVERNED_FIELDS metadata so the band
+  // still renders meaningfully.
+  const propertyCountry = ((draft as { country?: string | null }).country) || "United States";
+  const propertyState = ((draft as { stateProvince?: string | null }).stateProvince) || null;
+  const { data: depYearsResolved } = useQuery<{ value: unknown } | null>({
+    queryKey: ["model-constants-depreciation-years", propertyCountry, propertyState],
+    queryFn: async () => {
+      const params = new URLSearchParams({ country: propertyCountry });
+      if (propertyState) params.set("subdivision", propertyState);
+      const res = await fetch(`/api/admin/model-constants?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return null;
+      const json = (await res.json()) as { items?: Array<{ key: string; effectiveValue: unknown }> };
+      const row = json.items?.find((r) => r.key === "depreciationYears");
+      return row ? { value: row.effectiveValue } : null;
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+  const depYearsLive =
+    typeof depYearsResolved?.value === "number" ? depYearsResolved.value : null;
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -121,33 +153,105 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
           </div>
         </div>
 
-        <GovernedFieldWrapper
-          authority={GOVERNED_FIELDS.depreciationYears.authority}
-          label={`${GOVERNED_FIELDS.depreciationYears.fieldName}: ${GOVERNED_FIELDS.depreciationYears.value}`}
-          helperText={GOVERNED_FIELDS.depreciationYears.helperText}
-          referenceUrl={GOVERNED_FIELDS.depreciationYears.referenceUrl}
-          data-testid="governed-field-depreciationYears"
+        {/*
+          Authority-Governed band — Model Constants placement convention
+          (docs/architecture/ARCHITECTURE.md §"Model Constants — placement
+          convention"). Same shield-iconed `section-model-constants-*`
+          shell used by the admin Property Underwriting tab so the property
+          edit page never invents its own treatment. The read-only echo
+          above the override input makes the cascade visible: per-property
+          override → company default → authority constant.
+        */}
+        <section
+          className="rounded-lg border border-accent-pop/20 bg-accent-pop/10 dark:bg-accent-pop/20 dark:border-accent-pop/30 overflow-hidden"
+          data-testid="section-model-constants-property-edit-depreciation"
         >
-          <div className="space-y-1.5 mt-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5 text-xs">
-              Property Override
-              <InfoTooltip text="Override the global depreciation period for this property. Leave blank to use the global or IRS default (39 years)." />
-            </Label>
-            <Input
-              type="number"
-              step={0.5}
-              min={1}
-              placeholder="Use global default"
-              value={draft.depreciationYears ?? ""}
-              onChange={(e) => {
-                const val = e.target.value;
-                onChange("depreciationYears", val === "" ? null : parseFloat(val));
-              }}
-              className="w-40 input-field"
-              data-testid="input-depreciation-years-override"
-            />
+          <header className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3 border-b border-accent-pop/20 bg-accent-pop/5">
+            <IconShieldCheck className="w-4 h-4 text-accent-pop dark:text-accent-pop shrink-0" />
+            <h4 className="text-sm font-semibold text-accent-pop dark:text-accent-pop">
+              Model Constants — Authority-Governed
+            </h4>
+            <span className="text-xs text-accent-pop/80 dark:text-accent-pop/70">
+              Read-only · Sourced from Admin → Model Defaults → Model Constants
+            </span>
+          </header>
+          <div className="p-4 space-y-4">
+            <div className="space-y-2" data-testid="field-depreciationYears-readonly">
+              <Label
+                htmlFor="depreciation-years-display"
+                className="label-text text-foreground flex flex-wrap items-center gap-x-2 gap-y-1"
+              >
+                <span>{GOVERNED_FIELDS.depreciationYears.fieldName}</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {GOVERNED_FIELDS.depreciationYears.authority}
+                </span>
+              </Label>
+              <Input
+                id="depreciation-years-display"
+                type="text"
+                readOnly
+                value={
+                  depYearsLive !== null
+                    ? `${depYearsLive} years`
+                    : GOVERNED_FIELDS.depreciationYears.value
+                }
+                className="font-mono bg-muted/40 cursor-not-allowed max-w-xs"
+                data-testid="text-depreciationYears-readonly"
+                aria-readonly="true"
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {GOVERNED_FIELDS.depreciationYears.helperText}
+                {GOVERNED_FIELDS.depreciationYears.referenceUrl && (
+                  <>
+                    {" "}
+                    <a
+                      href={GOVERNED_FIELDS.depreciationYears.referenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-foreground"
+                      data-testid="link-depreciationYears-reference"
+                    >
+                      Reference
+                    </a>
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/*
+              Per-property override — clearly labeled as the override (not
+              the constant). Cascade documented inline so the editor knows
+              what wins: per-property override → company default →
+              authority constant.
+            */}
+            <div className="space-y-1.5 border-t border-accent-pop/20 pt-3">
+              <Label
+                htmlFor="depreciation-years-override"
+                className="label-text text-foreground flex items-center gap-1.5"
+              >
+                Per-Property Override
+                <InfoTooltip text="Overrides the authority constant above for THIS property only. Cascade: per-property override → company default → authority constant. Leave blank to inherit." />
+              </Label>
+              <Input
+                id="depreciation-years-override"
+                type="number"
+                step={0.5}
+                min={1}
+                placeholder="Inherit (uses constant above)"
+                value={draft.depreciationYears ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  onChange("depreciationYears", val === "" ? null : parseFloat(val));
+                }}
+                className="w-56 input-field"
+                data-testid="input-depreciation-years-override"
+              />
+              <p className="text-xs text-muted-foreground">
+                Cascade: per-property override → company default → authority constant. Leave blank to use the constant above.
+              </p>
+            </div>
           </div>
-        </GovernedFieldWrapper>
+        </section>
 
         <div className="border-t border-white/10 pt-4 space-y-4">
           <div className="flex items-center justify-between">
