@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { openai, getGeminiClient } from "../image/client";
+import { getOpenAIClient, getGeminiClient } from "../image/client";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../auth";
 import { getAvailableStylesFromDb, getAdminRateLimit } from "../integrations/replicate";
 import { z } from "zod";
@@ -36,7 +36,7 @@ export function registerImageRoutes(app: Express): void {
       }
 
       const startTime = Date.now();
-      const response = await openai.images.generate({
+      const response = await getOpenAIClient().images.generate({
         model: "gpt-image-1",
         prompt,
         n: 1,

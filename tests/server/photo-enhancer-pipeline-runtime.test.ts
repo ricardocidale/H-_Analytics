@@ -58,7 +58,7 @@ vi.mock("../../server/integrations/replicate", () => ({
 const generateImageBufferMock = vi.fn(async () => Buffer.from("openai-img"));
 vi.mock("../../server/image/client", () => ({
   generateImageBuffer: (...args: any[]) => generateImageBufferMock(...args),
-  openai: {},
+  getOpenAIClient: () => ({}),
   getGeminiClient: () => ({}),
 }));
 

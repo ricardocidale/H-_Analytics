@@ -1,16 +1,10 @@
 import fs from "node:fs";
-import OpenAI, { toFile } from "openai";
-import { getGeminiClient } from "../ai/clients";
+import { toFile } from "openai";
+import { getGeminiClient, getOpenAIClient } from "../ai/clients";
 import { Buffer } from "node:buffer";
 import { logger } from "../logger";
 
-export const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
-
-// getGeminiClient re-exported from centralized singleton (server/ai/clients.ts)
-export { getGeminiClient } from "../ai/clients";
+export { getGeminiClient, getOpenAIClient } from "../ai/clients";
 
 /**
  * Generate an image using Nano Banana (gemini-2.5-flash-image) and return as Buffer.
@@ -43,7 +37,7 @@ export async function generateImageBuffer(
     logger.warn(`Nano Banana image generation failed, falling back to OpenAI: ${err instanceof Error ? err.message : String(err)}`, "image-gen");
   }
 
-  const response = await openai.images.generate({
+  const response = await getOpenAIClient().images.generate({
     model: "gpt-image-1",
     prompt,
     size: _size === "auto" ? "1024x1024" : _size,
@@ -69,7 +63,7 @@ export async function editImages(
     )
   );
 
-  const response = await openai.images.edit({
+  const response = await getOpenAIClient().images.edit({
     model: "gpt-image-1",
     image: images,
     prompt,
