@@ -47,7 +47,8 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertTriangle } from "@/components/icons";
+import { IconAlertTriangle, IconRefreshCw } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_MODEL_START_DATE } from "@/lib/constants";
 import { isAdminRole } from "@shared/constants";
@@ -232,6 +233,29 @@ export default function CompanyAssumptions() {
       />
       <AnimatedPage>
         <div className="space-y-6">
+          {formApi.hasPendingServerUpdate && (
+            <div
+              role="status"
+              data-testid="banner-pending-server-update"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/40 dark:bg-amber-950/40 dark:text-amber-100"
+            >
+              <div className="flex items-center gap-2">
+                <IconRefreshCw className="h-4 w-4" />
+                <span>
+                  New server values are available. Discard your unsaved edits to refresh from the latest data.
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="button-discard-edits-and-refresh"
+                onClick={formApi.discardEditsAndRefresh}
+              >
+                Discard edits and refresh
+              </Button>
+            </div>
+          )}
+
           <CompanyAssumptionsHeaderBar
             companyName={global.companyName}
             autoRefresh={analyst.autoRefresh}

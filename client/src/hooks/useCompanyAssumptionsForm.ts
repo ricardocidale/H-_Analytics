@@ -14,7 +14,7 @@
  *   • Per-tab field membership (TAB_FIELDS), labels, and the saved-tabs
  *     hydrator live here because they are pure form metadata.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { GlobalResponse } from "@/lib/api";
 import type { useToast } from "@/hooks/use-toast";
@@ -150,6 +150,8 @@ export interface UseCompanyAssumptionsFormReturn {
   handleSaveTab: (tab: TabKey, opts: { force?: boolean } | undefined, deps: SaveDeps) => Promise<void>;
   handleWatchdogAction: (action: VerdictAction) => Promise<void>;
   handleProceedAnyway: () => void;
+  hasPendingServerUpdate: boolean;
+  discardEditsAndRefresh: () => void;
 }
 
 export function useCompanyAssumptionsForm(
@@ -162,6 +164,14 @@ export function useCompanyAssumptionsForm(
   const [formData, setFormData] = useState<Partial<GlobalResponse>>({});
   const [isDirty, setIsDirty] = useState(false);
   const [dirtyFields, setDirtyFields] = useState<Set<keyof GlobalResponse>>(new Set());
+  // When a background refetch updates `global` while the user has unsaved
+  // edits (`isDirty === true`), we must NOT clobber what they're typing.
+  // Instead we stash the incoming server snapshot here so the page can
+  // surface a "new server values available — discard your edits to refresh"
+  // affordance. The user explicitly opts in to overwrite via
+  // `discardEditsAndRefresh()`. See task #333.
+  const [pendingServerSnapshot, setPendingServerSnapshot] =
+    useState<GlobalResponse | null>(null);
 
   const [tabWarnings, setTabWarnings] = useState<Record<TabKey, TabValidationWarning[]>>({
     company: [], funding: [], revenue: [], compensation: [],
@@ -211,10 +221,43 @@ export function useCompanyAssumptionsForm(
     setSavedTabs(hydrateSavedTabs(global?.savedTabs));
   }, [global?.savedTabs]);
 
-  // Hydrate formData from the server payload.
+  // Tracks the last server snapshot we successfully hydrated into formData.
+  // We use this (and not `global` itself) to detect "the server moved out
+  // from under me while I was editing", because `global` is just whatever
+  // react-query last handed us — it is not a record of what the user has
+  // already seen / accepted into their form state.
+  const lastHydratedRef = useRef<GlobalResponse | null>(null);
+
+  // Hydrate formData from the server payload. We skip overwriting whenever
+  // the user has unsaved edits (`isDirty === true`) AND the incoming server
+  // snapshot is genuinely new — clobbering live typing during a background
+  // refetch is the data-loss bug from task #333. When we skip, we stash the
+  // incoming snapshot so the UI can offer a "discard edits and refresh"
+  // affordance and the user can opt in explicitly.
   useEffect(() => {
-    if (global) setFormData(global);
-  }, [global]);
+    if (!global) return;
+    const isNewSnapshot = global !== lastHydratedRef.current;
+    if (isDirty && isNewSnapshot) {
+      setPendingServerSnapshot(global);
+      return;
+    }
+    if (!isDirty) {
+      setFormData(global);
+      lastHydratedRef.current = global;
+      setPendingServerSnapshot(null);
+    }
+  }, [global, isDirty]);
+
+  const discardEditsAndRefresh = () => {
+    const snapshot = pendingServerSnapshot ?? global;
+    if (!snapshot) return;
+    setFormData(snapshot);
+    lastHydratedRef.current = snapshot;
+    setDirtyFields(new Set());
+    setIsDirty(false);
+    clearGlobalDirty();
+    setPendingServerSnapshot(null);
+  };
 
   // Warn before unload while there are unsaved edits.
   useEffect(() => {
@@ -530,5 +573,7 @@ export function useCompanyAssumptionsForm(
     handleSaveTab,
     handleWatchdogAction,
     handleProceedAnyway,
+    hasPendingServerUpdate: pendingServerSnapshot !== null,
+    discardEditsAndRefresh,
   };
 }
