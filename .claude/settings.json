@@ -16,6 +16,7 @@
     "commit-commands@claude-plugins-official": true,
     "figma@claude-plugins-official": true,
     "claude-code-setup@claude-plugins-official": true,
-    "explanatory-output-style@claude-plugins-official": true
+    "explanatory-output-style@claude-plugins-official": true,
+    "vercel@claude-plugins-official": true
   }
 }
