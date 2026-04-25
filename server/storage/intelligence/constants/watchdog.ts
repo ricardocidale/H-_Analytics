@@ -224,6 +224,61 @@ export class WatchdogStorage {
     return this._ctx.db.select().from(exitMultiples).orderBy(exitMultiples.dimensionKey);
   }
 
+  /**
+   * Batch write path used by the Exit-Multiples Watchdog ingestion pipeline.
+   * Mirrors `applyWatchdogCapitalRaiseObservations` for the sibling
+   * `exit_multiples` table: each observation is upserted keyed by
+   * `dimensionKey`, existing rows inherit their label/unit when the watchdog
+   * doesn't supply one, and unrecognized dimensions (no existing row +
+   * missing label) are skipped so a stray observation can't pollute the
+   * table.
+   *
+   * Note: writes are sequential, not wrapped in a single DB transaction —
+   * a mid-loop failure can leave the table partially updated; the caller's
+   * audit-log row records exactly which dimensions made it through (the
+   * `applied` list) so the next watchdog run reconciles the rest.
+   */
+  async applyWatchdogExitMultiplesObservations(
+    observations: Array<{
+      dimensionKey: string;
+      label?: string | null;
+      unit?: string | null;
+      valueLow: number | null;
+      valueMid: number | null;
+      valueHigh: number | null;
+    }>,
+    opts: { sourceCount: number; recordedAt: Date },
+  ): Promise<{ applied: ExitMultiple[]; skipped: string[] }> {
+    const existingRows = await this.getExitMultiples();
+    const byKey = new Map(existingRows.map(r => [r.dimensionKey, r] as const));
+
+    const applied: ExitMultiple[] = [];
+    const skipped: string[] = [];
+
+    for (const obs of observations) {
+      const prior = byKey.get(obs.dimensionKey);
+      const label = obs.label ?? prior?.label ?? null;
+      const unit = obs.unit ?? prior?.unit ?? "x_revenue";
+      if (!label) {
+        skipped.push(obs.dimensionKey);
+        continue;
+      }
+      const row = await this.upsertExitMultiple({
+        dimensionKey: obs.dimensionKey,
+        label,
+        unit,
+        valueLow: obs.valueLow,
+        valueMid: obs.valueMid,
+        valueHigh: obs.valueHigh,
+        sourceCount: opts.sourceCount,
+        lastRefreshedAt: opts.recordedAt,
+      });
+      applied.push(row);
+    }
+
+    return { applied, skipped };
+  }
+
   async getExitMultiplesSummary(): Promise<{
     rows: ExitMultiple[];
     lastRefreshedAt: Date | null;

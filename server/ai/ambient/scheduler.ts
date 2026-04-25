@@ -102,6 +102,40 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
       );
     }
 
+    // Exit-Multiples Watchdog: refreshes the `exit_multiples` table on
+    // its own cadence (default weekly). Sibling of the Capital-Raise
+    // cycle above — the cadence guard inside
+    // `runExitMultiplesWatchdogCycle` handles "did we already run this
+    // week?", so it's safe to call on every 6h tick. Non-blocking — a
+    // failure here never breaks the rest of the refresh cycle.
+    try {
+      const { runExitMultiplesWatchdogCycle } = await import("./exit-multiples-watchdog");
+      const outcome = await runExitMultiplesWatchdogCycle();
+      if (!outcome.ran) {
+        log(
+          `Exit-Multiples Watchdog: cadence-skipped, next eligible at ${outcome.nextEligibleAt.toISOString()}`,
+          "ambient-scheduler",
+        );
+      } else if (outcome.reason === "applied") {
+        log(
+          `Exit-Multiples Watchdog: applied ${outcome.result.appliedDimensions.length} vertical(s), ${outcome.sourceCount} source(s)`,
+          "ambient-scheduler",
+        );
+      } else {
+        log(
+          `Exit-Multiples Watchdog: aborted (${outcome.reason}), audit row #${outcome.result.auditId ?? "?"}`,
+          "ambient-scheduler",
+          "warn",
+        );
+      }
+    } catch (exitMultiplesErr: unknown) {
+      log(
+        `Exit-Multiples Watchdog failed (non-blocking): ${exitMultiplesErr instanceof Error ? exitMultiplesErr.message : String(exitMultiplesErr)}`,
+        "ambient-scheduler",
+        "warn",
+      );
+    }
+
     // Cleanup old page visit records (rolling 12 months)
     try {
       const cleaned = await storage.cleanupOldVisits(12);
