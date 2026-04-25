@@ -538,12 +538,39 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
         />
         {/*
           Inflation rate edit surface lives on the Market & Macro tab —
-          per Task #379 audit, that is the canonical home for this value
-          inside the Defaults group. The duplicate editor that used to
-          live here was removed; both surfaces wrote to the same draft
-          key so the move is behavior-neutral. See
-          docs/audits/task-379-defaults-vs-source-of-truth.md (§4.2).
+          per Task #379 audit (§4.2), that is the canonical Defaults home
+          for this value. The duplicate editor that used to live here was
+          removed; both surfaces wrote to the same draft key so the move
+          is behavior-neutral. We keep a read-only reference here so
+          admins who remember the old field can find where it moved.
+          Task #382.
         */}
+        <div className="col-span-full">
+          <div
+            className="rounded-md border border-border bg-muted/30 p-3 space-y-2"
+            data-testid="reference-inflationRate"
+          >
+            <div className="flex items-center justify-between">
+              <Label className="text-foreground label-text">
+                Macro Inflation Rate (read-only)
+              </Label>
+              <span
+                className="font-mono text-sm text-foreground"
+                data-testid="text-inflationRate-readonly"
+              >
+                {typeof draft.inflationRate === "number"
+                  ? `${(draft.inflationRate * 100).toFixed(2)}%`
+                  : "—"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Edit on the <strong>Market &amp; Macro</strong> tab — the
+              canonical Defaults home for inflation. See
+              <code className="mx-1">docs/audits/task-379-defaults-vs-source-of-truth.md</code>
+              (§4.2).
+            </p>
+          </div>
+        </div>
       </Section>
 
       <Section grid title="Exit & Disposition" description="Defaults for property sale/exit modeling.">
