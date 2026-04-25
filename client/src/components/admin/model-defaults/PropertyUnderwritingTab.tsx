@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Label } from "@/components/ui/label";
-import { GovernedFieldWrapper } from "@/components/ui/governed-field";
+import { Input } from "@/components/ui/input";
+import { IconShieldCheck } from "@/components/icons";
+import { useAuth } from "@/lib/auth";
 import { Section, PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
@@ -46,17 +47,21 @@ interface PropertyUnderwritingTabProps {
 export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
   const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
     props;
+  const { isSuperAdmin } = useAuth();
   const acq = draft.standardAcqPackage ?? {};
   const debt = draft.debtAssumptions ?? {};
   const analystEnabled = typeof onAnalystRefresh === "function";
 
-  // depreciationYears is now sourced from the canonical Model Constants
-  // layer (Source of Truth tab), not from globalAssumptions. We fetch
-  // the resolved effective value via the same admin endpoint the
-  // Constants tab uses, so this read-only display can never drift from
-  // the Constants tab. See docs/audits/task-379-defaults-vs-source-of-truth.md.
+  // depreciationYears is sourced from the canonical Model Constants layer
+  // (Admin → Model Defaults → Model Constants), not from globalAssumptions.
+  // We fetch the resolved effective value via the same admin endpoint the
+  // Constants tab uses, so this read-only display can never drift from the
+  // Constants tab. See docs/audits/task-379-defaults-vs-source-of-truth.md
+  // and ARCHITECTURE.md §"Model Constants — placement convention".
+  // Only fetched for super_admins — the regulatory band is gated below.
   const { data: depYearsResolved } = useQuery<{ value: unknown } | null>({
     queryKey: ["admin-model-constants-depreciation-years", "United States"],
+    enabled: isSuperAdmin,
     queryFn: async () => {
       const res = await fetch(
         `/api/admin/model-constants?country=${encodeURIComponent("United States")}`,
@@ -83,6 +88,72 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
 
   return (
     <div className="space-y-5">
+      {/*
+        Authority-governed Model Constants live at the top of this tab in
+        a dedicated, full-width band — separate from the editable
+        Defaults grid below. Gated to super_admin only because these
+        values come from external authorities (IRS Pub 946, GAAP, USALI),
+        not from internal calibration. Regular `admin` users see only the
+        editable Defaults — they can still discover and edit these
+        constants via the dedicated Model Constants tab. The pattern
+        documented here (shield-iconed band → Input + helper text →
+        link back to Constants tab) is how the next authority-governed
+        constant (e.g. ASC 842 lease term) drops in alongside.
+        See ARCHITECTURE.md §"Model Constants — placement convention".
+      */}
+      {isSuperAdmin && (
+        <section
+          className="rounded-lg border border-accent-pop/20 bg-accent-pop/10 dark:bg-accent-pop/20 dark:border-accent-pop/30 overflow-hidden"
+          data-testid="section-model-constants-property-underwriting"
+        >
+          <header className="flex items-center gap-2 px-4 py-3 border-b border-accent-pop/20 bg-accent-pop/5">
+            <IconShieldCheck className="w-4 h-4 text-accent-pop shrink-0" />
+            <h3 className="text-sm font-semibold text-accent-pop">
+              Model Constants — Authority-Governed
+            </h3>
+            <span className="text-xs text-accent-pop/80 ml-1">
+              Read-only · Super Admin
+            </span>
+          </header>
+          <div className="p-4 space-y-4">
+            <div className="space-y-2" data-testid="field-depreciationYears-readonly">
+              <label
+                htmlFor="depreciationYears-display"
+                className="text-sm font-medium text-foreground"
+              >
+                Depreciation Years
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  IRS Publication 946
+                </span>
+              </label>
+              <Input
+                id="depreciationYears-display"
+                type="text"
+                readOnly
+                value={depYearsDisplay !== null ? `${depYearsDisplay} years` : "—"}
+                className="font-mono bg-muted/40 cursor-not-allowed max-w-xs"
+                data-testid="text-depreciationYears-readonly"
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                39 years: nonresidential real property (hotels per IRC §168(e)(2)(A)).
+                27.5 years applies only to residential rental property. Sourced from
+                Admin → Model Defaults → <strong>Model Constants</strong> (United States
+                baseline). Edit there to change the value the financial engine consumes —
+                per-property overrides on each property's edit page still win the cascade.{" "}
+                <a
+                  href="https://www.irs.gov/publications/p946"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  Reference
+                </a>
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <TabBanner>
           Template values applied when creating new properties. Existing properties retain their current values. NULL fields fall back to system constants.
@@ -438,33 +509,13 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
       </Section>
 
       <Section grid title="Depreciation & Tax" description="Tax-related defaults for property underwriting.">
-        <div className="col-span-full">
-          <GovernedFieldWrapper
-            authority="IRS Publication 946"
-            label="Depreciation Years"
-            helperText={<>39 years: nonresidential real property (hotels per IRC §168(e)(2)(A)). 27.5 years applies only to residential rental property. This is a regulatory constant — its canonical home is the <strong>Constants</strong> tab (Source of Truth). The financial engine reads the resolved canonical value via the Model Constants overlay; per-property overrides on each property's edit page still win the cascade.</>}
-            referenceUrl="https://www.irs.gov/publications/p946"
-            defaultExpanded={false}
-            data-testid="governed-depreciationYears"
-          >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text">Convention Value (read-only)</Label>
-                <span
-                  className="font-mono text-sm text-foreground"
-                  data-testid="text-depreciationYears-readonly"
-                >
-                  {depYearsDisplay !== null ? `${depYearsDisplay} years` : "—"}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Sourced from Admin → Constants (United States baseline).
-                Edit there to change the value the engine consumes. See
-                <code className="mx-1">docs/audits/task-379-defaults-vs-source-of-truth.md</code>.
-              </p>
-            </div>
-          </GovernedFieldWrapper>
-        </div>
+        {/*
+          Depreciation Years (IRS Pub 946) used to live here as a
+          GovernedFieldWrapper read-only display. It now lives in the
+          dedicated "Model Constants — Authority-Governed" band at the
+          top of this tab (super_admin gated). See ARCHITECTURE.md
+          §"Model Constants — placement convention".
+        */}
         <PctField
           label="Property Income Tax Rate"
           tooltip="Income tax rate applied to gain on property sale and operating income. This is NOT the real estate/ad valorem property tax — that is modeled as a USALI operating expense (costRateTaxes)."

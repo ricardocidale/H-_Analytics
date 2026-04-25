@@ -47,9 +47,12 @@ export default function CompanySetupSection({ formData, onChange, global, isAdmi
 
         {/* Single-column inner stack — the page itself is already a 2-col
             split (CompanySetupSection on the left, TaxSection on the right).
-            Macro/policy controls (Inflation Rate, Model Constants) live in
+            Macro/policy controls (Inflation Rate, Company Income Tax) live in
             TaxSection so this card stays focused on company identity, contact,
-            financial, and location. */}
+            financial, and location. Authority-governed Model Constants are
+            NOT shown on this investor page — their canonical home is
+            Admin → Model Defaults → Model Constants (see
+            ARCHITECTURE.md §"Model Constants — placement convention"). */}
         <div className="space-y-6">
             <Card className="bg-card border border-border/80 shadow-sm">
               <CardHeader className="pb-3">

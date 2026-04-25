@@ -64,6 +64,20 @@ Beyond what the table above shows, the Model Constants tier has a strict provena
 
 The single edit point is **Admin → Model Defaults → Model Constants**; every other surface that displays a Model Constant is read-only and links back to that tab. Per-property overrides of a Model Constant (e.g. a single asset with a shorter remaining depreciation life) are legitimate and remain editable on the property page — those are per-property exceptions stored as assumptions, not edits to the constant itself.
 
+#### Model Constants — placement convention
+
+Model Constants must never appear on investor-facing surfaces (Company Assumptions, Property Edit's working tabs). They have exactly one canonical edit surface — **Admin → Model Defaults → Model Constants** — and at most one read-only echo per related admin tab when context demands it (e.g. depreciation surfacing alongside Property Underwriting defaults so the admin can see the value the engine consumes without tab-hopping).
+
+When a read-only echo is needed on another admin tab, follow the locked pattern in `client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx` (the `Depreciation Years` band):
+
+1. Render it as a **dedicated full-width section at the top** of the tab — never inline inside the editable Defaults grid.
+2. Use a **shield-iconed header band** ("Model Constants — Authority-Governed", `IconShieldCheck`, `accent-pop` palette) to visually separate authority-governed values from editable defaults below.
+3. Gate the section to **`super_admin`** via `useAuth().isSuperAdmin`. Plain `admin` users still see the rest of the tab; they can reach the constant itself via the dedicated Model Constants tab.
+4. Render the value as a **read-only `<Input>` + helper text** (no slider, no `EditableValue`). The helper text must (a) cite the authority, (b) point back to the canonical tab, and (c) note that per-property overrides on the property page still win the cascade.
+5. Fetch the resolved value via the same admin endpoint the Constants tab uses (`GET /api/admin/model-constants?country=...`) so the echo can never drift.
+
+This is how the next authority-governed constant (e.g. ASC 842 lease term, country-specific transfer tax band) drops in alongside without re-deciding placement.
+
 Vocabulary collision check: "assumption" always means the user-facing working variable, "default" always means the admin-only seed, "constant" / "model constant" always means an externally governed value. If a sentence works with two of those words swapped, the sentence is wrong.
 
 ---
