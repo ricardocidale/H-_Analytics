@@ -37,12 +37,27 @@ export async function refreshLlmRegistry(): Promise<LlmRegistryState> {
   const result = await applyRecommendations(recommendations, probeResult);
 
   if (adminIssues.length > 0) {
-    const fp = issueFingerprint(adminIssues);
-    if (fp !== _lastNotifiedFingerprint) {
-      await notifyAdminOfIssues(adminIssues);
-      _lastNotifiedFingerprint = fp;
+    // Honor the admin kill switch — same precedent as
+    // `specialist_quality_band_change_disabled` (Task #541) and
+    // `constants_refresh_digest_disabled`. When disabled we skip BOTH the
+    // notification AND the fingerprint update, so the next genuine cycle
+    // after re-enabling still fires (rather than being suppressed as a
+    // duplicate by a stale fingerprint captured while muted).
+    const disabled =
+      (await storage.getNotificationSetting("llm_registry_refresh_disabled")) === "true";
+    if (disabled) {
+      log(
+        `Suppressed LLM issue notification (disabled by admin): ${adminIssues.length} issue(s)`,
+        "llm-registry",
+      );
     } else {
-      log(`Suppressed duplicate LLM issue notification (same ${adminIssues.length} issue(s))`, "llm-registry");
+      const fp = issueFingerprint(adminIssues);
+      if (fp !== _lastNotifiedFingerprint) {
+        await notifyAdminOfIssues(adminIssues);
+        _lastNotifiedFingerprint = fp;
+      } else {
+        log(`Suppressed duplicate LLM issue notification (same ${adminIssues.length} issue(s))`, "llm-registry");
+      }
     }
   } else {
     _lastNotifiedFingerprint = null;
@@ -108,3 +123,8 @@ async function notifyAdminOfIssues(issues: AdminOverrideIssue[]): Promise<void> 
 }
 
 export { getLastRegistryState };
+
+/** Test-only: reset the in-memory suppression fingerprint between cases. */
+export function __resetLlmRegistryNotifyStateForTest(): void {
+  _lastNotifiedFingerprint = null;
+}

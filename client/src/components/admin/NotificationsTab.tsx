@@ -81,6 +81,7 @@ export default function NotificationsTab() {
 
   const [resendEnabled, setResendEnabled] = useState(false);
   const [bandChangeDisabled, setBandChangeDisabled] = useState(false);
+  const [llmRegistryRefreshDisabled, setLlmRegistryRefreshDisabled] = useState(false);
   const [vectorOverrides, setVectorOverrides] = useState({
     singleP95: "",
     multiP95: "",
@@ -100,6 +101,7 @@ export default function NotificationsTab() {
   useEffect(() => {
     setResendEnabled(settings.resend_enabled === "true");
     setBandChangeDisabled(settings.specialist_quality_band_change_disabled === "true");
+    setLlmRegistryRefreshDisabled(settings.llm_registry_refresh_disabled === "true");
     setVectorAlertsEnabled(settings.vector_latency_alerts_disabled !== "true");
     setVectorOverrides({
       singleP95: settings.vector_latency_single_p95_override ?? "",
@@ -282,6 +284,26 @@ export default function NotificationsTab() {
                 downward band drops (green→amber, amber→red, green→red). Quality scores still recompute
                 and update on the Resources transparency UI; upward improvements never email — only
                 drops are suppressed by this switch.
+              </p>
+
+              <div className="flex items-center gap-3 pt-2 border-t">
+                <Switch
+                  data-testid="switch-llm-registry-refresh-disabled"
+                  checked={llmRegistryRefreshDisabled}
+                  onCheckedChange={(checked) => {
+                    setLlmRegistryRefreshDisabled(checked);
+                    saveSettingsMutation.mutate({
+                      llm_registry_refresh_disabled: checked ? "true" : "false",
+                    });
+                  }}
+                />
+                <Label>Mute LLM registry refresh issue emails</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When enabled, the LLM registry refresher will skip emailing admins about issues it
+                detects with admin-overridden model selections (e.g. a chosen model going offline or
+                being deprecated). The registry still refreshes and applies recommendations; only the
+                org-wide digest email is suppressed.
               </p>
             </CardContent>
           </Card>

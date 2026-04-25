@@ -106,6 +106,20 @@ export function register(app: Express) {
         "vector_latency_recipient_user_ids",
         "vector_latency_single_p50_override",
         "vector_latency_multi_p50_override",
+        // Quiet-hours kill switches surfaced on NotificationsTab → Channels.
+        // Each one gates one org-wide admin email digest:
+        //   - specialist_quality_band_change_disabled: nightly Specialist
+        //     quality band-drop emails (Task #541, server/jobs/
+        //     specialist-quality-recompute.ts).
+        //   - constants_refresh_digest_disabled: daily failed-Constants-
+        //     refresh digest (server/notifications/
+        //     constants-refresh-failure-digest.ts).
+        //   - llm_registry_refresh_disabled: LLM registry refresher's
+        //     admin-override-issue email (Task #549, server/ai/
+        //     llm-registry-manager.ts).
+        "specialist_quality_band_change_disabled",
+        "constants_refresh_digest_disabled",
+        "llm_registry_refresh_disabled",
       ]);
       const validation = z.record(z.string(), z.string().nullable()).safeParse(req.body);
       if (!validation.success) {
