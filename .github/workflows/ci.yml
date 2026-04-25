@@ -109,14 +109,24 @@ jobs:
       - name: Run Tests
         run: npm run test:summary
 
-      - name: Constants tab read-only browser test (Phase 4 doctrine)
-        # Re-runs the model-constants browser test as its own named
-        # CI step so a regression that ships an editable input on the
-        # admin Constants tab fails this clearly-labeled check on the
-        # PR — instead of being buried inside the generic "Run Tests"
-        # output. The test itself is also part of `npm test`, so this
-        # step is redundant on green and informational on red.
-        run: npx vitest run tests/client/model-constants-tab-browser.test.tsx tests/client/model-constants-tab-readonly.test.tsx
+      - name: Read-only admin tabs browser tests (Phase 4 doctrine)
+        # Re-runs the read-only-doctrine browser tests as one named CI
+        # step so a regression that ships an editable input on any of
+        # the covered admin tabs fails this clearly-labeled check on
+        # the PR — instead of being buried inside the generic "Run
+        # Tests" output. Each tab's specialist-owned surfaces (the
+        # whole Constants tab, plus any `section-model-constants-*` /
+        # `*-readonly` band on Property Underwriting, Market & Macro,
+        # and Management Company) are scanned for editable elements at
+        # render time. Tests are also part of `npm test`, so this step
+        # is redundant on green and informational on red.
+        run: |
+          npx vitest run \
+            tests/client/model-constants-tab-browser.test.tsx \
+            tests/client/model-constants-tab-readonly.test.tsx \
+            tests/client/property-underwriting-readonly-band-browser.test.tsx \
+            tests/client/market-macro-readonly-band-browser.test.tsx \
+            tests/client/company-readonly-band-browser.test.tsx
 
       - name: Verify Financials
         run: npm run verify:summary

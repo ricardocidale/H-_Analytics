@@ -89,3 +89,11 @@ Admins must never be able to type a value. Three layers enforce this:
    component (e.g. a date picker, a hidden Input wrapped by another
    component) would render an editable element at runtime even though
    the source greps clean.
+
+The same runtime safety net is also applied (in companion happy-dom
+tests, no separate live-server plan today) to every other admin tab
+that hosts a specialist-owned read-only band — Property Underwriting,
+Market & Macro, and Management Company Defaults. The full registry
+is in `tests/browser/README.md`. All companions re-run on every PR
+under one labeled CI step, `Read-only admin tabs browser tests
+(Phase 4 doctrine)`.
