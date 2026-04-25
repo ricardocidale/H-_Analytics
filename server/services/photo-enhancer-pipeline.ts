@@ -150,7 +150,15 @@ export async function runPhotoEnhancerPipeline(
     | "auto";
 
   const startedAt = Date.now();
+  // Trim user-supplied prompt before persistence so the research_runs metadata
+  // never balloons. The full prompt is the admin's own text — keeping the
+  // first 2k characters is plenty for the gallery (where it surfaces under
+  // each thumbnail) without bloating row payloads if a script accidentally
+  // pastes a wall of text. Same trim applied on the completion update so the
+  // before/after metadata stays consistent.
+  const persistedPrompt = (prompt ?? "").slice(0, 2000);
   const runRecord = await storage.createResearchRun({
+    userId,
     entityType: propertyId ? "property" : "specialist-run",
     entityId: propertyId ?? 0,
     tier: 1,
@@ -162,6 +170,10 @@ export async function runPhotoEnhancerPipeline(
       propertyId: propertyId ?? null,
       originatedFrom,
       hasSourcePhoto: !!beforeImageUrl,
+      // Persisted so the Photos & Renders gallery survives across sessions
+      // and devices — the gallery rebuilds entirely from this metadata.
+      prompt: persistedPrompt,
+      sourceImageUrl: beforeImageUrl ?? null,
       route,
     },
   });
@@ -272,6 +284,11 @@ export async function runPhotoEnhancerPipeline(
         propertyId: propertyId ?? null,
         originatedFrom,
         hasSourcePhoto: !!beforeImageUrl,
+        // Same prompt + source URL persisted on the create call. Mirrored
+        // here so a row in any state (running, completed) carries the full
+        // context the gallery needs — no need to JOIN to the create event.
+        prompt: persistedPrompt,
+        sourceImageUrl: beforeImageUrl ?? null,
         usedFallback,
         objectPath,
         route,

@@ -23,6 +23,13 @@ const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligenc
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const ResourcesTab = lazy(() => import("@/components/admin/resources/ResourcesTab"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
+// Photos & Renders has a richer page than other specialists — it overlays
+// a server-backed history gallery (Task #432) on top of the standard
+// SpecialistPage console so admins can see, share, and re-use every past
+// render across sessions and devices.
+const PhotosAndRendersSpecialistPage = lazy(
+  () => import("@/pages/ai-intelligence/PhotosAndRendersSpecialistPage"),
+);
 
 const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -107,6 +114,7 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
     case "resources-models":     return <ResourcesTab kind="model" />;
     case "analyst-orchestrator": return <SpecialistPage specialistId={ORCHESTRATOR_SPECIALIST_ID} />;
+    case "specialist-photos-photo-enhancer": return <PhotosAndRendersSpecialistPage />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;

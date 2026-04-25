@@ -83,7 +83,17 @@ const updateResearchRun = vi.fn(async (id: number, patch: any) => {
   if (row) Object.assign(row, patch);
   return row;
 });
-const getResearchRunsForSpecialist = vi.fn(async () => [...researchRunRows]);
+const getResearchRunsForSpecialist = vi.fn(async (_specialistId: string, limit?: number, offset?: number) => {
+  // Mirror the real Postgres semantics for the gallery endpoint: most
+  // recent first, then apply offset/limit so pagination tests don't
+  // accidentally see seed rows in insertion order.
+  const sorted = [...researchRunRows].reverse();
+  const start = offset ?? 0;
+  const end = start + (limit ?? sorted.length);
+  return sorted.slice(start, end);
+});
+const countResearchRunsForSpecialist = vi.fn(async () => researchRunRows.length);
+const getUserById = vi.fn(async (_id: number) => undefined);
 const recordObservedMissingFields = vi.fn(async () => undefined);
 
 vi.mock("../../server/storage", () => ({
@@ -91,6 +101,8 @@ vi.mock("../../server/storage", () => ({
     createResearchRun,
     updateResearchRun,
     getResearchRunsForSpecialist,
+    countResearchRunsForSpecialist,
+    getUserById,
     recordObservedMissingFields,
   },
 }));
@@ -371,9 +383,72 @@ describe("Photo Enhancer — specialist calls endpoint surfaces shared runs", ()
     expect(getResearchRunsForSpecialist).toHaveBeenCalledWith(
       "photos.photo-enhancer",
       expect.any(Number),
+      expect.any(Number),
     );
     // Both renders (legacy + specialist) are visible through the same log.
     expect(Array.isArray(res.body.runs)).toBe(true);
     expect(res.body.runs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // Task #432 — gallery survives across sessions because every record now
+  // carries the prompt, source image URL, and admin user id. The earlier
+  // localStorage-backed gallery would lose all of this when the admin
+  // switched browsers; the gallery contract here exercises the persisted
+  // server fields end-to-end.
+  it("persists prompt, sourceImageUrl, and userId on every research_runs row", async () => {
+    const app = await buildApp();
+    await request(app)
+      .post("/api/specialists/photo-enhancer/run")
+      .send({
+        prompt: "warm golden hour exterior",
+        style: "architectural-exterior",
+        beforeImageUrl: "https://example.com/before.jpg",
+      });
+
+    const created = createResearchRun.mock.calls[0][0];
+    // userId comes from the requireAdmin auth mock (getAuthUser → authedUserId).
+    expect(typeof created.userId).toBe("number");
+    expect(created.metadata.prompt).toBe("warm golden hour exterior");
+    expect(created.metadata.sourceImageUrl).toBe("https://example.com/before.jpg");
+
+    // Same context survives the completion update so a row in any state
+    // is self-contained for the gallery.
+    const completeCall = updateResearchRun.mock.calls.find(
+      (c: any[]) => c[1]?.status === "completed",
+    );
+    expect(completeCall![1].metadata.prompt).toBe("warm golden hour exterior");
+    expect(completeCall![1].metadata.sourceImageUrl).toBe("https://example.com/before.jpg");
+  });
+
+  it("gallery endpoint returns enriched fields, total, and pagination", async () => {
+    const app = await buildApp();
+    await request(app)
+      .post("/api/specialists/photo-enhancer/run")
+      .send({ prompt: "first", style: "architectural-exterior" });
+    await request(app)
+      .post("/api/specialists/photo-enhancer/run")
+      .send({ prompt: "second", style: "architectural-exterior" });
+
+    const res = await request(app)
+      .get("/api/specialists/photo-enhancer/calls?limit=1&offset=0");
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(2);
+    expect(res.body.limit).toBe(1);
+    expect(res.body.offset).toBe(0);
+    expect(res.body.runs).toHaveLength(1);
+
+    const row = res.body.runs[0];
+    // The gallery row hoists the keys the UI needs out of metadata so the
+    // client doesn't have to crack the metadata blob.
+    expect(typeof row.prompt).toBe("string");
+    expect(row.style).toBeTruthy();
+    expect(row.objectPath).toMatch(/^\/objects\/generated\//);
+    expect(typeof row.userId).toBe("number");
+
+    // Page 2 returns the older row and confirms the offset advanced.
+    const page2 = await request(app)
+      .get("/api/specialists/photo-enhancer/calls?limit=1&offset=1");
+    expect(page2.body.runs).toHaveLength(1);
+    expect(page2.body.runs[0].id).not.toBe(row.id);
   });
 });

@@ -152,12 +152,32 @@ export class ResearchRunsStorage {
    * (e.g. Photos & Renders specialist page) so admins can see every render
    * job that flowed through the specialist regardless of where it was
    * triggered (album button or specialist page).
+   *
+   * Pagination: `offset` is supported alongside `limit` so the Photos &
+   * Renders gallery can pull a server-backed history page-by-page rather
+   * than holding the whole stream in memory. Callers that don't paginate
+   * (existing per-property album call log) can omit `offset` and keep the
+   * legacy "first N rows" semantics.
    */
-  async getResearchRunsForSpecialist(specialistId: string, limit = 50): Promise<ResearchRun[]> {
+  async getResearchRunsForSpecialist(specialistId: string, limit = 50, offset = 0): Promise<ResearchRun[]> {
     return this._rtx.db.select().from(researchRuns)
       .where(sql`${researchRuns.metadata}->>'specialistId' = ${specialistId}`)
       .orderBy(desc(researchRuns.startedAt))
-      .limit(limit);
+      .limit(limit)
+      .offset(offset);
+  }
+
+  /**
+   * Total count of `research_runs` rows for a Specialist. Companion to
+   * getResearchRunsForSpecialist for pagination — the Photos & Renders
+   * gallery shows "showing N of M" and a "Load more" button without
+   * over-fetching.
+   */
+  async countResearchRunsForSpecialist(specialistId: string): Promise<number> {
+    const [row] = await this._rtx.db.select({ count: sql<number>`count(*)::int` })
+      .from(researchRuns)
+      .where(sql`${researchRuns.metadata}->>'specialistId' = ${specialistId}`);
+    return Number(row?.count ?? 0);
   }
 
   async getRunningResearchEntityIds(entityType: string): Promise<number[]> {
