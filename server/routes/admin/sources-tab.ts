@@ -21,7 +21,7 @@
  * it. Runtime engine paths that need catalog doctrine read
  * `specialist_assignments` directly; this UI/edit surface is decoupled.
  */
-import type { Express, Request, Response } from "express";
+import type { Express, Request } from "express";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { storage } from "../../storage";

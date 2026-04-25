@@ -103,7 +103,6 @@ export function pronounSet(gender: Gender | string): PronounSet {
       // Lazy logger import — identity.ts is consumed by both server and
       // client bundles; keep the cold-path warning out of the hot path.
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
         const { logger } = require("../../server/logger");
         logger?.warn?.(`pronounSet fallback: unknown gender "${String(gender)}"`, "identity");
       } catch { /* client bundle — silently fall back */ }

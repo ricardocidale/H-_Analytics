@@ -94,7 +94,6 @@ export function RecommendationsCard({
           // log; there's no response body we can read from beacon.
           const queued = navigator.sendBeacon?.(url, blob) ?? false;
           if (!queued) {
-            // eslint-disable-next-line no-console
             console.warn(
               `[specialist-telemetry] passive-ignore beacon not queued for ${specialistId}/${key}`,
             );

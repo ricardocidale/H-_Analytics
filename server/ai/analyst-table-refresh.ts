@@ -16,7 +16,7 @@
  *     this as a successful refresh so the audit log isn't blocked.
  */
 import { getOpenAIClient } from "./clients";
-import { logger, loggerFor } from "../logger";
+import { loggerFor } from "../logger";
 import { GASPAR_IDENTITY } from "../../engine/analyst/identity";
 
 // Table-refresh runs as Gaspar dispatching specialist tools — narrate

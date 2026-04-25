@@ -33,7 +33,6 @@ import {
   ResourceKindSchema,
   ResourceSlugSchema,
   insertAdminResourceSchema,
-  insertBreakGlassOverrideSchema,
   toResourcePublicView,
 } from "@shared/schema";
 import { backfillCatalogConnections, syncSpecialistCatalog } from "../../jobs/catalog-sync";

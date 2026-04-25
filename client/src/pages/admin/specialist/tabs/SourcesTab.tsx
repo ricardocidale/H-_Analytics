@@ -88,12 +88,6 @@ const STATUS_DOT: Record<DotStatus, string> = {
   red: "bg-rose-500",
   gray: "bg-slate-400",
 };
-const STATUS_LABEL: Record<DotStatus, string> = {
-  green: "Healthy",
-  red: "Failing",
-  gray: "Not yet probed",
-};
-
 /** Tooltip wording given the dot color + the underlying probe-result reason. */
 function statusLabelFor(dot: DotStatus, reason: "ok" | "fail" | "stale" | "skipped" | null): string {
   if (dot === "green") return "Healthy";

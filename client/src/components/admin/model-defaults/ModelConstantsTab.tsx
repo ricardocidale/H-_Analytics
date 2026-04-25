@@ -33,22 +33,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Section } from "./FieldHelpers";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { IconShieldCheck, IconSparkles, IconHistory } from "@/components/icons";
-import { Loader2, AlertTriangle, RefreshCw, Clock, Pencil } from "@/components/icons/themed-icons";
+import { IconShieldCheck } from "@/components/icons";
+import { Loader2, AlertTriangle, RefreshCw, Clock } from "@/components/icons/themed-icons";
 import { SUPPORTED_COUNTRIES } from "@shared/countryDefaults";
 import {
-  formatNumber, formatWithUnit, formatRelative, formatAbsolute,
+  formatWithUnit, formatRelative, formatAbsolute,
   ProvenanceBadge, SpecialistBadge, StaleBadge, ScopeChip,
-  type ConstantRow, type ApiResponse, type ProposalPayload, type ResearchRun, type LatestResearchRun,
+  type ConstantRow, type ApiResponse,
 } from "./constants/_shared";
 import { RefreshResearchPopover } from "./constants/RefreshResearchPopover";
 import { HistoryButton } from "./constants/HistoryButton";

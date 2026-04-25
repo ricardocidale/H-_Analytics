@@ -22,7 +22,7 @@
 import { storage } from "../storage";
 import { COUNTRY_DEFAULTS, type CountryDefaults } from "@shared/countryDefaults";
 import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, meetsConvictionFloor, insufficientDataMessage } from "./benchmark-lookups";
-import { logger, loggerFor } from "../logger";
+import { loggerFor } from "../logger";
 import { GASPAR_IDENTITY } from "../../engine/analyst/identity";
 
 // The watchdog runs as Gaspar (the orchestrator persona) — it reconciles

@@ -1,8 +1,6 @@
 import { IconShieldCheck, IconSparkles } from "@/components/icons";
-import { AlertTriangle, Clock } from "@/components/icons/themed-icons";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { AlertTriangle } from "@/components/icons/themed-icons";
 
-import { SUPPORTED_COUNTRIES } from "@shared/countryDefaults";
 import type { ResolvedSource } from "@shared/get-effective-constant";
 import type { ConstantUnit } from "@shared/model-constants-registry";
 

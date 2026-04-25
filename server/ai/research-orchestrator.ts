@@ -32,7 +32,7 @@ import { buildUserPrompt, type ResearchParams } from "./research-prompt-builders
 import { loadSkill } from "./research-resources";
 import { retrieveSimilarResearch, indexResearchResult, isVectorStoreAvailable } from "./vector-store-service";
 
-import { logger, loggerFor } from "../logger";
+import { loggerFor } from "../logger";
 import { GASPAR_IDENTITY } from "../../engine/analyst/identity";
 
 // Orchestrator-side log channel — Gaspar narrates panel + synthesis

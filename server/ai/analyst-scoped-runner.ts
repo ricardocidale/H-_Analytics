@@ -21,7 +21,7 @@ import {
 } from "./vector-store-service";
 import type { ResearchParams } from "./research-prompt-builders";
 import type { GuidanceRecord } from "./guidance/schemas";
-import type { LlmVendor, ResearchConfig, ContextLlmConfig } from "@shared/schema";
+import type { LlmVendor, ResearchConfig } from "@shared/schema";
 
 export type AnalystScope = "company";
 
