@@ -644,6 +644,20 @@ async function runSchemaMigrations() {
     await markMigrationApplied("properties_financials_computed_at_001");
   }
 
+  // Task #442 — one-shot backfill so the
+  // `all-properties-financials-computed` prerequisite (engine/analyst/
+  // registry/prerequisite-registry.ts) doesn't false-positive every
+  // existing property as stale on first deploy. Idempotent: only fills
+  // rows where the column is still null, so it's safe across re-runs and
+  // never clobbers a freshly-stamped timestamp from a real recompute.
+  if (!(await isMigrationApplied("financials_computed_at_backfill_001"))) {
+    const { runFinancialsComputedAtBackfill001 } = await import(
+      "./migrations/financials-computed-at-backfill-001"
+    );
+    await runFinancialsComputedAtBackfill001();
+    await markMigrationApplied("financials_computed_at_backfill_001");
+  }
+
   if (!(await isMigrationApplied("scenario_service_templates_001"))) {
     const { runScenarioServiceTemplates001 } = await import("./migrations/scenario-service-templates-001");
     await runScenarioServiceTemplates001();

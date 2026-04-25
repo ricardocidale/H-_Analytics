@@ -1,4 +1,8 @@
-import { computePortfolioProjection, computeSingleProperty, computeCompanyProjection } from "../finance/service";
+import {
+  recomputePortfolioAndStamp,
+  recomputeSinglePropertyAndStamp,
+  recomputeCompanyAndStamp,
+} from "../finance/recompute";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { storage } from "../storage";
 import type { PropertyInput, GlobalInput, CompanyYearlyFinancials } from "@engine/types";
@@ -384,7 +388,9 @@ export async function buildExportData(
     buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears),
   );
 
-  const result = computePortfolioProjection({
+  // Engine recompute + DB freshness stamp travel together — see
+  // server/finance/recompute.ts.
+  const result = await recomputePortfolioAndStamp({
     properties: propertyInputs,
     globalAssumptions: globalInput,
     projectionYears: projYears,
@@ -461,7 +467,9 @@ export async function buildPropertyExportData(
     buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears),
   );
 
-  const result = computeSingleProperty({
+  // Engine recompute + DB freshness stamp travel together — see
+  // server/finance/recompute.ts.
+  const result = await recomputeSinglePropertyAndStamp({
     property,
     globalAssumptions: globalInput,
     projectionYears: projYears,
@@ -542,7 +550,9 @@ export async function buildCompanyExportData(
     buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears),
   );
 
-  const result = computeCompanyProjection({
+  // Engine recompute + DB freshness stamp travel together — see
+  // server/finance/recompute.ts.
+  const result = await recomputeCompanyAndStamp({
     properties: propertyInputs,
     globalAssumptions: globalInput,
     projectionYears: projYears,

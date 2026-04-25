@@ -1,7 +1,11 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import superjson from "superjson";
-import { computePortfolioProjectionWithAudit, computeSingleProperty, computeCompanyProjection } from "../finance/service";
+import {
+  recomputePortfolioWithAuditAndStamp,
+  recomputeSinglePropertyAndStamp,
+  recomputeCompanyAndStamp,
+} from "../finance/recompute";
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
@@ -219,7 +223,10 @@ export function registerFinanceRoutes(router: Router): void {
         sortOrder: t.sortOrder ?? 0,
       }));
 
-      const { result, auditTrails } = computePortfolioProjectionWithAudit(
+      // Engine recompute + DB freshness stamp travel together — see
+      // server/finance/recompute.ts. Adding a new compute entrypoint
+      // means using the wrapper, never the raw engine function.
+      const { result, auditTrails } = await recomputePortfolioWithAuditAndStamp(
         {
           properties: properties as PropertyInput[],
           globalAssumptions: globalAssumptions as GlobalInput,
@@ -253,11 +260,11 @@ export function registerFinanceRoutes(router: Router): void {
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);
       res.setHeader("X-Finance-Output-Hash", result.outputHash);
       if (result.cached) res.setHeader("X-Finance-Cache-Hit", "true");
-
-      // Stamp every property in scope as "financials computed". Drives the
-      // `all-properties-financials-computed` prerequisite that gates
-      // portfolio Specialists. See storage helper for the why.
-      await storage.markPropertiesFinancialsComputed(propertyIds);
+      // Note: `propertyIds` is referenced above for the unvalidated-warning
+      // log; the freshness stamp itself is applied inside
+      // `recomputePortfolioWithAuditAndStamp` so the engine output and
+      // the DB stamp travel as one unit.
+      void propertyIds;
 
       return sendSuperjson(res, result);
     } catch (err: unknown) {
@@ -294,8 +301,10 @@ export function registerFinanceRoutes(router: Router): void {
       // Overlay admin-governed Model Constants before engine call.
       const globalAssumptions = await withModelConstants(rawGlobal);
 
-      const result = computeSingleProperty({
-        property: property as PropertyInput,
+      // Engine recompute + DB freshness stamp travel together — see
+      // server/finance/recompute.ts.
+      const result = await recomputeSinglePropertyAndStamp({
+        property: { ...property, id: routeId } as PropertyInput,
         globalAssumptions: globalAssumptions as GlobalInput,
         projectionYears,
       });
@@ -303,9 +312,6 @@ export function registerFinanceRoutes(router: Router): void {
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);
       res.setHeader("X-Finance-Output-Hash", result.outputHash);
       if (result.cached) res.setHeader("X-Finance-Cache-Hit", "true");
-
-      // Stamp `financialsComputedAt` for the single property in scope.
-      await storage.markPropertiesFinancialsComputed([routeId]);
 
       return sendSuperjson(res, result);
     } catch (err: unknown) {
@@ -346,7 +352,9 @@ export function registerFinanceRoutes(router: Router): void {
         sortOrder: t.sortOrder ?? 0,
       }));
 
-      const result = computeCompanyProjection({
+      // Engine recompute + DB freshness stamp travel together — see
+      // server/finance/recompute.ts.
+      const result = await recomputeCompanyAndStamp({
         properties: properties as PropertyInput[],
         globalAssumptions: globalAssumptions as GlobalInput,
         projectionYears,
@@ -356,12 +364,6 @@ export function registerFinanceRoutes(router: Router): void {
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);
       res.setHeader("X-Finance-Output-Hash", result.outputHash);
       if (result.cached) res.setHeader("X-Finance-Cache-Hit", "true");
-
-      // Stamp every property included in the company roll-up.
-      const companyPropertyIds = properties
-        .map((p: Record<string, unknown>) => p.id)
-        .filter((id): id is number => typeof id === "number");
-      await storage.markPropertiesFinancialsComputed(companyPropertyIds);
 
       return sendSuperjson(res, result);
     } catch (err: unknown) {

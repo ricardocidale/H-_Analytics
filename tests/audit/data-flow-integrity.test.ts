@@ -278,8 +278,11 @@ describe("Data Flow Pipeline Structure Audit", () => {
     return scanPath(searchPath, new RegExp(pattern));
   }
 
-  it("finance compute endpoint imports computePortfolioProjection", () => {
-    const lines = grepServer("computePortfolioProjection", "server/routes/finance.ts");
+  it("finance compute endpoint routes through the recompute wrapper (Task #442)", () => {
+    // Routes MUST go through `recompute.ts`, never the raw engine, so the
+    // `properties.financials_computed_at` stamp is applied atomically with
+    // each successful recompute. See server/finance/recompute.ts.
+    const lines = grepServer("recomputePortfolioWithAuditAndStamp", "server/routes/finance.ts");
     expect(lines.length).toBeGreaterThan(0);
   });
 
@@ -300,8 +303,11 @@ describe("Data Flow Pipeline Structure Audit", () => {
     expect(lines.length).toBeGreaterThan(0);
   });
 
-  it("export pipeline uses computePortfolioProjection for server-authoritative data", () => {
-    const lines = grepServer("computePortfolioProjection", "server/report/server-export-data.ts");
+  it("export pipeline uses recompute wrapper for server-authoritative data (Task #442)", () => {
+    // Same contract as the finance route: the report builder must call
+    // the wrappers in `recompute.ts` so freshness stamps and engine
+    // output stay in sync. See server/finance/recompute.ts.
+    const lines = grepServer("recomputePortfolioAndStamp", "server/report/server-export-data.ts");
     expect(lines.length).toBeGreaterThan(0);
   });
 });

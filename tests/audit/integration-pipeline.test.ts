@@ -314,10 +314,14 @@ describe("Server Code Structure Verification (File-Based)", () => {
     return pattern.test(fs.readFileSync(filePath, "utf-8"));
   }
 
-  it("finance route imports computePortfolioProjection from service", () => {
+  it("finance route imports recompute wrappers (Task #442)", () => {
+    // Routes MUST go through `recompute.ts`, never the raw engine, so
+    // the `properties.financials_computed_at` stamp is applied
+    // atomically with each successful recompute. See
+    // server/finance/recompute.ts.
     expect(fileContains(
       "server/routes/finance.ts",
-      /import\s+\{[^}]*computePortfolioProjection[^}]*\}\s+from/
+      /import\s+\{[^}]*recomputePortfolioWithAuditAndStamp[^}]*\}\s+from/
     )).toBe(true);
   });
 
@@ -343,10 +347,13 @@ describe("Server Code Structure Verification (File-Based)", () => {
     expect(content).toContain("X-Finance-Output-Hash");
   });
 
-  it("server-export-data calls computePortfolioProjection", () => {
+  it("server-export-data calls recompute wrapper (Task #442)", () => {
+    // Same contract as the finance route: the report builder must call
+    // the wrappers in `recompute.ts` so freshness stamps and engine
+    // output stay in sync. See server/finance/recompute.ts.
     expect(fileContains(
       "server/report/server-export-data.ts",
-      /computePortfolioProjection\(/
+      /recomputePortfolioAndStamp\(/
     )).toBe(true);
   });
 
