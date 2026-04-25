@@ -280,6 +280,33 @@ findings.push({
   samples: deprecatedConstGuardSamples,
 });
 
+// 16. Legacy storage URL guard — fails if a non-allowlisted file
+// hard-codes a legacy storage host (`storage.googleapis.com`,
+// `objectstorage.replit.com`, `*.repl.co/objects`) or sidecar bucket
+// path (`/objects/uploads/<uuid>`). Catches new write paths *before*
+// they ship, instead of waiting for the post-deploy reconciler to
+// surface them on `main`. (Task #524.)
+let legacyStorageGuardCount = 0;
+const legacyStorageGuardSamples: string[] = [];
+try {
+  execSync("tsx script/check-no-legacy-storage-urls.ts", {
+    encoding: "utf-8",
+    timeout: 30_000,
+  });
+} catch (err: unknown) {
+  legacyStorageGuardCount = 1;
+  const msg = err instanceof Error ? err.message : String(err);
+  legacyStorageGuardSamples.push(
+    msg.split("\n").find((l) => l.includes("[")) ?? "guard failed",
+  );
+}
+findings.push({
+  label: "Legacy storage URL guard (use /objects/<key>)",
+  count: legacyStorageGuardCount,
+  severity: legacyStorageGuardCount > 0 ? "critical" : "info",
+  samples: legacyStorageGuardSamples,
+});
+
 // Output
 console.log("");
 console.log("  Quick Audit");

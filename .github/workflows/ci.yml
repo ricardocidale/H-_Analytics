@@ -39,6 +39,12 @@ jobs:
         run: npm run check
 
       - name: Quick Audit
+        # Includes the legacy-storage-URL guardrail (Task #524) which
+        # fails the build at PR time if any non-allowlisted file in
+        # server/, shared/, client/, or script/ hard-codes a legacy
+        # storage host (storage.googleapis.com, objectstorage.replit.com,
+        # *.repl.co/objects) or sidecar bucket path (/objects/uploads/).
+        # New writes must use the relative `/objects/<key>` form.
         run: npm run audit:quick
 
       - name: Replit Independence Guardrail
