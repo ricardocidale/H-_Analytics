@@ -145,7 +145,7 @@ describe("Endpoint Security Audit — Rate Limiting", () => {
   const RATE_LIMITED_ENDPOINTS = [
     { name: "finance-compute", file: "finance.ts" },
     { name: "geocode", file: "geospatial.ts" },
-    { name: "market-research", file: "research.ts" },
+    { name: "market-research", file: "research/generate.ts" },
     { name: "document-extract", file: "documents.ts" },
     { name: "icp-research", file: "icp-research.ts" },
     { name: "upload", file: "uploads.ts" },
