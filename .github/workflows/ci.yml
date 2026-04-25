@@ -141,3 +141,89 @@ jobs:
 
       - name: Verify Financials
         run: npm run verify:summary
+
+  schema-sync-non-interactive:
+    # Task #715 — proves `npm run db:push` keeps running cleanly in
+    # non-TTY environments (CI, Replit Agent loops, scripted setups,
+    # cold-boot deploys). The `test-and-verify` job above runs
+    # `db:push -- --force`, which auto-accepts destructive prompts —
+    # exactly the failure mode this gate is designed to catch.
+    #
+    # If a future schema change introduces a transition that
+    # drizzle-kit can't apply without asking the operator (e.g. a
+    # column rename it can't auto-detect, a UNIQUE constraint that
+    # would require a destructive truncate, an ambiguous column
+    # drop), drizzle-kit will either:
+    #   - block on stdin (this job kills it via `timeout`), or
+    #   - detect non-TTY and bail out non-zero.
+    # Either path fails this step on the PR with a clear, named
+    # signal — instead of the regression escaping to the next manual
+    # `npm run db:push` against a real environment.
+    #
+    # When this gate fails, follow the Task #573 pattern:
+    #   1. Add a one-time, idempotent migration in
+    #      `server/migrations/` that transforms the data so
+    #      drizzle-kit can apply the new constraint cleanly.
+    #   2. Register it in the `runMigrations()` block in
+    #      `server/index.ts` (search for "assumption_guidance_dedupe"
+    #      for the canonical example).
+    #   3. Re-run locally with the same invocation this job uses
+    #      (note: `shared/db-url.ts` reads POSTGRES_URL first, so
+    #      clear it locally or you'll target your real Postgres
+    #      instead of the disposable one):
+    #         env -u POSTGRES_URL DATABASE_URL=postgresql://ci:ci@localhost:5432/hbg_schema_sync \
+    #           timeout 120 npm run db:push < /dev/null
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+      # Explicitly clear POSTGRES_URL — `shared/db-url.ts` reads it
+      # before DATABASE_URL, so a repo-level POSTGRES_URL secret/var
+      # would otherwise silently redirect this job at a real
+      # database (the failure mode that originally motivated Task
+      # #573 and this gate).
+      POSTGRES_URL: ""
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/hbg_schema_sync
+      NODE_ENV: test
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: hbg_schema_sync
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm install
+
+      - name: Enable pgvector extension on disposable Postgres
+        # Mirrors the test-and-verify setup — drizzle-kit needs the
+        # `vector` extension before it encounters any vector(...)
+        # column type (shared/schema/vector-chunks.ts), otherwise
+        # db:push aborts with `type "vector" does not exist`, which
+        # would mask any real prompt-related regression.
+        env:
+          PGPASSWORD: ci
+        run: psql -h localhost -U ci -d hbg_schema_sync -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+
+      - name: Schema sync stays non-interactive (Task #715)
+        # Stdin is closed (`< /dev/null`) and a hard 120s wall-clock
+        # cap is applied (`timeout 120`). We deliberately omit the
+        # `--force` flag the test-and-verify job uses, so any
+        # destructive prompt fails this job instead of being silently
+        # accepted.
+        run: timeout 120 npm run db:push < /dev/null

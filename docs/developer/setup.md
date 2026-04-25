@@ -65,6 +65,8 @@ bash script/db-push-force.sh --i-have-reviewed
 
 The wrapper runs `drizzle-kit push --force --verbose` — `--force` auto-approves data-loss statements (rename detection, column drops), and `--verbose` prints every SQL statement before executing so the diff is visible in the log. Always run `git diff shared/schema/` first; `--force` will silently approve a column DROP if you mis-edited the schema.
 
+**CI gate** (Task #715): the `schema-sync-non-interactive` job in `.github/workflows/ci.yml` runs `npm run db:push` against a fresh, disposable Postgres with stdin closed and **no** `--force` flag. If your schema change introduces a destructive transition drizzle-kit can't apply silently, that gate fails the PR. The fix is the Task #573 pattern: add an idempotent one-time migration in `server/migrations/`, register it in the `runMigrations()` block in `server/index.ts`, and re-run locally with `timeout 120 npm run db:push < /dev/null` to confirm the gate is green.
+
 ---
 
 ## Environment Variables
