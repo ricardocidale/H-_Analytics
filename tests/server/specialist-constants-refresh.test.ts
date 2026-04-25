@@ -48,6 +48,14 @@ vi.mock("../../server/ai/regenerate-constants", () => ({
   proposeConstantRegeneration: (args: unknown) => propose(args),
 }));
 
+// Stub the rolled-up overdue-notification module so the scheduler-cycle
+// tests stay focused on cadence-gating and fan-out logic. The notifier
+// is exercised end-to-end by tests/server/constants-overdue-digest.test.ts.
+const notifyOverdue = vi.fn();
+vi.mock("../../server/notifications/constants-overdue-digest", () => ({
+  notifyAdminsOfOverdueConstants: (rows: unknown) => notifyOverdue(rows),
+}));
+
 vi.mock("../../server/logger", () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
   log: vi.fn(),
@@ -62,11 +70,13 @@ beforeEach(() => {
   propose.mockReset();
   createActivityLog.mockReset();
   cadenceOverrides.mockReset();
+  notifyOverdue.mockReset();
   listOverrides.mockResolvedValue([]);
   createRun.mockResolvedValue({ id: 1 });
   propose.mockResolvedValue({ ok: true });
   createActivityLog.mockResolvedValue({ id: 1 });
   cadenceOverrides.mockResolvedValue(new Map<string, number>());
+  notifyOverdue.mockResolvedValue({ status: "no-overdue" });
 });
 
 describe("runConstantsRefreshCycle", () => {
@@ -265,6 +275,85 @@ describe("per-Specialist cadence override", () => {
       ([a]) => (a as { key: string }).key === "inflationRate",
     );
     expect(inflationCalls.length).toBeGreaterThan(0);
+  });
+});
+
+describe("rolled-up overdue digest (Task #399)", () => {
+  it("calls the notifier with no rows when nothing is past 2× cadence", async () => {
+    // Recent successful run for every key — no row crosses the 2× line.
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    getLatestSuccessful.mockResolvedValue({
+      startedAt: yesterday,
+      completedAt: yesterday,
+      status: "completed",
+    });
+    const summary = await runConstantsRefreshCycle();
+    expect(summary.overdue).toEqual([]);
+    expect(notifyOverdue).toHaveBeenCalledTimes(1);
+    expect(notifyOverdue).toHaveBeenCalledWith([]);
+  });
+
+  it("flags rows whose latest successful refresh is past 2× cadence", async () => {
+    // Make the inflationRate row 30d old. inflationRate's catalog cadence
+    // is 7d, so 30d > 2*7d = 14d → overdue. Other rows we leave undefined
+    // (never refreshed) — those are intentionally NOT flagged here.
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    getLatestSuccessful.mockImplementation((key: string) => {
+      if (key === "inflationRate") {
+        return Promise.resolve({
+          startedAt: thirtyDaysAgo,
+          completedAt: thirtyDaysAgo,
+          status: "completed",
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const summary = await runConstantsRefreshCycle();
+    const overdueInflation = summary.overdue.filter((r) => r.key === "inflationRate");
+    expect(overdueInflation.length).toBeGreaterThan(0);
+    expect(overdueInflation[0].cadenceDays).toBe(7);
+    expect(overdueInflation[0].ageDays).toBeGreaterThan(14);
+
+    // Notifier was called exactly once with the overdue list (not per row).
+    expect(notifyOverdue).toHaveBeenCalledTimes(1);
+    const handed = notifyOverdue.mock.calls[0][0] as { key: string }[];
+    expect(handed.some((r) => r.key === "inflationRate")).toBe(true);
+  });
+
+  it("respects an admin cadence override when computing the 2× threshold", async () => {
+    // Cadence override: macro Specialist set to 365d. inflationRate's
+    // last successful run is 30d ago — that's well inside 2*365d = 730d,
+    // so the row must NOT be flagged as overdue.
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    cadenceOverrides.mockResolvedValue(
+      new Map<string, number>([["constants.macro-research", 365]]),
+    );
+    getLatestSuccessful.mockImplementation((key: string) => {
+      if (key === "inflationRate") {
+        return Promise.resolve({
+          startedAt: thirtyDaysAgo,
+          completedAt: thirtyDaysAgo,
+          status: "completed",
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const summary = await runConstantsRefreshCycle();
+    expect(summary.overdue.filter((r) => r.key === "inflationRate")).toEqual([]);
+  });
+
+  it("does not crash the cycle when the notifier throws", async () => {
+    notifyOverdue.mockRejectedValueOnce(new Error("resend down"));
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    getLatestSuccessful.mockResolvedValue({
+      startedAt: yesterday,
+      completedAt: yesterday,
+      status: "completed",
+    });
+    // Cycle still resolves cleanly even though the notifier blew up.
+    await expect(runConstantsRefreshCycle()).resolves.toBeDefined();
   });
 });
 

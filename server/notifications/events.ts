@@ -38,6 +38,7 @@ export function getEventLabel(type: NotificationEventType): string {
     LLM_MODEL_ISSUE: "AI Model Configuration Issue",
     VECTOR_LATENCY_BREACH: "Vector Search Latency Threshold Breach",
     CONSTANTS_REFRESH_FAILED: "Scheduled Constants Refresh Failures",
+    CONSTANTS_REFRESH_OVERDUE: "Constants Sources Silent Past Cadence",
     SPECIALIST_QUALITY_BAND_CHANGED: "Specialist Quality Band Change",
   };
   return labels[type] || type;

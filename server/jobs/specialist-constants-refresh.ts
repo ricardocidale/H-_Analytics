@@ -52,6 +52,10 @@ import { proposeConstantRegeneration } from "../ai/regenerate-constants";
 import { logger, log as serverLog } from "../logger";
 import { recordSchedulerCycle, truncateNotes } from "./scheduler-run-tracker";
 import {
+  notifyAdminsOfOverdueConstants,
+  type OverdueConstantRow,
+} from "../notifications/constants-overdue-digest";
+import {
   MODEL_CONSTANTS_REGISTRY,
   REGISTERED_CONSTANT_KEYS,
 } from "@shared/model-constants-registry";
@@ -106,6 +110,14 @@ export interface RefreshCycleSummary {
   skipped: number;
   failed: number;
   errors: { key: string; country: string | null; subdivision: string | null; message: string }[];
+  /**
+   * (specialist, key, locality) rows whose age exceeds **2× the effective
+   * refresh cadence** at the time the cycle started. Captured before the
+   * refresh attempt so a still-failing row keeps surfacing across cycles
+   * even when the in-cycle attempt itself succeeds. Routed through
+   * {@link notifyAdminsOfOverdueConstants} after the loop completes.
+   */
+  overdue: OverdueConstantRow[];
 }
 
 function localityLabel(loc: Locality): string {
@@ -259,6 +271,7 @@ export async function runConstantsRefreshCycle(): Promise<RefreshCycleSummary> {
     skipped: 0,
     failed: 0,
     errors: [],
+    overdue: [],
   };
   if (isRunning) {
     serverLog("Cycle already in progress — skipping", SOURCE, "warn");
@@ -285,7 +298,30 @@ export async function runConstantsRefreshCycle(): Promise<RefreshCycleSummary> {
       for (const loc of localities) {
         summary.considered += 1;
         try {
-          const { due } = await isDue(key, loc, cadenceDays);
+          const { due, ageDays } = await isDue(key, loc, cadenceDays);
+          // Capture rows whose latest *successful* refresh is past 2× the
+          // effective cadence — the digest fires AFTER the loop with the
+          // rolled-up list. We snapshot before the in-cycle refresh
+          // attempt so a row that has been failing for weeks keeps
+          // surfacing every cycle: the notifier emits one roll-up per
+          // cycle with no cross-cycle dedupe, so an unresolved silent
+          // source produces a reminder on every scheduler tick.
+          // `ageDays === null` (never-refreshed) is intentionally NOT
+          // flagged here: those are picked up by the failure digest if
+          // their refresh keeps erroring, and by the per-row "Stale"
+          // badge in the UI.
+          if (ageDays != null && ageDays > 2 * cadenceDays) {
+            summary.overdue.push({
+              specialistId: owner?.id ?? null,
+              specialistLetter: owner?.letter ?? null,
+              specialistName: owner?.displayName ?? null,
+              key,
+              country: loc.country,
+              subdivision: loc.subdivision,
+              cadenceDays,
+              ageDays,
+            });
+          }
           if (!due) {
             summary.skipped += 1;
             continue;
@@ -313,6 +349,29 @@ export async function runConstantsRefreshCycle(): Promise<RefreshCycleSummary> {
     if (summary.refreshed > 0 || summary.failed > 0) {
       serverLog(
         `Cycle complete: ${summary.refreshed} refreshed, ${summary.skipped} fresh, ${summary.failed} failed (of ${summary.considered} considered)`,
+        SOURCE,
+      );
+    }
+
+    // Single rolled-up "silent past cadence" notification per cycle.
+    // Routed through the same admin-notification path used by
+    // llm-registry issues today (createEvent + processNotificationEvent).
+    // The notifier emits one event per admin recipient with the full
+    // overdue list; an empty list is a no-op. There is no cross-cycle
+    // dedupe — every cycle that sees overdue rows pings admins again,
+    // and the scheduler's tick interval (60m) is what gates spam.
+    try {
+      const result = await notifyAdminsOfOverdueConstants(summary.overdue);
+      if (result.status === "ok") {
+        serverLog(
+          `Constants overdue digest: notified ${result.sent}/${result.recipients} admin(s) about ${result.count} silent row(s).`,
+          SOURCE,
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn(
+        `Constants overdue digest failed: ${msg}`,
         SOURCE,
       );
     }
