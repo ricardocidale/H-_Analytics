@@ -49,7 +49,7 @@ export function register(app: Express) {
       }
 
       const contentType = (req.headers["content-type"] || "").split(";")[0].trim();
-      const propertyId = parseInt(req.headers["x-property-id"] as string);
+      const propertyId = parseInt(req.headers["x-property-id"] as string, 10);
       const fileName = (req.headers["x-file-name"] as string) || "document";
 
       if (!propertyId || isNaN(propertyId)) {

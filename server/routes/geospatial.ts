@@ -107,9 +107,9 @@ export function register(app: Express) {
     try {
       const lat = parseFloat(req.query.lat as string);
       const lng = parseFloat(req.query.lng as string);
-      const zoom = parseInt(req.query.zoom as string) || 15;
-      const width = Math.min(parseInt(req.query.w as string) || 600, 640);
-      const height = Math.min(parseInt(req.query.h as string) || 300, 640);
+      const zoom = parseInt(req.query.zoom as string, 10) || 15;
+      const width = Math.min(parseInt(req.query.w as string, 10) || 600, 640);
+      const height = Math.min(parseInt(req.query.h as string, 10) || 300, 640);
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return res.status(400).json({ error: "Valid lat and lng are required" });

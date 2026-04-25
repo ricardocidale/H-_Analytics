@@ -22,10 +22,15 @@ Test files (`*.test.ts`, `*.spec.ts`) are exempt from all of the above.
 
 ## Pre-existing offenders
 
-A small allowlist at the top of `eslint.config.mjs` (`PRE_EXISTING_OFFENDERS`)
-demotes the server/shared rules to **warnings** in legacy files so CI is not
-blocked. New code in those files still surfaces as a warning in the editor —
-clean them up incrementally and remove them from the allowlist.
+`PRE_EXISTING_OFFENDERS` in `eslint.config.mjs` is an allowlist that demotes
+the server/shared bug-guard rules from **error** to **warning** for listed
+files, so CI does not break on legacy code. As of Task #340 the list is
+empty: every server/** and shared/** bug-guard violation surfaces as an
+error in `lint:strict`.
+
+If a future legacy file legitimately needs to be exempted, add it to the
+list with a `// TODO(lint):` comment explaining why and a plan to clean
+it up. Prefer fixing the file in place over expanding the list.
 
 ## Running lint
 

@@ -105,19 +105,26 @@ async function callLlm(
       ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       { role: "user" as const, content: wrappedUser },
     ];
-    const completion = await Promise.race([
+    // Perplexity SDK's chat completion shape — `citations` is a runtime field
+    // returned by web-grounded models that is not on the typed Completion type.
+    type PerplexityCompletion = {
+      choices?: Array<{ message?: { content?: string | null } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      citations?: string[];
+    };
+    const completion = (await Promise.race([
       client.chat.completions.create({
         model,
         messages,
         max_tokens: sampling.maxOutputTokens,
         temperature: sampling.temperature,
         top_p: sampling.topP,
-      } as any),
+      }),
       timeoutP,
-    ]);
+    ])) as unknown as PerplexityCompletion;
     const content = completion.choices?.[0]?.message?.content;
     let text = (typeof content === "string" ? content : "") || "I'm sorry, I couldn't generate a response. Please try again.";
-    const citations = (completion as any).citations ?? [];
+    const citations = completion.citations ?? [];
     if (citations.length > 0) {
       text += "\n\n**Sources:**\n" + citations.map((u: string, i: number) => `[${i + 1}] ${u}`).join("\n");
     }

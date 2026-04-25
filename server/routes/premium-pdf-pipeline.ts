@@ -177,7 +177,7 @@ export function buildPdfSectionsFromData(data: PdfExportData): PdfSection[] {
         category: r.category,
         values: r.values,
         type: r.isHeader ? "header" : r.isBold ? "total" : "data",
-        indent: r.indent || 0,
+        indent: r.indent ?? 0,
         format: r.format,
       }));
 
@@ -228,7 +228,7 @@ export function buildPdfSectionsFromData(data: PdfExportData): PdfSection[] {
       category: r.category,
       values: r.values,
       type: r.isHeader ? "header" : r.isBold ? "total" : "data",
-      indent: r.indent || 0,
+      indent: r.indent ?? 0,
       format: r.format,
     }));
     sections.push({

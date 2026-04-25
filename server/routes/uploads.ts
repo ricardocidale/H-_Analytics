@@ -58,7 +58,9 @@ export function register(app: Express) {
         return res.status(400).json({ error: "Only image files are supported (PNG, JPEG, GIF, WebP, SVG, BMP, TIFF). Please select an image file and try again." });
       }
 
-      const contentLength = parseInt(req.headers["content-length"] || "0", 10);
+      const contentLengthHeader = req.headers["content-length"];
+      const parsedLength = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+      const contentLength = Number.isFinite(parsedLength) ? parsedLength : 0;
       if (contentLength > MAX_UPLOAD_BYTES) {
         return res.status(413).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.` });
       }

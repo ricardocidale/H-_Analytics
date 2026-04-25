@@ -47,36 +47,12 @@ const ANALYST_INTERNAL_VOCAB_FORBIDDEN_IN_CLIENT = [
   },
 ];
 
-// Files that pre-date these rules. They keep the financial rules at warn level
-// instead of error so CI does not break, but new code in them still gets
-// flagged in the editor. Clean up incrementally and remove from this list.
-const PRE_EXISTING_OFFENDERS = [
-  // Math.pow — non-financial usage (backoff, tile math, rounding helpers)
-  "server/db.ts",
-  "server/integrations/base.ts",
-  "server/routes/geospatial.ts",
-  "server/ai/portfolio-risk-scorer.ts",
-  "server/ai/executive-summary.ts",
-  "server/calculation-checker/index.ts",
-  // 'as any' / '|| 0' heavy files
-  "server/ai/**/*.ts",
-  "server/routes/**/*.ts",
-  "server/replit_integrations/**/*.ts",
-  "server/storage/**/*.ts",
-  "server/migrations/**/*.ts",
-  "server/integrations/**/*.ts",
-  "server/report/**/*.ts",
-  "server/document-ai/**/*.ts",
-  "server/image/**/*.ts",
-  "server/services/**/*.ts",
-  "server/data/**/*.ts",
-  "server/scripts/**/*.ts",
-  "server/lib/fetch-with-timeout.ts",
-  "server/table-renderer.ts",
-  "server/syncHelpers.ts",
-  "server/theme-resolver.ts",
-  "server/index.ts",
-];
+// Files that pre-date these rules and need bug-guard rules demoted to
+// warnings (so CI does not break) instead of errors. The previous server/**
+// allowlist was burned down in Task #340; only add files here with a
+// // TODO(lint): comment explaining why and a plan to clean up. New
+// violations in non-listed files surface as errors in CI (lint:strict).
+const PRE_EXISTING_OFFENDERS = [];
 
 export default [
   {
@@ -134,19 +110,26 @@ export default [
   },
 
   // -------------------- pre-existing server/shared offenders : same rules at warn --------------------
-  {
-    files: PRE_EXISTING_OFFENDERS,
-    ignores: ["**/*.test.ts", "**/*.spec.ts"],
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: { ecmaVersion: "latest", sourceType: "module" },
-    },
-    plugins: { "@typescript-eslint": tsPlugin },
-    rules: {
-      "no-restricted-syntax": ["warn", ...FINANCIAL_RESTRICTED, ...NEW_BUG_GUARDS],
-      radix: ["warn", "always"],
-    },
-  },
+  // PRE_EXISTING_OFFENDERS demotes the bug-guard rules from error → warn for
+  // listed files. The list is empty after Task #340; this block is only
+  // emitted when there are entries so eslint doesn't reject `files: []`.
+  ...(PRE_EXISTING_OFFENDERS.length > 0
+    ? [
+        {
+          files: PRE_EXISTING_OFFENDERS,
+          ignores: ["**/*.test.ts", "**/*.spec.ts"],
+          languageOptions: {
+            parser: tsParser,
+            parserOptions: { ecmaVersion: "latest", sourceType: "module" },
+          },
+          plugins: { "@typescript-eslint": tsPlugin },
+          rules: {
+            "no-restricted-syntax": ["warn", ...FINANCIAL_RESTRICTED, ...NEW_BUG_GUARDS],
+            radix: ["warn", "always"],
+          },
+        },
+      ]
+    : []),
 
   // -------------------- client/** : same rules at warn level (UI-friendly) --------------------
   {

@@ -174,8 +174,6 @@ function renderInvestmentMemo(
 ): { html: string; subject: string } {
   const totalInvestment = property.purchasePrice + property.buildingImprovements + property.preOpeningCosts;
   const estimatedRevPAR = property.startAdr * property.startOccupancy;
-  const annualRoomRevenue = estimatedRevPAR * property.roomCount * 365;
-  const _totalRevenue = annualRoomRevenue * (1 + (property.revShareFB || 0) + (property.revShareEvents || 0) + (property.revShareOther || 0));
   const capRate = property.exitCapRate || defaultExitCapRate;
   const estimatedNOI = property.purchasePrice * capRate;
 

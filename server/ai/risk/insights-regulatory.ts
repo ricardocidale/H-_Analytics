@@ -76,7 +76,7 @@ export function generateRegulatoryInsights(properties: Property[]): RiskInsight[
 
     // Licensing timeline
     if (profile && profile.licensing.typicalTimeline) {
-      const months = parseInt(profile.licensing.typicalTimeline);
+      const months = parseInt(profile.licensing.typicalTimeline, 10);
       if (!isNaN(months) && months > 6) {
         insights.push({
           category: "regulatory",
