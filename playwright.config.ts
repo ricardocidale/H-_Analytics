@@ -31,8 +31,17 @@ const PW_PORT = 8080;
 const useExternalServer = !!process.env.E2E_BASE_URL || process.env.PW_NO_WEBSERVER === "1";
 
 export default defineConfig({
-  testDir: "tests/playwright",
-  testMatch: /.*\.spec\.ts$/,
+  // Playwright specs live in two sibling directories so the runner has to
+  // sweep both:
+  //   • `tests/playwright/` — original location, still home to specs like
+  //     the photo-album happy path that predate the convention split.
+  //   • `tests/e2e/` — newer location used by feature-locked specs (e.g.
+  //     the persona-first AI Intelligence sidebar coverage). The companion
+  //     vitest e2e files in this folder use a `.test.ts` suffix, so the
+  //     `.spec.ts`-only `testMatch` keeps the two harnesses from
+  //     intercepting each other's files.
+  testDir: "tests",
+  testMatch: /(playwright|e2e)\/.*\.spec\.ts$/,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
