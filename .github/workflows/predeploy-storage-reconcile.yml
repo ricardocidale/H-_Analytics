@@ -1,0 +1,145 @@
+name: Pre-Deploy Storage Reconcile
+
+# Pre-deploy gate (Task #522) for the R2 cutover.
+#
+# Runs `script/r2-cutover-reconcile.ts` in read-only mode against the
+# production database + the live R2 bucket on every push to `main` (the
+# branch Vercel auto-deploys from) and on manual dispatch. The reconciler
+# scans every text/varchar/jsonb column in Postgres for URL-shaped values
+# and verifies that each one resolves to one of the three valid post-cutover
+# sinks:
+#
+#   1. /objects/<key>            → must exist in R2 (`h-analysis` bucket)
+#   2. /api/media/<filename>     → must exist as a media_assets row in Neon
+#   3. /api/property-photos/<id>/image
+#                                → must exist as a property_photos row whose
+#                                  image_data is non-null OR whose image_url
+#                                  resolves to one of the other two sinks
+#
+# Anything that points at the legacy Replit Object Storage sidecar
+# (`storage.googleapis.com`, `*.replit.dev/objects/...`,
+# `*.repl.co/objects/...`, `*.replit.app/objects/...`,
+# `objectstorage.replit.com`) is a 404 risk the moment we cut traffic to
+# Vercel — the sidecar is unreachable from there.
+#
+# A non-zero exit (any MISSING-R2 / MISSING-media / MISSING-photo /
+# LEGACY-host count) fails this workflow. Configure this workflow as a
+# required status check on `main` so it blocks the Vercel deploy. The
+# remediation flags (`--copy-from-replit-bucket`, `--rewrite-legacy-hosts`)
+# are documented in `docs/developer/migration-from-replit.md`.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running the gate manually? (logged in the job summary)"
+        required: false
+        default: "manual pre-deploy verification"
+
+permissions:
+  contents: read
+
+concurrency:
+  # Only one pre-deploy gate run per ref at a time. A newer push supersedes
+  # an in-flight run so the most recent main commit is the one that gets
+  # gated, not whichever finishes first.
+  group: predeploy-storage-reconcile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HUSKY: 0
+      NODE_ENV: production
+      # The reconciler uses `server/db.ts`, which resolves
+      # POSTGRES_URL ?? DATABASE_URL. Production lives on Neon and is read
+      # via POSTGRES_URL, so wire that explicitly. The secret must be the
+      # same connection string the deployed app uses.
+      POSTGRES_URL: ${{ secrets.PROD_POSTGRES_URL }}
+      # Storage adapter env — must match the deployed app exactly so the
+      # gate verifies the same R2 bucket the runtime serves from.
+      STORAGE_PROVIDER: r2
+      S3_BUCKET: ${{ secrets.R2_BUCKET }}
+      S3_REGION: auto
+      S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm install
+
+      - name: Verify required secrets are configured
+        # Fail loudly *before* we hit the script, so a missing secret looks
+        # like "you forgot to set R2_BUCKET" instead of an opaque AWS SDK
+        # error 80 lines deep in a stack trace. Exits 1 on any missing.
+        run: |
+          missing=0
+          for var in POSTGRES_URL S3_BUCKET S3_ENDPOINT AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Required secret/env not set: $var"
+              missing=$((missing + 1))
+            fi
+          done
+          if [ "$missing" -gt 0 ]; then
+            echo "::error::Configure the missing GitHub Actions secrets (PROD_POSTGRES_URL, R2_BUCKET, R2_S3_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY) and re-run."
+            exit 1
+          fi
+
+      - name: Run R2 cutover reconciler (read-only)
+        id: reconcile
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          # Read-only mode. Any MISSING-R2 / MISSING-media / MISSING-photo /
+          # LEGACY-host count exits non-zero and fails this step, which
+          # fails the workflow, which (when configured as a required check
+          # on `main`) blocks the Vercel deploy.
+          npx tsx script/r2-cutover-reconcile.ts | tee artifacts/r2-cutover-reconcile.log
+
+      - name: Write GitHub job summary
+        if: always()
+        run: |
+          {
+            echo "## Pre-Deploy Storage Reconcile"
+            echo ""
+            echo "Trigger: \`${{ github.event_name }}\`  |  Ref: \`${{ github.ref }}\`  |  SHA: \`${{ github.sha }}\`"
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "Reason: ${{ github.event.inputs.reason }}"
+            fi
+            echo ""
+            if [ -f artifacts/r2-cutover-reconcile.log ]; then
+              echo '<details><summary>Reconciler output</summary>'
+              echo ''
+              echo '```'
+              cat artifacts/r2-cutover-reconcile.log
+              echo '```'
+              echo ''
+              echo '</details>'
+            fi
+            echo ""
+            echo "Remediation if this gate fails:"
+            echo ""
+            echo "- **MISSING-R2**: rerun locally with \`--copy-from-replit-bucket\` to backfill the keys from the legacy bucket, then re-push."
+            echo "- **LEGACY-host**: rerun locally with \`--rewrite-legacy-hosts\` to rewrite \`https://<replit-host>/objects/<key>\` cells to the relative \`/objects/<key>\` form."
+            echo "- **MISSING-media / MISSING-photo**: investigate manually — the row reference is broken (the photo/media row doesn't exist or its \`image_url\` rotted)."
+            echo ""
+            echo "See \`docs/developer/migration-from-replit.md\` → \"Pre-deploy storage reconcile gate\" for the full runbook."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reconciler log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r2-cutover-reconcile-${{ github.run_id }}
+          path: artifacts/r2-cutover-reconcile.log
+          retention-days: 30

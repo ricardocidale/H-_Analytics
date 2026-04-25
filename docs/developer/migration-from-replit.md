@@ -8,6 +8,8 @@ This guide covers removing all Replit-managed integrations and deploying H+ Anal
 
 **Object storage — DONE (Apr 23).** Replit Object Storage replaced by Cloudflare R2 (`h-analysis` bucket) via the existing S3-compatible adapter at `server/providers/storage/s3-storage.ts`. `STORAGE_PROVIDER=r2` is live; round-trip verified.
 
+**Pre-deploy storage gate — DONE (Apr 25, Task #522).** `script/r2-cutover-reconcile.ts` is wired into `.github/workflows/predeploy-storage-reconcile.yml` as a required CI gate on `main`. A regression in storage routing (e.g., a new feature that writes `/objects/uploads/<uuid>` to a column the script doesn't expect, or a `legacy-host` URL re-introduced into the DB) blocks the deploy instead of breaking production. See "Pre-deploy storage reconcile gate" below.
+
 **Hosting — IN PROGRESS.** Vercel deployment is the next major step. Until that lands, the Replit Dependency Tax keeps accruing on every commit.
 
 ### Cancelling the Helium Postgres add-on (when ready)
@@ -198,6 +200,60 @@ Everything else routes through `server/providers/`.
 - **DigitalOcean Spaces** — set `S3_ENDPOINT=https://<region>.digitaloceanspaces.com`.
 
 **Risk: LOW** (code) / **MEDIUM** (data migration) — code path is done; you still need to copy any existing objects from the Replit bucket to the new bucket using `aws s3 sync` or `rclone`.
+
+### Pre-deploy storage reconcile gate (Task #522)
+
+`script/r2-cutover-reconcile.ts` is the authoritative pre-cutover check: it scans every `text` / `varchar` / `jsonb` column in Postgres and fails fast if any DB-referenced URL would 404 against R2 + `media_assets` + `property_photos` after Vercel cutover. It is wired into `.github/workflows/predeploy-storage-reconcile.yml` as a required CI gate on `main`, the branch Vercel auto-deploys from. **A non-zero exit blocks the deploy.**
+
+**What the gate verifies (read-only).** For every URL the DB references, exactly one of these must be true:
+- `/objects/<key>` — exists in R2 (`h-analysis` bucket)
+- `/api/media/<filename>` — has a matching `media_assets` row
+- `/api/property-photos/<id>/image` — has a `property_photos` row whose `image_data` is non-null OR whose `image_url` resolves to one of the other two sinks
+
+**What fails the gate.** Anything in the `MISSING-R2`, `MISSING-media`, `MISSING-photo`, or `LEGACY-host` buckets. Legacy-host means a URL pointing at the Replit Object Storage sidecar (`storage.googleapis.com`, `*.replit.dev/objects/...`, `*.repl.co/objects/...`, `*.replit.app/objects/...`, `objectstorage.replit.com`) — those 404 from Vercel because the sidecar is unreachable from there.
+
+**Required GitHub Actions secrets.** Configure these once on the repo (Settings → Secrets and variables → Actions). They must match the values the deployed app uses, otherwise the gate verifies the wrong bucket / DB:
+
+| Secret | Purpose |
+|--------|---------|
+| `PROD_POSTGRES_URL` | Production Neon connection string (the one the runtime reads as `POSTGRES_URL`) |
+| `R2_BUCKET` | R2 bucket name (`h-analysis`) |
+| `R2_S3_ENDPOINT` | `https://<account>.r2.cloudflarestorage.com` |
+| `R2_ACCESS_KEY_ID` | R2 access key (read-only is enough) |
+| `R2_SECRET_ACCESS_KEY` | R2 secret access key |
+
+**Making it actually block deploys.** Once Vercel is wired, mark **Pre-Deploy Storage Reconcile / reconcile** as a required status check on `main` in repo Settings → Branches → Branch protection rules. Vercel's GitHub integration will then refuse to deploy a commit whose required checks have not passed. Until Vercel is wired, the gate still surfaces regressions on every push to `main` — the deploy block becomes automatic the moment Vercel starts watching `main`.
+
+**Wiring the gate as a Vercel build step (alternative path).** If you'd rather have the gate run inside Vercel's build environment instead of GitHub Actions, set Vercel's **Build Command** to:
+
+```sh
+npx tsx script/r2-cutover-reconcile.ts && npm run build
+```
+
+…and expose the same five env vars (`POSTGRES_URL`, `STORAGE_PROVIDER=r2`, `S3_BUCKET`, `S3_ENDPOINT`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_REGION=auto`) in Vercel project settings. A non-zero exit aborts the Vercel build for the same reason a failing CI check does. The two paths are equivalent — pick one to avoid running the scan twice per deploy.
+
+**Fixing common failure modes.** Run the reconciler locally with the production env vars exported (`source .env.production` or whatever you use), then:
+
+| Failure bucket | What it means | Fix |
+|---|---|---|
+| `MISSING-R2` | DB references `/objects/<key>` but the key isn't in the R2 bucket | `npx tsx script/r2-cutover-reconcile.ts --copy-from-replit-bucket` — fetches the missing keys from the legacy Replit bucket via `ReplitStorageProvider` and uploads them to R2 at the same key. Requires the legacy sidecar to still be reachable from where you run it. |
+| `LEGACY-host` | DB cell holds an absolute `https://<replit-host>/objects/<key>` URL that 404s from Vercel | `npx tsx script/r2-cutover-reconcile.ts --rewrite-legacy-hosts` — rewrites the cell to the relative `/objects/<key>` form so the storage adapter resolves it via R2. Idempotent. Non-rewritable shapes (e.g. `storage.googleapis.com/<bucket>/<key>` GCS-direct URLs) are reported as `SKIPPED` and require manual remediation. |
+| `MISSING-media` | DB references `/api/media/<filename>` but no matching `media_assets` row exists | Manual. Either the row was deleted (restore from a Neon point-in-time recovery) or the URL is stale (find the writer that produced it and either fix the writer or delete the bad cell). |
+| `MISSING-photo` | DB references `/api/property-photos/<id>/image` but the row is missing OR has neither `image_data` nor a working `image_url` | Manual. Same triage as `MISSING-media`. |
+
+You can chain the two remediation flags in a single invocation — `--rewrite-legacy-hosts --copy-from-replit-bucket` re-classifies the rewritten cells as `missing-r2`, then copies them across, then re-verifies. The script is re-runnable and read-only by default.
+
+**Local dry-run.** To preview what the gate would say without touching anything:
+
+```sh
+STORAGE_PROVIDER=r2 \
+  POSTGRES_URL=... S3_BUCKET=h-analysis S3_REGION=auto \
+  S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com \
+  AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... \
+  npx tsx script/r2-cutover-reconcile.ts
+```
+
+Exits 0 → safe to deploy. Exits 1 → read the bucket counts in the output and apply the matching remediation above.
 
 ---
 
