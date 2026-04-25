@@ -40,17 +40,16 @@ export type AdminSection =
   // Canonical sections (have real components)
   | "model-defaults"
   | "users" | "activity"
-  | "companies" | "groups" | "scenarios" // companies kept as alias → redirects to users
+  | "scenarios"
   | "brand" | "exports"
-  | "ai-agents" | "knowledge-base" | "conversations"
+  | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "vector-bench"
   | "navigation" | "notifications" | "verification" | "database" | "observability"
-  // Legacy aliases (redirect to canonical)
-  | "logos" | "themes" | "icons"
-  | "llms" | "sources" | "model-routing"
-  | "cache-services" | "integrations" | "api-dashboard"
-  | "coverage-analytics" | "pipeline-policies" | "source-registry"
-  | "system-intelligence" | "research"
+  // Legacy URL aliases preserved for plausibly-bookmarked deep links.
+  // Anything beyond this short list was a code-internal rename and was
+  // dropped; new contributors don't need to chase a redirect chain to
+  // find the canonical component. See docs/audits/admin-section-audit-2026-04-20.md §MT.1.
+  | "logos" | "themes" | "llms" | "sources"
   // Sidebar item that lands on the Scenarios page with default-assignment intent.
   | "default-assignments"
   // Canonical read-only roll-up across every Specialist's required fields.
@@ -92,26 +91,14 @@ export const SPECIALIST_SECTION_TO_ID = {
 export type SpecialistSection = keyof typeof SPECIALIST_SECTION_TO_ID;
 
 export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
-  // Legacy aliases
+  // Legacy URL aliases preserved for plausibly-bookmarked deep links only.
+  // Per docs/audits/admin-section-audit-2026-04-20.md §MT.1, every other
+  // alias was a code-internal rename and has been dropped — components are
+  // now reached by their canonical section name (no redirect hop).
   "logos": "brand",
   "themes": "brand",
-  "icons": "brand",
   "llms": "data-sources",
-  "model-routing": "pipeline-config",
-  "cache-services": "engine-dashboard",
-  "integrations": "data-sources",
-  "api-dashboard": "data-sources",
-  "coverage-analytics": "engine-dashboard",
-  "pipeline-policies": "pipeline-config",
-  "source-registry": "data-sources",
-  "system-intelligence": "engine-dashboard",
-  "research": "engine-dashboard",
   "sources": "data-sources",
-  "conversations": "ai-agents",
-  "knowledge-base": "ai-agents",
-  // Groups and companies removed — redirect to users
-  "groups": "users",
-  "companies": "users",
   // `required-fields` is the canonical roll-up section now (Admin → Properties
   // → Required Fields). It renders a read-only aggregate across every
   // Specialist's `candidateFields` + `fieldRequirements`. No redirect.

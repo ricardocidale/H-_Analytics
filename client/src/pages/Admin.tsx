@@ -46,14 +46,10 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "model-defaults":      { title: "App Defaults",           subtitle: "Financial defaults and seed values for new entities" },
   users:                 { title: "Users",                   subtitle: "Manage user accounts and assignments" },
   activity:              { title: "Activity",                subtitle: "Login logs, audit trail, and session monitoring" },
-  companies:             { title: "Companies",               subtitle: "Manage companies of interest" },
-  groups:                { title: "Groups",                   subtitle: "User groups for branded experiences" },
   scenarios:             { title: "Scenarios",                subtitle: "Manage all scenarios, ownership, and access grants" },
   brand:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
   exports:               { title: "Exports",                  subtitle: "Configure content, orientation, and layout for all report exports" },
   "ai-agents":           { title: "Rebecca Configuration",   subtitle: "System prompt, personality, and configuration for your AI assistant" },
-  "knowledge-base":      { title: "Knowledge Base",           subtitle: "Documents, training data, and research sources for Rebecca" },
-  conversations:         { title: "Conversations",            subtitle: "Chat history, feedback, and conversation analytics" },
   "engine-dashboard":    { title: "Research Dashboard",       subtitle: "Coverage, freshness, costs, and system health" },
   "data-sources":        { title: "Data Sources",             subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
   "pipeline-config":     { title: "Pipeline Config",          subtitle: "Staleness thresholds, token budgets, model routing, and refresh schedules" },
@@ -82,20 +78,13 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "specialist-constants-depreciation-research":{ title: "Specialist J — Depreciation Schedule Research",  subtitle: "Owns building depreciation useful-life by country (IRS Pub. 946, CRA, CGI, etc.)." },
   "specialist-constants-reporting-research":   { title: "Specialist K — Reporting Conventions Research",  subtitle: "Owns universal conventions (USALI/AHLA) such as days-per-month." },
 
+  // Legacy URL aliases — page header reuses the canonical section's title.
+  // Kept only for plausibly-bookmarked deep links per
+  // docs/audits/admin-section-audit-2026-04-20.md §MT.1.
   logos:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
   themes:                { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
-  icons:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
   llms:                  { title: "Data Sources",             subtitle: "APIs, scrapers, sources, and AI models" },
   sources:               { title: "Data Sources",             subtitle: "APIs, scrapers, sources, and AI models" },
-  "model-routing":       { title: "Pipeline Config",          subtitle: "Model routing and pipeline policies" },
-  "cache-services":      { title: "Research Dashboard",       subtitle: "Service health and cache management" },
-  integrations:          { title: "Data Sources",             subtitle: "External APIs and data integrations" },
-  "api-dashboard":       { title: "Data Sources",             subtitle: "API health and monitoring" },
-  "coverage-analytics":  { title: "Research Dashboard",       subtitle: "Research coverage analytics" },
-  "pipeline-policies":   { title: "Pipeline Config",          subtitle: "Pipeline policies and scheduling" },
-  "source-registry":     { title: "Data Sources",             subtitle: "Source registry and trust scores" },
-  "system-intelligence": { title: "Research Dashboard",       subtitle: "System intelligence status" },
-  research:              { title: "Research Dashboard",       subtitle: "Research center" },
   "required-fields":     { title: "Required Fields",          subtitle: "Read-only roll-up across every Specialist's required fields and prerequisites. Edit on the owning Specialist's Required Fields tab." },
   "default-assignments": { title: "Default Assignments",      subtitle: "Assign default scenarios per user with property toggles" },
   // Defaults section (Steady State navigation)
@@ -130,8 +119,6 @@ const MODEL_DEFAULTS_VISIBLE_TABS: Partial<Record<AdminSection, readonly string[
 
 const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {
   "ai-agents":       "configuration",
-  "knowledge-base":  "knowledge-base",
-  "conversations":   "conversations",
 };
 
 /**

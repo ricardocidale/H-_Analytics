@@ -117,28 +117,14 @@ describe("admin redirects — guard & snapshot", () => {
     }
     expect(map).toMatchInlineSnapshot(`
       {
-        "api-dashboard": "data-sources",
-        "cache-services": "engine-dashboard",
-        "companies": "users",
         "constants": "model-defaults",
-        "conversations": "ai-agents",
-        "coverage-analytics": "engine-dashboard",
         "default-assignments": "scenarios",
         "defaults-management-company": "model-defaults",
         "defaults-market-macro": "model-defaults",
         "defaults-property": "model-defaults",
-        "groups": "users",
-        "icons": "brand",
-        "integrations": "data-sources",
-        "knowledge-base": "ai-agents",
         "llms": "data-sources",
         "logos": "brand",
-        "model-routing": "pipeline-config",
-        "pipeline-policies": "pipeline-config",
-        "research": "engine-dashboard",
-        "source-registry": "data-sources",
         "sources": "data-sources",
-        "system-intelligence": "engine-dashboard",
         "themes": "brand",
       }
     `);
