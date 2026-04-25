@@ -564,6 +564,49 @@ export type RebeccaGuardrail = typeof rebeccaGuardrails.$inferSelect;
 export type InsertRebeccaGuardrail = z.infer<typeof insertRebeccaGuardrailSchema>;
 
 // ---------------------------------------------------------------------------
+// Rebecca Preview Fixtures (Task #538)
+//
+// Saved snapshots of an admin's preview transcript: the full RebeccaSettings
+// in effect at the time + the user/assistant turns that were exchanged. Used
+// as regression fixtures — admins replay a fixture's user turns against the
+// current (unsaved) settings and the UI shows a turn-by-turn diff so any
+// behavioural drift is immediately visible.
+// ---------------------------------------------------------------------------
+export type RebeccaPreviewTurn = {
+  role: "user" | "assistant";
+  content: string;
+  ts: number;
+};
+
+export const rebeccaPreviewFixtures = pgTable("rebecca_preview_fixtures", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  description: text("description"),
+  // Full RebeccaSettings snapshot — typed as Record so this schema file does
+  // not need to import @shared/rebecca-settings (which would create a cycle
+  // via shared/schema/index.ts → … → @shared/rebecca-settings consumers).
+  settings: jsonb("settings").$type<Record<string, unknown>>().notNull(),
+  turns: jsonb("turns").$type<RebeccaPreviewTurn[]>().notNull(),
+  createdById: integer("created_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  // Names are admin-curated handles; uniqueness keeps the side list legible
+  // and prevents two fixtures from accidentally shadowing each other in
+  // replay UIs that key by name.
+  unique("rebecca_preview_fixtures_name_uq").on(table.name),
+  // Covering index for FK so user-deletion cascades stay cheap.
+  index("rebecca_preview_fixtures_created_by_idx").on(table.createdById),
+  index("rebecca_preview_fixtures_created_at_idx").on(table.createdAt),
+]);
+
+export const insertRebeccaPreviewFixtureSchema = createInsertSchema(rebeccaPreviewFixtures).pick({
+  name: true, description: true, settings: true, turns: true, createdById: true,
+});
+export type RebeccaPreviewFixture = typeof rebeccaPreviewFixtures.$inferSelect;
+export type InsertRebeccaPreviewFixture = z.infer<typeof insertRebeccaPreviewFixtureSchema>;
+
+// ---------------------------------------------------------------------------
 // Hospitality Benchmarks — admin-editable, DB-backed industry data
 // ---------------------------------------------------------------------------
 export const hospitalityBenchmarks = pgTable("hospitality_benchmarks", {

@@ -644,6 +644,12 @@ async function runSchemaMigrations() {
     await markMigrationApplied("rebecca_opt_out_001");
   }
 
+  if (!(await isMigrationApplied("rebecca_fixtures_001"))) {
+    const { runRebeccaFixtures001 } = await import("./migrations/rebecca-fixtures-001");
+    await runRebeccaFixtures001();
+    await markMigrationApplied("rebecca_fixtures_001");
+  }
+
   if (!(await isMigrationApplied("app_name_001"))) {
     const { runAppName001 } = await import("./migrations/app-name-001");
     await runAppName001();

@@ -7,6 +7,31 @@ import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
+import { rebeccaSettingsSchema } from "@shared/rebecca-settings";
+
+const previewTurnSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().max(50_000),
+  ts: z.number().int().nonnegative(),
+});
+
+const createFixtureSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  description: z.string().max(500).optional(),
+  // Accept either a strict schema or a stored partial — we re-parse server-
+  // side via rebeccaSettingsSchema so older snapshots are forward-compatible.
+  settings: z.record(z.unknown()),
+  // At least one user turn is required — replay needs something to send.
+  turns: z.array(previewTurnSchema).min(1).max(200)
+    .refine((arr) => arr.some((t) => t.role === "user"), {
+      message: "Fixture must contain at least one user turn",
+    }),
+});
+
+const updateFixtureSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  description: z.string().max(500).nullable().optional(),
+});
 
 const emailRequestSchema = z.object({
   conversationId: z.number().int().positive(),
@@ -363,6 +388,97 @@ export function register(app: Express) {
     } catch (err: unknown) {
       logger.error(`Failed to rollback KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to rollback KB entry" });
+    }
+  });
+
+  // ── Preview fixtures (Task #538) ─────────────────────────────────────
+  // Admins can save the current preview transcript (settings + turns) under
+  // a name and replay it later. Replay itself happens client-side (the
+  // Test Chat UI walks the saved user turns through /api/chat with the
+  // current unsaved settings) so this route surface is just CRUD.
+
+  app.get("/api/rebecca/fixtures", requireAuth, requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const fixtures = await storage.listRebeccaPreviewFixtures();
+      return res.json(fixtures);
+    } catch (err: unknown) {
+      logger.error(`Failed to list Rebecca fixtures: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
+      return res.status(500).json({ error: "Failed to list fixtures" });
+    }
+  });
+
+  app.post("/api/rebecca/fixtures", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const parsed = createFixtureSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
+      }
+      // Re-parse the settings through the canonical schema so we never
+      // persist a junk shape that would crash the replay UI later.
+      const settingsParse = rebeccaSettingsSchema.safeParse(parsed.data.settings);
+      if (!settingsParse.success) {
+        return res.status(400).json({
+          error: "Invalid settings snapshot: " + settingsParse.error.issues[0]?.message,
+        });
+      }
+      const user = getAuthUser(req);
+      const fixture = await storage.createRebeccaPreviewFixture({
+        name: parsed.data.name,
+        description: parsed.data.description ?? null,
+        settings: settingsParse.data,
+        turns: parsed.data.turns,
+        createdById: user.id,
+      });
+      logActivity(req, "create-rebecca-fixture", "rebecca_preview_fixture", fixture.id, fixture.name, {
+        turnCount: parsed.data.turns.length,
+      });
+      logger.info(`Rebecca preview fixture created: ${fixture.name} (${parsed.data.turns.length} turns)`, "rebecca");
+      return res.json(fixture);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Postgres unique-violation surfaces as a duplicate-key error — translate
+      // it to a friendly 409 instead of leaking the internal SQLSTATE.
+      if (/duplicate key/i.test(msg) || /rebecca_preview_fixtures_name_uq/i.test(msg)) {
+        return res.status(409).json({ error: "A fixture with that name already exists" });
+      }
+      logger.error(`Failed to create Rebecca fixture: ${msg}`, "rebecca");
+      return res.status(500).json({ error: "Failed to save fixture" });
+    }
+  });
+
+  app.patch("/api/rebecca/fixtures/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid fixture ID" });
+      const parsed = updateFixtureSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
+      }
+      const updated = await storage.updateRebeccaPreviewFixture(id, parsed.data);
+      if (!updated) return res.status(404).json({ error: "Fixture not found" });
+      logActivity(req, "update-rebecca-fixture", "rebecca_preview_fixture", id, updated.name);
+      return res.json(updated);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/duplicate key/i.test(msg) || /rebecca_preview_fixtures_name_uq/i.test(msg)) {
+        return res.status(409).json({ error: "A fixture with that name already exists" });
+      }
+      logger.error(`Failed to update Rebecca fixture: ${msg}`, "rebecca");
+      return res.status(500).json({ error: "Failed to update fixture" });
+    }
+  });
+
+  app.delete("/api/rebecca/fixtures/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid fixture ID" });
+      const deleted = await storage.deleteRebeccaPreviewFixture(id);
+      if (!deleted) return res.status(404).json({ error: "Fixture not found" });
+      logActivity(req, "delete-rebecca-fixture", "rebecca_preview_fixture", id);
+      return res.json({ success: true });
+    } catch (err: unknown) {
+      logger.error(`Failed to delete Rebecca fixture: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
+      return res.status(500).json({ error: "Failed to delete fixture" });
     }
   });
 

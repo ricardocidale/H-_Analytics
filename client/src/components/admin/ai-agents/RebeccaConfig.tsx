@@ -33,10 +33,12 @@ import {
   REBECCA_CITATION_STYLES,
   REBECCA_UNCERTAINTY,
   REBECCA_SOURCE_KEYS,
+  mergeRebeccaSettings,
   type RebeccaSettings,
   type RebeccaLlmProvider,
   type RebeccaSourceKey,
 } from "@shared/rebecca-settings";
+import { RebeccaFixturesPanel } from "./RebeccaFixturesPanel";
 
 export const DEFAULT_PROMPT = `You are Rebecca, the sharpest analyst at H+ Analytics. You know the portfolio inside out — every property's ADR, every cap rate assumption, every USALI line item. You have opinions about this work, backed by quiet confidence from watching the data compound.`;
 
@@ -855,6 +857,26 @@ export function RebeccaConfig({
               {testError}
             </div>
           )}
+
+          {/* Fixtures: pin and replay preview transcripts. */}
+          <div className="pt-3 border-t border-border/40">
+            <RebeccaFixturesPanel
+              currentSettings={settings}
+              currentTurns={previewHistory}
+              displayName={displayName}
+              onLoadSettings={(snapshot) => {
+                // Run the snapshot through the canonical merger so any fixture
+                // saved before a schema field was added still hydrates with the
+                // current defaults instead of leaving holes in the editor.
+                const hydrated = mergeRebeccaSettings(snapshot);
+                onSettingsChange(hydrated);
+                toast({
+                  title: "Fixture settings loaded",
+                  description: "The editor now reflects this fixture's snapshot. Save or discard from the top of the page.",
+                });
+              }}
+            />
+          </div>
         </div>
       </SectionCard>
     </motion.div>

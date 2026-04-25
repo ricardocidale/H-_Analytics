@@ -2,6 +2,7 @@ import {
   rebeccaConversations, rebeccaMessages, rebeccaEmails,
   rebeccaFeedback, rebeccaGuardrails,
   rebeccaKnowledgeBase, rebeccaKnowledgeHistory,
+  rebeccaPreviewFixtures,
   type RebeccaConversation, type InsertRebeccaConversation,
   type RebeccaMessage, type InsertRebeccaMessage,
   type RebeccaEmail, type InsertRebeccaEmail,
@@ -9,6 +10,7 @@ import {
   type RebeccaGuardrail, type InsertRebeccaGuardrail,
   type RebeccaKBEntry, type InsertRebeccaKBEntry,
   type RebeccaKBHistory,
+  type RebeccaPreviewFixture, type InsertRebeccaPreviewFixture,
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, gte, isNull, sql } from "drizzle-orm";
@@ -294,6 +296,46 @@ export class IntelligenceRebeccaStorage {
       priority: snap.priority as number,
       isActive: snap.isActive as boolean,
     }, changedBy);
+  }
+
+  // ── Preview Fixtures (Task #538) ──────────────────────────────────────
+  // Saved preview transcripts (settings snapshot + turns) used as
+  // regression fixtures for Rebecca config changes.
+
+  async listRebeccaPreviewFixtures(): Promise<RebeccaPreviewFixture[]> {
+    return db.select().from(rebeccaPreviewFixtures)
+      .orderBy(desc(rebeccaPreviewFixtures.createdAt));
+  }
+
+  async getRebeccaPreviewFixture(id: number): Promise<RebeccaPreviewFixture | undefined> {
+    const [row] = await db.select().from(rebeccaPreviewFixtures)
+      .where(eq(rebeccaPreviewFixtures.id, id)).limit(1);
+    return row;
+  }
+
+  async createRebeccaPreviewFixture(data: InsertRebeccaPreviewFixture): Promise<RebeccaPreviewFixture> {
+    const [row] = await db.insert(rebeccaPreviewFixtures)
+      .values(data as typeof rebeccaPreviewFixtures.$inferInsert)
+      .returning();
+    return row;
+  }
+
+  async updateRebeccaPreviewFixture(
+    id: number,
+    data: Partial<Pick<InsertRebeccaPreviewFixture, "name" | "description">>,
+  ): Promise<RebeccaPreviewFixture | undefined> {
+    const [row] = await db.update(rebeccaPreviewFixtures)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(rebeccaPreviewFixtures.id, id))
+      .returning();
+    return row;
+  }
+
+  async deleteRebeccaPreviewFixture(id: number): Promise<boolean> {
+    const result = await db.delete(rebeccaPreviewFixtures)
+      .where(eq(rebeccaPreviewFixtures.id, id))
+      .returning();
+    return result.length > 0;
   }
 
   async getRebeccaKBStats(): Promise<{ total: number; active: number; byCategory: Record<string, number> }> {
