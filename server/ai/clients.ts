@@ -1,18 +1,43 @@
 /**
  * server/ai/clients.ts — Singleton AI SDK clients
  *
- * Centralized lazy-singleton factories for OpenAI, Anthropic, and Gemini.
- * Each client is created once on first use and reused for all subsequent calls.
- * This prevents per-request instantiation overhead (TCP connections, token refresh)
- * and provides a single place to configure base URLs, API versions, etc.
+ * Centralized lazy-singleton factories for OpenAI, Anthropic, Gemini, and
+ * Perplexity. Each client is created once on first use and reused for all
+ * subsequent calls. This prevents per-request instantiation overhead (TCP
+ * connections, token refresh) and provides a single place to configure base
+ * URLs, API versions, etc.
+ *
+ * All factories share the same missing-key error shape via `requireApiKey`,
+ * so downstream callers can rely on a consistent message format. The module
+ * itself never reads `process.env` at import time — keys are only inspected
+ * inside the factory call. That guarantees that loading this module with no
+ * env vars set is safe (cold starts won't crash before the missing-secret
+ * error has a chance to surface).
  *
  * Usage:
- *   import { getOpenAIClient, getAnthropicClient, getGeminiClient } from "../ai/clients";
+ *   import { getOpenAIClient, getAnthropicClient, getGeminiClient, getPerplexityClient } from "../ai/clients";
  */
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 import { Perplexity } from "@perplexity-ai/perplexity_ai";
+
+// ── Shared key check ────────────────────────────────────
+
+/**
+ * Resolve the first non-empty value from the given env var names and return it.
+ * Throws a uniformly-shaped error referencing the provider name and the
+ * primary env var if none are set. Centralizing this means every factory
+ * fails the same way, which makes downstream error handling and log scraping
+ * predictable.
+ */
+function requireApiKey(provider: string, envVars: [string, ...string[]]): string {
+  for (const name of envVars) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  throw new Error(`${provider} API key not configured (set ${envVars[0]})`);
+}
 
 // ── OpenAI ──────────────────────────────────────────────
 
@@ -20,8 +45,7 @@ let _openai: OpenAI | null = null;
 
 export function getOpenAIClient(): OpenAI {
   if (_openai) return _openai;
-  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OpenAI API key not configured (set AI_INTEGRATIONS_OPENAI_API_KEY)");
+  const apiKey = requireApiKey("OpenAI", ["AI_INTEGRATIONS_OPENAI_API_KEY"]);
   _openai = new OpenAI({
     apiKey,
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || undefined,
@@ -40,8 +64,7 @@ let _anthropic: Anthropic | null = null;
  */
 export function getAnthropicClient(): Anthropic {
   if (_anthropic) return _anthropic;
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("Anthropic API key not configured (set ANTHROPIC_API_KEY)");
+  const apiKey = requireApiKey("Anthropic", ["ANTHROPIC_API_KEY", "AI_INTEGRATIONS_ANTHROPIC_API_KEY"]);
   _anthropic = new Anthropic({
     apiKey,
     baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL || undefined,
@@ -59,8 +82,7 @@ let _gemini: GoogleGenAI | null = null;
  */
 export function getGeminiClient(): GoogleGenAI {
   if (_gemini) return _gemini;
-  const apiKey = process.env.AI_INTEGRATIONS_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Gemini API key not configured (set AI_INTEGRATIONS_GEMINI_API_KEY)");
+  const apiKey = requireApiKey("Gemini", ["AI_INTEGRATIONS_GEMINI_API_KEY"]);
   _gemini = new GoogleGenAI({
     apiKey,
     httpOptions: {
@@ -89,8 +111,7 @@ let _perplexity: Perplexity | null = null;
 
 export function getPerplexityClient(): Perplexity {
   if (_perplexity) return _perplexity;
-  const apiKey = process.env.PERPLEXITY_API_KEY;
-  if (!apiKey) throw new Error("Perplexity API key not configured (set PERPLEXITY_API_KEY)");
+  const apiKey = requireApiKey("Perplexity", ["PERPLEXITY_API_KEY"]);
   _perplexity = new Perplexity({ apiKey });
   return _perplexity;
 }
