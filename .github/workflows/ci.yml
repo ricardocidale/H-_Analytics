@@ -94,6 +94,17 @@ jobs:
 
       - run: npm install
 
+      - name: Enable pgvector extension on test Postgres
+        # The pgvector/pgvector:pg16 service container ships the binary but
+        # the extension is per-database and must be CREATEd before drizzle-kit
+        # encounters any `vector(...)` column type (shared/schema/vector-chunks.ts).
+        # Without this, db:push aborts with `type "vector" does not exist`,
+        # leaving the test schema partially or fully empty and breaking every
+        # real-DB test downstream.
+        env:
+          PGPASSWORD: ci
+        run: psql -h localhost -U ci -d hbg_test -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+
       - name: Push Drizzle schema to test Postgres
         # Real-DB tests (tests/db/*.integration.test.ts, admin-resources, etc.)
         # query a fully-migrated schema. Without this step they fail because
