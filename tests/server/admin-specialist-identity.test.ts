@@ -271,6 +271,43 @@ describe("admin/specialists identity routes", () => {
     );
   });
 
+  // Task #464 — UI form-state coverage. The IdentityTab now lets admins
+  // clear *just one* field (name only or pronouns only) by sending null
+  // for the cleared slot while keeping the other override. Lock the
+  // inverse direction (name override kept, gender cleared back to
+  // catalog default) so the per-field clear path is exercised in both
+  // orientations and the resolved view falls back correctly.
+  it("PUT clears only gender (humanName override kept, source.gender = catalog)", async () => {
+    (storage.upsertIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue({
+      specialistId: "constants.tax-research",
+      humanName: "Hellena",
+      gender: null,
+      updatedByUserId: 99,
+      updatedAt: new Date(),
+    });
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/identity", {
+      params: { id: "constants.tax-research" },
+      body: { humanName: "Hellena", gender: null, changeSummary: "keep name only" },
+    });
+    expect(status).toBe(200);
+    expect(storage.upsertIdentityOverride).toHaveBeenCalledWith(
+      "constants.tax-research",
+      { humanName: "Hellena", gender: null },
+      99,
+      "keep name only",
+    );
+    const view = body as {
+      override: { humanName: string | null; gender: string | null };
+      resolved: { humanName: string; gender: string; source: { humanName: string; gender: string } };
+    };
+    expect(view.override.humanName).toBe("Hellena");
+    expect(view.override.gender).toBeNull();
+    // Resolver fills gender from the catalog default ("female" for Helena).
+    expect(view.resolved.gender).toBe("female");
+    expect(view.resolved.source.humanName).toBe("override");
+    expect(view.resolved.source.gender).toBe("catalog");
+  });
+
   it("DELETE clears the override and returns catalog-only resolved view", async () => {
     (storage.resetIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
     const { status, body } = await invoke(handlers, "DELETE /api/admin/specialists/:id/identity", {

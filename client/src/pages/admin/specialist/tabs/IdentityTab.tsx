@@ -3,6 +3,13 @@
  * with catalog factory defaults clearly labelled and a "Restore default"
  * button that deletes the override row. The same surface is used by Gaspar
  * (id="gaspar") because the route family accepts the orchestrator id.
+ *
+ * Per-field clearing (Task #464): each field has its own "Use factory
+ * default" checkbox. When checked, that field is sent as `null` in the
+ * PUT payload — letting an admin clear just the persona name while
+ * keeping a pronoun override (or vice-versa). The backend's
+ * `updateSpecialistIdentitySchema` already accepts nullable fields and
+ * the resolver falls back to the catalog when a slot is null.
  */
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle } from "@/components/icons";
@@ -44,23 +52,30 @@ export function IdentityTab({ specialistId }: { specialistId: string }) {
   });
 
   const [humanName, setHumanName] = useState<string>("");
+  const [useDefaultName, setUseDefaultName] = useState<boolean>(false);
   const [gender, setGender] = useState<IdentityGender>("female");
+  const [useDefaultGender, setUseDefaultGender] = useState<boolean>(false);
   const [changeSummary, setChangeSummary] = useState("");
 
   // Hydrate the form from the resolved view so the inputs always start at
   // "what is currently in effect" (override-when-present, catalog otherwise).
+  // The "Use factory default" toggles are seeded from the source map so the
+  // form opens in a state that already reflects the current per-field
+  // override status (a null slot in the override row means "use default").
   useEffect(() => {
     if (data) {
       setHumanName(data.resolved.humanName);
       setGender(data.resolved.gender);
+      setUseDefaultName(data.resolved.source.humanName === "catalog");
+      setUseDefaultGender(data.resolved.source.gender === "catalog");
     }
   }, [data]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("PUT", `/api/admin/specialists/${specialistId}/identity`, {
-        humanName,
-        gender,
+        humanName: useDefaultName ? null : humanName,
+        gender: useDefaultGender ? null : gender,
         changeSummary: changeSummary || undefined,
       });
       return res.json() as Promise<IdentityResponse>;
@@ -122,8 +137,17 @@ export function IdentityTab({ specialistId }: { specialistId: string }) {
   }
 
   const hasOverride = data.override !== null;
+  // Compare the form's intended override state to the current override row.
+  // A `null` slot in either side means "use the catalog default for this
+  // field". The form is dirty when the desired (humanName, gender) pair
+  // differs from what's persisted — which correctly enables Save when the
+  // admin toggles a per-field default on or off.
+  const currentOverrideName = data.override?.humanName ?? null;
+  const currentOverrideGender = data.override?.gender ?? null;
+  const desiredName: string | null = useDefaultName ? null : humanName;
+  const desiredGender: IdentityGender | null = useDefaultGender ? null : gender;
   const dirty =
-    humanName !== data.resolved.humanName || gender !== data.resolved.gender;
+    desiredName !== currentOverrideName || desiredGender !== currentOverrideGender;
 
   return (
     <Card data-testid="identity-tab">
@@ -133,7 +157,8 @@ export function IdentityTab({ specialistId }: { specialistId: string }) {
           The Specialist's persona name (used in narration, log lines, and the page header) and
           grammatical gender (used by the pronoun helper). The catalog supplies factory defaults;
           values you set here override the catalog for this Specialist only and propagate
-          everywhere the engine references the persona.
+          everywhere the engine references the persona. Tick "Use factory default" on either
+          field to clear just that slot — the other field keeps its current override.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -161,26 +186,70 @@ export function IdentityTab({ specialistId }: { specialistId: string }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="identity-human-name">Persona name</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="identity-human-name">Persona name</Label>
+            <label
+              htmlFor="checkbox-identity-name-default"
+              className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
+            >
+              <Checkbox
+                id="checkbox-identity-name-default"
+                data-testid="checkbox-identity-name-default"
+                checked={useDefaultName}
+                onCheckedChange={(v) => {
+                  const next = v === true;
+                  setUseDefaultName(next);
+                  // When toggling back to "use override", reseed the input
+                  // with the catalog default so the admin sees a sensible
+                  // starting value rather than an empty box.
+                  if (!next && humanName.length === 0) {
+                    setHumanName(data.catalog.humanName);
+                  }
+                }}
+              />
+              Use factory default
+            </label>
+          </div>
           <Input
             id="identity-human-name"
             data-testid="input-identity-human-name"
-            value={humanName}
+            value={useDefaultName ? data.catalog.humanName : humanName}
             onChange={(e) => setHumanName(e.target.value)}
+            disabled={useDefaultName}
             maxLength={40}
           />
         </div>
 
         <div className="space-y-2">
-          <Label>Gender (pronouns)</Label>
+          <div className="flex items-center justify-between">
+            <Label>Gender (pronouns)</Label>
+            <label
+              htmlFor="checkbox-identity-gender-default"
+              className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer"
+            >
+              <Checkbox
+                id="checkbox-identity-gender-default"
+                data-testid="checkbox-identity-gender-default"
+                checked={useDefaultGender}
+                onCheckedChange={(v) => setUseDefaultGender(v === true)}
+              />
+              Use factory default
+            </label>
+          </div>
           <RadioGroup
-            value={gender}
+            value={useDefaultGender ? data.catalog.gender : gender}
             onValueChange={(v) => setGender(v as IdentityGender)}
+            disabled={useDefaultGender}
             className="flex gap-6"
           >
             {(["female", "male", "neutral"] as IdentityGender[]).map((g) => (
               <div key={g} className="flex items-center gap-2">
-                <RadioGroupItem value={g} id={`identity-gender-${g}`} data-testid={`radio-identity-gender-${g}`} />
+                <RadioGroupItem
+                  value={g}
+                  id={`identity-gender-${g}`}
+                  data-testid={`radio-identity-gender-${g}`}
+                  disabled={useDefaultGender}
+                />
                 <Label htmlFor={`identity-gender-${g}`} className="capitalize cursor-pointer">{g}</Label>
               </div>
             ))}
