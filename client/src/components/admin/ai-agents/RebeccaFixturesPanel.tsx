@@ -21,6 +21,8 @@ export type FixtureTurn = {
   ts: number;
 };
 
+export type RebeccaFixtureReplayStatus = "pass" | "drifted" | "errored" | "skipped";
+
 export type RebeccaFixture = {
   id: number;
   name: string;
@@ -29,6 +31,19 @@ export type RebeccaFixture = {
   turns: FixtureTurn[];
   createdAt: string;
   updatedAt: string;
+  // Task #559 — populated by the scheduled fixture-replay job
+  // (server/jobs/rebecca-fixture-replay.ts). Null until the first
+  // automated cycle runs against this fixture.
+  lastReplayAt: string | null;
+  lastReplayStatus: RebeccaFixtureReplayStatus | null;
+  lastReplaySummary: {
+    totalTurns: number;
+    matched: number;
+    differed: number;
+    noBaseline: number;
+    errored: number;
+    durationMs: number;
+  } | null;
 };
 
 type ReplayResult = {
@@ -296,6 +311,29 @@ export function RebeccaFixturesPanel({
                       {turnCount} turn{turnCount === 1 ? "" : "s"} · {userCount} prompt{userCount === 1 ? "" : "s"} ·
                       {" "}{new Date(f.createdAt).toLocaleDateString()}
                     </p>
+                    {f.lastReplayStatus && f.lastReplayAt && (
+                      <p
+                        className={`text-[10px] font-mono mt-1 ${
+                          f.lastReplayStatus === "pass"
+                            ? "text-green-600 dark:text-green-400"
+                            : f.lastReplayStatus === "drifted"
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-red-600 dark:text-red-400"
+                        }`}
+                        data-testid={`text-fixture-last-replay-${f.id}`}
+                        title={
+                          f.lastReplaySummary
+                            ? `Auto-replay: ${f.lastReplaySummary.matched} pass, ${f.lastReplaySummary.differed} differ, ${f.lastReplaySummary.errored} error of ${f.lastReplaySummary.totalTurns}`
+                            : "Auto-replay status"
+                        }
+                      >
+                        Auto-replay {f.lastReplayStatus}
+                        {f.lastReplaySummary
+                          ? ` (${f.lastReplaySummary.matched}/${f.lastReplaySummary.totalTurns} pass)`
+                          : ""}
+                        {" · "}{new Date(f.lastReplayAt).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Button

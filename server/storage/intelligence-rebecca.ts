@@ -11,6 +11,7 @@ import {
   type RebeccaKBEntry, type InsertRebeccaKBEntry,
   type RebeccaKBHistory,
   type RebeccaPreviewFixture, type InsertRebeccaPreviewFixture,
+  type RebeccaFixtureReplaySummary,
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, gte, isNull, sql } from "drizzle-orm";
@@ -336,6 +337,39 @@ export class IntelligenceRebeccaStorage {
       .where(eq(rebeccaPreviewFixtures.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  /**
+   * Task #559 — persist the rolled-up outcome of one scheduled replay
+   * cycle for a single fixture. Called from
+   * `server/jobs/rebecca-fixture-replay.ts` after every replay attempt.
+   *
+   * `lastReplayFingerprint` is the per-cycle drift fingerprint (a stable
+   * hash of the per-turn status shape). The scheduler uses it to suppress
+   * repeat drift notifications: a second cycle with the same drift
+   * fingerprint does not re-email admins. We always overwrite the column
+   * — including with `null` when status is "pass" — so the next genuine
+   * drift event is treated as fresh, not as a duplicate of an old one.
+   */
+  async recordRebeccaFixtureReplayResult(
+    id: number,
+    result: {
+      lastReplayAt: Date;
+      lastReplayStatus: "pass" | "drifted" | "errored" | "skipped";
+      lastReplaySummary: RebeccaFixtureReplaySummary;
+      lastReplayFingerprint: string | null;
+    },
+  ): Promise<RebeccaPreviewFixture | undefined> {
+    const [row] = await db.update(rebeccaPreviewFixtures)
+      .set({
+        lastReplayAt: result.lastReplayAt,
+        lastReplayStatus: result.lastReplayStatus,
+        lastReplaySummary: result.lastReplaySummary,
+        lastReplayFingerprint: result.lastReplayFingerprint,
+      })
+      .where(eq(rebeccaPreviewFixtures.id, id))
+      .returning();
+    return row;
   }
 
   async getRebeccaKBStats(): Promise<{ total: number; active: number; byCategory: Record<string, number> }> {

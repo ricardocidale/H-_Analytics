@@ -61,6 +61,13 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Polls the Photos & Renders specialist (Fernanda) config and dispatches scheduled render batches across the configured property list.",
   },
+  {
+    key: "rebecca-fixture-replay",
+    label: "Rebecca Fixture Replay",
+    cycleIntervalMs: 24 * 60 * 60 * 1000, // 24h
+    description:
+      "Replays every saved Rebecca preview fixture through the server-side runner once per day, persists the per-fixture last-run badge, and emails admins when an answer drifts from its saved baseline.",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];

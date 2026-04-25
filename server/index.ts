@@ -302,6 +302,16 @@ app.use((req, res, next) => {
         serverLog(`[specialist-photos-batch-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3g: Rebecca preview-fixture replay (Task #559) ────────
+      // Daily replay of every saved Rebecca fixture against the current
+      // settings; emits drift notifications and updates per-fixture
+      // last-run badges in the admin Test Chat panel.
+      import("./jobs/rebecca-fixture-replay").then(({ startRebeccaFixtureReplayScheduler }) => {
+        startRebeccaFixtureReplayScheduler();
+      }).catch(err => {
+        serverLog(`[rebecca-fixture-replay-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
@@ -328,6 +338,12 @@ app.use((req, res, next) => {
         try {
           const { stopSpecialistPhotosBatchScheduler } = await import("./jobs/specialist-photos-batch");
           stopSpecialistPhotosBatchScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopRebeccaFixtureReplayScheduler } = await import("./jobs/rebecca-fixture-replay");
+          stopRebeccaFixtureReplayScheduler();
         } catch {
           /* best-effort — module may not have loaded yet */
         }
@@ -716,6 +732,12 @@ async function runSchemaMigrations() {
     const { runStorageDriftSweepRuns001 } = await import("./migrations/storage-drift-sweep-runs-001");
     await runStorageDriftSweepRuns001();
     await markMigrationApplied("storage_drift_sweep_runs_001");
+  }
+
+  if (!(await isMigrationApplied("rebecca_fixture_replay_001"))) {
+    const { runRebeccaFixtureReplay001 } = await import("./migrations/rebecca-fixture-replay-001");
+    await runRebeccaFixtureReplay001();
+    await markMigrationApplied("rebecca_fixture_replay_001");
   }
 }
 

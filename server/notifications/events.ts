@@ -40,6 +40,7 @@ export function getEventLabel(type: NotificationEventType): string {
     CONSTANTS_REFRESH_FAILED: "Scheduled Constants Refresh Failures",
     CONSTANTS_REFRESH_OVERDUE: "Constants Sources Silent Past Cadence",
     SPECIALIST_QUALITY_BAND_CHANGED: "Specialist Quality Band Change",
+    REBECCA_FIXTURE_DRIFTED: "Rebecca Preview Fixture Drift",
   };
   return labels[type] || type;
 }

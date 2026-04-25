@@ -562,6 +562,18 @@ export const rebeccaPreviewFixtures = pgTable("rebecca_preview_fixtures", {
   createdById: integer("created_by_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  // Task #559 — scheduled replay tracking. The scheduler (server/jobs/
+  // rebecca-fixture-replay.ts) walks every fixture's turns through the
+  // server-side preview runner once per cycle, computes match/differ/
+  // error per turn, and writes the rolled-up shape here so the admin
+  // fixtures panel can render a per-fixture last-run badge without
+  // running the replay client-side. lastReplayFingerprint is a stable
+  // hash of the per-turn status shape used for drift-alert suppression
+  // (same fingerprint two cycles in a row → don't email twice).
+  lastReplayAt: timestamp("last_replay_at"),
+  lastReplayStatus: text("last_replay_status"),
+  lastReplaySummary: jsonb("last_replay_summary").$type<RebeccaFixtureReplaySummary | null>(),
+  lastReplayFingerprint: text("last_replay_fingerprint"),
 }, (table) => [
   // Names are admin-curated handles; uniqueness keeps the side list legible
   // and prevents two fixtures from accidentally shadowing each other in
@@ -577,6 +589,35 @@ export const insertRebeccaPreviewFixtureSchema = createInsertSchema(rebeccaPrevi
 });
 export type RebeccaPreviewFixture = typeof rebeccaPreviewFixtures.$inferSelect;
 export type InsertRebeccaPreviewFixture = z.infer<typeof insertRebeccaPreviewFixtureSchema>;
+
+/**
+ * Per-turn outcome captured by the scheduled fixture replay
+ * (server/jobs/rebecca-fixture-replay.ts). One entry per user turn from the
+ * saved fixture, in the same order as the fixture's user turns. The
+ * snippets are clipped (≤ 400 chars) so the JSONB stays small even when
+ * Rebecca returns a long answer; the admin UI just needs enough to show a
+ * preview and the diff badge.
+ */
+export type RebeccaFixtureReplayTurnStatus = "pass" | "differ" | "no-baseline" | "error";
+
+export interface RebeccaFixtureReplayTurn {
+  index: number;
+  status: RebeccaFixtureReplayTurnStatus;
+  prompt: string;
+  expectedSnippet: string | null;
+  actualSnippet: string | null;
+  error?: string;
+}
+
+export interface RebeccaFixtureReplaySummary {
+  totalTurns: number;
+  matched: number;
+  differed: number;
+  noBaseline: number;
+  errored: number;
+  durationMs: number;
+  perTurn: RebeccaFixtureReplayTurn[];
+}
 
 // ---------------------------------------------------------------------------
 // Hospitality Benchmarks — admin-editable, DB-backed industry data

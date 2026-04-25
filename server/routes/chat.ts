@@ -68,7 +68,12 @@ class ChatPolicyError extends Error {
 
 // Task #499 — unified LLM dispatch across providers. Each branch returns the
 // final assistant text and (best-effort) logs cost.
-async function callLlm(
+//
+// Exported (Task #559) so the scheduled fixture-replay runner
+// (server/ai/rebecca-preview-runner.ts) can dispatch through the exact
+// same provider matrix the live preview uses, instead of duplicating the
+// switch statement and silently drifting from the real chat behavior.
+export async function callLlm(
   provider: "openai" | "anthropic" | "gemini" | "perplexity",
   model: string,
   systemPrompt: string,
