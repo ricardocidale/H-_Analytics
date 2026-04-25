@@ -1,17 +1,26 @@
 #!/usr/bin/env bash
 # rewrite-history-purge-helium-backups.sh
 #
-# Purge the four `backups/heliumdb-*` files from ALL git history so GitHub
-# stops billing LFS storage + bandwidth for them.
+# Purge the four `backups/heliumdb-*` files AND the stray Turborepo build-cache
+# artifact `.turbo/cache/4ef2d42dbe46b27f.tar.zst` from ALL git history so
+# GitHub stops billing LFS storage + bandwidth for them.
 #
-# This is the runbook for Task #518. The agent that owns this Repl cannot
-# force-push (version control is platform-managed), so this script is meant
-# to be executed by a human with repo-admin push access on a fresh local
-# clone of the GitHub repo — NOT inside the Replit workspace.
+# This is the runbook for Task #518 (Helium backups, ~250 MB) batched with
+# Task #520 (the Turbo build-cache file, ~70 MB). The agent that owns this
+# Repl cannot force-push (version control is platform-managed), so this
+# script is meant to be executed by a human with repo-admin push access on
+# a fresh local clone of the GitHub repo — NOT inside the Replit workspace.
+#
+# Why batch the .turbo/cache entry into the same rewrite: it requires the
+# exact same destructive history-rewrite + force-push dance, and doing it
+# once is strictly cheaper than asking everyone to re-clone twice. The file
+# is regenerable (Turborepo recreates it on the next build), machine-specific
+# (the hash in the filename is local), and `.turbo/` is now in `.gitignore`
+# so it cannot come back.
 #
 # Why this lives in-tree: so the procedure is reviewable, the safety checks
 # can't drift away from the codebase, and the next person hunting "why is
-# our LFS bill so high" can grep for "heliumdb" and find it.
+# our LFS bill so high" can grep for "heliumdb" or ".turbo/cache" and find it.
 #
 # Usage:
 #   ./script/rewrite-history-purge-helium-backups.sh             # dry-run, prints plan
@@ -87,12 +96,18 @@ if [[ -z "$ORIGIN_URL" ]]; then
 fi
 say  "origin = $ORIGIN_URL"
 
-# 5. Confirm the four target files actually appear somewhere in history.
+# 5. Confirm the target files actually appear somewhere in history.
+#    The first four are the Helium backup dumps (Task #518, ~250 MB).
+#    The last one is the stray Turborepo build-cache artifact that was
+#    accidentally committed to LFS (Task #520, ~70 MB). It is regenerable;
+#    `.turbo/` is in `.gitignore` and the matching `.gitattributes` LFS
+#    rule has been removed so it will not come back.
 TARGET_GLOBS=(
   "backups/heliumdb-data-only-20260424T174432Z.sql.gz"
   "backups/heliumdb-full-20260424T174432Z.sql.gz"
   "backups/heliumdb-rowcounts-20260424T174432Z.txt"
   "backups/heliumdb-sequences-20260424T174432Z.sql"
+  ".turbo/cache/4ef2d42dbe46b27f.tar.zst"
 )
 say  "Looking for target paths in history..."
 FOUND_ANY=0
@@ -137,13 +152,15 @@ say "     — script does NOT push for you. Inspect the rewrite first."
 say ""
 say "After push, you must also:"
 say "  a. Email github-support@github.com asking them to GC orphaned LFS objects"
-say "     for this repo (they won't auto-collect; cite 'Task #518 history rewrite')."
+say "     for this repo (they won't auto-collect; cite 'Task #518 + #520 history rewrite')."
 say "  b. Tell every collaborator + every other agent shell to re-clone."
 say "     Their existing clones will diverge and stale PRs will detach."
 say "  c. Edit docs/developer/migration-from-replit.md, in the section titled"
 say "     'History rewrite — Helium backup purge', replace 'YYYY-MM-DD' with"
 say "     today's date and the new HEAD SHA so future debuggers know why old"
 say "     SHAs (e.g. 92ad89cd, the pre-Task-#517 ref) no longer resolve."
+say "  d. Confirm the .turbo/cache LFS object (~70 MB) is also gone from the"
+say "     LFS bill — that one is part of this same rewrite (Task #520)."
 
 if [[ "$EXECUTE" -ne 1 ]]; then
   say ""

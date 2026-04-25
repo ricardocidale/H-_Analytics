@@ -21,24 +21,24 @@ The Helium add-on still bills monthly even though nothing reads from it. The rol
 
 This is irreversible. Once the add-on is cancelled, the only way back is to download from R2 (`r2://h-analysis/archive/helium-rollback-20260424/heliumdb-full-20260424T174432Z.sql.gz`), `gunzip` it, `psql -f` into a fresh Postgres, and re-point `POSTGRES_URL` at the new instance. The `heliumdb-rowcounts-*.txt` row-count manifest in the same prefix is what to compare against to confirm a clean restore.
 
-### History rewrite — Helium backup purge (Task #518)
+### History rewrite — Helium backup purge (Tasks #518 + #520)
 
 Task #517 ran `git rm` on the four `backups/heliumdb-*` files but did **not** purge them from history, so GitHub still bills LFS storage + bandwidth for them on every fresh clone (~250 MB). To actually reclaim that storage, history has to be rewritten and `main` force-pushed.
+
+The same rewrite also purges `.turbo/cache/4ef2d42dbe46b27f.tar.zst` (~70 MB) — a Turborepo build-cache artifact that was accidentally committed to LFS. Decision (Task #520): **remove it.** Reasoning: it's regenerable (Turborepo recreates it on the next build), the hash in the filename is machine-specific, it cannot be a useful CI cache key for anyone else, and keeping it inflates the LFS bill on every clone. Forward-discipline fix: `.turbo/` is now in `.gitignore` and the matching `.gitattributes` LFS rule has been removed, so it cannot reappear. We batch this with the Helium purge because both require the same destructive history-rewrite + force-push dance, and doing it once is strictly cheaper than asking everyone to re-clone twice.
 
 This must be done from a local clone with push access to GitHub — **not from inside the Replit workspace**, which is why this is a runbook, not an automated job:
 
 1. Confirm R2 still holds the rollback set (`npx tsx script/r2-list-archive.ts` should show 4 objects under `archive/helium-rollback-20260424/`). If it doesn't, stop — restore the archive first.
 2. Tell every collaborator and every other agent shell to push/stash WIP and stop pushing to `main`.
-3. From a fresh clone on your laptop, run `./script/rewrite-history-purge-helium-backups.sh` (dry-run first; then `--execute`). The script does pre-flight checks (clean tree, on `main`, refuses to run inside the Replit workspace, verifies the four target paths actually appear in history, tars `.git` for rollback) and then runs `git filter-repo --invert-paths` for each path.
+3. From a fresh clone on your laptop, run `./script/rewrite-history-purge-helium-backups.sh` (dry-run first; then `--execute`). The script does pre-flight checks (clean tree, on `main`, refuses to run inside the Replit workspace, verifies the target paths actually appear in history, tars `.git` for rollback) and then runs `git filter-repo --invert-paths` for each path — the four Helium dumps **and** the Turbo cache file.
 4. Inspect the rewrite, then `git push --force-with-lease origin main`.
 5. `git lfs prune` locally (the script also runs this).
-6. Email github-support@github.com asking them to GC orphaned LFS objects for this repo (cite "Task #518 history rewrite"). Without this step the LFS bill does not actually drop — GitHub keeps unreferenced LFS objects until support manually collects them.
-7. Verify in repo Settings → Billing & Usage → Git LFS that storage drops by ~250 MB.
+6. Email github-support@github.com asking them to GC orphaned LFS objects for this repo (cite "Task #518 + #520 history rewrite"). Without this step the LFS bill does not actually drop — GitHub keeps unreferenced LFS objects until support manually collects them.
+7. Verify in repo Settings → Billing & Usage → Git LFS that storage drops by ~320 MB total (~250 MB Helium + ~70 MB Turbo cache).
 8. Update this section: replace `YYYY-MM-DD` below with the date of the rewrite and the new `main` HEAD SHA, so the next person who finds an old SHA understands why it doesn't resolve.
 
-> History rewrite executed: **YYYY-MM-DD**, new `main` HEAD = `<sha>`. Pre-rewrite refs that touched `backups/heliumdb-*` (e.g. `92ad89cd`, `2bdcf8fe`) no longer resolve on `origin/main`.
-
-Out of scope for the rewrite: the `.turbo/cache/4ef2d42dbe46b27f.tar.zst` LFS entry — that is build cache, not Helium backup, and is its own decision.
+> History rewrite executed: **YYYY-MM-DD**, new `main` HEAD = `<sha>`. Pre-rewrite refs that touched `backups/heliumdb-*` or `.turbo/cache/4ef2d42dbe46b27f.tar.zst` (e.g. `92ad89cd`, `2bdcf8fe`) no longer resolve on `origin/main`.
 
 ---
 

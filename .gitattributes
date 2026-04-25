@@ -1,1 +1,8 @@
-.turbo/cache/4ef2d42dbe46b27f.tar.zst filter=lfs diff=lfs merge=lfs -text
+# (intentionally empty)
+#
+# We deliberately do not track build-cache artifacts in Git LFS. The previous
+# entry for `.turbo/cache/4ef2d42dbe46b27f.tar.zst` was committed by accident,
+# is being purged from history by `script/rewrite-history-purge-helium-backups.sh`,
+# and `.turbo/` is in `.gitignore` to keep it from coming back. See
+# docs/developer/migration-from-replit.md, "History rewrite — Helium backup
+# purge", for the runbook and rationale.
