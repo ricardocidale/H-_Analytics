@@ -5,20 +5,26 @@ import sys
 
 # ============================================================
 # Project-Aware ChatGPT for Replit
-# TypeScript-Optimized Version
+# TypeScript-Optimized + Faster File Scanner
 # ============================================================
+#
 # What this does:
 # - Runs inside Replit Shell
-# - Reads your project recursively
+# - Reads your project files recursively
 # - Optimized for TypeScript / React / Next / Vite projects
-# - Skips junk folders like node_modules, .git, dist, build, etc.
-# - Reads useful files like .ts, .tsx, package.json, tsconfig.json
-# - Sends project context to OpenAI
+# - Skips huge folders like node_modules, .git, .pythonlibs, dist, build
+# - Avoids slow full-workspace rglob scanning
+# - Sends useful project context to OpenAI
 #
 # Before running:
 # 1. Add OPENAI_API_KEY in Replit Secrets
 # 2. Run: pip install openai
 # 3. Run: python main.py
+#
+# Commands inside the app:
+# - files  = show readable files
+# - tree   = show project tree
+# - exit   = quit
 # ============================================================
 
 
@@ -26,9 +32,8 @@ import sys
 # OpenAI client
 # ----------------------------
 
-client = OpenAI()
-
 MODEL = "gpt-5.5"
+client = OpenAI()
 
 
 # ----------------------------
@@ -63,6 +68,11 @@ SKIP_DIRS = {
     ".vscode",
     ".vercel",
     ".netlify",
+    "attached_assets",
+    "generated",
+    "tmp",
+    "temp",
+    "logs",
 }
 
 SKIP_EXTENSIONS = {
@@ -90,6 +100,7 @@ SKIP_EXTENSIONS = {
     ".sqlite",
     ".db",
     ".pyc",
+    ".map",
 }
 
 TEXT_EXTENSIONS = {
@@ -176,8 +187,6 @@ SPECIAL_TEXT_FILES = {
     "README.md",
 }
 
-# Lockfiles can be useful but large.
-# They will be read only up to MAX_LOCKFILE_CHARS.
 LOCKFILES = {
     "package-lock.json",
     "pnpm-lock.yaml",
@@ -185,9 +194,11 @@ LOCKFILES = {
     "bun.lockb",
 }
 
+# Safety limits
 MAX_FILE_CHARS = 30_000
 MAX_LOCKFILE_CHARS = 12_000
 MAX_TOTAL_CHARS = 300_000
+MAX_FILES = 300
 
 
 # ----------------------------
@@ -232,31 +243,19 @@ def safe_read_text(path: Path) -> str:
         return f"[Could not read file: {e}]"
 
 
-def list_project_files():
-    files = []
-
-    for path in sorted(ROOT.rglob("*")):
-        if not path.is_file():
-            continue
-
-        if should_skip_path(path):
-            continue
-
-        if not is_probably_text_file(path):
-            continue
-
-        files.append(path)
-
-    return files
-
-
 def file_priority(path: Path) -> int:
     """
     Lower number = higher priority.
     This helps the model see important TypeScript project files first.
     """
+    try:
+        rel = path.relative_to(ROOT)
+        path_str = str(rel)
+    except Exception:
+        path_str = str(path)
+
     name = path.name
-    path_str = str(path)
+    suffix = path.suffix.lower()
 
     if name == "package.json":
         return 1
@@ -265,6 +264,8 @@ def file_priority(path: Path) -> int:
         return 2
 
     if name in {
+        ".replit",
+        "replit.nix",
         "vite.config.ts",
         "vite.config.js",
         "next.config.ts",
@@ -272,32 +273,89 @@ def file_priority(path: Path) -> int:
         "tailwind.config.ts",
         "tailwind.config.js",
         "postcss.config.js",
+        "postcss.config.cjs",
         "eslint.config.js",
         "eslint.config.mjs",
-        ".replit",
-        "replit.nix",
     }:
         return 3
 
-    if path_str.startswith("src/") and path.suffix.lower() in {".ts", ".tsx"}:
+    if path_str.startswith("src/") and suffix in {".ts", ".tsx"}:
         return 4
 
-    if path.suffix.lower() in {".ts", ".tsx"}:
+    if path_str.startswith("app/") and suffix in {".ts", ".tsx"}:
+        return 4
+
+    if path_str.startswith("pages/") and suffix in {".ts", ".tsx"}:
+        return 4
+
+    if path_str.startswith("components/") and suffix in {".ts", ".tsx"}:
         return 5
 
-    if path.suffix.lower() in {".js", ".jsx", ".mjs", ".cjs"}:
+    if suffix in {".ts", ".tsx"}:
         return 6
 
-    if path.suffix.lower() in {".html", ".css", ".scss", ".sass"}:
+    if suffix in {".js", ".jsx", ".mjs", ".cjs"}:
         return 7
 
-    if name in {"README.md", "README"}:
+    if suffix in {".html", ".css", ".scss", ".sass"}:
         return 8
+
+    if name in {"README.md", "README"}:
+        return 9
 
     if name in LOCKFILES:
         return 20
 
     return 10
+
+
+def list_project_files():
+    """
+    Fast scanner for Replit.
+
+    Important:
+    Uses os.walk so we can prevent Python from descending into huge folders
+    like node_modules and .pythonlibs.
+    """
+    files = []
+
+    for current_root, dirs, filenames in os.walk(ROOT, followlinks=False):
+        current_path = Path(current_root)
+
+        # Skip hidden/system/dependency-heavy directories before descending
+        dirs[:] = [
+            d
+            for d in dirs
+            if d not in SKIP_DIRS
+            and not d.startswith(".cache")
+            and not d.startswith(".pythonlibs")
+            and d != "node_modules"
+        ]
+
+        for filename in filenames:
+            path = current_path / filename
+
+            try:
+                if path.is_symlink():
+                    continue
+
+                if not path.is_file():
+                    continue
+
+                if should_skip_path(path):
+                    continue
+
+                if not is_probably_text_file(path):
+                    continue
+
+                files.append(path)
+
+            except OSError:
+                continue
+
+    files = sorted(files, key=lambda p: (file_priority(p), str(p)))
+
+    return files[:MAX_FILES]
 
 
 def build_file_tree(files):
@@ -317,9 +375,7 @@ def read_project_context(files):
     chunks = []
     total_chars = 0
 
-    sorted_files = sorted(files, key=lambda p: (file_priority(p), str(p)))
-
-    for path in sorted_files:
+    for path in files:
         try:
             rel = path.relative_to(ROOT)
         except Exception:
@@ -406,17 +462,19 @@ def main():
     print("\nProject-Aware ChatGPT in Replit")
     print("--------------------------------")
     print("TypeScript-optimized version")
+    print("Fast scanner enabled")
     print("--------------------------------")
     print("Type your question and press Enter.")
-    print("Type 'exit' or 'quit' to stop.")
     print("Type 'files' to see which files are being read.")
+    print("Type 'tree' to show the project file tree.")
+    print("Type 'exit' or 'quit' to stop.")
     print("--------------------------------")
 
+    print("\nScanning project files...")
     files = list_project_files()
-    files = sorted(files, key=lambda p: (file_priority(p), str(p)))
     file_tree = build_file_tree(files)
 
-    print(f"\nLoaded {len(files)} readable project files.")
+    print(f"Loaded {len(files)} readable project files.")
 
     while True:
         user_input = input("\nYou: ").strip()
@@ -428,22 +486,21 @@ def main():
             print("\nGoodbye.")
             break
 
-        if user_input.lower() == "files":
+        if user_input.lower() in {"files", "tree"}:
             files = list_project_files()
-            files = sorted(files, key=lambda p: (file_priority(p), str(p)))
             file_tree = build_file_tree(files)
 
             print("\nReadable project files:\n")
             print(file_tree or "[No readable project files found.]")
             continue
 
-        # Refresh project context each turn so changes are picked up
+        # Refresh each turn so new edits are picked up
+        print("\nScanning project files...")
         files = list_project_files()
-        files = sorted(files, key=lambda p: (file_priority(p), str(p)))
         file_tree = build_file_tree(files)
         project_context = read_project_context(files)
 
-        print("\nThinking...\n")
+        print("Thinking...\n")
 
         try:
             answer = ask_openai(user_input, file_tree, project_context)
