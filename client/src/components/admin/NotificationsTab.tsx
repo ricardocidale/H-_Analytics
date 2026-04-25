@@ -274,12 +274,13 @@ export default function NotificationsTab() {
                     });
                   }}
                 />
-                <Label>Mute nightly Specialist quality band-change emails</Label>
+                <Label>Mute nightly Specialist quality band-drop emails</Label>
               </div>
               <p className="text-sm text-muted-foreground">
                 When enabled, the nightly Specialist quality recomputer will skip emailing admins about
-                green ↔ amber ↔ red band transitions. Quality scores still recompute and update on the
-                Resources transparency UI — only the email is suppressed.
+                downward band drops (green→amber, amber→red, green→red). Quality scores still recompute
+                and update on the Resources transparency UI; upward improvements never email — only
+                drops are suppressed by this switch.
               </p>
             </CardContent>
           </Card>

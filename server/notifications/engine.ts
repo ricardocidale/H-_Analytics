@@ -6,6 +6,24 @@ import { sendNotificationEmail } from "../integrations/resend";
 import { storage } from "../storage";
 import { APP_BRAND_NAME } from "@shared/constants";
 import { logger } from "../logger";
+import { getAppUrl } from "../providers/config";
+
+/**
+ * Convert a notification event's `link` to an absolute URL suitable for
+ * an email CTA button. Email clients cannot resolve relative paths, so
+ * a callsite like `link: \`/property/${id}\`` would render a broken
+ * "Open property" button. We rewrite any relative path against the
+ * configured app URL; absolute http(s) URLs pass through untouched.
+ * Returns `undefined` when the event has no link, so the email omits
+ * the action button entirely (as it did before action URLs were wired).
+ */
+function emailActionUrl(link: string | undefined): string | undefined {
+  if (!link) return undefined;
+  if (/^https?:\/\//i.test(link)) return link;
+  const base = getAppUrl().replace(/\/+$/, "");
+  const path = link.startsWith("/") ? link : `/${link}`;
+  return `${base}${path}`;
+}
 
 async function logNotification(
   event: NotificationEvent,
@@ -37,7 +55,7 @@ export async function processNotificationEvent(event: NotificationEvent): Promis
         subject: `${getEventLabel(event.type)} — ${APP_BRAND_NAME}`,
         title: getEventLabel(event.type),
         body: event.message || "A system event has occurred.",
-        actionUrl: event.link ? undefined : undefined,
+        actionUrl: emailActionUrl(event.link),
       });
       await logNotification(event, "email", "sent", {
         recipient: event.metadata.recipientEmail,

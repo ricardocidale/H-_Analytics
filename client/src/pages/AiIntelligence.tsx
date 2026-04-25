@@ -1,4 +1,5 @@
 import { useEffect, useRef, lazy, Suspense } from "react";
+import { useSearch } from "wouter";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { useAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
+import { setAiIntelligenceSection, useAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
 import {
   type AiIntelligenceSection,
   SPECIALIST_SECTION_TO_ID,
@@ -115,10 +116,46 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
   }
 }
 
+// All section keys that the sidebar can route to. URL-driven deep links
+// validate against this set so a stray `?section=…` cannot push an
+// unknown value into the section store. Specialist sections are derived
+// from the canonical SPECIALIST_SECTION_TO_ID map; the literal section
+// keys mirror the sidebar groups in AiIntelligenceSidebar.tsx.
+const VALID_SECTIONS = new Set<AiIntelligenceSection>([
+  ...(Object.keys(SPECIALIST_SECTION_TO_ID) as AiIntelligenceSection[]),
+  "analyst-orchestrator",
+  "ai-agents",
+  "knowledge-base",
+  "conversations",
+  "engine-health",
+  "scheduled-research",
+  "vector-bench",
+  "resources-apis",
+  "resources-sources",
+  "resources-tables",
+  "resources-benchmarks",
+  "resources-models",
+]);
+
 export default function AiIntelligence() {
   const [activeSection] = useAiIntelligenceSection();
   const refreshLlmRegistry = useRefreshLlmRegistry();
   const didRefreshRef = useRef(false);
+
+  // Honor `?section=…` deep links (e.g. from the band-drop notification
+  // emails for Specialists). Applied once per mount so the sidebar
+  // selection from in-app navigation isn't clobbered on every render.
+  const urlSearch = useSearch();
+  const didApplyDeepLinkRef = useRef(false);
+  useEffect(() => {
+    if (didApplyDeepLinkRef.current) return;
+    didApplyDeepLinkRef.current = true;
+    const params = new URLSearchParams(urlSearch);
+    const requested = params.get("section");
+    if (requested && VALID_SECTIONS.has(requested as AiIntelligenceSection)) {
+      setAiIntelligenceSection(requested as AiIntelligenceSection);
+    }
+  }, [urlSearch]);
 
   useEffect(() => {
     if (didRefreshRef.current) return;
