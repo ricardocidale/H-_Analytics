@@ -59,6 +59,7 @@ For the full architecture rationale + the two rejected predecessors (v0 flat reg
 | `.claude/rules/the-analyst-persona.md` | **Non-negotiable.** The user-facing voice contract. Singular, capitalized, range-first, conviction-led. |
 | `.claude/rules/analyst-team.md` | Internal vocabulary rule (Phase 1b). Resolves singular-voice vs team-naming tension. |
 | `.claude/rules/analyst-verdict-contract.md` | Placeholder pointing forward to Phase 3 when `AnalystVerdict` lands. |
+| `.claude/rules/specialist-intelligence-bar.md` | **Binding for every assumption-tab Specialist.** N+1 cognitive call, ≥3 cited evidence per dimension, comparables table, live API resource, range-first. The product floor for "intelligence-first" Specialists. |
 | `.claude/notes/analyst-architecture.md` | Claude Code's deep-dive on the Cognitive Engine. **The authority on the brain.** |
 | `docs/architecture/ANALYST.md` | The architecture spine. Descriptive complement to this directive skill. |
 | `docs/architecture/analyst/*.md` | Per-component specs — every skill file here has a sibling spec doc. |
