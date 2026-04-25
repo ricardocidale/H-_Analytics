@@ -356,15 +356,15 @@ function GalleryPanel() {
   );
 }
 
-export default function PhotosAndRendersSpecialistPage() {
+export default function FernandaRenderConsolePage() {
   return (
-    // The legacy "page-photos-and-renders-specialist" testid is preserved
-    // intentionally so any existing admin e2e selectors keep working —
-    // Fernanda owns this surface now (`specialist-photos-photo-enhancer`
-    // routing slug, persona Fernanda from specialist-catalog) but the slug
-    // predates the rename. Update both the slug and the dependents
-    // together if/when this is ever rebranded.
-    <div className="space-y-6" data-testid="page-photos-and-renders-specialist">
+    // Fernanda owns this surface (`specialist-photos-photo-enhancer`
+    // routing slug, persona Fernanda from specialist-catalog). The
+    // routing slug predates the rename and is left as-is because it is
+    // load-bearing across the sidebar, AdminSidebar, and section meta;
+    // update the slug and all its dependents together if/when this is
+    // ever rebranded.
+    <div className="space-y-6" data-testid="page-fernanda-render-console">
       {/* Inner Suspense isolates the SpecialistPage chunk so that if the
           outer AiIntelligence Suspense already resolved Fernanda's
           render console, a slow nested chunk doesn't blank the whole

@@ -28,8 +28,8 @@ const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPag
 // a server-backed history gallery (Task #432) on top of the standard
 // SpecialistPage console so admins can see, share, and re-use every past
 // render across sessions and devices.
-const PhotosAndRendersSpecialistPage = lazy(
-  () => import("@/pages/ai-intelligence/PhotosAndRendersSpecialistPage"),
+const FernandaRenderConsolePage = lazy(
+  () => import("@/pages/ai-intelligence/FernandaRenderConsolePage"),
 );
 
 const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
@@ -115,7 +115,7 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
     case "resources-models":     return <ResourcesTab kind="model" />;
     case "analyst-orchestrator": return <SpecialistPage specialistId={ORCHESTRATOR_SPECIALIST_ID} />;
-    case "specialist-photos-photo-enhancer": return <PhotosAndRendersSpecialistPage />;
+    case "specialist-photos-photo-enhancer": return <FernandaRenderConsolePage />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
