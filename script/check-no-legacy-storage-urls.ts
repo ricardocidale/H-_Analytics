@@ -18,32 +18,44 @@
  * hosts:
  *   - server/replit_integrations/                   — wrapped Replit Object Storage SDK
  *   - server/providers/storage/replit-storage.ts    — the legacy provider adapter
- *   - script/r2-cutover-reconcile.ts                — the reconciler itself
- *   - script/migrate-graphics-to-neon.ts            — one-off legacy data migration
+ *   - script/r2-cutover-reconcile.ts                — the reconciler itself (regex literals)
  *   - server/routes/property-photos.ts              — defensive allow-list for fetch validation
+ *   - server/lib/canonical-asset-url.ts             — Task #521 detection / canonicalization
+ *   - server/ai/asset-intelligence.ts               — Task #521 detection / canonicalization
  *
  * To extend: add the new path to ALLOW_LIST below with a justification.
  * Do NOT widen BANNED_PATTERNS to "soften" a legitimate violation —
  * route the write through the relative `/objects/<key>` form instead.
+ *
+ * Comment-aware (Task #530): banned literals that appear only inside
+ * `//` line comments or `/​* … *​/` block comments are ignored. JSDoc
+ * paragraphs that describe the legacy shapes are not violations. The
+ * sibling `script/check-replit-independence.ts` shares the same
+ * `script/lib/comment-scan.ts` helper.
  */
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { findNonCommentMatches } from "./lib/comment-scan.js";
 
 const ALLOW_LIST = [
   // Wrapped Replit Object Storage SDK calls.
   "server/replit_integrations/",
   // Legacy provider adapter that knows how to talk to the Replit sidecar.
   "server/providers/storage/replit-storage.ts",
-  // The reconciler script that finds-and-rewrites these URLs in Postgres.
+  // The reconciler script that finds-and-rewrites these URLs in Postgres
+  // (the patterns appear in regex literals at runtime, not just comments).
   "script/r2-cutover-reconcile.ts",
-  // One-off migration script that pulls bytes out of the legacy bucket;
-  // its references are in JSDoc/comments describing the legacy shapes.
-  "script/migrate-graphics-to-neon.ts",
   // Defensive allow-list for outbound fetches to known image hosts. This
   // is a *read-side* validation, not a write to the database, so it must
   // mention these hosts by name.
   "server/routes/property-photos.ts",
+  // Task #521 — detection + canonicalization of legacy `/objects/uploads/<uuid>`
+  // URLs. These files exist *to block* the bad shape, so they must
+  // mention it to detect it; they never persist a new one.
+  "server/lib/canonical-asset-url.ts",
+  "server/ai/asset-intelligence.ts",
 ];
 
 // Files that the guardrail itself must not scan (it names the patterns it bans).
@@ -58,10 +70,10 @@ const SELF_REFERENCE = "script/check-no-legacy-storage-urls.ts";
 // guard catches in source. Keep the list a single source of truth.
 //
 // Each entry is a regex fragment that is valid in BOTH ECMAScript regex (used
-// by ripgrep here) and POSIX regex (used by Postgres `~` in the audit). The
-// `\.` escape and literal `/` work in both flavours; do not introduce
-// constructs that diverge (e.g. `\d`, lookarounds) without updating both
-// callers.
+// by ripgrep + the comment-aware scanner here) and POSIX regex (used by
+// Postgres `~` in the audit). The `\.` escape and literal `/` work in both
+// flavours; do not introduce constructs that diverge (e.g. `\d`, lookarounds)
+// without updating both callers.
 export const BANNED_PATTERNS = [
   // GCS-direct sidecar URLs (Replit Object Storage's underlying bucket).
   String.raw`storage\.googleapis\.com`,
@@ -89,13 +101,16 @@ interface Hit {
   pattern: string;
 }
 
-function rgFind(pattern: string): Hit[] {
+/**
+ * Use ripgrep to list files that contain any of the banned patterns.
+ * This is just a fast pre-filter; the precise comment-aware check
+ * happens per-file in TypeScript below.
+ */
+function rgListFiles(pattern: string): string[] {
   const res = spawnSync(
     "rg",
     [
-      "--no-heading",
-      "--with-filename",
-      "--line-number",
+      "--files-with-matches",
       "--color=never",
       "-e",
       pattern,
@@ -111,20 +126,10 @@ function rgFind(pattern: string): Hit[] {
     );
   }
   if (!res.stdout) return [];
-  const hits: Hit[] = [];
-  for (const line of res.stdout.split("\n")) {
-    if (!line) continue;
-    // file:line:content
-    const firstColon = line.indexOf(":");
-    if (firstColon === -1) continue;
-    const secondColon = line.indexOf(":", firstColon + 1);
-    if (secondColon === -1) continue;
-    const file = line.slice(0, firstColon);
-    const lineNo = Number(line.slice(firstColon + 1, secondColon));
-    const text = line.slice(secondColon + 1);
-    hits.push({ file: path.normalize(file), line: lineNo, text, pattern });
-  }
-  return hits;
+  return res.stdout
+    .split("\n")
+    .filter(Boolean)
+    .map((f) => path.normalize(f));
 }
 
 function isAllowed(file: string): boolean {
@@ -135,29 +140,31 @@ function isAllowed(file: string): boolean {
   });
 }
 
-// Skip lines that only mention the pattern inside a comment. The intent
-// of the gate is to catch new *string literals* that get persisted to
-// the database — JSDoc and inline comments that describe the legacy
-// shapes are fine. Heuristic: a line whose trimmed start is `//`, `*`,
-// or `/*` is treated as a comment-only line.
-function isCommentOnly(text: string): boolean {
-  const trimmed = text.trim();
-  return (
-    trimmed.startsWith("//") ||
-    trimmed.startsWith("*") ||
-    trimmed.startsWith("/*")
-  );
-}
-
 function main(): void {
-  const all: Hit[] = [];
+  // Collect candidate files across all banned patterns.
+  const candidates = new Set<string>();
   for (const pattern of BANNED_PATTERNS) {
-    all.push(...rgFind(pattern));
+    for (const f of rgListFiles(pattern)) candidates.add(f);
   }
 
-  const violations = all.filter(
-    (h) => !isAllowed(h.file) && !isCommentOnly(h.text),
-  );
+  const violations: Hit[] = [];
+  const sourceCache = new Map<string, string>();
+  for (const file of candidates) {
+    if (isAllowed(file)) continue;
+    let source = sourceCache.get(file);
+    if (source === undefined) {
+      source = readFileSync(file, "utf8");
+      sourceCache.set(file, source);
+    }
+    for (const pattern of BANNED_PATTERNS) {
+      // The fragment is shared with the data-side audit (POSIX-compatible),
+      // so we wrap it in a JS RegExp here for the in-process scan.
+      const regex = new RegExp(pattern, "g");
+      for (const m of findNonCommentMatches(source, regex)) {
+        violations.push({ file, line: m.line, text: m.text, pattern });
+      }
+    }
+  }
 
   if (violations.length === 0) {
     console.log(
@@ -166,6 +173,15 @@ function main(): void {
     console.log(`   (allow-listed: ${ALLOW_LIST.join(", ")})`);
     process.exit(0);
   }
+
+  // Stable ordering so CI logs diff cleanly across runs.
+  violations.sort((a, b) =>
+    a.file === b.file
+      ? a.line === b.line
+        ? a.pattern.localeCompare(b.pattern)
+        : a.line - b.line
+      : a.file.localeCompare(b.file),
+  );
 
   console.error(
     `❌ Legacy storage URLs: ${violations.length} violation(s) outside the allow-list.`,

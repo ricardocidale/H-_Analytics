@@ -14,9 +14,16 @@
  * To extend: add the new path to ALLOW_LIST below with a justification.
  * Do NOT widen the BANNED_PATTERNS to "soften" a legitimate violation —
  * route the call through `server/providers/` instead.
+ *
+ * Comment-aware (Task #530): banned literals that appear only inside
+ * `//` line comments or `/​* … *​/` block comments are ignored. Sibling
+ * guard `script/check-no-legacy-storage-urls.ts` shares the same
+ * `script/lib/comment-scan.ts` helper.
  */
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
+import { findNonCommentMatches } from "./lib/comment-scan.js";
 
 const ALLOW_LIST = [
   // Provider abstraction and the Replit SDK wrappers it forwards to.
@@ -30,17 +37,20 @@ const ALLOW_LIST = [
 // Files that the guardrail itself must not scan (it names the patterns it bans).
 const SELF_REFERENCE = "script/check-replit-independence.ts";
 
-const BANNED_PATTERNS = [
+const BANNED_PATTERNS: { name: string; regex: RegExp }[] = [
   // Direct imports of Replit-published packages
-  String.raw`from\s+["']@replit/`,
-  String.raw`require\(["']@replit/`,
+  { name: 'from "@replit/"', regex: /from\s+["']@replit\//g },
+  { name: 'require("@replit/")', regex: /require\(["']@replit\//g },
   // Replit-injected env vars only (REPL_ID, REPL_SLUG, REPLIT_DOMAINS,
   // REPLIT_DB_URL, REPLIT_DEPLOYMENT, REPLIT_DEV_DOMAIN, …).
   // Tight prefix avoids matching unrelated names like REPLICATE_API_TOKEN.
-  String.raw`process\.env\.(REPL_[A-Z_]+|REPLIT_[A-Z_]+)`,
+  {
+    name: "process.env.REPL*",
+    regex: /process\.env\.(REPL_[A-Z_]+|REPLIT_[A-Z_]+)/g,
+  },
   // Hard-coded Replit hostnames
-  String.raw`replit\.dev`,
-  String.raw`replit\.app`,
+  { name: "replit.dev", regex: /replit\.dev/g },
+  { name: "replit.app", regex: /replit\.app/g },
 ];
 
 const SEARCH_GLOBS = [
@@ -62,16 +72,19 @@ interface Hit {
   pattern: string;
 }
 
-function rgFind(pattern: string): Hit[] {
+/**
+ * Use ripgrep to list files that contain any of the banned patterns.
+ * This is just a fast pre-filter; the precise comment-aware check
+ * happens per-file in TypeScript below.
+ */
+function rgListFiles(pattern: RegExp): string[] {
   const res = spawnSync(
     "rg",
     [
-      "--no-heading",
-      "--with-filename",
-      "--line-number",
+      "--files-with-matches",
       "--color=never",
       "-e",
-      pattern,
+      pattern.source,
       "--",
       ...SEARCH_GLOBS,
     ],
@@ -80,24 +93,14 @@ function rgFind(pattern: string): Hit[] {
   if (res.status !== 0 && res.status !== 1) {
     // 0 = matches found, 1 = no matches, anything else = ripgrep error
     throw new Error(
-      `ripgrep failed for pattern ${pattern}: ${res.stderr || res.stdout}`,
+      `ripgrep failed for pattern ${pattern.source}: ${res.stderr || res.stdout}`,
     );
   }
   if (!res.stdout) return [];
-  const hits: Hit[] = [];
-  for (const line of res.stdout.split("\n")) {
-    if (!line) continue;
-    // file:line:content
-    const firstColon = line.indexOf(":");
-    if (firstColon === -1) continue;
-    const secondColon = line.indexOf(":", firstColon + 1);
-    if (secondColon === -1) continue;
-    const file = line.slice(0, firstColon);
-    const lineNo = Number(line.slice(firstColon + 1, secondColon));
-    const text = line.slice(secondColon + 1);
-    hits.push({ file: path.normalize(file), line: lineNo, text, pattern });
-  }
-  return hits;
+  return res.stdout
+    .split("\n")
+    .filter(Boolean)
+    .map((f) => path.normalize(f));
 }
 
 function isAllowed(file: string): boolean {
@@ -109,12 +112,27 @@ function isAllowed(file: string): boolean {
 }
 
 function main(): void {
-  const all: Hit[] = [];
-  for (const pattern of BANNED_PATTERNS) {
-    all.push(...rgFind(pattern));
+  // Collect candidate files across all banned patterns.
+  const candidates = new Set<string>();
+  for (const { regex } of BANNED_PATTERNS) {
+    for (const f of rgListFiles(regex)) candidates.add(f);
   }
 
-  const violations = all.filter((h) => !isAllowed(h.file));
+  const violations: Hit[] = [];
+  const sourceCache = new Map<string, string>();
+  for (const file of candidates) {
+    if (isAllowed(file)) continue;
+    let source = sourceCache.get(file);
+    if (source === undefined) {
+      source = readFileSync(file, "utf8");
+      sourceCache.set(file, source);
+    }
+    for (const { name, regex } of BANNED_PATTERNS) {
+      for (const m of findNonCommentMatches(source, regex)) {
+        violations.push({ file, line: m.line, text: m.text, pattern: name });
+      }
+    }
+  }
 
   if (violations.length === 0) {
     console.log(
@@ -125,6 +143,15 @@ function main(): void {
     );
     process.exit(0);
   }
+
+  // Stable ordering so CI logs diff cleanly across runs.
+  violations.sort((a, b) =>
+    a.file === b.file
+      ? a.line === b.line
+        ? a.pattern.localeCompare(b.pattern)
+        : a.line - b.line
+      : a.file.localeCompare(b.file),
+  );
 
   console.error(
     `❌ Replit independence: ${violations.length} violation(s) outside the allow-list.`,
