@@ -28,6 +28,11 @@ export function registerResearchGenerateRoutes(app: Express) {
   // via Server-Sent Events (SSE) and persists results to the database.
   // ────────────────────────────────────────────────────────────
   app.post("/api/research/generate", requireAuth, async (req, res) => {
+    // Hoisted so the outer catch can finalize the early `research_runs` row
+    // (releasing the per-Specialist concurrency slot) on dispatch failure.
+    let earlyRunId: number | undefined;
+    let earlyRunFinalized = false;
+    let startTime = Date.now();
     try {
       const validation = researchGenerateSchema.safeParse(req.body);
       if (!validation.success) {
@@ -60,13 +65,14 @@ export function registerResearchGenerateRoutes(app: Express) {
 
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
 
-      // ── Minimum-info + locked-hard required-fields gates ──
+      // ── Minimum-info + locked-hard required-fields + Specialist budget gates ──
       const gateResult = await runPreflightGates({
         req,
         res,
         type,
         propertyId: propertyId || undefined,
         ga,
+        specialistId,
       });
       if (!gateResult.ok) return;
       const companyProperties = gateResult.companyProperties;
@@ -116,7 +122,7 @@ export function registerResearchGenerateRoutes(app: Express) {
         marketIntelligence,
       };
 
-      const startTime = Date.now();
+      startTime = Date.now();
 
       const { v2Prompt, propertyContextPack } = await assembleResearchV2Prompt({
         req,
@@ -146,12 +152,22 @@ export function registerResearchGenerateRoutes(app: Express) {
       const multiModelDisabled = specialistOverrides?.multiModelEnabled === false;
       const useOrchestrator =
         type === "property" && isOrchestratorAvailable() && !multiModelDisabled;
-      let earlyRunId: number | undefined;
-      if (useOrchestrator && propertyContextPack && propertyId) {
+      // Persist a `running` row up-front for every dispatch the per-Specialist
+      // concurrency gate needs to see in flight (Task #501): orchestrator AND
+      // single-model paths, property AND company scopes. Without this the gate
+      // would always read `running = 0` and never block. The row is finalized
+      // either by the persist step (success) or the outer catch (failure).
+      const ownerUserId = getAuthUser(req).id;
+      const shouldRegisterEarlyRun = Boolean(
+        specialistId ||
+          (useOrchestrator && propertyContextPack && propertyId),
+      );
+      if (shouldRegisterEarlyRun) {
+        const isPropertyScoped = type === "property" && propertyId;
         const earlyRun = await storage.createResearchRun({
-          userId: getAuthUser(req).id,
-          entityType: "property",
-          entityId: propertyId,
+          userId: ownerUserId,
+          entityType: isPropertyScoped ? "property" : "company",
+          entityId: isPropertyScoped ? propertyId! : ownerUserId,
           scenarioId: null,
           tier: 1,
           status: "running",
@@ -162,7 +178,7 @@ export function registerResearchGenerateRoutes(app: Express) {
           tokensUsed: null,
           estimatedCost: null,
           error: null,
-          metadata: null,
+          metadata: specialistId ? { specialistId } : null,
         });
         earlyRunId = earlyRun.id;
       }
@@ -243,7 +259,7 @@ export function registerResearchGenerateRoutes(app: Express) {
       }
 
       // ── Post-processing — runs after both orchestrator and fallback paths ──
-      const { earlyRunFinalized } = await persistResearchOutput({
+      const persistResult = await persistResearchOutput({
         req,
         type,
         propertyId: propertyId || undefined,
@@ -257,7 +273,9 @@ export function registerResearchGenerateRoutes(app: Express) {
         params,
         startTime,
         earlyRunId,
+        specialistId,
       });
+      earlyRunFinalized = persistResult.earlyRunFinalized;
 
       if (earlyRunId && !earlyRunFinalized) {
         try {
@@ -269,7 +287,9 @@ export function registerResearchGenerateRoutes(app: Express) {
               (JSON.stringify(params).length + (fullContent || "").length) / 4,
             ),
             error: fullContent ? null : "No content generated",
+            metadata: specialistId ? { specialistId } : undefined,
           });
+          earlyRunFinalized = true;
         } catch (e: unknown) {
           logger.warn(
             `Failed to finalize early research run ${earlyRunId}: ${e instanceof Error ? e.message : String(e)}`,
@@ -284,6 +304,23 @@ export function registerResearchGenerateRoutes(app: Express) {
         `Research generation error: ${error instanceof Error ? error.message : error}`,
         "research",
       );
+      // Release the per-Specialist concurrency slot on dispatch failure so a
+      // crashed run doesn't permanently consume a slot (Task #501).
+      if (earlyRunId && !earlyRunFinalized) {
+        try {
+          await storage.updateResearchRun(earlyRunId, {
+            status: "failed",
+            completedAt: new Date(),
+            durationMs: Date.now() - startTime,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        } catch (e: unknown) {
+          logger.warn(
+            `Failed to finalize early research run ${earlyRunId} after error: ${e instanceof Error ? e.message : String(e)}`,
+            "research",
+          );
+        }
+      }
       res.write(
         `data: ${JSON.stringify({ type: "error", message: "Generation failed" })}\n\n`,
       );

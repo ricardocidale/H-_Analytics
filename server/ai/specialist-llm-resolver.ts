@@ -230,3 +230,124 @@ export async function resolveSpecialistPolicyThresholds(
       HARDCODED_WORKFLOW_DEFAULTS.stalenessThresholdHours,
   };
 }
+
+/**
+ * Resolves the effective per-Specialist runtime cost/concurrency limits
+ * (Task #501). Used by the dispatch-time gates on
+ * `POST /api/research/generate` and `runAnalystScoped` to enforce
+ * `SpecialistWorkflowOverrides` against actual recent spend.
+ *
+ * Resolution order matches the rest of this module:
+ *   1. Specialist `workflowOverrides` (per-Specialist override)
+ *   2. Global `pipeline_policies.tier1_property` row
+ *   3. Hardcoded fallback constants
+ */
+export async function resolveSpecialistRuntimeLimits(
+  specialistId: string | null | undefined,
+): Promise<{
+  maxConcurrentRuns: number;
+  dailyTokenBudget: number;
+  monthlyTokenBudget: number;
+}> {
+  let tier1: Awaited<ReturnType<typeof storage.getPipelinePolicies>>[number] | undefined;
+  try {
+    const policies = (await storage.getPipelinePolicies?.()) ?? [];
+    tier1 = policies.find(
+      (p) => p.policyKey === "tier1_property" || p.tier === 1,
+    );
+  } catch {
+    tier1 = undefined;
+  }
+  let overrides: SpecialistWorkflowOverrides | null = null;
+  if (specialistId) {
+    try {
+      const cfg = await storage.getSpecialistConfig?.(specialistId);
+      overrides = cfg?.workflowOverrides ?? null;
+    } catch {
+      overrides = null;
+    }
+  }
+  return {
+    maxConcurrentRuns:
+      overrides?.maxConcurrentRuns ??
+      tier1?.maxConcurrentRuns ??
+      HARDCODED_WORKFLOW_DEFAULTS.maxConcurrentRuns,
+    dailyTokenBudget:
+      overrides?.dailyTokenBudget ??
+      tier1?.dailyTokenBudget ??
+      HARDCODED_WORKFLOW_DEFAULTS.dailyTokenBudget,
+    monthlyTokenBudget:
+      overrides?.monthlyTokenBudget ??
+      tier1?.monthlyTokenBudget ??
+      HARDCODED_WORKFLOW_DEFAULTS.monthlyTokenBudget,
+  };
+}
+
+/**
+ * Pre-dispatch gate (Task #501). Verifies that running a new research
+ * run for `specialistId` would not violate the resolved per-Specialist
+ * concurrency or token-budget limits. Read-only — callers handle the
+ * 429 response shape themselves.
+ *
+ * Returns:
+ *   • `{ allowed: true }` when the run can proceed (or when no
+ *     `specialistId` is provided — every gate is per-Specialist by
+ *     design and runs without one bypass these limits, matching
+ *     pre-Task-501 behavior).
+ *   • `{ allowed: false, reason, limit, observed }` when a limit is
+ *     exceeded. `reason` is the override key the gate tripped on so
+ *     the route can produce a human-readable error.
+ */
+export type SpecialistRuntimeGateResult =
+  | { allowed: true }
+  | {
+      allowed: false;
+      reason: "maxConcurrentRuns" | "dailyTokenBudget" | "monthlyTokenBudget";
+      limit: number;
+      observed: number;
+    };
+
+export async function checkSpecialistRuntimeGate(
+  specialistId: string | null | undefined,
+  now: Date = new Date(),
+): Promise<SpecialistRuntimeGateResult> {
+  if (!specialistId) return { allowed: true };
+  const limits = await resolveSpecialistRuntimeLimits(specialistId);
+
+  // Concurrency
+  const running = (await storage.countRunningResearchRunsForSpecialist?.(specialistId)) ?? 0;
+  if (running >= limits.maxConcurrentRuns) {
+    return {
+      allowed: false,
+      reason: "maxConcurrentRuns",
+      limit: limits.maxConcurrentRuns,
+      observed: running,
+    };
+  }
+
+  // Daily token budget (24h rolling window)
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const dailyTokens = (await storage.sumTokensUsedForSpecialistSince?.(specialistId, dayAgo)) ?? 0;
+  if (dailyTokens >= limits.dailyTokenBudget) {
+    return {
+      allowed: false,
+      reason: "dailyTokenBudget",
+      limit: limits.dailyTokenBudget,
+      observed: dailyTokens,
+    };
+  }
+
+  // Monthly token budget (30-day rolling window)
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const monthlyTokens = (await storage.sumTokensUsedForSpecialistSince?.(specialistId, monthAgo)) ?? 0;
+  if (monthlyTokens >= limits.monthlyTokenBudget) {
+    return {
+      allowed: false,
+      reason: "monthlyTokenBudget",
+      limit: limits.monthlyTokenBudget,
+      observed: monthlyTokens,
+    };
+  }
+
+  return { allowed: true };
+}

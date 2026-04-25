@@ -34,6 +34,20 @@ export interface RunAnalystScopedParams {
    * work is not wasted if a different tab asks for overlapping fields later.
    */
   fields?: string[];
+  /**
+   * Optional Specialist context (Task #501). When supplied:
+   *   • per-Specialist concurrency + token-budget gates run before
+   *     dispatch (throws `ANALYST_SPECIALIST_BUDGET_EXCEEDED` on
+   *     refusal so the caller can surface a 429)
+   *   • the Specialist's per-row LLM overrides (Analyst A/B,
+   *     synthesis, fallback, multi-model toggle, primary model) are
+   *     plumbed through to the orchestrator
+   *   • `specialistId` is stamped into the persisted research_run
+   *     metadata so the same per-Specialist queries find this row
+   * When omitted the runner behaves exactly as it did before Task #501
+   * (no gates, no overrides, no metadata tag).
+   */
+  specialistId?: string;
 }
 
 export interface RunAnalystScopedResult {
@@ -63,17 +77,113 @@ export interface RunAnalystScopedResult {
 export async function runAnalystScoped(
   params: RunAnalystScopedParams,
 ): Promise<RunAnalystScopedResult> {
-  const { scope, userId, fields } = params;
+  const { scope, userId, fields, specialistId } = params;
   if (scope !== "company") {
     throw new Error(`runAnalystScoped: unsupported scope "${scope}"`);
   }
 
   const startTime = Date.now();
 
+  // Per-Specialist concurrency + token-budget gate (Task #501). Runs
+  // before any LLM dispatch so a budget-exceeded request never racks up
+  // additional spend. Throws an Error with `code` so the HTTP caller
+  // (analyst-admin route) can map it to a 429 response.
+  if (specialistId) {
+    const { checkSpecialistRuntimeGate } = await import(
+      "./specialist-llm-resolver"
+    );
+    const gate = await checkSpecialistRuntimeGate(specialistId);
+    if (!gate.allowed) {
+      const err = new Error(
+        gate.reason === "maxConcurrentRuns"
+          ? `Specialist "${specialistId}" already has ${gate.observed} research run${gate.observed === 1 ? "" : "s"} in flight (max ${gate.limit}).`
+          : gate.reason === "dailyTokenBudget"
+            ? `Specialist "${specialistId}" exceeded its daily token budget (${gate.observed.toLocaleString()} / ${gate.limit.toLocaleString()}).`
+            : `Specialist "${specialistId}" exceeded its monthly token budget (${gate.observed.toLocaleString()} / ${gate.limit.toLocaleString()}).`,
+      );
+      (err as Error & {
+        code?: string;
+        reason?: string;
+        limit?: number;
+        observed?: number;
+        specialistId?: string;
+      }).code = "ANALYST_SPECIALIST_BUDGET_EXCEEDED";
+      (err as Error & { reason?: string }).reason = gate.reason;
+      (err as Error & { limit?: number }).limit = gate.limit;
+      (err as Error & { observed?: number }).observed = gate.observed;
+      (err as Error & { specialistId?: string }).specialistId = specialistId;
+      throw err;
+    }
+  }
+
   const ga = await storage.getGlobalAssumptions(userId);
   if (!ga) {
     throw new Error("runAnalystScoped: global assumptions not found for user");
   }
+
+  // Persist a `running` research_runs row up-front when the run is
+  // attributable to a Specialist (Task #501). Without this row the
+  // per-Specialist concurrency gate (`countRunningResearchRunsForSpecialist`)
+  // can't see this dispatch as in-flight, so parallel scheduler/admin
+  // jobs would all pass the gate and exceed `maxConcurrentRuns`. The
+  // row is finalized to "completed" or "failed" in the wrap below.
+  let runningRunId: number | undefined;
+  if (specialistId) {
+    try {
+      const earlyRun = await storage.createResearchRun({
+        userId,
+        entityType: "company",
+        entityId: userId,
+        scenarioId: null,
+        tier: 1,
+        status: "running",
+        completedAt: null,
+        durationMs: null,
+        modelPrimary: null,
+        modelSecondary: null,
+        tokensUsed: null,
+        estimatedCost: null,
+        error: null,
+        metadata: { specialistId, scope, requestedFields: fields ?? null },
+      });
+      runningRunId = earlyRun.id;
+    } catch (err: unknown) {
+      logger.warn(
+        `analyst-scoped-runner: failed to persist running row (gate will under-count): ${err instanceof Error ? err.message : err}`,
+        "analyst-scoped-runner",
+      );
+    }
+  }
+
+  try {
+    return await runAnalystScopedInner(params, ga, startTime, runningRunId);
+  } catch (err: unknown) {
+    if (runningRunId) {
+      try {
+        await storage.updateResearchRun(runningRunId, {
+          status: "failed",
+          completedAt: new Date(),
+          durationMs: Date.now() - startTime,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      } catch (e: unknown) {
+        logger.warn(
+          `analyst-scoped-runner: failed to mark running row ${runningRunId} failed: ${e instanceof Error ? e.message : e}`,
+          "analyst-scoped-runner",
+        );
+      }
+    }
+    throw err;
+  }
+}
+
+async function runAnalystScopedInner(
+  params: RunAnalystScopedParams,
+  ga: NonNullable<Awaited<ReturnType<typeof storage.getGlobalAssumptions>>>,
+  startTime: number,
+  runningRunId: number | undefined,
+): Promise<RunAnalystScopedResult> {
+  const { scope, userId, fields, specialistId } = params;
 
   const researchConfig = (ga.researchConfig as ResearchConfig) ?? {};
   const contextLlm = researchConfig.companyLlm;
@@ -152,14 +262,39 @@ export async function runAnalystScoped(
     propertyLabel: ga.propertyLabel ?? undefined,
   };
 
+  // ── Per-Specialist override resolution (Task #501) ──
+  // Mirrors the resolution applied by `POST /api/research/generate` so
+  // the Admin "Analyst" button + the scheduled batch worker honor the
+  // same Specialist Analyst-A/B/synthesis/fallback overrides + the
+  // multi-model toggle as the streaming HTTP route.
+  let specialistOverrides: import("./research-orchestrator").OrchestratorModelOverrides | undefined;
+  if (specialistId) {
+    try {
+      const { resolveSpecialistOrchestratorOverrides } = await import(
+        "./specialist-llm-resolver"
+      );
+      specialistOverrides = await resolveSpecialistOrchestratorOverrides(specialistId);
+    } catch {
+      specialistOverrides = undefined;
+    }
+  }
+  const multiModelDisabled = specialistOverrides?.multiModelEnabled === false;
+  // The runner never supplies caller A/B models, so we always defer
+  // analyst-A/B/synthesis selection to the orchestrator's
+  // specialistId-based resolver. The route handler in
+  // `server/routes/research.ts` does pass A/B because a request can
+  // carry user-selected models — that branch doesn't apply here.
+  const primaryModel = specialistOverrides?.primaryModel ?? model;
+  const fallbackModel = specialistOverrides?.fallbackModel ?? primaryModel;
+
   // ── Run the engine ──
-  const useOrchestrator = isOrchestratorAvailable();
+  const useOrchestrator = isOrchestratorAvailable() && !multiModelDisabled;
   const stream = useOrchestrator
-    ? orchestrateResearch(researchParams, v2Prompt)
+    ? orchestrateResearch(researchParams, v2Prompt, undefined, undefined, specialistId)
     : generateResearchWithToolsStream(
         researchParams,
         researchClient,
-        model,
+        primaryModel,
         undefined,
         v2Prompt,
       );
@@ -173,7 +308,8 @@ export async function runAnalystScoped(
       typeof chunk.data === "string" &&
       chunk.data.startsWith("ORCHESTRATOR_BOTH_FAILED")
     ) {
-      // Orchestrator gave up — fall back to single-model
+      // Orchestrator gave up — fall back to single-model using the
+      // Specialist's configured fallback model when available.
       logger.warn(
         "analyst-scoped-runner: orchestrator failed, falling back to single-model",
         "analyst-scoped-runner",
@@ -181,7 +317,7 @@ export async function runAnalystScoped(
       const fallback = generateResearchWithToolsStream(
         researchParams,
         researchClient,
-        model,
+        fallbackModel,
         undefined,
         v2Prompt,
       );
@@ -221,35 +357,64 @@ export async function runAnalystScoped(
   }
 
   const durationMs = Date.now() - startTime;
+  const tokensUsed = Math.round(
+    (JSON.stringify(researchParams).length + fullContent.length) / 4,
+  );
 
   // ── Persist research_run + assumption_guidance rows ──
-  const runRecord = await storage.createResearchRun({
-    userId,
-    entityType: "company",
-    entityId: userId,
-    scenarioId: null,
-    tier: 1,
-    status: "completed",
-    completedAt: new Date(),
-    durationMs,
-    modelPrimary: model,
-    modelSecondary: null,
-    tokensUsed: Math.round(
-      (JSON.stringify(researchParams).length + fullContent.length) / 4,
-    ),
-    estimatedCost: null,
-    error: null,
-    metadata: {
-      guidanceRecords: guidanceResult.records.length,
-      errors: guidanceResult.errors,
-      scope,
-      requestedFields: fields ?? null,
-    },
-  });
+  // Reuse the `running` early-run row created up-front when the run is
+  // attributable to a Specialist (Task #501). That keeps the per-
+  // Specialist concurrency + token-budget gate seeing exactly one
+  // lifecycle row per dispatch (running → completed) instead of an
+  // orphaned running row plus a fresh completed row.
+  let runId: number;
+  if (runningRunId) {
+    await storage.updateResearchRun(runningRunId, {
+      status: "completed",
+      completedAt: new Date(),
+      durationMs,
+      modelPrimary: model,
+      tokensUsed,
+      metadata: {
+        guidanceRecords: guidanceResult.records.length,
+        errors: guidanceResult.errors,
+        scope,
+        requestedFields: fields ?? null,
+        ...(specialistId ? { specialistId } : {}),
+      },
+    });
+    runId = runningRunId;
+  } else {
+    const runRecord = await storage.createResearchRun({
+      userId,
+      entityType: "company",
+      entityId: userId,
+      scenarioId: null,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs,
+      modelPrimary: model,
+      modelSecondary: null,
+      tokensUsed,
+      estimatedCost: null,
+      error: null,
+      metadata: {
+        guidanceRecords: guidanceResult.records.length,
+        errors: guidanceResult.errors,
+        scope,
+        requestedFields: fields ?? null,
+        // Stamp Specialist context (Task #501) so the per-Specialist
+        // concurrency + token-budget queries find this row.
+        ...(specialistId ? { specialistId } : {}),
+      },
+    });
+    runId = runRecord.id;
+  }
 
   for (const rec of guidanceResult.records) {
     await storage.upsertAssumptionGuidance({
-      researchRunId: runRecord.id,
+      researchRunId: runId,
       entityType: "company",
       entityId: userId,
       scenarioId: null,
@@ -295,7 +460,7 @@ export async function runAnalystScoped(
   }
 
   logger.info(
-    `analyst-scoped-runner: ${guidanceResult.records.length} guidance records written for user ${userId} (run ${runRecord.id}, ${durationMs}ms)`,
+    `analyst-scoped-runner: ${guidanceResult.records.length} guidance records written for user ${userId} (run ${runId}, ${durationMs}ms)`,
     "analyst-scoped-runner",
   );
 
@@ -307,7 +472,7 @@ export async function runAnalystScoped(
 
   return {
     guidance: filtered,
-    runId: runRecord.id,
+    runId,
     durationMs,
     totalRecords: guidanceResult.records.length,
     filteredRecords: filtered.length,

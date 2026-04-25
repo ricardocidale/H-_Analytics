@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { storage } from "../../storage";
 import { getAuthUser } from "../../auth";
 import { isAdminRole } from "../../../shared/constants";
+import { checkSpecialistRuntimeGate } from "../../ai/specialist-llm-resolver";
 import type { GlobalAssumptions } from "@shared/schema";
 
 export interface PreflightGatesInput {
@@ -10,6 +11,7 @@ export interface PreflightGatesInput {
   type: "property" | "company" | "global";
   propertyId: number | undefined;
   ga: GlobalAssumptions | undefined;
+  specialistId?: string;
 }
 
 export type PreflightGatesResult =
@@ -28,7 +30,26 @@ export type PreflightGatesResult =
 export async function runPreflightGates(
   input: PreflightGatesInput,
 ): Promise<PreflightGatesResult> {
-  const { req, res, type, propertyId, ga } = input;
+  const { req, res, type, propertyId, ga, specialistId } = input;
+
+  // ── Per-Specialist concurrency / token-budget gate (Task #501) ──
+  // Runs before any LLM dispatch (and before SSE headers are set so we
+  // can still send a real HTTP status). Skipped when no specialistId
+  // is supplied.
+  if (specialistId) {
+    const gate = await checkSpecialistRuntimeGate(specialistId);
+    if (!gate.allowed) {
+      res.status(429).json({
+        error: `Specialist budget exceeded (${gate.reason}: ${gate.observed}/${gate.limit}). Try again later or raise the limit on the Specialist's LLM Config tab.`,
+        code: "SPECIALIST_BUDGET_EXCEEDED",
+        specialistId,
+        reason: gate.reason,
+        limit: gate.limit,
+        observed: gate.observed,
+      });
+      return { ok: false };
+    }
+  }
 
   let companyProperties:
     | Awaited<ReturnType<typeof storage.getAllProperties>>

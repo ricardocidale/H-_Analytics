@@ -36,6 +36,7 @@ export interface PersistResearchInput {
   params: ResearchParams;
   startTime: number;
   earlyRunId: number | undefined;
+  specialistId?: string;
 }
 
 export interface PersistResearchResult {
@@ -68,6 +69,7 @@ export async function persistResearchOutput(
     params,
     startTime,
     earlyRunId,
+    specialistId,
   } = input;
 
   let earlyRunFinalized = false;
@@ -91,12 +93,13 @@ export async function persistResearchOutput(
       secondaryModel,
       startTime,
       earlyRunId,
+      specialistId,
     });
     earlyRunFinalized = result.earlyRunFinalized;
   }
 
   if (type === "company" && !parsed.rawResponse && ga) {
-    await persistCompanyGuidance({
+    const companyResult = await persistCompanyGuidance({
       req,
       ga,
       parsed: parsed as Record<string, unknown>,
@@ -105,7 +108,10 @@ export async function persistResearchOutput(
       model,
       secondaryModel,
       startTime,
+      earlyRunId,
+      specialistId,
     });
+    if (companyResult.earlyRunFinalized) earlyRunFinalized = true;
   }
 
   if (marketIntelligence) {

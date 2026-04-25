@@ -17,6 +17,7 @@ export interface PropertyGuidanceInput {
   secondaryModel: string | undefined;
   startTime: number;
   earlyRunId: number | undefined;
+  specialistId?: string;
 }
 
 export interface PropertyGuidanceResult {
@@ -41,6 +42,7 @@ export async function persistPropertyGuidance(
     secondaryModel,
     startTime,
     earlyRunId,
+    specialistId,
   } = input;
 
   let earlyRunFinalized = false;
@@ -50,6 +52,11 @@ export async function persistPropertyGuidance(
       const property = await storage.getProperty(propertyId);
       if (property) {
         let runId: number;
+        const runMetadata: Record<string, unknown> = {
+          guidanceRecords: guidanceResult.records.length,
+          errors: guidanceResult.errors,
+        };
+        if (specialistId) runMetadata.specialistId = specialistId;
         if (earlyRunId) {
           await storage.updateResearchRun(earlyRunId, {
             status: "completed",
@@ -58,10 +65,7 @@ export async function persistPropertyGuidance(
             tokensUsed: Math.round(
               (JSON.stringify(params).length + fullContent.length) / 4,
             ),
-            metadata: {
-              guidanceRecords: guidanceResult.records.length,
-              errors: guidanceResult.errors,
-            },
+            metadata: runMetadata,
           });
           runId = earlyRunId;
           earlyRunFinalized = true;
@@ -82,10 +86,7 @@ export async function persistPropertyGuidance(
             ),
             estimatedCost: null,
             error: null,
-            metadata: {
-              guidanceRecords: guidanceResult.records.length,
-              errors: guidanceResult.errors,
-            },
+            metadata: runMetadata,
           });
           runId = runRecord.id;
         }
@@ -169,16 +170,23 @@ export interface CompanyGuidanceInput {
   model: string;
   secondaryModel: string | undefined;
   startTime: number;
+  earlyRunId?: number;
+  specialistId?: string;
+}
+
+export interface CompanyGuidanceResult {
+  earlyRunFinalized: boolean;
 }
 
 /**
  * Extract company guidance records from the parsed research output, write
- * them to the assumption store, fan-out into the vector index, and create a
- * `research_runs` row keyed to the owning user.
+ * them to the assumption store, fan-out into the vector index, and either
+ * finalize the existing early `research_runs` row (specialist-scoped runs)
+ * or create a fresh one.
  */
 export async function persistCompanyGuidance(
   input: CompanyGuidanceInput,
-): Promise<void> {
+): Promise<CompanyGuidanceResult> {
   const {
     req,
     ga,
@@ -188,37 +196,58 @@ export async function persistCompanyGuidance(
     model,
     secondaryModel,
     startTime,
+    earlyRunId,
+    specialistId,
   } = input;
 
+  let earlyRunFinalized = false;
   try {
     const guidanceResult = extractGuidance(parsed, 1, "company");
     if (guidanceResult.records.length > 0) {
       const ownerUserId = getAuthUser(req).id;
-      const runRecord = await storage.createResearchRun({
-        userId: getAuthUser(req).id,
-        entityType: "company",
-        entityId: ownerUserId,
-        scenarioId: null,
-        tier: 1,
-        status: "completed",
-        completedAt: new Date(),
-        durationMs: Date.now() - startTime,
-        modelPrimary: model,
-        modelSecondary: secondaryModel ?? null,
-        tokensUsed: Math.round(
-          (JSON.stringify(params).length + fullContent.length) / 4,
-        ),
-        estimatedCost: null,
-        error: null,
-        metadata: {
-          guidanceRecords: guidanceResult.records.length,
-          errors: guidanceResult.errors,
-        },
-      });
+      const runMetadata: Record<string, unknown> = {
+        guidanceRecords: guidanceResult.records.length,
+        errors: guidanceResult.errors,
+      };
+      if (specialistId) runMetadata.specialistId = specialistId;
+      let runId: number;
+      if (earlyRunId) {
+        await storage.updateResearchRun(earlyRunId, {
+          status: "completed",
+          completedAt: new Date(),
+          durationMs: Date.now() - startTime,
+          tokensUsed: Math.round(
+            (JSON.stringify(params).length + fullContent.length) / 4,
+          ),
+          metadata: runMetadata,
+        });
+        runId = earlyRunId;
+        earlyRunFinalized = true;
+      } else {
+        const runRecord = await storage.createResearchRun({
+          userId: getAuthUser(req).id,
+          entityType: "company",
+          entityId: ownerUserId,
+          scenarioId: null,
+          tier: 1,
+          status: "completed",
+          completedAt: new Date(),
+          durationMs: Date.now() - startTime,
+          modelPrimary: model,
+          modelSecondary: secondaryModel ?? null,
+          tokensUsed: Math.round(
+            (JSON.stringify(params).length + fullContent.length) / 4,
+          ),
+          estimatedCost: null,
+          error: null,
+          metadata: runMetadata,
+        });
+        runId = runRecord.id;
+      }
 
       for (const rec of guidanceResult.records) {
         await storage.upsertAssumptionGuidance({
-          researchRunId: runRecord.id,
+          researchRunId: runId,
           entityType: "company",
           entityId: ownerUserId,
           scenarioId: null,
@@ -261,7 +290,7 @@ export async function persistCompanyGuidance(
       }
 
       logger.info(
-        `RI v2: wrote ${guidanceResult.records.length} guidance records for company entity (user ${ownerUserId}, run ${runRecord.id})`,
+        `RI v2: wrote ${guidanceResult.records.length} guidance records for company entity (user ${ownerUserId}, run ${runId})`,
         "research",
       );
     }
@@ -277,4 +306,6 @@ export async function persistCompanyGuidance(
       "research",
     );
   }
+
+  return { earlyRunFinalized };
 }

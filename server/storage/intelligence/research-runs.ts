@@ -207,6 +207,55 @@ export class ResearchRunsStorage {
     return Number(row?.count ?? 0);
   }
 
+  /**
+   * Count `research_runs` rows currently in `status='running'` for one
+   * Specialist. Used by the per-Specialist concurrency gate (Task #501)
+   * on `POST /api/research/generate` and `runAnalystScoped` to enforce
+   * `SpecialistWorkflowOverrides.maxConcurrentRuns`.
+   *
+   * Lookup matches the persisted-metadata pattern used by
+   * `getResearchRunsForSpecialist` / `countResearchRunsForSpecialist`
+   * (`metadata->>'specialistId'`); the call sites that create the early-
+   * run row are responsible for writing `specialistId` into metadata.
+   */
+  async countRunningResearchRunsForSpecialist(specialistId: string): Promise<number> {
+    const [row] = await this._rtx.db.select({ count: sql<number>`count(*)::int` })
+      .from(researchRuns)
+      .where(and(
+        sql`${researchRuns.metadata}->>'specialistId' = ${specialistId}`,
+        eq(researchRuns.status, "running"),
+      ));
+    return Number(row?.count ?? 0);
+  }
+
+  /**
+   * Sum `tokens_used` across `research_runs` rows for one Specialist
+   * since the given timestamp. Used by the per-Specialist token-budget
+   * gate (Task #501) to enforce `SpecialistWorkflowOverrides
+   * .dailyTokenBudget` / `.monthlyTokenBudget` against actual recent
+   * spend before dispatching a new run.
+   *
+   * Counts every run regardless of status: a failed run that consumed
+   * tokens still counts against the budget (the LLM call already cost
+   * money).  Rows with NULL `tokens_used` (e.g. an in-flight `running`
+   * row that has not finalized yet) contribute 0 — they get counted as
+   * soon as the finalize step writes the token estimate.
+   */
+  async sumTokensUsedForSpecialistSince(
+    specialistId: string,
+    since: Date,
+  ): Promise<number> {
+    const [row] = await this._rtx.db.select({
+      total: sql<number>`coalesce(sum(${researchRuns.tokensUsed}), 0)::int`,
+    })
+      .from(researchRuns)
+      .where(and(
+        sql`${researchRuns.metadata}->>'specialistId' = ${specialistId}`,
+        sql`${researchRuns.startedAt} >= ${since.toISOString()}`,
+      ));
+    return Number(row?.total ?? 0);
+  }
+
   async getRunningResearchEntityIds(entityType: string): Promise<number[]> {
     const rows = await this._rtx.db.execute(sql`
       SELECT DISTINCT entity_id AS "entityId"
