@@ -68,7 +68,48 @@ declare global {
 }
 
 const SESSION_COOKIE = "session_id";
+const CSRF_COOKIE = "csrf_token";
 const SESSION_DURATION_DAYS = 7;
+
+/**
+ * Stable per-process secret used to derive CSRF tokens from session ids.
+ * Prefers `SESSION_SECRET` (set in production), falls back to a random
+ * key generated once at boot so dev/local servers still work. Restarting
+ * the process invalidates outstanding CSRF tokens, which is acceptable
+ * because the next authed request silently re-mints the cookie.
+ */
+const CSRF_SECRET: Buffer = process.env.SESSION_SECRET
+  ? Buffer.from(process.env.SESSION_SECRET, "utf8")
+  : crypto.randomBytes(32);
+
+/**
+ * Derives a CSRF token from a session id using HMAC-SHA256. The token is
+ * NOT the session id itself — leaking the cookie via XSS exposes only a
+ * derived value the attacker cannot use as a session cookie. The
+ * derivation is deterministic so every authed request yields the same
+ * token (no per-request rotation churn).
+ */
+export function csrfTokenFor(sessionId: string): string {
+  return crypto.createHmac("sha256", CSRF_SECRET).update(sessionId).digest("base64url");
+}
+
+/**
+ * Writes a non-httpOnly `csrf_token` cookie holding `csrfTokenFor(sessionId)`
+ * so the browser-side `apiRequest` helper can read it via `document.cookie`
+ * and attach it as the `x-csrf-token` header (double-submit pattern).
+ * Idempotent: only writes the cookie when it is missing or stale.
+ */
+function ensureCsrfMirrorCookie(req: Request, res: Response, sessionId: string) {
+  const token = csrfTokenFor(sessionId);
+  if (req.cookies?.[CSRF_COOKIE] === token) return;
+  res.cookie(CSRF_COOKIE, token, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000,
+  });
+}
+
 const BCRYPT_ROUNDS = 12;
 
 const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
@@ -257,6 +298,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
         logger.error(`Dev auth bypass error: ${error instanceof Error ? error.message : error}`, "auth");
       }
     }
+    if (req.sessionId) ensureCsrfMirrorCookie(req, res, req.sessionId);
     return next();
   }
 
@@ -271,6 +313,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     if (session) {
       req.user = session.user;
       req.sessionId = sessionId;
+      ensureCsrfMirrorCookie(req, res, sessionId);
     }
   } catch (error: unknown) {
     logger.error(`Auth middleware error: ${error instanceof Error ? error.message : error}`, "auth");

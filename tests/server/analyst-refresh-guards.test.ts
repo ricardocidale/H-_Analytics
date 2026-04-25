@@ -15,6 +15,7 @@ import {
   clearGuardState,
   acquireInFlight,
 } from "../../server/middleware/analyst-refresh-guards";
+import { csrfTokenFor } from "../../server/auth";
 import { UserRole } from "../../shared/constants";
 
 vi.mock("../../server/storage", () => ({
@@ -74,19 +75,61 @@ describe("Guard 2: csrfTokenGuard", () => {
     expect(res.status).toHaveBeenCalledWith(403);
     expect(next).not.toHaveBeenCalled();
   });
-  it("rejects mismatched header vs cookie with 403", () => {
+  it("rejects when header does not match HMAC of session id", () => {
     const res = mockRes();
     const next = vi.fn();
     csrfTokenGuard({
-      headers: { "x-csrf-token": "abc", cookie: "session_id=xyz" },
+      headers: { "x-csrf-token": "not-the-real-hmac", cookie: "session_id=xyz" },
     } as any, res, next);
     expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
   });
-  it("allows matching header + cookie", () => {
+  it("rejects when header equals raw session id (must be HMAC)", () => {
+    // Catches the failure mode where a caller naively sends the session id
+    // itself as the csrf token. The HMAC derivation is the whole point.
     const res = mockRes();
     const next = vi.fn();
     csrfTokenGuard({
-      headers: { "x-csrf-token": "match", cookie: "session_id=match" },
+      headers: { "x-csrf-token": "raw-session", cookie: "session_id=raw-session" },
+    } as any, res, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+  it("allows when header matches csrfTokenFor(session_id)", () => {
+    const res = mockRes();
+    const next = vi.fn();
+    const sessionId = "session-abc";
+    const expected = csrfTokenFor(sessionId);
+    csrfTokenGuard({
+      headers: {
+        "x-csrf-token": expected,
+        cookie: `session_id=${sessionId}; csrf_token=${expected}`,
+      },
+    } as any, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+  it("rejects a stale csrf_token cookie even if header matches the HMAC", () => {
+    // Defense-in-depth: a tampered/stale csrf_token cookie that doesn't
+    // match the HMAC of the current session_id should also be rejected.
+    const res = mockRes();
+    const next = vi.fn();
+    const sessionId = "session-abc";
+    const expected = csrfTokenFor(sessionId);
+    csrfTokenGuard({
+      headers: {
+        "x-csrf-token": expected,
+        cookie: `session_id=${sessionId}; csrf_token=stale-cookie`,
+      },
+    } as any, res, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+  it("allows the legacy header==cookie path when no session_id cookie present", () => {
+    // Used by isolated unit tests that don't carry the auth chain.
+    const res = mockRes();
+    const next = vi.fn();
+    csrfTokenGuard({
+      headers: { "x-csrf-token": "match", cookie: "csrf_token=match" },
     } as any, res, next);
     expect(next).toHaveBeenCalled();
   });

@@ -28,14 +28,38 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+/**
+ * Reads the non-httpOnly `csrf_token` cookie that the auth middleware mirrors
+ * from the session id. Returns undefined if the cookie isn't present (e.g.,
+ * SSR or unauthenticated requests). Used by `apiRequest` to attach the
+ * `x-csrf-token` header for state-changing requests (double-submit pattern).
+ */
+function readCsrfCookie(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const match = document.cookie
+    .split(";")
+    .map((s) => s.trim())
+    .find((s) => s.startsWith("csrf_token="));
+  if (!match) return undefined;
+  return decodeURIComponent(match.slice("csrf_token=".length));
+}
+
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = {};
+  if (data) headers["Content-Type"] = "application/json";
+  if (!SAFE_METHODS.has(method.toUpperCase())) {
+    const csrfToken = readCsrfCookie();
+    if (csrfToken) headers["x-csrf-token"] = csrfToken;
+  }
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
