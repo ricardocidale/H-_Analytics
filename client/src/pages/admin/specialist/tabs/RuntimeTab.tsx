@@ -5,7 +5,7 @@
  * scheduled-refresh cadence override.
  */
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { SpecialistConfigView } from "../types";
+import type { SpecialistAuditEntry, SpecialistConfigView } from "../types";
 
 export function RuntimeTab({ specialistId, config }: { specialistId: string; config: SpecialistConfigView }) {
   const { toast } = useToast();
@@ -102,6 +102,19 @@ export function CadenceCard({ specialistId, config }: { specialistId: string; co
   const parsed = draft.trim() === "" ? null : Number(draft);
   const invalid = draft.trim() !== "" && (!Number.isInteger(parsed) || (parsed as number) < 1 || (parsed as number) > 3650);
 
+  // Find the most-recent cadence edit so admins can see who last changed
+  // the override and when. If no cadence-section entries exist the cadence
+  // is still at the catalog default. We track loading/error explicitly so
+  // a transient fetch failure isn't silently shown as "never changed".
+  const {
+    data: auditEntries,
+    isLoading: isAuditLoading,
+    isError: isAuditError,
+  } = useQuery<SpecialistAuditEntry[]>({
+    queryKey: [`/api/admin/specialists/${specialistId}/audit`],
+  });
+  const lastCadenceEdit = (auditEntries ?? []).find((e) => e.section === "cadence");
+
   return (
     <Card data-testid="card-refresh-cadence">
       <CardHeader>
@@ -115,6 +128,40 @@ export function CadenceCard({ specialistId, config }: { specialistId: string; co
             {config.defaultRefreshCadenceDays ?? "—"}
           </span>{" "}
           days.
+        </p>
+        <p className="text-xs text-muted-foreground" data-testid="text-cadence-last-changed">
+          {isAuditLoading ? (
+            <span data-testid="text-cadence-last-changed-loading">Loading change history…</span>
+          ) : isAuditError ? (
+            <span className="text-destructive" data-testid="text-cadence-last-changed-error">
+              Could not load change history
+            </span>
+          ) : lastCadenceEdit ? (
+            <>
+              Last changed{" "}
+              <span data-testid="text-cadence-last-changed-when">
+                {new Date(lastCadenceEdit.changedAt).toLocaleString()}
+              </span>{" "}
+              by{" "}
+              <span className="font-mono" data-testid="text-cadence-last-changed-by">
+                {lastCadenceEdit.changedByUserId != null
+                  ? `user #${lastCadenceEdit.changedByUserId}`
+                  : "system"}
+              </span>
+              {lastCadenceEdit.changeSummary ? (
+                <>
+                  {" — "}
+                  <span data-testid="text-cadence-last-changed-summary">
+                    {lastCadenceEdit.changeSummary}
+                  </span>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <span data-testid="text-cadence-never-changed">
+              Catalog default — never changed
+            </span>
+          )}
         </p>
         <div className="flex items-end gap-3">
           <div className="space-y-1">

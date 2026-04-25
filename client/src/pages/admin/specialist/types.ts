@@ -10,9 +10,10 @@ import type {
   ResourceKind,
   SpecialistGlobalLlmDefaults,
   SpecialistWorkflowOverrides,
+  SpecialistConfigSectionType,
 } from "@shared/schema";
 
-export type { SpecialistGlobalLlmDefaults, SpecialistWorkflowOverrides };
+export type { SpecialistGlobalLlmDefaults, SpecialistWorkflowOverrides, SpecialistConfigSectionType };
 
 export type Capability =
   | "required-fields"
@@ -120,7 +121,7 @@ export interface SpecialistDetailResponse {
 export interface SpecialistAuditEntry {
   id: number;
   version: number;
-  section: "llm-config" | "required-fields" | "runtime";
+  section: SpecialistConfigSectionType;
   changeSummary: string | null;
   changedFieldLabels: string[];
   changedByUserId: number | null;
