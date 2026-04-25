@@ -2,37 +2,55 @@ from openai import OpenAI
 from pathlib import Path
 import os
 import sys
+import fnmatch
+from typing import List, Tuple
 
 # ============================================================
 # Project-Aware ChatGPT for Replit
-# TypeScript-Optimized + Faster File Scanner
+# TypeScript-Optimized, Higher Limits, Smarter Scanner
 # ============================================================
 #
 # What this does:
 # - Runs inside Replit Shell
-# - Reads your project files recursively
-# - Optimized for TypeScript / React / Next / Vite projects
-# - Skips huge folders like node_modules, .git, .pythonlibs, dist, build
-# - Avoids slow full-workspace rglob scanning
-# - Sends useful project context to OpenAI
+# - Reads your TypeScript / JavaScript project recursively
+# - Prioritizes important files first
+# - Skips dependency/build/cache folders
+# - Supports focused file review
+# - Uses OpenAI's Responses API
+# - Defaults to the latest flagship model: gpt-5.5
 #
 # Before running:
 # 1. Add OPENAI_API_KEY in Replit Secrets
 # 2. Run: pip install openai
 # 3. Run: python main.py
 #
+# Optional:
+# Add OPENAI_MODEL in Replit Secrets if you want to override the model.
+# Example:
+# OPENAI_MODEL = gpt-5.5-pro
+#
 # Commands inside the app:
-# - files  = show readable files
-# - tree   = show project tree
-# - exit   = quit
+# - files
+# - tree
+# - limits
+# - model
+# - rescan
+# - focus path/or/pattern
+# - askfile path/or/pattern | your question
+# - exit
 # ============================================================
 
 
 # ----------------------------
-# OpenAI client
+# OpenAI settings
 # ----------------------------
 
-MODEL = "gpt-5.5"
+DEFAULT_MODEL = "gpt-5.5"
+MODEL = os.environ.get("OPENAI_MODEL", DEFAULT_MODEL)
+
+DEFAULT_REASONING_EFFORT = os.environ.get("OPENAI_REASONING_EFFORT", "high")
+DEFAULT_VERBOSITY = os.environ.get("OPENAI_VERBOSITY", "medium")
+
 client = OpenAI()
 
 
@@ -194,15 +212,17 @@ LOCKFILES = {
     "bun.lockb",
 }
 
-# Safety limits
-MAX_FILE_CHARS = 30_000
-MAX_LOCKFILE_CHARS = 12_000
-MAX_TOTAL_CHARS = 300_000
-MAX_FILES = 300
+# Higher limits than before.
+# These are still bounded so the request does not become unstable.
+MAX_FILES = 800
+MAX_TOTAL_CHARS = 700_000
+MAX_FILE_CHARS = 50_000
+MAX_LOCKFILE_CHARS = 18_000
+MAX_FOCUS_CHARS = 250_000
 
 
 # ----------------------------
-# Helpers
+# Basic helpers
 # ----------------------------
 
 
@@ -212,6 +232,13 @@ def check_api_key():
         print("In Replit, go to Tools -> Secrets and add:")
         print("OPENAI_API_KEY = your OpenAI API key")
         sys.exit(1)
+
+
+def rel_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except Exception:
+        return str(path)
 
 
 def should_skip_path(path: Path) -> bool:
@@ -246,16 +273,11 @@ def safe_read_text(path: Path) -> str:
 def file_priority(path: Path) -> int:
     """
     Lower number = higher priority.
-    This helps the model see important TypeScript project files first.
+    This helps important TypeScript files enter context first.
     """
-    try:
-        rel = path.relative_to(ROOT)
-        path_str = str(rel)
-    except Exception:
-        path_str = str(path)
-
     name = path.name
     suffix = path.suffix.lower()
+    rp = rel_path(path)
 
     if name == "package.json":
         return 1
@@ -279,50 +301,73 @@ def file_priority(path: Path) -> int:
     }:
         return 3
 
-    if path_str.startswith("src/") and suffix in {".ts", ".tsx"}:
+    if rp.startswith("server/") and suffix in {".ts", ".tsx", ".js"}:
         return 4
 
-    if path_str.startswith("app/") and suffix in {".ts", ".tsx"}:
-        return 4
-
-    if path_str.startswith("pages/") and suffix in {".ts", ".tsx"}:
-        return 4
-
-    if path_str.startswith("components/") and suffix in {".ts", ".tsx"}:
+    if rp.startswith("shared/") and suffix in {".ts", ".tsx"}:
         return 5
 
-    if suffix in {".ts", ".tsx"}:
+    if rp.startswith("domain/") and suffix in {".ts", ".tsx"}:
         return 6
 
-    if suffix in {".js", ".jsx", ".mjs", ".cjs"}:
+    if rp.startswith("engine/") and suffix in {".ts", ".tsx"}:
         return 7
 
-    if suffix in {".html", ".css", ".scss", ".sass"}:
+    if rp.startswith("calc/") and suffix in {".ts", ".tsx"}:
         return 8
 
-    if name in {"README.md", "README"}:
+    if rp.startswith("analytics/") and suffix in {".ts", ".tsx"}:
         return 9
 
+    if rp.startswith("client/src/") and suffix in {".ts", ".tsx"}:
+        return 10
+
+    if rp.startswith("src/") and suffix in {".ts", ".tsx"}:
+        return 11
+
+    if rp.startswith("app/") and suffix in {".ts", ".tsx"}:
+        return 12
+
+    if rp.startswith("pages/") and suffix in {".ts", ".tsx"}:
+        return 13
+
+    if rp.startswith("components/") and suffix in {".ts", ".tsx"}:
+        return 14
+
+    if suffix in {".ts", ".tsx"}:
+        return 15
+
+    if suffix in {".js", ".jsx", ".mjs", ".cjs"}:
+        return 16
+
+    if suffix in {".html", ".css", ".scss", ".sass"}:
+        return 17
+
+    if name in {"README.md", "README"}:
+        return 18
+
     if name in LOCKFILES:
-        return 20
+        return 40
 
-    return 10
+    return 25
 
 
-def list_project_files():
+# ----------------------------
+# File scanning
+# ----------------------------
+
+
+def list_project_files() -> List[Path]:
     """
     Fast scanner for Replit.
 
-    Important:
-    Uses os.walk so we can prevent Python from descending into huge folders
-    like node_modules and .pythonlibs.
+    Uses os.walk so it can skip large folders before descending into them.
     """
     files = []
 
     for current_root, dirs, filenames in os.walk(ROOT, followlinks=False):
         current_path = Path(current_root)
 
-        # Skip hidden/system/dependency-heavy directories before descending
         dirs[:] = [
             d
             for d in dirs
@@ -353,34 +398,20 @@ def list_project_files():
             except OSError:
                 continue
 
-    files = sorted(files, key=lambda p: (file_priority(p), str(p)))
-
+    files = sorted(files, key=lambda p: (file_priority(p), rel_path(p)))
     return files[:MAX_FILES]
 
 
-def build_file_tree(files):
-    lines = []
-
-    for path in files:
-        try:
-            rel = path.relative_to(ROOT)
-            lines.append(str(rel))
-        except Exception:
-            continue
-
-    return "\n".join(lines)
+def build_file_tree(files: List[Path]) -> str:
+    return "\n".join(rel_path(path) for path in files)
 
 
-def read_project_context(files):
+def read_project_context(files: List[Path]) -> Tuple[str, int, int]:
     chunks = []
     total_chars = 0
+    included_files = 0
 
     for path in files:
-        try:
-            rel = path.relative_to(ROOT)
-        except Exception:
-            continue
-
         content = safe_read_text(path)
 
         if not content.strip():
@@ -391,34 +422,99 @@ def read_project_context(files):
         if len(content) > max_chars:
             content = content[:max_chars] + "\n\n[File truncated because it is large.]"
 
-        file_block = f"\n\n--- FILE: {rel} ---\n{content}"
+        file_block = f"\n\n--- FILE: {rel_path(path)} ---\n{content}"
 
         if total_chars + len(file_block) > MAX_TOTAL_CHARS:
-            chunks.append("\n\n[Project context truncated because the repo is large.]")
+            chunks.append(
+                "\n\n[Project context truncated because MAX_TOTAL_CHARS was reached.]"
+            )
+            break
+
+        chunks.append(file_block)
+        total_chars += len(file_block)
+        included_files += 1
+
+    return "".join(chunks), included_files, total_chars
+
+
+# ----------------------------
+# Focused file tools
+# ----------------------------
+
+
+def find_matching_files(files: List[Path], pattern: str) -> List[Path]:
+    pattern = pattern.strip()
+
+    if not pattern:
+        return []
+
+    matches = []
+
+    for path in files:
+        rp = rel_path(path)
+
+        if pattern == rp:
+            matches.append(path)
+        elif pattern in rp:
+            matches.append(path)
+        elif fnmatch.fnmatch(rp, pattern):
+            matches.append(path)
+        elif fnmatch.fnmatch(path.name, pattern):
+            matches.append(path)
+
+    return sorted(matches, key=lambda p: (file_priority(p), rel_path(p)))
+
+
+def read_focused_context(matches: List[Path]) -> Tuple[str, int]:
+    chunks = []
+    total_chars = 0
+
+    for path in matches:
+        content = safe_read_text(path)
+
+        if not content.strip():
+            continue
+
+        file_block = f"\n\n--- FOCUSED FILE: {rel_path(path)} ---\n{content}"
+
+        if total_chars + len(file_block) > MAX_FOCUS_CHARS:
+            chunks.append(
+                "\n\n[Focused context truncated because MAX_FOCUS_CHARS was reached.]"
+            )
             break
 
         chunks.append(file_block)
         total_chars += len(file_block)
 
-    return "".join(chunks)
+    return "".join(chunks), total_chars
 
 
-def ask_openai(user_input, file_tree, project_context):
+# ----------------------------
+# OpenAI calls
+# ----------------------------
+
+
+def ask_openai(
+    user_input: str, file_tree: str, project_context: str, mode: str = "broad"
+) -> str:
     prompt = f"""
-You are acting as a project-aware coding assistant inside a Replit workspace.
+You are acting as a senior project-aware coding assistant inside a Replit workspace.
 
-This project is mainly TypeScript / JavaScript, so pay close attention to:
+The project is mainly TypeScript / JavaScript. Pay close attention to:
 - package.json
 - tsconfig files
 - vite / next / react config
-- src/**/*.ts
-- src/**/*.tsx
+- server/**/*.ts
+- shared/**/*.ts
+- calc/**/*.ts
+- analytics/**/*.ts
+- client/src/**/*.ts
+- client/src/**/*.tsx
 - frontend/backend boundaries
-- imports, routes, components, APIs, and runtime errors
+- imports, routes, APIs, database access, runtime errors, and financial calculation correctness
 
-You are given the user's project file tree and the contents of many project files.
-
-Use the actual files shown below. Do not pretend to inspect files that are not included.
+MODE:
+{mode}
 
 PROJECT FILE TREE:
 {file_tree}
@@ -431,24 +527,110 @@ USER REQUEST:
 
 Instructions:
 - Be practical and direct.
-- Base your answer on the actual project files above.
+- Base your answer only on the actual files shown above.
+- Do not pretend to inspect files that are not included.
 - If you identify a bug, name the file and explain the fix.
 - If code changes are needed, say exactly which file to edit.
 - If replacing code, provide the full replacement block.
 - If creating a new file, provide the full file contents.
 - If there are multiple options, recommend the safest one.
-- If the project context was truncated and you need a missing file, say so clearly.
-- Do not make unnecessary changes.
+- If context was truncated and you need a missing file, say so clearly.
+- Prefer minimal safe patches over large rewrites.
+- For financial code, avoid silent numeric fallbacks and explain assumptions.
 """
 
     response = client.responses.create(
         model=MODEL,
-        reasoning={"effort": "medium"},
-        text={"verbosity": "medium"},
+        reasoning={"effort": DEFAULT_REASONING_EFFORT},
+        text={"verbosity": DEFAULT_VERBOSITY},
         input=prompt,
     )
 
     return response.output_text
+
+
+def ask_openai_focused(user_input: str, file_tree: str, focused_context: str) -> str:
+    prompt = f"""
+You are acting as a senior coding assistant inside a Replit workspace.
+
+The user has requested a focused review using specific files.
+
+PROJECT FILE TREE:
+{file_tree}
+
+FOCUSED FILE CONTENTS:
+{focused_context}
+
+USER REQUEST:
+{user_input}
+
+Instructions:
+- Focus on the files provided.
+- Be precise.
+- If code changes are needed, provide exact replacement blocks.
+- If another file is likely needed, say which file and why.
+- Do not invent unseen project behavior.
+"""
+
+    response = client.responses.create(
+        model=MODEL,
+        reasoning={"effort": DEFAULT_REASONING_EFFORT},
+        text={"verbosity": DEFAULT_VERBOSITY},
+        input=prompt,
+    )
+
+    return response.output_text
+
+
+# ----------------------------
+# Display helpers
+# ----------------------------
+
+
+def print_help():
+    print("\nCommands:")
+    print("  files")
+    print("    Show readable files being considered.")
+    print("")
+    print("  tree")
+    print("    Same as files.")
+    print("")
+    print("  limits")
+    print("    Show current scanning/context limits.")
+    print("")
+    print("  model")
+    print("    Show the OpenAI model being used.")
+    print("")
+    print("  rescan")
+    print("    Rescan project files.")
+    print("")
+    print("  focus <path or pattern>")
+    print("    Show matching files and read them in focused mode.")
+    print("    Examples:")
+    print("      focus vite.config.ts")
+    print("      focus package.json")
+    print("      focus calc/**/*.ts")
+    print("")
+    print("  askfile <path or pattern> | <question>")
+    print("    Ask a question using only matching files plus the file tree.")
+    print("    Examples:")
+    print("      askfile vite.config.ts | Find build problems.")
+    print("      askfile server/*.ts | Explain the backend routes.")
+    print("")
+    print("  exit")
+    print("    Quit.")
+
+
+def print_limits():
+    print("\nCurrent limits:")
+    print(f"  MODEL: {MODEL}")
+    print(f"  REASONING_EFFORT: {DEFAULT_REASONING_EFFORT}")
+    print(f"  VERBOSITY: {DEFAULT_VERBOSITY}")
+    print(f"  MAX_FILES: {MAX_FILES}")
+    print(f"  MAX_TOTAL_CHARS: {MAX_TOTAL_CHARS:,}")
+    print(f"  MAX_FILE_CHARS: {MAX_FILE_CHARS:,}")
+    print(f"  MAX_LOCKFILE_CHARS: {MAX_LOCKFILE_CHARS:,}")
+    print(f"  MAX_FOCUS_CHARS: {MAX_FOCUS_CHARS:,}")
 
 
 # ----------------------------
@@ -462,12 +644,10 @@ def main():
     print("\nProject-Aware ChatGPT in Replit")
     print("--------------------------------")
     print("TypeScript-optimized version")
-    print("Fast scanner enabled")
+    print("Higher limits + smarter focused file mode")
     print("--------------------------------")
-    print("Type your question and press Enter.")
-    print("Type 'files' to see which files are being read.")
-    print("Type 'tree' to show the project file tree.")
-    print("Type 'exit' or 'quit' to stop.")
+    print(f"Model: {MODEL}")
+    print("Type 'help' for commands.")
     print("--------------------------------")
 
     print("\nScanning project files...")
@@ -482,11 +662,27 @@ def main():
         if not user_input:
             continue
 
-        if user_input.lower() in {"exit", "quit"}:
+        command = user_input.lower()
+
+        if command in {"exit", "quit"}:
             print("\nGoodbye.")
             break
 
-        if user_input.lower() in {"files", "tree"}:
+        if command == "help":
+            print_help()
+            continue
+
+        if command == "model":
+            print(f"\nCurrent model: {MODEL}")
+            print("To override it, add OPENAI_MODEL in Replit Secrets.")
+            print("Example: OPENAI_MODEL = gpt-5.5-pro")
+            continue
+
+        if command == "limits":
+            print_limits()
+            continue
+
+        if command in {"files", "tree"}:
             files = list_project_files()
             file_tree = build_file_tree(files)
 
@@ -494,16 +690,89 @@ def main():
             print(file_tree or "[No readable project files found.]")
             continue
 
-        # Refresh each turn so new edits are picked up
+        if command == "rescan":
+            print("\nRescanning project files...")
+            files = list_project_files()
+            file_tree = build_file_tree(files)
+            print(f"Loaded {len(files)} readable project files.")
+            continue
+
+        if command.startswith("focus "):
+            pattern = user_input[len("focus ") :].strip()
+            files = list_project_files()
+            file_tree = build_file_tree(files)
+            matches = find_matching_files(files, pattern)
+
+            if not matches:
+                print(f"\nNo files matched: {pattern}")
+                continue
+
+            focused_context, focused_chars = read_focused_context(matches)
+
+            print(f"\nMatched {len(matches)} files, {focused_chars:,} chars:\n")
+            for path in matches:
+                print(f"  {rel_path(path)}")
+
+            print("\nFocused files loaded. Use askfile if you want analysis.")
+            continue
+
+        if command.startswith("askfile "):
+            raw = user_input[len("askfile ") :].strip()
+
+            if "|" not in raw:
+                print("\nUse this format:")
+                print("askfile <path or pattern> | <question>")
+                continue
+
+            pattern, question = raw.split("|", 1)
+            pattern = pattern.strip()
+            question = question.strip()
+
+            if not pattern or not question:
+                print("\nUse this format:")
+                print("askfile <path or pattern> | <question>")
+                continue
+
+            files = list_project_files()
+            file_tree = build_file_tree(files)
+            matches = find_matching_files(files, pattern)
+
+            if not matches:
+                print(f"\nNo files matched: {pattern}")
+                continue
+
+            focused_context, focused_chars = read_focused_context(matches)
+
+            print(f"\nUsing {len(matches)} focused files, {focused_chars:,} chars.")
+            print("Thinking...\n")
+
+            try:
+                answer = ask_openai_focused(question, file_tree, focused_context)
+                print("ChatGPT:\n")
+                print(answer)
+            except Exception as e:
+                print("Error calling OpenAI:")
+                print(e)
+
+            continue
+
         print("\nScanning project files...")
         files = list_project_files()
         file_tree = build_file_tree(files)
-        project_context = read_project_context(files)
+        project_context, included_files, total_chars = read_project_context(files)
 
+        print(
+            f"Using {included_files} files and {total_chars:,} chars of project context."
+        )
         print("Thinking...\n")
 
         try:
-            answer = ask_openai(user_input, file_tree, project_context)
+            answer = ask_openai(
+                user_input=user_input,
+                file_tree=file_tree,
+                project_context=project_context,
+                mode="broad project review",
+            )
             print("ChatGPT:\n")
             print(answer)
         except Exception as e:
