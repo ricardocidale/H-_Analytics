@@ -250,4 +250,168 @@ export function getFactoryNumber(
   return value;
 }
 
+/**
+ * Provenance of a registry-resolved value. Renderers (badges, tooltips,
+ * explainers) use this to tell users *why* a property's tax / inflation /
+ * depreciation number is what it is, without forcing every surface to
+ * re-implement the country / state / override cascade.
+ *
+ * Cascade order (highest priority first):
+ *   1. `propertyOverride` — value stored on the property row itself.
+ *   2. `stateOverlay`     — US state row in `US_STATE_DEFAULTS` (only for
+ *                            `country+state` keys with country = "United States").
+ *   3. `countryDefault`   — country row in `COUNTRY_DEFAULTS` (any country
+ *                            other than the United States itself).
+ *   4. `baseline`         — universal fallback. For country/country+state
+ *                            keys this is the United States row in
+ *                            `COUNTRY_DEFAULTS`; for `universal` keys it is
+ *                            the single global value.
+ */
+export type FactorySourceKind =
+  | "propertyOverride"
+  | "stateOverlay"
+  | "countryDefault"
+  | "baseline";
+
+export interface FactorySource {
+  /** Numeric value resolved from the cascade (decimal for percent keys). */
+  value: number;
+  /** Where the value came from. */
+  kind: FactorySourceKind;
+  /** Short user-facing label, e.g. `"1.8% — Texas overlay"`. */
+  label: string;
+  /** Country used for the resolution (or "United States" if none was given). */
+  country: string;
+  /** Subdivision used for the resolution (only meaningful for state overlays). */
+  subdivision: string | null;
+}
+
+function formatFactoryValue(value: number, unit: ConstantUnit): string {
+  switch (unit) {
+    case "percent": {
+      // 0.0125 → "1.25%", 0.012 → "1.2%", 0.018 → "1.8%".
+      // toFixed(2) then parseFloat strips trailing zeros while keeping
+      // the meaningful decimal for sub-1% rates like Costa Rica's 0.25%.
+      const pct = value * 100;
+      return `${parseFloat(pct.toFixed(2))}%`;
+    }
+    case "years":
+      return `${value} years`;
+    case "days":
+      return `${value} days`;
+    case "ratio":
+    default:
+      return `${value}`;
+  }
+}
+
+/**
+ * Describe where a registry-resolved value came from. See `FactorySource`
+ * for the cascade order. The label is meant to be shown verbatim in a small
+ * badge or tooltip ("1.2% — United States baseline" / "1.8% — Texas overlay" /
+ * "0.25% — Costa Rica country default" / "1.5% — property override") so
+ * Property Edit, the Yearly Income Statement explainer, and the PP&E /
+ * Cost-Basis Schedule all describe the same value the same way.
+ *
+ * Pass `propertyOverride` whenever the property row stores its own copy of
+ * the value — for `costRateTaxes` that is `property.costRateTaxes`. When it
+ * is `null` / `undefined`, the cascade falls through to country / state /
+ * baseline as appropriate.
+ */
+export function describeFactorySource(
+  key: RegisteredConstantKey,
+  country?: string | null,
+  subdivision?: string | null,
+  propertyOverride?: number | null,
+): FactorySource {
+  const entry = MODEL_CONSTANTS_REGISTRY[key];
+  if (!entry) {
+    throw new Error(`describeFactorySource: unknown registry key "${key}"`);
+  }
+
+  const unit = getConstantUnit(key);
+  const fmt = (v: number) => formatFactoryValue(v, unit);
+  const resolvedCountry = country ?? "United States";
+  const resolvedSubdivision = subdivision ?? null;
+
+  // 1. Property override wins over every locality default.
+  if (propertyOverride != null && Number.isFinite(propertyOverride)) {
+    return {
+      value: propertyOverride,
+      kind: "propertyOverride",
+      label: `${fmt(propertyOverride)} — property override`,
+      country: resolvedCountry,
+      subdivision: resolvedSubdivision,
+    };
+  }
+
+  // 2. US state overlay (only relevant for country+state keys).
+  if (
+    entry.locality === "country+state" &&
+    country === "United States" &&
+    subdivision
+  ) {
+    const stateRow = US_STATE_DEFAULTS[subdivision] as
+      | (UsStateDefaults & Record<string, unknown>)
+      | undefined;
+    const stateValue = stateRow?.[key];
+    if (typeof stateValue === "number" && Number.isFinite(stateValue)) {
+      return {
+        value: stateValue,
+        kind: "stateOverlay",
+        label: `${fmt(stateValue)} — ${subdivision} overlay`,
+        country: "United States",
+        subdivision,
+      };
+    }
+  }
+
+  // 3. Country default (skip when the country is the United States — that
+  //    is the baseline, not an overlay).
+  if (entry.locality !== "universal" && country && country !== "United States") {
+    const countryRow = COUNTRY_DEFAULTS[country] as
+      | (CountryDefaults & Record<string, unknown>)
+      | undefined;
+    const countryValue = countryRow?.[key];
+    if (typeof countryValue === "number" && Number.isFinite(countryValue)) {
+      return {
+        value: countryValue,
+        kind: "countryDefault",
+        label: `${fmt(countryValue)} — ${country} country default`,
+        country,
+        subdivision: resolvedSubdivision,
+      };
+    }
+  }
+
+  // 4. Baseline — let the registry's own factoryValue do the final fallback
+  //    (US row for country / country+state keys, the global constant for
+  //    universal keys). This is the source of truth so we never drift from
+  //    `getFactoryNumber`.
+  const fallbackValue = entry.factoryValue(country, subdivision);
+  if (typeof fallbackValue !== "number" || !Number.isFinite(fallbackValue)) {
+    throw new Error(
+      `describeFactorySource: registry key "${key}" returned non-numeric fallback (got ${typeof fallbackValue})`,
+    );
+  }
+
+  if (entry.locality === "universal") {
+    return {
+      value: fallbackValue,
+      kind: "baseline",
+      label: `${fmt(fallbackValue)} — global baseline`,
+      country: resolvedCountry,
+      subdivision: resolvedSubdivision,
+    };
+  }
+
+  return {
+    value: fallbackValue,
+    kind: "baseline",
+    label: `${fmt(fallbackValue)} — United States baseline`,
+    country: resolvedCountry,
+    subdivision: resolvedSubdivision,
+  };
+}
+
 export type { CountryDefaults, UsStateDefaults };

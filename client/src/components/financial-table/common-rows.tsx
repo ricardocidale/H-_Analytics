@@ -122,6 +122,8 @@ interface LineItemProps {
   formatAsPercent?: boolean;
   /** Extra className on the row */
   className?: string;
+  /** Optional content rendered after the label (e.g. a source-of-truth badge). */
+  labelSuffix?: React.ReactNode;
 }
 
 export function LineItem({
@@ -134,6 +136,7 @@ export function LineItem({
   negate,
   formatAsPercent,
   className,
+  labelSuffix,
 }: LineItemProps) {
   const showDetails = useCalcDetails();
   const indentLevel = indent === true ? 1 : typeof indent === "number" ? indent : 0;
@@ -148,6 +151,7 @@ export function LineItem({
         <span className="flex items-center gap-1">
           {label}
           {showDetails && tooltip && <InfoTooltip text={tooltip} formula={formula} />}
+          {labelSuffix && <span className="ml-1 inline-flex">{labelSuffix}</span>}
         </span>
       </TableCell>
       {values.map((v, i) => {

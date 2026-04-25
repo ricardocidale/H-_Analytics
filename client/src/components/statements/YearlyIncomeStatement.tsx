@@ -53,6 +53,7 @@ import {
 } from "@/components/financial-table";
 import { aggregatePropertyByYear } from "@/lib/financial/yearlyAggregator";
 import { TableRow, TableCell } from "@/components/ui/table";
+import { FactorySourceBadge } from "@/components/ui/factory-source-badge";
 import {
   // DAYS_PER_MONTH and DEFAULT_PROPERTY_INFLATION_RATE replaced with registry factory baselines (Audit #319 R4).
   DEFAULT_REV_SHARE_EVENTS,
@@ -469,6 +470,14 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
             values={yd.map((y) => y.expenseTaxes)}
             expanded={isExpanded("taxes")}
             onToggle={() => toggle("taxes")}
+            labelSuffix={
+              <FactorySourceBadge
+                constantKey="costRateTaxes"
+                country={property?.country ?? "United States"}
+                subdivision={property?.stateProvince ?? null}
+                propertyOverride={property?.costRateTaxes ?? null}
+              />
+            }
           >
             {hasContext && (
               <>

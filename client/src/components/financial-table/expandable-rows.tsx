@@ -21,6 +21,8 @@ interface ExpandableLineItemProps {
   onToggle: () => void;
   /** Display values as negative */
   negate?: boolean;
+  /** Optional content rendered after the label (e.g. a source-of-truth badge). */
+  labelSuffix?: React.ReactNode;
 }
 
 export function ExpandableLineItem({
@@ -31,6 +33,7 @@ export function ExpandableLineItem({
   expanded,
   onToggle,
   negate,
+  labelSuffix,
 }: ExpandableLineItemProps) {
   const showDetails = useCalcDetails();
 
@@ -46,6 +49,11 @@ export function ExpandableLineItem({
             )}
             <span className="ml-1">{label}</span>
             {showDetails && tooltip && <InfoTooltip text={tooltip} />}
+            {labelSuffix && (
+              <span onClick={(e) => e.stopPropagation()} className="ml-1 inline-flex">
+                {labelSuffix}
+              </span>
+            )}
           </span>
         </TableCell>
         {values.map((v, i) => {

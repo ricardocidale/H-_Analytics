@@ -30,6 +30,7 @@ import { EditableValue } from "@/components/ui/editable-value";
 import { GaapBadge } from "@/components/ui/gaap-badge";
 import { Label } from "@/components/ui/label";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
+import { FactorySourceBadge } from "@/components/ui/factory-source-badge";
 import { Link } from "wouter";
 import {
   DEFAULT_COST_RATE_ROOMS,
@@ -380,7 +381,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <ResearchContextFieldLabel
-                        label={<>Property Taxes <InfoTooltip text="USALI Fixed Charges — based on total property value (Purchase Price + Building Improvements), not revenue. Covers real estate taxes and assessments. Escalates annually with inflation. Industry benchmark: 1.5–4% of assessed property value; fully deductible per IRC §164." /> <GaapBadge rule="IRC §164: Property taxes are fully deductible as an operating expense for income tax purposes. Based on assessed value, not market value. Reassessment may occur upon sale or significant improvement." /></>}
+                        label={<>Property Taxes <InfoTooltip text="USALI Fixed Charges — based on total property value (Purchase Price + Building Improvements), not revenue. Covers real estate taxes and assessments. Escalates annually with inflation. Industry benchmark: 1.5–4% of assessed property value; fully deductible per IRC §164." /> <GaapBadge rule="IRC §164: Property taxes are fully deductible as an operating expense for income tax purposes. Based on assessed value, not market value. Reassessment may occur upon sale or significant improvement." /> <FactorySourceBadge constantKey="costRateTaxes" country={draft.country ?? "United States"} subdivision={draft.stateProvince ?? null} propertyOverride={draft.costRateTaxes ?? null} /></>}
                         badgeProps={{ entry: researchValues.costPropertyTaxes }}
                         onApplyValue={() => researchValues.costPropertyTaxes && onChange("costRateTaxes", researchValues.costPropertyTaxes.mid / 100)}
                         guidanceContext={gc("costPropertyTaxes", "Property Taxes")}

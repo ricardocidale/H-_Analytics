@@ -28,6 +28,7 @@ import { IconInfo } from "@/components/icons";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { DEFAULT_LAND_VALUE_PERCENT, DEFAULT_REV_SHARE_EVENTS, DEFAULT_REV_SHARE_FB, DEFAULT_REV_SHARE_OTHER, DEFAULT_CATERING_BOOST_PCT, MONTHS_PER_YEAR } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
+import { FactorySourceBadge } from "@/components/ui/factory-source-badge";
 import { DEFAULT_LTV } from "@/lib/financial/loanCalculations";
 import type { PPECostBasisScheduleProps } from "./types";
 
@@ -212,7 +213,15 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
                       <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-chart-1">
                         <span>Property Operations: {pct(costRatePropertyOps)} → {fmt(baseMonthlyTotalRev * costRatePropertyOps)}/mo</span>
                         <span>Admin & General: {pct(costRateAdmin)} → {fmt(baseMonthlyTotalRev * costRateAdmin)}/mo</span>
-                        <span>Property Taxes: {pct(costRateTaxes)} of property value → {fmt(totalPropertyValue / MONTHS_PER_YEAR * costRateTaxes)}/mo</span>
+                        <span className="flex items-center gap-1.5 flex-wrap">
+                          <span>Property Taxes: {pct(costRateTaxes)} of property value → {fmt(totalPropertyValue / MONTHS_PER_YEAR * costRateTaxes)}/mo</span>
+                          <FactorySourceBadge
+                            constantKey="costRateTaxes"
+                            country={property.country ?? "United States"}
+                            subdivision={property.stateProvince ?? null}
+                            propertyOverride={property.costRateTaxes ?? null}
+                          />
+                        </span>
                         <span>IT & Technology: {pct(costRateIT)} → {fmt(baseMonthlyTotalRev * costRateIT)}/mo</span>
                         <span>Other Costs: {pct(costRateOther)} → {fmt(baseMonthlyTotalRev * costRateOther)}/mo</span>
                       </div>
