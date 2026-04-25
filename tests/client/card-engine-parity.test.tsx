@@ -235,10 +235,24 @@ describe("Task #603 — card display ⇆ engine consumption parity", () => {
       const engineConsumedRate =
         goodMonth.companyIncomeTax / goodMonth.preTaxIncome;
 
-      // (4) Byte-equal assertion. Use toBeCloseTo with 12-decimal
-      // tolerance to absorb purely-IEEE float reassociation that can
-      // result from the engine's tax = revenue × fee × rate path; the
-      // economic value is the same number to ~1e-12.
+      // (4) Byte-equal assertion (modulo IEEE float noise).
+      //
+      // We can NOT use strict `.toBe()` here even though the conceptual
+      // requirement is "same number". Reason: we recover the engine's
+      // rate by dividing two outputs:
+      //     companyIncomeTax / preTaxIncome
+      // where companyIncomeTax was computed as (preTaxIncome × rate),
+      // and preTaxIncome itself is a sum of many revenue/expense terms.
+      // IEEE-754 (a + b + …) × c / (a + b + …) is not always === c (it
+      // can differ by 1–2 ULP). So 12-decimal tolerance (~5e-13) is
+      // tight enough to catch any economically-meaningful drift while
+      // absorbing pure floating-point reassociation. The strict
+      // equality check below (cardDisplayedRate vs registryRate) gives
+      // us the byte-equal guarantee on the card side, and the engine's
+      // own constant `DEFAULT_COMPANY_TAX_RATE_US` is the literal
+      // `getFactoryNumber('taxRate','United States')` call (see
+      // engine/company/company-engine.ts:48), so the two are exact at
+      // the source — only the recovered ratio is lossy.
       expect(engineConsumedRate).toBeCloseTo(cardDisplayedRate, 12);
 
       // Belt-and-suspenders — also pin both sides to the registry source
