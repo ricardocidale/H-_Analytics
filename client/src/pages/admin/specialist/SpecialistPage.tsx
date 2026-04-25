@@ -16,7 +16,7 @@
  * own module under `./tabs/` so this page stays readable and the panels
  * can be swapped, lazy-loaded, or unit-tested in isolation.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,6 +69,17 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
   }, [data]);
 
   const [activeTab, setActiveTab] = useState<TabValue | undefined>();
+
+  // Reset the selected tab whenever the user switches Specialists. Without
+  // this, a stale capability tab (e.g. "required-fields" picked on Funding)
+  // can survive the swap to a Specialist that doesn't declare that
+  // capability — Radix Tabs then renders no active trigger and an empty
+  // content pane. See the inline mount sites in Admin.tsx and
+  // AiIntelligence.tsx — they don't pass key={specialistId}, so the
+  // component instance is reused across id changes.
+  useEffect(() => {
+    setActiveTab(undefined);
+  }, [specialistId]);
 
   if (isLoading) {
     return (

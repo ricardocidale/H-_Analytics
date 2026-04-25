@@ -53,6 +53,19 @@ const chatRequestSchema = z.object({
   preview: z.boolean().optional(),
 });
 
+/**
+ * Marker error class for admin-policy refusals from inside callLlm
+ * (e.g. Perplexity blocked by sources.webSearch.enabled=false). The outer
+ * /api/chat handler catches it and surfaces the message to the client at
+ * 422 instead of swallowing it as a generic 500.
+ */
+class ChatPolicyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ChatPolicyError";
+  }
+}
+
 // Task #499 — unified LLM dispatch across providers. Each branch returns the
 // final assistant text and (best-effort) logs cost.
 async function callLlm(
@@ -63,6 +76,7 @@ async function callLlm(
   userMessage: string,
   sampling: { temperature: number; maxOutputTokens: number; topP: number },
   userId?: number,
+  webSearchEnabled?: boolean,
 ): Promise<{ text: string }> {
   const wrappedUser = `<user_message>\n${userMessage}\n</user_message>`;
   const startTime = Date.now();
@@ -71,6 +85,20 @@ async function callLlm(
   );
 
   if (provider === "perplexity") {
+    // Perplexity is a web-grounded provider — every response is RAG over live
+    // web results and (when present) a "**Sources:**" block is appended below.
+    // The admin-facing toggle in RebeccaConfig under Knowledge & Sources →
+    // Web Search controls exactly this behavior. Honoring it here ensures
+    // that turning the toggle off reliably suppresses live web grounding,
+    // even if the admin has selected a Perplexity model. Throw a typed error
+    // so the outer try/catch falls back to the configured non-grounded
+    // provider; if the fallback is also Perplexity (or absent), the user
+    // gets a clear, actionable error instead of silently grounded output.
+    if (webSearchEnabled === false) {
+      throw new ChatPolicyError(
+        "Perplexity (web-grounded) is disabled by Knowledge & Sources → Web Search. Enable the toggle in Rebecca Configuration, or select a non-Perplexity provider.",
+      );
+    }
     const client = getPerplexityClient();
     const messages = [
       { role: "system" as const, content: systemPrompt },
@@ -604,15 +632,19 @@ export function register(app: Express) {
         } catch (e: unknown) { logger.warn(`Failed to update conversation model: ${(e instanceof Error ? e.message : String(e))}`, "chat"); }
       }
 
+      // Honor the admin's Web Search toggle (Knowledge & Sources tab in
+      // RebeccaConfig). When disabled, callLlm refuses Perplexity and the
+      // outer catch retries with the configured fallback.
+      const webSearchEnabled = rebeccaSettings.sources.webSearch.enabled;
       let responseText: string;
       try {
-        const r = await callLlm(provider, model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id);
+        const r = await callLlm(provider, model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id, webSearchEnabled);
         responseText = r.text;
       } catch (primaryErr: unknown) {
         logger.warn(`Primary LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
         if (fallback) {
           logger.info(`Falling back to ${fallback.provider}:${fallback.model}`, "chat");
-          const r = await callLlm(fallback.provider, fallback.model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id);
+          const r = await callLlm(fallback.provider, fallback.model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id, webSearchEnabled);
           responseText = r.text;
           resolvedModelName = fallback.model;
           resolvedProvider = fallback.provider;
@@ -653,6 +685,12 @@ export function register(app: Express) {
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`Chat error: ${msg}`, "chat");
+      if (error instanceof ChatPolicyError) {
+        // Admin-policy refusal (e.g. webSearch toggle blocking Perplexity
+        // and no viable fallback). Surface the actionable message verbatim
+        // so the user sees what to change instead of a generic 500.
+        return res.status(422).json({ error: msg });
+      }
       if (msg.includes("API key not configured")) {
         return res.status(503).json({ error: "Chat service is not available" });
       }

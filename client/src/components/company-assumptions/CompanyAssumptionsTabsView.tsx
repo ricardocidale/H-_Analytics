@@ -19,6 +19,7 @@ import {
   TaxSection,
   CostOfEquityCard,
   PropertyExpenseRatesSection,
+  PropertyExitDefaultsCard,
   PartnerCompSection,
   TabWarningsPanel,
   type TabValidationWarning,
@@ -148,6 +149,10 @@ export function CompanyAssumptionsTabsView(props: Props) {
         return (
           <div className="space-y-6">
             <PropertyExpenseRatesSection
+              formData={formData} onChange={onChange} global={global}
+              researchValues={researchValues}
+            />
+            <PropertyExitDefaultsCard
               formData={formData} onChange={onChange} global={global}
               researchValues={researchValues}
             />
