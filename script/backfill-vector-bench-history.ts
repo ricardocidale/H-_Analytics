@@ -67,6 +67,14 @@ interface Stats {
   maxMs: number;
 }
 
+interface RecallStats {
+  count: number;
+  topK: number;
+  meanAtK: number;
+  minAtK: number;
+  p5AtK: number;
+}
+
 interface VectorBenchHistoryRun {
   timestamp: string;
   node: string;
@@ -74,11 +82,15 @@ interface VectorBenchHistoryRun {
   queries: number;
   topK: number;
   sizes: number[];
+  /** Embedding source — only present on runs from the recall-aware bench. */
+  embedSource?: "openai" | "random";
   results: Array<{
     size: number;
     totalRowsAtRun: number;
     single: Stats;
     multi: Stats;
+    /** Optional recall stats; only present for `embedSource === "openai"`. */
+    recall?: RecallStats | null;
   }>;
 }
 

@@ -95,6 +95,42 @@ jobs:
             --json-out=artifacts/vector-bench-openai.json \
             2>&1 | tee artifacts/vector-bench-openai.log
 
+      - name: Write GitHub job summary
+        if: always() && steps.keycheck.outputs.skip == 'false'
+        run: |
+          {
+            echo "## Vector Benchmark (OpenAI embeddings)"
+            echo ""
+            echo "Sizes: \`${SIZES}\`  |  Queries: \`${QUERIES}\`  |  Embedding source: \`openai\` (text-embedding-3-small)"
+            echo ""
+            if [ -f artifacts/vector-bench-openai.json ]; then
+              # Pull recall@K out of the JSON summary so a regression in HNSW
+              # quality is visible at a glance from the workflow run page —
+              # not just buried in the log or the markdown history file.
+              echo "### Recall@K (HNSW vs brute-force sequential scan)"
+              echo ""
+              echo "| size | total rows | top-K | queries | recall mean | recall p5 | recall min |"
+              echo "| ---: | ---------: | ----: | ------: | ----------: | --------: | ---------: |"
+              node -e '
+                const fs = require("fs");
+                const o = JSON.parse(fs.readFileSync("artifacts/vector-bench-openai.json", "utf8"));
+                const pct = (f) => (f == null ? "n/a" : (f * 100).toFixed(1) + "%");
+                for (const r of (o.results || [])) {
+                  const rec = r.recall;
+                  const k = rec ? rec.topK : (o.topK || "");
+                  const q = rec ? rec.count : (o.queries || "");
+                  console.log(`| ${r.size.toLocaleString()} | ${r.totalRowsAtRun.toLocaleString()} | ${k} | ${q} | ${pct(rec && rec.meanAtK)} | ${pct(rec && rec.p5AtK)} | ${pct(rec && rec.minAtK)} |`);
+                }
+              '
+              echo ""
+              echo "### Latency + raw JSON"
+              echo ""
+              echo '```json'
+              cat artifacts/vector-bench-openai.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload results
         if: always() && steps.keycheck.outputs.skip == 'false'
         uses: actions/upload-artifact@v4

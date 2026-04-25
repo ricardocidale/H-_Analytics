@@ -2,12 +2,15 @@
 
 Append-only log of `script/vector-bench.ts` runs. Each run records
 single-namespace and 7-namespace fan-out top-K query latency over the
-`vector_chunks` (pgvector + HNSW) table at the seeded sizes. Synthetic
-random vectors are used, so this measures index latency, not recall.
+`vector_chunks` (pgvector + HNSW) table at the seeded sizes. Each run
+block is labelled with its embedding source — `random` runs measure index
+latency only, while `openai` runs additionally measure recall@K against a
+brute-force sequential scan so HNSW quality regressions surface alongside
+latency.
 
-Compare new runs against the most recent entry of comparable size to spot
-regressions from HNSW parameter changes (`m`, `ef_construction`,
-`ef_search`) or schema/index changes.
+Compare new runs against the most recent entry of comparable size and
+embedding source to spot regressions from HNSW parameter changes (`m`,
+`ef_construction`, `ef_search`) or schema/index changes.
 
 ## How to run
 

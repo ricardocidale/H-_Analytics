@@ -15,7 +15,10 @@
  * Why random vectors? Embedding 100k chunks via the OpenAI API would be slow
  * and expensive; HNSW query latency depends on index size and `ef_search`,
  * not on the semantic content of the vectors, so synthetic data is fine for
- * latency benchmarking. Recall quality is *not* measured here.
+ * latency benchmarking. When `--embed-source=openai` is passed, the bench
+ * additionally computes a brute-force (sequential-scan) top-K for each query
+ * and reports recall@K so HNSW parameter changes that hurt result quality
+ * are caught alongside latency regressions.
  *
  * Usage:
  *   npx tsx script/vector-bench.ts                       # default: 10k, 100k
@@ -332,19 +335,27 @@ async function seedTo(target: number, batchSize: number, embedSource: EmbedSourc
   console.log(` done in ${secs}s`);
 }
 
-async function timeQuery(sql: string, params: unknown[]): Promise<number> {
-  const t0 = process.hrtime.bigint();
-  await pool.query(sql, params);
-  const t1 = process.hrtime.bigint();
-  return Number(t1 - t0) / 1e6; // ms
-}
-
 interface Stats {
   count: number;
   meanMs: number;
   p50Ms: number;
   p95Ms: number;
   maxMs: number;
+}
+
+/**
+ * Recall@K quality stats. Each per-query sample is the fraction of the
+ * brute-force top-K that the HNSW result also contains, so values live in
+ * [0, 1]. We track the mean, the worst single query (`minAtK`) and the p5
+ * tail to catch HNSW configs that look fine on average but fail on a few
+ * queries.
+ */
+interface RecallStats {
+  count: number;
+  topK: number;
+  meanAtK: number;
+  minAtK: number;
+  p5AtK: number;
 }
 
 function summarise(samples: number[]): Stats {
@@ -359,11 +370,68 @@ function summarise(samples: number[]): Stats {
   };
 }
 
+function summariseRecall(samples: number[], topK: number): RecallStats {
+  const sorted = [...samples].sort((a, b) => a - b);
+  const sum = samples.reduce((s, x) => s + x, 0);
+  return {
+    count: samples.length,
+    topK,
+    meanAtK: samples.length > 0 ? sum / samples.length : 0,
+    minAtK: sorted[0] ?? 0,
+    // p5 = the 5th-percentile (lower-tail) value. Using the same selection
+    // convention as `percentile()` but on the lower tail means we report the
+    // worst-decile recall rather than the absolute worst single query, which
+    // is a stabler regression signal for small `--queries` counts.
+    p5AtK: sorted.length === 0
+      ? 0
+      : sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil((5 / 100) * sorted.length) - 1))],
+  };
+}
+
 async function queryVector(embedSource: EmbedSource, seed: number): Promise<number[]> {
   if (embedSource === "openai") {
     return embed(syntheticText(seed));
   }
   return randomUnitVector(EMBED_DIMS);
+}
+
+/**
+ * Run an honest top-K query that bypasses the HNSW index, used as the
+ * "ground truth" reference for recall measurement. We disable both
+ * `enable_indexscan` and `enable_bitmapscan` inside a transaction so the
+ * planner falls back to a sequential scan over the seeded namespace.
+ *
+ * This is intentionally NOT timed — brute force is O(N) and would dominate
+ * the bench numbers; we only want to know which IDs the HNSW result *should*
+ * have returned.
+ */
+async function bruteForceTopKIds(literal: string, topK: number): Promise<string[]> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SET LOCAL enable_indexscan = off");
+    await client.query("SET LOCAL enable_bitmapscan = off");
+    // Restrict to the seeded benchmark rows. On shared / local DBs the
+    // `knowledge-base` namespace can hold real chunks alongside ours, and
+    // we want recall to be measured strictly over the seeded corpus so the
+    // numbers stay comparable across runs and machines.
+    const { rows } = await client.query<{ id: string }>(
+      `SELECT id
+         FROM vector_chunks
+        WHERE namespace = $1
+          AND id LIKE $2
+     ORDER BY embedding <=> $3::vector ASC
+        LIMIT $4`,
+      [BENCH_NAMESPACE, `${BENCH_ID_PREFIX}%`, literal, topK],
+    );
+    await client.query("COMMIT");
+    return rows.map((r) => r.id);
+  } catch (err) {
+    try { await client.query("ROLLBACK"); } catch { /* ignore */ }
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 async function benchAtSize(size: number, queries: number, topK: number, embedSource: EmbedSource): Promise<{
@@ -372,29 +440,62 @@ async function benchAtSize(size: number, queries: number, topK: number, embedSou
   totalRowsAtRun: number;
   single: Stats;
   multi: Stats;
+  recall: RecallStats | null;
 }> {
   // Warm up — first query after a cold session pays connection / planning costs.
+  // Scope to the seeded benchmark id prefix so the warm-up exercises the same
+  // row set the timed query and the brute-force truth do — important on
+  // shared / local DBs where the `knowledge-base` namespace also holds real
+  // chunks unrelated to this bench.
+  const benchIdLike = `${BENCH_ID_PREFIX}%`;
   for (let w = 0; w < 3; w++) {
     const warm = toLiteral(await queryVector(embedSource, 1_000_000 + w));
     await pool.query(
-      `SELECT id FROM vector_chunks WHERE namespace = $1
-        ORDER BY embedding <=> $2::vector ASC LIMIT $3`,
-      [BENCH_NAMESPACE, warm, topK],
+      `SELECT id FROM vector_chunks
+        WHERE namespace = $1 AND id LIKE $2
+        ORDER BY embedding <=> $3::vector ASC LIMIT $4`,
+      [BENCH_NAMESPACE, benchIdLike, warm, topK],
     );
   }
 
+  // Recall is only meaningful with real embeddings. With random unit vectors
+  // every "match" is noise, so a 100% / 0% recall number tells us nothing
+  // about the index — we skip the brute-force comparison entirely.
+  const measureRecall = embedSource === "openai";
+
   const singleSamples: number[] = [];
+  const recallSamples: number[] = [];
   for (let i = 0; i < queries; i++) {
     const literal = toLiteral(await queryVector(embedSource, 2_000_000 + i));
-    const ms = await timeQuery(
-      `SELECT id, metadata, 1 - (embedding <=> $2::vector) AS score
+    const t0 = process.hrtime.bigint();
+    // Same id-prefix scoping as bruteForceTopKIds: keeps recall a strict
+    // apples-to-apples comparison over the seeded corpus regardless of
+    // whatever else lives in the `knowledge-base` namespace.
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id, metadata, 1 - (embedding <=> $3::vector) AS score
          FROM vector_chunks
         WHERE namespace = $1
-     ORDER BY embedding <=> $2::vector ASC
-        LIMIT $3`,
-      [BENCH_NAMESPACE, literal, topK],
+          AND id LIKE $2
+     ORDER BY embedding <=> $3::vector ASC
+        LIMIT $4`,
+      [BENCH_NAMESPACE, benchIdLike, literal, topK],
     );
-    singleSamples.push(ms);
+    const t1 = process.hrtime.bigint();
+    singleSamples.push(Number(t1 - t0) / 1e6);
+
+    if (measureRecall) {
+      const truth = await bruteForceTopKIds(literal, topK);
+      if (truth.length === 0) {
+        // Empty namespace shouldn't happen here (we just seeded it), but
+        // guard against divide-by-zero so an unexpected edge case doesn't
+        // crash the whole bench.
+        recallSamples.push(0);
+      } else {
+        const truthSet = new Set(truth);
+        const hits = rows.reduce((n, r) => (truthSet.has(r.id) ? n + 1 : n), 0);
+        recallSamples.push(hits / truth.length);
+      }
+    }
   }
 
   const multiSamples: number[] = [];
@@ -439,6 +540,7 @@ async function benchAtSize(size: number, queries: number, topK: number, embedSou
     totalRowsAtRun: Number(rows[0]?.count ?? 0),
     single: summarise(singleSamples),
     multi: summarise(multiSamples),
+    recall: measureRecall ? summariseRecall(recallSamples, topK) : null,
   };
 }
 
@@ -454,18 +556,40 @@ function fmt(ms: number): string {
   return ms >= 100 ? ms.toFixed(0) : ms.toFixed(1);
 }
 
+function fmtPct(fraction: number): string {
+  // Render recall fractions as percentages with one decimal so a 0.875
+  // recall reads as "87.5%" — easier to scan than a raw fraction.
+  return `${(fraction * 100).toFixed(1)}%`;
+}
+
 function renderTable(rows: Array<Awaited<ReturnType<typeof benchAtSize>>>, queries: number): string {
+  const anyRecall = rows.some((r) => r.recall !== null);
   const lines: string[] = [];
-  lines.push(
-    `| seeded | total rows | top-K | queries | single p50 (ms) | single p95 (ms) | single mean (ms) | multi p50 (ms) | multi p95 (ms) | multi mean (ms) |`,
-  );
-  lines.push(
-    `| -----: | ---------: | ----: | ------: | --------------: | --------------: | ---------------: | -------------: | -------------: | --------------: |`,
-  );
-  for (const r of rows) {
+  if (anyRecall) {
     lines.push(
-      `| ${r.size.toLocaleString()} | ${r.totalRowsAtRun.toLocaleString()} | ${r.topK} | ${queries} | ${fmt(r.single.p50Ms)} | ${fmt(r.single.p95Ms)} | ${fmt(r.single.meanMs)} | ${fmt(r.multi.p50Ms)} | ${fmt(r.multi.p95Ms)} | ${fmt(r.multi.meanMs)} |`,
+      `| seeded | total rows | top-K | queries | single p50 (ms) | single p95 (ms) | single mean (ms) | multi p50 (ms) | multi p95 (ms) | multi mean (ms) | recall@K mean | recall@K min |`,
     );
+    lines.push(
+      `| -----: | ---------: | ----: | ------: | --------------: | --------------: | ---------------: | -------------: | -------------: | --------------: | ------------: | -----------: |`,
+    );
+  } else {
+    lines.push(
+      `| seeded | total rows | top-K | queries | single p50 (ms) | single p95 (ms) | single mean (ms) | multi p50 (ms) | multi p95 (ms) | multi mean (ms) |`,
+    );
+    lines.push(
+      `| -----: | ---------: | ----: | ------: | --------------: | --------------: | ---------------: | -------------: | -------------: | --------------: |`,
+    );
+  }
+  for (const r of rows) {
+    const base = `| ${r.size.toLocaleString()} | ${r.totalRowsAtRun.toLocaleString()} | ${r.topK} | ${queries} | ${fmt(r.single.p50Ms)} | ${fmt(r.single.p95Ms)} | ${fmt(r.single.meanMs)} | ${fmt(r.multi.p50Ms)} | ${fmt(r.multi.p95Ms)} | ${fmt(r.multi.meanMs)} |`;
+    if (anyRecall) {
+      const recallCells = r.recall
+        ? ` ${fmtPct(r.recall.meanAtK)} | ${fmtPct(r.recall.minAtK)} |`
+        : ` n/a | n/a |`;
+      lines.push(base + recallCells);
+    } else {
+      lines.push(base);
+    }
   }
   return lines.join("\n");
 }
@@ -478,12 +602,15 @@ async function ensureResultsHeader(path: string): Promise<void> {
 
 Append-only log of \`script/vector-bench.ts\` runs. Each run records
 single-namespace and 7-namespace fan-out top-K query latency over the
-\`vector_chunks\` (pgvector + HNSW) table at the seeded sizes. Synthetic
-random vectors are used, so this measures index latency, not recall.
+\`vector_chunks\` (pgvector + HNSW) table at the seeded sizes. Each run
+block is labelled with its embedding source — \`random\` runs measure index
+latency only, while \`openai\` runs additionally measure recall@K against a
+brute-force sequential scan so HNSW quality regressions surface alongside
+latency.
 
-Compare new runs against the most recent entry of comparable size to spot
-regressions from HNSW parameter changes (\`m\`, \`ef_construction\`,
-\`ef_search\`) or schema/index changes.
+Compare new runs against the most recent entry of comparable size and
+embedding source to spot regressions from HNSW parameter changes (\`m\`,
+\`ef_construction\`, \`ef_search\`) or schema/index changes.
 
 `;
   await appendFile(path, header);
@@ -498,13 +625,22 @@ async function recordResults(
   const ts = new Date().toISOString();
   const node = process.version;
   const dbHint = process.env.DATABASE_URL?.includes("neon") ? "Neon" : "Postgres";
+  const recallLines = rows
+    .filter((r) => r.recall !== null)
+    .map((r) => {
+      const rec = r.recall as RecallStats;
+      return `  - size ${r.size.toLocaleString()}: mean=${fmtPct(rec.meanAtK)}, p5=${fmtPct(rec.p5AtK)}, min=${fmtPct(rec.minAtK)} over ${rec.count} queries`;
+    });
+  const recallBlock = recallLines.length > 0
+    ? `- Recall@${args.topK} (HNSW vs brute-force sequential scan):\n${recallLines.join("\n")}\n`
+    : "";
   const block = `## ${ts}
 
 - Runner: Node ${node}, ${dbHint}
 - Embedding source: **${args.embedSource}**${args.embedSource === "openai" ? " (text-embedding-3-small)" : " (synthetic unit vectors)"}
 - Queries per size: ${args.queries}, top-K: ${args.topK}
 - Sizes: ${args.sizes.join(", ")}
-
+${recallBlock}
 ${renderTable(rows, args.queries)}
 
 `;
@@ -528,6 +664,8 @@ interface BenchOutcome {
     totalRowsAtRun: number;
     single: Stats;
     multi: Stats;
+    /** Recall@K stats; null when running with random vectors. */
+    recall: RecallStats | null;
   }>;
   failed: string[];
   warned: string[];
@@ -541,11 +679,19 @@ export interface VectorBenchHistoryRun {
   topK: number;
   sizes: number[];
   source: "vector-bench" | "backfill";
+  /** Embedding source — older runs (before recall measurement) omit this. */
+  embedSource?: EmbedSource;
   results: Array<{
     size: number;
     totalRowsAtRun: number;
     single: Stats;
     multi: Stats;
+    /**
+     * Recall@K stats; only populated for `embedSource === "openai"` runs.
+     * Older history entries omit this field — keep it optional so the
+     * backfill script and chart consumer stay backwards-compatible.
+     */
+    recall?: RecallStats | null;
   }>;
 }
 
@@ -597,11 +743,13 @@ async function recordHistory(
     topK: args.topK,
     sizes: args.sizes,
     source: "vector-bench",
+    embedSource: args.embedSource,
     results: rows.map((r) => ({
       size: r.size,
       totalRowsAtRun: r.totalRowsAtRun,
       single: r.single,
       multi: r.multi,
+      recall: r.recall,
     })),
   });
 
@@ -680,6 +828,11 @@ async function main(): Promise<void> {
       console.log(
         `  multi-ns(7):  p50=${fmt(r.multi.p50Ms)}ms  p95=${fmt(r.multi.p95Ms)}ms  mean=${fmt(r.multi.meanMs)}ms  max=${fmt(r.multi.maxMs)}ms`,
       );
+      if (r.recall) {
+        console.log(
+          `  recall@${r.recall.topK}:    mean=${fmtPct(r.recall.meanAtK)}  p5=${fmtPct(r.recall.p5AtK)}  min=${fmtPct(r.recall.minAtK)}  (vs brute-force seq scan)`,
+        );
+      }
 
       // Threshold checks: evaluate against single-namespace and multi-namespace
       // p95 separately so the CI summary makes the failure source obvious.
@@ -736,6 +889,7 @@ async function main(): Promise<void> {
       totalRowsAtRun: r.totalRowsAtRun,
       single: r.single,
       multi: r.multi,
+      recall: r.recall,
     })),
     failed,
     warned,
