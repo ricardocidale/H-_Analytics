@@ -467,7 +467,10 @@ export function registerResourceTransparencyRoutes(app: Express) {
       if (!limitParsed.success) {
         return res.status(400).json({ error: fromZodError(limitParsed.error).message });
       }
-      const limit = limitParsed.data.limit ?? 20;
+      // Default to 30 — the nightly recompute job appends one row per day,
+      // so 30 ≈ the last 30 days of scores. Task #540: makes slow-burn
+      // drift (e.g. "amber for two weeks") visible at a glance.
+      const limit = limitParsed.data.limit ?? 30;
 
       const rows = await storage.listQualitySnapshotHistory(specialistId, limit);
       // Storage returns DESC; flip to chronological for charting.

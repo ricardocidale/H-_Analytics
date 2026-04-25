@@ -13,12 +13,13 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  ComposedChart,
+  Line,
   Tooltip,
   YAxis,
-  Cell,
-  ReferenceLine,
+  XAxis,
+  ReferenceArea,
+  Dot,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,11 +52,17 @@ interface QualityHistoryResponse {
 
 // Score-band colors mirror the ScorePill above so the chart and pill
 // agree at a glance: ≥80 emerald, ≥60 amber, otherwise rose.
-function scoreBarColor(score: number): string {
+function scoreBandColor(score: number): string {
   if (score >= 80) return "hsl(160 84% 39%)"; // emerald-500
   if (score >= 60) return "hsl(38 92% 50%)"; // amber-500
   return "hsl(347 77% 50%)"; // rose-500
 }
+
+// Background tint for each band region. Subtle so the line and dots
+// remain dominant; band identity is conveyed by hue, not saturation.
+const BAND_TINT_GREEN = "hsl(160 84% 39% / 0.10)";
+const BAND_TINT_AMBER = "hsl(38 92% 50% / 0.10)";
+const BAND_TINT_RED = "hsl(347 77% 50% / 0.10)";
 
 function QualityHistoryChart({ points }: { points: QualityHistoryPoint[] }) {
   if (points.length === 0) {
@@ -69,8 +76,8 @@ function QualityHistoryChart({ points }: { points: QualityHistoryPoint[] }) {
     );
   }
   if (points.length === 1) {
-    // One bar would render as a misleading "flat trend"; show the value
-    // and prompt for more data instead.
+    // One point would render as a misleading "flat trend"; show the
+    // value and prompt for more data instead.
     return (
       <div
         data-testid="quality-history-single"
@@ -81,16 +88,49 @@ function QualityHistoryChart({ points }: { points: QualityHistoryPoint[] }) {
     );
   }
 
-  // Recharts Bar payload needs the score field by name; we keep the
-  // ISO timestamp on each datum so the tooltip can format it locally.
+  // Pre-index points so X = 0..n-1 (categorical). Recharts datum keeps the
+  // ISO timestamp so the tooltip can format it locally.
+  const indexed = points.map((p, i) => ({ ...p, i }));
+
   return (
-    <div data-testid="quality-history-chart" className="w-full" style={{ height: 72 }}>
+    <div data-testid="quality-history-chart" className="w-full" style={{ height: 96 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap={2}>
+        <ComposedChart data={indexed} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+          <XAxis dataKey="i" hide type="number" domain={[0, indexed.length - 1]} />
           <YAxis hide domain={[0, 100]} />
-          <ReferenceLine y={70} stroke="hsl(var(--border))" strokeDasharray="2 2" />
+          {/*
+            Band tinting: green ≥80, amber ≥60, red <60. Drawing the
+            regions as ReferenceAreas (instead of per-bar coloring) makes
+            band membership visible even between snapshots, so a line
+            tracking sideways through "amber" reads as "amber for two
+            weeks" without having to count bars.
+          */}
+          <ReferenceArea
+            data-testid="quality-band-red"
+            y1={0}
+            y2={60}
+            fill={BAND_TINT_RED}
+            fillOpacity={1}
+            ifOverflow="extendDomain"
+          />
+          <ReferenceArea
+            data-testid="quality-band-amber"
+            y1={60}
+            y2={80}
+            fill={BAND_TINT_AMBER}
+            fillOpacity={1}
+            ifOverflow="extendDomain"
+          />
+          <ReferenceArea
+            data-testid="quality-band-green"
+            y1={80}
+            y2={100}
+            fill={BAND_TINT_GREEN}
+            fillOpacity={1}
+            ifOverflow="extendDomain"
+          />
           <Tooltip
-            cursor={{ fill: "hsl(var(--muted) / 0.4)" }}
+            cursor={{ stroke: "hsl(var(--muted-foreground) / 0.4)", strokeWidth: 1 }}
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
               const p = payload[0].payload as QualityHistoryPoint;
@@ -105,12 +145,34 @@ function QualityHistoryChart({ points }: { points: QualityHistoryPoint[] }) {
               );
             }}
           />
-          <Bar dataKey="score" isAnimationActive={false} radius={[2, 2, 0, 0]}>
-            {points.map((p, i) => (
-              <Cell key={i} fill={scoreBarColor(p.score)} />
-            ))}
-          </Bar>
-        </BarChart>
+          <Line
+            type="monotone"
+            dataKey="score"
+            stroke="hsl(var(--foreground) / 0.7)"
+            strokeWidth={1.5}
+            isAnimationActive={false}
+            dot={(props) => {
+              const { cx, cy, payload, index } = props as {
+                cx: number;
+                cy: number;
+                payload: QualityHistoryPoint;
+                index: number;
+              };
+              return (
+                <Dot
+                  key={index}
+                  cx={cx}
+                  cy={cy}
+                  r={2.5}
+                  fill={scoreBandColor(payload.score)}
+                  stroke="hsl(var(--background))"
+                  strokeWidth={1}
+                />
+              );
+            }}
+            activeDot={{ r: 4 }}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
@@ -143,7 +205,9 @@ function QualityCard({ specialistId }: { specialistId: string }) {
   const { data: history } = useQuery<QualityHistoryResponse>({
     queryKey: historyKey,
     queryFn: async () => {
-      const res = await fetch(`/api/admin/specialists/${specialistId}/quality/history`, { credentials: "include" });
+      // Request 30 — nightly recompute appends one row per day, so this
+      // covers the last ~30 days of scores per Task #540.
+      const res = await fetch(`/api/admin/specialists/${specialistId}/quality/history?limit=30`, { credentials: "include" });
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
       return res.json();
     },
@@ -189,8 +253,8 @@ function QualityCard({ specialistId }: { specialistId: string }) {
             </div>
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Score history (last {history?.points.length ?? 0})</span>
-                <span className="font-mono">pass ≥ 70</span>
+                <span>Score history — last {history?.points.length ?? 0} day{(history?.points.length ?? 0) === 1 ? "" : "s"}</span>
+                <span className="font-mono">green ≥ 80 · amber ≥ 60 · red &lt; 60</span>
               </div>
               <QualityHistoryChart points={history?.points ?? []} />
             </div>
