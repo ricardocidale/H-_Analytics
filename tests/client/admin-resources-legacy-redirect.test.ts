@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 /**
- * Task #421 — old admin Resources shortcuts must land on the new
- * /ai-intelligence Resources home.
+ * Task #421 / Task #459 — old admin Resources shortcuts must land on the
+ * new /ai-intelligence Resources home.
  *
  * Task #418 made any leftover `resources-*` admin deep link fall back to
  * the Admin "Services & Fees" landing page so users wouldn't hit a blank
@@ -10,6 +10,16 @@
  * isn't helpful — Task #449 Phase 1 wired `setAdminSection` to intercept
  * these legacy keys and route the user to `/ai-intelligence` with the
  * matching tab pre-selected.
+ *
+ * Task #459 explicitly asked for a focused behavioral test that exercises
+ * the runtime intercept in `setAdminSection` (the sibling
+ * `tests/client/admin-redirects-snapshot.test.ts` only covers the static
+ * redirect map). The `it.each(RESOURCES_LEGACY_SECTIONS)` block below
+ * fulfils that requirement: every legacy `resources-*` key drives the
+ * intercept end-to-end and asserts both the AI Intelligence section
+ * selection and the wouter navigation side-effect, so a future refactor
+ * that reorders the navigation logic in `client/src/lib/admin-nav.ts`
+ * will fail loudly here.
  *
  * This test locks the runtime contract in place:
  *   1. Each `resources-*` legacy key triggers `setAiIntelligenceSection`
