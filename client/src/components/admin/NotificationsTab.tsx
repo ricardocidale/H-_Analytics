@@ -82,6 +82,7 @@ export default function NotificationsTab() {
   const [resendEnabled, setResendEnabled] = useState(false);
   const [bandChangeDisabled, setBandChangeDisabled] = useState(false);
   const [llmRegistryRefreshDisabled, setLlmRegistryRefreshDisabled] = useState(false);
+  const [legacyStorageAuditDisabled, setLegacyStorageAuditDisabled] = useState(false);
   const [vectorOverrides, setVectorOverrides] = useState({
     singleP95: "",
     multiP95: "",
@@ -102,6 +103,7 @@ export default function NotificationsTab() {
     setResendEnabled(settings.resend_enabled === "true");
     setBandChangeDisabled(settings.specialist_quality_band_change_disabled === "true");
     setLlmRegistryRefreshDisabled(settings.llm_registry_refresh_disabled === "true");
+    setLegacyStorageAuditDisabled(settings.legacy_storage_url_audit_disabled === "true");
     setVectorAlertsEnabled(settings.vector_latency_alerts_disabled !== "true");
     setVectorOverrides({
       singleP95: settings.vector_latency_single_p95_override ?? "",
@@ -304,6 +306,25 @@ export default function NotificationsTab() {
                 detects with admin-overridden model selections (e.g. a chosen model going offline or
                 being deprecated). The registry still refreshes and applies recommendations; only the
                 org-wide digest email is suppressed.
+              </p>
+
+              <div className="flex items-center gap-3 pt-4 border-t">
+                <Switch
+                  data-testid="switch-legacy-storage-url-audit-disabled"
+                  checked={legacyStorageAuditDisabled}
+                  onCheckedChange={(checked) => {
+                    setLegacyStorageAuditDisabled(checked);
+                    saveSettingsMutation.mutate({
+                      legacy_storage_url_audit_disabled: checked ? "true" : "false",
+                    });
+                  }}
+                />
+                <Label>Mute nightly legacy storage URL audit emails</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When enabled, the nightly database audit for legacy Replit Object Storage URLs will skip
+                emailing admins when bad rows are detected. The scan still runs every 24h and the cycle
+                summary is still recorded on the Observability dashboard — only the alert email is muted.
               </p>
             </CardContent>
           </Card>

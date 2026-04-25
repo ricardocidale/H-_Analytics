@@ -162,7 +162,7 @@ function main(): void {
 
   const violations: Hit[] = [];
   const sourceCache = new Map<string, string>();
-  for (const file of candidates) {
+  for (const file of Array.from(candidates)) {
     if (isAllowed(file)) continue;
     let source = sourceCache.get(file);
     if (source === undefined) {

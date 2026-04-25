@@ -117,9 +117,13 @@ export function register(app: Express) {
         //   - llm_registry_refresh_disabled: LLM registry refresher's
         //     admin-override-issue email (Task #549, server/ai/
         //     llm-registry-manager.ts).
+        //   - legacy_storage_url_audit_disabled: nightly legacy-storage-URL
+        //     DB audit emails (Task #534, server/jobs/
+        //     legacy-storage-url-audit.ts).
         "specialist_quality_band_change_disabled",
         "constants_refresh_digest_disabled",
         "llm_registry_refresh_disabled",
+        "legacy_storage_url_audit_disabled",
       ]);
       const validation = z.record(z.string(), z.string().nullable()).safeParse(req.body);
       if (!validation.success) {

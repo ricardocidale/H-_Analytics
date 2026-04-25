@@ -68,6 +68,13 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Replays every saved Rebecca preview fixture through the server-side runner once per day, persists the per-fixture last-run badge, and emails admins when an answer drifts from its saved baseline.",
   },
+  {
+    key: "legacy-storage-url-audit",
+    label: "Legacy Storage URL Audit",
+    cycleIntervalMs: 24 * 60 * 60 * 1000, // 24h
+    description:
+      "Nightly walk of every text/varchar/jsonb column in the public schema for legacy Replit Object Storage URL shapes (Task #534). Alerts admins when new bad rows reappear after the R2 cutover.",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];
@@ -163,6 +170,10 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   "rebecca-fixture-replay": async () => {
     const mod = await import("./rebecca-fixture-replay");
     return mod.runRebeccaFixtureReplayCycle();
+  },
+  "legacy-storage-url-audit": async () => {
+    const mod = await import("./legacy-storage-url-audit");
+    return mod.runLegacyStorageUrlAuditCycle();
   },
 };
 

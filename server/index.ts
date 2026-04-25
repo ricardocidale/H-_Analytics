@@ -312,6 +312,17 @@ app.use((req, res, next) => {
         serverLog(`[rebecca-fixture-replay-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3h: Nightly legacy storage URL audit (Task #534) ────────
+      // Walks every text/varchar/jsonb column in `public` for legacy
+      // Replit Object Storage URL shapes and emails admins when new bad
+      // rows reappear (e.g. via a write path that bypasses the
+      // source-side guard).
+      import("./jobs/legacy-storage-url-audit").then(({ startLegacyStorageUrlAuditScheduler }) => {
+        startLegacyStorageUrlAuditScheduler();
+      }).catch(err => {
+        serverLog(`[legacy-storage-url-audit] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
@@ -344,6 +355,12 @@ app.use((req, res, next) => {
         try {
           const { stopRebeccaFixtureReplayScheduler } = await import("./jobs/rebecca-fixture-replay");
           stopRebeccaFixtureReplayScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopLegacyStorageUrlAuditScheduler } = await import("./jobs/legacy-storage-url-audit");
+          stopLegacyStorageUrlAuditScheduler();
         } catch {
           /* best-effort — module may not have loaded yet */
         }
