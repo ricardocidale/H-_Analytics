@@ -38,6 +38,7 @@ const AnalystTablesTab = lazy(() => import("@/components/admin/intelligence/Anal
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
 const RequiredFieldsRollup = lazy(() => import("@/components/admin/required-fields/RequiredFieldsRollup"));
+const ObservabilityTab = lazy(() => import("@/components/admin/ObservabilityTab"));
 
 export type { AdminSaveState };
 
@@ -65,6 +66,7 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   navigation:            { title: "Navigation",               subtitle: "Control which sidebar pages are visible to users" },
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
+  observability:         { title: "Observability",             subtitle: "Background scheduler health, last-cycle summaries, and stale-warnings" },
 
   // AI Research → Specialists (P5). Title/subtitle mirror the catalog
   // letter+name so the page header reads identically to the sidebar row.
@@ -188,6 +190,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "navigation":       return <NavigationTab />;
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
+    case "observability":    return <ObservabilityTab />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;

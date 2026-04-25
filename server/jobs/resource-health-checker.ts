@@ -10,22 +10,60 @@ import { storage } from "../storage";
 import { runProbe } from "./probes";
 import { logger } from "../logger";
 import { PROBE_PROFILES, type ResourceKind } from "@shared/schema";
+import { recordSchedulerCycle, truncateNotes } from "./scheduler-run-tracker";
 
 let timer: NodeJS.Timeout | null = null;
 const TICK_MS = 60_000;
 let running = false;
 
 export async function tickResourceHealthChecker(): Promise<{ checked: number; ok: number; failed: number; skipped: number }> {
-  const due = await storage.listResourcesDueForHealthCheck(PROBE_PROFILES);
-  let ok = 0, failed = 0, skipped = 0;
-  for (const row of due) {
-    const outcome = await runProbe(row);
-    await storage.recordProbeResult(row.id, row.kind as ResourceKind, outcome, null /* scheduler, not user */);
-    if (outcome.status === "ok") ok++;
-    else if (outcome.status === "fail") failed++;
-    else skipped++;
+  const cycleStart = Date.now();
+  let cycleThrew = false;
+  let cycleErrorMessage: string | null = null;
+  let checked = 0;
+  let ok = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  try {
+    const due = await storage.listResourcesDueForHealthCheck(PROBE_PROFILES);
+    checked = due.length;
+    for (const row of due) {
+      const outcome = await runProbe(row);
+      await storage.recordProbeResult(row.id, row.kind as ResourceKind, outcome, null /* scheduler, not user */);
+      if (outcome.status === "ok") ok++;
+      else if (outcome.status === "fail") failed++;
+      else skipped++;
+    }
+    return { checked, ok, failed, skipped };
+  } catch (err: unknown) {
+    cycleThrew = true;
+    cycleErrorMessage = err instanceof Error ? err.message : String(err);
+    throw err;
+  } finally {
+    // Persist a one-row cycle summary for Admin → Observability. A cycle
+    // with nothing due is still healthy — the stale-warning fires only
+    // when the scheduler stops *ticking*, not when it has no work.
+    const status: "ok" | "warn" | "error" = cycleThrew
+      ? "error"
+      : failed > 0
+        ? "warn"
+        : "ok";
+    const notes = cycleThrew
+      ? truncateNotes(cycleErrorMessage)
+      : checked === 0
+        ? "No resources due"
+        : `${ok} ok, ${failed} failed, ${skipped} skipped (of ${checked})`;
+    void recordSchedulerCycle({
+      key: "resource-health-probes",
+      considered: checked,
+      succeeded: ok,
+      failed,
+      status,
+      notes,
+      durationMs: Date.now() - cycleStart,
+    });
   }
-  return { checked: due.length, ok, failed, skipped };
 }
 
 export function startResourceHealthChecker(): void {

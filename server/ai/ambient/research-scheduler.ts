@@ -2,6 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { storage } from "../../storage";
 import { logger } from "../../logger";
 import { isAdminRole } from "@shared/constants";
+import { recordSchedulerCycle, truncateNotes } from "../../jobs/scheduler-run-tracker";
 import { createResearchClient, resolveVendorFromModel } from "../research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient, normalizeModelId } from "../clients";
 import { DEFAULT_RESEARCH_MODEL } from "../resolve-llm";
@@ -265,6 +266,12 @@ async function processPendingBatches(): Promise<void> {
 async function runScheduledCheckCycle(): Promise<void> {
   if (isRunning) return;
   isRunning = true;
+  const cycleStart = Date.now();
+  let cycleThrew = false;
+  let cycleErrorMessage: string | null = null;
+  let actionableCount = 0;
+  let succeededCount = 0;
+  let failedCount = 0;
 
   try {
     // Phase 1: check any in-flight batches for results
@@ -276,6 +283,7 @@ async function runScheduledCheckCycle(): Promise<void> {
       w => w.lastRunStatus !== "running" && w.lastRunStatus !== "batching",
     );
 
+    actionableCount = actionable.length;
     if (actionable.length === 0) return;
 
     logger.info(
@@ -325,6 +333,10 @@ async function runScheduledCheckCycle(): Promise<void> {
             lastRunError: BATCH_ID_PREFIX + batchId,
           });
         }
+        // Batch submission counts as success — actual completion is
+        // tracked via the per-workflow `lastRunStatus` row when results
+        // come back via `processPendingBatches`.
+        succeededCount += actionable.length;
       } catch (err: unknown) {
         logger.error(
           `Batch submission failed, falling back to sync: ${err instanceof Error ? err.message : err}`,
@@ -332,26 +344,55 @@ async function runScheduledCheckCycle(): Promise<void> {
         );
         // Fall back to sync execution if batch submission fails
         for (const workflow of actionable) {
-          await runWorkflowSync(workflow);
+          const ok = await runWorkflowSync(workflow);
+          if (ok) succeededCount += 1;
+          else failedCount += 1;
         }
       }
     } else {
       // Sync path for non-Anthropic vendors
       for (const workflow of actionable) {
-        await runWorkflowSync(workflow);
+        const ok = await runWorkflowSync(workflow);
+        if (ok) succeededCount += 1;
+        else failedCount += 1;
       }
     }
   } catch (err: unknown) {
+    cycleThrew = true;
+    cycleErrorMessage = err instanceof Error ? err.message : String(err);
     logger.error(
       `Research scheduler cycle failed: ${err instanceof Error ? err.message : err}`,
       "research-scheduler",
     );
   } finally {
     isRunning = false;
+    // Persist a one-row cycle summary for Admin → Observability.
+    // Cycles where nothing was due (`actionableCount === 0`) still mark
+    // the scheduler as healthy so the stale-warning only fires when the
+    // scheduler stops *firing*, not when it has nothing to do.
+    const status: "ok" | "warn" | "error" = cycleThrew
+      ? "error"
+      : failedCount > 0
+        ? "warn"
+        : "ok";
+    const notes = cycleThrew
+      ? truncateNotes(cycleErrorMessage)
+      : actionableCount === 0
+        ? "No workflows due"
+        : `${succeededCount} ran, ${failedCount} failed (of ${actionableCount} due)`;
+    void recordSchedulerCycle({
+      key: "research-workflows",
+      considered: actionableCount,
+      succeeded: succeededCount,
+      failed: failedCount,
+      status,
+      notes,
+      durationMs: Date.now() - cycleStart,
+    });
   }
 }
 
-async function runWorkflowSync(workflow: ScheduledResearchWorkflow): Promise<void> {
+async function runWorkflowSync(workflow: ScheduledResearchWorkflow): Promise<boolean> {
   await storage.updateScheduledWorkflowRun(workflow.id, {
     lastRunAt: new Date(),
     nextRunAt: new Date(Date.now() + workflow.frequencyHours * 60 * 60 * 1000),
@@ -372,6 +413,7 @@ async function runWorkflowSync(workflow: ScheduledResearchWorkflow): Promise<voi
     } else {
       logger.error(`Failed "${workflow.name}": ${result.error}`, "research-scheduler");
     }
+    return result.success;
   } catch (err: unknown) {
     await storage.updateScheduledWorkflowRun(workflow.id, {
       lastRunAt: new Date(),
@@ -380,6 +422,7 @@ async function runWorkflowSync(workflow: ScheduledResearchWorkflow): Promise<voi
       lastRunError: err instanceof Error ? err.message : String(err),
     });
     logger.error(`"${workflow.name}" threw: ${err instanceof Error ? err.message : err}`, "research-scheduler");
+    return false;
   }
 }
 

@@ -661,6 +661,12 @@ async function runSchemaMigrations() {
     await runIndexCoverage001();
     await markMigrationApplied("index_coverage_001");
   }
+
+  if (!(await isMigrationApplied("scheduler_runs_001"))) {
+    const { runSchedulerRuns001 } = await import("./migrations/scheduler-runs-001");
+    await runSchedulerRuns001();
+    await markMigrationApplied("scheduler_runs_001");
+  }
 }
 
 async function runSeeds() {

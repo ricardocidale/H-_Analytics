@@ -78,10 +78,11 @@ describe("admin sidebar — buildNavGroups() canonical structure", () => {
         id: "app-settings",
         label: "App Settings",
         sections: [
-          { value: "notifications", label: "Notifications" },
-          { value: "navigation",    label: "Navigation" },
-          { value: "database",      label: "Database" },
-          { value: "activity",      label: "Activity" },
+          { value: "notifications",  label: "Notifications" },
+          { value: "navigation",     label: "Navigation" },
+          { value: "database",       label: "Database" },
+          { value: "observability",  label: "Observability" },
+          { value: "activity",       label: "Activity" },
         ],
       },
     ]);

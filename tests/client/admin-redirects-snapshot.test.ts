@@ -51,6 +51,7 @@ const RENDERABLE_ADMIN_SECTIONS: ReadonlySet<AdminSection> = new Set<AdminSectio
   "navigation",
   "verification",
   "database",
+  "observability",
 ]);
 
 function isRenderable(section: AdminSection): boolean {

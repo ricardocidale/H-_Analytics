@@ -18,6 +18,7 @@ import { registerSourcesTabRoutes } from "./sources-tab";
 import { registerAdminSpecialistRoutes } from "./specialists";
 import { registerAdminSpecialistToolRoutes } from "./specialist-tools";
 import { registerRequiredFieldsRoutes } from "./required-fields";
+import { registerObservabilityRoutes } from "./observability";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -42,4 +43,5 @@ export function register(app: Express) {
   registerAdminSpecialistRoutes(app);
   registerAdminSpecialistToolRoutes(app);
   registerRequiredFieldsRoutes(app);
+  registerObservabilityRoutes(app);
 }

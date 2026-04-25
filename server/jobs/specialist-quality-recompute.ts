@@ -51,6 +51,7 @@ import { SPECIALIST_CATALOG } from "../../engine/analyst/registry/specialist-cat
 import { processNotificationEvent } from "../notifications/engine";
 import { createEvent } from "../notifications/events";
 import { isAdminRole } from "@shared/constants";
+import { recordSchedulerCycle, truncateNotes } from "./scheduler-run-tracker";
 
 const SOURCE = "specialist-quality-scheduler";
 
@@ -175,6 +176,9 @@ export async function runSpecialistQualityRecomputeCycle(): Promise<QualityRecom
     return summary;
   }
   isRunning = true;
+  const cycleStart = Date.now();
+  let cycleThrew = false;
+  let cycleErrorMessage: string | null = null;
   try {
     for (const def of SPECIALIST_CATALOG) {
       summary.considered += 1;
@@ -250,8 +254,40 @@ export async function runSpecialistQualityRecomputeCycle(): Promise<QualityRecom
       SOURCE,
     );
     return summary;
+  } catch (err: unknown) {
+    cycleThrew = true;
+    cycleErrorMessage = err instanceof Error ? err.message : String(err);
+    throw err;
   } finally {
     isRunning = false;
+    // Persist a one-row summary so the Admin → Observability page can
+    // report "last run, what happened, did it fail" without scraping logs.
+    const status: "ok" | "warn" | "error" = cycleThrew
+      ? "error"
+      : summary.failed > 0
+        ? "warn"
+        : "ok";
+    const notes = cycleThrew
+      ? truncateNotes(cycleErrorMessage)
+      : summary.failed > 0
+        ? truncateNotes(
+            summary.errors
+              .slice(0, 3)
+              .map((e) => `${e.specialistId}: ${e.message}`)
+              .join("; "),
+          )
+        : summary.bandChanges > 0
+          ? `${summary.bandChanges} band change(s)`
+          : null;
+    void recordSchedulerCycle({
+      key: "specialist-quality",
+      considered: summary.considered,
+      succeeded: summary.recomputed,
+      failed: summary.failed,
+      status,
+      notes,
+      durationMs: Date.now() - cycleStart,
+    });
   }
 }
 

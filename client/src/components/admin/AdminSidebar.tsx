@@ -44,7 +44,7 @@ export type AdminSection =
   | "brand" | "exports"
   | "ai-agents" | "knowledge-base" | "conversations"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "vector-bench"
-  | "navigation" | "notifications" | "verification" | "database"
+  | "navigation" | "notifications" | "verification" | "database" | "observability"
   // Legacy aliases (redirect to canonical)
   | "logos" | "themes" | "icons"
   | "llms" | "sources" | "model-routing"
@@ -266,10 +266,11 @@ function buildNavGroups(): NavGroup[] {
       icon: IconSettingsGear,
       description: "Notifications, navigation, system & activity logs",
       sections: [
-        { value: "notifications", label: "Notifications", icon: IconPhone },
-        { value: "navigation",    label: "Navigation",    icon: IconPanelLeft },
-        { value: "database",      label: "Database",      icon: IconDatabase },
-        { value: "activity",      label: "Activity",      icon: IconActivity },
+        { value: "notifications",  label: "Notifications",  icon: IconPhone },
+        { value: "navigation",     label: "Navigation",     icon: IconPanelLeft },
+        { value: "database",       label: "Database",       icon: IconDatabase },
+        { value: "observability",  label: "Observability",  icon: IconDashboard },
+        { value: "activity",       label: "Activity",       icon: IconActivity },
       ],
     },
   ];

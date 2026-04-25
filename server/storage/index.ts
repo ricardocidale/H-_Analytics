@@ -47,6 +47,7 @@ import { AdminResourceStorage } from "./admin-resource";
 import { SpecialistConfigStorage } from "./specialist-config";
 import { SpecialistIdentityStorage } from "./specialist-identity";
 import { MediaStorageImpl, type MediaStorage } from "./media";
+import { SchedulerRunsStorageImpl, type SchedulerRunsStorage } from "./scheduler-runs";
 
 export interface IStorage extends
   UserStorage,
@@ -71,7 +72,8 @@ export interface IStorage extends
   AdminResourceStorage,
   SpecialistConfigStorage,
   SpecialistIdentityStorage,
-  MediaStorage {
+  MediaStorage,
+  SchedulerRunsStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -113,6 +115,7 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => new SpecialistConfigStorage(),
     () => new SpecialistIdentityStorage(),
     () => new MediaStorageImpl(),
+    () => new SchedulerRunsStorageImpl(),
   ] as const;
 }
 

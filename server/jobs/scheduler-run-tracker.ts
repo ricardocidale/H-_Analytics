@@ -1,0 +1,115 @@
+/**
+ * Task #542 — Helper for background schedulers to record their last
+ * cycle summary into `scheduler_runs`.
+ *
+ * Each registered scheduler calls `recordSchedulerCycle` at the end of
+ * every cycle (success OR failure). The Admin → Observability page reads
+ * the table and renders a stale-warning when a row's `lastRunAt` is
+ * older than `cycleIntervalMs * STALE_MULTIPLIER`.
+ *
+ * Persistence is best-effort and never throws — a failure to record the
+ * cycle summary must never break the scheduler itself.
+ */
+import { storage } from "../storage";
+import { logger } from "../logger";
+
+/**
+ * Single source of truth for the registered schedulers. The Observability
+ * page renders rows in this order so the UI stays stable even before any
+ * cycle has fired (it shows "never run" rows for un-recorded schedulers).
+ */
+export const SCHEDULER_REGISTRY = [
+  {
+    key: "ambient-benchmarks",
+    label: "Ambient Benchmark Refresh",
+    cycleIntervalMs: 6 * 60 * 60 * 1000, // 6h
+    description:
+      "Refreshes hospitality benchmark snapshots, runs source health checks, refreshes the LLM registry, and runs the Analyst watchdog.",
+  },
+  {
+    key: "research-workflows",
+    label: "Scheduled Research Workflows",
+    cycleIntervalMs: 15 * 60 * 1000, // 15min
+    description:
+      "Polls scheduled research workflow definitions and submits batched/sync research runs when due.",
+  },
+  {
+    key: "resource-health-probes",
+    label: "Resource Health Probes",
+    cycleIntervalMs: 60 * 1000, // 60s
+    description:
+      "Probes admin_resources whose last health check is past the per-kind TTL.",
+  },
+  {
+    key: "constants-refresh",
+    label: "Constants Refresh",
+    cycleIntervalMs: 60 * 60 * 1000, // 1h
+    description:
+      "Per-Specialist scheduled refresh of authority-sourced constants (tax, macro, depreciation, reporting).",
+  },
+  {
+    key: "specialist-quality",
+    label: "Specialist Quality Recompute",
+    cycleIntervalMs: 24 * 60 * 60 * 1000, // 24h
+    description:
+      "Nightly recompute of every catalog Specialist's research quality score.",
+  },
+] as const;
+
+export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];
+
+const SCHEDULER_BY_KEY: Map<string, (typeof SCHEDULER_REGISTRY)[number]> =
+  new Map(SCHEDULER_REGISTRY.map((s) => [s.key, s]));
+
+export function getSchedulerDefinition(key: SchedulerKey) {
+  return SCHEDULER_BY_KEY.get(key)!;
+}
+
+export interface RecordSchedulerCycleInput {
+  key: SchedulerKey;
+  considered: number;
+  succeeded: number;
+  failed: number;
+  status: "ok" | "warn" | "error";
+  notes?: string | null;
+  durationMs?: number | null;
+  lastRunAt?: Date;
+}
+
+/**
+ * Best-effort write — never throws, never blocks the scheduler.
+ */
+export async function recordSchedulerCycle(input: RecordSchedulerCycleInput): Promise<void> {
+  const def = SCHEDULER_BY_KEY.get(input.key);
+  if (!def) {
+    logger.warn(`[scheduler-run-tracker] Unknown scheduler key: ${input.key}`);
+    return;
+  }
+  try {
+    await storage.recordSchedulerRun({
+      schedulerKey: def.key,
+      schedulerLabel: def.label,
+      cycleIntervalMs: def.cycleIntervalMs,
+      considered: input.considered,
+      succeeded: input.succeeded,
+      failed: input.failed,
+      status: input.status,
+      notes: input.notes ?? null,
+      durationMs: input.durationMs ?? null,
+      lastRunAt: input.lastRunAt,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn(`[scheduler-run-tracker] Failed to record cycle for ${input.key}: ${msg}`);
+  }
+}
+
+/**
+ * Trim a string for storage in `notes` — single line, capped length.
+ */
+export function truncateNotes(notes: string | null | undefined, max = 280): string | null {
+  if (!notes) return null;
+  const flat = notes.replace(/\s+/g, " ").trim();
+  if (!flat) return null;
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}

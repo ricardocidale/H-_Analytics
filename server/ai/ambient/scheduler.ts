@@ -3,6 +3,7 @@ import { fetchAllBenchmarks } from "./fetchers";
 import { checkAllSources } from "../source-health-checker";
 import { refreshLlmRegistry } from "../llm-registry-manager";
 import { log } from "../../logger";
+import { recordSchedulerCycle, truncateNotes } from "../../jobs/scheduler-run-tracker";
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 let startupTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -11,11 +12,15 @@ let isRunning = false;
 async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }> {
   if (isRunning) return { upserted: 0, errors: ["Cycle already in progress"] };
   isRunning = true;
+  const cycleStart = Date.now();
+  let cycleThrew = false;
+  let cycleErrorMessage: string | null = null;
+  let upserted = 0;
+  const allErrors: string[] = [];
 
   try {
     const result = await fetchAllBenchmarks();
 
-    let upserted = 0;
     for (const snapshot of result.snapshots) {
       try {
         await storage.upsertBenchmarkSnapshot(snapshot);
@@ -24,6 +29,7 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
         result.errors.push(`DB upsert ${snapshot.snapshotKey}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
+    allErrors.push(...result.errors);
 
     if (result.errors.length > 0) {
       log(`Refresh complete: ${upserted} upserted, ${result.errors.length} errors`, "ambient-scheduler", "warn");
@@ -105,8 +111,39 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
     }
 
     return { upserted, errors: result.errors };
+  } catch (err: unknown) {
+    cycleThrew = true;
+    cycleErrorMessage = err instanceof Error ? err.message : String(err);
+    throw err;
   } finally {
     isRunning = false;
+    // Persist a one-row cycle summary for Admin → Observability.
+    // Considered/succeeded/failed semantics here = benchmark snapshots:
+    //   considered = total snapshots fetched
+    //   succeeded  = upserted to DB
+    //   failed     = upsert errors (other non-blocking sub-steps log on
+    //                their own and don't influence the headline status)
+    const considered = upserted + allErrors.filter((e) => e.startsWith("DB upsert ")).length;
+    const failed = considered - upserted;
+    const status: "ok" | "warn" | "error" = cycleThrew
+      ? "error"
+      : failed > 0
+        ? "warn"
+        : "ok";
+    const notes = cycleThrew
+      ? truncateNotes(cycleErrorMessage)
+      : allErrors.length > 0
+        ? truncateNotes(allErrors.slice(0, 3).join("; "))
+        : `${upserted} benchmark(s) upserted`;
+    void recordSchedulerCycle({
+      key: "ambient-benchmarks",
+      considered,
+      succeeded: upserted,
+      failed: Math.max(0, failed),
+      status,
+      notes,
+      durationMs: Date.now() - cycleStart,
+    });
   }
 }
 

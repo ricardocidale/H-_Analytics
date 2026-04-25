@@ -50,6 +50,7 @@
 import { storage } from "../storage";
 import { proposeConstantRegeneration } from "../ai/regenerate-constants";
 import { logger, log as serverLog } from "../logger";
+import { recordSchedulerCycle, truncateNotes } from "./scheduler-run-tracker";
 import {
   MODEL_CONSTANTS_REGISTRY,
   REGISTERED_CONSTANT_KEYS,
@@ -264,6 +265,9 @@ export async function runConstantsRefreshCycle(): Promise<RefreshCycleSummary> {
     return summary;
   }
   isRunning = true;
+  const cycleStart = Date.now();
+  let cycleThrew = false;
+  let cycleErrorMessage: string | null = null;
   try {
     const overrides = await storage.listModelConstantOverrides();
     // Per-Specialist admin cadence overrides (P5 follow-up). Loaded once
@@ -313,8 +317,40 @@ export async function runConstantsRefreshCycle(): Promise<RefreshCycleSummary> {
       );
     }
     return summary;
+  } catch (err: unknown) {
+    cycleThrew = true;
+    cycleErrorMessage = err instanceof Error ? err.message : String(err);
+    throw err;
   } finally {
     isRunning = false;
+    // Persist a one-row cycle summary for Admin → Observability.
+    // `succeeded` here = refreshed (the work that actually fired); skipped
+    // rows count as "still fresh" so they're folded into the considered
+    // total but not the success count.
+    const status: "ok" | "warn" | "error" = cycleThrew
+      ? "error"
+      : summary.failed > 0
+        ? "warn"
+        : "ok";
+    const notes = cycleThrew
+      ? truncateNotes(cycleErrorMessage)
+      : summary.failed > 0
+        ? truncateNotes(
+            summary.errors
+              .slice(0, 3)
+              .map((e) => `${e.key}@${e.country ?? "universal"}: ${e.message}`)
+              .join("; "),
+          )
+        : `${summary.refreshed} refreshed, ${summary.skipped} still fresh`;
+    void recordSchedulerCycle({
+      key: "constants-refresh",
+      considered: summary.considered,
+      succeeded: summary.refreshed,
+      failed: summary.failed,
+      status,
+      notes,
+      durationMs: Date.now() - cycleStart,
+    });
   }
 }
 
