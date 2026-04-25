@@ -21,11 +21,13 @@ vi.mock("../../engine/analyst/registry/specialist-catalog", () => ({
 
 const getLatestSnapshot = vi.fn();
 const getAllUsers = vi.fn();
+const getNotificationSetting = vi.fn();
 
 vi.mock("../../server/storage", () => ({
   storage: {
     getLatestQualitySnapshot: (id: string) => getLatestSnapshot(id),
     getAllUsers: () => getAllUsers(),
+    getNotificationSetting: (k: string) => getNotificationSetting(k),
   },
 }));
 
@@ -53,12 +55,15 @@ import {
 beforeEach(() => {
   getLatestSnapshot.mockReset();
   getAllUsers.mockReset();
+  getNotificationSetting.mockReset();
   recompute.mockReset();
   processEvent.mockReset();
   __resetQualityRecomputeStateForTest();
   getAllUsers.mockResolvedValue([
     { id: 1, email: "admin@example.com", role: "super_admin" },
   ]);
+  // Default: kill switch is not set, so notifications fire normally.
+  getNotificationSetting.mockResolvedValue(null);
 });
 
 describe("qualityBandForScore", () => {
@@ -192,6 +197,36 @@ describe("runSpecialistQualityRecomputeCycle", () => {
     expect(second.recomputed).toBe(0);
     resolveFirst();
     await first;
+  });
+
+  it("skips the notification when specialist_quality_band_change_disabled is 'true'", async () => {
+    getNotificationSetting.mockImplementation((k: string) =>
+      Promise.resolve(k === "specialist_quality_band_change_disabled" ? "true" : null),
+    );
+    getLatestSnapshot.mockResolvedValue({ score: 90 });
+    recompute.mockResolvedValue({ score: 30 });
+    const summary = await runSpecialistQualityRecomputeCycle();
+    // Bands still get tracked in the summary — the kill switch only
+    // suppresses the email, not the recompute or transition accounting.
+    expect(summary.bandChanges).toBe(3);
+    expect(processEvent).not.toHaveBeenCalled();
+  });
+
+  it("notifies again on the very next cycle after the admin re-enables (no fingerprint stickiness)", async () => {
+    // Cycle 1: disabled → no notification, fingerprint stays null.
+    getNotificationSetting.mockImplementation((k: string) =>
+      Promise.resolve(k === "specialist_quality_band_change_disabled" ? "true" : null),
+    );
+    getLatestSnapshot.mockResolvedValue({ score: 90 });
+    recompute.mockResolvedValue({ score: 30 });
+    await runSpecialistQualityRecomputeCycle();
+    expect(processEvent).not.toHaveBeenCalled();
+
+    // Cycle 2: admin re-enables. The same transitions should now notify
+    // because we never recorded a suppression fingerprint while disabled.
+    getNotificationSetting.mockResolvedValue(null);
+    await runSpecialistQualityRecomputeCycle();
+    expect(processEvent).toHaveBeenCalledTimes(1);
   });
 
   it("does not notify when there are no admins", async () => {

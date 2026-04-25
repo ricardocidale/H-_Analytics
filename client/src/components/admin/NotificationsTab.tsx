@@ -79,6 +79,7 @@ export default function NotificationsTab() {
   });
 
   const [resendEnabled, setResendEnabled] = useState(false);
+  const [bandChangeDisabled, setBandChangeDisabled] = useState(false);
   const [vectorOverrides, setVectorOverrides] = useState({
     singleP95: "",
     multiP95: "",
@@ -97,6 +98,7 @@ export default function NotificationsTab() {
 
   useEffect(() => {
     setResendEnabled(settings.resend_enabled === "true");
+    setBandChangeDisabled(settings.specialist_quality_band_change_disabled === "true");
     setVectorAlertsEnabled(settings.vector_latency_alerts_disabled !== "true");
     setVectorOverrides({
       singleP95: settings.vector_latency_single_p95_override ?? "",
@@ -246,6 +248,38 @@ export default function NotificationsTab() {
               <p className="text-sm text-muted-foreground">
                 When enabled, report sharing and system notifications will be sent via Resend branded templates.
                 Set <code className="text-xs bg-muted px-1 py-0.5 rounded">RESEND_API_KEY</code> in environment variables.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="w-5 h-5" /> Quiet hours
+              </CardTitle>
+              <CardDescription>
+                Org-wide kill switches for noisy admin emails. Individual recipients can still tune their
+                own preferences from the user settings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Switch
+                  data-testid="switch-specialist-quality-band-change-disabled"
+                  checked={bandChangeDisabled}
+                  onCheckedChange={(checked) => {
+                    setBandChangeDisabled(checked);
+                    saveSettingsMutation.mutate({
+                      specialist_quality_band_change_disabled: checked ? "true" : "false",
+                    });
+                  }}
+                />
+                <Label>Mute nightly Specialist quality band-change emails</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                When enabled, the nightly Specialist quality recomputer will skip emailing admins about
+                green ↔ amber ↔ red band transitions. Quality scores still recompute and update on the
+                Resources transparency UI — only the email is suppressed.
               </p>
             </CardContent>
           </Card>

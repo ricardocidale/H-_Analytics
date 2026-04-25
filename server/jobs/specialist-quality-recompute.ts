@@ -25,6 +25,12 @@
  *      notification is fingerprinted on the set of (specialistId, prior
  *      band → new band) transitions so the same crossings on consecutive
  *      nights don't re-spam admins until something changes again.
+ *      The notification setting `specialist_quality_band_change_disabled`
+ *      acts as a per-org kill switch (mirrors the
+ *      `constants_refresh_digest_disabled` precedent for the Constants-
+ *      refresh failure digest); when "true" the email is skipped without
+ *      updating the suppression fingerprint, so re-enabling immediately
+ *      surfaces the next real change.
  *
  * Per-Specialist try/catch: a failure on one Specialist is logged and
  * the cycle continues across the rest. We deliberately do not write a
@@ -206,15 +212,31 @@ export async function runSpecialistQualityRecomputeCycle(): Promise<QualityRecom
     }
 
     if (summary.bandChanges > 0) {
-      const fp = transitionFingerprint(summary.transitions);
-      if (fp !== lastNotifiedFingerprint) {
-        await notifyAdminsOfBandChanges(summary.transitions);
-        lastNotifiedFingerprint = fp;
-      } else {
+      // Honor the admin kill switch — same precedent as
+      // `constants_refresh_digest_disabled` for the Constants-refresh
+      // failure digest. When disabled we skip both the notification AND
+      // the fingerprint update so the next genuine cycle after re-enabling
+      // still fires (rather than being suppressed as a duplicate).
+      const disabled =
+        (await storage.getNotificationSetting(
+          "specialist_quality_band_change_disabled",
+        )) === "true";
+      if (disabled) {
         serverLog(
-          `Suppressed duplicate band-change notification (same ${summary.bandChanges} transition(s))`,
+          `Suppressed band-change notification (disabled by admin): ${summary.bandChanges} transition(s)`,
           SOURCE,
         );
+      } else {
+        const fp = transitionFingerprint(summary.transitions);
+        if (fp !== lastNotifiedFingerprint) {
+          await notifyAdminsOfBandChanges(summary.transitions);
+          lastNotifiedFingerprint = fp;
+        } else {
+          serverLog(
+            `Suppressed duplicate band-change notification (same ${summary.bandChanges} transition(s))`,
+            SOURCE,
+          );
+        }
       }
     } else {
       // All bands stable — clear the suppression fingerprint so the next
