@@ -246,6 +246,69 @@ When you don't know an answer, say: I don't have that on hand — let me dig in 
   });
 });
 
+/**
+ * Task #531 — boundary tests for the inline `dial()` classifier inside
+ * `buildPersonaOverlay`. The classifier maps `n <= 25` → low descriptor,
+ * `n >= 75` → high descriptor, and everything in between → "balanced".
+ *
+ * The golden snapshots above only exercise values safely inside one bucket
+ * (e.g. 0, 50, 100), so a future tweak to those thresholds (e.g. moving
+ * "warm and supportive" from >=75 to >=70) would silently shift Rebecca's
+ * voice for any dial value sitting near the boundary without changing the
+ * snapshots. These tests pin the exact threshold for every dial.
+ */
+describe("buildPersonaOverlay — dial classifier thresholds", () => {
+  type DialKey = keyof RebeccaSettings["personality"];
+  const DIALS: { key: DialKey; label: string; low: string; high: string }[] = [
+    { key: "warmth", label: "Warmth", low: "reserved", high: "warm and supportive" },
+    { key: "formality", label: "Formality", low: "casual", high: "formal" },
+    { key: "humor", label: "Humor", low: "no jokes", high: "dry wit welcome" },
+    { key: "verbosity", label: "Verbosity", low: "very brief", high: "thorough" },
+    { key: "confidence", label: "Confidence", low: "tentative", high: "decisive" },
+    {
+      key: "proactiveness",
+      label: "Proactiveness",
+      low: "answer only what's asked",
+      high: "anticipate next questions",
+    },
+  ];
+
+  type Bucket = "low" | "balanced" | "high";
+  const BOUNDARY_CASES: { value: number; bucket: Bucket }[] = [
+    { value: 24, bucket: "low" },
+    { value: 25, bucket: "low" },
+    { value: 26, bucket: "balanced" },
+    { value: 74, bucket: "balanced" },
+    { value: 75, bucket: "high" },
+    { value: 76, bucket: "high" },
+  ];
+
+  function descriptorFor(label: string, value: number, overlay: string): string {
+    const re = new RegExp(`- ${label}: ${value}/100 \\(([^)]+)\\)\\.`);
+    const match = overlay.match(re);
+    if (!match) {
+      throw new Error(`Could not find descriptor for ${label}=${value} in overlay:\n${overlay}`);
+    }
+    return match[1];
+  }
+
+  for (const dial of DIALS) {
+    describe(`${dial.label}`, () => {
+      for (const tc of BOUNDARY_CASES) {
+        const expected =
+          tc.bucket === "low" ? dial.low : tc.bucket === "high" ? dial.high : "balanced";
+        it(`value ${tc.value} → "${expected}" (${tc.bucket})`, () => {
+          const settings = withDials({ [dial.key]: tc.value } as Partial<
+            RebeccaSettings["personality"]
+          >);
+          const overlay = buildPersonaOverlay(settings, "Rebecca");
+          expect(descriptorFor(dial.label, tc.value, overlay)).toBe(expected);
+        });
+      }
+    });
+  }
+});
+
 describe("assembleSystemPrompt — source toggle gating", () => {
   const PORTFOLIO = "\n\nPORTFOLIO_BLOCK_MARKER";
   const FIELD = "\n\nFIELD_BLOCK_MARKER";
