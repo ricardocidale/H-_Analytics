@@ -37,6 +37,22 @@ the generic "Run Tests" output).
 | Property Underwriting tab — Authority-Governed band  | `tests/client/property-underwriting-readonly-band-browser.test.tsx`    |
 | Market & Macro tab — Authority-Governed bands        | `tests/client/market-macro-readonly-band-browser.test.tsx`             |
 | Management Company Defaults tab — Authority-Gov bands | `tests/client/company-readonly-band-browser.test.tsx`                  |
+| Photo album — non-admin viewer hides admin controls  | `tests/client/photo-album-viewer-readonly.test.tsx`                    |
+
+The photo-album admin happy path (upload → AI enhance → multi-select →
+move-between-properties → bulk delete) is covered three ways:
+
+1. **`tests/playwright/photo-album.spec.ts`** — executable Playwright
+   spec that drives the real UI end-to-end. Run with
+   `npx playwright test tests/playwright/photo-album.spec.ts` while
+   the dev server is up. The optional enhance round-trip is gated by
+   `RUN_REPLICATE=1`.
+2. **`photo-album.plan.md`** (this directory) — the matching
+   `runTest()` plan, useful for ad-hoc agent-driven validation.
+3. **`tests/e2e/photo-album-flow.test.ts`** — deterministic vitest
+   API e2e (gated by `E2E=1`) that exercises the same upload → move →
+   bulk-delete round-trip plus the `/enhance/reject` route, without
+   spending Replicate quota.
 
 The Constants-tab tests are accompanied by the live-server plan
 `model-constants-tab-readonly.plan.md`. The three companion files

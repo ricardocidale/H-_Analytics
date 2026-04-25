@@ -398,42 +398,69 @@ export function register(app: Express) {
         return res.status(403).json({ error: "Access denied" });
       }
 
-      let sourceBuffer: Buffer;
-      if (photo.imageData) {
-        sourceBuffer = Buffer.from(photo.imageData, "base64");
-      } else if (photo.imageUrl.startsWith("http")) {
-        const imgRes = await fetchWithTimeout(photo.imageUrl, undefined, 30_000);
-        if (!imgRes.ok) {
-          return res.status(400).json({ error: "Failed to fetch source image" });
-        }
-        sourceBuffer = Buffer.from(await imgRes.arrayBuffer());
+      // ── Test-mode bypass (opt-in via env) ───────────────────────────
+      // Set PHOTO_ENHANCE_TEST_MODE=1 to short-circuit BOTH the
+      // source-resolution requirement AND the Replicate call, writing
+      // a deterministic synthetic preview instead. This lets CI
+      // exercise the full enhance → preview → accept/reject contract
+      // even for photos stored in object storage (where we don't have
+      // a publicly fetchable URL inside the test container) and
+      // without spending Replicate quota or relying on network
+      // availability. The bypass is dev-only: it is ignored whenever
+      // NODE_ENV === "production".
+      const bypassActive =
+        process.env.NODE_ENV !== "production" && process.env.PHOTO_ENHANCE_TEST_MODE === "1";
+
+      let enhancedBase64: string;
+      if (bypassActive) {
+        const sharpForSynth = (await import("sharp")).default;
+        const synthBuffer = await sharpForSynth({
+          create: {
+            width: 64,
+            height: 64,
+            channels: 3,
+            background: { r: 16, g: 185, b: 129 },
+          },
+        }).png().toBuffer();
+        enhancedBase64 = synthBuffer.toString("base64");
+        logger.info(`Enhance: PHOTO_ENHANCE_TEST_MODE=1 — synthesized preview for photo ${photoId}`, "property-photos");
       } else {
-        return res.status(400).json({ error: "Cannot resolve source image for enhancement" });
+        let sourceBuffer: Buffer;
+        if (photo.imageData) {
+          sourceBuffer = Buffer.from(photo.imageData, "base64");
+        } else if (photo.imageUrl.startsWith("http")) {
+          const imgRes = await fetchWithTimeout(photo.imageUrl, undefined, 30_000);
+          if (!imgRes.ok) {
+            return res.status(400).json({ error: "Failed to fetch source image" });
+          }
+          sourceBuffer = Buffer.from(await imgRes.arrayBuffer());
+        } else {
+          return res.status(400).json({ error: "Cannot resolve source image for enhancement" });
+        }
+
+        const sharp = (await import("sharp")).default;
+        const metadata = await sharp(sourceBuffer).metadata();
+        const maxDim = 2048;
+        let resizedBuffer = sourceBuffer;
+        if ((metadata.width && metadata.width > maxDim) || (metadata.height && metadata.height > maxDim)) {
+          resizedBuffer = await sharp(sourceBuffer)
+            .resize({ width: maxDim, height: maxDim, fit: "inside", withoutEnlargement: true })
+            .png()
+            .toBuffer();
+        }
+
+        const base64Source = resizedBuffer.toString("base64");
+        const dataUri = `data:image/png;base64,${base64Source}`;
+
+        const { replicateService } = await import("../integrations/replicate");
+        const enhancedBuffer = await replicateService.generateImage(
+          "photo-upscale",
+          "luxury real estate photography, professional color correction, perfect exposure, sharp details, HDR quality",
+          dataUri
+        );
+        enhancedBase64 = enhancedBuffer.toString("base64");
       }
 
-      const sharp = (await import("sharp")).default;
-      const metadata = await sharp(sourceBuffer).metadata();
-      const maxDim = 2048;
-      let resizedBuffer = sourceBuffer;
-      if ((metadata.width && metadata.width > maxDim) || (metadata.height && metadata.height > maxDim)) {
-        resizedBuffer = await sharp(sourceBuffer)
-          .resize({ width: maxDim, height: maxDim, fit: "inside", withoutEnlargement: true })
-          .png()
-          .toBuffer();
-      }
-
-      const base64Source = resizedBuffer.toString("base64");
-      const dataUri = `data:image/png;base64,${base64Source}`;
-
-      const { replicateService } = await import("../integrations/replicate");
-
-      const enhancedBuffer = await replicateService.generateImage(
-        "photo-upscale",
-        "luxury real estate photography, professional color correction, perfect exposure, sharp details, HDR quality",
-        dataUri
-      );
-
-      const enhancedBase64 = enhancedBuffer.toString("base64");
       pendingEnhancements.set(photoId, enhancedBase64);
 
       setTimeout(() => pendingEnhancements.delete(photoId), 10 * 60_000);
