@@ -10,14 +10,18 @@ function read(p: string): string {
 describe("Deprecated-constants guard — Task #407", () => {
   const guardPath = "script/check-deprecated-constants.ts";
 
-  it("the guard script exists and enumerates all five @deprecated symbols", () => {
+  it("the guard script exists and enumerates all four @deprecated symbols", () => {
+    // Task #403 deleted DEFAULT_COMPANY_TAX_RATE and Audit #406 / Task #405
+    // deleted DEFAULT_COST_RATE_TAXES outright (the latter was divergent
+    // from the registry baseline). They are intentionally NOT in this list —
+    // the TypeScript compile error from importing a non-existent export is
+    // the canonical signal now, not the lint guard.
     const guard = read(guardPath);
     for (const sym of [
       "DEPRECIATION_YEARS",
       "DAYS_PER_MONTH",
       "DEFAULT_PROPERTY_INFLATION_RATE",
       "DEFAULT_COMPANY_INFLATION_RATE",
-      "DEFAULT_COST_RATE_TAXES",
     ]) {
       expect(guard).toContain(sym);
     }
@@ -81,9 +85,13 @@ describe("Deprecated-constants guard — Task #407", () => {
 
   it("fails when a non-allowlisted file imports a deprecated symbol", () => {
     const probe = "server/_deprecated_const_guard_probe.ts";
+    // DEPRECIATION_YEARS is still @deprecated in shared/constants.ts
+    // (Audit #319 R4). Previously this probe used DEFAULT_COST_RATE_TAXES,
+    // but Audit #406 / Task #405 deleted that constant, so it's no longer
+    // a valid import. Any of the four remaining @deprecated symbols works.
     writeFileSync(
       probe,
-      `import { DEFAULT_COST_RATE_TAXES } from "@shared/constants";\nexport const x = DEFAULT_COST_RATE_TAXES;\n`,
+      `import { DEPRECIATION_YEARS } from "@shared/constants";\nexport const x = DEPRECIATION_YEARS;\n`,
     );
     try {
       let threw = false;

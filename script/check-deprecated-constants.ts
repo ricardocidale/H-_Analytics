@@ -2,31 +2,38 @@
 /**
  * check-deprecated-constants.ts — Deprecated-Constant Import Guardrail (Task #407)
  *
- * Five constants in `shared/constants.ts` are `@deprecated` in favour of the
+ * Four constants in `shared/constants.ts` are `@deprecated` in favour of the
  * locality-aware `getFactoryNumber(...)` lookup against `MODEL_CONSTANTS_REGISTRY`:
  *
  *   - DEPRECIATION_YEARS                 → getFactoryNumber('depreciationYears', country, state)
  *   - DAYS_PER_MONTH                     → getFactoryNumber('daysPerMonth')
  *   - DEFAULT_PROPERTY_INFLATION_RATE    → getFactoryNumber('inflationRate', country, state)
  *   - DEFAULT_COMPANY_INFLATION_RATE     → getFactoryNumber('inflationRate', country, state)
- *   - DEFAULT_COST_RATE_TAXES            → getFactoryNumber('costRateTaxes', country, state)
  *
- * Note: a sixth symbol (`DEFAULT_COMPANY_TAX_RATE`) was historically tracked
- * here. It was deleted in Audit #406 and the decision to NOT introduce a
- * separate `companyTaxRate` registry key was formally recorded in Task #403
- * (see the "COMPANY-LEVEL INCOME TAX — DECISION RECORDED" block in
- * `shared/constants.ts`). It no longer needs to be guarded — there is no
- * symbol left to import.
+ * Audit #406 (Task #405) reconciliation: two further legacy fallbacks
+ * (`DEFAULT_COMPANY_TAX_RATE` and `DEFAULT_COST_RATE_TAXES`) used to live
+ * here too, with values that diverged from the registry baselines (0.30 vs
+ * 0.21 federal corporate, and 0.03 vs 0.012 US property tax). They were
+ * deleted from `shared/constants.ts` and every call site now resolves
+ * exclusively through `getFactoryNumber('taxRate' | 'costRateTaxes', …)`.
+ * The decision to NOT introduce a separate `companyTaxRate` registry key
+ * was formally recorded in Task #403 (see the "COMPANY-LEVEL INCOME TAX —
+ * DECISION RECORDED" block in `shared/constants.ts`). They are intentionally
+ * NOT in the symbol list below — re-introducing either as a flat literal
+ * would resurrect the divergence this guard exists to prevent, so the
+ * TypeScript compile error from importing a non-existent export is the
+ * right failure mode.
  *
- * They are still imported by a small, frozen allow-list of files: schema column
- * defaults, the canonical registry / field-registry, UI fallbacks on the
- * Property Edit & Company Assumptions screens, the admin Model Defaults editor,
- * legacy engine re-exports, the seeds, and the existing test/golden harnesses.
- * Today the only signal that someone has *added* a brand-new import is the
- * IDE's @deprecated underline — easy to miss in CI.
+ * The remaining four are still imported by a small, frozen allow-list of
+ * files: schema column defaults, the canonical registry / field-registry,
+ * UI fallbacks on the Property Edit & Company Assumptions screens, the
+ * admin Model Defaults editor, legacy engine re-exports, the seeds, and
+ * the existing test/golden harnesses. Today the only signal that someone
+ * has *added* a brand-new import is the IDE's @deprecated underline —
+ * easy to miss in CI.
  *
  * This guard fails the build if a file outside the allow-list imports any of
- * those five symbols from `@shared/constants` / `shared/constants`. The error
+ * those four symbols from `@shared/constants` / `shared/constants`. The error
  * message points the author at `getFactoryNumber` and the registry.
  *
  * To extend the allow-list intentionally, add the path to ALLOWED_FILES below
@@ -38,15 +45,16 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
-// The five @deprecated symbols re-exported from shared/constants.ts. Keep in
-// sync with the @deprecated JSDoc blocks in that file. (DEFAULT_COMPANY_TAX_RATE
-// was removed from this list in Task #403 — see the file header note.)
+// The four @deprecated symbols re-exported from shared/constants.ts. Keep in
+// sync with the @deprecated JSDoc blocks in that file. (Two more were
+// previously listed — DEFAULT_COMPANY_TAX_RATE and DEFAULT_COST_RATE_TAXES —
+// and were deleted outright by Task #403 / Audit #406 (Task #405); importing
+// them now fails at the TypeScript layer.)
 const DEPRECATED_SYMBOLS = [
   "DEPRECIATION_YEARS",
   "DAYS_PER_MONTH",
   "DEFAULT_PROPERTY_INFLATION_RATE",
   "DEFAULT_COMPANY_INFLATION_RATE",
-  "DEFAULT_COST_RATE_TAXES",
 ];
 
 // Files permitted to import the deprecated symbols. Each entry is the exact
@@ -205,7 +213,7 @@ function main(): void {
     `❌ Deprecated constants: ${violations.length} new import(s) outside the allow-list.\n`,
   );
   console.error(
-    `   These five symbols in shared/constants.ts are @deprecated:`,
+    `   These four symbols in shared/constants.ts are @deprecated:`,
   );
   for (const s of DEPRECATED_SYMBOLS) console.error(`     - ${s}`);
   console.error(
