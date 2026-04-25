@@ -91,16 +91,25 @@ interface NavGroup {
  * to displayName / realName when the catalog hasn't been migrated yet.
  * The role label rides along as the secondary line so admins can still
  * trace the slug at a glance.
+ *
+ * Task #633 — `liveHumanNameById` carries the override-resolved humanName
+ * from `/api/admin/specialists` so renaming a Specialist via the Identity
+ * tab updates the sidebar row without a page reload. While the query is
+ * in flight (or if it fails), we fall back to the static catalog
+ * `humanName`, mirroring how Gaspar's row already behaves.
  */
 function specialistRow(
   specialistId: string,
   fallbackPrimary: string,
+  liveHumanNameById: Map<string, string>,
 ): { primary: string; secondary?: string } {
   const def = SPECIALIST_CATALOG.find((d) => d.id === specialistId);
   if (!def) return { primary: fallbackPrimary };
   const role = def.displayName ?? def.realName;
-  if (def.humanName && def.humanName !== role) {
-    return { primary: def.humanName, secondary: role };
+  const liveName = liveHumanNameById.get(specialistId);
+  const humanName = liveName ?? def.humanName;
+  if (humanName && humanName !== role) {
+    return { primary: humanName, secondary: role };
   }
   return { primary: role };
 }
@@ -110,12 +119,16 @@ function specialistSection(
   specialistId: string,
   fallbackPrimary: string,
   icon: React.ComponentType<{ className?: string }>,
+  liveHumanNameById: Map<string, string>,
 ): SectionItem {
-  const { primary, secondary } = specialistRow(specialistId, fallbackPrimary);
+  const { primary, secondary } = specialistRow(specialistId, fallbackPrimary, liveHumanNameById);
   return { value, label: primary, secondary, icon };
 }
 
-function buildNavGroups(gasparHumanName: string): NavGroup[] {
+function buildNavGroups(
+  gasparHumanName: string,
+  liveHumanNameById: Map<string, string>,
+): NavGroup[] {
   return [
     {
       // Task #496 — Gaspar (the Analyst orchestrator) gets a top-level
@@ -148,9 +161,9 @@ function buildNavGroups(gasparHumanName: string): NavGroup[] {
       label: "Management Company",
       icon: IconBriefcase,
       sections: [
-        specialistSection("specialist-mgmt-co-funding",          "mgmt-co.funding",          "Funding",          IconBriefcase),
-        specialistSection("specialist-mgmt-co-revenue",          "mgmt-co.revenue",          "Revenue",          IconBriefcase),
-        specialistSection("specialist-mgmt-co-icp-intelligence", "mgmt-co.icp-intelligence", "ICP Intelligence", IconBriefcase),
+        specialistSection("specialist-mgmt-co-funding",          "mgmt-co.funding",          "Funding",          IconBriefcase, liveHumanNameById),
+        specialistSection("specialist-mgmt-co-revenue",          "mgmt-co.revenue",          "Revenue",          IconBriefcase, liveHumanNameById),
+        specialistSection("specialist-mgmt-co-icp-intelligence", "mgmt-co.icp-intelligence", "ICP Intelligence", IconBriefcase, liveHumanNameById),
       ],
     },
     {
@@ -158,8 +171,8 @@ function buildNavGroups(gasparHumanName: string): NavGroup[] {
       label: "Property",
       icon: IconProperties,
       sections: [
-        specialistSection("specialist-property-risk-intelligence", "property.risk-intelligence", "Risk Intelligence",  IconProperties),
-        specialistSection("specialist-property-executive-summary", "property.executive-summary", "Executive Summary", IconProperties),
+        specialistSection("specialist-property-risk-intelligence", "property.risk-intelligence", "Risk Intelligence",  IconProperties, liveHumanNameById),
+        specialistSection("specialist-property-executive-summary", "property.executive-summary", "Executive Summary", IconProperties, liveHumanNameById),
       ],
     },
     {
@@ -170,7 +183,7 @@ function buildNavGroups(gasparHumanName: string): NavGroup[] {
         // Fernanda owns both photo enhancement and the render pipeline
         // as two jobs of one Specialist. Manual render controls live
         // inside her SpecialistPage (Runtime tab) — no separate entry.
-        specialistSection("specialist-photos-photo-enhancer", "photos.photo-enhancer", "Photo Enhancer & Renders", IconImage),
+        specialistSection("specialist-photos-photo-enhancer", "photos.photo-enhancer", "Photo Enhancer & Renders", IconImage, liveHumanNameById),
       ],
     },
     {
@@ -178,7 +191,7 @@ function buildNavGroups(gasparHumanName: string): NavGroup[] {
       label: "Portfolio Ops",
       icon: IconLayers,
       sections: [
-        specialistSection("specialist-portfolio-ops-watchdog", "portfolio-ops.watchdog", "Portfolio Watchdog", IconLayers),
+        specialistSection("specialist-portfolio-ops-watchdog", "portfolio-ops.watchdog", "Portfolio Watchdog", IconLayers, liveHumanNameById),
       ],
     },
     {
@@ -190,10 +203,10 @@ function buildNavGroups(gasparHumanName: string): NavGroup[] {
       label: "Constants & Authority Sources",
       icon: IconDatabase,
       sections: [
-        specialistSection("specialist-constants-tax-research",          "constants.tax-research",          "Tax Authority Research",         IconDatabase),
-        specialistSection("specialist-constants-macro-research",        "constants.macro-research",        "Macro Indicators Research",      IconDatabase),
-        specialistSection("specialist-constants-depreciation-research", "constants.depreciation-research", "Depreciation Schedule Research", IconDatabase),
-        specialistSection("specialist-constants-reporting-research",    "constants.reporting-research",    "Reporting Conventions Research", IconDatabase),
+        specialistSection("specialist-constants-tax-research",          "constants.tax-research",          "Tax Authority Research",         IconDatabase, liveHumanNameById),
+        specialistSection("specialist-constants-macro-research",        "constants.macro-research",        "Macro Indicators Research",      IconDatabase, liveHumanNameById),
+        specialistSection("specialist-constants-depreciation-research", "constants.depreciation-research", "Depreciation Schedule Research", IconDatabase, liveHumanNameById),
+        specialistSection("specialist-constants-reporting-research",    "constants.reporting-research",    "Reporting Conventions Research", IconDatabase, liveHumanNameById),
       ],
     },
     {
@@ -205,7 +218,7 @@ function buildNavGroups(gasparHumanName: string): NavGroup[] {
       label: "Resources Builder",
       icon: IconLayers,
       sections: [
-        specialistSection("specialist-resources-builder", "resources.builder", "Resource Builder", IconLayers),
+        specialistSection("specialist-resources-builder", "resources.builder", "Resource Builder", IconLayers, liveHumanNameById),
       ],
     },
     {
@@ -256,12 +269,13 @@ interface AiIntelligenceSidebarProps {
 }
 
 export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiIntelligenceSidebarProps) {
-  // Pull the current Specialist list so the Gaspar entry reflects any
-  // Identity-tab rename without a page reload. The IdentityTab already
-  // invalidates the ["/api/admin/specialists"] query on save, so the
-  // sidebar updates the moment the override is persisted. Falls back to
-  // the canonical "Gaspar" persona name while the query is in flight or
-  // if the request fails.
+  // Pull the current Specialist list so every Specialist entry (Gaspar
+  // plus the 12 sub-Specialists) reflects any Identity-tab rename without
+  // a page reload. The IdentityTab already invalidates the
+  // ["/api/admin/specialists"] query on save, so the sidebar updates the
+  // moment the override is persisted. Falls back to the static catalog
+  // `humanName` (and to "Gaspar" for the orchestrator) while the query is
+  // in flight or if the request fails — see Task #633.
   const { data: specialists } = useQuery<SpecialistListItem[]>({
     queryKey: ["/api/admin/specialists"],
   });
@@ -269,7 +283,21 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
     const row = specialists?.find((s) => s.id === ORCHESTRATOR_SPECIALIST_ID);
     return row?.humanName?.trim() || "Gaspar";
   }, [specialists]);
-  const navGroups = useMemo(() => buildNavGroups(gasparHumanName), [gasparHumanName]);
+  // Task #633 — map of Specialist id → override-resolved humanName for the
+  // 12 sub-Specialists. Empty/whitespace-only overrides are skipped so the
+  // catalog `humanName` fallback inside `specialistRow` still wins.
+  const liveHumanNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of specialists ?? []) {
+      const trimmed = s.humanName?.trim();
+      if (trimmed) map.set(s.id, trimmed);
+    }
+    return map;
+  }, [specialists]);
+  const navGroups = useMemo(
+    () => buildNavGroups(gasparHumanName, liveHumanNameById),
+    [gasparHumanName, liveHumanNameById],
+  );
   const activeGroup = getGroupForSection(activeSection, navGroups);
 
   // Task #502 — quick lookup of `hasLlmOverrides` keyed by Specialist id so
