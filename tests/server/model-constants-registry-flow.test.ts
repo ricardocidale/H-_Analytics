@@ -224,11 +224,13 @@ describe("Audit #319 R4 — constants registry migration invariants", () => {
     });
 
     it("company tax rate resolves through the same `taxRate` registry key as property income tax", () => {
-      // The engine's company fallback (`DEFAULT_COMPANY_TAX_RATE_US` in
+      // The engine's company fallback (Task #597 made it locality-aware via
+      // `getFactoryNumber('taxRate', global.companyCountry, …)` in
       // engine/company/company-engine.ts) and the seeded
       // `globalAssumptions.companyTaxRate` value both compute exactly
-      // `getFactoryNumber('taxRate', 'United States')` = 0.21. Locking the
-      // numeric identity here documents the shared source of truth.
+      // `getFactoryNumber('taxRate', 'United States')` = 0.21 for a US
+      // management company. Locking the numeric identity here documents
+      // the shared source of truth.
       const us = getFactoryNumber("taxRate", "United States");
       expect(us).toBe(0.21);
       // No silent drift to the legacy 0.30 blended estimate.
@@ -252,6 +254,110 @@ describe("Audit #319 R4 — constants registry migration invariants", () => {
       // record the source in the PR; the inequality below is the primary
       // invariant.
       expect(mx).not.toBe(us);
+    });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Task #597 — engine fallback uses the management company's own country
+    //
+    // Locks the actual engine call path: `generateCompanyProForma` no
+    // longer hard-codes 'United States' when `global.companyTaxRate` is
+    // undefined. With a non-US `companyCountry` the recovered effective
+    // tax rate (`companyIncomeTax / preTaxIncome`) must equal that
+    // country's `taxRate` registry baseline — NOT the US 0.21.
+    // ─────────────────────────────────────────────────────────────────────
+    it("Task #597: engine falls back to the management company's own country, not US", async () => {
+      const { generateCompanyProForma } = await import(
+        "../../engine/company/company-engine"
+      );
+      const { makePropertyInput } = await import("../fixtures/factories");
+      type GlobalInput = import("../../engine/types").GlobalInput;
+
+      // Mirror the overhead-free fixture used in card-engine-parity:
+      // zero out partner comp + staffing + variable costs so EBITDA > 0
+      // with one small property, guaranteeing positive preTaxIncome that
+      // we can divide back through to recover the engine's effective rate.
+      // companyTaxRate is intentionally left undefined — this test
+      // exercises the fallback path, not the override.
+      const baseGlobal: GlobalInput = {
+        modelStartDate: "2026-01-01",
+        companyOpsStartDate: "2026-01-01",
+        capitalRaise1Date: "2026-01-01",
+        capitalRaise1Amount: 0,
+        capitalRaise2Amount: 0,
+        fundingInterestRate: 0,
+        inflationRate: 0,
+        fixedCostEscalationRate: 0,
+        marketingRate: 0,
+        miscOpsRate: 0,
+        partnerCompYear1: 0, partnerCompYear2: 0, partnerCompYear3: 0,
+        partnerCompYear4: 0, partnerCompYear5: 0, partnerCompYear6: 0,
+        partnerCompYear7: 0, partnerCompYear8: 0, partnerCompYear9: 0,
+        partnerCompYear10: 0,
+        staffSalary: 0,
+        officeLeaseStart: 0,
+        professionalServicesStart: 0,
+        techInfraStart: 0,
+        businessInsuranceStart: 0,
+        travelCostPerClient: 0,
+        itLicensePerClient: 0,
+      };
+
+      const property = {
+        ...makePropertyInput({
+          operationsStartDate: "2026-01-01",
+          acquisitionDate: "2026-01-01",
+          roomCount: 50,
+          startAdr: 200,
+          startOccupancy: 0.7,
+          maxOccupancy: 0.7,
+          occupancyRampMonths: 1,
+          occupancyGrowthStep: 0,
+        }),
+        baseManagementFeeRate: 0.20,
+        incentiveManagementFeeRate: 0,
+      };
+
+      const recoverEffectiveRate = (months: ReturnType<typeof generateCompanyProForma>) => {
+        const good = months.find(
+          (m) => m.preTaxIncome > 1 && m.companyIncomeTax > 0,
+        );
+        if (!good) {
+          throw new Error(
+            "Task #597 regression: overhead-free company fixture produced no " +
+            "positive-preTax month — the FIXTURE is broken, not the engine.",
+          );
+        }
+        return good.companyIncomeTax / good.preTaxIncome;
+      };
+
+      // 1. US baseline (companyCountry undefined → resolves to US through
+      //    the `country ?? null` fallback inside `getFactoryNumber`). The
+      //    existing 0.21 golden value must be preserved exactly.
+      const usOut = generateCompanyProForma([property], baseGlobal, 24);
+      const usEffective = recoverEffectiveRate(usOut);
+      expect(usEffective).toBeCloseTo(
+        getFactoryNumber("taxRate", "United States"),
+        12,
+      );
+
+      // 2. Same scenario but the management company is in Mexico. The
+      //    effective rate must now be Mexico's `taxRate` baseline — and
+      //    must NOT silently collapse back to the US 0.21. This is the
+      //    actual regression Task #597 fixes.
+      const mxOut = generateCompanyProForma(
+        [property],
+        { ...baseGlobal, companyCountry: "Mexico" },
+        24,
+      );
+      const mxEffective = recoverEffectiveRate(mxOut);
+      expect(mxEffective).toBeCloseTo(
+        getFactoryNumber("taxRate", "Mexico"),
+        12,
+      );
+      expect(mxEffective).not.toBeCloseTo(
+        getFactoryNumber("taxRate", "United States"),
+        4,
+      );
     });
   });
 

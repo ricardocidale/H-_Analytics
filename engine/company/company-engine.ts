@@ -42,10 +42,16 @@ import { getFactoryNumber } from '@shared/model-constants-registry';
 // rate is sourced from the same registry key (`taxRate`) as the property
 // SPV income tax — there is intentionally NO separate `companyTaxRate`
 // registry key. See the "COMPANY-LEVEL INCOME TAX — DECISION RECORDED"
-// block in `shared/constants.ts` for the full rationale. This US baseline
-// (federal corporate = 0.21) is the runtime fallback when the per-company
-// override (`global.companyTaxRate`) is undefined.
-const DEFAULT_COMPANY_TAX_RATE_US = getFactoryNumber('taxRate', 'United States');
+// block in `shared/constants.ts` for the full rationale.
+//
+// Task #597: when the per-company override (`global.companyTaxRate`) is
+// undefined, the registry is consulted using the management company's OWN
+// (country, subdivision) — read from `globalAssumptions.companyCountry` /
+// `companyStateProvince` and threaded through `GlobalInput`. A non-US
+// management company therefore picks up its own country's statutory rate
+// rather than silently falling back to the US 0.21 baseline. Existing
+// US-seeded scenarios are unaffected: with `companyCountry === undefined`
+// or `"United States"`, the lookup still resolves to 0.21.
 import { computeCostOfServices } from '@calc/services/cost-of-services';
 import type { ServiceTemplate, AggregatedServiceCosts } from '@calc/services/types';
 import { PropertyInput, GlobalInput, CompanyMonthlyFinancials, ServiceFeeBreakdown } from '../types';
@@ -140,7 +146,8 @@ export function generateCompanyProForma(
   const itLicensePerClient = global.itLicensePerClient ?? DEFAULT_IT_LICENSE_PER_CLIENT;
   const marketingRate = global.marketingRate ?? DEFAULT_MARKETING_RATE;
   const miscOpsRate = global.miscOpsRate ?? DEFAULT_MISC_OPS_RATE;
-  const companyTaxRate = global.companyTaxRate ?? DEFAULT_COMPANY_TAX_RATE_US;
+  const companyTaxRate = global.companyTaxRate
+    ?? getFactoryNumber('taxRate', global.companyCountry ?? null, global.companyStateProvince ?? null);
   const capitalRaise1Amount = global.capitalRaise1Amount ?? DEFAULT_CAPITAL_RAISE_TRANCHE;
   const capitalRaise2Amount = global.capitalRaise2Amount ?? DEFAULT_CAPITAL_RAISE_TRANCHE;
   const fundingInterestRate = global.fundingInterestRate ?? 0;

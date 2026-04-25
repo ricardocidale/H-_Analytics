@@ -172,8 +172,9 @@ function makeOverheadFreeGlobal(overrides: Partial<GlobalInput> = {}): GlobalInp
     capitalRaise1Amount: 0,
     capitalRaise2Amount: 0,
     fundingInterestRate: 0,
-    // companyTaxRate intentionally NOT set — engine must fall through to
-    // its registry-backed DEFAULT_COMPANY_TAX_RATE_US.
+    // companyTaxRate intentionally NOT set, and companyCountry left undefined
+    // so the Task #597 fallback resolves through getFactoryNumber('taxRate',
+    // null, null) — which still returns the US baseline (0.21).
     ...overrides,
   } as GlobalInput;
 }
@@ -249,10 +250,11 @@ describe("Task #603 — card display ⇆ engine consumption parity", () => {
       // absorbing pure floating-point reassociation. The strict
       // equality check below (cardDisplayedRate vs registryRate) gives
       // us the byte-equal guarantee on the card side, and the engine's
-      // own constant `DEFAULT_COMPANY_TAX_RATE_US` is the literal
-      // `getFactoryNumber('taxRate','United States')` call (see
-      // engine/company/company-engine.ts:48), so the two are exact at
-      // the source — only the recovered ratio is lossy.
+      // own fallback (Task #597) is a literal
+      // `getFactoryNumber('taxRate', companyCountry ?? null, …)` call —
+      // with companyCountry undefined here, that resolves to the US
+      // baseline, so the two sides are exact at the source. Only the
+      // recovered ratio is lossy.
       expect(engineConsumedRate).toBeCloseTo(cardDisplayedRate, 12);
 
       // Belt-and-suspenders — also pin both sides to the registry source
@@ -266,7 +268,7 @@ describe("Task #603 — card display ⇆ engine consumption parity", () => {
       ).toBe(registryRate);
       expect(
         engineConsumedRate,
-        "engine/company/company-engine.ts DEFAULT_COMPANY_TAX_RATE_US " +
+        "engine/company/company-engine.ts companyTaxRate fallback " +
           "drifted from getFactoryNumber('taxRate', 'United States')",
       ).toBeCloseTo(registryRate, 12);
     });

@@ -213,6 +213,14 @@ export interface GlobalInput {
   utilitiesVariableSplit?: number;
   // Tax
   companyTaxRate?: number;
+  // Locality of the management company itself (Task #597). Used as the
+  // (country, subdivision) lookup when `companyTaxRate` is undefined so the
+  // engine falls back to the management company's own statutory rate via the
+  // `taxRate` registry key — instead of silently using the US 0.21 baseline
+  // for non-US companies. `companyStateProvince` is only consulted by the
+  // registry when `companyCountry === "United States"`.
+  companyCountry?: string | null;
+  companyStateProvince?: string | null;
   // Exit & Sale
   exitCapRate?: number;
   salesCommissionRate?: number;
