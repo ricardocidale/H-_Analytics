@@ -26,6 +26,24 @@ export class ResearchRunsStorage {
     return run;
   }
 
+  /**
+   * Direct lookup by primary key. Used by the Constants doctrine guard on
+   * POST /api/admin/model-constants/:key/apply-research (Task #388) to
+   * verify a client-supplied `researchRunId` against the persisted row
+   * regardless of how old the run is. The handler applies its own
+   * constant-key + locality scoping check on the returned metadata so a
+   * cross-row replay still fails closed; this method is intentionally
+   * unbounded and unscoped so an admin who applies a months-old run that
+   * matches the locality is not silently 404-ed by a stale row falling
+   * outside a list-window.
+   */
+  async getResearchRunById(id: number): Promise<ResearchRun | undefined> {
+    const [row] = await this._rtx.db.select().from(researchRuns)
+      .where(eq(researchRuns.id, id))
+      .limit(1);
+    return row;
+  }
+
   async updateResearchRun(id: number, updates: Partial<ResearchRun>): Promise<ResearchRun | undefined> {
     const [updated] = await this._rtx.db.update(researchRuns)
       .set(updates)

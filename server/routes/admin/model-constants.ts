@@ -25,6 +25,7 @@
 
 import { type Express } from "express";
 import { z } from "zod";
+import deepEqual from "fast-deep-equal";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
 import { logAndSendError, logActivity } from "../helpers";
@@ -54,6 +55,15 @@ const overrideBodySchema = z.object({
  * Body schema for the analyst-apply route. Mirrors a regeneration proposal
  * so the client can round-trip the response from POST .../regenerate
  * straight into POST .../apply-research.
+ *
+ * Doctrine note (Task #388 — apply-research bypass close): `researchRunId`
+ * is REQUIRED. The route loads the persisted `research_runs` row and
+ * verifies that `value`, `authority`, `referenceUrl`, and `reasoning` all
+ * match the proposal the Specialist actually returned. The override is
+ * written from the run's persisted proposal — the request body fields are
+ * only used as a tamper-detection cross-check. An admin can no longer
+ * skip the Specialist regenerate step, type any value, label it
+ * "analyst," and write it through.
  */
 const applyResearchBodySchema = z.object({
   country: z.string().nullable().optional(),
@@ -66,10 +76,11 @@ const applyResearchBodySchema = z.object({
    * `research_runs.id` returned by the upstream `proposeConstantRegeneration`
    * call. The Constants UI round-trips it from the proposal response into the
    * Apply request so the override row is FK-linked to the exact run that
-   * produced it. Optional because legacy admin Apply paths and tests may not
-   * have a run id; the column is nullable in the schema either way.
+   * produced it. REQUIRED — the route refuses to write an analyst-sourced
+   * override that is not provably traceable to a server-issued proposal
+   * (see Task #388 — close the apply-research doctrine bypass).
    */
-  researchRunId: z.number().int().positive().nullable().optional(),
+  researchRunId: z.number().int().positive(),
 });
 
 const localityQuerySchema = z.object({
@@ -449,12 +460,55 @@ export function registerModelConstantsRoutes(app: Express) {
    * PUT path but with source='analyst' and citation fields filled from the
    * proposal payload (not user free-text). The factory-equality invariant
    * applies — applying a value equal to factory deletes the row instead.
+   *
+   * Doctrine guard (Task #388 — close the apply-research bypass):
+   *
+   * Before Phase 3 closed the manual edit path, an admin could bypass the
+   * Specialist by calling this route directly with any client-supplied
+   * `value` / `authority` / `reasoning`. The route now requires a
+   * `researchRunId`, loads that `research_runs` row scoped to (key, country,
+   * subdivision), and refuses to write unless the body's value/authority/
+   * referenceUrl/reasoning all match what the Specialist actually returned.
+   * The override is then written from the *persisted* proposal — the body
+   * fields are tamper-detection only. Mismatches log a `logger.warn` audit
+   * trail and return 422 so we can surface bypass attempts in monitoring.
    */
   app.post("/api/admin/model-constants/:key/apply-research", requireAdmin, async (req, res) => {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
         return res.status(404).json({ error: `Unknown constant key: ${key}` });
+      }
+
+      const userIdForLog = (req as { user?: { id?: number } }).user?.id ?? null;
+
+      // Doctrine pre-check (Task #388): the apply path is reserved for
+      // server-issued Specialist proposals, so a missing or malformed
+      // `researchRunId` is a doctrine violation, not a malformed request.
+      // It returns 422 (the doctrine code) rather than 400 (schema fail)
+      // so monitoring can distinguish bypass attempts from typos. We do
+      // this BEFORE the rest of the body parse so the response is the
+      // same whether the caller omitted the id, sent null, or sent a
+      // non-positive integer — every shape that means "no run id" is one
+      // doctrine error, surfaced uniformly.
+      const rawRunId = (req.body as { researchRunId?: unknown } | null)?.researchRunId;
+      if (
+        typeof rawRunId !== "number" ||
+        !Number.isFinite(rawRunId) ||
+        !Number.isInteger(rawRunId) ||
+        rawRunId <= 0
+      ) {
+        logger.warn(
+          `apply-research rejected: missing or invalid researchRunId for ${key}. ` +
+            `userId=${userIdForLog ?? "anonymous"}. raw=${JSON.stringify(rawRunId)}.`,
+          "model-constants",
+        );
+        return res.status(422).json({
+          error:
+            `Apply requires a researchRunId returned by POST /api/admin/model-constants/${key}/regenerate. ` +
+            `Only AI Intelligence Specialists may set Constants — re-run /regenerate or /refresh and apply the result unchanged.`,
+          code: "RESEARCH_RUN_ID_REQUIRED",
+        });
       }
 
       const parsed = applyResearchBodySchema.safeParse(req.body);
@@ -467,27 +521,162 @@ export function registerModelConstantsRoutes(app: Express) {
         return res.status(400).json({ error: localityCheck.error });
       }
 
+      const loc = `${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}`;
+
+      // Doctrine: the run id MUST resolve to a real research_runs row
+      // whose recorded constant key/country/subdivision match the request.
+      // We use a direct unbounded lookup by primary key (not a windowed
+      // list+find) so a months-old run isn't silently 404'd just because
+      // it fell outside a recency window — that would weaken the
+      // traceability contract by accidentally rejecting valid replays.
+      // After the row is loaded we still enforce key + locality scoping
+      // against `metadata.constant`, so a run for a different tuple
+      // cannot be replayed cross-row.
+      const run = (await storage.getResearchRunById(parsed.data.researchRunId)) ?? null;
+      if (!run) {
+        logger.warn(
+          `apply-research tamper attempt: researchRunId=${parsed.data.researchRunId} ` +
+            `does not exist (requested for ${key} (${loc})). userId=${userIdForLog ?? "anonymous"}.`,
+          "model-constants",
+        );
+        return res.status(422).json({
+          error:
+            `research_run ${parsed.data.researchRunId} does not exist. ` +
+            `Apply requires a researchRunId returned by POST /api/admin/model-constants/${key}/regenerate ` +
+            `for this same key and locality.`,
+          code: "RESEARCH_RUN_NOT_FOUND",
+        });
+      }
+
+      const meta = (run.metadata ?? {}) as {
+        constant?: {
+          key?: string;
+          country?: string | null;
+          subdivision?: string | null;
+        };
+        proposal?: {
+          value?: unknown;
+          authority?: string;
+          referenceUrl?: string | null;
+          reasoning?: string;
+        };
+      };
+
+      // Cross-row replay guard. The persisted run's metadata.constant
+      // tuple must equal the request's (key, country, subdivision). This
+      // closes the bypass shape where an admin grabs a researchRunId
+      // produced for one (key, locality) and applies it against a
+      // different one — without this check, a direct-by-id lookup would
+      // happily return that row.
+      const persistedConstant = meta.constant ?? {};
+      const persistedCountry = persistedConstant.country ?? null;
+      const persistedSubdivision = persistedConstant.subdivision ?? null;
+      if (
+        persistedConstant.key !== key ||
+        persistedCountry !== country ||
+        persistedSubdivision !== subdivision
+      ) {
+        const persistedLoc = `${persistedCountry ?? "universal"}${persistedSubdivision ? `/${persistedSubdivision}` : ""}`;
+        logger.warn(
+          `apply-research tamper attempt: researchRunId=${parsed.data.researchRunId} ` +
+            `belongs to ${persistedConstant.key ?? "(unknown)"} (${persistedLoc}) ` +
+            `but apply requested ${key} (${loc}). userId=${userIdForLog ?? "anonymous"}.`,
+          "model-constants",
+        );
+        return res.status(422).json({
+          error:
+            `research_run ${parsed.data.researchRunId} belongs to ${persistedConstant.key ?? "(unknown)"} ` +
+            `(${persistedLoc}), not ${key} (${loc}). ` +
+            `Only AI Intelligence Specialists may set Constants — re-run /regenerate or /refresh for this row.`,
+          code: "RESEARCH_RUN_LOCALITY_MISMATCH",
+          expected: { key, country, subdivision },
+          actual: {
+            key: persistedConstant.key ?? null,
+            country: persistedCountry,
+            subdivision: persistedSubdivision,
+          },
+        });
+      }
+      const persisted = meta.proposal;
+      if (!persisted || persisted.value === undefined || !persisted.authority) {
+        logger.warn(
+          `apply-research rejected: research_run ${run.id} for ${key} (${loc}) ` +
+            `does not carry a complete Specialist proposal. userId=${userIdForLog ?? "anonymous"}.`,
+          "model-constants",
+        );
+        return res.status(422).json({
+          error:
+            `research_run ${run.id} does not carry a complete Specialist proposal — ` +
+            `cannot apply.`,
+          code: "RESEARCH_RUN_INCOMPLETE",
+        });
+      }
+
+      // Tamper check — every proposer-controlled field in the body must
+      // match the persisted proposal byte-for-byte. We check value with a
+      // deep-equal (the proposer's value is JSON-typed: number / string /
+      // object / array). authority/reasoning are strict string equality.
+      // referenceUrl tolerates the null/missing equivalence (the proposer
+      // can return `null` when no canonical URL exists).
+      const persistedReferenceUrl = persisted.referenceUrl ?? null;
+      const bodyReferenceUrl = parsed.data.referenceUrl ?? null;
+      const tamperedFields: string[] = [];
+      if (!deepEqual(parsed.data.value, persisted.value)) tamperedFields.push("value");
+      if (parsed.data.authority !== persisted.authority) tamperedFields.push("authority");
+      if (bodyReferenceUrl !== persistedReferenceUrl) tamperedFields.push("referenceUrl");
+      if (parsed.data.reasoning !== (persisted.reasoning ?? "")) tamperedFields.push("reasoning");
+
+      if (tamperedFields.length > 0) {
+        logger.warn(
+          `apply-research tamper attempt: ${tamperedFields.join(", ")} ` +
+            `do not match research_run ${run.id} for ${key} (${loc}). ` +
+            `userId=${userIdForLog ?? "anonymous"}. ` +
+            `body=${JSON.stringify({
+              value: parsed.data.value,
+              authority: parsed.data.authority,
+              referenceUrl: bodyReferenceUrl,
+              reasoning: parsed.data.reasoning,
+            })} persisted=${JSON.stringify({
+              value: persisted.value,
+              authority: persisted.authority,
+              referenceUrl: persistedReferenceUrl,
+              reasoning: persisted.reasoning,
+            })}`,
+          "model-constants",
+        );
+        return res.status(422).json({
+          error:
+            `Apply payload does not match the persisted Specialist proposal for research_run ${run.id}. ` +
+            `Mismatched fields: ${tamperedFields.join(", ")}. ` +
+            `Only AI Intelligence Specialists may set Constants — re-run /regenerate or /refresh and apply the result unchanged.`,
+          code: "RESEARCH_RUN_TAMPERED",
+          mismatchedFields: tamperedFields,
+        });
+      }
+
       const userId = (req as { user?: { id?: number } }).user?.id ?? null;
 
+      // Write the override from the *persisted* proposal — the request
+      // body has been verified to match, but we use the run as the
+      // canonical source of truth so future audits can re-derive the
+      // override from the FK-linked research_run alone.
       const result = await storage.upsertModelConstantOverride({
         constantKey: key,
         country,
         countrySubdivision: subdivision,
-        value: parsed.data.value,
+        value: persisted.value,
         source: "analyst",
-        authority: parsed.data.authority,
-        referenceUrl: parsed.data.referenceUrl ?? null,
+        authority: persisted.authority,
+        referenceUrl: persistedReferenceUrl,
         // Phase 2: every analyst regeneration writes a `research_runs` row
         // (see `proposeConstantRegeneration` in server/ai/regenerate-
         // constants.ts) and the proposal carries that id back to the Apply
         // call so the override is traceable to the run that produced it.
-        // Falls back to null only when the upstream persist failed (the
-        // proposal logs a warning) or the legacy client omitted the field.
-        researchRunId: parsed.data.researchRunId ?? null,
+        researchRunId: run.id,
         // Preserve the analyst's reasoning in the override row so the audit
         // trail can show *why* the value moved when the override is later
         // listed in Admin.
-        overrideNote: parsed.data.reasoning,
+        overrideNote: persisted.reasoning ?? null,
         createdBy: userId,
       });
 
@@ -497,8 +686,8 @@ export function registerModelConstantsRoutes(app: Express) {
         "model-constant",
         0,
         result === null
-          ? `Analyst regeneration of ${key} (${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}) matched factory — no override stored.`
-          : `Analyst regenerated ${key} (${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}). Authority: ${parsed.data.authority}.`,
+          ? `Analyst regeneration of ${key} (${loc}) matched factory — no override stored.`
+          : `Analyst regenerated ${key} (${loc}). Authority: ${persisted.authority}.`,
       );
 
       res.json({

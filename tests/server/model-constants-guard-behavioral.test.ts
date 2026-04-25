@@ -24,6 +24,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import request from "supertest";
 
+/**
+ * Sample research_run that the apply-research handler will look up to
+ * verify the body. Task #388 hardened the apply path to require a real
+ * server-issued proposal — the storage mock returns this row for the
+ * (taxRate, United States, California) tuple.
+ */
+const FIXTURE_RESEARCH_RUN_ID = 999;
+const FIXTURE_PROPOSAL = {
+  value: 0.30,
+  authority: "California FTB",
+  referenceUrl: "https://example.test/ftb",
+  reasoning: "Statutory rate change",
+};
+
 vi.mock("../../server/storage", () => ({
   storage: {
     upsertModelConstantOverride: vi.fn(async (args: Record<string, unknown>) => ({
@@ -34,6 +48,44 @@ vi.mock("../../server/storage", () => ({
     deleteModelConstantOverride: vi.fn(async () => undefined),
     listModelConstantOverrides: vi.fn(async () => []),
     listCanonicals: vi.fn(async () => []),
+    // The doctrine-correct apply path looks the run up directly by id
+    // (Task #388); the mock returns the fixture row only for the
+    // (taxRate, US, California) tuple that the test exercises.
+    getResearchRunById: vi.fn(async (id: number) => {
+      if (id !== FIXTURE_RESEARCH_RUN_ID) return undefined;
+      return {
+        id: FIXTURE_RESEARCH_RUN_ID,
+        startedAt: new Date(),
+        completedAt: new Date(),
+        status: "completed",
+        metadata: {
+          specialistId: "constants.tax-research",
+          constant: { key: "taxRate", country: "United States", subdivision: "California" },
+          proposal: FIXTURE_PROPOSAL,
+        },
+      };
+    }),
+    // Sibling /apply-proposal still uses the constant-scoped helper.
+    getResearchRunsForConstant: vi.fn(async (
+      key: string,
+      country: string | null,
+      subdivision: string | null,
+    ) => {
+      if (key === "taxRate" && country === "United States" && subdivision === "California") {
+        return [{
+          id: FIXTURE_RESEARCH_RUN_ID,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          status: "completed",
+          metadata: {
+            specialistId: "constants.tax-research",
+            constant: { key, country, subdivision },
+            proposal: FIXTURE_PROPOSAL,
+          },
+        }];
+      }
+      return [];
+    }),
   },
 }));
 
@@ -187,7 +239,7 @@ describe("PUT /api/admin/model-constants/:key — non-specialist-owned key (lega
   });
 });
 
-describe("POST /api/admin/model-constants/:key/apply-research — analyst writer is unaffected", () => {
+describe("POST /api/admin/model-constants/:key/apply-research — analyst writer (Task #388 doctrine)", () => {
   let app: Express;
 
   beforeEach(() => {
@@ -195,7 +247,7 @@ describe("POST /api/admin/model-constants/:key/apply-research — analyst writer
     app = buildApp();
   });
 
-  it("still writes for a specialist-owned key (HTTP 200, source='analyst')", async () => {
+  it("happy path: matching body + valid researchRunId still writes (HTTP 200, source='analyst')", async () => {
     const res = await request(app)
       .post("/api/admin/model-constants/taxRate/apply-research")
       .send({
@@ -205,7 +257,7 @@ describe("POST /api/admin/model-constants/:key/apply-research — analyst writer
         authority: "California FTB",
         referenceUrl: "https://example.test/ftb",
         reasoning: "Statutory rate change",
-        researchRunId: 999,
+        researchRunId: FIXTURE_RESEARCH_RUN_ID,
       });
 
     expect(res.status).toBe(200);
@@ -214,8 +266,9 @@ describe("POST /api/admin/model-constants/:key/apply-research — analyst writer
       expect.objectContaining({
         constantKey: "taxRate",
         source: "analyst",
-        researchRunId: 999,
+        researchRunId: FIXTURE_RESEARCH_RUN_ID,
         authority: "California FTB",
+        value: 0.30,
       }),
     );
   });
