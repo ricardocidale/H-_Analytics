@@ -82,6 +82,13 @@ interface VectorBenchHistoryRun {
   queries: number;
   topK: number;
   sizes: number[];
+  /**
+   * Where this entry came from. Live runs from `recordHistory` in
+   * `script/vector-bench.ts` set `"vector-bench"`; this script tags every
+   * entry it parses out of the markdown log with `"backfill"` so the chart
+   * can visually distinguish historical fills from live runs.
+   */
+  source: "vector-bench" | "backfill";
   /** Embedding source — only present on runs from the recall-aware bench. */
   embedSource?: "openai" | "random";
   results: Array<{
@@ -323,6 +330,7 @@ function parseBlock(block: RawBlock): VectorBenchHistoryRun | null {
     queries: queries || results[0].single.count,
     topK: topK || 8,
     sizes: sizesDeclared.length > 0 ? sizesDeclared : sizesFromTable,
+    source: "backfill",
     results,
   };
 }
@@ -360,27 +368,42 @@ async function loadHistory(path: string): Promise<VectorBenchHistory> {
 function mergeRuns(
   existing: VectorBenchHistoryRun[],
   parsed: VectorBenchHistoryRun[],
-): { merged: VectorBenchHistoryRun[]; added: number; skipped: number } {
-  const seen = new Set(existing.map((r) => r.timestamp));
+): {
+  merged: VectorBenchHistoryRun[];
+  added: number;
+  skipped: number;
+  taggedExisting: number;
+} {
+  const byTimestamp = new Map<string, VectorBenchHistoryRun>();
+  for (const r of existing) byTimestamp.set(r.timestamp, r);
+
   let added = 0;
   let skipped = 0;
-  const toAdd: VectorBenchHistoryRun[] = [];
+  let taggedExisting = 0;
   for (const entry of parsed) {
-    if (seen.has(entry.timestamp)) {
+    const prior = byTimestamp.get(entry.timestamp);
+    if (prior) {
+      // Idempotency: never duplicate. But if the pre-existing entry was
+      // written before the `source` field existed, backfill it now so the
+      // chart can distinguish historical fills from live runs uniformly.
+      // Counted separately from `added` so a no-op re-run still reports 0.
+      if (!prior.source) {
+        prior.source = "backfill";
+        taggedExisting += 1;
+      }
       skipped += 1;
       continue;
     }
-    seen.add(entry.timestamp);
-    toAdd.push(entry);
+    byTimestamp.set(entry.timestamp, entry);
     added += 1;
   }
   // Keep the runs sorted oldest -> newest so the chart can render straight
   // from the array (and so future appends from `recordHistory` slot in at
   // the end as the most-recent entry).
-  const merged = [...existing, ...toAdd].sort((a, b) =>
+  const merged = Array.from(byTimestamp.values()).sort((a, b) =>
     a.timestamp.localeCompare(b.timestamp),
   );
-  return { merged, added, skipped };
+  return { merged, added, skipped, taggedExisting };
 }
 
 async function main(): Promise<void> {
@@ -407,9 +430,15 @@ async function main(): Promise<void> {
   console.log(`Parsed ${parsedEntries.length} entries from markdown`);
 
   const history = await loadHistory(args.outputPath);
-  const { merged, added, skipped } = mergeRuns(history.runs, parsedEntries);
+  const { merged, added, skipped, taggedExisting } = mergeRuns(
+    history.runs,
+    parsedEntries,
+  );
   console.log(
-    `History: ${history.runs.length} existing, +${added} added, ${skipped} duplicate(s) skipped`,
+    `History: ${history.runs.length} existing, +${added} added, ${skipped} duplicate(s) skipped` +
+      (taggedExisting > 0
+        ? `, ${taggedExisting} pre-existing run(s) tagged source="backfill"`
+        : ""),
   );
 
   if (args.dryRun) {
@@ -423,7 +452,8 @@ async function main(): Promise<void> {
     // Refresh `updatedAt` only if we actually changed anything; otherwise
     // re-running the script as a no-op shouldn't bump the chart's "last
     // updated" badge.
-    updatedAt: added > 0 ? new Date().toISOString() : history.updatedAt,
+    updatedAt:
+      added > 0 || taggedExisting > 0 ? new Date().toISOString() : history.updatedAt,
     runs: merged,
   };
   await mkdir(dirname(args.outputPath), { recursive: true });
