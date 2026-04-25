@@ -282,6 +282,28 @@ describe("Audit #319 R4 — constants registry migration invariants", () => {
         .toBe(0.008);
     });
 
+    // Task #605 — high-volume hospitality states added to the overlay so
+    // they no longer silently fall back to the US 1.2% baseline.
+    it("New Jersey overlay = 0.019 (highest effective property tax in U.S.)", () => {
+      expect(getFactoryNumber("costRateTaxes", "United States", "New Jersey"))
+        .toBe(0.019);
+    });
+
+    it("Massachusetts overlay = 0.012 (commercial-classified hospitality)", () => {
+      expect(getFactoryNumber("costRateTaxes", "United States", "Massachusetts"))
+        .toBe(0.012);
+    });
+
+    it("Illinois overlay = 0.019 (second-highest effective property tax)", () => {
+      expect(getFactoryNumber("costRateTaxes", "United States", "Illinois"))
+        .toBe(0.019);
+    });
+
+    it("Georgia overlay = 0.009 (locked-in baseline)", () => {
+      expect(getFactoryNumber("costRateTaxes", "United States", "Georgia"))
+        .toBe(0.009);
+    });
+
     it("United Kingdom = 0.012 (Council Tax / Business Rates)", () => {
       expect(getFactoryNumber("costRateTaxes", "United Kingdom")).toBe(0.012);
     });

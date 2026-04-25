@@ -365,13 +365,43 @@ export const US_STATE_DEFAULTS: Record<string, UsStateDefaults> = {
   },
   "Georgia": {
     label: "Georgia",
-    taxRate: 0.268,        // 21% + 5.75%
+    // Source: GA Dept. of Revenue corporate net worth/income tax (5.75%, 2025);
+    // Tax Foundation "Property Taxes by State" 2024 — GA effective rate ~0.92%.
+    taxRate: 0.268,        // 21% federal + 5.75% state corporate
     costRateTaxes: 0.009,
   },
   "Arizona": {
     label: "Arizona",
     taxRate: 0.259,        // 21% + 4.9%
     costRateTaxes: 0.006,
+  },
+  "New Jersey": {
+    label: "New Jersey",
+    // Source: NJ Division of Taxation Corporation Business Tax (9.0% base
+    // rate, 2025; surtax to 11.5% applies above $10M income but base used
+    // here for typical hospitality property);
+    // Tax Foundation "Property Taxes by State" 2024 — NJ effective rate
+    // ~2.13% (highest in U.S.); hospitality blended ≈ 1.9%.
+    taxRate: 0.30,         // 21% federal + 9.0% state CBT
+    costRateTaxes: 0.019,
+  },
+  "Massachusetts": {
+    label: "Massachusetts",
+    // Source: MA Dept. of Revenue Corporate Excise Tax (8.0% on income,
+    // 2025); Tax Foundation "Property Taxes by State" 2024 — MA effective
+    // rate ~1.04%; commercial classification (Boston, Cambridge) trends
+    // higher, blended ≈ 1.2%.
+    taxRate: 0.29,         // 21% federal + 8.0% state corporate excise
+    costRateTaxes: 0.012,
+  },
+  "Illinois": {
+    label: "Illinois",
+    // Source: IL Dept. of Revenue — corporate income tax 7.0% + Personal
+    // Property Replacement Tax 2.5% = 9.5% combined state burden (2025);
+    // Tax Foundation "Property Taxes by State" 2024 — IL effective rate
+    // ~2.08% (second-highest in U.S.); hospitality blended ≈ 1.9%.
+    taxRate: 0.305,        // 21% federal + 9.5% state (CIT + PPRT)
+    costRateTaxes: 0.019,
   },
 };
 
