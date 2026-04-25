@@ -11,6 +11,15 @@
  */
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Tooltip,
+  YAxis,
+  Cell,
+  ReferenceLine,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +39,83 @@ interface QualityResponse {
   computedAt: string;
 }
 
+interface QualityHistoryPoint {
+  score: number;
+  computedAt: string;
+}
+
+interface QualityHistoryResponse {
+  specialistId: string;
+  points: QualityHistoryPoint[];
+}
+
+// Score-band colors mirror the ScorePill above so the chart and pill
+// agree at a glance: ≥80 emerald, ≥60 amber, otherwise rose.
+function scoreBarColor(score: number): string {
+  if (score >= 80) return "hsl(160 84% 39%)"; // emerald-500
+  if (score >= 60) return "hsl(38 92% 50%)"; // amber-500
+  return "hsl(347 77% 50%)"; // rose-500
+}
+
+function QualityHistoryChart({ points }: { points: QualityHistoryPoint[] }) {
+  if (points.length === 0) {
+    return (
+      <div
+        data-testid="quality-history-empty"
+        className="flex items-center justify-center text-xs text-muted-foreground border rounded h-[72px]"
+      >
+        No history yet — recompute to record the first snapshot.
+      </div>
+    );
+  }
+  if (points.length === 1) {
+    // One bar would render as a misleading "flat trend"; show the value
+    // and prompt for more data instead.
+    return (
+      <div
+        data-testid="quality-history-single"
+        className="flex items-center justify-center gap-2 text-xs text-muted-foreground border rounded h-[72px]"
+      >
+        <span>Only one snapshot so far ({points[0].score}). History appears after the next recompute.</span>
+      </div>
+    );
+  }
+
+  // Recharts Bar payload needs the score field by name; we keep the
+  // ISO timestamp on each datum so the tooltip can format it locally.
+  return (
+    <div data-testid="quality-history-chart" className="w-full" style={{ height: 72 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap={2}>
+          <YAxis hide domain={[0, 100]} />
+          <ReferenceLine y={70} stroke="hsl(var(--border))" strokeDasharray="2 2" />
+          <Tooltip
+            cursor={{ fill: "hsl(var(--muted) / 0.4)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const p = payload[0].payload as QualityHistoryPoint;
+              return (
+                <div
+                  data-testid="quality-history-tooltip"
+                  className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl rounded-lg border border-primary/15 shadow-xl px-3 py-1.5 text-xs"
+                >
+                  <p className="font-mono font-semibold text-foreground">Score {p.score}</p>
+                  <p className="text-muted-foreground">{new Date(p.computedAt).toLocaleString()}</p>
+                </div>
+              );
+            }}
+          />
+          <Bar dataKey="score" isAnimationActive={false} radius={[2, 2, 0, 0]}>
+            {points.map((p, i) => (
+              <Cell key={i} fill={scoreBarColor(p.score)} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function ScorePill({ score }: { score: number }) {
   const tone = score >= 80 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
     : score >= 60 ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
@@ -45,10 +131,19 @@ function QualityCard({ specialistId }: { specialistId: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const qKey = [`/api/admin/specialists/${specialistId}/quality`];
+  const historyKey = [`/api/admin/specialists/${specialistId}/quality/history`];
   const { data, isLoading } = useQuery<QualityResponse>({
     queryKey: qKey,
     queryFn: async () => {
       const res = await fetch(`/api/admin/specialists/${specialistId}/quality`, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      return res.json();
+    },
+  });
+  const { data: history } = useQuery<QualityHistoryResponse>({
+    queryKey: historyKey,
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/specialists/${specialistId}/quality/history`, { credentials: "include" });
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
       return res.json();
     },
@@ -60,6 +155,7 @@ function QualityCard({ specialistId }: { specialistId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qKey });
+      queryClient.invalidateQueries({ queryKey: historyKey });
       toast({ title: "Quality recomputed" });
     },
     onError: (err: unknown) => {
@@ -90,6 +186,13 @@ function QualityCard({ specialistId }: { specialistId: string }) {
               <Button size="sm" variant="outline" className="ml-auto" onClick={() => recompute.mutate()} disabled={recompute.isPending} data-testid="button-recompute-quality-specialist">
                 {recompute.isPending ? "Recomputing…" : "Recompute"}
               </Button>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Score history (last {history?.points.length ?? 0})</span>
+                <span className="font-mono">pass ≥ 70</span>
+              </div>
+              <QualityHistoryChart points={history?.points ?? []} />
             </div>
             {data.gaps.length === 0 ? (
               <p className="text-sm text-emerald-700 dark:text-emerald-400">No gaps detected. Research inputs look healthy.</p>

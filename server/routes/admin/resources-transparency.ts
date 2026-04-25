@@ -449,6 +449,41 @@ export function registerResourceTransparencyRoutes(app: Express) {
     }
   });
 
+  // ── Per-Specialist quality history (Task #511) ──────────────────
+  // Returns the most-recent N snapshots in chronological order (oldest
+  // first) so the Quality & Gaps card on the Specialist page can render
+  // a sparkline/bar chart of how the score has moved over time. Each
+  // recompute appends a new row, so this is just a thin read of the
+  // existing append-only history table — no recompute side-effects.
+  app.get("/api/admin/specialists/:id/quality/history", requireAdmin, async (req, res) => {
+    try {
+      const specialistId = String(req.params.id);
+      const def = getSpecialistById(specialistId);
+      if (!def) return res.status(404).json({ error: "Specialist not found" });
+
+      const limitParsed = z
+        .object({ limit: z.coerce.number().int().min(1).max(100).optional() })
+        .safeParse(req.query);
+      if (!limitParsed.success) {
+        return res.status(400).json({ error: fromZodError(limitParsed.error).message });
+      }
+      const limit = limitParsed.data.limit ?? 20;
+
+      const rows = await storage.listQualitySnapshotHistory(specialistId, limit);
+      // Storage returns DESC; flip to chronological for charting.
+      const points = rows
+        .slice()
+        .reverse()
+        .map((r) => ({
+          score: r.score,
+          computedAt: new Date(r.computedAt).toISOString(),
+        }));
+      res.json({ specialistId, points });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to load specialist quality history", error);
+    }
+  });
+
   // ── Force recompute (admin button) ──────────────────────────────
   app.post("/api/admin/specialists/:id/quality/recompute", requireAdmin, async (req, res) => {
     try {
