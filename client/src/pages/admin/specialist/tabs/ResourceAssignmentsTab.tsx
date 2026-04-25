@@ -52,11 +52,43 @@ function ScorePill({ score }: { score: number }) {
 const HISTORY_RANGES = [7, 30, 90] as const;
 type HistoryRange = (typeof HISTORY_RANGES)[number];
 const DEFAULT_HISTORY_RANGE: HistoryRange = 30;
+// Task #562: persist the admin's selected window across visits/reloads so
+// long-running drift triage doesn't reset to 30 on every navigation. Shared
+// across specialists by design — admins triaging a drift typically stay in
+// the same window as they bounce between specialist pages.
+const HISTORY_RANGE_STORAGE_KEY = "hp-admin-specialist-quality-history-range";
+
+function isHistoryRange(value: unknown): value is HistoryRange {
+  return typeof value === "number" && (HISTORY_RANGES as readonly number[]).includes(value);
+}
+
+function getStoredHistoryRange(): HistoryRange {
+  try {
+    const raw = localStorage.getItem(HISTORY_RANGE_STORAGE_KEY);
+    if (raw === null) return DEFAULT_HISTORY_RANGE;
+    const parsed = Number(raw);
+    return isHistoryRange(parsed) ? parsed : DEFAULT_HISTORY_RANGE;
+  } catch {
+    return DEFAULT_HISTORY_RANGE;
+  }
+}
+
+function setStoredHistoryRange(value: HistoryRange) {
+  try {
+    localStorage.setItem(HISTORY_RANGE_STORAGE_KEY, String(value));
+  } catch {
+    // ignore (private mode / quota)
+  }
+}
 
 function QualityCard({ specialistId }: { specialistId: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [historyRange, setHistoryRange] = useState<HistoryRange>(DEFAULT_HISTORY_RANGE);
+  const [historyRange, setHistoryRangeState] = useState<HistoryRange>(getStoredHistoryRange);
+  const setHistoryRange = (value: HistoryRange) => {
+    setHistoryRangeState(value);
+    setStoredHistoryRange(value);
+  };
   const qKey = [`/api/admin/specialists/${specialistId}/quality`];
   // Base history key (range-agnostic) — used as a prefix for invalidation
   // so a recompute refreshes every cached window (7/30/90), not just the
