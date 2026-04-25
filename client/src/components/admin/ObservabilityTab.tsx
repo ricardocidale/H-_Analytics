@@ -1,9 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { IconAlertTriangle } from "@/components/icons";
+import { IconAlertTriangle, IconRefreshCw } from "@/components/icons";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface StorageDriftSweepResponse {
   lastRun: {
@@ -248,6 +252,60 @@ export default function ObservabilityTab() {
     queryKey: ["/api/admin/scheduler-runs"],
     refetchInterval: 30_000,
   });
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  // Track which scheduler keys we've kicked off in the last few seconds so
+  // the button can show a transient "Running…" state until the next refetch
+  // surfaces the new last-run row.
+  const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
+
+  const runNowMutation = useMutation({
+    mutationFn: async (key: string) => {
+      const res = await apiRequest("POST", `/api/admin/scheduler-runs/${key}/run`);
+      return (await res.json()) as { accepted: boolean; schedulerKey: string; schedulerLabel: string };
+    },
+    onMutate: (key: string) => {
+      setPendingKeys((prev) => {
+        const next = new Set(prev);
+        next.add(key);
+        return next;
+      });
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "Scheduler kicked off",
+        description: `${result.schedulerLabel} is running in the background. The last-run row will refresh shortly.`,
+      });
+      // Long-running cycles (e.g. specialist-quality, ~minutes) won't be
+      // reflected on the very next refetch. Poll the runs query a couple
+      // of times so the new row appears without requiring the admin to
+      // hit refresh, then drop the spinner state.
+      const key = result.schedulerKey;
+      const refetch = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/scheduler-runs"] });
+      setTimeout(refetch, 1_500);
+      setTimeout(refetch, 5_000);
+      setTimeout(() => {
+        refetch();
+        setPendingKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }, 15_000);
+    },
+    onError: (err: unknown, key) => {
+      setPendingKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+      toast({
+        title: "Failed to start scheduler",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -302,6 +360,7 @@ export default function ObservabilityTab() {
                 <TableHead>Failed</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead>Notes</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -342,6 +401,21 @@ export default function ObservabilityTab() {
                   <TableCell>{run.durationMs != null ? `${run.durationMs}ms` : "—"}</TableCell>
                   <TableCell className="max-w-md text-sm text-muted-foreground" data-testid={`text-notes-${run.schedulerKey}`}>
                     {run.notes ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={pendingKeys.has(run.schedulerKey) || runNowMutation.isPending}
+                      onClick={() => runNowMutation.mutate(run.schedulerKey)}
+                      data-testid={`button-run-scheduler-${run.schedulerKey}`}
+                    >
+                      <IconRefreshCw
+                        className={`mr-1 h-3.5 w-3.5 ${pendingKeys.has(run.schedulerKey) ? "animate-spin" : ""}`}
+                      />
+                      {pendingKeys.has(run.schedulerKey) ? "Running…" : "Run now"}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

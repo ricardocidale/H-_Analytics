@@ -119,6 +119,46 @@ export async function recordSchedulerCycle(input: RecordSchedulerCycleInput): Pr
 }
 
 /**
+ * Task #556 — Per-scheduler dispatch map for the "Run now" admin button.
+ *
+ * Each entry returns a thunk that runs one cycle of the corresponding
+ * scheduler. We use dynamic `import()` so this module can stay a leaf in
+ * the import graph (every scheduler already imports
+ * `recordSchedulerCycle` from here — a static back-edge would create a
+ * circular dependency).
+ *
+ * The cycle functions themselves already guard against overlapping ticks
+ * (they early-return when an in-flight cycle is running), so concurrent
+ * "Run now" clicks are debounced naturally.
+ */
+export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = {
+  "ambient-benchmarks": async () => {
+    const mod = await import("../ai/ambient/scheduler");
+    return mod.runRefreshCycle();
+  },
+  "research-workflows": async () => {
+    const mod = await import("../ai/ambient/research-scheduler");
+    return mod.runScheduledCheckCycle();
+  },
+  "resource-health-probes": async () => {
+    const mod = await import("./resource-health-checker");
+    return mod.tickResourceHealthChecker();
+  },
+  "constants-refresh": async () => {
+    const mod = await import("./specialist-constants-refresh");
+    return mod.runConstantsRefreshCycle();
+  },
+  "specialist-quality": async () => {
+    const mod = await import("./specialist-quality-recompute");
+    return mod.runSpecialistQualityRecomputeCycle();
+  },
+  "specialist-photos-batch": async () => {
+    const mod = await import("./specialist-photos-batch");
+    return mod.runPhotosBatchCycle();
+  },
+};
+
+/**
  * Trim a string for storage in `notes` — single line, capped length.
  */
 export function truncateNotes(notes: string | null | undefined, max = 280): string | null {

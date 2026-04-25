@@ -2,7 +2,12 @@ import type { Express } from "express";
 import { requireAdmin } from "../../auth";
 import { logAndSendError } from "../helpers";
 import { storage } from "../../storage";
-import { SCHEDULER_REGISTRY } from "../../jobs/scheduler-run-tracker";
+import {
+  SCHEDULER_REGISTRY,
+  SCHEDULER_DISPATCH,
+  type SchedulerKey,
+} from "../../jobs/scheduler-run-tracker";
+import { logger } from "../../logger";
 
 /**
  * Task #528 — How long after the last sweep we flag the drift panel as stale.
@@ -47,6 +52,34 @@ export function registerObservabilityRoutes(app: Express) {
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scheduler runs", error);
     }
+  });
+
+  // Task #556 — admin "Run now" button. Triggers one cycle of the named
+  // scheduler immediately, instead of waiting up to 24h for the next tick.
+  // The cycle runs in the background (fire-and-forget) so the request
+  // returns promptly even for long-running cycles like the nightly
+  // specialist-quality recompute. Each cycle function records its own
+  // `scheduler_runs` row, which the GET endpoint above will surface on
+  // the next refetch. Concurrent clicks are debounced by the per-scheduler
+  // `isRunning` guards inside each cycle function.
+  app.post("/api/admin/scheduler-runs/:key/run", requireAdmin, async (req, res) => {
+    const key = req.params.key;
+    const dispatcher = SCHEDULER_DISPATCH[key as SchedulerKey];
+    const def = SCHEDULER_REGISTRY.find((s) => s.key === key);
+    if (!dispatcher || !def) {
+      res.status(404).json({ error: `Unknown scheduler: ${key}` });
+      return;
+    }
+    // Fire-and-forget. Errors are recorded by the cycle's own
+    // `recordSchedulerCycle` call (status: "error"); we additionally log
+    // here so an admin click that fails is visible in the server log.
+    void Promise.resolve()
+      .then(() => dispatcher())
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.warn(`[observability] Run-now failed for ${key}: ${msg}`);
+      });
+    res.status(202).json({ accepted: true, schedulerKey: key, schedulerLabel: def.label });
   });
 
   // Task #528 — last storage-drift sweep result for the Observability panel.

@@ -263,7 +263,7 @@ async function processPendingBatches(): Promise<void> {
   }
 }
 
-async function runScheduledCheckCycle(): Promise<void> {
+export async function runScheduledCheckCycle(): Promise<void> {
   if (isRunning) return;
   isRunning = true;
   const cycleStart = Date.now();
