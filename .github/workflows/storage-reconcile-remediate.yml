@@ -221,6 +221,29 @@ jobs:
           path: artifacts/r2-cutover-remediate.log
           retention-days: 30
 
+      - name: Record sweep result for in-app dashboard (Task #528)
+        # Upserts a row into `storage_drift_sweep_runs` so Admin →
+        # Observability can render the last sweep timestamp + headline
+        # counts without operators having to leave the app to read this
+        # job summary. Runs `if: always()` so a non-zero reconciler exit
+        # still records the row — `exitCode` + `status` are how the
+        # in-app panel knows the sweep failed. Best-effort: if the
+        # upsert itself fails (Postgres unreachable, etc.), the workflow
+        # continues so the existing GitHub job summary + artifact log
+        # remain the audit trail.
+        if: always()
+        env:
+          RECONCILER_LOG_PATH: artifacts/r2-cutover-remediate.log
+          RECONCILER_EXIT_CODE: ${{ steps.remediate.outputs.exit_code }}
+          TRIGGER_REASON: ${{ github.event.inputs.reason }}
+        continue-on-error: true
+        run: |
+          if [ -z "${RECONCILER_EXIT_CODE}" ]; then
+            echo "::warning::Reconciler exit code was not captured — skipping in-app dashboard upsert."
+            exit 0
+          fi
+          npx tsx script/record-storage-drift-sweep.ts
+
       - name: Re-assert reconciler exit code
         # The `tee | exit_code=PIPESTATUS` pattern above swallows the exit
         # code so the summary step always runs. Re-assert it here so the

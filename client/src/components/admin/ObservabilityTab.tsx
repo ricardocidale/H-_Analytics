@@ -5,6 +5,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IconAlertTriangle } from "@/components/icons";
 
+interface StorageDriftSweepResponse {
+  lastRun: {
+    finishedAt: string;
+    exitCode: number;
+    status: "ok" | "partial" | "error";
+    rewroteCount: number;
+    copiedCount: number;
+    skippedCount: number;
+    failedCount: number;
+    residualCount: number;
+    runId: string | null;
+    runUrl: string | null;
+    trigger: string | null;
+    triggerReason: string | null;
+    notes: string | null;
+    isStale: boolean;
+  } | null;
+  staleAfterMs: number;
+}
+
 interface SchedulerRunRow {
   schedulerKey: string;
   schedulerLabel: string;
@@ -54,6 +74,175 @@ function statusVariant(status: SchedulerRunRow["status"]): "default" | "secondar
   }
 }
 
+function sweepStatusVariant(status: "ok" | "partial" | "error"): "default" | "secondary" | "destructive" {
+  switch (status) {
+    case "ok":      return "secondary";
+    case "partial": return "default";
+    case "error":   return "destructive";
+  }
+}
+
+function formatStaleAfter(ms: number): string {
+  const hours = Math.round(ms / 3_600_000);
+  return hours >= 24 ? `${Math.round(hours / 24)}d` : `${hours}h`;
+}
+
+function StorageDriftSweepCard() {
+  const { data, isLoading, error } = useQuery<StorageDriftSweepResponse>({
+    queryKey: ["/api/admin/storage-drift-sweep"],
+    refetchInterval: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <Card data-testid="card-storage-drift-sweep-loading">
+        <CardHeader>
+          <CardTitle>Storage Drift Sweep</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground" data-testid="text-storage-drift-sweep-loading">
+            Loading last sweep result…
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" data-testid="alert-storage-drift-sweep-error">
+        <IconAlertTriangle className="h-4 w-4" />
+        <AlertTitle>Failed to load storage drift sweep</AlertTitle>
+        <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const lastRun = data?.lastRun ?? null;
+  const staleAfter = data?.staleAfterMs ?? 36 * 60 * 60 * 1000;
+
+  return (
+    <Card data-testid="card-storage-drift-sweep">
+      <CardHeader>
+        <CardTitle>Storage Drift Sweep</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!lastRun && (
+          <Alert variant="destructive" data-testid="alert-storage-drift-sweep-never">
+            <IconAlertTriangle className="h-4 w-4" />
+            <AlertTitle>No sweep recorded yet</AlertTitle>
+            <AlertDescription>
+              The nightly storage-reconcile auto-remediation workflow has not yet recorded a run in
+              this database. Confirm the workflow is enabled in GitHub Actions and that the
+              recording step has run at least once.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {lastRun?.isStale && (
+          <Alert variant="destructive" data-testid="alert-storage-drift-sweep-stale">
+            <IconAlertTriangle className="h-4 w-4" />
+            <AlertTitle>Last sweep is stale</AlertTitle>
+            <AlertDescription>
+              The nightly sweep should run every ~24h. The last recorded run is older than{" "}
+              {formatStaleAfter(staleAfter)} — the GitHub Actions scheduler may be paused. Check the
+              workflow's Actions page.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {lastRun && (
+          <>
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <Badge
+                variant={sweepStatusVariant(lastRun.status)}
+                data-testid="badge-storage-drift-sweep-status"
+              >
+                {lastRun.status}
+              </Badge>
+              <span className="text-muted-foreground">exit</span>
+              <span data-testid="text-storage-drift-sweep-exit-code">{lastRun.exitCode}</span>
+              <span className="text-muted-foreground">·</span>
+              <span data-testid="text-storage-drift-sweep-finished-at">
+                {formatRelative(lastRun.finishedAt)} ({new Date(lastRun.finishedAt).toLocaleString()})
+              </span>
+              {lastRun.trigger && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span data-testid="text-storage-drift-sweep-trigger">{lastRun.trigger}</span>
+                </>
+              )}
+              {lastRun.runUrl && (
+                <a
+                  href={lastRun.runUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-primary underline"
+                  data-testid="link-storage-drift-sweep-run"
+                >
+                  View on GitHub →
+                </a>
+              )}
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Rewrote</TableHead>
+                  <TableHead>Copied</TableHead>
+                  <TableHead>Skipped</TableHead>
+                  <TableHead>Failed</TableHead>
+                  <TableHead>Residual</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell data-testid="text-storage-drift-sweep-rewrote">
+                    {lastRun.rewroteCount}
+                  </TableCell>
+                  <TableCell data-testid="text-storage-drift-sweep-copied">
+                    {lastRun.copiedCount}
+                  </TableCell>
+                  <TableCell data-testid="text-storage-drift-sweep-skipped">
+                    {lastRun.skippedCount}
+                  </TableCell>
+                  <TableCell data-testid="text-storage-drift-sweep-failed">
+                    {lastRun.failedCount}
+                  </TableCell>
+                  <TableCell data-testid="text-storage-drift-sweep-residual">
+                    {lastRun.residualCount > 0 ? (
+                      <span className="text-destructive font-medium">{lastRun.residualCount}</span>
+                    ) : (
+                      lastRun.residualCount
+                    )}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+
+            {lastRun.notes && (
+              <div
+                className="text-xs text-muted-foreground font-mono"
+                data-testid="text-storage-drift-sweep-notes"
+              >
+                {lastRun.notes}
+              </div>
+            )}
+            {lastRun.triggerReason && (
+              <div
+                className="text-xs text-muted-foreground"
+                data-testid="text-storage-drift-sweep-trigger-reason"
+              >
+                Reason: {lastRun.triggerReason}
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ObservabilityTab() {
   const { data, isLoading, error } = useQuery<SchedulerRunsResponse>({
     queryKey: ["/api/admin/scheduler-runs"],
@@ -93,6 +282,8 @@ export default function ObservabilityTab() {
           </AlertDescription>
         </Alert>
       )}
+
+      <StorageDriftSweepCard />
 
       <Card data-testid="card-scheduler-runs">
         <CardHeader>

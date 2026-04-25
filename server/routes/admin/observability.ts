@@ -4,6 +4,16 @@ import { logAndSendError } from "../helpers";
 import { storage } from "../../storage";
 import { SCHEDULER_REGISTRY } from "../../jobs/scheduler-run-tracker";
 
+/**
+ * Task #528 — How long after the last sweep we flag the drift panel as stale.
+ *
+ * The sweep workflow runs nightly (cron `0 9 * * *`), so a healthy run lands
+ * roughly every 24h. 36h is "you've missed at least one nightly window" — long
+ * enough to absorb a single retry/backoff but short enough that a paused
+ * scheduler is visibly broken before the next deploy needs it.
+ */
+const STORAGE_DRIFT_SWEEP_STALE_AFTER_MS = 36 * 60 * 60 * 1000;
+
 export function registerObservabilityRoutes(app: Express) {
   app.get("/api/admin/scheduler-runs", requireAdmin, async (_req, res) => {
     try {
@@ -36,6 +46,47 @@ export function registerObservabilityRoutes(app: Express) {
       res.json({ runs, staleMultiplier: 2 });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scheduler runs", error);
+    }
+  });
+
+  // Task #528 — last storage-drift sweep result for the Observability panel.
+  app.get("/api/admin/storage-drift-sweep", requireAdmin, async (_req, res) => {
+    try {
+      const row = await storage.getLastStorageDriftSweepRun();
+      if (!row) {
+        res.json({
+          lastRun: null,
+          staleAfterMs: STORAGE_DRIFT_SWEEP_STALE_AFTER_MS,
+        });
+        return;
+      }
+      const finishedAtIso =
+        row.finishedAt instanceof Date
+          ? row.finishedAt.toISOString()
+          : new Date(row.finishedAt as unknown as string).toISOString();
+      const ageMs = Date.now() - new Date(finishedAtIso).getTime();
+      const isStale = ageMs > STORAGE_DRIFT_SWEEP_STALE_AFTER_MS;
+      res.json({
+        lastRun: {
+          finishedAt: finishedAtIso,
+          exitCode: row.exitCode,
+          status: row.status,
+          rewroteCount: row.rewroteCount,
+          copiedCount: row.copiedCount,
+          skippedCount: row.skippedCount,
+          failedCount: row.failedCount,
+          residualCount: row.residualCount,
+          runId: row.runId,
+          runUrl: row.runUrl,
+          trigger: row.trigger,
+          triggerReason: row.triggerReason,
+          notes: row.notes,
+          isStale,
+        },
+        staleAfterMs: STORAGE_DRIFT_SWEEP_STALE_AFTER_MS,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch last storage drift sweep", error);
     }
   });
 }

@@ -284,7 +284,9 @@ npx tsx script/r2-cutover-reconcile.ts --rewrite-legacy-hosts --copy-from-replit
 
 **Auditability.** Every run uploads the full reconciler stdout as an artifact (`r2-cutover-remediate-<run-id>.log`, 30-day retention) and writes a structured job summary listing what was rewritten / copied / skipped / failed. The script mutates production Postgres + R2 directly — there is no codebase diff to raise a PR against, so the job summary + artifact log is the audit trail.
 
-**Triggering manually.** Actions tab → "Storage Reconcile Auto-Remediate" → "Run workflow", optionally fill in a reason (logged in the summary). Useful right before a planned deploy if you want to clear known drift without waiting for the nightly window.
+**In-app dashboard (Task #528).** The workflow's final step (`Record sweep result for in-app dashboard`) upserts a row into the `storage_drift_sweep_runs` table via `script/record-storage-drift-sweep.ts`. The Admin → Observability page renders that row in the **Storage Drift Sweep** card so an operator can see "did the sweep run, did it fix anything, what's left to triage" without leaving the app. The card shows timestamp, exit status, per-action mutation counts (rewrote / copied / skipped / failed), residual unresolved-reference count, and a "View on GitHub" link out to the Actions run for the full audit trail. If the last recorded run is older than 36h (one missed nightly window) the card flags itself stale so a paused scheduler is visibly broken. The recording step runs `if: always()` and `continue-on-error: true` — a non-zero reconciler exit still records the row (status reflects the failure), and a transient Postgres outage during the upsert does not break the workflow itself.
+
+**Triggering manually.** Actions tab → "Storage Reconcile Auto-Remediate" → "Run workflow", optionally fill in a reason (logged in the summary and the in-app dashboard's "Reason" line). Useful right before a planned deploy if you want to clear known drift without waiting for the nightly window.
 
 ---
 
