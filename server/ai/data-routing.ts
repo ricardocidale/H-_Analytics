@@ -48,6 +48,7 @@ export {
   getIntegrationStatusSink,
   setIntegrationStatusSink,
   resetDefaultIntegrationStatusSink,
+  InMemoryIntegrationStatusSink,
   type IntegrationStatusSink,
 } from "./data-routing/integration-status-sink";
 

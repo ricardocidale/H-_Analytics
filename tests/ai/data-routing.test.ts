@@ -23,7 +23,8 @@ vi.mock("../../server/logger", () => ({
   },
 }));
 
-// Mock storage (for integration enabled map)
+// Mock storage — only the InMemoryIntegrationStatusSink path touches it; the
+// rest of the suite swaps in a stub sink so storage is never called.
 const mockGetIntegrationEnabledMap = vi.fn().mockResolvedValue({});
 vi.mock("../../server/storage", () => ({
   storage: {
@@ -196,12 +197,60 @@ import {
   getRoutableFields,
   getFieldRoutes,
   getFieldsByService,
+  setIntegrationStatusSink,
+  resetDefaultIntegrationStatusSink,
+  InMemoryIntegrationStatusSink,
 } from "../../server/ai/data-routing";
 import type {
   RoutingContext,
   DataRouteResult,
   RelaxationLevel,
+  IntegrationStatusSink,
 } from "../../server/ai/data-routing";
+
+// ---------------------------------------------------------------------------
+// Tiny in-memory stub sink used for per-test enable/disable scenarios.
+// Bypasses the storage mock and the cache/TTL inside InMemoryIntegrationStatusSink
+// so each test starts from a clean, predictable state.
+// ---------------------------------------------------------------------------
+
+class StubIntegrationStatusSink implements IntegrationStatusSink {
+  private map: Record<string, boolean>;
+
+  constructor(map: Record<string, boolean> = {}) {
+    this.map = { ...map };
+  }
+
+  async getEnabledMap(): Promise<Record<string, boolean>> {
+    return this.map;
+  }
+
+  reset(): void {
+    this.map = {};
+  }
+
+  setMap(map: Record<string, boolean>): void {
+    this.map = { ...map };
+  }
+}
+
+const ALL_ENABLED: Record<string, boolean> = {
+  fred: true,
+  "hospitality-benchmarks": true,
+  "grounded-research": true,
+  costar: true,
+  xotelo: true,
+  apify: true,
+  "rapidapi-booking": true,
+  "rapidapi-hotels": true,
+  "weather-api": true,
+  "world-bank": true,
+  "alpha-vantage": true,
+  amadeus: true,
+  "walk-score": true,
+};
+
+let stubSink: StubIntegrationStatusSink;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -224,29 +273,21 @@ function makeContext(overrides: Partial<RoutingContext> = {}): RoutingContext {
   };
 }
 
-// Reset the lazy-initialized service singleton between tests
-// We need to reset the module-level _services and _enabledMap
-// by resetting the module. Since vitest caches mocks, we
-// clear all mock call history instead.
+// Per-test setup: reset mocks, install a fresh stub sink (all integrations
+// enabled by default), and reset the integration-enabled map mock for any test
+// that explicitly opts into the InMemoryIntegrationStatusSink path.
 beforeEach(() => {
   vi.clearAllMocks();
 
-  // Default: all integrations enabled
-  mockGetIntegrationEnabledMap.mockResolvedValue({
-    fred: true,
-    "hospitality-benchmarks": true,
-    "grounded-research": true,
-    costar: true,
-    xotelo: true,
-    apify: true,
-    "rapidapi-booking": true,
-    "rapidapi-hotels": true,
-    "weather-api": true,
-    "world-bank": true,
-    "alpha-vantage": true,
-    amadeus: true,
-    "walk-score": true,
-  });
+  // Swap in a per-test stub sink so cache TTL inside the default sink can
+  // never leak state across tests. Individual tests can mutate stubSink
+  // directly to flip integrations on/off.
+  stubSink = new StubIntegrationStatusSink(ALL_ENABLED);
+  setIntegrationStatusSink(stubSink);
+
+  // Storage mock baseline (only consulted by tests that install a real
+  // InMemoryIntegrationStatusSink).
+  mockGetIntegrationEnabledMap.mockResolvedValue({ ...ALL_ENABLED });
 
   // Default: all services "available"
   mockAmadeusIsAvailable.mockReturnValue(true);
@@ -290,6 +331,9 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  // Restore the production sink so we never leak a test-only sink into the
+  // next file in the suite.
+  resetDefaultIntegrationStatusSink();
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -655,56 +699,38 @@ describe("fetchMultipleFields", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("service integration toggles", () => {
-  // Test 21: Respects admin integration enabled map
-  // NOTE: The data router caches the enabled map with a 60s TTL. Since tests
-  // share the module singleton, previous tests may have populated the cache.
-  // We verify the behavior by checking that the mock was called with the right
-  // map, and that when amadeus is unavailable (isAvailable=false), it's skipped.
-  it("respects admin integration enabled map — disabled service not called", async () => {
-    // Instead of relying on the cached map, make amadeus physically unavailable
-    // This simulates the admin toggle: when a service is disabled in the map,
-    // isServiceEnabled returns false, and the service is skipped.
-    mockAmadeusIsAvailable.mockReturnValue(false);
+  // Test 21: Disabling a service in the injected sink skips its dispatcher.
+  it("disabled service in the injected sink is not called", async () => {
+    // Flip amadeus off via the stub sink — no need to fake isAvailable or
+    // depend on storage cache state.
+    stubSink.setMap({ ...ALL_ENABLED, amadeus: false });
 
-    // Even though amadeus has data, it's unavailable
+    // Even though amadeus would have data, the router must skip it.
     mockAmadeusFetchAdrBenchmark.mockResolvedValue({
       value: 285,
       source: "Amadeus",
     });
 
-    // CoStar also has data
+    // CoStar provides the fallback.
     mockCostarFetchMarketData.mockResolvedValue({
       adr: { value: 310, source: "CoStar" },
     });
 
     const result = await fetchFieldData("startAdr", makeContext());
 
-    if (result) {
-      // Should come from CoStar, not Amadeus
-      expect(result.source).not.toBe("amadeus");
-    }
-    // Amadeus should not have been called (unavailable)
+    expect(result).not.toBeNull();
+    expect(result!.source).toBe("costar");
+    expect(result!.value).toBe(310);
     expect(mockAmadeusFetchAdrBenchmark).not.toHaveBeenCalled();
   });
 
-  // Test 22: Always-available services bypass toggle
+  // Test 22: Always-available services bypass the toggle entirely.
   it("country-defaults and regulatory-data are always available regardless of toggle", async () => {
-    // Disable everything in the integration map
-    mockGetIntegrationEnabledMap.mockResolvedValue({
-      fred: false,
-      "hospitality-benchmarks": false,
-      "grounded-research": false,
-      costar: false,
-      xotelo: false,
-      apify: false,
-      "rapidapi-booking": false,
-      "rapidapi-hotels": false,
-      "weather-api": false,
-      "world-bank": false,
-      "alpha-vantage": false,
-      amadeus: false,
-      "walk-score": false,
-    });
+    // Disable every gated integration via the stub sink.
+    const allDisabled = Object.fromEntries(
+      Object.keys(ALL_ENABLED).map(k => [k, false]),
+    );
+    stubSink.setMap(allDisabled);
 
     // But country-defaults has data
     mockGetCountryDefaults.mockReturnValue({
@@ -717,6 +743,62 @@ describe("service integration toggles", () => {
     expect(result).not.toBeNull();
     expect(result!.source).toBe("country-defaults");
     expect(result!.value).toBe(0.30);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 4b. Integration-status sink injection
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("integration status sink injection", () => {
+  // Test: Default InMemoryIntegrationStatusSink swallows storage errors and
+  // falls back to "all enabled" instead of crashing the router.
+  it("InMemoryIntegrationStatusSink swallows storage errors and falls back to all-enabled", async () => {
+    mockGetIntegrationEnabledMap.mockRejectedValue(new Error("db unavailable"));
+    setIntegrationStatusSink(new InMemoryIntegrationStatusSink(60_000));
+
+    // Amadeus has data; with no enabled-map available, every service is treated
+    // as enabled, so amadeus should still be called and used.
+    mockAmadeusFetchAdrBenchmark.mockResolvedValue({
+      value: 285,
+      source: "Amadeus Live Hotels",
+    });
+
+    const result = await fetchFieldData("startAdr", makeContext());
+
+    expect(result).not.toBeNull();
+    expect(result!.source).toBe("amadeus");
+    expect(result!.value).toBe(285);
+    expect(mockGetIntegrationEnabledMap).toHaveBeenCalled();
+  });
+
+  // Test: resetDefaultIntegrationStatusSink swaps the active sink for a fresh
+  // default instance, dropping any test-installed sink and its cached state.
+  it("resetDefaultIntegrationStatusSink swaps in a fresh sink between cases", async () => {
+    // First call: stub sink disables amadeus, CoStar fields the request.
+    stubSink.setMap({ ...ALL_ENABLED, amadeus: false });
+    mockAmadeusFetchAdrBenchmark.mockResolvedValue({
+      value: 285,
+      source: "Amadeus",
+    });
+    mockCostarFetchMarketData.mockResolvedValue({
+      adr: { value: 310, source: "CoStar" },
+    });
+
+    let result = await fetchFieldData("startAdr", makeContext());
+    expect(result?.source).toBe("costar");
+    expect(mockAmadeusFetchAdrBenchmark).not.toHaveBeenCalled();
+
+    // Reset to a fresh default sink — its cache is empty and storage now
+    // reports amadeus as enabled.
+    resetDefaultIntegrationStatusSink();
+    mockAmadeusFetchAdrBenchmark.mockClear();
+    mockCostarFetchMarketData.mockClear();
+    mockGetIntegrationEnabledMap.mockResolvedValue({ ...ALL_ENABLED });
+
+    result = await fetchFieldData("startAdr", makeContext());
+    expect(mockAmadeusFetchAdrBenchmark).toHaveBeenCalled();
+    expect(result?.source).toBe("amadeus");
   });
 });
 
