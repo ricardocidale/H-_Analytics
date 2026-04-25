@@ -10,19 +10,34 @@ function read(p: string): string {
 describe("Deprecated-constants guard — Task #407", () => {
   const guardPath = "script/check-deprecated-constants.ts";
 
-  it("the guard script exists and enumerates all six @deprecated symbols", () => {
+  it("the guard script exists and enumerates all five @deprecated symbols", () => {
     const guard = read(guardPath);
     for (const sym of [
       "DEPRECIATION_YEARS",
       "DAYS_PER_MONTH",
       "DEFAULT_PROPERTY_INFLATION_RATE",
       "DEFAULT_COMPANY_INFLATION_RATE",
-      "DEFAULT_COMPANY_TAX_RATE",
       "DEFAULT_COST_RATE_TAXES",
     ]) {
       expect(guard).toContain(sym);
     }
     expect(guard).toMatch(/process\.exit\(/);
+  });
+
+  it("DEFAULT_COMPANY_TAX_RATE is no longer a tracked symbol (Task #403 decision)", () => {
+    // Task #403 formally recorded the decision to NOT introduce a separate
+    // `companyTaxRate` registry key. The legacy symbol was deleted in Audit
+    // #406, so the deprecation guard's symbol *list* should no longer name
+    // it (the file *header* still mentions it for historical context, which
+    // is allowed).
+    const constants = read("shared/constants.ts");
+    expect(constants).not.toMatch(/export\s+const\s+DEFAULT_COMPANY_TAX_RATE\b/);
+
+    const guard = read(guardPath);
+    // The DEPRECATED_SYMBOLS array literal must not contain the symbol.
+    const arrayMatch = guard.match(/const\s+DEPRECATED_SYMBOLS\s*=\s*\[([\s\S]*?)\];/);
+    expect(arrayMatch, "DEPRECATED_SYMBOLS array not found in guard script").not.toBeNull();
+    expect(arrayMatch![1]).not.toContain("DEFAULT_COMPANY_TAX_RATE");
   });
 
   it("the guard's allow-list matches every symbol still listed @deprecated in shared/constants.ts", () => {

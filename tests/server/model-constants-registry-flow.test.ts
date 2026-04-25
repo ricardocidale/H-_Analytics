@@ -192,6 +192,69 @@ describe("Audit #319 R4 — constants registry migration invariants", () => {
     });
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Task #403 — company-level income tax decision lock
+  //
+  // The "blended company tax rate" reconciliation question (should the
+  // management-company tax rate get its own `companyTaxRate` registry key, or
+  // share the existing `taxRate` key with the property SPVs?) was formally
+  // resolved in Task #403: SHARE the `taxRate` key. The legacy
+  // `DEFAULT_COMPANY_TAX_RATE` (0.30 blended) export was deleted in Audit
+  // #406; per-company override is preserved via the `globalAssumptions.
+  // companyTaxRate` column. These tests lock that decision so a future PR
+  // can't quietly re-introduce the split.
+  // ─────────────────────────────────────────────────────────────────────────────
+  describe("Task #403 — company tax decision lock", () => {
+    it("there is NO `companyTaxRate` entry in MODEL_CONSTANTS_REGISTRY", () => {
+      // The form-field name `companyTaxRate` is reused on the
+      // globalAssumptions table and on the analyst candidateFields, but it
+      // must NOT be a registered constant key — otherwise we'd have two
+      // independent sources of truth for the same statutory tax rate.
+      expect(MODEL_CONSTANTS_REGISTRY).not.toHaveProperty("companyTaxRate");
+    });
+
+    it("legacy DEFAULT_COMPANY_TAX_RATE export is gone from shared/constants", async () => {
+      // Dynamic import keeps this test self-contained — if anyone re-adds
+      // the export, this assertion will fail (and the deprecated-constants
+      // guard will need its allow-list re-considered).
+      const constants = await import("../../shared/constants");
+      expect(
+        (constants as Record<string, unknown>).DEFAULT_COMPANY_TAX_RATE,
+      ).toBeUndefined();
+    });
+
+    it("company tax rate resolves through the same `taxRate` registry key as property income tax", () => {
+      // The engine's company fallback (`DEFAULT_COMPANY_TAX_RATE_US` in
+      // engine/company/company-engine.ts) and the seeded
+      // `globalAssumptions.companyTaxRate` value both compute exactly
+      // `getFactoryNumber('taxRate', 'United States')` = 0.21. Locking the
+      // numeric identity here documents the shared source of truth.
+      const us = getFactoryNumber("taxRate", "United States");
+      expect(us).toBe(0.21);
+      // No silent drift to the legacy 0.30 blended estimate.
+      expect(us).not.toBe(0.3);
+    });
+
+    it("locality-aware: a non-US management company picks up its own country's `taxRate`", () => {
+      // Free benefit of NOT introducing a US-only `companyTaxRate` key —
+      // a Mexican management company resolves to Mexico's statutory rate,
+      // not the US 0.21 baseline. Asserting real numeric divergence (not
+      // just "both are numbers") catches a future PR that flattens the
+      // country table back to a single global value, which would silently
+      // re-create the original problem this task fixed.
+      const us = getFactoryNumber("taxRate", "United States");
+      const mx = getFactoryNumber("taxRate", "Mexico");
+      expect(Number.isFinite(us)).toBe(true);
+      expect(Number.isFinite(mx)).toBe(true);
+      expect(us).toBe(0.21);
+      // Mexico's federal corporate ISR is 30%, materially distinct from US.
+      // If this seed value is ever updated, update the assertion here and
+      // record the source in the PR; the inequality below is the primary
+      // invariant.
+      expect(mx).not.toBe(us);
+    });
+  });
+
   describe("locality awareness", () => {
     it("country override changes registry output for inflationRate (US 0.03 ≠ MX 0.04)", () => {
       const us = getFactoryNumber("inflationRate", "United States");

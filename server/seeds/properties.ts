@@ -24,7 +24,11 @@ import {
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
-// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+// Task #403 (follow-up to Audit #406): the seeded `companyTaxRate` for the
+// shared global_assumptions baseline row reads from the same registry key
+// (`taxRate`) used at the property level. There is intentionally NO separate
+// `companyTaxRate` registry key — see the "COMPANY-LEVEL INCOME TAX —
+// DECISION RECORDED" block in `shared/constants.ts` for the full rationale.
 const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 import {
   SEED_INITIAL_PROPERTIES,

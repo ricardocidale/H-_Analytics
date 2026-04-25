@@ -249,10 +249,34 @@ export const DEFAULT_PROPERTY_INFLATION_RATE = 0.03;
  */
 export const DEFAULT_COMPANY_INFLATION_RATE = 0.03;
 export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RATE;
-// Audit #406: DEFAULT_COMPANY_TAX_RATE (legacy blended 30%) deleted. Company-level
-// tax rate now resolves through `getFactoryNumber('taxRate', country, state)` from
-// MODEL_CONSTANTS_REGISTRY (US federal corporate baseline = 0.21). Goldens
-// re-baselined in the same PR.
+// ──────────────────────────────────────────────────────────────────────────────
+// COMPANY-LEVEL INCOME TAX — DECISION RECORDED (Task #403, follow-up to #406)
+// ──────────────────────────────────────────────────────────────────────────────
+// The legacy `DEFAULT_COMPANY_TAX_RATE` (blended 30% estimate) was deleted in
+// Audit #406. The reconciliation question raised by Task #403 — should we add
+// a separate `companyTaxRate` registry key for the management-company blended
+// rate, or route through the existing `taxRate` key? — is now permanently
+// answered: ROUTE THROUGH THE EXISTING `taxRate` KEY.
+//
+// Rationale:
+//   1. A management company in a country pays the same statutory corporate
+//      income tax that a property SPV in that country pays. The "blended" 30%
+//      was an over-approximation that bundled federal + an assumed state
+//      add-on; the registry already models federal + state-subdivision overlay
+//      explicitly (e.g. US federal 0.21 + Virginia state add-on via
+//      `taxRate('United States', 'VA')`), so the blend is unnecessary.
+//   2. Locality-awareness is free: a non-US management company picks up its
+//      own country's `taxRate` automatically through
+//      `getFactoryNumber('taxRate', companyCountry)` rather than carrying a
+//      US-only blended hard-code.
+//   3. Per-company override is preserved by the
+//      `globalAssumptions.companyTaxRate` column, which simply takes
+//      precedence over the registry baseline at runtime
+//      (`global.companyTaxRate ?? getFactoryNumber('taxRate', …)`).
+//
+// Invariant: there is NO `companyTaxRate` entry in MODEL_CONSTANTS_REGISTRY,
+// and there must not be one. The regression test
+// `tests/server/model-constants-registry-flow.test.ts` locks this.
 
 // ──────────────────────────────────────────────────────────
 // PROJECTION HORIZON

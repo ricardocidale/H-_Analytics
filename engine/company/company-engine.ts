@@ -38,7 +38,13 @@ import {
 import { MONTHS_PER_YEAR } from '@shared/constants';
 import { getFactoryNumber } from '@shared/model-constants-registry';
 
-// Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
+// Task #403 (follow-up to Audit #406): the management-company income tax
+// rate is sourced from the same registry key (`taxRate`) as the property
+// SPV income tax — there is intentionally NO separate `companyTaxRate`
+// registry key. See the "COMPANY-LEVEL INCOME TAX — DECISION RECORDED"
+// block in `shared/constants.ts` for the full rationale. This US baseline
+// (federal corporate = 0.21) is the runtime fallback when the per-company
+// override (`global.companyTaxRate`) is undefined.
 const DEFAULT_COMPANY_TAX_RATE_US = getFactoryNumber('taxRate', 'United States');
 import { computeCostOfServices } from '@calc/services/cost-of-services';
 import type { ServiceTemplate, AggregatedServiceCosts } from '@calc/services/types';
