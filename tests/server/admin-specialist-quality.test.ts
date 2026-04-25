@@ -39,6 +39,7 @@ vi.mock("../../server/storage", () => ({
     getResearchRunsForSpecialist: vi.fn(),
     getLatestQualitySnapshot: vi.fn(),
     getLatestQualitySnapshotsFor: vi.fn().mockResolvedValue(new Map()),
+    listQualitySnapshotHistoryForMany: vi.fn().mockResolvedValue(new Map()),
     aggregateLatestQualityScores: vi.fn(),
   },
 }));
@@ -259,5 +260,142 @@ describe("GET /api/admin/specialists/:id/quality/history", () => {
     });
     expect(upper.status).toBe(200);
     expect(storage.listQualitySnapshotHistory).toHaveBeenLastCalledWith("alpha", 100);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bulk per-resource history (Task #555).
+//
+// `GET /api/admin/resources/:id/quality/history` collapses what used to be
+// one request per consumer in the Resource detail dialog into a single
+// round trip. We lock in:
+//   1. Auth gating (401/403).
+//   2. 404 when the resource id does not exist.
+//   3. Empty `histories` when the resource has no consumers.
+//   4. The payload returns one entry per distinct consumer specialistId,
+//      points are chronological (oldest first), and consumers without
+//      snapshots get an empty `points` array (not omitted).
+//   5. Default limit is 30; `limit` is forwarded to storage and validated
+//      with the same Zod min/max as the per-Specialist endpoint.
+// ─────────────────────────────────────────────────────────────────────────────
+const BULK_ROUTE = "GET /api/admin/resources/:id/quality/history";
+
+describe("GET /api/admin/resources/:id/quality/history", () => {
+  let handlers: Handlers;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 99, role: "super_admin" };
+    const made = makeApp();
+    handlers = made.handlers;
+    registerResourceTransparencyRoutes(made.app);
+    // Default: resource exists with no consumers; tests override as needed.
+    (storage.getAdminResourceById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 7,
+      slug: "openai-gpt-5",
+      kind: "model",
+    });
+    (storage.listResourceImpact as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (storage.listQualitySnapshotHistoryForMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Map(),
+    );
+  });
+
+  it("returns 401 when the request is unauthenticated", async () => {
+    mockUser = null;
+    const { status } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
+    expect(status).toBe(401);
+    expect(storage.listQualitySnapshotHistoryForMany).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when the user is authenticated but not an admin", async () => {
+    mockUser = { id: 7, role: "viewer" };
+    const { status } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
+    expect(status).toBe(403);
+    expect(storage.listQualitySnapshotHistoryForMany).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the resource id does not exist", async () => {
+    (storage.getAdminResourceById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    const { status, body } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
+    expect(status).toBe(404);
+    expect((body as { error: string }).error).toMatch(/resource not found/i);
+    expect(storage.listQualitySnapshotHistoryForMany).not.toHaveBeenCalled();
+  });
+
+  it("returns empty histories when the resource has no consumers", async () => {
+    const { status, body } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
+    expect(status).toBe(200);
+    expect(body).toEqual({ resourceId: 7, histories: [] });
+    // Even with zero consumers we still call the bulk method (with []) —
+    // keeps the route shape predictable and the early-return cheap.
+    expect(storage.listQualitySnapshotHistoryForMany).toHaveBeenCalledWith([], 30);
+  });
+
+  it("returns one chronological points array per distinct consumer", async () => {
+    (storage.listResourceImpact as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { specialistId: "alpha", required: true, assignmentRole: "primary" },
+      { specialistId: "beta", required: false, assignmentRole: "primary" },
+      { specialistId: "alpha", required: false, assignmentRole: "secondary" },
+    ]);
+    const newest = new Date("2025-03-01T00:00:00.000Z");
+    const oldest = new Date("2025-01-01T00:00:00.000Z");
+    (storage.listQualitySnapshotHistoryForMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Map([
+        // Storage returns DESC; the route must reverse to chronological.
+        [
+          "alpha",
+          [
+            { specialistId: "alpha", score: 90, gaps: [], signals: {}, computedAt: newest },
+            { specialistId: "alpha", score: 60, gaps: [], signals: {}, computedAt: oldest },
+          ],
+        ],
+        // beta: empty array (consumer with no snapshots) — still surfaced
+        // so the client can render the empty-state per row.
+        ["beta", []],
+      ]),
+    );
+    const { status, body } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
+    expect(status).toBe(200);
+    const payload = body as {
+      resourceId: number;
+      histories: Array<{ specialistId: string; points: Array<{ score: number; computedAt: string }> }>;
+    };
+    expect(payload.resourceId).toBe(7);
+    // Distinct consumers only (alpha appears twice in impact rows).
+    expect(payload.histories.map((h) => h.specialistId).sort()).toEqual(["alpha", "beta"]);
+    const alpha = payload.histories.find((h) => h.specialistId === "alpha")!;
+    expect(alpha.points.map((p) => p.score)).toEqual([60, 90]);
+    expect(alpha.points.map((p) => p.computedAt)).toEqual([
+      oldest.toISOString(),
+      newest.toISOString(),
+    ]);
+    const beta = payload.histories.find((h) => h.specialistId === "beta")!;
+    expect(beta.points).toEqual([]);
+    // Bulk storage method got the deduped consumer list.
+    const callArgs = (storage.listQualitySnapshotHistoryForMany as ReturnType<typeof vi.fn>).mock
+      .calls[0];
+    expect(callArgs[0].sort()).toEqual(["alpha", "beta"]);
+    expect(callArgs[1]).toBe(30);
+  });
+
+  it("forwards a valid `limit` query param to storage", async () => {
+    const { status } = await invoke(handlers, BULK_ROUTE, {
+      params: { id: "7" },
+      query: { limit: "5" },
+    });
+    expect(status).toBe(200);
+    expect(storage.listQualitySnapshotHistoryForMany).toHaveBeenCalledWith([], 5);
+  });
+
+  it("rejects out-of-range `limit` values with 400 (Zod min/max)", async () => {
+    for (const bad of ["0", "101", "abc"]) {
+      const { status } = await invoke(handlers, BULK_ROUTE, {
+        params: { id: "7" },
+        query: { limit: bad },
+      });
+      expect(status).toBe(400);
+    }
+    expect(storage.listQualitySnapshotHistoryForMany).not.toHaveBeenCalled();
   });
 });

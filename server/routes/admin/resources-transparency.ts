@@ -487,6 +487,60 @@ export function registerResourceTransparencyRoutes(app: Express) {
     }
   });
 
+  // ── Per-resource quality history (Task #555) ────────────────────
+  // Bulk variant of `/api/admin/specialists/:id/quality/history` that
+  // returns the score history for every consumer of a resource in one
+  // payload. The Resource detail dialog used to fan out N per-row
+  // requests (one per consumer); for high-fan-out resources (e.g. a
+  // shared LLM model wired into ~20 specialists) that meant ~20
+  // sequential admin queries each time the dialog opened. This route
+  // collapses that to one round trip via a single window-function query
+  // in storage. Behaviour matches the per-Specialist endpoint:
+  // chronological order (oldest first), default 30, max 100.
+  app.get("/api/admin/resources/:id/quality/history", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const limitParsed = z
+        .object({ limit: z.coerce.number().int().min(1).max(100).optional() })
+        .safeParse(req.query);
+      if (!limitParsed.success) {
+        return res.status(400).json({ error: fromZodError(limitParsed.error).message });
+      }
+      const limit = limitParsed.data.limit ?? 30;
+
+      const row = await storage.getAdminResourceById(id);
+      if (!row) return res.status(404).json({ error: "Resource not found" });
+
+      const impact = await storage.listResourceImpact(id);
+      const specialistIds = Array.from(new Set(impact.map((i) => i.specialistId)));
+      const historyMap = await storage.listQualitySnapshotHistoryForMany(
+        specialistIds,
+        limit,
+      );
+
+      // Shape: array of `{ specialistId, points }` so each entry is the
+      // same QualityHistoryResponse shape the per-Specialist endpoint
+      // returns — the chart and child components can consume it without
+      // a second adapter type. Storage returns DESC; flip to chronological
+      // for charting (matches the per-Specialist route's contract).
+      const histories = specialistIds.map((sid) => {
+        const rows = historyMap.get(sid) ?? [];
+        const points = rows
+          .slice()
+          .reverse()
+          .map((r) => ({
+            score: r.score,
+            computedAt: new Date(r.computedAt).toISOString(),
+          }));
+        return { specialistId: sid, points };
+      });
+
+      res.json({ resourceId: id, histories });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to load resource quality history", error);
+    }
+  });
+
   // ── Force recompute (admin button) ──────────────────────────────
   app.post("/api/admin/specialists/:id/quality/recompute", requireAdmin, async (req, res) => {
     try {

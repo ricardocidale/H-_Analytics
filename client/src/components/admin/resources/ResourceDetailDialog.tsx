@@ -31,6 +31,7 @@ import { SPECIALIST_SECTION_TO_ID } from "@/components/ai-intelligence/AiIntelli
 import type { AiIntelligenceSection } from "@/components/ai-intelligence/AiIntelligenceSidebar";
 import {
   QualityHistoryChart,
+  type QualityHistoryPoint,
   type QualityHistoryResponse,
 } from "@/components/admin/quality-history-chart";
 
@@ -100,25 +101,40 @@ interface DetailResponse {
 }
 
 /**
- * ConsumerHistorySparkline (Task #536) — fetches the last ~20 quality
- * snapshots for one consumer and renders the shared QualityHistoryChart
- * compactly inline in the Consumers table. One fetch per consumer is
- * acceptable here: typical resources have a handful of consumers and
- * React Query dedupes/caches across remounts. If that ever stops being
- * true, swap this for a bulk endpoint without changing the call sites.
+ * Bulk consumer-history payload (Task #555). Mirrors the shape returned
+ * by `GET /api/admin/resources/:id/quality/history`: one entry per
+ * consumer with the per-Specialist `QualityHistoryResponse` shape so
+ * the chart and child components can read it without a second adapter.
  */
-function ConsumerHistorySparkline({ specialistId }: { specialistId: string }) {
-  const { data, isLoading, isError } = useQuery<QualityHistoryResponse>({
-    queryKey: [`/api/admin/specialists/${specialistId}/quality/history`],
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/admin/specialists/${specialistId}/quality/history`,
-        { credentials: "include" },
-      );
-      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
-      return res.json();
-    },
-  });
+interface ResourceQualityHistoryResponse {
+  resourceId: number;
+  histories: QualityHistoryResponse[];
+}
+
+/**
+ * ConsumerHistorySparkline (Task #536, refactored in #555) — renders the
+ * compact inline sparkline in the Consumers table from points the parent
+ * dialog already fetched in bulk. Previously each row issued its own
+ * `GET /api/admin/specialists/:id/quality/history`, which fanned out to
+ * ~20 sequential admin queries on resources consumed by ~20 specialists
+ * (e.g. shared LLM models). The bulk
+ * `GET /api/admin/resources/:id/quality/history` endpoint replaces all
+ * of those with a single round trip; this component now just consumes
+ * its slice via props. Loading / error states still render so behaviour
+ * (loading skeleton → chart, error pill, empty/single chart fallback)
+ * is unchanged from the user's point of view.
+ */
+function ConsumerHistorySparkline({
+  specialistId,
+  points,
+  isLoading,
+  isError,
+}: {
+  specialistId: string;
+  points: QualityHistoryPoint[] | undefined;
+  isLoading: boolean;
+  isError: boolean;
+}) {
   if (isLoading) {
     return (
       <div
@@ -129,7 +145,7 @@ function ConsumerHistorySparkline({ specialistId }: { specialistId: string }) {
       </div>
     );
   }
-  if (isError || !data) {
+  if (isError || !points) {
     return (
       <div
         className="flex items-center justify-center text-[10px] text-muted-foreground border rounded h-[36px] w-[120px]"
@@ -142,7 +158,7 @@ function ConsumerHistorySparkline({ specialistId }: { specialistId: string }) {
   return (
     <div className="w-[120px]">
       <QualityHistoryChart
-        points={data.points}
+        points={points}
         height={36}
         showBands={false}
         testIdPrefix={`consumer-history-${specialistId}`}
@@ -204,25 +220,17 @@ function ConsumerHistoryRow({
   specialistId,
   specialistName,
   qualityScore,
+  points,
+  isLoading,
+  isError,
 }: {
   specialistId: string;
   specialistName: string;
   qualityScore: number | null;
+  points: QualityHistoryPoint[] | undefined;
+  isLoading: boolean;
+  isError: boolean;
 }) {
-  const { data, isLoading, isError } = useQuery<QualityHistoryResponse>({
-    queryKey: [`/api/admin/specialists/${specialistId}/quality/history`],
-    queryFn: async () => {
-      // Request 30 — nightly recompute appends one row per day, so this
-      // covers the last ~30 days of scores per Task #540.
-      const res = await fetch(
-        `/api/admin/specialists/${specialistId}/quality/history?limit=30`,
-        { credentials: "include" },
-      );
-      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
-      return res.json();
-    },
-  });
-  const points = data?.points ?? [];
   return (
     <div className="rounded border p-2.5" data-testid={`consumer-history-${specialistId}`}>
       <div className="flex items-center justify-between mb-1.5">
@@ -230,7 +238,7 @@ function ConsumerHistoryRow({
         <ScorePill score={qualityScore} />
       </div>
       <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-        <span>Score history — last {points.length} day{points.length === 1 ? "" : "s"}</span>
+        <span>Score history — last {points?.length ?? 0} day{(points?.length ?? 0) === 1 ? "" : "s"}</span>
         <span className="font-mono">green ≥ 80 · amber ≥ 60 · red &lt; 60</span>
       </div>
       {isLoading ? (
@@ -240,7 +248,7 @@ function ConsumerHistoryRow({
         >
           Loading history…
         </div>
-      ) : isError ? (
+      ) : isError || !points ? (
         <div
           className="flex items-center justify-center text-xs text-rose-600 border rounded h-[72px]"
           data-testid={`consumer-history-error-${specialistId}`}
@@ -280,6 +288,35 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
     queryKey: [`/api/admin/resources/${resourceId}/transparency`],
     enabled: open,
   });
+
+  // Bulk per-consumer history (Task #555). Replaces the old per-row
+  // `useQuery` inside each ConsumerHistorySparkline / ConsumerHistoryRow,
+  // collapsing N admin requests (one per consumer) into a single round
+  // trip. We request 30 — nightly recompute appends one row per day, so
+  // this matches the per-Specialist endpoint contract used elsewhere.
+  // The shared cache below is just a Map view over the bulk payload, so
+  // children render from a single in-memory source of truth and stay
+  // in sync with each other (no per-row stale-time drift).
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    isError: historyError,
+  } = useQuery<ResourceQualityHistoryResponse>({
+    queryKey: [`/api/admin/resources/${resourceId}/quality/history`, { limit: 30 }],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/admin/resources/${resourceId}/quality/history?limit=30`,
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      return res.json();
+    },
+    enabled: open && resourceId !== null,
+  });
+  const historyBySpecialist = new Map<string, QualityHistoryPoint[]>();
+  for (const h of historyData?.histories ?? []) {
+    historyBySpecialist.set(h.specialistId, h.points);
+  }
 
   const testNow = useMutation({
     mutationFn: async () => {
@@ -429,7 +466,12 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                               <td className="p-2 text-right"><ScorePill score={c.qualityScore} /></td>
                               <td className="p-2">
                                 <div className="flex justify-end">
-                                  <ConsumerHistorySparkline specialistId={c.specialistId} />
+                                  <ConsumerHistorySparkline
+                                    specialistId={c.specialistId}
+                                    points={historyBySpecialist.get(c.specialistId)}
+                                    isLoading={historyLoading}
+                                    isError={historyError}
+                                  />
                                 </div>
                               </td>
                             </tr>
@@ -574,6 +616,9 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                           specialistId={c.specialistId}
                           specialistName={c.specialistName}
                           qualityScore={c.qualityScore}
+                          points={historyBySpecialist.get(c.specialistId)}
+                          isLoading={historyLoading}
+                          isError={historyError}
                         />
                       ))}
                     </div>

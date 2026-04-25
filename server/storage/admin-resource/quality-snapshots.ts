@@ -87,6 +87,66 @@ export class AdminResourceQualitySnapshotsStorage {
   }
 
   /**
+   * Bulk variant of `listQualitySnapshotHistory` (Task #555).
+   *
+   * Returns the most-recent N snapshots for each specialistId as a single
+   * map keyed by specialistId. Implemented with `ROW_NUMBER() OVER
+   * (PARTITION BY specialist_id ORDER BY computed_at DESC)` so the whole
+   * fan-out is one round trip — collapses the previous N×per-row queries
+   * the Resource detail dialog issued (one per consumer) down to one,
+   * which matters when a shared LLM resource is consumed by ~20
+   * specialists. Each row order matches the per-specialist endpoint:
+   * DESC by computedAt; the route flips to chronological for charting.
+   *
+   * Specialists with no snapshots get an empty array entry so callers
+   * can render an "empty" state without an extra existence check.
+   */
+  async listQualitySnapshotHistoryForMany(
+    specialistIds: string[],
+    limit = 30,
+  ): Promise<Map<string, SpecialistResearchQualitySnapshotRow[]>> {
+    const out = new Map<string, SpecialistResearchQualitySnapshotRow[]>();
+    if (specialistIds.length === 0) return out;
+    for (const sid of specialistIds) out.set(sid, []);
+
+    const sub = db
+      .select({
+        id: specialistResearchQualitySnapshots.id,
+        specialistId: specialistResearchQualitySnapshots.specialistId,
+        score: specialistResearchQualitySnapshots.score,
+        gaps: specialistResearchQualitySnapshots.gaps,
+        signals: specialistResearchQualitySnapshots.signals,
+        computedAt: specialistResearchQualitySnapshots.computedAt,
+        rn: sql<number>`ROW_NUMBER() OVER (PARTITION BY ${specialistResearchQualitySnapshots.specialistId} ORDER BY ${specialistResearchQualitySnapshots.computedAt} DESC)`.as(
+          "rn",
+        ),
+      })
+      .from(specialistResearchQualitySnapshots)
+      .where(inArray(specialistResearchQualitySnapshots.specialistId, specialistIds))
+      .as("t");
+
+    const rows = await db
+      .select({
+        id: sub.id,
+        specialistId: sub.specialistId,
+        score: sub.score,
+        gaps: sub.gaps,
+        signals: sub.signals,
+        computedAt: sub.computedAt,
+      })
+      .from(sub)
+      .where(sql`${sub.rn} <= ${limit}`)
+      .orderBy(sub.specialistId, desc(sub.computedAt));
+
+    for (const r of rows) {
+      const arr = out.get(r.specialistId);
+      if (!arr) continue;
+      arr.push(r as SpecialistResearchQualitySnapshotRow);
+    }
+    return out;
+  }
+
+  /**
    * Used by the system-gaps banner. Returns aggregate stats plus the list
    * of specialists currently scoring below 70 so the banner can render
    * jump-targets to each offender (sorted ascending by score).
