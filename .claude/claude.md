@@ -596,3 +596,16 @@ override note, `DELETE` reset, `POST` regenerate via Analyst.
 - 8 test failures fixed (PARTNER→SUPER_ADMIN, benchmark-lookups mock). 11 calc bugs, 7 service bugs fixed.
 - Deep security audit: IDOR, prototype pollution, JSON.parse guards, NaN/Infinity, parseRouteId on 50+ routes.
 - 5 CI gates registered (typecheck/lint/test/verify/parity). All pass.
+
+**Replit-escape — phase 2 of 3 complete (April 23-24, 2026):**
+- **Postgres** moved off Replit Helium → **Neon** (commit `430ba0d7`, April 23). Resolver: `shared/db-url.ts`. Helium add-on flagged for cancellation in follow-up #514 (cancelled by user).
+- **Object storage** moved off Replit Object Storage sidecar → **Cloudflare R2** bucket `h-analysis` (April 24). Activation switch is one env var: `STORAGE_PROVIDER=r2`. The existing S3-compatible adapter at `server/providers/storage/s3-storage.ts` was extended to natively understand the `R2_*` env-var family and auto-derive the endpoint from `R2_ACCOUNT_ID`. R2 fallback is **strictly gated** on `STORAGE_PROVIDER === "r2"` so vanilla AWS / MinIO setups are not affected by `R2_*` env vars sharing the secret store. Live round-trip verified end-to-end via `script/r2-smoketest.ts`. Tests: 21/21 in `tests/server/s3-storage.test.ts` (added 2 gating tests).
+- **Hosting** is the remaining phase — Vercel deployment is the next major step. Until that lands, the Replit Dependency Tax keeps accruing.
+- Asset migration from the legacy Replit bucket to R2 was **intentionally deferred** — R2 starts empty; only new uploads land there. The 82 graphics already moved to Neon as `bytea` on April 22 are unaffected. Backfill of any remaining `/objects/*` references must run *before* the Vercel cutover, not after — tracked as forward watchlist item **W7** in `replit_waste.md`.
+
+**Replit Waste Ledger published (April 24, 2026):**
+- New file `replit_waste.md` at project root catalogs platform-induced rework, retries, and forced rewrites for the past 30 days, plus a forward-looking watchlist (W1–W9) of failure modes that will keep recurring until structurally fixed.
+- This is the *index*; the forensic narrative still lives in `rewritetax.md` (especially §7 "Replit Dependency Tax") and the 22-rule forward distillation still lives in `best-practices.md` (especially §G).
+- Estimated avoidable monthly Replit-tax run-rate: **$450–$1,290**, against an invoice cap that's already hitting **$511.68/cycle** (per the live `replit_invoices` telemetry table). Five small structural fixes — `commit-msg` hook, non-interactive `db-push` wrapper, active-tasks lock, dirty-tree diff scoping, memory-file trim — would close 30–60% of that.
+- `.claude/skills/replit-workflow/SKILL.md` §3 was updated in the same commit to retire the "Replit Object Storage sidecar (free, integrated)" claim; that adapter is now fallback-only.
+- When in doubt about a Replit-shaped bug or a recurring loss pattern: read `replit_waste.md` first, then trace to `rewritetax.md` for the dollar evidence.

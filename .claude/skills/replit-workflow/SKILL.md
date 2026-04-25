@@ -45,10 +45,13 @@ Replit has one-click access to the running Postgres instance. You can run migrat
 
 **Use Replit for:** schema migrations via `drizzle-kit push`, data inspection (`SELECT * FROM ...` from the DB pane), seed verification after a migration, checking that `pgvector` namespaces have the expected row counts.
 
-### 3. Replit Object Storage sidecar (free, integrated)
-The sidecar at `127.0.0.1:1106` handles photo uploads, document storage, render outputs. Already wired; already in the deployment pipeline.
+### 3. Object storage — now Cloudflare R2 (cutover landed 2026-04-24)
 
-**Use Replit for:** anything touching object storage. Claude Code can't test upload flows.
+**Updated.** Object storage no longer runs on the Replit Object Storage sidecar in production. The S3-compatible adapter at `server/providers/storage/s3-storage.ts` is now active against the Cloudflare R2 bucket `h-analysis` (env: `STORAGE_PROVIDER=r2` + `R2_*` secret family). The Replit sidecar adapter at `server/providers/storage/replit-storage.ts` remains as a fallback for local dev only and is no longer the deployment target.
+
+**Use Replit Agent for:** verifying upload flows end-to-end against R2 (the live container has the secrets wired and the round-trip script `script/r2-smoketest.ts` ready to run). Claude Code still cannot test upload flows live. **Do NOT** add new code that imports the Replit sidecar adapter from anywhere outside `server/replit_integrations/object_storage/` — it is on the way out.
+
+Forward watchlist item **W7** in `replit_waste.md` covers the still-unfinished asset migration: R2 starts empty, so any DB row pointing at a legacy `/objects/*` URL will 404 the moment we cut to Vercel. That backfill must run *before* the Vercel deployment, not after.
 
 ### 4. Replit Secrets management
 Encrypted env vars are accessed via `process.env` after Replit decrypts at runtime. No `.env` files checked in; no secrets in git history.
