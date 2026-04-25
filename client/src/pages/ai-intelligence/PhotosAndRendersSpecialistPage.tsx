@@ -16,9 +16,9 @@ import { useProperties } from "@/lib/api/properties";
 import { useAddPropertyPhoto } from "@/lib/api/property-photos";
 
 // Inherit the standard specialist console (workflow / identity / sources /
-// runtime tabs) so the Photos & Renders page keeps full feature parity
-// with every other specialist page — we are only adding a "Recent
-// Generations" gallery panel below it. Lazy-loaded for the same chunking
+// runtime tabs) so Fernanda's render console keeps full feature parity
+// with every other specialist page — we are only adding a "Render
+// History" gallery panel below it. Lazy-loaded for the same chunking
 // reasons the parent SectionContent uses.
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
 
@@ -284,11 +284,11 @@ function GalleryPanel() {
     <Card data-testid="card-gallery-panel">
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <div>
-          <CardTitle data-testid="text-gallery-title">Recent Generations</CardTitle>
+          <CardTitle data-testid="text-gallery-title">Fernanda's Render History</CardTitle>
           <p className="text-xs text-muted-foreground mt-1" data-testid="text-gallery-counts">
             {isLoading
               ? "Loading…"
-              : `Showing ${showing.toLocaleString()} of ${total.toLocaleString()}`}
+              : `Showing ${showing.toLocaleString()} of ${total.toLocaleString()} renders dispatched through Fernanda`}
           </p>
         </div>
         <Button
@@ -323,7 +323,8 @@ function GalleryPanel() {
             className="py-12 text-center text-sm text-muted-foreground"
             data-testid="text-gallery-empty"
           >
-            No generations yet. Render a property photo to populate this gallery.
+            Fernanda hasn't run any renders yet. Trigger a render from a
+            property photo album to populate this history.
           </div>
         ) : (
           <div
@@ -357,11 +358,17 @@ function GalleryPanel() {
 
 export default function PhotosAndRendersSpecialistPage() {
   return (
+    // The legacy "page-photos-and-renders-specialist" testid is preserved
+    // intentionally so any existing admin e2e selectors keep working —
+    // Fernanda owns this surface now (`specialist-photos-photo-enhancer`
+    // routing slug, persona Fernanda from specialist-catalog) but the slug
+    // predates the rename. Update both the slug and the dependents
+    // together if/when this is ever rebranded.
     <div className="space-y-6" data-testid="page-photos-and-renders-specialist">
       {/* Inner Suspense isolates the SpecialistPage chunk so that if the
-          outer AiIntelligence Suspense already resolved this page, a
-          slow nested chunk doesn't blank the whole layout — the gallery
-          below stays visible. */}
+          outer AiIntelligence Suspense already resolved Fernanda's
+          render console, a slow nested chunk doesn't blank the whole
+          layout — the render history below stays visible. */}
       <Suspense
         fallback={
           <div className="flex items-center justify-center py-12">
