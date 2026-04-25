@@ -7,7 +7,7 @@ import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
-import { rebeccaSettingsSchema, mergeRebeccaSettings } from "@shared/rebecca-settings";
+import { rebeccaSettingsSchema, DEFAULT_REBECCA_SETTINGS, REBECCA_SOURCE_KEYS } from "@shared/rebecca-settings";
 
 const previewTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -561,14 +561,35 @@ export function register(app: Express) {
       const { payload, conflictResolution } = parsed.data;
       const incoming = payload.fixture;
 
-      // Hydrate any missing fields with defaults BEFORE strict-parsing so
-      // older exports stay importable (mergeRebeccaSettings is the same
-      // forward-compat helper the chat route uses on stored configs).
-      const hydrated = mergeRebeccaSettings(incoming.settings);
+      // Forward-compat hydrate: deep-merge missing fields with defaults so
+      // older exports (lacking fields the schema has since added) stay
+      // importable. We must NOT use `mergeRebeccaSettings` here — that helper
+      // silently falls back to DEFAULT_REBECCA_SETTINGS on any parse failure,
+      // which would let malformed imports succeed as defaults instead of
+      // being rejected. Inline the merge and surface the strict-parse error.
+      const incomingSettings = (incoming.settings ?? {}) as Record<string, any>;
+      const hydrated = {
+        identity: { ...DEFAULT_REBECCA_SETTINGS.identity, ...(incomingSettings.identity ?? {}) },
+        personality: { ...DEFAULT_REBECCA_SETTINGS.personality, ...(incomingSettings.personality ?? {}) },
+        voice: { ...DEFAULT_REBECCA_SETTINGS.voice, ...(incomingSettings.voice ?? {}) },
+        behavior: { ...DEFAULT_REBECCA_SETTINGS.behavior, ...(incomingSettings.behavior ?? {}) },
+        llm: { ...DEFAULT_REBECCA_SETTINGS.llm, ...(incomingSettings.llm ?? {}) },
+        sources: {
+          ...DEFAULT_REBECCA_SETTINGS.sources,
+          ...Object.fromEntries(
+            REBECCA_SOURCE_KEYS.map((k) => [
+              k,
+              { ...DEFAULT_REBECCA_SETTINGS.sources[k], ...((incomingSettings.sources ?? {})[k] ?? {}) },
+            ]),
+          ),
+        },
+      };
       const settingsParse = rebeccaSettingsSchema.safeParse(hydrated);
       if (!settingsParse.success) {
+        const issue = settingsParse.error.issues[0];
+        const path = issue?.path?.length ? issue.path.join(".") : "settings";
         return res.status(400).json({
-          error: "Imported settings snapshot is incompatible: " + settingsParse.error.issues[0]?.message,
+          error: `Imported settings snapshot is incompatible (${path}): ${issue?.message ?? "validation failed"}`,
         });
       }
 
@@ -586,14 +607,22 @@ export function register(app: Express) {
       const existing = await storage.getRebeccaPreviewFixtureByName(targetName);
       if (existing) {
         if (conflictResolution === "overwrite") {
+          // Pass `expectedName` so the UPDATE's WHERE clause guards against
+          // a rename race: if the row was renamed between the by-name lookup
+          // above and this update, the WHERE matches zero rows and we return
+          // a 409 instead of mutating the (now wrong) target.
           const replaced = await storage.replaceRebeccaPreviewFixtureContent(existing.id, {
             description,
             settings: settingsParse.data,
             turns: incoming.turns,
             createdById: user.id,
+            expectedName: existing.name,
           });
           if (!replaced) {
-            return res.status(404).json({ error: "Fixture vanished during overwrite" });
+            return res.status(409).json({
+              error: `Fixture "${existing.name}" was renamed or deleted by another admin — please retry the import`,
+              code: "overwrite_target_changed",
+            });
           }
           logActivity(req, "import-rebecca-fixture-overwrite", "rebecca_preview_fixture", replaced.id, replaced.name, {
             turnCount: incoming.turns.length,

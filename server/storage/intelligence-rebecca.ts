@@ -329,6 +329,12 @@ export class IntelligenceRebeccaStorage {
    *
    * Replay tracking columns are reset since the imported snapshot is, by
    * definition, a brand-new baseline that hasn't been replayed yet.
+   *
+   * `expectedName` guards against the rename race: if another admin renames
+   * the fixture between the by-name lookup and this update, the WHERE clause
+   * matches zero rows and we return undefined instead of mutating the
+   * (now wrong) target row. Caller treats undefined the same as "not found"
+   * and reports a 409 to the user.
    */
   async replaceRebeccaPreviewFixtureContent(
     id: number,
@@ -337,8 +343,12 @@ export class IntelligenceRebeccaStorage {
       settings: Record<string, unknown>;
       turns: typeof rebeccaPreviewFixtures.$inferSelect.turns;
       createdById: number | null;
+      expectedName?: string;
     },
   ): Promise<RebeccaPreviewFixture | undefined> {
+    const whereClause = data.expectedName !== undefined
+      ? and(eq(rebeccaPreviewFixtures.id, id), eq(rebeccaPreviewFixtures.name, data.expectedName))
+      : eq(rebeccaPreviewFixtures.id, id);
     const [row] = await db.update(rebeccaPreviewFixtures)
       .set({
         description: data.description,
@@ -351,7 +361,7 @@ export class IntelligenceRebeccaStorage {
         lastReplaySummary: null,
         lastReplayFingerprint: null,
       })
-      .where(eq(rebeccaPreviewFixtures.id, id))
+      .where(whereClause)
       .returning();
     return row;
   }
