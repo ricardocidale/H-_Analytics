@@ -61,15 +61,33 @@ export class AdminResourceConnectionsStorage {
    * an explicit admin action via the Resources editor, not a catalog
    * side-effect.
    */
-  async backfillConnectionsFromCatalog(): Promise<number> {
-    const result = await db.execute(sql`
-      INSERT INTO resource_specialist_connections (resource_id, target)
-      SELECT DISTINCT sa.resource_id, 'specialist:' || sa.specialist_id
-      FROM specialist_assignments sa
-      WHERE sa.resource_id IS NOT NULL
-      ON CONFLICT (resource_id, target) DO NOTHING
-      RETURNING id
-    `);
+  async backfillConnectionsFromCatalog(
+    options: { specialistIdPrefix?: string } = {},
+  ): Promise<number> {
+    const { specialistIdPrefix } = options;
+    // When scoped, only backfill catalog rows whose specialist_id is in the
+    // caller's namespace. Production callers omit the option (full sweep —
+    // current behaviour). Tests pass their per-run prefix to avoid both
+    // observing rows seeded by the dev server's startup catalog sync AND
+    // blocking those rows from getting their own connections.
+    const result = specialistIdPrefix
+      ? await db.execute(sql`
+          INSERT INTO resource_specialist_connections (resource_id, target)
+          SELECT DISTINCT sa.resource_id, 'specialist:' || sa.specialist_id
+          FROM specialist_assignments sa
+          WHERE sa.resource_id IS NOT NULL
+            AND sa.specialist_id LIKE ${specialistIdPrefix + "%"}
+          ON CONFLICT (resource_id, target) DO NOTHING
+          RETURNING id
+        `)
+      : await db.execute(sql`
+          INSERT INTO resource_specialist_connections (resource_id, target)
+          SELECT DISTINCT sa.resource_id, 'specialist:' || sa.specialist_id
+          FROM specialist_assignments sa
+          WHERE sa.resource_id IS NOT NULL
+          ON CONFLICT (resource_id, target) DO NOTHING
+          RETURNING id
+        `);
     return Array.isArray(result.rows) ? result.rows.length : 0;
   }
 

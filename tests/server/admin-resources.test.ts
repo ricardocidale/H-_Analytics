@@ -11,6 +11,7 @@
  *   4. Catalog flattening: pure function used by the sync job.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
+import { randomUUID } from "node:crypto";
 import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 
 // ── Shared schema imports (no mocking — real types, real Zod) ───────────────
@@ -29,9 +30,36 @@ import { SPECIALIST_CATALOG } from "../../engine/analyst/registry/specialist-cat
 // ════════════════════════════════════════════════════════════════════════════
 
 describe("AdminResourceStorage (real DB)", () => {
-  // Test isolation: every test creates resources with a unique slug suffix and
-  // cleans them up after. Specialist_assignments + break_glass overrides are
-  // wiped at the start of each test for full determinism.
+  // Test isolation strategy
+  // ─────────────────────────
+  // The real DB is shared with (a) the dev server (which runs
+  // backfillCatalogConnections + the resource-health-checker on startup
+  // and on a 60s tick) and (b) other concurrent test runners (the `Run
+  // Tests` workflow + any local invocation). The previous version of this
+  // suite used a wholesale `beforeEach` `db.delete(table)` for every
+  // dependent table, which raced on all three vectors and produced the
+  // four flakes Task #547 names.
+  //
+  // The fix is per-process namespacing:
+  //   • Every slug, specialist_id, and target string this suite writes
+  //     gets the per-process RUN_PREFIX baked in at the front, so two
+  //     concurrent vitest processes (or the dev server's catalog seed)
+  //     can never collide on a unique index.
+  //   • `syncSpecialistCatalog` and `backfillConnectionsFromCatalog`
+  //     accept a `specialistIdPrefix` scope; the suite uses RUN_PREFIX
+  //     so the global "remove stale" / "insert all resolved" semantics
+  //     only act on rows this suite owns.
+  //   • There is NO `beforeEach` table wipe — there's nothing global to
+  //     wipe. Cleanup happens once in `afterAll`, scoped to RUN_PREFIX.
+  //   • Per-test slugs append a counter (`mintSlug`) so tests that
+  //     create more than one resource (rollback, idem) don't hit the
+  //     unique (kind, slug) index against themselves on a re-run inside
+  //     the same process.
+  const RUN_PREFIX = `p2t-${process.pid}-${randomUUID().slice(0, 8)}`;
+  let counter = 0;
+  const mintSlug = (label: string) => `${RUN_PREFIX}-${label}-${++counter}`;
+  const mintSpecialistId = (label: string) => `${RUN_PREFIX}.${label}`;
+
   let storageMod: typeof import("../../server/storage/admin-resource");
   let store: InstanceType<typeof storageMod.AdminResourceStorage>;
   let db: typeof import("../../server/db").db;
@@ -53,7 +81,7 @@ describe("AdminResourceStorage (real DB)", () => {
       const [u] = await db
         .insert(users)
         .values({
-          email: `p2-test-${Date.now()}@example.test`,
+          email: `${RUN_PREFIX}@example.test`,
           passwordHash: null,
           role: "admin",
           firstName: "P2",
@@ -64,23 +92,11 @@ describe("AdminResourceStorage (real DB)", () => {
     }
   });
 
-  beforeEach(async () => {
-    const {
-      adminResources,
-      adminResourceVersions,
-      specialistAssignments,
-      auditBreakGlassOverrides,
-      resourceSpecialistConnections,
-    } = await import("@shared/schema");
-    // Cascade order: child rows first.
-    await db.delete(resourceSpecialistConnections);
-    await db.delete(specialistAssignments);
-    await db.delete(auditBreakGlassOverrides);
-    await db.delete(adminResourceVersions);
-    await db.delete(adminResources);
-  });
-
   afterAll(async () => {
+    // Scoped cleanup: drop only rows owned by THIS test process. Other
+    // processes' rows (and the dev server's catalog rows) survive.
+    // Order matters: child rows that don't cascade go first.
+    const { sql } = await import("drizzle-orm");
     const {
       adminResources,
       adminResourceVersions,
@@ -88,18 +104,34 @@ describe("AdminResourceStorage (real DB)", () => {
       auditBreakGlassOverrides,
       resourceSpecialistConnections,
     } = await import("@shared/schema");
-    await db.delete(resourceSpecialistConnections);
-    await db.delete(specialistAssignments);
-    await db.delete(auditBreakGlassOverrides);
-    await db.delete(adminResourceVersions);
-    await db.delete(adminResources);
+
+    const prefixPattern = `${RUN_PREFIX}%`;
+
+    await db
+      .delete(specialistAssignments)
+      .where(sql`${specialistAssignments.specialistId} LIKE ${prefixPattern}`);
+    await db
+      .delete(auditBreakGlassOverrides)
+      .where(sql`${auditBreakGlassOverrides.specialistId} LIKE ${prefixPattern}`);
+    // Connection target strings start with `specialist:${RUN_PREFIX}…` for
+    // every specialist this suite creates.
+    await db
+      .delete(resourceSpecialistConnections)
+      .where(sql`${resourceSpecialistConnections.target} LIKE ${`specialist:${RUN_PREFIX}%`}`);
+    // adminResourceVersions cascade with the parent — selecting on slug
+    // means we leave any version rows whose parent already disappeared
+    // alone, but that's intentional (those are stale orphans from earlier
+    // test bugs and don't affect anything).
+    await db
+      .delete(adminResources)
+      .where(sql`${adminResources.slug} LIKE ${prefixPattern}`);
   });
 
   it("create writes a v1 row and a v1 version snapshot", async () => {
     const row = await store.createAdminResource(
       {
         kind: "api",
-        slug: "p2-test-create",
+        slug: mintSlug("create"),
         displayName: "P2 Test API",
         description: "init",
         config: { baseUrl: "https://example.test" },
@@ -119,7 +151,7 @@ describe("AdminResourceStorage (real DB)", () => {
     const row = await store.createAdminResource(
       {
         kind: "model",
-        slug: "p2-test-update",
+        slug: mintSlug("update"),
         displayName: "Initial",
         config: { temperature: 0.2 },
       },
@@ -142,7 +174,7 @@ describe("AdminResourceStorage (real DB)", () => {
 
   it("rollback re-applies a past version as a new version (history append-only)", async () => {
     const row = await store.createAdminResource(
-      { kind: "api", slug: "p2-test-rollback", displayName: "v1", config: { x: 1 } },
+      { kind: "api", slug: mintSlug("rollback"), displayName: "v1", config: { x: 1 } },
       actorUserId,
     );
     await store.updateAdminResource(row.id, { displayName: "v2", config: { x: 2 } }, actorUserId);
@@ -160,7 +192,7 @@ describe("AdminResourceStorage (real DB)", () => {
 
   it("rollback returns undefined when target version does not exist", async () => {
     const row = await store.createAdminResource(
-      { kind: "table", slug: "p2-test-bad-rollback", displayName: "x", config: {} },
+      { kind: "table", slug: mintSlug("bad-rollback"), displayName: "x", config: {} },
       actorUserId,
     );
     const result = await store.rollbackAdminResource(row.id, 99, actorUserId);
@@ -169,7 +201,7 @@ describe("AdminResourceStorage (real DB)", () => {
 
   it("delete cascades version snapshots", async () => {
     const row = await store.createAdminResource(
-      { kind: "benchmark", slug: "p2-test-delete", displayName: "x", config: {} },
+      { kind: "benchmark", slug: mintSlug("delete"), displayName: "x", config: {} },
       actorUserId,
     );
     await store.updateAdminResource(row.id, { displayName: "y" }, actorUserId);
@@ -178,122 +210,128 @@ describe("AdminResourceStorage (real DB)", () => {
   });
 
   it("syncSpecialistCatalog is idempotent (second run reports zero work)", async () => {
+    const alpha = mintSpecialistId("alpha");
     const decls = [
-      { specialistId: "test.alpha", assignmentKind: "model" as const, assignmentSlug: "primary-llm", assignmentRole: "tier-1", required: true },
-      { specialistId: "test.alpha", assignmentKind: "benchmark" as const, assignmentSlug: "x-bench", assignmentRole: null, required: false },
+      { specialistId: alpha, assignmentKind: "model" as const, assignmentSlug: mintSlug("idem-llm"), assignmentRole: "tier-1", required: true },
+      { specialistId: alpha, assignmentKind: "benchmark" as const, assignmentSlug: mintSlug("idem-bench"), assignmentRole: null, required: false },
     ];
-    const first = await store.syncSpecialistCatalog(decls);
+    const first = await store.syncSpecialistCatalog(decls, { specialistIdPrefix: RUN_PREFIX });
     expect(first.inserted).toBe(2);
     expect(first.removed).toBe(0);
     expect(first.unresolvedSlugs).toBe(2); // No matching admin_resources rows yet.
 
-    const second = await store.syncSpecialistCatalog(decls);
+    const second = await store.syncSpecialistCatalog(decls, { specialistIdPrefix: RUN_PREFIX });
     expect(second.inserted).toBe(0);
     expect(second.updated).toBe(0);
     expect(second.removed).toBe(0);
   });
 
   it("syncSpecialistCatalog resolves slugs to resource ids and removes stale rows", async () => {
+    const apiSlug = mintSlug("gamma-search");
+    const obsoleteSlug = mintSlug("gamma-obsolete");
+    const gamma = mintSpecialistId("gamma");
+
     const resource = await store.createAdminResource(
-      { kind: "api", slug: "web-search", displayName: "Web Search", config: {} },
+      { kind: "api", slug: apiSlug, displayName: "Web Search", config: {} },
       actorUserId,
     );
     const initial = [
-      { specialistId: "test.gamma", assignmentKind: "api" as const, assignmentSlug: "web-search", assignmentRole: null, required: true },
-      { specialistId: "test.gamma", assignmentKind: "model" as const, assignmentSlug: "obsolete-model", assignmentRole: null, required: true },
+      { specialistId: gamma, assignmentKind: "api" as const, assignmentSlug: apiSlug, assignmentRole: null, required: true },
+      { specialistId: gamma, assignmentKind: "model" as const, assignmentSlug: obsoleteSlug, assignmentRole: null, required: true },
     ];
-    await store.syncSpecialistCatalog(initial);
+    await store.syncSpecialistCatalog(initial, { specialistIdPrefix: RUN_PREFIX });
 
     // Drop one declaration, keep the other → should remove the dropped one.
     const trimmed = [initial[0]];
-    const result = await store.syncSpecialistCatalog(trimmed);
+    const result = await store.syncSpecialistCatalog(trimmed, { specialistIdPrefix: RUN_PREFIX });
     expect(result.removed).toBe(1);
-    const remaining = await store.listSpecialistAssignments("test.gamma");
+    const remaining = await store.listSpecialistAssignments(gamma);
     expect(remaining).toHaveLength(1);
     expect(remaining[0].resourceId).toBe(resource.id);
 
-    // Impact list should show this Specialist on the resource.
+    // Impact list should show this Specialist on the resource. The resource
+    // was just minted in this test so it cannot have unrelated impact rows.
     const impact = await store.listResourceImpact(resource.id);
     expect(impact).toEqual([
-      expect.objectContaining({ specialistId: "test.gamma", assignmentKind: "api", assignmentSlug: "web-search", required: true }),
+      expect.objectContaining({ specialistId: gamma, assignmentKind: "api", assignmentSlug: apiSlug, required: true }),
     ]);
   });
 
   it("backfillConnectionsFromCatalog seeds resource_specialist_connections from resolved catalog rows", async () => {
     // Two catalog declarations resolve (alpha + beta on the same resource);
     // one declaration's slug doesn't match any admin_resources row and is
-    // skipped until the missing resource is created.
-    //
-    // Assertions are scoped to THIS resource (queried via
-    // listConnectionsForResource) rather than the global "inserted" count
-    // returned by the backfill SQL. The global count is fragile: any
-    // unrelated specialist_assignments row that happens to resolve to a
-    // resource (left behind by another test file's import-time side
-    // effects, or by a CI seed step that lights up the catalog) bumps the
-    // count and breaks the strict `=== 2` assertion. The scoped query is
-    // immune to that — beforeEach wipes adminResources, so resource.id is
-    // brand-new and only our two assignments can possibly point at it.
+    // skipped until the missing resource is created. Everything is scoped
+    // by RUN_PREFIX so the assertion on `inserted` can be exact (no
+    // unrelated specialist_assignments row owned by this prefix exists).
+    const apiSlug = mintSlug("backfill-search");
+    const missingSlug = mintSlug("backfill-missing");
+    const specAlpha = mintSpecialistId("spec.alpha");
+    const specBeta = mintSpecialistId("spec.beta");
+
     const resource = await store.createAdminResource(
-      { kind: "api", slug: "p2-backfill-search", displayName: "Search", config: {} },
+      { kind: "api", slug: apiSlug, displayName: "Search", config: {} },
       actorUserId,
     );
-    await store.syncSpecialistCatalog([
-      { specialistId: "spec.alpha", assignmentKind: "api", assignmentSlug: "p2-backfill-search", assignmentRole: null, required: true },
-      { specialistId: "spec.beta",  assignmentKind: "api", assignmentSlug: "p2-backfill-search", assignmentRole: null, required: false },
-      { specialistId: "spec.alpha", assignmentKind: "model", assignmentSlug: "p2-backfill-missing", assignmentRole: null, required: true },
-    ]);
+    await store.syncSpecialistCatalog(
+      [
+        { specialistId: specAlpha, assignmentKind: "api", assignmentSlug: apiSlug, assignmentRole: null, required: true },
+        { specialistId: specBeta, assignmentKind: "api", assignmentSlug: apiSlug, assignmentRole: null, required: false },
+        { specialistId: specAlpha, assignmentKind: "model", assignmentSlug: missingSlug, assignmentRole: null, required: true },
+      ],
+      { specialistIdPrefix: RUN_PREFIX },
+    );
 
-    const inserted = await store.backfillConnectionsFromCatalog();
-    // The backfill MUST insert at least our two resolved rows. It may
-    // insert more if other resolved-but-unconnected rows exist globally
-    // (e.g. CI seeded catalog rows) — that's fine, those don't touch our
-    // resource. Asserting `>= 2` keeps the contract ("backfill seeds
-    // resolved rows") without coupling to global DB state.
-    expect(inserted).toBeGreaterThanOrEqual(2);
+    const inserted = await store.backfillConnectionsFromCatalog({ specialistIdPrefix: RUN_PREFIX });
+    // Scoped to RUN_PREFIX, so this is exactly the two resolved rows for
+    // (resource × {alpha, beta}). The third decl resolves to no resource
+    // and is skipped by the WHERE clause.
+    expect(inserted).toBe(2);
 
     const targets = (await store.listConnectionsForResource(resource.id))
       .map((r) => r.target)
       .sort();
-    expect(targets).toEqual(["specialist:spec.alpha", "specialist:spec.beta"]);
+    expect(targets).toEqual([`specialist:${specAlpha}`, `specialist:${specBeta}`]);
   });
 
   it("backfillConnectionsFromCatalog is idempotent and preserves admin-set connections", async () => {
+    const apiSlug = mintSlug("backfill-idem");
+    const adminPick = mintSpecialistId("spec.adminpick");
+    const catalogSpec = mintSpecialistId("spec.catalog");
+
     const resource = await store.createAdminResource(
-      { kind: "api", slug: "p2-backfill-idem", displayName: "Idem", config: {} },
+      { kind: "api", slug: apiSlug, displayName: "Idem", config: {} },
       actorUserId,
     );
     // Admin pre-wires a connection that the catalog does NOT mention. The
     // backfill must NOT remove it — admin edits are the authoritative
     // surface, the catalog only seeds what's missing.
-    await store.replaceConnectionsForResource(resource.id, ["specialist:spec.adminpick"]);
+    await store.replaceConnectionsForResource(resource.id, [`specialist:${adminPick}`]);
 
-    await store.syncSpecialistCatalog([
-      { specialistId: "spec.catalog", assignmentKind: "api", assignmentSlug: "p2-backfill-idem", assignmentRole: null, required: true },
-    ]);
+    await store.syncSpecialistCatalog(
+      [{ specialistId: catalogSpec, assignmentKind: "api", assignmentSlug: apiSlug, assignmentRole: null, required: true }],
+      { specialistIdPrefix: RUN_PREFIX },
+    );
 
-    // First backfill: should insert our scoped catalog-derived row (and
-    // possibly other unrelated resolved rows from globally-leaked state —
-    // which is why we assert the SCOPED outcome below, not the global
-    // count). Second backfill must be a true no-op: every row that was
-    // present after the first call is present again, so the SQL's
-    // `ON CONFLICT DO NOTHING` suppresses every insert and `RETURNING id`
-    // yields zero rows.
-    await store.backfillConnectionsFromCatalog();
-    const second = await store.backfillConnectionsFromCatalog();
-    expect(second).toBe(0); // strict — idempotency is the contract under test here
+    // First backfill: inserts the catalog-derived row (scoped). Second
+    // backfill must be a true no-op for our scope: every row present after
+    // the first call is present again, so `ON CONFLICT DO NOTHING`
+    // suppresses every insert and `RETURNING id` yields zero rows.
+    await store.backfillConnectionsFromCatalog({ specialistIdPrefix: RUN_PREFIX });
+    const second = await store.backfillConnectionsFromCatalog({ specialistIdPrefix: RUN_PREFIX });
+    expect(second).toBe(0);
 
     const targets = (await store.listConnectionsForResource(resource.id))
       .map((r) => r.target)
       .sort();
     // Both the catalog-derived AND the pre-existing admin-set link survive.
-    expect(targets).toEqual(["specialist:spec.adminpick", "specialist:spec.catalog"]);
+    expect(targets).toEqual([`specialist:${adminPick}`, `specialist:${catalogSpec}`]);
   });
 
   it("createBreakGlassOverride and revoke round-trip", async () => {
     const created = await store.createBreakGlassOverride({
-      specialistId: "test.delta",
+      specialistId: mintSpecialistId("delta"),
       assignmentKind: "model",
-      assignmentSlug: "primary-llm",
+      assignmentSlug: mintSlug("breakglass-llm"),
       assignmentRole: null,
       overrideResourceId: null,
       reason: "incident-routing-test",

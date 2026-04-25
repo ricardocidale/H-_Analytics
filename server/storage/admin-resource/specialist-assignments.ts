@@ -9,15 +9,32 @@
  * admin_resources row are still inserted (with resourceId=null) so the
  * declaration is preserved; the unresolved count is returned for callers
  * to surface.
+ *
+ * The optional `specialistIdPrefix` scope limits the sync to rows whose
+ * `specialist_id` starts with the given prefix. Production callers leave
+ * it unset (full-DB sweep — current behaviour). Tests pass a per-run
+ * prefix so they can exercise the "remove stale" semantic without
+ * deleting unrelated rows owned by the dev server's startup catalog
+ * sync or by a concurrent test process sharing the same DB.
  */
 import { db } from "../../db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import {
   adminResources,
   specialistAssignments,
   type SpecialistAssignmentRow,
 } from "@shared/schema";
 import type { CatalogSyncDeclaration, CatalogSyncResult, ResourceImpactEntry } from "./types";
+
+export interface SyncSpecialistCatalogOptions {
+  /**
+   * If set, the sync only manages rows whose `specialist_id` starts with
+   * this prefix. Both the "existing rows" lookup and the stale-row delete
+   * are scoped. Used by the test suite to isolate concurrent runs;
+   * production callers omit this and operate on the full table.
+   */
+  specialistIdPrefix?: string;
+}
 
 function declKey(specialistId: string, kind: string, slug: string, role: string | null): string {
   return `${specialistId}|${kind}|${slug}|${role ?? ""}`;
@@ -54,9 +71,29 @@ export class AdminResourceAssignmentsStorage {
 
   async syncSpecialistCatalog(
     declarations: CatalogSyncDeclaration[],
+    options: SyncSpecialistCatalogOptions = {},
   ): Promise<CatalogSyncResult> {
+    const { specialistIdPrefix } = options;
+    if (specialistIdPrefix) {
+      // Defensive: when scoped, every declaration MUST live inside the scope,
+      // otherwise inserts would land outside the lookup window and a re-run
+      // would mistakenly re-insert them as "new". Tests pass their own RUN
+      // prefix and compose declarations under it; this catches typos early.
+      for (const decl of declarations) {
+        if (!decl.specialistId.startsWith(specialistIdPrefix)) {
+          throw new Error(
+            `syncSpecialistCatalog: declaration specialistId "${decl.specialistId}" is outside scope "${specialistIdPrefix}"`,
+          );
+        }
+      }
+    }
     return db.transaction(async (tx) => {
-      const existing = await tx.select().from(specialistAssignments);
+      const existing = specialistIdPrefix
+        ? await tx
+            .select()
+            .from(specialistAssignments)
+            .where(like(specialistAssignments.specialistId, `${specialistIdPrefix}%`))
+        : await tx.select().from(specialistAssignments);
       const existingByKey = new Map<string, SpecialistAssignmentRow>();
       for (const row of existing) {
         existingByKey.set(declKey(row.specialistId, row.assignmentKind, row.assignmentSlug, row.assignmentRole), row);
