@@ -257,3 +257,60 @@ export function assembleSystemPrompt(
   const field = parts.fieldBlock ?? "";
   return `${parts.baseSystem}${parts.personaOverlay}${guard}${mode}${lang}${inject}\n\n${portfolio}${field}${rag}${docs}${assets}`;
 }
+
+/**
+ * Per-block "did this source actually contribute content?" signals collected
+ * by the chat route after retrieval. Mirrors the keys in
+ * {@link REBECCA_SOURCE_KEYS} so the assembled prompt and the admin-facing
+ * blocks-included list stay in lock-step.
+ *
+ * - `portfolio` is true when a non-empty portfolioBlock was supplied.
+ * - `knowledgeBase` / `research` split the combined RAG block by namespace —
+ *   they are true when at least one chunk from that source made it past the
+ *   relevance threshold and into the prompt.
+ * - `documents` / `uploadedFiles` are true when the corresponding context
+ *   block was non-empty.
+ * - `webSearch` is true when web search was actually applied to the LLM call
+ *   (i.e. the dispatched provider honored the toggle).
+ */
+export interface SourceBlockPresence {
+  portfolio: boolean;
+  knowledgeBase: boolean;
+  research: boolean;
+  documents: boolean;
+  uploadedFiles: boolean;
+  webSearch: boolean;
+}
+
+/**
+ * Derive the list of source blocks that *both* survived the admin's
+ * Knowledge & Sources gating *and* actually contributed content to the
+ * system prompt for this turn. The Test Chat preview surfaces this list as
+ * badges so admins can see exactly which blocks made it in.
+ *
+ * Kept in `shared/` so it's the single source of truth for both the chat
+ * route and any future surface that needs the same derivation.
+ */
+export function computeBlocksIncluded(
+  presence: SourceBlockPresence,
+  sources: RebeccaSettings["sources"],
+): RebeccaSourceKey[] {
+  const out: RebeccaSourceKey[] = [];
+  if (sources.portfolio.enabled && presence.portfolio) out.push("portfolio");
+  if (sources.knowledgeBase.enabled && presence.knowledgeBase) out.push("knowledgeBase");
+  if (sources.research.enabled && presence.research) out.push("research");
+  if (sources.documents.enabled && presence.documents) out.push("documents");
+  if (sources.uploadedFiles.enabled && presence.uploadedFiles) out.push("uploadedFiles");
+  if (sources.webSearch.enabled && presence.webSearch) out.push("webSearch");
+  return out;
+}
+
+/** Short, human-friendly labels for the blocks-included badges. */
+export const REBECCA_SOURCE_LABELS: Record<RebeccaSourceKey, string> = {
+  portfolio: "portfolio",
+  knowledgeBase: "knowledge base",
+  research: "research",
+  documents: "documents",
+  uploadedFiles: "uploaded files",
+  webSearch: "web search",
+};

@@ -17,8 +17,11 @@ import {
   DEFAULT_REBECCA_SETTINGS,
   assembleSystemPrompt,
   buildPersonaOverlay,
+  computeBlocksIncluded,
   mergeRebeccaSettings,
+  REBECCA_SOURCE_LABELS,
   type RebeccaSettings,
+  type SourceBlockPresence,
 } from "@shared/rebecca-settings";
 
 function withDials(
@@ -389,5 +392,126 @@ describe("assembleSystemPrompt — source toggle gating", () => {
       expect(idx, `marker ${marker} should appear in order`).toBeGreaterThan(lastIdx);
       lastIdx = idx;
     }
+  });
+});
+
+/**
+ * Task #532 — `computeBlocksIncluded` powers the admin-only "Blocks
+ * included" badge list under each Test Chat reply. It must agree with
+ * `assembleSystemPrompt`'s gating: a block only counts as "included" when
+ * the source toggle is on AND the chat route actually had content for that
+ * block.
+ */
+describe("computeBlocksIncluded — admin Test Chat blocks badge", () => {
+  const ALL_PRESENT: SourceBlockPresence = {
+    portfolio: true,
+    knowledgeBase: true,
+    research: true,
+    documents: true,
+    uploadedFiles: true,
+    webSearch: true,
+  };
+
+  it("returns every source key when all toggles are on and every block contributed", () => {
+    const sources: RebeccaSettings["sources"] = {
+      knowledgeBase: { enabled: true, weight: 70 },
+      portfolio: { enabled: true, weight: 90 },
+      research: { enabled: true, weight: 60 },
+      documents: { enabled: true, weight: 50 },
+      webSearch: { enabled: true, weight: 30 },
+      uploadedFiles: { enabled: true, weight: 50 },
+    };
+    expect(computeBlocksIncluded(ALL_PRESENT, sources)).toEqual([
+      "portfolio",
+      "knowledgeBase",
+      "research",
+      "documents",
+      "uploadedFiles",
+      "webSearch",
+    ]);
+  });
+
+  it("drops a block when its toggle is disabled even if the route had content for it", () => {
+    const sources = {
+      ...DEFAULT_REBECCA_SETTINGS.sources,
+      documents: { enabled: false, weight: 0 },
+    };
+    const out = computeBlocksIncluded(ALL_PRESENT, sources);
+    expect(out).not.toContain("documents");
+    // A disabled toggle is the exact failure mode the badge list exists to
+    // expose, so the rest of the included blocks must remain visible.
+    expect(out).toContain("portfolio");
+    expect(out).toContain("knowledgeBase");
+    expect(out).toContain("research");
+    expect(out).toContain("uploadedFiles");
+  });
+
+  it("drops a block when the toggle is enabled but the route had no content for it", () => {
+    const presence: SourceBlockPresence = {
+      ...ALL_PRESENT,
+      research: false,
+      uploadedFiles: false,
+    };
+    const out = computeBlocksIncluded(presence, DEFAULT_REBECCA_SETTINGS.sources);
+    expect(out).not.toContain("research");
+    expect(out).not.toContain("uploadedFiles");
+    // KB still in because it had content AND its toggle is enabled by default.
+    expect(out).toContain("knowledgeBase");
+  });
+
+  it("returns an empty list when every toggle is disabled, regardless of presence", () => {
+    const allOff: RebeccaSettings["sources"] = {
+      knowledgeBase: { enabled: false, weight: 0 },
+      portfolio: { enabled: false, weight: 0 },
+      research: { enabled: false, weight: 0 },
+      documents: { enabled: false, weight: 0 },
+      webSearch: { enabled: false, weight: 0 },
+      uploadedFiles: { enabled: false, weight: 0 },
+    };
+    expect(computeBlocksIncluded(ALL_PRESENT, allOff)).toEqual([]);
+  });
+
+  it("returns an empty list when no block had content, regardless of toggles", () => {
+    const noPresence: SourceBlockPresence = {
+      portfolio: false,
+      knowledgeBase: false,
+      research: false,
+      documents: false,
+      uploadedFiles: false,
+      webSearch: false,
+    };
+    expect(computeBlocksIncluded(noPresence, DEFAULT_REBECCA_SETTINGS.sources)).toEqual([]);
+  });
+
+  it("preserves a stable ordering matching the source-key declaration order", () => {
+    const sources = DEFAULT_REBECCA_SETTINGS.sources;
+    // Default settings have webSearch off; toggle it on so all six keys are
+    // eligible, then verify the canonical order isn't accidentally sorted.
+    const allOn: RebeccaSettings["sources"] = {
+      ...sources,
+      webSearch: { enabled: true, weight: 30 },
+    };
+    expect(computeBlocksIncluded(ALL_PRESENT, allOn)).toEqual([
+      "portfolio",
+      "knowledgeBase",
+      "research",
+      "documents",
+      "uploadedFiles",
+      "webSearch",
+    ]);
+  });
+
+  it("REBECCA_SOURCE_LABELS provides a friendly label for every source key", () => {
+    // The Test Chat badges look up labels by key; missing entries would
+    // render as raw camelCase identifiers, which would defeat the point
+    // of the badge.
+    expect(REBECCA_SOURCE_LABELS).toEqual({
+      portfolio: "portfolio",
+      knowledgeBase: "knowledge base",
+      research: "research",
+      documents: "documents",
+      uploadedFiles: "uploaded files",
+      webSearch: "web search",
+    });
   });
 });

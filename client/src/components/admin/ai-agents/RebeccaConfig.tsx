@@ -33,6 +33,7 @@ import {
   REBECCA_CITATION_STYLES,
   REBECCA_UNCERTAINTY,
   REBECCA_SOURCE_KEYS,
+  REBECCA_SOURCE_LABELS,
   mergeRebeccaSettings,
   type RebeccaSettings,
   type RebeccaLlmProvider,
@@ -135,6 +136,58 @@ const NAMESPACE_LABELS: Record<string, string> = {
   documents: "Documents",
   "uploaded-files": "Uploaded Files",
 };
+
+/**
+ * Task #532 — small badge list shown above the "Sources used" panel on each
+ * preview reply. It echoes the admin-only `blocksIncluded` array returned by
+ * the chat route so admins can see at-a-glance which Knowledge & Sources
+ * blocks (portfolio, knowledge base, research, documents, uploaded files,
+ * web search) actually made it into Rebecca's system prompt for this turn.
+ *
+ * The empty state is just as informative as the populated state: when no
+ * blocks made it in, admins know Rebecca answered purely from persona +
+ * mode overlay, with no source grounding.
+ */
+function BlocksIncludedBadges({
+  blocks,
+  turnIndex,
+}: {
+  blocks: RebeccaSourceKey[];
+  turnIndex: number;
+}) {
+  return (
+    <div
+      className="mt-1.5 max-w-[85%] w-full flex items-center gap-1.5 flex-wrap px-1"
+      data-testid={`blocks-included-${turnIndex}`}
+    >
+      <span
+        className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground shrink-0"
+        data-testid={`text-blocks-included-label-${turnIndex}`}
+      >
+        Blocks included:
+      </span>
+      {blocks.length === 0 ? (
+        <span
+          className="text-[10px] italic text-muted-foreground/80"
+          data-testid={`text-blocks-included-empty-${turnIndex}`}
+        >
+          none
+        </span>
+      ) : (
+        blocks.map((key) => (
+          <Badge
+            key={key}
+            variant="outline"
+            className="text-[9px] py-0 px-1.5 h-4 font-medium border-primary/40 bg-primary/10 text-primary"
+            data-testid={`badge-block-${key}-${turnIndex}`}
+          >
+            {REBECCA_SOURCE_LABELS[key]}
+          </Badge>
+        ))
+      )}
+    </div>
+  );
+}
 
 function SourcesUsedPanel({
   sources,
@@ -250,11 +303,16 @@ export function RebeccaConfig({
   // answered the way she did and how the Knowledge & Sources weights affect
   // ordering.
   type PreviewSource = { title: string; namespace: string; score: number; weight: number };
+  // Task #532 — assistant turns also carry the admin-only list of source
+  // blocks the chat route actually included in the system prompt this turn,
+  // so admins can see at-a-glance whether a Knowledge & Sources toggle is
+  // silently dropping a block.
   type PreviewTurn = {
     role: "user" | "assistant";
     content: string;
     ts: number;
     sources?: PreviewSource[];
+    blocksIncluded?: RebeccaSourceKey[];
   };
   const [testInput, setTestInput] = useState("");
   const [previewHistory, setPreviewHistory] = useState<PreviewTurn[]>([]);
@@ -315,11 +373,17 @@ export function RebeccaConfig({
             weight: typeof o.weight === "number" ? o.weight : 0,
           };
         });
+      const rawBlocks = Array.isArray(data.blocksIncluded) ? data.blocksIncluded : [];
+      const blocksIncluded: RebeccaSourceKey[] = rawBlocks.filter(
+        (k: unknown): k is RebeccaSourceKey =>
+          typeof k === "string" && (REBECCA_SOURCE_KEYS as readonly string[]).includes(k),
+      );
       const reply: PreviewTurn = {
         role: "assistant",
         content: data.response ?? "(empty response)",
         ts: Date.now(),
         sources,
+        blocksIncluded,
       };
       setPreviewHistory((prev) => [...prev, reply]);
     } catch (e: unknown) {
@@ -815,6 +879,9 @@ export function RebeccaConfig({
                       </div>
                       {turn.content}
                     </div>
+                    {!isUser && turn.blocksIncluded !== undefined && (
+                      <BlocksIncludedBadges blocks={turn.blocksIncluded} turnIndex={i} />
+                    )}
                     {!isUser && turn.sources !== undefined && (
                       <SourcesUsedPanel sources={turn.sources} turnIndex={i} />
                     )}
