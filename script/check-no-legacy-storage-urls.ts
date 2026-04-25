@@ -47,6 +47,13 @@ const ALLOW_LIST = [
   // The reconciler script that finds-and-rewrites these URLs in Postgres
   // (the patterns appear in regex literals at runtime, not just comments).
   "script/r2-cutover-reconcile.ts",
+  // Task #533 — bespoke one-shot migration that rewrites/neutralises the
+  // pre-cutover `/objects/uploads/<uuid>` rows the data-side audit
+  // (`script/audit-legacy-storage-urls-in-db.ts`) flagged. Like the
+  // reconciler above, the legacy substring appears in SQL filters and
+  // log messages by necessity — the script's job is to find that exact
+  // shape in the DB and replace it.
+  "script/migrate-legacy-uploads-in-db.ts",
   // Defensive allow-list for outbound fetches to known image hosts. This
   // is a *read-side* validation, not a write to the database, so it must
   // mention these hosts by name.
