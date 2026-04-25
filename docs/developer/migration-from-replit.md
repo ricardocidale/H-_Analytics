@@ -10,6 +10,8 @@ This guide covers removing all Replit-managed integrations and deploying H+ Anal
 
 **Pre-deploy storage gate — DONE (Apr 25, Task #522).** `script/r2-cutover-reconcile.ts` is wired into `.github/workflows/predeploy-storage-reconcile.yml` as a required CI gate on `main`. A regression in storage routing (e.g., a new feature that writes `/objects/uploads/<uuid>` to a column the script doesn't expect, or a `legacy-host` URL re-introduced into the DB) blocks the deploy instead of breaking production. See "Pre-deploy storage reconcile gate" below.
 
+**Auto-remediation — DONE (Apr 25, Task #523).** A separate scheduled workflow (`.github/workflows/storage-reconcile-remediate.yml`) runs the same script nightly with `--rewrite-legacy-hosts --copy-from-replit-bucket` so the two mechanically-fixable failure modes (`MISSING-R2`, `LEGACY-host`) get swept automatically instead of accumulating until the next push trips the deploy gate. It is schedule + `workflow_dispatch` only — never on push — so the read-only deploy gate stays the source of truth for "is `main` deployable right now". See "Auto-remediation sweep" below.
+
 **Hosting — IN PROGRESS.** Vercel deployment is the next major step. Until that lands, the Replit Dependency Tax keeps accruing on every commit.
 
 ### Cancelling the Helium Postgres add-on (when ready)
@@ -254,6 +256,33 @@ STORAGE_PROVIDER=r2 \
 ```
 
 Exits 0 → safe to deploy. Exits 1 → read the bucket counts in the output and apply the matching remediation above.
+
+### Auto-remediation sweep (Task #523)
+
+`.github/workflows/storage-reconcile-remediate.yml` is the janitor that keeps routine drift from accumulating until the deploy gate trips. It runs the same `script/r2-cutover-reconcile.ts`, but in mutating mode with both remediation flags chained:
+
+```sh
+npx tsx script/r2-cutover-reconcile.ts --rewrite-legacy-hosts --copy-from-replit-bucket
+```
+
+**When it runs.** Nightly at 09:00 UTC (cron `0 9 * * *`) and on `workflow_dispatch`. **It never runs on push.** That is intentional: the read-only deploy gate (`Pre-Deploy Storage Reconcile`) is the source of truth for "is `main` deployable right now", and a sweep that mutates production on every commit would defeat the audit trail.
+
+**What gets remediated automatically.**
+- `LEGACY-host` URLs of the rewritable shape (`https://<replit-host>/objects/<key>`) are rewritten to the relative `/objects/<key>` form. Non-rewritable shapes (e.g. `storage.googleapis.com/<bucket>/<key>` GCS-direct URLs) are reported as `SKIPPED` and require manual remediation.
+- `MISSING-R2` keys are re-fetched from the legacy Replit bucket via `ReplitStorageProvider` and uploaded to R2 at the same key. The script's `[RE-CLASSIFY]` pass means a single invocation also catches the URLs that were just rewritten from legacy-host to relative `/objects/<key>` form.
+
+**What is NOT remediated.** `MISSING-media` and `MISSING-photo` are not mechanically fixable — the underlying row is gone or its `image_url` has rotted. The sweep workflow exits non-zero when these remain after auto-remediation, so the run shows red in Actions and the operator gets the manual-triage signal in the morning. **It does not block deploys** (nothing depends on it as a required check).
+
+**Required GitHub Actions secrets.** Same five as the deploy gate (`PROD_POSTGRES_URL`, `R2_BUCKET`, `R2_S3_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`). Two additional optional secrets enable the `--copy-from-replit-bucket` branch:
+
+| Secret | Purpose |
+|--------|---------|
+| `LEGACY_PUBLIC_OBJECT_SEARCH_PATHS` | Comma-separated paths the legacy `ObjectStorageService` looks under (mirrors the `PUBLIC_OBJECT_SEARCH_PATHS` value the running Replit app used). Optional — leave unset if the legacy bucket is no longer reachable; copies will fail loudly in the job summary. |
+| `LEGACY_PRIVATE_OBJECT_DIR` | The `PRIVATE_OBJECT_DIR` value the running Replit app used. Same optionality. |
+
+**Auditability.** Every run uploads the full reconciler stdout as an artifact (`r2-cutover-remediate-<run-id>.log`, 30-day retention) and writes a structured job summary listing what was rewritten / copied / skipped / failed. The script mutates production Postgres + R2 directly — there is no codebase diff to raise a PR against, so the job summary + artifact log is the audit trail.
+
+**Triggering manually.** Actions tab → "Storage Reconcile Auto-Remediate" → "Run workflow", optionally fill in a reason (logged in the summary). Useful right before a planned deploy if you want to clear known drift without waiting for the nightly window.
 
 ---
 
