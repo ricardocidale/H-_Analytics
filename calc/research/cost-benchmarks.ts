@@ -19,8 +19,18 @@ import {
 } from "../../shared/constants.js";
 import { getFactoryNumber } from "../../shared/model-constants-registry.js";
 
-// Audit #406: stateless benchmark calculator sources US property tax rate from the registry.
-// This calculator has no `country` argument; callers needing locality must pass `cost_rate_taxes` explicitly.
+// Task #404 reconciliation — PERMANENT US-baseline fallback.
+//
+// `computeCostBenchmarks` is a stateless calculator with no `country` /
+// `subdivision` argument; it converts cost-rate percentages into dollar
+// amounts and is reused by benchmark generators, comparison views, and the
+// Specialist research pipeline. Locality is the caller's responsibility:
+// callers that know the property's country + state pass `cost_rate_taxes`
+// explicitly (resolved upstream via `getFactoryNumber('costRateTaxes',
+// country, state)` or via the property's stored override). When the caller
+// passes nothing, this fallback exposes the US registry baseline (1.2%) —
+// not the legacy flat 3% estimate — so a "no caller context" benchmark run
+// is consistent with the engine's no-country read path.
 const DEFAULT_COST_RATE_TAXES_US = getFactoryNumber("costRateTaxes", "United States");
 
 interface CostBenchmarksInput {

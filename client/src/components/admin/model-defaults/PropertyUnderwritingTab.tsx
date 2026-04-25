@@ -33,7 +33,24 @@ import {
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
-// Audit #406: registry-backed US baseline for property tax rate (single source of truth).
+// Task #404 reconciliation — PERMANENT US-baseline fallback.
+//
+// This tab edits the company-wide template defaults applied when a new
+// property is *created* (`defaultCostRateTaxes`). At that point no country
+// or state has been chosen yet — the locality is established later when the
+// admin fills in the property's address. The displayed placeholder
+// therefore cannot be made locality-aware here; it is intentionally pinned
+// to the US registry baseline (1.2%) as the platform-wide template.
+//
+// Per-property locality awareness happens in two places downstream:
+//   1. `OperatingCostRatesSection` (Property Edit) re-resolves the fallback
+//      against the property's own country + state via getFactoryNumber.
+//   2. `engine/helpers/default-resolver.ts` resolves the runtime number
+//      from the registry using the property's locality.
+//
+// If the admin wants a non-US default for new properties, they override
+// `defaultCostRateTaxes` in this tab — the override is country-agnostic and
+// applies to every newly created property regardless of locality.
 const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 
 interface PropertyUnderwritingTabProps {

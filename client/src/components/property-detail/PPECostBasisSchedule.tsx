@@ -89,7 +89,15 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
   const fixedCostEscRate = global.fixedCostEscalationRate ?? 0.03;
   const costRatePropertyOps = property.costRatePropertyOps ?? 0.04;
   const costRateAdmin = property.costRateAdmin ?? 0.08;
-  const costRateTaxes = property.costRateTaxes ?? 0.03;
+  // Task #404 reconciliation: previously fell back to a flat 0.03 stand-in.
+  // Now resolves through the locality-aware registry (US baseline 1.2%; UK
+  // 1.2%; Costa Rica 0.25%; Texas 1.8%, etc.) so the explainer matches what
+  // the engine actually computes for the property's country + state.
+  const costRateTaxes = property.costRateTaxes ?? getFactoryNumber(
+    "costRateTaxes",
+    property.country ?? "United States",
+    property.stateProvince ?? null,
+  );
   const costRateIT = property.costRateIT ?? 0.02;
   const costRateOther = property.costRateOther ?? 0.05;
 

@@ -36,9 +36,6 @@ import {
   MONTHS_PER_YEAR,
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
-
-// Audit #406: registry-backed US baseline for property tax rate (single source of truth).
-const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 import { dPow } from "@calc/shared/decimal";
 import {
   TableShell,
@@ -108,11 +105,21 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
 
     totalPropertyValue = property.purchasePrice + (property.buildingImprovements ?? 0);
     fixedEscRate = global.fixedCostEscalationRate ?? property.inflationRate ?? global.inflationRate ?? getFactoryNumber('inflationRate');
+    // Task #404 reconciliation: property-tax fallback resolves through the
+    // locality-aware registry using THIS property's country + state, so a
+    // UK income statement falls back to UK Council Tax (~1.2%), a Spain
+    // statement to IBI (~0.25%), a New Jersey statement to 1.8%, etc. —
+    // not a hardcoded US baseline.
+    const localizedCostRateTaxes = getFactoryNumber(
+      "costRateTaxes",
+      property.country ?? "United States",
+      property.stateProvince ?? null,
+    );
     costRates = {
       propertyOps: property.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS,
       utilities: property.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES,
       admin: property.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN,
-      taxes: property.costRateTaxes ?? DEFAULT_COST_RATE_TAXES,
+      taxes: property.costRateTaxes ?? localizedCostRateTaxes,
       insurance: property.costRateInsurance ?? DEFAULT_COST_RATE_INSURANCE,
       it: property.costRateIT ?? DEFAULT_COST_RATE_IT,
       other: property.costRateOther ?? DEFAULT_COST_RATE_OTHER,

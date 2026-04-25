@@ -45,15 +45,25 @@ import {
   DEFAULT_COST_RATE_INSURANCE,
 } from "@/lib/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
-
-// Audit #406: registry-backed US baseline for property tax rate (single source of truth).
-const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
 import { AnalystRangeIndicator } from "@/components/analyst";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function OperatingCostRatesSection({ draft, onChange, globalAssumptions, researchValues, guidance }: PropertyEditSectionProps) {
   const eid = draft.id as number | undefined;
   const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
+
+  // Task #404 reconciliation: the property-tax fallback shown on the editor
+  // resolves through the locality-aware registry using the property's own
+  // country + state. This means a UK property without a stored
+  // `costRateTaxes` shows ~1.2% (Council Tax / Business Rates), a Spain
+  // property shows ~0.25% (IBI), a New Jersey property shows 1.8%, etc. —
+  // not a hardcoded US baseline. Falls back to the US baseline only when
+  // country is missing.
+  const DEFAULT_COST_RATE_TAXES = getFactoryNumber(
+    "costRateTaxes",
+    draft.country ?? "United States",
+    draft.stateProvince ?? null,
+  );
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">

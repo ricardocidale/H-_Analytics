@@ -255,6 +255,52 @@ describe("Audit #319 R4 — constants registry migration invariants", () => {
     });
   });
 
+  describe("Task #404 reconciliation — costRateTaxes is locality-aware everywhere", () => {
+    // The legacy flat 3% `DEFAULT_COST_RATE_TAXES` is gone; remaining UI
+    // fallbacks (Property Edit, Yearly Income Statement, PP&E Schedule) now
+    // resolve through `getFactoryNumber('costRateTaxes', country, state)`
+    // using the property's own locality. These assertions pin the baselines
+    // those fallbacks rely on so a future locality edit can't silently
+    // drift the user-visible defaults.
+    //
+    // (Admin Model Defaults → PropertyUnderwritingTab is the documented
+    // exception: it edits a country-agnostic template and intentionally
+    // pins the placeholder to the US registry baseline. See the comment in
+    // that file.)
+
+    it("US baseline (no state) = 0.012", () => {
+      expect(getFactoryNumber("costRateTaxes", "United States")).toBe(0.012);
+    });
+
+    it("Texas overlay = 0.018 (high-property-tax state)", () => {
+      expect(getFactoryNumber("costRateTaxes", "United States", "Texas"))
+        .toBe(0.018);
+    });
+
+    it("California overlay = 0.008 (Prop 13)", () => {
+      expect(getFactoryNumber("costRateTaxes", "United States", "California"))
+        .toBe(0.008);
+    });
+
+    it("United Kingdom = 0.012 (Council Tax / Business Rates)", () => {
+      expect(getFactoryNumber("costRateTaxes", "United Kingdom")).toBe(0.012);
+    });
+
+    it("Costa Rica = 0.0025 (IBI — meaningfully different from the legacy flat 3%)", () => {
+      const cr = getFactoryNumber("costRateTaxes", "Costa Rica");
+      expect(cr).toBe(0.0025);
+      // The whole point of the reconciliation: the locality-aware value
+      // must NOT collapse to the deleted legacy flat 0.03 estimate.
+      expect(cr).not.toBe(0.03);
+    });
+
+    it("country fallback returns US baseline when country is unknown", () => {
+      expect(getFactoryNumber("costRateTaxes", null)).toBe(0.012);
+      expect(getFactoryNumber("costRateTaxes", "Atlantis"))
+        .toBe(getFactoryNumber("costRateTaxes", "United States"));
+    });
+  });
+
   describe("locality awareness", () => {
     it("country override changes registry output for inflationRate (US 0.03 ≠ MX 0.04)", () => {
       const us = getFactoryNumber("inflationRate", "United States");

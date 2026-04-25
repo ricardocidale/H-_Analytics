@@ -113,7 +113,7 @@ import { SectionCard } from "@/components/ui/section-card";
             ["costRateMarketing", "Sales & Marketing", "5%", "% of Revenue"],
             ["costRatePropertyOps", "Property Operations & Maintenance", "4%", "% of Revenue"],
             ["costRateUtilities", "Utilities", "5%", "% of Revenue"],
-            ["costRateTaxes", "Property Taxes", "3%", "% of Property Value"],
+            ["costRateTaxes", "Property Taxes (locality-aware: US 1.2%, UK 1.2%, Costa Rica 0.25%, Texas 1.8%, etc.)", "1.2% (US baseline)", "% of Property Value"],
             ["costRateIT", "Information Technology", "2%", "% of Revenue"],
             ["costRateFFE", "FF&E Reserve", "4%", "% of Revenue"],
             ["costRateOther", "Other / Miscellaneous", "5%", "% of Revenue"],
