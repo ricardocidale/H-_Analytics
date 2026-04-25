@@ -367,8 +367,22 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
   // the other Specialists call (lookup tables, source-of-truth scrapers,
   // benchmark loaders, etc.). She does not herself produce model outputs;
   // she keeps the toolbox sharp so the other 11 Specialists can stay
-  // deterministic and inspectable. Stub only in P2a — the Resource Builder
-  // page lands in Phase 5.
+  // deterministic and inspectable.
+  //
+  // Capability tabs:
+  //   - resource-assignments → her assignmentRefs are empty by design (she
+  //     OWNS deterministic tools rather than CONSUMING canonical Resources),
+  //     but the tab still surfaces the live Quality & Gaps card so admins
+  //     can see her health like every other Specialist.
+  //   - audit → records every cadence/runtime edit on her config row so
+  //     toolbox-policy changes (e.g. lowering benchmark refresh cadence)
+  //     stay traceable.
+  // The catalog ALSO drives a page-level "Tools I build" surface
+  // (SpecialistToolsIBuild) populated from SPECIALIST_TOOLS — that's where
+  // the deterministic-tools work she does for the other 11 actually
+  // renders. It mirrors the SpecialistToolsICall card every consuming
+  // Specialist already gets, so Letícia's page stays consistent with the
+  // rest of the team without inventing a Letícia-specific tab.
   // ──────────────────────────────────────────────────────────────────────────
   {
     id: "resources.builder",
@@ -387,7 +401,12 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     assignmentRefs: [],
     candidateFields: [],
     prerequisites: [],
-    status: "stub",
+    // "built": her toolbox ships in code (SPECIALIST_TOOLS registry) and
+    // her admin page renders real content (Quality & Gaps card, Audit
+    // history, and the page-level "Tools I build" inspectability strip).
+    // There is no separate evaluator to wire — her work product IS the
+    // toolbox, so the "needs-page" banner doesn't apply.
+    status: "built",
   },
 ] as const;
 

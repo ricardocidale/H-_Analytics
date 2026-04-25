@@ -37,6 +37,7 @@ import { AuditTab } from "./tabs/AuditTab";
 import { WorkflowTab } from "./tabs/WorkflowTab";
 import { SpecialistSummaryPanel } from "./SpecialistSummaryPanel";
 import { SpecialistToolsICall } from "./SpecialistToolsICall";
+import { SpecialistToolsIBuild } from "./SpecialistToolsIBuild";
 
 export default function SpecialistPage({ specialistId }: { specialistId: string }) {
   const { data, isLoading, error } = useQuery<SpecialistDetailResponse>({
@@ -165,6 +166,7 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
 
       <SpecialistSummaryPanel definition={definition} assignments={assignments} />
 
+      <SpecialistToolsIBuild specialistId={specialistId} />
       <SpecialistToolsICall specialistId={specialistId} />
 
       {definition.status === "needs-page" && (
