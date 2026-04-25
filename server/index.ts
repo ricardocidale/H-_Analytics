@@ -706,6 +706,31 @@ async function runSeeds() {
     serverLog(`[seed:clean-orphaned-logos] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
   }
 
+  // Light up the Sources tab on every Specialist page from the in-code
+  // Specialist catalog. Idempotent: re-running is a no-op when the catalog
+  // hasn't changed and every assignment slug is already resolved. Runs
+  // here (not as a one-shot migration) because production DBs can ship
+  // with empty `specialist_assignments` tables — the original
+  // admin-resources-004 seed step has nothing to copy from until catalog
+  // sync has run at least once. Keeping this in the seed phase means
+  // every cold start re-resolves catalog → connections without manual
+  // admin action. (Task #507.)
+  try {
+    const { backfillCatalogConnections } = await import("./jobs/catalog-sync");
+    const result = await backfillCatalogConnections();
+    serverLog(
+      `[seed:catalog-connections] catalog ${result.inserted}+/${result.updated}~/${result.removed}- · ${result.connectionsInserted} new connection(s)`,
+      "startup",
+      "info",
+    );
+  } catch (err: unknown) {
+    serverLog(
+      `[seed:catalog-connections] skipped (will retry next boot): ${err instanceof Error ? err.message : err}`,
+      "startup",
+      "warn",
+    );
+  }
+
   indexPropertiesToVectorStoreAsync();
 }
 

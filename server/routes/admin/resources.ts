@@ -36,7 +36,8 @@ import {
   insertBreakGlassOverrideSchema,
   toResourcePublicView,
 } from "@shared/schema";
-import { syncSpecialistCatalog } from "../../jobs/catalog-sync";
+import { backfillCatalogConnections, syncSpecialistCatalog } from "../../jobs/catalog-sync";
+import { logger } from "../../logger";
 import { runProbe } from "../../jobs/probes";
 import type { ResourceKind } from "@shared/schema";
 
@@ -102,6 +103,18 @@ export function registerAdminResourceRoutes(app: Express) {
       }
       const actorId = req.user!.id;
       const row = await storage.createAdminResource(parsed.data, actorId);
+      // Light up the Sources tab for any catalog declarations whose slug
+      // just became resolvable. Best-effort: if the backfill fails we still
+      // honour the create, since the next boot or admin sync will pick it
+      // up — but log the failure so it's visible in startup audit trails.
+      try {
+        await backfillCatalogConnections();
+      } catch (err: unknown) {
+        logger.warn(
+          `Resource created but catalog backfill failed: ${err instanceof Error ? err.message : String(err)}`,
+          "admin-resources",
+        );
+      }
       logActivity(req, "create-admin-resource", "admin_resource", row.id, `${row.kind}/${row.slug}`);
       res.status(201).json(toResourcePublicView(row));
     } catch (error: unknown) {

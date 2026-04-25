@@ -55,3 +55,32 @@ export async function syncSpecialistCatalog(
   const declarations = flattenCatalogDeclarations(catalog);
   return storage.syncSpecialistCatalog(declarations);
 }
+
+export interface CatalogConnectionsBackfillResult extends CatalogSyncResult {
+  /** New rows added to `resource_specialist_connections`. */
+  connectionsInserted: number;
+}
+
+/**
+ * End-to-end "light up the Sources tab" pass. Runs in two steps:
+ *
+ *   1. `syncSpecialistCatalog` — refresh `specialist_assignments` from the
+ *      in-code catalog. This both inserts new declarations and re-resolves
+ *      slugs to admin_resources rows (so a freshly created resource picks
+ *      up its `resource_id` link).
+ *   2. `backfillConnectionsFromCatalog` — copy any newly-resolved
+ *      assignment rows into `resource_specialist_connections` so the
+ *      Sources tab on each Specialist page renders the catalog wiring
+ *      without manual setup.
+ *
+ * Both steps are idempotent. Safe to call at boot, after a resource is
+ * created, or from an admin endpoint. Returns combined counts so callers
+ * can log meaningful telemetry (e.g. "+3 catalog rows, +2 connections").
+ */
+export async function backfillCatalogConnections(
+  catalog: readonly SpecialistDefinition[] = SPECIALIST_CATALOG,
+): Promise<CatalogConnectionsBackfillResult> {
+  const sync = await syncSpecialistCatalog(catalog);
+  const connectionsInserted = await storage.backfillConnectionsFromCatalog();
+  return { ...sync, connectionsInserted };
+}

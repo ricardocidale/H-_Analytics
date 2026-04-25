@@ -65,9 +65,15 @@ describe("AdminResourceStorage (real DB)", () => {
   });
 
   beforeEach(async () => {
-    const { adminResources, adminResourceVersions, specialistAssignments, auditBreakGlassOverrides } =
-      await import("@shared/schema");
+    const {
+      adminResources,
+      adminResourceVersions,
+      specialistAssignments,
+      auditBreakGlassOverrides,
+      resourceSpecialistConnections,
+    } = await import("@shared/schema");
     // Cascade order: child rows first.
+    await db.delete(resourceSpecialistConnections);
     await db.delete(specialistAssignments);
     await db.delete(auditBreakGlassOverrides);
     await db.delete(adminResourceVersions);
@@ -75,8 +81,14 @@ describe("AdminResourceStorage (real DB)", () => {
   });
 
   afterAll(async () => {
-    const { adminResources, adminResourceVersions, specialistAssignments, auditBreakGlassOverrides } =
-      await import("@shared/schema");
+    const {
+      adminResources,
+      adminResourceVersions,
+      specialistAssignments,
+      auditBreakGlassOverrides,
+      resourceSpecialistConnections,
+    } = await import("@shared/schema");
+    await db.delete(resourceSpecialistConnections);
     await db.delete(specialistAssignments);
     await db.delete(auditBreakGlassOverrides);
     await db.delete(adminResourceVersions);
@@ -205,6 +217,55 @@ describe("AdminResourceStorage (real DB)", () => {
     expect(impact).toEqual([
       expect.objectContaining({ specialistId: "test.gamma", assignmentKind: "api", assignmentSlug: "web-search", required: true }),
     ]);
+  });
+
+  it("backfillConnectionsFromCatalog seeds resource_specialist_connections from resolved catalog rows", async () => {
+    // Two catalog declarations resolve (alpha + beta on the same resource);
+    // one declaration's slug doesn't match any admin_resources row and is
+    // skipped until the missing resource is created.
+    const resource = await store.createAdminResource(
+      { kind: "api", slug: "p2-backfill-search", displayName: "Search", config: {} },
+      actorUserId,
+    );
+    await store.syncSpecialistCatalog([
+      { specialistId: "spec.alpha", assignmentKind: "api", assignmentSlug: "p2-backfill-search", assignmentRole: null, required: true },
+      { specialistId: "spec.beta",  assignmentKind: "api", assignmentSlug: "p2-backfill-search", assignmentRole: null, required: false },
+      { specialistId: "spec.alpha", assignmentKind: "model", assignmentSlug: "p2-backfill-missing", assignmentRole: null, required: true },
+    ]);
+
+    const inserted = await store.backfillConnectionsFromCatalog();
+    expect(inserted).toBe(2); // alpha + beta resolved; the unresolved (model) row is skipped.
+
+    const targets = (await store.listConnectionsForResource(resource.id))
+      .map((r) => r.target)
+      .sort();
+    expect(targets).toEqual(["specialist:spec.alpha", "specialist:spec.beta"]);
+  });
+
+  it("backfillConnectionsFromCatalog is idempotent and preserves admin-set connections", async () => {
+    const resource = await store.createAdminResource(
+      { kind: "api", slug: "p2-backfill-idem", displayName: "Idem", config: {} },
+      actorUserId,
+    );
+    // Admin pre-wires a connection that the catalog does NOT mention. The
+    // backfill must NOT remove it — admin edits are the authoritative
+    // surface, the catalog only seeds what's missing.
+    await store.replaceConnectionsForResource(resource.id, ["specialist:spec.adminpick"]);
+
+    await store.syncSpecialistCatalog([
+      { specialistId: "spec.catalog", assignmentKind: "api", assignmentSlug: "p2-backfill-idem", assignmentRole: null, required: true },
+    ]);
+
+    const first = await store.backfillConnectionsFromCatalog();
+    expect(first).toBe(1); // catalog-derived row inserted
+    const second = await store.backfillConnectionsFromCatalog();
+    expect(second).toBe(0); // already present, ON CONFLICT DO NOTHING
+
+    const targets = (await store.listConnectionsForResource(resource.id))
+      .map((r) => r.target)
+      .sort();
+    // Both the catalog-derived AND the pre-existing admin-set link survive.
+    expect(targets).toEqual(["specialist:spec.adminpick", "specialist:spec.catalog"]);
   });
 
   it("createBreakGlassOverride and revoke round-trip", async () => {

@@ -7,7 +7,7 @@
  * the route level so the Sources tab reflects catalog wiring + admin edits.
  */
 import { db } from "../../db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   resourceSpecialistConnections,
   type ConnectionTarget,
@@ -38,6 +38,39 @@ export class AdminResourceConnectionsStorage {
       .from(resourceSpecialistConnections)
       .where(eq(resourceSpecialistConnections.target, target));
     return rows.map((r) => r.resourceId);
+  }
+
+  /**
+   * Backfill `resource_specialist_connections` from the catalog-materialized
+   * `specialist_assignments` table. Mirrors the one-shot seed that the
+   * admin-resources-004 migration runs, but is safe to call repeatedly:
+   *
+   *   - INSERT … ON CONFLICT DO NOTHING means existing admin edits are
+   *     untouched (the unique index on (resource_id, target) dedupes).
+   *   - Rows whose `resource_id` is still null (catalog declarations whose
+   *     slug hasn't been materialized into an admin_resources row yet) are
+   *     skipped — they'll get materialized the next time this runs after
+   *     someone creates the missing resource.
+   *
+   * Returns the number of NEW connection rows inserted (existing rows are
+   * not counted) so callers can log meaningful boot/runtime telemetry.
+   *
+   * Note: this intentionally does NOT delete existing admin-set connections
+   * even if the catalog no longer references them. Connection rows are
+   * admin-editable; once seeded, they live on their own — removing them is
+   * an explicit admin action via the Resources editor, not a catalog
+   * side-effect.
+   */
+  async backfillConnectionsFromCatalog(): Promise<number> {
+    const result = await db.execute(sql`
+      INSERT INTO resource_specialist_connections (resource_id, target)
+      SELECT DISTINCT sa.resource_id, 'specialist:' || sa.specialist_id
+      FROM specialist_assignments sa
+      WHERE sa.resource_id IS NOT NULL
+      ON CONFLICT (resource_id, target) DO NOTHING
+      RETURNING id
+    `);
+    return Array.isArray(result.rows) ? result.rows.length : 0;
   }
 
   /**
