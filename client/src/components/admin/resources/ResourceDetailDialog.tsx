@@ -29,6 +29,10 @@ import {
 import { setAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/ai-intelligence/AiIntelligenceSidebar";
 import type { AiIntelligenceSection } from "@/components/ai-intelligence/AiIntelligenceSidebar";
+import {
+  QualityHistoryChart,
+  type QualityHistoryResponse,
+} from "@/components/admin/quality-history-chart";
 
 // Invert the canonical SPECIALIST_SECTION_TO_ID map so we can resolve
 // "which sidebar section opens this Specialist's page?" from a snapshot
@@ -93,6 +97,58 @@ interface DetailResponse {
   consumers: ConsumerRow[];
   quality: { avg: number | null; min: number | null; criticalGaps: number };
   recentCalls: RecentCall[];
+}
+
+/**
+ * ConsumerHistorySparkline (Task #536) — fetches the last ~20 quality
+ * snapshots for one consumer and renders the shared QualityHistoryChart
+ * compactly inline in the Consumers table. One fetch per consumer is
+ * acceptable here: typical resources have a handful of consumers and
+ * React Query dedupes/caches across remounts. If that ever stops being
+ * true, swap this for a bulk endpoint without changing the call sites.
+ */
+function ConsumerHistorySparkline({ specialistId }: { specialistId: string }) {
+  const { data, isLoading, isError } = useQuery<QualityHistoryResponse>({
+    queryKey: [`/api/admin/specialists/${specialistId}/quality/history`],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/admin/specialists/${specialistId}/quality/history`,
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      return res.json();
+    },
+  });
+  if (isLoading) {
+    return (
+      <div
+        className="flex items-center justify-center text-[10px] text-muted-foreground border rounded h-[36px] w-[120px]"
+        data-testid={`consumer-history-loading-${specialistId}`}
+      >
+        Loading…
+      </div>
+    );
+  }
+  if (isError || !data) {
+    return (
+      <div
+        className="flex items-center justify-center text-[10px] text-muted-foreground border rounded h-[36px] w-[120px]"
+        data-testid={`consumer-history-error-${specialistId}`}
+      >
+        Unavailable
+      </div>
+    );
+  }
+  return (
+    <div className="w-[120px]">
+      <QualityHistoryChart
+        points={data.points}
+        height={36}
+        showBands={false}
+        testIdPrefix={`consumer-history-${specialistId}`}
+      />
+    </div>
+  );
 }
 
 function ScorePill({ score }: { score: number | null }) {
@@ -280,6 +336,7 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                           <th className="p-2">Role</th>
                           <th className="p-2">Required</th>
                           <th className="p-2 text-right">Quality</th>
+                          <th className="p-2 text-right">History</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -308,6 +365,11 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                               <td className="p-2 font-mono text-xs">{c.role ?? "—"}</td>
                               <td className="p-2">{c.required ? <Badge>required</Badge> : <Badge variant="outline">optional</Badge>}</td>
                               <td className="p-2 text-right"><ScorePill score={c.qualityScore} /></td>
+                              <td className="p-2">
+                                <div className="flex justify-end">
+                                  <ConsumerHistorySparkline specialistId={c.specialistId} />
+                                </div>
+                              </td>
                             </tr>
                           );
                         })}

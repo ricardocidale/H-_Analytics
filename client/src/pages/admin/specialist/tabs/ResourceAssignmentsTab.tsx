@@ -11,16 +11,6 @@
  */
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Line,
-  Tooltip,
-  YAxis,
-  XAxis,
-  ReferenceArea,
-  Dot,
-} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +21,10 @@ import { useToast } from "@/hooks/use-toast";
 import type { QualityGap } from "@shared/schema";
 import type { SpecialistAssignmentView } from "../types";
 import { HEALTH_BAND, RESOURCE_KIND_TO_SECTION, navigateToResources, navigateToResourceDetail } from "../constants";
+import {
+  QualityHistoryChart,
+  type QualityHistoryResponse,
+} from "@/components/admin/quality-history-chart";
 
 interface QualityResponse {
   specialistId: string;
@@ -38,144 +32,6 @@ interface QualityResponse {
   gaps: QualityGap[];
   signals: Record<string, unknown>;
   computedAt: string;
-}
-
-interface QualityHistoryPoint {
-  score: number;
-  computedAt: string;
-}
-
-interface QualityHistoryResponse {
-  specialistId: string;
-  points: QualityHistoryPoint[];
-}
-
-// Score-band colors mirror the ScorePill above so the chart and pill
-// agree at a glance: ≥80 emerald, ≥60 amber, otherwise rose.
-function scoreBandColor(score: number): string {
-  if (score >= 80) return "hsl(160 84% 39%)"; // emerald-500
-  if (score >= 60) return "hsl(38 92% 50%)"; // amber-500
-  return "hsl(347 77% 50%)"; // rose-500
-}
-
-// Background tint for each band region. Subtle so the line and dots
-// remain dominant; band identity is conveyed by hue, not saturation.
-const BAND_TINT_GREEN = "hsl(160 84% 39% / 0.10)";
-const BAND_TINT_AMBER = "hsl(38 92% 50% / 0.10)";
-const BAND_TINT_RED = "hsl(347 77% 50% / 0.10)";
-
-function QualityHistoryChart({ points }: { points: QualityHistoryPoint[] }) {
-  if (points.length === 0) {
-    return (
-      <div
-        data-testid="quality-history-empty"
-        className="flex items-center justify-center text-xs text-muted-foreground border rounded h-[72px]"
-      >
-        No history yet — recompute to record the first snapshot.
-      </div>
-    );
-  }
-  if (points.length === 1) {
-    // One point would render as a misleading "flat trend"; show the
-    // value and prompt for more data instead.
-    return (
-      <div
-        data-testid="quality-history-single"
-        className="flex items-center justify-center gap-2 text-xs text-muted-foreground border rounded h-[72px]"
-      >
-        <span>Only one snapshot so far ({points[0].score}). History appears after the next recompute.</span>
-      </div>
-    );
-  }
-
-  // Pre-index points so X = 0..n-1 (categorical). Recharts datum keeps the
-  // ISO timestamp so the tooltip can format it locally.
-  const indexed = points.map((p, i) => ({ ...p, i }));
-
-  return (
-    <div data-testid="quality-history-chart" className="w-full" style={{ height: 96 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={indexed} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-          <XAxis dataKey="i" hide type="number" domain={[0, indexed.length - 1]} />
-          <YAxis hide domain={[0, 100]} />
-          {/*
-            Band tinting: green ≥80, amber ≥60, red <60. Drawing the
-            regions as ReferenceAreas (instead of per-bar coloring) makes
-            band membership visible even between snapshots, so a line
-            tracking sideways through "amber" reads as "amber for two
-            weeks" without having to count bars.
-          */}
-          <ReferenceArea
-            data-testid="quality-band-red"
-            y1={0}
-            y2={60}
-            fill={BAND_TINT_RED}
-            fillOpacity={1}
-            ifOverflow="extendDomain"
-          />
-          <ReferenceArea
-            data-testid="quality-band-amber"
-            y1={60}
-            y2={80}
-            fill={BAND_TINT_AMBER}
-            fillOpacity={1}
-            ifOverflow="extendDomain"
-          />
-          <ReferenceArea
-            data-testid="quality-band-green"
-            y1={80}
-            y2={100}
-            fill={BAND_TINT_GREEN}
-            fillOpacity={1}
-            ifOverflow="extendDomain"
-          />
-          <Tooltip
-            cursor={{ stroke: "hsl(var(--muted-foreground) / 0.4)", strokeWidth: 1 }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const p = payload[0].payload as QualityHistoryPoint;
-              return (
-                <div
-                  data-testid="quality-history-tooltip"
-                  className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl rounded-lg border border-primary/15 shadow-xl px-3 py-1.5 text-xs"
-                >
-                  <p className="font-mono font-semibold text-foreground">Score {p.score}</p>
-                  <p className="text-muted-foreground">{new Date(p.computedAt).toLocaleString()}</p>
-                </div>
-              );
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="score"
-            stroke="hsl(var(--foreground) / 0.7)"
-            strokeWidth={1.5}
-            isAnimationActive={false}
-            dot={(props) => {
-              const { cx, cy, payload, index } = props as {
-                cx: number;
-                cy: number;
-                payload: QualityHistoryPoint;
-                index: number;
-              };
-              return (
-                <Dot
-                  key={index}
-                  cx={cx}
-                  cy={cy}
-                  r={2.5}
-                  fill={scoreBandColor(payload.score)}
-                  stroke="hsl(var(--background))"
-                  strokeWidth={1}
-                />
-              );
-            }}
-            activeDot={{ r: 4 }}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
-  );
 }
 
 function ScorePill({ score }: { score: number }) {
