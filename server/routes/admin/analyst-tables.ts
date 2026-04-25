@@ -33,11 +33,48 @@ import {
 } from "../../middleware/analyst-refresh-guards";
 import { researchCapitalRaiseBenchmarks, researchExitMultiples } from "../../ai/analyst-table-refresh";
 import { narrateSpecialistHandoff } from "../../lib/specialist-identity-resolver";
+import type { AnalystRefreshAuditLog } from "@shared/schema";
 
 const TABLE_LABELS: Record<AnalystTableId, string> = {
   capital_raise_benchmarks: "Capital Raise Benchmarks",
   exit_multiples: "Exit Multiples",
 };
+
+// User-Agent stamped on audit-log rows written by the Capital-Raise Watchdog
+// ingest path (`server/ai/analyst-table-refresh.ts → applyWatchdogCapitalRaiseSnapshot`).
+// Used here to label the source of each refresh so the Analyst Tables admin
+// UI can show "Refreshed by: Watchdog" vs "Refreshed by: Admin <name>".
+const WATCHDOG_USER_AGENT = "capital-raise-watchdog";
+
+type RefreshSource =
+  | { kind: "watchdog"; label: string }
+  | { kind: "admin"; adminId: number; adminName: string; label: string }
+  | { kind: "unknown"; label: string };
+
+function deriveRefreshSource(
+  row: Pick<AnalystRefreshAuditLog, "userAgent" | "adminId">,
+  adminNameById: Map<number, string>,
+): RefreshSource {
+  if (row.userAgent === WATCHDOG_USER_AGENT) {
+    return { kind: "watchdog", label: "Watchdog" };
+  }
+  if (row.adminId != null) {
+    // For known users we render "Admin <Name>"; for users that have been
+    // deleted (lookup miss) we drop the "Admin " prefix to avoid the
+    // doubled "Admin Admin #11" label and use the explicit "Admin #<id>"
+    // form on its own.
+    const resolvedName = adminNameById.get(row.adminId);
+    const adminName = resolvedName ?? `Admin #${row.adminId}`;
+    const label = resolvedName ? `Admin ${resolvedName}` : adminName;
+    return {
+      kind: "admin",
+      adminId: row.adminId,
+      adminName,
+      label,
+    };
+  }
+  return { kind: "unknown", label: "Unknown" };
+}
 
 // Phase 3 (#453) — owning specialist per analyst table. Used to
 // narrate the handoff line at the head of `narration[]` with the
@@ -65,7 +102,51 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         const freshness =
           lastRefreshedAt == null ? "missing" :
           ageMs! > cadenceMs ? "stale" : "fresh";
-        const recent = await storage.getRecentAnalystRefreshAuditLogs({ tableId: id, limit: 1 });
+
+        // Pull the recent audit-log rows so we can both (a) name the source
+        // of the most-recent successful refresh on the table card and (b)
+        // render the recent-refresh history list with the same labels.
+        // Limit:10 keeps headroom for a few in-flight/aborted rows above the
+        // 5 we surface in the history strip.
+        const recent = await storage.getRecentAnalystRefreshAuditLogs({ tableId: id, limit: 10 });
+
+        // Resolve admin display names in one batch per table. Audit rows
+        // written by the watchdog have adminId=null so they're skipped.
+        const adminIds = Array.from(
+          new Set(
+            recent
+              .map(r => r.adminId)
+              .filter((x): x is number => x != null),
+          ),
+        );
+        const adminNameById = new Map<number, string>();
+        await Promise.all(
+          adminIds.map(async (adminId) => {
+            const u = await storage.getUserById(adminId).catch(() => undefined);
+            if (!u) return;
+            const name = [u.firstName, u.lastName].filter(Boolean).join(" ").trim()
+              || u.email
+              || `Admin #${u.id}`;
+            adminNameById.set(adminId, name);
+          }),
+        );
+
+        const lastSuccess = recent.find(r => r.status === "success");
+        const lastRefreshSource = lastSuccess
+          ? deriveRefreshSource(lastSuccess, adminNameById)
+          : null;
+        // Prefer a finalized success row for tokens-used; fall back to the
+        // newest row only if no success exists yet (e.g. brand-new tables).
+        const tokensUsedLastRefresh = lastSuccess?.tokensUsed ?? recent[0]?.tokensUsed ?? null;
+
+        const recentRefreshes = recent.slice(0, 5).map(r => ({
+          id: r.id,
+          startedAt: r.startedAt,
+          finishedAt: r.finishedAt,
+          status: r.status,
+          source: deriveRefreshSource(r, adminNameById),
+        }));
+
         tables.push({
           id,
           label: TABLE_LABELS[id],
@@ -78,9 +159,11 @@ export function registerAdminAnalystTableRoutes(app: Express) {
             valueHigh: r.valueHigh,
           })),
           sourceCount: summary.sourceCount,
-          tokensUsedLastRefresh: recent[0]?.tokensUsed ?? null,
+          tokensUsedLastRefresh,
           lastRefreshedAt,
           freshness,
+          lastRefreshSource,
+          recentRefreshes,
         });
       }
 

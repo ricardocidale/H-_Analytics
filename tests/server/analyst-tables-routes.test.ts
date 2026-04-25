@@ -25,6 +25,7 @@ vi.mock("../../server/storage", () => ({
     getCapitalRaiseBenchmarkSummary: vi.fn(),
     getExitMultiplesSummary: vi.fn(),
     getRecentAnalystRefreshAuditLogs: vi.fn(),
+    getUserById: vi.fn(),
     getCapitalRaiseBenchmarks: vi.fn(),
     getExitMultiples: vi.fn(),
     upsertCapitalRaiseBenchmark: vi.fn(),
@@ -217,6 +218,123 @@ describe("admin/analyst-tables routes — second branch (exit_multiples)", () =>
       const exits = (body as any).tables.find((t: any) => t.id === "exit_multiples");
       expect(exits.freshness).toBe("missing");
       expect(exits.tokensUsedLastRefresh).toBeNull();
+      expect(exits.lastRefreshSource).toBeNull();
+      expect(exits.recentRefreshes).toEqual([]);
+    });
+
+    // Task #358 — the watchdog ingest path tags audit rows with
+    // userAgent="capital-raise-watchdog" and adminId=null. Manual admin
+    // refreshes carry an adminId we must resolve back to a display name.
+    // Both must surface on the table card and in the recent-refresh list
+    // so admins can tell at a glance who/what last touched the ranges.
+    it("labels the most-recent successful refresh and the recent-refresh history by source", async () => {
+      const watchdogStartedAt = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2h ago
+      const adminStartedAt = new Date(Date.now() - 1 * 60 * 60 * 1000); // 1h ago
+      const pendingStartedAt = new Date(Date.now() - 60 * 1000); // 1min ago
+
+      mockedStorage.getAnalystRefreshSettings.mockResolvedValue({
+        globalCadenceDays: 30, lastSuspiciousAlertAt: null,
+      });
+      mockedStorage.getCapitalRaiseBenchmarkSummary.mockResolvedValue({
+        rows: [], sourceCount: 0, lastRefreshedAt: adminStartedAt,
+      });
+      mockedStorage.getExitMultiplesSummary.mockResolvedValue({
+        rows: [], sourceCount: 0, lastRefreshedAt: null,
+      });
+      // Recent rows are returned newest-first by the storage layer.
+      mockedStorage.getRecentAnalystRefreshAuditLogs.mockImplementation(
+        async ({ tableId }: { tableId?: string }) => {
+          if (tableId !== "capital_raise_benchmarks") return [];
+          return [
+            { id: 30, tableId, adminId: 7, userAgent: "Mozilla/5.0",
+              status: "pending", startedAt: pendingStartedAt, finishedAt: null,
+              tokensUsed: null },
+            { id: 20, tableId, adminId: 7, userAgent: "Mozilla/5.0",
+              status: "success", startedAt: adminStartedAt, finishedAt: adminStartedAt,
+              tokensUsed: 999 },
+            { id: 10, tableId, adminId: null, userAgent: "capital-raise-watchdog",
+              status: "success", startedAt: watchdogStartedAt, finishedAt: watchdogStartedAt,
+              tokensUsed: 0 },
+          ];
+        },
+      );
+      mockedStorage.getUserById.mockImplementation(async (id: number) => {
+        if (id === 7) return { id: 7, firstName: "Avery", lastName: "Lee", email: "avery@h.example" };
+        return undefined;
+      });
+
+      const { body } = await invoke(handlers, "GET", "/api/admin/analyst-tables");
+      const capital = (body as any).tables.find((t: any) => t.id === "capital_raise_benchmarks");
+
+      // The most-recent SUCCESS row (admin Avery Lee) is what's currently
+      // live, even though a newer "pending" row exists above it.
+      expect(capital.lastRefreshSource).toEqual({
+        kind: "admin",
+        adminId: 7,
+        adminName: "Avery Lee",
+        label: "Admin Avery Lee",
+      });
+      // tokens-used should also come from the latest finalized success.
+      expect(capital.tokensUsedLastRefresh).toBe(999);
+
+      // History list keeps original ordering and labels each row.
+      expect(capital.recentRefreshes).toHaveLength(3);
+      expect(capital.recentRefreshes[0].source.label).toBe("Admin Avery Lee");
+      expect(capital.recentRefreshes[0].status).toBe("pending");
+      expect(capital.recentRefreshes[1].source.label).toBe("Admin Avery Lee");
+      expect(capital.recentRefreshes[1].status).toBe("success");
+      expect(capital.recentRefreshes[2].source).toEqual({
+        kind: "watchdog",
+        label: "Watchdog",
+      });
+      expect(capital.recentRefreshes[2].status).toBe("success");
+    });
+
+    it("falls back to email then admin id when the user has no first/last name", async () => {
+      const startedAt = new Date(Date.now() - 60 * 1000);
+      mockedStorage.getAnalystRefreshSettings.mockResolvedValue({
+        globalCadenceDays: 30, lastSuspiciousAlertAt: null,
+      });
+      mockedStorage.getCapitalRaiseBenchmarkSummary.mockResolvedValue({
+        rows: [], sourceCount: 0, lastRefreshedAt: startedAt,
+      });
+      mockedStorage.getExitMultiplesSummary.mockResolvedValue({
+        rows: [], sourceCount: 0, lastRefreshedAt: null,
+      });
+      mockedStorage.getRecentAnalystRefreshAuditLogs.mockImplementation(
+        async ({ tableId }: { tableId?: string }) => {
+          if (tableId !== "capital_raise_benchmarks") return [];
+          return [
+            { id: 1, tableId, adminId: 9, userAgent: "Mozilla/5.0",
+              status: "success", startedAt, finishedAt: startedAt, tokensUsed: 1 },
+            { id: 2, tableId, adminId: 11, userAgent: "Mozilla/5.0",
+              status: "success", startedAt, finishedAt: startedAt, tokensUsed: 1 },
+          ];
+        },
+      );
+      mockedStorage.getUserById.mockImplementation(async (id: number) => {
+        if (id === 9) return { id: 9, firstName: null, lastName: null, email: "noname@h.example" };
+        return undefined; // 11 is a deleted admin
+      });
+
+      const { body } = await invoke(handlers, "GET", "/api/admin/analyst-tables");
+      const capital = (body as any).tables.find((t: any) => t.id === "capital_raise_benchmarks");
+      expect(capital.lastRefreshSource).toEqual({
+        kind: "admin",
+        adminId: 9,
+        adminName: "noname@h.example",
+        label: "Admin noname@h.example",
+      });
+      // The deleted admin (id=11) falls back to a synthetic placeholder.
+      // Label drops the redundant "Admin " prefix so we don't render
+      // "Admin Admin #11" — just "Admin #11".
+      const deletedRow = capital.recentRefreshes.find((r: any) => r.id === 2);
+      expect(deletedRow.source).toEqual({
+        kind: "admin",
+        adminId: 11,
+        adminName: "Admin #11",
+        label: "Admin #11",
+      });
     });
   });
 

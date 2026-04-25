@@ -31,6 +31,19 @@ type Range = {
   valueHigh: number | null;
 };
 
+type RefreshSource =
+  | { kind: "watchdog"; label: string }
+  | { kind: "admin"; adminId: number; adminName: string; label: string }
+  | { kind: "unknown"; label: string };
+
+type RecentRefresh = {
+  id: number;
+  startedAt: string;
+  finishedAt: string | null;
+  status: string;
+  source: RefreshSource;
+};
+
 type TableRow = {
   id: string;
   label: string;
@@ -39,6 +52,8 @@ type TableRow = {
   tokensUsedLastRefresh: number | null;
   lastRefreshedAt: string | null;
   freshness: "fresh" | "stale" | "missing";
+  lastRefreshSource: RefreshSource | null;
+  recentRefreshes: RecentRefresh[];
 };
 
 type ListResponse = {
@@ -199,6 +214,17 @@ export default function AnalystTables() {
                   {t.sourceCount} sources
                   {t.tokensUsedLastRefresh != null && ` · ${t.tokensUsedLastRefresh.toLocaleString()} tokens`}
                 </div>
+                {t.lastRefreshSource && (
+                  <div
+                    className="text-xs text-muted-foreground mt-0.5"
+                    data-testid={`text-refresh-source-${t.id}`}
+                  >
+                    Refreshed by:{" "}
+                    <span className="font-medium text-foreground">
+                      {t.lastRefreshSource.label}
+                    </span>
+                  </div>
+                )}
               </div>
               <AnalystActionButton
                 onClick={() => handleRefresh(t)}
@@ -218,6 +244,46 @@ export default function AnalystTables() {
                 </div>
               ))}
             </div>
+
+            {t.recentRefreshes.length > 0 && (
+              <div
+                className="mt-4 border-t pt-3"
+                data-testid={`section-refresh-history-${t.id}`}
+              >
+                <div className="text-xs font-semibold text-muted-foreground mb-2">
+                  Recent refreshes
+                </div>
+                <ul className="space-y-1">
+                  {t.recentRefreshes.map(r => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-2 text-xs"
+                      data-testid={`row-refresh-history-${t.id}-${r.id}`}
+                    >
+                      <span className="text-muted-foreground tabular-nums">
+                        {new Date(r.startedAt).toLocaleString()}
+                      </span>
+                      <span
+                        className="font-medium"
+                        data-testid={`text-refresh-history-source-${t.id}-${r.id}`}
+                      >
+                        {r.source.label}
+                      </span>
+                      <span
+                        className={
+                          r.status === "success" ? "text-emerald-700" :
+                          r.status === "failure" ? "text-rose-700" :
+                          r.status === "aborted" ? "text-muted-foreground" :
+                          "text-amber-700"
+                        }
+                      >
+                        {r.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </Card>
         ))}
       </div>
