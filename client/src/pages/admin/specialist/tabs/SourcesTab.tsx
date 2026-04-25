@@ -254,9 +254,16 @@ export function SourcesTab({ specialistId }: { specialistId: string }) {
   const bulkTest = useMutation({
     mutationFn: async () => {
       const ids = allCards.map((c) => c.resource.id);
-      // Snapshot current dot per card so we can preserve it on skipped rows.
+      // Snapshot the CURRENTLY VISIBLE dot per card so we can preserve it on
+      // skipped rows. This must blend any local override (from a recent
+      // per-card Test) on top of the server snapshot — otherwise a card the
+      // user just turned green via per-card Test would silently revert to its
+      // stale server colour the moment a bulk run skipped it.
       const priorDots = new Map<number, DotStatus>(
-        allCards.map((c) => [c.resource.id, toDotStatus(c.health.status)]),
+        allCards.map((c) => {
+          const liveDot = cardState[c.resource.id]?.result?.status;
+          return [c.resource.id, liveDot ?? toDotStatus(c.health.status)];
+        }),
       );
       setCardState((prev) => {
         const next = { ...prev };
