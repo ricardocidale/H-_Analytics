@@ -248,15 +248,31 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         // gender. Renaming the funding specialist or flipping pronouns
         // through /identity flows directly into this narration on the
         // very next refresh, with no restart.
-        const handoff = await narrateSpecialistHandoff(
-          TABLE_OWNER_SPECIALIST_ID[tableId],
-          `${TABLE_LABELS[tableId]} refresh`,
-        );
+        //
+        // The narration is decorative: the LLM work is already done and
+        // the audit row is already finalized=success above. A failure
+        // inside narrateSpecialistHandoff (e.g. transient
+        // storage.getIdentityOverride outage) must NOT downgrade a
+        // successful refresh into a 500 that the client can't act on.
+        // Fall back to a neutral, identity-free line in that case.
+        const narrationLines = [...llmResult.narration];
+        try {
+          const handoff = await narrateSpecialistHandoff(
+            TABLE_OWNER_SPECIALIST_ID[tableId],
+            `${TABLE_LABELS[tableId]} refresh`,
+          );
+          if (handoff) narrationLines.unshift(handoff);
+        } catch (handoffErr: unknown) {
+          logger.warn(
+            `narrateSpecialistHandoff failed for ${tableId}; continuing without handoff line: ${String(handoffErr)}`,
+            "analyst-refresh",
+          );
+        }
         res.json({
           tableId,
           auditId,
           proposedRanges: llmResult.proposedRanges,
-          narration: [handoff, ...llmResult.narration],
+          narration: narrationLines,
           sourceCount: llmResult.sourceCount,
           tokensUsed: llmResult.tokensUsed,
           evidence: llmResult.evidence,

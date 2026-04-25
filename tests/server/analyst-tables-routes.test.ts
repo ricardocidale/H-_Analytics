@@ -63,11 +63,14 @@ vi.mock("../../server/ai/analyst-table-refresh", () => ({
 }));
 
 // Phase 3 (#453) added a `narrateSpecialistHandoff(...)` call in the
-// /refresh handler. The real implementation reads from storage, so without
-// a mock the test's success path throws and the handler returns 500.
-vi.mock("../../server/lib/specialist-identity-resolver", () => ({
-  narrateSpecialistHandoff: vi.fn().mockResolvedValue(""),
-}));
+// /refresh handler. The handler must tolerate failures from that helper
+// (it reads from storage, which can transient-fail) without downgrading
+// a successful refresh — already finalized in the audit row — into a
+// 500 that the client can't recover from. We deliberately leave
+// `narrateSpecialistHandoff` UNMOCKED so the assertion below double-
+// duties as a guard against regressing the resilience behavior. Without
+// the storage surface it depends on, the helper will throw, and the
+// handler's try/catch around it must keep the response at 200.
 
 vi.mock("../../server/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
