@@ -395,6 +395,20 @@ export function register(app: Express) {
         scenarioContextBlock,
       ].join("\n");
 
+      // Task #539 — collect every retrieved chunk that actually made it into
+      // the prompt so we can surface a "Sources used" panel in the preview UI.
+      // Each entry carries the raw similarity score plus the configured source
+      // weight so the client can show the score directly and the server can
+      // order entries by weighted score (= score × weight ÷ 100). That makes
+      // the Knowledge & Sources sliders observable from the test transcript.
+      type ChatSourceUsed = {
+        title: string;
+        namespace: string;
+        score: number;
+        weight: number;
+      };
+      const sourcesUsed: ChatSourceUsed[] = [];
+
       let documentContextBlock = "";
       try {
         if (!rebeccaSettings.sources.documents.enabled) throw new Error("__skip_documents__");
@@ -409,6 +423,15 @@ export function register(app: Express) {
             `[${d.documentType}] ${d.propertyName} (score: ${d.score.toFixed(2)}):\n${d.content.slice(0, 800)}`
           );
           documentContextBlock = `\n\nRELEVANT DOCUMENTS:\n${docLines.join("\n\n")}`;
+          const docWeight = rebeccaSettings.sources.documents.weight;
+          for (const d of docResults) {
+            sourcesUsed.push({
+              title: `${d.propertyName} — ${d.documentType}`,
+              namespace: "documents",
+              score: d.score,
+              weight: docWeight,
+            });
+          }
         }
       } catch (err: unknown) {
         logger.warn(`Document context retrieval failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
@@ -427,14 +450,22 @@ export function register(app: Express) {
         const MAX_RAG_CHARS = 3000;
         let ragChars = 0;
 
+        const kbWeight = rebeccaSettings.sources.knowledgeBase.weight;
         for (const chunk of kbChunks) {
           if (chunk.score < 0.45) continue;
           const entry = `[${chunk.source}] ${chunk.title} (${chunk.score.toFixed(2)}):\n${chunk.content.slice(0, 600)}`;
           if (ragChars + entry.length > MAX_RAG_CHARS) break;
           ragParts.push(entry);
           ragChars += entry.length;
+          sourcesUsed.push({
+            title: chunk.title || chunk.source || "Knowledge entry",
+            namespace: "knowledge-base",
+            score: chunk.score,
+            weight: kbWeight,
+          });
         }
 
+        const researchWeight = rebeccaSettings.sources.research.weight;
         const userPropertyIds = new Set(properties.map(p => p.id));
         for (const match of multiResults) {
           if (match.score < 0.45) continue;
@@ -458,6 +489,12 @@ export function register(app: Express) {
           if (ragChars + entry.length > MAX_RAG_CHARS) break;
           ragParts.push(entry);
           ragChars += entry.length;
+          sourcesUsed.push({
+            title: title || String(match.id),
+            namespace: match.namespace,
+            score: match.score,
+            weight: researchWeight,
+          });
         }
 
         if (ragParts.length > 0) {
@@ -480,6 +517,17 @@ export function register(app: Express) {
           matchedAssets = await searchAssets(searchQuery, 4, accessibleIds);
           if (matchedAssets.length > 0) {
             assetContextBlock = "\n\n" + buildAssetContext(matchedAssets);
+            const assetWeight = rebeccaSettings.sources.uploadedFiles.weight;
+            for (const asset of matchedAssets) {
+              const baseTitle = asset.caption?.trim() || `${asset.type[0].toUpperCase()}${asset.type.slice(1)} #${asset.id}`;
+              const title = asset.propertyName ? `${asset.propertyName} — ${baseTitle}` : baseTitle;
+              sourcesUsed.push({
+                title,
+                namespace: "uploaded-files",
+                score: asset.score,
+                weight: assetWeight,
+              });
+            }
           }
         }
       } catch (err: unknown) {
@@ -687,11 +735,25 @@ export function register(app: Express) {
       const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
       logActivity(req, "rebecca-chat", "rebecca_conversation", conversationId, null, { responseMode, detectedLanguage, totalMessages });
 
+      // Task #539 — order surfaced sources by weighted score so the
+      // Knowledge & Sources sliders visibly affect the displayed list.
+      // Identical (namespace, title) pairs (e.g. multiple chunks from the
+      // same KB entry) collapse into the highest-scoring representative.
+      const sourcesByKey = new Map<string, ChatSourceUsed>();
+      for (const s of sourcesUsed) {
+        const key = `${s.namespace}::${s.title}`;
+        const prev = sourcesByKey.get(key);
+        if (!prev || s.score > prev.score) sourcesByKey.set(key, s);
+      }
+      const sourcesUsedSorted = Array.from(sourcesByKey.values())
+        .sort((a, b) => (b.score * (b.weight / 100)) - (a.score * (a.weight / 100)));
+
       res.json({
         response: responseText,
         conversationId,
         suggestedChips,
         detectedLanguage,
+        sourcesUsed: sourcesUsedSorted,
         ...(autoGreeting ? { autoGreeting } : {}),
         ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
         ...(observations.length > 0 ? { observations } : {}),

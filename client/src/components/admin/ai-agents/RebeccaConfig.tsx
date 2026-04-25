@@ -19,6 +19,8 @@ import {
   IconRefreshCw,
   IconSparkles,
 } from "@/components/icons";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   DEFAULT_REBECCA_SETTINGS,
@@ -120,6 +122,93 @@ function DialRow({ label, hint, value, onChange, testId }: {
   );
 }
 
+// Task #539 — collapsible per-turn list of the chunks Rebecca actually pulled
+// into the prompt. Title + namespace + similarity score for each entry, ordered
+// (server-side) by similarity × source weight so the Knowledge & Sources
+// sliders visibly affect the displayed order.
+const NAMESPACE_LABELS: Record<string, string> = {
+  "knowledge-base": "Knowledge Base",
+  "research-history": "Research History",
+  "assumption-guidance": "Assumption Guidance",
+  documents: "Documents",
+  "uploaded-files": "Uploaded Files",
+};
+
+function SourcesUsedPanel({
+  sources,
+  turnIndex,
+}: {
+  sources: { title: string; namespace: string; score: number; weight: number }[];
+  turnIndex: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const count = sources.length;
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className="mt-1.5 max-w-[85%] w-full"
+      data-testid={`sources-used-${turnIndex}`}
+    >
+      <CollapsibleTrigger
+        className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground hover:text-foreground transition-colors px-1"
+        data-testid={`button-sources-used-${turnIndex}`}
+      >
+        <ChevronDown
+          className={`w-3 h-3 transition-transform ${open ? "" : "-rotate-90"}`}
+        />
+        <span data-testid={`text-sources-count-${turnIndex}`}>
+          Sources used · {count}
+        </span>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {count === 0 ? (
+          <p
+            className="mt-1 px-2 py-1.5 text-[11px] italic text-muted-foreground/80 border border-dashed border-border/50 rounded-md"
+            data-testid={`text-sources-empty-${turnIndex}`}
+          >
+            No sources were used for this reply.
+          </p>
+        ) : (
+          <ul
+            className="mt-1 space-y-1 px-2 py-1.5 border border-border/40 rounded-md bg-muted/20"
+            data-testid={`list-sources-${turnIndex}`}
+          >
+            {sources.map((s, i) => (
+              <li
+                key={`${s.namespace}-${s.title}-${i}`}
+                className="flex items-start gap-2 text-[11px]"
+                data-testid={`source-${turnIndex}-${i}`}
+              >
+                <Badge
+                  variant="outline"
+                  className="text-[9px] py-0 px-1.5 h-4 font-medium shrink-0"
+                  data-testid={`badge-source-namespace-${turnIndex}-${i}`}
+                >
+                  {NAMESPACE_LABELS[s.namespace] ?? s.namespace}
+                </Badge>
+                <span
+                  className="flex-1 truncate text-foreground/90"
+                  title={s.title}
+                  data-testid={`text-source-title-${turnIndex}-${i}`}
+                >
+                  {s.title}
+                </span>
+                <span
+                  className="font-mono text-muted-foreground shrink-0"
+                  data-testid={`text-source-score-${turnIndex}-${i}`}
+                >
+                  {s.score.toFixed(2)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 export function RebeccaConfig({
   enabled,
   displayName,
@@ -154,7 +243,17 @@ export function RebeccaConfig({
   const fallbackModels = settings.llm.fallbackProvider ? REBECCA_PROVIDER_MODELS[settings.llm.fallbackProvider] : [];
 
   // Test chat preview state
-  type PreviewTurn = { role: "user" | "assistant"; content: string; ts: number };
+  // Task #539 — assistant turns also carry the list of retrieved chunks the
+  // server actually pulled into the prompt so the admin can see *why* Rebecca
+  // answered the way she did and how the Knowledge & Sources weights affect
+  // ordering.
+  type PreviewSource = { title: string; namespace: string; score: number; weight: number };
+  type PreviewTurn = {
+    role: "user" | "assistant";
+    content: string;
+    ts: number;
+    sources?: PreviewSource[];
+  };
   const [testInput, setTestInput] = useState("");
   const [previewHistory, setPreviewHistory] = useState<PreviewTurn[]>([]);
   const [keepHistory, setKeepHistory] = useState(true);
@@ -203,10 +302,22 @@ export function RebeccaConfig({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Request failed");
+      const rawSources = Array.isArray(data.sourcesUsed) ? data.sourcesUsed : [];
+      const sources: PreviewSource[] = rawSources
+        .map((s: unknown) => {
+          const o = (s ?? {}) as Partial<PreviewSource>;
+          return {
+            title: typeof o.title === "string" ? o.title : "(untitled)",
+            namespace: typeof o.namespace === "string" ? o.namespace : "unknown",
+            score: typeof o.score === "number" ? o.score : 0,
+            weight: typeof o.weight === "number" ? o.weight : 0,
+          };
+        });
       const reply: PreviewTurn = {
         role: "assistant",
         content: data.response ?? "(empty response)",
         ts: Date.now(),
+        sources,
       };
       setPreviewHistory((prev) => [...prev, reply]);
     } catch (e: unknown) {
@@ -676,7 +787,7 @@ export function RebeccaConfig({
                 return (
                   <div
                     key={`${turn.ts}-${i}`}
-                    className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+                    className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
                     data-testid={`preview-turn-${turn.role}-${i}`}
                   >
                     <div
@@ -702,6 +813,9 @@ export function RebeccaConfig({
                       </div>
                       {turn.content}
                     </div>
+                    {!isUser && turn.sources !== undefined && (
+                      <SourcesUsedPanel sources={turn.sources} turnIndex={i} />
+                    )}
                   </div>
                 );
               })}
