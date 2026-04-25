@@ -223,6 +223,16 @@ describe("AdminResourceStorage (real DB)", () => {
     // Two catalog declarations resolve (alpha + beta on the same resource);
     // one declaration's slug doesn't match any admin_resources row and is
     // skipped until the missing resource is created.
+    //
+    // Assertions are scoped to THIS resource (queried via
+    // listConnectionsForResource) rather than the global "inserted" count
+    // returned by the backfill SQL. The global count is fragile: any
+    // unrelated specialist_assignments row that happens to resolve to a
+    // resource (left behind by another test file's import-time side
+    // effects, or by a CI seed step that lights up the catalog) bumps the
+    // count and breaks the strict `=== 2` assertion. The scoped query is
+    // immune to that — beforeEach wipes adminResources, so resource.id is
+    // brand-new and only our two assignments can possibly point at it.
     const resource = await store.createAdminResource(
       { kind: "api", slug: "p2-backfill-search", displayName: "Search", config: {} },
       actorUserId,
@@ -234,7 +244,12 @@ describe("AdminResourceStorage (real DB)", () => {
     ]);
 
     const inserted = await store.backfillConnectionsFromCatalog();
-    expect(inserted).toBe(2); // alpha + beta resolved; the unresolved (model) row is skipped.
+    // The backfill MUST insert at least our two resolved rows. It may
+    // insert more if other resolved-but-unconnected rows exist globally
+    // (e.g. CI seeded catalog rows) — that's fine, those don't touch our
+    // resource. Asserting `>= 2` keeps the contract ("backfill seeds
+    // resolved rows") without coupling to global DB state.
+    expect(inserted).toBeGreaterThanOrEqual(2);
 
     const targets = (await store.listConnectionsForResource(resource.id))
       .map((r) => r.target)
@@ -256,10 +271,16 @@ describe("AdminResourceStorage (real DB)", () => {
       { specialistId: "spec.catalog", assignmentKind: "api", assignmentSlug: "p2-backfill-idem", assignmentRole: null, required: true },
     ]);
 
-    const first = await store.backfillConnectionsFromCatalog();
-    expect(first).toBe(1); // catalog-derived row inserted
+    // First backfill: should insert our scoped catalog-derived row (and
+    // possibly other unrelated resolved rows from globally-leaked state —
+    // which is why we assert the SCOPED outcome below, not the global
+    // count). Second backfill must be a true no-op: every row that was
+    // present after the first call is present again, so the SQL's
+    // `ON CONFLICT DO NOTHING` suppresses every insert and `RETURNING id`
+    // yields zero rows.
+    await store.backfillConnectionsFromCatalog();
     const second = await store.backfillConnectionsFromCatalog();
-    expect(second).toBe(0); // already present, ON CONFLICT DO NOTHING
+    expect(second).toBe(0); // strict — idempotency is the contract under test here
 
     const targets = (await store.listConnectionsForResource(resource.id))
       .map((r) => r.target)
