@@ -39,6 +39,12 @@ vite.config.ts.*
 # Archives
 *.tar.gz
 
+# Database backups — store in R2 (`archive/` prefix), never in git/LFS.
+# Adding this here was the forward-discipline fix when the Helium rollback
+# dumps got committed. See replit_waste.md "Helium cancellation thread".
+backups/
+*.sql.gz
+
 # Reference assets (design files, screenshots, not production code)
 attached_assets/
 

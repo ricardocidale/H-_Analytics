@@ -2,9 +2,28 @@
 
 This guide covers removing all Replit-managed integrations and deploying H+ Analytics as a standalone Node.js application.
 
-## Current Status (April 22, 2026)
+## Current Status (April 25, 2026)
 
-**Phase 8 (Platform Independence) — Code path COMPLETE.**
+**Database — DONE (Apr 23).** Cutover from Replit-managed Helium Postgres to a dedicated Neon project shipped in commit `430ba0d7`. `server/db.ts` reads `POSTGRES_URL` first (with `DATABASE_URL` as fallback), so the runtime never touches Helium. Helium is still attached to the Replit project as a paid line item but unused.
+
+**Object storage — DONE (Apr 23).** Replit Object Storage replaced by Cloudflare R2 (`h-analysis` bucket) via the existing S3-compatible adapter at `server/providers/storage/s3-storage.ts`. `STORAGE_PROVIDER=r2` is live; round-trip verified.
+
+**Hosting — IN PROGRESS.** Vercel deployment is the next major step. Until that lands, the Replit Dependency Tax keeps accruing on every commit.
+
+### Cancelling the Helium Postgres add-on (when ready)
+
+The Helium add-on still bills monthly even though nothing reads from it. To cancel it cleanly:
+
+1. **Verify the running app is on Neon** — `echo $POSTGRES_URL | head -c 40` should show a `neon.tech` host. If it points anywhere else, stop and figure out why before cancelling.
+2. **Make sure the rollback dump is somewhere other than the Helium DB itself.** Currently the dumps live in `backups/heliumdb-*.sql.gz` in this repo (Git LFS, ~250 MB). The follow-up task tracking the migration off git LFS into R2 is the prereq for this step — don't cancel Helium until that task is merged. Once it is, the rollback dump will live at `r2://h-analysis/archive/helium-rollback-20260424/`.
+3. **In the Replit dashboard:** open this Repl → "Tools" pane in the left sidebar → "Database" → choose "Detach / Delete" on the Helium-managed database. Confirm. Replit will keep `DATABASE_URL` set for a grace period; the app ignores it because `POSTGRES_URL` is set.
+4. **Confirm:** the next monthly invoice should not show a Helium line item. The H+ billing telemetry (`dev_internal.replit_invoices` in Neon) will surface this once invoices for the new period land — `npm run billing:report` regenerates `docs/billing/hplus-cost-report.md`.
+
+This is irreversible. Once the add-on is cancelled, the only way back is the R2 dump → restore into a fresh Postgres → re-point `POSTGRES_URL`.
+
+---
+
+## Phase 8 status (Platform Independence) — Code path COMPLETE.
 
 All business logic now goes through `server/providers/` — zero direct Replit imports outside the provider wrappers and a small allow-list (CSP headers, Linear connector bridge, one-off backfill scripts). The app runs on Replit unchanged (defaults to `STORAGE_PROVIDER=replit`, `AUTH_PROVIDER=replit`).
 

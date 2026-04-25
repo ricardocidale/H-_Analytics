@@ -2,10 +2,16 @@
 
 **Scope.** This file tracks rework, retries, rewrites, and bugs that exist *because* the project lives on Replit specifically — separable from the broader rewrite tax catalogued in `rewritetax.md`. It is a living document: the bottom half is a forward-looking watchlist of failure modes we should expect to keep paying for until they are structurally fixed (or until the Vercel/Neon/R2 escape is complete).
 
-**Status of the escape (as of 2026-04-24):**
-- Database — DONE. Helium → Neon Postgres cutover landed (commit `430ba0d7`, April 23). `shared/db-url.ts` is the resolver.
+**Status of the escape (as of 2026-04-25):**
+- Database — DONE at the runtime layer (Apr 23). Helium → Neon cutover landed in commit `430ba0d7`; `shared/db-url.ts` is the resolver. **Helium add-on cancellation is NOT yet done** — the add-on still bills monthly. Cancellation is gated on moving the rollback dump off git LFS into R2 (project task filed Apr 25). Once that task merges, the user can cancel Helium in the Replit dashboard.
 - Object storage — DONE. Replit Object Storage → Cloudflare R2 (`h-analysis` bucket) via the existing S3-compatible adapter. `STORAGE_PROVIDER=r2` is live; round-trip verified.
 - Hosting — IN PROGRESS. Vercel deployment is the next major step. Until that lands, the Replit Dependency Tax keeps accruing on every commit.
+
+**Helium cancellation thread (active; main blocker for stopping the monthly add-on bill):**
+- The runtime app is Neon-only, verified by code read on April 25 (`server/db.ts:20` calls `requireDbUrl()`, which prefers `POSTGRES_URL`; `DATABASE_URL` only matters as a never-used fallback).
+- 250 MB of Helium rollback dumps live in `backups/heliumdb-*.sql.gz` via Git LFS. They are the rollback safety net AND a recurring LFS bandwidth cost on every push. Removing them is destructive (requires `git rm` + LFS prune) so it is delegated to a project task rather than executed from the main agent session.
+- `.gitignore` was updated April 25 with `backups/` and `*.sql.gz` so this category of file cannot be re-committed by accident.
+- The cancellation runbook (exact dashboard click-path, prereqs) is in `docs/developer/migration-from-replit.md` under "Cancelling the Helium Postgres add-on (when ready)".
 
 **Authoritative sources for the numbers.** All dollar figures trace back to the live invoice ledger (`replit_invoices` + `replit_invoice_line_items` tables in the project DB, seeded from 75 invoices Mar 15 – Apr 23). The forensic narrative is in `rewritetax.md` Cost Vector 7. The forward-discipline distillation is in `best-practices.md` section G. **This file is the index, not the body** — when in doubt, those three are canonical.
 
