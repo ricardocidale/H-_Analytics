@@ -20,7 +20,7 @@
  * per-resource probe history, per-Specialist quality snapshots) already
  * exists in the surfaces those schedulers feed.
  */
-import { pgTable, text, integer, bigint, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, bigint, timestamp, serial, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -74,3 +74,54 @@ export const insertSchedulerRunSchema = createInsertSchema(schedulerRuns, {
   updatedAt: true,
 });
 export type InsertSchedulerRun = z.infer<typeof insertSchedulerRunSchema>;
+
+/**
+ * Task #558 — Append-only short history of scheduler cycles.
+ *
+ * `scheduler_runs` keeps a single upsert-only row per scheduler so the
+ * Observability page can answer "is the scheduler alive and what did the
+ * last cycle look like". That intentionally throws away the prior cycle on
+ * every write — which means a transient failure ("it failed twice last
+ * night, then succeeded") gets silently overwritten by the next success.
+ *
+ * `scheduler_run_history` is the companion append-only table: ONE row per
+ * cycle, never overwritten. We trim to the last `SCHEDULER_HISTORY_KEEP`
+ * rows per `schedulerKey` from inside the same write that records the
+ * cycle so the table stays bounded (≈50 rows × ~10 schedulers ≪ 1k rows
+ * total). The Observability "recent runs" strip reads the most recent
+ * `SCHEDULER_HISTORY_STRIP` cycles per scheduler to render status dots.
+ */
+export const SCHEDULER_HISTORY_KEEP = 50;
+export const SCHEDULER_HISTORY_STRIP = 20;
+
+export const schedulerRunHistory = pgTable(
+  "scheduler_run_history",
+  {
+    id: serial("id").primaryKey(),
+    schedulerKey: text("scheduler_key").notNull(),
+    ranAt: timestamp("ran_at").defaultNow().notNull(),
+    considered: integer("considered").notNull().default(0),
+    succeeded: integer("succeeded").notNull().default(0),
+    failed: integer("failed").notNull().default(0),
+    status: text("status").notNull(),
+    notes: text("notes"),
+    durationMs: integer("duration_ms"),
+  },
+  (table) => ({
+    // The Observability "recent runs" strip reads the latest N rows per
+    // scheduler, so the (key, ranAt DESC) lookup needs to be cheap.
+    schedulerKeyRanAtIdx: index("scheduler_run_history_key_ran_at_idx").on(
+      table.schedulerKey,
+      table.ranAt,
+    ),
+  }),
+);
+
+export type SchedulerRunHistoryRow = typeof schedulerRunHistory.$inferSelect;
+
+export const insertSchedulerRunHistorySchema = createInsertSchema(schedulerRunHistory, {
+  status: SchedulerStatusSchema,
+}).omit({
+  id: true,
+});
+export type InsertSchedulerRunHistory = z.infer<typeof insertSchedulerRunHistorySchema>;

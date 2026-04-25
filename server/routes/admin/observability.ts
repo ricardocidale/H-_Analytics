@@ -8,6 +8,7 @@ import {
   type SchedulerKey,
 } from "../../jobs/scheduler-run-tracker";
 import { logger } from "../../logger";
+import { SCHEDULER_HISTORY_STRIP } from "@shared/schema";
 
 /**
  * Task #528 — How long after the last sweep we flag the drift panel as stale.
@@ -22,8 +23,42 @@ const STORAGE_DRIFT_SWEEP_STALE_AFTER_MS = 36 * 60 * 60 * 1000;
 export function registerObservabilityRoutes(app: Express) {
   app.get("/api/admin/scheduler-runs", requireAdmin, async (_req, res) => {
     try {
-      const rows = await storage.listSchedulerRuns();
+      const [rows, historyRows] = await Promise.all([
+        storage.listSchedulerRuns(),
+        // Task #558 — recent-runs strip: latest N cycles per scheduler.
+        storage.listSchedulerRunHistory({ limitPerScheduler: SCHEDULER_HISTORY_STRIP }),
+      ]);
       const byKey = new Map(rows.map((r) => [r.schedulerKey, r] as const));
+
+      // Bucket history rows by schedulerKey so we can attach a small array
+      // to each row in registry order. listSchedulerRunHistory already
+      // returns per-scheduler chunks ordered DESC, so this preserves that.
+      const historyByKey = new Map<string, Array<{
+        ranAt: string;
+        status: "ok" | "warn" | "error";
+        considered: number;
+        succeeded: number;
+        failed: number;
+        durationMs: number | null;
+        notes: string | null;
+      }>>();
+      for (const h of historyRows) {
+        const list = historyByKey.get(h.schedulerKey) ?? [];
+        const ranAtIso = h.ranAt instanceof Date
+          ? h.ranAt.toISOString()
+          : new Date(h.ranAt as unknown as string).toISOString();
+        list.push({
+          ranAt: ranAtIso,
+          status: h.status as "ok" | "warn" | "error",
+          considered: h.considered,
+          succeeded: h.succeeded,
+          failed: h.failed,
+          durationMs: h.durationMs,
+          notes: h.notes,
+        });
+        historyByKey.set(h.schedulerKey, list);
+      }
+
       const runs = SCHEDULER_REGISTRY.map((entry) => {
         const row = byKey.get(entry.key);
         const lastRunAt = row?.lastRunAt
@@ -46,9 +81,10 @@ export function registerObservabilityRoutes(app: Express) {
           cycleIntervalMs,
           durationMs: row?.durationMs ?? null,
           isStale,
+          recentRuns: historyByKey.get(entry.key) ?? [],
         };
       });
-      res.json({ runs, staleMultiplier: 2 });
+      res.json({ runs, staleMultiplier: 2, recentRunsLimit: SCHEDULER_HISTORY_STRIP });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scheduler runs", error);
     }

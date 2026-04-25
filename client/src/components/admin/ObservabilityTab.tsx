@@ -29,6 +29,16 @@ interface StorageDriftSweepResponse {
   staleAfterMs: number;
 }
 
+interface SchedulerRecentRun {
+  ranAt: string;
+  status: "ok" | "warn" | "error";
+  considered: number;
+  succeeded: number;
+  failed: number;
+  durationMs: number | null;
+  notes: string | null;
+}
+
 interface SchedulerRunRow {
   schedulerKey: string;
   schedulerLabel: string;
@@ -41,11 +51,13 @@ interface SchedulerRunRow {
   cycleIntervalMs: number;
   durationMs: number | null;
   isStale: boolean;
+  recentRuns: SchedulerRecentRun[];
 }
 
 interface SchedulerRunsResponse {
   runs: SchedulerRunRow[];
   staleMultiplier: number;
+  recentRunsLimit: number;
 }
 
 function formatRelative(iso: string | null): string {
@@ -76,6 +88,51 @@ function statusVariant(status: SchedulerRunRow["status"]): "default" | "secondar
     case "error": return "destructive";
     default:      return "secondary";
   }
+}
+
+function recentDotClass(status: "ok" | "warn" | "error"): string {
+  switch (status) {
+    case "ok":    return "bg-emerald-500";
+    case "warn":  return "bg-amber-500";
+    case "error": return "bg-destructive";
+  }
+}
+
+function RecentRunsStrip({ runs, schedulerKey }: { runs: SchedulerRecentRun[]; schedulerKey: string }) {
+  if (runs.length === 0) {
+    return (
+      <span
+        className="text-xs text-muted-foreground"
+        data-testid={`text-recent-runs-empty-${schedulerKey}`}
+      >
+        No history yet
+      </span>
+    );
+  }
+  // listSchedulerRunHistory returns DESC; render oldest → newest left-to-right
+  // so the most recent cycle is the right-most dot (matches "now" intuition).
+  const ordered = [...runs].reverse();
+  return (
+    <div
+      className="flex items-center gap-0.5"
+      data-testid={`strip-recent-runs-${schedulerKey}`}
+    >
+      {ordered.map((r, idx) => {
+        const ranAtLabel = new Date(r.ranAt).toLocaleString();
+        const counts = `${r.succeeded}/${r.considered} ok, ${r.failed} failed`;
+        const duration = r.durationMs != null ? ` · ${r.durationMs}ms` : "";
+        const note = r.notes ? ` · ${r.notes}` : "";
+        return (
+          <span
+            key={`${r.ranAt}-${idx}`}
+            title={`${r.status.toUpperCase()} · ${ranAtLabel} · ${counts}${duration}${note}`}
+            className={`inline-block h-2.5 w-2.5 rounded-full ${recentDotClass(r.status)}`}
+            data-testid={`dot-recent-run-${schedulerKey}-${idx}`}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 function sweepStatusVariant(status: "ok" | "partial" | "error"): "default" | "secondary" | "destructive" {
@@ -354,6 +411,7 @@ export default function ObservabilityTab() {
                 <TableHead>Scheduler</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Run</TableHead>
+                <TableHead>Recent Runs</TableHead>
                 <TableHead>Interval</TableHead>
                 <TableHead>Considered</TableHead>
                 <TableHead>Succeeded</TableHead>
@@ -391,6 +449,9 @@ export default function ObservabilityTab() {
                         </span>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <RecentRunsStrip runs={run.recentRuns} schedulerKey={run.schedulerKey} />
                   </TableCell>
                   <TableCell data-testid={`text-interval-${run.schedulerKey}`}>
                     {formatInterval(run.cycleIntervalMs)}

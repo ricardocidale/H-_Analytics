@@ -728,6 +728,12 @@ async function runSchemaMigrations() {
     await markMigrationApplied("scheduler_runs_001");
   }
 
+  if (!(await isMigrationApplied("scheduler_runs_002"))) {
+    const { runSchedulerRuns002 } = await import("./migrations/scheduler-runs-002");
+    await runSchedulerRuns002();
+    await markMigrationApplied("scheduler_runs_002");
+  }
+
   if (!(await isMigrationApplied("storage_drift_sweep_runs_001"))) {
     const { runStorageDriftSweepRuns001 } = await import("./migrations/storage-drift-sweep-runs-001");
     await runStorageDriftSweepRuns001();
