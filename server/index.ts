@@ -598,6 +598,14 @@ async function runSchemaMigrations() {
     await markMigrationApplied("specialist_recommendation_events_001");
   }
 
+  if (!(await isMigrationApplied("specialist_multi_model_001"))) {
+    const { runSpecialistMultiModel001 } = await import(
+      "./migrations/specialist-multi-model-001"
+    );
+    await runSpecialistMultiModel001();
+    await markMigrationApplied("specialist_multi_model_001");
+  }
+
   // Phase 4 — Task #454. `properties.financials_computed_at` is the
   // single source of truth for "this property's numbers are fresh as of
   // T". Specialist gating (engine/analyst/registry/prerequisite-registry.ts
