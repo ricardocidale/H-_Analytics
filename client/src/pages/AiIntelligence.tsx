@@ -13,6 +13,7 @@ import {
   type AiIntelligenceSection,
   SPECIALIST_SECTION_TO_ID,
 } from "@/components/ai-intelligence/AiIntelligenceSidebar";
+import { SpecialistQuickSearch } from "@/components/ai-intelligence/SpecialistQuickSearch";
 import { useRefreshLlmRegistry } from "@/lib/api/admin";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
 import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
@@ -195,6 +196,11 @@ export default function AiIntelligence() {
               title={meta.title}
               subtitle={meta.subtitle}
               variant="dark"
+              actions={
+                <SpecialistQuickSearch
+                  onSelect={(section) => setAiIntelligenceSection(section)}
+                />
+              }
             />
 
             <div className="space-y-6" data-testid={`ai-intelligence-content-${activeSection}`}>
