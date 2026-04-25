@@ -30,9 +30,16 @@ import {
   IconShield,
 } from "@/components/icons";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
 import type { SpecialistSection } from "@/components/admin/AdminSidebar";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
+import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
+
+interface SpecialistListItem {
+  id: string;
+  humanName?: string | null;
+}
 
 export type AiIntelligenceSection =
   | SpecialistSection
@@ -99,7 +106,7 @@ function specialistSection(
   return { value, label: primary, secondary, icon };
 }
 
-function buildNavGroups(): NavGroup[] {
+function buildNavGroups(gasparHumanName: string): NavGroup[] {
   return [
     {
       // Task #496 — Gaspar (the Analyst orchestrator) gets a top-level
@@ -107,11 +114,24 @@ function buildNavGroups(): NavGroup[] {
       // page directly. Routes through the same SpecialistPage as the 12
       // catalog Specialists; the orchestrator id ("gaspar") is resolved
       // server-side to the `analyst` connection target.
+      //
+      // Task #465 — the primary label is sourced from the `/api/admin/
+      // specialists` list endpoint (which already prepends a synthetic
+      // Gaspar row with the override-resolved humanName) so that renaming
+      // Gaspar in the Identity tab updates the sidebar immediately. The
+      // role label "Orchestrator" rides along as the secondary line so the
+      // entry mirrors the persona-first / role-second layout used by the
+      // 12 catalog Specialists.
       id: "analyst",
       label: "The Analyst",
       icon: IconBrain,
       sections: [
-        { value: "analyst-orchestrator", label: "Gaspar (Orchestrator)", icon: IconBrain },
+        {
+          value: "analyst-orchestrator",
+          label: gasparHumanName,
+          secondary: "Orchestrator",
+          icon: IconBrain,
+        },
       ],
     },
     {
@@ -227,7 +247,20 @@ interface AiIntelligenceSidebarProps {
 }
 
 export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiIntelligenceSidebarProps) {
-  const navGroups = useMemo(() => buildNavGroups(), []);
+  // Pull the current Specialist list so the Gaspar entry reflects any
+  // Identity-tab rename without a page reload. The IdentityTab already
+  // invalidates the ["/api/admin/specialists"] query on save, so the
+  // sidebar updates the moment the override is persisted. Falls back to
+  // the canonical "Gaspar" persona name while the query is in flight or
+  // if the request fails.
+  const { data: specialists } = useQuery<SpecialistListItem[]>({
+    queryKey: ["/api/admin/specialists"],
+  });
+  const gasparHumanName = useMemo(() => {
+    const row = specialists?.find((s) => s.id === ORCHESTRATOR_SPECIALIST_ID);
+    return row?.humanName?.trim() || "Gaspar";
+  }, [specialists]);
+  const navGroups = useMemo(() => buildNavGroups(gasparHumanName), [gasparHumanName]);
   const activeGroup = getGroupForSection(activeSection, navGroups);
 
   return (
