@@ -1,6 +1,6 @@
 # Audit #319 R4 — Deferred Splits
 
-Three files >1000 lines remain unsplit at the close of R4. Each is a single-component or single-orchestrator monolith with state coupling that cannot be safely extracted under R4's "no test/workflow regression" constraint.
+Two files >1000 lines remain unsplit at the close of R4. Each is a single-component or single-orchestrator monolith with state coupling that cannot be safely extracted under R4's "no test/workflow regression" constraint. (Three other deferrals — `data-routing.ts`, `risk-intelligence.ts`, and the earlier `regulatory-data.ts` / `ModelConstantsTab.tsx` — have since been split in follow-up tasks.)
 
 ## Status snapshot (post-R4)
 
@@ -11,7 +11,7 @@ Three files >1000 lines remain unsplit at the close of R4. Each is a single-comp
 | `client/src/pages/CompanyAssumptions.tsx` | 1117 | **DEFERRED** |
 | `server/storage/intelligence-v2.ts` | 1199 | **DEFERRED** |
 | `server/ai/data-routing.ts` | 1150 → 192 | DONE (T470) |
-| `server/ai/risk-intelligence.ts` | 1012 | **DEFERRED** |
+| `server/ai/risk-intelligence.ts` | 1012 → 235 | DONE (T473) |
 
 All gates remain PASS UNQUALIFIED; `audit:quick` reports 0 critical, prop `:any` count = 9 (objective ≤ 40 met).
 
@@ -55,20 +55,24 @@ The spirit of the precursor still applied: an in-module mutable cache (`_enabled
 
 All 30 `tests/ai/data-routing.test.ts` tests and the 17 `tests/ai/research-data-injector.test.ts` tests pass. TypeScript and lint are clean.
 
-## server/ai/risk-intelligence.ts (1012 lines) — Deferred
+## server/ai/risk-intelligence.ts (1012 → 235 lines) — DONE (T473)
 
-**Why not split now:**
+The deferral hinged on a single coupling: every helper operated on an intermediate `RiskWorkingSet` whose only definition was private to the file, so extracting helpers meant either copying the type (drift) or growing the public surface (API churn). T473 lifted that contract first, then split along the existing section seams:
 
-- Single specialist that produces a fully-typed `RiskBrief`. Every helper operates on the same intermediate `RiskWorkingSet` object passed by reference; extracting helpers requires either copying the type (drift risk) or exporting it (API contract growth).
-- Specialist is invoked by The Analyst and four scheduler paths; any change to its export surface needs coordinated updates across `analyst-orchestrator.ts`, `intelligence-router.ts`, and the scheduler.
+- `shared/risk-types.ts` — `RiskInsight`, `PropertyRiskBrief`, `PortfolioRiskBrief`, `MacroContext`, `RiskWorkingSet`, `PropertyFinancials`, plus the `RiskCategory` / `RiskSeverity` / `OverallRiskLevel` unions. Pure types, zero runtime.
+- `server/ai/risk/benchmarks.ts` — the deterministic `BENCHMARKS` table.
+- `server/ai/risk/helpers.ts` — formatting (`pct`, `money`), financial estimators, and the `buildRiskWorkingSet` session builder consumed by every generator.
+- `server/ai/risk/insights-leverage.ts`, `insights-assumptions.ts`, `insights-macro.ts`, `insights-regulatory.ts`, `insights-concentration.ts`, `insights-stress.ts` — one generator per risk category, each ~95–110 lines.
+- `server/ai/risk/llm-brief.ts` — deterministic property-brief builder + optional LLM narrative enhancement.
+- `server/ai/risk-intelligence.ts` — thin orchestrator (`generateDeterministicInsights`, `generatePortfolioRiskBrief`, `generatePropertyRiskBrief`, `getRiskSummaryForContext`) that re-exports the public types from `@shared/risk-types` so legacy callers in `analyst-orchestrator.ts`, `intelligence-router.ts`, `routes/risk-intelligence.ts`, and the scheduler keep working unchanged.
 
-**Required precursor:** stabilize `RiskWorkingSet` as a `shared/risk-types.ts` API, then helpers can move into a `risk/` subdirectory.
+All 10 `tests/ai/risk-intelligence.test.ts` tests pass. TypeScript (`npm run check`) and strict lint (`npm run lint:strict`) are clean.
 
 ## Acceptance against R4 objective
 
 > "All 5 files under 500 lines OR explicitly deferred with rationale. Combined `:any` count ≤ 40. All workflows PASS UNQUALIFIED."
 
-- 2/5 files split (regulatory-data, ModelConstantsTab).
-- 4 files deferred above with concrete precursor work identified.
+- 4/6 files split (regulatory-data, ModelConstantsTab, data-routing, risk-intelligence).
+- 2 files deferred above (CompanyAssumptions.tsx, intelligence-v2.ts) with concrete precursor work identified.
 - prop `:any` = 9 (≤ 40 ✓), `as any` budget = 18 (server 15, client 3).
 - All eight workflows PASS UNQUALIFIED at commit close.
