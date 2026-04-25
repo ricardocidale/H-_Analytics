@@ -12,6 +12,8 @@ import {
 } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, gte, isNull, sql } from "drizzle-orm";
+import { containsLegacyUploadUrl, rewriteLegacyUploadsInText } from "../lib/canonical-asset-url";
+import { logger } from "../logger";
 
 export class IntelligenceRebeccaStorage {
 
@@ -85,8 +87,31 @@ export class IntelligenceRebeccaStorage {
   }
 
   async addRebeccaMessage(data: InsertRebeccaMessage): Promise<RebeccaMessage> {
+    // Task #521 — pre-insert guard against re-introducing legacy
+    // /objects/uploads/<uuid> URLs that 404 post R2 cutover. When a
+    // canonical sink (property_photos row, sibling /api/media logo) owns
+    // the same bytes, rewrite the fragment in place; otherwise leave the
+    // content untouched so the reconcile script still flags it.
+    let values: InsertRebeccaMessage = data;
+    if (containsLegacyUploadUrl(data.content)) {
+      try {
+        const result = await rewriteLegacyUploadsInText(data.content);
+        if (result.rewritten > 0) {
+          logger.info(
+            `Rewrote ${result.rewritten} legacy /objects/uploads URL(s) in rebecca_messages.content for conversation ${data.conversationId}`,
+            "intelligence-rebecca",
+          );
+          values = { ...data, content: result.text };
+        }
+      } catch (err: unknown) {
+        logger.warn(
+          `addRebeccaMessage canonicalization failed (non-blocking): ${err instanceof Error ? err.message : String(err)}`,
+          "intelligence-rebecca",
+        );
+      }
+    }
     const [msg] = await db.insert(rebeccaMessages)
-      .values(data as typeof rebeccaMessages.$inferInsert)
+      .values(values as typeof rebeccaMessages.$inferInsert)
       .returning();
     await db.update(rebeccaConversations)
       .set({ lastMessageAt: new Date() })

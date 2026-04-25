@@ -1,6 +1,8 @@
 import { activityLogs, verificationRuns, loginLogs, users, sessions, type ActivityLog, type InsertActivityLog, type VerificationRun, type InsertVerificationRun, type LoginLog, type User, type Session } from "@shared/schema";
 import { db } from "../db";
 import { eq, desc, gte, lte, and, lt, gt, count, inArray, type SQL } from "drizzle-orm";
+import { rewriteLegacyUploadsInMetadata } from "../lib/canonical-asset-url";
+import { logger } from "../logger";
 
 /** Filters for querying activity logs (admin panel). */
 export interface ActivityLogFilters {
@@ -18,9 +20,34 @@ export class ActivityStorage {
 
   /** Insert a new activity log entry for user action tracking. */
   async createActivityLog(data: InsertActivityLog): Promise<ActivityLog> {
+    // Task #521 — pre-insert guard: rewrite metadata.objectPath when the
+    // upload route persists a /objects/uploads/<uuid> URL whose canonical
+    // sink (property_photos / logos sibling) already exists. Fresh-upload
+    // paths with no canonical equivalent are left as-is so the audit
+    // trail keeps the original byte address.
+    let values: InsertActivityLog = data;
+    if (data.metadata && typeof data.metadata === "object") {
+      try {
+        const result = await rewriteLegacyUploadsInMetadata(
+          data.metadata as Record<string, unknown>,
+        );
+        if (result.rewritten > 0) {
+          logger.info(
+            `Rewrote legacy /objects/uploads URL in activity_logs.metadata.objectPath for action=${data.action}`,
+            "activity",
+          );
+          values = { ...data, metadata: result.metadata as InsertActivityLog["metadata"] };
+        }
+      } catch (err: unknown) {
+        logger.warn(
+          `createActivityLog canonicalization failed (non-blocking): ${err instanceof Error ? err.message : String(err)}`,
+          "activity",
+        );
+      }
+    }
     const [log] = await db
       .insert(activityLogs)
-      .values(data as typeof activityLogs.$inferInsert)
+      .values(values as typeof activityLogs.$inferInsert)
       .returning();
     return log;
   }

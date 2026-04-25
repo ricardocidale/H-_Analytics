@@ -1,6 +1,37 @@
 import { storage } from "../storage";
 import { upsertChunks, queryChunks, isVectorStoreAvailable, isEmbeddingAvailable } from "./vector-store-service";
 import { logger } from "../logger";
+import { resolveCanonicalLogoUrl } from "../lib/canonical-asset-url";
+
+// Task #521 — All photo URLs surfaced into Rebecca's prompt MUST be the
+// canonical /api/property-photos/<id>/image form, never the raw `imageUrl`
+// (which may still hold a legacy `/objects/uploads/<uuid>` value that 404s
+// post R2 cutover). The photo route falls back through image_data → image_url
+// so the canonical URL stays serveable regardless of the underlying storage.
+function canonicalPhotoUrl(photoId: number): string {
+  return `/api/property-photos/${photoId}/image`;
+}
+
+/**
+ * Logos are not slot-served (no per-id endpoint), so a legacy
+ * `/objects/uploads/<uuid>` URL on a `logos` row can only be canonicalised
+ * if a sibling row already points at `/api/media/<file>`. When no canonical
+ * equivalent exists we return null and the caller skips the entry rather
+ * than poisoning the vector store / Rebecca prompt with a 404 URL.
+ */
+async function safeCanonicalLogoUrl(rawUrl: string): Promise<string | null> {
+  if (!rawUrl) return null;
+  if (!rawUrl.startsWith("/objects/uploads/")) return rawUrl;
+  try {
+    return await resolveCanonicalLogoUrl(rawUrl);
+  } catch (err: unknown) {
+    logger.warn(
+      `Logo URL canonicalisation failed for ${rawUrl}: ${err instanceof Error ? err.message : err}`,
+      "asset-intelligence",
+    );
+    return null;
+  }
+}
 
 export interface AssetMatch {
   type: "photo" | "logo";
@@ -43,7 +74,7 @@ export async function indexPropertyPhotos(): Promise<number> {
             propertyName: property.name ?? "",
             caption: (photo.caption ?? "").slice(0, 500),
             isHero: photo.isHero,
-            url: photo.imageUrl,
+            url: canonicalPhotoUrl(photo.id),
           },
         }));
 
@@ -68,25 +99,46 @@ export async function indexLogos(): Promise<number> {
     const logos = await storage.getAllLogos();
     if (logos.length === 0) return 0;
 
-    const chunks = logos.map(logo => ({
-      id: `asset:logo:${logo.id}`,
-      text: [
-        `Company logo for ${logo.name}`,
-        logo.companyName ?? "",
-        logo.isDefault ? "default company logo branding" : "",
-        "logo branding company identity image",
-      ].filter(Boolean).join(" "),
-      metadata: {
-        assetType: "logo",
-        assetId: logo.id,
-        name: logo.name,
-        companyName: logo.companyName ?? "",
-        isDefault: logo.isDefault,
-        url: logo.url,
-      },
-    }));
+    const chunks: Array<{
+      id: string;
+      text: string;
+      metadata: Record<string, string | number | boolean>;
+    }> = [];
+    let skippedLegacy = 0;
+    for (const logo of logos) {
+      const canonical = await safeCanonicalLogoUrl(logo.url);
+      if (!canonical) {
+        // Legacy /objects/uploads/<uuid> with no resolvable canonical sink:
+        // skip rather than poison the vector store with a URL that 404s
+        // post R2 cutover.
+        skippedLegacy += 1;
+        continue;
+      }
+      chunks.push({
+        id: `asset:logo:${logo.id}`,
+        text: [
+          `Company logo for ${logo.name}`,
+          logo.companyName ?? "",
+          logo.isDefault ? "default company logo branding" : "",
+          "logo branding company identity image",
+        ].filter(Boolean).join(" "),
+        metadata: {
+          assetType: "logo",
+          assetId: logo.id,
+          name: logo.name,
+          companyName: logo.companyName ?? "",
+          isDefault: logo.isDefault,
+          url: canonical,
+        },
+      });
+    }
 
-    await upsertChunks("knowledge-base", chunks);
+    if (chunks.length > 0) {
+      await upsertChunks("knowledge-base", chunks);
+    }
+    if (skippedLegacy > 0) {
+      logger.warn(`Skipped ${skippedLegacy} logo(s) with unresolvable legacy /objects/uploads URL during indexing`, "asset-intelligence");
+    }
     logger.info(`Indexed ${chunks.length} logos into Vector store`, "asset-intelligence");
     return chunks.length;
   } catch (err: unknown) {
@@ -119,27 +171,39 @@ export async function searchAssets(query: string, topK = 6, accessiblePropertyId
       return fallbackAssetSearch(query, accessiblePropertyIds);
     }
 
-    return assetMatches.map(m => {
+    // Defensive canonicalisation at query time — entries indexed before
+    // Task #521 may still carry raw `/objects/uploads/<uuid>` URLs in
+    // their metadata. Photos always rewrite to the served endpoint;
+    // logos drop out of the result set when no canonical sink exists
+    // rather than emit a 404 URL into Rebecca's prompt.
+    const out: AssetMatch[] = [];
+    for (const m of assetMatches) {
       if (String(m.metadata.assetType) === "photo") {
-        return {
-          type: "photo" as const,
-          id: Number(m.metadata.assetId),
-          url: String(m.metadata.url),
+        const id = Number(m.metadata.assetId);
+        out.push({
+          type: "photo",
+          id,
+          url: canonicalPhotoUrl(id),
           caption: String(m.metadata.caption || m.metadata.propertyName || ""),
           propertyName: String(m.metadata.propertyName || ""),
           propertyId: Number(m.metadata.propertyId ?? 0),
           isHero: Boolean(m.metadata.isHero),
           score: m.score,
-        };
+        });
+        continue;
       }
-      return {
-        type: "logo" as const,
+      const rawUrl = String(m.metadata.url);
+      const canonical = await safeCanonicalLogoUrl(rawUrl);
+      if (!canonical) continue;
+      out.push({
+        type: "logo",
         id: Number(m.metadata.assetId),
-        url: String(m.metadata.url),
+        url: canonical,
         caption: String(m.metadata.name || ""),
         score: m.score,
-      };
-    });
+      });
+    }
+    return out;
   } catch (err: unknown) {
     logger.warn(`Vector store asset search failed, falling back: ${err instanceof Error ? err.message : err}`, "asset-intelligence");
     return fallbackAssetSearch(query, accessiblePropertyIds);
@@ -167,7 +231,7 @@ async function fallbackAssetSearch(query: string, accessiblePropertyIds?: number
         results.push({
           type: "photo",
           id: photo.id,
-          url: photo.imageUrl,
+          url: canonicalPhotoUrl(photo.id),
           caption: photo.caption ?? prop.name ?? "",
           propertyName: prop.name ?? "",
           propertyId: prop.id,
@@ -180,10 +244,12 @@ async function fallbackAssetSearch(query: string, accessiblePropertyIds?: number
     if (lq.includes("logo") || lq.includes("brand")) {
       const logos = await storage.getAllLogos();
       for (const logo of logos) {
+        const canonical = await safeCanonicalLogoUrl(logo.url);
+        if (!canonical) continue;
         results.push({
           type: "logo",
           id: logo.id,
-          url: logo.url,
+          url: canonical,
           caption: logo.name,
           score: 0.7,
         });
