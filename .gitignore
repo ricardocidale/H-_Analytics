@@ -82,3 +82,8 @@ skills-lock.json
 .claude/settings.local.json
 
 .turbo/
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
