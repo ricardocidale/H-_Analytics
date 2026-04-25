@@ -9,25 +9,38 @@
  * regressions on its own — nobody hits the button on a schedule.
  *
  * Task #559 adds a background job that needs the same "send this user
- * turn through Rebecca with these settings, get the assistant reply"
- * primitive but without an HTTP request, without auth/rate-limiting,
- * and without persisting to the live conversation thread. This module
- * provides exactly that: one function that mirrors the LLM-dispatch
- * core of /api/chat (persona overlay, system prompt assembly, model
- * selection, primary + fallback provider) and returns just the reply
- * string.
+ * turn through Rebecca, get the assistant reply" primitive but without
+ * an HTTP request, without auth/rate-limiting, and without persisting
+ * to the live conversation thread. This module provides exactly that:
+ * one function that mirrors the LLM-dispatch core of /api/chat
+ * (persona overlay, system prompt assembly, model selection, primary +
+ * fallback provider) and returns just the reply string.
+ *
+ * **Settings source: live production config, NOT the fixture snapshot.**
+ *   - The whole point of the scheduled replayer is to flag config
+ *     regressions: an admin tweaks a slider in `RebeccaConfig.tsx`,
+ *     the next nightly cycle re-runs every saved fixture against the
+ *     freshly-merged `globalAssumptions.rebeccaConfig`, and any
+ *     fixture whose answer drifts as a result fires an alert. If the
+ *     replayer used the fixture's snapshot the loop would always
+ *     pass — same inputs, same model, same persona — and config
+ *     drift would never be caught.
+ *   - The fixture's saved `settings` column is therefore intentionally
+ *     IGNORED by the runner. It stays on the row as historical context
+ *     (when the baseline was captured, what the persona looked like at
+ *     the time) and as the source of truth for the manual client-side
+ *     replay button, but the scheduled cycle always reads live config.
  *
  * What this runner intentionally does NOT do (vs. the real /api/chat):
  *   - **No vector / RAG retrieval, no asset search, no per-property
  *     field context, no scenario context.** Those subsystems pull
  *     fresh data on every request (vector embeddings, scenario
  *     listings, knowledge-base chunks) — replaying through them would
- *     produce drift that has nothing to do with the fixture's saved
- *     settings, defeating the purpose of fixture-based regression
- *     detection. The fixture exists to catch *settings-induced*
- *     drift (system prompt edits, persona slider changes, model
- *     swaps, source-toggle flips). A fixture that needs RAG context
- *     to be meaningful should be replayed manually from the UI.
+ *     produce drift unrelated to Rebecca's settings. The fixture
+ *     exists to catch *settings-induced* drift (system prompt edits,
+ *     persona slider changes, model swaps, source-toggle flips). A
+ *     fixture that needs RAG context to be meaningful should be
+ *     replayed manually from the UI.
  *   - **No conversation persistence.** Replays never write to
  *     `rebecca_conversations` / `rebecca_messages`.
  *   - **No cost logging via `logApiCost`.** Cost logs are tied to a
@@ -35,17 +48,11 @@
  *     spend dashboards. The LLM call still happens through the real
  *     provider clients (so it is still billed by the upstream
  *     vendor), it just isn't attributed to a specific user row.
- *
- * The fixture's saved `settings.llm` (provider, model, sampling,
- * fallback) is honored verbatim. That is the whole point — the
- * fixture pins the configuration we want to keep stable, and the
- * replay verifies that configuration still produces the same answer.
  */
 import {
   mergeRebeccaSettings,
   buildPersonaOverlay,
   assembleSystemPrompt,
-  rebeccaSettingsSchema,
   REBECCA_DEFAULT_MODEL,
   type RebeccaSettings,
 } from "@shared/rebecca-settings";
@@ -60,19 +67,20 @@ export interface FixtureReplayHistoryTurn {
 }
 
 export interface RunFixtureReplayTurnInput {
-  /** Fully-merged Rebecca settings snapshot from the fixture. */
-  settings: unknown;
   /** Accumulated history (THIS replay's prior turns), in order. */
   history: FixtureReplayHistoryTurn[];
   /** The user prompt to send. */
   message: string;
   /**
-   * The system actor whose `global_assumptions.rebeccaSystemPrompt` is
-   * used as the base prompt. Falls back to {@link DEFAULT_SYSTEM_PROMPT}
-   * if the row is missing or the actor cannot be resolved. The replay
-   * runner intentionally avoids `getGlobalAssumptions()` for any
-   * non-prompt field — properties / scenarios / funding context are
-   * not threaded through the replay (see file header).
+   * The system actor whose `global_assumptions.rebeccaConfig` AND
+   * `rebeccaSystemPrompt` define the LIVE production Rebecca settings
+   * the replay should run against. Falls back to baked-in defaults
+   * (mergeRebeccaSettings({}) + DEFAULT_SYSTEM_PROMPT) if the row is
+   * missing or the actor cannot be resolved — keeps the cycle
+   * functional in dev environments without admin seeding.
+   *
+   * The replay deliberately threads NO other GA field (portfolio,
+   * funding lines, projection horizon, etc.) — see file header.
    */
   systemActorId: number | null;
 }
@@ -87,37 +95,35 @@ export interface RunFixtureReplayTurnResult {
 }
 
 /**
- * Send a single user turn through Rebecca using the fixture's settings.
+ * Send a single user turn through Rebecca using the LIVE production
+ * settings (system actor's `rebeccaConfig` + `rebeccaSystemPrompt`).
  * Mirrors the provider-dispatch + fallback shape of /api/chat without
  * the request/response/auth/persistence overhead.
  */
 export async function runFixtureReplayTurn(
   input: RunFixtureReplayTurnInput,
 ): Promise<RunFixtureReplayTurnResult> {
-  // Re-parse the settings snapshot through the canonical schema so a
-  // half-migrated old fixture (e.g. one missing a slider that was added
-  // later) still produces a valid RebeccaSettings object — same defense
-  // the live POST handler runs.
-  const parsed = rebeccaSettingsSchema.safeParse(input.settings);
-  const settings: RebeccaSettings = parsed.success
-    ? parsed.data
-    : mergeRebeccaSettings(input.settings as Record<string, unknown>);
-
-  // Pull just the system-prompt base. Everything else about the GA row
-  // (portfolio, funding lines, projection horizon, etc.) is intentionally
-  // skipped — see file header.
+  // Pull the live Rebecca config + system prompt off the system actor's
+  // global_assumptions row. Anything else on that row is intentionally
+  // ignored (see file header).
   let baseSystemPrompt = DEFAULT_SYSTEM_PROMPT;
+  let liveConfig: Record<string, unknown> | null = null;
   if (input.systemActorId != null) {
     try {
       const ga = await storage.getGlobalAssumptions(input.systemActorId);
       if (ga?.rebeccaSystemPrompt) baseSystemPrompt = ga.rebeccaSystemPrompt;
+      if (ga?.rebeccaConfig) liveConfig = ga.rebeccaConfig as Record<string, unknown>;
     } catch (err: unknown) {
       logger.warn(
-        `fixture-replay: getGlobalAssumptions(${input.systemActorId}) failed, falling back to DEFAULT_SYSTEM_PROMPT — ${err instanceof Error ? err.message : String(err)}`,
+        `fixture-replay: getGlobalAssumptions(${input.systemActorId}) failed, falling back to DEFAULT settings — ${err instanceof Error ? err.message : String(err)}`,
         "rebecca-preview-runner",
       );
     }
   }
+
+  // mergeRebeccaSettings handles a null/missing config by returning
+  // a fully-populated defaults object — same defense /api/chat runs.
+  const settings: RebeccaSettings = mergeRebeccaSettings(liveConfig ?? {});
 
   const personaOverlay = buildPersonaOverlay(settings, "Rebecca");
   // No portfolio / RAG / asset / field blocks — see file header.
@@ -151,8 +157,8 @@ export async function runFixtureReplayTurn(
     );
     return { response: r.text, provider, model, usedFallback: false };
   } catch (err: unknown) {
-    // Mirror the live /api/chat fallback path. If the fixture's
-    // settings declare a fallback, try it once.
+    // Mirror the live /api/chat fallback path. If the live settings
+    // declare a fallback, try it once.
     const fb = settings.llm.fallbackProvider;
     if (fb) {
       const fbModel = settings.llm.fallbackModel || REBECCA_DEFAULT_MODEL[fb];

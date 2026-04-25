@@ -14,6 +14,15 @@
  * `rebecca_preview_fixtures.last_replay_*` so the admin panel can
  * render a per-fixture badge without re-running the replay.
  *
+ * The replay deliberately runs against the LIVE production Rebecca
+ * config (system actor's `globalAssumptions.rebeccaConfig`), NOT the
+ * settings snapshot saved on the fixture row. That is the entire
+ * point: fixtures are pinned baselines that must survive intact when
+ * an admin tweaks a slider in `RebeccaConfig.tsx`. Using the fixture
+ * snapshot would always pass and never catch the regression we built
+ * this for. See server/ai/rebecca-preview-runner.ts file header for
+ * the full rationale.
+ *
  * Drift suppression (mirrors the per-Specialist band-drop pattern in
  * `server/jobs/specialist-quality-recompute.ts`, but with a durability
  * upgrade so it survives process restarts):
@@ -143,7 +152,7 @@ export interface FixtureReplayCycleSummary {
 }
 
 async function replayFixture(
-  fixture: { id: number; name: string; settings: Record<string, unknown>; turns: Array<{ role: "user" | "assistant"; content: string; ts?: number }> },
+  fixture: { id: number; name: string; turns: Array<{ role: "user" | "assistant"; content: string; ts?: number }> },
   systemActorId: number | null,
 ): Promise<PerFixtureOutcome> {
   const startedAt = Date.now();
@@ -170,7 +179,6 @@ async function replayFixture(
 
     try {
       const result = await runFixtureReplayTurn({
-        settings: fixture.settings,
         history: [...history],
         message: turn.content,
         systemActorId,
@@ -300,7 +308,6 @@ export async function runRebeccaFixtureReplayCycle(): Promise<FixtureReplayCycle
           {
             id: fx.id,
             name: fx.name,
-            settings: fx.settings as Record<string, unknown>,
             turns: fx.turns,
           },
           systemActorId,

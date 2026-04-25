@@ -229,6 +229,31 @@ describe("runRebeccaFixtureReplayCycle", () => {
     expect(processEvent).not.toHaveBeenCalled();
   });
 
+  it("does NOT pass the fixture's saved settings to the runner — uses live config", async () => {
+    // Regression test for the architect-flagged bug: an earlier version
+    // of this job passed `fixture.settings` into runFixtureReplayTurn,
+    // which meant config regressions in production never produced
+    // drift. The runner now reads live settings off the system actor's
+    // global_assumptions row, and the job should send NOTHING settings-
+    // shaped on the call.
+    listFixtures.mockResolvedValue([fixture(80, "live-config", ["A"])]);
+    runFixtureReplayTurn.mockResolvedValueOnce({
+      response: "A",
+      provider: "openai",
+      model: "x",
+      usedFallback: false,
+    });
+
+    await runRebeccaFixtureReplayCycle();
+
+    expect(runFixtureReplayTurn).toHaveBeenCalledTimes(1);
+    const callArg = runFixtureReplayTurn.mock.calls[0][0] as Record<string, unknown>;
+    expect(callArg).not.toHaveProperty("settings");
+    expect(callArg).toHaveProperty("systemActorId");
+    expect(callArg).toHaveProperty("message");
+    expect(callArg).toHaveProperty("history");
+  });
+
   it("isolates a per-fixture failure from the rest of the cycle", async () => {
     listFixtures.mockResolvedValue([
       fixture(60, "first-bad", ["A"]),
