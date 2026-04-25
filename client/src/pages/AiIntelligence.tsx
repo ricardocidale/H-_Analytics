@@ -1,5 +1,6 @@
-import { useEffect, useRef, lazy, Suspense } from "react";
+import { useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import { useSearch } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,7 +17,12 @@ import {
 import { SpecialistQuickSearch } from "@/components/ai-intelligence/SpecialistQuickSearch";
 import { useRefreshLlmRegistry } from "@/lib/api/admin";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
-import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
+import { GASPAR_IDENTITY, ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
+
+interface SpecialistListItem {
+  id: string;
+  humanName?: string | null;
+}
 
 const AIAgentsTab = lazy(() => import("@/components/admin/AIAgentsTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
@@ -69,19 +75,37 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialist-constants-reporting-research":   { title: "Reporting Conventions Research",  subtitle: "" },
 };
 
-function specialistMeta(section: keyof typeof SPECIALIST_SECTION_TO_ID): { title: string; subtitle: string } {
+function specialistMeta(
+  section: keyof typeof SPECIALIST_SECTION_TO_ID,
+  humanNameById: Map<string, string>,
+): { title: string; subtitle: string } {
   const id = SPECIALIST_SECTION_TO_ID[section];
   const def = SPECIALIST_CATALOG.find((d) => d.id === id);
   const role = def?.displayName ?? def?.realName ?? sectionMeta[section].title;
-  // Persona-first header: lead with the human name (e.g. "Ana"), keep the
-  // role label visible as a quieter trailing segment so admins can still
-  // trace the slug. Falls back gracefully when humanName is absent.
-  const title = def?.humanName && def.humanName !== role
-    ? `${def.humanName} · ${role}`
-    : role;
+  // Persona-first header: lead with the override-resolved human name from
+  // /api/admin/specialists (so an Identity-tab rename reflects immediately
+  // without a reload). Falls back to the catalog `humanName` while the
+  // query is in flight, then to just the role label if neither is set.
+  const human = humanNameById.get(id) ?? def?.humanName ?? null;
+  const title = human && human !== role ? `${human} · ${role}` : role;
   return {
     title,
     subtitle: def?.description ?? "",
+  };
+}
+
+// Page header for the orchestrator section. The role label ("The Analyst")
+// is the marketing copy used throughout the AI Intelligence surface and
+// stays fixed; only the persona name in front of it tracks the Identity-
+// tab override so a Gaspar rename shows up here without a page reload.
+// The fallback is sourced from `GASPAR_IDENTITY` (single source of truth
+// in `engine/analyst/identity.ts`) rather than a hardcoded string so a
+// future rename of the orchestrator default flows through automatically.
+function orchestratorMeta(humanNameById: Map<string, string>): { title: string; subtitle: string } {
+  const human = humanNameById.get(ORCHESTRATOR_SPECIALIST_ID) ?? GASPAR_IDENTITY.humanName;
+  return {
+    title: `${human} · The Analyst`,
+    subtitle: sectionMeta["analyst-orchestrator"].subtitle,
   };
 }
 
@@ -151,6 +175,23 @@ export default function AiIntelligence() {
   const refreshLlmRegistry = useRefreshLlmRegistry();
   const didRefreshRef = useRef(false);
 
+  // Pull the live Specialist list so the page header tracks any Identity-
+  // tab rename (including Gaspar) without a reload. The IdentityTab
+  // already invalidates this query on save, so the header refreshes the
+  // moment the override is persisted. Falls back to the static catalog
+  // name while the query is in flight or if the request fails.
+  const { data: specialists } = useQuery<SpecialistListItem[]>({
+    queryKey: ["/api/admin/specialists"],
+  });
+  const humanNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of specialists ?? []) {
+      const trimmed = s.humanName?.trim();
+      if (trimmed) m.set(s.id, trimmed);
+    }
+    return m;
+  }, [specialists]);
+
   // Honor `?section=…` deep links (e.g. from the band-drop notification
   // emails for Specialists). Applied once per mount so the sidebar
   // selection from in-app navigation isn't clobbered on every render.
@@ -173,8 +214,10 @@ export default function AiIntelligence() {
   }, [refreshLlmRegistry]);
 
   const meta = isSpecialistSection(activeSection)
-    ? specialistMeta(activeSection)
-    : sectionMeta[activeSection];
+    ? specialistMeta(activeSection, humanNameById)
+    : activeSection === "analyst-orchestrator"
+      ? orchestratorMeta(humanNameById)
+      : sectionMeta[activeSection];
 
   // Persona-first browser tab title: matches the in-app PageHeader so
   // admins glancing at the tab strip see the human name first ("Ana ·
