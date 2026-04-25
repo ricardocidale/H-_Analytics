@@ -104,6 +104,7 @@ The application uses a React 18 frontend with TypeScript, Wouter, TanStack Query
 - `npm run verify:summary` — financial proof + verification gates.
 - `npm run audit:quick` — fast structural audit (file-size, bug-pattern, doctrine guards).
 - `npm run db:push` — sync Drizzle schema to Postgres (use `--force` in CI).
+- `npx tsx script/cleanup-legacy-logo-urls.ts [--apply]` — post-R2-cutover cleanup that rewrites or deletes `logos` rows still pointing at legacy `/objects/uploads/<uuid>` URLs (Task #526).
 
 ## Skill Router
 

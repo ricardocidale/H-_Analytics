@@ -63,6 +63,12 @@ const ALLOW_LIST = [
   // mention it to detect it; they never persist a new one.
   "server/lib/canonical-asset-url.ts",
   "server/ai/asset-intelligence.ts",
+  // Task #526 — one-time admin cleanup that finds-and-rewrites legacy
+  // `/objects/uploads/<uuid>` rows in the `logos` table. The script and
+  // its extracted helper module both have to mention the pattern in
+  // SQL `LIKE` literals to do their job; they never write a new one.
+  "script/cleanup-legacy-logo-urls.ts",
+  "script/lib/legacy-logo-cleanup.ts",
 ];
 
 // Files that the guardrail itself must not scan (it names the patterns it bans).
