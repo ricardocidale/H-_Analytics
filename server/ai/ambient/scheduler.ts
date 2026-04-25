@@ -63,6 +63,39 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
       log(`Analyst watchdog failed (non-blocking): ${watchdogErr instanceof Error ? watchdogErr.message : String(watchdogErr)}`, "ambient-scheduler", "warn");
     }
 
+    // Capital-Raise Watchdog: refreshes the singleton capital_raise_benchmarks
+    // table on its own cadence (default weekly). The cadence guard inside
+    // `runCapitalRaiseWatchdogCycle` handles "did we already run this week?",
+    // so it's safe to call on every 6h tick. Non-blocking — a failure here
+    // never breaks the rest of the refresh cycle.
+    try {
+      const { runCapitalRaiseWatchdogCycle } = await import("./capital-raise-watchdog");
+      const outcome = await runCapitalRaiseWatchdogCycle();
+      if (!outcome.ran) {
+        log(
+          `Capital-Raise Watchdog: cadence-skipped, next eligible at ${outcome.nextEligibleAt.toISOString()}`,
+          "ambient-scheduler",
+        );
+      } else if (outcome.reason === "applied") {
+        log(
+          `Capital-Raise Watchdog: applied ${outcome.result.appliedDimensions.length} dimension(s), ${outcome.sourceCount} source(s)`,
+          "ambient-scheduler",
+        );
+      } else {
+        log(
+          `Capital-Raise Watchdog: aborted (${outcome.reason}), audit row #${outcome.result.auditId ?? "?"}`,
+          "ambient-scheduler",
+          "warn",
+        );
+      }
+    } catch (capitalRaiseErr: unknown) {
+      log(
+        `Capital-Raise Watchdog failed (non-blocking): ${capitalRaiseErr instanceof Error ? capitalRaiseErr.message : String(capitalRaiseErr)}`,
+        "ambient-scheduler",
+        "warn",
+      );
+    }
+
     // Cleanup old page visit records (rolling 12 months)
     try {
       const cleaned = await storage.cleanupOldVisits(12);

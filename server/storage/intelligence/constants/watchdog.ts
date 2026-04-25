@@ -271,10 +271,11 @@ export class WatchdogStorage {
     return row;
   }
 
-  async getRecentAnalystRefreshAuditLogs(opts: { tableId?: string; sinceMs?: number; limit?: number } = {}): Promise<AnalystRefreshAuditLog[]> {
+  async getRecentAnalystRefreshAuditLogs(opts: { tableId?: string; userAgent?: string; sinceMs?: number; limit?: number } = {}): Promise<AnalystRefreshAuditLog[]> {
     const since = opts.sinceMs ? new Date(Date.now() - opts.sinceMs) : null;
     const conditions = [];
     if (opts.tableId) conditions.push(eq(analystRefreshAuditLog.tableId, opts.tableId));
+    if (opts.userAgent) conditions.push(eq(analystRefreshAuditLog.userAgent, opts.userAgent));
     if (since) conditions.push(sql`${analystRefreshAuditLog.startedAt} > ${since}`);
     const where = conditions.length ? and(...conditions) : undefined;
     return this._ctx.db.select().from(analystRefreshAuditLog)
