@@ -762,6 +762,18 @@ async function runSchemaMigrations() {
     await runRebeccaFixtureReplay001();
     await markMigrationApplied("rebecca_fixture_replay_001");
   }
+
+  // Task #573 — collapse legacy duplicates and add the
+  // assumption_guidance_unique constraint declared in
+  // shared/schema/intelligence-v2.ts so `npm run db:push` no longer
+  // prompts for a destructive truncate in non-TTY environments.
+  if (!(await isMigrationApplied("assumption_guidance_dedupe_001"))) {
+    const { runAssumptionGuidanceDedupe001 } = await import(
+      "./migrations/assumption-guidance-dedupe-001"
+    );
+    await runAssumptionGuidanceDedupe001();
+    await markMigrationApplied("assumption_guidance_dedupe_001");
+  }
 }
 
 async function runSeeds() {
