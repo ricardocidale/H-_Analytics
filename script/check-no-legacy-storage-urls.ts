@@ -28,6 +28,7 @@
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ALLOW_LIST = [
   // Wrapped Replit Object Storage SDK calls.
@@ -51,7 +52,17 @@ const SELF_REFERENCE = "script/check-no-legacy-storage-urls.ts";
 // Patterns mirror `REPLIT_HOST_RE` in `script/r2-cutover-reconcile.ts`,
 // minus `replit.dev` / `replit.app` themselves — those are already
 // caught by `script/check-replit-independence.ts` with a broader rule.
-const BANNED_PATTERNS = [
+//
+// Exported so the data-side audit (`script/audit-legacy-storage-urls-in-db.ts`,
+// Task #529) can scan persisted Postgres rows for the same shapes the PR-time
+// guard catches in source. Keep the list a single source of truth.
+//
+// Each entry is a regex fragment that is valid in BOTH ECMAScript regex (used
+// by ripgrep here) and POSIX regex (used by Postgres `~` in the audit). The
+// `\.` escape and literal `/` work in both flavours; do not introduce
+// constructs that diverge (e.g. `\d`, lookarounds) without updating both
+// callers.
+export const BANNED_PATTERNS = [
   // GCS-direct sidecar URLs (Replit Object Storage's underlying bucket).
   String.raw`storage\.googleapis\.com`,
   // Replit Object Storage REST host.
@@ -170,4 +181,14 @@ function main(): void {
   process.exit(1);
 }
 
-main();
+// Only run when invoked as a script. The `BANNED_PATTERNS` export is also
+// imported by `script/audit-legacy-storage-urls-in-db.ts`; we don't want
+// `main()` to fire as a side effect of that import.
+//
+// `import.meta.url` parses to a `file://` URL; `process.argv[1]` is an OS
+// path. Resolve `argv[1]` through `pathToFileURL` so the comparison is
+// robust on every platform (avoids false negatives when one side has a
+// trailing slash, percent-encoded chars, etc.).
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  main();
+}
