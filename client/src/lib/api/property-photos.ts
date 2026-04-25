@@ -148,7 +148,28 @@ export function useReorderPhotos() {
   return useMutation({
     mutationFn: ({ propertyId, orderedIds }: { propertyId: number; orderedIds: number[] }) =>
       reorderPhotos(propertyId, orderedIds),
-    onSuccess: (_data, vars) => {
+    onMutate: async ({ propertyId, orderedIds }) => {
+      await queryClient.cancelQueries({ queryKey: ["propertyPhotos", propertyId] });
+      const previous = queryClient.getQueryData<PropertyPhoto[]>(["propertyPhotos", propertyId]);
+      if (previous) {
+        const map = new Map(previous.map((p) => [p.id, p]));
+        const reordered = orderedIds
+          .map((id) => map.get(id))
+          .filter((p): p is PropertyPhoto => Boolean(p));
+        // Append any photos not present in orderedIds (defensive)
+        for (const p of previous) {
+          if (!orderedIds.includes(p.id)) reordered.push(p);
+        }
+        queryClient.setQueryData(["propertyPhotos", propertyId], reordered);
+      }
+      return { previous };
+    },
+    onError: (_err, vars, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(["propertyPhotos", vars.propertyId], ctx.previous);
+      }
+    },
+    onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.propertyId] });
     },
   });

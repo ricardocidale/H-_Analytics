@@ -1,5 +1,23 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { ImagePlus, Sparkles, Images, Trash2 } from "@/components/icons/themed-icons";
 import { LayoutGrid, GalleryHorizontal, FolderInput, CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +25,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement } from "@/lib/api";
+import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement, useReorderPhotos } from "@/lib/api";
+import type { PropertyPhoto } from "@shared/schema";
 import { PhotoCard } from "./PhotoCard";
 import { PhotoUploadDialog } from "./PhotoUploadDialog";
 import { PhotoGenerateDialog } from "./PhotoGenerateDialog";
@@ -57,6 +76,40 @@ export function PhotoAlbumGrid({
   const enhancePhoto = useEnhancePhoto();
   const acceptEnhancement = useAcceptEnhancement();
   const rejectEnhancement = useRejectEnhancement();
+  const reorderPhotos = useReorderPhotos();
+  const [activeDragId, setActiveDragId] = useState<number | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(Number(event.active.id));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = photos.map((p) => p.id);
+    const oldIndex = ids.indexOf(Number(active.id));
+    const newIndex = ids.indexOf(Number(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const orderedIds = arrayMove(ids, oldIndex, newIndex);
+    reorderPhotos.mutate(
+      { propertyId, orderedIds },
+      {
+        onError: () => {
+          toast({
+            title: "Could not reorder photos",
+            description: "The original order has been restored.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
 
   const onCarouselSelect = useCallback(() => {
     if (!carouselApi) return;
@@ -430,10 +483,52 @@ export function PhotoAlbumGrid({
             })}
           </div>
         </div>
+      ) : isAdmin ? (
+        /* ── Grid view (admin, drag-to-reorder) ── */
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveDragId(null)}
+        >
+          <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
+            <motion.div
+              className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+              data-testid="photo-grid"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.05 } },
+              }}
+            >
+              <AnimatePresence mode="popLayout">
+                {photos.map((photo) => (
+                  <SortablePhotoItem
+                    key={photo.id}
+                    photo={photo}
+                    isSelected={selectedIds.has(photo.id)}
+                    onToggleSelected={() => togglePhotoSelected(photo.id)}
+                    onSetHero={handleSetHero}
+                    onDelete={handleDelete}
+                    onUpdateCaption={handleUpdateCaption}
+                    onEnhance={handleEnhance}
+                    isSettingHero={setHero.isPending}
+                    isDeleting={deletePhoto.isPending}
+                    isEnhancing={enhancePhoto.isPending && enhancingPhotoId === photo.id}
+                    isActiveDrag={activeDragId === photo.id}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          </SortableContext>
+        </DndContext>
       ) : (
-        /* ── Grid view (default) ── */
+        /* ── Grid view (read-only) ── */
         <motion.div
           className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+          data-testid="photo-grid"
           initial="hidden"
           animate="visible"
           variants={{
@@ -452,39 +547,15 @@ export function PhotoAlbumGrid({
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="relative">
-                  {isAdmin && (
-                    <div className="absolute top-2 left-2 z-20">
-                      <div
-                        className={cn(
-                          "rounded-md p-0.5 backdrop-blur-sm transition-opacity",
-                          selectedIds.has(photo.id)
-                            ? "bg-primary/90 opacity-100"
-                            : "bg-black/50 opacity-0 group-hover:opacity-100"
-                        )}
-                      >
-                        <Checkbox
-                          checked={selectedIds.has(photo.id)}
-                          onCheckedChange={() => togglePhotoSelected(photo.id)}
-                          aria-label={`Select photo ${photo.id}`}
-                          data-testid={`checkbox-photo-${photo.id}`}
-                          className="border-white/70 data-[state=checked]:bg-white data-[state=checked]:text-primary"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <PhotoCard
-                    photo={photo}
-                    onSetHero={handleSetHero}
-                    onDelete={isAdmin ? handleDelete : () => {}}
-                    onUpdateCaption={handleUpdateCaption}
-                    onEnhance={isAdmin ? handleEnhance : undefined}
-                    isSettingHero={setHero.isPending}
-                    isDeleting={deletePhoto.isPending}
-                    isEnhancing={enhancePhoto.isPending && enhancingPhotoId === photo.id}
-                    readOnly={!isAdmin}
-                  />
-                </div>
+                <PhotoCard
+                  photo={photo}
+                  onSetHero={handleSetHero}
+                  onDelete={() => {}}
+                  onUpdateCaption={handleUpdateCaption}
+                  isSettingHero={setHero.isPending}
+                  isDeleting={deletePhoto.isPending}
+                  readOnly
+                />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -556,5 +627,91 @@ export function PhotoAlbumGrid({
         existingPhotos={photos}
       />
     </div>
+  );
+}
+
+interface SortablePhotoItemProps {
+  photo: PropertyPhoto;
+  isSelected: boolean;
+  onToggleSelected: () => void;
+  onSetHero: (photoId: number) => void;
+  onDelete: (photoId: number) => void;
+  onUpdateCaption: (photoId: number, caption: string) => void;
+  onEnhance: (photoId: number) => void;
+  isSettingHero: boolean;
+  isDeleting: boolean;
+  isEnhancing: boolean;
+  isActiveDrag: boolean;
+}
+
+function SortablePhotoItem({
+  photo,
+  isSelected,
+  onToggleSelected,
+  onSetHero,
+  onDelete,
+  onUpdateCaption,
+  onEnhance,
+  isSettingHero,
+  isDeleting,
+  isEnhancing,
+  isActiveDrag,
+}: SortablePhotoItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: photo.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      data-testid={`sortable-photo-${photo.id}`}
+      data-dragging={isDragging || isActiveDrag}
+      variants={{
+        hidden: { opacity: 0, y: 10 },
+        visible: { opacity: 1, y: 0 },
+      }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div className="relative">
+        <div className="absolute top-2 left-2 z-20">
+          <div
+            className={cn(
+              "rounded-md p-0.5 backdrop-blur-sm transition-opacity",
+              isSelected
+                ? "bg-primary/90 opacity-100"
+                : "bg-black/50 opacity-0 group-hover:opacity-100"
+            )}
+          >
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelected}
+              aria-label={`Select photo ${photo.id}`}
+              data-testid={`checkbox-photo-${photo.id}`}
+              className="border-white/70 data-[state=checked]:bg-white data-[state=checked]:text-primary"
+            />
+          </div>
+        </div>
+        <PhotoCard
+          photo={photo}
+          onSetHero={onSetHero}
+          onDelete={onDelete}
+          onUpdateCaption={onUpdateCaption}
+          onEnhance={onEnhance}
+          isSettingHero={isSettingHero}
+          isDeleting={isDeleting}
+          isEnhancing={isEnhancing}
+          dragHandle={{ attributes, listeners, isDragging }}
+        />
+      </div>
+    </motion.div>
   );
 }

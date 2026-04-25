@@ -1,4 +1,6 @@
 import { useState } from "react";
+import type { CSSProperties, HTMLAttributes } from "react";
+import type { DraggableSyntheticListeners } from "@dnd-kit/core";
 import { motion } from "framer-motion";
 import { Star, Trash2, GripVertical, Pencil, Check, X, Sparkles, Download } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
@@ -7,6 +9,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { PropertyPhoto } from "@shared/schema";
+
+interface DragHandleProps {
+  attributes?: HTMLAttributes<HTMLButtonElement>;
+  listeners?: DraggableSyntheticListeners;
+  isDragging?: boolean;
+  style?: CSSProperties;
+}
 
 interface PhotoCardProps {
   photo: PropertyPhoto;
@@ -18,9 +27,10 @@ interface PhotoCardProps {
   isDeleting?: boolean;
   isEnhancing?: boolean;
   readOnly?: boolean;
+  dragHandle?: DragHandleProps;
 }
 
-export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhance, isSettingHero, isDeleting, isEnhancing, readOnly = false }: PhotoCardProps) {
+export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhance, isSettingHero, isDeleting, isEnhancing, readOnly = false, dragHandle }: PhotoCardProps) {
   const [editingCaption, setEditingCaption] = useState(false);
   const [captionDraft, setCaptionDraft] = useState(photo.caption || "");
 
@@ -55,12 +65,24 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
       )}
       data-testid={`photo-card-${photo.id}`}
     >
-      {/* Drag handle */}
-      <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-        <div className="p-1 rounded bg-black/50 backdrop-blur-sm">
+      {/* Drag handle — admin only */}
+      {!readOnly && dragHandle && (
+        <button
+          type="button"
+          aria-label="Drag to reorder photo"
+          data-testid={`drag-handle-photo-${photo.id}`}
+          {...(dragHandle.attributes ?? {})}
+          {...(dragHandle.listeners ?? {})}
+          className={cn(
+            "absolute top-2 right-12 z-10 p-1 rounded bg-black/50 backdrop-blur-sm transition-opacity touch-none focus:outline-none focus:ring-2 focus:ring-white/60",
+            dragHandle.isDragging
+              ? "opacity-100 cursor-grabbing"
+              : "opacity-0 group-hover:opacity-100 cursor-grab"
+          )}
+        >
           <GripVertical className="w-4 h-4 text-white" />
-        </div>
-      </div>
+        </button>
+      )}
 
       {/* Hero star */}
       {(photo.isHero || !readOnly) && (

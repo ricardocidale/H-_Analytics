@@ -258,12 +258,21 @@ export class PhotoStorage {
   async reorderPhotos(propertyId: number, orderedIds: number[]): Promise<void> {
     if (orderedIds.length === 0) return;
 
-    const whenClauses = orderedIds.map((id, i) => sql`WHEN ${id} THEN ${i}`);
+    // Drizzle's parameterised numbers can be inferred as text by Postgres in a
+    // CASE expression, which then trips the integer sort_order column. Cast the
+    // THEN value (and the comparison ids, defensively) to int.
+    const whenClauses = orderedIds.map(
+      (id, i) => sql`WHEN ${id}::int THEN ${i}::int`,
+    );
+    const idList = sql.join(
+      orderedIds.map((id) => sql`${id}::int`),
+      sql`, `,
+    );
     await db.execute(sql`
       UPDATE ${propertyPhotos}
       SET sort_order = CASE id ${sql.join(whenClauses, sql` `)} END
       WHERE ${propertyPhotos.propertyId} = ${propertyId}
-        AND ${propertyPhotos.id} IN ${sql`(${sql.join(orderedIds.map(id => sql`${id}`), sql`, `)})`}
+        AND ${propertyPhotos.id} IN (${idList})
     `);
   }
 
