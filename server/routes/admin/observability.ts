@@ -5,6 +5,7 @@ import { storage } from "../../storage";
 import {
   SCHEDULER_REGISTRY,
   SCHEDULER_DISPATCH,
+  SCHEDULER_STALE_MULTIPLIER,
   type SchedulerKey,
 } from "../../jobs/scheduler-run-tracker";
 import { logger } from "../../logger";
@@ -68,7 +69,7 @@ export function registerObservabilityRoutes(app: Express) {
           ? Number(row.cycleIntervalMs)
           : entry.cycleIntervalMs;
         const ageMs = lastRunAt ? Date.now() - new Date(lastRunAt).getTime() : null;
-        const isStale = ageMs == null ? true : ageMs > cycleIntervalMs * 2;
+        const isStale = ageMs == null ? true : ageMs > cycleIntervalMs * SCHEDULER_STALE_MULTIPLIER;
         return {
           schedulerKey: entry.key,
           schedulerLabel: row?.schedulerLabel ?? entry.label,
@@ -84,7 +85,7 @@ export function registerObservabilityRoutes(app: Express) {
           recentRuns: historyByKey.get(entry.key) ?? [],
         };
       });
-      res.json({ runs, staleMultiplier: 2, recentRunsLimit: SCHEDULER_HISTORY_STRIP });
+      res.json({ runs, staleMultiplier: SCHEDULER_STALE_MULTIPLIER, recentRunsLimit: SCHEDULER_HISTORY_STRIP });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch scheduler runs", error);
     }

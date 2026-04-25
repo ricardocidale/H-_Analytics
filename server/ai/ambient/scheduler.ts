@@ -136,6 +136,30 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
       );
     }
 
+    // Task #557 — Email admins about any background scheduler that has
+    // stopped running for too long. Folded into the 6h ambient cycle so a
+    // stale ambient-benchmarks scheduler is the only thing that can mute
+    // it (and that one is loud anyway). Throttled per-scheduler per 24h.
+    try {
+      const { evaluateSchedulerStaleAlert } = await import("../../notifications/scheduler-stale-alert");
+      const staleResult = await evaluateSchedulerStaleAlert();
+      if (staleResult.status === "ok" && staleResult.stale && staleResult.stale > 0) {
+        const sentCount = (staleResult.outcomes ?? []).filter((o) => o.status === "sent").length;
+        const throttledCount = (staleResult.outcomes ?? []).filter((o) => o.status === "throttled").length;
+        log(
+          `Scheduler stale alert: ${staleResult.stale} stale (${sentCount} emailed, ${throttledCount} throttled)`,
+          "ambient-scheduler",
+          sentCount > 0 ? "warn" : "info",
+        );
+      }
+    } catch (staleErr: unknown) {
+      log(
+        `Scheduler stale alert failed (non-blocking): ${staleErr instanceof Error ? staleErr.message : String(staleErr)}`,
+        "ambient-scheduler",
+        "warn",
+      );
+    }
+
     // Cleanup old page visit records (rolling 12 months)
     try {
       const cleaned = await storage.cleanupOldVisits(12);

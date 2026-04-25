@@ -42,6 +42,7 @@ export function getEventLabel(type: NotificationEventType): string {
     SPECIALIST_QUALITY_BAND_CHANGED: "Specialist Quality Band Change",
     REBECCA_FIXTURE_DRIFTED: "Rebecca Preview Fixture Drift",
     LEGACY_STORAGE_URLS_FOUND: "Legacy Storage URLs Detected in Database",
+    SCHEDULER_STALE: "Background Scheduler Stale",
   };
   return labels[type] || type;
 }

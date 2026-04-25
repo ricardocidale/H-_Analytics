@@ -14,6 +14,16 @@ import { storage } from "../storage";
 import { logger } from "../logger";
 
 /**
+ * How many cycle intervals can elapse before a scheduler is considered
+ * stale. The Admin → Observability page uses this multiplier to render
+ * the stale warning, and the scheduler-stale alert evaluator uses the
+ * same value so the email and the UI agree on what "stale" means.
+ *
+ * 2× cycle interval = "you missed at least one full cycle".
+ */
+export const SCHEDULER_STALE_MULTIPLIER = 2;
+
+/**
  * Single source of truth for the registered schedulers. The Observability
  * page renders rows in this order so the UI stays stable even before any
  * cycle has fired (it shows "never run" rows for un-recorded schedulers).
