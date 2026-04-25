@@ -167,16 +167,15 @@ This was the platform's recommended fix all along (the system's `important_datab
 - A `.agents/active-tasks.json` file that each agent must update at task start and clear at task end. Pre-commit hook refuses the commit if another agent claims the same files.
 - Or stop running both agents on the same branch — Claude Code in a long-lived feature branch, Replit on `main`, formal merge through PR.
 
-### W7 — Object-storage migration tail (the R2 cutover is *behavior-flipped*, not *content-migrated*)
+### W7 — Object-storage migration tail — **RESOLVED Apr 25, 2026 (Task #519)**
 
-**Symptom.** R2 bucket is empty. Any URL in the database that points at the legacy `/objects/property-photos/*` / `/objects/properties/*` / `/objects/uploads/*` Replit bucket will 404 the moment we cut traffic to Vercel.
+**Symptom (historical).** R2 bucket was empty. Any URL in the database that pointed at the legacy `/objects/property-photos/*` / `/objects/properties/*` / `/objects/uploads/*` Replit bucket would 404 the moment we cut traffic to Vercel.
 
-**Frequency.** Latent until cutover.
+**Resolution.** New script `script/r2-cutover-reconcile.ts` (run via `npx tsx script/r2-cutover-reconcile.ts`) walks every text/varchar/jsonb column in the public schema, extracts every URL that resolves to one of the three valid post-cutover sinks (`/objects/<key>` → R2, `/api/media/<file>` → `media_assets` in Neon, `/api/property-photos/<id>/image` → `property_photos` in Neon), and `HEAD`s each one against its expected sink. With `--copy-from-replit-bucket`, missing R2 keys are downloaded from the legacy Replit bucket via `ReplitStorageProvider` and re-uploaded to R2 at the same key; with `--rewrite-legacy-hosts`, fully-qualified `https://<replit-host>/objects/<key>` URLs are rewritten to the relative `/objects/<key>` form so the storage adapter resolves them via R2. Idempotent and safe to re-run.
 
-**Forward cost if not fixed.** A production incident on the day we go live, plus the loops to triage it. **Estimated: $50–$200 plus a real user-visible outage.**
+**State at cutover.** All 83 DB-referenced URLs resolve. The bulk (74) were already on Neon-served paths from the earlier Phase B migration (28 `/api/media/photo-*.png` photos + 8 `/api/media/logo-*` logos + 7 `/api/property-photos/<id>/image` hero links + scenario / activity-log dupes). The 9 outliers were `/objects/uploads/<uuid>` references — 5 in `activity_logs.metadata` (immutable audit records of tiny April-9 test uploads, 67–107 bytes each) and 4 in 2 `rebecca_messages.content` rows (assistant-generated logo markdown from April 7 — Forest Lodge & Coastal House logos referenced via the legacy upload path). All 7 distinct keys still existed in the legacy Replit bucket and were copied to R2; the read-only re-run reports `ALL CLEAR — every DB-referenced object resolves post-cutover` with exit 0.
 
-**Structural fix candidates.**
-- Already filed as a follow-up: "Move any leftover photos and documents from the old Replit storage to the new R2 bucket." Run *before* the Vercel cutover, not after.
+**Forward discipline.** Run `npx tsx script/r2-cutover-reconcile.ts` as the final pre-cutover step on the Vercel deployment runbook. Exit code is non-zero if any future row reintroduces a sink-breaking URL.
 
 ### W8 — Inbox / canvas micro-tasks
 
