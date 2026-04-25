@@ -96,6 +96,7 @@ export const scenarioShares = pgTable("scenario_shares", {
 }, (table) => [
   index("scenario_shares_scenario_id_idx").on(table.scenarioId),
   index("scenario_shares_target_idx").on(table.targetType, table.targetId),
+  index("scenario_shares_granted_by_idx").on(table.grantedBy),
   unique("scenario_shares_unique_grant").on(table.scenarioId, table.targetType, table.targetId),
 ]);
 

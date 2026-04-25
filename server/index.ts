@@ -635,6 +635,12 @@ async function runSchemaMigrations() {
     await runMarketDataTables001();
     await markMigrationApplied("market_data_tables_001");
   }
+
+  if (!(await isMigrationApplied("index_coverage_001"))) {
+    const { runIndexCoverage001 } = await import("./migrations/index-coverage-001");
+    await runIndexCoverage001();
+    await markMigrationApplied("index_coverage_001");
+  }
 }
 
 async function runSeeds() {
