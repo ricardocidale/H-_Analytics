@@ -156,6 +156,14 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
     const mod = await import("./specialist-photos-batch");
     return mod.runPhotosBatchCycle();
   },
+  // Task #559 added the scheduler key; this dispatch entry was missing
+  // because Task #556 (dispatch map) and Task #559 (new scheduler) merged
+  // independently. Surfaced by tsc as TS2741 — fixed here so the
+  // Observability "Run now" button can fire a fixture replay on demand.
+  "rebecca-fixture-replay": async () => {
+    const mod = await import("./rebecca-fixture-replay");
+    return mod.runRebeccaFixtureReplayCycle();
+  },
 };
 
 /**
