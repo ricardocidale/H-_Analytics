@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   IconBookmark, IconPlay, IconTrash, IconHistory, IconRefreshCw,
+  IconDownload, IconUpload,
 } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -82,6 +83,17 @@ export function RebeccaFixturesPanel({
     results: ReplayResult[];
     running: boolean;
   } | null>(null);
+  // Task #560 — import file picker + duplicate-name conflict modal state.
+  // The pending import is held client-side so when the admin picks "rename"
+  // or "overwrite" we can re-POST the same payload with the chosen
+  // resolution without re-reading the file.
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [conflict, setConflict] = useState<{
+    payload: unknown;
+    conflictName: string;
+    renameValue: string;
+  } | null>(null);
 
   const fixturesQuery = useQuery<RebeccaFixture[]>({
     queryKey: ["/api/rebecca/fixtures"],
@@ -112,6 +124,42 @@ export function RebeccaFixturesPanel({
     onError: (e: unknown) => {
       const msg = e instanceof Error ? e.message : "Save failed";
       toast({ title: "Couldn't save fixture", description: msg, variant: "destructive" });
+    },
+  });
+
+  // Task #560 — POST the parsed JSON envelope to /import. The mutation
+  // handles three outcomes: success (toast + invalidate), 409 conflict
+  // (open the rename/overwrite modal), or any other error (toast).
+  // apiRequest throws `${status}: ${body}` on !ok; we re-parse the body
+  // so we can detect the duplicate-name conflict shape.
+  const importMutation = useMutation({
+    mutationFn: async (input: {
+      payload: unknown;
+      conflictResolution?: "overwrite" | { renameTo: string };
+    }) => {
+      try {
+        const res = await apiRequest("POST", "/api/rebecca/fixtures/import", input);
+        return (await res.json()) as { fixture: RebeccaFixture; mode: "create" | "overwrite" };
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        // Format from queryClient.throwIfResNotOk: `${status}: ${body}`.
+        const match = /^(\d+):\s*([\s\S]*)$/.exec(msg);
+        if (match) {
+          const status = Number(match[1]);
+          let body: { error?: string; code?: string; conflictName?: string } = {};
+          try { body = JSON.parse(match[2]); } catch { /* non-JSON body */ }
+          const err = new Error(body.error ?? msg) as Error & {
+            status?: number;
+            code?: string;
+            conflictName?: string;
+          };
+          err.status = status;
+          err.code = body.code;
+          err.conflictName = body.conflictName;
+          throw err;
+        }
+        throw e;
+      }
     },
   });
 
@@ -146,6 +194,102 @@ export function RebeccaFixturesPanel({
     setSaveName(suggested);
     setSaveDescription("");
     setSaveOpen(true);
+  };
+
+  // Task #560 — download a fixture as JSON. We fetch with credentials
+  // (the route is admin-gated) and trigger a hidden anchor click on the
+  // resulting blob. Filename comes from the server's Content-Disposition
+  // when present, falling back to a slug of the fixture name.
+  const handleExport = async (fixture: RebeccaFixture) => {
+    try {
+      const res = await fetch(`/api/rebecca/fixtures/${fixture.id}/export`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") ?? "";
+      const cdMatch = /filename="([^"]+)"/.exec(cd);
+      const fallback = `rebecca-fixture-${fixture.id}.json`;
+      const filename = cdMatch?.[1] ?? fallback;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Fixture exported", description: filename });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Export failed";
+      toast({ title: "Couldn't export fixture", description: msg, variant: "destructive" });
+    }
+  };
+
+  // Task #560 — import handler. Pipes through the conflict-resolution
+  // dance: the first call carries no resolution; if the server returns
+  // 409 with `code: "duplicate_name"`, we open the conflict modal
+  // pre-populated with the original name and let the admin pick a new
+  // name or overwrite. The same `payload` is held in state so the
+  // follow-up call doesn't need to re-read the file.
+  const runImport = async (
+    payload: unknown,
+    conflictResolution?: "overwrite" | { renameTo: string },
+  ) => {
+    setImporting(true);
+    try {
+      const result = await importMutation.mutateAsync({ payload, conflictResolution });
+      queryClient.invalidateQueries({ queryKey: ["/api/rebecca/fixtures"] });
+      toast({
+        title: result.mode === "overwrite" ? "Fixture overwritten" : "Fixture imported",
+        description: `"${result.fixture.name}" is ready to replay.`,
+      });
+      setConflict(null);
+      return true;
+    } catch (e: unknown) {
+      const err = e as Error & { status?: number; code?: string; conflictName?: string };
+      if (err.status === 409 && err.code === "duplicate_name" && err.conflictName) {
+        setConflict({
+          payload,
+          conflictName: err.conflictName,
+          renameValue: `${err.conflictName} (imported)`.slice(0, 120),
+        });
+        return false;
+      }
+      toast({
+        title: "Couldn't import fixture",
+        description: err.message ?? "Import failed",
+        variant: "destructive",
+      });
+      setConflict(null);
+      return false;
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the input value so the same file can be picked again later.
+    if (importInputRef.current) importInputRef.current.value = "";
+    if (!file) return;
+
+    let parsed: unknown;
+    try {
+      const text = await file.text();
+      parsed = JSON.parse(text);
+    } catch {
+      toast({
+        title: "Couldn't read file",
+        description: "Selected file isn't valid JSON.",
+        variant: "destructive",
+      });
+      return;
+    }
+    await runImport(parsed);
   };
 
   const handleSave = () => {
@@ -260,17 +404,40 @@ export function RebeccaFixturesPanel({
             {fixtures.length}
           </Badge>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-1.5 text-xs"
-          onClick={handleOpenSave}
-          disabled={userTurnCount === 0}
-          data-testid="button-save-fixture"
-        >
-          <IconBookmark className="w-3.5 h-3.5" />
-          Save current as fixture
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Hidden file input — the visible button below proxies clicks to it. */}
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportFile}
+            data-testid="input-import-fixture-file"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            data-testid="button-import-fixture"
+            title="Import a fixture exported from another environment"
+          >
+            <IconUpload className="w-3.5 h-3.5" />
+            {importing ? "Importing…" : "Import fixture"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs"
+            onClick={handleOpenSave}
+            disabled={userTurnCount === 0}
+            data-testid="button-save-fixture"
+          >
+            <IconBookmark className="w-3.5 h-3.5" />
+            Save current as fixture
+          </Button>
+        </div>
       </div>
 
       {fixturesQuery.isLoading && (
@@ -359,6 +526,16 @@ export function RebeccaFixturesPanel({
                     <Button
                       size="sm"
                       variant="ghost"
+                      className="h-7 px-2 text-xs gap-1"
+                      onClick={() => handleExport(f)}
+                      data-testid={`button-export-fixture-${f.id}`}
+                      title="Download this fixture as JSON to share with another environment"
+                    >
+                      <IconDownload className="w-3.5 h-3.5" /> Export
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                       onClick={() => {
                         if (window.confirm(`Delete fixture "${f.name}"?`)) {
@@ -424,6 +601,88 @@ export function RebeccaFixturesPanel({
               {saveMutation.isPending ? "Saving…" : "Save fixture"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task #560 — duplicate-name conflict resolution modal. Shown when
+          /import returns 409. Admin can pick a new name (defaults to
+          "<original> (imported)") or overwrite the existing fixture in
+          place. Both options re-POST the same payload with the chosen
+          conflictResolution. */}
+      <Dialog
+        open={!!conflict}
+        onOpenChange={(o) => { if (!o && !importing) setConflict(null); }}
+      >
+        <DialogContent data-testid="dialog-import-conflict">
+          {conflict && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Fixture name already exists</DialogTitle>
+                <DialogDescription>
+                  A fixture named <span className="font-mono font-semibold">{conflict.conflictName}</span> already
+                  exists. Rename the imported fixture, or overwrite the existing one in place.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">New name</Label>
+                  <Input
+                    value={conflict.renameValue}
+                    onChange={(e) =>
+                      setConflict((c) => (c ? { ...c, renameValue: e.target.value } : c))
+                    }
+                    maxLength={120}
+                    data-testid="input-import-rename"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground/80">
+                  Overwriting replaces this existing fixture's saved settings, transcript, and
+                  description with the imported snapshot. The fixture's name and any scheduled-replay
+                  history reset.
+                </p>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setConflict(null)}
+                  disabled={importing}
+                  data-testid="button-cancel-import-conflict"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => runImport(conflict.payload, "overwrite")}
+                  disabled={importing}
+                  data-testid="button-import-overwrite"
+                >
+                  {importing ? "Working…" : "Overwrite existing"}
+                </Button>
+                <Button
+                  onClick={() => {
+                    const renameTo = conflict.renameValue.trim();
+                    if (!renameTo) {
+                      toast({ title: "New name is required", variant: "destructive" });
+                      return;
+                    }
+                    if (renameTo === conflict.conflictName) {
+                      toast({
+                        title: "Pick a different name",
+                        description: "The new name must differ from the existing fixture's name.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    runImport(conflict.payload, { renameTo });
+                  }}
+                  disabled={importing}
+                  data-testid="button-import-rename"
+                >
+                  {importing ? "Working…" : "Import with new name"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

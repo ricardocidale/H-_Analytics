@@ -505,6 +505,142 @@ export function register(app: Express) {
     }
   });
 
+  // Task #560 — export a saved fixture as a portable JSON file. The
+  // response is sent as a downloadable attachment so admins can stash the
+  // file or hand it off to another environment for import.
+  app.get("/api/rebecca/fixtures/:id/export", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid fixture ID" });
+      const fixture = await storage.getRebeccaPreviewFixture(id);
+      if (!fixture) return res.status(404).json({ error: "Fixture not found" });
+
+      const payload = {
+        $kind: FIXTURE_EXPORT_KIND,
+        version: FIXTURE_EXPORT_VERSION,
+        exportedAt: new Date().toISOString(),
+        fixture: {
+          name: fixture.name,
+          description: fixture.description,
+          settings: fixture.settings,
+          turns: fixture.turns,
+        },
+      };
+      const safeName = fixture.name
+        .replace(/[^a-z0-9_\-]+/gi, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60) || `fixture-${fixture.id}`;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="rebecca-fixture-${safeName}.json"`,
+      );
+      logActivity(req, "export-rebecca-fixture", "rebecca_preview_fixture", id, fixture.name);
+      return res.send(JSON.stringify(payload, null, 2));
+    } catch (err: unknown) {
+      logger.error(`Failed to export Rebecca fixture: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
+      return res.status(500).json({ error: "Failed to export fixture" });
+    }
+  });
+
+  // Task #560 — import a fixture export envelope. Validates the snapshot
+  // against the current `rebeccaSettingsSchema` after running it through
+  // `mergeRebeccaSettings`, so older exports (missing fields the schema has
+  // since added) are forward-compat hydrated rather than rejected outright.
+  // Duplicate-name imports return 409 with `code: "duplicate_name"` so the
+  // UI can prompt the admin for rename or overwrite, then re-call this
+  // endpoint with `conflictResolution`.
+  app.post("/api/rebecca/fixtures/import", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const parsed = fixtureImportSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid import payload: " + parsed.error.issues[0]?.message,
+        });
+      }
+      const { payload, conflictResolution } = parsed.data;
+      const incoming = payload.fixture;
+
+      // Hydrate any missing fields with defaults BEFORE strict-parsing so
+      // older exports stay importable (mergeRebeccaSettings is the same
+      // forward-compat helper the chat route uses on stored configs).
+      const hydrated = mergeRebeccaSettings(incoming.settings);
+      const settingsParse = rebeccaSettingsSchema.safeParse(hydrated);
+      if (!settingsParse.success) {
+        return res.status(400).json({
+          error: "Imported settings snapshot is incompatible: " + settingsParse.error.issues[0]?.message,
+        });
+      }
+
+      const targetName =
+        conflictResolution && typeof conflictResolution === "object"
+          ? conflictResolution.renameTo
+          : incoming.name;
+      const description = incoming.description ?? null;
+      const user = getAuthUser(req);
+
+      // Look up by name to detect a conflict. We do this in a single round
+      // trip — there's still a tiny race against a concurrent create, but
+      // the unique constraint on `name` is the authoritative tiebreaker
+      // (caught below as a 409).
+      const existing = await storage.getRebeccaPreviewFixtureByName(targetName);
+      if (existing) {
+        if (conflictResolution === "overwrite") {
+          const replaced = await storage.replaceRebeccaPreviewFixtureContent(existing.id, {
+            description,
+            settings: settingsParse.data,
+            turns: incoming.turns,
+            createdById: user.id,
+          });
+          if (!replaced) {
+            return res.status(404).json({ error: "Fixture vanished during overwrite" });
+          }
+          logActivity(req, "import-rebecca-fixture-overwrite", "rebecca_preview_fixture", replaced.id, replaced.name, {
+            turnCount: incoming.turns.length,
+          });
+          logger.info(`Rebecca fixture imported (overwrite): ${replaced.name} (${incoming.turns.length} turns)`, "rebecca");
+          return res.json({ fixture: replaced, mode: "overwrite" });
+        }
+        // Either no resolution at all, or a renameTo that still collides.
+        return res.status(409).json({
+          error: `A fixture named "${targetName}" already exists`,
+          code: "duplicate_name",
+          conflictName: targetName,
+        });
+      }
+
+      // No conflict — create fresh.
+      try {
+        const created = await storage.createRebeccaPreviewFixture({
+          name: targetName,
+          description,
+          settings: settingsParse.data,
+          turns: incoming.turns,
+          createdById: user.id,
+        });
+        logActivity(req, "import-rebecca-fixture-create", "rebecca_preview_fixture", created.id, created.name, {
+          turnCount: incoming.turns.length,
+          renamedFrom: targetName !== incoming.name ? incoming.name : undefined,
+        });
+        logger.info(`Rebecca fixture imported (create): ${created.name} (${incoming.turns.length} turns)`, "rebecca");
+        return res.json({ fixture: created, mode: "create" });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/duplicate key/i.test(msg) || /rebecca_preview_fixtures_name_uq/i.test(msg)) {
+          return res.status(409).json({
+            error: `A fixture named "${targetName}" already exists`,
+            code: "duplicate_name",
+            conflictName: targetName,
+          });
+        }
+        throw err;
+      }
+    } catch (err: unknown) {
+      logger.error(`Failed to import Rebecca fixture: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
+      return res.status(500).json({ error: "Failed to import fixture" });
+    }
+  });
+
   app.delete("/api/rebecca/fixtures/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
