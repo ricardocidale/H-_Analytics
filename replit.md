@@ -74,3 +74,53 @@ The application uses a React 18 frontend with TypeScript, Wouter, TanStack Query
 - **Neon Database:** The primary PostgreSQL database, connected directly via `POSTGRES_URL`.
 - **Icons:** Lucide
 - **Email:** Resend
+
+## User Roles
+
+- **super_admin** — full platform access including user management and provider switches.
+- **admin** — manages Constants, Resources, model defaults, properties, scenarios, and specialist wiring (admin routes use `requireAdmin`).
+- **checker** — reviews and approves scenarios; cannot edit financial inputs.
+- **user** — creates and edits properties and scenarios within their group.
+- **investor** — read-only access to assigned reports.
+
+## Key Rules
+
+- Financial accuracy beats UI enhancements. The proof system must always pass.
+- All financial fields go through `shared/field-registry.ts` (single source of truth).
+- All Constants edits go through the admin Constants tab (Phase 4 read-only doctrine guards every other surface).
+- Research-trigger buttons say "Analyst" with the sparkle icon — the canonical `AnalystActionButton` from `client/src/components/analyst/`.
+- Storage URLs use the relative `/objects/<key>` form (no hard-coded R2/GCS hosts).
+- The Replit-independence guard fails the build if non-allowlisted code references `@replit/`, `process.env.REPL*`, or `replit.dev` / `replit.app`.
+
+## Quick Commands
+
+- `npm run dev` — start the Express + Vite dev server on port 5000.
+- `npm run build` — produce `dist/` (vite client + esbuild server bundle) for production.
+- `npm start` — run the production bundle (`node dist/index.cjs`).
+- `npm run check` — TypeScript typecheck (no emit).
+- `npm run lint:strict` — ESLint with all bug guards.
+- `npm run test:summary` — full Vitest run, condensed output.
+- `npm run verify:summary` — financial proof + verification gates.
+- `npm run audit:quick` — fast structural audit (file-size, bug-pattern, doctrine guards).
+- `npm run db:push` — sync Drizzle schema to Postgres (use `--force` in CI).
+
+## Skill Router
+
+Project skills live in `.claude/skills/` (canonical) and are mirrored under `.local/skills/`. Read the relevant `SKILL.md` before working in that domain. Common entry points:
+
+- UI patterns and theme engine: `.claude/skills/ui/`
+- Coding conventions and context reduction: `.claude/skills/coding-conventions/`
+- Financial calculation rules: `.claude/skills/finance/`
+- Analyst-button convention: `.agents/skills/analyst-research-buttons/SKILL.md`
+
+The full skill index is in `.claude/claude.md`, which is the authoritative AI context file when in doubt.
+
+## Tech Stack
+
+- **Runtime:** Node.js 22 (production via `npm start` → `node dist/index.cjs`).
+- **Server:** Express 5, Drizzle ORM, PostgreSQL (Neon).
+- **Client:** React 19, TypeScript, Vite, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, framer-motion.
+- **Build:** esbuild (server bundle) + Vite (client) via `script/build.ts`.
+- **Storage:** Cloudflare R2 via the AWS S3 SDK (`server/providers/storage/s3-storage.ts`); switchable through `STORAGE_PROVIDER`.
+- **Auth:** Pluggable provider (`server/providers/auth/`) — `replit` (OIDC) or `local` (Google OAuth + sessions).
+- **Hosting:** Railway (production) — see `railway.json` for build/start/healthcheck. Cutover from Replit completed for DB (Neon) and storage (R2).

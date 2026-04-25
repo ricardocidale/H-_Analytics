@@ -180,8 +180,9 @@ describe("GET /api/admin/specialists/:id/quality/history", () => {
     const { status, body } = await invoke(handlers, ROUTE, { params: { id: "alpha" } });
     expect(status).toBe(200);
     expect(body).toEqual({ specialistId: "alpha", points: [] });
-    // Default limit is 20 when no `limit` query param was supplied.
-    expect(storage.listQualitySnapshotHistory).toHaveBeenCalledWith("alpha", 20);
+    // Default limit is 30 when no `limit` query param was supplied
+    // (Task #540: ~30 days of nightly recompute snapshots).
+    expect(storage.listQualitySnapshotHistory).toHaveBeenCalledWith("alpha", 30);
   });
 
   it("returns `points` in chronological order (oldest first) — chart contract", async () => {
