@@ -35,6 +35,7 @@ import { RuntimeTab, CadenceCard } from "./tabs/RuntimeTab";
 import { AuditTab } from "./tabs/AuditTab";
 import { WorkflowTab } from "./tabs/WorkflowTab";
 import { SpecialistSummaryPanel } from "./SpecialistSummaryPanel";
+import { SpecialistToolsICall } from "./SpecialistToolsICall";
 
 export default function SpecialistPage({ specialistId }: { specialistId: string }) {
   const { data, isLoading, error } = useQuery<SpecialistDetailResponse>({
@@ -133,6 +134,8 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
       </div>
 
       <SpecialistSummaryPanel definition={definition} assignments={assignments} />
+
+      <SpecialistToolsICall specialistId={specialistId} />
 
       {definition.status === "needs-page" && (
         <Alert data-testid="banner-needs-page">
