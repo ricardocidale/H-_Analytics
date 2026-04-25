@@ -7,7 +7,7 @@ import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
-import { rebeccaSettingsSchema } from "@shared/rebecca-settings";
+import { rebeccaSettingsSchema, mergeRebeccaSettings } from "@shared/rebecca-settings";
 
 const previewTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -31,6 +31,43 @@ const createFixtureSchema = z.object({
 const updateFixtureSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   description: z.string().max(500).nullable().optional(),
+});
+
+// Task #560 — portable export envelope. The `$kind` + `version` discriminator
+// lets the import endpoint recognise our own files (and reject random JSON
+// blobs) and gives us a forward-compat lever if the export shape ever
+// changes. The fixture body is intentionally a subset of the DB row — no
+// ids, timestamps, or scheduled-replay tracking, since those are environment-
+// specific and would be misleading after a cross-environment import.
+const FIXTURE_EXPORT_KIND = "rebecca-preview-fixture" as const;
+const FIXTURE_EXPORT_VERSION = 1 as const;
+
+const fixtureExportPayloadSchema = z.object({
+  $kind: z.literal(FIXTURE_EXPORT_KIND),
+  version: z.literal(FIXTURE_EXPORT_VERSION),
+  // exportedAt is informational only — accept any string for forward-compat.
+  exportedAt: z.string().optional(),
+  fixture: z.object({
+    name: z.string().trim().min(1).max(120),
+    description: z.string().max(500).nullable().optional(),
+    settings: z.record(z.unknown()),
+    turns: z.array(previewTurnSchema).min(1).max(200)
+      .refine((arr) => arr.some((t) => t.role === "user"), {
+        message: "Fixture must contain at least one user turn",
+      }),
+  }),
+});
+
+const fixtureImportSchema = z.object({
+  payload: fixtureExportPayloadSchema,
+  // Default behaviour: fail with 409 on duplicate name. Admin then re-calls
+  // this endpoint with one of the resolutions below.
+  conflictResolution: z
+    .union([
+      z.literal("overwrite"),
+      z.object({ renameTo: z.string().trim().min(1).max(120) }),
+    ])
+    .optional(),
 });
 
 const emailRequestSchema = z.object({

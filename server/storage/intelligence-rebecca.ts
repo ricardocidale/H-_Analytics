@@ -314,6 +314,48 @@ export class IntelligenceRebeccaStorage {
     return row;
   }
 
+  async getRebeccaPreviewFixtureByName(name: string): Promise<RebeccaPreviewFixture | undefined> {
+    const [row] = await db.select().from(rebeccaPreviewFixtures)
+      .where(eq(rebeccaPreviewFixtures.name, name)).limit(1);
+    return row;
+  }
+
+  /**
+   * Task #560 — overwrite the snapshotted contents of an existing fixture
+   * (settings + turns + description + createdById) when the admin chose to
+   * resolve an import name conflict by overwriting. Distinct from
+   * `updateRebeccaPreviewFixture`, which only mutates name/description and
+   * intentionally never touches the immutable snapshot fields.
+   *
+   * Replay tracking columns are reset since the imported snapshot is, by
+   * definition, a brand-new baseline that hasn't been replayed yet.
+   */
+  async replaceRebeccaPreviewFixtureContent(
+    id: number,
+    data: {
+      description: string | null;
+      settings: Record<string, unknown>;
+      turns: typeof rebeccaPreviewFixtures.$inferSelect.turns;
+      createdById: number | null;
+    },
+  ): Promise<RebeccaPreviewFixture | undefined> {
+    const [row] = await db.update(rebeccaPreviewFixtures)
+      .set({
+        description: data.description,
+        settings: data.settings,
+        turns: data.turns,
+        createdById: data.createdById,
+        updatedAt: new Date(),
+        lastReplayAt: null,
+        lastReplayStatus: null,
+        lastReplaySummary: null,
+        lastReplayFingerprint: null,
+      })
+      .where(eq(rebeccaPreviewFixtures.id, id))
+      .returning();
+    return row;
+  }
+
   async createRebeccaPreviewFixture(data: InsertRebeccaPreviewFixture): Promise<RebeccaPreviewFixture> {
     const [row] = await db.insert(rebeccaPreviewFixtures)
       .values(data as typeof rebeccaPreviewFixtures.$inferInsert)
