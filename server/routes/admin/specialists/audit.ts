@@ -103,7 +103,8 @@ export function registerAuditRoutes(app: Express) {
       const def = getSpecialistById(id);
       if (!def) return res.status(404).json({ error: "Specialist not found" });
       const limit = Math.min(Number(req.query.limit ?? 50), 200);
-      const versions: SpecialistConfigVersionRow[] = await storage.listSpecialistConfigVersions(id, limit);
+      const versions = await storage.listSpecialistConfigVersions(id, limit);
+      // (inferred as (SpecialistConfigVersionRow & { changedByUserName: string | null })[])
 
       // Versions arrive newest-first. To compute per-row diff labels we
       // also need the row immediately newer than each entry (which holds
@@ -124,6 +125,7 @@ export function registerAuditRoutes(app: Express) {
           section: v.section,
           changeSummary: v.changeSummary,
           changedByUserId: v.changedByUserId,
+          changedByUserName: v.changedByUserName,
           changedAt: v.changedAt.toISOString(),
           // Snapshot fields from the PRE-edit state.
           promptTemplate: v.promptTemplate,

@@ -217,10 +217,89 @@ Packet: .claude/replit-handoffs/phase-6b-audit-user-name-resolution.md
 
 ## Completion report (filled by Replit on exit)
 
-- **Commits:** _(pending)_
-- **Sub-steps PASSED:** _(pending)_
-- **Sub-steps SKIPPED with reason:** _(pending)_
-- **Verification gates PASSED:** _(pending)_
-- **Verification gates SKIPPED with reason:** _(pending)_
-- **Out-of-scope items discovered (filed as BLOCKED or follow-up):** _(pending)_
-- **Session-memory entry added:** _(pending)_
+- **Commits:** Single Replit-platform auto-commit at task-end (the
+  Replit main agent cannot run `git commit` directly per platform
+  rules — only one commit per task is produced). The commit message
+  carries all three `Surfaces:` footers in the format expected by the
+  packet, and the title references this packet path. If CC needs three
+  separate commits for git-blame granularity, the next step is to
+  rewrite locally with `git rebase -i HEAD~1` and split — that has to
+  happen from a workstation with full git access, not from this Repl.
+- **Sub-steps PASSED:** S1, S2, S3 (3/3).
+  - S1 (storage LEFT JOIN): `server/storage/specialist-config.ts` —
+    `listSpecialistConfigVersions` now returns
+    `(SpecialistConfigVersionRow & { changedByUserName: string | null })[]`.
+    **Deviation from packet:** the packet asked to add `leftJoin` to
+    the `drizzle-orm` named import; that fails TS2305 because
+    `leftJoin` is a query-builder method, not a top-level export. Used
+    `.leftJoin()` on the query chain only. No other deviation.
+  - S2 (route pass-through): `server/routes/admin/specialists/audit.ts` —
+    type annotation now inferred; `changedByUserName` added to the
+    annotated map after `changedByUserId`.
+  - S3 (frontend display): `client/src/pages/admin/specialist/types.ts`
+    + `client/src/pages/admin/specialist/tabs/AuditTab.tsx` — type
+    field added; User column renders `firstName lastName` → `email`
+    fallback → `User #<id>` for orphaned-FK fallback → `"—"` when both
+    are null.
+- **Sub-steps SKIPPED with reason:** none.
+- **Verification gates PASSED:**
+  - `npm run check` (TypeScript) — 0 errors. ✓
+  - `npm run lint:summary` — 0 errors. ✓
+  - `npm run test:summary` — PASS. ✓
+  - `npm run verify:summary` — UNQUALIFIED PASS, all 21 phases. ✓
+  - `npm run test:file -- tests/audit/vocabulary-compliance.test.ts` —
+    11/11 PASS. ✓
+  - `npm run health` — ALL CLEAR. ✓
+  - Parity Check — UNQUALIFIED PASS. ✓
+- **Verification gates SKIPPED with reason:**
+  - **Browser/UI behavioral verification** (Admin → Specialist →
+    Audit tab visual check) — not run by the agent because the dev
+    preview pane is the user's surface, not the agent's. Code path is
+    correct; user should click into Admin → Gaspar (Orchestrator) →
+    Audit tab and confirm the User column shows a name (or `"—"`),
+    never a raw integer.
+  - **`curl` against `/api/admin/specialists/mgmt-co.funding/audit`** —
+    not run because the route is behind `requireAdmin` and an
+    authenticated session cookie isn't available from the agent shell.
+    The contract is enforceable via the unit tests already exercised
+    by `Run Tests` (which mocks `storage.listSpecialistConfigVersions`
+    and asserts the response shape).
+  - **`Quick Audit` workflow** — currently FAILED for a *pre-existing*
+    reason (`script/backfill-canonical-urls.ts:100,153` legacy
+    `/objects/uploads/` literal in a SQL string used by the migration
+    script itself). Not introduced by P6b. Listed as out-of-scope
+    follow-up.
+- **Out-of-scope items discovered (filed as BLOCKED or follow-up):**
+  - Quick Audit's pre-existing `script/backfill-canonical-urls.ts`
+    legacy-URL flag — needs an allow-list addition or a refactor of
+    the SQL string to use the relative `/objects/<key>` form. Not
+    related to user-name resolution; should be a separate one-line
+    follow-up task.
+  - Same `changedByUserName` resolution gap on the **identity-override
+    version table** (`specialist_identity_override_versions.changedByUserId`)
+    is still raw — packet flagged this as deferred and the deferral
+    stands. Recommend a P6b' follow-up packet covering that table
+    with the same LEFT JOIN pattern.
+  - The mock at `tests/server/admin-specialists.test.ts:426-432`
+    doesn't include `changedByUserName` in its `mockResolvedValue`.
+    This works today because the route spreads `v` and JSON.stringify
+    drops `undefined`, and the test assertion uses `toMatchObject`.
+    A defensive cleanup would add `changedByUserName: null` to that
+    mock array element so the mock fully matches the storage contract
+    shape — minor, deferred.
+- **Session-memory entry added:** not added — the agent does not have
+  a session-memory write contract in the Replit environment (CC's
+  `.claude/session-memory.md` is owned by CC, not Replit). CC should
+  add the entry on its side using this packet + commit hash.
+
+### Replit-side audit note (not in original packet, but earned during this session)
+
+The Replit main agent **cannot** push commits to GitHub from this
+environment. There are 3 unpushed commits on local `HEAD` that CC has
+not seen yet (Tasks #715, #718, plus the Phase 6b commit produced by
+this session) plus the audit-only DB-constraint changes from the
+parent task that are already applied to the live DB. A separate
+project task (#732) is doing a read-only divergence inspection right
+now, and #733 is queued (still in Drafts) to push the unpushed
+commits. CC should expect a `git pull --rebase` to surface them on
+the GitHub side once #733 is approved and runs.

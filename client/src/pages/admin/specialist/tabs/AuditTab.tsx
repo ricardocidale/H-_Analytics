@@ -113,7 +113,9 @@ export function AuditTab({ specialistId }: { specialistId: string }) {
                         </ul>
                       )}
                     </td>
-                    <td className="p-2 font-mono text-xs">{e.changedByUserId ?? "—"}</td>
+                    <td className="p-2 text-xs">
+                      {e.changedByUserName ?? (e.changedByUserId != null ? `User #${e.changedByUserId}` : "—")}
+                    </td>
                     <td className="p-2 text-xs text-muted-foreground">{new Date(e.changedAt).toLocaleString()}</td>
                   </tr>
                 ))}

@@ -125,6 +125,7 @@ export interface SpecialistAuditEntry {
   changeSummary: string | null;
   changedFieldLabels: string[];
   changedByUserId: number | null;
+  changedByUserName: string | null;
   changedAt: string;
   promptTemplate: string;
   modelResourceId: number | null;

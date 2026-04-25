@@ -22,6 +22,7 @@ import {
   specialistConfigVersions,
   specialistRecommendationEvents,
   specialistRecommendationCounters,
+  users,
   type SpecialistConfigRow,
   type SpecialistConfigVersionRow,
   type SpecialistConfigSectionType,
@@ -461,13 +462,31 @@ export class SpecialistConfigStorage {
     }));
   }
 
-  async listSpecialistConfigVersions(specialistId: string, limit = 50): Promise<SpecialistConfigVersionRow[]> {
-    return db
-      .select()
+  async listSpecialistConfigVersions(
+    specialistId: string,
+    limit = 50,
+  ): Promise<(SpecialistConfigVersionRow & { changedByUserName: string | null })[]> {
+    const rows = await db
+      .select({
+        v: specialistConfigVersions,
+        u: {
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+      })
       .from(specialistConfigVersions)
+      .leftJoin(users, eq(specialistConfigVersions.changedByUserId, users.id))
       .where(eq(specialistConfigVersions.specialistId, specialistId))
       .orderBy(desc(specialistConfigVersions.changedAt))
       .limit(limit);
+
+    return rows.map(({ v, u }) => {
+      const name = u?.firstName
+        ? `${u.firstName}${u.lastName ? ` ${u.lastName}` : ""}`.trim()
+        : (u?.email ?? null);
+      return { ...v, changedByUserName: name };
+    });
   }
 
   /**
