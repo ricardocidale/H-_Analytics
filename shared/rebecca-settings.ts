@@ -113,30 +113,63 @@ export const DEFAULT_REBECCA_SETTINGS: RebeccaSettings = rebeccaSettingsSchema.p
 });
 
 /**
- * Merge a possibly-partial stored config (or null) with defaults so callers
- * always get a fully-populated, typed `RebeccaSettings`.
+ * Section-by-section spread of a possibly-partial stored config over the
+ * defaults. Returns the fully-shaped object that should be fed to
+ * `rebeccaSettingsSchema` for strict validation. Shared between the
+ * forward-compat helper (which swallows parse failures) and the strict
+ * import variant (which surfaces them).
  */
-export function mergeRebeccaSettings(stored: unknown): RebeccaSettings {
-  if (!stored || typeof stored !== "object") return DEFAULT_REBECCA_SETTINGS;
-  const s = stored as Record<string, any>;
-  const merged = {
-    identity: { ...DEFAULT_REBECCA_SETTINGS.identity, ...(s.identity ?? {}) },
-    personality: { ...DEFAULT_REBECCA_SETTINGS.personality, ...(s.personality ?? {}) },
-    voice: { ...DEFAULT_REBECCA_SETTINGS.voice, ...(s.voice ?? {}) },
-    behavior: { ...DEFAULT_REBECCA_SETTINGS.behavior, ...(s.behavior ?? {}) },
-    llm: { ...DEFAULT_REBECCA_SETTINGS.llm, ...(s.llm ?? {}) },
+function hydrateRebeccaSettingsShape(stored: unknown): unknown {
+  if (!stored || typeof stored !== "object") {
+    // Treat null/undefined/non-object as "use all defaults".
+    return { ...DEFAULT_REBECCA_SETTINGS };
+  }
+  const s = stored as Record<string, unknown>;
+  const sectionAsRecord = (v: unknown): Record<string, unknown> =>
+    v && typeof v === "object" ? (v as Record<string, unknown>) : {};
+  const sources = sectionAsRecord(s.sources);
+  return {
+    identity: { ...DEFAULT_REBECCA_SETTINGS.identity, ...sectionAsRecord(s.identity) },
+    personality: { ...DEFAULT_REBECCA_SETTINGS.personality, ...sectionAsRecord(s.personality) },
+    voice: { ...DEFAULT_REBECCA_SETTINGS.voice, ...sectionAsRecord(s.voice) },
+    behavior: { ...DEFAULT_REBECCA_SETTINGS.behavior, ...sectionAsRecord(s.behavior) },
+    llm: { ...DEFAULT_REBECCA_SETTINGS.llm, ...sectionAsRecord(s.llm) },
     sources: {
       ...DEFAULT_REBECCA_SETTINGS.sources,
       ...Object.fromEntries(
         REBECCA_SOURCE_KEYS.map(k => [
           k,
-          { ...DEFAULT_REBECCA_SETTINGS.sources[k], ...((s.sources ?? {})[k] ?? {}) },
+          { ...DEFAULT_REBECCA_SETTINGS.sources[k], ...sectionAsRecord(sources[k]) },
         ]),
       ),
     },
   };
-  const parsed = rebeccaSettingsSchema.safeParse(merged);
+}
+
+/**
+ * Merge a possibly-partial stored config (or null) with defaults so callers
+ * always get a fully-populated, typed `RebeccaSettings`.
+ *
+ * Designed for the "load from DB" path: if validation fails (e.g. corrupt
+ * row in the DB), we fall back to defaults so the chat can still answer.
+ * Do NOT use this on user-supplied input you want to reject — see
+ * `tryParseRebeccaSettings` for the strict variant used by the import path.
+ */
+export function mergeRebeccaSettings(stored: unknown): RebeccaSettings {
+  const parsed = rebeccaSettingsSchema.safeParse(hydrateRebeccaSettingsShape(stored));
   return parsed.success ? parsed.data : DEFAULT_REBECCA_SETTINGS;
+}
+
+/**
+ * Strict counterpart to `mergeRebeccaSettings`: hydrates partials with
+ * defaults the same way (for forward-compat), then strict-parses with
+ * `rebeccaSettingsSchema`. Returns the Zod result directly so callers
+ * (notably the fixture import route in Task #560) can surface a precise
+ * 400 error instead of silently substituting defaults.
+ */
+export function tryParseRebeccaSettings(stored: unknown):
+  ReturnType<typeof rebeccaSettingsSchema.safeParse> {
+  return rebeccaSettingsSchema.safeParse(hydrateRebeccaSettingsShape(stored));
 }
 
 export const rebeccaSettingsPatchSchema = z.object({

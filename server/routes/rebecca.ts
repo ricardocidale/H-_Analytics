@@ -7,7 +7,7 @@ import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
-import { rebeccaSettingsSchema, DEFAULT_REBECCA_SETTINGS, REBECCA_SOURCE_KEYS } from "@shared/rebecca-settings";
+import { rebeccaSettingsSchema, tryParseRebeccaSettings } from "@shared/rebecca-settings";
 
 const previewTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -561,30 +561,15 @@ export function register(app: Express) {
       const { payload, conflictResolution } = parsed.data;
       const incoming = payload.fixture;
 
-      // Forward-compat hydrate: deep-merge missing fields with defaults so
-      // older exports (lacking fields the schema has since added) stay
-      // importable. We must NOT use `mergeRebeccaSettings` here — that helper
-      // silently falls back to DEFAULT_REBECCA_SETTINGS on any parse failure,
-      // which would let malformed imports succeed as defaults instead of
-      // being rejected. Inline the merge and surface the strict-parse error.
-      const incomingSettings = (incoming.settings ?? {}) as Record<string, any>;
-      const hydrated = {
-        identity: { ...DEFAULT_REBECCA_SETTINGS.identity, ...(incomingSettings.identity ?? {}) },
-        personality: { ...DEFAULT_REBECCA_SETTINGS.personality, ...(incomingSettings.personality ?? {}) },
-        voice: { ...DEFAULT_REBECCA_SETTINGS.voice, ...(incomingSettings.voice ?? {}) },
-        behavior: { ...DEFAULT_REBECCA_SETTINGS.behavior, ...(incomingSettings.behavior ?? {}) },
-        llm: { ...DEFAULT_REBECCA_SETTINGS.llm, ...(incomingSettings.llm ?? {}) },
-        sources: {
-          ...DEFAULT_REBECCA_SETTINGS.sources,
-          ...Object.fromEntries(
-            REBECCA_SOURCE_KEYS.map((k) => [
-              k,
-              { ...DEFAULT_REBECCA_SETTINGS.sources[k], ...((incomingSettings.sources ?? {})[k] ?? {}) },
-            ]),
-          ),
-        },
-      };
-      const settingsParse = rebeccaSettingsSchema.safeParse(hydrated);
+      // Forward-compat hydrate (older exports may be missing fields the
+      // schema has since added) followed by STRICT validation. We use the
+      // strict sibling `tryParseRebeccaSettings` rather than
+      // `mergeRebeccaSettings` because the latter is the "load-from-DB"
+      // helper that silently falls back to DEFAULT_REBECCA_SETTINGS on any
+      // parse failure — appropriate for self-healing the chat session,
+      // wrong for accepting user-supplied snapshots where we must reject
+      // malformed input with a precise 400.
+      const settingsParse = tryParseRebeccaSettings(incoming.settings);
       if (!settingsParse.success) {
         const issue = settingsParse.error.issues[0];
         const path = issue?.path?.length ? issue.path.join(".") : "settings";
