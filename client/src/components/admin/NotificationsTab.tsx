@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Bell, MessageSquare, Mail, AlertTriangle, CheckCircle, XCircle, Clock } from "@/components/icons/themed-icons";
+import { Trash2, Plus, Bell, MessageSquare, Mail, AlertTriangle, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { AlertRule, Property } from "@shared/schema";
 
@@ -669,9 +669,49 @@ export default function NotificationsTab() {
 
 type VectorLatencyFilter = "all" | "real" | "test";
 
+type VectorBreach = {
+  size?: number;
+  scope?: "single" | "multi";
+  metric?: "p50" | "p95";
+  valueMs?: number;
+  thresholdMs?: number;
+  p50Ms?: number;
+  p95Ms?: number;
+  thresholdP95Ms?: number;
+};
+
+type VectorAlertMetadata = {
+  test?: boolean;
+  runId?: string;
+  breaches?: VectorBreach[];
+} | null;
+
+type VectorAlertLog = {
+  id: number;
+  createdAt: string;
+  recipient?: string;
+  status: string;
+  metadata?: VectorAlertMetadata;
+};
+
+function fmtLatency(ms: number | undefined): string {
+  if (ms == null || !Number.isFinite(ms)) return "n/a";
+  return ms >= 100 ? `${ms.toFixed(0)} ms` : `${ms.toFixed(1)} ms`;
+}
+
+function summarizeBreach(b: VectorBreach): string {
+  const scope = b.scope ?? "?";
+  const metric = b.metric ?? (b.thresholdP95Ms !== undefined ? "p95" : "?");
+  const value = b.valueMs ?? (metric === "p95" ? b.p95Ms : b.p50Ms);
+  const threshold = b.thresholdMs ?? b.thresholdP95Ms;
+  const sizeLabel = typeof b.size === "number" ? b.size.toLocaleString() : "?";
+  return `${scope} ${metric} ${fmtLatency(value)} > ${fmtLatency(threshold)} @ size ${sizeLabel}`;
+}
+
 function VectorLatencyAlertsPanel() {
   const [filter, setFilter] = useState<VectorLatencyFilter>("all");
-  const { data: vectorLogs = [], isLoading } = useQuery<any[]>({
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const { data: vectorLogs = [], isLoading } = useQuery<VectorAlertLog[]>({
     queryKey: ["/api/notifications/logs", { eventType: "VECTOR_LATENCY_BREACH", limit: 10 }],
     queryFn: async () => {
       const res = await fetch("/api/notifications/logs?eventType=VECTOR_LATENCY_BREACH&limit=10", {
@@ -682,11 +722,20 @@ function VectorLatencyAlertsPanel() {
     },
   });
 
-  const filteredLogs = vectorLogs.filter((log: { metadata?: { test?: boolean } | null }) => {
+  const filteredLogs = vectorLogs.filter((log) => {
     if (filter === "all") return true;
-    const isTest = !!(log.metadata && (log.metadata as { test?: boolean }).test);
+    const isTest = !!log.metadata?.test;
     return filter === "test" ? isTest : !isTest;
   });
+
+  const toggleExpanded = (id: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <Card data-testid="card-vector-latency-alerts">
@@ -741,33 +790,106 @@ function VectorLatencyAlertsPanel() {
                   <th className="py-2 px-3">Recipient</th>
                   <th className="py-2 px-3">Status</th>
                   <th className="py-2 px-3">Type</th>
+                  <th className="py-2 px-3">Why</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredLogs.map((log: { id: number; createdAt: string; recipient?: string; status: string; metadata?: { test?: boolean } | null; [key: string]: unknown }) => {
-                  const isTest = !!(log.metadata && (log.metadata as { test?: boolean }).test);
+                {filteredLogs.map((log) => {
+                  const meta = log.metadata ?? null;
+                  const isTest = !!meta?.test;
+                  const breaches = Array.isArray(meta?.breaches) ? meta!.breaches! : [];
+                  const hasBreaches = !isTest && breaches.length > 0;
+                  const isExpanded = expanded.has(log.id);
+                  const canExpand = hasBreaches && breaches.length > 1;
                   return (
-                    <tr
-                      key={log.id}
-                      className="border-b"
-                      data-testid={`row-vector-latency-alert-${log.id}`}
-                    >
-                      <td className="py-2 px-3 text-muted-foreground whitespace-nowrap">
-                        {new Date(log.createdAt).toLocaleString()}
-                      </td>
-                      <td className="py-2 px-3">{log.recipient || "—"}</td>
-                      <td className="py-2 px-3">
-                        <StatusBadge status={log.status} />
-                      </td>
-                      <td className="py-2 px-3">
-                        <Badge
-                          variant={isTest ? "secondary" : "outline"}
-                          data-testid={`badge-vector-latency-kind-${log.id}`}
+                    <Fragment key={log.id}>
+                      <tr
+                        className="border-b"
+                        data-testid={`row-vector-latency-alert-${log.id}`}
+                      >
+                        <td className="py-2 px-3 text-muted-foreground whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3">{log.recipient || "—"}</td>
+                        <td className="py-2 px-3">
+                          <StatusBadge status={log.status} />
+                        </td>
+                        <td className="py-2 px-3">
+                          <Badge
+                            variant={isTest ? "secondary" : "outline"}
+                            data-testid={`badge-vector-latency-kind-${log.id}`}
+                          >
+                            {isTest ? "[TEST]" : "Real"}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-3">
+                          {isTest || !hasBreaches ? (
+                            <span
+                              className="text-muted-foreground"
+                              data-testid={`text-vector-latency-summary-${log.id}`}
+                            >
+                              —
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              {canExpand ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpanded(log.id)}
+                                  className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                                  aria-expanded={isExpanded}
+                                  aria-label={
+                                    isExpanded
+                                      ? "Collapse breach details"
+                                      : "Expand breach details"
+                                  }
+                                  data-testid={`button-vector-latency-expand-${log.id}`}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                </button>
+                              ) : null}
+                              <span
+                                className="font-mono text-xs"
+                                data-testid={`text-vector-latency-summary-${log.id}`}
+                              >
+                                {summarizeBreach(breaches[0])}
+                              </span>
+                              {canExpand && !isExpanded ? (
+                                <span
+                                  className="text-xs text-muted-foreground"
+                                  data-testid={`text-vector-latency-more-${log.id}`}
+                                >
+                                  +{breaches.length - 1} more
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && canExpand ? (
+                        <tr
+                          className="border-b bg-muted/30"
+                          data-testid={`row-vector-latency-details-${log.id}`}
                         >
-                          {isTest ? "[TEST]" : "Real"}
-                        </Badge>
-                      </td>
-                    </tr>
+                          <td colSpan={5} className="py-2 px-3">
+                            <ul className="list-disc pl-6 space-y-1 font-mono text-xs">
+                              {breaches.map((b, idx) => (
+                                <li
+                                  key={idx}
+                                  data-testid={`text-vector-latency-detail-${log.id}-${idx}`}
+                                >
+                                  {summarizeBreach(b)}
+                                </li>
+                              ))}
+                            </ul>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
                   );
                 })}
               </tbody>
