@@ -154,25 +154,47 @@ export function RebeccaConfig({
   const fallbackModels = settings.llm.fallbackProvider ? REBECCA_PROVIDER_MODELS[settings.llm.fallbackProvider] : [];
 
   // Test chat preview state
+  type PreviewTurn = { role: "user" | "assistant"; content: string; ts: number };
   const [testInput, setTestInput] = useState("");
-  const [testReply, setTestReply] = useState<string | null>(null);
+  const [previewHistory, setPreviewHistory] = useState<PreviewTurn[]>([]);
+  const [keepHistory, setKeepHistory] = useState(true);
   const [testRunning, setTestRunning] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
 
-  useEffect(() => { setTestReply(null); setTestError(null); }, [settings.llm.provider, settings.llm.model]);
+  // Reset the rolling preview transcript whenever any setting changes — the
+  // sandbox is bound to the *current* unsaved configuration, so old turns
+  // produced under different settings would be misleading.
+  const settingsKey = JSON.stringify(settings);
+  useEffect(() => {
+    setPreviewHistory([]);
+    setTestError(null);
+  }, [settingsKey]);
+
+  const clearPreviewHistory = () => {
+    setPreviewHistory([]);
+    setTestError(null);
+  };
 
   const runTest = async () => {
-    if (!testInput.trim()) return;
+    const trimmed = testInput.trim();
+    if (!trimmed) return;
     setTestRunning(true);
     setTestError(null);
+    const userTurn: PreviewTurn = { role: "user", content: trimmed, ts: Date.now() };
+    const historyForRequest = keepHistory
+      ? previewHistory.map((t) => ({ role: t.role, content: t.content }))
+      : [];
+    // Optimistically render the user's turn so the transcript feels live.
+    setPreviewHistory((prev) => (keepHistory ? [...prev, userTurn] : [userTurn]));
+    setTestInput("");
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: testInput,
-          history: [],
+          message: trimmed,
+          history: historyForRequest,
           newConversation: true,
           responseMode: "standard",
           previewSettings: settings,
@@ -181,7 +203,12 @@ export function RebeccaConfig({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Request failed");
-      setTestReply(data.response ?? "(empty response)");
+      const reply: PreviewTurn = {
+        role: "assistant",
+        content: data.response ?? "(empty response)",
+        ts: Date.now(),
+      };
+      setPreviewHistory((prev) => [...prev, reply]);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Test failed";
       setTestError(msg);
@@ -596,29 +623,122 @@ export function RebeccaConfig({
         description="Send a real message through the current (unsaved) configuration."
       >
         <div className="space-y-3">
+          {/* Sandbox banner — makes it unmistakable that this is not a saved
+              conversation and is bound to the unsaved settings above. */}
+          <div
+            className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+            data-testid="banner-preview-sandbox"
+          >
+            <Badge
+              variant="outline"
+              className="text-[10px] uppercase tracking-wide font-semibold border-amber-500/60 bg-amber-500/20 text-amber-900 dark:text-amber-100 shrink-0"
+              data-testid="badge-preview-sandbox"
+            >
+              Preview · Sandbox
+            </Badge>
+            <p className="text-[11px] leading-relaxed">
+              You are talking to an unsaved preview of {displayName || "Rebecca"}. Replies use the
+              configuration above and are <span className="font-semibold">not stored</span> in the
+              user-facing chat history. The transcript clears automatically whenever you change a setting.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 p-2 px-3 rounded-md bg-muted/30 border border-border/40">
+              <Switch
+                checked={keepHistory}
+                onCheckedChange={setKeepHistory}
+                data-testid="switch-preview-history"
+              />
+              <Label className="label-text text-xs cursor-pointer" onClick={() => setKeepHistory(!keepHistory)}>
+                Keep multi-turn history in this panel
+              </Label>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={clearPreviewHistory}
+              disabled={previewHistory.length === 0 && !testError}
+              data-testid="button-clear-preview-history"
+            >
+              <IconRefreshCw className="w-3.5 h-3.5" /> Clear transcript
+            </Button>
+          </div>
+
+          {previewHistory.length > 0 && (
+            <div
+              className="space-y-2 p-3 rounded-xl bg-muted/20 border border-border/40 max-h-[420px] overflow-y-auto"
+              data-testid="list-preview-transcript"
+            >
+              {previewHistory.map((turn, i) => {
+                const isUser = turn.role === "user";
+                return (
+                  <div
+                    key={`${turn.ts}-${i}`}
+                    className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+                    data-testid={`preview-turn-${turn.role}-${i}`}
+                  >
+                    <div
+                      className={
+                        isUser
+                          ? "max-w-[85%] p-3 rounded-2xl rounded-br-sm bg-primary/10 border border-primary/20 text-sm whitespace-pre-wrap"
+                          : "max-w-[85%] p-3 rounded-2xl rounded-bl-sm bg-card border border-amber-500/30 text-sm whitespace-pre-wrap"
+                      }
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">
+                          {isUser ? "You" : displayName || "Rebecca"}
+                        </span>
+                        {!isUser && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] py-0 px-1.5 h-4 border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200 font-semibold"
+                            data-testid={`badge-preview-reply-${i}`}
+                          >
+                            Preview
+                          </Badge>
+                        )}
+                      </div>
+                      {turn.content}
+                    </div>
+                  </div>
+                );
+              })}
+              {testRunning && (
+                <div className="flex justify-start" data-testid="preview-turn-loading">
+                  <div className="max-w-[85%] p-3 rounded-2xl rounded-bl-sm bg-card border border-border/40 text-sm text-muted-foreground italic">
+                    {displayName || "Rebecca"} is thinking…
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <Textarea
             rows={2}
             value={testInput}
             onChange={(e) => setTestInput(e.target.value)}
-            placeholder="Type a test message — e.g. 'Give me a one-line summary of the portfolio.'"
+            placeholder={
+              previewHistory.length === 0
+                ? "Type a test message — e.g. 'Give me a one-line summary of the portfolio.'"
+                : "Continue the preview conversation…"
+            }
             data-testid="input-test-message"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button onClick={runTest} disabled={testRunning || !testInput.trim()} size="sm" data-testid="button-run-test">
-              {testRunning ? "Sending…" : "Send test message"}
+              {testRunning ? "Sending…" : previewHistory.length === 0 ? "Send test message" : "Send next turn"}
             </Button>
             <span className="text-[11px] text-muted-foreground/70">
-              Uses the unsaved settings above. Will not appear in saved Conversations.
+              {keepHistory
+                ? "Multi-turn — prior preview turns are sent as context."
+                : "Single-turn — each message is sent without prior context."}
             </span>
           </div>
           {testError && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive" data-testid="text-test-error">
               {testError}
-            </div>
-          )}
-          {testReply && (
-            <div className="p-4 rounded-xl bg-muted/30 border border-border/40 whitespace-pre-wrap text-sm" data-testid="text-test-reply">
-              {testReply}
             </div>
           )}
         </div>
