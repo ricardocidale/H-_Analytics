@@ -23,7 +23,67 @@ set -e
 echo "▶ pre-push gate 1/2 — typecheck (npx tsc --noEmit --skipLibCheck)"
 npx tsc --noEmit --skipLibCheck
 
-echo "▶ pre-push gate 2/2 — lint summary (npm run lint:summary)"
+echo "▶ pre-push gate 2/3 — lint summary (npm run lint:summary)"
 npm run lint:summary
+
+# Gate 3 — refuse pushes containing commits with blocklisted subjects.
+#
+# This is the GitHub-leak backstop for the commit-msg blocklist. The local
+# commit-msg hook (.husky/commit-msg) catches developer / agent commits at
+# the moment they're authored. But Replit's web-UI checkpoint mechanism
+# creates commits server-side (e.g. "Saved progress at the end of the loop",
+# "Git commit prior to merge") that never touch this machine until they're
+# pulled down — so commit-msg never runs on them. This gate blocks them from
+# being forwarded to GitHub (`origin`).
+#
+# Reads pre-push stdin: `<local-ref> <local-sha> <remote-ref> <remote-sha>`
+# per ref being pushed. For each, checks every commit in (remote-sha..local-sha].
+# Receives the target remote NAME as $1 (e.g. "origin", "gitsafe-backup", "replit").
+# Scoping the new-branch exclusion to the target remote matters here because this
+# repo has 100+ subrepl-* remotes — `--remotes` (all remotes) would skip a
+# blocklisted commit that lives on `replit/main` but not yet on `origin/main`,
+# letting it leak through when pushed to `origin`.
+echo "▶ pre-push gate 3/3 — checkpoint-commit subject blocklist (target: $1)"
+target_remote="$1"
+zero="0000000000000000000000000000000000000000"
+violations=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Skip ref deletions (local_sha == zero)
+  [ "$local_sha" = "$zero" ] && continue
+  # New ref on this remote: scan commits not already on the TARGET remote's
+  # branches (not all remotes). Falls back to global --remotes only if the
+  # remote name is missing for some reason.
+  if [ "$remote_sha" = "$zero" ]; then
+    if [ -n "$target_remote" ]; then
+      range="$local_sha --not --remotes=$target_remote"
+    else
+      range="$local_sha --not --remotes"
+    fi
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  while IFS='|' read -r sha subject; do
+    [ -z "$sha" ] && continue
+    subject_lower=$(printf '%s' "$subject" | tr '[:upper:]' '[:lower:]')
+    case "$subject_lower" in
+      "c"|"com"|"commit"|"commit."|"wip"|"wip."|"fix"|"fix."|"update"|"update."|"save"|"save."|"checkpoint"|"checkpoint."|"progress"|"progress."|"saved progress at the end of the loop"|"git commit prior to merge")
+        echo "  ❌ $sha — blocklisted subject: '$subject'"
+        violations=$((violations + 1))
+        ;;
+    esac
+  done <<EOF
+$(git log --pretty=format:'%h|%s' $range 2>/dev/null)
+EOF
+done
+
+if [ "$violations" -gt 0 ]; then
+  echo
+  echo "❌ Refusing push: $violations commit(s) carry a blocklisted subject."
+  echo "   These usually originate from Replit's auto-checkpoint mechanism, which"
+  echo "   bypasses the local commit-msg hook. Squash or amend them before pushing:"
+  echo "     git rebase -i <base>     # mark them 'reword' or 'fixup'"
+  echo "   Bypass for true emergencies: git push --no-verify"
+  exit 1
+fi
 
 echo "✓ pre-push gates passed"

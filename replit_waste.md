@@ -38,13 +38,13 @@ From the live invoice analysis (`rewritetax.md` §7b):
 
 | Pattern | Count in project life | Cost |
 |---|---:|---:|
-| Generic short commits (`c`, `commit`, `com`, ≤7 chars) — agent default-commit fallback | **141** | $14–$35 |
-| `Git commit prior to merge` (Replit auto-checkpoint) | **50** | $5–$13 |
-| `Saved progress at the end of the loop` | 7 | $0.70–$1.75 |
+| Generic short commits (`c`, `commit`, `com`, ≤7 chars) — agent default-commit fallback | **141** *(historical; 0 since hook landed Apr 20)* | $14–$35 |
+| `Git commit prior to merge` (Replit auto-checkpoint) | **50** *(historical; pre-push backstop added Apr 24 — see W2)* | $5–$13 |
+| `Saved progress at the end of the loop` | 7 *(2 leaked through husky post-Apr 20 via Replit web-UI checkpoints; pre-push now blocks them at GitHub boundary)* | $0.70–$1.75 |
 | `Plan→Build` mode transitions — context reload, no code | **30** | $3–$8 |
 | **Subtotal (~6% of all commits, ~zero engineering value)** | **228** | **~$23–$58** |
 
-These are *small in dollars* but *large in signal*. On a non-checkpoint-per-loop platform, most of these would not exist as billable events.
+These are *small in dollars* but *large in signal*. On a non-checkpoint-per-loop platform, most of these would not exist as billable events. As of April 24 the local + push-time gates close the developer-authored leak entirely; the residual exposure is Replit-platform-generated checkpoint commits that bypass `commit-msg` but are caught by `pre-push` before they reach `origin`.
 
 ### 4. Cross-agent collisions enabled by no merge gate
 
@@ -94,17 +94,19 @@ Each row below is a recurring loss pattern. They are listed in priority order: h
 - Move all schema work behind a non-interactive wrapper script that pipes a default answer to the rename prompt (`script/db-push-noninteractive.ts`).
 - Or stop pretending the tool works in this environment and codify "always raw SQL via `script/migrations/*.sql`" as the rule.
 
-### W2 — Auto-checkpoint commits with 1-character messages
+### W2 — Auto-checkpoint commits with 1-character messages — **EFFECTIVELY FIXED on this workstation push path (April 24, 2026)**
 
 **Symptom.** Replit's "Saved progress at the end of the loop" + the agent's default `c` / `commit` / `com` fallback create dozens of zero-signal commits per month. Each one bills as a loop.
 
-**Frequency.** ~228 occurrences in project life; unchanged on a forward basis without intervention.
+**Frequency.** 228 occurrences in project life. **0 developer-authored leaks since April 20**, when `.husky/commit-msg` landed. 2 platform-authored leaks since (Replit web-UI checkpoints — `21868c1f`, `99a45125`) bypass husky entirely because they're created server-side.
 
-**Forward cost if not fixed.** ~$8–$20/month in pure waste.
+**Resolution.**
+1. **Local guard (April 20):** `.husky/commit-msg` enforces a 15-char minimum subject line and rejects an exact-match blocklist (`c`, `com`, `commit`, `wip`, `fix`, `update`, `save`, `checkpoint`, `progress`, `saved progress at the end of the loop`). Confirmed firing: zero violations in the 30 commits between April 20 and now. `git commit --no-verify` is the documented escape hatch.
+2. **GitHub-boundary backstop (April 24):** `.husky/pre-push` gate 3/3 walks every commit being pushed to any remote and refuses the push if any subject is on the same blocklist (extended to also include `git commit prior to merge`). This catches the residual class — Replit's server-side checkpoint commits — at the moment they would otherwise propagate to GitHub.
 
-**Structural fix candidates.**
-- A `commit-msg` git hook that rejects messages under 8 characters or matching `^c$|^com$|^commit$`. Ten-minute job. Pays for itself in the first week.
-- (Already proposed in `rewritetax.md` §7 fix list; not yet implemented.)
+**Forward cost.** Effectively zero for everything that flows through `git commit` or `git push` on this machine. Residual exposure: Replit checkpoint commits that live only in the Replit-hosted mirror and never get pushed to `origin`. Those don't reach GitHub, so they don't pollute downstream tooling, but they still bill as loops on the Replit side. Estimated residual: **$1–$3/month**, down from $8–$20.
+
+**Verification.** `git log --since="2026-04-20" --pretty=format:"%h %s" | awk '{ if (length(substr($0, 9)) < 15) print }'` returns zero rows. The two `Saved progress at the end of the loop` checkpoints are 37 chars (over the length floor) but exact-match the blocklist — so any future attempt to push them to `origin` will now be refused.
 
 ### W3 — Workflow `EADDRINUSE` and stale-status false-fail loops
 
@@ -193,7 +195,7 @@ Each row below is a recurring loss pattern. They are listed in priority order: h
 | Watchlist item | Low | High |
 |---|---:|---:|
 | W1 — `drizzle-kit push` TTY | $240 | $640 |
-| W2 — Empty-message commits | $8 | $20 |
+| W2 — Empty-message commits *(STRUCTURALLY FIXED Apr 24 — residual only)* | $1 | $3 |
 | W3 — Workflow stale-status loops | $25 | $100 |
 | W4 — Reviewer false-fail rejections | $40 | $120 |
 | W5 — Per-task context reload (large memory files) | $60 | $130 |
