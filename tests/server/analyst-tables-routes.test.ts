@@ -53,6 +53,11 @@ vi.mock("../../server/middleware/analyst-refresh-guards", async () => {
         next();
       },
     ],
+    // The /run-watchdog endpoint composes csrfTokenGuard directly; stub
+    // it pass-through here so we can exercise the watchdog handler in
+    // isolation. The CSRF contract itself is covered by the dedicated
+    // analyst-refresh-guards.test.ts.
+    csrfTokenGuard: (_req: Request, _res: Response, next: NextFunction) => next(),
     releaseInFlight: vi.fn(),
   };
 });
@@ -60,6 +65,14 @@ vi.mock("../../server/middleware/analyst-refresh-guards", async () => {
 vi.mock("../../server/ai/analyst-table-refresh", () => ({
   researchCapitalRaiseBenchmarks: vi.fn(),
   researchExitMultiples: vi.fn(),
+}));
+
+// The /run-watchdog endpoint delegates the actual scheduled-cycle work
+// to `runCapitalRaiseWatchdogCycle`. We mock it here so the route tests
+// don't pull in the real LLM / storage stack — `capital-raise-watchdog-cycle.test.ts`
+// already covers the cycle's own behavior.
+vi.mock("../../server/ai/ambient/capital-raise-watchdog", () => ({
+  runCapitalRaiseWatchdogCycle: vi.fn(),
 }));
 
 // Phase 3 (#453) added a `narrateSpecialistHandoff(...)` call in the
@@ -77,11 +90,15 @@ vi.mock("../../server/logger", () => ({
 }));
 
 import { storage } from "../../server/storage";
-import { registerAdminAnalystTableRoutes } from "../../server/routes/admin/analyst-tables";
+import {
+  registerAdminAnalystTableRoutes,
+  clearWatchdogRateState,
+} from "../../server/routes/admin/analyst-tables";
 import {
   researchCapitalRaiseBenchmarks,
   researchExitMultiples,
 } from "../../server/ai/analyst-table-refresh";
+import { runCapitalRaiseWatchdogCycle } from "../../server/ai/ambient/capital-raise-watchdog";
 
 // ── Mini express harness — captures handlers by `${METHOD} ${path}` ─────────
 type Handlers = Record<string, RequestHandler[]>;
@@ -109,7 +126,7 @@ async function invoke(
   method: string,
   path: string,
   opts: { params?: Record<string, string>; body?: unknown } = {},
-): Promise<{ statusCode: number; body: unknown }> {
+): Promise<{ statusCode: number; body: unknown; headers: Record<string, string> }> {
   const fns = handlers[`${method} ${path}`];
   if (!fns) throw new Error(`No handler registered for ${method} ${path}`);
   const req: any = {
@@ -120,10 +137,17 @@ async function invoke(
     ip: "127.0.0.1",
     socket: { remoteAddress: "127.0.0.1" },
   };
-  const res: any = { locals: {}, statusCode: 200, body: undefined, headersSent: false };
+  const res: any = {
+    locals: {},
+    statusCode: 200,
+    body: undefined,
+    headersSent: false,
+    headers: {} as Record<string, string>,
+  };
   res.status = (c: number) => { res.statusCode = c; return res; };
   res.json = (data: unknown) => { res.body = data; res.headersSent = true; return res; };
-  res.setHeader = () => res;
+  res.setHeader = (name: string, value: string) => { res.headers[name] = value; return res; };
+  res.getHeader = (name: string) => res.headers[name];
   res.on = () => {};
 
   for (const fn of fns) {
@@ -149,7 +173,7 @@ async function invoke(
     if (nextErr) throw nextErr;
     if (!nextCalled && res.headersSent) break;
   }
-  return { statusCode: res.statusCode, body: res.body };
+  return { statusCode: res.statusCode, body: res.body, headers: res.headers };
 }
 
 // ── Route-layer tests ─────────────────────────────────────────────────────
@@ -449,6 +473,114 @@ describe("admin/analyst-tables routes — second branch (exit_multiples)", () =>
       );
       expect(statusCode).toBe(400);
       expect(mockedStorage.upsertExitMultiple).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("POST /api/admin/analyst-tables/:id/run-watchdog (Task #567)", () => {
+    const mockedRunWatchdog = runCapitalRaiseWatchdogCycle as unknown as ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      mockedRunWatchdog.mockReset();
+      // Reset the module-level rate-limit cooldown between tests so a 429
+      // from one test doesn't bleed into the next.
+      clearWatchdogRateState();
+    });
+
+    it("calls runCapitalRaiseWatchdogCycle({ force: true }) and returns audit + applied/skipped", async () => {
+      mockedRunWatchdog.mockResolvedValue({
+        ran: true,
+        reason: "applied",
+        result: {
+          tableId: "capital_raise_benchmarks",
+          auditId: 7777,
+          appliedDimensions: ["valuationCap", "discountRate"],
+          skippedDimensions: ["unknownThing"],
+          recordedAt: new Date("2026-04-25T00:00:00Z"),
+        },
+        sourceCount: 4,
+        tokensUsed: 12345,
+      });
+
+      const { statusCode, body } = await invoke(
+        handlers, "POST", "/api/admin/analyst-tables/:id/run-watchdog",
+        { params: { id: "capital_raise_benchmarks" } },
+      );
+
+      expect(statusCode).toBe(200);
+      expect(mockedRunWatchdog).toHaveBeenCalledWith({ force: true });
+      expect(body).toMatchObject({
+        ran: true,
+        reason: "applied",
+        tableId: "capital_raise_benchmarks",
+        auditId: 7777,
+        appliedDimensions: ["valuationCap", "discountRate"],
+        skippedDimensions: ["unknownThing"],
+        sourceCount: 4,
+        tokensUsed: 12345,
+      });
+      // Activity log written so admin actions remain audit-traceable.
+      expect(mockedStorage.createActivityLog).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects exit_multiples with 400 (watchdog is capital-raise-only today)", async () => {
+      const { statusCode, body } = await invoke(
+        handlers, "POST", "/api/admin/analyst-tables/:id/run-watchdog",
+        { params: { id: "exit_multiples" } },
+      );
+      expect(statusCode).toBe(400);
+      expect((body as any).error).toMatch(/capital_raise_benchmarks/);
+      expect(mockedRunWatchdog).not.toHaveBeenCalled();
+    });
+
+    it("rate-limits a second forced run from the same admin within 60 seconds (429)", async () => {
+      mockedRunWatchdog.mockResolvedValue({
+        ran: true,
+        reason: "applied",
+        result: {
+          tableId: "capital_raise_benchmarks",
+          auditId: 1,
+          appliedDimensions: [],
+          skippedDimensions: [],
+          recordedAt: new Date(),
+        },
+        sourceCount: 3,
+        tokensUsed: 10,
+      });
+
+      const first = await invoke(
+        handlers, "POST", "/api/admin/analyst-tables/:id/run-watchdog",
+        { params: { id: "capital_raise_benchmarks" } },
+      );
+      expect(first.statusCode).toBe(200);
+
+      const second = await invoke(
+        handlers, "POST", "/api/admin/analyst-tables/:id/run-watchdog",
+        { params: { id: "capital_raise_benchmarks" } },
+      );
+      expect(second.statusCode).toBe(429);
+      // Lock the 429 contract: Retry-After header (HTTP standard) + a
+      // structured body with both `retryAfter` (canonical, used by the
+      // admin UI) and `retryAfterSeconds` (legacy alias) + a friendly
+      // human-readable `message` for the toast.
+      const body = second.body as any;
+      expect(body.error).toBe("RATE_LIMITED");
+      expect(body.retryAfter).toBeGreaterThan(0);
+      expect(body.retryAfterSeconds).toBe(body.retryAfter);
+      expect(typeof body.message).toBe("string");
+      expect(body.message).toMatch(/wait/i);
+      expect(second.headers["Retry-After"]).toBe(String(body.retryAfter));
+      // Watchdog cycle invoked exactly once — the rate-limited 2nd call
+      // never reaches it.
+      expect(mockedRunWatchdog).toHaveBeenCalledTimes(1);
+    });
+
+    it("propagates a 500 if the watchdog cycle throws", async () => {
+      mockedRunWatchdog.mockRejectedValue(new Error("LLM offline"));
+      const { statusCode } = await invoke(
+        handlers, "POST", "/api/admin/analyst-tables/:id/run-watchdog",
+        { params: { id: "capital_raise_benchmarks" } },
+      );
+      expect(statusCode).toBe(500);
     });
   });
 

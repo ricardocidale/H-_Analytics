@@ -27,11 +27,13 @@ import { logAndSendError, logActivity } from "../helpers";
 import { logger } from "../../logger";
 import {
   analystRefreshGuards,
+  csrfTokenGuard,
   releaseInFlight,
   ANALYST_TABLE_ALLOW_LIST,
   type AnalystTableId,
 } from "../../middleware/analyst-refresh-guards";
 import { researchCapitalRaiseBenchmarks, researchExitMultiples } from "../../ai/analyst-table-refresh";
+import { runCapitalRaiseWatchdogCycle } from "../../ai/ambient/capital-raise-watchdog";
 import { narrateSpecialistHandoff } from "../../lib/specialist-identity-resolver";
 import type { AnalystRefreshAuditLog } from "@shared/schema";
 
@@ -74,6 +76,38 @@ function deriveRefreshSource(
     };
   }
   return { kind: "unknown", label: "Unknown" };
+}
+
+// ── Per-admin rate limiter for the on-demand watchdog trigger ────
+// Keyed by adminId, stores the timestamp of the most recent forced
+// `runCapitalRaiseWatchdogCycle` call. Returns 0 if a slot is available
+// (and records the new attempt), or the number of milliseconds the
+// caller must wait before the next attempt.
+//
+// In-memory only by design — this is a soft anti-spam guard for the
+// admin-facing button, not a security boundary. The watchdog itself
+// also writes audit-log rows, which the existing per-admin counter
+// in `analystRefreshGuards` already polls; that's the durable
+// cross-process limit. This in-memory map adds a tighter 60s cooldown
+// on the specific watchdog trigger so a single admin double-clicking
+// the button can't burn LLM budget twice in two seconds.
+const WATCHDOG_MIN_INTERVAL_MS = 60 * 1000;
+const watchdogLastRunAt = new Map<number, number>();
+
+export function clearWatchdogRateState() {
+  watchdogLastRunAt.clear();
+}
+
+function takeWatchdogRateSlot(adminId: number, now: number = Date.now()): number {
+  const last = watchdogLastRunAt.get(adminId);
+  if (last != null) {
+    const elapsed = now - last;
+    if (elapsed < WATCHDOG_MIN_INTERVAL_MS) {
+      return WATCHDOG_MIN_INTERVAL_MS - elapsed;
+    }
+  }
+  watchdogLastRunAt.set(adminId, now);
+  return 0;
 }
 
 // Phase 3 (#453) — owning specialist per analyst table. Used to
@@ -369,6 +403,102 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       logAndSendError(res, "Failed to discard analyst-table refresh", err);
     }
   });
+
+  // ── POST /api/admin/analyst-tables/:id/run-watchdog ───────────
+  // Admin-only on-demand trigger for the Capital-Raise Watchdog. The
+  // ambient scheduler calls `runCapitalRaiseWatchdogCycle` on a 6h tick
+  // with the cadence guard active (default weekly); this endpoint
+  // bypasses the cadence guard via `{ force: true }` so admins can
+  // exercise the real scheduled code path on demand — for testing,
+  // post-market-shock manual nudges, or end-to-end cron verification.
+  //
+  // Distinct from the manual `POST .../refresh` (which calls the LLM
+  // synthesizer and stages a diff for admin commit/discard); the
+  // watchdog runs the full ingest pipeline including the N+1 evidence
+  // gate and atomically writes the snapshot itself, just like the
+  // scheduled cron path.
+  //
+  // Security:
+  //   - admin-only (requireAdmin)
+  //   - CSRF-protected (same double-submit / HMAC contract as /refresh)
+  //   - allow-list scoped to capital_raise_benchmarks
+  //   - per-admin rate limit: ≤1 forced run per minute (prevents
+  //     runaway LLM spend if the button is mashed)
+  app.post(
+    "/api/admin/analyst-tables/:id/run-watchdog",
+    requireAdmin,
+    csrfTokenGuard,
+    async (req: Request, res: Response) => {
+      const tableId = req.params.id;
+      if (tableId !== "capital_raise_benchmarks") {
+        return res.status(400).json({
+          error: `Watchdog trigger is only available for capital_raise_benchmarks (got ${tableId})`,
+        });
+      }
+      const adminId = req.user?.id;
+      if (!adminId) return res.status(401).json({ error: "Authentication required" });
+
+      // Per-admin rate limit: once per minute. The watchdog itself runs
+      // the LLM synthesizer, so even a "successful" forced run can cost
+      // a non-trivial number of tokens — a 60s cooldown keeps a
+      // double-click or accidental F5 storm from compounding spend.
+      const wait = takeWatchdogRateSlot(adminId);
+      if (wait > 0) {
+        const retryAfter = Math.ceil(wait / 1000);
+        res.setHeader("Retry-After", String(retryAfter));
+        return res.status(429).json({
+          error: "RATE_LIMITED",
+          // Both `retryAfter` (canonical) and `retryAfterSeconds` (legacy)
+          // are returned so existing/older clients keep working while the
+          // admin UI reads the canonical key.
+          retryAfter,
+          retryAfterSeconds: retryAfter,
+          message: `Watchdog rate limit: please wait ${retryAfter}s before forcing another run.`,
+        });
+      }
+
+      try {
+        const outcome = await runCapitalRaiseWatchdogCycle({ force: true });
+        // The cadence-skipped branch can't fire under force:true today,
+        // but defending against future logic changes is cheap.
+        if (!outcome.ran) {
+          return res.json({
+            ran: false,
+            reason: outcome.reason,
+            nextEligibleAt: outcome.nextEligibleAt,
+          });
+        }
+        logActivity(req, "analyst-table-run-watchdog", "analyst_table", null, tableId, {
+          reason: outcome.reason,
+          auditId: outcome.result.auditId,
+          appliedDimensions: outcome.result.appliedDimensions,
+          skippedDimensions: outcome.result.skippedDimensions,
+          tokensUsed: outcome.tokensUsed,
+          sourceCount: outcome.sourceCount,
+        });
+        return res.json({
+          ran: true,
+          reason: outcome.reason,
+          tableId: outcome.result.tableId,
+          auditId: outcome.result.auditId,
+          appliedDimensions: outcome.result.appliedDimensions,
+          skippedDimensions: outcome.result.skippedDimensions,
+          recordedAt: outcome.result.recordedAt,
+          sourceCount: outcome.sourceCount,
+          tokensUsed: outcome.tokensUsed,
+        });
+      } catch (err: unknown) {
+        // The rate-limit slot is already spent — that's intentional;
+        // a failing watchdog run still consumed LLM time, so we don't
+        // hand the admin a "free retry" cookie inside the cooldown.
+        logger.error(
+          `Forced capital-raise watchdog run failed for adminId=${adminId}: ${String(err)}`,
+          "analyst-refresh",
+        );
+        logAndSendError(res, "Forced watchdog run failed", err);
+      }
+    },
+  );
 
   // ── POST /api/admin/analyst-tables/:id/reseed-accounts ────────
   // Bulk reseed: writes to the singleton row, then nulls per-user overrides

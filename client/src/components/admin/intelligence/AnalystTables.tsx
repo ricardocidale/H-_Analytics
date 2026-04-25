@@ -71,6 +71,22 @@ type RefreshResponse = {
   evidence: Array<{ source: string; url?: string; finding: string }>;
 };
 
+// Shape returned by POST /api/admin/analyst-tables/:id/run-watchdog.
+// Mirrors `RunCapitalRaiseWatchdogResult` on the server but flattened
+// into a single object for the toast renderer.
+type WatchdogRunResponse = {
+  ran: boolean;
+  reason: string;
+  tableId?: string;
+  auditId?: number | null;
+  appliedDimensions?: string[];
+  skippedDimensions?: string[];
+  recordedAt?: string;
+  sourceCount?: number;
+  tokensUsed?: number;
+  nextEligibleAt?: string;
+};
+
 const FRESHNESS_BADGE: Record<TableRow["freshness"], string> = {
   fresh:   "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
   stale:   "bg-amber-500/15 text-amber-700 border-amber-500/30",
@@ -136,6 +152,65 @@ export default function AnalystTables() {
       toast({ title: "Refresh discarded", description: "No changes were applied." });
       setPendingRefresh(null);
       setTheaterTable(null);
+    },
+  });
+
+  const [watchdogRunningId, setWatchdogRunningId] = useState<string | null>(null);
+  const watchdogMutation = useMutation({
+    mutationFn: async (table: TableRow) => {
+      setWatchdogRunningId(table.id);
+      const res = await apiRequest(
+        "POST",
+        `/api/admin/analyst-tables/${table.id}/run-watchdog`,
+        {},
+      );
+      return (await res.json()) as WatchdogRunResponse;
+    },
+    onSuccess: (payload) => {
+      setWatchdogRunningId(null);
+      const applied = payload.appliedDimensions ?? [];
+      const skipped = payload.skippedDimensions ?? [];
+      const auditPart = payload.auditId != null ? ` · audit #${payload.auditId}` : "";
+      // The reason field is the watchdog's own taxonomy
+      // (applied / insufficient_evidence / no_observations / cadence_skipped).
+      // We surface it verbatim so an admin testing the cron path can verify
+      // exactly which branch fired without opening the audit log. We also
+      // list the actual dimension names (not just counts) so the admin can
+      // see which dimensions the watchdog wrote vs. dropped.
+      const formatList = (xs: string[]) => (xs.length === 0 ? "none" : xs.join(", "));
+      const summary = payload.ran
+        ? `${payload.reason}${auditPart}\nApplied (${applied.length}): ${formatList(applied)}\nSkipped (${skipped.length}): ${formatList(skipped)}`
+        : `${payload.reason}${auditPart}`;
+      toast({ title: "Watchdog cycle complete", description: summary });
+      qc.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
+    },
+    onError: (err: Error) => {
+      setWatchdogRunningId(null);
+      // apiRequest throws Error("<status>: <body>"). For our 429 the body is
+      // JSON with { error: "RATE_LIMITED", retryAfter, message }, so pull the
+      // retryAfter out and render a friendlier "wait N seconds" toast. All
+      // other failures fall back to the raw error message.
+      let title = "Watchdog run failed";
+      let description = err.message;
+      if (err.message.startsWith("429:")) {
+        const jsonStart = err.message.indexOf("{");
+        if (jsonStart !== -1) {
+          try {
+            const body = JSON.parse(err.message.slice(jsonStart)) as {
+              retryAfter?: number;
+              message?: string;
+            };
+            if (typeof body.retryAfter === "number") {
+              title = "Slow down";
+              description =
+                body.message ?? `Please wait ${body.retryAfter}s before forcing another watchdog cycle.`;
+            }
+          } catch {
+            // Fall through to the default description.
+          }
+        }
+      }
+      toast({ title, description, variant: "destructive" });
     },
   });
 
@@ -226,12 +301,33 @@ export default function AnalystTables() {
                   </div>
                 )}
               </div>
-              <AnalystActionButton
-                onClick={() => handleRefresh(t)}
-                running={refreshMutation.isPending && theaterTable?.id === t.id}
-                testIdSuffix={t.id}
-                variant="header"
-              />
+              <div className="flex items-center gap-2">
+                <AnalystActionButton
+                  onClick={() => handleRefresh(t)}
+                  running={refreshMutation.isPending && theaterTable?.id === t.id}
+                  testIdSuffix={t.id}
+                  variant="header"
+                />
+                {/*
+                  Capital-Raise Watchdog admin trigger. Only the
+                  capital_raise_benchmarks table has a scheduled watchdog
+                  today; for other analyst tables the manual refresh button
+                  on the left is the only research entrypoint.
+
+                  Per the Analyst-button convention, the label stays
+                  "Analyst" / "Studying…" — we differentiate this control
+                  from the manual refresh by tooltip text and testid only.
+                */}
+                {t.id === "capital_raise_benchmarks" && (
+                  <AnalystActionButton
+                    onClick={() => watchdogMutation.mutate(t)}
+                    running={watchdogMutation.isPending && watchdogRunningId === t.id}
+                    testIdSuffix={`watchdog-${t.id}`}
+                    variant="header"
+                    tooltipText="Have the Analyst run the Capital-Raise Watchdog now (forces a real scheduled cycle, bypassing the weekly cadence)."
+                  />
+                )}
+              </div>
             </div>
 
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">

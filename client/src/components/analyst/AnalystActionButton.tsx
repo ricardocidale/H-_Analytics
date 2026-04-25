@@ -19,6 +19,14 @@ interface AnalystActionButtonProps {
   className?: string;
   testIdSuffix?: string;
   label?: string;
+  /**
+   * Optional override for the idle-state tooltip. The label always remains
+   * "Analyst" / "Studying…" per the canonical affordance contract — this
+   * prop only changes the tooltip verb, so callers can disambiguate two
+   * Analyst buttons living next to each other (e.g. manual refresh vs.
+   * forced watchdog run on the same card).
+   */
+  tooltipText?: string;
 }
 
 function formatCooldown(ms: number): string {
@@ -40,6 +48,7 @@ export function AnalystActionButton({
   className,
   testIdSuffix,
   label = "Analyst",
+  tooltipText: tooltipTextOverride,
 }: AnalystActionButtonProps) {
   const onCooldown = cooldownRemainingMs > 0;
   const disabled = running || onCooldown;
@@ -54,11 +63,14 @@ export function AnalystActionButton({
     ? `button-analyst-${testIdSuffix}`
     : "button-analyst";
 
+  const idleTooltip =
+    tooltipTextOverride ??
+    "Have the Analyst research this section and suggest ranges with sources.";
   const tooltipText = running
     ? "The Analyst is studying…"
     : onCooldown
       ? `Available again in ${formatCooldown(cooldownRemainingMs)}`
-      : "Have the Analyst research this section and suggest ranges with sources.";
+      : idleTooltip;
 
   const displayLabel = running ? "Studying…" : label;
 
