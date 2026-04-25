@@ -80,19 +80,24 @@ The OT-A.3 saga's $210–$280 in direct Anthropic API spend is the only category
 
 Each row below is a recurring loss pattern. They are listed in priority order: highest visible $ impact first.
 
-### W1 — `drizzle-kit push` TTY failure (recurring; never structurally fixed)
+### W1 — `drizzle-kit push` TTY failure — **EFFECTIVELY FIXED on this workstation push path (April 25, 2026)**
 
-**Symptom.** Every schema change requires either:
+**Symptom.** Every schema change required either:
 1. Running the push, hitting the rename-prompt, killing the process, then writing the SQL by hand; or
 2. Skipping the tool entirely and going straight to raw `CREATE INDEX / ALTER TABLE`.
 
-**Frequency.** At least once per schema-touching task. This window: 4 documented occurrences.
+**Frequency.** At least once per schema-touching task. Last 30-day window: 4 documented occurrences in `replit.md` alone (`migrations/0020`, `model_constant_overrides` FK indexes, `specialist_configs` tables, `analyst_cooldowns` table).
 
-**Forward cost if not fixed.** $30–$80 per occurrence × ~2 schema tasks per week × 4 weeks/month = **$240–$640/month**.
+**Resolution.** New wrapper at `script/db-push-force.sh` runs `npx drizzle-kit push --force --verbose`:
+- `--force` auto-approves the rename prompt (and any other data-loss statements) — turning the recurring TTY block into a single non-interactive command.
+- `--verbose` prints every SQL statement before executing, so the failure mode "I didn't know it would drop X" is visible in the log.
+- The wrapper **requires an explicit `--i-have-reviewed` ack** (or `DB_PUSH_FORCE_ACK=1` for headless contexts) to keep `--force` from being a foot-gun. The error message instructs the caller to run `git diff shared/schema/` first.
 
-**Structural fix candidates.**
-- Move all schema work behind a non-interactive wrapper script that pipes a default answer to the rename prompt (`script/db-push-noninteractive.ts`).
-- Or stop pretending the tool works in this environment and codify "always raw SQL via `script/migrations/*.sql`" as the rule.
+This was the platform's recommended fix all along (the system's `important_database_safety_rules` prompt explicitly says "Run `npm run db:push --force` to sync safely if `npm run db:push` doesn't work"), but no script alias existed and the bare command's data-loss semantics were never surfaced in the agent prompt. The wrapper makes both the command and the safety preamble discoverable.
+
+**Forward cost.** Effectively zero for the schema-push path itself, assuming agents reach for `script/db-push-force.sh` instead of falling back to hand-written SQL. Residual ~$10–$30/month for the 1-in-5 task where someone forgets the wrapper exists and writes SQL anyway. Documentation landed in `replit.md` Quick Commands, `README.md` Quick Commands, and `docs/developer/setup.md` "Push Schema" section.
+
+**Verification.** `sh -n script/db-push-force.sh` clean. Wrapper refuses to run without ack: confirmed via `bash script/db-push-force.sh` (no flag) → exits 1 with the `git diff` instructions.
 
 ### W2 — Auto-checkpoint commits with 1-character messages — **EFFECTIVELY FIXED on this workstation push path (April 24, 2026)**
 
@@ -194,7 +199,7 @@ Each row below is a recurring loss pattern. They are listed in priority order: h
 
 | Watchlist item | Low | High |
 |---|---:|---:|
-| W1 — `drizzle-kit push` TTY | $240 | $640 |
+| W1 — `drizzle-kit push` TTY *(EFFECTIVELY FIXED Apr 25 — residual only)* | $10 | $30 |
 | W2 — Empty-message commits *(STRUCTURALLY FIXED Apr 24 — residual only)* | $1 | $3 |
 | W3 — Workflow stale-status loops | $25 | $100 |
 | W4 — Reviewer false-fail rejections | $40 | $120 |

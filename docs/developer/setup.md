@@ -51,7 +51,19 @@ docker run -d --name hbg-postgres \
 npm run db:push
 ```
 
-This uses Drizzle Kit to push the schema from `shared/schema.ts` to your database. The app also runs TypeScript startup migrations automatically on boot.
+This uses Drizzle Kit to push the schema from `shared/schema/` (entry point: `shared/schema/index.ts`) to your database. The app also runs TypeScript startup migrations automatically on boot.
+
+**If `db:push` blocks on a rename prompt** (common in non-TTY contexts — Replit Agent loops, CI, scripted setups), use the non-interactive wrapper instead:
+
+```bash
+# Review what the schema actually changed
+git diff shared/schema/
+
+# Then apply with auto-approval (the wrapper requires the ack flag)
+bash script/db-push-force.sh --i-have-reviewed
+```
+
+The wrapper runs `drizzle-kit push --force --verbose` — `--force` auto-approves data-loss statements (rename detection, column drops), and `--verbose` prints every SQL statement before executing so the diff is visible in the log. Always run `git diff shared/schema/` first; `--force` will silently approve a column DROP if you mis-edited the schema.
 
 ---
 

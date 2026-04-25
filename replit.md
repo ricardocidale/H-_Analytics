@@ -264,7 +264,8 @@ npm run stats          # File/line/test counts (<5s)
 npm run audit:quick    # Code quality: 13 checks (<3s)
 npm run exports:check  # Unused export detection (<5s)
 npm run diff:summary   # Git status + diff stats (<1s)
-npm run db:push        # Push schema changes
+npm run db:push        # Push schema changes (interactive — prompts on renames)
+bash script/db-push-force.sh --i-have-reviewed   # Push without TTY (ack required)
 npx tsx script/ci-hygiene.ts  # Auto-fix CI failures after external pulls
 ```
 

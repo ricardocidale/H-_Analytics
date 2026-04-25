@@ -574,6 +574,9 @@ npm run lint:summary   # TypeScript type checking
 npm run stats          # Codebase metrics
 npm run audit:quick    # Quick code quality scan
 npm run exports:check  # Find unused exports
+npm run db:push        # Apply schema (interactive; prompts on renames)
+bash script/db-push-force.sh --i-have-reviewed   # Apply schema without a TTY
+                       # (auto-approves rename/drop; review `git diff shared/schema/` first)
 ```
 
 ---
