@@ -42,7 +42,18 @@ export function registerCatalogRoutes(app: Express) {
   // the same SpecialistPage and edit Gaspar's identity through the same UI.
   app.get("/api/admin/specialists", requireAdmin, async (_req, res) => {
     try {
-      const overrides = await storage.listIdentityOverrides();
+      const [overrides, llmOverrideIds] = await Promise.all([
+        storage.listIdentityOverrides(),
+        // Task #502 — single batch query that returns the set of specialist
+        // ids whose specialist_configs row diverges from the global LLM /
+        // pipeline-policy defaults. We surface this on each catalog row so
+        // the sidebar can render an "Overrides" badge at a glance and the
+        // LLM Defaults page can show a drift summary. The method is part
+        // of the IStorage contract (see server/storage/specialist-config.ts);
+        // a missing implementation would surface as a typed error rather
+        // than a silent empty set.
+        storage.listSpecialistsWithLlmOverrides(),
+      ]);
       const overrideById = new Map(overrides.map((o) => [o.specialistId, o]));
       const catalogRows = SPECIALIST_CATALOG.map((d) => {
         const resolved = resolveSpecialistIdentity(
@@ -60,6 +71,12 @@ export function registerCatalogRoutes(app: Express) {
           subject: d.subject,
           capabilities: d.capabilities,
           status: d.status,
+          // Task #502 — true iff this Specialist's `specialist_configs`
+          // row has any non-null N+1 model override, multi-model toggle
+          // override, or pipeline-policy workflow override. Specialists
+          // that lack `llm-config` capability never report true (no UI
+          // to set an override in the first place).
+          hasLlmOverrides: llmOverrideIds.has(d.id),
           candidateFields: d.candidateFields ?? [],
           prerequisites: (d.prerequisites ?? []).map((id) => ({
             id,
@@ -84,6 +101,9 @@ export function registerCatalogRoutes(app: Express) {
         subject: "orchestrator" as const,
         capabilities: [] as string[],
         status: "built" as const,
+        // Gaspar declares no editable LLM Config tab — overrides are not
+        // possible for the orchestrator, so this is always false.
+        hasLlmOverrides: false,
         candidateFields: [] as never[],
         prerequisites: [] as never[],
       };

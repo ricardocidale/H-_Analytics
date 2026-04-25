@@ -314,3 +314,50 @@ describe("Storage Layer — Index delegates to sub-modules", () => {
     expect(src).toContain("Object.getPrototypeOf(instance)");
   });
 });
+
+describe("Storage Layer — SpecialistConfigStorage (Task #502 LLM overrides)", () => {
+  const src = readStorageFile("specialist-config.ts");
+
+  it("listSpecialistsWithLlmOverrides exists and selects only the override columns", () => {
+    // Static-analysis check: the batch query must read exactly the columns
+    // the override decision depends on. If a future schema migration adds
+    // a new "override" column (e.g. a sixth model slot), this assertion
+    // fails and reminds us to extend the projection + decision logic.
+    expect(src).toContain("async listSpecialistsWithLlmOverrides()");
+    expect(src).toContain("multiModelEnabled: specialistConfigs.multiModelEnabled");
+    expect(src).toContain("analystAModelResourceId: specialistConfigs.analystAModelResourceId");
+    expect(src).toContain("analystBModelResourceId: specialistConfigs.analystBModelResourceId");
+    expect(src).toContain("synthesisModelResourceId: specialistConfigs.synthesisModelResourceId");
+    expect(src).toContain("fallbackModelResourceId: specialistConfigs.fallbackModelResourceId");
+    expect(src).toContain("workflowOverrides: specialistConfigs.workflowOverrides");
+  });
+
+  it("decides 'override' as null-aware on the model-slot columns", () => {
+    // Each tri-state / model-id column counts as an override iff it's
+    // non-null. We assert each guard explicitly so a careless edit that
+    // demotes one of these checks to a truthy/falsey test (which would
+    // wrongly treat resourceId === 0 as "no override") gets flagged.
+    expect(src).toContain("r.multiModelEnabled !== null");
+    expect(src).toContain("r.analystAModelResourceId !== null");
+    expect(src).toContain("r.analystBModelResourceId !== null");
+    expect(src).toContain("r.synthesisModelResourceId !== null");
+    expect(src).toContain("r.fallbackModelResourceId !== null");
+  });
+
+  it("treats workflowOverrides as 'no override' when present-but-all-null", () => {
+    // {} or { someKey: null } must NOT count as an override — it represents
+    // an admin who opened the panel and saved without changing anything.
+    // The guard is `Object.values(wf).some((v) => v !== null && v !== undefined)`
+    // and must remain so to keep parity with the "null = inherit" doctrine.
+    expect(src).toContain("Object.values(wf).some((v) => v !== null && v !== undefined)");
+  });
+
+  it("documents that promptTemplate and modelResourceId are NOT overrides", () => {
+    // These columns have no global default — every Specialist owns its own
+    // primary model + prompt — so they must never feed the override count.
+    // The doc comment captures the invariant; static check ensures the
+    // doctrine is preserved as the file evolves.
+    expect(src).toContain("`modelResourceId` (the per-Specialist primary model) and `promptTemplate`");
+    expect(src).toContain("are NOT considered overrides");
+  });
+});

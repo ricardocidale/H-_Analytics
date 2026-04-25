@@ -26,6 +26,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle } from "@/components/icons";
 
 import type { Capability, SpecialistDetailResponse } from "./types";
+import { consumeAiIntelligenceTabHint, usePendingAiIntelligenceTabHint } from "@/lib/ai-intelligence-nav";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { SourcesTab } from "./tabs/SourcesTab";
 import { RequiredFieldsTab } from "./tabs/RequiredFieldsTab";
@@ -78,9 +79,38 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
   // content pane. See the inline mount sites in Admin.tsx and
   // AiIntelligence.tsx — they don't pass key={specialistId}, so the
   // component instance is reused across id changes.
+  //
+  // Task #502 — deep-link tab hints (from the sidebar's per-Specialist
+  // "Overrides" badge or the LLM Defaults chip click-through) are NOT
+  // consumed here. We only clear `activeTab` so the default first tab
+  // would render if no hint resolves. The `pendingHint` effect below
+  // owns hint consumption + capability gating uniformly, which means a
+  // hint that arrives before the Specialist's `data` is loaded waits
+  // safely until capabilities are known instead of being applied blind.
   useEffect(() => {
     setActiveTab(undefined);
   }, [specialistId]);
+
+  // Task #502 — single source of truth for tab-hint consumption. Fires on
+  //   1. fresh-navigation hints (`pendingHint` set by the LLM Defaults chip
+  //      before this page mounts; `data` is undefined on first run, then
+  //      becomes defined and re-fires this effect),
+  //   2. same-Specialist re-clicks of the sidebar's Overrides badge (the
+  //      nonce on the hint object guarantees this effect re-runs even when
+  //      the same `{specialistId, tab}` pair is set twice in a row).
+  // Capability gating prevents a misrouted hint (e.g. "llm-config" for a
+  // Specialist that doesn't declare the capability) from wedging Radix
+  // Tabs into an empty active state — the hint is dropped silently and
+  // the default first tab remains selected.
+  const pendingHint = usePendingAiIntelligenceTabHint();
+  useEffect(() => {
+    if (!data) return;
+    if (!pendingHint || pendingHint.specialistId !== specialistId) return;
+    const declaresCapability = data.definition.capabilities.includes(pendingHint.tab as Capability);
+    if (!declaresCapability) return;
+    const tab = consumeAiIntelligenceTabHint(specialistId);
+    if (tab) setActiveTab(tab);
+  }, [pendingHint, specialistId, data]);
 
   if (isLoading) {
     return (

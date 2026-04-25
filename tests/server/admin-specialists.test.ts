@@ -29,6 +29,11 @@ vi.mock("../../server/storage", () => ({
     // Task #438 — telemetry endpoints for the Recommendations card.
     recordRecommendationEvent: vi.fn(),
     getRecommendationEventStats: vi.fn(),
+    // Task #502 — catalog list overlays a per-row hasLlmOverrides flag
+    // by batch-loading specialist_configs rows. Default to "no overrides"
+    // so existing assertions on the shape of the catalog response remain
+    // stable; the new field is asserted explicitly below.
+    listSpecialistsWithLlmOverrides: vi.fn().mockResolvedValue(new Set<string>()),
   },
 }));
 
@@ -139,13 +144,32 @@ describe("admin/specialists routes — catalog + detail", () => {
   it("GET /api/admin/specialists returns the entire catalog with status flags", async () => {
     const { status, body } = await invoke(handlers, "GET /api/admin/specialists");
     expect(status).toBe(200);
-    const items = body as Array<{ id: string; status: string; capabilities: string[] }>;
+    const items = body as Array<{ id: string; status: string; capabilities: string[]; hasLlmOverrides: boolean }>;
     // Phase 3 (#453): list now prepends a synthetic Gaspar row so the
     // orchestrator can be navigated to from the same sidebar.
     expect(items).toHaveLength(SPECIALIST_CATALOG.length + 1);
     expect(items[0].id).toBe("gaspar");
     expect(items.find((i) => i.id === "mgmt-co.funding")?.status).toBe("built");
     expect(items.find((i) => i.id === "portfolio-ops.watchdog")?.status).toBe("needs-page");
+    // Task #502 — every row carries a boolean drift flag, defaulting to
+    // false when no Specialist diverges from the global LLM defaults.
+    for (const item of items) {
+      expect(item.hasLlmOverrides).toBe(false);
+    }
+  });
+
+  it("GET /api/admin/specialists exposes hasLlmOverrides when storage reports drift", async () => {
+    (storage.listSpecialistsWithLlmOverrides as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Set(["mgmt-co.funding", "property.executive-summary"]),
+    );
+    const { status, body } = await invoke(handlers, "GET /api/admin/specialists");
+    expect(status).toBe(200);
+    const items = body as Array<{ id: string; hasLlmOverrides: boolean }>;
+    expect(items.find((i) => i.id === "mgmt-co.funding")?.hasLlmOverrides).toBe(true);
+    expect(items.find((i) => i.id === "property.executive-summary")?.hasLlmOverrides).toBe(true);
+    expect(items.find((i) => i.id === "mgmt-co.revenue")?.hasLlmOverrides).toBe(false);
+    // Synthetic gaspar row never participates in the override count.
+    expect(items.find((i) => i.id === "gaspar")?.hasLlmOverrides).toBe(false);
   });
 
   it("GET /api/admin/specialists/:id composes definition + config + assignments-with-health", async () => {

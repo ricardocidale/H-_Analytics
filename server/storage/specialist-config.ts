@@ -100,6 +100,56 @@ export class SpecialistConfigStorage {
   }
 
   /**
+   * Task #502 — returns the set of specialist ids whose `specialist_configs`
+   * row currently overrides ANY field of the global LLM defaults or the
+   * global pipeline policy. Used by the catalog list endpoint to surface
+   * an "Overrides" badge on each Specialist sidebar row, and by the LLM
+   * Defaults summary card to render the "N Specialists currently override
+   * these" callout.
+   *
+   * "Override" is defined as (column-by-column) non-null on any of:
+   *   - multiModelEnabled (tri-state; null = inherit)
+   *   - analystAModelResourceId / analystBModelResourceId
+   *   - synthesisModelResourceId / fallbackModelResourceId
+   *   - workflowOverrides (jsonb; non-null AND has at least one non-null key)
+   *
+   * `modelResourceId` (the per-Specialist primary model) and `promptTemplate`
+   * are NOT considered overrides because there is no global default they
+   * diverge from — every Specialist owns its own primary model + prompt.
+   */
+  async listSpecialistsWithLlmOverrides(): Promise<Set<string>> {
+    const rows = await db
+      .select({
+        specialistId: specialistConfigs.specialistId,
+        multiModelEnabled: specialistConfigs.multiModelEnabled,
+        analystAModelResourceId: specialistConfigs.analystAModelResourceId,
+        analystBModelResourceId: specialistConfigs.analystBModelResourceId,
+        synthesisModelResourceId: specialistConfigs.synthesisModelResourceId,
+        fallbackModelResourceId: specialistConfigs.fallbackModelResourceId,
+        workflowOverrides: specialistConfigs.workflowOverrides,
+      })
+      .from(specialistConfigs);
+    const out = new Set<string>();
+    for (const r of rows) {
+      if (
+        r.multiModelEnabled !== null ||
+        r.analystAModelResourceId !== null ||
+        r.analystBModelResourceId !== null ||
+        r.synthesisModelResourceId !== null ||
+        r.fallbackModelResourceId !== null
+      ) {
+        out.add(r.specialistId);
+        continue;
+      }
+      const wf = r.workflowOverrides;
+      if (wf && Object.values(wf).some((v) => v !== null && v !== undefined)) {
+        out.add(r.specialistId);
+      }
+    }
+    return out;
+  }
+
+  /**
    * Returns the per-Specialist refresh-cadence overrides as a Map. Used by
    * the scheduled-refresh job and the Constants tab to resolve the
    * effective cadence (override → catalog default) without an N+1 lookup.

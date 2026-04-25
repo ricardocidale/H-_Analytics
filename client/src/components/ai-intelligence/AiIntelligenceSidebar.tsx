@@ -11,6 +11,8 @@ import {
   SidebarMenuSubItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { setAiIntelligenceTabHint } from "@/lib/ai-intelligence-nav";
 import {
   IconHelpCircle,
   IconBriefcase,
@@ -39,6 +41,13 @@ import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 interface SpecialistListItem {
   id: string;
   humanName?: string | null;
+  /**
+   * Task #502 — true iff this Specialist's `specialist_configs` row has
+   * any non-null override of the global N+1 model defaults, the multi-
+   * model toggle, or the global pipeline-policy workflow knobs. Drives
+   * the "Overrides" badge on the sidebar row.
+   */
+  hasLlmOverrides?: boolean;
 }
 
 export type AiIntelligenceSection =
@@ -263,6 +272,18 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
   const navGroups = useMemo(() => buildNavGroups(gasparHumanName), [gasparHumanName]);
   const activeGroup = getGroupForSection(activeSection, navGroups);
 
+  // Task #502 — quick lookup of `hasLlmOverrides` keyed by Specialist id so
+  // the per-row "Overrides" badge can render in O(1) inside the map below.
+  // Specialists not present in the list (e.g. while the query is loading
+  // or because the row is the synthetic Gaspar one) default to "no badge".
+  const overrideById = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const s of specialists ?? []) {
+      if (s.hasLlmOverrides) map.set(s.id, true);
+    }
+    return map;
+  }, [specialists]);
+
   return (
     <SidebarProvider
       defaultOpen
@@ -308,17 +329,27 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                       {group.sections.map((section) => {
                         const isActive = activeSection === section.value;
                         const Icon = section.icon;
+                        // Task #502 — when this row corresponds to one of
+                        // the 12 catalog Specialists, look up its override
+                        // status and render a small clickable "Overrides"
+                        // badge that jumps the user to the LLM Config tab.
+                        const specialistId = section.value in SPECIALIST_SECTION_TO_ID
+                          ? SPECIALIST_SECTION_TO_ID[section.value as keyof typeof SPECIALIST_SECTION_TO_ID]
+                          : null;
+                        const hasOverride = specialistId
+                          ? overrideById.get(specialistId) === true
+                          : false;
                         return (
-                          <SidebarMenuSubItem key={section.value}>
+                          <SidebarMenuSubItem key={section.value} className="relative">
                             <SidebarMenuSubButton
                               isActive={isActive}
                               onClick={() => onSectionChange(section.value)}
                               data-testid={`ai-intelligence-nav-${section.value}`}
-                              className={`cursor-pointer ${section.secondary ? "h-auto py-1.5" : ""}`}
+                              className={`cursor-pointer ${section.secondary ? "h-auto py-1.5" : ""} ${hasOverride ? "pr-16" : ""}`}
                             >
                               <Icon className="size-4 shrink-0" />
                               {section.secondary ? (
-                                <span className="flex flex-col min-w-0 leading-tight">
+                                <span className="flex flex-col min-w-0 leading-tight flex-1">
                                   <span
                                     className="truncate"
                                     data-testid={`ai-intelligence-nav-${section.value}-primary`}
@@ -333,9 +364,48 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                                   </span>
                                 </span>
                               ) : (
-                                <span className="truncate">{section.label}</span>
+                                <span className="truncate flex-1">{section.label}</span>
                               )}
                             </SidebarMenuSubButton>
+                            {/*
+                              The "Overrides" badge is a clickable
+                              control of its own (deep-links to the LLM
+                              Config tab) so it must NOT nest inside the
+                              SidebarMenuSubButton, which Radix renders
+                              as an <a>. Nested interactive elements are
+                              invalid HTML and produce inconsistent click
+                              behavior across browsers. We render the
+                              badge as an absolutely-positioned sibling
+                              inside the <li> instead — visually inline,
+                              structurally a peer of the row anchor.
+                            */}
+                            {hasOverride && specialistId && (
+                              <TooltipProvider>
+                                <Tooltip delayDuration={200}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setAiIntelligenceTabHint(specialistId, "llm-config");
+                                        onSectionChange(section.value);
+                                      }}
+                                      className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 inline-flex items-center rounded-sm border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-300 hover:bg-amber-400/20 hover:text-amber-200"
+                                      data-testid={`ai-intelligence-nav-${section.value}-overrides-badge`}
+                                      aria-label="Has LLM overrides — open LLM Config tab"
+                                    >
+                                      Overrides
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right">
+                                    <p className="text-xs">
+                                      This Specialist diverges from the global LLM defaults.
+                                      Click to jump to its LLM Config tab.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </SidebarMenuSubItem>
                         );
                       })}

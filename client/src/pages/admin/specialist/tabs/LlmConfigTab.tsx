@@ -122,6 +122,13 @@ export function LlmConfigTab({
       toast({ title: "LLM config updated" });
       qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
       qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/audit`] });
+      // Task #502 — keep the catalog list's hasLlmOverrides flag in
+      // sync so the AI Intelligence sidebar's per-row "Overrides"
+      // badge and the LLM Defaults summary count refresh on the same
+      // tick. Without this, an admin who toggles a knob from default
+      // to overridden (or back) sees stale drift state until the
+      // next refocus/remount.
+      qc.invalidateQueries({ queryKey: ["/api/admin/specialists"] });
       setSummary("");
     },
     onError: (e: unknown) =>
