@@ -46,6 +46,12 @@ interface Props {
   formData: Partial<GlobalResponse>;
   onChange: <K extends keyof GlobalResponse>(field: K, value: GlobalResponse[K]) => void;
   global: GlobalResponse;
+  /**
+   * `globalAssumptions.id` for the singleton management company. Threaded
+   * through to TabWarningsPanel so override change-log rows are written
+   * against the real company id rather than 0 (task #332).
+   */
+  companyId: number;
   isAdmin: boolean;
   properties: PortfolioPropertySummary[];
   allFeeCategories: FeeCategoryResponse[];
@@ -71,7 +77,7 @@ interface Props {
 export function CompanyAssumptionsTabsView(props: Props) {
   const {
     tabKeys, activeTab, onTabChange,
-    formData, onChange, global, isAdmin,
+    formData, onChange, global, companyId, isAdmin,
     properties, allFeeCategories, modelStartYear, researchValues,
     tabWarnings, onDismissWarning,
     dirtyFields, savedTabs, savingTab, isUpdatePending, onSaveTab,
@@ -198,6 +204,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
             data-testid={`tab-content-${tab}`}
           >
             <TabWarningsPanel
+              companyId={companyId}
               warnings={tabWarnings[tab]}
               onDismissWarning={(fieldName) => onDismissWarning(tab, fieldName)}
             />

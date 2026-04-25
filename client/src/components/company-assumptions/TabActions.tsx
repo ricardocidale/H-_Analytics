@@ -13,6 +13,21 @@
  *   • "Keep" writes to assumption_change_log with source = "user_override"
  *     so the override is auditable.
  *   • Renders nothing (returns null) when there are no warnings.
+ *
+ * Entity-id contract (task #332):
+ *   • The change-log row carries the SINGLETON management company's
+ *     `globalAssumptions.id` as `entityId` so audit-trail queries
+ *     ("show me everything that changed for this company") return the
+ *     row. Earlier revisions hardcoded `entityId: 0`, which routed
+ *     overrides into a phantom company-zero bucket and broke history
+ *     lookups against the real company id. The acknowledgment POST
+ *     intentionally still uses `entityId: 0` because the ack contract
+ *     is per-user-scoped via `userId` (see
+ *     `tests/audit/assumption-acknowledgments.test.ts` — schema picks
+ *     userId, unique constraint includes user_id), so 0 is a stable
+ *     placeholder for the singleton across both the form hook and the
+ *     route layer; changing it would desync the GET/DELETE callers in
+ *     `useCompanyAssumptionsForm.ts` that key off `entityId=0`.
  */
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,11 +46,18 @@ export interface TabValidationWarning {
 }
 
 interface TabWarningsPanelProps {
+  /**
+   * `globalAssumptions.id` for the singleton management company. Used as
+   * the `entityId` on the change-log POST so audit-history queries against
+   * the real company id surface the override. See header doc for the full
+   * entity-id contract (task #332).
+   */
+  companyId: number;
   warnings: TabValidationWarning[];
   onDismissWarning: (fieldName: string) => void;
 }
 
-export function TabWarningsPanel({ warnings, onDismissWarning }: TabWarningsPanelProps) {
+export function TabWarningsPanel({ companyId, warnings, onDismissWarning }: TabWarningsPanelProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [keepingField, setKeepingField] = useState<string | null>(null);
@@ -56,7 +78,7 @@ export function TabWarningsPanel({ warnings, onDismissWarning }: TabWarningsPane
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             entityType: "company",
-            entityId: 0,
+            entityId: companyId,
             fieldName: w.fieldName,
             newValue: w.currentValue,
             changeSource: "user_override",

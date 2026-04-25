@@ -256,6 +256,7 @@ export default function CompanyAssumptions() {
             formData={formApi.formData}
             onChange={formApi.handleUpdate}
             global={global}
+            companyId={global.id}
             isAdmin={isAdmin}
             properties={properties}
             allFeeCategories={allFeeCategories}

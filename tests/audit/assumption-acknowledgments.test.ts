@@ -139,6 +139,78 @@ describe("TabActions.handleKeep — fail loudly + invalidate cache", () => {
   });
 });
 
+describe("TabActions — change-log uses real company id, not entity 0 (task #332)", () => {
+  // Earlier revisions hardcoded `entityId: 0` on the change-log POST when
+  // a user kept a value outside Gaspar's range. That broke
+  // `getAssumptionHistory("company", <real id>)` queries because override
+  // rows landed in a phantom company-zero bucket. The fix: TabActions now
+  // takes a `companyId` prop (sourced from `globalAssumptions.id`) and
+  // forwards it as the change-log entityId. The acknowledgment POST is
+  // intentionally unchanged — that contract is per-user-scoped via userId
+  // and continues to use `entityId: 0` as a stable singleton placeholder.
+  const tabActionsSrc = read("client/src/components/company-assumptions/TabActions.tsx");
+  const tabsViewSrc = read("client/src/components/company-assumptions/CompanyAssumptionsTabsView.tsx");
+  const pageSrc = read("client/src/pages/CompanyAssumptions.tsx");
+
+  it("TabWarningsPanel declares a `companyId: number` prop", () => {
+    expect(tabActionsSrc).toMatch(/companyId:\s*number/);
+  });
+
+  it("change-log POST body uses `entityId: companyId`, not the literal 0", () => {
+    // Locate the assumption-change-log fetch body and assert it interpolates
+    // companyId rather than the literal 0 the bug used.
+    const logIdx = tabActionsSrc.indexOf('"/api/assumption-change-log"');
+    expect(logIdx).toBeGreaterThan(0);
+    const ackIdx = tabActionsSrc.indexOf('"/api/assumption-acknowledgments"', logIdx);
+    expect(ackIdx).toBeGreaterThan(logIdx);
+    const logFetchBlock = tabActionsSrc.slice(logIdx, ackIdx);
+    expect(logFetchBlock).toMatch(/entityId:\s*companyId\b/);
+    expect(logFetchBlock).not.toMatch(/entityId:\s*0\b/);
+  });
+
+  it("ack POST stays on the per-user `entityId: 0` placeholder (intentional)", () => {
+    // The ack contract keys off (userId, fieldName) — the entityId field
+    // is just a stable singleton placeholder shared with the form hook's
+    // GET/DELETE callers. Don't drift it without updating those callers.
+    const ackIdx = tabActionsSrc.indexOf('"/api/assumption-acknowledgments"');
+    expect(ackIdx).toBeGreaterThan(0);
+    const ackBlock = tabActionsSrc.slice(ackIdx, ackIdx + 600);
+    expect(ackBlock).toMatch(/entityId:\s*0\b/);
+  });
+
+  it("CompanyAssumptionsTabsView plumbs `companyId` into TabWarningsPanel", () => {
+    expect(tabsViewSrc).toMatch(/companyId:\s*number/);
+    expect(tabsViewSrc).toMatch(/<TabWarningsPanel[\s\S]{0,200}companyId=\{companyId\}/);
+  });
+
+  it("CompanyAssumptions page passes `global.id` as companyId", () => {
+    expect(pageSrc).toMatch(/<CompanyAssumptionsTabsView[\s\S]{0,400}companyId=\{global\.id\}/);
+  });
+});
+
+describe("Backfill migration — orphan entity_id=0 company change-log rows (task #332)", () => {
+  // A SQL migration in `migrations/` repoints existing
+  // assumption_change_log rows with entity_type='company' and entity_id=0
+  // to the singleton globalAssumptions.id, so post-fix audit-history
+  // queries see the historical override decisions too.
+  const sql = read("migrations/0021_backfill_company_change_log_entity_id.sql");
+
+  it("targets assumption_change_log rows where entity_type='company' AND entity_id=0", () => {
+    expect(sql).toMatch(/UPDATE\s+assumption_change_log/i);
+    expect(sql).toMatch(/entity_type\s*=\s*'company'/);
+    expect(sql).toMatch(/entity_id\s*=\s*0/);
+  });
+
+  it("repoints to the singleton global_assumptions.id (not a hardcoded value)", () => {
+    expect(sql).toMatch(/SET\s+entity_id\s*=\s*\(\s*SELECT\s+id\s+FROM\s+global_assumptions/i);
+  });
+
+  it("is wired into the Drizzle migration journal so migrate() picks it up", () => {
+    const journal = read("migrations/meta/_journal.json");
+    expect(journal).toContain("0021_backfill_company_change_log_entity_id");
+  });
+});
+
 describe("CompanyAssumptions — ack lifecycle on edit + save", () => {
   // Behavior moved into the useCompanyAssumptionsForm hook during the
   // page-shell decomposition (task 471). The contract is unchanged; only

@@ -141,6 +141,13 @@
       "when": 1779926400000,
       "tag": "0019_specialist_config_missing_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1782000000000,
+      "tag": "0021_backfill_company_change_log_entity_id",
+      "breakpoints": true
     }
   ]
 }
