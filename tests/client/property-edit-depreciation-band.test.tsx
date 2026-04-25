@@ -203,6 +203,21 @@ describe("CapitalStructureSection — Phase 4 read-only doctrine (Authority-Gove
     expect(band.textContent ?? "").toContain("Per-Property Override");
   });
 
+  it("renders an in-app navigation link back to Admin → Model Defaults → Model Constants", async () => {
+    globalThis.fetch = buildFetchMock({ authorized: true }) as unknown as typeof fetch;
+    renderSection();
+    const band = await screen.findByTestId("section-model-constants-property-edit-depreciation");
+    const link = band.querySelector<HTMLButtonElement>(
+      '[data-testid="link-nav-admin-model-constants"]',
+    );
+    expect(link).toBeTruthy();
+    // It must be a real interactive element (button/anchor), not just
+    // text — the architect flagged the original text-only copy as a UX
+    // gap. button[type=button] is what we ship today.
+    expect(["BUTTON", "A"].includes(link!.tagName)).toBe(true);
+    expect(link!.textContent ?? "").toMatch(/Admin.*Model Defaults.*Model Constants/);
+  });
+
   it("falls back to the static GOVERNED_FIELDS metadata when the admin endpoint is unauthorized (401)", async () => {
     globalThis.fetch = buildFetchMock({ authorized: false }) as unknown as typeof fetch;
     renderSection();
