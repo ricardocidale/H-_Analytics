@@ -192,6 +192,68 @@ function FlowArrow() {
   return <div className="self-center text-muted-foreground select-none px-0.5">→</div>;
 }
 
+/**
+ * ConsumerHistoryRow — fetches and renders one consumer Specialist's
+ * recent quality-score history (~30 days) using the same endpoint and
+ * chart component as the Specialist page (Task #540, #552). Each
+ * consumer gets its own row so ops users triaging a flagged resource
+ * can see, at a glance, whether the score is trending up or down before
+ * pivoting to the Specialist view.
+ */
+function ConsumerHistoryRow({
+  specialistId,
+  specialistName,
+  qualityScore,
+}: {
+  specialistId: string;
+  specialistName: string;
+  qualityScore: number | null;
+}) {
+  const { data, isLoading, isError } = useQuery<QualityHistoryResponse>({
+    queryKey: [`/api/admin/specialists/${specialistId}/quality/history`],
+    queryFn: async () => {
+      // Request 30 — nightly recompute appends one row per day, so this
+      // covers the last ~30 days of scores per Task #540.
+      const res = await fetch(
+        `/api/admin/specialists/${specialistId}/quality/history?limit=30`,
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      return res.json();
+    },
+  });
+  const points = data?.points ?? [];
+  return (
+    <div className="rounded border p-2.5" data-testid={`consumer-history-${specialistId}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="text-sm font-medium">{specialistName}</div>
+        <ScorePill score={qualityScore} />
+      </div>
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+        <span>Score history — last {points.length} day{points.length === 1 ? "" : "s"}</span>
+        <span className="font-mono">green ≥ 80 · amber ≥ 60 · red &lt; 60</span>
+      </div>
+      {isLoading ? (
+        <div
+          className="flex items-center justify-center text-xs text-muted-foreground border rounded h-[72px]"
+          data-testid={`consumer-history-loading-${specialistId}`}
+        >
+          Loading history…
+        </div>
+      ) : isError ? (
+        <div
+          className="flex items-center justify-center text-xs text-rose-600 border rounded h-[72px]"
+          data-testid={`consumer-history-error-${specialistId}`}
+        >
+          Failed to load history.
+        </div>
+      ) : (
+        <QualityHistoryChart points={points} testIdPrefix={`consumer-history-row-${specialistId}`} />
+      )}
+    </div>
+  );
+}
+
 function GapPill({ gap }: { gap: QualityGap }) {
   const tone = gap.severity === "critical" ? "border-rose-500/40 text-rose-700 dark:text-rose-400 bg-rose-500/5"
     : gap.severity === "warning" ? "border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-500/5"
@@ -489,6 +551,33 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                     <div className="text-xs text-muted-foreground">Critical gaps</div>
                     <div className="mt-1 font-mono text-lg">{data.quality.criticalGaps}</div>
                   </div>
+                </div>
+                {/*
+                  Per-consumer quality history (Task #552). Mirrors the
+                  sparkline on each Specialist page so ops users land
+                  on the Resources detail with the same trend before
+                  deciding whether to pivot to the Specialist view.
+                */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    Score history per consumer
+                  </h4>
+                  {data.consumers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground" data-testid="consumer-history-empty">
+                      No Specialist consumes this resource yet, so there is no history to chart.
+                    </p>
+                  ) : (
+                    <div className="space-y-2" data-testid="consumer-history-list">
+                      {data.consumers.map((c) => (
+                        <ConsumerHistoryRow
+                          key={c.specialistId}
+                          specialistId={c.specialistId}
+                          specialistName={c.specialistName}
+                          qualityScore={c.qualityScore}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Gaps across consumers</h4>
