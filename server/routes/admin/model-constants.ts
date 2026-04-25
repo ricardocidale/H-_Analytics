@@ -39,10 +39,35 @@ import { getEffectiveConstant } from "@shared/get-effective-constant";
 import { COUNTRY_DEFAULTS } from "@shared/countryDefaults";
 import { proposeConstantRegeneration } from "../../ai/regenerate-constants";
 import { logger } from "../../logger";
+import { isAdminRole } from "@shared/constants";
 import {
   getSpecialistForConstant,
   getRefreshCadenceDaysForConstant,
 } from "../../../engine/analyst/registry/specialist-catalog";
+import {
+  verifyRefreshAction,
+  type RefreshActionVerifyResult,
+} from "../../notifications/constants-action-token";
+import { CONSTANTS_TAB_PATH } from "../../notifications/constants-overdue-digest";
+
+/**
+ * In-memory in-flight set for the email-action `refresh-from-email`
+ * route. Tokens carry an `issuedAt` timestamp that the route compares
+ * against the latest successful research run for the row, so true
+ * "I clicked yesterday and a run completed" idempotency comes from the
+ * DB. This Set is the narrower race guard: when two tabs (or a curious
+ * admin double-click) hit the same link within a few seconds, the
+ * second call sees the first still in flight and short-circuits to a
+ * "refresh already in progress" page instead of double-firing the
+ * specialist before the run row lands.
+ *
+ * Keys are `${key}|${country ?? ""}|${subdivision ?? ""}` — the same
+ * tuple shape the storage layer scopes runs by.
+ */
+const inflightRefreshFromEmail = new Set<string>();
+function inflightKey(key: string, country: string | null, subdivision: string | null): string {
+  return `${key}|${country ?? ""}|${subdivision ?? ""}`;
+}
 
 const overrideBodySchema = z.object({
   country: z.string().nullable().optional(),
@@ -963,4 +988,303 @@ export function registerModelConstantsRoutes(app: Express) {
       logAndSendError(res, "Failed to load research history", error);
     }
   });
+
+  /**
+   * Email-action: one-click "Re-fetch from authority" from the
+   * overdue-digest email (Task #602).
+   *
+   * Why this is GET (not POST):
+   *   The link lives inside an email body. Mail clients render `<a href>`
+   *   as plain GET clicks; some preview-fetch them but only with GET.
+   *   We accept the slightly-unusual "GET that has side effects" because
+   *   the alternative — a JS-driven landing page with a confirmation
+   *   button — defeats the "one-click" requirement, and because every
+   *   safety property a POST would buy us is recovered by:
+   *     - HMAC-signed token bound to (key, country, subdivision, issuedAt)
+   *       with a 14-day TTL — opaque deep-links cannot fire arbitrary rows
+   *     - `requireAdmin` (handler-side, after token verify so we can
+   *       render an HTML "log in to continue" page rather than JSON 401)
+   *     - Idempotency via a DB check ("most recent successful run for
+   *       this row newer than the token's issuedAt → already refreshed")
+   *       plus an in-memory in-flight guard for back-to-back clicks
+   *
+   * What it does NOT do:
+   *   It triggers `proposeConstantRegeneration` (which persists a
+   *   `research_runs` row) but it does NOT write `model_constant_overrides`.
+   *   The admin still applies (or discards) the proposal from the
+   *   Constants tab using the existing `/apply-proposal` flow. This
+   *   matches the doctrine that ONLY the Constants tab Apply button can
+   *   commit a Specialist proposal — the email link merely re-fires the
+   *   silent specialist so an apply candidate exists.
+   */
+  app.get("/api/admin/model-constants/refresh-from-email", async (req, res) => {
+    const k = typeof req.query.k === "string" ? req.query.k : "";
+    const c = typeof req.query.c === "string" && req.query.c.length > 0 ? req.query.c : null;
+    const s = typeof req.query.s === "string" && req.query.s.length > 0 ? req.query.s : null;
+    const t = typeof req.query.t === "string" ? req.query.t : "";
+
+    // 1. Verify the signed token first so we know the URL is one we
+    //    actually issued. We do this BEFORE auth checks so an unauth'd
+    //    visitor with a forged URL cannot be tricked into logging in
+    //    just to receive a "bad signature" page.
+    const verified: RefreshActionVerifyResult = verifyRefreshAction(t);
+    if (!verified.ok) {
+      const reason = verified.reason;
+      const status = reason === "expired" ? 410 : 400;
+      return res
+        .status(status)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: reason === "expired" ? "Link expired" : "Invalid link",
+            body:
+              reason === "expired"
+                ? "This refresh link has passed its 14-day expiration window. Open the Constants tab and click 'Refresh research' on the row instead."
+                : "This refresh link is malformed or has been tampered with. Open the Constants tab and click 'Refresh research' on the row instead.",
+            tabUrl: CONSTANTS_TAB_PATH,
+          }),
+        );
+    }
+
+    // 2. Cross-check: query-string parameters must match the signed
+    //    payload byte-for-byte. The HMAC already covers the payload, so
+    //    a query-string mismatch means the URL is a stitched-together
+    //    forgery (token from one URL, params from another). Reject.
+    if (
+      verified.payload.key !== k ||
+      verified.payload.country !== c ||
+      verified.payload.subdivision !== s
+    ) {
+      return res
+        .status(400)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: "Invalid link",
+            body: "This refresh link's parameters do not match its signature. Open the Constants tab manually instead.",
+            tabUrl: CONSTANTS_TAB_PATH,
+          }),
+        );
+    }
+
+    // 3. Constant must still exist in the registry. A retired key in a
+    //    long-tail email link should fail with a clear message.
+    if (!MODEL_CONSTANTS_REGISTRY[k]) {
+      return res
+        .status(404)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: "Constant not found",
+            body: `'${k}' is no longer a registered constant. The registry may have changed since this email was sent.`,
+            tabUrl: CONSTANTS_TAB_PATH,
+          }),
+        );
+    }
+
+    // 4. Auth — handler-side so we can render HTML rather than the
+    //    JSON 401 the `requireAdmin` middleware emits. We deliberately
+    //    do NOT redirect to `/login?returnTo=...` (no such flow exists
+    //    in this app); the page tells the user to log in and click the
+    //    link again, which works because the token TTL is 14 days.
+    const user = (req as { user?: { id?: number; role?: string } }).user;
+    if (!user) {
+      return res
+        .status(401)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: "Sign in required",
+            body: "Sign in to your admin account, then click the refresh link in your email again.",
+            tabUrl: "/login",
+            tabUrlLabel: "Sign in",
+          }),
+        );
+    }
+    if (!isAdminRole(user.role ?? "")) {
+      return res
+        .status(403)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: "Admin access required",
+            body: "Only admin accounts can re-fire a Constants source. Ask an admin to click the link in their copy of the digest.",
+          }),
+        );
+    }
+
+    const loc = `${c ?? "universal"}${s ? `/${s}` : ""}`;
+
+    // 5. Locality validation matches the rest of this file's routes.
+    //    The token signs whatever the digest emitted, but the registry
+    //    rules still apply — e.g. a token for a universal constant
+    //    minted before the constant was demoted to country-scope must
+    //    not silently produce a dead row.
+    const localityCheck = validateLocality(k, c, s);
+    if (!localityCheck.ok) {
+      return res
+        .status(400)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: "Invalid locality",
+            body: localityCheck.error,
+            tabUrl: CONSTANTS_TAB_PATH,
+          }),
+        );
+    }
+
+    // 6. Idempotency: if a successful run for this row has already
+    //    completed AFTER the token was issued, the digest's request
+    //    has already been satisfied. Re-clicking the link is a no-op.
+    try {
+      const latest = await storage.getLatestSuccessfulRunForConstant(k, c, s);
+      const issuedAtDate = new Date(verified.payload.issuedAt);
+      if (latest?.completedAt && latest.completedAt > issuedAtDate) {
+        return res
+          .status(200)
+          .type("html")
+          .send(
+            renderActionPage({
+              heading: "Already refreshed",
+              body:
+                `${k} (${loc}) has already been refreshed at ${latest.completedAt.toISOString()} — ` +
+                `after this email was sent. No action taken.`,
+              tabUrl: CONSTANTS_TAB_PATH,
+            }),
+          );
+      }
+    } catch (err: unknown) {
+      // A storage hiccup on the idempotency check is non-fatal — fall
+      // through to the in-flight guard + refresh attempt rather than
+      // refusing the action and leaving the row stuck.
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn(
+        `refresh-from-email: idempotency check failed for ${k} (${loc}); proceeding: ${msg}`,
+        "model-constants",
+      );
+    }
+
+    // 7. In-flight race guard. Two clicks within seconds (e.g. tabbed
+    //    open from email preview + clicked from Reading pane) must not
+    //    both fire `proposeConstantRegeneration`.
+    const lockKey = inflightKey(k, c, s);
+    if (inflightRefreshFromEmail.has(lockKey)) {
+      return res
+        .status(202)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: "Refresh already in progress",
+            body:
+              `Another refresh request for ${k} (${loc}) is currently running. ` +
+              `It will appear on the Constants tab as soon as it completes.`,
+            tabUrl: CONSTANTS_TAB_PATH,
+          }),
+        );
+    }
+    inflightRefreshFromEmail.add(lockKey);
+
+    try {
+      const overrides = await storage.listModelConstantOverrides();
+      const proposal = await proposeConstantRegeneration({
+        key: k,
+        country: c,
+        subdivision: s,
+        overrides,
+      });
+
+      logActivity(
+        req,
+        "refresh-from-email-model-constant",
+        "model-constant",
+        0,
+        `Email-action refresh for ${k} (${loc}). Authority: ${proposal.authority}. ${
+          proposal.isDifferentFromCurrent ? "Differs from current — admin must Apply on the Constants tab." : "Confirmed current."
+        }`,
+      );
+
+      return res
+        .status(200)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: proposal.isDifferentFromCurrent
+              ? "Refresh complete — review on the Constants tab"
+              : "Refresh complete — value confirmed",
+            body: proposal.isDifferentFromCurrent
+              ? `${proposal.label} (${loc}) was re-fetched from ${proposal.authority}. The new value differs from the current one — open the Constants tab to review and Apply.`
+              : `${proposal.label} (${loc}) was re-fetched from ${proposal.authority}. The current value is still correct; no Apply is needed.`,
+            tabUrl: CONSTANTS_TAB_PATH,
+          }),
+        );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn(
+        `refresh-from-email: proposeConstantRegeneration failed for ${k} (${loc}): ${msg}`,
+        "model-constants",
+      );
+      return res
+        .status(502)
+        .type("html")
+        .send(
+          renderActionPage({
+            heading: "Refresh failed",
+            body:
+              `The Specialist could not refresh ${k} (${loc}): ${msg}. ` +
+              `Open the Constants tab to retry manually.`,
+            tabUrl: CONSTANTS_TAB_PATH,
+          }),
+        );
+    } finally {
+      inflightRefreshFromEmail.delete(lockKey);
+    }
+  });
+}
+
+/**
+ * Render a small self-contained HTML page for the email-action route.
+ * No SPA dependency — the admin clicks a link in their email client and
+ * lands on a static page that summarises the result and offers a link
+ * back to the Constants tab. Inline styles only so the page renders
+ * the same way regardless of CSS bundle availability.
+ */
+function renderActionPage(args: {
+  heading: string;
+  body: string;
+  tabUrl?: string;
+  tabUrlLabel?: string;
+}): string {
+  const escape = (s: string): string =>
+    s.replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  const linkHtml = args.tabUrl
+    ? `<p style="margin-top:1.5rem"><a href="${escape(args.tabUrl)}" style="color:#2563eb;text-decoration:underline">${escape(args.tabUrlLabel ?? "Open the Constants tab")}</a></p>`
+    : "";
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${escape(args.heading)} — Constants refresh</title>
+</head>
+<body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;background:#f8fafc;margin:0;padding:2rem">
+  <main style="max-width:42rem;margin:2rem auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:0.75rem;padding:2rem;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+    <h1 style="font-size:1.25rem;margin:0 0 0.75rem 0;color:#0f172a">${escape(args.heading)}</h1>
+    <p style="margin:0;line-height:1.5;color:#334155">${escape(args.body)}</p>
+    ${linkHtml}
+  </main>
+</body>
+</html>`;
+}
+
+/**
+ * Test seam — clear the in-flight set between unit tests so they don't
+ * pollute one another. Not used by production code.
+ */
+export function _resetRefreshFromEmailInflight(): void {
+  inflightRefreshFromEmail.clear();
 }

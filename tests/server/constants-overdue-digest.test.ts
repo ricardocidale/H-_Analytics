@@ -98,6 +98,31 @@ describe("notifyAdminsOfOverdueConstants", () => {
     );
   });
 
+  it("attaches a signed per-row action URL to every metadata row (Task #602)", async () => {
+    const rows = [
+      sampleRow(),
+      sampleRow({ key: "inflationRate", country: null, subdivision: null }),
+    ];
+    await notifyAdminsOfOverdueConstants(rows);
+    expect(processEvent).toHaveBeenCalledTimes(1);
+    const evt = processEvent.mock.calls[0][0] as {
+      metadata: { rows: Array<{ key: string; actionUrl: string | null }> };
+    };
+    // Every row carries a non-null action URL — admins clicking any
+    // line in the email must reach the refresh endpoint.
+    expect(evt.metadata.rows).toHaveLength(2);
+    for (const r of evt.metadata.rows) {
+      expect(r.actionUrl).toEqual(expect.stringContaining(
+        "/api/admin/model-constants/refresh-from-email",
+      ));
+      expect(r.actionUrl).toEqual(expect.stringContaining("k="));
+      expect(r.actionUrl).toEqual(expect.stringContaining("t="));
+    }
+    // The two rows must produce distinct URLs (different key payloads).
+    const urls = evt.metadata.rows.map((r) => r.actionUrl);
+    expect(new Set(urls).size).toBe(2);
+  });
+
   it("fires every cycle with overdue rows — no cross-cycle dedupe", async () => {
     const rows = [sampleRow()];
     await notifyAdminsOfOverdueConstants(rows);

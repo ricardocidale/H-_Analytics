@@ -36,8 +36,53 @@ import { createEvent } from "./events";
 import { isAdminRole } from "@shared/constants";
 import { getAppUrl } from "../providers/config";
 import { logger } from "../logger";
+import { signRefreshAction } from "./constants-action-token";
 
 export const CONSTANTS_TAB_PATH = "/admin?section=model-defaults&tab=model-constants";
+
+/**
+ * Server-side path for the per-row "Re-fetch from authority" action link
+ * embedded in digest emails. The handler lives in
+ * `server/routes/admin/model-constants.ts` (`refresh-from-email`) and
+ * verifies the signed token from `constants-action-token.ts` before
+ * triggering `proposeConstantRegeneration` for the carried tuple.
+ */
+export const CONSTANTS_REFRESH_ACTION_PATH = "/api/admin/model-constants/refresh-from-email";
+
+/**
+ * Build the per-row one-click action URL admins click in the digest
+ * email to re-trigger a stuck Constants source. The token binds the URL
+ * to (key, country, subdivision, issuedAt) so:
+ *   - Tampering with `?k=`/`?c=`/`?s=` invalidates the signature.
+ *   - Replays older than the token TTL are rejected.
+ *   - The carried `issuedAt` lets the route detect "already refreshed
+ *     since this digest was sent" and skip re-firing the specialist
+ *     (idempotency — re-clicking the same link does not double-fire).
+ *
+ * The endpoint is also `requireAdmin`-checked at handler time, so the
+ * token is binding-only — it does not grant authority.
+ */
+export function buildRowActionUrl(args: {
+  appUrl: string;
+  key: string;
+  country: string | null;
+  subdivision: string | null;
+  issuedAt: number;
+}): string {
+  const token = signRefreshAction({
+    key: args.key,
+    country: args.country,
+    subdivision: args.subdivision,
+    issuedAt: args.issuedAt,
+  });
+  const params = new URLSearchParams();
+  params.set("k", args.key);
+  if (args.country) params.set("c", args.country);
+  if (args.subdivision) params.set("s", args.subdivision);
+  params.set("t", token);
+  const base = args.appUrl.replace(/\/+$/, "");
+  return `${base}${CONSTANTS_REFRESH_ACTION_PATH}?${params.toString()}`;
+}
 
 export interface OverdueConstantRow {
   specialistId: string | null;
@@ -63,7 +108,11 @@ function localityLabel(country: string | null, subdivision: string | null): stri
   return subdivision ? `${country} / ${subdivision}` : country;
 }
 
-function buildMessage(rows: OverdueConstantRow[], tabUrl: string): string {
+function buildMessage(
+  rows: OverdueConstantRow[],
+  tabUrl: string,
+  actionUrls: Map<OverdueConstantRow, string>,
+): string {
   const lines = rows
     .slice(0, 50)
     .map((r) => {
@@ -72,9 +121,12 @@ function buildMessage(rows: OverdueConstantRow[], tabUrl: string): string {
         : r.specialistLetter
           ? `Specialist ${r.specialistLetter}`
           : "Unowned";
+      const action = actionUrls.get(r);
+      const actionSuffix = action ? `\n   Re-fetch from authority: ${action}` : "";
       return (
         `• ${r.key} (${localityLabel(r.country, r.subdivision)}) — owner: ${who}; ` +
-        `cadence ${r.cadenceDays}d; ${Math.round(r.ageDays)}d since last successful refresh`
+        `cadence ${r.cadenceDays}d; ${Math.round(r.ageDays)}d since last successful refresh` +
+        actionSuffix
       );
     })
     .join("\n");
@@ -82,7 +134,10 @@ function buildMessage(rows: OverdueConstantRow[], tabUrl: string): string {
   return (
     `${rows.length} Constants source(s) have been silent past 2× their effective ` +
     `refresh cadence. The owning Specialist has not produced a successful research ` +
-    `run for these rows in the time window an admin configured.\n\n${lines}${more}\n\n` +
+    `run for these rows in the time window an admin configured.\n\n` +
+    `Click "Re-fetch from authority" next to any row to re-run the silent specialist ` +
+    `for that row directly from this email (admin login required, idempotent).\n\n` +
+    `${lines}${more}\n\n` +
     `Open the Constants tab (${tabUrl}) to investigate or refresh manually.`
   );
 }
@@ -119,11 +174,35 @@ export async function notifyAdminsOfOverdueConstants(
     return { status: "no-admins", count: rows.length };
   }
 
-  const tabUrl = `${getAppUrl().replace(/\/+$/, "")}${CONSTANTS_TAB_PATH}`;
-  const message = buildMessage(rows, tabUrl);
+  const appUrl = getAppUrl().replace(/\/+$/, "");
+  const tabUrl = `${appUrl}${CONSTANTS_TAB_PATH}`;
+  // Mint a per-row signed action URL once per cycle, then share the same
+  // links across every recipient. Sharing (rather than per-recipient
+  // minting) keeps the audit picture clean: a click is "this cycle's
+  // refresh request for this row", not "admin@example.com's personal
+  // request" — the route still records the actual user via logActivity.
+  // Using a single `issuedAt` for all rows in the cycle also makes the
+  // route's "already refreshed since this digest" idempotency check
+  // behave consistently for the whole digest.
+  const issuedAt = Date.now();
+  const visibleRows = rows.slice(0, 50);
+  const actionUrls = new Map<OverdueConstantRow, string>();
+  for (const r of visibleRows) {
+    actionUrls.set(
+      r,
+      buildRowActionUrl({
+        appUrl,
+        key: r.key,
+        country: r.country,
+        subdivision: r.subdivision,
+        issuedAt,
+      }),
+    );
+  }
+  const message = buildMessage(rows, tabUrl, actionUrls);
   const sharedMetadata = {
     overdueCount: rows.length,
-    rows: rows.slice(0, 50).map((r) => ({
+    rows: visibleRows.map((r) => ({
       specialistId: r.specialistId,
       specialistLetter: r.specialistLetter,
       key: r.key,
@@ -131,6 +210,10 @@ export async function notifyAdminsOfOverdueConstants(
       subdivision: r.subdivision,
       cadenceDays: r.cadenceDays,
       ageDays: Math.round(r.ageDays),
+      // Surface the per-row action URL in the structured metadata so a
+      // future HTML email template (or downstream consumer) can render
+      // a real button without re-deriving the token.
+      actionUrl: actionUrls.get(r) ?? null,
     })),
   };
 
