@@ -326,7 +326,13 @@ describe("GET /api/admin/resources/:id/quality/history", () => {
   it("returns empty histories when the resource has no consumers", async () => {
     const { status, body } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
     expect(status).toBe(200);
-    expect(body).toEqual({ resourceId: 7, histories: [] });
+    // Task #563: aggregate is always present so the client never has to
+    // null-check before reading; empty consumers → empty aggregate points.
+    expect(body).toEqual({
+      resourceId: 7,
+      histories: [],
+      aggregate: { points: [] },
+    });
     // Even with zero consumers we still call the bulk method (with []) —
     // keeps the route shape predictable and the early-return cheap.
     expect(storage.listQualitySnapshotHistoryForMany).toHaveBeenCalledWith([], 30);
@@ -397,5 +403,122 @@ describe("GET /api/admin/resources/:id/quality/history", () => {
       expect(status).toBe(400);
     }
     expect(storage.listQualitySnapshotHistoryForMany).not.toHaveBeenCalled();
+  });
+
+  // ── Resource-level aggregate trend (Task #563) ─────────────────
+  // The Quality & Gaps tab renders a single prominent sparkline above
+  // the per-consumer list so ops users can answer "is this resource
+  // trending up or down overall?" in one glance. We lock in:
+  //   1. Aggregate is daily-bucketed (latest snapshot per UTC date wins).
+  //   2. Each consumer's last-known score is carried forward across
+  //      days where they didn't recompute — a steady consumer should
+  //      keep contributing its prior value to today's avg/min, not
+  //      drop out and skew the aggregate.
+  //   3. `score` is the per-day average (so QualityHistoryChart can
+  //      consume the points directly), `min` is the worst consumer
+  //      that day, and `consumerCount` is how many distinct consumers
+  //      had any snapshot at or before that date.
+  it("returns a daily aggregate trend with carry-forward avg + min per day", async () => {
+    (storage.listResourceImpact as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { specialistId: "alpha", required: true, assignmentRole: "primary" },
+      { specialistId: "beta", required: false, assignmentRole: "primary" },
+    ]);
+    // alpha: day1=80 → day3=90 (improved)
+    // beta : day2=40         (single snapshot, carries forward)
+    const day1 = new Date("2025-01-01T12:00:00.000Z");
+    const day2 = new Date("2025-01-02T12:00:00.000Z");
+    const day3 = new Date("2025-01-03T12:00:00.000Z");
+    (storage.listQualitySnapshotHistoryForMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Map([
+        [
+          "alpha",
+          [
+            // DESC order, mirroring storage contract.
+            { specialistId: "alpha", score: 90, gaps: [], signals: {}, computedAt: day3 },
+            { specialistId: "alpha", score: 80, gaps: [], signals: {}, computedAt: day1 },
+          ],
+        ],
+        [
+          "beta",
+          [
+            { specialistId: "beta", score: 40, gaps: [], signals: {}, computedAt: day2 },
+          ],
+        ],
+      ]),
+    );
+    const { status, body } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
+    expect(status).toBe(200);
+    const payload = body as {
+      aggregate: {
+        points: Array<{
+          score: number;
+          min: number;
+          consumerCount: number;
+          computedAt: string;
+        }>;
+      };
+    };
+    // Three distinct dates → three aggregate points, chronological.
+    expect(payload.aggregate.points.map((p) => p.computedAt)).toEqual([
+      "2025-01-01T00:00:00.000Z",
+      "2025-01-02T00:00:00.000Z",
+      "2025-01-03T00:00:00.000Z",
+    ]);
+    // Day 1: only alpha (80). avg=80, min=80, count=1.
+    expect(payload.aggregate.points[0]).toMatchObject({
+      score: 80,
+      min: 80,
+      consumerCount: 1,
+    });
+    // Day 2: alpha(80 carried) + beta(40). avg=60, min=40, count=2.
+    expect(payload.aggregate.points[1]).toMatchObject({
+      score: 60,
+      min: 40,
+      consumerCount: 2,
+    });
+    // Day 3: alpha(90 fresh) + beta(40 carried). avg=65, min=40, count=2.
+    expect(payload.aggregate.points[2]).toMatchObject({
+      score: 65,
+      min: 40,
+      consumerCount: 2,
+    });
+  });
+
+  it("uses the latest snapshot of the day when a consumer recomputes twice in one date", async () => {
+    (storage.listResourceImpact as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { specialistId: "alpha", required: true, assignmentRole: "primary" },
+    ]);
+    // Two snapshots on the same UTC day; the later one (90) should win.
+    const morning = new Date("2025-02-01T06:00:00.000Z");
+    const evening = new Date("2025-02-01T22:00:00.000Z");
+    (storage.listQualitySnapshotHistoryForMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Map([
+        [
+          "alpha",
+          [
+            { specialistId: "alpha", score: 90, gaps: [], signals: {}, computedAt: evening },
+            { specialistId: "alpha", score: 50, gaps: [], signals: {}, computedAt: morning },
+          ],
+        ],
+      ]),
+    );
+    const { status, body } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
+    expect(status).toBe(200);
+    const payload = body as { aggregate: { points: Array<{ score: number; min: number }> } };
+    expect(payload.aggregate.points).toHaveLength(1);
+    expect(payload.aggregate.points[0]).toMatchObject({ score: 90, min: 90 });
+  });
+
+  it("returns an empty aggregate when consumers exist but none have snapshots", async () => {
+    (storage.listResourceImpact as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { specialistId: "alpha", required: true, assignmentRole: "primary" },
+    ]);
+    // Storage returns the consumer with an empty array (Task #555 contract).
+    (storage.listQualitySnapshotHistoryForMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Map([["alpha", []]]),
+    );
+    const { status, body } = await invoke(handlers, BULK_ROUTE, { params: { id: "7" } });
+    expect(status).toBe(200);
+    expect((body as { aggregate: { points: unknown[] } }).aggregate.points).toEqual([]);
   });
 });

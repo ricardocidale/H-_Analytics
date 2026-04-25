@@ -40,6 +40,7 @@ import {
 } from "../../../engine/analyst/registry/specialist-catalog";
 import { specialistDisplayName } from "@shared/schema/specialist";
 import { recomputeAndRecordSpecialistQuality } from "../../ai/research-quality";
+import type { SpecialistResearchQualitySnapshotRow } from "@shared/schema";
 
 const listQuerySchema = z.object({ kind: ResourceKindSchema.optional() });
 const idParamSchema = z.object({ id: z.coerce.number().int().positive() });
@@ -75,6 +76,85 @@ async function loadConsumersForResource(resourceId: number): Promise<ConsumerRow
       qualityComputedAt: snap?.computedAt ? new Date(snap.computedAt).toISOString() : null,
     };
   });
+}
+
+/**
+ * Resource-level aggregate trend (Task #563).
+ *
+ * Collapses every consumer's per-snapshot history into one daily series
+ * showing how the *resource* is trending overall — answering "is this
+ * resource trending up or down?" in one glance, instead of forcing ops
+ * users to scan a stack of per-consumer sparklines.
+ *
+ * Algorithm:
+ *   1. Bucket each consumer's snapshots by UTC date (latest snapshot per
+ *      day wins, since later writes overwrite earlier ones in the map).
+ *   2. Walk the union of dates chronologically, carrying each consumer's
+ *      last known score forward — a consumer whose score didn't change on
+ *      day D should still contribute its most recent value to day D's
+ *      aggregate (we want "as-of state of the resource on day D", not
+ *      "did anything happen for this consumer on day D").
+ *   3. For each date, compute avg + min across the carry-forward scores.
+ *
+ * `score` is the avg so the shared QualityHistoryChart (which only reads
+ * `score`) renders the average line directly with band coloring; `min`
+ * and `consumerCount` ride along for the tooltip / future use.
+ *
+ * Returns `[]` when there are no consumers or no snapshots — the chart
+ * already handles the empty/single-point fallback.
+ */
+interface ResourceAggregatePoint {
+  score: number;
+  min: number;
+  consumerCount: number;
+  computedAt: string;
+}
+
+function computeResourceAggregateTrend(
+  historyMap: Map<string, SpecialistResearchQualitySnapshotRow[]>,
+  consumerIds: string[],
+): { points: ResourceAggregatePoint[] } {
+  if (consumerIds.length === 0) return { points: [] };
+
+  const datesAcrossConsumers = new Set<string>();
+  const perConsumerByDate = new Map<string, Map<string, number>>();
+  for (const sid of consumerIds) {
+    const m = new Map<string, number>();
+    perConsumerByDate.set(sid, m);
+    const snaps = historyMap.get(sid) ?? [];
+    // Sort ascending by computedAt so later writes overwrite earlier ones,
+    // leaving each date's value = the most recent snapshot of that day.
+    const sorted = [...snaps].sort(
+      (a, b) => new Date(a.computedAt).getTime() - new Date(b.computedAt).getTime(),
+    );
+    for (const s of sorted) {
+      const d = new Date(s.computedAt).toISOString().slice(0, 10);
+      m.set(d, s.score);
+      datesAcrossConsumers.add(d);
+    }
+  }
+  if (datesAcrossConsumers.size === 0) return { points: [] };
+
+  const sortedDates = Array.from(datesAcrossConsumers).sort();
+  const lastSeen = new Map<string, number>();
+  const points: ResourceAggregatePoint[] = [];
+  for (const d of sortedDates) {
+    for (const sid of consumerIds) {
+      const m = perConsumerByDate.get(sid);
+      if (m && m.has(d)) lastSeen.set(sid, m.get(d) as number);
+    }
+    if (lastSeen.size === 0) continue; // no consumer has reported yet
+    const scores = Array.from(lastSeen.values());
+    const avg = Math.round(scores.reduce((s, n) => s + n, 0) / scores.length);
+    const min = Math.min(...scores);
+    points.push({
+      score: avg,
+      min,
+      consumerCount: scores.length,
+      computedAt: new Date(`${d}T00:00:00.000Z`).toISOString(),
+    });
+  }
+  return { points };
 }
 
 function aggregateQuality(consumers: ConsumerRow[]): { avg: number | null; min: number | null; criticalGaps: number } {
@@ -487,7 +567,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     }
   });
 
-  // ── Per-resource quality history (Task #555) ────────────────────
+  // ── Per-resource quality history (Task #555 + #563) ─────────────
   // Bulk variant of `/api/admin/specialists/:id/quality/history` that
   // returns the score history for every consumer of a resource in one
   // payload. The Resource detail dialog used to fan out N per-row
@@ -497,6 +577,14 @@ export function registerResourceTransparencyRoutes(app: Express) {
   // collapses that to one round trip via a single window-function query
   // in storage. Behaviour matches the per-Specialist endpoint:
   // chronological order (oldest first), default 30, max 100.
+  //
+  // Task #563: response now also carries an `aggregate` field — a
+  // resource-level daily trend (avg + min across consumers, with
+  // last-known carry-forward) so the Quality & Gaps tab can render one
+  // prominent sparkline above the per-consumer list. Computed in the
+  // route from the same per-consumer rows so we don't fan out a second
+  // query. Empty-consumer / no-snapshot cases yield `points: []` —
+  // QualityHistoryChart renders its own empty fallback.
   app.get("/api/admin/resources/:id/quality/history", requireAdmin, async (req, res) => {
     try {
       const { id } = idParamSchema.parse(req.params);
@@ -535,7 +623,9 @@ export function registerResourceTransparencyRoutes(app: Express) {
         return { specialistId: sid, points };
       });
 
-      res.json({ resourceId: id, histories });
+      const aggregate = computeResourceAggregateTrend(historyMap, specialistIds);
+
+      res.json({ resourceId: id, histories, aggregate });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to load resource quality history", error);
     }

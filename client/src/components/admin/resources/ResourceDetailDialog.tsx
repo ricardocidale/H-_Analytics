@@ -101,14 +101,28 @@ interface DetailResponse {
 }
 
 /**
- * Bulk consumer-history payload (Task #555). Mirrors the shape returned
- * by `GET /api/admin/resources/:id/quality/history`: one entry per
- * consumer with the per-Specialist `QualityHistoryResponse` shape so
- * the chart and child components can read it without a second adapter.
+ * Bulk consumer-history payload (Task #555 + #563). Mirrors the shape
+ * returned by `GET /api/admin/resources/:id/quality/history`: one entry
+ * per consumer with the per-Specialist `QualityHistoryResponse` shape so
+ * the chart and child components can read it without a second adapter,
+ * plus a resource-level `aggregate` series for the prominent
+ * "is this resource trending up or down?" sparkline above the per-
+ * consumer list.
+ *
+ * The aggregate point's `score` field is the per-day average across all
+ * consumers (with each consumer's most-recent score carried forward), so
+ * the shared QualityHistoryChart renders it directly with the same band
+ * coloring as the per-Specialist sparkline. `min` and `consumerCount`
+ * ride along for the tooltip / future use.
  */
+interface ResourceAggregatePoint extends QualityHistoryPoint {
+  min: number;
+  consumerCount: number;
+}
 interface ResourceQualityHistoryResponse {
   resourceId: number;
   histories: QualityHistoryResponse[];
+  aggregate: { points: ResourceAggregatePoint[] };
 }
 
 /**
@@ -593,6 +607,72 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
                     <div className="text-xs text-muted-foreground">Critical gaps</div>
                     <div className="mt-1 font-mono text-lg">{data.quality.criticalGaps}</div>
                   </div>
+                </div>
+                {/*
+                  Resource-level aggregate trend (Task #563). Renders one
+                  prominent sparkline above the per-consumer list so ops
+                  users can answer "is this resource trending up or down?"
+                  in one glance without scanning each consumer chart. Uses
+                  the same shared QualityHistoryChart so band coloring and
+                  empty/single-snapshot fallbacks stay consistent with the
+                  per-Specialist sparkline.
+                */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    Resource quality trend
+                  </h4>
+                  {data.consumers.length === 0 ? (
+                    <p
+                      className="text-sm text-muted-foreground"
+                      data-testid="resource-aggregate-history-empty"
+                    >
+                      No Specialist consumes this resource yet, so there is no aggregate trend.
+                    </p>
+                  ) : historyLoading ? (
+                    <div
+                      className="flex items-center justify-center text-xs text-muted-foreground border rounded h-[96px]"
+                      data-testid="resource-aggregate-history-loading"
+                    >
+                      Loading aggregate trend…
+                    </div>
+                  ) : historyError || !historyData ? (
+                    <div
+                      className="flex items-center justify-center text-xs text-rose-600 border rounded h-[96px]"
+                      data-testid="resource-aggregate-history-error"
+                    >
+                      Failed to load aggregate trend.
+                    </div>
+                  ) : (
+                    <div data-testid="resource-aggregate-history">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                        <span>
+                          Daily average across {data.consumers.length} consumer
+                          {data.consumers.length === 1 ? "" : "s"} — last{" "}
+                          {historyData.aggregate.points.length} day
+                          {historyData.aggregate.points.length === 1 ? "" : "s"}
+                        </span>
+                        <span className="font-mono">
+                          green ≥ 80 · amber ≥ 60 · red &lt; 60
+                        </span>
+                      </div>
+                      <QualityHistoryChart
+                        points={historyData.aggregate.points}
+                        testIdPrefix="resource-aggregate-history-chart"
+                      />
+                      {historyData.aggregate.points.length > 1 && (() => {
+                        const last = historyData.aggregate.points[historyData.aggregate.points.length - 1];
+                        return (
+                          <div
+                            className="text-[10px] text-muted-foreground mt-1 font-mono"
+                            data-testid="resource-aggregate-history-summary"
+                          >
+                            Latest: avg {last.score} · worst consumer {last.min} · {last.consumerCount} consumer
+                            {last.consumerCount === 1 ? "" : "s"}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
                 {/*
                   Per-consumer quality history (Task #552). Mirrors the
