@@ -307,6 +307,32 @@ findings.push({
   samples: legacyStorageGuardSamples,
 });
 
+// 17. Replit independence guard — fails if a non-allowlisted file
+// imports `@replit/*`, reads `process.env.REPL*`, or hard-codes a
+// `replit.dev` / `replit.app` hostname. Wired here (mirroring the
+// legacy storage URL guard above) so independence drift surfaces
+// during local development instead of waiting for CI. (Task #535.)
+let replitIndependenceGuardCount = 0;
+const replitIndependenceGuardSamples: string[] = [];
+try {
+  execSync("tsx script/check-replit-independence.ts", {
+    encoding: "utf-8",
+    timeout: 30_000,
+  });
+} catch (err: unknown) {
+  replitIndependenceGuardCount = 1;
+  const msg = err instanceof Error ? err.message : String(err);
+  replitIndependenceGuardSamples.push(
+    msg.split("\n").find((l) => l.includes("[")) ?? "guard failed",
+  );
+}
+findings.push({
+  label: "Replit independence guard (route via server/providers)",
+  count: replitIndependenceGuardCount,
+  severity: replitIndependenceGuardCount > 0 ? "critical" : "info",
+  samples: replitIndependenceGuardSamples,
+});
+
 // Output
 console.log("");
 console.log("  Quick Audit");
