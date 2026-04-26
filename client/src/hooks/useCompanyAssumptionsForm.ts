@@ -459,7 +459,10 @@ export function useCompanyAssumptionsForm(
     const keys = TAB_FIELDS[tab];
     const touched = keys.filter((k) => dirtyFields.has(k));
     if (touched.length === 0 && !force) {
-      // Still mark the tab as saved server-side so the downstream gate opens.
+      // No-change "mark reviewed" save — still hits save-tab so the
+      // downstream gate opens. Mirrors the main parsing path below
+      // so the required-fields banner is consistent for the user
+      // whether they changed any fields or just clicked Save again.
       try {
         const res = await fetch("/api/global-assumptions/save-tab", {
           method: "POST",
@@ -468,6 +471,19 @@ export function useCompanyAssumptionsForm(
           body: JSON.stringify({ tabKey: tab }),
         });
         if (res.ok) {
+          // Defensive parse — same shape & guards as the main path.
+          let body: { requiredFieldsMissing?: unknown } = {};
+          try {
+            body = (await res.json()) as { requiredFieldsMissing?: unknown };
+          } catch {
+            body = {};
+          }
+          const missing = Array.isArray(body.requiredFieldsMissing)
+            ? body.requiredFieldsMissing.filter(
+                (x): x is string => typeof x === "string",
+              )
+            : [];
+          setRequiredFieldsMissingByTab((prev) => ({ ...prev, [tab]: missing }));
           await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
           toast({ title: `${TAB_LABELS[tab]} saved`, description: "Marked this tab as reviewed." });
         }
