@@ -8,7 +8,25 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 26, 2026 (latest) — G1 packet executed end-to-end (S1–S6 shipped)
+## Session: April 26, 2026 (latest) — G1.5a shipped + G1.5b-pre packets authored (RESUME POINT)
+
+> **RESUME POINT for this session.** Read `~/.claude/projects/-home-runner-workspace/memory/g1_saga_resume_point_2026-04-26.md` FIRST in next session — it has the full decision tree and key-file map. This entry is the session-history summary; the auto-memory is the actionable resume guide.
+
+- **Where we exactly stopped:** HEAD `origin/main` = `879cf6a5` (G1.5b-pre packets pushed). G1.5a engine code shipped end-to-end (`71ebbb9e..efc9b522`); G1.5b-pre packets (parent + 2 children) authored, awaiting Replit execution. G1.5b cascade packet NOT YET authored — gated on G1.5b-pre completion (the new save-tab response shape will inform G1.5b's design).
+
+- **The arc this session covered:** (1) Replit's BLOCKED report `64701f7b` revealed CC packet-author defect — G1's verification spec asked for `meta.fallbackReason / vendorsUsed / cacheState` against a contract that didn't allow them. (2) Ricardo flagged separate Defaults vs Assumptions architectural violation — 5 Funding fields (`runwayBufferMonths` etc.) live only as benchmarks; no Default/Assumption surface. (3) Plan: Option A doctrine-first sequential. (4) ADR-008 written + Accepted; CC executed G1.5a (7 sub-steps, 5 gates green per commit). (5) Mid-session, Ricardo bound new rule "Analyst is never auto-triggered — button only." (6) CC saved feedback memory + wrote `.claude/rules/analyst-trigger-discipline.md`. (7) Audit found 3 violation surfaces (save-tab dispatch, `?analyst=1` deep-link, `useAutoRefreshIntelligence`). (8) CC authored G1.5b-pre parent + 2 children for Replit. STOP.
+
+- **3 agent collisions this session** (per `agent-collision-hygiene.md`): `074e44ba` (Replit's SaveButton/Company tab UI commit swept up CC's ADR-008 status flip + phases.md edit); `da3f0afa` (Replit's storage hygiene commit swept up CC's S5 Tier-0-backward-compat assertions); `508b282d` (Replit's parallel S5-equivalent for fallback-paths block). Net effect: all intended work landed; attribution lives here + in the resume-point auto-memory entry.
+
+- **3 doctrine artifacts shipped this session:** ADR-008 (`fd4c265f` Proposed → `074e44ba` Accepted) extending `AnalystVerdictMetaSchema` with 3 tier-coupled optional fields; `.claude/rules/analyst-trigger-discipline.md` (`e1701082`) binding button-only trigger rule; G1.5b-pre packet trio (`879cf6a5`) for Replit handoff.
+
+- **Auto-memory updated end-of-session:** wrote `g1_saga_resume_point_2026-04-26.md` (project — 12.5KB, comprehensive); `analyst_trigger_discipline.md` (feedback — Ricardo's binding rule); reused `defaults_vs_assumptions_three_tier.md` (feedback — earlier this session). MEMORY.md index updated with all three. Verified by `ls -la` post-write.
+
+- **NEXT SESSION ENTRY POINT:** read MEMORY.md first → read `g1_saga_resume_point_2026-04-26.md` → `git fetch && git log --oneline 879cf6a5..HEAD` → check Replit's progress on G1.5b-pre packets → branch decision per the auto-memory's Step 3 decision tree.
+
+---
+
+## Session: April 26, 2026 (earlier) — G1 packet executed end-to-end (S1–S6 shipped)
 - G1 Funding Tier-1 graduation packet now substantively complete. Commit chain: `6f4696ba` S1 (prompt-input builder + tests) → `71061c1d` S2+S5 (cognitive skeleton + fallback tests) → `8ba81dfd` S3 (lp-comp-dataset assignmentRef) → `9a461f92` S4 (persona-keyed golden bench) → `ae2a16e7` S6 (catalog Tier-1 graduate annotation).
 - S6 caveat: annotation comment landed but `ae2a16e7` lacks the packet's required `Surfaces:` + `Packet:` footers. This entry IS the procedural closure — the substantive S6 work (the comment) is intact at `engine/analyst/registry/specialist-catalog.ts` line 33. Schema has no `tierMinimum` field, so no schema work required (per S6's commit-message-only fallback).
 - Post-merge behavioral verification (manual, dev-server) still pending: Funding tab Save → confirm `meta.cognitiveRunId` present (Tier-1) OR `meta.fallbackReason: "tier1_unavailable"` (Tier-0); ≥2 vendors in `meta.vendorsUsed`; cache HIT vs MISS via `meta.cacheState`. These steps live in the packet under "Behavioral verification (manual, post-merge)".
