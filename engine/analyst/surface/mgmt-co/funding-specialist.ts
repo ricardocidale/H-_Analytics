@@ -35,9 +35,9 @@
  * Fallback policy (ADR-007 §3): when `deps` is undefined OR the cognitive
  * path throws (orchestrator outage, rate-limit, network), the Specialist
  * returns a Tier-0 SpecialistOutput built from the legacy `buildDimensions()`
- * helper preserved verbatim from the Phase-3b implementation. Downstream
- * UI surfaces "Tier-1 unavailable" by inspecting `tier === 0` (the
- * "fallbackReason" detail is a future contract extension).
+ * helper preserved verbatim from the Phase-3b implementation. Per ADR-008,
+ * the Tier-0 fallback also emits `meta.fallbackReason: "tier1_unavailable"`
+ * so the downstream UI badge can render the reason.
  *
  * Action mapping (preserved from Phase 3b):
  *   adjust       → "consult-cognitive" (label preserved, payload carries field + reason)
@@ -440,11 +440,16 @@ export function createFundingSpecialist(
   const evidenceAsOf = options.evidenceAsOf ?? new Date().toISOString().slice(0, 10);
 
   // Tier-0 fallback path — used both as the default-when-deps-undefined
-  // mode and as the catch-block recovery when Tier-1 throws.
+  // mode and as the catch-block recovery when Tier-1 throws. Per ADR-008,
+  // emits meta.fallbackReason so the UI badge can render it.
   const tier0 = (inputs: CapitalRaiseInputs): SpecialistOutput => {
     const watchdog = evaluateCapitalRaise(inputs, benchmarks);
     const dimensions = buildDimensions(inputs, benchmarks, watchdog, evidenceAsOf);
-    return { dimensions, tier: 0 };
+    return {
+      dimensions,
+      tier: 0,
+      meta: { fallbackReason: "tier1_unavailable" },
+    };
   };
 
   if (!deps) {
