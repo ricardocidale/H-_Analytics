@@ -72,6 +72,12 @@ import {
   DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COMPANY_INFLATION_RATE,
 } from "../shared/constants";
+import {
+  DEFAULT_RUNWAY_BUFFER_MONTHS,
+  DEFAULT_SIZING_OVERSHOOT_PCT,
+  DEFAULT_REVENUE_RAMP_DELAY_MONTHS,
+  DEFAULT_BURN_FLEX_DOWN_PCT,
+} from "../shared/constants-funding";
 import { getFactoryNumber } from "../shared/model-constants-registry";
 
 // Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
@@ -114,6 +120,14 @@ export const SPECS: SeedSpec[] = [
   { key: "operatingReserveBuffer",card: "funding", value: OPERATING_RESERVE_BUFFER,         unit: "$",      label: "Operating reserve buffer (per property)" },
   { key: "companyFundingBuffer",  card: "funding", value: COMPANY_FUNDING_BUFFER,           unit: "$",      label: "Company funding buffer" },
   { key: "reserveRoundingIncrement", card: "funding", value: RESERVE_ROUNDING_INCREMENT,    unit: "$",      label: "Reserve rounding increment" },
+
+  // Funding Specialist required-field Defaults (per .claude/rules/inflation-cascade.md).
+  // Values sourced from named DEFAULT_* constants in shared/constants-funding.ts
+  // (mid-band of DEFAULT_CAPITAL_RAISE_BENCHMARKS) — never literals.
+  { key: "runwayBufferMonths",     card: "funding", value: DEFAULT_RUNWAY_BUFFER_MONTHS,     unit: "months", label: "Runway buffer" },
+  { key: "sizingOvershootPct",     card: "funding", value: DEFAULT_SIZING_OVERSHOOT_PCT,     unit: "%",      label: "Sizing overshoot" },
+  { key: "revenueRampDelayMonths", card: "funding", value: DEFAULT_REVENUE_RAMP_DELAY_MONTHS, unit: "months", label: "Revenue ramp delay" },
+  { key: "burnFlexDownPct",        card: "funding", value: DEFAULT_BURN_FLEX_DOWN_PCT,        unit: "%",      label: "Burn flex-down %" },
 
   // ── Revenue Model ────────────────────────────────────────────────────
   { key: "baseManagementFeeRate",       card: "revenue_model", value: DEFAULT_BASE_MANAGEMENT_FEE_RATE,      unit: "%",     label: "Base management fee (% of total revenue)" },

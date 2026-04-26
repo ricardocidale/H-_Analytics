@@ -8,6 +8,12 @@ import {
   DEFAULT_COST_OF_EQUITY,
   DEFAULT_PROJECTION_YEARS,
 } from "@shared/constants";
+import {
+  DEFAULT_RUNWAY_BUFFER_MONTHS,
+  DEFAULT_SIZING_OVERSHOOT_PCT,
+  DEFAULT_REVENUE_RAMP_DELAY_MONTHS,
+  DEFAULT_BURN_FLEX_DOWN_PCT,
+} from "@shared/constants-funding";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
@@ -156,6 +162,57 @@ export function CompanyTab(props: CompanyTabProps) {
             step={0.005}
             testId="field-costOfEquity"
             researchRange="15%–25%"
+          />
+        </Section>
+
+        <Section title="Funding Specialist Inputs" description="Capital-stack discipline defaults the Funding Specialist evaluates against the live capital-raise benchmarks. New properties and the company plan inherit these as the starting point; admins can override here.">
+          <NumberField
+            label="Runway Buffer"
+            tooltip="Months of runway buffer past the company operations start date. Sized so the plan does not run dry the day revenue should arrive — the Specialist flags raises with less than this cushion."
+            value={draft.runwayBufferMonths}
+            fallback={DEFAULT_RUNWAY_BUFFER_MONTHS}
+            onChange={(_, v) => onChange("runwayBufferMonths", v)}
+            min={3}
+            max={24}
+            step={1}
+            testId="field-runwayBufferMonths"
+            researchRange="6–12 months"
+          />
+          <PctField
+            label="Sizing Overshoot"
+            tooltip="Headroom over the modeled cash need, expressed as a percent of the modeled raise. Covers slippage between plan and actual; the Specialist prefers raises sized at or above the mid-band."
+            value={draft.sizingOvershootPct}
+            fallback={DEFAULT_SIZING_OVERSHOOT_PCT}
+            onChange={(_, v) => onChange("sizingOvershootPct", v)}
+            min={0}
+            max={0.50}
+            step={0.01}
+            testId="field-sizingOvershootPct"
+            researchRange="10%–35%"
+          />
+          <NumberField
+            label="Revenue Ramp Delay"
+            tooltip="Months between operations start and the first material property revenue. Used to size the operating reserve and validate the gap between raise dates and revenue arrival."
+            value={draft.revenueRampDelayMonths}
+            fallback={DEFAULT_REVENUE_RAMP_DELAY_MONTHS}
+            onChange={(_, v) => onChange("revenueRampDelayMonths", v)}
+            min={1}
+            max={18}
+            step={1}
+            testId="field-revenueRampDelayMonths"
+            researchRange="3–9 months"
+          />
+          <PctField
+            label="Burn Flex-Down"
+            tooltip="Discretionary headroom in the burn plan that can be cut without breaking operations, as a percent of plan burn. Quantifies how much the company can absorb before a covenant or runway tripwire fires."
+            value={draft.burnFlexDownPct}
+            fallback={DEFAULT_BURN_FLEX_DOWN_PCT}
+            onChange={(_, v) => onChange("burnFlexDownPct", v)}
+            min={0}
+            max={0.50}
+            step={0.01}
+            testId="field-burnFlexDownPct"
+            researchRange="10%–30%"
           />
         </Section>
 

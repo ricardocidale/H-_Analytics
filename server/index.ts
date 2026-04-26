@@ -820,6 +820,12 @@ async function runSchemaMigrations() {
     await runAuditUniqueConstraints001();
     await markMigrationApplied("audit_unique_constraints_001");
   }
+
+  if (!(await isMigrationApplied("funding_cascade_001"))) {
+    const { runFundingCascade001 } = await import("./migrations/funding-cascade-001");
+    await runFundingCascade001();
+    await markMigrationApplied("funding_cascade_001");
+  }
 }
 
 async function runSeeds() {

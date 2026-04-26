@@ -129,7 +129,16 @@ export const globalAssumptions = pgTable("global_assumptions", {
   capitalRaiseDiscountRate: real("capital_raise_discount_rate").notNull().default(DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE),
   fundingInterestRate: real("funding_interest_rate").notNull().default(DEFAULT_FUNDING_INTEREST_RATE),
   fundingInterestPaymentFrequency: text("funding_interest_payment_frequency").notNull().default(DEFAULT_FUNDING_INTEREST_PAYMENT_FREQUENCY),
-  
+
+  // Funding Specialist required fields (per .claude/rules/inflation-cascade.md three-tier rule).
+  // NULL means "inherit Default from model_defaults at read time"; on first user
+  // Save these become user assumptions and persist as concrete values.
+  // trancheGapMonths is derived from capitalRaise1Date + capitalRaise2Date — no column needed.
+  runwayBufferMonths: real("runway_buffer_months"),       // months of runway buffer past ops start
+  sizingOvershootPct: real("sizing_overshoot_pct"),       // total raise as % above modeled need
+  revenueRampDelayMonths: real("revenue_ramp_delay_months"), // months between ops start and first material revenue
+  burnFlexDownPct: real("burn_flex_down_pct"),            // burn flex-down headroom as % of plan burn
+
   // Cost variables - Compensation (yearly partner compensation and count)
   partnerCompYear1: real("partner_comp_year1").notNull().default(540000),
   partnerCompYear2: real("partner_comp_year2").notNull().default(540000),

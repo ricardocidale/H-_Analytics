@@ -58,6 +58,19 @@ export const DEFAULT_CAPITAL_RAISE_BENCHMARKS = {
   burnFlexDownPctHigh: 0.30,
 } as const;
 
+/**
+ * Funding Specialist required-field Defaults (per .claude/rules/inflation-cascade.md).
+ *
+ * These are the seed values loaded into `model_defaults` rows; users override
+ * via the Funding tab. Calibrated to the mid-band of
+ * `DEFAULT_CAPITAL_RAISE_BENCHMARKS` (above) so the seeded centerline equals
+ * what the Specialist's evaluator considers "in-range".
+ */
+export const DEFAULT_RUNWAY_BUFFER_MONTHS = DEFAULT_CAPITAL_RAISE_BENCHMARKS.runwayBufferMonthsMid;
+export const DEFAULT_SIZING_OVERSHOOT_PCT = DEFAULT_CAPITAL_RAISE_BENCHMARKS.sizingOvershootPctMid;
+export const DEFAULT_REVENUE_RAMP_DELAY_MONTHS = DEFAULT_CAPITAL_RAISE_BENCHMARKS.revenueRampDelayMonthsMid;
+export const DEFAULT_BURN_FLEX_DOWN_PCT = DEFAULT_CAPITAL_RAISE_BENCHMARKS.burnFlexDownPctMid;
+
 export const SEED_DEBT_ASSUMPTIONS = {
   acqLTV: 0.75,             // Acquisition loan-to-value (75% LTV means 25% equity down)
   refiLTV: 0.75,            // Refinance loan-to-value
