@@ -267,6 +267,32 @@ describe("Analyst Trigger Discipline — client save/effect surfaces", () => {
       pattern: /useAutoRefreshIntelligence|toggle-auto-refresh-company/,
       why: "Company Assumptions page must not own an auto-refresh toggle or hook",
     },
+    // --- Property surface (task #739) -----------------------------------
+    // The Property edit page used to fire `generateResearch()` from a
+    // first-visit `setTimeout` 1.5 seconds after mount. That is an
+    // implicit Analyst trigger and is banned by
+    // `.claude/rules/analyst-trigger-discipline.md`. Pin both the
+    // generic timer-driven dispatch shape and the `isFirstVisit`-driven
+    // dispatch shape so they cannot regress.
+    {
+      file: "client/src/pages/PropertyEdit.tsx",
+      // Match any `setTimeout(...)` whose callback eventually calls
+      // `generateResearch(`. We cap the lookahead so unrelated
+      // `setTimeout` usage further down the file (none today) doesn't
+      // accidentally pull in a `generateResearch(` from a click handler
+      // hundreds of lines away.
+      pattern: /setTimeout\s*\([\s\S]{0,400}?generateResearch\s*\(/,
+      why: "Auto-fires The Analyst on a timer — first-visit guidance must use a non-triggering UI affordance (banner / dialog with explicit AnalystButton)",
+    },
+    {
+      file: "client/src/pages/PropertyEdit.tsx",
+      // Detect a useEffect body that gates on `isFirstVisit` and then
+      // calls `generateResearch(`. The FirstVisitBanner (allowed) is
+      // rendered in JSX, not in a useEffect, so a useEffect that
+      // co-mentions both tokens is the smoking gun.
+      pattern: /useEffect\s*\(\s*\(\s*\)\s*=>\s*\{[\s\S]{0,600}?isFirstVisit[\s\S]{0,600}?generateResearch\s*\(/,
+      why: "First-visit useEffect must not dispatch The Analyst — Analyst runs on explicit AnalystButton press only",
+    },
   ];
 
   for (const { file, pattern, why } of FORBIDDEN_CLIENT_PATTERNS) {

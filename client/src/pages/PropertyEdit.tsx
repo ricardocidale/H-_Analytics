@@ -123,11 +123,16 @@ export default function PropertyEdit() {
     pageVisitKey, "property", propertyId
   );
 
-  // NOTE (task #738 / .claude/rules/analyst-trigger-discipline.md):
-  // The `useAutoRefreshIntelligence` consumer that lived here was removed.
-  // The Analyst evaluates ONLY on an explicit AnalystButton click, so the
-  // page no longer carries an "Auto" toggle that silently fires
-  // `generateResearch()` on a timer / on entity-ready.
+  // NOTE (task #738 / #739 / .claude/rules/analyst-trigger-discipline.md):
+  // The `useAutoRefreshIntelligence` consumer that lived here was removed
+  // (#738), and the first-visit `setTimeout(generateResearch, 1500)` effect
+  // that auto-fired The Analyst when a property was opened for the first
+  // time was removed (#739). The Analyst evaluates ONLY on an explicit
+  // AnalystButton click, so first-visit guidance is conveyed via
+  // non-triggering UI affordances:
+  //   • <FirstVisitBanner /> — informational badge below the page header
+  //   • <Dialog open={showIntelligencePrompt} /> — prompts the user but
+  //     only runs research when they press the AnalystButton inside it.
 
   useEffect(() => {
     if (!wasGeneratingRef.current && isGenerating) {
@@ -159,18 +164,6 @@ export default function PropertyEdit() {
       setShowIntelligencePrompt(true);
     }
   }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isGenerating]);
-
-  useEffect(() => {
-    if (isFirstVisit && !isGenerating && !intelligenceClicked && property?.id) {
-      const hasBasicInfo = !!(property.name && property.location && property.roomCount && property.startAdr);
-      if (!hasBasicInfo) return;
-      const timer = setTimeout(() => {
-        setIntelligenceClicked(true);
-        generateResearch();
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isFirstVisit, isGenerating, intelligenceClicked, property?.id, property?.name, property?.location, property?.roomCount, property?.startAdr, generateResearch]);
 
   const handleIntelligenceNow = () => {
     setShowIntelligencePrompt(false);
