@@ -91,18 +91,18 @@ Maps 1:1 to the **Resources Control Plane** workstream above. P1–P5 shipped; P
 
 ---
 
-## Specialist Tier-1 Graduation (governed by ADR-007, Status: Proposed)
+## Specialist Tier-1 Graduation (governed by ADR-007, Status: Accepted 2026-04-26)
 
-> Path from current Tier-0 watchdog wrappers / unimplemented Specialists → Tier-1 N+1-driven Specialists meeting `.claude/rules/specialist-intelligence-bar.md`. Six phases, one Specialist per phase, sequential learning. Photos (F) and Resource Builder (L) are exempt; Constants Specialists (H–K) are a separate track.
+> Path from current Tier-0 watchdog wrappers / unimplemented Specialists → Tier-1 N+1-driven Specialists meeting `.claude/rules/specialist-intelligence-bar.md`. Six phases, one Specialist per phase, sequential learning. Photos (F) and Resource Builder (L) are exempt; Constants Specialists (H–K) are a separate track. Owner = **CC** per `claude-replit-split.md` 2026-04-26 research/intelligence lane (engine code is CC; the route handler + UI surfacing slice is Replit's via two-track execution when applicable).
 
 | Phase | Scope | Status | Owner | Commit/PR | Blocked-by | Next |
 |---|---|---|---|---|---|---|
-| G1 | Funding (A) graduation | ⏳ Pending | Replit (planned) | — | ADR-007 Accepted + ADR-004 Phase 5B v2 cognitive miss path shipped | — |
-| G2 | Revenue (B) graduation | ⏳ Pending | Replit (planned) | — | G1 ✅ + 1 session soak | — |
-| G3 | Risk Intelligence (D) graduation | ⏳ Pending | Replit (planned) | — | G2 ✅ | — |
-| G4 | Executive Summary (E) graduation | ⏳ Pending | Replit (planned) | — | G3 ✅ | — |
-| G5 | ICP Intelligence (C) graduation | ⏳ Pending | Replit (planned) | — | G4 ✅ | — |
-| G6 | Watchdog (G) graduation | ⏳ Pending | Replit (planned) | — | G5 ✅ | — |
+| G1 | Funding (A) graduation | ⏳ Pending | CC | — | ADR-004 Phase 5B v2 ✅ (24853904) | Author packet `adr-007-g1-funding-graduation.md` |
+| G2 | Revenue (B) graduation | ⏳ Pending | CC | — | G1 ✅ + 1 session soak | — |
+| G3 | Risk Intelligence (D) graduation | ⏳ Pending | CC | — | G2 ✅ | — |
+| G4 | Executive Summary (E) graduation | ⏳ Pending | CC | — | G3 ✅ | — |
+| G5 | ICP Intelligence (C) graduation | ⏳ Pending | CC | — | G4 ✅ | — |
+| G6 | Watchdog (G) graduation | ⏳ Pending | CC | — | G5 ✅ | — |
 
 ---
 

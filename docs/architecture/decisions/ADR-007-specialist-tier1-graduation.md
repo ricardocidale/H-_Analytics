@@ -1,8 +1,8 @@
 # ADR-007: Specialist Tier-1 Graduation — from deterministic gates to N+1 cognitive evaluators
 
-**Status:** Proposed
-**Date:** 2026-04-25
-**Deciders:** Ricardo (product directive 2026-04-25 — "make Specialists super smart, use as much LLM, N+1, APIs, well-written prompts/contexts, links, tables as possible"); Claude Code (architect role); Replit Agent (executor of phases)
+**Status:** Accepted (2026-04-26 — Ricardo, the directive author, confirmed via "yes" to begin G1; Phase 5B v2 dependency shipped clean as `24853904`; CC research/intelligence lane ratified in `fbb7429d`)
+**Date:** 2026-04-25 (proposed) → 2026-04-26 (accepted)
+**Deciders:** Ricardo (product directive 2026-04-25 — "make Specialists super smart, use as much LLM, N+1, APIs, well-written prompts/contexts, links, tables as possible"); Claude Code (architect role + new research/intelligence lane owner per `claude-replit-split.md` 2026-04-26 revision); Replit Agent (UI/workflow/route handler co-owner per two-track ADR execution)
 **Tags:** analyst, specialists, cognitive-engine, intelligence-bar, graduation, n+1, evidence
 
 ---
@@ -273,16 +273,7 @@ ADR-007 Acceptance ────────────────────�
 
 ### Phase tracking
 
-When this ADR moves to Accepted, six rows get added to `.claude/phases.md` under a new "Specialist Tier-1 Graduation (governed by ADR-007)" workstream:
-
-| Phase | Scope | Status | Owner | Blocked-by | Next |
-|---|---|---|---|---|---|
-| G1 | Funding graduation | ⏳ Pending | Replit | ADR-007 Accepted + ADR-004 5B v2 shipped | — |
-| G2 | Revenue graduation | ⏳ Pending | Replit | G1 ✅ + 1 session soak | — |
-| G3 | Risk Intelligence graduation | ⏳ Pending | Replit | G2 ✅ | — |
-| G4 | Executive Summary graduation | ⏳ Pending | Replit | G3 ✅ | — |
-| G5 | ICP Intelligence graduation | ⏳ Pending | Replit | G4 ✅ | — |
-| G6 | Watchdog graduation | ⏳ Pending | Replit | G5 ✅ | — |
+Live phase status: see [`.claude/phases.md`](../../../.claude/phases.md) — workstream "Specialist Tier-1 Graduation (governed by ADR-007)". Six phases G1-G6, sequential, one Specialist per phase per ADR §2 "Order of graduation". Live status tokens, owners, and blocked-by relationships are maintained there per `documentation.md` §"Phase status changes".
 
 ### Acceptance criteria for this ADR
 
