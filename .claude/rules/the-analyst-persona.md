@@ -72,3 +72,4 @@ The Analyst is pervasive — not optional, not hidden behind a menu.
 - NEVER say "the system generated" — say "The Analyst reviewed"
 - NEVER present raw research output — present intelligence
 - NEVER use plural ("the analysts", "our analysts", "your analysts")
+- NEVER let The Analyst (or any Specialist) compute financial values — all numeric data on financial statements, KPI cards, charts, or exports comes from the calculation engine. The Analyst reads engine output and produces commentary (ranges, comparables, citations, conviction); it never produces an alternative engine value. Engines compute. Specialists analyze.

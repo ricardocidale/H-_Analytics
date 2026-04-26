@@ -17,6 +17,7 @@ H+ Analytics is a **fundraising and capital-raising tool**, NOT a business opera
 ## The Two Businesses
 
 ### Business 1: The Brand/Management Company (ManCo)
+- **The ManCo is a hospitality OPERATOR / BRAND COMPANY** — small-scale analog to Accor, Marriott, Hilton, IHG (mega-scale) or Ennismore, Aman, Six Senses, Auberge, Hoxton, Equinox Hotels, 1 Hotels, Habitas (mid/lifestyle/vertical-brand operators). It is NOT an investment vehicle. It is NOT a fund. Its business is OPERATING properties under a brand and earning fees.
 - Builds an increasingly valuable hospitality brand focused on **vertical communities** (wellness, sexual wellness, corporate retreats, health/healing)
 - Markets worldwide to these communities, bringing ICPs directly to properties
 - Earns **management fees** (base + incentive) + **service fees** from every property
@@ -24,7 +25,7 @@ H+ Analytics is a **fundraising and capital-raising tool**, NOT a business opera
 - Commands higher fees over time because the brand delivers — good value, real experiences
 - **The competitive advantage:** Most small vertical-focused hotels charge premium prices but deliver mediocre experiences. This brand delivers better quality at fair prices.
 - Single brand for now. Architecture must support multiple brands in future (use `business_brand` entity).
-- SAFE is just ONE of many funding vehicles for ManCo (also: convertible notes, equity rounds, revenue-based financing). Admin sets the label via `fundingSourceLabel` in global_assumptions. NEVER hardcode "SAFE" in UI — use `global.fundingSourceLabel` or generic "funding." Properties are funded separately (debt + equity per SPV).
+- **Two distinct investor pools.** ManCo equity investors (who fund the operating company's growth — betting on brand + operating system + portfolio scaling) and Property SPV investors (who fund individual property acquisitions — betting on each property's NOI + exit value) are usually different pools with different risks, different cap tables, and different exits. SAFE is just ONE of many funding vehicles for ManCo (also: convertible notes, equity rounds, revenue-based financing). Admin sets the label via `fundingSourceLabel` in global_assumptions. NEVER hardcode "SAFE" in UI — use `global.fundingSourceLabel` or generic "funding." Properties are funded separately (debt + equity per SPV).
 
 ### Business 2: Each Property (SPV)
 - Each property has its OWN set of investors operating under a **Special Purpose Vehicle (SPV)**

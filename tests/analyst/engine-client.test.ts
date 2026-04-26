@@ -308,3 +308,194 @@ describe("engine-client — gate ordering", () => {
     expect(result.hit).toBe(true);
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────
+// Phase 5B v2 — verdict reconstruction + consultCognitive
+
+import {
+  consultCognitive,
+  type ConsultCognitiveRequest,
+} from "../../engine/analyst/cognitive/engine-client";
+import {
+  reconstructDimensionsFromGuidance,
+  type DimensionInput,
+} from "../../engine/analyst/cognitive/verdict-reconstructor";
+
+function adrInput(overrides: Partial<DimensionInput> = {}): DimensionInput {
+  return {
+    field: "adr",
+    userValue: 200,
+    isNumericField: true,
+    unit: "$",
+    ...overrides,
+  };
+}
+
+describe("verdict-reconstructor — severity rules", () => {
+  it("happy path: numeric input inside range → ok / within-range", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance()],
+      [adrInput({ userValue: 200 })],
+      { specialistId: "mgmt-co.funding", now: () => FIXED_NOW },
+    );
+    expect(dims).toHaveLength(1);
+    expect(dims[0].severity).toBe("ok");
+    expect(dims[0].intent).toBe("within-range");
+    expect(dims[0].range).toEqual({ low: 180, mid: 200, high: 220, unit: "$" });
+    expect(dims[0].qualityScore).toBe(78);
+    expect(dims[0].evidence).toHaveLength(1);
+  });
+
+  it("user value above range with high confidence → warning / above-range", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance({ confidence: "high" })],
+      [adrInput({ userValue: 350 })],
+      { specialistId: "mgmt-co.funding", now: () => FIXED_NOW },
+    );
+    expect(dims[0].severity).toBe("warning");
+    expect(dims[0].intent).toBe("above-range");
+    expect(dims[0].range).not.toBeNull();
+  });
+
+  it("user value above range with LOW confidence → caps at advisory (range null per ADR-003 inv 4)", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance({ confidence: "low" })],
+      [adrInput({ userValue: 350 })],
+      { specialistId: "mgmt-co.funding", now: () => FIXED_NOW },
+    );
+    expect(dims[0].severity).toBe("advisory");
+    // qualityScore=28 is below CONVICTION_FLOOR; non-ok ⇒ range goes null
+    expect(dims[0].range).toBeNull();
+    expect(dims[0].qualityScore).toBe(28);
+  });
+
+  it("user value below range → warning / below-range", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance()],
+      [adrInput({ userValue: 100 })],
+      { specialistId: "mgmt-co.funding", now: () => FIXED_NOW },
+    );
+    expect(dims[0].severity).toBe("warning");
+    expect(dims[0].intent).toBe("below-range");
+  });
+
+  it("null userValue → ok / missing-data", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance()],
+      [adrInput({ userValue: null })],
+      { specialistId: "mgmt-co.funding", now: () => FIXED_NOW },
+    );
+    expect(dims[0].severity).toBe("ok");
+    expect(dims[0].intent).toBe("missing-data");
+  });
+
+  it("non-numeric field with severityOverride → override wins", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance({ assumptionKey: "brandFit", valueLow: null, valueMid: null, valueHigh: null })],
+      [
+        {
+          field: "brandFit",
+          userValue: null,
+          isNumericField: false,
+          unit: "",
+          severityOverride: "warning",
+        },
+      ],
+      { specialistId: "mgmt-co.icp", now: () => FIXED_NOW },
+    );
+    expect(dims[0].severity).toBe("warning");
+    expect(dims[0].isNumericField).toBe(false);
+  });
+
+  it("confidence null → qualityScore defaults to 50", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance({ confidence: null })],
+      [adrInput({ userValue: 200 })],
+      { specialistId: "mgmt-co.funding", now: () => FIXED_NOW },
+    );
+    expect(dims[0].qualityScore).toBe(50);
+  });
+
+  it("severityOverride 'block' wins even when value is inside range", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance()],
+      [adrInput({ userValue: 200, severityOverride: "block" })],
+      { specialistId: "mgmt-co.funding", now: () => FIXED_NOW },
+    );
+    expect(dims[0].severity).toBe("block");
+    expect(dims[0].intent).toBe("block");
+  });
+
+  it("inputs whose field has no matching guidance row are skipped", () => {
+    const dims = reconstructDimensionsFromGuidance(
+      [liveGuidance({ assumptionKey: "adr" })],
+      [adrInput(), adrInput({ field: "doesNotExist" })],
+      { specialistId: "mgmt-co.funding", now: () => FIXED_NOW },
+    );
+    expect(dims).toHaveLength(1);
+    expect(dims[0].field).toBe("adr");
+  });
+});
+
+describe("consultCognitive — HIT path returns reconstructed dimensions", () => {
+  function makeCogRequest(
+    overrides: Partial<ConsultCognitiveRequest> = {}
+  ): ConsultCognitiveRequest {
+    return {
+      cacheKey: BASE_KEY,
+      dimensionInputs: [adrInput()],
+      specialistId: "mgmt-co.funding",
+      ...overrides,
+    };
+  }
+
+  it("HIT: returns dimensions + cognitiveRunId derived from runId", async () => {
+    const result = await consultCognitive(
+      makeCogRequest(),
+      makeDeps({
+        findRunByCacheKey: async () => freshRun(),
+        findGuidanceByRunId: async () => [liveGuidance()],
+      }),
+    );
+    expect(result.hit).toBe(true);
+    if (result.hit) {
+      expect(result.dimensions).toHaveLength(1);
+      expect(result.dimensions[0].severity).toBe("ok");
+      expect(result.cognitiveRunId).toBe("101");
+      expect(result.modelPrimary).toBe("claude-opus-4-7");
+    }
+  });
+
+  it("MISS fresh_miss: no reconstruction performed; same shape as tryCacheRead miss", async () => {
+    const result = await consultCognitive(
+      makeCogRequest(),
+      makeDeps({ findRunByCacheKey: async () => null }),
+    );
+    expect(result.hit).toBe(false);
+    if (!result.hit) expect(result.missReason).toBe<MissReason>("fresh_miss");
+  });
+
+  it("MISS ttl_expired: stale completed run produces ttl_expired miss", async () => {
+    const stale = new Date(FIXED_NOW.getTime() - 31 * 24 * 60 * 60 * 1000);
+    const result = await consultCognitive(
+      makeCogRequest(),
+      makeDeps({
+        findRunByCacheKey: async () => freshRun({ completedAt: stale }),
+      }),
+    );
+    expect(result.hit).toBe(false);
+    if (!result.hit) expect(result.missReason).toBe<MissReason>("ttl_expired");
+  });
+
+  it("MISS explicit_bypass: even a fresh complete run yields explicit_bypass", async () => {
+    const result = await consultCognitive(
+      makeCogRequest({ explicitBypass: true }),
+      makeDeps({
+        findRunByCacheKey: async () => freshRun(),
+        findGuidanceByRunId: async () => [liveGuidance()],
+      }),
+    );
+    expect(result.hit).toBe(false);
+    if (!result.hit) expect(result.missReason).toBe<MissReason>("explicit_bypass");
+  });
+});

@@ -1,33 +1,47 @@
 /**
- * engine-client.ts — Phase 5B read-path for the verdict cache (ADR-004).
+ * engine-client.ts — read-path for the verdict cache (ADR-004).
  *
  * Given a VerdictCacheKey + injected storage reader, this module decides
  * whether to serve the existing research_run or require the caller to
  * re-orchestrate. All I/O is injected via `EngineClientDeps`; the module
  * itself is pure logic + typed contracts.
  *
- * ## What v1 ships (Phase 5B)
+ * ## What ships
  *
  * - Typed `ConsultRequest` / `ConsultResult` / `MissReason` contracts.
  * - `tryCacheRead()` — looks up research_runs by cache_key, applies the
  *   two-axis TTL + inputs-hash + not-superseded + complete gates from
  *   ADR-004 §3-4, and returns either a hit (with the raw guidance rows)
  *   or a miss (with the reason enum).
+ * - **Phase 5B v2**: `consultCognitive()` — wraps `tryCacheRead` and on
+ *   HIT calls the verdict reconstructor (sibling
+ *   `./verdict-reconstructor.ts`) to return `RawVerdictDimension[]`
+ *   ready for `buildAnalystVerdict()`. On MISS returns the same typed
+ *   signal as `tryCacheRead`. Specialists call `consultCognitive` instead
+ *   of `tryCacheRead` so they don't re-implement the reconstruction glue.
  *
- * ## What v1 does NOT ship (deferred to Phase 5B v2)
+ * ## What this module never does
  *
- * - Full `AnalystVerdict` reconstruction from guidance rows. Needs a
- *   decision on whether to persist the rendered `VoiceBlock` (Phase 5C
- *   write-after) or re-run the voice renderer at read-time against
- *   reconstructed dimensions. The caller currently receives the raw
- *   `GuidanceSlim[]` on hit and re-runs just the voice stage; that's
- *   still ~300× cheaper than re-orchestrating.
+ * - Invoke the orchestrator on cache miss. Caller (Specialist evaluator)
+ *   responsibility per ADR-007 §1 step 4 — they have the prompts,
+ *   credentials, and streaming context.
+ * - Persist new cache rows on miss. Phase 5C write-after, Replit-owned.
+ * - Render voice. Surface Router responsibility downstream.
+ * - Compute or alter financial values. Engine-vs-intelligence boundary
+ *   per `.claude/rules/the-analyst-persona.md`.
  *
  * See docs/architecture/decisions/ADR-004-verdict-cache.md for the full
- * design. See engine/analyst/cognitive/cache-keys.ts for how the cache
- * key is constructed.
+ * design + ADR-007 §1 for the Tier-1 Specialist Pattern that consumes
+ * this module. See engine/analyst/cognitive/cache-keys.ts for how the
+ * cache key is constructed.
  */
 import { computeCacheKey, type VerdictCacheKey } from "./cache-keys";
+import {
+  reconstructDimensionsFromGuidance,
+  type DimensionInput,
+  type ReconstructOptions,
+} from "./verdict-reconstructor";
+import type { RawVerdictDimension } from "../contracts/verdict";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Miss reasons
@@ -221,5 +235,77 @@ export async function tryCacheRead(
     modelPrimary: run.modelPrimary,
     tier: run.tier,
     guidance: live,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Phase 5B v2 — consultCognitive: cache read + verdict reconstruction
+//
+// Specialists call this instead of tryCacheRead() so they receive
+// RawVerdictDimension[] directly on HIT instead of re-implementing the
+// GuidanceSlim → RawVerdictDimension glue per Specialist. On MISS the
+// caller still owns orchestrator invocation (ADR-007 §1 step 4).
+
+export interface ConsultCognitiveRequest extends ConsultRequest {
+  /** Per-dimension inputs needed to compute severity at reconstruction time. */
+  dimensionInputs: readonly DimensionInput[];
+  /** Specialist id (threaded into evidence + cognitiveRunId). */
+  specialistId: string;
+  /** Optional per-call overrides for the reconstructor. */
+  reconstructOptions?: Partial<Omit<ReconstructOptions, "specialistId">>;
+}
+
+export type ConsultCognitiveResult =
+  | {
+      hit: true;
+      runId: number;
+      completedAt: Date;
+      modelPrimary: string | null;
+      tier: number;
+      /** Reconstructed pre-voice dimensions ready for buildAnalystVerdict. */
+      dimensions: RawVerdictDimension[];
+      /** Stringified runId, for AnalystVerdict.meta.cognitiveRunId. */
+      cognitiveRunId: string;
+    }
+  | {
+      hit: false;
+      missReason: MissReason;
+    };
+
+/**
+ * Cache-read + reconstruct-on-HIT. On MISS, returns the same typed
+ * signal as `tryCacheRead` so the caller can decide to invoke the
+ * orchestrator. On HIT, returns reconstructed `RawVerdictDimension[]`
+ * + `cognitiveRunId` ready to thread into `AnalystVerdict.meta`.
+ *
+ * This function never invokes the orchestrator and never persists.
+ */
+export async function consultCognitive(
+  req: ConsultCognitiveRequest,
+  deps: EngineClientDeps,
+): Promise<ConsultCognitiveResult> {
+  const cacheRead = await tryCacheRead(req, deps);
+  if (!cacheRead.hit) {
+    return { hit: false, missReason: cacheRead.missReason };
+  }
+
+  const dimensions = reconstructDimensionsFromGuidance(
+    cacheRead.guidance,
+    req.dimensionInputs,
+    {
+      specialistId: req.specialistId,
+      now: deps.now,
+      ...req.reconstructOptions,
+    },
+  );
+
+  return {
+    hit: true,
+    runId: cacheRead.runId,
+    completedAt: cacheRead.completedAt,
+    modelPrimary: cacheRead.modelPrimary,
+    tier: cacheRead.tier,
+    dimensions,
+    cognitiveRunId: String(cacheRead.runId),
   };
 }
