@@ -214,6 +214,84 @@ describe("buildAnalystVerdict invariants", () => {
     });
     expect(verdict.overallSeverity).toBe("warning");
   });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ADR-008 invariants: meta.fallbackReason / vendorsUsed / cacheState
+  // ──────────────────────────────────────────────────────────────────────────
+
+  it("rejects Tier-1 verdict that carries a fallbackReason (Tier-0 only signal)", () => {
+    expect(() =>
+      buildAnalystVerdict({
+        specialistId: "t",
+        dimensions: [dim({ evidence: evidenceStrong })],
+        surfaceVoice: voice,
+        meta: { tier: 1, durationMs: 1, cognitiveRunId: "run-1", fallbackReason: "tier1_unavailable" },
+      }),
+    ).toThrow(InvalidVerdictError);
+  });
+
+  it("accepts Tier-0 verdict with fallbackReason='tier1_unavailable'", () => {
+    const verdict = buildAnalystVerdict({
+      specialistId: "t",
+      dimensions: [dim()],
+      surfaceVoice: voice,
+      meta: { tier: 0, durationMs: 1, fallbackReason: "tier1_unavailable" },
+    });
+    expect(verdict.meta.fallbackReason).toBe("tier1_unavailable");
+  });
+
+  it("rejects Tier-1 verdict with single-vendor vendorsUsed (must be >= 2)", () => {
+    expect(() =>
+      buildAnalystVerdict({
+        specialistId: "t",
+        dimensions: [dim({ evidence: evidenceStrong })],
+        surfaceVoice: voice,
+        meta: { tier: 1, durationMs: 1, cognitiveRunId: "run-1", vendorsUsed: ["anthropic"] },
+      }),
+    ).toThrow(InvalidVerdictError);
+  });
+
+  it("rejects Tier-0 verdict that carries vendorsUsed (Tier-1 only signal)", () => {
+    expect(() =>
+      buildAnalystVerdict({
+        specialistId: "t",
+        dimensions: [dim()],
+        surfaceVoice: voice,
+        meta: { tier: 0, durationMs: 1, vendorsUsed: ["anthropic", "google"] },
+      }),
+    ).toThrow(InvalidVerdictError);
+  });
+
+  it("accepts Tier-1 verdict with vendorsUsed.length >= 2", () => {
+    const verdict = buildAnalystVerdict({
+      specialistId: "t",
+      dimensions: [dim({ evidence: evidenceStrong })],
+      surfaceVoice: voice,
+      meta: { tier: 1, durationMs: 1, cognitiveRunId: "run-1", vendorsUsed: ["anthropic", "google"] },
+    });
+    expect(verdict.meta.vendorsUsed).toEqual(["anthropic", "google"]);
+  });
+
+  it("rejects Tier-0 verdict that carries cacheState (Tier-1 only signal)", () => {
+    expect(() =>
+      buildAnalystVerdict({
+        specialistId: "t",
+        dimensions: [dim()],
+        surfaceVoice: voice,
+        meta: { tier: 0, durationMs: 1, cacheState: "hit" },
+      }),
+    ).toThrow(InvalidVerdictError);
+  });
+
+  it("accepts Tier-1 verdict with cacheState='hit'", () => {
+    const verdict = buildAnalystVerdict({
+      specialistId: "t",
+      dimensions: [dim({ evidence: evidenceStrong })],
+      surfaceVoice: voice,
+      meta: { tier: 1, durationMs: 1, cognitiveRunId: "run-1", cacheState: "hit" },
+    });
+    expect(verdict.meta.cacheState).toBe("hit");
+  });
 });
 
 /* Type-only import keeps noUnusedLocals quiet for future growth. */
