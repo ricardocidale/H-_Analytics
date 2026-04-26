@@ -59,16 +59,19 @@ export const DEFAULT_CAPITAL_RAISE_BENCHMARKS = {
 } as const;
 
 /**
- * Funding Specialist required-field Defaults (per .claude/rules/inflation-cascade.md).
+ * Funding Specialist required-field Defaults (per .claude/rules/inflation-cascade.md
+ * and packet g1.5b-funding-cascade-a). These named constants are the canonical
+ * single literal source — seed rows in script/seed-model-defaults.ts and Admin UI
+ * fallbacks must reference them, never re-state the literal.
  *
- * These are the seed values loaded into `model_defaults` rows; users override
- * via the Funding tab. Calibrated to the mid-band of
- * `DEFAULT_CAPITAL_RAISE_BENCHMARKS` (above) so the seeded centerline equals
- * what the Specialist's evaluator considers "in-range".
+ * Runway / overshoot / burn-flex are aligned with the mid-band of
+ * `DEFAULT_CAPITAL_RAISE_BENCHMARKS` above; revenue-ramp uses the packet-locked
+ * 9-month default, which is intentionally more conservative than the benchmark
+ * mid (6) because hospitality stabilization typically lags fundraising plans.
  */
 export const DEFAULT_RUNWAY_BUFFER_MONTHS = DEFAULT_CAPITAL_RAISE_BENCHMARKS.runwayBufferMonthsMid;
 export const DEFAULT_SIZING_OVERSHOOT_PCT = DEFAULT_CAPITAL_RAISE_BENCHMARKS.sizingOvershootPctMid;
-export const DEFAULT_REVENUE_RAMP_DELAY_MONTHS = DEFAULT_CAPITAL_RAISE_BENCHMARKS.revenueRampDelayMonthsMid;
+export const DEFAULT_REVENUE_RAMP_DELAY_MONTHS = 9;
 export const DEFAULT_BURN_FLEX_DOWN_PCT = DEFAULT_CAPITAL_RAISE_BENCHMARKS.burnFlexDownPctMid;
 
 export const SEED_DEBT_ASSUMPTIONS = {

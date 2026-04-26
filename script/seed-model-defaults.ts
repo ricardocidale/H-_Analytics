@@ -89,6 +89,13 @@ export interface SeedSpec {
   value: unknown;
   unit: string | null;
   label: string;
+  /**
+   * Optional override for the `sub_tab` column. Defaults to "management_company"
+   * when omitted. Used by the Funding Specialist cascade rows so they group under
+   * sub_tab="funding" (per packet g1.5b-funding-cascade-a) while leaving the rest
+   * of the management_company defaults under their existing sub_tab.
+   */
+  subTab?: string;
 }
 
 export type CardKey =
@@ -121,13 +128,16 @@ export const SPECS: SeedSpec[] = [
   { key: "companyFundingBuffer",  card: "funding", value: COMPANY_FUNDING_BUFFER,           unit: "$",      label: "Company funding buffer" },
   { key: "reserveRoundingIncrement", card: "funding", value: RESERVE_ROUNDING_INCREMENT,    unit: "$",      label: "Reserve rounding increment" },
 
-  // Funding Specialist required-field Defaults (per .claude/rules/inflation-cascade.md).
-  // Values sourced from named DEFAULT_* constants in shared/constants-funding.ts
-  // (mid-band of DEFAULT_CAPITAL_RAISE_BENCHMARKS) — never literals.
-  { key: "runwayBufferMonths",     card: "funding", value: DEFAULT_RUNWAY_BUFFER_MONTHS,     unit: "months", label: "Runway buffer" },
-  { key: "sizingOvershootPct",     card: "funding", value: DEFAULT_SIZING_OVERSHOOT_PCT,     unit: "%",      label: "Sizing overshoot" },
-  { key: "revenueRampDelayMonths", card: "funding", value: DEFAULT_REVENUE_RAMP_DELAY_MONTHS, unit: "months", label: "Revenue ramp delay" },
-  { key: "burnFlexDownPct",        card: "funding", value: DEFAULT_BURN_FLEX_DOWN_PCT,        unit: "%",      label: "Burn flex-down %" },
+  // Funding Specialist required-field Defaults (per .claude/rules/inflation-cascade.md
+  // and packet g1.5b-funding-cascade-a). Values sourced from named DEFAULT_* constants
+  // in shared/constants-funding.ts — never literals. These rows live under
+  // subTab="funding" so the Funding-tab admin query (`WHERE sub_tab='funding'`) and
+  // the parity test can find them as a coherent group, distinct from the broader
+  // management_company defaults.
+  { key: "runwayBufferMonths",     card: "funding", subTab: "funding", value: DEFAULT_RUNWAY_BUFFER_MONTHS,     unit: "months", label: "Runway buffer" },
+  { key: "sizingOvershootPct",     card: "funding", subTab: "funding", value: DEFAULT_SIZING_OVERSHOOT_PCT,     unit: "%",      label: "Sizing overshoot" },
+  { key: "revenueRampDelayMonths", card: "funding", subTab: "funding", value: DEFAULT_REVENUE_RAMP_DELAY_MONTHS, unit: "months", label: "Revenue ramp delay" },
+  { key: "burnFlexDownPct",        card: "funding", subTab: "funding", value: DEFAULT_BURN_FLEX_DOWN_PCT,        unit: "%",      label: "Burn flex-down %" },
 
   // ── Revenue Model ────────────────────────────────────────────────────
   { key: "baseManagementFeeRate",       card: "revenue_model", value: DEFAULT_BASE_MANAGEMENT_FEE_RATE,      unit: "%",     label: "Base management fee (% of total revenue)" },
@@ -187,7 +197,7 @@ export async function seedModelDefaults(opts: { silent?: boolean } = {}): Promis
       .values({
         defaultKey,
         category: "management_company",
-        subTab: "management_company",
+        subTab: spec.subTab ?? "management_company",
         cardKey: spec.card,
         country: null,
         countrySubdivision: null,
@@ -209,6 +219,11 @@ export async function seedModelDefaults(opts: { silent?: boolean } = {}): Promis
           modelDefaults.sizeBand,
         ],
         set: {
+          // sub_tab is part of the cascade contract (Funding rows must land
+          // under sub_tab="funding"). Update on conflict so dev DBs that pre-date
+          // the per-spec subTab override migrate forward on next seed.
+          subTab: sql`EXCLUDED.sub_tab`,
+          cardKey: sql`EXCLUDED.card_key`,
           value: sql`EXCLUDED.value`,
           unit: sql`EXCLUDED.unit`,
           label: sql`EXCLUDED.label`,

@@ -12,7 +12,9 @@
  *   1. Each of the 4 schema columns exists on `globalAssumptions` as a
  *      nullable real column. NULL is the inherit-from-Defaults sentinel.
  *   2. Each field has exactly one `model_defaults` SPECS row under
- *      card="funding" with the canonical `mc.funding.<field>` key.
+ *      card="funding" with subTab="funding" and the canonical
+ *      `mc.funding.<field>` key (per packet g1.5b-funding-cascade-a — the
+ *      Funding admin tab queries `WHERE sub_tab='funding'`).
  *   3. Each Default value is sourced from a named DEFAULT_* constant in
  *      `shared/constants-funding.ts` — never a numeric literal in the seed.
  *   4. The Funding Specialist's `candidateFields` list in
@@ -126,6 +128,17 @@ describe("Funding Cascade Parity (g1.5b — three-tier cascade for the Funding S
         const row = matches[0];
         expect(toDefaultKey(row.card, row.key)).toBe(expectedKey);
         expect(row.unit).toBe(field.unit);
+
+        // Packet-locked grouping: the Funding admin tab + the SQL audit query
+        // (`SELECT ... FROM model_defaults WHERE sub_tab='funding'`) both rely on
+        // these rows landing under sub_tab="funding". A drift here would silently
+        // hide the rows from the admin UI and the rollback query.
+        expect(
+          row.subTab,
+          `Funding cascade SPECS row "${field.camel}" must declare ` +
+            `subTab: "funding" so it persists with sub_tab='funding' (per packet ` +
+            `g1.5b-funding-cascade-a, model_defaults verification block).`,
+        ).toBe("funding");
       });
 
       // ── 3. Default value sourced from named constant ─────────────────
