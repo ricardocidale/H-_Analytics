@@ -30,6 +30,7 @@ import {
 } from "@shared/schema/specialist";
 
 export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
+  // Tier-1 graduate (G1, 2026-04-26) — see ADR-007 + tests/analyst/golden/mgmt-co-funding.test.ts
   {
     id: "mgmt-co.funding",
     letter: "A",
