@@ -28,6 +28,14 @@ export interface GlobalResponse {
   capitalRaiseDiscountRate: number;
   fundingInterestRate: number;
   fundingInterestPaymentFrequency: string;
+  // Funding Specialist required-field cascade (G1.5b — see
+  // .claude/rules/inflation-cascade.md). NULL on disk means "inherit
+  // Default tier from model_defaults"; concrete numbers are the user's
+  // saved Assumption-tier override.
+  runwayBufferMonths: number | null;
+  sizingOvershootPct: number | null;
+  revenueRampDelayMonths: number | null;
+  burnFlexDownPct: number | null;
   // Compensation - partner comp by year
   partnerCompYear1: number;
   partnerCompYear2: number;

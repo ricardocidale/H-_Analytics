@@ -80,6 +80,12 @@ export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
     "capitalRaiseValuationCap", "capitalRaiseDiscountRate",
     "fundingSourceLabel", "fundingInterestRate",
     "costOfEquity",
+    // G1.5b Packet B: Funding-Specialist required-field cascade.
+    // Per .claude/rules/inflation-cascade.md these live as Defaults
+    // (admin) and Assumptions (user) — listing them here makes the
+    // user edits dirty-trackable and persisted via PUT /api/global-assumptions.
+    "runwayBufferMonths", "sizingOvershootPct",
+    "revenueRampDelayMonths", "burnFlexDownPct",
   ] as unknown as Array<keyof GlobalResponse>,
   revenue: [
     "baseManagementFee", "incentiveManagementFee",
@@ -433,6 +439,14 @@ export function useCompanyAssumptionsForm(
   };
 
   // Derive Funding-tab evaluator inputs from the saved formData.
+  // G1.5b Packet B: the four user-editable cascade fields (runway buffer,
+  // sizing overshoot, revenue-ramp delay, burn flex-down) now read from
+  // the merged form snapshot (formData ∪ global). NULL-on-disk indicates
+  // "inherit Default tier"; the read here surfaces concrete numbers when
+  // the user has typed any value, otherwise the AnalystButton transform
+  // applies `?? DEFAULT_*` from `shared/constants-funding.ts`.
+  // trancheGapMonths is derived from the two capital-raise dates and is
+  // NOT a user input on the funding tab — see the inflation-cascade rule.
   const deriveFundingInputs = (data: Partial<GlobalResponse>) => {
     const merged = { ...(global ?? {}), ...data } as Record<string, unknown>;
     const d1 = typeof merged.capitalRaise1Date === "string" ? new Date(merged.capitalRaise1Date as string).getTime() : NaN;
@@ -441,12 +455,14 @@ export function useCompanyAssumptionsForm(
     if (Number.isFinite(d1) && Number.isFinite(d2) && d1 !== d2) {
       trancheGapMonths = Math.abs(d2 - d1) / (1000 * 60 * 60 * 24 * DAYS_PER_MONTH);
     }
+    const numOrNull = (v: unknown): number | null =>
+      typeof v === "number" && Number.isFinite(v) ? v : null;
     return {
-      runwayBufferMonths: null,
-      sizingOvershootPct: null,
+      runwayBufferMonths: numOrNull(merged.runwayBufferMonths),
+      sizingOvershootPct: numOrNull(merged.sizingOvershootPct),
       trancheGapMonths,
-      revenueRampDelayMonths: null,
-      burnFlexDownPct: null,
+      revenueRampDelayMonths: numOrNull(merged.revenueRampDelayMonths),
+      burnFlexDownPct: numOrNull(merged.burnFlexDownPct),
     };
   };
 
