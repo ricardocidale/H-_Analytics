@@ -452,6 +452,11 @@ export function register(app: Express) {
                 payload: fundingInputs ?? {},
                 persona,
               });
+              // TEMP[ADR-007/G1]: dump verdict.meta for behavioral verification (remove after sign-off)
+              console.info(
+                "[G1-VERIFY server dispatch] funding meta:",
+                JSON.stringify(verdict?.meta ?? null, null, 2),
+              );
             } else {
               // Revenue specialist reads inputs from the freshly-saved row.
               // The saved-row → dispatch-key map is the single source of truth

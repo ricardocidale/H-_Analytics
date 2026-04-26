@@ -506,13 +506,16 @@ export function useCompanyAssumptionsForm(
             prerequisiteFailures?: PrerequisiteFailure[] | null;
             requiredFieldsMissing?: string[] | null;
           };
-          // TEMP[ADR-007/G1]: dump verdict for behavioral verification (remove after sign-off)
-          console.info("[G1-VERIFY save-tab response]", tab, {
-            verdict: json.verdict,
-            verdictMeta: json.verdict?.meta ?? null,
-            requiredFieldsMissing: json.requiredFieldsMissing ?? null,
-            prerequisiteFailures: json.prerequisiteFailures ?? null,
-          });
+          // TEMP[ADR-007/G1]: dump verdict.meta for behavioral verification (remove after sign-off)
+          console.info(
+            "[G1-VERIFY meta]",
+            tab,
+            JSON.stringify({
+              specialistId: json.verdict?.specialistId ?? null,
+              overallSeverity: json.verdict?.overallSeverity ?? null,
+              meta: json.verdict?.meta ?? null,
+            }),
+          );
           await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
           if (json.verdict && json.verdict.overallSeverity !== "ok") {
             setWatchdogResult(json.verdict);
