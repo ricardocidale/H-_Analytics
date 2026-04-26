@@ -50,6 +50,13 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     assignmentRefs: [
       { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
       { kind: "benchmark", slug: "funding-benchmarks", required: true },
+      // G1 Tier-1 graduation: live LP-comp dataset for comparables fetch.
+      // Optional so the Specialist falls back to benchmark-only when the
+      // resource is unmapped (red/amber health). G1 v1 fetcher returns
+      // canned data per ADR-007 §6 ("wiring matters; data quality follows");
+      // live PitchBook/PrivateEquityInfo integration follows in a separate
+      // packet.
+      { kind: "api", slug: "lp-comp-dataset", required: false, role: "comparables" },
     ],
     candidateFields: [
       { key: "runwayBufferMonths",     label: "Runway buffer (months)",      surface: "company-assumptions" },

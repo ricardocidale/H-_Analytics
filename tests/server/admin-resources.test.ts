@@ -712,10 +712,13 @@ describe("flattenCatalogDeclarations", () => {
     let totalRefs = 0;
     for (const def of SPECIALIST_CATALOG) totalRefs += def.assignmentRefs.length;
     expect(flat).toHaveLength(totalRefs);
-    // Spot-check Funding (Specialist A) wiring.
+    // Spot-check Funding (Specialist A) wiring. G1 Tier-1 graduation
+    // added the lp-comp-dataset api ref for comparables fetch (ADR-007 §6),
+    // bringing Funding's assignment count to 3 (model + benchmark + api).
     const funding = flat.filter((d) => d.specialistId === "mgmt-co.funding");
-    expect(funding.length).toBe(2);
+    expect(funding.length).toBe(3);
     expect(funding.find((d) => d.assignmentSlug === "primary-llm")?.assignmentRole).toBe("tier-1-cognitive");
+    expect(funding.find((d) => d.assignmentSlug === "lp-comp-dataset")?.assignmentRole).toBe("comparables");
   });
 });
 
