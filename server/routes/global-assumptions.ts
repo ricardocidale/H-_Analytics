@@ -203,11 +203,17 @@ export function register(app: Express) {
   });
 
   // ────────────────────────────────────────────────────────────
-  // ANALYST WATCHDOG — per-tab Save with deterministic verdict
+  // PER-TAB SAVE — data-only, no Specialist dispatch
   // POST /api/global-assumptions/save-tab marks a Company Assumptions tab
   // as saved (union into globalAssumptions.savedTabs jsonb), persists any
-  // patched fields, and returns a watchdog result. Funding tab runs the
-  // real evaluator against cached benchmarks; other 5 tabs return a stub.
+  // patched fields, and (for the funding/revenue tabs) reports any
+  // hard-required fields the user hasn't filled in yet so the UI can
+  // surface them. It does NOT dispatch The Analyst — per
+  // .claude/rules/analyst-trigger-discipline.md, The Analyst evaluates
+  // ONLY when the user explicitly presses <AnalystButton />. The
+  // findObservedMissingCandidateFields telemetry below is observability
+  // (records which optional fields users typically omit so admins can
+  // promote them via Required Fields tab); it does not run an evaluator.
   // ────────────────────────────────────────────────────────────
   const TAB_KEYS = [
     "company", "funding", "revenue", "compensation", "overhead", "property-defaults",
@@ -275,12 +281,13 @@ export function register(app: Express) {
       invalidateComputeCache();
       logActivity(req, "update", "global_assumptions", saved.id, `Save tab: ${tabKey}`);
 
-      // Phase 3b: Funding + Revenue tabs return a real AnalystVerdict from
-      // the Surface Router. Other tabs return verdict=null (no Analyst
-      // gate yet — Phase 4 ships Compensation, etc.).
-      let verdict = null;
+      // G1.5b-pre-a: Save is data-only. The Analyst dispatches ONLY on
+      // explicit <AnalystButton /> press (rule:
+      // .claude/rules/analyst-trigger-discipline.md). We still report
+      // hard-required field gaps so the form can highlight them, and we
+      // emit observed-missing telemetry so admins can promote
+      // candidate fields via the Required Fields tab.
       let requiredFieldsMissing: string[] | null = null;
-      let prerequisiteFailures: { id: string; specialistId: string; reason: string }[] | null = null;
       // Phase 4: emit observed-missing telemetry for Specialist C
       // (`mgmt-co.icp-intelligence`) when the Company Assumptions tab is
       // saved. C is a stub specialist (no dispatch yet), but its
@@ -316,200 +323,80 @@ export function register(app: Express) {
       }
 
       if (tabKey === "funding" || tabKey === "revenue") {
+        // Save-time work for the funding/revenue tabs is purely:
+        //   1. report any HARD-required field gaps so the form can flag
+        //      them, and
+        //   2. emit observed-missing telemetry so admins can promote
+        //      candidate fields via the Required Fields tab.
+        // No Specialist dispatch happens here — that is the sole
+        // responsibility of <AnalystButton /> (see analyst-trigger-discipline.md).
         const [
-          { createMgmtCoRouter, MGMT_CO_FUNDING_ID, MGMT_CO_REVENUE_ID, findMissingRequiredFields, findObservedMissingCandidateFields, RequiredFieldsMissingError },
-          { createVoiceRenderer },
-          { createQualityScorer },
-          { DEFAULT_REVENUE_BENCHMARKS },
-          c,
-          fundingBenchmarks,
+          {
+            MGMT_CO_FUNDING_ID,
+            MGMT_CO_REVENUE_ID,
+            findMissingRequiredFields,
+            findObservedMissingCandidateFields,
+          },
           { deriveHardRequiredFieldKeys },
-          { evaluatePrerequisites },
-          { getSpecialistById },
+          { getSpecialistById, getLockedHardCandidateKeys },
         ] = await Promise.all([
           import("../../engine/analyst/surface/mgmt-co"),
-          import("../../engine/analyst/voice/voice-renderer"),
-          import("../../engine/analyst/quality/quality-scorer"),
-          import("@shared/constants-revenue-benchmarks"),
-          import("@shared/constants"),
-          storage.getAnalystWatchdogBenchmarks(userId),
           import("./admin/specialists"),
-          import("../../engine/analyst/registry/prerequisite-registry"),
           import("../../engine/analyst/registry/specialist-catalog"),
         ]);
 
-        // P5: load admin-edited per-Specialist config (prompt/model/required-fields).
-        // P6a: requiredFields now gates dispatch — see withRequiredFieldsGate
-        // in engine/analyst/surface/mgmt-co/index.ts. The save above is
-        // preserved either way (drafts are permissive); the gate only
-        // controls whether the Specialist runs.
-        const [fundingCfg, revenueCfg] = await Promise.all([
-          storage.getOrCreateSpecialistConfig(MGMT_CO_FUNDING_ID),
-          storage.getOrCreateSpecialistConfig(MGMT_CO_REVENUE_ID),
-        ]);
-        const router = createMgmtCoRouter(
-          { voiceRenderer: createVoiceRenderer(), qualityScorer: createQualityScorer() },
-          { funding: fundingBenchmarks, revenue: DEFAULT_REVENUE_BENCHMARKS },
-          {
-            configs: {
-              funding: {
-                promptTemplate: fundingCfg.promptTemplate,
-                modelResourceId: fundingCfg.modelResourceId,
-                requiredFields: fundingCfg.requiredFields ?? [],
-              },
-              revenue: {
-                promptTemplate: revenueCfg.promptTemplate,
-                modelResourceId: revenueCfg.modelResourceId,
-                // P6a: revenue gate runs at the route handler (pre-dispatch)
-                // against saved-row keys. The router-level wrapper would see
-                // the post-default-substitution dispatch payload (different
-                // namespace), so passing requiredFields here would either
-                // false-positive (admin-entered saved-row key, e.g.
-                // "defaultCostRateMarketing", missing from dispatch payload)
-                // or be a silent no-op for dispatch-payload keys (e.g.
-                // "marketingRate") because defaults always fill them. We
-                // therefore intentionally pass [] and rely on the route
-                // pre-check as the sole revenue gate.
-                requiredFields: [],
-              },
-            },
-          },
-        );
+        const activeSpecialistId =
+          tabKey === "funding" ? MGMT_CO_FUNDING_ID : MGMT_CO_REVENUE_ID;
+        const activeCfg = await storage.getOrCreateSpecialistConfig(activeSpecialistId);
+        const activeDef = getSpecialistById(activeSpecialistId);
 
-        // Single-tenant: hardcode the L+B luxury persona for now. Phase 4
-        // will plumb persona resolution through user/company settings.
-        const persona = { segment: "L+B", tier: "luxury", market: "US" } as const;
-
-        // P6a: required-fields gate runs HERE (pre-dispatch) so the natural
-        // namespace per Specialist is the one admins author against:
-        //   - funding: keys of the dispatch payload `fundingInputs`
-        //     (i.e. CapitalRaiseInputs — runwayBufferMonths, etc.)
-        //   - revenue: keys of the freshly-saved row (defaultCostRateMarketing,
-        //     defaultRevShareFb, ...) — NOT the transformed dispatch payload,
-        //     because the transform applies `?? DEFAULT_*` fallbacks that
-        //     would mask missing values from a router-level gate.
-        // The router still wraps each Specialist with withRequiredFieldsGate
-        // as defense-in-depth (any direct router caller bypassing this
-        // handler still gets gated for funding); the wrapped revenue path is
-        // a no-op because the dispatch payload here always satisfies it.
+        // Funding gate-source is the dispatch-payload namespace
+        // (CapitalRaiseInputs — runwayBufferMonths, etc.) the user fills
+        // in on the funding tab. Revenue gate-source is the freshly-saved
+        // row (defaultCostRateMarketing, defaultRevShareFb, …) — the
+        // transform that lives in the AnalystButton handler applies
+        // `?? DEFAULT_*` fallbacks that would mask missing values, so
+        // gating against the saved row is the truthful surface here too.
         const gateSource: Record<string, unknown> =
           tabKey === "funding"
             ? ((fundingInputs ?? {}) as Record<string, unknown>)
             : (saved as Record<string, unknown>);
-        // Prefer the per-Specialist toggle state (`fieldRequirements`) over the
-        // legacy `requiredFields` column. `deriveHardRequiredFieldKeys` falls
-        // back to the legacy list only if no toggle has been set yet, so
-        // Specialists migrated to the toggle UI gate against the truthful
-        // catalog-driven hard set.
-        const activeCfg = tabKey === "funding" ? fundingCfg : revenueCfg;
-        const { getLockedHardCandidateKeys: _getLocked } = await import(
-          "../../engine/analyst/registry/specialist-catalog"
-        );
-        const gateFields = deriveHardRequiredFieldKeys(
-          (activeCfg as { fieldRequirements?: Record<string, "hard" | "recommended" | "off"> }).fieldRequirements,
-          activeCfg.requiredFields,
-          _getLocked(tabKey === "funding" ? MGMT_CO_FUNDING_ID : MGMT_CO_REVENUE_ID),
-        );
-        const activeSpecialistId = tabKey === "funding" ? MGMT_CO_FUNDING_ID : MGMT_CO_REVENUE_ID;
-        const activeDef = getSpecialistById(activeSpecialistId);
-        const toggledOnPrereqs = Object.entries(
-          (activeCfg as { prerequisiteToggles?: Record<string, boolean> }).prerequisiteToggles ?? {},
-        )
-          .filter(([id, on]) => on === true && (activeDef?.prerequisites ?? []).includes(id))
-          .map(([id]) => id);
-        const prereqFails = toggledOnPrereqs.length === 0
-          ? []
-          : await evaluatePrerequisites(toggledOnPrereqs, { storage, userId });
-        const missing = findMissingRequiredFields(gateSource, gateFields);
 
-        // Telemetry: record candidate-field keys this run observed as
+        const fieldRequirements = (activeCfg as {
+          fieldRequirements?: Record<string, "hard" | "recommended" | "off">;
+        }).fieldRequirements;
+
+        const gateFields = deriveHardRequiredFieldKeys(
+          fieldRequirements,
+          activeCfg.requiredFields,
+          getLockedHardCandidateKeys(activeSpecialistId),
+        );
+        const missing = findMissingRequiredFields(gateSource, gateFields);
+        if (missing.length > 0) requiredFieldsMissing = missing;
+
+        // Telemetry: record candidate-field keys this save observed as
         // missing-but-useful (toggle="off"). The Required Fields tab
         // surfaces these as "promote to Recommended / Hard-required"
-        // recommendations (see SpecialistPage.tsx). We persist regardless
-        // of whether the dispatch ultimately runs — even gated runs
-        // produce a useful signal about what the user typically omits.
+        // recommendations (see SpecialistPage.tsx).
         const observedMissing = findObservedMissingCandidateFields(
           gateSource,
           activeDef?.candidateFields ?? [],
-          (activeCfg as { fieldRequirements?: Record<string, "hard" | "recommended" | "off"> }).fieldRequirements,
+          fieldRequirements,
         );
         await storage.recordObservedMissingFields(activeSpecialistId, observedMissing);
-
-        if (prereqFails.length > 0) {
-          prerequisiteFailures = prereqFails.map((f) => ({
-            id: f.id,
-            specialistId: activeSpecialistId,
-            reason: f.reason,
-          }));
-          if (missing.length > 0) requiredFieldsMissing = missing;
-        } else if (missing.length > 0) {
-          requiredFieldsMissing = missing;
-        } else {
-          try {
-            if (tabKey === "funding") {
-              verdict = await router.dispatch({
-                specialistId: MGMT_CO_FUNDING_ID,
-                payload: fundingInputs ?? {},
-                persona,
-              });
-            } else {
-              // Revenue specialist reads inputs from the freshly-saved row.
-              // The saved-row → dispatch-key map is the single source of truth
-              // (engine/analyst/registry/required-field-keys.ts: REVENUE_FIELD_MAPPINGS)
-              // — same map drives the admin allow-list, so the two cannot diverge.
-              const { REVENUE_FIELD_MAPPINGS } = await import(
-                "../../engine/analyst/registry/required-field-keys"
-              );
-              const REVENUE_DISPATCH_DEFAULTS: Record<
-                typeof REVENUE_FIELD_MAPPINGS[number]["dispatchKey"],
-                number
-              > = {
-                marketingRate:      c.DEFAULT_COST_RATE_MARKETING,
-                fbRevenueShare:     c.DEFAULT_REV_SHARE_FB,
-                eventsRevenueShare: c.DEFAULT_REV_SHARE_EVENTS,
-                otherRevenueShare:  c.DEFAULT_REV_SHARE_OTHER,
-                cateringBoostPct:   c.DEFAULT_CATERING_BOOST_PCT,
-              };
-              const savedRow = saved as Record<string, unknown>;
-              const num = (k: string) => {
-                const v = savedRow[k];
-                return typeof v === "number" && Number.isFinite(v) ? v : null;
-              };
-              const revenuePayload = Object.fromEntries(
-                REVENUE_FIELD_MAPPINGS.map(({ savedRowKey, dispatchKey }) => [
-                  dispatchKey,
-                  num(savedRowKey) ?? REVENUE_DISPATCH_DEFAULTS[dispatchKey],
-                ]),
-              ) as Record<
-                typeof REVENUE_FIELD_MAPPINGS[number]["dispatchKey"],
-                number
-              >;
-              verdict = await router.dispatch({
-                specialistId: MGMT_CO_REVENUE_ID,
-                payload: revenuePayload,
-                persona,
-              });
-            }
-          } catch (gateErr: unknown) {
-            // Defense-in-depth: the router wrapper might still fire for the
-            // funding path if pre-check missed an edge case. SurfaceRouter
-            // wraps Specialist throws in SpecialistExecutionError, so unwrap
-            // one level to find the underlying RequiredFieldsMissingError.
-            const inner = (gateErr as { cause?: unknown })?.cause;
-            if (inner instanceof RequiredFieldsMissingError) {
-              requiredFieldsMissing = [...inner.missingFields];
-              verdict = null;
-            } else if (gateErr instanceof RequiredFieldsMissingError) {
-              requiredFieldsMissing = [...gateErr.missingFields];
-              verdict = null;
-            } else {
-              throw gateErr;
-            }
-          }
-        }
       }
 
-      res.json({ ok: true, savedTabs: nextSaved, verdict, requiredFieldsMissing, prerequisiteFailures });
+      // G1.5b-pre-a: response shape no longer carries `verdict` or
+      // `prerequisiteFailures` — those are AnalystButton-press concerns.
+      const responseBody: {
+        ok: true;
+        savedTabs: string[];
+        requiredFieldsMissing?: string[];
+      } = { ok: true, savedTabs: nextSaved };
+      if (requiredFieldsMissing && requiredFieldsMissing.length > 0) {
+        responseBody.requiredFieldsMissing = requiredFieldsMissing;
+      }
+      res.json(responseBody);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to save Company Assumptions tab", error);
     }

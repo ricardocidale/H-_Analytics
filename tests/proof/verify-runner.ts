@@ -38,6 +38,7 @@ const phases: Phase[] = [
   { title: "PHASE 17: Any-Prop Detector", file: "tests/proof/any-prop-detector.test.ts", passMsg: "No new any-typed Props beyond baseline", failMsg: "Any-prop detector FAILED — new contract-drift risk" },
   { title: "PHASE 18: Literal Drift", file: "tests/proof/literal-drift.test.ts", passMsg: "No new duplicated date literals beyond baseline", failMsg: "Literal drift detector FAILED — magic date duplicated across files" },
   { title: "PHASE 19: Seed/Schema Sync", file: "tests/proof/seed-schema-sync.test.ts", passMsg: "Every schema column exercised by at least one seed", failMsg: "Seed/schema sync FAILED — new schema column without seed coverage" },
+  { title: "PHASE 20: Analyst Trigger Discipline", file: "tests/proof/analyst-trigger-discipline.test.ts", passMsg: "No save-time Specialist dispatch — Analyst runs only on AnalystButton press", failMsg: "Analyst trigger discipline FAILED — a save/effect handler re-acquired Specialist dispatch" },
 ];
 
 function run() {
