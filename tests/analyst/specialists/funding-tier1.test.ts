@@ -443,6 +443,8 @@ describe("createFundingSpecialist — fallback paths (S5)", () => {
     expect(out.tier).toBe(0);
     expect(out.cognitiveRunId).toBeUndefined();
     expect(out.dimensions).toHaveLength(5);
+    // ADR-008: orchestrator failure → Tier-0 fallback emits canonical reason
+    expect(out.meta?.fallbackReason).toBe("tier1_unavailable");
   });
 
   it("cache lookup throws → catches → Tier-0 fallback", async () => {
@@ -452,6 +454,8 @@ describe("createFundingSpecialist — fallback paths (S5)", () => {
     const specialist = createFundingSpecialist(BENCHMARKS, { evidenceAsOf: EVIDENCE_AS_OF }, deps);
     const out = await specialist(HEALTHY_INPUTS, CONTEXT);
     expect(out.tier).toBe(0);
+    // ADR-008: cache failure → Tier-0 fallback emits canonical reason
+    expect(out.meta?.fallbackReason).toBe("tier1_unavailable");
   });
 
   it("context resolver throws → catches → Tier-0 fallback", async () => {
@@ -463,6 +467,8 @@ describe("createFundingSpecialist — fallback paths (S5)", () => {
     const specialist = createFundingSpecialist(BENCHMARKS, { evidenceAsOf: EVIDENCE_AS_OF }, deps);
     const out = await specialist(HEALTHY_INPUTS, CONTEXT);
     expect(out.tier).toBe(0);
+    // ADR-008: context resolution failure → Tier-0 fallback emits canonical reason
+    expect(out.meta?.fallbackReason).toBe("tier1_unavailable");
   });
 
   it("S5: superseded cache row → MISS path → orchestrator invoked normally", async () => {
@@ -507,5 +513,8 @@ describe("createFundingSpecialist — fallback paths (S5)", () => {
     expect(fallbackOut.dimensions.length).toBe(tier0Out.dimensions.length);
     expect(fallbackOut.dimensions.map((d) => d.field)).toEqual(tier0Out.dimensions.map((d) => d.field));
     expect(fallbackOut.dimensions.map((d) => d.severity)).toEqual(tier0Out.dimensions.map((d) => d.severity));
+    // ADR-008: both paths emit the same canonical fallbackReason
+    expect(fallbackOut.meta?.fallbackReason).toBe("tier1_unavailable");
+    expect(tier0Out.meta?.fallbackReason).toBe("tier1_unavailable");
   });
 });
