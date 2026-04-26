@@ -4,10 +4,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, X } from "@/components/icons/themed-icons";
-import { IconSave } from "@/components/icons";
-import { Loader2 } from "lucide-react";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useGlobalAssumptions, useUpdateAdminConfig } from "@/lib/api";
 import { ADMIN_TEXTAREA } from "./styles";
@@ -333,15 +332,13 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-end pt-0 pb-4 px-6">
-          <Button
+          <SaveButton
             onClick={handleSave}
-            disabled={!dirty || updateMutation.isPending}
+            hasChanges={dirty}
+            isPending={updateMutation.isPending}
             size="sm"
             data-testid="button-save-icp"
-          >
-            {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <IconSave className="w-3.5 h-3.5 mr-1.5" />}
-            Save
-          </Button>
+          />
         </CardFooter>
       </Card>
     </div>

@@ -26,6 +26,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -515,13 +516,11 @@ export function LlmConfigTab({
             data-testid="input-change-summary-llm"
           />
           <div className="flex justify-end">
-            <Button
+            <SaveButton
               onClick={() => mutation.mutate()}
-              disabled={mutation.isPending}
+              isPending={mutation.isPending}
               data-testid="button-save-llm-config"
-            >
-              {mutation.isPending ? "Saving…" : "Save"}
-            </Button>
+            />
           </div>
         </CardContent>
       </Card>

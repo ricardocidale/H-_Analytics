@@ -4,6 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { useToast } from "@/hooks/use-toast";
 import { IconDownload, IconTrending, IconFileCheck } from "@/components/icons";
 import { saveExportConfig, DEFAULT_EXPORT_CONFIG, type ExportConfig } from "@/lib/exportConfig";
@@ -371,9 +372,12 @@ export default function ExportsTab() {
         <Button variant="outline" onClick={handleReset} disabled={saving} data-testid="button-export-reset">
           Reset to defaults
         </Button>
-        <Button onClick={handleSave} disabled={!dirty || saving} data-testid="button-export-save">
-          {saving ? "Saving…" : "Save"}
-        </Button>
+        <SaveButton
+          onClick={handleSave}
+          hasChanges={dirty}
+          isPending={saving}
+          data-testid="button-export-save"
+        />
       </div>
     </div>
   );

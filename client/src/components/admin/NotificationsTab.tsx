@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -517,13 +518,13 @@ export default function NotificationsTab() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button
+                <SaveButton
                   data-testid="button-save-vector-settings"
                   onClick={saveVectorSettings}
-                  disabled={saveSettingsMutation.isPending}
+                  isPending={saveSettingsMutation.isPending}
                 >
                   Save settings
-                </Button>
+                </SaveButton>
                 <Button
                   variant="outline"
                   data-testid="button-test-vector-email"

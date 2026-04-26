@@ -7,6 +7,7 @@ import { useGlobalAssumptions, useUpdateAdminConfig, useProperties } from "@/lib
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -372,10 +373,12 @@ export default function CompanyIcpDefinition() {
                   <Button variant="ghost" size="sm" onClick={() => setDefEditing(false)} data-testid="button-cancel-thesis">
                     Cancel
                   </Button>
-                  <Button size="sm" onClick={handleSaveDefinition} disabled={updateMutation.isPending} data-testid="button-save-thesis">
-                    {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
-                    Save
-                  </Button>
+                  <SaveButton
+                    size="sm"
+                    onClick={handleSaveDefinition}
+                    isPending={updateMutation.isPending}
+                    data-testid="button-save-thesis"
+                  />
                 </div>
               )}
             </div>

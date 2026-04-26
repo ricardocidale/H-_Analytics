@@ -13,6 +13,7 @@ import { AnimatedPage, AnimatedSection } from "@/components/graphics/AnimatedPag
 import { useGlobalAssumptions, useUpdateAdminConfig } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
-  IconSave, IconHistory, IconTarget, IconSparkles, IconFileText,
+  IconHistory, IconTarget, IconSparkles, IconFileText,
   IconEye, IconRefreshCw, IconZap, IconSettings,
 } from "@/components/icons";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -312,19 +313,11 @@ export default function IcpStudio() {
                   <IconHistory className="w-4 h-4" />
                   History
                 </Button>
-                <Button
+                <SaveButton
                   size="sm"
                   onClick={handleSave}
-                  disabled={updateGlobal.isPending}
-                  className="gap-1.5 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg"
-                >
-                  {updateGlobal.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <IconSave className="w-4 h-4" />
-                  )}
-                  Save
-                </Button>
+                  isPending={updateGlobal.isPending}
+                />
               </div>
             }
           />

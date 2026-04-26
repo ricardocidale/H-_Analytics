@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -269,14 +270,14 @@ export function IdentityTab({ specialistId }: { specialistId: string }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
+          <SaveButton
             data-testid="button-identity-save"
             onClick={() => saveMutation.mutate()}
-            disabled={!dirty || saveMutation.isPending}
+            hasChanges={dirty}
+            isPending={saveMutation.isPending}
           >
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Save override
-          </Button>
+          </SaveButton>
           <Button
             variant="outline"
             data-testid="button-identity-reset"

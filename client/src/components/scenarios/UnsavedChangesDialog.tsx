@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2 } from "@/components/icons/themed-icons";
-import { IconSave } from "@/components/icons";
 import { useSuggestScenarioName, useCreateScenario } from "@/lib/api/scenarios";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { useToast } from "@/hooks/use-toast";
@@ -141,15 +140,14 @@ export function UnsavedChangesDialog({
           <Button variant="outline" onClick={handleDiscard} className="text-destructive" data-testid="button-discard">
             Discard Changes
           </Button>
-          <Button
+          <SaveButton
             onClick={handleSaveAndLeave}
-            disabled={createScenario.isPending || !name.trim()}
+            disabled={!name.trim()}
+            isPending={createScenario.isPending}
             data-testid="button-save-and-leave"
-            className="flex items-center gap-2"
           >
-            {createScenario.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
             Save & Leave
-          </Button>
+          </SaveButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
