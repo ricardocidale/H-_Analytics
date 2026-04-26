@@ -3,10 +3,16 @@
  *
  * Layout: 6 horizontal tabs sit beneath a sticky header. Each tab renders its
  * own bottom Save button wired to `handleSaveTab(tab)`, which persists only
- * that tab's dirty fields and fires the deterministic Analyst watchdog. A
- * single shared `formData` backs all tabs — tabs are pure visual organization
- * over the same form state. The active tab is mirrored to the URL via the
- * `?tab=` query param so deep links and refreshes preserve location.
+ * that tab's dirty fields. Save is data-only — it DOES NOT invoke The
+ * Analyst (per binding rule .claude/rules/analyst-trigger-discipline.md and
+ * task #738). The Analyst evaluates ONLY on an explicit `<AnalystButton />`
+ * press. The save-tab response shape is `{ ok, savedTabs, requiredFieldsMissing? }`
+ * (task #737); `requiredFieldsMissing` (if present) is surfaced as a
+ * non-blocking amber banner on the active tab and never auto-dispatches.
+ * A single shared `formData` backs all tabs — tabs are pure visual
+ * organization over the same form state. The active tab is mirrored to
+ * the URL via the `?tab=` query param so deep links and refreshes preserve
+ * location.
  *
  * Tabs (April 2026 entity-correctness restructure — see ARCHITECTURE.md §1a):
  *   1. Company           — identity, contact, HQ, financial/regulatory,
