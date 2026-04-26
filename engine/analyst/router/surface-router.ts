@@ -26,6 +26,7 @@ import {
   severityMaxOf,
   type AnalystVerdict,
   type AnalystVerdictMeta,
+  type FallbackReason,
   type PersonaContext,
   type RawVerdictDimension,
   type Severity,
@@ -89,6 +90,12 @@ export interface SpecialistOutput {
   benchmarkVariancePerField?: Record<string, number>;
   /** Optional: per-dimension cognitive consensus ratio (0..1). */
   consensusPerField?: Record<string, number>;
+  /** Optional: ADR-008 meta provenance. Tier-coupling enforced at the Verdict schema. */
+  meta?: {
+    fallbackReason?: FallbackReason;
+    vendorsUsed?: string[];
+    cacheState?: "hit" | "miss";
+  };
 }
 
 export interface SpecialistContext {
@@ -211,6 +218,18 @@ function assembleVerdict(
     tier,
     durationMs: Math.max(0, durationMs),
     ...(cognitiveRunId ? { cognitiveRunId } : {}),
+    // ADR-008: forward Specialist-supplied meta provenance. Tier-coupling
+    // is enforced by AnalystVerdictSchema.refine — buildAnalystVerdict
+    // throws if the Specialist emits a field on the wrong tier.
+    ...(tier === 0 && output.meta?.fallbackReason
+      ? { fallbackReason: output.meta.fallbackReason }
+      : {}),
+    ...(tier === 1 && output.meta?.vendorsUsed && output.meta.vendorsUsed.length >= 2
+      ? { vendorsUsed: output.meta.vendorsUsed }
+      : {}),
+    ...(tier === 1 && output.meta?.cacheState
+      ? { cacheState: output.meta.cacheState }
+      : {}),
   };
 
   const surfaceVoice = deps.voiceRenderer.renderSurface(dimensions);
@@ -297,6 +316,32 @@ function aggregate(verdicts: readonly AnalystVerdict[], deps: SurfaceRouterDeps)
   const durationMs = verdicts.reduce((acc, v) => acc + v.meta.durationMs, 0);
   const cognitiveRunId = verdicts.find((v) => v.meta.cognitiveRunId !== undefined)?.meta.cognitiveRunId;
 
+  // ADR-008: aggregate meta provenance, honoring tier-coupling invariants.
+  // - fallbackReason: only when ALL constituents are Tier-0 with the same
+  //   reason (mixed-tier or mixed-reason aggregations drop it).
+  // - vendorsUsed: union across Tier-1 constituents; only emitted when
+  //   aggregate.tier === 1 and the union has >=2 vendors.
+  // - cacheState: aggregate as "miss" if ANY constituent missed; "hit"
+  //   only if all hit. Only emitted when aggregate.tier === 1.
+  const tier0Reasons = new Set(
+    verdicts.filter((v) => v.meta.tier === 0).map((v) => v.meta.fallbackReason).filter((r): r is FallbackReason => r !== undefined),
+  );
+  const fallbackReason: FallbackReason | undefined =
+    tier === 0 && verdicts.every((v) => v.meta.tier === 0) && tier0Reasons.size === 1
+      ? Array.from(tier0Reasons)[0]
+      : undefined;
+
+  const vendorUnion = Array.from(
+    new Set(verdicts.flatMap((v) => v.meta.vendorsUsed ?? [])),
+  );
+  const vendorsUsed = tier === 1 && vendorUnion.length >= 2 ? vendorUnion : undefined;
+
+  const tier1States = verdicts.filter((v) => v.meta.tier === 1).map((v) => v.meta.cacheState);
+  const cacheState: "hit" | "miss" | undefined =
+    tier === 1 && tier1States.length > 0 && tier1States.every((s) => s !== undefined)
+      ? tier1States.some((s) => s === "miss") ? "miss" : "hit"
+      : undefined;
+
   const surfaceVoice = deps.voiceRenderer.renderSurface(allDimensions);
   const compositeId = verdicts.map((v) => v.specialistId).join("+");
   const generatedAt = verdicts[verdicts.length - 1].generatedAt;
@@ -309,6 +354,9 @@ function aggregate(verdicts: readonly AnalystVerdict[], deps: SurfaceRouterDeps)
       tier,
       durationMs,
       ...(cognitiveRunId ? { cognitiveRunId } : {}),
+      ...(fallbackReason ? { fallbackReason } : {}),
+      ...(vendorsUsed ? { vendorsUsed } : {}),
+      ...(cacheState ? { cacheState } : {}),
     },
     generatedAt,
   });
