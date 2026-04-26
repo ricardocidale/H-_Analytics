@@ -19,6 +19,8 @@
  *   tsx script/seed-model-constants.ts
  */
 
+import { pathToFileURL } from "url";
+import { resolve } from "path";
 import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS } from "../shared/countryDefaults";
 import { DAYS_PER_MONTH } from "../shared/constants";
 import { storage } from "../server/storage";
@@ -80,7 +82,8 @@ function notesFor(key: string, country: string): string | undefined {
   return undefined;
 }
 
-async function main() {
+export async function seedModelConstants(opts: { silent?: boolean } = {}): Promise<{ upserted: number }> {
+  const log = opts.silent ? () => {} : (msg: string) => console.log(msg);
   const rows: SeedRow[] = [];
 
   // Universal: daysPerMonth
@@ -154,16 +157,27 @@ async function main() {
   // Summary by key
   const byKey = new Map<string, number>();
   for (const r of rows) byKey.set(r.constantKey, (byKey.get(r.constantKey) ?? 0) + 1);
-  console.log(`\nSeeded ${upserted} canonical rows:`);
-  for (const [k, n] of [...byKey.entries()].sort()) {
-    console.log(`  ${k.padEnd(22)} ${n}`);
+  log(`\nSeeded ${upserted} canonical rows:`);
+  for (const [k, n] of Array.from(byKey.entries()).sort()) {
+    log(`  ${k.padEnd(22)} ${n}`);
   }
-  console.log("");
+  log("");
+
+  return { upserted };
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error("Seed failed:", err);
-    process.exit(1);
-  });
+// Only auto-run when invoked directly (`tsx script/seed-model-constants.ts`).
+// pathToFileURL handles absolute/relative path differences and platform-specific
+// separators so the comparison is robust across environments.
+const isDirectRun =
+  Boolean(process.argv[1]) &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+
+if (isDirectRun) {
+  seedModelConstants()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error("Seed failed:", err);
+      process.exit(1);
+    });
+}

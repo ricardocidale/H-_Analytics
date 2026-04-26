@@ -20,6 +20,8 @@
  *   tsx script/seed-model-defaults.ts
  */
 
+import { pathToFileURL } from "url";
+import { resolve } from "path";
 import { sql } from "drizzle-orm";
 import { db } from "../server/db";
 import { modelDefaults } from "../shared/schema";
@@ -158,7 +160,8 @@ export function toDefaultKey(card: CardKey, key: string): string {
   return `mc.${card}.${key}`;
 }
 
-async function main(): Promise<void> {
+export async function seedModelDefaults(opts: { silent?: boolean } = {}): Promise<{ upserted: number }> {
+  const log = opts.silent ? () => {} : (msg: string) => console.log(msg);
   const insertedAt = new Date();
   const byCard = new Map<CardKey, number>();
 
@@ -204,7 +207,7 @@ async function main(): Promise<void> {
     byCard.set(spec.card, (byCard.get(spec.card) ?? 0) + 1);
   }
 
-  console.log(`\nSeeded ${SPECS.length} model_defaults rows (all universal scope):`);
+  log(`\nSeeded ${SPECS.length} model_defaults rows (all universal scope):`);
   const order: CardKey[] = [
     "setup",
     "funding",
@@ -216,9 +219,11 @@ async function main(): Promise<void> {
   ];
   for (const card of order) {
     const n = byCard.get(card) ?? 0;
-    console.log(`  ${card.padEnd(22)} ${n}`);
+    log(`  ${card.padEnd(22)} ${n}`);
   }
-  console.log("");
+  log("");
+
+  return { upserted: SPECS.length };
 }
 
 // Only auto-run when invoked directly (`tsx script/seed-model-defaults.ts`).
@@ -226,14 +231,16 @@ async function main(): Promise<void> {
 // (see tests/proof/defaults-drift.test.ts) and must not trigger the seed
 // — doing so kicks off a DB write inside vitest and surfaces as an
 // unhandled `process.exit(1)` rejection that pollutes the run.
+// Use pathToFileURL so this works regardless of whether process.argv[1] is
+// an absolute path, a relative path, or contains platform-specific separators.
 const isDirectRun =
   Boolean(process.argv[1]) &&
-  import.meta.url === `file://${process.argv[1]}`;
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 
 if (isDirectRun) {
-  main()
+  seedModelDefaults()
     .then(() => process.exit(0))
-    .catch((err) => {
+    .catch((err: unknown) => {
       console.error("Seed failed:", err);
       process.exit(1);
     });

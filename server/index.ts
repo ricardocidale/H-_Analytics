@@ -828,6 +828,60 @@ async function runSeeds() {
   const { seedMissingMarketResearch, seedDefaultLogos, seedCompanies, seedFeeCategories, seedServiceTemplates, seedPropertyPhotos, seedGlobalAssumptions, seedMedellinDuplex, seedMedellinDuplexPhotos } = await import("./seed");
   const { seedMarketRates } = await import("./seeds/market-rates");
   const { seedMarketDataTables } = await import("./seeds/market-data-tables");
+  const { seedProductionSql } = await import("./seeds/production-sql");
+  const { seedModelConstants } = await import("../script/seed-model-constants");
+  const { seedModelDefaults } = await import("../script/seed-model-defaults");
+
+  // Canonical production-sync SQL — gated by content hash via _applied_migrations,
+  // so it runs exactly once per unique seed-production.sql file content. After a
+  // first successful apply, subsequent boots are no-ops; regenerating the file
+  // (next deploy) will run it again. Runs BEFORE the smaller idempotent seeds so
+  // those see the canonical baseline.
+  //
+  // Production-only by default: the SQL contains DELETE statements scoped to the
+  // canonical property ID list (32, 33, 35, 39, 41, 43) and would wipe extra
+  // dev-only properties on first boot if run against the dev DB. Set
+  // FORCE_RUN_PRODUCTION_SEED=true to apply it in non-production environments.
+  const isProductionEnv = process.env.NODE_ENV === "production";
+  const shouldRunProductionSql =
+    isProductionEnv || process.env.FORCE_RUN_PRODUCTION_SEED === "true";
+  if (shouldRunProductionSql) {
+    try {
+      const result = await seedProductionSql();
+      serverLog(`[seed:production-sql] ${result.status}`, "startup", "info");
+      // Fail-closed in production: if the canonical SQL was not applied or
+      // could not be located, abort boot so downstream idempotent seeds do
+      // not run on a non-canonical baseline.
+      if (
+        isProductionEnv &&
+        result.status === "skipped-not-found"
+      ) {
+        serverLog(
+          `[seed:production-sql] FATAL in production: seed-production.sql not located in dist/ or script/ — aborting boot to preserve canonical baseline`,
+          "startup",
+          "error",
+        );
+        process.exit(1);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      serverLog(`[seed:production-sql] FAILED: ${msg}`, "startup", "error");
+      if (isProductionEnv) {
+        serverLog(
+          `[seed:production-sql] FATAL in production — aborting boot to preserve canonical baseline`,
+          "startup",
+          "error",
+        );
+        process.exit(1);
+      }
+    }
+  } else {
+    serverLog(
+      `[seed:production-sql] skipped (NODE_ENV=${process.env.NODE_ENV ?? "unset"}, set FORCE_RUN_PRODUCTION_SEED=true to override)`,
+      "startup",
+      "info",
+    );
+  }
 
   // Each seed is isolated — one failure does not cancel the others.
   // All seeds are idempotent (skip-if-exists semantics) so partial completion
@@ -841,16 +895,23 @@ async function runSeeds() {
     { name: "service-templates", run: seedServiceTemplates },
     { name: "property-photos", run: seedPropertyPhotos },
     { name: "global-assumptions", run: seedGlobalAssumptions },
+    // Pure idempotent upserts of authority-dictated constants and Steady-State
+    // defaults from shared/constants.ts. Safe to run on every boot.
+    { name: "model-constants", run: () => seedModelConstants({ silent: true }) },
+    { name: "model-defaults", run: () => seedModelDefaults({ silent: true }) },
   ];
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));
   results.forEach((r, i) => {
+    const name = seedTasks[i].name;
     if (r.status === "rejected") {
       serverLog(
-        `[seed:${seedTasks[i].name}] skipped (will retry next boot): ${r.reason instanceof Error ? r.reason.message : r.reason}`,
+        `[seed:${name}] skipped (will retry next boot): ${r.reason instanceof Error ? r.reason.message : r.reason}`,
         "startup",
         "warn",
       );
+    } else {
+      serverLog(`[seed:${name}] ok`, "startup", "info");
     }
   });
 

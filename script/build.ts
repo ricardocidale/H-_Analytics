@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, copyFile } from "fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -58,6 +58,10 @@ async function buildAll() {
     logLevel: "info",
   });
 
+  // Ship the canonical production seed SQL alongside the bundle so
+  // server/seeds/production-sql.ts can read it at runtime.
+  console.log("copying seed-production.sql into dist/...");
+  await copyFile("script/seed-production.sql", "dist/seed-production.sql");
 }
 
 buildAll().catch((err) => {
