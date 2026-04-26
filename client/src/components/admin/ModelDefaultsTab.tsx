@@ -177,6 +177,11 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
       isDirty,
       isPending: saveMutation.isPending,
       onSave: () => requestSaveRef.current?.(),
+      // Model Defaults uses Save as the admin's endorsement of the
+      // displayed values, so the shared header Save button stays clickable
+      // even when nothing is dirty. The save is safe to invoke as a no-op
+      // (idempotent PUT into globalAssumptions).
+      requiresEndorsement: true,
     });
     return () => onSaveStateChange?.(null);
   }, [isDirty, saveMutation.isPending, onSaveStateChange]);

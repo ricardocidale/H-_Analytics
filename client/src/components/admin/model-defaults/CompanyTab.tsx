@@ -53,7 +53,13 @@ export function CompanyTab(props: CompanyTabProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+      {/* Single grid containing all three Sections so the page can flow up to
+          three columns side-by-side on xl+ screens (and four on 2xl). The
+          previous layout split Identity/Fee Structure into one grid and
+          Financial Defaults into a second grid below, which forced
+          Financial Defaults onto its own row even when the viewport had
+          room for a third column. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 items-start">
         <Section title="Identity" description="The management company name and projection horizon used throughout the platform.">
           <div className="space-y-4">
             <div className="space-y-2" data-testid="field-companyName">
@@ -125,9 +131,7 @@ export function CompanyTab(props: CompanyTabProps) {
             researchRange="10%–20%"
           />
         </Section>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         <Section title="Financial Defaults" description="Tax and return assumptions for the management company model.">
           <PctField
             label="Company Income Tax Rate"

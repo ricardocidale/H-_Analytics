@@ -217,6 +217,7 @@ export default function Admin() {
                   onClick={saveState.onSave}
                   hasChanges={saveState.isDirty}
                   isPending={saveState.isPending}
+                  alwaysActive={saveState.requiresEndorsement}
                   size="sm"
                   data-testid="button-admin-save"
                 />

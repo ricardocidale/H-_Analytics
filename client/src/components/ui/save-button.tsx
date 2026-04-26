@@ -9,6 +9,16 @@ export interface SaveButtonProps {
   disabled?: boolean;
   isPending?: boolean;
   hasChanges?: boolean;
+  /**
+   * When true, the button stays fully opaque and clickable even when
+   * `hasChanges` is false. Use on pages where the admin must be able to
+   * (re-)endorse the displayed values without making any edits — currently
+   * the Company Assumptions tabs and the admin Model Defaults header. On
+   * pages where saving with no changes has destructive side effects (e.g.
+   * `PropertyEdit` navigates away on save), leave this off so the button
+   * disables and dims when clean.
+   */
+  alwaysActive?: boolean;
   children?: React.ReactNode;
   className?: string;
   type?: "button" | "submit" | "reset";
@@ -16,18 +26,21 @@ export interface SaveButtonProps {
   "data-testid"?: string;
 }
 
-export function SaveButton({ 
-  onClick, 
-  disabled = false, 
+export function SaveButton({
+  onClick,
+  disabled = false,
   isPending = false,
   hasChanges = true,
+  alwaysActive = false,
   children = "Save",
   className,
   type = "button",
   size,
   "data-testid": testId = "button-save-changes",
 }: SaveButtonProps) {
-  const isDisabled = disabled || isPending || !hasChanges;
+  const isDisabled =
+    disabled || isPending || (!alwaysActive && !hasChanges);
+  const dimWhenClean = !alwaysActive && !hasChanges && !isPending;
 
   return (
     <Button
@@ -38,7 +51,7 @@ export function SaveButton({
       size={size}
       className={cn(
         "transition-opacity",
-        !hasChanges && !isPending && "opacity-50",
+        dimWhenClean && "opacity-50",
         className,
       )}
       data-testid={testId}

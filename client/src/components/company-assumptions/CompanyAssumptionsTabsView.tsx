@@ -214,6 +214,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
                 onClick={() => onSaveTab(tab, { force: tabNeverSaved && !dirty })}
                 isPending={savingTab === tab && isUpdatePending}
                 hasChanges={dirty || tabNeverSaved}
+                alwaysActive
                 size="default"
                 data-testid={`button-save-tab-${tab}`}
               />

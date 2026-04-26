@@ -98,7 +98,7 @@ Maps 1:1 to the **Resources Control Plane** workstream above. P1–P5 shipped; P
 | Phase | Scope | Status | Owner | Commit/PR | Blocked-by | Next |
 |---|---|---|---|---|---|---|
 | G1 | Funding (A) graduation | ⏸ Paused | CC | `6f4696ba`, `71061c1d`, `8ba81dfd`, `9a461f92`, `ae2a16e7`, `e6f6059a` | ADR-004 Phase 5B v2 ✅ (24853904) | Engine code shipped; behavioral verification BLOCKED by Replit (`64701f7b`) — `verdict.meta` contract too thin. Paused pending G1.5a + G1.5b. |
-| G1.5a | ADR-008 verdict-meta extension (`fallbackReason`, `vendorsUsed`, `cacheState`) + Tier-0 fallback emission | ⏳ Pending | CC | — | ADR-008 acceptance | Doctrine: ADR-008 Proposed 2026-04-26. Code packet authored after ADR accepted. |
+| G1.5a | ADR-008 verdict-meta extension (`fallbackReason`, `vendorsUsed`, `cacheState`) + Tier-0 fallback emission | ⏳ Pending | CC | — | ADR-008 ✅ Accepted 2026-04-26 | Doctrine accepted. Code packet `.claude/replit-handoffs/adr-008-g1.5a-meta-extension.md` to author. |
 | G1.5b | Defaults & Assumptions cascade for 5 Funding fields (`runwayBufferMonths`, etc.) — schema column + Admin Steady-State Default + Funding-tab assumption input + form-hook wiring | ⏳ Pending | Replit (mostly) | — | G1.5a ✅ + cascade design note | Two-track: Specialist `candidateFields` references already exist; surfaces don't. Per `inflation-cascade.md` three-tier rule. |
 | G1.5c | Tier-1 deps wiring at `mgmt-co/index.ts` registration site | ⏳ Pending | Replit | — | G1.5a ✅ | Route-handler slice — threads orchestrator client + cache reader into `createMgmtCoSurfaceRouter`. |
 | G2 | Revenue (B) graduation | ⏳ Pending | CC | — | G1 ✅ + G1.5a ✅ + G1.5b ✅ + G1.5c ✅ + 1 session soak | — |

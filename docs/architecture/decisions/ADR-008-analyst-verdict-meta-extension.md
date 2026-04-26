@@ -1,7 +1,7 @@
 # ADR-008: AnalystVerdict.meta extension — fallbackReason, vendorsUsed, cacheState
 
-**Status:** Proposed
-**Date:** 2026-04-26
+**Status:** Accepted (2026-04-26 — Ricardo accepted "follow recommendations" after CC walked through trade-offs per field)
+**Date:** 2026-04-26 (proposed) → 2026-04-26 (accepted)
 **Deciders:** Ricardo (product directive: "make Specialists super smart" → necessitates surfaced provenance), Claude Code (proposer + research/intelligence lane owner per `claude-replit-split.md` 2026-04-26)
 **Tags:** analyst, contract, verdict-meta, additive, tier-0-fallback, vendor-breadth, cache-provenance
 
@@ -78,6 +78,8 @@ The four strings in `FALLBACK_REASONS` are the closed set. Specialists MUST NOT 
 
 - **Three more fields means three more refinements in the Zod chain.** Marginal cost; one-line additions each.
 - **Specialists that emit `fallbackReason` must be updated to use the canonical enum, not free-form strings.** The Funding Specialist is the only consumer today (G1); follow-up Specialists inherit the constraint at construction time.
+- **`vendorsUsed` ships as plain `string[]`, not a canonical vendor enum.** Vendor ID drift (`"anthropic"` vs `"Anthropic"`) is a known tax. A follow-up ADR will lock down a `VENDOR_IDS` enum aligned with `.claude/rules/llm-vendor-roster.md` once Tier-1 vendor-emission code stabilizes (target: before G3, or earlier if drift is observed). Until then, Specialists MUST use the canonical lowercase form documented in their vendor-emission code.
+- **The `meta` object will grow.** This ADR adds 3 fields (going from 3 → 6). Follow-up ADRs (cost, evidence freshness, regress count, prompt-engineer run id) will likely push it toward ~10 fields, half of which are Tier-1-only. We accept this and flag a future one-time normalization ADR (likely a `tier1Provenance: {...}` sub-object) when meta reaches ~8 fields. Doing it now would break existing consumers of `meta.cognitiveRunId`; doing it later in one batch is cheaper than incremental nesting.
 - **The persona-keyed golden bench (`tests/analyst/personas/lb.test.ts`) needs an additional fixture exercising the `fallbackReason: "tier1_unavailable"` path** to lock in the new contract behavior. One more fixture, ~30 LOC.
 - **Future ADRs that add provenance fields (cost, freshness, regress count) will follow this ADR's pattern**, which is fine, but it sets a precedent: the meta object will grow over time rather than being aggressively normalized into a sub-object. Callable consensus that this is acceptable.
 
