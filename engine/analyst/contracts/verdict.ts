@@ -283,10 +283,26 @@ export type VerdictDimension = Omit<
 export const VERDICT_TIERS = [0, 1] as const;
 export type VerdictTier = typeof VERDICT_TIERS[number];
 
+/**
+ * Closed set of canonical reasons a Tier-1-graduated Specialist can declare
+ * when its Tier-0 fallback path runs. Per ADR-008, Specialists MUST NOT
+ * invent new strings; new reasons require an ADR amendment.
+ */
+export const FALLBACK_REASONS = [
+  "tier1_unavailable",
+  "tier1_timeout",
+  "tier1_disabled",
+  "cache_corrupted",
+] as const;
+export type FallbackReason = typeof FALLBACK_REASONS[number];
+
 export const AnalystVerdictMetaSchema = z.object({
   tier: z.union([z.literal(0), z.literal(1)]),
   durationMs: z.number().min(0).finite(),
   cognitiveRunId: z.string().optional(),
+  fallbackReason: z.enum(FALLBACK_REASONS).optional(),
+  vendorsUsed: z.array(z.string().min(1)).optional(),
+  cacheState: z.enum(["hit", "miss"]).optional(),
 });
 export type AnalystVerdictMeta = z.infer<typeof AnalystVerdictMetaSchema>;
 
@@ -315,6 +331,18 @@ export const AnalystVerdictSchema = z
     {
       message: `Tier-1 verdicts require >= ${TIER_1_MIN_TOTAL_EVIDENCE} total evidence entries across dimensions (N+1 rule)`,
     },
+  )
+  .refine(
+    (v) => v.meta.fallbackReason === undefined || v.meta.tier === 0,
+    { message: "meta.fallbackReason is exclusively a Tier-0 signal (ADR-008)" },
+  )
+  .refine(
+    (v) => v.meta.vendorsUsed === undefined || (v.meta.tier === 1 && v.meta.vendorsUsed.length >= 2),
+    { message: "meta.vendorsUsed is Tier-1 only and must list >= 2 distinct vendors when present (ADR-008 + llm-vendor-roster.md req #7)" },
+  )
+  .refine(
+    (v) => v.meta.cacheState === undefined || v.meta.tier === 1,
+    { message: "meta.cacheState is exclusively a Tier-1 signal (ADR-008)" },
   );
 export type AnalystVerdict = Omit<
   z.infer<typeof AnalystVerdictSchema>,
