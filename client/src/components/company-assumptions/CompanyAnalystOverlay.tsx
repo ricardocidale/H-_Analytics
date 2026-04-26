@@ -1,35 +1,28 @@
 /**
- * CompanyAnalystOverlay — Renders the streaming research theater and the
- * deterministic Analyst watchdog dialog. Pure presentational composition;
- * extracted from `client/src/pages/CompanyAssumptions.tsx` (task #471).
+ * CompanyAnalystOverlay — Renders the streaming research theater for the
+ * Company Assumptions page. Pure presentational composition; extracted
+ * from `client/src/pages/CompanyAssumptions.tsx` (task #471).
+ *
+ * Trigger discipline (task #738 / .claude/rules/analyst-trigger-discipline.md):
+ * The deterministic `<AnalystCheckDialog />` watchdog used to be mounted
+ * here and opened automatically on a Save when the save-tab response
+ * carried a non-OK `verdict`. The Analyst now evaluates ONLY on an
+ * explicit AnalystButton click, so the save-tab response no longer
+ * carries a verdict and the dialog has no live invocation in this
+ * overlay. The component itself is preserved (tests + future
+ * button-triggered display use case); it is just not mounted from this
+ * surface.
  */
 import { ResearchTheater, type ResearchJob } from "@/components/research/ResearchTheater";
-import { AnalystCheckDialog } from "@/components/intelligence/AnalystCheckDialog";
-import type { AnalystVerdict, VerdictAction } from "../../../../engine/analyst/contracts/verdict";
-import {
-  TAB_LABELS,
-  type TabKey,
-} from "@/hooks/useCompanyAssumptionsForm";
 
 interface Props {
   isGenerating: boolean;
   streamedContent: string;
   abortResearch: () => void;
-
-  watchdogOpen: boolean;
-  watchdogResult: AnalystVerdict | null;
-  watchdogTab: TabKey | null;
-  onWatchdogAction: (action: VerdictAction) => void;
-  onProceedAnyway: () => void;
-  onWatchdogOpenChange: (open: boolean) => void;
 }
 
 export function CompanyAnalystOverlay(props: Props) {
-  const {
-    isGenerating, streamedContent, abortResearch,
-    watchdogOpen, watchdogResult, watchdogTab,
-    onWatchdogAction, onProceedAnyway, onWatchdogOpenChange,
-  } = props;
+  const { isGenerating, streamedContent, abortResearch } = props;
 
   const researchJobs: ResearchJob[] = isGenerating
     ? [
@@ -49,21 +42,11 @@ export function CompanyAnalystOverlay(props: Props) {
     : [];
 
   return (
-    <>
-      <ResearchTheater
-        jobs={researchJobs}
-        streamingText={streamedContent}
-        isVisible={isGenerating}
-        onCancel={abortResearch}
-      />
-      <AnalystCheckDialog
-        open={watchdogOpen}
-        verdict={watchdogResult}
-        tabLabel={watchdogTab ? TAB_LABELS[watchdogTab] : undefined}
-        onAction={onWatchdogAction}
-        onProceedAnyway={onProceedAnyway}
-        onOpenChange={onWatchdogOpenChange}
-      />
-    </>
+    <ResearchTheater
+      jobs={researchJobs}
+      streamingText={streamedContent}
+      isVisible={isGenerating}
+      onCancel={abortResearch}
+    />
   );
 }

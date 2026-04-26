@@ -54,7 +54,6 @@ import { DEFAULT_MODEL_START_DATE } from "@/lib/constants";
 import { isAdminRole } from "@shared/constants";
 import {
   SpecialistRequirementsPanel,
-  PrerequisitesFailedPanel,
 } from "@/components/company/SpecialistRequirementsPanel";
 import {
   SummaryFooter,
@@ -204,12 +203,14 @@ export default function CompanyAssumptions() {
     );
   }
 
+  // Save is purely a persistence step — per task #738 + the binding rule
+  // `.claude/rules/analyst-trigger-discipline.md`, it does NOT trigger
+  // The Analyst. The only data the form hook needs back from this surface
+  // is `researchValues` so it can recompute the per-tab warning list
+  // against the current Analyst-suggested ranges.
   const handleSaveTab = (tab: TabKey, opts?: { force?: boolean }) =>
     formApi.handleSaveTab(tab, opts, {
       researchValues: analyst.researchValues,
-      generateResearch: analyst.generateResearch,
-      isGenerating: analyst.isGenerating,
-      getTabGating,
     });
 
   const handleDismissWarning = (tab: TabKey, fieldName: string) =>
@@ -224,12 +225,6 @@ export default function CompanyAssumptions() {
         isGenerating={analyst.isGenerating}
         streamedContent={analyst.streamedContent}
         abortResearch={analyst.abortResearch}
-        watchdogOpen={formApi.watchdogOpen}
-        watchdogResult={formApi.watchdogResult}
-        watchdogTab={formApi.watchdogTab}
-        onWatchdogAction={formApi.handleWatchdogAction}
-        onProceedAnyway={formApi.handleProceedAnyway}
-        onWatchdogOpenChange={formApi.setWatchdogOpen}
       />
       <AnimatedPage>
         <div className="space-y-6">
@@ -258,8 +253,6 @@ export default function CompanyAssumptions() {
 
           <CompanyAssumptionsHeaderBar
             companyName={global.companyName}
-            autoRefresh={analyst.autoRefresh}
-            setAutoRefresh={analyst.setAutoRefresh}
             companyResearchUpdatedAt={analyst.companyResearchUpdatedAt}
             lastAssumptionChangeAt={global.lastAssumptionChangeAt ?? null}
             isGenerating={analyst.isGenerating}
@@ -300,10 +293,18 @@ export default function CompanyAssumptions() {
             lastAssumptionChangeAt={global.lastAssumptionChangeAt ?? null}
           />
 
-          <PrerequisitesFailedPanel
-            failures={formApi.prerequisiteFailures}
-            onDismiss={() => formApi.setPrerequisiteFailures([])}
-          />
+          {/*
+            PrerequisitesFailedPanel was driven by `verdict.prerequisiteFailures`
+            on the save-tab response. Per task #738 (and the binding rule
+            .claude/rules/analyst-trigger-discipline.md), Save no longer
+            invokes The Analyst, so save-tab no longer emits a verdict or
+            its prerequisite failures. The `requiredFieldsMissing?: string[]`
+            field on the new save-tab response is consumed where the panel
+            it would feed exists; if a future packet wants a save-time
+            required-fields banner here, wire it from
+            `formApi.handleSaveTab` results into that surface — never as
+            an Analyst trigger.
+          */}
 
           <SpecialistRequirementsPanel entityValues={global as unknown as Record<string, unknown> | undefined} />
 

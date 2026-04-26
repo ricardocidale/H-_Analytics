@@ -1,28 +1,35 @@
 /**
  * useCompanyAnalyst — Owns the Analyst research stream, structured guidance
- * fetching, three-tier researchValues cascade, page-visit tracking, and the
- * auto-refresh + `?analyst=1` deep-link side-effects for the Company
- * Assumptions page.
+ * fetching, three-tier researchValues cascade, and page-visit tracking for
+ * the Company Assumptions page.
  *
  * Extracted from `client/src/pages/CompanyAssumptions.tsx` (audit #319 R4
  * deferred precursor — task #471).
  *
+ * Trigger discipline (.claude/rules/analyst-trigger-discipline.md, task
+ * #738): The Analyst evaluates ONLY on an explicit `<AnalystButton />`
+ * click. This hook used to host two implicit auto-triggers — the
+ * `?analyst=1` deep-link and the `useAutoRefreshIntelligence` consumer —
+ * both of which silently fired `generateResearch` outside the canonical
+ * button-click path. Those have been removed; the only entry point is
+ * `generateResearch()` returned from this hook, which the page wires
+ * directly to the AnalystButton's `onClick`.
+ *
  * Boundaries:
  *   • This hook does NOT own form state. It reads `global` (server payload)
- *     and the form's `isDirty` flag so auto-refresh can suspend while the
- *     user has unsaved edits.
+ *     and the form's `isDirty` flag for read-only consumers (e.g. button
+ *     gating).
  *   • Toast-driven error mapping for research failures lives here so
  *     `useCompanyResearchStream` can be wired without leaking React imports
  *     into the page shell.
  */
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { GlobalResponse } from "@/lib/api";
 import { useMarketResearch } from "@/lib/api";
 import type { useToast } from "@/hooks/use-toast";
 import { useCompanyResearchStream } from "@/components/company-research/useCompanyResearchStream";
 import { usePageVisit } from "@/hooks/usePageVisit";
-import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
 
 type Toast = ReturnType<typeof useToast>["toast"];
 
@@ -124,8 +131,6 @@ export interface UseCompanyAnalystReturn {
   companyResearchUpdatedAt: string | null;
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
   companyContextReady: boolean;
-  autoRefresh: boolean;
-  setAutoRefresh: (v: boolean) => void;
   isFirstVisit: boolean;
 }
 
@@ -190,15 +195,13 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
     (global.companyCountry ?? "").trim().length > 0
   );
 
-  const { autoRefresh, setAutoRefresh } = useAutoRefreshIntelligence({
-    entityKey: "company",
-    entityReady: !!global && !isLoading && companyContextReady,
-    isGenerating,
-    isDirty,
-    researchUpdatedAt: companyResearchUpdatedAt,
-    lastAssumptionChangeAt: global?.lastAssumptionChangeAt ?? null,
-    generateResearch,
-  });
+  // Mark `isLoading` and `isDirty` as intentionally read but not consumed
+  // here — they used to drive the removed `useAutoRefreshIntelligence`
+  // call. Kept on the args interface because callers (CompanyAssumptions
+  // page) still pass them, and downstream button-gating logic that may
+  // need them lives one level up. See header doc + task #738.
+  void isLoading;
+  void isDirty;
 
   // Three-tier cascade: structured guidance → raw JSON parsing → industry defaults.
   const researchValues = useMemo(() => {
@@ -282,17 +285,13 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
     return merged;
   }, [research, guidanceRecords]);
 
-  // ?analyst=1 deep link auto-trigger.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("analyst") !== "1") return;
-    if (!companyContextReady || isGenerating) return;
-    const url = new URL(window.location.href);
-    url.searchParams.delete("analyst");
-    window.history.replaceState({}, "", url.toString());
-    void generateResearch();
-  }, [companyContextReady, isGenerating, generateResearch]);
+  // NOTE (task #738): The `?analyst=1` deep-link auto-trigger that used to
+  // live here was removed. Per .claude/rules/analyst-trigger-discipline.md
+  // The Analyst evaluates ONLY on an explicit AnalystButton click, so
+  // deep-links may no longer side-effect a research generation. If a deep
+  // link to "open the page with the Analyst already running" is needed in
+  // the future, surface it as a focus hint on the AnalystButton (e.g.
+  // pulse + scroll-into-view) — never as a silent `generateResearch()`.
 
   return {
     isGenerating,
@@ -302,8 +301,6 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
     companyResearchUpdatedAt,
     researchValues,
     companyContextReady,
-    autoRefresh,
-    setAutoRefresh,
     isFirstVisit,
   };
 }

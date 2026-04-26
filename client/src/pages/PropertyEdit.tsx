@@ -47,8 +47,6 @@ import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequire
 import { AnalystWorkingView } from "@/components/research/AnalystWorkingView";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
-import { useAutoRefreshIntelligence } from "@/hooks/use-auto-refresh-intelligence";
-import { Switch } from "@/components/ui/switch";
 import { PrerequisitesFailedPanel, type PrerequisiteFailure } from "@/components/company/SpecialistRequirementsPanel";
 import {
   PROJECTION_YEARS,
@@ -125,15 +123,11 @@ export default function PropertyEdit() {
     pageVisitKey, "property", propertyId
   );
 
-  const { autoRefresh, setAutoRefresh } = useAutoRefreshIntelligence({
-    entityKey: `property-${propertyId}`,
-    entityReady: !!property && !!(property.name && property.location && property.roomCount && property.startAdr),
-    isGenerating,
-    isDirty,
-    researchUpdatedAt,
-    lastAssumptionChangeAt: propertyLastAssumptionChangeAt,
-    generateResearch,
-  });
+  // NOTE (task #738 / .claude/rules/analyst-trigger-discipline.md):
+  // The `useAutoRefreshIntelligence` consumer that lived here was removed.
+  // The Analyst evaluates ONLY on an explicit AnalystButton click, so the
+  // page no longer carries an "Auto" toggle that silently fires
+  // `generateResearch()` on a timer / on entity-ready.
 
   useEffect(() => {
     if (!wasGeneratingRef.current && isGenerating) {
@@ -152,7 +146,7 @@ export default function PropertyEdit() {
   }, [feeCategories]);
 
   useEffect(() => {
-    if (autoRefresh || intelligencePromptShown.current || !property || isGenerating) return;
+    if (intelligencePromptShown.current || !property || isGenerating) return;
     const hasBasicInfo = !!(property.name && property.location && property.roomCount && property.startAdr);
     if (!hasBasicInfo) return;
     const { status } = computeFreshnessStatus({
@@ -164,7 +158,7 @@ export default function PropertyEdit() {
       intelligencePromptShown.current = true;
       setShowIntelligencePrompt(true);
     }
-  }, [autoRefresh, property, researchUpdatedAt, propertyLastAssumptionChangeAt, isGenerating]);
+  }, [property, researchUpdatedAt, propertyLastAssumptionChangeAt, isGenerating]);
 
   useEffect(() => {
     if (isFirstVisit && !isGenerating && !intelligenceClicked && property?.id) {
@@ -593,21 +587,6 @@ export default function PropertyEdit() {
                   />
                 );
               })()}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1.5" data-testid="toggle-auto-refresh">
-                    <Switch
-                      checked={autoRefresh}
-                      onCheckedChange={setAutoRefresh}
-                      className="scale-75"
-                    />
-                    <span className="text-[10px] font-medium text-muted-foreground leading-tight whitespace-nowrap">Auto</span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[260px] text-center">
-                  When enabled, intelligence refreshes automatically whenever you open an assumptions page with outdated data.
-                </TooltipContent>
-              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link href={`/property/${propertyId}/criteria`} className="text-inherit no-underline">

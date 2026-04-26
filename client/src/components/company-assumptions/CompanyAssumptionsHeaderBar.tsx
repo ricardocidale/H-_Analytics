@@ -4,8 +4,6 @@
  * from `client/src/pages/CompanyAssumptions.tsx` (task #471).
  */
 import { PageHeader } from "@/components/ui/page-header";
-import { Switch } from "@/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
 import {
   IntelligenceStatusBar,
@@ -24,8 +22,6 @@ interface AckRow {
 
 interface Props {
   companyName: string | null | undefined;
-  autoRefresh: boolean;
-  setAutoRefresh: (v: boolean) => void;
   companyResearchUpdatedAt: string | null;
   lastAssumptionChangeAt: string | null;
   isGenerating: boolean;
@@ -42,8 +38,6 @@ interface Props {
 export function CompanyAssumptionsHeaderBar(props: Props) {
   const {
     companyName,
-    autoRefresh,
-    setAutoRefresh,
     companyResearchUpdatedAt,
     lastAssumptionChangeAt,
     isGenerating,
@@ -96,30 +90,19 @@ export function CompanyAssumptionsHeaderBar(props: Props) {
 
   return (
     <>
+      {/*
+        The "Auto" Switch (data-testid="toggle-auto-refresh-company")
+        used to live in the PageHeader actions slot and was wired to
+        `useAutoRefreshIntelligence`. Per task #738 and the binding
+        rule .claude/rules/analyst-trigger-discipline.md, The Analyst
+        evaluates ONLY on an explicit AnalystButton click — there is
+        no auto-refresh, so the toggle has been removed.
+      */}
       <PageHeader
         title="Company Assumptions"
         subtitle={`Configure ${companyName ?? "Hospitality Business"} operating parameters`}
         variant="dark"
         backLink="/company"
-        actions={
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1.5" data-testid="toggle-auto-refresh-company">
-                <Switch
-                  checked={autoRefresh}
-                  onCheckedChange={setAutoRefresh}
-                  className="scale-75"
-                />
-                <span className="text-[10px] font-medium text-muted-foreground leading-tight whitespace-nowrap">
-                  Auto
-                </span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[260px] text-center">
-              Auto-refresh intelligence when assumptions change
-            </TooltipContent>
-          </Tooltip>
-        }
       />
 
       <IntelligenceStatusBar

@@ -1,16 +1,24 @@
 /**
  * useCompanyAssumptionsForm — Owns the editable form state, dirty tracking,
- * per-tab save, deterministic Analyst watchdog state, and post-save validation
- * warnings for the Company Assumptions page.
+ * per-tab save, and post-save validation warnings for the Company
+ * Assumptions page.
  *
  * Extracted from `client/src/pages/CompanyAssumptions.tsx` (audit #319 R4
  * deferred precursor — task #471) so the page becomes a presentational shell.
  *
+ * Trigger discipline (task #738 / .claude/rules/analyst-trigger-discipline.md):
+ * Save is now a quiet persistence step. The save-tab response shape is
+ * `{ ok, savedTabs, requiredFieldsMissing? }` — there is no `verdict`
+ * and no `prerequisiteFailures`. Save no longer side-effect-fires the
+ * deterministic Analyst watchdog dialog or auto-runs research on
+ * success. The Analyst evaluates ONLY on an explicit AnalystButton
+ * click; tabs are simply persisted and the gate progressively unlocks
+ * via the savedTabs set.
+ *
  * Boundaries:
  *   • This hook does NOT know about the Analyst research stream itself.
- *     Callers pass `generateResearch` / `isGenerating` / `getTabGating` /
- *     `researchValues` into `saveTab(...)` so the post-save async refresh and
- *     out-of-band warnings can be computed without coupling the two hooks.
+ *     Callers pass `researchValues` into `saveTab(...)` so out-of-band
+ *     warnings can be computed without coupling the two hooks.
  *   • Per-tab field membership (TAB_FIELDS), labels, and the saved-tabs
  *     hydrator live here because they are pure form metadata.
  */
@@ -20,11 +28,9 @@ import type { GlobalResponse } from "@/lib/api";
 import type { useToast } from "@/hooks/use-toast";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { getFactoryNumber } from "@shared/model-constants-registry";
-import type { AnalystVerdict, VerdictAction } from "../../../engine/analyst/contracts/verdict";
 import type {
   TabValidationWarning,
 } from "@/components/company-assumptions";
-import type { PrerequisiteFailure } from "@/components/company/SpecialistRequirementsPanel";
 import {
   computeExitMultipleWarning,
   type ExitMultipleBand,
@@ -115,11 +121,17 @@ const hydrateSavedTabs = (raw: unknown): Set<TabKey> => {
 type AckRow = { fieldName: string; valueAtAck: number; rangeLowAtAck: number; rangeHighAtAck: number };
 
 
+/**
+ * Save deps now contain only what `handleSaveTab` actually needs:
+ * `researchValues` for post-save tab-warning recomputation. Per task #738
+ * (.claude/rules/analyst-trigger-discipline.md), Save does NOT auto-invoke
+ * The Analyst, so `generateResearch` / `isGenerating` / `getTabGating`
+ * have been dropped from this contract — keeping them around as unused
+ * inputs would create a regression vector for re-introducing an implicit
+ * save-time trigger.
+ */
 type SaveDeps = {
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
-  generateResearch: () => void | Promise<void>;
-  isGenerating: boolean;
-  getTabGating: (tab: TabKey) => { enabled: boolean; reason?: string };
 };
 
 type Toast = ReturnType<typeof useToast>["toast"];
@@ -140,16 +152,8 @@ export interface UseCompanyAssumptionsFormReturn {
   savingTab: TabKey | null;
   tabWarnings: Record<TabKey, TabValidationWarning[]>;
   setTabWarnings: React.Dispatch<React.SetStateAction<Record<TabKey, TabValidationWarning[]>>>;
-  watchdogOpen: boolean;
-  setWatchdogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  watchdogResult: AnalystVerdict | null;
-  watchdogTab: TabKey | null;
-  prerequisiteFailures: PrerequisiteFailure[];
-  setPrerequisiteFailures: React.Dispatch<React.SetStateAction<PrerequisiteFailure[]>>;
   acks: AckRow[];
   handleSaveTab: (tab: TabKey, opts: { force?: boolean } | undefined, deps: SaveDeps) => Promise<void>;
-  handleWatchdogAction: (action: VerdictAction) => Promise<void>;
-  handleProceedAnyway: () => void;
   hasPendingServerUpdate: boolean;
   discardEditsAndRefresh: () => void;
 }
@@ -178,10 +182,6 @@ export function useCompanyAssumptionsForm(
     overhead: [], "property-defaults": [],
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
-  const [watchdogOpen, setWatchdogOpen] = useState(false);
-  const [watchdogResult, setWatchdogResult] = useState<AnalystVerdict | null>(null);
-  const [watchdogTab, setWatchdogTab] = useState<TabKey | null>(null);
-  const [prerequisiteFailures, setPrerequisiteFailures] = useState<PrerequisiteFailure[]>([]);
 
   // "Keep my value" acknowledgments — keyed by fieldName. Suppress warning
   // re-flagging while the live value stays inside the snapshot window.
@@ -424,44 +424,6 @@ export function useCompanyAssumptionsForm(
     };
   };
 
-  const handleWatchdogAction = async (action: VerdictAction) => {
-    setWatchdogOpen(false);
-    if (action.kind === "consult-cognitive") {
-      // Roll back the savedTabs commit for this tab so the gate stays locked.
-      if (watchdogTab) {
-        try {
-          await fetch("/api/global-assumptions/save-tab", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ tabKey: watchdogTab, unsave: true }),
-          });
-          await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
-          setSavedTabs((prev) => {
-            if (!prev.has(watchdogTab)) return prev;
-            const next = new Set(prev);
-            next.delete(watchdogTab);
-            return next;
-          });
-        } catch (err: unknown) {
-          console.warn("Failed to roll back save on Adjust:", err);
-        }
-      }
-      const targetField = action.payload.field;
-      const el = document.querySelector<HTMLElement>(
-        `[data-field="${targetField}"], [name="${targetField}"], #${CSS.escape(targetField)}`,
-      );
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        if ("focus" in el && typeof el.focus === "function") setTimeout(() => el.focus(), 250);
-      }
-    }
-  };
-
-  const handleProceedAnyway = () => {
-    setWatchdogOpen(false);
-  };
-
   const handleSaveTab = async (
     tab: TabKey,
     opts: { force?: boolean } | undefined,
@@ -492,6 +454,13 @@ export function useCompanyAssumptionsForm(
     setSavingTab(tab);
     try {
       await mutateAsync(payload);
+      // Persist the per-tab "reviewed" marker server-side so the
+      // savedTabs gate progresses. The server response shape is
+      // `{ ok, savedTabs, requiredFieldsMissing? }` (see task #737); we
+      // do not read `verdict` or `prerequisiteFailures` because Save no
+      // longer invokes The Analyst per task #738. `requiredFieldsMissing`
+      // is informational on this surface for now — a future packet may
+      // wire a save-time required-fields banner.
       try {
         const fundingInputs = tab === "funding" ? deriveFundingInputs(formData) : undefined;
         const res = await fetch("/api/global-assumptions/save-tab", {
@@ -501,20 +470,10 @@ export function useCompanyAssumptionsForm(
           body: JSON.stringify({ tabKey: tab, fundingInputs }),
         });
         if (res.ok) {
-          const json = (await res.json()) as {
-            verdict?: AnalystVerdict | null;
-            prerequisiteFailures?: PrerequisiteFailure[] | null;
-          };
           await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
-          if (json.verdict && json.verdict.overallSeverity !== "ok") {
-            setWatchdogResult(json.verdict);
-            setWatchdogTab(tab);
-            setWatchdogOpen(true);
-          }
-          setPrerequisiteFailures(json.prerequisiteFailures ?? []);
         }
-      } catch (watchdogErr: unknown) {
-        console.warn("Watchdog save-tab call failed:", watchdogErr);
+      } catch (saveTabErr: unknown) {
+        console.warn("save-tab persistence call failed:", saveTabErr);
       }
       setDirtyFields((prev) => {
         const next = new Set(prev);
@@ -531,10 +490,10 @@ export function useCompanyAssumptionsForm(
 
       setSavedTabs((prev) => (prev.has(tab) ? prev : new Set(prev).add(tab)));
 
-      const gating = deps.getTabGating(tab);
-      if (gating.enabled && !deps.isGenerating) {
-        void deps.generateResearch();
-      }
+      // NOTE (task #738): Save used to auto-fire `deps.generateResearch()`
+      // on success when the tab gate was enabled. That implicit auto-trigger
+      // has been removed — see .claude/rules/analyst-trigger-discipline.md.
+      // The Analyst evaluates ONLY on an explicit AnalystButton click.
 
       toast({
         title: `${TAB_LABELS[tab]} saved`,
@@ -563,16 +522,8 @@ export function useCompanyAssumptionsForm(
     savingTab,
     tabWarnings,
     setTabWarnings,
-    watchdogOpen,
-    setWatchdogOpen,
-    watchdogResult,
-    watchdogTab,
-    prerequisiteFailures,
-    setPrerequisiteFailures,
     acks,
     handleSaveTab,
-    handleWatchdogAction,
-    handleProceedAnyway,
     hasPendingServerUpdate: pendingServerSnapshot !== null,
     discardEditsAndRefresh,
   };
