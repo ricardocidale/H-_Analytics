@@ -236,6 +236,8 @@ describe("createFundingSpecialist — Tier-0 backward compat", () => {
     expect(out.tier).toBe(0);
     expect(out.cognitiveRunId).toBeUndefined();
     expect(out.dimensions).toHaveLength(5);
+    // ADR-008: Tier-0 fallback emits canonical reason
+    expect(out.meta?.fallbackReason).toBe("tier1_unavailable");
   });
 
   it("deps undefined → produces non-ok dimensions on stressed inputs", async () => {
@@ -244,6 +246,8 @@ describe("createFundingSpecialist — Tier-0 backward compat", () => {
     expect(out.tier).toBe(0);
     const nonOkCount = out.dimensions.filter((d) => d.severity !== "ok").length;
     expect(nonOkCount).toBeGreaterThan(0);
+    // ADR-008: Tier-0 fallback emits canonical reason
+    expect(out.meta?.fallbackReason).toBe("tier1_unavailable");
   });
 });
 

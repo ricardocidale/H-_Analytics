@@ -69,6 +69,13 @@ const ALLOW_LIST = [
   // SQL `LIKE` literals to do their job; they never write a new one.
   "script/cleanup-legacy-logo-urls.ts",
   "script/lib/legacy-logo-cleanup.ts",
+  // Task #525 — one-shot backfill that finds-and-rewrites legacy
+  // `/objects/uploads/<uuid>` URLs embedded in `rebecca_messages.content`
+  // and `activity_logs.metadata`. Same justification as the Task #533 and
+  // Task #526 scripts above: the legacy substring appears in SQL
+  // `LIKE` predicates, regex literals and log messages because the
+  // script's job is to find that exact shape in the DB and rewrite it.
+  "script/backfill-canonical-urls.ts",
 ];
 
 // Files that the guardrail itself must not scan (it names the patterns it bans).
