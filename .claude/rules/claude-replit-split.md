@@ -17,13 +17,15 @@ authored.
 | Audits, reviews, architectural decisions, plans, ADRs | **Claude Code** | Static analysis + multi-file context + authoritative rule checks |
 | `.claude/**` docs, rules, session memory, skill files, handoff packages | **Claude Code** | Single source of truth for project knowledge |
 | Atomic execution packets (the contract Replit consumes) | **Claude Code** | Decomposition is the load-bearing work; large audits without atomic packets cause rework |
+| **Research + intelligence code** (engine/analyst, server/ai, calc/research, prompt-builders, cognitive engine, verdict reconstruction, prompt-engineer stage, regress logic, vendor routing) | **Claude Code** (added 2026-04-26 per Ricardo's "AI should be AI" directive) | Senior AI-engine-architect work — multi-file context + cross-vendor model knowledge + prompt design judgment. Code as a senior architect; use Opus tier. |
 | Pure refactors (type-only, docstring-only, constant-substitution across files) | **Replit Agent by default; Claude Code by explicit delegation only** | See [§ Explicit-delegation lane](#explicit-delegation-lane) |
 | UI changes (React components, CSS, page layouts, user-facing text) | **Replit Agent** | Needs the running dev server to verify visually |
+| Workflow + page wiring (route handlers that ferry research output to UI; admin pages; navigation; tabs) | **Replit Agent** | UI-adjacent integration; benefits from dev-server iteration |
 | Database schema changes (new columns, migrations, indexes) | **Replit Agent** | Needs the live Postgres instance to apply migrations |
 | Seed data edits, seed backfill scripts | **Replit Agent** | Needs the live DB to verify no data loss |
 | Environment variables, Replit Secrets, `.replit`, `replit.nix` | **Replit Agent** | Deployment-affecting; owned by the running container |
 | Package-level changes (`package.json`, `npm install`) | **Replit Agent** | Changes the build/runtime |
-| Feature implementation against an accepted ADR | **Replit Agent** | Default executor for all production code |
+| Feature implementation against an accepted ADR | **Replit Agent** for UI / workflow / DB; **Claude Code** for research / intelligence (per the new lane above) | Two-track execution after ADR acceptance |
 | End-to-end verification (clicking through flows, checking exports, browser smoke tests) | **Replit Agent** | Has the running browser session |
 
 ## How handoffs work
@@ -189,6 +191,17 @@ but they should still prefer the packet pattern for any UI/DB work.
 ---
 
 ## Revision history
+
+### 2026-04-26 — Research/intelligence code is a CC lane
+
+Triggered by Ricardo's directive ("AI should be AI… code research and intelligence stuff here. Replit should code that too but closer to UI and workflows. Code as a senior architect of AI engines"). The 2026-04-22 revision had pure refactors as a CC explicit-delegation lane and EVERYTHING ELSE as Replit's lane. That worked for plumbing but mismatched the AI-engine work that's coming with ADR-007 (Tier-1 graduation): prompt engineering, regress-loop design, cross-vendor routing, verdict reconstruction. That work benefits from CC's deep context window + multi-file synthesis far more than Replit's dev-server iteration.
+
+The new boundary:
+- **CC default lane (added):** research + intelligence code under `engine/analyst/`, `server/ai/`, `calc/research/`, plus prompt-builders, cognitive-engine extensions, verdict-reconstruction logic, prompt-engineer pre-stage, regress-loop logic, vendor-routing fallback. Code as a senior AI-engine architect; Opus tier.
+- **Replit default lane (unchanged):** UI components, page wiring, admin pages, navigation, tabs, DB migrations, seed data, env vars. Plus the workflow code that ferries research output INTO the UI — route handlers that bridge the AI-engine layer to the user-visible surface.
+- **Two-track ADR execution:** when an ADR's implementation has both an AI-engine slice and a UI/workflow slice, both agents work in parallel against the same packet (or two sibling packets). CC owns engine; Replit owns UI; they meet at the route handler.
+
+Atomic-budget + Doctrine-Freeze-Gate + packet-discipline rules from the 2026-04-22 revision still apply to BOTH agents.
 
 ### 2026-04-22 — Tightened CC coding lane after rewrite-churn review
 

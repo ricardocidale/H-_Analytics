@@ -58,25 +58,52 @@ Every Tier-1 Specialist MUST follow this skeleton:
 
 ```
 SpecialistFn(payload, context) → AnalystVerdict
-  ├─ 1. Build prompt-context     ← prompt-builder pulls property + portfolio + market
-  ├─ 2. Resolve cache key         ← engine-client.computeCacheKey(...)
-  ├─ 3. Cache read (engine-client.tryCacheRead)
-  │     ├─ HIT  → reconstruct verdict from GuidanceSlim[] (skip 4-6)
+  ├─ 0. Required-fields gate     ← P6a withRequiredFieldsGate; missing
+  │                                 inputs → return early with honest "needs
+  │                                 more info" verdict
+  ├─ 1. Resolve context           ← property + portfolio + market + ICP +
+  │                                 prior verdicts (composition surface)
+  ├─ 2. PROMPT ENGINEER stage     ← LLM-driven (Sonnet 4.6 / Gemini Flash class)
+  │       input: required-fields list + ICP + Specialist intent + context
+  │       output: structured multi-stage prompt set + per-stage model pick
+  │                from llm-vendor-roster.md per-role recommendation matrix
+  ├─ 3. Resolve cache key         ← engine-client.computeCacheKey(...)
+  ├─ 4. Cache read (engine-client.tryCacheRead)
+  │     ├─ HIT  → reconstructDimensionsFromGuidance (Phase 5B v2) → skip 5-6
   │     └─ MISS → continue
-  ├─ 4. Cognitive run             ← engine-client.consultCognitive(prompt-context)
+  ├─ 5. Cognitive run (N+1)       ← orchestrator(promptSet from step 2)
+  │       parallel multi-vendor: quant panel + market panel + synthesis
   │       returns { cognitiveRunId, dimensions[], evidenceItems[] }
-  ├─ 5. Comparables fetch         ← live API resources by assignmentRef.kind === "api"
+  ├─ 6. Comparables fetch         ← live API resources by assignmentRef.kind === "api"
   │       returns ComparableRow[] per dimension (where applicable)
-  ├─ 6. Build verdict             ← buildAnalystVerdict({
-  │       dimensions: from step 4,
-  │       evidence: from step 4 + step 5 source provenance,
-  │       comparables: from step 5,
-  │       meta.cognitiveRunId: from step 4
+  ├─ 7. Quality check + REGRESS   ← did synthesis converge? evidence ≥3?
+  │       range-width sane vs conviction? ADR-003 invariants pass?
+  │     ├─ PASS → continue to step 8
+  │     └─ FAIL → Prompt Engineer regresses (re-engineer with different
+  │              framing) → loop back to step 5. Bounded: max 2 regresses.
+  │              If exhausted → emit honest-fail verdict (severity:"ok",
+  │              intent:"developing-data", range:null, body explains
+  │              what would unblock).
+  ├─ 8. Build verdict             ← buildAnalystVerdict({
+  │       dimensions: from step 5 (or 4 on cache hit),
+  │       evidence: from step 5 + step 6 source provenance,
+  │       comparables: from step 6,
+  │       meta.cognitiveRunId, meta.promptEngineerRunId,
+  │       meta.regressCount, meta.vendorsUsed
   │     })
-  └─ 7. Voice render is downstream (Surface Router responsibility, unchanged)
+  └─ 9. Voice render is downstream (Surface Router responsibility, unchanged)
 ```
 
-The skeleton is deterministic at the top (steps 1–3) and bottom (step 6); the LLM work lives in step 4; the API work lives in step 5. Each step has a clean failure mode (see §3).
+The skeleton is deterministic at the bookends (steps 0, 3, 4, 8); LLM work lives in steps 2, 5, 7; API work lives in step 6. Step 7's regress loop is the **honesty gate** — without it, a Specialist would silently emit low-quality output rather than say "I don't know." Per `.claude/rules/specialist-intelligence-bar.md` requirement 9, fabricating intelligence is forbidden.
+
+**Prompt Engineer stage (step 2) — why an LLM, not a template?**
+A hand-coded prompt template can't adapt to (Aspen luxury wellness ↔ Outer Banks beach rental ↔ Medellín boutique hotel) the way an LLM-engineered prompt can. The Prompt Engineer reads the property's specific market + ICP + prior-verdict context and writes prompts that name the right comparables, ask the right reasoning questions, and route stages to the model best suited per `.claude/rules/llm-vendor-roster.md`. It is an LLM call (cheap-tier — Sonnet 4.6 or Gemini Flash) but the leverage is high: better prompts produce better verdicts at the same cognitive-engine cost.
+
+**Regress loop (step 7) — how it bounds cost:**
+A single regress = one extra cognitive run (~$0.40–0.70). Two regresses max = at most ~3× baseline cost on hard cases. Most cases pass on first attempt; regress-rate telemetry should stay <15% in steady state. If a Specialist's regress-rate exceeds 25%, the Prompt Engineer's framing is the bug — re-engineer the meta-prompt template, not the cognitive engine.
+
+**Vendor breadth (per `llm-vendor-roster.md` requirement 7):**
+Every cognitive run uses ≥2 vendors across panels. Synthesis can stay Anthropic Opus; market and quant should rotate across Anthropic / Google / OpenAI / xAI / DeepSeek per the recommendation matrix. The Prompt Engineer picks the model per stage; routing fail-overs cascade through the alternatives list.
 
 ### 2. Order of graduation
 
@@ -92,6 +119,15 @@ Six assumption-tab Specialists graduate in this order, one per phase:
 | **G6** | `portfolio-ops.watchdog` (G) | Cross-portfolio scope; runs LAST because it depends on the verdicts of properties + mgmt-co Specialists; new failure modes |
 
 Each phase ships as one packet (per `_TEMPLATE.md` atomic budget) plus its golden-test bench. Phases do NOT bundle. G2 starts only after G1 lands clean and at least one session of soak time has passed.
+
+**Specialist consolidation permission (added 2026-04-26):**
+The 12-Specialist catalog is not load-bearing. If during graduation design it becomes clear that two Specialists would share substantially the same prompt-engineer + cognitive call + evidence sources (e.g. Risk Intelligence + Watchdog could be one cross-portfolio risk Specialist; Executive Summary + ICP could co-exist as one narrative-synthesis Specialist), they MAY be merged into one. The merge requires:
+- An ADR amendment (to this ADR or a new ADR) naming what merged into what and why
+- A vocabulary check: the merged Specialist gets ONE display name + persona; sidebar entries for the absorbed Specialist redirect via `SECTION_REDIRECTS` (existing pattern in `AdminSidebar.tsx`)
+- A catalog migration: the absorbed Specialist's `assignmentRefs` move to the survivor; `specialist_configs` rows for the absorbed id are migrated or archived
+- The graduation-phase ordering is recomputed (e.g. if D + G merge into "D-G", G3 + G6 collapse into one phase)
+
+Reducing the number of Specialists is preferred over having two thin Specialists with overlapping prompts. The bar is "does each Specialist have a meaningfully distinct intelligence to deliver?" not "is each tab visually separated?" — UI separation is cheap; distinct intelligence is not.
 
 ### 3. Fallback policy — when Tier-1 fails
 

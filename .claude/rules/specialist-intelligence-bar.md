@@ -15,16 +15,27 @@ evaluator-body layer.
 ## The bar
 
 Every Specialist with `subject ∈ {mgmt-co, property}` and any
-assumption-tab surface MUST satisfy ALL six requirements:
+assumption-tab surface MUST satisfy ALL nine requirements:
 
 | # | Requirement | Verifiable as |
 |---|---|---|
-| 1 | **Tier-1 cognitive evaluation.** The verdict comes from the Cognitive Engine N+1 pipeline (Gemini quantitative panel + Claude Sonnet market panel + Opus synthesis). Not a deterministic threshold check, not a single-model call. | `verdict.meta.cognitiveRunId` non-null. Per ADR-003 invariant 6. |
+| 1 | **Tier-1 cognitive evaluation.** The verdict comes from the Cognitive Engine N+1 pipeline (parallel multi-model: quantitative panel + market panel + synthesis). Not a deterministic threshold check, not a single-model call. | `verdict.meta.cognitiveRunId` non-null. Per ADR-003 invariant 6. |
 | 2 | **Context-rich prompt.** Property + portfolio + market context injected via the prompt-builder pattern in `server/ai/`. No stub payloads, no synthetic placeholders. | Prompt template references the actual property fields, the portfolio aggregate, and the relevant market locality. Reviewed at PR time. |
 | 3 | **Citation-backed evidence.** Each dimension carries ≥3 evidence items, every item with a `url` OR `documentRef`. Per ADR-003 invariant 5. | Verdict-shape test asserts `dimension.evidence.length >= 3` AND `evidence.every(e => e.url || e.documentRef)`. |
 | 4 | **Tabular comparables (numeric dimensions).** Verdicts on rates, ratios, $ amounts, % values, or market metrics carry a `comparables: ComparableRow[]` payload that the voice renderer turns into a `<table>` block. Categorical / boolean dimensions are exempt. | Numeric `dimension.kind` ⇒ `comparables.length >= 3` OR a documented "no public comp data" exemption in the Specialist's source. |
 | 5 | **Live API resources where mapped.** Specialist's `assignmentRefs` include ≥1 `kind: "api"` resource. The evaluator pulls fresh data via the Resources control plane and records source provenance per evidence item. Falls back to a benchmark resource only when the API health is `red` or `amber`. | Catalog entry has `assignmentRefs.some(r => r.kind === "api")`. Specialist's evidence items name the resource that produced them. |
 | 6 | **Range-first delivery.** Every numeric dimension with non-`ok` severity carries a `range = { low, mid, high }` with conviction surfaced via `qualityScore >= CONVICTION_FLOOR`. The user's judgment lives in the range, not the midpoint. | Per ADR-003 invariants 3 + 4. Already enforced at builder time by `buildAnalystVerdict()`. |
+| 7 | **Vendor-breadth N+1 routing.** The cognitive run uses models from at least two vendors, picked from the per-role recommendation matrix in `.claude/rules/llm-vendor-roster.md`. No single-vendor architectures. | Telemetry log per cognitive run records vendor ids used; ≥2 distinct vendors per run. PR review checks the model resources wired. |
+| 8 | **LLM-driven Prompt Engineer pre-stage.** Before the cognitive run, an LLM-driven Prompt Engineer stage builds one or more structured prompts adapted to the specific property + market + ICP combo. Required-fields list, ICP (when applicable), and Specialist intent are all inputs. The Prompt Engineer is itself an LLM call (cheap tier — Sonnet 4.6 / Gemini Flash class) that can route different stages to different models. Hand-coded prompt templates without an LLM-driven engineering layer fail this requirement. | `verdict.meta.promptEngineerRunId` non-null OR a documented exemption in PR description (rare — e.g. genuinely deterministic prompt). |
+| 9 | **Quality regress + honest-fail.** A quality check follows the cognitive run (synthesis convergence, evidence presence, range-width-vs-conviction sanity, ADR-003 invariant compliance). If the result is unsatisfactory, the Prompt Engineer **regresses** with re-engineered framing and re-runs (bounded — typically max 2 regresses). If regresses exhaust, the Specialist emits an honest-fail verdict (`severity: "ok"`, `voice.intent: "developing-data"`, range `null`, body explains what would unblock). **Never fabricate intelligence.** | `verdict.meta.regressCount` tracked (0 = first-pass success). Honest-fail path covered by golden-test bench fixture. |
+
+### Quality preference order (binding companion to requirements 6 + 9)
+
+When uncertainty is high, the Specialist MUST prefer:
+
+**Wider range with low-conviction badge** (honest "we see a broad band") > **Narrow range with bad guess** (false confidence — forbidden) > **Single point estimate** (no range — forbidden for numeric dimensions)
+
+A wide range marked `qualityScore < CONVICTION_FLOOR` (per Phase 5B v2 reconstructor rules) is intelligence the user can use. A narrow range that's wrong destroys user trust permanently. **Never collapse uncertainty to look smart.**
 
 ## What the bar does NOT require
 
@@ -99,7 +110,11 @@ Requirements 2 + 4 are reviewed at PR time, not statically asserted.
 - ADR-004 — verdict cache (governs per-dimension cost economics)
 - ADR-006 — Resources control plane (governs API + benchmark resource
   assignment per Specialist)
+- ADR-007 — Specialist Tier-1 Graduation (Tier-1 pattern adds the
+  Prompt Engineer stage + regress loop per requirements 8 + 9)
 - `.claude/rules/the-analyst-persona.md` — user-facing voice
+- `.claude/rules/llm-vendor-roster.md` — vendor coverage + per-role
+  model recommendations (requirement 7)
 - `.claude/rules/research-precision.md` — N+1 pipeline + deterministic-tool
   protection
 - `.claude/skills/research/SKILL.md` — N+1 pipeline reference
