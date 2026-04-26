@@ -53,7 +53,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
   const [form, setForm] = useState<FormState>(emptyForm);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [expandedResearch, setExpandedResearch] = useState<Set<number>>(new Set());
-  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [inlineEditingRate, setInlineEditingRate] = useState<number | null>(null);
   const [inlineEditingMarkup, setInlineEditingMarkup] = useState<number | null>(null);
   const [inlineRateValue, setInlineRateValue] = useState("");
@@ -73,8 +73,8 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
     });
   };
 
-  const toggleDescription = (id: number) => {
-    setExpandedDescriptions(prev => {
+  const toggleRow = (id: number) => {
+    setExpandedRows(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
@@ -299,12 +299,12 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
               <p className="text-sm mt-1">Add service categories to define what the management company provides to properties.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-2">
               {sorted.map((t) => (
                 <ServiceTemplateCard
                   key={t.id}
                   template={t}
-                  expandedDescriptions={expandedDescriptions}
+                  expandedRows={expandedRows}
                   expandedResearch={expandedResearch}
                   inlineEditingRate={inlineEditingRate}
                   inlineEditingMarkup={inlineEditingMarkup}
@@ -312,7 +312,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
                   inlineMarkupValue={inlineMarkupValue}
                   updatePending={updateMutation.isPending}
                   onToggleActive={handleToggleActive}
-                  onToggleDescription={toggleDescription}
+                  onToggleRow={toggleRow}
                   onToggleResearch={toggleResearch}
                   onStartRateEdit={startInlineRateEdit}
                   onSaveRate={saveInlineRate}
@@ -327,7 +327,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
                 />
               ))}
 
-              <div className="flex items-center justify-between px-4 py-3 bg-primary/5 border border-primary/20 rounded-xl lg:col-span-2">
+              <div className="flex items-center justify-between px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg mt-4">
                 <div className="flex items-center gap-2">
                   <IconTrending className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-primary">Total Base Management Fee</span>
