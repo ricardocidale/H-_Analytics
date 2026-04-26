@@ -92,9 +92,27 @@ export interface AnalystVerdict {
     tier: 0 | 1;             // Tier-0 (deterministic) or Tier-1 (Cognitive Engine consulted)
     durationMs: number;
     cognitiveRunId?: string; // if Tier-1, the research_runs row id
+    // ADR-008 additions (2026-04-26):
+    fallbackReason?: "tier1_unavailable" | "tier1_timeout" | "tier1_disabled" | "cache_corrupted";
+    vendorsUsed?: string[];   // Tier-1 only; >=2 entries required when present (llm-vendor-roster.md req #7)
+    cacheState?: "hit" | "miss"; // Tier-1 only; observability for ADR-004 cache
   };
 }
 ```
+
+### Meta provenance (ADR-008)
+
+The three optional fields added in ADR-008 are tier-coupled — each is exclusive to one tier:
+
+| Field | Allowed when | Forbidden when | Purpose |
+|---|---|---|---|
+| `fallbackReason` | `tier === 0` | `tier === 1` | Tier-1-graduated Specialist declares why it fell back to Tier-0 (UI badge, telemetry) |
+| `vendorsUsed` | `tier === 1` AND length ≥ 2 | `tier === 0`; single-vendor | Surfaces vendor-breadth N+1 routing for Intelligence Bar req #7 |
+| `cacheState` | `tier === 1` | `tier === 0` | Cache HIT vs MISS visibility (ADR-004 observability) |
+
+`FALLBACK_REASONS` is a closed enum. New reasons require an ADR amendment listing the new string and the Specialist that emits it. `vendorsUsed` ships as `string[]`; a follow-up ADR will lock down a `VENDOR_IDS` enum aligned with `.claude/rules/llm-vendor-roster.md`.
+
+Born-Tier-0 Specialists (e.g., `mgmt-co.revenue` until G2 graduates it) are NOT required to emit `fallbackReason` — they are not "falling back," they are operating natively at Tier-0. Only Tier-1-graduated Specialists must emit `fallbackReason` when their fallback path runs.
 
 ---
 

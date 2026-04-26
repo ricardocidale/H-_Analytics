@@ -170,9 +170,20 @@ Within budget. No split required.
 
 ### Behavioral verification (manual, post-merge)
 
-- [ ] In dev server, Funding tab Save → response carries `meta.cognitiveRunId` (Tier-1 path) OR `meta.fallbackReason: "tier1_unavailable"` (Tier-0 fallback) — observable via DevTools Network tab on the `/api/global-assumptions` save response.
+> **Reconciled 2026-04-26 after BLOCKED.md (`64701f7b`) + ADR-008 + G1.5a (`71ebbb9e..1f3a5323`).** The original spec asked for fields the contract did not yet allow; ADR-008 added them and G1.5a wired them into the Funding Specialist's Tier-0 path. **The Tier-1 path requires Replit's G1.5c packet** (deps wiring at `mgmt-co/index.ts:203`); until that lands, all Save flows produce Tier-0 verdicts with `fallbackReason: "tier1_unavailable"`.
+
+**Required for G1 closure (Tier-0 fallback half — testable today):**
+- [ ] In dev server, Funding tab Save → DevTools Network → POST `/api/global-assumptions/save-tab` response → `verdict.meta` carries:
+  ```json
+  { "tier": 0, "durationMs": <n>, "fallbackReason": "tier1_unavailable" }
+  ```
+  No `cognitiveRunId`, no `vendorsUsed`, no `cacheState` (these are Tier-1 only — invariant enforced at the contract layer).
 - [ ] Browser console: 0 new errors during Funding-tab save flow.
-- [ ] If cognitive route is healthy: at least 2 vendors named in `meta.vendorsUsed` (e.g., `["anthropic", "google"]` per `llm-vendor-roster.md` requirement #7).
+
+**Deferred to G1.5c verification (Tier-1 path — only testable after deps wiring):**
+- [ ] Tier-1 path fires when deps are wired → `verdict.meta.cognitiveRunId` is a non-empty string (UUID).
+- [ ] `verdict.meta.vendorsUsed` lists ≥2 vendors (e.g., `["anthropic", "google"]` per `llm-vendor-roster.md` requirement #7).
+- [ ] `verdict.meta.cacheState` is `"miss"` on first save and `"hit"` on second identical save within TTL.
 
 ### Surface-specific verification
 
