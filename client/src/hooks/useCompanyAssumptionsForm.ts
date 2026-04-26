@@ -152,6 +152,17 @@ export interface UseCompanyAssumptionsFormReturn {
   savingTab: TabKey | null;
   tabWarnings: Record<TabKey, TabValidationWarning[]>;
   setTabWarnings: React.Dispatch<React.SetStateAction<Record<TabKey, TabValidationWarning[]>>>;
+  /**
+   * Per-tab list of admin-declared required fields that were still
+   * blank at the most-recent save. Surfaces the new save-tab response
+   * field `requiredFieldsMissing?: string[]` (task #737) so the page
+   * can render a non-blocking banner without auto-invoking The
+   * Analyst (task #738). Empty array means the last save reported
+   * none missing (or no save has happened yet for this tab).
+   */
+  requiredFieldsMissingByTab: Record<TabKey, string[]>;
+  /** Manually clear the banner for one tab (e.g. after the user fills the field). */
+  clearRequiredFieldsMissing: (tab: TabKey) => void;
   acks: AckRow[];
   handleSaveTab: (tab: TabKey, opts: { force?: boolean } | undefined, deps: SaveDeps) => Promise<void>;
   hasPendingServerUpdate: boolean;
@@ -182,6 +193,21 @@ export function useCompanyAssumptionsForm(
     overhead: [], "property-defaults": [],
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
+
+  // Per-tab `requiredFieldsMissing` — the new save-tab response shape
+  // (task #737) returns `{ ok, savedTabs, requiredFieldsMissing? }`
+  // where `requiredFieldsMissing` is the list of admin-declared
+  // required fields that were still blank at save time. Save itself
+  // succeeds (the row is persisted), but the page surfaces the list
+  // as a non-blocking banner so the user knows what to fill in to
+  // unlock the next tab / Analyst run. This is the data-only,
+  // non-Analyst-triggering save UX the new shape is for; per task
+  // #738 we read it but never auto-dispatch on it.
+  const [requiredFieldsMissingByTab, setRequiredFieldsMissingByTab] =
+    useState<Record<TabKey, string[]>>({
+      company: [], funding: [], revenue: [], compensation: [],
+      overhead: [], "property-defaults": [],
+    });
 
   // "Keep my value" acknowledgments — keyed by fieldName. Suppress warning
   // re-flagging while the live value stays inside the snapshot window.
@@ -456,11 +482,11 @@ export function useCompanyAssumptionsForm(
       await mutateAsync(payload);
       // Persist the per-tab "reviewed" marker server-side so the
       // savedTabs gate progresses. The server response shape is
-      // `{ ok, savedTabs, requiredFieldsMissing? }` (see task #737); we
-      // do not read `verdict` or `prerequisiteFailures` because Save no
-      // longer invokes The Analyst per task #738. `requiredFieldsMissing`
-      // is informational on this surface for now — a future packet may
-      // wire a save-time required-fields banner.
+      // `{ ok, savedTabs, requiredFieldsMissing? }` (see task #737):
+      //   • `verdict` / `prerequisiteFailures` are no longer emitted
+      //     (task #738 — Save does NOT invoke The Analyst).
+      //   • `requiredFieldsMissing?` is consumed below to drive the
+      //     non-blocking banner exposed via `requiredFieldsMissingByTab`.
       try {
         const fundingInputs = tab === "funding" ? deriveFundingInputs(formData) : undefined;
         const res = await fetch("/api/global-assumptions/save-tab", {
@@ -470,6 +496,21 @@ export function useCompanyAssumptionsForm(
           body: JSON.stringify({ tabKey: tab, fundingInputs }),
         });
         if (res.ok) {
+          // Defensive parse — server may legally return an empty body
+          // on a no-op acknowledge. Treat any parse error as "no
+          // requiredFieldsMissing reported" rather than failing Save.
+          let body: { requiredFieldsMissing?: unknown } = {};
+          try {
+            body = (await res.json()) as { requiredFieldsMissing?: unknown };
+          } catch {
+            body = {};
+          }
+          const missing = Array.isArray(body.requiredFieldsMissing)
+            ? body.requiredFieldsMissing.filter(
+                (x): x is string => typeof x === "string",
+              )
+            : [];
+          setRequiredFieldsMissingByTab((prev) => ({ ...prev, [tab]: missing }));
           await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
         }
       } catch (saveTabErr: unknown) {
@@ -513,6 +554,11 @@ export function useCompanyAssumptionsForm(
     }
   };
 
+  const clearRequiredFieldsMissing = (tab: TabKey) =>
+    setRequiredFieldsMissingByTab((prev) =>
+      prev[tab].length === 0 ? prev : { ...prev, [tab]: [] },
+    );
+
   return {
     formData,
     isDirty,
@@ -522,6 +568,8 @@ export function useCompanyAssumptionsForm(
     savingTab,
     tabWarnings,
     setTabWarnings,
+    requiredFieldsMissingByTab,
+    clearRequiredFieldsMissing,
     acks,
     handleSaveTab,
     hasPendingServerUpdate: pendingServerSnapshot !== null,

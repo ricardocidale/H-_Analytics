@@ -294,17 +294,48 @@ export default function CompanyAssumptions() {
           />
 
           {/*
-            PrerequisitesFailedPanel was driven by `verdict.prerequisiteFailures`
-            on the save-tab response. Per task #738 (and the binding rule
-            .claude/rules/analyst-trigger-discipline.md), Save no longer
-            invokes The Analyst, so save-tab no longer emits a verdict or
-            its prerequisite failures. The `requiredFieldsMissing?: string[]`
-            field on the new save-tab response is consumed where the panel
-            it would feed exists; if a future packet wants a save-time
-            required-fields banner here, wire it from
-            `formApi.handleSaveTab` results into that surface — never as
-            an Analyst trigger.
+            Required-fields banner — driven by the new save-tab response
+            shape `{ ok, savedTabs, requiredFieldsMissing? }` (task #737).
+            Save persists the row regardless; this banner just surfaces
+            what's still blank so the user knows what to fill in next.
+            It is intentionally non-blocking and DOES NOT auto-invoke
+            The Analyst (task #738 / .claude/rules/analyst-trigger-discipline.md).
+            Replaces the old <PrerequisitesFailedPanel> that consumed
+            the now-removed `verdict.prerequisiteFailures` payload.
           */}
+          {formApi.requiredFieldsMissingByTab[activeTab].length > 0 && (
+            <div
+              className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+              data-testid={`banner-required-fields-missing-${activeTab}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-medium">
+                    Required fields still blank on this tab
+                  </div>
+                  <ul className="mt-1 list-inside list-disc text-xs">
+                    {formApi.requiredFieldsMissingByTab[activeTab].map((field) => (
+                      <li key={field} data-testid={`text-required-field-${field}`}>
+                        {field}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-2 text-xs opacity-80">
+                    Save was successful — fill these in to unlock the next tab
+                    and to let The Analyst run when you press its button.
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => formApi.clearRequiredFieldsMissing(activeTab)}
+                  data-testid={`button-dismiss-required-fields-${activeTab}`}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
 
           <SpecialistRequirementsPanel entityValues={global as unknown as Record<string, unknown> | undefined} />
 

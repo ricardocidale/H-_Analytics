@@ -88,14 +88,22 @@ const STATUS_CONFIG: Record<FreshnessStatus, {
     border: "border-red-500/30",
     text: "text-red-700 dark:text-red-400",
     icon: IconAlertTriangle,
-    label: "Overdue",
+    // Canonical freshness vocabulary (task #738 acceptance) — only
+    // three labels are allowed for non-running freshness states:
+    // "Up to date", "Due for review", "Out of date". `very_stale`
+    // (research older than the very-stale threshold) maps to
+    // "Out of date".
+    label: "Out of date",
   },
   missing: {
     bg: "bg-blue-500/10",
     border: "border-blue-500/30",
     text: "text-blue-700 dark:text-blue-400",
     icon: IconAlertTriangle,
-    label: "Not yet reviewed",
+    // `missing` (no research has ever run for this surface) maps to
+    // "Due for review" in the canonical vocabulary — semantically a
+    // first-time review is due, not "out of date" (no prior reading).
+    label: "Due for review",
   },
   running: {
     bg: "bg-blue-500/10",

@@ -187,3 +187,118 @@ describe("Analyst Trigger Discipline — rule file is present", () => {
     expect(rule).toMatch(/explicit/i);
   });
 });
+
+/**
+ * Client-side trigger-discipline assertions for the Company Assumptions
+ * surface (task #738). The server save handler is locked down by the
+ * suite above; this suite locks down the *client* side that used to
+ * dispatch The Analyst implicitly:
+ *
+ *  - useCompanyAnalyst.tsx — used to fire on `?analyst=1` deep-link
+ *    and via `useAutoRefreshIntelligence`.
+ *  - useCompanyAssumptionsForm.ts — used to call `generateResearch()`
+ *    inside `handleSaveTab` after a successful save, and used to
+ *    parse `verdict` / `prerequisiteFailures` off the save-tab
+ *    response and open the watchdog dialog.
+ *  - CompanyAssumptions.tsx — used to mount the
+ *    `<PrerequisitesFailedPanel>` driven by the same verdict payload.
+ *  - CompanyAssumptionsHeaderBar.tsx — used to mount the auto-refresh
+ *    `<Switch>` ("Auto" toggle) which silently re-armed the loop.
+ *
+ * The Analyst evaluates ONLY on an explicit `<AnalystButton />` press
+ * (.claude/rules/analyst-trigger-discipline.md). Re-introducing any of
+ * the patterns below silently re-arms an implicit trigger, so we pin
+ * each one statically.
+ */
+describe("Analyst Trigger Discipline — client save/effect surfaces", () => {
+  const FORBIDDEN_CLIENT_PATTERNS: Array<{
+    file: string;
+    pattern: RegExp;
+    why: string;
+  }> = [
+    {
+      file: "client/src/hooks/useCompanyAnalyst.tsx",
+      pattern: /useAutoRefreshIntelligence/,
+      why: "auto-refresh loop dispatches The Analyst on a timer — must be removed",
+    },
+    {
+      file: "client/src/hooks/useCompanyAnalyst.tsx",
+      // Detect a useEffect that watches the URL for ?analyst=1 — i.e.
+      // any reference to the deep-link query token inside this file.
+      pattern: /analyst=1/,
+      why: "?analyst=1 URL deep-link auto-fires generateResearch() — must be removed",
+    },
+    {
+      file: "client/src/hooks/useCompanyAssumptionsForm.ts",
+      pattern: /\bverdict\b/,
+      why: "save-tab response no longer carries `verdict` (task #737) — client must not read it",
+    },
+    {
+      file: "client/src/hooks/useCompanyAssumptionsForm.ts",
+      pattern: /\bprerequisiteFailures\b/,
+      why: "save-tab response no longer carries `prerequisiteFailures` — client must not read it",
+    },
+    {
+      file: "client/src/hooks/useCompanyAssumptionsForm.ts",
+      // The post-save auto-fire used to call `deps.generateResearch()`
+      // when the gate was enabled. Search for any `generateResearch(`
+      // CALL inside this file (the type-only mention on SaveDeps was
+      // dropped in the slim, so any remaining call is a regression).
+      pattern: /generateResearch\s*\(/,
+      why: "Save must not call generateResearch() — Analyst runs on explicit button press only",
+    },
+    {
+      file: "client/src/hooks/useCompanyAssumptionsForm.ts",
+      pattern: /AnalystCheckDialog|handleWatchdogAction|handleProceedAnyway/,
+      why: "watchdog dialog is no longer save-driven — must not be wired here",
+    },
+    {
+      file: "client/src/components/company-assumptions/CompanyAssumptionsHeaderBar.tsx",
+      pattern: /toggle-auto-refresh-company/,
+      why: "auto-refresh toggle re-arms the implicit Analyst loop — must be removed",
+    },
+    {
+      file: "client/src/components/company-assumptions/CompanyAnalystOverlay.tsx",
+      pattern: /AnalystCheckDialog/,
+      why: "AnalystCheckDialog mount on this overlay was driven by the now-removed save-time verdict",
+    },
+    {
+      file: "client/src/pages/CompanyAssumptions.tsx",
+      pattern: /useAutoRefreshIntelligence|toggle-auto-refresh-company/,
+      why: "Company Assumptions page must not own an auto-refresh toggle or hook",
+    },
+  ];
+
+  for (const { file, pattern, why } of FORBIDDEN_CLIENT_PATTERNS) {
+    it(`${file}: must not contain ${pattern.source}`, () => {
+      const src = stripComments(read(file));
+      expect(
+        pattern.test(src),
+        `${file} re-acquired a forbidden trigger pattern (${pattern.source}). ` +
+          `${why}. The Analyst evaluates ONLY on an explicit ` +
+          `<AnalystButton /> press — see .claude/rules/analyst-trigger-discipline.md.`,
+      ).toBe(false);
+    });
+  }
+
+  it("the auto-refresh hook file has been deleted", () => {
+    // The hook used to live at client/src/hooks/use-auto-refresh-intelligence.ts
+    // and ran a timer-driven dispatch loop. Deleting the file is the
+    // strongest possible guarantee against it being silently re-imported.
+    expect(() => read("client/src/hooks/use-auto-refresh-intelligence.ts"))
+      .toThrow();
+  });
+
+  it("the new save-tab response shape is consumed (requiredFieldsMissing) without re-introducing a trigger", () => {
+    // Positive assertion: the form hook DOES handle the new shape's
+    // `requiredFieldsMissing` field — proving the cleanup did not also
+    // accidentally drop the legitimate non-Analyst-triggering save UX.
+    const form = read("client/src/hooks/useCompanyAssumptionsForm.ts");
+    expect(
+      /requiredFieldsMissing/.test(form),
+      "useCompanyAssumptionsForm.ts must consume the new save-tab " +
+        "response field `requiredFieldsMissing` (task #737 shape) so " +
+        "the page can render a non-blocking required-fields banner.",
+    ).toBe(true);
+  });
+});
