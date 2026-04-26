@@ -97,7 +97,7 @@ Maps 1:1 to the **Resources Control Plane** workstream above. P1–P5 shipped; P
 
 | Phase | Scope | Status | Owner | Commit/PR | Blocked-by | Next |
 |---|---|---|---|---|---|---|
-| G1 | Funding (A) graduation | ⏳ Pending | CC | — | ADR-004 Phase 5B v2 ✅ (24853904) | Author packet `adr-007-g1-funding-graduation.md` |
+| G1 | Funding (A) graduation | 🟡 Partial | CC | `6f4696ba`, `71061c1d`, `8ba81dfd`, `9a461f92`, `ae2a16e7`, `e6f6059a` | ADR-004 Phase 5B v2 ✅ (24853904) | S1–S6 shipped (engine code); behavioral verification in dev server (Replit) + 1-session soak pending before G2 |
 | G2 | Revenue (B) graduation | ⏳ Pending | CC | — | G1 ✅ + 1 session soak | — |
 | G3 | Risk Intelligence (D) graduation | ⏳ Pending | CC | — | G2 ✅ | — |
 | G4 | Executive Summary (E) graduation | ⏳ Pending | CC | — | G3 ✅ | — |
