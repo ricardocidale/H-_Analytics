@@ -135,6 +135,42 @@ describe("L+B persona — mgmt-co.funding (under-runway)", () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────
+// Funding — Tier-0 fallback meta (ADR-008)
+// ────────────────────────────────────────────────────────────────────────
+
+describe("L+B persona — mgmt-co.funding Tier-0 meta (ADR-008)", () => {
+  const originalEnv = process.env.NODE_ENV;
+  beforeEach(() => { process.env.NODE_ENV = "test"; });
+  afterEach(() => { process.env.NODE_ENV = originalEnv; });
+
+  it("deps-undefined path → meta carries fallbackReason; vendorsUsed and cacheState absent", async () => {
+    const router = createSurfaceRouter(deps);
+    router.register(
+      MGMT_CO_FUNDING_ID,
+      createFundingSpecialist(FUNDING_BENCH, { evidenceAsOf: EVIDENCE_AS_OF }),
+    );
+    const verdict = await router.dispatch({
+      specialistId: MGMT_CO_FUNDING_ID,
+      payload: {
+        runwayBufferMonths: 9,
+        sizingOvershootPct: 0.20,
+        trancheGapMonths: 12,
+        revenueRampDelayMonths: 9,
+        burnFlexDownPct: 0.20,
+      },
+      persona: PERSONA,
+      now: NOW,
+    });
+    // ADR-008 invariants for the Tier-0 fallback path:
+    expect(verdict.meta.tier).toBe(0);
+    expect(verdict.meta.fallbackReason).toBe("tier1_unavailable");
+    expect(verdict.meta.cognitiveRunId).toBeUndefined();
+    expect(verdict.meta.vendorsUsed).toBeUndefined();
+    expect(verdict.meta.cacheState).toBeUndefined();
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────
 // Revenue — marketing under-invested (1 dim flagged)
 // ────────────────────────────────────────────────────────────────────────
 
