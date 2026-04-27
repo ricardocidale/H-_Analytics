@@ -203,6 +203,17 @@ function mockStreamObjectThrowing(error: Error): void {
   }) as unknown) as typeof streamObject);
 }
 
+/**
+ * Stub the Vercel AI SDK Anthropic model factory so the runner doesn't try
+ * to instantiate the real Gateway client (which requires AI_GATEWAY_API_KEY,
+ * unset in CI). Since `streamObject` is mocked at the module level, the
+ * model object's actual shape never matters — only the call site needs to
+ * not throw.
+ */
+function stubGetAnthropicModel(): (modelId: string) => never {
+  return ((_modelId: string) => ({} as never));
+}
+
 beforeEach(() => {
   vi.mocked(streamObject).mockReset();
 });
@@ -216,6 +227,7 @@ describe("runFundingSpecialist — happy path", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     expect(verdict.specialistId).toBe("mgmt-co.funding");
@@ -235,6 +247,7 @@ describe("runFundingSpecialist — happy path", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     // The runner uses the LLM's reasoning string as voice.detail; verify
@@ -249,6 +262,7 @@ describe("runFundingSpecialist — happy path", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     const fields = verdict.dimensions.map((d) => d.field);
@@ -268,6 +282,7 @@ describe("runFundingSpecialist — happy path", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     // Every dimension cites at least one comparable per the schema's min(1)
@@ -288,7 +303,7 @@ describe("runFundingSpecialist — three personas", () => {
   ])("produces a valid verdict for persona %s", async (_name, ctx) => {
     mockStreamObjectReturning(buildValidOutput());
 
-    const verdict = await runFundingSpecialist(ctx, BENCHMARKS, COMPARABLES, { now: FIXED_NOW });
+    const verdict = await runFundingSpecialist(ctx, BENCHMARKS, COMPARABLES, { now: FIXED_NOW, getAnthropicModel: stubGetAnthropicModel() });
 
     expect(verdict.dimensions.length).toBe(5);
     expect(verdict.specialistId).toBe("mgmt-co.funding");
@@ -301,6 +316,7 @@ describe("runFundingSpecialist — severity derivation", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     // CTX_LARGE has all in-range values; LLM range is 14-18 for runway buffer
@@ -315,6 +331,7 @@ describe("runFundingSpecialist — severity derivation", () => {
 
     const verdict = await runFundingSpecialist(CTX_STARTUP, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     // CTX_STARTUP.runwayBufferMonths === 6, LLM range 14-18 — below-range
@@ -327,6 +344,7 @@ describe("runFundingSpecialist — severity derivation", () => {
 
     const verdict = await runFundingSpecialist(CTX_EXPANSION, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     // CTX_EXPANSION.runwayBufferMonths === 25, LLM range 14-18 — above-range
@@ -340,6 +358,7 @@ describe("runFundingSpecialist — severity derivation", () => {
     // CTX_STARTUP has trancheGapMonths === null
     const verdict = await runFundingSpecialist(CTX_STARTUP, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     const trancheGap = verdict.dimensions.find((d) => d.field === "capitalRaise2Date");
@@ -357,6 +376,7 @@ describe("runFundingSpecialist — qualityScore from conviction", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     // CONVICTION_FLOOR is 33 today; v1 mappings are high=85, moderate=65, developing=45
@@ -373,7 +393,7 @@ describe("runFundingSpecialist — error paths", () => {
     mockStreamObjectThrowing(new Error("Anthropic API rate limit"));
 
     await expect(
-      runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, { now: FIXED_NOW }),
+      runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, { now: FIXED_NOW, getAnthropicModel: stubGetAnthropicModel() }),
     ).rejects.toBeInstanceOf(Tier1UnavailableError);
   });
 
@@ -396,7 +416,7 @@ describe("runFundingSpecialist — error paths", () => {
     );
 
     await expect(
-      runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, { now: FIXED_NOW }),
+      runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, { now: FIXED_NOW, getAnthropicModel: stubGetAnthropicModel() }),
     ).rejects.toBeInstanceOf(Tier1UnavailableError);
 
     void malformed; // referenced for documentation; the rejection above is what triggers the error path
@@ -409,6 +429,7 @@ describe("runFundingSpecialist — vendor + cache invariants (v1)", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     // v1 is single-vendor; verdict invariant requires >=2 when present so we
@@ -421,6 +442,7 @@ describe("runFundingSpecialist — vendor + cache invariants (v1)", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     // v1 has no cache integration; G6-P3 wires read-path.
@@ -432,6 +454,7 @@ describe("runFundingSpecialist — vendor + cache invariants (v1)", () => {
 
     const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
       now: FIXED_NOW,
+      getAnthropicModel: stubGetAnthropicModel(),
     });
 
     expect(verdict.meta.cognitiveRunId).toBeTruthy();
