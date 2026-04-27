@@ -209,6 +209,11 @@ ${priorVerdictsBlock}
 
 ${promptInput.intent}
 
+# Output scale — IMPORTANT
+
+- For "mo" dimensions (runwayBufferMonths, trancheGapMonths, revenueRampDelayMonths): output low/mid/high as whole months (e.g., 12 for 12 months, not 0.12).
+- For "%" dimensions (sizingOvershootPct, burnFlexDownPct): output low/mid/high as DECIMAL FRACTIONS (e.g., 0.18 for 18%, 0.25 for 25%). Do NOT output whole-number percentages like 18 or 25.
+
 # Your task
 
 Produce the 5-dimension verdict per the output schema. Reference the user's specific numbers above. Cite at least one comparable per dimension. Calibrate conviction honestly. Disagree where warranted. Investor-grade output.`;

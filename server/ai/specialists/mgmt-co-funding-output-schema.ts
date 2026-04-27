@@ -51,10 +51,10 @@ export const FundingDimensionOutputSchema = z
      * 1-5 refs forces at least one cited source per dimension AND caps
      * Opus from "citing every row" boilerplate.
      */
-    evidenceRefs: z
-      .array(z.number().int().min(0))
-      .min(1, "every dimension must cite at least one comparable")
-      .max(5, "evidence refs capped at 5 per dimension"),
+    // Anthropic structured output rejects minItems > 1 and maxItems entirely.
+    // The prompt instructs Opus to cite 1-5 refs per dimension; the runner
+    // ignores out-of-range indexes via the bounds check in buildEvidenceForDimension.
+    evidenceRefs: z.array(z.number().int()),
   })
   .refine((d) => d.low <= d.mid && d.mid <= d.high, {
     message: "range must satisfy low <= mid <= high",
@@ -72,8 +72,11 @@ export type FundingDimensionOutput = z.infer<typeof FundingDimensionOutputSchema
 export const FundingSpecialistOutputSchema = z
   .object({
     dimensions: z
-      .array(FundingDimensionOutputSchema)
-      .length(5, "must emit exactly 5 dimensions, one per funding key"),
+      .array(FundingDimensionOutputSchema),
+      // Exact-5 and all-keys-unique enforced by the superRefine below.
+      // Anthropic's structured output rejects minItems > 1, so .length(5) is
+      // intentionally omitted here. The prompt instructs Opus to emit exactly
+      // 5 dimensions; the superRefine validates at parse time.
     /**
      * Optional 1-2 sentence roll-up that sits above the per-dimension cards
      * in the UI. Investor-aware framing of the overall funding plan.
