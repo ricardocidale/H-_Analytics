@@ -52,6 +52,7 @@ import {
   type SurfaceRouterDeps,
 } from "../../router/surface-router";
 import { createFundingSpecialist } from "./funding-specialist";
+import type { FundingSpecialistDeps } from "./funding-specialist";
 import { createRevenueSpecialist } from "./revenue-specialist";
 
 export interface MgmtCoBenchmarks {
@@ -182,6 +183,12 @@ export interface MgmtCoSpecialistConfigs {
     modelResourceId?: number | null;
     /** P6a: admin-declared required field names; pre-check gates dispatch. */
     requiredFields?: readonly string[];
+    /** G1.5c: when provided, the Funding Specialist runs Tier-1 (cognitive
+     *  pipeline + cache + comparables). When undefined, falls back to
+     *  Tier-0 with `meta.fallbackReason: "tier1_unavailable"` per ADR-008.
+     *  Backward-compatible — existing callers that omit `deps` keep the
+     *  prior Phase-3b behaviour. */
+    deps?: FundingSpecialistDeps;
   };
   revenue?: {
     promptTemplate?: string;
