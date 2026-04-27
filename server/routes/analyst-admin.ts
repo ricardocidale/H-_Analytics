@@ -4,6 +4,14 @@ import { requireAuth, getAuthUser } from "../auth";
 import { requireAdminGuard } from "../middleware/analyst-refresh-guards";
 import { logActivity, logAndSendError } from "./helpers";
 import { runAnalystScoped } from "../ai/analyst-scoped-runner";
+import {
+  runFundingSpecialist,
+  Tier1UnavailableError,
+} from "../ai/specialists/mgmt-co-funding-runner";
+import { getCannedLpComparables } from "../ai/specialists/mgmt-co-funding-orchestrator-adapter";
+import { withFundingDefaults } from "../finance/apply-funding-defaults";
+import type { FundingPromptInputContext } from "../ai/specialists/mgmt-co-funding-prompt-input-builder";
+import type { CapitalRaiseInputs } from "../../engine/watchdog/capitalRaiseEvaluator";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -12,6 +20,13 @@ const ANALYST_COOLDOWN_MS = 60 * 1000;
 const refreshBodySchema = z.object({
   scope: z.literal("global-assumptions"),
   fields: z.array(z.string().min(1)).max(100).optional(),
+  /**
+   * G1.5c-v1 — when set to "mgmt-co.funding", the handler routes through
+   * `runFundingSpecialist` (single-shot Opus + careful prompt) instead of
+   * the legacy `runAnalystScoped` path. Other scopes (Revenue, etc.) keep
+   * the legacy path until their own v1 ships (see G2-v1+).
+   */
+  specialistId: z.string().min(1).optional(),
 });
 
 /**
@@ -39,7 +54,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
       details: parsed.error.flatten(),
     });
   }
-  const { scope, fields } = parsed.data;
+  const { scope, fields, specialistId } = parsed.data;
 
   const user = getAuthUser(req);
   const userId = user.id;
@@ -125,6 +140,41 @@ export async function analystRefreshHandler(req: Request, res: Response) {
   // Slot is held. A failure downstream does NOT release it — the doctrine
   // is a strict 60s budget per admin, even against flaky upstreams.
 
+  // G1.5c-v1 — Funding Specialist branch. When the request names the
+  // mgmt-co.funding Specialist, route through the v1 single-shot Opus
+  // runner instead of the legacy property-research orchestrator. Other
+  // scopes keep the legacy path until their own v1 ships.
+  if (specialistId === "mgmt-co.funding") {
+    try {
+      const verdict = await runFundingV1Path(userId);
+      logActivity(req, "analyst-refresh", "company", userId, "Mgmt-Co Funding (v1)", {
+        scope,
+        specialistId,
+        cognitiveRunId: verdict.meta.cognitiveRunId,
+        tier: verdict.meta.tier,
+      });
+      return res.json({ verdict });
+    } catch (err: unknown) {
+      // Tier1UnavailableError → degrade to Tier-0 fallback by falling
+      // through to the legacy runAnalystScoped path (which handles
+      // company-scope refresh against all Specialists, including funding).
+      if (err instanceof Tier1UnavailableError) {
+        logger.warn(
+          `mgmt-co.funding v1 unavailable; degrading to Tier-0 path: ${err.message}`,
+          "analyst-admin",
+        );
+        // fall through to legacy path below
+      } else {
+        // Unexpected error — surface it (cooldown remains held per doctrine)
+        logger.error(
+          `mgmt-co.funding v1 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+          "analyst-admin",
+        );
+        return logAndSendError(res, "Funding Specialist failed", err, "analyst-admin");
+      }
+    }
+  }
+
   try {
     // `scope: "global-assumptions"` from the client maps to the runner's
     // `"company"` scope — same table (`entityType="company"`, entityId=userId),
@@ -193,4 +243,93 @@ export function register(app: Express) {
  */
 export async function __resetAnalystCooldown(userId?: number): Promise<void> {
   await storage.clearAnalystCooldown(userId);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// G1.5c-v1 — Funding Specialist v1 path
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Assemble the v1 deps + invoke `runFundingSpecialist`. Pure orchestration:
+ * reads saved state via storage facade, builds the FundingPromptInputContext,
+ * and calls the runner. Throws Tier1UnavailableError on any failure (the
+ * route handler catches and degrades to Tier-0).
+ *
+ * v1 deferrals (per .claude/replit-handoffs/g1.5c-v1-funding-specialist.md):
+ *   - Live LP comparables → G6-P3 (uses canned dataset for v1)
+ *   - Persona resolution → G6-P3 (canonical persona derived from globalAssumptions)
+ *   - Verdict cache → G6-P3 (every call is a fresh "miss")
+ *   - N+1 panels → G6-P2 (single-shot Anthropic Opus for v1)
+ */
+async function runFundingV1Path(userId: number) {
+  const ga = await storage.getGlobalAssumptions(userId);
+  if (!ga) {
+    throw new Tier1UnavailableError(
+      "globalAssumptions row missing for user",
+      null,
+    );
+  }
+
+  // Apply admin-Default overlay (G1.5b cascade) so the runner sees the
+  // resolved cascade values, not raw NULLs.
+  const overlaidGa = await withFundingDefaults(ga);
+
+  const benchmarks = await storage.getAnalystWatchdogBenchmarks(userId);
+  const properties = await storage.getAllProperties(userId);
+
+  // Build CapitalRaiseInputs from the resolved globalAssumptions row. The 5
+  // funding columns + the trancheGapMonths derived field cover the inputs.
+  const inputs: CapitalRaiseInputs = {
+    runwayBufferMonths: overlaidGa.runwayBufferMonths,
+    sizingOvershootPct: overlaidGa.sizingOvershootPct,
+    trancheGapMonths: deriveTrancheGapMonths(overlaidGa),
+    revenueRampDelayMonths: overlaidGa.revenueRampDelayMonths,
+    burnFlexDownPct: overlaidGa.burnFlexDownPct,
+  };
+
+  // Canonical persona for v1 — derived from globalAssumptions identity
+  // hints when present, otherwise sensible defaults. G6-P3 replaces this
+  // with full persona resolution.
+  const persona: FundingPromptInputContext["persona"] = {
+    verticalSlug: "boutique-luxury",
+    marketTier: "L+B",
+    locale: "US",
+  };
+
+  // Portfolio aggregate — count + raise need across the user's properties.
+  const portfolio: FundingPromptInputContext["portfolio"] = {
+    propertyCount: properties.length,
+    totalRaiseNeedUsd: properties.reduce(
+      (sum, p) => sum + Number((p as { purchasePrice?: number }).purchasePrice ?? 0),
+      0,
+    ),
+    runwayNeedMonths: 18, // v1 placeholder; G6-P3 computes from the engine
+  };
+
+  const ctx: FundingPromptInputContext = {
+    inputs,
+    persona,
+    portfolio,
+    priorVerdicts: [], // v1: no composition; G6-P3 wires verdict-cache reads
+  };
+
+  const comparables = getCannedLpComparables();
+
+  return runFundingSpecialist(ctx, benchmarks, comparables);
+}
+
+/**
+ * Derive trancheGapMonths from capitalRaise1Date + capitalRaise2Date when
+ * both are present. Mirrors the client form-hook derivation
+ * (useCompanyAssumptionsForm.ts:454-456) so the runner sees the same value
+ * the user sees on the Funding tab.
+ */
+function deriveTrancheGapMonths(
+  ga: { capitalRaise1Date?: string | Date | null; capitalRaise2Date?: string | Date | null },
+): number | null {
+  const d1 = ga.capitalRaise1Date ? new Date(ga.capitalRaise1Date).getTime() : NaN;
+  const d2 = ga.capitalRaise2Date ? new Date(ga.capitalRaise2Date).getTime() : NaN;
+  if (!Number.isFinite(d1) || !Number.isFinite(d2)) return null;
+  const DAYS_PER_MONTH = 30.5;
+  return Math.abs(d2 - d1) / (1000 * 60 * 60 * 24 * DAYS_PER_MONTH);
 }
