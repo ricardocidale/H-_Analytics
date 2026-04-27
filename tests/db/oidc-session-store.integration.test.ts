@@ -53,13 +53,26 @@ d("OIDC session store + upsertUser — real DB", () => {
   beforeAll(async () => {
     // Ensure the known-admin row exists before the upsertUser test below.
     // The production seed (seedAdminUser in server/auth.ts) runs only on
-    // server start — which never happens in CI unit-test runs. We insert
-    // here with onConflictDoNothing so a locally-seeded row is not
-    // overwritten, and the row is removed in afterAll with the same guard.
-    await db
-      .insert(users)
-      .values({ email: adminEmail, role: "admin", firstName: "Ricardo", lastName: "Cidale" })
-      .onConflictDoNothing();
+    // server start — which never happens in CI unit-test runs.
+    //
+    // Raw SQL avoids Drizzle emitting NULL for boolean columns that have
+    // database-level defaults (hide_tour_prompt, can_manage_scenarios,
+    // rebecca_opt_out) — Drizzle includes them in the INSERT as NULL when
+    // not specified in .values(), which triggers 23502 before the DB default
+    // can apply. Raw SQL's ON CONFLICT DO NOTHING leaves a locally-seeded
+    // row untouched while creating the row in CI.
+    // password_hash is nullable in Drizzle but the local/prod DB has it
+    // NOT NULL (documented in BASELINE_DRIFT). Supply a placeholder so the
+    // insert succeeds in both CI (fresh schema, nullable) and local dev
+    // (prod-shaped schema, not-null).
+    await probePool.query(
+      `INSERT INTO users
+         (email, password_hash, role, first_name, last_name,
+          hide_tour_prompt, can_manage_scenarios, rebecca_opt_out)
+       VALUES ($1, $2, $3, $4, $5, false, true, false)
+       ON CONFLICT (email) DO NOTHING`,
+      [adminEmail, "x-test-placeholder", "admin", "Ricardo", "Cidale"],
+    );
   });
 
   afterAll(async () => {
