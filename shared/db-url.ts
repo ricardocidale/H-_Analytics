@@ -15,7 +15,17 @@
  * MUST go through this helper so the cutover stays consistent.
  */
 export function getDbUrl(): string | undefined {
-  return process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
+  // Treat empty string the same as undefined — CI workflows explicitly clear
+  // POSTGRES_URL to "" to force fallback to DATABASE_URL (see ci.yml's
+  // job-level env block that originally motivated Task #573). Without this
+  // empty-string normalization, `??` short-circuits on "" and returns the
+  // empty string, breaking every drizzle-kit step that depends on a usable
+  // URL.
+  const fromPostgresUrl = process.env.POSTGRES_URL;
+  if (fromPostgresUrl && fromPostgresUrl.length > 0) return fromPostgresUrl;
+  const fromDatabaseUrl = process.env.DATABASE_URL;
+  if (fromDatabaseUrl && fromDatabaseUrl.length > 0) return fromDatabaseUrl;
+  return undefined;
 }
 
 /**
