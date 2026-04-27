@@ -10,6 +10,7 @@ import { logger } from "../logger";
 import { flag } from "../feature-flags";
 import { stripCanonicalDenylistedFields } from "./global-assumptions-denylist";
 import { rebeccaSettingsPatchSchema, mergeRebeccaSettings } from "@shared/rebecca-settings";
+import { withFundingDefaults } from "../finance/apply-funding-defaults";
 
 const appearanceDefaultsSchema = z.object({
   defaultColorMode: z.enum(["light", "auto", "dark"]).nullable().optional(),
@@ -73,7 +74,17 @@ export function register(app: Express) {
         const logo = await storage.getLogo(assumptions.companyLogoId);
         if (logo) companyLogoUrl = logo.url;
       }
-      res.json({ ...assumptions, companyLogoUrl, rebeccaV2: flag("REBECCA_V2") });
+      // Three-tier cascade for the four Funding Specialist columns
+      // (`runwayBufferMonths`, `sizingOvershootPct`, `revenueRampDelayMonths`,
+      // `burnFlexDownPct`): NULL on the user's row means "inherit the
+      // admin Default-tier value". Without this overlay the client falls
+      // straight through NULL to the hardcoded `DEFAULT_*` constant,
+      // hiding the admin's Default-tier edit. See
+      // `server/finance/apply-funding-defaults.ts` for the contract.
+      const overlaid = assumptions
+        ? await withFundingDefaults(assumptions)
+        : assumptions;
+      res.json({ ...overlaid, companyLogoUrl, rebeccaV2: flag("REBECCA_V2") });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch global assumptions", error);
     }
