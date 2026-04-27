@@ -15,7 +15,6 @@ import { STAFFING_TIERS, DEFAULT_FIXED_COST_ESCALATION_RATE } from "@/lib/consta
 import type { CompanyAssumptionsSectionProps } from "./types";
 
 type FooterTab =
-  | "company"
   | "funding"
   | "revenue"
   | "compensation"

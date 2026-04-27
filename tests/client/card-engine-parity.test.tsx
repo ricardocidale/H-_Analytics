@@ -3,11 +3,10 @@
  * Task #603 — "One number admins see equals one number the engine uses".
  *
  * Catches the class of bug where a future contributor re-introduces a
- * hardcoded fallback in just one of: the editable card on Company
- * Assumptions / Property Edit, OR the engine that consumes the same
- * field. Audit #406 already reconciled the *current* divergence by
- * routing both the cards and the engines through
- * `getFactoryNumber('taxRate' | 'costRateTaxes', country, state)`.
+ * hardcoded fallback in just one of: the editable card on Property Edit,
+ * OR the engine that consumes the same field. Audit #406 already
+ * reconciled the *current* divergence by routing both the cards and the
+ * engines through `getFactoryNumber('costRateTaxes', country, state)`.
  * Nothing structural prevents drift from creeping back; this test does.
  *
  * Approach for each card / engine pair:
@@ -19,28 +18,32 @@
  *      value the EditableValue text formats — both are derived from the
  *      same `?? DEFAULT_…` expression in the source).
  *   3. Run the same engine code path the production code calls
- *      (generateCompanyProForma for companyTaxRate; resolvePropertyAssumptions
- *      for costRateTaxes) and read the value the engine actually used.
+ *      (resolvePropertyAssumptions for costRateTaxes) and read the
+ *      value the engine actually used.
  *   4. Assert byte-equal numeric identity, with a failure message that
  *      names the offending surface so the next admin who sees this fail
  *      knows which file to look at.
  *
- * Pair 1: TaxSection.tsx (companyTaxRate) ⇆ company-engine.ts
- * Pair 2: OperatingCostRatesSection.tsx (costRateTaxes) ⇆ resolve-assumptions.ts
+ * Pair: OperatingCostRatesSection.tsx (costRateTaxes) ⇆ resolve-assumptions.ts
+ *
+ * NOTE: A previous "Pair 1" exercised TaxSection.tsx ⇆ company-engine.ts
+ * for companyTaxRate. That card was deleted along with the legacy Company
+ * tab on Company Assumptions; companyTaxRate is now managed via Admin →
+ * Model Defaults and the engine fallback is still pinned to
+ * getFactoryNumber('taxRate', country) — covered by the registry/engine
+ * tests directly rather than via a card render here.
  */
 
 import { describe, it, expect, afterEach } from "vitest";
 import React from "react";
-import { render, screen, cleanup, within } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { TooltipProvider } from "../../client/src/components/ui/tooltip";
 
-import TaxSection from "../../client/src/components/company-assumptions/TaxSection";
 import OperatingCostRatesSection from "../../client/src/components/property-edit/OperatingCostRatesSection";
 
-import { generateCompanyProForma } from "../../engine/company/company-engine";
 import { resolvePropertyAssumptions } from "../../engine/property/resolve-assumptions";
 import { getFactoryNumber } from "../../shared/model-constants-registry";
 import type { GlobalInput, PropertyInput } from "../../engine/types";
@@ -182,98 +185,6 @@ function makeOverheadFreeGlobal(overrides: Partial<GlobalInput> = {}): GlobalInp
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("Task #603 — card display ⇆ engine consumption parity", () => {
-  describe("Company Income Tax (TaxSection.tsx ⇆ company-engine.ts)", () => {
-    it("displayed default == engine-consumed value, byte-equal", () => {
-      // (1) Render the editable card with no overrides anywhere.
-      render(
-        <Wrapper>
-          <TaxSection
-            formData={{}}
-            global={{} as never}
-            researchValues={{}}
-            onChange={() => {}}
-          />
-        </Wrapper>,
-      );
-
-      // (2) Read what the user sees. The Company Income Tax slider is the
-      // only one in TaxSection with aria-valuemax="50" (Inflation has
-      // max=10), so disambiguate by max — robust against label rewording.
-      const allThumbs = screen.getAllByRole("slider") as HTMLElement[];
-      const taxThumb = allThumbs.find(
-        (t) => t.getAttribute("aria-valuemax") === "50",
-      );
-      if (!taxThumb) {
-        throw new Error(
-          "TaxSection: could not locate the Company Income Tax slider " +
-          "(no slider with aria-valuemax=50). If the slider's max changed, " +
-          "update this test to find it by label instead.",
-        );
-      }
-      // The slider value is `(displayed_decimal_rate × 100)`, so divide
-      // back out to get the underlying rate (0.21 etc.).
-      const cardDisplayedRate = sliderPercent(taxThumb) / 100;
-
-      // (3) Run the engine for the same fresh-US no-override scenario.
-      const properties = [makeUsHotelProperty()];
-      const global = makeOverheadFreeGlobal();
-      // 24 months — gives the property ramp time to produce stable revenue.
-      const out = generateCompanyProForma(properties, global, 24);
-
-      // Find the first month where preTaxIncome is meaningfully positive
-      // — that's where companyIncomeTax = preTaxIncome × companyTaxRate
-      // is non-zero, letting us recover companyTaxRate exactly.
-      const goodMonth = out.find(
-        (m) => m.preTaxIncome > 1 && m.companyIncomeTax > 0,
-      );
-      if (!goodMonth) {
-        throw new Error(
-          "card-engine parity test: no positive-preTax month produced " +
-          "by overhead-free company scenario — fixture is broken, not the " +
-          "card/engine pair. Inspect makeUsHotelProperty/makeOverheadFreeGlobal.",
-        );
-      }
-      const engineConsumedRate =
-        goodMonth.companyIncomeTax / goodMonth.preTaxIncome;
-
-      // (4) Byte-equal assertion (modulo IEEE float noise).
-      //
-      // We can NOT use strict `.toBe()` here even though the conceptual
-      // requirement is "same number". Reason: we recover the engine's
-      // rate by dividing two outputs:
-      //     companyIncomeTax / preTaxIncome
-      // where companyIncomeTax was computed as (preTaxIncome × rate),
-      // and preTaxIncome itself is a sum of many revenue/expense terms.
-      // IEEE-754 (a + b + …) × c / (a + b + …) is not always === c (it
-      // can differ by 1–2 ULP). So 12-decimal tolerance (~5e-13) is
-      // tight enough to catch any economically-meaningful drift while
-      // absorbing pure floating-point reassociation. The strict
-      // equality check below (cardDisplayedRate vs registryRate) gives
-      // us the byte-equal guarantee on the card side, and the engine's
-      // own fallback (Task #597) is a literal
-      // `getFactoryNumber('taxRate', companyCountry ?? null, …)` call —
-      // with companyCountry undefined here, that resolves to the US
-      // baseline, so the two sides are exact at the source. Only the
-      // recovered ratio is lossy.
-      expect(engineConsumedRate).toBeCloseTo(cardDisplayedRate, 12);
-
-      // Belt-and-suspenders — also pin both sides to the registry source
-      // of truth, so a regression in either surface fails with a message
-      // that names the offending file.
-      const registryRate = getFactoryNumber("taxRate", "United States");
-      expect(
-        cardDisplayedRate,
-        "TaxSection.tsx companyTaxRate fallback drifted from " +
-          "getFactoryNumber('taxRate', 'United States')",
-      ).toBe(registryRate);
-      expect(
-        engineConsumedRate,
-        "engine/company/company-engine.ts companyTaxRate fallback " +
-          "drifted from getFactoryNumber('taxRate', 'United States')",
-      ).toBeCloseTo(registryRate, 12);
-    });
-  });
-
   describe("Property Taxes (OperatingCostRatesSection.tsx ⇆ resolve-assumptions.ts)", () => {
     it("displayed default == engine-consumed value, byte-equal", () => {
       // (1) Render the editable card for a fresh US property, no

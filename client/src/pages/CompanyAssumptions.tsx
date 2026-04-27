@@ -1,7 +1,7 @@
 /**
  * CompanyAssumptions.tsx — Editor for management-company-level financial assumptions.
  *
- * Layout: 6 horizontal tabs sit beneath a sticky header. Each tab renders its
+ * Layout: 5 horizontal tabs sit beneath a sticky header. Each tab renders its
  * own bottom Save button wired to `handleSaveTab(tab)`, which persists only
  * that tab's dirty fields. Save is data-only — it DOES NOT invoke The
  * Analyst (per binding rule .claude/rules/analyst-trigger-discipline.md and
@@ -15,14 +15,16 @@
  * location.
  *
  * Tabs (April 2026 entity-correctness restructure — see ARCHITECTURE.md §1a):
- *   1. Company           — identity, contact, HQ, financial/regulatory,
- *                          inflation, depreciation, company income tax rate
- *   2. Funding           — funding tranches + cost of equity (DCF discount rate)
- *   3. Revenue Model     — service categories + incentive fee + per-property summary
- *   4. Compensation      — staff salary, staffing tiers, partner comp schedule
- *   5. Overhead          — fixed overhead + variable costs (side-by-side)
- *   6. Property Defaults — USALI ratios + property exit cap rate + sales commission
+ *   1. Funding           — funding tranches + cost of equity (DCF discount rate)
+ *   2. Revenue Model     — service categories + incentive fee + per-property summary
+ *   3. Compensation      — staff salary, staffing tiers, partner comp schedule
+ *   4. Overhead          — fixed overhead + variable costs (side-by-side)
+ *   5. Property Defaults — USALI ratios + property exit cap rate + sales commission
  *                          (cascading defaults for NEW properties)
+ *
+ * The legacy `Company` tab (identity / contact / HQ / inflation / depreciation
+ * / company income tax rate) was removed. Those fields are now managed
+ * exclusively via Admin → Model Defaults — they are not editable on this page.
  *
  * Note: There is no "Tax & Exit" tab. The Management Company is an operating
  * service business — it has NO cap-rate exit. Property exit defaults live in
@@ -36,7 +38,7 @@
  *   • State / save                  → useCompanyAssumptionsForm (hook)
  *   • Analyst stream + cascade      → useCompanyAnalyst (hook)
  *   • Header / status / pills       → CompanyAssumptionsHeaderBar
- *   • 6-tab editor body             → CompanyAssumptionsTabsView
+ *   • 5-tab editor body             → CompanyAssumptionsTabsView
  *   • Streaming theater + watchdog  → CompanyAnalystOverlay
  *
  * The page itself is just glue: gating rules (per-tab Analyst availability),
@@ -75,12 +77,18 @@ import {
 import { useCompanyAnalyst } from "@/hooks/useCompanyAnalyst";
 
 const getInitialTab = (): TabKey => {
-  if (typeof window === "undefined") return "company";
+  if (typeof window === "undefined") return "funding";
   const t = new URLSearchParams(window.location.search).get("tab");
-  // Backwards-compat: legacy `setup` and `tax-exit` params remap to `company`.
-  const legacyRemap: Record<string, TabKey> = { setup: "company", "tax-exit": "company" };
+  // Backwards-compat: the legacy `company`, `setup`, and `tax-exit` params
+  // (from before the Company tab was removed) all remap to `funding`, the
+  // new default landing tab.
+  const legacyRemap: Record<string, TabKey> = {
+    company: "funding",
+    setup: "funding",
+    "tax-exit": "funding",
+  };
   if (t && t in legacyRemap) return legacyRemap[t];
-  return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "company";
+  return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "funding";
 };
 
 export default function CompanyAssumptions() {
@@ -118,33 +126,25 @@ export default function CompanyAssumptions() {
   // the minimum context it needs to be useful.
   //
   // Rules:
-  //   1. Universal — a company name and at least one property must exist.
-  //   2. Company anchors — the active tab's anchor fields must be filled in.
-  //   3. Cross-tab — every tab except `company` requires Company saved at
-  //      least once so the entity is grounded before researching dependents.
+  //   1. Universal — a company name (from Admin → Model Defaults) and at
+  //      least one property must exist.
+  //   2. Tab anchors — the active tab's anchor fields must be filled in.
+  //
+  // The previous "save the Company tab first" cross-tab gate was dropped
+  // along with the Company tab itself; company identity/tax/inflation now
+  // live in Admin → Model Defaults and are seeded before this page loads.
   const getTabGating = (tab: TabKey): { enabled: boolean; reason?: string } => {
     if (!formApi.formData.companyName) {
-      return { enabled: false, reason: "Set a company name in the Company tab first." };
+      return { enabled: false, reason: "Set a company name in Admin → Model Defaults first." };
     }
     if (properties.length === 0) {
       return { enabled: false, reason: "Add at least one property to your portfolio first." };
-    }
-    if (tab !== "company" && !formApi.savedTabs.has("company")) {
-      return {
-        enabled: false,
-        reason: "Save the Company tab first so the Analyst has anchor context.",
-      };
     }
     const num = (k: string): number => {
       const v = (formApi.formData as Record<string, unknown>)[k];
       return typeof v === "number" ? v : Number(v ?? 0);
     };
     switch (tab) {
-      case "company":
-        if (!formApi.formData.companyCountry) {
-          return { enabled: false, reason: "Set the company country so research can localize benchmarks." };
-        }
-        return { enabled: true };
       case "funding":
         if (num("costOfEquity") <= 0) {
           return { enabled: false, reason: "Set a cost of equity > 0 before researching funding." };

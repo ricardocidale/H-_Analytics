@@ -139,24 +139,15 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
 
   const handleResearchError = (err: { message: string; code?: string; status?: number }) => {
     if (err.code === "COMPANY_SETUP_INCOMPLETE") {
+      // Company identity / start date are now managed via Admin → Model
+      // Defaults (the legacy in-page Company tab was removed), so the
+      // toast no longer carries a "Go to Company" jump action — there's
+      // no in-page tab to jump to anymore.
       toast({
         title: "Company setup incomplete",
-        description: "Company name and start date are required before The Analyst can work.",
+        description:
+          "Company name and start date are required before The Analyst can work. Set them in Admin → Model Defaults.",
         variant: "destructive",
-        action: (
-          <button
-            onClick={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.set("tab", "company");
-              window.history.replaceState({}, "", url.toString());
-              window.dispatchEvent(new Event("popstate"));
-            }}
-            className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
-            data-testid="toast-action-goto-company"
-          >
-            Go to Company
-          </button>
-        ) as never,
       });
       return;
     }

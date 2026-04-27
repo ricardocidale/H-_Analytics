@@ -17,9 +17,12 @@ describe("computeAssumptionsConfirmation (gate hook)", () => {
   });
 
   it("ignores unknown keys and reports correct missing list", () => {
+    // "company" is no longer a valid tab key (legacy Company tab was
+    // removed); it should be filtered out the same as any other unknown
+    // string. "junk" is plain garbage. Only "funding" survives.
     const r = computeAssumptionsConfirmation(["company", "junk", "funding"]);
     expect(r.confirmed).toBe(false);
-    expect(r.savedTabs).toEqual(["company", "funding"]);
+    expect(r.savedTabs).toEqual(["funding"]);
     expect(r.missingTabs).toEqual([
       "revenue", "compensation", "overhead", "property-defaults",
     ]);
@@ -34,10 +37,10 @@ describe("computeAssumptionsConfirmation (gate hook)", () => {
 
   it("supports the first-run flow: gate progressively unlocks as each tab is saved", () => {
     // Simulates the user clicking Save once on each tab in order from a
-    // pristine state. After all 6 saves, gating should clear.
+    // pristine state. After all 5 saves, gating should clear.
     let saved: string[] = [];
     const order: string[] = [
-      "company", "funding", "revenue", "compensation", "overhead", "property-defaults",
+      "funding", "revenue", "compensation", "overhead", "property-defaults",
     ];
     for (const tab of order) {
       // Pre-save: gate is closed and this tab is in missing list.
@@ -52,11 +55,55 @@ describe("computeAssumptionsConfirmation (gate hook)", () => {
   });
 
   it("dedupes and is order-insensitive", () => {
+    // Includes a duplicate "funding" plus a stale "company" key from the
+    // pre-removal era; the latter must be filtered out by the unknown-key
+    // path while the rest still confirm the gate.
     const r = computeAssumptionsConfirmation([
-      "funding", "company", "company", "revenue",
+      "funding", "funding", "company", "revenue",
       "compensation", "overhead", "property-defaults",
     ]);
     expect(r.confirmed).toBe(true);
+  });
+});
+
+describe("getInitialTab — legacy ?tab= URL remap", () => {
+  // Inline mirror of `getInitialTab` from CompanyAssumptions.tsx so we
+  // can exercise the redirect contract without spinning up the page.
+  // If you change one, change the other.
+  const TAB_KEYS = [
+    "funding", "revenue", "compensation", "overhead", "property-defaults",
+  ] as const;
+  type TabKey = (typeof TAB_KEYS)[number];
+
+  function getInitialTab(search: string): TabKey {
+    const t = new URLSearchParams(search).get("tab");
+    const legacyRemap: Record<string, TabKey> = {
+      company: "funding",
+      setup: "funding",
+      "tax-exit": "funding",
+    };
+    if (t && t in legacyRemap) return legacyRemap[t];
+    return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "funding";
+  }
+
+  it("remaps legacy ?tab=company to funding", () => {
+    expect(getInitialTab("?tab=company")).toBe("funding");
+  });
+  it("remaps legacy ?tab=setup to funding", () => {
+    expect(getInitialTab("?tab=setup")).toBe("funding");
+  });
+  it("remaps legacy ?tab=tax-exit to funding", () => {
+    expect(getInitialTab("?tab=tax-exit")).toBe("funding");
+  });
+  it("preserves a valid tab key", () => {
+    expect(getInitialTab("?tab=overhead")).toBe("overhead");
+    expect(getInitialTab("?tab=property-defaults")).toBe("property-defaults");
+  });
+  it("falls back to funding when no tab param is set", () => {
+    expect(getInitialTab("")).toBe("funding");
+  });
+  it("falls back to funding for any unknown tab", () => {
+    expect(getInitialTab("?tab=garbage")).toBe("funding");
   });
 });
 

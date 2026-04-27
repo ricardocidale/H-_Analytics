@@ -5,20 +5,19 @@
  * These components are mounted inside horizontal tabs on the
  * "Company Assumptions" page (see client/src/pages/CompanyAssumptions.tsx).
  *
- * Tab → component mapping (6 tabs after the April 2026 entity-correctness
- * restructure — see ARCHITECTURE.md §1a):
- *   1. Company           → CompanySetupSection + TaxSection
- *                          (identity, contact, HQ, inflation, depreciation,
- *                           company income tax rate)
- *   2. Funding           → FundingSection + CostOfEquityCard
+ * Tab → component mapping (5 tabs after the April 2026 entity-correctness
+ * restructure — see ARCHITECTURE.md §1a). The legacy `Company` tab was
+ * removed; identity / tax / inflation fields are now managed via
+ * Admin → Model Defaults instead of being editable on this page.
+ *   1. Funding           → FundingSection + CostOfEquityCard
  *                          (capital raise tranches + cost of capital — the
  *                           discount rate for company-level DCF. The tranche
  *                           fields are `capitalRaise*`; the instrument can be
  *                           a SAFE, convertible note, seed round, etc.)
- *   3. Revenue Model     → ManagementFeesSection
- *   4. Compensation      → CompensationSection + PartnerCompSection
- *   5. Overhead          → FixedOverheadSection + VariableCostsSection
- *   6. Property Defaults → PropertyExpenseRatesSection + PropertyExitDefaultsCard
+ *   2. Revenue Model     → ManagementFeesSection
+ *   3. Compensation      → CompensationSection + PartnerCompSection
+ *   4. Overhead          → FixedOverheadSection + VariableCostsSection
+ *   5. Property Defaults → PropertyExpenseRatesSection + PropertyExitDefaultsCard
  *                          (USALI ratios + property exit cap rate / sales
  *                           commission — these are PROPERTY defaults, never
  *                           applied to the Management Company)
@@ -44,13 +43,11 @@
  *     that scale per-property or as a percentage of management fee revenue
  */
 export { default as EditableValue } from "./EditableValue";
-export { default as CompanySetupSection } from "./CompanySetupSection";
 export { default as FundingSection } from "./FundingSection";
 export { default as ManagementFeesSection } from "./ManagementFeesSection";
 export { default as CompensationSection } from "./CompensationSection";
 export { default as FixedOverheadSection } from "./FixedOverheadSection";
 export { default as VariableCostsSection } from "./VariableCostsSection";
-export { default as TaxSection } from "./TaxSection";
 export { default as CostOfEquityCard } from "./CostOfEquityCard";
 export { default as PropertyExitDefaultsCard } from "./PropertyExitDefaultsCard";
 export { default as PropertyExpenseRatesSection } from "./PropertyExpenseRatesSection";

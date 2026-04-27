@@ -39,7 +39,6 @@ import {
 const DAYS_PER_MONTH = getFactoryNumber("daysPerMonth");
 
 export const TAB_KEYS = [
-  "company",
   "funding",
   "revenue",
   "compensation",
@@ -49,7 +48,6 @@ export const TAB_KEYS = [
 export type TabKey = (typeof TAB_KEYS)[number];
 
 export const TAB_LABELS: Record<TabKey, string> = {
-  company: "Company",
   funding: "Funding",
   revenue: "Revenue Model",
   compensation: "Compensation",
@@ -60,20 +58,12 @@ export const TAB_LABELS: Record<TabKey, string> = {
 /**
  * Which form fields belong to which tab. Drives per-tab save + per-tab
  * validation. Entity-correctness (ARCHITECTURE.md §1a):
- *   - companyTaxRate lives in `company`
+ *   - companyTaxRate / inflation / company identity now live in
+ *     Admin → Model Defaults (the legacy `company` tab here was removed).
  *   - costOfEquity lives in `funding` (DCF discount rate / WACC Re)
  *   - exitCapRate + salesCommissionRate live in `property-defaults`
  */
 export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
-  company: [
-    "companyName", "companyCountry", "companyCity", "companyAddress",
-    "companyOpsStartDate", "modelStartDate", "projectionYears",
-    "companyInflationRate", "inflationRate", "depreciationYears",
-    "companyLogoId", "companyPhone", "companyEmail", "companyWebsite",
-    "companyRegistrationNumber", "companyTaxId",
-    "companyContactName", "companyContactTitle", "companyContactEmail", "companyContactPhone",
-    "companyTaxRate",
-  ] as unknown as Array<keyof GlobalResponse>,
   funding: [
     "capitalRaise1Amount", "capitalRaise1Date",
     "capitalRaise2Amount", "capitalRaise2Date",
@@ -195,7 +185,7 @@ export function useCompanyAssumptionsForm(
     useState<GlobalResponse | null>(null);
 
   const [tabWarnings, setTabWarnings] = useState<Record<TabKey, TabValidationWarning[]>>({
-    company: [], funding: [], revenue: [], compensation: [],
+    funding: [], revenue: [], compensation: [],
     overhead: [], "property-defaults": [],
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
@@ -211,7 +201,7 @@ export function useCompanyAssumptionsForm(
   // #738 we read it but never auto-dispatch on it.
   const [requiredFieldsMissingByTab, setRequiredFieldsMissingByTab] =
     useState<Record<TabKey, string[]>>({
-      company: [], funding: [], revenue: [], compensation: [],
+      funding: [], revenue: [], compensation: [],
       overhead: [], "property-defaults": [],
     });
 

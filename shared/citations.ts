@@ -19,7 +19,9 @@ export const CITATIONS = {
   cbreCapRateSurvey: "CBRE Cap Rate Survey",
   narTransactionData: "NAR transaction data",
 
-  // Tax & inflation — TaxSection
+  // Tax & inflation — surfaced via Admin → Model Defaults (the legacy
+  // TaxSection on Company Assumptions was removed); the constants are
+  // still consumed by the Model Defaults editor's source-of-truth labels.
   aicpaIrsBenchmarks: "AICPA/IRS benchmarks",
   cpiFedReserve: "CPI / Fed Reserve",
 

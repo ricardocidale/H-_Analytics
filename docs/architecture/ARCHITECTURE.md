@@ -94,7 +94,7 @@ Vocabulary collision check: "assumption" always means the user-facing working va
 ### First Login
 1. Dashboard loads. Properties are pre-assigned by admin. Seed data is pre-populated.
 2. The Analyst has ALREADY run on seed data (Tier-0 deterministic validation at seed time). Ranges are visible. Flags are set.
-3. User navigates to Management Company → Assumptions. Sees 6 tabs with pre-populated data and Analyst ranges.
+3. User navigates to Management Company → Assumptions. Sees 5 tabs with pre-populated data and Analyst ranges. (Company identity, tax, and inflation moved to Admin → Model Defaults.)
 4. User works through tabs, adjusting what they know.
 
 ### Per-Tab Save (the core interaction)
@@ -129,14 +129,13 @@ The `IntelligenceStatusBar` on Company Assumptions runs through five states: `id
 
 | Tab | After Save (Tier-0) | After Button Press (Tier-1) |
 |-----|---------------------|----------------------------|
-| **Company** | Validates country → updates tax, depreciation, CRP defaults. Checks company name, address against known markets. Validates company tax rate against country defaults. | Researches the specific market: local labor costs, commercial rents, regulatory environment, corporate tax structure. |
 | **Funding** | Validates capital raise terms against typical venture terms. Validates cost of equity against risk profile. | Researches comparable management company funding rounds, valuations, investor expectations, cost of equity for hospitality. |
 | **Revenue Model** | Validates service rates against ISHC/PKF benchmarks. Checks total management fee against industry range. | Researches comparable management fee structures, cost-plus vs flat-fee models, incentive fee benchmarks. |
 | **Compensation** | Validates salary against BLS/market data. Checks staffing tiers against portfolio size. | Researches hospitality executive compensation by market, staffing ratios for boutique management companies. |
 | **Overhead** | Validates office lease, insurance, professional services against market. | Researches commercial lease rates in the HMC's city, hospitality-specific insurance costs, tech infrastructure benchmarks. |
 | **Property Defaults** | Validates expense ratios against USALI benchmarks. Validates default exit cap rate and sales commission against market data (cascade defaults for new properties). | Researches property-level operating ratios by quality tier and market, current cap rate trends. |
 
-> **NOTE:** There is no "Tax & Exit" tab. Tax lives in **Company**; cost of equity in **Funding**; property exit defaults in **Property Defaults**. The Management Company has no cap-rate exit — see §1a.
+> **NOTE:** There is no "Company" tab and no "Tax & Exit" tab. Company identity, country, tax rate, and inflation now live in **Admin → Model Defaults**; cost of equity in **Funding**; property exit defaults in **Property Defaults**. The Management Company has no cap-rate exit — see §1a.
 
 ### Returning User
 - Dashboard shows what changed since last visit

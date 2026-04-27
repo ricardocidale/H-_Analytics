@@ -4,7 +4,7 @@
  *
  * Source of truth: the persisted `savedTabs` jsonb array on the user's
  * `globalAssumptions` row, served by GET /api/global-assumptions. Until that
- * array contains all 6 tab keys, the gate is closed and downstream pages
+ * array contains all 5 tab keys, the gate is closed and downstream pages
  * (Simulation, Compare, Sensitivity, Executive Summary, Dashboard) render
  * the AssumptionsGate panel instead of their normal content.
  *
@@ -15,7 +15,6 @@ import { useMemo } from "react";
 import { useGlobalAssumptions } from "@/lib/api";
 
 export const COMPANY_ASSUMPTIONS_TAB_KEYS = [
-  "company",
   "funding",
   "revenue",
   "compensation",
@@ -26,7 +25,6 @@ export const COMPANY_ASSUMPTIONS_TAB_KEYS = [
 export type CompanyAssumptionsTabKey = typeof COMPANY_ASSUMPTIONS_TAB_KEYS[number];
 
 export const TAB_LABELS: Record<CompanyAssumptionsTabKey, string> = {
-  company: "Company",
   funding: "Funding",
   revenue: "Revenue Model",
   compensation: "Compensation",

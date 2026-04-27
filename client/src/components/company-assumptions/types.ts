@@ -9,7 +9,6 @@
  *   • global   – the persisted global assumptions used as fallback values
  *
  * Specialized variants add extra data:
- *   • CompanySetupSectionProps  – adds isAdmin flag (only admins can rename the company)
  *   • FundingSectionProps       – same base (SAFE tranche fields live in global)
  *   • ManagementFeesSectionProps – adds the list of properties and their fee
  *     categories so the read-only fee summary table can render per-property rates
@@ -25,11 +24,6 @@ export interface CompanyAssumptionsSectionProps {
   formData: Partial<GlobalResponse>;
   onChange: <K extends keyof GlobalResponse>(field: K, value: GlobalResponse[K]) => void;
   global: GlobalResponse;
-}
-
-export interface CompanySetupSectionProps extends CompanyAssumptionsSectionProps {
-  isAdmin: boolean;
-  researchValues: Record<string, { display: string; mid: number } | null | undefined>;
 }
 
 export interface FundingSectionProps extends CompanyAssumptionsSectionProps {}
@@ -62,10 +56,6 @@ export interface VariableCostsSectionProps extends CompanyAssumptionsSectionProp
 }
 
 export interface PropertyExpenseRatesSectionProps extends CompanyAssumptionsSectionProps {
-  researchValues: Record<string, { display: string; mid: number } | null | undefined>;
-}
-
-export interface TaxSectionProps extends CompanyAssumptionsSectionProps {
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
 }
 

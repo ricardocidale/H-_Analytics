@@ -142,7 +142,7 @@ export async function seedGlobalAssumptions() {
     // (Dashboard, Simulation, Compare, Sensitivity, Executive Summary) render
     // their full content from the seeded values. Real users still have to
     // click Save per-tab — this only applies to the seeded baseline row.
-    savedTabs: ["company", "funding", "revenue", "compensation", "overhead", "property-defaults"],
+    savedTabs: ["funding", "revenue", "compensation", "overhead", "property-defaults"],
     assetDefinition: {
       minRooms: 10,
       maxRooms: 80,

@@ -1,8 +1,10 @@
 /**
- * CompanyAssumptionsTabsView — Renders the 6-tab editor body for the Company
+ * CompanyAssumptionsTabsView — Renders the 5-tab editor body for the Company
  * Assumptions page. Pure presentational composition; all state and handlers
  * are passed in. Extracted from `client/src/pages/CompanyAssumptions.tsx`
- * (task #471).
+ * (task #471). The legacy `Company` tab (CompanySetupSection + TaxSection)
+ * has been removed; those identity / tax fields are managed via
+ * Admin → Model Defaults.
  */
 import type { GlobalResponse, FeeCategoryResponse } from "@/lib/api";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
@@ -10,13 +12,11 @@ import { SaveButton } from "@/components/ui/save-button";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import {
-  CompanySetupSection,
   FundingSection,
   ManagementFeesSection,
   CompensationSection,
   FixedOverheadSection,
   VariableCostsSection,
-  TaxSection,
   CostOfEquityCard,
   PropertyExpenseRatesSection,
   PropertyExitDefaultsCard,
@@ -94,19 +94,6 @@ export function CompanyAssumptionsTabsView(props: Props) {
 
   const renderBody = (tab: TabKey) => {
     switch (tab) {
-      case "company":
-        return (
-          <div className="grid gap-6 lg:grid-cols-2 items-start">
-            <CompanySetupSection
-              formData={formData} onChange={onChange} global={global}
-              isAdmin={isAdmin} researchValues={researchValues}
-            />
-            <TaxSection
-              formData={formData} onChange={onChange} global={global}
-              researchValues={researchValues}
-            />
-          </div>
-        );
       case "funding":
         return (
           <div className="space-y-6">

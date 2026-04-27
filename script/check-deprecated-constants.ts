@@ -86,11 +86,12 @@ const ALLOWED_FILES: ReadonlyArray<string> = [
   // Research / benchmark fallbacks.
   "calc/research/cost-benchmarks.ts",
 
-  // UI fallbacks — Property Edit, Company Assumptions, statements, admin
-  // Model Defaults editor, and the in-app verification/audit harnesses.
+  // UI fallbacks — Property Edit, statements, admin Model Defaults editor,
+  // and the in-app verification/audit harnesses. (The Company Assumptions
+  // page no longer references deprecated constants directly — its legacy
+  // Company tab / TaxSection were removed in favor of Admin → Model Defaults.)
   "client/src/components/property-edit/OperatingCostRatesSection.tsx",
   "client/src/components/property-edit/OtherAssumptionsSection.tsx",
-  "client/src/components/company-assumptions/TaxSection.tsx",
   "client/src/components/statements/YearlyIncomeStatement.tsx",
   "client/src/components/admin/model-defaults/CompanyTab.tsx",
   "client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx",
