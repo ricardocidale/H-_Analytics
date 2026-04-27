@@ -37,6 +37,7 @@ import {
   type VoiceRenderedString,
   type Evidence,
 } from "../contracts/verdict";
+import { getFieldDisplayName } from "../registry/field-registry";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Display + UX calibration constants
@@ -199,14 +200,21 @@ const HUMAN_FIELD_DROP_TOKENS: ReadonlySet<string> = new Set([
 ]);
 
 function humanField(field: string): string {
-  // Convert camelCase / snake_case / dot.case / kebab-case identifiers into
-  // human-readable labels for the user-facing voice layer. Examples:
+  // Registry-first: product copy owns the official display label for each
+  // Analyst-tracked field in engine/analyst/registry/field-registry.ts. The
+  // registry also carries unit + UI mount point, used elsewhere for deep
+  // links and form-label parity.
+  const registered = getFieldDisplayName(field);
+  if (registered !== null) return registered;
+
+  // Fallback heuristic — used for fields not yet in the registry. Convert
+  // camelCase / snake_case / dot.case / kebab-case identifiers into
+  // human-readable labels. Examples:
   //   "capitalRaise1Amount"        → "Capital Raise 1 Amount"
   //   "burnFlexDownPct"            → "Burn Flex Down"
   //   "revenue_ramp_delay_months"  → "Revenue Ramp Delay Months"
   //   "mgmt-co.funding"            → "Mgmt Co Funding"
-  // Future: replace this heuristic with a proper field registry that owns
-  // each field's display label alongside its UI mount point.
+  // Adding the field to the registry overrides this heuristic.
   const withSpaces = field
     .replace(/([a-z])([A-Z])/g, "$1 $2")     // camelCase → camel Case
     .replace(/([A-Za-z])(\d)/g, "$1 $2")     // letter→digit boundary

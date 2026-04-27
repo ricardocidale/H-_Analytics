@@ -266,6 +266,32 @@ describe("Voice Renderer — humanField label formatting", () => {
       expect(__testHumanField("captchaTimeout")).toBe("Captcha Timeout");
     });
   });
+
+  describe("field registry overrides (registry-driven labels)", () => {
+    // The registry at engine/analyst/registry/field-registry.ts owns the
+    // official display label for fields whose id does NOT read cleanly
+    // through the heuristic. The renderer consults the registry first and
+    // only falls back to the heuristic when the field is not registered.
+
+    it("uses the registry label for 'defaultCostRateMarketing' instead of the heuristic", () => {
+      // Heuristic alone would produce "Default Cost Rate Marketing" — the
+      // registry overrides that with the product-copy label.
+      expect(__testHumanField("defaultCostRateMarketing")).toBe(
+        "Marketing Cost Rate",
+      );
+    });
+
+    it("uses the registry label for 'defaultRevShareFb' (heuristic would expose 'Rev Share Fb')", () => {
+      expect(__testHumanField("defaultRevShareFb")).toBe("F&B Revenue Share");
+    });
+
+    it("falls back to the heuristic for fields not in the registry", () => {
+      // 'totally_made_up_field' is not registered → heuristic path.
+      expect(__testHumanField("totally_made_up_field")).toBe(
+        "Totally Made Up Field",
+      );
+    });
+  });
 });
 
 describe("Voice Renderer — quality-conviction mapping", () => {
