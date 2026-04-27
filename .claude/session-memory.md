@@ -222,6 +222,19 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 27, 2026 (later still) — Dependabot resolved (II) + collision #6
+
+- **Dependabot: 7 open alerts → 0.** Root cause: two lockfiles in one repo. `package.json` declared `packageManager: pnpm@10.26.1` and patched transitives via `pnpm.overrides`, but 5 GH Actions workflows ran `npm install` and maintained a parallel `package-lock.json`. Dependabot scanned both trees and reported every advisory twice.
+- **Pushed `4cf5fc70` (CC, pnpm migration):**
+  - 5 workflows migrated: `pnpm/action-setup@v4` step (v10.26.1) before `setup-node`; `cache: npm` → `cache: pnpm`; `npm install --ignore-scripts` → `pnpm install --frozen-lockfile --ignore-scripts`; `npm run X` → `pnpm run X` for lint/check/audit/db:push/test/verify.
+  - `package-lock.json` deleted (21,971 lines).
+  - `.gitignore` adds `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock` to prevent future drift.
+  - All 5 gates green pre-push.
+- **Dismissed via API (4 xlsx alerts):** #18, #19 (pnpm-lock.yaml), then #29, #30 (package.json after manifest re-scan). Reason: `tolerable_risk` — "no patch available upstream (SheetJS publishes only via sheetjs.com CDN); export-only usage; no untrusted XLSX parsing surface."
+- **Auto-closed by Dependabot:** #1, #2 (xlsx on package-lock.json), #3 (esbuild), #4 (@tootallnate/once), #14 (uuid) — manifest no longer exists.
+- **Collision #6 (Replit autocheckpoint `573fa344`, "Update company assumptions page to remove legacy company tab"):** Replit's UI refactor of removing the legacy Company tab was mid-flight when CC was pushing the pnpm migration. Replit's autocheckpoint captured an INCOMPLETE state — `index.ts` updated to remove `CompanySetupSection` + `TaxSection` exports, but consumer `CompanyAssumptionsTabsView.tsx` still imported them and the actual `.tsx` files still existed. Pre-push typecheck failed with TS2724/TS2305 errors. CC reset HEAD past the broken local-only commit (`git reset --hard 4cf5fc70`) — non-destructive to origin (commit was never pushed) and the actual refactor changes survive in `stash@{0}` (deletions + `useCompanyAnalyst.tsx`/`CompanyAssumptions.tsx` updates) + `stash@{1}` (`TabsView.tsx` import fix + `useCompanyAssumptionsForm.ts` updates).
+- **For Replit on next sync:** the company-tab removal refactor is preserved across `stash@{0}` + `stash@{1}`. Pop both, verify gates, commit + push. Or re-do the refactor from scratch — the changes are small. Confirmed by `git stash show stash@{0}` + `stash show stash@{1}` covering both halves.
+
 ## Session: April 27, 2026 (later) — G1.5c-a shipped + Replit-lane-narrowing + collision #5
 
 - **G1.5c-a (engine slice) ✅ Shipped (CC, 3 commits).** `58b03e88` (S1: re-export `FundingSpecialistDeps`), `f40e0d07` (S2: add `deps?` to `MgmtCoSpecialistConfigs.funding`), `9d7fce86` (S3: thread to `createFundingSpecialist`). All 5 gates green pre-push (TS 0, lint 0, vocab 11/11, test:summary PASS, verify:summary UNQUALIFIED). Pushed in `da90f2c8`.
