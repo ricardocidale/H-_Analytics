@@ -262,6 +262,11 @@ export async function runFundingSpecialist(
   let output: FundingSpecialistOutput;
   let cognitiveRunId: string;
   try {
+    // TODO G6-P2 — replace this single-shot Opus call with the N+1 pipeline:
+    //   parallel: Gemini Flash (quantitative panel) + Sonnet (market panel)
+    //   then:     Opus synthesis with cross-vendor convergence-score
+    //   meta.vendorsUsed grows from ["anthropic"] to ≥2 (Intelligence Bar #7).
+    //   See `funding_v1_graduation_roadmap.md` memory + ADR-007.
     const result = streamObject({
       model: modelFactory(FUNDING_MODEL_ID),
       schema: FundingSpecialistOutputSchema,
@@ -285,11 +290,10 @@ export async function runFundingSpecialist(
     }
     output = await result.object;
 
-    // Cognitive run id: AI SDK doesn't surface a stable id directly; we
-    // synthesize from response metadata when available. Falls back to a
-    // deterministic-per-call uuid-shaped tag so the verdict's meta block is
-    // never empty. Real Tier-1 graduation (G6-P2) replaces this with the
-    // orchestrator's structured cognitiveRunId.
+    // TODO G6-P2 — replace synthesized id with the N+1 orchestrator's
+    // structured cognitiveRunId (the real run id from the synthesis phase
+    // that the verdict cache will key on). v1's synthesized tag keeps
+    // meta.cognitiveRunId non-null so the ADR-008 invariant doesn't trip.
     cognitiveRunId = `funding-v1-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   } catch (err: unknown) {
     throw new Tier1UnavailableError(
@@ -333,9 +337,24 @@ export async function runFundingSpecialist(
       tier: 1,
       durationMs: 0, // route handler may overwrite from wallclock; v1 not tracked yet
       cognitiveRunId,
+      // TODO G6-P2 — vendorsUsed grows to ≥2 once N+1 panels land (Intelligence Bar #7).
       vendorsUsed: ["anthropic"],
+      // TODO G6-P3 — cacheState becomes "hit" | "miss" once the verdict cache
+      // read path is wired (ADR-004 §4 — currently always "miss" since v1
+      // has no cache integration).
       cacheState: "miss",
     },
     generatedAt: deps.now ? deps.now.toISOString() : undefined,
   });
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Cathedral graduation roadmap (DO NOT FORGET — see funding_v1_graduation_roadmap memory)
+//
+// v1 (this file)                — chapel: shippable, partial Tier-1 (~6/9 Bar)
+// G6-P2  N+1 panels             — vendor breadth ≥2; convergence-score
+// G6-P3  cache + regress + live — comparables fetch, persona resolution
+// G6-P4  Tier-1 fully graduated — all 9 Intelligence Bar requirements green
+//
+// When you graduate, the runner's PUBLIC CONTRACT (signature + return type)
+// stays stable. The body changes. UI, route, integration test untouched.
