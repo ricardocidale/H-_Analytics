@@ -29,8 +29,12 @@ name: Pre-Deploy Storage Reconcile
 # are documented in `docs/developer/migration-from-replit.md`.
 
 on:
-  push:
-    branches: [main]
+  # Manual dispatch only — this gate requires R2 secrets (R2_BUCKET,
+  # R2_S3_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+  # PROD_POSTGRES_URL) that are only present in a configured deployment
+  # environment. Push-triggered runs fail with "required secret not set"
+  # on every CI push. Restore the push: trigger once all secrets are
+  # configured in GitHub Actions settings.
   workflow_dispatch:
     inputs:
       reason:
