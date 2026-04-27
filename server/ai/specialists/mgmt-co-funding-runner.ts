@@ -337,11 +337,16 @@ export async function runFundingSpecialist(
       tier: 1,
       durationMs: 0, // route handler may overwrite from wallclock; v1 not tracked yet
       cognitiveRunId,
-      // TODO G6-P2 — vendorsUsed grows to ≥2 once N+1 panels land (Intelligence Bar #7).
-      vendorsUsed: ["anthropic"],
-      // TODO G6-P3 — cacheState becomes "hit" | "miss" once the verdict cache
-      // read path is wired (ADR-004 §4 — currently always "miss" since v1
-      // has no cache integration).
+      // TODO G6-P2 — populate vendorsUsed once N+1 panels land. The verdict
+      // invariant at engine/analyst/contracts/verdict.ts:340 requires ≥2
+      // vendors when present (Intelligence Bar #7), so v1 (single-vendor
+      // Anthropic Opus) MUST omit this field rather than emit a single-entry
+      // array. Honest single-vendor emission lives in the Tier-0 fallback
+      // path's meta.fallbackReason, not here.
+      // vendorsUsed: omitted in v1
+      // TODO G6-P3 — cacheState becomes a real "hit" | "miss" once the
+      // verdict cache read path is wired (ADR-004 §4). v1 has no cache, so
+      // we honestly emit "miss" — Tier-1 invariant accepts this.
       cacheState: "miss",
     },
     generatedAt: deps.now ? deps.now.toISOString() : undefined,
