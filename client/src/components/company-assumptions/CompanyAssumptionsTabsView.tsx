@@ -14,7 +14,9 @@ import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import { computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import {
-  FundingSection,
+  CapitalRaisesCard,
+  ConvertibleTermsCard,
+  CapitalStackDisciplineCard,
   ManagementFeesSection,
   CompensationSection,
   FixedOverheadSection,
@@ -105,23 +107,37 @@ export function CompanyAssumptionsTabsView(props: Props) {
   const renderBody = (tab: TabKey) => {
     switch (tab) {
       case "funding":
-        // FundingSection emits a fragment of three sibling cards (Capital
-        // Raises, Convertible Terms, Capital Stack Discipline) so they flow
-        // into the parent grid alongside CostOfEquityCard. The Analyst
-        // verdict renders below the grid full-width — the structured
-        // 5-dimension stack reads better as one wide column than as a
-        // single grid cell.
+        // The funding tab grid arranges four cards across three columns:
+        //   col 1 → Capital Raises (the two tranches stacked vertically)
+        //   col 2 → Cost of Capital atop Convertible Terms
+        //   col 3 → Capital Stack Discipline
+        // Each named card is composed directly so column 2 can stack the
+        // two cards in a single vertical container. The Analyst verdict
+        // renders below the grid full-width — the structured 5-dimension
+        // stack reads better as one wide column than as a single grid cell.
         return (
           <div className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
-              <FundingSection
+              <CapitalRaisesCard
                 formData={formData}
                 onChange={onChange}
                 global={global}
               />
-              <CostOfEquityCard
-                formData={formData} onChange={onChange} global={global}
-                researchValues={researchValues}
+              <div className="space-y-6">
+                <CostOfEquityCard
+                  formData={formData} onChange={onChange} global={global}
+                  researchValues={researchValues}
+                />
+                <ConvertibleTermsCard
+                  formData={formData}
+                  onChange={onChange}
+                  global={global}
+                />
+              </div>
+              <CapitalStackDisciplineCard
+                formData={formData}
+                onChange={onChange}
+                global={global}
               />
             </div>
             {fundingVerdict ? (
