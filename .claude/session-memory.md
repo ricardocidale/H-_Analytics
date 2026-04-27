@@ -222,6 +222,20 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 27, 2026 (post-decision) — v1 architectural pivot + Replit UI handoff
+
+- **Ricardo deep-think on cognitive architecture (in response to CC's BLOCKED escalation):** "trying to predict what will happen before user does anything is difficult." Specialists + Orchestrator activated by AnalystButton press only. Save = commitment; Cancel = drafts lost. Prerequisites checked at button-press time → if missing, dialog over the page tells user what's needed before the Analyst can move forward.
+- **Quality bar (binding):** "highest possible intelligence to the user or Analyst becomes irrelevant and users won't click on it for help." Translates to: invest in prompt + context; layer N+1/cache/regress as quality graduations later.
+- **Architectural pivot:** abandon the original Tier-1-cathedral split (b: orchestrator wrap + c: route slice). Ship v1 = single-shot Opus + EXCEPTIONAL prompt + rich context. Layer N+1 (G6-P2), cache (G6-P3), live comps (G6-P3) as follow-ups. ADR-007 Tier-1 graduation becomes a continuous quality cadence, not a single monolithic ship.
+- **New packet structure:**
+  - DELETED `g1.5c-tier1-deps-b.BLOCKED.md` (decision made)
+  - `g1.5c-tier1-deps-b.md` and `-c.md` SUPERSEDED (kept on disk for audit; parent index marks them deprecated)
+  - NEW `g1.5c-v1-funding-specialist.md` — the v1 build packet (5 files, 6 sub-steps, single-shot Opus + rich context + strict schema + tests + route wiring + manual prompt-review gate)
+  - NEW `replit-ui-v1-counterparts.md` — Replit UI handoff covering AnalystCheckDialog polish, unsaved-changes 3-button dialog, verdict rendering on Funding tab, lint warning fix, G1.5b input polish, post-v1 browser smoke
+- **phases.md graduation roadmap:** G1.5c (v1) → G2-v1 (Revenue) → G6-P2 (N+1) → G6-P3 (cache + regress + live comps + persona) → G6-P4 (Tier-1 graduated). Continuous deployment cadence.
+- **CC active task:** Phase A (doctrine bundle commit + push) → Phase B (v1 build S1-S5) → Phase C (S6 prompt-review gate, requires user).
+- **Replit active queue:** Tier-1 items A+B+C from `replit-ui-v1-counterparts.md` (block v1 ship). Tier-2 D+E independent.
+
 ## Session: April 27, 2026 (latest) — G1.5c-b BLOCKED on architectural decision
 
 - **CC attempted G1.5c-b S1 (orchestrator wrap) autonomously while user was AFK.** Stopped before writing code after discovering structural blocker.
