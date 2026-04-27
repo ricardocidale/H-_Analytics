@@ -208,11 +208,15 @@ export function createMgmtCoRouter(
     MGMT_CO_FUNDING_ID,
     withRequiredFieldsGate(
       MGMT_CO_FUNDING_ID,
-      createFundingSpecialist(benchmarks.funding, {
-        evidenceAsOf: options.evidenceAsOf,
-        promptTemplate: options.configs?.funding?.promptTemplate,
-        modelResourceId: options.configs?.funding?.modelResourceId ?? null,
-      }),
+      createFundingSpecialist(
+        benchmarks.funding,
+        {
+          evidenceAsOf: options.evidenceAsOf,
+          promptTemplate: options.configs?.funding?.promptTemplate,
+          modelResourceId: options.configs?.funding?.modelResourceId ?? null,
+        },
+        options.configs?.funding?.deps,
+      ),
       options.configs?.funding?.requiredFields,
     ),
   );
