@@ -8,6 +8,16 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 27, 2026 (latest) — v1 Funding Specialist shipped; Gaspar fixed; OTA4 cleanup done
+
+- **What shipped:** v1 Funding Specialist E2E (S1-S5): Zod schema, prompt builders, `runFundingSpecialist` runner, 17 unit tests (CI-safe stubs), route branch in `analyst-admin.ts`. Gaspar (research-orchestrator) synthesis fixed: swapped `getAiSdkAnthropic()` (Vercel Gateway) → `createAnthropic()` from `@ai-sdk/anthropic`. Root cause: Gateway requires `AI_GATEWAY_API_KEY` not set on Railway/Replit. OTA4 cleanup: deleted `ai-sdk-clients.ts` + smoke test (both self-described as OTA4 throwaways). Predeploy storage reconcile workflow: removed push trigger (secrets not configured → every push was failing).
+- **Commits this session (HEAD = `38b0290e`):** `9c3da43a`→`7d8a0be3` (v1 S1-S5), `2078f71a` (db-url empty-string fix), `ee3a5540` (pnpm db:push arg fix), `ed816bc9` (test Gateway stub), `960b672e`+`1aa6bdeb` (CI test fixes), `9505c619` (Gaspar fix), `2f94ee36` (OTA4 cleanup), `38b0290e` (phases.md). All five gates green on every commit.
+- **Blocking Ricardo:** G1.5c-S6 = manual gate: click AnalystButton on Funding tab 5+ times, each verdict must be investor-grade (Goldman Sachs research level). If any fall short, iterate prompt in `mgmt-co-funding-prompt.ts` and re-review.
+- **Cathedral roadmap preserved:** G6-P2 (N+1 panels), G6-P3 (cache+regress+live comps), G6-P4 (full Tier-1). See auto-memory `funding_v1_graduation_roadmap.md`.
+- **Replit lane confirmed:** UI/UX only per 2026-04-27 directive. CC owns engine, server/ai, routes, schema, seeds, tests, doctrine, scripts, config.
+
+---
+
 ## Session: April 26, 2026 (latest) — G1.5a shipped + G1.5b-pre packets authored (RESUME POINT)
 
 > **RESUME POINT for this session.** Read `~/.claude/projects/-home-runner-workspace/memory/g1_saga_resume_point_2026-04-26.md` FIRST in next session — it has the full decision tree and key-file map. This entry is the session-history summary; the auto-memory is the actionable resume guide.
