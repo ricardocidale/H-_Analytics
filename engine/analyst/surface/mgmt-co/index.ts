@@ -12,6 +12,7 @@
 export {
   createFundingSpecialist,
   type FundingSpecialistOptions,
+  type FundingSpecialistDeps,
 } from "./funding-specialist";
 export {
   createRevenueSpecialist,
