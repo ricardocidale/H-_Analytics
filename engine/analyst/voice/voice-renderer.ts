@@ -228,9 +228,12 @@ function composeDimensionHeadline(inputs: VoiceRenderInputs): string {
 }
 
 function composeDimensionDetail(inputs: VoiceRenderInputs): string | undefined {
-  const { evidence, qualityScore, intent } = inputs;
-  if (evidence.length === 0) return undefined;
+  const { evidence, qualityScore, intent, llmReasoning } = inputs;
   if (qualityScore < CONVICTION_FLOOR) return undefined;
+  // LLM reasoning is richer than the templated source list; prefer it when
+  // present. enforceOrSanitize runs on the returned string in renderDimension.
+  if (llmReasoning) return llmReasoning;
+  if (evidence.length === 0) return undefined;
 
   const sourceList = evidence
     .slice(0, MAX_SOURCES_IN_DIMENSION_DETAIL)
@@ -325,6 +328,10 @@ export interface VoiceRenderInputs {
   evidence: Evidence[];
   intent: VoiceIntent;
   personaContext: PersonaContext;
+  /** Optional LLM reasoning text. When provided, replaces the templated
+   *  evidence-source detail. Still runs through enforceOrSanitize before
+   *  being cast, so persona violations are caught/stripped identically. */
+  llmReasoning?: string;
 }
 
 export interface VoiceRenderer {

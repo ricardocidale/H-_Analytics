@@ -12,6 +12,7 @@ import { getCannedLpComparables } from "../ai/specialists/mgmt-co-funding-orches
 import { withFundingDefaults } from "../finance/apply-funding-defaults";
 import type { FundingPromptInputContext } from "../ai/specialists/mgmt-co-funding-prompt-input-builder";
 import type { CapitalRaiseInputs } from "../../engine/watchdog/capitalRaiseEvaluator";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -330,6 +331,5 @@ function deriveTrancheGapMonths(
   const d1 = ga.capitalRaise1Date ? new Date(ga.capitalRaise1Date).getTime() : NaN;
   const d2 = ga.capitalRaise2Date ? new Date(ga.capitalRaise2Date).getTime() : NaN;
   if (!Number.isFinite(d1) || !Number.isFinite(d2)) return null;
-  const DAYS_PER_MONTH = 30.5;
-  return Math.abs(d2 - d1) / (1000 * 60 * 60 * 24 * DAYS_PER_MONTH);
+  return Math.abs(d2 - d1) / (1000 * 60 * 60 * 24 * getFactoryNumber("daysPerMonth"));
 }

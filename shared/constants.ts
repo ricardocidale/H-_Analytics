@@ -390,3 +390,8 @@ export const CHECKER_NOI_MARGIN_MIN_PCT = 5;
 export const CHECKER_NOI_MARGIN_MAX_PCT = 70;
 export const CHECKER_BALANCE_SHEET_TOLERANCE = 1.0;
 export const CHECKER_MIN_DSCR = 1.0;
+
+// ── Specialist Model IDs ─────────────────────────────────────────────────────
+// Default model IDs used by each Specialist. Override via the admin_resources
+// Models registry (ADR-006) when a different model is configured.
+export const DEFAULT_FUNDING_SPECIALIST_MODEL = "claude-opus-4-7";

@@ -23,6 +23,7 @@
 
 import { streamObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { DEFAULT_FUNDING_SPECIALIST_MODEL } from "@shared/constants";
 import {
   buildFundingSystemPrompt,
   buildFundingUserPrompt,
@@ -54,7 +55,7 @@ import {
 import { createVoiceRenderer } from "../../../engine/analyst/voice/voice-renderer";
 import type { AnalystWatchdogBenchmarks } from "@shared/schema";
 
-const FUNDING_MODEL_ID = "claude-opus-4-7";
+const FUNDING_MODEL_ID = DEFAULT_FUNDING_SPECIALIST_MODEL;
 const FUNDING_MAX_OUTPUT_TOKENS = 4_000;
 
 /**
@@ -156,9 +157,9 @@ function llmDimensionToRaw(
 
 /**
  * Promote a RawVerdictDimension + reasoning text to a fully-rendered
- * VerdictDimension. Voice Renderer handles headline/detail; we use the
- * LLM's reasoning as the detail text (headline is composed by the renderer
- * from severity/range/intent for consistency with Tier-0 outputs).
+ * VerdictDimension. The LLM's reasoning is passed as `llmReasoning` into the
+ * Voice Renderer, which runs it through `enforceOrSanitize` before casting —
+ * preserving persona-violation enforcement for Opus-supplied text.
  */
 function rawWithVoice(
   raw: RawVerdictDimension,
@@ -166,7 +167,7 @@ function rawWithVoice(
   persona: PersonaContext,
   voiceRenderer: ReturnType<typeof createVoiceRenderer>,
 ): VerdictDimension {
-  const renderedVoice = voiceRenderer.renderDimension({
+  const voice = voiceRenderer.renderDimension({
     field: raw.field,
     severity: raw.severity,
     range: raw.range,
@@ -174,14 +175,8 @@ function rawWithVoice(
     evidence: raw.evidence,
     intent: raw.intent,
     personaContext: persona,
+    llmReasoning: llmReasoning || undefined,
   });
-
-  // Override detail with the LLM's reasoning when present — it's richer than
-  // the Voice Renderer's templated detail. Headline stays from renderer for
-  // persona-discipline consistency.
-  const voice = llmReasoning
-    ? { headline: renderedVoice.headline, detail: castReasoningAsRendered(llmReasoning) }
-    : renderedVoice;
 
   return {
     field: raw.field,
@@ -194,16 +189,6 @@ function rawWithVoice(
     actions: raw.actions,
     crossSurface: raw.crossSurface,
   };
-}
-
-/**
- * Cast LLM reasoning text into the branded `VoiceRenderedString` type.
- * Voice Renderer's runtime persona-violation check already vetted this
- * string content via the system prompt's voice rules; the cast acknowledges
- * we trust the prompt-discipline path.
- */
-function castReasoningAsRendered(s: string): VerdictDimension["voice"]["detail"] {
-  return s as unknown as VerdictDimension["voice"]["detail"];
 }
 
 /**
