@@ -4,6 +4,7 @@ import {
   FORBIDDEN_VOICE_PATTERNS,
   PersonaViolationError,
   __testEnforce,
+  __testHumanField,
   __testSanitize,
 } from "@engine/analyst/voice/voice-renderer";
 import {
@@ -188,6 +189,82 @@ describe("Voice Renderer — composition", () => {
     const out = renderer.renderSurface(dims);
     expect(out.headline).toMatch(/1 dimension/);
     expect(out.headline).toMatch(/flags/);
+  });
+});
+
+describe("Voice Renderer — humanField label formatting", () => {
+  // These tests pin down the human-readable field label produced by the
+  // Analyst voice layer. They protect the camelCase + digit-boundary +
+  // unit-suffix-drop edge cases from silent regression.
+
+  describe("snake_case fixtures (pre-existing behavior)", () => {
+    it("formats marketing_cost_rate as 'Marketing Cost Rate'", () => {
+      expect(__testHumanField("marketing_cost_rate")).toBe("Marketing Cost Rate");
+    });
+
+    it("formats short identifiers like 'adr' as 'Adr'", () => {
+      expect(__testHumanField("adr")).toBe("Adr");
+    });
+
+    it("formats 'occupancy' as 'Occupancy'", () => {
+      expect(__testHumanField("occupancy")).toBe("Occupancy");
+    });
+
+    it("formats multi-word snake_case like 'revenue_ramp_delay_months'", () => {
+      expect(__testHumanField("revenue_ramp_delay_months")).toBe(
+        "Revenue Ramp Delay Months",
+      );
+    });
+  });
+
+  describe("camelCase split", () => {
+    it("splits camelCase boundaries with spaces and title-cases tokens", () => {
+      expect(__testHumanField("capitalRaiseAmount")).toBe("Capital Raise Amount");
+    });
+
+    it("handles camelCase with embedded digits: 'capitalRaise1Amount' → 'Capital Raise 1 Amount'", () => {
+      expect(__testHumanField("capitalRaise1Amount")).toBe(
+        "Capital Raise 1 Amount",
+      );
+    });
+
+    it("title-cases an already-PascalCase identifier without doubling spaces", () => {
+      expect(__testHumanField("CapitalRaiseAmount")).toBe("Capital Raise Amount");
+    });
+  });
+
+  describe("letter↔digit boundary split", () => {
+    it("splits at the letter→digit boundary: 'Raise1' → 'Raise 1'", () => {
+      expect(__testHumanField("Raise1")).toBe("Raise 1");
+    });
+
+    it("splits at the digit→letter boundary: '1Amount' → '1 Amount'", () => {
+      expect(__testHumanField("1Amount")).toBe("1 Amount");
+    });
+
+    it("handles both boundaries together: 'phase2Rollout' → 'Phase 2 Rollout'", () => {
+      expect(__testHumanField("phase2Rollout")).toBe("Phase 2 Rollout");
+    });
+  });
+
+  describe("unit-suffix drop (Pct / Percent)", () => {
+    it("drops trailing 'Pct': 'burnFlexDownPct' → 'Burn Flex Down'", () => {
+      expect(__testHumanField("burnFlexDownPct")).toBe("Burn Flex Down");
+    });
+
+    it("drops trailing 'Percent': 'occupancyPercent' → 'Occupancy'", () => {
+      expect(__testHumanField("occupancyPercent")).toBe("Occupancy");
+    });
+
+    it("drops 'Pct' from snake_case too: 'marketing_cost_pct' → 'Marketing Cost'", () => {
+      expect(__testHumanField("marketing_cost_pct")).toBe("Marketing Cost");
+    });
+
+    it("does NOT drop 'Pct' when it's an interior token, only standalone words", () => {
+      // "captcha" is a single token containing "pct"-like letters; the
+      // drop set matches whole tokens only, so this should remain intact.
+      expect(__testHumanField("captchaTimeout")).toBe("Captcha Timeout");
+    });
   });
 });
 

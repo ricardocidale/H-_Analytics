@@ -401,3 +401,12 @@ export function createVoiceRenderer(): VoiceRenderer {
  */
 export const __testEnforce = (text: string, field = "__test__"): string => enforceOrSanitize(text, field);
 export const __testSanitize = (text: string): string => sanitize(text);
+
+/**
+ * Test helper: expose the humanField label formatter directly so the
+ * camelCase / digit-boundary / suffix-drop edge cases can be pinned down
+ * without going through the full dimension-headline composition.
+ *
+ * Do NOT import this outside tests.
+ */
+export const __testHumanField = (field: string): string => humanField(field);
