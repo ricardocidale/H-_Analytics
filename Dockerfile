@@ -1,22 +1,25 @@
 # syntax=docker/dockerfile:1.6
 # Multi-stage build for H+ Analytics — produces a small Node.js runtime image.
-# Mirrors the workflow: `npm install && npm run build && npm start`.
+# Uses pnpm (project migrated from npm; pnpm-lock.yaml is the lockfile).
 
 # ---------- Stage 1: build ----------
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
+# Install pnpm globally before anything else.
+RUN npm install -g pnpm@10.26.1 --no-audit --no-fund
+
 # Install deps separately to maximize Docker layer caching.
-# `npm ci` enforces a clean, reproducible install from package-lock.json.
-COPY package.json package-lock.json ./
-RUN npm ci --include=dev --no-audit --no-fund
+# pnpm install --frozen-lockfile enforces a clean, reproducible install.
+COPY package.json pnpm-lock.yaml ./
+RUN CI=true pnpm install --frozen-lockfile
 
 # Copy the rest of the source and build.
 COPY . .
 RUN npm run build
 
-# Drop dev deps so we copy only what runtime needs (clean reinstall from lockfile).
-RUN npm ci --omit=dev --no-audit --no-fund
+# Prune to production deps only.
+RUN CI=true pnpm install --frozen-lockfile --prod
 
 # ---------- Stage 2: runtime ----------
 FROM node:22-bookworm-slim AS runtime
