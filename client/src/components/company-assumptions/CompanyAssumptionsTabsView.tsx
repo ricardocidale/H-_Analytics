@@ -192,50 +192,50 @@ export function CompanyAssumptionsTabsView(props: Props) {
           }))}
           activeTab={activeTab}
           onTabChange={(v) => onTabChange(v as TabKey)}
-          rightContent={
-            <AnalystButton
-              onClick={generateResearch}
-              isRunning={isGenerating}
-              disabled={!gating.enabled}
-              disabledReason={gating.reason}
-              tooltip={`Consult the Analyst on ${TAB_LABELS[activeTab]}`}
-              size="sm"
-              freshnessStatus={freshnessStatus}
-              dataTestId={`button-ask-analyst-${activeTab}`}
-            />
-          }
+          rightContent={(() => {
+            const activeDirty = TAB_FIELDS[activeTab].some((k) => dirtyFields.has(k));
+            const activeNeverSaved = !savedTabs.has(activeTab);
+            return (
+              <div className="flex items-center gap-2">
+                <AnalystButton
+                  onClick={generateResearch}
+                  isRunning={isGenerating}
+                  disabled={!gating.enabled}
+                  disabledReason={gating.reason}
+                  tooltip={`Consult the Analyst on ${TAB_LABELS[activeTab]}`}
+                  size="sm"
+                  freshnessStatus={freshnessStatus}
+                  dataTestId={`button-ask-analyst-${activeTab}`}
+                />
+                <SaveButton
+                  onClick={() => onSaveTab(activeTab, { force: activeNeverSaved && !activeDirty })}
+                  isPending={savingTab === activeTab && isUpdatePending}
+                  hasChanges={activeDirty || activeNeverSaved}
+                  alwaysActive
+                  size="sm"
+                  data-testid={`button-save-tab-${activeTab}`}
+                />
+              </div>
+            );
+          })()}
         />
       </div>
 
-      {tabKeys.map((tab) => {
-        const dirty = TAB_FIELDS[tab].some((k) => dirtyFields.has(k));
-        const tabNeverSaved = !savedTabs.has(tab);
-        return (
-          <TabsContent
-            key={tab}
-            value={tab}
-            className="mt-0 space-y-6"
-            data-testid={`tab-content-${tab}`}
-          >
-            <TabWarningsPanel
-              companyId={companyId}
-              warnings={tabWarnings[tab]}
-              onDismissWarning={(fieldName) => onDismissWarning(tab, fieldName)}
-            />
-            {renderBody(tab)}
-            <div className="flex justify-end pt-4 border-t border-border/40">
-              <SaveButton
-                onClick={() => onSaveTab(tab, { force: tabNeverSaved && !dirty })}
-                isPending={savingTab === tab && isUpdatePending}
-                hasChanges={dirty || tabNeverSaved}
-                alwaysActive
-                size="default"
-                data-testid={`button-save-tab-${tab}`}
-              />
-            </div>
-          </TabsContent>
-        );
-      })}
+      {tabKeys.map((tab) => (
+        <TabsContent
+          key={tab}
+          value={tab}
+          className="mt-0 space-y-6"
+          data-testid={`tab-content-${tab}`}
+        >
+          <TabWarningsPanel
+            companyId={companyId}
+            warnings={tabWarnings[tab]}
+            onDismissWarning={(fieldName) => onDismissWarning(tab, fieldName)}
+          />
+          {renderBody(tab)}
+        </TabsContent>
+      ))}
     </Tabs>
   );
 }
