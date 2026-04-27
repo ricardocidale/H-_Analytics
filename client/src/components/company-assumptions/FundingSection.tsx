@@ -34,14 +34,19 @@ import {
   DEFAULT_BURN_FLEX_DOWN_PCT,
 } from "@shared/constants-funding";
 import EditableValue from "./EditableValue";
-import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import type { FundingSectionProps } from "./types";
 
 // Both Capital Raise tranches share the same UI bounds so slider/stepper
 // behavior stays in sync by construction.
 const CAPITAL_RAISE_SLIDER = { min: 100_000, max: 1_500_000, step: 25_000 } as const;
 
-export default function FundingSection({ formData, onChange, global, fundingVerdict }: FundingSectionProps) {
+// Shared chrome for every card emitted by FundingSection. Matches the rest
+// of the Mgmt-Co Defaults surface so the new sub-cards visually belong with
+// CompensationSection / FixedOverheadSection / etc.
+const CARD_CLASSES =
+  "relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm";
+
+export default function FundingSection({ formData, onChange, global }: FundingSectionProps) {
   const fundingLabel = formData.fundingSourceLabel ?? global.fundingSourceLabel ?? "Funding Vehicle";
 
   const hasValuationCap = (formData.capitalRaiseValuationCap ?? global.capitalRaiseValuationCap) > 0;
@@ -51,32 +56,42 @@ export default function FundingSection({ formData, onChange, global, fundingVerd
   const [showDiscountRate, setShowDiscountRate] = useState(hasDiscountRate);
   const [showInterestRate, setShowInterestRate] = useState(hasInterestRate);
 
+  // The component emits a fragment of three sibling cards so the parent
+  // grid (md:grid-cols-2 xl:grid-cols-3) can flow them across columns and
+  // fill the available width:
+  //   1. Capital Raises  – funding vehicle name + two tranches + total
+  //   2. Convertible Terms – valuation cap, discount rate, interest rate
+  //   3. Capital Stack Discipline – runway buffer, sizing overshoot, ramp,
+  //      burn flex-down (the Funding Specialist's required-field cascade)
+  // The Analyst verdict is rendered by the parent below the grid so it can
+  // span the full width regardless of how many cards live in the grid.
   return (
-    <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
-      <div className="relative">
-      <div className="space-y-6">
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-            <h3 className="text-lg font-display text-foreground flex items-center">
-              Funding
-              <InfoTooltip text="Capital raised to fund management company operations before fee revenue begins" manualSection="funding-financing" />
-            </h3>
+    <>
+      {/* ───────────────── Card 1: Capital Raises ───────────────── */}
+      <div className={CARD_CLASSES}>
+        <div className="space-y-6">
+          <div>
+            <div className="flex items-center gap-4 mb-2">
+              <h3 className="text-lg font-display text-foreground flex items-center">
+                Funding
+                <InfoTooltip text="Capital raised to fund management company operations before fee revenue begins" manualSection="funding-financing" />
+              </h3>
+            </div>
+            <div className="flex items-center gap-3 mb-3">
+              <Label className="text-muted-foreground text-sm label-text whitespace-nowrap">Funding Source Name:</Label>
+              <Input
+                type="text"
+                value={fundingLabel}
+                onChange={(e) => onChange("fundingSourceLabel", e.target.value)}
+                placeholder="e.g., Funding Vehicle, SAFE, Seed, Series A"
+                className="max-w-48 bg-card border-border text-foreground"
+                data-testid="input-funding-source-label"
+              />
+              <InfoTooltip text="Customize the name of your capital raise (e.g., Funding Vehicle, SAFE, Seed, Series A)" />
+            </div>
+            <p className="text-muted-foreground text-sm label-text">Capital raised via {fundingLabel} in two tranches to support management company operations</p>
           </div>
-          <div className="flex items-center gap-3 mb-3">
-            <Label className="text-muted-foreground text-sm label-text whitespace-nowrap">Funding Source Name:</Label>
-            <Input
-              type="text"
-              value={fundingLabel}
-              onChange={(e) => onChange("fundingSourceLabel", e.target.value)}
-              placeholder="e.g., Funding Vehicle, SAFE, Seed, Series A"
-              className="max-w-48 bg-card border-border text-foreground"
-              data-testid="input-funding-source-label"
-            />
-            <InfoTooltip text="Customize the name of your capital raise (e.g., Funding Vehicle, SAFE, Seed, Series A)" />
-          </div>
-          <p className="text-muted-foreground text-sm label-text">Capital raised via {fundingLabel} in two tranches to support management company operations</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="p-4 bg-primary/10 rounded-lg space-y-4">
             <h4 className="text-sm font-display text-foreground">Capital Raise 1</h4>
             <div className="space-y-3">
@@ -142,16 +157,26 @@ export default function FundingSection({ formData, onChange, global, fundingVerd
             </div>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-border space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div>
-              <Label className="text-muted-foreground text-sm label-text">Total {fundingLabel} Raise</Label>
-              <p className="font-mono font-semibold text-lg text-foreground">
-                {formatMoney((formData.capitalRaise1Amount ?? global.capitalRaise1Amount) + (formData.capitalRaise2Amount ?? global.capitalRaise2Amount))}
-              </p>
-            </div>
+        <div className="mt-2 pt-4 border-t border-border">
+          <Label className="text-muted-foreground text-sm label-text">Total {fundingLabel} Raise</Label>
+          <p className="font-mono font-semibold text-lg text-foreground">
+            {formatMoney((formData.capitalRaise1Amount ?? global.capitalRaise1Amount) + (formData.capitalRaise2Amount ?? global.capitalRaise2Amount))}
+          </p>
+        </div>
+        </div>
+      </div>
+
+      {/* ───────────────── Card 2: Convertible Terms ───────────────── */}
+      <div className={CARD_CLASSES}>
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-display text-foreground flex items-center">
+              Convertible Terms
+              <InfoTooltip text="Optional terms that determine how the capital raise converts to equity in a future priced round. Toggle on only the terms your instrument carries." manualSection="funding-financing" />
+            </h3>
+            <p className="text-muted-foreground text-sm label-text mt-1">Toggle on the terms that apply to your instrument.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="flex items-center text-foreground label-text">
@@ -300,22 +325,25 @@ export default function FundingSection({ formData, onChange, global, fundingVerd
             </div>
           </div>
         </div>
-        {/*
-          Capital Stack Discipline — Funding-Specialist required-field cascade
-          (G1.5b Packet B). Per .claude/rules/inflation-cascade.md these four
-          values flow Constants → Defaults → Assumptions; this panel is the
-          Assumption-tier surface. Values fall back to the global Default tier
-          (`global.<field>`) and ultimately to the named DEFAULT_* constants
-          if neither layer has a value, so the slider always renders a number.
-          trancheGapMonths intentionally has no input — it is derived from the
-          two capital-raise dates above (see useCompanyAssumptionsForm).
-        */}
-        <div className="mt-4 pt-4 border-t border-border space-y-4">
+      </div>
+
+      {/* ─────────────── Card 3: Capital Stack Discipline ───────────────
+          Funding-Specialist required-field cascade (G1.5b Packet B). Per
+          .claude/rules/inflation-cascade.md these four values flow
+          Constants → Defaults → Assumptions; this panel is the
+          Assumption-tier surface. Values fall back to the global Default
+          tier (`global.<field>`) and ultimately to the named DEFAULT_*
+          constants if neither layer has a value, so the slider always
+          renders a number. trancheGapMonths intentionally has no input —
+          it is derived from the two capital-raise dates in Card 1 (see
+          useCompanyAssumptionsForm). */}
+      <div className={CARD_CLASSES}>
+        <div className="space-y-6">
           <div>
-            <h4 className="text-sm font-display text-foreground flex items-center">
+            <h3 className="text-lg font-display text-foreground flex items-center">
               Capital Stack Discipline
               <InfoTooltip text="Discipline metrics the Funding Specialist evaluates against live capital-raise benchmarks. Override here when your raise plan diverges from the company defaults; leave alone to inherit." manualSection="funding-financing" />
-            </h4>
+            </h3>
             <p className="text-muted-foreground text-xs label-text mt-1">Runway, sizing overshoot, revenue ramp, and burn flex-down used to size and stress-test the raise.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -425,14 +453,7 @@ export default function FundingSection({ formData, onChange, global, fundingVerd
             </div>
           </div>
         </div>
-
-        {fundingVerdict ? (
-          <div className="mt-2" data-testid="funding-verdict-section">
-            <AnalystVerdictDisplay verdict={fundingVerdict} />
-          </div>
-        ) : null}
       </div>
-    </div>
-    </div>
+    </>
   );
 }

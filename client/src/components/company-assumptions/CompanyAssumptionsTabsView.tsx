@@ -11,6 +11,7 @@ import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { SaveButton } from "@/components/ui/save-button";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
+import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import { computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import {
   FundingSection,
@@ -75,9 +76,9 @@ interface Props {
   lastAssumptionChangeAt: string | null;
   /**
    * Latest Analyst verdict for the mgmt-co.funding Specialist (G1.5c-v1).
-   * Forwarded into FundingSection so the structured 5-dimension verdict
-   * stack renders below the funding inputs once the user has run the
-   * Analyst on this tab.
+   * Rendered here below the funding-card grid (full width) once the user
+   * has run the Analyst on this tab; FundingSection itself is now
+   * verdict-free so its three cards can flow into the parent grid.
    */
   fundingVerdict?: AnalystVerdict | null;
 }
@@ -104,18 +105,30 @@ export function CompanyAssumptionsTabsView(props: Props) {
   const renderBody = (tab: TabKey) => {
     switch (tab) {
       case "funding":
+        // FundingSection emits a fragment of three sibling cards (Capital
+        // Raises, Convertible Terms, Capital Stack Discipline) so they flow
+        // into the parent grid alongside CostOfEquityCard. The Analyst
+        // verdict renders below the grid full-width — the structured
+        // 5-dimension stack reads better as one wide column than as a
+        // single grid cell.
         return (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
-            <FundingSection
-              formData={formData}
-              onChange={onChange}
-              global={global}
-              fundingVerdict={fundingVerdict}
-            />
-            <CostOfEquityCard
-              formData={formData} onChange={onChange} global={global}
-              researchValues={researchValues}
-            />
+          <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
+              <FundingSection
+                formData={formData}
+                onChange={onChange}
+                global={global}
+              />
+              <CostOfEquityCard
+                formData={formData} onChange={onChange} global={global}
+                researchValues={researchValues}
+              />
+            </div>
+            {fundingVerdict ? (
+              <div data-testid="funding-verdict-section">
+                <AnalystVerdictDisplay verdict={fundingVerdict} />
+              </div>
+            ) : null}
           </div>
         );
       case "revenue":

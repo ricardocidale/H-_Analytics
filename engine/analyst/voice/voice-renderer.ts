@@ -187,14 +187,38 @@ function personaPhrase(persona: PersonaContext): string {
   return parts.join(" ");
 }
 
+/**
+ * Tokens that should be dropped from the rendered field label because they
+ * encode a unit that the value formatter already carries. Without this, a
+ * line like "Burn Flex Down Pct at 25.0%" reads with a redundant unit;
+ * dropping the suffix gives "Burn Flex Down at 25.0%".
+ */
+const HUMAN_FIELD_DROP_TOKENS: ReadonlySet<string> = new Set([
+  "Pct",
+  "Percent",
+]);
+
 function humanField(field: string): string {
-  // Simple heuristic: replace dots/underscores/hyphens with spaces, then
-  // title-case. Good-enough readable names until a proper field registry
-  // lands.
-  return field
-    .replace(/[._-]/g, " ")
+  // Convert camelCase / snake_case / dot.case / kebab-case identifiers into
+  // human-readable labels for the user-facing voice layer. Examples:
+  //   "capitalRaise1Amount"        → "Capital Raise 1 Amount"
+  //   "burnFlexDownPct"            → "Burn Flex Down"
+  //   "revenue_ramp_delay_months"  → "Revenue Ramp Delay Months"
+  //   "mgmt-co.funding"            → "Mgmt Co Funding"
+  // Future: replace this heuristic with a proper field registry that owns
+  // each field's display label alongside its UI mount point.
+  const withSpaces = field
+    .replace(/([a-z])([A-Z])/g, "$1 $2")     // camelCase → camel Case
+    .replace(/([A-Za-z])(\d)/g, "$1 $2")     // letter→digit boundary
+    .replace(/(\d)([A-Za-z])/g, "$1 $2")     // digit→letter boundary
+    .replace(/[._-]/g, " ");                 // separators → spaces
+  const titled = withSpaces
     .replace(/\b([a-z])/g, (_m, c: string) => c.toUpperCase())
     .trim();
+  return titled
+    .split(/\s+/)
+    .filter((word) => word.length > 0 && !HUMAN_FIELD_DROP_TOKENS.has(word))
+    .join(" ");
 }
 
 // ────────────────────────────────────────────────────────────────────────────
