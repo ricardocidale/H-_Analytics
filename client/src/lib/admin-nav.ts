@@ -32,6 +32,14 @@ export function setAdminSection(section: AdminSection | string) {
   }
   currentSection = normalizeAdminSection(section);
   listeners.forEach((fn) => fn());
+  // If the caller is on a non-admin page (e.g. /company/assumptions or
+  // /property/edit/:id), updating internal state alone has no visible
+  // effect — the Admin layout isn't mounted there. Navigate to /admin so
+  // the user actually lands on the section they asked for. Mirrors the
+  // legacy-resources branch above which redirects to /ai-intelligence.
+  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin")) {
+    navigate("/admin");
+  }
 }
 
 export function useAdminSection(): [AdminSection, typeof setAdminSection] {
