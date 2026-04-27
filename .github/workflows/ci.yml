@@ -22,21 +22,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
       - name: Install ripgrep (needed by audit:quick deprecated-constants guard)
         run: sudo apt-get install -y ripgrep
 
-      - run: npm install --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: ESLint (bug guards across calc/engine/server/shared/client)
-        run: npm run lint:strict
+        run: pnpm run lint:strict
 
       - name: TypeScript
-        run: npm run check
+        run: pnpm run check
 
       - name: Quick Audit
         # Includes the legacy-storage-URL guardrail (Task #524) which
@@ -45,7 +49,7 @@ jobs:
         # storage host (storage.googleapis.com, objectstorage.replit.com,
         # *.repl.co/objects) or sidecar bucket path (/objects/uploads/).
         # New writes must use the relative `/objects/<key>` form.
-        run: npm run audit:quick
+        run: pnpm run audit:quick
 
       - name: Replit Independence Guardrail
         # Fails if any new direct `@replit/`, `process.env.REPL*`, or
@@ -84,15 +88,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
       - name: Install ripgrep (needed by audit tests)
         run: sudo apt-get install -y ripgrep
 
-      - run: npm install --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Enable pgvector extension on test Postgres
         # The pgvector/pgvector:pg16 service container ships the binary but
@@ -109,7 +117,7 @@ jobs:
         # Real-DB tests (tests/db/*.integration.test.ts, admin-resources, etc.)
         # query a fully-migrated schema. Without this step they fail because
         # the postgres service container starts empty.
-        run: npm run db:push -- --force
+        run: pnpm run db:push -- --force
 
       - name: Seed model_defaults from shared/constants.ts
         # tests/proof/defaults-drift.test.ts expects every spec in
@@ -118,7 +126,7 @@ jobs:
         run: npx tsx script/seed-model-defaults.ts
 
       - name: Run Tests
-        run: npm run test:summary
+        run: pnpm run test:summary
 
       - name: Read-only admin tabs browser tests (Phase 4 doctrine)
         # Re-runs the read-only-doctrine browser tests as one named CI
@@ -140,7 +148,7 @@ jobs:
             tests/client/company-readonly-band-browser.test.tsx
 
       - name: Verify Financials
-        run: npm run verify:summary
+        run: pnpm run verify:summary
 
   schema-sync-non-interactive:
     # Task #715 — proves `npm run db:push` keeps running cleanly in
@@ -203,12 +211,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
-      - run: npm install
+      - run: pnpm install --frozen-lockfile
 
       - name: Enable pgvector extension on disposable Postgres
         # Mirrors the test-and-verify setup — drizzle-kit needs the
@@ -226,4 +238,4 @@ jobs:
         # `--force` flag the test-and-verify job uses, so any
         # destructive prompt fails this job instead of being silently
         # accepted.
-        run: timeout 120 npm run db:push < /dev/null
+        run: timeout 120 pnpm run db:push < /dev/null

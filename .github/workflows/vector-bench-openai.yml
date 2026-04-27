@@ -81,19 +81,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        if: steps.keycheck.outputs.skip == 'false'
+        with:
+          version: 10.26.1
+
       - uses: actions/setup-node@v4
         if: steps.keycheck.outputs.skip == 'false'
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
         if: steps.keycheck.outputs.skip == 'false'
-        run: npm install --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Apply database schema
         if: steps.keycheck.outputs.skip == 'false'
-        run: npm run db:push -- --force
+        run: pnpm run db:push -- --force
 
       - name: Run vector benchmark (OpenAI embeddings)
         if: steps.keycheck.outputs.skip == 'false'

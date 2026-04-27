@@ -24,6 +24,13 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Lockfile discipline — repo is pnpm-managed (packageManager: pnpm@10.26.1).
+# Stray npm/yarn lockfiles cause Dependabot to scan duplicate trees and
+# drift CI from local — see 2026-04-27 lockfile cleanup.
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
+
 # Server generated public files
 server/public
 
