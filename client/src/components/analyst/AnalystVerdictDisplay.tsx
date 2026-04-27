@@ -20,17 +20,28 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { IconSparkles, IconCheckCircle, IconAlertTriangle } from "@/components/icons";
+import { ExternalLink } from "@/components/icons/themed-icons";
 import type {
   AnalystVerdict,
   VerdictDimension,
   VerdictAction,
   Severity,
 } from "@engine/analyst/contracts/verdict";
+import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
+import { resolveFieldMountPoint } from "@/lib/analyst-mount-points";
 
 interface AnalystVerdictDisplayProps {
   verdict: AnalystVerdict | null | undefined;
   /** Optional action callback. If omitted, action buttons are inert. */
   onAction?: (dimension: VerdictDimension, action: VerdictAction) => void;
+  /**
+   * The property currently in scope (when the surface that owns this
+   * display is property-scoped, e.g. PropertyEdit). Threaded through to
+   * the mount-point resolver so `property-edit/*` slugs can produce a
+   * working "Open this field" deep link. Omit on company-level surfaces;
+   * the CTA simply hides for property-scoped fields when no id is in scope.
+   */
+  propertyId?: string | number;
 }
 
 const SEVERITY_THEME: Record<
@@ -88,13 +99,24 @@ function DimensionCard({
   dimension,
   index,
   onAction,
+  propertyId,
 }: {
   dimension: VerdictDimension;
   index: number;
   onAction?: (d: VerdictDimension, a: VerdictAction) => void;
+  propertyId?: string | number;
 }) {
   const theme = SEVERITY_THEME[dimension.severity];
   const range = formatRange(dimension.range);
+
+  // Resolve the field's edit-screen deep link via the registry mount point.
+  // Hidden when the field isn't registered (no broken-link risk on
+  // fallback-heuristic fields) or when the slug requires context the
+  // surface doesn't have (e.g. property-edit slug on a company surface).
+  const registryEntry = getFieldRegistryEntry(dimension.field);
+  const mountTarget = registryEntry
+    ? resolveFieldMountPoint(registryEntry.mountPoint, { propertyId })
+    : null;
 
   return (
     <motion.div
@@ -133,6 +155,33 @@ function DimensionCard({
               >
                 {theme.label}
               </Badge>
+              {mountTarget ? (
+                <a
+                  href={mountTarget.href}
+                  onClick={(e) => {
+                    // Let modifier-clicks (cmd/ctrl/middle/shift) fall through to
+                    // the browser's native open-in-new-tab behavior; intercept
+                    // only the bare primary click for SPA-friendly nav.
+                    if (
+                      e.defaultPrevented ||
+                      e.button !== 0 ||
+                      e.metaKey ||
+                      e.ctrlKey ||
+                      e.shiftKey ||
+                      e.altKey
+                    ) {
+                      return;
+                    }
+                    e.preventDefault();
+                    mountTarget.navigate();
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline focus:underline focus:outline-none"
+                  data-testid={`link-verdict-open-field-${dimension.field}`}
+                >
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  Open this field
+                </a>
+              ) : null}
             </div>
             {dimension.voice.detail ? (
               <p
@@ -199,6 +248,7 @@ function DimensionCard({
 export function AnalystVerdictDisplay({
   verdict,
   onAction,
+  propertyId,
 }: AnalystVerdictDisplayProps) {
   if (!verdict) return null;
 
@@ -273,6 +323,7 @@ export function AnalystVerdictDisplay({
               dimension={d}
               index={idx}
               onAction={onAction}
+              propertyId={propertyId}
             />
           ))}
         </div>

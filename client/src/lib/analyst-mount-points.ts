@@ -1,0 +1,83 @@
+/**
+ * Analyst mount-point resolver — turns the opaque routing slugs that live in
+ * `engine/analyst/registry/field-registry.ts` (e.g. `property-edit/capital-raise`,
+ * `defaults/revenue`) into concrete client-side navigation targets.
+ *
+ * Why this lives in `client/src/`:
+ * The engine-side field registry intentionally records mount points as opaque
+ * strings so it stays UI-framework-agnostic (no wouter / react / Vite imports
+ * leak into the engine). This file is the single place that knows how those
+ * slugs map to actual frontend routes — keep all slug → route knowledge here
+ * so adding a new Specialist surface is a one-file change.
+ *
+ * Resolution rules:
+ *   - `property-edit/<section>` → `/property/:id/edit#<section>`. Requires a
+ *     `propertyId` in context; returns `null` when one is not available, so
+ *     callers without a property in scope (e.g. company-level surfaces) hide
+ *     the CTA rather than producing a broken link.
+ *   - `defaults/<section>` → the Property Defaults admin surface. The `<section>`
+ *     is preserved in the URL fragment so future hash-aware code on the admin
+ *     page can scroll to the named area.
+ *   - Unknown slugs return `null`, matching the registry's "fail-closed"
+ *     contract for fields that haven't yet been registered.
+ *
+ * The resolver returns both an `href` (for browser-native open-in-new-tab via
+ * an anchor) and an `onClick` callback (for SPA-friendly in-page navigation),
+ * so consumers can render a real `<a>` while preventing a full page reload.
+ */
+import { navigate } from "wouter/use-browser-location";
+import { setAdminSection } from "@/lib/admin-nav";
+
+export interface MountPointTarget {
+  /** Canonical URL for the field's edit surface. Safe for `<a href>` and
+   *  middle-click open-in-new-tab. */
+  readonly href: string;
+  /** SPA-friendly navigation handler. Components should call this from an
+   *  onClick that also calls `event.preventDefault()` when the user used
+   *  a primary click without modifier keys. */
+  readonly navigate: () => void;
+}
+
+export interface MountPointResolverContext {
+  /** The property currently in scope, when the surface is property-scoped.
+   *  Required for `property-edit/*` slugs; ignored otherwise. */
+  readonly propertyId?: string | number;
+}
+
+/**
+ * Resolve a field-registry mount-point slug to a navigation target. Returns
+ * `null` when the slug is unknown or the required context (e.g. propertyId
+ * for `property-edit/*`) is missing — callers should hide the CTA in that
+ * case rather than rendering a broken link.
+ */
+export function resolveFieldMountPoint(
+  slug: string,
+  ctx: MountPointResolverContext = {},
+): MountPointTarget | null {
+  if (!slug || typeof slug !== "string") return null;
+
+  if (slug.startsWith("property-edit/")) {
+    if (ctx.propertyId == null || ctx.propertyId === "") return null;
+    const section = slug.slice("property-edit/".length);
+    const href = `/property/${ctx.propertyId}/edit${section ? `#${section}` : ""}`;
+    return {
+      href,
+      navigate: () => navigate(href),
+    };
+  }
+
+  if (slug.startsWith("defaults/")) {
+    const section = slug.slice("defaults/".length);
+    // Every Defaults sub-slug currently funnels into the Property Defaults
+    // surface — that is where revenue/cost defaults live. The `#<section>`
+    // hash carries the Specialist sub-area so future hash-aware admin code
+    // can scroll to the right anchor without a contract change here.
+    const href = `/admin${section ? `#defaults-property/${section}` : ""}`;
+    return {
+      href,
+      navigate: () => setAdminSection("defaults-property"),
+    };
+  }
+
+  return null;
+}
