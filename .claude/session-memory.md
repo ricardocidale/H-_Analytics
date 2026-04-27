@@ -222,6 +222,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 27, 2026 (later) — G1.5c-a shipped + Replit-lane-narrowing + collision #5
+
+- **G1.5c-a (engine slice) ✅ Shipped (CC, 3 commits).** `58b03e88` (S1: re-export `FundingSpecialistDeps`), `f40e0d07` (S2: add `deps?` to `MgmtCoSpecialistConfigs.funding`), `9d7fce86` (S3: thread to `createFundingSpecialist`). All 5 gates green pre-push (TS 0, lint 0, vocab 11/11, test:summary PASS, verify:summary UNQUALIFIED). Pushed in `da90f2c8`.
+- **Mid-execution discovery: original -b assumed a concrete `FundingOrchestratorAdapter` that didn't exist.** Only the interface ships in `mgmt-co-funding-orchestrator-adapter.ts:189`; the docstring at line 185 said "the concrete adapter ... is wired by Replit's route-handler slice" but no impl was ever built. CC about to file BLOCKED + hand to Replit.
+- **Ricardo's binding clarification:** *"replit should only be in charge of UI coding and fixing UI and UX issues."* Reverses the broader lane Replit held in 2026-04-22 + 2026-04-26 revisions of `claude-replit-split.md`.
+- **Doctrine bundle landed (`871801f2` Replit autocheckpoint, collision #5):** rule revision (2026-04-27 entry), packet rename `g1.5c-tier1-deps-b.md` → `-c.md`, new `-b.md` for orchestrator wrap (3 sub-steps, `MgmtCoFundingOrchestrator` impl), parent index updated to a→b→c, phases.md G1.5c row → 🟡 Partial. Collision content preserved; attribution muddled.
+- **New CC scope going forward:** every layer of G1.5c is CC's lane (engine, server/ai, server/routes, tests, phases). Replit only does UI. The orchestrator-wrap (-b) is on CC's plate. The route slice (-c) is on CC's plate. Active execution continues post-doctrine-commit.
+- **New feedback memory:** `replit_lane_ui_ux_only.md` — binding 2026-04-27 tightening. CC owns engine/server/routes/tests/schema/seeds/scripts/config/packages/doctrine. Replit owns UI components/pages/styles/UI bug fixes/E2E browser verification only.
+
 ## Session: April 27, 2026 — G1.5b shipped + G1.5c packets authored + collision #4
 
 - **G1.5b (Funding Defaults & Assumptions cascade) ✅ Shipped (Replit's lane).** Packet A (`c8881d38`+`6d00d805`): 4 schema cols on `globalAssumptions` (`runwayBufferMonths`, `sizingOvershootPct`, `revenueRampDelayMonths`, `burnFlexDownPct`) + DEFAULT_* constants in `shared/constants-funding.ts:72-75` + model_defaults seed in `script/seed-model-defaults.ts:137-140` + Admin Steady-State UI in `client/src/components/admin/model-defaults/CompanyTab.tsx:172-209`. Packet B (`1bb965e2`): 4 Funding-tab inputs in `FundingSection.tsx:327-418` + form-hook wiring in `useCompanyAssumptionsForm.ts:461-465` (with `trancheGapMonths` derived from the two date fields — design improvement over the original 5-column spec). Follow-up `6e3f7bed` (Task #742): server-side `applyFundingDefaultsOverlay` in `server/finance/apply-funding-defaults.ts` — the load-bearing piece that makes the cascade actually three-tier (without it, NULL globalAssumptions cols fell straight through to constants and bypassed the admin's Steady-State Default).
