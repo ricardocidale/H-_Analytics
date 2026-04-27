@@ -24,7 +24,7 @@
  * Skips itself when DATABASE_URL is unset (so a fresh checkout's
  * `vitest` run stays green).
  */
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { Pool } from "pg";
@@ -48,10 +48,31 @@ d("OIDC session store + upsertUser — real DB", () => {
 
   const sid = `task-701-test-${Date.now()}`;
   const stampedEmail = `task-701-${Date.now()}@example.invalid`;
+  const adminEmail = "ricardo.cidale@norfolkgroup.io";
+
+  beforeAll(async () => {
+    // Ensure the known-admin row exists before the upsertUser test below.
+    // The production seed (seedAdminUser in server/auth.ts) runs only on
+    // server start — which never happens in CI unit-test runs. We insert
+    // here with onConflictDoNothing so a locally-seeded row is not
+    // overwritten, and the row is removed in afterAll with the same guard.
+    await db
+      .insert(users)
+      .values({ email: adminEmail, role: "admin", firstName: "Ricardo", lastName: "Cidale" })
+      .onConflictDoNothing();
+  });
 
   afterAll(async () => {
     await new Promise<void>((resolve) => store.destroy(sid, () => resolve()));
     await db.delete(users).where(eq(users.email, stampedEmail.toLowerCase())).catch(() => {});
+    // Only remove the admin row if we are the ones who created it (CI case).
+    // In local dev the row was seeded at startup — leave it alone. We detect
+    // "we created it" by checking whether the role is still exactly 'admin'
+    // and the row has no password hash (i.e. it's our minimal test fixture).
+    const adminRow = await db.query.users.findFirst({ where: eq(users.email, adminEmail) });
+    if (adminRow && adminRow.role === "admin" && !adminRow.passwordHash) {
+      await db.delete(users).where(eq(users.email, adminEmail)).catch(() => {});
+    }
     await probePool.end().catch(() => {});
   });
 
@@ -78,9 +99,8 @@ d("OIDC session store + upsertUser — real DB", () => {
   });
 
   it("upsertUser returns the seeded admin's full row (id + role) when OIDC claims match", async () => {
-    // Use a fixed seed admin from server/seed-users.json. The seed runs at
-    // startup, so this row exists in any environment that has booted the app.
-    const adminEmail = "ricardo.cidale@norfolkgroup.io";
+    // The admin row is pre-seeded in beforeAll above so this test runs
+    // identically in CI (fresh DB) and in local dev (production-seeded DB).
     const result = await upsertUser({
       email: adminEmail,
       first_name: "Ricardo",

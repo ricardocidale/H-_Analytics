@@ -76,6 +76,24 @@ describe("Schema Drift — Drizzle vs live Postgres", () => {
 
   it("baseline contains no stale entries (each listed key is still drifting)", () => {
     expect(allFindings).not.toBeNull();
+
+    // CI uses a fresh drizzle-generated DB (created by `pnpm run db:push
+    // --force`) which has zero drift — the schema IS the DB. In that case
+    // allFindings is empty and every BASELINE_DRIFT entry would appear
+    // "stale" even though the drift genuinely exists in production.
+    //
+    // Skipping on an empty findings set is safe: the "no NEW drift" test
+    // above already asserts correctness, and baseline-staleness only makes
+    // sense when evaluated against a DB that carries documented historical
+    // drift (local dev, staging, or prod).
+    if ((allFindings ?? []).length === 0) {
+      console.log(
+        "[schema-drift] baseline-staleness check skipped — fresh DB has no " +
+          "drift; run against a production-shaped DB to validate BASELINE_DRIFT.",
+      );
+      return;
+    }
+
     const liveKeys = new Set(
       (allFindings ?? []).map((f) => `${f.kind}::${findingKey(f)}`),
     );
