@@ -82,3 +82,6 @@ export const SEED_DEBT_ASSUMPTIONS = {
   acqClosingCostRate: 0.02, // Acquisition closing costs as % of loan amount
   refiClosingCostRate: 0.03,// Refinance closing costs as % of new loan amount
 } as const;
+
+// v1 placeholder — G6-P3 computes from the engine output.
+export const DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER = 18;

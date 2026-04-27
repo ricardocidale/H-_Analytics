@@ -298,34 +298,50 @@ export async function runFundingSpecialist(
     );
   }
 
-  const voiceRenderer = createVoiceRenderer();
-  const rawByKey = new Map<FundingDimensionKey, RawVerdictDimension>();
-  const reasoningByKey = new Map<FundingDimensionKey, string>();
+  // Wrap all post-stream operations in a try/catch that converts any
+  // non-Tier1UnavailableError (e.g. InvalidVerdictError from buildAnalystVerdict,
+  // PersonaViolationError from voiceRenderer in dev) into Tier1UnavailableError
+  // so the route handler's Tier-0 fallback fires instead of returning HTTP 500
+  // and permanently holding the cooldown.
+  try {
+    const voiceRenderer = createVoiceRenderer();
+    const rawByKey = new Map<FundingDimensionKey, RawVerdictDimension>();
+    const reasoningByKey = new Map<FundingDimensionKey, string>();
 
-  for (const llmDim of output.dimensions) {
-    const raw = llmDimensionToRaw(llmDim, ctx.inputs, comparables);
-    rawByKey.set(llmDim.key, raw);
-    reasoningByKey.set(llmDim.key, llmDim.reasoning);
-  }
-
-  // Emit dimensions in the canonical FUNDING_DIMENSION_KEYS order so verdict
-  // consumers can rely on a stable iteration order regardless of LLM emission
-  // order. The Zod schema already guarantees all 5 keys are present once.
-  const dimensions: VerdictDimension[] = FUNDING_DIMENSION_KEYS.map((key) => {
-    const raw = rawByKey.get(key);
-    const reasoning = reasoningByKey.get(key);
-    if (!raw) {
-      throw new Tier1UnavailableError(
-        `Funding v1 missing dimension after schema parse: ${key}`,
-        null,
-      );
+    for (const llmDim of output.dimensions) {
+      const raw = llmDimensionToRaw(llmDim, ctx.inputs, comparables);
+      rawByKey.set(llmDim.key, raw);
+      reasoningByKey.set(llmDim.key, llmDim.reasoning);
     }
-    return rawWithVoice(raw, reasoning ?? "", persona, voiceRenderer);
-  });
 
-  const surfaceVoice = voiceRenderer.renderSurface(dimensions);
+    // Emit dimensions in the canonical FUNDING_DIMENSION_KEYS order so verdict
+    // consumers can rely on a stable iteration order regardless of LLM emission
+    // order. The Zod schema already guarantees all 5 keys are present once.
+    const dimensions: VerdictDimension[] = FUNDING_DIMENSION_KEYS.map((key) => {
+      const raw = rawByKey.get(key);
+      const reasoning = reasoningByKey.get(key);
+      if (!raw) {
+        throw new Tier1UnavailableError(
+          `Funding v1 missing dimension after schema parse: ${key}`,
+          null,
+        );
+      }
+      // Guard: Anthropic structured output cannot enforce minItems on evidenceRefs,
+      // so Opus may emit an empty array. An empty Evidence array fails
+      // MIN_SOURCES_FOR_ADVICE inside buildAnalystVerdict. Degrade to Tier-0
+      // rather than throwing InvalidVerdictError and holding the cooldown.
+      if (raw.evidence.length === 0) {
+        throw new Tier1UnavailableError(
+          `Funding v1 dimension ${key} emitted zero evidenceRefs; degrading to Tier-0`,
+          null,
+        );
+      }
+      return rawWithVoice(raw, reasoning ?? "", persona, voiceRenderer);
+    });
 
-  return buildAnalystVerdict({
+    const surfaceVoice = voiceRenderer.renderSurface(dimensions);
+
+    return buildAnalystVerdict({
     specialistId: "mgmt-co.funding",
     dimensions,
     surfaceVoice,
@@ -347,6 +363,13 @@ export async function runFundingSpecialist(
     },
     generatedAt: deps.now ? deps.now.toISOString() : undefined,
   });
+  } catch (err: unknown) {
+    if (err instanceof Tier1UnavailableError) throw err;
+    throw new Tier1UnavailableError(
+      `Funding v1 post-stream assembly failed: ${err instanceof Error ? err.message : String(err)}`,
+      err,
+    );
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────

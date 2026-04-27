@@ -297,14 +297,16 @@ async function runFundingV1Path(userId: number) {
     locale: "US",
   };
 
-  // Portfolio aggregate — count + raise need across the user's properties.
+  // Portfolio aggregate — count + raise need from the saved Funding-tab amounts.
+  // capitalRaise1Amount + capitalRaise2Amount are the actual management-company
+  // raise targets saved by the user. sum(purchasePrice) is property acquisition
+  // cost — a different quantity entirely (audit finding: data lineage).
+  const totalRaiseNeedUsd =
+    (overlaidGa.capitalRaise1Amount ?? 0) + (overlaidGa.capitalRaise2Amount ?? 0);
   const portfolio: FundingPromptInputContext["portfolio"] = {
     propertyCount: properties.length,
-    totalRaiseNeedUsd: properties.reduce(
-      (sum, p) => sum + Number((p as { purchasePrice?: number }).purchasePrice ?? 0),
-      0,
-    ),
-    runwayNeedMonths: 18, // v1 placeholder; G6-P3 computes from the engine
+    totalRaiseNeedUsd,
+    runwayNeedMonths: DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER,
   };
 
   const ctx: FundingPromptInputContext = {
@@ -331,5 +333,9 @@ function deriveTrancheGapMonths(
   const d1 = ga.capitalRaise1Date ? new Date(ga.capitalRaise1Date).getTime() : NaN;
   const d2 = ga.capitalRaise2Date ? new Date(ga.capitalRaise2Date).getTime() : NaN;
   if (!Number.isFinite(d1) || !Number.isFinite(d2)) return null;
-  return Math.abs(d2 - d1) / (1000 * 60 * 60 * 24 * getFactoryNumber("daysPerMonth"));
+  // Negative gap means Tranche 2 is before Tranche 1 — invalid configuration.
+  // Return null (routes to missing-data intent) rather than Math.abs which would
+  // silently produce a plausible positive number.
+  if (d2 <= d1) return null;
+  return Math.round((d2 - d1) / (1000 * 60 * 60 * 24 * getFactoryNumber("daysPerMonth")));
 }
