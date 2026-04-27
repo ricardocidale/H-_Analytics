@@ -68,6 +68,17 @@ const DIMENSION_META = {
 type DimensionKey = keyof typeof DIMENSION_META;
 const DIMENSION_KEYS: readonly DimensionKey[] = Object.keys(DIMENSION_META) as DimensionKey[];
 
+/**
+ * Public list of every field id this Specialist may emit as
+ * `VerdictDimension.field`. Exported so the field-registry parity test
+ * (`tests/analyst/voice/field-registry-parity.test.ts`) can assert each
+ * one has a `FIELD_REGISTRY` entry without reaching into the private
+ * `DIMENSION_META` table. Mirrors the export from
+ * `funding-specialist.ts`.
+ */
+export const REVENUE_SPECIALIST_TRACKED_FIELDS: readonly string[] =
+  DIMENSION_KEYS.map((key) => DIMENSION_META[key].field);
+
 function rangeFor(key: DimensionKey, benchmarks: RevenueBenchmarks): VerdictRange {
   const meta = DIMENSION_META[key];
   const band = (benchmarks as unknown as Record<string, { low: number; high: number } | undefined>)[

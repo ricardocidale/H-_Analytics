@@ -207,9 +207,16 @@ function humanField(field: string): string {
   const registered = getFieldDisplayName(field);
   if (registered !== null) return registered;
 
-  // Fallback heuristic — used for fields not yet in the registry. Convert
-  // camelCase / snake_case / dot.case / kebab-case identifiers into
-  // human-readable labels. Examples:
+  // Last-resort safety net — every field id emitted by a built Specialist
+  // as `VerdictDimension.field` is enumerated in `FIELD_REGISTRY` and that
+  // coverage is enforced by the parity test at
+  // `tests/analyst/voice/field-registry-parity.test.ts`. The heuristic
+  // below is only exercised on the unhappy path (an ad-hoc field id that
+  // slipped past the parity gate, or a string passed by something other
+  // than a Specialist — e.g. test fixtures, the surface-detail composer
+  // when a future caller invents an id). Convert camelCase / snake_case /
+  // dot.case / kebab-case identifiers into human-readable labels.
+  // Examples:
   //   "capitalRaise1Amount"        → "Capital Raise 1 Amount"
   //   "burnFlexDownPct"            → "Burn Flex Down"
   //   "revenue_ramp_delay_months"  → "Revenue Ramp Delay Months"
