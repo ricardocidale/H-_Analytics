@@ -36,8 +36,8 @@ INSERT INTO companies (id, name, type, description, logo_id, is_active, theme_id
   (14, 'Scott''s House LLC', 'spv', 'SPV entity for Scott''s House property', NULL, TRUE, 14),
   (15, 'Lakeview Haven Lodge LLC', 'spv', 'SPV entity for Lakeview Haven Lodge property', NULL, TRUE, 14),
   (16, 'San Diego Boutique LLC', 'spv', 'SPV entity for San Diego property', NULL, TRUE, 14)
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name, type = EXCLUDED.type, description = EXCLUDED.description,
+ON CONFLICT (name) DO UPDATE SET
+  type = EXCLUDED.type, description = EXCLUDED.description,
   logo_id = EXCLUDED.logo_id, is_active = EXCLUDED.is_active, theme_id = EXCLUDED.theme_id;
 
 -- =============================================================================
