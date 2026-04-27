@@ -222,6 +222,19 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 27, 2026 (latest) — G1.5c-b BLOCKED on architectural decision
+
+- **CC attempted G1.5c-b S1 (orchestrator wrap) autonomously while user was AFK.** Stopped before writing code after discovering structural blocker.
+- **Discovery:** `server/ai/synthesis-schema.ts:47` defines `CANONICAL_RESEARCH_FIELDS` as a `z.enum(...)` covering ~40 property-research keys. None of the 5 funding keys (`runwayBufferMonths`, `sizingOvershootPct`, `trancheGapMonths`, `revenueRampDelayMonths`, `burnFlexDownPct`) are in the enum.
+- **Implication:** Option A (adapter shim wrapping `orchestrateResearch()`) — the path the original `-b.md` packet drafted — would require modifying the shared synthesis schema's enum AND the shared synthesis system prompt to teach Opus about funding-domain reasoning. Both are cross-cutting changes affecting every Specialist that uses the legacy pipeline. Not a thin wrapper.
+- **Three viable paths now documented in `.claude/replit-handoffs/g1.5c-tier1-deps-b.BLOCKED.md`:**
+  - **A-extended** — modify shared schema + prompt; ~2-3h; reuses well-tested infrastructure but accretes domain knowledge into the shared synthesis prompt forever.
+  - **B** — per-Specialist purpose-built pipeline (3 funding-specific system prompts + new `FundingSynthesisOutputSchema` + concrete orchestrator); ~3-5h; clean but ~300 LOC new code; pattern-divergence between property-research (shared) and mgmt-co Specialists (per-Specialist).
+  - **C (hybrid)** — refactor `orchestrateResearch()` to accept a `SpecialistSchema` parameter; pluggable schemas + per-Specialist prompt-blocks. ADR-009 territory. ~1 day; future Specialists graduate by writing their schema, not their pipeline.
+- **CC's recommendation (in BLOCKED.md):** ship A-extended for G1, then refactor to C in a P-level packet before G2 starts. Ricardo's analyst-team.md + ADR-007 implicitly point at C as the destination.
+- **No code committed.** -b packet header + parent index + phases.md G1.5c row all flag the blocker. -c remains downstream-blocked.
+- **What CC did do:** authored `g1.5c-tier1-deps-b.BLOCKED.md` (210 lines documenting the discovery, three options with pros/cons, and the resume actions per choice).
+
 ## Session: April 27, 2026 (later still) — Dependabot resolved (II) + collision #6
 
 - **Dependabot: 7 open alerts → 0.** Root cause: two lockfiles in one repo. `package.json` declared `packageManager: pnpm@10.26.1` and patched transitives via `pnpm.overrides`, but 5 GH Actions workflows ran `npm install` and maintained a parallel `package-lock.json`. Dependabot scanned both trees and reported every advisory twice.
