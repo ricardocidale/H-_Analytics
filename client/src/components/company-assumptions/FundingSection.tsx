@@ -34,13 +34,14 @@ import {
   DEFAULT_BURN_FLEX_DOWN_PCT,
 } from "@shared/constants-funding";
 import EditableValue from "./EditableValue";
+import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import type { FundingSectionProps } from "./types";
 
 // Both Capital Raise tranches share the same UI bounds so slider/stepper
 // behavior stays in sync by construction.
 const CAPITAL_RAISE_SLIDER = { min: 100_000, max: 1_500_000, step: 25_000 } as const;
 
-export default function FundingSection({ formData, onChange, global }: FundingSectionProps) {
+export default function FundingSection({ formData, onChange, global, fundingVerdict }: FundingSectionProps) {
   const fundingLabel = formData.fundingSourceLabel ?? global.fundingSourceLabel ?? "Funding Vehicle";
 
   const hasValuationCap = (formData.capitalRaiseValuationCap ?? global.capitalRaiseValuationCap) > 0;
@@ -424,6 +425,12 @@ export default function FundingSection({ formData, onChange, global }: FundingSe
             </div>
           </div>
         </div>
+
+        {fundingVerdict ? (
+          <div className="mt-2" data-testid="funding-verdict-section">
+            <AnalystVerdictDisplay verdict={fundingVerdict} />
+          </div>
+        ) : null}
       </div>
     </div>
     </div>

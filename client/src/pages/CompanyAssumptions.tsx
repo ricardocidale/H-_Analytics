@@ -44,7 +44,7 @@
  * The page itself is just glue: gating rules (per-tab Analyst availability),
  * URL ↔ active-tab sync, and the dependency wiring between the two hooks.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage } from "@/components/graphics";
 import {
@@ -75,6 +75,9 @@ import {
   type TabKey,
 } from "@/hooks/useCompanyAssumptionsForm";
 import { useCompanyAnalyst } from "@/hooks/useCompanyAnalyst";
+import { useAnalystRefresh } from "@/components/analyst/useAnalystRefresh";
+import { AnalystUnsavedChangesDialog } from "@/components/analyst/AnalystUnsavedChangesDialog";
+import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 
 const getInitialTab = (): TabKey => {
   if (typeof window === "undefined") return "funding";
@@ -225,6 +228,98 @@ export default function CompanyAssumptions() {
       [tab]: prev[tab].filter((w) => w.fieldName !== fieldName),
     }));
 
+  // G1.5c-v1 Funding Specialist (CC's S5 commit) returns a structured
+  // `AnalystVerdict` from /api/analyst/refresh when the request carries
+  // `specialistId: "mgmt-co.funding"`. We mount a dedicated refresh
+  // hook for the Funding tab so the page-level AnalystButton can route
+  // to the v1 verdict path on Funding while other tabs continue to use
+  // the legacy streaming path. This avoids a dual-fire that would
+  // collide with the 60s server cooldown.
+  //
+  // The hook is wired with `entityValues: global` and a missing-fields
+  // callback so a 400 REQUIRED_FIELDS_MISSING response (or the local
+  // preflight) opens the polished prompt instead of the generic
+  // "Analyst failed" toast.
+  const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
+    open: boolean;
+    specialistLabel: string;
+    missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
+  }>({ open: false, specialistLabel: "The Analyst", missingFields: [] });
+
+  const fundingRefresh = useAnalystRefresh({
+    scope: "global-assumptions",
+    specialistId: "mgmt-co.funding",
+    invalidateKeys: [
+      ["guidance", "company", entityId],
+      ["market-research", "company"],
+    ],
+    entityValues: global as unknown as Record<string, unknown>,
+    onMissingRequiredFields: ({ missingFields }) => {
+      setMissingFieldsPrompt({
+        open: true,
+        specialistLabel: "The Analyst",
+        missingFields,
+      });
+    },
+  });
+
+  // Item B (UI v1 counterpart): unsaved-changes interception. The Analyst
+  // only sees what's persisted, so when the form is dirty pressing the
+  // page-level AnalystButton opens a 3-button dialog instead of firing
+  // the run immediately. The dialog lets the user save first, run on
+  // last-saved, or cancel.
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const [unsavedSaving, setUnsavedSaving] = useState(false);
+
+  const fireAnalyst = () => {
+    if (activeTab === "funding") {
+      fundingRefresh.triggerRefresh();
+    } else {
+      void analyst.generateResearch();
+    }
+  };
+
+  const requestAnalystRun = () => {
+    if (formApi.isDirty) {
+      setUnsavedDialogOpen(true);
+      return;
+    }
+    fireAnalyst();
+  };
+
+  const handleSaveAndAnalyze = async () => {
+    setUnsavedSaving(true);
+    try {
+      const ok = await handleSaveTab(activeTab);
+      if (!ok) {
+        // Save failed — `handleSaveTab` already showed the failure toast.
+        // Leave the dialog open so the user can retry; do NOT fire the
+        // Analyst against stale persisted state.
+        return;
+      }
+      setUnsavedDialogOpen(false);
+      fireAnalyst();
+    } finally {
+      setUnsavedSaving(false);
+    }
+  };
+
+  const handleContinueWithLastSaved = () => {
+    setUnsavedDialogOpen(false);
+    fireAnalyst();
+  };
+
+  const tabLabelForDialog = useMemo(() => {
+    switch (activeTab) {
+      case "funding":      return "Funding";
+      case "revenue":      return "Revenue Model";
+      case "compensation": return "Compensation";
+      case "overhead":     return "Overhead";
+      case "property-defaults": return "Property Defaults";
+      default:             return undefined;
+    }
+  }, [activeTab]);
+
   return (
     <Layout>
       <CompanyAnalystOverlay
@@ -261,9 +356,9 @@ export default function CompanyAssumptions() {
             companyName={global.companyName}
             companyResearchUpdatedAt={analyst.companyResearchUpdatedAt}
             lastAssumptionChangeAt={global.lastAssumptionChangeAt ?? null}
-            isGenerating={analyst.isGenerating}
+            isGenerating={analyst.isGenerating || fundingRefresh.running}
             isUpdatePending={updateMutation.isPending}
-            generateResearch={analyst.generateResearch}
+            generateResearch={requestAnalystRun}
             savedTabsCount={formApi.savedTabs.size}
             tabWarnings={formApi.tabWarnings}
             tabKeys={TAB_KEYS}
@@ -292,11 +387,30 @@ export default function CompanyAssumptions() {
             savingTab={formApi.savingTab}
             isUpdatePending={updateMutation.isPending}
             onSaveTab={handleSaveTab}
-            generateResearch={analyst.generateResearch}
-            isGenerating={analyst.isGenerating}
+            generateResearch={requestAnalystRun}
+            isGenerating={analyst.isGenerating || fundingRefresh.running}
             getTabGating={getTabGating}
             companyResearchUpdatedAt={analyst.companyResearchUpdatedAt}
             lastAssumptionChangeAt={global.lastAssumptionChangeAt ?? null}
+            fundingVerdict={fundingRefresh.lastVerdict}
+          />
+
+          <AnalystUnsavedChangesDialog
+            open={unsavedDialogOpen}
+            onOpenChange={setUnsavedDialogOpen}
+            onSaveAndAnalyze={handleSaveAndAnalyze}
+            onContinueWithLastSaved={handleContinueWithLastSaved}
+            isSaving={unsavedSaving}
+            tabLabel={tabLabelForDialog}
+          />
+
+          <MissingRequiredFieldsPrompt
+            open={missingFieldsPrompt.open}
+            onOpenChange={(open) =>
+              setMissingFieldsPrompt((prev) => ({ ...prev, open }))
+            }
+            specialistLabel={missingFieldsPrompt.specialistLabel}
+            missingFields={missingFieldsPrompt.missingFields}
           />
 
           {/*

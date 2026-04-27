@@ -7,6 +7,7 @@
  * Admin → Model Defaults.
  */
 import type { GlobalResponse, FeeCategoryResponse } from "@/lib/api";
+import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { SaveButton } from "@/components/ui/save-button";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
@@ -72,17 +73,25 @@ interface Props {
   getTabGating: (tab: TabKey) => { enabled: boolean; reason?: string };
   companyResearchUpdatedAt: string | null;
   lastAssumptionChangeAt: string | null;
+  /**
+   * Latest Analyst verdict for the mgmt-co.funding Specialist (G1.5c-v1).
+   * Forwarded into FundingSection so the structured 5-dimension verdict
+   * stack renders below the funding inputs once the user has run the
+   * Analyst on this tab.
+   */
+  fundingVerdict?: AnalystVerdict | null;
 }
 
 export function CompanyAssumptionsTabsView(props: Props) {
   const {
     tabKeys, activeTab, onTabChange,
-    formData, onChange, global, companyId, isAdmin,
+    formData, onChange, global, companyId, isAdmin: _isAdmin,
     properties, allFeeCategories, modelStartYear, researchValues,
     tabWarnings, onDismissWarning,
     dirtyFields, savedTabs, savingTab, isUpdatePending, onSaveTab,
     generateResearch, isGenerating, getTabGating,
     companyResearchUpdatedAt, lastAssumptionChangeAt,
+    fundingVerdict,
   } = props;
 
   const gating = getTabGating(activeTab);
@@ -97,7 +106,12 @@ export function CompanyAssumptionsTabsView(props: Props) {
       case "funding":
         return (
           <div className="space-y-6">
-            <FundingSection formData={formData} onChange={onChange} global={global} />
+            <FundingSection
+              formData={formData}
+              onChange={onChange}
+              global={global}
+              fundingVerdict={fundingVerdict}
+            />
             <CostOfEquityCard
               formData={formData} onChange={onChange} global={global}
               researchValues={researchValues}

@@ -19,6 +19,7 @@
  *   • PropertyExpenseRatesSectionProps – adds researchValues for expense benchmarks
  */
 import type { GlobalResponse, FeeCategoryResponse } from "@/lib/api";
+import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
 
 export interface CompanyAssumptionsSectionProps {
   formData: Partial<GlobalResponse>;
@@ -26,7 +27,15 @@ export interface CompanyAssumptionsSectionProps {
   global: GlobalResponse;
 }
 
-export interface FundingSectionProps extends CompanyAssumptionsSectionProps {}
+export interface FundingSectionProps extends CompanyAssumptionsSectionProps {
+  /**
+   * Latest Analyst verdict for the mgmt-co.funding Specialist (G1.5c-v1).
+   * When present, renders the structured 5-dimension verdict card stack
+   * below the funding inputs. `null` before the first run or when the
+   * page is using the legacy guidance path.
+   */
+  fundingVerdict?: AnalystVerdict | null;
+}
 
 export interface PortfolioPropertySummary {
   id: number;

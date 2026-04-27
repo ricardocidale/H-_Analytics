@@ -160,7 +160,7 @@ export interface UseCompanyAssumptionsFormReturn {
   /** Manually clear the banner for one tab (e.g. after the user fills the field). */
   clearRequiredFieldsMissing: (tab: TabKey) => void;
   acks: AckRow[];
-  handleSaveTab: (tab: TabKey, opts: { force?: boolean } | undefined, deps: SaveDeps) => Promise<void>;
+  handleSaveTab: (tab: TabKey, opts: { force?: boolean } | undefined, deps: SaveDeps) => Promise<boolean>;
   hasPendingServerUpdate: boolean;
   discardEditsAndRefresh: () => void;
 }
@@ -492,9 +492,11 @@ export function useCompanyAssumptionsForm(
           setRequiredFieldsMissingByTab((prev) => ({ ...prev, [tab]: missing }));
           await queryClient.invalidateQueries({ queryKey: ["globalAssumptions"] });
           toast({ title: `${TAB_LABELS[tab]} saved`, description: "Marked this tab as reviewed." });
+          return true;
         }
+        return false;
       } catch { /* swallow — toast already shown if pertinent */ }
-      return;
+      return false;
     }
     const payload: Partial<GlobalResponse> = {};
     for (const k of touched) (payload as Record<string, unknown>)[k as string] = formData[k];
@@ -564,6 +566,7 @@ export function useCompanyAssumptionsForm(
           ? `${warnings.length} value${warnings.length === 1 ? "" : "s"} outside The Analyst's range — review below.`
           : "Changes take effect immediately.",
       });
+      return true;
     } catch (error: unknown) {
       console.error(`Failed to save ${tab} tab:`, error);
       toast({
@@ -571,6 +574,7 @@ export function useCompanyAssumptionsForm(
         description: error instanceof Error ? error.message : "Failed to save changes.",
         variant: "destructive",
       });
+      return false;
     } finally {
       setSavingTab(null);
     }

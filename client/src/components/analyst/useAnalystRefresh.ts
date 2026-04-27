@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { collectMissingLockedHardFields } from "@/lib/locked-hard-preflight";
+import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
 
 export type AnalystRefreshScope = "global-assumptions";
 
@@ -18,7 +19,7 @@ export interface AnalystGuidanceRecord {
   reasoning: string | null;
 }
 
-interface RefreshResponse {
+interface RefreshResponseLegacy {
   runId: number;
   durationMs: number;
   totalRecords: number;
@@ -26,8 +27,25 @@ interface RefreshResponse {
   guidance: AnalystGuidanceRecord[];
 }
 
+interface RefreshResponseVerdict {
+  verdict: AnalystVerdict;
+}
+
+type RefreshResponse = RefreshResponseLegacy | RefreshResponseVerdict;
+
+function isVerdictResponse(r: RefreshResponse): r is RefreshResponseVerdict {
+  return (r as RefreshResponseVerdict).verdict !== undefined;
+}
+
 export interface UseAnalystRefreshOptions {
   scope: AnalystRefreshScope;
+  /**
+   * Optional Specialist id (e.g. "mgmt-co.funding"). When set, the server
+   * routes through the v1 single-shot Specialist runner and returns a
+   * `{ verdict: AnalystVerdict }` response instead of the legacy
+   * `{ runId, guidance, ... }` shape. The hook normalizes both.
+   */
+  specialistId?: string;
   /**
    * Query key(s) to invalidate on a successful run so guidance consumers
    * refetch. The caller owns which keys matter.
@@ -61,6 +79,12 @@ export interface UseAnalystRefreshResult {
   cooldownRemainingMs: number;
   lastRunId: number | null;
   lastGuidance: AnalystGuidanceRecord[] | null;
+  /**
+   * Latest `AnalystVerdict` returned when the request was routed through
+   * a v1 Specialist (i.e. `specialistId` was set). `null` for legacy
+   * runs or before the first verdict is received.
+   */
+  lastVerdict: AnalystVerdict | null;
 }
 
 const TICK_MS = 1000;
@@ -78,6 +102,7 @@ const TICK_MS = 1000;
  */
 export function useAnalystRefresh({
   scope,
+  specialistId,
   invalidateKeys = [],
   entityValues,
   onMissingRequiredFields,
@@ -89,6 +114,7 @@ export function useAnalystRefresh({
   const [lastRunId, setLastRunId] = useState<number | null>(null);
   const [lastGuidance, setLastGuidance] =
     useState<AnalystGuidanceRecord[] | null>(null);
+  const [lastVerdict, setLastVerdict] = useState<AnalystVerdict | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Tick only while a cooldown is active.
@@ -120,6 +146,7 @@ export function useAnalystRefresh({
       const res = await apiRequest("POST", "/api/analyst/refresh", {
         scope,
         fields,
+        ...(specialistId ? { specialistId } : {}),
       });
       return (await res.json()) as RefreshResponse;
     },
@@ -128,13 +155,31 @@ export function useAnalystRefresh({
     // server returns 400 with the REQUIRED_FIELDS_MISSING shape, surface
     // the prompt instead of the generic "Analyst failed" toast.
     onSuccess: (data) => {
-      setLastRunId(data.runId);
-      setLastGuidance(data.guidance);
       // Start the 60s local cooldown to match the server.
       setCooldownEndAt(Date.now() + 60 * 1000);
       for (const key of invalidateKeys) {
         qc.invalidateQueries({ queryKey: key as unknown[] });
       }
+
+      if (isVerdictResponse(data)) {
+        // Clear stale legacy-path state so the UI doesn't show both a
+        // verdict card AND a stale guidance toast / runId from a prior
+        // legacy run on this same hook instance.
+        setLastRunId(null);
+        setLastGuidance(null);
+        setLastVerdict(data.verdict);
+        toast({
+          title: "Analyst done",
+          description: data.verdict.voice.headline,
+        });
+        return;
+      }
+
+      // Legacy success — clear any prior verdict so we don't render a
+      // stale card next to fresh legacy guidance.
+      setLastVerdict(null);
+      setLastRunId(data.runId);
+      setLastGuidance(data.guidance);
       toast({
         title: "Analyst done",
         description: `Updated ${data.filteredRecords} of ${data.totalRecords} fields.`,
@@ -243,5 +288,6 @@ export function useAnalystRefresh({
     cooldownRemainingMs,
     lastRunId,
     lastGuidance,
+    lastVerdict,
   };
 }
