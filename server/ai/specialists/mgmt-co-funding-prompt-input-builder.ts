@@ -34,6 +34,7 @@
  *     Specialists analyze.
  */
 
+import { createHash } from "node:crypto";
 import {
   computeInputContextHash,
   type CompanyCacheInputs,
@@ -302,7 +303,6 @@ function sha256OfPersona(persona: FundingPersonaContext): string {
   // Lazy node:crypto import; Node + most edge runtimes (Vercel, CF Workers
   // with Node compat) provide it. If not available, throw — there is no
   // safe fallback for cache-key material.
-  const { createHash } = require("node:crypto") as typeof import("node:crypto");
   return createHash("sha256").update(canonical).digest("hex");
 }
 

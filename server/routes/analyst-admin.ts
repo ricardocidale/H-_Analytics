@@ -13,6 +13,7 @@ import { withFundingDefaults } from "../finance/apply-funding-defaults";
 import type { FundingPromptInputContext } from "../ai/specialists/mgmt-co-funding-prompt-input-builder";
 import type { CapitalRaiseInputs } from "../../engine/watchdog/capitalRaiseEvaluator";
 import { getFactoryNumber } from "@shared/model-constants-registry";
+import { DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER } from "@shared/constants-funding";
 import { storage } from "../storage";
 import { logger } from "../logger";
 

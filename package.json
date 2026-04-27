@@ -200,9 +200,6 @@
     "bufferutil": "^4.0.8"
   },
   "packageManager": "pnpm@10.26.1",
-  "workspaces": [
-    "."
-  ],
   "pnpm": {
     "overrides": {
       "protobufjs": "^7.5.5",
