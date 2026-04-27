@@ -3,16 +3,152 @@
 -- Generated from development database state
 -- Company: Hospitality Business Group
 -- =============================================================================
--- This script synchronizes the production database with development.
+-- This script synchronizes the production database with the canonical baseline.
 -- It DELETES non-canonical data, then UPSERTS canonical rows.
 -- Safe to run multiple times (fully idempotent).
+--
 -- Transient tables (sessions, activity_logs, login_logs, verification_runs,
 -- conversations, messages) are intentionally skipped.
--- Uses OVERRIDING SYSTEM VALUE to preserve identity column IDs.
--- Resets sequences after all inserts.
+--
+-- Idempotency model:
+--   - Every UPSERT uses a BUSINESS-KEY conflict target (name, email, url,
+--     question, etc.) so re-runs match the same rows the runtime/boot-time
+--     seeders in server/seeds/ would match — never by raw id.
+--   - OVERRIDING SYSTEM VALUE is kept so the FIRST apply on a fresh DB lands
+--     the canonical IDs (1-3 logos, 32/33/35/39/41/43 properties, etc.) used
+--     by FK references inside this file. On subsequent re-applies the
+--     business-key conflict short-circuits to UPDATE on the existing row and
+--     the explicit id is ignored, so canonical IDs are preserved without
+--     overwriting unrelated rows that happen to share an id.
+--
+-- Resets sequences after all inserts so future inserts via app code do not
+-- collide with the canonical IDs reserved here.
 -- =============================================================================
 
 BEGIN;
+
+-- =============================================================================
+-- DEDUPE BEFORE INDEX CREATION
+-- The unique indexes below back the `ON CONFLICT (<business_key>)` upserts
+-- later in this script. They will fail to be created if any business key is
+-- already duplicated in production — exactly the drift class this script is
+-- supposed to recover from. Each block below redirects inbound FKs to the
+-- surviving (lowest-id) row and then drops the higher-id duplicates so the
+-- index creation can succeed and the script remains a true recovery tool.
+--
+-- Order matters: dedupe FK *targets* (logos, design_themes, properties)
+-- before any tables whose FKs reference them, and dedupe each table before
+-- its own unique index is created.
+-- =============================================================================
+
+-- logos.url duplicates: redirect companies.logo_id (ON DELETE SET NULL) to
+-- the surviving row, then drop the duplicates.
+WITH dups AS (
+  SELECT id, url, MIN(id) OVER (PARTITION BY url) AS keep_id FROM logos
+)
+UPDATE companies c SET logo_id = d.keep_id
+  FROM dups d WHERE c.logo_id = d.id AND d.id <> d.keep_id;
+DELETE FROM logos a USING logos b WHERE a.url = b.url AND a.id > b.id;
+
+-- design_themes.name duplicates: redirect companies.theme_id and
+-- users.selected_theme_id (both ON DELETE SET NULL) before deletion.
+WITH dups AS (
+  SELECT id, name, MIN(id) OVER (PARTITION BY name) AS keep_id FROM design_themes
+)
+UPDATE companies c SET theme_id = d.keep_id
+  FROM dups d WHERE c.theme_id = d.id AND d.id <> d.keep_id;
+WITH dups AS (
+  SELECT id, name, MIN(id) OVER (PARTITION BY name) AS keep_id FROM design_themes
+)
+UPDATE users u SET selected_theme_id = d.keep_id
+  FROM dups d WHERE u.selected_theme_id = d.id AND d.id <> d.keep_id;
+DELETE FROM design_themes a USING design_themes b
+  WHERE a.name = b.name AND a.id > b.id;
+
+-- properties.name duplicates: redirect every property-FK referrer that does
+-- not already CASCADE — the cascade-deleting referrers (market_research,
+-- property_fee_categories, scenarios, etc.) would lose data otherwise.
+WITH dups AS (
+  SELECT id, name, MIN(id) OVER (PARTITION BY name) AS keep_id FROM properties
+)
+UPDATE market_research mr SET property_id = d.keep_id
+  FROM dups d WHERE mr.property_id = d.id AND d.id <> d.keep_id;
+WITH dups AS (
+  SELECT id, name, MIN(id) OVER (PARTITION BY name) AS keep_id FROM properties
+)
+UPDATE notification_logs nl SET property_id = d.keep_id
+  FROM dups d WHERE nl.property_id = d.id AND d.id <> d.keep_id;
+DELETE FROM properties a USING properties b
+  WHERE a.name = b.name AND a.id > b.id;
+
+-- property_fee_categories(property_id, name) duplicates: no inbound FKs we
+-- need to preserve here, so a straight delete suffices.
+DELETE FROM property_fee_categories a USING property_fee_categories b
+  WHERE a.property_id = b.property_id AND a.name = b.name AND a.id > b.id;
+
+-- research_questions.question duplicates: free-text business key.
+DELETE FROM research_questions a USING research_questions b
+  WHERE a.question = b.question AND a.id > b.id;
+
+-- saved_searches(user_id, name) duplicates: NULL-safe match on user_id so
+-- system-owned (user_id IS NULL) entries are deduped too.
+DELETE FROM saved_searches a USING saved_searches b
+  WHERE a.user_id IS NOT DISTINCT FROM b.user_id
+    AND a.name = b.name
+    AND a.id > b.id;
+
+-- global_assumptions singleton: at most one shared row (user_id IS NULL),
+-- and at most one row per non-null user_id. Match server/seed.ts which
+-- uses `user_id IS NULL` as the singleton lookup.
+DELETE FROM global_assumptions a USING global_assumptions b
+  WHERE COALESCE(a.user_id, -1) = COALESCE(b.user_id, -1) AND a.id > b.id;
+
+-- model_constants(constant_key, country, country_subdivision): NULL-safe
+-- compare so country-only and universal rows dedupe correctly.
+DELETE FROM model_constants a USING model_constants b
+  WHERE a.constant_key = b.constant_key
+    AND a.country IS NOT DISTINCT FROM b.country
+    AND a.country_subdivision IS NOT DISTINCT FROM b.country_subdivision
+    AND a.id > b.id;
+
+-- =============================================================================
+-- BUSINESS-KEY UNIQUE INDEXES
+-- These back the `ON CONFLICT (<business_key>)` clauses below. Created
+-- idempotently so re-runs are safe and the script can establish the
+-- guarantees it relies on without a separate migration. The dedupe block
+-- above guarantees these can be created on a drifted production DB.
+--
+-- Tables that already ship with a UNIQUE constraint on their business key
+-- (companies.name, users.email) do not need an extra index here.
+-- =============================================================================
+CREATE UNIQUE INDEX IF NOT EXISTS uq_logos_url
+  ON logos (url);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_design_themes_name
+  ON design_themes (name);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_properties_name
+  ON properties (name);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_property_fee_categories_property_name
+  ON property_fee_categories (property_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_research_questions_question
+  ON research_questions (question);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_searches_user_name
+  ON saved_searches (user_id, name);
+-- Singleton: at most one shared (user_id IS NULL) row in global_assumptions,
+-- and at most one row per non-null user_id. COALESCE collapses NULL into a
+-- sentinel so the UNIQUE constraint covers the NULL case too. Matches the
+-- runtime seeder in server/seed.ts which looks up by `user_id IS NULL`.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_global_assumptions_user
+  ON global_assumptions ((COALESCE(user_id, -1)));
+-- model_constants is upserted by `seedModelConstants` (script/seed-model-constants.ts)
+-- via Drizzle's `onConflictDoUpdate(target=[constant_key, country, country_subdivision])`.
+-- That requires a true UNIQUE INDEX/CONSTRAINT on those exact columns; without it
+-- every boot logs `[seed:model-constants] skipped (will retry next boot)` because
+-- Drizzle sees no arbiter index. Mirrors `uq_mc_key_country_subdivision` defined
+-- in shared/schema/model-canonicals.ts (Drizzle `unique()`); the IF NOT EXISTS
+-- guard makes this safe whether the schema-managed constraint is already present
+-- or has drifted out.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_mc_key_country_subdivision
+  ON model_constants (constant_key, country, country_subdivision);
 
 -- =============================================================================
 -- CLEANUP: Remove non-canonical data before inserting
@@ -48,19 +184,16 @@ INSERT INTO logos (id, name, url, is_default, company_name) OVERRIDING SYSTEM VA
   (2, 'Norfolk AI - Blue', '/logos/norfolk-ai-blue.png', FALSE, 'The Norfolk AI Group'),
   (3, 'Norfolk AI - Yellow', '/logos/norfolk-ai-yellow.png', FALSE, 'The Norfolk AI Group'),
   (4, 'Norfolk AI - Wireframe', '/logos/norfolk-ai-wireframe.png', FALSE, 'The Norfolk AI Group')
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name, url = EXCLUDED.url, is_default = EXCLUDED.is_default,
+ON CONFLICT (url) DO UPDATE SET
+  name = EXCLUDED.name, is_default = EXCLUDED.is_default,
   company_name = EXCLUDED.company_name;
 
 -- =============================================================================
--- USER GROUPS
+-- USER GROUPS / USER GROUP PROPERTIES
+-- The user_groups and user_group_properties tables were removed from the
+-- schema; their seed sections (and the user_groups_id_seq reset) have been
+-- dropped to prevent the whole transaction from failing on missing tables.
 -- =============================================================================
-INSERT INTO user_groups (id, name, logo_id, theme_id, asset_description_id, is_default) OVERRIDING SYSTEM VALUE VALUES
-  (1, 'KIT Group', NULL, NULL, NULL, FALSE),
-  (2, 'The Norfolk AI Group', NULL, NULL, NULL, FALSE),
-  (3, 'General', NULL, NULL, NULL, TRUE)
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name, is_default = EXCLUDED.is_default;
 
 -- =============================================================================
 -- DESIGN THEMES
@@ -69,34 +202,45 @@ INSERT INTO design_themes (id, name, description, is_default, colors) OVERRIDING
   (1, 'Fluid Glass', 'Inspired by Apple''s iOS design language, Fluid Glass creates a sense of depth and dimension through translucent layers, subtle gradients, and smooth animations. The design emphasizes content while maintaining visual hierarchy through careful use of blur effects and glass-like surfaces.', TRUE, '[{"name": "Sage Green", "rank": 1, "hexCode": "#9FBCA4", "description": "PALETTE: Secondary accent for subtle highlights, card borders, and supporting visual elements."}, {"name": "Deep Green", "rank": 2, "hexCode": "#257D41", "description": "PALETTE: Primary brand color for main action buttons, active navigation items, and key highlights."}, {"name": "Warm Cream", "rank": 3, "hexCode": "#FFF9F5", "description": "PALETTE: Light background for page backgrounds, card surfaces, and warm accents."}, {"name": "Deep Black", "rank": 4, "hexCode": "#0a0a0f", "description": "PALETTE: Dark theme background for navigation sidebars, dark glass panels, and login screens."}, {"name": "Salmon", "rank": 5, "hexCode": "#F4795B", "description": "PALETTE: Accent color for warnings, notifications, and emphasis highlights."}, {"name": "Yellow Gold", "rank": 6, "hexCode": "#F59E0B", "description": "PALETTE: Accent color for highlights, badges, and attention-drawing elements."}, {"name": "Chart Blue", "rank": 1, "hexCode": "#3B82F6", "description": "CHART: Primary chart line color for revenue and key financial metrics."}, {"name": "Chart Red", "rank": 2, "hexCode": "#EF4444", "description": "CHART: Secondary chart line color for expenses and cost-related metrics."}, {"name": "Chart Purple", "rank": 3, "hexCode": "#8B5CF6", "description": "CHART: Tertiary chart line color for cash flow and profitability metrics."}]'),
   (5, 'Indigo Blue', 'A bold, professional theme centered on deep indigo-blue tones with cool steel accents. Conveys trust, authority, and modern sophistication — ideal for investor-facing presentations.', FALSE, '[{"name": "Indigo", "rank": 1, "hexCode": "#4F46E5", "description": "PALETTE: Primary brand color for main action buttons, active navigation items, and key highlights."}, {"name": "Deep Navy", "rank": 2, "hexCode": "#1E1B4B", "description": "PALETTE: Dark theme background for navigation sidebars, dark glass panels, and login screens."}, {"name": "Ice White", "rank": 3, "hexCode": "#F0F4FF", "description": "PALETTE: Light background for page backgrounds, card surfaces, and cool accents."}, {"name": "Steel Blue", "rank": 4, "hexCode": "#64748B", "description": "PALETTE: Secondary accent for subtle highlights, card borders, and supporting visual elements."}, {"name": "Coral", "rank": 5, "hexCode": "#F43F5E", "description": "PALETTE: Accent color for warnings, notifications, and emphasis highlights."}, {"name": "Amber", "rank": 6, "hexCode": "#F59E0B", "description": "PALETTE: Accent color for highlights, badges, and attention-drawing elements."}, {"name": "Chart Indigo", "rank": 1, "hexCode": "#6366F1", "description": "CHART: Primary chart line color for revenue and key financial metrics."}, {"name": "Chart Teal", "rank": 2, "hexCode": "#14B8A6", "description": "CHART: Secondary chart line color for expenses and cost-related metrics."}, {"name": "Chart Violet", "rank": 3, "hexCode": "#A855F7", "description": "CHART: Tertiary chart line color for cash flow and profitability metrics."}]'),
   (19, 'Claude', 'Warm terracotta and cream inspired by Anthropic''s Claude interface. Earthy, approachable, and quietly confident — professional warmth without pretension.', FALSE, '[{"name":"Terracotta","rank":1,"hexCode":"#D97757","description":"PALETTE: Primary brand color. Warm terracotta for buttons, active nav, focus rings."},{"name":"Warm Umber","rank":2,"hexCode":"#8B6F5E","description":"PALETTE: Secondary accent. Muted warm brown for contrast badges and secondary elements."},{"name":"Cream","rank":3,"hexCode":"#FAF7F4","description":"PALETTE: Background and card surfaces. Warm off-white cream canvas."},{"name":"Charcoal","rank":4,"hexCode":"#2D2B28","description":"PALETTE: Foreground text. Near-black warm charcoal for readable type."},{"name":"Linen","rank":5,"hexCode":"#F0EBE5","description":"PALETTE: Muted surfaces. Light warm beige for secondary cards and table alternates."},{"name":"Sand Border","rank":6,"hexCode":"#E5DED6","description":"PALETTE: Borders and input outlines. Subtle warm gray border tone."},{"name":"Teal","rank":1,"hexCode":"#0D9488","description":"ACCENT: Standout highlight for IRR circles, key KPIs, and success badges."},{"name":"Warm Amber","rank":2,"hexCode":"#D4A76A","description":"ACCENT: Secondary emphasis for charts, infographics, and comparative metrics."},{"name":"Teal","rank":1,"hexCode":"#0D9488","description":"CHART: Primary series — revenue and key metrics."},{"name":"Terracotta","rank":2,"hexCode":"#D97757","description":"CHART: Secondary series — net income and profitability."},{"name":"Slate Blue","rank":3,"hexCode":"#6B7FA3","description":"CHART: Tertiary series — cash flow and operational metrics."},{"name":"Amber","rank":4,"hexCode":"#D4A76A","description":"CHART: Quaternary series — expenses and budget."},{"name":"Muted Plum","rank":5,"hexCode":"#9B7A94","description":"CHART: Quinary series — background and comparison."},{"name":"Teal","rank":1,"hexCode":"#0D9488","description":"LINE: Primary line — revenue trend."},{"name":"Terracotta","rank":2,"hexCode":"#D97757","description":"LINE: Secondary line — income trend."},{"name":"Slate Blue","rank":3,"hexCode":"#6B7FA3","description":"LINE: Tertiary line — expense trend."},{"name":"Amber","rank":4,"hexCode":"#D4A76A","description":"LINE: Quaternary line — cash flow trend."},{"name":"Muted Plum","rank":5,"hexCode":"#9B7A94","description":"LINE: Quinary line — projection overlay."}]')
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name, description = EXCLUDED.description,
+ON CONFLICT (name) DO UPDATE SET
+  description = EXCLUDED.description,
   is_default = EXCLUDED.is_default, colors = EXCLUDED.colors;
 
 -- =============================================================================
 -- USERS (password hashes from development database)
 -- NOTE: Production passwords are overridden by environment variables on startup
--- via seedAdminUser() in server/auth.ts
+-- via seedAdminUser() in server/auth.ts. The DO UPDATE clause below
+-- intentionally OMITS password_hash so a re-run of this seed does not
+-- clobber a password that seedAdminUser() may have set (or rotated) on a
+-- prior boot. Other profile fields (role, name, company, title) are
+-- refreshed to keep the canonical baseline in sync.
+--
+-- The legacy `user_group_id` column was removed from the schema and is no
+-- longer set here.
 -- =============================================================================
-INSERT INTO users (id, email, password_hash, role, first_name, last_name, company, company_id, title, user_group_id, selected_theme_id) OVERRIDING SYSTEM VALUE VALUES
-  (1, 'admin', '$2b$12$LEFrDu6a77FlYOEDQeKtU.TQHAkpW9iFs8E0e/Awt6F.PfiRK9UUO', 'admin', 'Ricardo', 'Cidale', 'The Norfolk AI Group', NULL, 'Partner', 2, NULL),
-  (2, 'rosario@kitcapital.com', '$2b$12$Mu44raajtDj0ziaX9rBrze37JJei1rd7.zKAYzEZKrXlYYT/qqL4q', 'partner', 'Rosario', 'David', 'KIT Capital', NULL, 'COO', 1, NULL),
-  (4, 'kit@kitcapital.com', '$2b$12$Rdwzg7sKCitjg1uh.9XTh.PHuhkDpjyMMQYoyPd1LnTwuAeagXjku', 'partner', 'Dov', 'Tuzman', 'KIT Capital', NULL, 'Principal', 1, NULL),
-  (6, 'checker@norfolkgroup.io', '$2b$12$W.PjaLvNEaABPiCgl5BarOR06IGkAQlHFalWYQuLxzZSnJa.iOMaO', 'checker', 'Checker', NULL, 'Norfolk AI', NULL, 'Checker', 2, NULL),
-  (8, 'reynaldo.fagundes@norfolk.ai', '$2b$12$aydqk0KCG53UqgPfTPjfc.8D2dG3/be0oVvDfjqOogd80FUhIYAL2', 'partner', 'Reynaldo', 'Fagundes', 'Norfolk AI', NULL, 'CTO', 2, NULL),
-  (9, 'lemazniku@icloud.com', '$2b$12$3NeyqaN1WO1Du7BBE15UUuDuXFyA2FdoagYnrRIGxyfXILt0xsQES', 'partner', 'Lea', 'Mazniku', 'KIT Capital', NULL, 'Partner', 1, NULL),
-  (10, 'leslie@cidale.com', '$2b$12$qteDJQIl0arFbXeTX9F9sedImkyb8fybK1GuIbBq/fkRpiZgQWWoy', 'partner', 'Leslie', 'Cidale', 'Numeratti Endeavors', NULL, 'Senior Partner', 3, NULL),
-  (11, 'wlaruffa@gmail.com', '$2b$12$zgCQMEpmemJfZcazxUXshu4P5yK1OsIdRdEWgTFSiNA2xiOKHS1xC', 'partner', 'William', 'Laruffa', 'Independent', NULL, 'Partner', 3, NULL)
-ON CONFLICT (id) DO UPDATE SET
-  email = EXCLUDED.email, role = EXCLUDED.role, first_name = EXCLUDED.first_name,
-  last_name = EXCLUDED.last_name, company = EXCLUDED.company, title = EXCLUDED.title,
-  user_group_id = EXCLUDED.user_group_id;
+INSERT INTO users (id, email, password_hash, role, first_name, last_name, company, company_id, title, selected_theme_id) OVERRIDING SYSTEM VALUE VALUES
+  (1, 'admin', '$2b$12$LEFrDu6a77FlYOEDQeKtU.TQHAkpW9iFs8E0e/Awt6F.PfiRK9UUO', 'admin', 'Ricardo', 'Cidale', 'The Norfolk AI Group', NULL, 'Partner', NULL),
+  (2, 'rosario@kitcapital.com', '$2b$12$Mu44raajtDj0ziaX9rBrze37JJei1rd7.zKAYzEZKrXlYYT/qqL4q', 'partner', 'Rosario', 'David', 'KIT Capital', NULL, 'COO', NULL),
+  (4, 'kit@kitcapital.com', '$2b$12$Rdwzg7sKCitjg1uh.9XTh.PHuhkDpjyMMQYoyPd1LnTwuAeagXjku', 'partner', 'Dov', 'Tuzman', 'KIT Capital', NULL, 'Principal', NULL),
+  (6, 'checker@norfolkgroup.io', '$2b$12$W.PjaLvNEaABPiCgl5BarOR06IGkAQlHFalWYQuLxzZSnJa.iOMaO', 'checker', 'Checker', NULL, 'Norfolk AI', NULL, 'Checker', NULL),
+  (8, 'reynaldo.fagundes@norfolk.ai', '$2b$12$aydqk0KCG53UqgPfTPjfc.8D2dG3/be0oVvDfjqOogd80FUhIYAL2', 'partner', 'Reynaldo', 'Fagundes', 'Norfolk AI', NULL, 'CTO', NULL),
+  (9, 'lemazniku@icloud.com', '$2b$12$3NeyqaN1WO1Du7BBE15UUuDuXFyA2FdoagYnrRIGxyfXILt0xsQES', 'partner', 'Lea', 'Mazniku', 'KIT Capital', NULL, 'Partner', NULL),
+  (10, 'leslie@cidale.com', '$2b$12$qteDJQIl0arFbXeTX9F9sedImkyb8fybK1GuIbBq/fkRpiZgQWWoy', 'partner', 'Leslie', 'Cidale', 'Numeratti Endeavors', NULL, 'Senior Partner', NULL),
+  (11, 'wlaruffa@gmail.com', '$2b$12$zgCQMEpmemJfZcazxUXshu4P5yK1OsIdRdEWgTFSiNA2xiOKHS1xC', 'partner', 'William', 'Laruffa', 'Independent', NULL, 'Partner', NULL)
+ON CONFLICT (email) DO UPDATE SET
+  role = EXCLUDED.role, first_name = EXCLUDED.first_name,
+  last_name = EXCLUDED.last_name, company = EXCLUDED.company, title = EXCLUDED.title;
 
 -- =============================================================================
 -- GLOBAL ASSUMPTIONS
+-- The runtime seeder in server/seed.ts treats this as a singleton on
+-- `user_id IS NULL` (the shared "company defaults" row). To match that, we
+-- insert with user_id = NULL (no longer 1) and let the sequence assign id.
+-- The conflict target is the partial unique index uq_global_assumptions_user
+-- (COALESCE(user_id, -1)) defined at the top of this script.
 -- =============================================================================
 INSERT INTO global_assumptions (
-  id, user_id, model_start_date, inflation_rate, base_management_fee, incentive_management_fee,
+  user_id, model_start_date, inflation_rate, base_management_fee, incentive_management_fee,
   staff_salary, travel_cost_per_client, it_license_per_client, marketing_rate, misc_ops_rate,
   office_lease_start, professional_services_start, tech_infra_start, business_insurance_start,
   standard_acq_package, debt_assumptions, commission_rate, fixed_cost_escalation_rate,
@@ -119,8 +263,8 @@ INSERT INTO global_assumptions (
   company_phone, company_email, company_website, company_ein, company_founding_year,
   company_street_address, company_city, company_state_province, company_country, company_zip_postal_code,
   icp_config, research_config
-) OVERRIDING SYSTEM VALUE VALUES (
-  7, 1, '2026-04-01', 0.03, 0.085, 0.12,
+) VALUES (
+  NULL, '2026-04-01', 0.03, 0.085, 0.12,
   75000, 12000, 3000, 0.05, 0.03,
   36000, 24000, 18000, 12000,
   '{"monthsToOps": 6, "purchasePrice": 3800000, "preOpeningCosts": 200000, "operatingReserve": 250000, "buildingImprovements": 1200000}', '{"acqLTV": 0.75, "refiLTV": 0.75, "interestRate": 0.09, "amortizationYears": 25, "acqClosingCostRate": 0.02, "refiClosingCostRate": 0.03}', 0.05, 0.03,
@@ -145,8 +289,7 @@ INSERT INTO global_assumptions (
   '{"guestSegments": [{"name": "Corporate Retreats", "weight": 0.30, "avgGroupSize": 25, "avgStayNights": 3, "seasonality": "year-round"}, {"name": "Luxury Leisure", "weight": 0.25, "avgGroupSize": 2, "avgStayNights": 4, "seasonality": "peak"}, {"name": "Weddings & Social Events", "weight": 0.20, "avgGroupSize": 80, "avgStayNights": 2, "seasonality": "spring-fall"}, {"name": "Wellness Retreats", "weight": 0.15, "avgGroupSize": 12, "avgStayNights": 5, "seasonality": "year-round"}, {"name": "Adventure & Experiential", "weight": 0.10, "avgGroupSize": 6, "avgStayNights": 3, "seasonality": "seasonal"}], "demographics": {"ageRange": "35-65", "incomeLevel": "HHI $250K+", "geography": "US East Coast, Latin America, International", "travelStyle": "Experiential luxury, privacy-focused"}, "bookingBehavior": {"leadTimeDays": 90, "directBookingPct": 0.60, "repeatGuestPct": 0.35, "avgRevenuePerGuest": 1200}}',
   '{"property": {"enabled": true, "focusAreas": ["boutique hospitality", "luxury lodging", "event venues", "F&B operations", "wellness tourism"], "regions": ["US Northeast", "US Mountain West", "Colombia", "Latin America"], "timeHorizon": "10-year", "customInstructions": "Focus on boutique hotels with 10-80 rooms, event-driven revenue models, and properties on 10+ acre estates. Emphasize AI-driven operations and technology integration.", "customQuestions": "", "enabledTools": []}, "company": {"enabled": true, "focusAreas": ["hospitality management companies", "hotel investment", "PropTech", "AI in hospitality"], "regions": ["United States", "Latin America"], "timeHorizon": "5-year", "customInstructions": "Research AI-powered hospitality management trends, boutique hotel acquisition strategies, and technology-driven operational efficiencies.", "customQuestions": "", "enabledTools": []}}'
 )
-ON CONFLICT (id) DO UPDATE SET
-  user_id = EXCLUDED.user_id,
+ON CONFLICT ((COALESCE(user_id, -1))) DO UPDATE SET
   model_start_date = EXCLUDED.model_start_date, inflation_rate = EXCLUDED.inflation_rate,
   base_management_fee = EXCLUDED.base_management_fee, incentive_management_fee = EXCLUDED.incentive_management_fee,
   staff_salary = EXCLUDED.staff_salary, travel_cost_per_client = EXCLUDED.travel_cost_per_client,
@@ -231,7 +374,7 @@ INSERT INTO properties (
   '{"adr": {"mid": 180, "source": "seed", "display": "$120–$260"}, "costFB": {"mid": 9, "source": "seed", "display": "7%–12%"}, "costIT": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "capRate": {"mid": 10.5, "source": "seed", "display": "9%–12%"}, "costFFE": {"mid": 4, "source": "seed", "display": "3%–5%"}, "catering": {"mid": 30, "source": "seed", "display": "25%–35%"}, "svcFeeIT": {"mid": 0.5, "source": "seed", "display": "0.3%–0.8%"}, "costAdmin": {"mid": 4, "source": "seed", "display": "3%–6%"}, "costOther": {"mid": 5, "source": "seed", "display": "3%–6%"}, "incomeTax": {"mid": 35, "source": "seed", "display": "30%–38%"}, "landValue": {"mid": 15, "source": "seed", "display": "10%–20%"}, "occupancy": {"mid": 62, "source": "seed", "display": "55%–70%"}, "rampMonths": {"mid": 18, "source": "seed", "display": "12–24 mo"}, "incentiveFee": {"mid": 10, "source": "seed", "display": "8%–12%"}, "costInsurance": {"mid": 0.3, "source": "seed", "display": "0.2%–0.5%"}, "costMarketing": {"mid": 2, "source": "seed", "display": "1%–3%"}, "costUtilities": {"mid": 2.5, "source": "seed", "display": "2%–3.5%"}, "startOccupancy": {"mid": 40, "source": "seed", "display": "30%–45%"}, "costPropertyOps": {"mid": 3, "source": "seed", "display": "2%–4%"}, "svcFeeMarketing": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costHousekeeping": {"mid": 14, "source": "seed", "display": "10%–18%"}, "svcFeeAccounting": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costPropertyTaxes": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "svcFeeGeneralMgmt": {"mid": 1, "source": "seed", "display": "0.7%–1.2%"}, "svcFeeReservations": {"mid": 1.5, "source": "seed", "display": "1%–2%"}}',
   1, 3
 )
-ON CONFLICT (id) DO UPDATE SET
+ON CONFLICT (name) DO UPDATE SET
   name = EXCLUDED.name, location = EXCLUDED.location, market = EXCLUDED.market, image_url = EXCLUDED.image_url,
   status = EXCLUDED.status, acquisition_date = EXCLUDED.acquisition_date, operations_start_date = EXCLUDED.operations_start_date,
   purchase_price = EXCLUDED.purchase_price, building_improvements = EXCLUDED.building_improvements,
@@ -293,7 +436,7 @@ INSERT INTO properties (
   '{"adr": {"mid": 310, "source": "seed", "display": "$240–$380"}, "costFB": {"mid": 9, "source": "seed", "display": "7%–12%"}, "costIT": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "capRate": {"mid": 8.5, "source": "seed", "display": "7.5%–9.5%"}, "costFFE": {"mid": 4, "source": "seed", "display": "3%–5%"}, "catering": {"mid": 28, "source": "seed", "display": "22%–35%"}, "svcFeeIT": {"mid": 0.5, "source": "seed", "display": "0.3%–0.8%"}, "costAdmin": {"mid": 5.5, "source": "seed", "display": "4%–7%"}, "costOther": {"mid": 5, "source": "seed", "display": "3%–6%"}, "incomeTax": {"mid": 30, "source": "seed", "display": "28%–33%"}, "landValue": {"mid": 30, "source": "seed", "display": "25%–35%"}, "occupancy": {"mid": 68, "source": "seed", "display": "60%–75%"}, "rampMonths": {"mid": 15, "source": "seed", "display": "12–18 mo"}, "incentiveFee": {"mid": 10, "source": "seed", "display": "8%–12%"}, "costInsurance": {"mid": 0.5, "source": "seed", "display": "0.3%–0.7%"}, "costMarketing": {"mid": 2, "source": "seed", "display": "1%–3%"}, "costUtilities": {"mid": 4.5, "source": "seed", "display": "3.5%–5.5%"}, "startOccupancy": {"mid": 45, "source": "seed", "display": "35%–50%"}, "costPropertyOps": {"mid": 4, "source": "seed", "display": "3%–5%"}, "svcFeeMarketing": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costHousekeeping": {"mid": 18, "source": "seed", "display": "14%–22%"}, "svcFeeAccounting": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costPropertyTaxes": {"mid": 2.2, "source": "seed", "display": "1.8%–2.8%"}, "svcFeeGeneralMgmt": {"mid": 1, "source": "seed", "display": "0.7%–1.2%"}, "svcFeeReservations": {"mid": 1.5, "source": "seed", "display": "1%–2%"}}',
   1, 3
 )
-ON CONFLICT (id) DO UPDATE SET
+ON CONFLICT (name) DO UPDATE SET
   name = EXCLUDED.name, location = EXCLUDED.location, market = EXCLUDED.market, image_url = EXCLUDED.image_url,
   status = EXCLUDED.status, acquisition_date = EXCLUDED.acquisition_date, operations_start_date = EXCLUDED.operations_start_date,
   purchase_price = EXCLUDED.purchase_price, building_improvements = EXCLUDED.building_improvements,
@@ -355,7 +498,7 @@ INSERT INTO properties (
   '{"adr": {"mid": 350, "source": "seed", "display": "$280–$450"}, "costFB": {"mid": 9, "source": "seed", "display": "7%–12%"}, "costIT": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "capRate": {"mid": 7.5, "source": "seed", "display": "6.5%–8.5%"}, "costFFE": {"mid": 4, "source": "seed", "display": "3%–5%"}, "catering": {"mid": 30, "source": "seed", "display": "25%–35%"}, "svcFeeIT": {"mid": 0.5, "source": "seed", "display": "0.3%–0.8%"}, "costAdmin": {"mid": 5, "source": "seed", "display": "4%–7%"}, "costOther": {"mid": 5, "source": "seed", "display": "3%–6%"}, "incomeTax": {"mid": 31, "source": "seed", "display": "29%–34%"}, "landValue": {"mid": 40, "source": "seed", "display": "30%–50%"}, "occupancy": {"mid": 76, "source": "seed", "display": "70%–82%"}, "rampMonths": {"mid": 18, "source": "seed", "display": "12–24 mo"}, "incentiveFee": {"mid": 10, "source": "seed", "display": "8%–12%"}, "costInsurance": {"mid": 0.6, "source": "seed", "display": "0.4%–0.8%"}, "costMarketing": {"mid": 2, "source": "seed", "display": "1%–3%"}, "costUtilities": {"mid": 4.2, "source": "seed", "display": "3.5%–5%"}, "startOccupancy": {"mid": 40, "source": "seed", "display": "30%–45%"}, "costPropertyOps": {"mid": 4, "source": "seed", "display": "3%–5%"}, "svcFeeMarketing": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costHousekeeping": {"mid": 20, "source": "seed", "display": "15%–22%"}, "svcFeeAccounting": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costPropertyTaxes": {"mid": 2.5, "source": "seed", "display": "1.8%–3.5%"}, "svcFeeGeneralMgmt": {"mid": 1, "source": "seed", "display": "0.7%–1.2%"}, "svcFeeReservations": {"mid": 1.5, "source": "seed", "display": "1%–2%"}}',
   1, 3
 )
-ON CONFLICT (id) DO UPDATE SET
+ON CONFLICT (name) DO UPDATE SET
   name = EXCLUDED.name, location = EXCLUDED.location, market = EXCLUDED.market, image_url = EXCLUDED.image_url,
   status = EXCLUDED.status, acquisition_date = EXCLUDED.acquisition_date, operations_start_date = EXCLUDED.operations_start_date,
   purchase_price = EXCLUDED.purchase_price, building_improvements = EXCLUDED.building_improvements,
@@ -417,7 +560,7 @@ INSERT INTO properties (
   '{"adr": {"mid": 380, "source": "seed", "display": "$300–$475"}, "costFB": {"mid": 8, "source": "seed", "display": "6%–10%"}, "costIT": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "capRate": {"mid": 8, "source": "seed", "display": "7%–9%"}, "costFFE": {"mid": 4, "source": "seed", "display": "3%–5%"}, "catering": {"mid": 32, "source": "seed", "display": "25%–40%"}, "svcFeeIT": {"mid": 0.5, "source": "seed", "display": "0.3%–0.8%"}, "costAdmin": {"mid": 5, "source": "seed", "display": "4%–7%"}, "costOther": {"mid": 5, "source": "seed", "display": "3%–6%"}, "incomeTax": {"mid": 25, "source": "seed", "display": "24%–26%"}, "landValue": {"mid": 30, "source": "seed", "display": "25%–35%"}, "occupancy": {"mid": 65, "source": "seed", "display": "58%–72%"}, "rampMonths": {"mid": 14, "source": "seed", "display": "10–18 mo"}, "incentiveFee": {"mid": 10, "source": "seed", "display": "8%–12%"}, "costInsurance": {"mid": 0.4, "source": "seed", "display": "0.3%–0.6%"}, "costMarketing": {"mid": 2, "source": "seed", "display": "1%–3%"}, "costUtilities": {"mid": 4.5, "source": "seed", "display": "3.5%–5.5%"}, "startOccupancy": {"mid": 42, "source": "seed", "display": "35%–50%"}, "costPropertyOps": {"mid": 4, "source": "seed", "display": "3%–5%"}, "svcFeeMarketing": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costHousekeeping": {"mid": 19, "source": "seed", "display": "15%–22%"}, "svcFeeAccounting": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costPropertyTaxes": {"mid": 0.9, "source": "seed", "display": "0.7%–1.2%"}, "svcFeeGeneralMgmt": {"mid": 1, "source": "seed", "display": "0.7%–1.2%"}, "svcFeeReservations": {"mid": 1.5, "source": "seed", "display": "1%–2%"}}',
   1, NULL
 )
-ON CONFLICT (id) DO UPDATE SET
+ON CONFLICT (name) DO UPDATE SET
   name = EXCLUDED.name, location = EXCLUDED.location, market = EXCLUDED.market, image_url = EXCLUDED.image_url,
   status = EXCLUDED.status, acquisition_date = EXCLUDED.acquisition_date, operations_start_date = EXCLUDED.operations_start_date,
   purchase_price = EXCLUDED.purchase_price, building_improvements = EXCLUDED.building_improvements,
@@ -478,7 +621,7 @@ INSERT INTO properties (
   '{"adr": {"mid": 370, "source": "seed", "display": "$280–$475"}, "costFB": {"mid": 9, "source": "seed", "display": "7%–12%"}, "costIT": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "capRate": {"mid": 8.5, "source": "seed", "display": "8%–9.5%"}, "costFFE": {"mid": 4, "source": "seed", "display": "3%–5%"}, "catering": {"mid": 36, "source": "seed", "display": "30%–42%"}, "svcFeeIT": {"mid": 0.5, "source": "seed", "display": "0.3%–0.8%"}, "costAdmin": {"mid": 5, "source": "seed", "display": "4%–7%"}, "costOther": {"mid": 5, "source": "seed", "display": "3%–6%"}, "incomeTax": {"mid": 25, "source": "seed", "display": "24%–26%"}, "landValue": {"mid": 20, "source": "seed", "display": "15%–25%"}, "occupancy": {"mid": 62, "source": "seed", "display": "55%–70%"}, "rampMonths": {"mid": 18, "source": "seed", "display": "12–24 mo"}, "incentiveFee": {"mid": 10, "source": "seed", "display": "8%–12%"}, "costInsurance": {"mid": 0.4, "source": "seed", "display": "0.3%–0.5%"}, "costMarketing": {"mid": 2, "source": "seed", "display": "1%–3%"}, "costUtilities": {"mid": 4.2, "source": "seed", "display": "3.5%–5%"}, "startOccupancy": {"mid": 40, "source": "seed", "display": "30%–45%"}, "costPropertyOps": {"mid": 4, "source": "seed", "display": "3%–5%"}, "svcFeeMarketing": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costHousekeeping": {"mid": 20, "source": "seed", "display": "15%–22%"}, "svcFeeAccounting": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costPropertyTaxes": {"mid": 0.8, "source": "seed", "display": "0.6%–1.2%"}, "svcFeeGeneralMgmt": {"mid": 1, "source": "seed", "display": "0.7%–1.2%"}, "svcFeeReservations": {"mid": 1.5, "source": "seed", "display": "1%–2%"}}',
   1, NULL
 )
-ON CONFLICT (id) DO UPDATE SET
+ON CONFLICT (name) DO UPDATE SET
   name = EXCLUDED.name, location = EXCLUDED.location, market = EXCLUDED.market, image_url = EXCLUDED.image_url,
   status = EXCLUDED.status, acquisition_date = EXCLUDED.acquisition_date, operations_start_date = EXCLUDED.operations_start_date,
   purchase_price = EXCLUDED.purchase_price, building_improvements = EXCLUDED.building_improvements,
@@ -539,7 +682,7 @@ INSERT INTO properties (
   '{"adr": {"mid": 220, "source": "seed", "display": "$160–$280"}, "costFB": {"mid": 9, "source": "seed", "display": "7%–12%"}, "costIT": {"mid": 0.8, "source": "seed", "display": "0.5%–1.2%"}, "capRate": {"mid": 9.5, "source": "seed", "display": "8.5%–11%"}, "costFFE": {"mid": 4, "source": "seed", "display": "3%–5%"}, "catering": {"mid": 28, "source": "seed", "display": "22%–35%"}, "svcFeeIT": {"mid": 0.5, "source": "seed", "display": "0.3%–0.8%"}, "costAdmin": {"mid": 5, "source": "seed", "display": "3%–6%"}, "costOther": {"mid": 4, "source": "seed", "display": "3%–5%"}, "incomeTax": {"mid": 35, "source": "seed", "display": "33%–38%"}, "landValue": {"mid": 30, "source": "seed", "display": "25%–35%"}, "occupancy": {"mid": 70, "source": "seed", "display": "62%–78%"}, "rampMonths": {"mid": 18, "source": "seed", "display": "14–24 mo"}, "incentiveFee": {"mid": 10, "source": "seed", "display": "8%–12%"}, "costInsurance": {"mid": 0.4, "source": "seed", "display": "0.3%–0.6%"}, "costMarketing": {"mid": 2, "source": "seed", "display": "1%–3%"}, "costUtilities": {"mid": 3, "source": "seed", "display": "2%–4%"}, "startOccupancy": {"mid": 38, "source": "seed", "display": "30%–45%"}, "costPropertyOps": {"mid": 3.5, "source": "seed", "display": "2.5%–4.5%"}, "svcFeeMarketing": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costHousekeeping": {"mid": 15, "source": "seed", "display": "11%–18%"}, "svcFeeAccounting": {"mid": 1, "source": "seed", "display": "0.5%–1.5%"}, "costPropertyTaxes": {"mid": 1.5, "source": "seed", "display": "1%–2%"}, "svcFeeGeneralMgmt": {"mid": 1, "source": "seed", "display": "0.7%–1.2%"}, "svcFeeReservations": {"mid": 1.5, "source": "seed", "display": "1%–2%"}}',
   1, NULL
 )
-ON CONFLICT (id) DO UPDATE SET
+ON CONFLICT (name) DO UPDATE SET
   name = EXCLUDED.name, location = EXCLUDED.location, market = EXCLUDED.market, image_url = EXCLUDED.image_url,
   status = EXCLUDED.status, acquisition_date = EXCLUDED.acquisition_date, operations_start_date = EXCLUDED.operations_start_date,
   purchase_price = EXCLUDED.purchase_price, building_improvements = EXCLUDED.building_improvements,
@@ -568,12 +711,11 @@ ON CONFLICT (id) DO UPDATE SET
   research_values = EXCLUDED.research_values, user_id = EXCLUDED.user_id;
 
 -- =============================================================================
--- USER GROUP PROPERTIES (link Norfolk AI Group to all 6 properties)
+-- USER GROUP PROPERTIES
+-- The user_group_properties table was removed from the schema; this section
+-- is intentionally left blank so the transaction does not fail on the
+-- missing table.
 -- =============================================================================
-DELETE FROM user_group_properties WHERE user_group_id = 2;
-INSERT INTO user_group_properties (user_group_id, property_id) VALUES
-  (2, 32), (2, 33), (2, 35), (2, 39), (2, 41), (2, 43)
-ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- PROPERTY DESCRIPTIONS
@@ -587,10 +729,10 @@ UPDATE properties SET description = 'A colonial boutique hotel in Cartagena''s h
 
 -- =============================================================================
 -- PROPERTY FEE CATEGORIES (8 categories matching service templates)
--- Delete all and reinsert to ensure clean state
+-- Upserted by (property_id, name) — matches the runtime seedFeeCategories
+-- iteration in server/seeds/properties.ts and avoids wiping any user-added
+-- categories on re-run.
 -- =============================================================================
-DELETE FROM property_fee_categories;
-
 INSERT INTO property_fee_categories (id, property_id, name, rate, is_active, sort_order) OVERRIDING SYSTEM VALUE VALUES
   (21, 32, 'Marketing', 0.02, TRUE, 1),
   (22, 32, 'IT', 0.01, TRUE, 2),
@@ -639,7 +781,9 @@ INSERT INTO property_fee_categories (id, property_id, name, rate, is_active, sor
   (40, 43, 'General Management', 0.02, TRUE, 5),
   (65, 43, 'Insurance', 0.01, TRUE, 6),
   (66, 43, 'Property Operations', 0.01, TRUE, 7),
-  (67, 43, 'Other Services', 0.01, TRUE, 8);
+  (67, 43, 'Other Services', 0.01, TRUE, 8)
+ON CONFLICT (property_id, name) DO UPDATE SET
+  rate = EXCLUDED.rate, is_active = EXCLUDED.is_active, sort_order = EXCLUDED.sort_order;
 
 -- =============================================================================
 -- MARKET RESEARCH
@@ -654,21 +798,21 @@ UPDATE market_research SET title = 'Market Research: Jano Grande Ranch' WHERE id
 -- =============================================================================
 INSERT INTO research_questions (id, question, sort_order) OVERRIDING SYSTEM VALUE VALUES
   (1, 'What is the average wellness retreat pricing in Costa Rica?', 0)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (question) DO NOTHING;
 
 -- =============================================================================
 -- SAVED SEARCHES
 -- =============================================================================
 INSERT INTO saved_searches (id, user_id, name, location, price_min, price_max, beds_min, lot_size_min, property_type) OVERRIDING SYSTEM VALUE VALUES
   (1, 1, 'One', 'Austin', 1000000, 5000000, 4, 1, NULL)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (user_id, name) DO NOTHING;
 
 -- =============================================================================
 -- RESET SEQUENCES to max(id) + 1
 -- =============================================================================
 SELECT setval('companies_id_seq', COALESCE((SELECT MAX(id) FROM companies), 0) + 1, false);
 SELECT setval('logos_id_seq', COALESCE((SELECT MAX(id) FROM logos), 0) + 1, false);
-SELECT setval('user_groups_id_seq', COALESCE((SELECT MAX(id) FROM user_groups), 0) + 1, false);
+-- user_groups_id_seq removed: the user_groups table no longer exists.
 SELECT setval('design_themes_id_seq', COALESCE((SELECT MAX(id) FROM design_themes), 0) + 1, false);
 SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 0) + 1, false);
 SELECT setval('global_assumptions_id_seq', COALESCE((SELECT MAX(id) FROM global_assumptions), 0) + 1, false);
