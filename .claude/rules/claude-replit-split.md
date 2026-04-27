@@ -1,32 +1,42 @@
 # Claude Code / Replit Agent — Division of Labor
 
-> **Revised 2026-04-22** — Tightens CC's coding lane after observed rewrite churn. CC now codes only by explicit delegation. See [Revision history](#revision-history) at the bottom for the full delta vs. the prior version.
+> **Revised 2026-04-27** — Replit's lane is now narrowed to UI/UX only. Every other lane (engine, server/ai, server/routes, schema, seeds, tests, doctrine, packets, scripts, config, package management) is CC's. Reverses the broader lanes Replit held in prior revisions. See [Revision history](#revision-history) for the full delta.
 
 ## Rule
 
 This project uses two AI coding agents. Each owns specific categories of
-work. **Claude Code advises and plans; Replit Agent executes by default.**
-Claude Code may write code only when Replit Agent explicitly delegates the
-work, and only against an atomic execution packet that Claude Code itself
-authored.
+work. **Claude Code owns everything that is not visibly UI; Replit Agent owns
+the UI and UX.** CC writes engine code, server code, route handlers, tests,
+schema, seeds, doctrine, packets, and scripts. Replit writes React
+components, CSS, pages, and fixes UI/UX bugs that need browser iteration.
 
 ## Hard split
 
 | Category | Owner | Reason |
 |---|---|---|
 | Audits, reviews, architectural decisions, plans, ADRs | **Claude Code** | Static analysis + multi-file context + authoritative rule checks |
-| `.claude/**` docs, rules, session memory, skill files, handoff packages | **Claude Code** | Single source of truth for project knowledge |
-| Atomic execution packets (the contract Replit consumes) | **Claude Code** | Decomposition is the load-bearing work; large audits without atomic packets cause rework |
-| **Research + intelligence code** (engine/analyst, server/ai, calc/research, prompt-builders, cognitive engine, verdict reconstruction, prompt-engineer stage, regress logic, vendor routing) | **Claude Code** (added 2026-04-26 per Ricardo's "AI should be AI" directive) | Senior AI-engine-architect work — multi-file context + cross-vendor model knowledge + prompt design judgment. Code as a senior architect; use Opus tier. |
-| Pure refactors (type-only, docstring-only, constant-substitution across files) | **Replit Agent by default; Claude Code by explicit delegation only** | See [§ Explicit-delegation lane](#explicit-delegation-lane) |
-| UI changes (React components, CSS, page layouts, user-facing text) | **Replit Agent** | Needs the running dev server to verify visually |
-| Workflow + page wiring (route handlers that ferry research output to UI; admin pages; navigation; tabs) | **Replit Agent** | UI-adjacent integration; benefits from dev-server iteration |
-| Database schema changes (new columns, migrations, indexes) | **Replit Agent** | Needs the live Postgres instance to apply migrations |
-| Seed data edits, seed backfill scripts | **Replit Agent** | Needs the live DB to verify no data loss |
-| Environment variables, Replit Secrets, `.replit`, `replit.nix` | **Replit Agent** | Deployment-affecting; owned by the running container |
-| Package-level changes (`package.json`, `npm install`) | **Replit Agent** | Changes the build/runtime |
-| Feature implementation against an accepted ADR | **Replit Agent** for UI / workflow / DB; **Claude Code** for research / intelligence (per the new lane above) | Two-track execution after ADR acceptance |
-| End-to-end verification (clicking through flows, checking exports, browser smoke tests) | **Replit Agent** | Has the running browser session |
+| `.claude/**` docs, rules, session memory, skill files, handoff packets | **Claude Code** | Single source of truth for project knowledge |
+| **Engine code** (`engine/**`) — analyst, watchdog, cognitive, contracts, router, voice, quality | **Claude Code** | AI-engine-architect work; multi-file context essential |
+| **Server AI code** (`server/ai/**`) — research orchestrator, specialists, prompt builders, adapters, clients | **Claude Code** | AI-engine-architect work; cross-vendor model knowledge |
+| **Server routes** (`server/routes/**`) — every route handler, including AnalystButton-triggered routes | **Claude Code** | Route handlers ARE the bridge between engine and UI; semantic source-of-truth lives server-side |
+| **Server non-UI code** (`server/**` except `server/static/`) — auth, storage, helpers, middleware | **Claude Code** | Server-side correctness + invariants |
+| **Shared types + schema** (`shared/**`) — schema, types, constants | **Claude Code** | Single source of truth; cross-cutting impact |
+| **Calc tools** (`calc/**`) — deterministic financial + research tools | **Claude Code** | Pure functions with strict invariant tests |
+| **Tests** (`tests/**`) — engine, calc, integration, proof, audit | **Claude Code** | Tests gate every commit; CC owns gate authority |
+| **Scripts** (`script/**`) — seeds, automations, migrations, audits | **Claude Code** | Mostly server/data-shape work |
+| **DB schema, migrations, seeds** | **Claude Code** | Schema changes ripple through engine + types + tests |
+| **Package management** (`package.json`, `pnpm.overrides`, dependencies) | **Claude Code** | Affects build/runtime + security posture |
+| **Config files** (`tsconfig.json`, `vitest.config.ts`, `.replit`, `replit.nix`, `.eslintrc*`) | **Claude Code** | Build/test/lint plumbing |
+| Atomic execution packets (when CC needs to delegate visible UI work to Replit) | **Claude Code authors** | Decomposition is load-bearing |
+| **UI components** (`client/src/components/**`) — React components, shadcn composition | **Replit Agent** | Visual; benefits from dev-server iteration |
+| **Pages** (`client/src/pages/**`) — page-level UI composition + layout | **Replit Agent** | Visual; user-facing surface |
+| **Styles** (`client/src/styles/**`, `client/src/index.css`, Tailwind class composition) | **Replit Agent** | Visual; needs browser to verify |
+| **UI features** (`client/src/features/**` UI portions) | **Replit Agent** | Visual |
+| **User-facing copy in JSX** | **Replit Agent** | Visible to users; vocabulary-test gate applies |
+| **UI/UX bug fixes** | **Replit Agent** | Visual regressions; browser iteration |
+| **End-to-end browser verification** (clicking through flows, checking visible state) | **Replit Agent** | Has the dev-server browser session |
+| **Client hooks bridging UI to server** (`client/src/hooks/**` that wire to server APIs) | **Claude Code** unless purely UI state | Semantic source-of-truth is server-side; hooks that own server-shape are CC's |
+| **Client-side type definitions mirroring server contracts** (`client/src/lib/api/**`, `client/src/lib/types/**`) | **Claude Code** | Contract drift detection needs server context |
 
 ## How handoffs work
 
@@ -121,8 +131,7 @@ phase, any net-new feature, any architectural refactor.
 
 ## Guardrails (both agents must respect)
 
-1. **Claude never pushes UI or DB migrations to `main`.** If Claude finds
-   such a change is needed mid-audit, it writes a packet and stops.
+1. **Claude never pushes UI changes to `main`.** UI is Replit's lane; if CC finds a UI change is needed mid-execution, it writes a packet handed to Replit and stops on the UI portion. (Per 2026-04-27 revision: DB migrations and other non-UI work are now CC's lane and may land directly on `main` when gates pass.)
 2. **Replit never silently diverges from the packet.** If Replit sees
    a problem during execution, it must file a comment on the packet
    (or a `BLOCKED.md` sibling file) and stop — not improvise.
@@ -191,6 +200,25 @@ but they should still prefer the packet pattern for any UI/DB work.
 ---
 
 ## Revision history
+
+### 2026-04-27 — Replit narrowed to UI/UX only
+
+Triggered by Ricardo's directive: *"replit should only be in charge of UI coding and fixing UI and UX issues."* Spoken mid-G1.5c execution after CC was about to file BLOCKED on -b and hand the orchestrator-wrap to Replit. The directive reverses the broader workflow/DB/wiring lane Replit held in the 2026-04-22 + 2026-04-26 revisions.
+
+The new lane boundary:
+
+- **CC owns** every non-UI category: engine, server/ai, server/routes, server/* (non-UI), shared, calc, tests, scripts, schema, seeds, package management, config files, doctrine, packets.
+- **Replit owns** UI components, pages, styles, UI features, user-facing copy in JSX, UI/UX bug fixes, end-to-end browser verification.
+- **Gray zone — client hooks + client API types:** lean CC, because the semantic source-of-truth lives server-side and contract drift detection needs server context. Replit may edit pure-UI-state hooks (e.g., a hook that toggles a modal); anything that mirrors a server contract is CC's.
+- **Two-track work** still applies but the meeting point shifts: CC ships engine + route + everything down to the API contract; Replit ships from the API consumer (component, page, hook-if-pure-UI-state) outward.
+
+Side effects of the tightening:
+
+- Packets that previously listed Replit as Owner for non-UI work were over-scoped to Replit. Going forward, packets default Owner to CC unless the work is provably UI-only.
+- The "explicit-delegation lane" is no longer needed for non-UI work — CC just does it. The lane survives only for the rare cross-cutting case where Replit has UI context CC needs.
+- CC may now edit DB schema, seeds, package.json, and `.replit` directly. The corresponding Guardrail #1 ("Claude never pushes UI or DB migrations to `main`") is rewritten in spirit: "CC may push DB migrations; Claude still never pushes UI changes."
+
+Process discipline (atomic-budget, Doctrine Freeze Gate, agent-collision-hygiene, pre-commit five gates) applies equally regardless of lane.
 
 ### 2026-04-26 — Research/intelligence code is a CC lane
 
