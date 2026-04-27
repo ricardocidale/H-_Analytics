@@ -105,7 +105,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
     switch (tab) {
       case "funding":
         return (
-          <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
             <FundingSection
               formData={formData}
               onChange={onChange}
@@ -128,7 +128,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
         );
       case "compensation":
         return (
-          <>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
             <CompensationSection
               formData={formData} onChange={onChange} global={global}
               researchValues={researchValues}
@@ -137,11 +137,11 @@ export function CompanyAssumptionsTabsView(props: Props) {
               formData={formData} onChange={onChange} global={global}
               modelStartYear={modelStartYear} researchValues={researchValues}
             />
-          </>
+          </div>
         );
       case "overhead":
         return (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
             <FixedOverheadSection
               formData={formData} onChange={onChange} global={global}
               modelStartYear={modelStartYear} researchValues={researchValues}
@@ -154,7 +154,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
         );
       case "property-defaults":
         return (
-          <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
             <PropertyExpenseRatesSection
               formData={formData} onChange={onChange} global={global}
               researchValues={researchValues}
