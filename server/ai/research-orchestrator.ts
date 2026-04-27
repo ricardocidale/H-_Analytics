@@ -21,7 +21,7 @@
  */
 
 import { getAnthropicClient, getGeminiClient, getOpenAIClient } from "./clients";
-import { getAiSdkAnthropic } from "./ai-sdk-clients";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { SynthesisOutputSchema, formatFieldDefinitionsForPrompt, synthesisOutputToLegacyJson } from "./synthesis-schema";
 import { streamObject } from "ai";
 import { generateResearchWithTools } from "./aiResearch";
@@ -481,7 +481,7 @@ export async function* orchestrateResearch(
   // stream mid-flight.
   try {
     const result = streamObject({
-      model: getAiSdkAnthropic()(SYNTHESIS_MODEL),
+      model: createAnthropic()(SYNTHESIS_MODEL),
       schema: SynthesisOutputSchema,
       messages: [
         {

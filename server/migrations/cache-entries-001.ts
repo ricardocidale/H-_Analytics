@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
-const TAG = "[migration] cache-entries-001";
+const _TAG = "[migration] cache-entries-001";
 
 export async function runCacheEntries001(): Promise<void> {
   await db.execute(sql`
