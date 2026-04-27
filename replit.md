@@ -29,6 +29,7 @@ The platform features two AI agents:
 - **Always update claude.md after every task.** Mandatory — no exceptions.
 - **Always update session-memory.md after every task.** Track decisions, architecture changes, industry knowledge, test counts, and session state.
 - **CRITICAL RULE — NEVER navigate to /login or click any login button.** The login page has a Google OAuth button; if the testing agent clicks it, the entire session is permanently blocked by an external OAuth redirect. Instead, authenticate via a direct API call BEFORE any browser navigation.
+- **Assumption Field Naming — Use Industry-Standard Terms.** When naming any Assumption field (display labels, tooltips, registry entries in `engine/analyst/registry/field-registry.ts`, etc.), research the standard term used in real estate, hospitality, and/or finance and use it verbatim. Examples: "ADR" (not "Average Rate"), "RevPAR" (not "Revenue Per Room"), "GOP" (not "Gross Operating Profit Margin"), "Cap Rate" (not "Capitalization Percentage"), "F&B" (not "Food and Beverage" in compact labels), "DSCR" (not "Debt Service Coverage"). Do NOT invent labels from camelCase variable names — look up the canonical industry term first (STR/CBRE/HVS/PwC hospitality reports, NCREIF/ULI real estate, CFA/SEC finance) and pin it in the field registry so the heuristic formatter never has to guess.
 
 ## System Architecture
 
