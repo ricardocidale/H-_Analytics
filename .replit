@@ -143,6 +143,7 @@ PRODUCTION_URL = "https://h-analysis.com"
 [userenv.shared]
 GOOGLE_CLIENT_ID = "565834167960-l2lj72aphqdmhmvm88j657d8ccg6r797.apps.googleusercontent.com"
 STORAGE_PROVIDER = "r2"
+CI = "true"
 
 [postMerge]
 path = "script/post-merge.sh"
