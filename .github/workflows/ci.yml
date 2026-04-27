@@ -117,7 +117,7 @@ jobs:
         # Real-DB tests (tests/db/*.integration.test.ts, admin-resources, etc.)
         # query a fully-migrated schema. Without this step they fail because
         # the postgres service container starts empty.
-        run: pnpm run db:push -- --force
+        run: pnpm run db:push --force
 
       - name: Seed model_defaults from shared/constants.ts
         # tests/proof/defaults-drift.test.ts expects every spec in

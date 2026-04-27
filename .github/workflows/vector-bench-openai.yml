@@ -98,7 +98,7 @@ jobs:
 
       - name: Apply database schema
         if: steps.keycheck.outputs.skip == 'false'
-        run: pnpm run db:push -- --force
+        run: pnpm run db:push --force
 
       - name: Run vector benchmark (OpenAI embeddings)
         if: steps.keycheck.outputs.skip == 'false'
