@@ -479,6 +479,11 @@ export async function* orchestrateResearch(
   // identically to a dual-panel failure. Without this guard, a Zod parse
   // failure would propagate as an uncaught exception and abort the SSE
   // stream mid-flight.
+  const synthesisAbort = new AbortController();
+  const synthesisTimer = setTimeout(
+    () => synthesisAbort.abort(new Error(`Synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+    AI_GENERATION_TIMEOUT_MS,
+  );
   try {
     const result = streamObject({
       model: createAnthropic()(SYNTHESIS_MODEL),
@@ -494,6 +499,7 @@ export async function* orchestrateResearch(
         { role: "user", content: userPrompt },
       ],
       maxOutputTokens: SYNTHESIS_TOKENS,
+      abortSignal: synthesisAbort.signal,
     });
 
     // Drain the partial stream for backpressure but do not forward — the
@@ -502,6 +508,7 @@ export async function* orchestrateResearch(
       void _partial;
     }
     const finalObject = await result.object;
+    clearTimeout(synthesisTimer);
     const legacyEnvelope = synthesisOutputToLegacyJson(finalObject);
     fullContent = JSON.stringify(legacyEnvelope);
     yield { type: "content", data: fullContent };
@@ -522,6 +529,7 @@ export async function* orchestrateResearch(
       }
     }
   } catch (err: unknown) {
+    clearTimeout(synthesisTimer);
     const msg = err instanceof Error ? err.message : String(err);
     gasparLog.warn(`Synthesis streamObject failed: ${msg}`);
     yield {

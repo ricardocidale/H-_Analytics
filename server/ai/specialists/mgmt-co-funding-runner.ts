@@ -24,6 +24,7 @@
 import { streamObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { DEFAULT_FUNDING_SPECIALIST_MODEL } from "@shared/constants";
+import { AI_GENERATION_TIMEOUT_MS } from "../../constants";
 import {
   buildFundingSystemPrompt,
   buildFundingUserPrompt,
@@ -248,6 +249,11 @@ export async function runFundingSpecialist(
 
   let output: FundingSpecialistOutput;
   let cognitiveRunId: string;
+  const opusAbort = new AbortController();
+  const opusTimer = setTimeout(
+    () => opusAbort.abort(new Error(`Funding v1 Opus timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+    AI_GENERATION_TIMEOUT_MS,
+  );
   try {
     // TODO G6-P2 — replace this single-shot Opus call with the N+1 pipeline:
     //   parallel: Gemini Flash (quantitative panel) + Sonnet (market panel)
@@ -268,6 +274,7 @@ export async function runFundingSpecialist(
         { role: "user", content: userPrompt },
       ],
       maxOutputTokens: FUNDING_MAX_OUTPUT_TOKENS,
+      abortSignal: opusAbort.signal,
     });
 
     // Drain partial stream for backpressure (mirrors research-orchestrator
@@ -276,6 +283,7 @@ export async function runFundingSpecialist(
       void _partial;
     }
     output = await result.object;
+    clearTimeout(opusTimer);
 
     // TODO G6-P2 — replace synthesized id with the N+1 orchestrator's
     // structured cognitiveRunId (the real run id from the synthesis phase
@@ -283,6 +291,7 @@ export async function runFundingSpecialist(
     // meta.cognitiveRunId non-null so the ADR-008 invariant doesn't trip.
     cognitiveRunId = `funding-v1-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   } catch (err: unknown) {
+    clearTimeout(opusTimer);
     throw new Tier1UnavailableError(
       `Funding v1 cognitive call failed: ${err instanceof Error ? err.message : String(err)}`,
       err,
