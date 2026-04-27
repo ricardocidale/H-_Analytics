@@ -826,6 +826,12 @@ async function runSchemaMigrations() {
     await runFundingCascade001();
     await markMigrationApplied("funding_cascade_001");
   }
+
+  if (!(await isMigrationApplied("cache_entries_001"))) {
+    const { runCacheEntries001 } = await import("./migrations/cache-entries-001");
+    await runCacheEntries001();
+    await markMigrationApplied("cache_entries_001");
+  }
 }
 
 async function runSeeds() {

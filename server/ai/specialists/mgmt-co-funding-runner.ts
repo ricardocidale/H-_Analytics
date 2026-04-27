@@ -22,7 +22,7 @@
  */
 
 import { streamObject } from "ai";
-import { getAiSdkAnthropic } from "../ai-sdk-clients";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import {
   buildFundingSystemPrompt,
   buildFundingUserPrompt,
@@ -234,8 +234,8 @@ export class Tier1UnavailableError extends Error {
 }
 
 export interface RunFundingSpecialistDeps {
-  /** Optional override for the AI SDK Anthropic factory (tests inject stubs). */
-  getAnthropicModel?: (modelId: string) => ReturnType<ReturnType<typeof getAiSdkAnthropic>>;
+  /** Optional override for the Anthropic model factory (tests inject stubs). */
+  getAnthropicModel?: (modelId: string) => ReturnType<ReturnType<typeof createAnthropic>>;
   /** Optional reference time for verdict generatedAt; tests pass a fixed Date. */
   now?: Date;
 }
@@ -257,7 +257,9 @@ export async function runFundingSpecialist(
   const userPrompt = buildFundingUserPrompt(ctx, benchmarks, comparables);
   const persona = asPersonaContext(ctx.persona);
 
-  const modelFactory = deps.getAnthropicModel ?? getAiSdkAnthropic();
+  // Direct @ai-sdk/anthropic provider — uses ANTHROPIC_API_KEY from env.
+  // No Vercel AI Gateway needed; works on Replit, Railway, any Node host.
+  const modelFactory = deps.getAnthropicModel ?? createAnthropic();
 
   let output: FundingSpecialistOutput;
   let cognitiveRunId: string;
