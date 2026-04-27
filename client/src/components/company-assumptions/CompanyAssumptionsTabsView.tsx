@@ -107,17 +107,21 @@ export function CompanyAssumptionsTabsView(props: Props) {
   const renderBody = (tab: TabKey) => {
     switch (tab) {
       case "funding":
-        // The funding tab grid arranges four cards across three columns:
+        // The funding tab balances four cards across two columns at xl
+        // (the other tabs use three columns, but Capital Raises is now
+        // taller than the rest because the two tranches stack vertically,
+        // so a 3-col layout left columns 2 and 3 visibly short):
         //   col 1 → Capital Raises (the two tranches stacked vertically)
-        //   col 2 → Cost of Capital atop Convertible Terms
-        //   col 3 → Capital Stack Discipline
+        //   col 2 → Cost of Capital → Convertible Terms → Capital Stack
+        //           Discipline (three smaller cards stacked, total height
+        //           ≈ the Capital Raises card)
         // Each named card is composed directly so column 2 can stack the
-        // two cards in a single vertical container. The Analyst verdict
+        // three cards in a single vertical container. The Analyst verdict
         // renders below the grid full-width — the structured 5-dimension
         // stack reads better as one wide column than as a single grid cell.
         return (
           <div className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
+            <div className="grid gap-6 md:grid-cols-2 items-start">
               <CapitalRaisesCard
                 formData={formData}
                 onChange={onChange}
@@ -133,12 +137,12 @@ export function CompanyAssumptionsTabsView(props: Props) {
                   onChange={onChange}
                   global={global}
                 />
+                <CapitalStackDisciplineCard
+                  formData={formData}
+                  onChange={onChange}
+                  global={global}
+                />
               </div>
-              <CapitalStackDisciplineCard
-                formData={formData}
-                onChange={onChange}
-                global={global}
-              />
             </div>
             {fundingVerdict ? (
               <div data-testid="funding-verdict-section">
