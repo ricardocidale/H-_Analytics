@@ -222,6 +222,17 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 27, 2026 — G1.5b shipped + G1.5c packets authored + collision #4
+
+- **G1.5b (Funding Defaults & Assumptions cascade) ✅ Shipped (Replit's lane).** Packet A (`c8881d38`+`6d00d805`): 4 schema cols on `globalAssumptions` (`runwayBufferMonths`, `sizingOvershootPct`, `revenueRampDelayMonths`, `burnFlexDownPct`) + DEFAULT_* constants in `shared/constants-funding.ts:72-75` + model_defaults seed in `script/seed-model-defaults.ts:137-140` + Admin Steady-State UI in `client/src/components/admin/model-defaults/CompanyTab.tsx:172-209`. Packet B (`1bb965e2`): 4 Funding-tab inputs in `FundingSection.tsx:327-418` + form-hook wiring in `useCompanyAssumptionsForm.ts:461-465` (with `trancheGapMonths` derived from the two date fields — design improvement over the original 5-column spec). Follow-up `6e3f7bed` (Task #742): server-side `applyFundingDefaultsOverlay` in `server/finance/apply-funding-defaults.ts` — the load-bearing piece that makes the cascade actually three-tier (without it, NULL globalAssumptions cols fell straight through to constants and bypassed the admin's Steady-State Default).
+- **G1.5c packets authored (CC's lane).** `g1.5c-tier1-deps.md` parent + `-a.md` (engine slice — widen `MgmtCoSpecialistConfigs.funding.deps`, thread to `createFundingSpecialist` at `engine/analyst/surface/mgmt-co/index.ts:203`) + `-b.md` (route slice — build `FundingSpecialistDeps` bundle in `analyst-admin.ts`, re-route Funding scope through `createMgmtCoRouter`, integration test asserting ADR-008 meta fields populated, phases.md G1+G1.5c flip). Atomic budget respected: a (3 sub-steps, 3 files), b (5 sub-steps, 3 files). Replit awaiting execution.
+- **G1 row updated** in `phases.md`: G1.5a + G1.5b-pre + G1.5b all closed; only G1.5c remains. G2 (Revenue graduation) blocked-by chain intact.
+- **Collision #4 (agent-collision-hygiene.md):** Replit's autocommit `b8bee136` ("Update project phases and clarify deployment configuration") swept up CC's `phases.md` G1.5b/G1.5c edit + a 1-byte `client/public/opengraph.jpg` change. Content fully preserved, attribution muddled but accurate. CC's separate `ca54f2c9` packet-trio commit landed cleanly above it. Mitigation: same as prior collisions — commit aggressively across agent boundaries. The repeat says the rule's `git add -A` warning is structural, not behavioral.
+- **Session-memory resume point updated** at `g1_saga_resume_point_2026-04-26.md` (renamed-in-content to 2026-04-27) — superseded prior content so a fresh session jumping in via MEMORY.md sees current state.
+- **Heads-up from Replit's push report (2026-04-27 ~01:13 UTC):** GitHub Dependabot reports 16 alerts on `main` (1 critical, 5 high, 8 moderate, 2 low), pre-existing on default branch, not introduced by the G1.5b push. https://github.com/Norfolk-Group/H-Analytics/security/dependabot. Track separately; not blocking G-saga.
+
+---
+
 ## Persistent Decisions & Preferences
 
 - **projectionYears ≥ 2** for revenue growth direction verification
