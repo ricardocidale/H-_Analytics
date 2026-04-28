@@ -15,6 +15,7 @@ import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from '@shared/constan
 import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_MAX_OCCUPANCY,
+  DEFAULT_PROPERTY_INCOME_TAX_RATE,
 } from '@shared/constants';
 import { getFactoryNumber } from '@shared/model-constants-registry';
 
@@ -164,7 +165,7 @@ export function computePropertyDefaults(
       ? `registry:costRateTaxes:state:${stateProvince}`
       : `registry:costRateTaxes:country:${country}`;
   } else {
-    incomeTaxRate = 0.25;
+    incomeTaxRate = DEFAULT_PROPERTY_INCOME_TAX_RATE;
     depreciationYears = getFactoryNumber('depreciationYears');
     propertyTaxRate = modelDefaults.costRateTaxes;
     sources.incomeTaxRate = "fallback:constants";

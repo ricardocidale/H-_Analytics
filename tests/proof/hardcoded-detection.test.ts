@@ -20,6 +20,8 @@ const FINANCE_ENGINE_FILES = [
   "engine/company/analyzeCompanyCashPosition.ts",
   "engine/helpers/utils.ts",
   "engine/helpers/portfolio-helpers.ts",
+  "engine/helpers/default-resolver.ts",   // was missing — added
+  "engine/helpers/stress-scenarios.ts",   // was missing — added
   "engine/aggregation/cashFlowAggregator.ts",
   "engine/aggregation/yearlyAggregator.ts",
   "engine/aggregation/consolidation.ts",
@@ -32,8 +34,12 @@ const FINANCE_ENGINE_FILES = [
 ];
 
 // Dynamic: scan all calc/**/*.ts files, excluding barrels/types/dispatch/hooks
+// NOTE: service-fee and markup-waterfall are benchmark tables that belong in
+// Neon model_canonicals (written by AI Intelligence specialists). They are
+// temporarily in the skip list only until that migration lands — they are NOT
+// exempt from the no-hardcoded-values rule. Track in baseline below.
 const CALC_SKIP_FILES = new Set(["index.ts", "types.ts", "dispatch.ts", "schemas.ts"]);
-const CALC_SKIP_PATTERNS = [/journal-hooks/, /service-fee/, /markup-waterfall/];
+const CALC_SKIP_PATTERNS = [/journal-hooks/];
 const CALC_MODULE_FILES = (function discoverCalcFiles(): string[] {
   const calcDir = path.resolve("calc");
   if (!fs.existsSync(calcDir)) return [];
