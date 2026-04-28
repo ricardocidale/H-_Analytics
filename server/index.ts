@@ -832,6 +832,12 @@ async function runSchemaMigrations() {
     await runCacheEntries001();
     await markMigrationApplied("cache_entries_001");
   }
+
+  if (!(await isMigrationApplied("icp_model_tier_001"))) {
+    const { runIcpModelTierMigration } = await import("./migrations/icp-model-tier-001");
+    await runIcpModelTierMigration();
+    await markMigrationApplied("icp_model_tier_001");
+  }
 }
 
 async function runSeeds() {

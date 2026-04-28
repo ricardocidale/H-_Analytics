@@ -14,6 +14,10 @@ import type { FundingPromptInputContext } from "../ai/specialists/mgmt-co-fundin
 import type { CapitalRaiseInputs } from "../../engine/watchdog/capitalRaiseEvaluator";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER } from "@shared/constants-funding";
+import {
+  ICP_MODEL_PROFILES,
+  type IcpModelTier,
+} from "@shared/constants-benchmarks";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -272,6 +276,16 @@ async function runFundingV1Path(userId: number) {
     );
   }
 
+  // ICP model gate — require the user to choose a management company scale
+  // (A / B / C) before The Analyst can range the Funding tab. Without this,
+  // Opus is guessing raise amounts with no anchor. The client renders a
+  // model-selection dialog when it sees ICP_MODEL_REQUIRED.
+  const icpTier = (ga.icpModelTier ?? null) as IcpModelTier | null;
+  if (!icpTier || !ICP_MODEL_PROFILES[icpTier]) {
+    return { __icpModelRequired: true, models: ICP_MODEL_PROFILES } as const;
+  }
+  const icpModel = ICP_MODEL_PROFILES[icpTier];
+
   // Apply admin-Default overlay (G1.5b cascade) so the runner sees the
   // resolved cascade values, not raw NULLs.
   const overlaidGa = await withFundingDefaults(ga);
@@ -314,6 +328,7 @@ async function runFundingV1Path(userId: number) {
     inputs,
     persona,
     portfolio,
+    icpModel,
     priorVerdicts: [], // v1: no composition; G6-P3 wires verdict-cache reads
   };
 
