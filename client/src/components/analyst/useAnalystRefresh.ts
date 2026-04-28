@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { collectMissingLockedHardFields } from "@/lib/locked-hard-preflight";
 import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
+import type { IcpModelProfile, IcpModelTier } from "@shared/constants-benchmarks";
 
 export type AnalystRefreshScope = "global-assumptions";
 
@@ -70,6 +71,14 @@ export interface UseAnalystRefreshOptions {
     specialistId: string;
     missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
   }) => void;
+  /**
+   * Invoked when the server responds with `400 { code: "ICP_MODEL_REQUIRED",
+   * models }` — i.e. the user pressed the Analyst on a surface that needs
+   * a management-company ICP model (A / B / C) selected first. The host
+   * component is expected to open `<IcpModelDialog />` with these models
+   * and refire `triggerRefresh()` after the user picks one.
+   */
+  onIcpModelRequired?: (models: Record<IcpModelTier, IcpModelProfile>) => void;
 }
 
 export interface UseAnalystRefreshResult {
@@ -106,6 +115,7 @@ export function useAnalystRefresh({
   invalidateKeys = [],
   entityValues,
   onMissingRequiredFields,
+  onIcpModelRequired,
 }: UseAnalystRefreshOptions): UseAnalystRefreshResult {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -204,6 +214,28 @@ export function useAnalystRefresh({
               specialistId: body.specialistId ?? "mgmt-co",
               missingFields: body.missingFields,
             });
+            return;
+          }
+        } catch {
+          /* fall through to generic toast */
+        }
+      }
+
+      // ICP model gate (server: routes/analyst-admin.ts). Server returns
+      // 400 { code: "ICP_MODEL_REQUIRED", models: { A, B, C } } when the
+      // user presses the Analyst on a surface that needs a management-
+      // company ICP model selected first. Surface the model picker dialog
+      // instead of the generic "Analyst failed" toast. The 400 doesn't
+      // burn the cooldown server-side, so the host can re-fire after the
+      // user picks a model.
+      if (status === 400 && onIcpModelRequired) {
+        try {
+          const body = JSON.parse(bodyText) as {
+            code?: string;
+            models?: Record<IcpModelTier, IcpModelProfile>;
+          };
+          if (body.code === "ICP_MODEL_REQUIRED" && body.models) {
+            onIcpModelRequired(body.models);
             return;
           }
         } catch {
