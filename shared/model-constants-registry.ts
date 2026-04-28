@@ -20,6 +20,7 @@
  */
 
 import { DAYS_PER_MONTH, GOVERNED_FIELDS, type GovernedFieldMeta } from "./constants";
+import { USALI_FFE_RESERVE_BENCHMARK } from "./constants-brand";
 import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS, type CountryDefaults, type UsStateDefaults } from "./countryDefaults";
 
 export type ConstantLocality = "universal" | "country" | "country+state";
@@ -86,6 +87,12 @@ const capitalGainsRateMeta = buildMeta(
   "Capital gains tax rate",
   "Country tax statute governing capital gains on real property",
   "Tax rate applied to gains on disposal of the property.",
+);
+const ffeReserveBenchmarkUsaliMeta = buildMeta(
+  "FF&E Reserve Benchmark (USALI)",
+  "USALI 11th Edition (Uniform System of Accounts for the Lodging Industry)",
+  "Long-run FF&E reserve floor recommended for full-service / boutique hotels, expressed as % of gross revenue. Drives the adequacy badge on the Reserves & Brand Costs panel.",
+  "https://www.ahla.com/usali",
 );
 
 export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
@@ -177,6 +184,14 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
       return def?.capitalGainsRate ?? COUNTRY_DEFAULTS["United States"]!.capitalGainsRate;
     },
   },
+  ffeReserveBenchmarkUsali: {
+    key: "ffeReserveBenchmarkUsali",
+    label: ffeReserveBenchmarkUsaliMeta.fieldName,
+    locality: "universal",
+    meta: ffeReserveBenchmarkUsaliMeta,
+    specialistOwned: true,
+    factoryValue: () => USALI_FFE_RESERVE_BENCHMARK,
+  },
 };
 
 export const REGISTERED_CONSTANT_KEYS = Object.keys(MODEL_CONSTANTS_REGISTRY);
@@ -198,6 +213,7 @@ const CONSTANT_UNIT_BY_KEY: Record<string, ConstantUnit> = {
   countryRiskPremium: "percent",
   depreciationYears: "years",
   daysPerMonth: "days",
+  ffeReserveBenchmarkUsali: "percent",
 };
 
 export function getConstantUnit(key: string): ConstantUnit {

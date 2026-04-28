@@ -163,6 +163,39 @@ export const properties = pgTable("properties", {
   baseManagementFeeRate: real("base_management_fee_rate").notNull().default(DEFAULT_BASE_MANAGEMENT_FEE_RATE),
   incentiveManagementFeeRate: real("incentive_management_fee_rate").notNull().default(DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE),
 
+  // Brand-fee stack (per-property, % of room revenue). Nullable so the calc
+  // engine can fall back to factory defaults in `shared/constants-brand.ts`
+  // when no per-property override is configured. Surfaced on the
+  // Reserves & Brand Costs panel for boutique hotels.
+  franchiseFeeRate: real("franchise_fee_rate"),
+  royaltyFeeRate: real("royalty_fee_rate"),
+  brandMarketingFeeRate: real("brand_marketing_fee_rate"),
+  loyaltyProgramFeeRate: real("loyalty_program_fee_rate"),
+  reservationFeeRate: real("reservation_fee_rate"),
+  brandTechnologyFeeRate: real("brand_technology_fee_rate"),
+
+  // HMA (Hotel Management Agreement) terms. `hmaContractStartYear` lets
+  // the panel compute `term remaining` against `current_year`;
+  // `hmaTerminationFeeMonths` is the months of base mgmt fee owed to the
+  // operator at termination (typical HMA buyout convention).
+  hmaTermYears: integer("hma_term_years"),
+  hmaTerminationNoticeMonths: integer("hma_termination_notice_months"),
+  hmaContractStartYear: integer("hma_contract_start_year"),
+  hmaTerminationFeeMonths: integer("hma_termination_fee_months"),
+
+  // PIP (Property Improvement Plan) schedule. Each entry: { yearOffset, scope, estimatedCost }.
+  // When null, the calc engine projects events from `lastRenovationYear` /
+  // `yearBuilt` using `DEFAULT_PIP_CYCLE_YEARS`.
+  pipScheduleJson: jsonb("pip_schedule_json"),
+
+  // Mixed-use / condo association exposure. `condoPendingSpecialAssessments`
+  // is the dollar amount of any pending one-time HOA/condo special
+  // assessments levied against the unit (post-Surfside reserves rebuild,
+  // facade work, etc.) that hit cash flow outside the normal dues line.
+  condoDuesPctRevenue: real("condo_dues_pct_revenue"),
+  condoExposureNotes: text("condo_exposure_notes"),
+  condoPendingSpecialAssessments: real("condo_pending_special_assessments"),
+
   // Owner's priority return and fee subordination
   ownerPriorityReturn: real("owner_priority_return"),
   feeSubordination: text("fee_subordination"),
@@ -377,6 +410,20 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   refinanceYearsAfterAcquisition: true,
   baseManagementFeeRate: true,
   incentiveManagementFeeRate: true,
+  franchiseFeeRate: true,
+  royaltyFeeRate: true,
+  brandMarketingFeeRate: true,
+  loyaltyProgramFeeRate: true,
+  reservationFeeRate: true,
+  brandTechnologyFeeRate: true,
+  hmaTermYears: true,
+  hmaTerminationNoticeMonths: true,
+  hmaContractStartYear: true,
+  hmaTerminationFeeMonths: true,
+  pipScheduleJson: true,
+  condoDuesPctRevenue: true,
+  condoExposureNotes: true,
+  condoPendingSpecialAssessments: true,
   ownerPriorityReturn: true,
   feeSubordination: true,
   performanceTestEnabled: true,

@@ -35,6 +35,7 @@ import * as guidanceRoutes from "./routes/guidance";
 import * as rebeccaRoutes from "./routes/rebecca";
 import * as calcAuditRoutes from "./routes/calc-audit";
 import * as regulatoryRoutes from "./routes/regulatory";
+import * as reservesBrandRoutes from "./routes/reserves-brand";
 import * as portfolioRiskRoutes from "./routes/portfolio-risk";
 import { riskIntelligenceRoutes } from "./routes/risk-intelligence";
 import * as executiveSummaryRoutes from "./routes/executive-summary";
@@ -87,6 +88,7 @@ export async function registerRoutes(
   rebeccaRoutes.register(app);
   calcAuditRoutes.register(app);
   regulatoryRoutes.register(app);
+  reservesBrandRoutes.register(app);
   portfolioRiskRoutes.register(app);
   app.use(riskIntelligenceRoutes);
   executiveSummaryRoutes.register(app);

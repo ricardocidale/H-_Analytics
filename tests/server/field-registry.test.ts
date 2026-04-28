@@ -136,6 +136,18 @@ describe("buildPropertyDefaultsFromRegistry", () => {
       "refinanceInterestRate",
       "refinanceTermYears",
       "refinanceClosingCostRate",
+      "franchiseFeeRate",
+      "royaltyFeeRate",
+      "brandMarketingFeeRate",
+      "loyaltyProgramFeeRate",
+      "reservationFeeRate",
+      "brandTechnologyFeeRate",
+      "hmaTermYears",
+      "hmaTerminationNoticeMonths",
+      "hmaContractStartYear",
+      "hmaTerminationFeeMonths",
+      "condoDuesPctRevenue",
+      "condoPendingSpecialAssessments",
     ];
     const defaults = buildPropertyDefaultsFromRegistry();
     const registryFields = Object.keys(defaults).sort();

@@ -1,0 +1,46 @@
+{
+  "name": "reserves_brand_bundle",
+  "description": "Aggregate the Reserves & Brand Costs deep-dive panel for a single property. Returns FF&E reserve adequacy vs. the USALI 4% benchmark (with 5/10-year projections), the boutique brand-fee stack ($/% per revenue), HMA terms, the upcoming capital-events timeline (PIPs + post-Surfside FL coastal milestone callout when in scope), and condo/mixed-use exposure. Each line carries a first-order IRR-impact sentence so the panel can render tooltips without re-running the full DCF.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "property_name": { "type": "string", "description": "Property identifier for reporting" },
+      "room_count": { "type": "integer", "description": "Number of rooms (used for per-key metrics)" },
+      "annual_revenue": { "type": "number", "description": "Current annual total revenue" },
+      "hold_period_years": { "type": "integer", "description": "Number of years to project (5 or 10 typical)" },
+      "ffe_reserve_rate": { "type": "number", "description": "Effective FF&E reserve contribution as % of revenue" },
+      "base_management_fee_rate": { "type": "number", "description": "HMA base mgmt fee as % of total revenue" },
+      "incentive_management_fee_rate": { "type": "number", "description": "HMA incentive mgmt fee as % of GOP" },
+      "franchise_fee_rate": { "type": ["number", "null"], "description": "Franchise fee as % of room revenue" },
+      "royalty_fee_rate": { "type": ["number", "null"], "description": "Royalty fee as % of room revenue" },
+      "brand_marketing_fee_rate": { "type": ["number", "null"], "description": "Brand marketing fee as % of room revenue" },
+      "loyalty_program_fee_rate": { "type": ["number", "null"], "description": "Loyalty program fee as % of room revenue" },
+      "reservation_fee_rate": { "type": ["number", "null"], "description": "Reservation fee as % of room revenue" },
+      "brand_technology_fee_rate": { "type": ["number", "null"], "description": "Brand technology fee as % of room revenue" },
+      "hma_term_years": { "type": ["integer", "null"], "description": "HMA contract term in years" },
+      "hma_termination_notice_months": { "type": ["integer", "null"], "description": "Months of notice required to terminate the HMA" },
+      "pip_schedule": {
+        "type": ["array", "null"],
+        "description": "Optional user-supplied PIP / capital-event schedule",
+        "items": {
+          "type": "object",
+          "properties": {
+            "yearOffset": { "type": "integer", "description": "Years from current year" },
+            "scope": { "type": "string", "description": "Scope label (e.g. 'Soft goods', 'Lobby reposition')" },
+            "estimatedCost": { "type": "number", "description": "Estimated cost in current dollars" }
+          },
+          "required": ["yearOffset"]
+        }
+      },
+      "condo_dues_pct_revenue": { "type": ["number", "null"], "description": "Condo / HOA dues as % of total revenue" },
+      "condo_exposure_notes": { "type": ["string", "null"], "description": "Free-form notes about condo / mixed-use exposure" },
+      "country": { "type": ["string", "null"], "description": "ISO country code (e.g. 'US')" },
+      "state_province": { "type": ["string", "null"], "description": "State / province (e.g. 'FL')" },
+      "location_type": { "type": ["string", "null"], "description": "Location type (e.g. 'beach', 'coastal')" },
+      "year_built": { "type": ["integer", "null"], "description": "Year the property was originally built" },
+      "last_renovation_year": { "type": ["integer", "null"], "description": "Year of the most recent major renovation" },
+      "current_year": { "type": "integer", "description": "Reporting year (used to age the building)" }
+    },
+    "required": ["room_count", "annual_revenue", "hold_period_years", "current_year"]
+  }
+}

@@ -31,6 +31,17 @@ import {
   SEED_DEBT_ASSUMPTIONS,
 } from "./constants";
 import { getFactoryNumber } from "./model-constants-registry";
+import {
+  DEFAULT_FRANCHISE_FEE_RATE,
+  DEFAULT_ROYALTY_FEE_RATE,
+  DEFAULT_BRAND_MARKETING_FEE_RATE,
+  DEFAULT_LOYALTY_PROGRAM_FEE_RATE,
+  DEFAULT_RESERVATION_FEE_RATE,
+  DEFAULT_BRAND_TECHNOLOGY_FEE_RATE,
+  DEFAULT_HMA_TERM_YEARS,
+  DEFAULT_HMA_TERMINATION_NOTICE_MONTHS,
+  DEFAULT_HMA_TERMINATION_FEE_MONTHS,
+} from "./constants-brand";
 
 export type FieldType = "rate" | "currency" | "integer" | "decimal";
 export type FieldScope = "property";
@@ -41,11 +52,15 @@ export type FieldCategory =
   | "management-fee"
   | "operating"
   | "debt-acquisition"
-  | "debt-refinance";
+  | "debt-refinance"
+  | "brand-fee"
+  | "hma"
+  | "condo";
 
 export type GaSource =
   | { kind: "direct"; gaField: string }
-  | { kind: "debt"; debtField: string };
+  | { kind: "debt"; debtField: string }
+  | { kind: "constant" };
 
 export interface FieldDefinition {
   propertyField: string;
@@ -470,6 +485,155 @@ export const FIELD_REGISTRY: readonly FieldDefinition[] = [
     validationMin: 0,
     validationMax: 1,
   },
+  // ── Brand-fee stack (boutique/franchise hotels) ────────────────────
+  {
+    propertyField: "franchiseFeeRate",
+    label: "Franchise Fee (% room revenue)",
+    type: "rate",
+    scope: "property",
+    category: "brand-fee",
+    fallback: DEFAULT_FRANCHISE_FEE_RATE,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 0.20,
+  },
+  {
+    propertyField: "royaltyFeeRate",
+    label: "Royalty Fee (% room revenue)",
+    type: "rate",
+    scope: "property",
+    category: "brand-fee",
+    fallback: DEFAULT_ROYALTY_FEE_RATE,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 0.20,
+  },
+  {
+    propertyField: "brandMarketingFeeRate",
+    label: "Brand Marketing Fee (% room revenue)",
+    type: "rate",
+    scope: "property",
+    category: "brand-fee",
+    fallback: DEFAULT_BRAND_MARKETING_FEE_RATE,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 0.10,
+  },
+  {
+    propertyField: "loyaltyProgramFeeRate",
+    label: "Loyalty Program Fee (% room revenue)",
+    type: "rate",
+    scope: "property",
+    category: "brand-fee",
+    fallback: DEFAULT_LOYALTY_PROGRAM_FEE_RATE,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 0.05,
+  },
+  {
+    propertyField: "reservationFeeRate",
+    label: "Reservation Fee (% room revenue)",
+    type: "rate",
+    scope: "property",
+    category: "brand-fee",
+    fallback: DEFAULT_RESERVATION_FEE_RATE,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 0.05,
+  },
+  {
+    propertyField: "brandTechnologyFeeRate",
+    label: "Brand Technology Fee (% room revenue)",
+    type: "rate",
+    scope: "property",
+    category: "brand-fee",
+    fallback: DEFAULT_BRAND_TECHNOLOGY_FEE_RATE,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 0.05,
+  },
+  // ── HMA (Hotel Management Agreement) ───────────────────────────────
+  {
+    propertyField: "hmaTermYears",
+    label: "HMA Term (Years)",
+    type: "integer",
+    scope: "property",
+    category: "hma",
+    fallback: DEFAULT_HMA_TERM_YEARS,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 1,
+    validationMax: 50,
+  },
+  {
+    propertyField: "hmaTerminationNoticeMonths",
+    label: "HMA Termination Notice (Months)",
+    type: "integer",
+    scope: "property",
+    category: "hma",
+    fallback: DEFAULT_HMA_TERMINATION_NOTICE_MONTHS,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 60,
+  },
+  {
+    propertyField: "hmaContractStartYear",
+    label: "HMA Contract Start Year",
+    type: "integer",
+    scope: "property",
+    category: "hma",
+    fallback: 0,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 2100,
+  },
+  {
+    propertyField: "hmaTerminationFeeMonths",
+    label: "HMA Termination Fee (Months of Base Mgmt Fee)",
+    type: "integer",
+    scope: "property",
+    category: "hma",
+    fallback: DEFAULT_HMA_TERMINATION_FEE_MONTHS,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 60,
+  },
+  // ── Condo / mixed-use exposure ─────────────────────────────────────
+  {
+    propertyField: "condoDuesPctRevenue",
+    label: "Condo Association Dues (% revenue)",
+    type: "rate",
+    scope: "property",
+    category: "condo",
+    fallback: 0,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+    validationMax: 0.20,
+  },
+  {
+    // Outstanding special-assessment lump sum levied by the condo
+    // association on the hotel — typically post-Surfside structural
+    // repairs in coastal FL. Engine-impact = near-term cash drag.
+    propertyField: "condoPendingSpecialAssessments",
+    label: "Pending Condo Special Assessments ($)",
+    type: "currency",
+    scope: "property",
+    category: "condo",
+    fallback: 0,
+    gaSource: { kind: "constant" },
+    engineImpact: true,
+    validationMin: 0,
+  },
 ] as const;
 
 export interface DebtAssumptions {
@@ -491,8 +655,11 @@ export function buildPropertyDefaultsFromRegistry(
     let gaValue: unknown;
     if (field.gaSource.kind === "direct") {
       gaValue = ga?.[field.gaSource.gaField];
-    } else {
+    } else if (field.gaSource.kind === "debt") {
       gaValue = debt[field.gaSource.debtField];
+    } else {
+      // "constant" — no GA cascade, fallback IS the factory baseline.
+      gaValue = undefined;
     }
     result[field.propertyField] = gaValue ?? field.fallback;
   }

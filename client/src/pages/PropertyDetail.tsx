@@ -30,6 +30,7 @@ import {
   CashFlowTab,
   PropertyHeader,
   BenchmarkPanel,
+  ReservesBrandPanel,
   InvestmentReturnsTab,
   DueDiligenceTab,
   ExitScenariosSection,
@@ -353,6 +354,15 @@ export default function PropertyDetail() {
             <ExitScenariosSection property={property} global={global} />
           </div>
         )}
+
+        {(["boutique_hotel", "hotel", "resort", "business_hotel", "conference_hotel"] as const).includes(
+          property.hospitalityType as
+            | "boutique_hotel"
+            | "hotel"
+            | "resort"
+            | "business_hotel"
+            | "conference_hotel",
+        ) && <ReservesBrandPanel property={property} />}
 
         <ScrollReveal>
         <CalcDetailsProvider show={global?.showPropertyCalculationDetails ?? true}>

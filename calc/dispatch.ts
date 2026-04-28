@@ -53,6 +53,7 @@ import {
   assumptionConsistencySchema, exportVerificationSchema, consolidationSchema,
   scenarioCompareSchema, breakEvenSchema, breakevenTargetsSchema,
   waterfallSchema, holdVsSellSchema, stressTestSchema, capexReserveSchema,
+  reservesBrandBundleSchema,
   revparIndexSchema, debtYieldSchema, dscrSchema, prepaymentSchema,
   sensitivitySchema, compareLoanSchema, interestRateSwapSchema,
   centralizedServiceMarginSchema, costOfServicesSchema, propertyMetricsSchema,
@@ -79,6 +80,7 @@ import { computeWaterfall } from "./analysis/waterfall.js";
 import { computeHoldVsSell } from "./analysis/hold-vs-sell.js";
 import { computeStressTest } from "./analysis/stress-test.js";
 import { computeCapexReserve } from "./analysis/capex-reserve.js";
+import { computeReservesBrandBundle } from "./analysis/reserves-brand-bundle.js";
 import { computeRevPARIndex } from "./analysis/revpar-index.js";
 import { computeDebtYield } from "./financing/debt-yield.js";
 import { computeDSCR } from "./financing/dscr-calculator.js";
@@ -128,6 +130,7 @@ const TOOL_SCHEMAS: Record<string, ZodSchema> = {
   hold_vs_sell: holdVsSellSchema,
   stress_test: stressTestSchema,
   capex_reserve: capexReserveSchema,
+  reserves_brand_bundle: reservesBrandBundleSchema,
   revpar_index: revparIndexSchema,
   calculate_debt_yield: debtYieldSchema,
   calculate_dscr: dscrSchema,
@@ -170,6 +173,7 @@ const TOOL_DISPATCH: Record<string, ToolHandler> = {
   hold_vs_sell: withRounding(computeHoldVsSell),
   stress_test: withRounding(computeStressTest),
   capex_reserve: withRounding(computeCapexReserve),
+  reserves_brand_bundle: withRounding(computeReservesBrandBundle),
   revpar_index: withRounding(computeRevPARIndex),
   calculate_debt_yield: withRounding(computeDebtYield),
   calculate_dscr: withRounding(computeDSCR),

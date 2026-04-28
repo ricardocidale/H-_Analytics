@@ -407,7 +407,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
       { kind: "api", slug: "web-search", required: true },
     ],
-    constantsOwned: ["daysPerMonth"],
+    constantsOwned: ["daysPerMonth", "ffeReserveBenchmarkUsali"],
     candidateFields: [],
     prerequisites: ["constants-refreshed-within-cadence"],
     // USALI / AHLA conventions update on multi-year cycles; an annual

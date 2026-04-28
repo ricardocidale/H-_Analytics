@@ -107,6 +107,24 @@ export const SEED_PROPERTY_DEFAULTS = {
   currentDom: null,
   relistCount: 0,
   motivationTier: null,
+
+  // Brand-fee stack / HMA / condo (Task #808 — boutique-hotel deep-dive).
+  // All nullable; left null in seeds so the calc skill falls back to the
+  // factory defaults from `shared/constants-brand.ts`.
+  franchiseFeeRate: null,
+  royaltyFeeRate: null,
+  brandMarketingFeeRate: null,
+  loyaltyProgramFeeRate: null,
+  reservationFeeRate: null,
+  brandTechnologyFeeRate: null,
+  hmaTermYears: null,
+  hmaTerminationNoticeMonths: null,
+  hmaContractStartYear: null,
+  hmaTerminationFeeMonths: null,
+  pipScheduleJson: null,
+  condoDuesPctRevenue: null,
+  condoExposureNotes: null,
+  condoPendingSpecialAssessments: null,
 };
 
 export const SEED_INITIAL_PROPERTIES = [

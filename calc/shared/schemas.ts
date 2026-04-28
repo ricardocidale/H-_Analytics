@@ -379,6 +379,41 @@ export const capexReserveSchema = z.object({
   inflation_rate: z.number().optional(),
 });
 
+export const reservesBrandBundleSchema = z.object({
+  property_name: z.string().optional(),
+  room_count: z.number().int().positive(),
+  annual_revenue: z.number(),
+  annual_room_revenue: z.number().nonnegative().optional(),
+  hold_period_years: z.number().int().positive(),
+  ffe_reserve_rate: z.number().min(0).max(0.15).optional(),
+  base_management_fee_rate: z.number().min(0).max(1).optional(),
+  incentive_management_fee_rate: z.number().min(0).max(1).optional(),
+  franchise_fee_rate: z.number().min(0).max(0.5).nullable().optional(),
+  royalty_fee_rate: z.number().min(0).max(0.5).nullable().optional(),
+  brand_marketing_fee_rate: z.number().min(0).max(0.2).nullable().optional(),
+  loyalty_program_fee_rate: z.number().min(0).max(0.1).nullable().optional(),
+  reservation_fee_rate: z.number().min(0).max(0.1).nullable().optional(),
+  brand_technology_fee_rate: z.number().min(0).max(0.1).nullable().optional(),
+  hma_term_years: z.number().int().min(1).max(50).nullable().optional(),
+  hma_termination_notice_months: z.number().int().min(0).max(60).nullable().optional(),
+  hma_contract_start_year: z.number().int().min(1900).max(2200).nullable().optional(),
+  hma_termination_fee_months: z.number().int().min(0).max(60).nullable().optional(),
+  pip_schedule: z.array(z.object({
+    yearOffset: z.number().int().min(0),
+    scope: z.string().optional(),
+    estimatedCost: z.number().min(0).optional(),
+  })).nullable().optional(),
+  condo_dues_pct_revenue: z.number().min(0).max(0.5).nullable().optional(),
+  condo_exposure_notes: z.string().nullable().optional(),
+  condo_pending_special_assessments: z.number().min(0).nullable().optional(),
+  country: z.string().nullable().optional(),
+  state_province: z.string().nullable().optional(),
+  location_type: z.string().nullable().optional(),
+  year_built: z.number().int().nullable().optional(),
+  last_renovation_year: z.number().int().nullable().optional(),
+  current_year: z.number().int().min(1900).max(2200),
+});
+
 export const revparIndexSchema = z.object({
   property_name: z.string().optional(),
   room_count: z.number().int().positive(),
