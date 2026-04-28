@@ -152,7 +152,18 @@ export async function analystRefreshHandler(req: Request, res: Response) {
   // scopes keep the legacy path until their own v1 ships.
   if (specialistId === "mgmt-co.funding") {
     try {
-      const verdict = await runFundingV1Path(userId);
+      const result = await runFundingV1Path(userId);
+
+      // ICP model required — client must show model-selection dialog
+      if ("__icpModelRequired" in result) {
+        return res.status(400).json({
+          code: "ICP_MODEL_REQUIRED",
+          message: "Select a management company model (A / B / C) so The Analyst can range your funding plan.",
+          models: result.models,
+        });
+      }
+
+      const verdict = result;
       logActivity(req, "analyst-refresh", "company", userId, "Mgmt-Co Funding (v1)", {
         scope,
         specialistId,
