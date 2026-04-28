@@ -182,9 +182,9 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
     if (hasDebt) {
       narrative += ` DSCR ${stressed.dscr < base.dscr ? 'falls' : 'moves'} to ${stressed.dscr.toFixed(2)}x`;
       if (stressed.dscr < DSCR_COVENANT_STANDARD) {
-        narrative += `, breaching the typical 1.25x debt covenant (DSCR_COVENANT_STANDARD). This would require equity injection or fee deferral.`;
+        narrative += `, breaching the typical ${DSCR_COVENANT_STANDARD}x debt covenant. This would require equity injection or fee deferral.`;
       } else {
-        narrative += `, remaining above the 1.25x covenant threshold.`;
+        narrative += `, remaining above the ${DSCR_COVENANT_STANDARD}x covenant threshold.`;
       }
     }
 
