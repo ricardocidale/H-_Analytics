@@ -178,6 +178,25 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     unit: "%",
     mountPoint: "property-edit/other-assumptions",
   },
+  // Property-level inflation override slider on PropertyEdit's
+  // "Other Assumptions" section (`OtherAssumptionsSection.tsx`).
+  // Distinct from the global `inflationRate` entry above per the
+  // inflation-cascade rule (`.claude/rules/inflation-cascade.md`):
+  // the cascade is `property.inflationRate ?? mcAssumptions.inflationRate
+  // ?? marketMacroFallback`, with the macro Specialist
+  // (constants.macro-research / Isadora I) owning the global Constant
+  // and a property-level Specialist owning the per-property override
+  // signal. Two registry entries → two deep-link destinations: the
+  // macro verdict lands on the Market & Macro admin tab, and the
+  // property-level verdict lands on this slider with the propertyId in
+  // scope. Naming mirrors the existing `propertyInflationRate` defaults
+  // card key in `script/seed-model-defaults.ts` so the field id reads
+  // consistently with the seeding vocabulary.
+  propertyInflationRate: {
+    label: "Property Inflation Override",
+    unit: "%",
+    mountPoint: "property-edit/other-assumptions",
+  },
 
   // ─── Property Edit → Capital Structure (per-property fields) ────────────
   // Land Value % is edited on the Capital Structure section
@@ -259,22 +278,22 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
   // — global macro assumptions edited on the "Defaults → Market & Macro"
   // admin section.
   //
-  // `inflationRate` mountPoint anchors at `property-edit/other-assumptions`
-  // (not `defaults/market-macro`) because per the inflation-cascade rule
-  // the cascade is `property.inflationRate ?? mcAssumptions.inflationRate
-  // ?? marketMacroFallback`: the per-property override is the user-
-  // actionable surface, and the macro defaults row is the
-  // last-resort fallback / seed. A verdict on `inflationRate` shown on
-  // PropertyEdit (with propertyId in scope) deep-links same-page to the
-  // property override slider via this mountPoint. The admin
-  // MarketMacroTab still carries the `data-testid="field-inflationRate"`
-  // marker, so the field stays discoverable for the field-marker audit
-  // and the macro Specialist can continue to maintain the canonical
-  // Constants row independently — see `.claude/rules/inflation-cascade.md`.
+  // `inflationRate` is the GLOBAL macro Constant owned by the Macro
+  // Indicators Research Specialist (constants.macro-research / Isadora I,
+  // see `specialist-catalog.ts`). Per the inflation-cascade rule the
+  // canonical authority-sourced row lives in the Constants table and the
+  // global default is surfaced read-only on the Market & Macro admin tab
+  // — that is the surface the macro Specialist's verdicts deep-link to.
+  // The per-property override is a *separate* registry concern handled
+  // by `propertyInflationRate` below; mixing the two on this entry would
+  // muddle ownership and let a property-level verdict steal the macro
+  // Specialist's deep-link target. See `.claude/rules/inflation-cascade.md`
+  // for the full cascade and Constants vs Defaults vs Assumptions
+  // discipline.
   inflationRate: {
     label: "Inflation Rate",
     unit: "%",
-    mountPoint: "property-edit/other-assumptions",
+    mountPoint: "defaults/market-macro",
   },
 
   // ─── Admin Model Defaults → Property Underwriting tab ───────────────────

@@ -173,6 +173,21 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { key: "country",      label: "Country",      surface: "property-edit", lockedHard: true,  surfaceAnchor: "location" },
       { key: "city",         label: "City",         surface: "property-edit",                    surfaceAnchor: "location" },
       { key: "hospitalityType", label: "Property type", surface: "property-edit", lockedHard: true, surfaceAnchor: "basics"   },
+      // Per-property inflation override is a property-level signal (the
+      // user judges what inflation actually looks like in this market /
+      // submarket) and is the natural counterpart to the macro
+      // Specialist's global `inflationRate` Constant. Daniela owns the
+      // property-level surface for inflation guidance: when the user's
+      // override deviates from the country/market's published outlook
+      // her Risk Intelligence verdict deep-links to the per-property
+      // slider via the `propertyInflationRate` field id (registry entry
+      // mountPoint `property-edit/other-assumptions`). The macro
+      // Specialist (constants.macro-research / Isadora I) keeps owning
+      // the global `inflationRate` Constant and its `defaults/market-
+      // macro` mountPoint — the two field ids exist precisely so each
+      // Specialist gets its own deep-link target without violating the
+      // inflation-cascade rule (`.claude/rules/inflation-cascade.md`).
+      { key: "propertyInflationRate", label: "Property inflation override", surface: "property-edit", surfaceAnchor: "other-assumptions" },
     ],
     prerequisites: [],
     status: "needs-page",

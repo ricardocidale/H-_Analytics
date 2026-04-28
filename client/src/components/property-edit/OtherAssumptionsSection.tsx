@@ -152,12 +152,20 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               Applied to taxable income (NOI − interest − depreciation)
             </p>
           </div>
-          {/* `data-field="inflationRate"` marks this wrapper for the
-              Analyst's URL-driven focus hook. Per the inflation-cascade
-              rule the per-property override is the user-actionable
-              surface for inflation; the registry mountPoint resolves
-              same-page Adjust deep links here when shown on PropertyEdit. */}
-          <div className="space-y-2" data-field="inflationRate">
+          {/* `data-field="propertyInflationRate"` marks this wrapper for
+              the Analyst's URL-driven focus hook. Per the inflation-
+              cascade rule (`.claude/rules/inflation-cascade.md`) the
+              global `inflationRate` is owned by the macro Specialist
+              and lives on the Market & Macro admin tab; the per-property
+              override is a *separate* registry concern with its own
+              field id (`propertyInflationRate`) so a property-level
+              Specialist's verdict can deep-link here without stealing
+              the macro Specialist's mountPoint. The form-side state key
+              on the draft remains `inflationRate` (the engine cascade
+              `property.inflationRate ?? mcAssumptions.inflationRate ??
+              marketMacroFallback` reads it under that name) — only the
+              Analyst marker carries the `propertyInflationRate` id. */}
+          <div className="space-y-2" data-field="propertyInflationRate">
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
                 label={<>Inflation Rate <InfoTooltip text="Annual inflation rate for this property. Escalates fixed operating costs and serves as the floor for revenue growth. If left blank, the global system default is used." /></>}
