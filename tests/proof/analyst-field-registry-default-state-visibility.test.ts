@@ -54,6 +54,30 @@
  *     contributes a gate (the LHS). If any gate is default-false, the
  *     marker is hidden by default → violation.
  *
+ *     Beyond the canonical `{<gate> && (...)}` shape, the same walk also
+ *     recognises two other conditional-render patterns that would
+ *     otherwise hide a marker just as silently (task #785):
+ *
+ *       * Ternary — `{<cond> ? <X data-field="foo"/> : null}`. We add the
+ *         condition as a gate when the marker lives in the `whenTrue`
+ *         branch, or `!cond` when it lives in `whenFalse`. This catches
+ *         the pattern where someone refactors a `&&` into a ternary with
+ *         a `null` (or `<></>`) sibling.
+ *
+ *       * Early return — `if (!<gate>) return null;` placed between the
+ *         marker's enclosing function declaration and the marker itself.
+ *         The function only proceeds (and so the marker only renders)
+ *         when the if-condition is falsy, so we add the if-condition as
+ *         a negated gate. This catches the pattern where a whole
+ *         component subtree is skipped at the top of the function based
+ *         on a default-off prop or state value.
+ *
+ *     IIFE / Suspense / route-guard variants are intentionally *not*
+ *     covered — they are rarer in this codebase, would each require their
+ *     own AST walker, and the runtime warning from task #776 still
+ *     guards them as a safety net. If they show up, add a dedicated
+ *     follow-up rather than over-broaden the heuristics here.
+ *
  *   - Markers we accept (matches the focus hook's two conventions):
  *       1. `data-field="<id>"` — direct attribute (Company Assumptions style).
  *       2. `data-testid="field-<id>"` — direct attribute (admin Model-Defaults
@@ -351,33 +375,210 @@ function classifyExpr(
 }
 
 /**
- * Walk JSX ancestors of `marker` upward and collect every gate expression
- * (the LHS of an `&&` inside a JsxExpression) that wraps it. The returned
- * gates are in inside-out order; only their truthiness matters so the
- * order is incidental.
+ * A "gate" is a single boolean precondition the marker depends on for
+ * visibility. We model it as `{ expr, negated }` rather than just an
+ * expression so the three gate shapes the audit recognises share one
+ * classification path:
+ *   - `&&` LHS              → `{ expr: lhs, negated: false }`
+ *   - ternary whenTrue arm  → `{ expr: cond, negated: false }`
+ *   - ternary whenFalse arm → `{ expr: cond, negated: true }`
+ *   - early-return guard    → `{ expr: ifCondition, negated: true }`
+ *     (the marker renders only when the if-condition is FALSY)
+ *
+ * `source` is carried only for human-readable error messages — the
+ * classification logic ignores it.
  */
-function collectJsxAndGates(marker: ts.Node): ts.Expression[] {
-  const gates: ts.Expression[] = [];
+type GateSource = "jsx-and" | "ternary-true" | "ternary-false" | "early-return";
+
+interface Gate {
+  readonly expr: ts.Expression;
+  readonly negated: boolean;
+  readonly source: GateSource;
+}
+
+/**
+ * Apply `negated` to a classification result. `unknown` stays `unknown`
+ * — flipping nothing is still nothing.
+ */
+function classifyGate(gate: Gate, sourceFile: ts.SourceFile): Truthiness {
+  const inner = classifyExpr(gate.expr, sourceFile, new Set());
+  if (!gate.negated) return inner;
+  if (inner === "false") return "true";
+  if (inner === "true") return "false";
+  return "unknown";
+}
+
+/**
+ * Render a gate for an error message. We surface the user-facing shape
+ * (`if (...) return null;` for early returns, `cond ? ... : null` arm
+ * for ternaries) rather than printing `!(!gate)` which is technically
+ * accurate but useless when grepping for the offending toggle.
+ */
+function gateText(gate: Gate, sourceFile: ts.SourceFile): string {
+  const text = gate.expr.getText(sourceFile);
+  switch (gate.source) {
+    case "jsx-and":
+      return `\`{${text} && (...)}\``;
+    case "ternary-true":
+      return `ternary true-branch \`{${text} ? (...) : ...}\``;
+    case "ternary-false":
+      return `ternary false-branch \`{${text} ? ... : (...)}\``;
+    case "early-return":
+      return `early-return guard \`if (${text}) return null;\``;
+  }
+}
+
+/**
+ * Walk JSX/expression ancestors of `marker` upward and collect every
+ * inline gate that wraps it: `&&` short-circuits and ternary branches.
+ * The returned gates are in inside-out order; only their truthiness
+ * matters so the order is incidental.
+ */
+function collectJsxAndGates(marker: ts.Node): Gate[] {
+  const gates: Gate[] = [];
   let cur: ts.Node | undefined = marker.parent;
   while (cur) {
+    // Pattern 1: `{<lhs> && <rhs containing marker>}` inside JSX.
     if (
       ts.isJsxExpression(cur) &&
       cur.expression &&
       ts.isBinaryExpression(cur.expression) &&
       cur.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
     ) {
-      // The JsxExpression body is the right-hand side of the `&&`. The
-      // marker must descend from the RHS — otherwise the gate doesn't
-      // actually wrap it. (Defensive against a marker accidentally living
-      // in the LHS, which would not be hidden by the `&&`.)
+      // The marker must descend from the RHS — otherwise the gate
+      // doesn't actually wrap it. (Defensive against a marker
+      // accidentally living in the LHS, which would not be hidden by
+      // the `&&`.)
       const rhs = cur.expression.right;
       if (containsNode(rhs, marker)) {
-        gates.push(cur.expression.left);
+        gates.push({
+          expr: cur.expression.left,
+          negated: false,
+          source: "jsx-and",
+        });
       }
+    }
+
+    // Pattern 2: ternary `cond ? whenTrue : whenFalse`. We don't require
+    // the ternary to be wrapped in a JsxExpression — `return cond ? <X/>
+    // : <Y/>;` and `cond ? <X/> : null` inside `&&` are both common. The
+    // gate direction depends on which arm the marker lives in.
+    if (ts.isConditionalExpression(cur)) {
+      if (containsNode(cur.whenTrue, marker)) {
+        gates.push({
+          expr: cur.condition,
+          negated: false,
+          source: "ternary-true",
+        });
+      } else if (containsNode(cur.whenFalse, marker)) {
+        gates.push({
+          expr: cur.condition,
+          negated: true,
+          source: "ternary-false",
+        });
+      }
+      // If the marker isn't in either arm (e.g. it lives in the
+      // condition itself, which is bizarre but legal), we add no gate
+      // — its visibility doesn't depend on the ternary's outcome.
+    }
+
+    cur = cur.parent;
+  }
+  return gates;
+}
+
+/**
+ * Walk the marker's enclosing function scopes outward and collect any
+ * `if (<cond>) return null;` (or `return undefined;` / `return false;`
+ * / bare `return;`) statements that appear lexically *before* the
+ * statement containing the marker. Each such guard becomes a negated
+ * gate: the function only proceeds when the if-condition is falsy.
+ *
+ * We walk every enclosing function — not just the immediate one —
+ * because a marker rendered inside a `.map(item => ...)` callback is
+ * still hidden if the outer component returned early before the
+ * `.map` call ran. Each scope's early returns are checked against the
+ * subtree we entered that scope through, so we don't accidentally
+ * consider the if-statement that *contains* the marker as an early
+ * return for it.
+ */
+function collectEarlyReturnGates(marker: ts.Node): Gate[] {
+  const gates: Gate[] = [];
+  let inner: ts.Node = marker;
+  let cur: ts.Node | undefined = marker.parent;
+  while (cur) {
+    if (
+      ts.isFunctionDeclaration(cur) ||
+      ts.isFunctionExpression(cur) ||
+      ts.isArrowFunction(cur) ||
+      ts.isMethodDeclaration(cur)
+    ) {
+      const body = cur.body;
+      if (body && ts.isBlock(body)) {
+        for (const stmt of body.statements) {
+          // Stop at the statement that actually contains the marker
+          // (or the inner-scope subtree) — anything past it is not an
+          // early return *for* the marker.
+          if (containsNode(stmt, inner)) break;
+          if (
+            ts.isIfStatement(stmt) &&
+            !stmt.elseStatement &&
+            isNullishReturnStatement(stmt.thenStatement)
+          ) {
+            gates.push({
+              expr: stmt.expression,
+              negated: true,
+              source: "early-return",
+            });
+          }
+        }
+      }
+      // Re-anchor: the next outer function's `containsNode` check should
+      // ask "does this statement contain the inner function?", not "does
+      // it contain the marker?", because the marker is wrapped in this
+      // function call/value at the outer scope.
+      inner = cur;
     }
     cur = cur.parent;
   }
   return gates;
+}
+
+/**
+ * Recognise the canonical "give up" return statement — bare `return;`,
+ * `return null;`, `return undefined;`, or `return false;` — that
+ * indicates an early-out guard. We deliberately do not recurse into
+ * `return <Foo/>;` or `return computeFallback();` because those would
+ * actually render *something* and are not gating the marker.
+ */
+function isNullishReturnStatement(stmt: ts.Statement): boolean {
+  let ret: ts.ReturnStatement | null = null;
+  if (ts.isReturnStatement(stmt)) {
+    ret = stmt;
+  } else if (
+    ts.isBlock(stmt) &&
+    stmt.statements.length === 1 &&
+    ts.isReturnStatement(stmt.statements[0])
+  ) {
+    ret = stmt.statements[0] as ts.ReturnStatement;
+  }
+  if (!ret) return false;
+  if (!ret.expression) return true; // bare `return;`
+  if (ret.expression.kind === ts.SyntaxKind.NullKeyword) return true;
+  if (ret.expression.kind === ts.SyntaxKind.FalseKeyword) return true;
+  if (ts.isIdentifier(ret.expression) && ret.expression.text === "undefined") {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Combine all gate sources for a single marker. Order is not
+ * meaningful — the audit only asks "does any gate prove this is
+ * hidden at default state?".
+ */
+function collectAllGates(marker: ts.Node): Gate[] {
+  return [...collectJsxAndGates(marker), ...collectEarlyReturnGates(marker)];
 }
 
 function containsNode(root: ts.Node, target: ts.Node): boolean {
@@ -404,11 +605,36 @@ interface Violation {
 
 /**
  * Self-test fixture used by the synthetic-detection assertion below.
- * The fixture intentionally exercises every detection branch
- * (`useState(false)`, `useState(<comparison-via-const>)`, plain
- * `useState(true)` for a negative control) on three synthetic markers so
- * a future refactor of `classifyExpr` / `collectJsxAndGates` either keeps
- * them all working or fails loudly with a precise pinpoint.
+ * The fixture intentionally exercises every detection branch on a
+ * dedicated synthetic marker so a future refactor of `classifyExpr` /
+ * `collectJsxAndGates` / `collectEarlyReturnGates` either keeps them
+ * all working or fails loudly with a precise pinpoint.
+ *
+ * Branches exercised:
+ *   - `&&` LHS gate that's `useState(<comparison-via-const>)` (the
+ *     ConvertibleTermsCard pattern).
+ *   - `&&` LHS gate that's `useState(false)` (literal-false gate).
+ *   - `&&` LHS gate that's `useState(true)` — negative control.
+ *   - No gate at all — negative control (one `data-field`, one
+ *     `testId` to cover both marker conventions).
+ *   - Ternary whenTrue arm with default-false condition (task #785).
+ *   - Ternary whenFalse arm with default-true condition (task #785).
+ *   - Ternary whenTrue arm with default-true condition — negative
+ *     control (task #785).
+ *   - Early-return guard `if (!gate) return null;` with default-false
+ *     gate (task #785).
+ *   - Early-return guard with default-true gate — negative control
+ *     (task #785).
+ *
+ * Each early-return scenario lives in its own component because a
+ * function-scope guard short-circuits the *whole* function — sharing a
+ * function would mean the guard hides every marker in it, not just
+ * the one we're testing.
+ *
+ * Variable names (`showFalse`, `showTrueOnly`, etc.) are unique across
+ * the file so `findDeclaration`'s first-match-wins lookup always
+ * resolves to the intended initial value, avoiding cross-test
+ * contamination from the shared file scope.
  */
 const SELF_TEST_SOURCE = `
 import { useState } from "react";
@@ -424,8 +650,21 @@ function Comp({ formData, global }: any) {
       {showC && (<input data-field="visibleByLiteralTrueGate" />)}
       <input data-field="visibleNoGate" />
       <input testId="field-visibleNoGate2" />
+      {showB ? <input data-field="hiddenByTernaryTrueBranch" /> : null}
+      {showC ? null : <input data-field="hiddenByTernaryFalseBranch" />}
+      {showC ? <input data-field="visibleByTernaryTrueBranch" /> : null}
     </div>
   );
+}
+function CompEarlyReturnHidden() {
+  const [showFalse, setShowFalse] = useState(false);
+  if (!showFalse) return null;
+  return <input data-field="hiddenByEarlyReturn" />;
+}
+function CompEarlyReturnVisible() {
+  const [showTrueOnly, setShowTrueOnly] = useState(true);
+  if (!showTrueOnly) return null;
+  return <input data-field="visibleAfterEarlyReturn" />;
 }
 `;
 
@@ -441,8 +680,8 @@ function classifySelfTestField(fieldId: string): Truthiness | "no-marker" {
   if (markers.length === 0) return "no-marker";
   // Roll up: if any gate is "false" the marker is hidden.
   const allHidden = markers.every((marker) => {
-    const gates = collectJsxAndGates(marker);
-    return gates.some((gate) => classifyExpr(gate, sf, new Set()) === "false");
+    const gates = collectAllGates(marker);
+    return gates.some((gate) => classifyGate(gate, sf) === "false");
   });
   if (allHidden) return "false";
   // No marker is hidden — the audit would not flag it.
@@ -453,20 +692,40 @@ describe("Analyst FIELD_REGISTRY default-state visibility audit", () => {
   const ENTRIES = Object.entries(FIELD_REGISTRY);
 
   it("self-test: detection catches markers behind default-off useState gates", () => {
-    // The two known-bad fixtures must both resolve as hidden — one via the
-    // `(formData.x ?? global.x) > 0` comparison-through-const pattern that
-    // ConvertibleTermsCard uses, and one via a plain literal `false` gate.
+    // The two known-bad `&&` fixtures must both resolve as hidden — one
+    // via the `(formData.x ?? global.x) > 0` comparison-through-const
+    // pattern that ConvertibleTermsCard uses, and one via a plain
+    // literal `false` gate.
     expect(classifySelfTestField("hiddenByCompareGate")).toBe("false");
     expect(classifySelfTestField("hiddenByLiteralFalseGate")).toBe("false");
   });
 
+  it("self-test: detection catches markers behind ternary branches that are hidden at default state (task #785)", () => {
+    // Ternary whenTrue arm with a default-false condition — the marker
+    // is reached only when the condition is truthy, so it's hidden.
+    expect(classifySelfTestField("hiddenByTernaryTrueBranch")).toBe("false");
+    // Ternary whenFalse arm with a default-true condition — the marker
+    // is reached only when the condition is falsy, so it's hidden.
+    expect(classifySelfTestField("hiddenByTernaryFalseBranch")).toBe("false");
+  });
+
+  it("self-test: detection catches markers behind early-return guards (task #785)", () => {
+    // `if (!showFalse) return null;` with `showFalse = false` short-
+    // circuits the entire component — every marker after the guard is
+    // hidden at default state.
+    expect(classifySelfTestField("hiddenByEarlyReturn")).toBe("false");
+  });
+
   it("self-test: detection does not flag markers visible at default state", () => {
-    // Negative controls — the audit must not flag literal-`true` gates or
-    // markers with no gate at all, otherwise it would block legitimate
-    // conditional UI.
+    // Negative controls — the audit must not flag literal-`true` gates,
+    // markers with no gate at all, or ternary/early-return shapes whose
+    // gate is open at default state. Otherwise it would block
+    // legitimate conditional UI.
     expect(classifySelfTestField("visibleByLiteralTrueGate")).toBe("true");
     expect(classifySelfTestField("visibleNoGate")).toBe("true");
     expect(classifySelfTestField("visibleNoGate2")).toBe("true");
+    expect(classifySelfTestField("visibleByTernaryTrueBranch")).toBe("true");
+    expect(classifySelfTestField("visibleAfterEarlyReturn")).toBe("true");
   });
 
   it("has at least one registered field (sanity check)", () => {
@@ -502,9 +761,9 @@ describe("Analyst FIELD_REGISTRY default-state visibility audit", () => {
         // file is wrapped in at least one default-false gate. If even one
         // marker is unconditionally rendered, the focus hook will find it.
         const allHidden = markers.every((marker) => {
-          const gates = collectJsxAndGates(marker);
+          const gates = collectAllGates(marker);
           return gates.some(
-            (gate) => classifyExpr(gate, dest.sourceFile, new Set()) === "false",
+            (gate) => classifyGate(gate, dest.sourceFile) === "false",
           );
         });
         if (!allHidden) continue;
@@ -513,8 +772,8 @@ describe("Analyst FIELD_REGISTRY default-state visibility audit", () => {
         // error message — enough signal for a developer to find the
         // offending toggle without dumping the whole AST.
         const firstMarker = markers[0];
-        const firstGate = collectJsxAndGates(firstMarker).find(
-          (g) => classifyExpr(g, dest.sourceFile, new Set()) === "false",
+        const firstGate = collectAllGates(firstMarker).find(
+          (g) => classifyGate(g, dest.sourceFile) === "false",
         );
         const lineCol = dest.sourceFile.getLineAndCharacterOfPosition(
           firstMarker.getStart(dest.sourceFile),
@@ -524,7 +783,9 @@ describe("Analyst FIELD_REGISTRY default-state visibility audit", () => {
           mountPoint: entry.mountPoint,
           destinationPath: rel,
           markerLine: lineCol.line + 1,
-          gateText: firstGate ? firstGate.getText(dest.sourceFile) : "(unknown)",
+          gateText: firstGate
+            ? gateText(firstGate, dest.sourceFile)
+            : "(unknown)",
         });
         // First destination that hides the marker is enough to report.
         break;
@@ -536,15 +797,17 @@ describe("Analyst FIELD_REGISTRY default-state visibility audit", () => {
         (v) =>
           `  - "${v.fieldId}" (mountPoint="${v.mountPoint}") in ` +
           `${v.destinationPath}:${v.markerLine} is gated by ` +
-          `\`{${v.gateText} && (...)}\` which is false at default state.`,
+          `${v.gateText} which is false at default state.`,
       );
       throw new Error(
         "FIELD_REGISTRY entries have a marker on the right destination " +
           "surface, but the marker is wrapped in a default-off conditional " +
-          "render. The Analyst's 'Adjust' CTA will land on the right page, " +
-          "the focus hook will retry, and silently exhaust its budget — the " +
-          "user sees nothing happen (this is the runtime failure task #776 " +
-          "warns about; this audit catches it at PR time):\n" +
+          "render (an `&&` short-circuit, a ternary branch, or an early " +
+          "`if (!gate) return null;` guard). The Analyst's 'Adjust' CTA " +
+          "will land on the right page, the focus hook will retry, and " +
+          "silently exhaust its budget — the user sees nothing happen " +
+          "(this is the runtime failure task #776 warns about; this " +
+          "audit catches it at PR time):\n" +
           lines.join("\n") +
           "\n\nFix one of the following:\n" +
           "  - Render the marker outside the conditional block (e.g. keep " +
