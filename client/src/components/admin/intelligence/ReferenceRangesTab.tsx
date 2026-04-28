@@ -41,6 +41,7 @@ type ReferenceRangeRow = {
   methodology: string | null;
   confidence: string;
   lastVerifiedAt: string | null;
+  verifiedBy: string | null;
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -328,6 +329,11 @@ export default function ReferenceRangesTab() {
                             : "—"}
                         </span>
                       </div>
+                      {row.verifiedBy && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5" data-testid={`text-verified-by-${row.id}`}>
+                          by {row.verifiedBy}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );

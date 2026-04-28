@@ -27,7 +27,9 @@ const listFilterSchema = z.object({
   domain: z.enum(REFERENCE_RANGE_DOMAINS).optional(),
   metricKey: z.string().min(1).optional(),
   country: z.string().min(1).optional(),
-  year: z.coerce.number().int().min(1900).max(2200).optional(),
+  // year = 0 is the evergreen convention (rows with no calendar anchor,
+  // e.g. permanent statutory rules); positive years are calendar years.
+  year: z.coerce.number().int().min(0).max(2200).optional(),
   includeArchived: z
     .union([z.literal("true"), z.literal("false"), z.boolean()])
     .transform((v) => v === true || v === "true")

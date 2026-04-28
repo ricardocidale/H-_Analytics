@@ -31,6 +31,7 @@ export async function runReferenceRange001(): Promise<void> {
         confidence   text    NOT NULL DEFAULT 'medium',
         details      jsonb,
         last_verified_at timestamp,
+        verified_by  text,
         archived_at  timestamp,
         created_at   timestamp NOT NULL DEFAULT now(),
         updated_at   timestamp NOT NULL DEFAULT now(),
@@ -55,6 +56,12 @@ export async function runReferenceRange001(): Promise<void> {
     await db.execute(sql`
       CREATE INDEX IF NOT EXISTS reference_range_verified_idx
         ON reference_range (last_verified_at)
+    `);
+
+    // Idempotent backfill for environments that were initialized before
+    // task #803 added the mandatory `verified_by` provenance column.
+    await db.execute(sql`
+      ALTER TABLE reference_range ADD COLUMN IF NOT EXISTS verified_by text
     `);
 
     logger.info("Migration complete", TAG);

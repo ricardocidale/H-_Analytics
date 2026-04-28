@@ -115,6 +115,12 @@ export const referenceRanges = pgTable("reference_range", {
    *  numbers against the source. Drives the staleness pill in the grid
    *  and (Phase 6) the refresh scheduler's eligibility check. */
   lastVerifiedAt: timestamp("last_verified_at"),
+  /** Who confirmed the row last — e.g. an admin user id, "deep-research",
+   *  "airroi-refresh", "fred-refresh". Mandatory provenance per task #803:
+   *  every row carries who attested to it, not just when. Nullable on the
+   *  column so seed loaders can backfill, but write paths in Phase 2 will
+   *  refuse to insert without it. */
+  verifiedBy: text("verified_by"),
   /** Soft delete. Archived rows are hidden in the grid by default and
    *  ignored by the best-match resolver. */
   archivedAt: timestamp("archived_at"),
@@ -147,7 +153,7 @@ export const insertReferenceRangeSchema = createInsertSchema(referenceRanges).pi
   low: true, mid: true, high: true, unit: true,
   sourceId: true, sourceName: true, sourceUrl: true, methodology: true, confidence: true,
   details: true,
-  lastVerifiedAt: true,
+  lastVerifiedAt: true, verifiedBy: true,
 }).extend({
   domain: z.enum(REFERENCE_RANGE_DOMAINS),
   confidence: z.enum(REFERENCE_RANGE_CONFIDENCES).optional(),
