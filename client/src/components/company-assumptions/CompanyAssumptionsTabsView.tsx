@@ -10,9 +10,13 @@ import type { GlobalResponse, FeeCategoryResponse } from "@/lib/api";
 import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { SaveButton } from "@/components/ui/save-button";
+import { Button } from "@/components/ui/button";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import { computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { IconBuilding2 } from "@/components/icons";
+import { cn } from "@/lib/utils";
 import {
   CapitalRaisesCard,
   ConvertibleTermsCard,
@@ -83,6 +87,22 @@ interface Props {
    * verdict-free so its three cards can flow into the parent grid.
    */
   fundingVerdict?: AnalystVerdict | null;
+  /**
+   * Currently saved management-company ICP model tier ("A" | "B" | "C")
+   * or null if the user hasn't picked one yet. When null AND the
+   * Funding tab is active, the page-level Analyst CTA renders as a
+   * blue/muted "Select a model first" badge that opens the picker
+   * directly instead of firing the Analyst (which would 400 on the
+   * server's ICP gate). Read on the page from
+   * `globalAssumptions.icpModelTier`.
+   */
+  icpModelTier?: string | null;
+  /**
+   * Open the IcpModelDialog without first attempting an Analyst run.
+   * Wired to the pre-selection badge so the user can choose a model
+   * proactively. Required whenever `icpModelTier` is null.
+   */
+  onSelectIcpModel?: () => void;
 }
 
 export function CompanyAssumptionsTabsView(props: Props) {
@@ -95,6 +115,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
     generateResearch, isGenerating, getTabGating,
     companyResearchUpdatedAt, lastAssumptionChangeAt,
     fundingVerdict,
+    icpModelTier, onSelectIcpModel,
   } = props;
 
   const gating = getTabGating(activeTab);
@@ -215,18 +236,54 @@ export function CompanyAssumptionsTabsView(props: Props) {
           rightContent={(() => {
             const activeDirty = TAB_FIELDS[activeTab].some((k) => dirtyFields.has(k));
             const activeNeverSaved = !savedTabs.has(activeTab);
+            // Pre-selection badge state (Task C): on the Funding tab,
+            // when no ICP model is saved, replace the regular AnalystButton
+            // with a blue/muted "Select a model first" badge that opens
+            // the picker directly. The Analyst can't run without a model
+            // (server returns 400 ICP_MODEL_REQUIRED), so funneling the
+            // user to the picker first avoids a wasted click.
+            const showIcpPicker =
+              activeTab === "funding" && !icpModelTier && !!onSelectIcpModel;
             return (
               <div className="flex items-center gap-2">
-                <AnalystButton
-                  onClick={generateResearch}
-                  isRunning={isGenerating}
-                  disabled={!gating.enabled}
-                  disabledReason={gating.reason}
-                  tooltip={`Consult the Analyst on ${TAB_LABELS[activeTab]}`}
-                  size="sm"
-                  freshnessStatus={freshnessStatus}
-                  dataTestId={`button-ask-analyst-${activeTab}`}
-                />
+                {showIcpPicker ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onSelectIcpModel}
+                        data-testid="button-select-icp-model"
+                        className={cn(
+                          "h-7 gap-1.5 text-xs",
+                          // Blue/muted palette so it reads as informational
+                          // rather than the amber "ready to run" Analyst CTA.
+                          "border-sky-300 bg-sky-50 text-sky-900 hover:bg-sky-100 hover:text-sky-900",
+                          "dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200 dark:hover:bg-sky-900/40",
+                        )}
+                      >
+                        <IconBuilding2 className="w-3 h-3" />
+                        Select a model first
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[280px] text-center">
+                      The Analyst needs to know your management company scale
+                      (A / B / C) before it can range your funding plan. Click
+                      to select.
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <AnalystButton
+                    onClick={generateResearch}
+                    isRunning={isGenerating}
+                    disabled={!gating.enabled}
+                    disabledReason={gating.reason}
+                    tooltip={`Consult the Analyst on ${TAB_LABELS[activeTab]}`}
+                    size="sm"
+                    freshnessStatus={freshnessStatus}
+                    dataTestId={`button-ask-analyst-${activeTab}`}
+                  />
+                )}
                 <SaveButton
                   onClick={() => onSaveTab(activeTab, { force: activeNeverSaved && !activeDirty })}
                   isPending={savingTab === activeTab && isUpdatePending}

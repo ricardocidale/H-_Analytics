@@ -458,6 +458,8 @@ export default function CompanyAssumptions() {
             companyResearchUpdatedAt={analyst.companyResearchUpdatedAt}
             lastAssumptionChangeAt={global.lastAssumptionChangeAt ?? null}
             fundingVerdict={fundingRefresh.lastVerdict}
+            icpModelTier={global.icpModelTier ?? null}
+            onSelectIcpModel={openIcpModelPicker}
           />
 
           <AnalystUnsavedChangesDialog

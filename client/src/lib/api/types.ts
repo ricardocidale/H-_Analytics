@@ -160,6 +160,11 @@ export interface GlobalResponse {
   lastAssumptionChangeAt: string | null;
   savedTabs: string[];
   updatedAt: string;
+  // ICP management-company model selection ("A" | "B" | "C") used by the
+  // mgmt-co.funding Specialist to range the funding plan. NULL on disk
+  // means "user hasn't picked one yet" — server returns 400
+  // ICP_MODEL_REQUIRED on /api/analyst/refresh until set.
+  icpModelTier: string | null;
 }
 
 export interface FeeCategoryResponse {
