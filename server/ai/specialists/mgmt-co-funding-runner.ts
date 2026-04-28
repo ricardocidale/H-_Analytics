@@ -29,6 +29,8 @@ import {
   buildFundingSystemPrompt,
   buildFundingUserPrompt,
 } from "./mgmt-co-funding-prompt";
+import type { MarketBenchmarkEntry } from "./market-benchmark-types";
+import { lookupReferenceRange } from "../../storage/reference-range";
 import {
   FundingSpecialistOutputSchema,
   type FundingSpecialistOutput,
@@ -253,6 +255,48 @@ export interface RunFundingSpecialistDeps {
 }
 
 /**
+ * Look up financing benchmarks from the `reference_range` table for the
+ * operator's locale. Returns rows relevant to the funding surface:
+ * KPI margin benchmarks (context for raise adequacy) + financing structure
+ * benchmarks (LTV, DSCR, equity multiple). Failures are silently swallowed.
+ */
+async function resolveFundingMarketBenchmarks(
+  locale: string | undefined,
+): Promise<MarketBenchmarkEntry[]> {
+  if (!locale) return [];
+  const c = locale.toUpperCase();
+  const lookups: Array<{ domain: "kpi" | "financing"; metricKey: string }> = [
+    { domain: "kpi", metricKey: "rampMonths" },
+    { domain: "financing", metricKey: "ltvSenior" },
+    { domain: "financing", metricKey: "dscrMinimum" },
+    { domain: "financing", metricKey: "equityMultipleTarget" },
+  ];
+  const entries: MarketBenchmarkEntry[] = [];
+  await Promise.all(
+    lookups.map(async ({ domain, metricKey }) => {
+      try {
+        const row = await lookupReferenceRange({ domain, metricKey, country: c });
+        if (row) {
+          entries.push({
+            metricKey: row.metricKey,
+            label: row.label,
+            low: row.low,
+            mid: row.mid,
+            high: row.high,
+            unit: row.unit,
+            country: row.country,
+            sourceName: row.sourceName ?? null,
+          });
+        }
+      } catch {
+        // Non-fatal: missing benchmark row should not block the verdict
+      }
+    }),
+  );
+  return entries;
+}
+
+/**
  * Run the v1 Funding Specialist end-to-end.
  *
  * Returns a complete AnalystVerdict ready for the route handler to send
@@ -265,8 +309,9 @@ export async function runFundingSpecialist(
   comparables: readonly ComparableRow[],
   deps: RunFundingSpecialistDeps = {},
 ): Promise<AnalystVerdict> {
+  const marketCalibration = await resolveFundingMarketBenchmarks(ctx.persona.locale);
   const systemPrompt = buildFundingSystemPrompt();
-  const userPrompt = buildFundingUserPrompt(ctx, benchmarks, comparables);
+  const userPrompt = buildFundingUserPrompt(ctx, benchmarks, comparables, marketCalibration);
   const persona = asPersonaContext(ctx.persona);
 
   // Direct @ai-sdk/anthropic provider — uses ANTHROPIC_API_KEY from env.

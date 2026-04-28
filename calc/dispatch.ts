@@ -60,7 +60,7 @@ import {
   depreciationBasisSchema, debtCapacitySchema, occupancyRampSchema,
   adrProjectionSchema, capRateValuationSchema, costBenchmarksSchema,
   serviceFeeSchema, markupWaterfallSchema, makeVsBuySchema,
-  waccSchema, portfolioWaccSchema, mirrSchema,
+  waccSchema, portfolioWaccSchema, mirrSchema, laborBurdenSchema,
 } from "./shared/schemas.js";
 import type { ZodSchema } from "zod";
 import { computeDCF } from "./returns/dcf-npv.js";
@@ -102,6 +102,7 @@ import { computeMarkupWaterfall } from "./research/markup-waterfall.js";
 import { computeMakeVsBuy } from "./research/make-vs-buy.js";
 import { computeWACC, computePortfolioWACC } from "./returns/wacc.js";
 import { computeMIRR } from "./returns/mirr.js";
+import { computeLaborBurden } from "./analysis/compute-labor-burden.js";
 
 type ToolInput = Record<string, unknown>;
 type ToolFn = (input: never) => unknown;
@@ -153,6 +154,7 @@ const TOOL_SCHEMAS: Record<string, ZodSchema> = {
   compute_wacc: waccSchema,
   compute_portfolio_wacc: portfolioWaccSchema,
   compute_mirr: mirrSchema,
+  compute_labor_burden: laborBurdenSchema,
 };
 
 const TOOL_DISPATCH: Record<string, ToolHandler> = {
@@ -199,6 +201,7 @@ const TOOL_DISPATCH: Record<string, ToolHandler> = {
   compute_wacc: withRounding(computeWACC as ToolFn),
   compute_portfolio_wacc: withRounding(computePortfolioWACC as ToolFn),
   compute_mirr: withRounding(computeMIRR as ToolFn),
+  compute_labor_burden: withRounding(computeLaborBurden as ToolFn),
 };
 
 /**

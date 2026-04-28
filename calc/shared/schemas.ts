@@ -663,3 +663,11 @@ export const mirrSchema = z.object({
   finance_rate: z.number().min(0),
   reinvestment_rate: z.number().min(0),
 });
+
+export const laborBurdenSchema = z.object({
+  base_wage_per_fte: z.number().positive(),
+  fte_count: z.number().positive(),
+  benefits_load_rate: z.number().min(0).max(1),
+  employer_payroll_tax_rate: z.number().min(0).max(0.5),
+  periods_per_year: z.number().int().positive().optional(),
+});

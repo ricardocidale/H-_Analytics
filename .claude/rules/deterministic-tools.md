@@ -9,15 +9,15 @@ Any change to files in `calc/` MUST be accompanied by:
 
 ## Tool Registry Invariant
 
-`calc/dispatch.ts` is the single source of truth for tool registration. There are currently **37 deterministic tools** across 6 categories:
+`calc/dispatch.ts` is the single source of truth for tool registration. There are currently **41 deterministic tools** across 6 categories:
 
 | Category | Count | Directory |
 |----------|-------|-----------|
 | Research | 10 | `calc/research/` |
-| Returns | 6 | `calc/returns/` |
+| Returns | 7 | `calc/returns/` |
 | Validation | 5 | `calc/validation/` |
-| Analysis | 8 | `calc/analysis/` |
-| Financing | 5 | `calc/financing/` |
+| Analysis | 11 | `calc/analysis/` |
+| Financing | 6 | `calc/financing/` |
 | Services | 2 | `calc/services/` |
 
 Every tool MUST be:

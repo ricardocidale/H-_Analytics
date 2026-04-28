@@ -27,6 +27,8 @@
  */
 
 import type { CountryInflationOutlook } from "../../../engine/analyst/surface/property/risk-intelligence-specialist";
+import type { MarketBenchmarkEntry } from "./market-benchmark-types";
+export type { MarketBenchmarkEntry };
 
 // ────────────────────────────────────────────────────────────────────────────
 // System prompt — The Analyst persona + voice + output discipline
@@ -107,6 +109,12 @@ export interface PropertyRiskIntelligencePromptInputContext {
    * rather than fabricating an outlook.
    */
   countryInflationOutlook: CountryInflationOutlook | null;
+  /**
+   * Optional market benchmark rows from the `reference_range` table
+   * (sourced via `lookupReferenceRange`). Used as calibration context —
+   * NOT as prescriptions. Omit to skip the benchmark block in the prompt.
+   */
+  marketBenchmarks?: MarketBenchmarkEntry[];
 }
 
 /**
@@ -114,6 +122,26 @@ export interface PropertyRiskIntelligencePromptInputContext {
  * country outlook (or its absence), the user's saved override, and a
  * tight format reminder. Pure; no I/O.
  */
+function buildMarketBenchmarksBlock(benchmarks: MarketBenchmarkEntry[]): string {
+  if (benchmarks.length === 0) return "";
+  const rows = benchmarks
+    .map((b) => {
+      const src = b.sourceName ? ` · source: ${b.sourceName}` : "";
+      return `  - ${b.label} (${b.metricKey}): ${b.low}–${b.high} (mid ${b.mid}) ${b.unit} [${b.country}]${src}`;
+    })
+    .join("\n");
+  return `
+# Industry calibration context (reference market data — NOT prescriptions)
+
+The following ranges are from published benchmark surveys for this market and property
+class. They are calibration data to inform your reasoning. Reason per-deal from
+property-specific drivers (operator quality, brand, revenue mix, location premium,
+seasonal profile). Do NOT emit these ranges verbatim — the user's property may
+legitimately differ from market averages, and that deviation is the intelligence.
+
+${rows}`;
+}
+
 export function buildPropertyRiskIntelligenceUserPrompt(
   ctx: PropertyRiskIntelligencePromptInputContext,
 ): string {
@@ -141,6 +169,11 @@ The macro Specialist (Isadora I, constants.macro-research) has not refreshed the
 - Source: ${countryInflationOutlook.source}
 - As of: ${countryInflationOutlook.asOf}${countryInflationOutlook.url ? `\n- URL: ${countryInflationOutlook.url}` : ""}`;
 
+  const benchmarksBlock =
+    ctx.marketBenchmarks && ctx.marketBenchmarks.length > 0
+      ? buildMarketBenchmarksBlock(ctx.marketBenchmarks)
+      : "";
+
   return `# Property persona
 
 - Vertical: ${persona.verticalSlug}
@@ -152,7 +185,7 @@ The macro Specialist (Isadora I, constants.macro-research) has not refreshed the
 
 ${userValueLine}
 
-${outlookBlock}
+${outlookBlock}${benchmarksBlock}
 
 # Your task
 

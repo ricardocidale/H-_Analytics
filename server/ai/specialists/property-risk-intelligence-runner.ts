@@ -39,6 +39,8 @@ import {
   type PropertyRiskIntelligencePromptInputContext,
   type PropertyRiskIntelligencePersonaContext,
 } from "./property-risk-intelligence-prompt";
+import type { MarketBenchmarkEntry } from "./market-benchmark-types";
+import { lookupReferenceRange } from "../../storage/reference-range";
 import {
   PropertyRiskIntelligenceOutputSchema,
   type PropertyRiskIntelligenceOutput,
@@ -265,6 +267,48 @@ export interface RunPropertyRiskIntelligenceSpecialistDeps {
 }
 
 /**
+ * Look up key KPI + macro benchmarks from the `reference_range` table for
+ * the given country. Returns an array ready to pass into the prompt context.
+ * Failures are silently swallowed — missing rows mean the benchmark block is
+ * simply omitted; the verdict still runs on the inflation outlook alone.
+ */
+async function resolveMarketBenchmarks(
+  country: string | undefined,
+): Promise<MarketBenchmarkEntry[]> {
+  if (!country) return [];
+  const c = country.toUpperCase();
+  const lookups: Array<{ domain: "kpi" | "macro" | "labor"; metricKey: string }> = [
+    { domain: "kpi", metricKey: "gopMarginPct" },
+    { domain: "kpi", metricKey: "stabilizedOccupancy" },
+    { domain: "kpi", metricKey: "capRateExitStabilized" },
+    { domain: "labor", metricKey: "totalLaborCostPct" },
+  ];
+  const entries: MarketBenchmarkEntry[] = [];
+  await Promise.all(
+    lookups.map(async ({ domain, metricKey }) => {
+      try {
+        const row = await lookupReferenceRange({ domain, metricKey, country: c });
+        if (row) {
+          entries.push({
+            metricKey: row.metricKey,
+            label: row.label,
+            low: row.low,
+            mid: row.mid,
+            high: row.high,
+            unit: row.unit,
+            country: row.country,
+            sourceName: row.sourceName ?? null,
+          });
+        }
+      } catch {
+        // Non-fatal: missing benchmark row should not block the verdict
+      }
+    }),
+  );
+  return entries;
+}
+
+/**
  * Run the Property Risk Intelligence Specialist end-to-end.
  *
  * Returns a complete `AnalystVerdict` ready for the route handler to send
@@ -275,8 +319,13 @@ export async function runPropertyRiskIntelligenceSpecialist(
   ctx: PropertyRiskIntelligencePromptInputContext,
   deps: RunPropertyRiskIntelligenceSpecialistDeps = {},
 ): Promise<AnalystVerdict> {
+  const marketBenchmarks = await resolveMarketBenchmarks(ctx.inputs.country);
+  const ctxWithBenchmarks: PropertyRiskIntelligencePromptInputContext = {
+    ...ctx,
+    marketBenchmarks,
+  };
   const systemPrompt = buildPropertyRiskIntelligenceSystemPrompt();
-  const userPrompt = buildPropertyRiskIntelligenceUserPrompt(ctx);
+  const userPrompt = buildPropertyRiskIntelligenceUserPrompt(ctxWithBenchmarks);
   const persona = asPersonaContext(ctx.persona);
 
   // Direct @ai-sdk/anthropic provider — uses ANTHROPIC_API_KEY from env.

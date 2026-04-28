@@ -36,6 +36,8 @@ import {
   buildFundingPromptInput,
   type FundingPromptInputContext,
 } from "./mgmt-co-funding-prompt-input-builder";
+import type { MarketBenchmarkEntry } from "./market-benchmark-types";
+export type { MarketBenchmarkEntry };
 
 // ────────────────────────────────────────────────────────────────────────────
 // System prompt — The Analyst persona + voice + output discipline
@@ -142,6 +144,7 @@ export function buildFundingUserPrompt(
   ctx: FundingPromptInputContext,
   benchmarks: AnalystWatchdogBenchmarks,
   comparables: readonly ComparableRow[],
+  marketCalibration?: MarketBenchmarkEntry[],
 ): string {
   const promptInput = buildFundingPromptInput(ctx);
   const { inputs, persona, portfolio } = ctx;
@@ -212,6 +215,14 @@ Model ${ctx.icpModel.tier}: ${ctx.icpModel.label} — ${ctx.icpModel.tagline}
 Use this model as a SECONDARY anchor — the user's saved values above take precedence where present. When user values are missing or at default, anchor ranges to this model. Adjust for any delta between user's actual property count (${portfolio.propertyCount}) and this model's typical (${ctx.icpModel.propertyCount.typical}).`
     : "# Management company model (ICP)\n\n  (no model selected — user has not chosen A/B/C)";
 
+  const marketCalibrationBlock =
+    marketCalibration && marketCalibration.length > 0
+      ? `\n# Regional market calibration (reference data — NOT prescriptions)\n\nThe following ranges are from published benchmark surveys for the operator's target market.\nThey are calibration data only. Reason per-deal from the operator's specific profile,\ncapital-stack discipline, and comparable set above. Do NOT emit these ranges verbatim.\n\n${marketCalibration.map((b) => {
+          const src = b.sourceName ? ` · source: ${b.sourceName}` : "";
+          return `  - ${b.label}: ${b.low}–${b.high} (mid ${b.mid}) ${b.unit} [${b.country}]${src}`;
+        }).join("\n")}\n`
+      : "";
+
   return `# Persona
 
 ${personaLine}
@@ -231,7 +242,7 @@ ${userValuesBlock}
 Source: ${benchmarks.refreshedBy ?? "internal benchmark snapshot"}${benchmarks.lastRefreshedAt ? ` (lastRefreshed ${new Date(benchmarks.lastRefreshedAt).toISOString().slice(0, 10)})` : ""}
 
 ${benchmarksBlock}
-
+${marketCalibrationBlock}
 # Dimension descriptors and reasoning sources to consult
 
 ${dimensionDescriptorsBlock}
