@@ -9,7 +9,7 @@
  *
  *   1. Save and analyze        — persist the active tab first, then run
  *                                the Analyst against the fresh state.
- *   2. Continue with last-saved — ignore unsaved edits and run the
+ *   2. Continue with last saved — ignore unsaved edits and run the
  *                                Analyst against the current persisted
  *                                row (useful for "what would you say
  *                                about what I have on disk?").
@@ -52,67 +52,70 @@ export function AnalystUnsavedChangesDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!isSaving) onOpenChange(v); }}>
       <DialogContent
-        className="sm:max-w-md overflow-hidden"
+        className="sm:max-w-lg overflow-hidden p-7"
         data-testid="dialog-analyst-unsaved-changes"
       >
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22, ease: "easeOut" }}
+          className="space-y-5"
         >
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-display">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="flex items-center gap-3 font-display text-lg leading-tight">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary">
                 <IconSparkles className="h-4 w-4" />
               </span>
               You have unsaved changes
             </DialogTitle>
-            <DialogDescription className="label-text">
-              The Analyst can only see what's saved. Save your{" "}
+            <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+              The Analyst reads what's saved — save your{" "}
               {tabLabel ? (
-                <span className="font-medium text-foreground">
-                  {tabLabel}
-                </span>
+                <span className="font-medium text-foreground">{tabLabel}</span>
               ) : (
                 "current"
               )}
-              {" "}edits first, or run the Analyst against the last-saved
-              state.
+              {" "}edits, or run on the last saved version.
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="mt-4 flex-col gap-2 sm:flex-row sm:justify-end">
+          <DialogFooter className="mt-2 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:space-x-0">
             <Button
               variant="ghost"
               onClick={() => onOpenChange(false)}
               disabled={isSaving}
               data-testid="button-analyst-unsaved-cancel"
+              className="sm:w-auto w-full"
             >
               Cancel
             </Button>
-            <Button
-              variant="outline"
-              onClick={onContinueWithLastSaved}
-              disabled={isSaving}
-              data-testid="button-analyst-unsaved-continue"
-            >
-              Continue with last-saved
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => void onSaveAndAnalyze()}
-              disabled={isSaving}
-              data-testid="button-analyst-unsaved-save-and-analyze"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                "Save and analyze"
-              )}
-            </Button>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <Button
+                variant="destructive"
+                onClick={onContinueWithLastSaved}
+                disabled={isSaving}
+                data-testid="button-analyst-unsaved-continue"
+                className="sm:w-auto w-full"
+              >
+                Continue with last saved
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => void onSaveAndAnalyze()}
+                disabled={isSaving}
+                data-testid="button-analyst-unsaved-save-and-analyze"
+                className="sm:w-auto w-full"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  "Save and analyze"
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </motion.div>
       </DialogContent>
