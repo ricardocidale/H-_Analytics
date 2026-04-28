@@ -31,9 +31,11 @@
  * at that slug to have a marker inside at least one of those files.
  *
  * Adding a new surface (slug):
- *   1. Add an entry to `MOUNT_POINT_DESTINATIONS` below, mapping the slug
- *      to the file(s) that render its form. The file paths are relative
- *      to the repo root.
+ *   1. Add an entry to `MOUNT_POINT_DESTINATIONS` in
+ *      `tests/proof/_helpers/analyst-mount-point-destinations.ts` (the
+ *      shared map this audit imports — also consumed by the default-state
+ *      visibility audit, so one edit covers both). The file paths are
+ *      relative to the repo root.
  *   2. The test will fail if the registry uses a slug not present in the
  *      map — that's the forcing function. It will also fail if the file
  *      doesn't exist (so a tab rename / file move is caught immediately)
@@ -48,65 +50,12 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { FIELD_REGISTRY } from "../../engine/analyst/registry/field-registry";
+// Single source of truth for slug → destination file(s). Shared with
+// `analyst-field-registry-default-state-visibility.test.ts` — see the
+// helper file's header for the rationale (task #786).
+import { MOUNT_POINT_DESTINATIONS } from "./_helpers/analyst-mount-point-destinations";
 
 const ROOT = join(__dirname, "../..");
-
-/**
- * Slug → destination file(s). Every slug used by `FIELD_REGISTRY` must
- * appear here. Paths are relative to the repo root and must exist on
- * disk (the test asserts `existsSync` so a file rename fails the audit
- * before any of the marker checks run).
- *
- * For surfaces composed of multiple sibling files (e.g. property-edit/*
- * sections each living in their own file), list all of the files that
- * legitimately host markers for that slug — the audit accepts a marker
- * appearing in any one of them.
- */
-const MOUNT_POINT_DESTINATIONS: Readonly<Record<string, readonly string[]>> = {
-  // Funding-tab fields are management-company-level; their `data-field`
-  // markers live on the Company Assumptions funding tab, which is composed
-  // entirely from FundingSection.tsx's three named cards (CapitalRaisesCard,
-  // ConvertibleTermsCard, CapitalStackDisciplineCard). See
-  // CompanyAssumptionsTabsView.tsx::renderBody case "funding".
-  "company-assumptions/funding": [
-    "client/src/components/company-assumptions/FundingSection.tsx",
-  ],
-
-  // Revenue defaults are admin-only and live on the Property Underwriting
-  // tab of Admin → Model Defaults (the "Ancillary Revenue Mix" section
-  // and the "USALI Operating Cost Rates" section both render `field-*`
-  // markers via the FieldHelpers `testId` prop, which is forwarded to
-  // `data-testid` on the rendered input). See ModelDefaultsTab.tsx for
-  // the import / mount.
-  "defaults/revenue": [
-    "client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx",
-  ],
-
-  // Management-company defaults (e.g. cost-of-equity, WACC inputs) live on
-  // the Company tab of Admin → Model Defaults. Markers are rendered via
-  // the FieldHelpers `testId` prop just like the other Model-Defaults
-  // tabs. See ModelDefaultsTab.tsx for the import / mount.
-  "defaults/management-company": [
-    "client/src/components/admin/model-defaults/CompanyTab.tsx",
-  ],
-
-  // Macro & market defaults (inflation, market-rate assumptions, etc.)
-  // live on the Market & Macro tab of Admin → Model Defaults. Same
-  // FieldHelpers convention as the other Model-Defaults tabs. See
-  // ModelDefaultsTab.tsx for the import / mount.
-  "defaults/market-macro": [
-    "client/src/components/admin/model-defaults/MarketMacroTab.tsx",
-  ],
-
-  // Property-level underwriting defaults (the bulk of the property
-  // financial model — depreciation lives, refurbishment cycles, etc.)
-  // live on the Property Underwriting tab of Admin → Model Defaults,
-  // alongside the revenue-defaults sections. Same FieldHelpers
-  // convention. See ModelDefaultsTab.tsx for the import / mount.
-  "defaults/property": [
-    "client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx",
-  ],
-};
 
 /**
  * The same two marker conventions used by the focus hook
@@ -150,7 +99,7 @@ function loadDestinations(slug: string): DestinationFile[] {
       `FIELD_REGISTRY uses mountPoint slug "${slug}" but the deep-link ` +
         `destination audit has no entry for it. Add an entry to ` +
         `MOUNT_POINT_DESTINATIONS in ` +
-        `tests/proof/analyst-deep-link-destination-marker.test.ts ` +
+        `tests/proof/_helpers/analyst-mount-point-destinations.ts ` +
         `mapping the slug to the file(s) that host its form-side markers.`,
     );
   }
@@ -195,7 +144,9 @@ describe("Analyst Adjust deep-link destination-marker audit", () => {
       throw new Error(
         "FIELD_REGISTRY uses mountPoint slugs that the deep-link " +
           "destination audit doesn't know about. Add an entry to " +
-          "MOUNT_POINT_DESTINATIONS in this file for each of:\n" +
+          "MOUNT_POINT_DESTINATIONS in " +
+          "tests/proof/_helpers/analyst-mount-point-destinations.ts " +
+          "for each of:\n" +
           unmapped.map((s) => `  - "${s}"`).join("\n"),
       );
     }
@@ -262,7 +213,8 @@ describe("Analyst Adjust deep-link destination-marker audit", () => {
           "  - Update the registry's `mountPoint` to point at the file " +
           "where the marker actually lives.\n" +
           "  - If the surface was split into a new file, add it to " +
-          "MOUNT_POINT_DESTINATIONS in this audit.",
+          "MOUNT_POINT_DESTINATIONS in " +
+          "tests/proof/_helpers/analyst-mount-point-destinations.ts.",
       );
     }
   });

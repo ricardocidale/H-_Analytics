@@ -63,44 +63,29 @@
  *          (see `client/src/components/admin/model-defaults/FieldHelpers.tsx`).
  *
  * Adding a new destination file:
- *   Add an entry to `MOUNT_POINT_DESTINATIONS` mapping the registry slug to
- *   the file(s) that legitimately host its markers — same pattern the
- *   sibling deep-link audit uses. A registered slug not present in the map
- *   is skipped with a warning so this audit does not double-fail when the
- *   sibling map is stale.
+ *   Add an entry to `MOUNT_POINT_DESTINATIONS` in
+ *   `tests/proof/_helpers/analyst-mount-point-destinations.ts` — the
+ *   shared map this audit imports (also consumed by the sibling deep-link
+ *   audit, so one edit covers both; see task #786). A registered slug not
+ *   present in the map is soft-skipped here because the sibling deep-link
+ *   audit owns the "map is incomplete" hard-failure assertion, and we
+ *   don't want to double-fail on the same root cause.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import * as ts from "typescript";
 import { FIELD_REGISTRY } from "../../engine/analyst/registry/field-registry";
+// Single source of truth for slug → destination file(s). Shared with
+// `analyst-deep-link-destination-marker.test.ts` (task #786) — that
+// sibling audit owns the "map is incomplete" / "destination file is
+// missing" hard-failure assertions, so an unmapped slug here is still a
+// soft skip below to avoid double-noising the output when the registry
+// adds a new slug. The two audits importing the same constant means a
+// single edit to the helper covers both.
+import { MOUNT_POINT_DESTINATIONS } from "./_helpers/analyst-mount-point-destinations";
 
 const ROOT = join(__dirname, "../..");
-
-/**
- * Slug → destination file(s). Mirrors the structure used by
- * `analyst-deep-link-destination-marker.test.ts` but kept independent so
- * this audit does not silently break when that map drifts: an unmapped slug
- * here is reported as a soft skip (not a hard failure), letting the sibling
- * test own the "map is incomplete" complaint.
- */
-const MOUNT_POINT_DESTINATIONS: Readonly<Record<string, readonly string[]>> = {
-  "company-assumptions/funding": [
-    "client/src/components/company-assumptions/FundingSection.tsx",
-  ],
-  "defaults/revenue": [
-    "client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx",
-  ],
-  "defaults/management-company": [
-    "client/src/components/admin/model-defaults/CompanyTab.tsx",
-  ],
-  "defaults/market-macro": [
-    "client/src/components/admin/model-defaults/MarketMacroTab.tsx",
-  ],
-  "defaults/property": [
-    "client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx",
-  ],
-};
 
 interface ParsedDestination {
   readonly path: string;
