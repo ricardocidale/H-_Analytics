@@ -201,6 +201,89 @@ describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry"
 });
 
 // ────────────────────────────────────────────────────────────────────────────
+// Candidate-field parity — every field id a Specialist emits as
+// `VerdictDimension.field` MUST also be reachable from the same Specialist's
+// `SPECIALIST_CATALOG.candidateFields` list, so admins can promote it to
+// "hard" or "recommended" from the Required Fields tab.
+//
+// Why this test exists (separately from the registry-parity block above):
+// FIELD_REGISTRY parity guarantees the Voice Renderer can label and
+// deep-link the field. Catalog parity guarantees the *admin surface* — the
+// Required Fields tab, the run-trigger preflight, and the
+// `findObservedMissingCandidateFields` recommendation — can SEE the field
+// at all. A Specialist that quietly starts emitting a verdict for a field
+// outside its `candidateFields` list will still render correctly on the
+// user side (registry has it), but admins won't be able to promote it to
+// required, and the "missing-but-useful" recommendations will silently
+// skip it. That's the failure class this block catches.
+//
+// Resolution semantics: a candidate entry "matches" a verdict-field id when
+// `(verdictField ?? key) === field`. The optional `verdictField` property
+// (see shared/schema/specialist.ts) carries the form-anchor id for
+// Specialists whose dispatch/payload key differs from the verdict-field
+// the Adjust deep-link scrolls to (e.g. mgmt-co.funding gates on
+// `runwayBufferMonths` but its Adjust deep-link points at
+// `capitalRaise1Amount`). When `verdictField` is absent, `key` is itself
+// the verdict-field id (the common case — payload key and form-anchor are
+// the same string).
+
+function resolveCandidateVerdictFields(specialistId: string): string[] {
+  const def = SPECIALIST_CATALOG.find((d) => d.id === specialistId);
+  if (!def?.candidateFields) return [];
+  return def.candidateFields.map((c) => c.verdictField ?? c.key);
+}
+
+describe("SPECIALIST_CATALOG candidateFields parity — every Specialist-emitted field is admin-promotable", () => {
+  for (const { specialistId, fields } of SPECIALISTS_EMITTING_VERDICT_DIMENSIONS) {
+    describe(specialistId, () => {
+      for (const field of fields) {
+        it(`candidateFields covers verdict field "${field}"`, () => {
+          const reachable = new Set(resolveCandidateVerdictFields(specialistId));
+          expect(
+            reachable.has(field),
+            [
+              `${specialistId} emits VerdictDimension.field="${field}" but no entry in its`,
+              `SPECIALIST_CATALOG.candidateFields list resolves to that id`,
+              `(checked: candidateFields[].verdictField ?? candidateFields[].key).`,
+              `Add the verdict id to the matching candidate entry — either rename`,
+              `\`key\` to "${field}" if the payload uses that name, or set`,
+              `\`verdictField: "${field}"\` on the candidate entry whose \`key\` is`,
+              `the dispatch/payload key for this dimension. Without this, the`,
+              `admin Required Fields tab won't surface "${field}" for promotion to`,
+              `"hard" or "recommended" and the "missing-but-useful" recommendation`,
+              `will silently skip it.`,
+            ].join(" "),
+          ).toBe(true);
+        });
+      }
+
+      it("no candidate entry references a verdict-field the Specialist never emits", () => {
+        // Mirror invariant: every candidate's resolved verdict id should
+        // correspond to a real tracked field. Catches the rename-drift
+        // class (someone refactors a Specialist's DIMENSION_META.field but
+        // forgets to update the candidate's `verdictField`, so the
+        // candidate now points at a phantom verdict id that never gets
+        // emitted).
+        const trackedSet = new Set<string>(fields);
+        const ghosts = resolveCandidateVerdictFields(specialistId).filter(
+          (vf) => !trackedSet.has(vf),
+        );
+        expect(
+          ghosts,
+          [
+            `${specialistId}.candidateFields contains entries whose resolved`,
+            `verdict-field id (verdictField ?? key) is not in`,
+            `*_SPECIALIST_TRACKED_FIELDS: [${ghosts.join(", ")}].`,
+            `Either drop the stale candidate entry or fix its \`verdictField\` to`,
+            `match the id the Specialist actually emits.`,
+          ].join(" "),
+        ).toEqual([]);
+      });
+    });
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // Unit parity — the unit a Specialist actually emits in `range.unit` MUST
 // match the registry entry for the same field. Catches the drift class the
 // task `Use the registry's display unit instead of duplicating it inside

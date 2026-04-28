@@ -59,10 +59,21 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       // packet.
       { kind: "api", slug: "lp-comp-dataset", required: false, role: "comparables" },
     ],
+    // candidateFields[].key is the dispatch/payload key the required-fields
+    // gate evaluates against (matches `CapitalRaiseInputs` keys verbatim —
+    // see required-field-keys.ts and FUNDING_DIMENSION_KEYS in
+    // mgmt-co-funding-prompt-input-builder.ts). For the three dimensions
+    // whose verdict.field deep-links to a different form input than the
+    // dispatch key (capital-raise dollar amounts / dates derive the
+    // dimension), `verdictField` carries the form-anchor id so the
+    // candidate-field parity test
+    // (`tests/analyst/voice/field-registry-parity.test.ts`) can confirm
+    // every Specialist-emitted verdict field is admin-promotable to
+    // required from this catalog row.
     candidateFields: [
-      { key: "runwayBufferMonths",     label: "Runway buffer (months)",      surface: "company-assumptions" },
-      { key: "sizingOvershootPct",     label: "Sizing overshoot %",          surface: "company-assumptions" },
-      { key: "trancheGapMonths",       label: "Tranche gap (months)",        surface: "company-assumptions" },
+      { key: "runwayBufferMonths",     label: "Runway buffer (months)",      surface: "company-assumptions", verdictField: "capitalRaise1Amount" },
+      { key: "sizingOvershootPct",     label: "Sizing overshoot %",          surface: "company-assumptions", verdictField: "capitalRaise2Amount" },
+      { key: "trancheGapMonths",       label: "Tranche gap (months)",        surface: "company-assumptions", verdictField: "capitalRaise2Date"   },
       { key: "revenueRampDelayMonths", label: "Revenue ramp delay (months)", surface: "company-assumptions" },
       { key: "burnFlexDownPct",        label: "Burn flex-down %",            surface: "company-assumptions" },
     ],

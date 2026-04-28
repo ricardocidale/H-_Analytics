@@ -205,6 +205,27 @@ export const SpecialistDefinitionSchema = z
            * context. Omitted = land at the surface root.
            */
           surfaceAnchor: z.string().min(1).max(80).optional(),
+          /**
+           * Optional verdict-field id this candidate corresponds to. When
+           * present, the Specialist's `VerdictDimension.field` for this
+           * dimension will use this value (the form-anchor id the Adjust
+           * deep-link scrolls to) rather than `key` (the dispatch / payload
+           * key that the required-fields gate evaluates against). When
+           * absent, `key` is itself the verdict-field id (the common case —
+           * payload key and form-anchor are the same string).
+           *
+           * Why this exists: a Specialist can legitimately gate on one key
+           * and emit a verdict whose deep-link scrolls to a different field
+           * id. For example, the Funding Specialist gates on
+           * `runwayBufferMonths` (a numeric assumption in
+           * `CapitalRaiseInputs`) but its Adjust deep-link points the user
+           * at `capitalRaise1Amount` (the dollar-amount form input that
+           * derives the buffer). The candidate-field parity test
+           * (`tests/analyst/voice/field-registry-parity.test.ts`) reads
+           * `verdictField ?? key` to decide whether a Specialist's tracked
+           * verdict-field id is admin-promotable to required.
+           */
+          verdictField: z.string().min(1).max(120).optional(),
         }),
       )
       .optional(),
