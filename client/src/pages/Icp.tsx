@@ -392,7 +392,7 @@ export default function Icp() {
   return (
     <Layout>
       <AnimatedPage>
-        <div className="space-y-4 p-4 sm:p-6">
+        <div className="space-y-6 p-4 sm:p-6">
           <PageHeader
             title="Ideal Customer Profile (Management Company)"
             subtitle="Define the target property profile and asset description for the portfolio"

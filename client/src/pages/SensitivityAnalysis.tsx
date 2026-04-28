@@ -364,7 +364,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
   return (
     <Wrapper>
       <AnimatedPage>
-        <div className="space-y-8">
+        <div className="space-y-6">
           {!embedded && (
             <PageHeader
               title="Sensitivity Analysis"

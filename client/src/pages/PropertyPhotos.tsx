@@ -3,8 +3,9 @@ import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { useProperty } from "@/lib/api";
 import { PropertyImagePicker, PhotoAlbumGrid } from "@/features/property-images";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "@/components/icons/themed-icons";
+import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle } from "@/components/icons";
+import { PageHeader } from "@/components/ui/page-header";
 import { Link, useRoute } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -54,20 +55,13 @@ export default function PropertyPhotos() {
   return (
     <Layout>
       <AnimatedPage>
-        <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6">
-          <div className="flex items-center gap-4">
-            <Link href={`/property/${propertyId}`}>
-              <Button variant="outline" size="icon" className="h-9 w-9 hover:scale-[1.03] active:scale-[0.97] transition-transform" data-testid="button-back" aria-label="Back to property">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-display text-foreground" data-testid="text-page-title">
-                Photos — {property.name}
-              </h1>
-              <p className="text-sm text-muted-foreground label-text">{property.location}</p>
-            </div>
-          </div>
+        <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6">
+          <PageHeader
+            title={<span data-testid="text-page-title">Photos — {property.name}</span>}
+            subtitle={property.location}
+            backLink={`/property/${propertyId}`}
+            backLinkTestId="button-back"
+          />
 
           <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
             <div className="relative p-6 space-y-6">

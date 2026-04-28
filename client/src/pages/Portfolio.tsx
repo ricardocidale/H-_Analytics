@@ -202,7 +202,7 @@ export default function Portfolio() {
   return (
     <Layout>
       <AnimatedPage>
-      <PageTransition><div className="space-y-8">
+      <PageTransition><div className="space-y-6">
         <PageHeader
           title="Property Portfolio"
           subtitle="Managed assets & developments"

@@ -112,7 +112,7 @@ export default function CompanyResearch() {
     <Layout>
       {SaveDialog}
       <AnimatedPage>
-        <div className="space-y-5">
+        <div className="space-y-6">
           <PageHeader
             title={`${companyName} Research`}
             subtitle="Operations, marketing intelligence, and industry analysis"

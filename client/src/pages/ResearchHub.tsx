@@ -313,7 +313,7 @@ export default function ResearchHub() {
 
   return (
     <Layout>
-      <div className="space-y-8">
+      <div className="space-y-6">
         <PageHeader
           title="Research Center"
           subtitle="AI-powered market research for your portfolio, management company, and industry"

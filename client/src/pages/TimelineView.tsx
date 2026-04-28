@@ -4,6 +4,7 @@ import { IconBuilding2, IconPlay, IconCalendar, IconMapPin, IconInfo } from "@/c
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 import { 
   Tooltip,
   TooltipContent,
@@ -104,16 +105,13 @@ export default function TimelineView({ embedded }: { embedded?: boolean }) {
     <AnimatedPage>
       <TooltipProvider>
         <div data-testid="timeline-view" className={embedded ? "" : "min-h-screen bg-background p-6 md:p-10"}>
-          {!embedded && (
-            <div className="mb-10 text-center">
-              <h1 className="text-3xl font-bold mb-2" data-testid="timeline-title">
-                Portfolio Timeline
-              </h1>
-              <p className="text-muted-foreground">Chronological roadmap of portfolio expansion and operational starts.</p>
-            </div>
-          )}
-
-          <div className="max-w-6xl mx-auto space-y-12">
+          <div className="space-y-6">
+            {!embedded && (
+              <PageHeader
+                title={<span data-testid="timeline-title">Portfolio Timeline</span>}
+                subtitle="Chronological roadmap of portfolio expansion and operational starts."
+              />
+            )}
             {/* Legend & Summary */}
             <Card className="p-4 border-dashed bg-muted/30">
               <div className="flex flex-wrap items-center justify-between gap-4">

@@ -203,7 +203,7 @@ export default function Profile() {
   return (
     <Layout>
       <AnimatedPage>
-      <div className="max-w-7xl mx-auto p-0 sm:p-6 space-y-6 sm:space-y-8">
+      <div className="p-0 sm:p-6 space-y-6">
         <PageHeader
           title="My Profile"
           subtitle="Manage your account information"
@@ -611,6 +611,17 @@ export default function Profile() {
               </Card>
             )}
           </div>
+        </div>
+
+        <div className="flex justify-end pb-8">
+          <SaveButton
+            onClick={handleSave}
+            isPending={updateMutation.isPending}
+            hasChanges={isDirty}
+            data-testid="button-save-changes-bottom"
+          >
+            Save All Changes
+          </SaveButton>
         </div>
       </div>
       </AnimatedPage>

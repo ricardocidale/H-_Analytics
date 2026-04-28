@@ -185,7 +185,7 @@ export default function PropertyFinder() {
   return (
     <AnimatedPage>
     <Layout>
-      <div className="p-4 lg:p-8 space-y-6 max-w-[1400px] mx-auto">
+      <div className="p-4 lg:p-8 space-y-6">
         <PageHeader
           title="Property Finder"
           subtitle="Discover estates and grand homes with timeless conversion potential"

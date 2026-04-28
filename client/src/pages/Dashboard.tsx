@@ -369,7 +369,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <AnimatedPage>
-        <div className="relative z-10 space-y-8">
+        <div className="relative z-10 space-y-6">
           <PageHeader
             title="Portfolio Performance"
             subtitle="Consolidated financial oversight across all active assets"

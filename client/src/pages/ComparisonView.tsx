@@ -9,6 +9,7 @@ import { downloadCSV } from "@/lib/exports/csvExport";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Trophy, Info } from "@/components/icons/themed-icons";
+import { PageHeader } from "@/components/ui/page-header";
 // jspdf, jspdf-autotable, xlsx, pptxgenjs are dynamically imported in export handlers
 
 function fmtMoney(value: number): string {
@@ -189,30 +190,27 @@ export default function ComparisonView({ embedded }: { embedded?: boolean }) {
   const content = (
     <div className={embedded ? "space-y-6" : "min-h-screen bg-background p-6 md:p-8"} data-testid="comparison-view">
       {SaveDialog}
-      <div className={embedded ? "space-y-6" : "max-w-7xl mx-auto space-y-8"}>
+      <div className={embedded ? "space-y-6" : "space-y-6"}>
         {!embedded && (
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground" data-testid="text-page-title">
-              Property Comparison
-            </h1>
-            <p className="text-muted-foreground mt-1" data-testid="text-page-subtitle">
-              Select 2–4 properties to compare assumptions side by side
-            </p>
-          </div>
-          {selectedProperties.length >= 2 && (
-            <ExportMenu
-              actions={[
-                pdfAction(() => requestSave("Property Comparison", ".pdf", (f) => handleExportPDF(f))),
-                excelAction(() => requestSave("Property Comparison", ".xlsx", (f) => handleExportExcel(f))),
-                csvAction(() => requestSave("Property Comparison", ".csv", (f) => handleExportCSV(f))),
-                pptxAction(() => requestSave("Property Comparison", ".pptx", (f) => handleExportPPTX(f))),
-                chartAction(() => requestSave("Property Comparison Chart", ".png", (f) => handleExportChart(f))),
-                pngAction(() => requestSave("Property Comparison Table", ".png", (f) => handleExportPNG(f))),
-              ]}
-            />
-          )}
-        </div>
+          <PageHeader
+            title={<span data-testid="text-page-title">Property Comparison</span>}
+            subtitle="Select 2–4 properties to compare assumptions side by side"
+            subtitleTestId="text-page-subtitle"
+            actions={
+              selectedProperties.length >= 2 ? (
+                <ExportMenu
+                  actions={[
+                    pdfAction(() => requestSave("Property Comparison", ".pdf", (f) => handleExportPDF(f))),
+                    excelAction(() => requestSave("Property Comparison", ".xlsx", (f) => handleExportExcel(f))),
+                    csvAction(() => requestSave("Property Comparison", ".csv", (f) => handleExportCSV(f))),
+                    pptxAction(() => requestSave("Property Comparison", ".pptx", (f) => handleExportPPTX(f))),
+                    chartAction(() => requestSave("Property Comparison Chart", ".png", (f) => handleExportChart(f))),
+                    pngAction(() => requestSave("Property Comparison Table", ".png", (f) => handleExportPNG(f))),
+                  ]}
+                />
+              ) : undefined
+            }
+          />
         )}
 
         <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
