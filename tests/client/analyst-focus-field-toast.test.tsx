@@ -148,6 +148,74 @@ describe("useFocusFieldFromUrl — exhaust-budget toast", () => {
     expect(String(arg.description)).toMatch(/collapsed/i);
   });
 
+  it("names the field's specific card/sub-section when the registry sets one (task #788)", async () => {
+    // `capitalRaise1Amount` is annotated with `subSection: "Capital Raises"`
+    // in `engine/analyst/registry/field-registry.ts`. The toast must
+    // surface that card name so the admin lands on the right card —
+    // the Funding tab on Company Assumptions stacks several cards
+    // (Capital Raises, Convertible Terms, Capital Stack Discipline)
+    // and the previous tab-level copy could not disambiguate them.
+    const FIELD = "capitalRaise1Amount";
+    window.history.replaceState(null, "", `/some/page?focus=${FIELD}`);
+
+    render(React.createElement(HookHost, { maxAttempts: 3, retryMs: 5 }));
+
+    await waitFor(() => {
+      expect(toastSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const arg = toastSpy.mock.calls[0][0] as {
+      title?: unknown;
+      description?: unknown;
+    };
+    // Sub-section name must appear verbatim — that is what proves
+    // the registry's `subSection` flowed through `describeMountPoint`
+    // into the toast composer (a hard-coded "Capital Raises" string
+    // anywhere in the chain would fail other registry entries).
+    expect(String(arg.description)).toMatch(/Capital Raises card/i);
+    // The owning tab and surface are still surfaced so the admin
+    // can locate the card even on a fresh visit (the card name on
+    // its own is meaningless without the tab it lives under).
+    expect(String(arg.description)).toMatch(/Funding/i);
+    expect(String(arg.description)).toMatch(/Company Assumptions/i);
+    // The "collapsed" hint is preserved so the admin still gets the
+    // disambiguating cue that the field is hidden, not missing.
+    expect(String(arg.description)).toMatch(/collapsed/i);
+  });
+
+  it("falls back to the tab/section-level copy when the registry has no sub-section (task #788)", async () => {
+    // `inflationRate` is in the registry with mountPoint
+    // `defaults/market-macro` but NO `subSection` — so the toast
+    // should keep the section-level wording from task #784 instead
+    // of inventing a "card" reference that doesn't exist on the
+    // page. Locks in the incremental-rollout contract: unannotated
+    // entries keep their previous copy and are not regressed by
+    // the sub-section feature.
+    const FIELD = "inflationRate";
+    window.history.replaceState(null, "", `/some/page?focus=${FIELD}`);
+
+    render(React.createElement(HookHost, { maxAttempts: 3, retryMs: 5 }));
+
+    await waitFor(() => {
+      expect(toastSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const arg = toastSpy.mock.calls[0][0] as {
+      title?: unknown;
+      description?: unknown;
+    };
+    // No sub-section was registered, so the description must NOT
+    // claim the field lives in a specific "card" — that wording is
+    // reserved for entries with a real `subSection`. Asserting the
+    // negative here is what prevents an over-eager future change
+    // from defaulting `subSection` to e.g. the section name.
+    expect(String(arg.description)).not.toMatch(/card/i);
+    // The tab/section-level copy from task #784 is still produced.
+    expect(String(arg.description)).toMatch(/Market & Macro/i);
+    expect(String(arg.description)).toMatch(/Defaults/i);
+    expect(String(arg.description)).toMatch(/collapsed/i);
+  });
+
   it("fires only once per Adjust navigation — re-render after exhaustion does not re-toast", async () => {
     const FIELD = "alsoMissing";
     window.history.replaceState(null, "", `/some/page?focus=${FIELD}`);

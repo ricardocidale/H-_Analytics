@@ -59,6 +59,26 @@ export interface FieldRegistryEntry {
   readonly unit: FieldUnit;
   /** UI surface where this field is edited. Opaque slug, not a router path. */
   readonly mountPoint: string;
+  /**
+   * Optional human-readable name of the specific card / sub-region within
+   * the `mountPoint` surface that hosts this field — e.g. "Capital Raises"
+   * or "Convertible Terms" inside the Funding tab on Company Assumptions.
+   *
+   * Why this exists (task #788): the section-aware exhaust-budget toast
+   * added in task #784 names the field's tab/page from the `mountPoint`
+   * slug, but long pages stack several cards under one tab and the toast
+   * cannot point at the specific card without an extra hint. When
+   * provided, `analyst-focus-field.ts` weaves this name into the toast
+   * copy ("try expanding the Convertible Terms card under Funding") so
+   * the admin lands on the right card the first time. Optional — entries
+   * without it fall back to the existing tab-level copy, so the registry
+   * can be filled in incrementally without breaking unregistered fields.
+   *
+   * Authoring: use the visible heading the user sees on the surface
+   * (the `<h3>` inside the card / the `Section title="…"` value), not
+   * an internal component name — the toast quotes this string verbatim.
+   */
+  readonly subSection?: string;
 }
 
 export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
@@ -74,30 +94,44 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
   // FundingSection.tsx`, which is rendered on `/company/assumptions?tab=funding`.
   // Pointing the mount-point at `property-edit/*` here would land the user on
   // the wrong surface and the focus hook would silently no-op (task #760).
+  // Sub-sections below name the visible cards inside the Funding tab
+  // (see `client/src/components/company-assumptions/FundingSection.tsx`):
+  // the first three fields live in the "Capital Raises" card (the card
+  // whose `<h3>` reads "Funding" — its source-comment / component name
+  // is "Capital Raises", which is the disambiguating handle the toast
+  // surfaces); the latter two live in the "Capital Stack Discipline"
+  // card. Both cards are stacked in the same tab, so the tab-level
+  // toast copy cannot tell the user which one to expand without the
+  // sub-section hint.
   capitalRaise1Amount: {
     label: "Capital Raise 1 Amount",
     unit: "mo",
     mountPoint: "company-assumptions/funding",
+    subSection: "Capital Raises",
   },
   capitalRaise2Amount: {
     label: "Capital Raise 2 Amount",
     unit: "%",
     mountPoint: "company-assumptions/funding",
+    subSection: "Capital Raises",
   },
   capitalRaise2Date: {
     label: "Capital Raise 2 Date",
     unit: "mo",
     mountPoint: "company-assumptions/funding",
+    subSection: "Capital Raises",
   },
   revenueRampDelayMonths: {
     label: "Revenue Ramp Delay",
     unit: "mo",
     mountPoint: "company-assumptions/funding",
+    subSection: "Capital Stack Discipline",
   },
   burnFlexDownPct: {
     label: "Burn Flex Down",
     unit: "%",
     mountPoint: "company-assumptions/funding",
+    subSection: "Capital Stack Discipline",
   },
 
   // ─── mgmt-co.revenue (Revenue Specialist) ───────────────────────────────
@@ -177,30 +211,41 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
   // (`client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx`)
   // — template values applied when creating a new property. Edited on the
   // "Defaults → Property" admin section.
+  // Sub-sections below mirror the visible `<Section title="…">` headings
+  // inside `client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx`.
+  // The Property Defaults page stacks several of these `<Section>` cards
+  // (Revenue Assumptions, USALI Operating Cost Rates, Exit & Disposition,
+  // …) so the tab-level toast cannot tell the user which one to scroll to
+  // without the sub-section hint.
   defaultStartAdr: {
     label: "Starting ADR",
     unit: "$",
     mountPoint: "defaults/property",
+    subSection: "Revenue Assumptions",
   },
   defaultAdrGrowthRate: {
     label: "ADR Annual Growth",
     unit: "%",
     mountPoint: "defaults/property",
+    subSection: "Revenue Assumptions",
   },
   defaultStartOccupancy: {
     label: "Starting Occupancy",
     unit: "%",
     mountPoint: "defaults/property",
+    subSection: "Revenue Assumptions",
   },
   defaultMaxOccupancy: {
     label: "Stabilized Occupancy",
     unit: "%",
     mountPoint: "defaults/property",
+    subSection: "Revenue Assumptions",
   },
   defaultOccupancyRampMonths: {
     label: "Occupancy Ramp",
     unit: "mo",
     mountPoint: "defaults/property",
+    subSection: "Revenue Assumptions",
   },
   defaultCostRateRooms: {
     label: "Housekeeping Cost Rate",
@@ -262,6 +307,7 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     label: "Sales Commission",
     unit: "%",
     mountPoint: "defaults/property",
+    subSection: "Exit & Disposition",
   },
 };
 

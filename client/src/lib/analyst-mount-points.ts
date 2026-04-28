@@ -211,6 +211,16 @@ export interface MountPointDescription {
    *  toast use the right noun: "expand the Funding tab" vs "expand
    *  the Capital Raise section". */
   readonly kind: "tab" | "section";
+  /** Optional name of the specific card/sub-region inside `section`
+   *  that hosts the field (e.g. "Capital Raises", "Convertible
+   *  Terms"). Sourced from the field registry's optional `subSection`
+   *  attribute and forwarded verbatim by `describeMountPoint`. When
+   *  set, the toast in `analyst-focus-field.ts` extends its copy to
+   *  point at this card so admins land on the right one — long pages
+   *  stack several cards under one tab and the tab name alone is too
+   *  coarse. Absent for fields not yet annotated; callers must keep
+   *  the section/tab-level copy as a fallback. */
+  readonly subSection?: string;
 }
 
 /**
@@ -219,14 +229,33 @@ export interface MountPointDescription {
  * in `analyst-focus-field.ts`) can compose into copy that names the
  * exact section/tab the user needs to expand.
  *
+ * `subSection` is a pass-through hook for the registry's optional
+ * `FieldRegistryEntry.subSection` value (task #788). When provided
+ * and non-empty, it appears on the returned description so the toast
+ * can name the specific card inside the resolved tab/section. The
+ * slug-resolution side of the function is unchanged: `subSection`
+ * never affects whether the slug resolves, only what the description
+ * carries.
+ *
  * Returns `null` when the slug is unknown or doesn't carry a section
  * segment — callers should fall back to generic copy in that case so
  * we never produce a nonsensical sentence.
  */
 export function describeMountPoint(
   slug: string,
+  subSection?: string,
 ): MountPointDescription | null {
   if (!slug || typeof slug !== "string") return null;
+
+  // Treat empty / whitespace-only sub-sections as "not provided" — a
+  // registry entry with an empty string would otherwise produce toast
+  // copy like "expand the  card under …", which is worse than the
+  // tab-level fallback. The same defensive trim catches accidental
+  // whitespace from copy-paste authoring.
+  const sub =
+    typeof subSection === "string" && subSection.trim() !== ""
+      ? subSection.trim()
+      : undefined;
 
   if (slug.startsWith("property-edit/")) {
     const sectionSlug = slug.slice("property-edit/".length);
@@ -235,6 +264,7 @@ export function describeMountPoint(
       section: humanizeSlugSegment(sectionSlug),
       surface: "Property Edit",
       kind: "section",
+      subSection: sub,
     };
   }
 
@@ -245,6 +275,7 @@ export function describeMountPoint(
       section: humanizeSlugSegment(tabSlug),
       surface: "Company Assumptions",
       kind: "tab",
+      subSection: sub,
     };
   }
 
@@ -257,6 +288,7 @@ export function describeMountPoint(
         humanizeSlugSegment(sectionSlug),
       surface: "Defaults",
       kind: "section",
+      subSection: sub,
     };
   }
 

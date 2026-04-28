@@ -173,8 +173,29 @@ function warnFocusFieldExhausted(fieldId: string): void {
 function notifyFocusFieldExhausted(fieldId: string): void {
   if (typeof window === "undefined") return;
   const entry = getFieldRegistryEntry(fieldId);
-  const description = entry ? describeMountPoint(entry.mountPoint) : null;
+  const description = entry
+    ? describeMountPoint(entry.mountPoint, entry.subSection)
+    : null;
   if (entry && description) {
+    // Sub-section-aware copy (task #788): when the registry entry knows
+    // the specific card inside the tab/section that hosts the field,
+    // surface that card by name so admins land on the right one. Long
+    // pages stack several cards under one tab and the previous
+    // "expand the Funding tab" copy could not point at e.g. the
+    // Convertible Terms card vs the Capital Raises card vs the
+    // Capital Stack Discipline card. Falls back to the tab/section-
+    // level copy from task #784 when `subSection` is absent, so
+    // unannotated registry entries keep working.
+    if (description.subSection) {
+      toast({
+        title: `Couldn't open ${entry.label}`,
+        description:
+          `It may be inside a collapsed card. ` +
+          `Try expanding the ${description.subSection} card under the ` +
+          `${description.section} ${description.kind} on ${description.surface}.`,
+      });
+      return;
+    }
     toast({
       title: `Couldn't open ${entry.label}`,
       description:
