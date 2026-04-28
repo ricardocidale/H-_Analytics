@@ -23,17 +23,9 @@ interface ServiceFeeOutput {
   notes: string;
 }
 
-// skipcalcscan — static industry reference data, not configurable assumptions
-const SERVICE_BENCHMARKS: Record<string, { low: number; mid: number; high: number; notes: string }> = {
-  marketing: { low: 0.015, mid: 0.025, high: 0.04, notes: "Digital marketing, OTA management, brand campaigns. Boutique hotels typically 2-4% of revenue." },
-  technology_reservations: { low: 0.02, mid: 0.03, high: 0.04, notes: "PMS, booking engine, channel manager, CRS, cybersecurity. Combined technology and central reservation systems." },
-  accounting: { low: 0.01, mid: 0.02, high: 0.03, notes: "Monthly close, reporting, tax prep, audit support. Scale economies at 5+ properties." },
-  revenue_management: { low: 0.015, mid: 0.02, high: 0.03, notes: "Dynamic pricing, demand forecasting, competitive analysis." },
-  procurement: { low: 0.005, mid: 0.01, high: 0.02, notes: "Group purchasing, vendor negotiation, FF&E sourcing." },
-  hr: { low: 0.005, mid: 0.01, high: 0.015, notes: "Recruitment, training programs, compliance, payroll processing." },
-  design: { low: 0.005, mid: 0.01, high: 0.02, notes: "Interior design, brand standards, renovation management." },
-  general_management: { low: 0.03, mid: 0.05, high: 0.08, notes: "Base management fee covering day-to-day operations oversight." },
-};
+import { SERVICE_FEE_BENCHMARK_RATES, SERVICE_FEE_FALLBACK_RATE } from "@shared/constants";
+
+const SERVICE_BENCHMARKS = SERVICE_FEE_BENCHMARK_RATES;
 
 const LEGACY_KEY_ALIASES: Record<string, string> = {
   it: "technology_reservations",
@@ -43,7 +35,7 @@ const LEGACY_KEY_ALIASES: Record<string, string> = {
 export function computeServiceFee(input: ServiceFeeInput): ServiceFeeOutput {
   const rawKey = input.serviceType.toLowerCase().replace(/[\s/&]+/g, "_");
   const key = LEGACY_KEY_ALIASES[rawKey] ?? rawKey;
-  const bench = SERVICE_BENCHMARKS[key] ?? { low: 0.01, mid: 0.02, high: 0.03, notes: `No specific benchmark for "${input.serviceType}". Using general service range 1-3%.` };
+  const bench = SERVICE_BENCHMARKS[key] ?? { ...SERVICE_FEE_FALLBACK_RATE, notes: `No specific benchmark for "${input.serviceType}". Using general service range 1-3%.` };
 
   return {
     serviceType: input.serviceType,

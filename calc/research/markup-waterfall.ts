@@ -3,7 +3,8 @@
  *
  * Given vendor cost and markup percentage, produces the full waterfall:
  * vendor cost → fee charged → gross profit → effective margin.
- * Also provides industry markup benchmarks by service type.
+ * Benchmark ranges sourced from INDUSTRY_MARKUP_RANGES in shared/constants-benchmarks.ts
+ * (HVS Central Services Survey). No numeric literals in this file.
  */
 
 interface MarkupWaterfallInput {
@@ -22,17 +23,9 @@ interface MarkupWaterfallOutput {
   serviceType: string | null;
 }
 
-// skipcalcscan — static industry reference data, not configurable assumptions
-const INDUSTRY_MARKUPS: Record<string, { low: number; mid: number; high: number }> = {
-  marketing: { low: 0.15, mid: 0.25, high: 0.35 },
-  technology_reservations: { low: 0.10, mid: 0.20, high: 0.30 },
-  accounting: { low: 0.20, mid: 0.30, high: 0.40 },
-  revenue_management: { low: 0.15, mid: 0.20, high: 0.30 },
-  procurement: { low: 0.08, mid: 0.15, high: 0.25 },
-  hr: { low: 0.10, mid: 0.20, high: 0.30 },
-  design: { low: 0.15, mid: 0.25, high: 0.40 },
-  general_management: { low: 0.10, mid: 0.15, high: 0.25 },
-};
+import { INDUSTRY_MARKUP_RANGES } from "@shared/constants";
+
+const INDUSTRY_MARKUPS = INDUSTRY_MARKUP_RANGES;
 
 const LEGACY_KEY_ALIASES: Record<string, string> = {
   it: "technology_reservations",

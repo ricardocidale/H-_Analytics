@@ -181,8 +181,8 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
     let narrative = `A 15% occupancy decline reduces annual NOI from ${formatCurrency(base.noi)} to ${formatCurrency(stressed.noi)} (${formatPct(noiPctChange)}).`;
     if (hasDebt) {
       narrative += ` DSCR ${stressed.dscr < base.dscr ? 'falls' : 'moves'} to ${stressed.dscr.toFixed(2)}x`;
-      if (stressed.dscr < 1.25) {
-        narrative += `, breaching the typical 1.25x debt covenant. This would require equity injection or fee deferral.`;
+      if (stressed.dscr < DSCR_COVENANT_STANDARD) {
+        narrative += `, breaching the typical 1.25x debt covenant (DSCR_COVENANT_STANDARD). This would require equity injection or fee deferral.`;
       } else {
         narrative += `, remaining above the 1.25x covenant threshold.`;
       }
@@ -195,7 +195,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: hasDebt ? stressed.dscr : 0,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: hasDebt && stressed.dscr < 1.25,
+      breachesDebtCovenant: hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD,
       severity,
       narrative,
     });
@@ -211,7 +211,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
     let narrative = `A 10% ADR reduction lowers annual NOI from ${formatCurrency(base.noi)} to ${formatCurrency(stressed.noi)} (${formatPct(noiPctChange)}).`;
     if (hasDebt) {
-      narrative += ` DSCR adjusts to ${stressed.dscr.toFixed(2)}x${stressed.dscr < 1.25 ? ', breaching covenant.' : '.'}`;
+      narrative += ` DSCR adjusts to ${stressed.dscr.toFixed(2)}x${stressed.dscr < DSCR_COVENANT_STANDARD ? ', breaching covenant.' : '.'}`;
     }
     narrative += ` Rate compression typically occurs during supply gluts or economic softening.`;
 
@@ -222,7 +222,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: hasDebt ? stressed.dscr : 0,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: hasDebt && stressed.dscr < 1.25,
+      breachesDebtCovenant: hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD,
       severity,
       narrative,
     });
@@ -230,7 +230,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
   // ── 3. Interest rates +200bps (refinancing risk) ─────────────────────────
   if (hasDebt) {
-    const newRate = (assumptions.interestRate ?? 0) + 0.02;
+    const newRate = (assumptions.interestRate ?? 0) + STRESS_RATE_SHOCK_DECIMAL;
     const stressed = computeAnnualFinancials(assumptions, { interestRateOverride: newRate });
     // NOI itself doesn't change — only debt service changes
     const noiChange = 0;
@@ -238,10 +238,10 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
     const severity = classifySeverity(noiPctChange, stressed.dscr, hasDebt);
 
-    const bpsIncrease = 200;
+    const bpsIncrease = STRESS_RATE_SHOCK_BPS;
     let narrative = `A ${bpsIncrease}bps interest rate increase (${formatPct(assumptions.interestRate!)} → ${formatPct(newRate)}) raises annual debt service by ${formatCurrency(Math.abs(cashFlowChange))}.`;
     narrative += ` DSCR moves from ${base.dscr.toFixed(2)}x to ${stressed.dscr.toFixed(2)}x.`;
-    if (stressed.dscr < 1.25) {
+    if (stressed.dscr < DSCR_COVENANT_STANDARD) {
       narrative += ` This breaches the 1.25x covenant, triggering potential lender remediation.`;
     }
 
@@ -252,7 +252,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: stressed.dscr,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: stressed.dscr < 1.25,
+      breachesDebtCovenant: stressed.dscr < DSCR_COVENANT_STANDARD,
       severity,
       narrative,
     });
@@ -260,7 +260,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
   // ── 4. Operating costs +20% (inflation) ──────────────────────────────────
   {
-    const stressed = computeAnnualFinancials(assumptions, { costMultiplier: 1.20 });
+    const stressed = computeAnnualFinancials(assumptions, { costMultiplier: STRESS_COST_SHOCK });
     const noiChange = stressed.noi - base.noi;
     const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
@@ -268,7 +268,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
     let narrative = `A 20% operating cost increase reduces NOI from ${formatCurrency(base.noi)} to ${formatCurrency(stressed.noi)} (${formatPct(noiPctChange)}).`;
     narrative += ` Labor, utilities, and supply chain inflation are the primary drivers.`;
-    if (hasDebt && stressed.dscr < 1.25) {
+    if (hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD) {
       narrative += ` DSCR falls to ${stressed.dscr.toFixed(2)}x, breaching covenant.`;
     }
 
@@ -279,7 +279,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: hasDebt ? stressed.dscr : 0,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: hasDebt && stressed.dscr < 1.25,
+      breachesDebtCovenant: hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD,
       severity,
       narrative,
     });
@@ -288,8 +288,8 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
   // ── 5. Combined stress (occupancy -10% AND costs +10%) ───────────────────
   {
     const stressed = computeAnnualFinancials(assumptions, {
-      occupancyMultiplier: 0.90,
-      costMultiplier: 1.10,
+      occupancyMultiplier: STRESS_COMBINED_OCCUPANCY_SHOCK,
+      costMultiplier: STRESS_COMBINED_COST_SHOCK,
     });
     const noiChange = stressed.noi - base.noi;
     const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
@@ -301,7 +301,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       narrative += ` DSCR moves to ${stressed.dscr.toFixed(2)}x.`;
       if (stressed.dscr < 1.0) {
         narrative += ` Property cannot cover debt service — requires immediate equity injection or loan restructuring.`;
-      } else if (stressed.dscr < 1.25) {
+      } else if (stressed.dscr < DSCR_COVENANT_STANDARD) {
         narrative += ` Covenant breach likely triggers lender negotiation.`;
       }
     }
@@ -313,7 +313,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
       impactOnNoiPercent: noiPctChange,
       impactOnDscr: hasDebt ? stressed.dscr : 0,
       impactOnCashFlow: cashFlowChange,
-      breachesDebtCovenant: hasDebt && stressed.dscr < 1.25,
+      breachesDebtCovenant: hasDebt && stressed.dscr < DSCR_COVENANT_STANDARD,
       severity,
       narrative,
     });
