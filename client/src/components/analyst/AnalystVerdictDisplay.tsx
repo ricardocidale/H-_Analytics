@@ -81,7 +81,9 @@ const SEVERITY_THEME: Record<
 function formatRange(range: VerdictDimension["range"]): string | null {
   if (!range) return null;
   const fmt = (n: number) => {
-    if (range.unit === "%") return `${n.toFixed(1)}%`;
+    // Opus returns % dimensions as decimal fractions (0.20 = 20%) per the prompt contract.
+    // Multiply by 100 before display.
+    if (range.unit === "%") return `${(n * 100).toFixed(1)}%`;
     if (range.unit === "$") return `$${n.toLocaleString()}`;
     return `${n}${range.unit ? ` ${range.unit}` : ""}`;
   };
@@ -233,7 +235,7 @@ function DimensionCard({
               {dimension.range?.mid != null ? (
                 <p className="text-muted-foreground">
                   Midpoint: {dimension.range.unit === "%"
-                    ? `${dimension.range.mid.toFixed(1)}%`
+                    ? `${(dimension.range.mid * 100).toFixed(1)}%`
                     : dimension.range.unit === "$"
                       ? `$${dimension.range.mid.toLocaleString()}`
                       : dimension.range.mid}
