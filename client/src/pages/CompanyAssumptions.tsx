@@ -61,9 +61,6 @@ import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_MODEL_START_DATE } from "@/lib/constants";
 import { isAdminRole } from "@shared/constants";
 import {
-  SpecialistRequirementsPanel,
-} from "@/components/company/SpecialistRequirementsPanel";
-import {
   SummaryFooter,
   CompanyAssumptionsHeaderBar,
   CompanyAssumptionsTabsView,
@@ -463,8 +460,6 @@ export default function CompanyAssumptions() {
               </div>
             </div>
           )}
-
-          <SpecialistRequirementsPanel entityValues={global as unknown as Record<string, unknown> | undefined} />
 
           <SummaryFooter
             formData={formApi.formData}
