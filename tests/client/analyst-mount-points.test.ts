@@ -168,4 +168,68 @@ describe("resolveFieldMountPoint", () => {
       "/company/assumptions?tab=funding&focus=capitalRaise2Amount",
     );
   });
+
+  // --- Named admin Defaults sections (task #765) ---------------------------
+  // The three Defaults sub-sections (Management Company, Property,
+  // Market & Macro) each have their own admin sidebar entry. The resolver
+  // routes `defaults/<section-name>` slugs straight to the matching admin
+  // section so a verdict on a CompanyTab field (e.g. `baseManagementFee`)
+  // lands on the Management Company tab — not the Property tab where its
+  // marker doesn't exist.
+
+  it("resolves defaults/management-company to the management-company admin section", () => {
+    const target = resolveFieldMountPoint("defaults/management-company", {
+      fieldId: "baseManagementFee",
+    });
+    expect(target).not.toBeNull();
+    expect(target!.href).toBe(
+      "/admin?focus=baseManagementFee#defaults-management-company",
+    );
+    target!.navigate();
+    expect(setAdminSectionMock).toHaveBeenCalledWith(
+      "defaults-management-company",
+    );
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/admin?focus=baseManagementFee#defaults-management-company",
+    );
+  });
+
+  it("resolves defaults/property to the property admin section", () => {
+    const target = resolveFieldMountPoint("defaults/property", {
+      fieldId: "defaultStartAdr",
+    });
+    expect(target).not.toBeNull();
+    expect(target!.href).toBe(
+      "/admin?focus=defaultStartAdr#defaults-property",
+    );
+    target!.navigate();
+    expect(setAdminSectionMock).toHaveBeenCalledWith("defaults-property");
+  });
+
+  it("resolves defaults/market-macro to the market-macro admin section", () => {
+    const target = resolveFieldMountPoint("defaults/market-macro", {
+      fieldId: "inflationRate",
+    });
+    expect(target).not.toBeNull();
+    expect(target!.href).toBe(
+      "/admin?focus=inflationRate#defaults-market-macro",
+    );
+    target!.navigate();
+    expect(setAdminSectionMock).toHaveBeenCalledWith("defaults-market-macro");
+  });
+
+  it("named-section defaults slugs resolve without a fieldId (no focus query)", () => {
+    const target = resolveFieldMountPoint("defaults/management-company");
+    expect(target!.href).toBe("/admin#defaults-management-company");
+  });
+
+  it("preserves the legacy defaults-property fallback for unknown sub-area slugs", () => {
+    // `defaults/revenue` is the canonical legacy slug — not a sidebar
+    // section name, just a sub-area within Property Defaults. Continues
+    // to land on the property tab so existing entries don't regress.
+    const target = resolveFieldMountPoint("defaults/revenue");
+    expect(target!.href).toBe("/admin#defaults-property/revenue");
+    target!.navigate();
+    expect(setAdminSectionMock).toHaveBeenCalledWith("defaults-property");
+  });
 });

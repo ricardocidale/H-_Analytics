@@ -112,10 +112,27 @@ export function resolveFieldMountPoint(
 
   if (slug.startsWith("defaults/")) {
     const section = slug.slice("defaults/".length);
-    // Every Defaults sub-slug currently funnels into the Property Defaults
-    // surface — that is where revenue/cost defaults live. The `#<section>`
-    // hash carries the Specialist sub-area so future hash-aware admin code
-    // can scroll to the right anchor without a contract change here.
+    // Some `defaults/<…>` slugs name a real admin sidebar section
+    // (Management Company / Property / Market & Macro); the rest are
+    // legacy sub-area names (e.g. `defaults/revenue`) that route to the
+    // Property Defaults section as their canonical home. Mapping the
+    // section names here lets the resolver land the user on the tab that
+    // actually hosts the Specialist field — without this, a verdict on a
+    // CompanyTab field (e.g. `baseManagementFee`) would land on Property
+    // Defaults and the focus hook would silently no-op (task #765).
+    const adminSection = ADMIN_DEFAULTS_SECTION_MAP[section];
+    if (adminSection) {
+      const href = `/admin${focusQuery(ctx.fieldId)}#${adminSection}`;
+      return {
+        href,
+        navigate: () => {
+          setAdminSection(adminSection);
+          if (ctx.fieldId) navigate(href);
+        },
+      };
+    }
+    // Legacy / sub-area slug — preserve the historical contract: navigate
+    // to the Property Defaults section, hash carries the sub-area name.
     const href = `/admin${focusQuery(ctx.fieldId)}${section ? `#defaults-property/${section}` : ""}`;
     return {
       href,
@@ -134,3 +151,20 @@ export function resolveFieldMountPoint(
 
   return null;
 }
+
+/**
+ * Maps the slug segment after `defaults/` to a real admin sidebar section
+ * (the value the admin shell's `setAdminSection` understands). Slugs not in
+ * this map fall back to the legacy `defaults-property` behavior — keeping
+ * existing entries like `defaults/revenue` working without change.
+ *
+ * Add a new entry here when a new admin Defaults sub-section gets a
+ * sidebar destination of its own. Keep it in sync with the
+ * `defaults-…` arms of the `AdminSection` union in
+ * `client/src/components/admin/AdminSidebar.tsx`.
+ */
+const ADMIN_DEFAULTS_SECTION_MAP: Record<string, string> = {
+  "management-company": "defaults-management-company",
+  property: "defaults-property",
+  "market-macro": "defaults-market-macro",
+};

@@ -20,6 +20,7 @@ import { getFactoryNumber } from "@shared/model-constants-registry";
 const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 import { Section, PctField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { COMPANY_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 
@@ -37,6 +38,12 @@ interface CompanyTabProps {
 export function CompanyTab(props: CompanyTabProps) {
   const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
     props;
+  // Honour `?focus=<fieldId>` deep links produced by the Analyst verdict
+  // mount-point resolver (task #765). CompanyTab fields whose registry
+  // mountPoint is `defaults/management-company` (e.g. `baseManagementFee`,
+  // `companyTaxRate`, `costOfEquity`) land here; this hook scrolls and
+  // focuses the matching `data-testid="field-<id>"` input on mount.
+  useFocusFieldFromUrl();
   const analystEnabled = typeof onAnalystRefresh === "function";
   return (
     <div className="space-y-5">

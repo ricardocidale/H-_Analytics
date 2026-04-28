@@ -126,6 +126,143 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     unit: "%",
     mountPoint: "defaults/revenue",
   },
+
+  // ─── Admin Model Defaults → Company tab ─────────────────────────────────
+  // CompanyTab fields (`client/src/components/admin/model-defaults/CompanyTab.tsx`)
+  // — management-company-level financial defaults the admin endorses on the
+  // "Defaults → Management Company" admin section. The mountPoint slug names
+  // the admin section so the resolver can land the user on the right tab
+  // (see `client/src/lib/analyst-mount-points.ts`).
+  baseManagementFee: {
+    label: "Base Management Fee",
+    unit: "%",
+    mountPoint: "defaults/management-company",
+  },
+  incentiveManagementFee: {
+    label: "Incentive Management Fee",
+    unit: "%",
+    mountPoint: "defaults/management-company",
+  },
+  companyTaxRate: {
+    label: "Company Income Tax Rate",
+    unit: "%",
+    mountPoint: "defaults/management-company",
+  },
+  // costOfEquity is edited on BOTH CompanyTab and MarketMacroTab (same
+  // draft.costOfEquity key). The registry can hold one mountPoint per
+  // field id; we anchor on the management-company surface because the
+  // value is a company-level WACC input and the CompanyTab Cost-of-Equity
+  // editor carries the more descriptive tooltip. The MarketMacroTab copy
+  // still bears the same `data-testid="field-costOfEquity"` marker, so a
+  // verdict targeting that field finds the marker under client/src/
+  // either way (which is what the audit test verifies).
+  costOfEquity: {
+    label: "Cost of Equity",
+    unit: "%",
+    mountPoint: "defaults/management-company",
+  },
+
+  // ─── Admin Model Defaults → Market & Macro tab ──────────────────────────
+  // MarketMacroTab fields (`client/src/components/admin/model-defaults/MarketMacroTab.tsx`)
+  // — global macro assumptions edited on the "Defaults → Market & Macro"
+  // admin section.
+  inflationRate: {
+    label: "Macro Inflation Rate",
+    unit: "%",
+    mountPoint: "defaults/market-macro",
+  },
+
+  // ─── Admin Model Defaults → Property Underwriting tab ───────────────────
+  // PropertyUnderwritingTab fields
+  // (`client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx`)
+  // — template values applied when creating a new property. Edited on the
+  // "Defaults → Property" admin section.
+  defaultStartAdr: {
+    label: "Starting ADR",
+    unit: "$",
+    mountPoint: "defaults/property",
+  },
+  defaultAdrGrowthRate: {
+    label: "ADR Annual Growth",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultStartOccupancy: {
+    label: "Starting Occupancy",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultMaxOccupancy: {
+    label: "Stabilized Occupancy",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultOccupancyRampMonths: {
+    label: "Occupancy Ramp",
+    unit: "mo",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRateRooms: {
+    label: "Housekeeping Cost Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRateFb: {
+    label: "F&B Cost Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRateAdmin: {
+    label: "Admin & General Cost Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRatePropertyOps: {
+    label: "Property Ops Cost Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRateUtilities: {
+    label: "Utilities Cost Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRateIt: {
+    label: "IT Cost Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRateFfe: {
+    label: "FF&E Reserve",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRateInsurance: {
+    label: "Insurance Cost Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultCostRateTaxes: {
+    label: "Property Taxes Cost Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  defaultLandValuePercent: {
+    label: "Land Value Percent",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  // salesCommissionRate is classified under COMPANY_TAB_ANALYST_FIELDS in
+  // `client/src/components/admin/model-defaults/analyst-fields.ts` (its
+  // guidance vocabulary key is `dispositionCommission`), but the actual
+  // form input lives on PropertyUnderwritingTab's "Exit & Disposition"
+  // section. The mountPoint follows the input, not the classification, so
+  // the focus hook lands on the editable field.
+  salesCommissionRate: {
+    label: "Sales Commission",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
 };
 
 /**

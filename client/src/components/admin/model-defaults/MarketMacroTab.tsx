@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Section, PctField, TabBanner, MONTHS, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { MARKET_MACRO_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 
@@ -18,6 +19,12 @@ interface MarketMacroTabProps {
 export function MarketMacroTab(props: MarketMacroTabProps) {
   const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
     props;
+  // Honour `?focus=<fieldId>` deep links produced by the Analyst verdict
+  // mount-point resolver (task #765). MarketMacroTab fields whose registry
+  // mountPoint is `defaults/market-macro` (e.g. `inflationRate`) land
+  // here; this hook scrolls and focuses the matching
+  // `data-testid="field-<id>"` input on mount.
+  useFocusFieldFromUrl();
   const analystEnabled = typeof onAnalystRefresh === "function";
   return (
     <div className="space-y-5">
