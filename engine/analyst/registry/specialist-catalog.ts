@@ -169,10 +169,24 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
       { kind: "api", slug: "web-search", required: true },
     ],
+    // candidateFields[].key is the dispatch/payload key the required-fields
+    // gate evaluates against. The three location/basics rows are
+    // upstream preflight prerequisites of the single verdict Daniela
+    // emits today (the per-property inflation override): without
+    // country / city / hospitalityType she cannot resolve the
+    // country-level inflation outlook her runner reasons against, so
+    // each preflight row sets `verdictField: "propertyInflationRate"`
+    // to make the candidate-field parity test
+    // (`tests/analyst/voice/field-registry-parity.test.ts`) read these
+    // rows as upstream gates for the same verdict id Daniela emits.
+    // Locked-hard preflight gating (see `getLockedHardCandidateKeys` in
+    // this file) still keys off `key`, so the run-trigger preflight
+    // and the `MissingRequiredFieldsPrompt` deep-link continue to
+    // resolve to the location / basics anchors as before.
     candidateFields: [
-      { key: "country",      label: "Country",      surface: "property-edit", lockedHard: true,  surfaceAnchor: "location" },
-      { key: "city",         label: "City",         surface: "property-edit",                    surfaceAnchor: "location" },
-      { key: "hospitalityType", label: "Property type", surface: "property-edit", lockedHard: true, surfaceAnchor: "basics"   },
+      { key: "country",         label: "Country",       surface: "property-edit", lockedHard: true, surfaceAnchor: "location", verdictField: "propertyInflationRate" },
+      { key: "city",            label: "City",          surface: "property-edit",                   surfaceAnchor: "location", verdictField: "propertyInflationRate" },
+      { key: "hospitalityType", label: "Property type", surface: "property-edit", lockedHard: true, surfaceAnchor: "basics",   verdictField: "propertyInflationRate" },
       // Per-property inflation override is a property-level signal (the
       // user judges what inflation actually looks like in this market /
       // submarket) and is the natural counterpart to the macro
@@ -190,7 +204,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { key: "propertyInflationRate", label: "Property inflation override", surface: "property-edit", surfaceAnchor: "other-assumptions" },
     ],
     prerequisites: [],
-    status: "needs-page",
+    status: "built",
   },
   {
     id: "property.executive-summary",

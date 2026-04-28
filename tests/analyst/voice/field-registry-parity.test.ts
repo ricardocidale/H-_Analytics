@@ -35,6 +35,11 @@ import {
   REVENUE_SPECIALIST_TRACKED_FIELDS,
   createRevenueSpecialist,
 } from "@engine/analyst/surface/mgmt-co/revenue-specialist";
+import {
+  RISK_INTELLIGENCE_SPECIALIST_TRACKED_FIELDS,
+  createPropertyRiskIntelligenceSpecialist,
+  type PropertyRiskIntelligenceInputs,
+} from "@engine/analyst/surface/property/risk-intelligence-specialist";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
 import type { CapitalRaiseInputs } from "@engine/watchdog/capitalRaiseEvaluator";
@@ -51,6 +56,17 @@ interface SpecialistTrackedFields {
 const SPECIALISTS_EMITTING_VERDICT_DIMENSIONS: readonly SpecialistTrackedFields[] = [
   { specialistId: "mgmt-co.funding", fields: FUNDING_SPECIALIST_TRACKED_FIELDS },
   { specialistId: "mgmt-co.revenue", fields: REVENUE_SPECIALIST_TRACKED_FIELDS },
+  // Daniela / D — per-property inflation override surface. Tier-0 lives in
+  // engine/analyst/surface/property/risk-intelligence-specialist.ts; the
+  // Tier-1 single-shot Opus runner lives at
+  // server/ai/specialists/property-risk-intelligence-runner.ts. Both
+  // paths emit the single field `propertyInflationRate` and deep-link
+  // to the Other Assumptions inflation slider via the
+  // FIELD_REGISTRY entry's mountPoint.
+  {
+    specialistId: "property.risk-intelligence",
+    fields: RISK_INTELLIGENCE_SPECIALIST_TRACKED_FIELDS,
+  },
 ];
 
 /**
@@ -386,6 +402,43 @@ describe("FIELD_REGISTRY unit parity — Specialists emit registry-matching unit
       expect(
         dim.range?.unit,
         `Revenue Specialist range.unit drifted from FIELD_REGISTRY for "${dim.field}". The Specialist must read its display unit from FIELD_REGISTRY (see revenue-specialist.ts:unitFor) rather than carrying its own copy.`,
+      ).toBe(entry?.unit);
+    }
+  });
+
+  // Daniela's Tier-0 only emits a non-null range when BOTH a country
+  // outlook is supplied AND the user's saved value falls outside it.
+  // The fixture below pins both: a tight country outlook plus a user
+  // override well above the high band, so the dimension classifies as
+  // above-range → severity advisory → range preserved.
+  it("Property Risk Intelligence Specialist Tier-0 path: every emitted range.unit equals FIELD_REGISTRY.unit", async () => {
+    const specialist = createPropertyRiskIntelligenceSpecialist({
+      evidenceAsOf: TEST_EVIDENCE_AS_OF,
+    });
+    const stressedInputs: PropertyRiskIntelligenceInputs = {
+      propertyInflationRate: 0.08,
+      countryInflationOutlook: {
+        low: 0.018,
+        mid: 0.022,
+        high: 0.025,
+        source: "Test US Federal Reserve long-run inflation target",
+        asOf: TEST_EVIDENCE_AS_OF,
+      },
+      country: "US",
+      city: "Test City",
+    };
+    const out = await specialist(stressedInputs, TEST_CONTEXT);
+    expect(out.dimensions.length).toBeGreaterThan(0);
+    for (const dim of out.dimensions) {
+      const entry = getFieldRegistryEntry(dim.field);
+      expect(entry, `no FIELD_REGISTRY entry for "${dim.field}"`).not.toBeNull();
+      expect(
+        dim.range,
+        `Property Risk Intelligence Specialist emitted range=null for stressed dimension "${dim.field}" — fixture drift means the unit assertion below cannot run; tighten the fixture so this dimension classifies as out-of-range.`,
+      ).not.toBeNull();
+      expect(
+        dim.range?.unit,
+        `Property Risk Intelligence Specialist range.unit drifted from FIELD_REGISTRY for "${dim.field}". The Specialist must read its display unit from FIELD_REGISTRY (see risk-intelligence-specialist.ts:unitFor) rather than carrying its own copy.`,
       ).toBe(entry?.unit);
     }
   });
