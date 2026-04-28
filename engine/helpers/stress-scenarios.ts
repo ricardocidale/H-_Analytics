@@ -12,7 +12,21 @@
  *   5. Combined: occupancy -10% AND costs +10% (stagflation)
  */
 
-import { MONTHS_PER_YEAR } from '@shared/constants';
+import {
+  MONTHS_PER_YEAR,
+  DSCR_COVENANT_STANDARD,
+  DSCR_COVENANT_CRITICAL,
+  STRESS_OCCUPANCY_SHOCK,
+  STRESS_ADR_SHOCK,
+  STRESS_RATE_SHOCK_DECIMAL,
+  STRESS_RATE_SHOCK_BPS,
+  STRESS_COST_SHOCK,
+  STRESS_COMBINED_OCCUPANCY_SHOCK,
+  STRESS_COMBINED_COST_SHOCK,
+  STRESS_SEVERITY_NOI_THRESHOLD,
+  REVENUE_ANCILLARY_SHARE_MAX,
+  REVENUE_ROOM_SHARE_MIN,
+} from '@shared/constants';
 import { getFactoryNumber } from '@shared/model-constants-registry';
 import { pmt } from '../../calc/shared/pmt';
 
@@ -87,8 +101,8 @@ function computeAnnualFinancials(
   // Monthly room revenue → annual
   const monthlyRoomRev = a.roomCount * effectiveAdr * effectiveOccupancy * DAYS_PER_MONTH;
   // Clamp ancillary share to [0, 0.95] so roomShareOfTotal is always ≥ 0.05
-  const ancillaryShare = Math.min(a.revShareFB + a.revShareEvents + a.revShareOther, 0.95);
-  const roomShareOfTotal = Math.max(0.05, 1 - ancillaryShare);
+  const ancillaryShare = Math.min(a.revShareFB + a.revShareEvents + a.revShareOther, REVENUE_ANCILLARY_SHARE_MAX);
+  const roomShareOfTotal = Math.max(REVENUE_ROOM_SHARE_MIN, 1 - ancillaryShare);
   const monthlyTotalRev = monthlyRoomRev / roomShareOfTotal;
   const annualRevenue = monthlyTotalRev * MONTHS_PER_YEAR;
 
@@ -132,9 +146,9 @@ function classifySeverity(
   dscr: number,
   hasDebt: boolean,
 ): "low" | "moderate" | "severe" | "critical" {
-  if (hasDebt && dscr < 1.0) return "critical";
-  if (hasDebt && dscr < 1.25) return "severe";
-  if (noiPctChange < -0.20) return "moderate";
+  if (hasDebt && dscr < DSCR_COVENANT_CRITICAL) return "critical";
+  if (hasDebt && dscr < DSCR_COVENANT_STANDARD) return "severe";
+  if (noiPctChange < -STRESS_SEVERITY_NOI_THRESHOLD) return "moderate";
   return "low";
 }
 
@@ -158,7 +172,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
   // ── 1. Occupancy -15% (recession) ────────────────────────────────────────
   {
-    const stressed = computeAnnualFinancials(assumptions, { occupancyMultiplier: 0.85 });
+    const stressed = computeAnnualFinancials(assumptions, { occupancyMultiplier: STRESS_OCCUPANCY_SHOCK });
     const noiChange = stressed.noi - base.noi;
     const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;
@@ -189,7 +203,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
 
   // ── 2. ADR -10% (rate compression) ───────────────────────────────────────
   {
-    const stressed = computeAnnualFinancials(assumptions, { adrMultiplier: 0.90 });
+    const stressed = computeAnnualFinancials(assumptions, { adrMultiplier: STRESS_ADR_SHOCK });
     const noiChange = stressed.noi - base.noi;
     const noiPctChange = Math.abs(base.noi) > 1e-6 ? noiChange / Math.abs(base.noi) : 0;
     const cashFlowChange = stressed.cashFlow - base.cashFlow;

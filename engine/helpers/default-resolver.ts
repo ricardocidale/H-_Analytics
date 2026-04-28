@@ -16,6 +16,12 @@ import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_MAX_OCCUPANCY,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
+  QUALITY_TIER_OCCUPANCY_BRACKETS,
+  DEFAULT_FALLBACK_OCCUPANCY,
+  SCALE_THRESHOLD_SMALL_ROOMS,
+  SCALE_THRESHOLD_MEDIUM_ROOMS,
+  SCALE_ADJUSTMENT_SMALL_PROPERTY,
+  SCALE_ADJUSTMENT_MEDIUM_PROPERTY,
 } from '@shared/constants';
 import { getFactoryNumber } from '@shared/model-constants-registry';
 
@@ -29,15 +35,8 @@ const QUALITY_TIER_ADR: Record<string, { min: number; max: number; default: numb
   "Economy":         { min: 60,  max: 100, default: 80 },
 };
 
-// ── Quality tier occupancy brackets ────────────────────────────────────────
-const QUALITY_TIER_OCCUPANCY: Record<string, { min: number; max: number; default: number }> = {
-  "Luxury":          { min: 0.65, max: 0.75, default: 0.70 },
-  "Upper Upscale":   { min: 0.65, max: 0.75, default: 0.70 },
-  "Upscale":         { min: 0.70, max: 0.80, default: 0.75 },
-  "Upper Midscale":  { min: 0.70, max: 0.80, default: 0.75 },
-  "Midscale":        { min: 0.60, max: 0.70, default: 0.65 },
-  "Economy":         { min: 0.60, max: 0.70, default: 0.65 },
-};
+// ── Quality tier occupancy brackets — sourced from constants-benchmarks.ts ──
+const QUALITY_TIER_OCCUPANCY = QUALITY_TIER_OCCUPANCY_BRACKETS;
 
 export interface PropertyDefaults {
   // Revenue
@@ -181,7 +180,7 @@ export function computePropertyDefaults(
     : "fallback:upscale";
 
   const tierOcc = QUALITY_TIER_OCCUPANCY[qualityTier];
-  const startOccupancy = tierOcc ? tierOcc.default : 0.70;
+  const startOccupancy = tierOcc ? tierOcc.default : DEFAULT_FALLBACK_OCCUPANCY;
   sources.startOccupancy = tierOcc
     ? `tier:${qualityTier}:range_${tierOcc.min * 100}-${tierOcc.max * 100}pct`
     : "fallback:70pct";
@@ -195,11 +194,11 @@ export function computePropertyDefaults(
   // ── 4. Scale adjustment (small property cost premium) ────────────────────
   let scaleAdjustment = 0;
   let scaleSource = "scale:20+_rooms";
-  if (roomCount < 10) {
-    scaleAdjustment = 0.05;
+  if (roomCount < SCALE_THRESHOLD_SMALL_ROOMS) {
+    scaleAdjustment = SCALE_ADJUSTMENT_SMALL_PROPERTY;
     scaleSource = "scale:<10_rooms:+5pct";
-  } else if (roomCount < 20) {
-    scaleAdjustment = 0.02;
+  } else if (roomCount < SCALE_THRESHOLD_MEDIUM_ROOMS) {
+    scaleAdjustment = SCALE_ADJUSTMENT_MEDIUM_PROPERTY;
     scaleSource = "scale:10-19_rooms:+2pct";
   }
 

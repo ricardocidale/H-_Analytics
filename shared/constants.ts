@@ -23,6 +23,7 @@
  */
 
 // ── Re-exports from sub-files ───────────────────────────────────────────
+export * from './constants-benchmarks';
 export * from './constants-business-models';
 export * from './constants-funding';
 export * from './constants-research';
