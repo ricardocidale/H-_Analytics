@@ -317,6 +317,14 @@ function PropertyDescriptorsSection({ draft, onChange, onNumberChange }: { draft
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors text-left"
         data-testid="toggle-property-descriptors"
+        // Auto-expand contract (task #787): the focus hook will click
+        // this disclosure toggle if an Adjust deep-link names any of the
+        // listed fields and they aren't yet in the DOM. `aria-expanded`
+        // tells the hook whether to skip — once the user has already
+        // opened the section, clicking again would close it. See
+        // `EXPAND_TRIGGER_ATTR` in `analyst-focus-field.ts`.
+        aria-expanded={isOpen}
+        data-expand-trigger="qualityTier serviceLevel roomCount fbCapacity"
       >
         <div>
           <p className="text-sm font-medium text-foreground label-text">Property Details</p>

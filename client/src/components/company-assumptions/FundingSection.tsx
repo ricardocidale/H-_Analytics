@@ -201,6 +201,12 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                   }
                 }}
                 data-testid="toggle-valuation-cap"
+                // Auto-expand contract (task #787): if an Adjust click
+                // deep-links to capitalRaiseValuationCap, the focus hook
+                // will click this Switch on a missed lookup so the row
+                // renders before the retry budget is exhausted. See
+                // `EXPAND_TRIGGER_ATTR` in `analyst-focus-field.ts`.
+                data-expand-trigger="capitalRaiseValuationCap"
               />
             </div>
             {showValuationCap && (
@@ -243,6 +249,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                   }
                 }}
                 data-testid="toggle-discount-rate"
+                data-expand-trigger="capitalRaiseDiscountRate"
               />
             </div>
             {showDiscountRate && (
@@ -286,6 +293,10 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                   }
                 }}
                 data-testid="toggle-interest-rate"
+                // Two field ids (the rate + its payment-frequency dropdown)
+                // share this single toggle, so the contract uses the
+                // space-separated form to advertise both at once.
+                data-expand-trigger="fundingInterestRate fundingInterestPaymentFrequency"
               />
             </div>
             {showInterestRate && (

@@ -39,6 +39,29 @@ import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
  *  future producer of focus-deep-links use the same key. */
 export const FOCUS_QUERY_PARAM = "focus";
 
+/**
+ * DOM contract a collapsible section uses to opt into auto-expansion when
+ * the focus hook can't find one of its (currently hidden) field markers.
+ *
+ * Place the attribute on the visible toggle (button / Switch / disclosure
+ * trigger) that, when clicked, would render the marker for the listed
+ * field id(s). The value is a space-separated list of field ids the
+ * trigger reveals — matched by CSS attribute selector `[~=…]`, the same
+ * way `class` is matched, so multi-field triggers compose without quoting.
+ *
+ * Example:
+ *   <Switch
+ *     data-expand-trigger="capitalRaiseValuationCap"
+ *     checked={showValuationCap}
+ *     onCheckedChange={...}
+ *   />
+ *
+ * Auto-expansion skips triggers that are already expanded
+ * (`aria-expanded="true"`, `data-state="checked"`, or `data-state="open"`)
+ * so the hook never *closes* a section the user already opened.
+ */
+export const EXPAND_TRIGGER_ATTR = "data-expand-trigger";
+
 interface FocusFieldOptions {
   /** Maximum number of discovery attempts before giving up. */
   readonly maxAttempts?: number;
@@ -108,6 +131,58 @@ export function focusFieldById(fieldId: string): boolean {
   const el = findFieldElement(fieldId);
   if (!el) return false;
   focusFieldElement(el);
+  return true;
+}
+
+/**
+ * Locate a section's "expand-on-demand" trigger for `fieldId`, if any.
+ *
+ * Looks for an element whose `data-expand-trigger` attribute lists the
+ * field id as one of its space-separated tokens (`[~="<id>"]`). Sections
+ * opt in by placing the attribute on the toggle that, when clicked,
+ * would render the otherwise-hidden field marker — see the
+ * `EXPAND_TRIGGER_ATTR` doc comment for the contract details.
+ */
+export function findExpandTriggerForField(
+  fieldId: string,
+): HTMLElement | null {
+  if (!fieldId || typeof document === "undefined") return null;
+  const escaped = escapeForSelector(fieldId);
+  return document.querySelector<HTMLElement>(
+    `[${EXPAND_TRIGGER_ATTR}~="${escaped}"]`,
+  );
+}
+
+/**
+ * Attempt to expand the collapsed parent of `fieldId` by clicking its
+ * registered expand trigger. Returns `true` when a click was dispatched,
+ * `false` otherwise (no trigger registered, or the trigger is already in
+ * an expanded state).
+ *
+ * "Already expanded" detection uses three common flags so the hook works
+ * with the disclosure idioms already in this codebase without forcing
+ * sections to standardise on one:
+ *   - `aria-expanded="true"` for ARIA disclosure buttons
+ *   - `data-state="open"` for Radix collapsible / accordion roots
+ *   - `data-state="checked"` for Radix Switch (used by ConvertibleTermsCard)
+ *
+ * Skipping expanded triggers is what makes the auto-expand safe to call
+ * from a retry loop: clicking a Switch that's already on would *close*
+ * the very section we're trying to reach.
+ */
+export function expandFieldContainer(fieldId: string): boolean {
+  const trigger = findExpandTriggerForField(fieldId);
+  if (!trigger) return false;
+  const ariaExpanded = trigger.getAttribute("aria-expanded");
+  if (ariaExpanded === "true") return false;
+  const dataState = trigger.getAttribute("data-state");
+  if (dataState === "checked" || dataState === "open") return false;
+  if (typeof trigger.click !== "function") return false;
+  try {
+    trigger.click();
+  } catch {
+    return false;
+  }
   return true;
 }
 
@@ -262,15 +337,47 @@ export function useFocusFieldFromUrl(opts: FocusFieldOptions = {}): void {
     const retryMs = opts.retryMs ?? DEFAULT_RETRY_MS;
     let attempts = 0;
     let timer: number | null = null;
+    // Auto-expand discovery is a single one-shot per Adjust navigation: if
+    // the marker can't be found, we look up the field's registered
+    // `data-expand-trigger`, click it once, and let subsequent retries pick
+    // up the now-rendered marker. We do not loop on expansion — clicking
+    // the same toggle twice is a *close*, not a deeper open, so trying
+    // again would silently undo the first click.
+    let didTryExpansion = false;
 
     const tryFocus = (): void => {
       attempts += 1;
       const ok = focusFieldById(fieldId);
-      if (ok || attempts >= maxAttempts) {
-        if (!ok) {
-          warnFocusFieldExhausted(fieldId);
-          notifyFocusFieldExhausted(fieldId);
+      if (ok) {
+        stripFocusParam();
+        timer = null;
+        return;
+      }
+      // Field marker isn't in the DOM. If we haven't yet tried to expand
+      // its owning section, do so now (before deciding whether the budget
+      // is exhausted) so the next retry tick can find the freshly-rendered
+      // marker. Auto-expansion does NOT consume the attempt budget on its
+      // own — the budget governs how many *lookups* we make, not how many
+      // expand-then-lookup cycles we run.
+      if (!didTryExpansion) {
+        didTryExpansion = true;
+        if (expandFieldContainer(fieldId)) {
+          // Schedule the next retry without consuming budget for the
+          // expand itself. We've already incremented `attempts`, but the
+          // bump is fine; what matters is we don't fall into the
+          // "exhausted" branch on the same tick that just dispatched the
+          // click — the React setState triggered by the click hasn't had
+          // a chance to render the marker yet.
+          timer = window.setTimeout(tryFocus, retryMs);
+          return;
         }
+        // No trigger registered for this field — fall through to the
+        // normal exhaust-or-retry path; the toast will fire on
+        // exhaustion exactly as it did before this contract existed.
+      }
+      if (attempts >= maxAttempts) {
+        warnFocusFieldExhausted(fieldId);
+        notifyFocusFieldExhausted(fieldId);
         stripFocusParam();
         timer = null;
         return;
