@@ -21,9 +21,11 @@
 
 import { pathToFileURL } from "url";
 import { resolve } from "path";
+import { sql } from "drizzle-orm";
 import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS } from "../shared/countryDefaults";
 import { DAYS_PER_MONTH } from "../shared/constants";
 import { storage } from "../server/storage";
+import { db } from "../server/db";
 
 interface SeedRow {
   constantKey: string;
@@ -82,8 +84,35 @@ function notesFor(key: string, country: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Ensure the unique index that backs `upsertCanonical`'s `onConflictDoUpdate`
+ * exists before any upsert runs. The schema declares this constraint as
+ * `uq_mc_key_country_subdivision` in `shared/schema/model-canonicals.ts`
+ * (the source of truth), and `script/seed-production.sql`'s prologue
+ * mirrors the same `CREATE UNIQUE INDEX IF NOT EXISTS` for production
+ * recovery. This in-seed safety net handles dev DBs that pre-date the
+ * schema entry — without it, the seeder logs
+ * `[seed:model-constants] skipped (will retry next boot)` on every dev
+ * boot because the production-sql seed is gated to NODE_ENV=production.
+ *
+ * `IF NOT EXISTS` makes this a no-op when the schema-managed constraint
+ * is already present, so the schema remains the source of truth.
+ */
+async function ensureCanonicalUniqueIndex(): Promise<void> {
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_mc_key_country_subdivision
+      ON model_constants (constant_key, country, country_subdivision)
+  `);
+}
+
 export async function seedModelConstants(opts: { silent?: boolean } = {}): Promise<{ upserted: number }> {
   const log = opts.silent ? () => {} : (msg: string) => console.log(msg);
+
+  // Self-heal: guarantee the unique index exists before any upsert. Drizzle's
+  // `onConflictDoUpdate` requires a real arbiter index, and without it the
+  // first row throws and the whole seed gets skipped.
+  await ensureCanonicalUniqueIndex();
+
   const rows: SeedRow[] = [];
 
   // Universal: daysPerMonth
