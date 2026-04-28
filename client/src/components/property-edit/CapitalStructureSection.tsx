@@ -24,7 +24,6 @@
  * market benchmarks are available; clicking them auto-fills the input.
  */
 import { useQuery } from "@tanstack/react-query";
-import { setAdminSection } from "@/lib/admin-nav";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -185,16 +184,11 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
             <h4 className="text-sm font-semibold text-accent-pop dark:text-accent-pop">
               Model Constants — Authority-Governed
             </h4>
-            <span className="text-xs text-accent-pop/80 dark:text-accent-pop/70">
-              Read-only · Sourced from{" "}
-              <button
-                type="button"
-                onClick={() => setAdminSection("constants")}
-                className="underline hover:text-accent-pop/100 focus:outline-none focus:ring-1 focus:ring-accent-pop rounded-sm"
-                data-testid="link-nav-admin-model-constants"
-              >
-                Admin → Model Defaults → Model Constants
-              </button>
+            <span
+              className="text-xs text-accent-pop/80 dark:text-accent-pop/70"
+              data-testid="text-source-model-constants"
+            >
+              Read-only · Sourced from Model Constants
             </span>
           </header>
           <div className="p-4 space-y-4">

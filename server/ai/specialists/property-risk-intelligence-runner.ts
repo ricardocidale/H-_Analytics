@@ -1,6 +1,3 @@
-// UNWIRED — blocking on: route handler for property.risk-intelligence (follow-up
-// task; mirrors how mgmt-co-funding-runner is consumed by analyst-admin route).
-// Tier-0 surface specialist + parity-test verdict-dimension wiring are complete.
 /**
  * runPropertyRiskIntelligenceSpecialist — single-shot Opus call producing a
  * complete `AnalystVerdict` for the per-property inflation override surface

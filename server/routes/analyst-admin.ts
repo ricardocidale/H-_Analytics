@@ -18,19 +18,34 @@ import {
   ICP_MODEL_PROFILES,
   type IcpModelTier,
 } from "@shared/constants-benchmarks";
+import {
+  runPropertyRiskIntelligenceSpecialist,
+  Tier1UnavailableError as PropertyTier1UnavailableError,
+} from "../ai/specialists/property-risk-intelligence-runner";
+import type { PropertyRiskIntelligencePromptInputContext } from "../ai/specialists/property-risk-intelligence-prompt";
+import type { CountryInflationOutlook } from "../../engine/analyst/surface/property/risk-intelligence-specialist";
+import type { ModelConstant } from "@shared/schema";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
 const ANALYST_COOLDOWN_MS = 60 * 1000;
 
 const refreshBodySchema = z.object({
-  scope: z.literal("global-assumptions"),
+  scope: z.enum(["global-assumptions", "property"]),
+  /**
+   * Required when scope === "property". Identifies which property to
+   * evaluate (Daniela / property.risk-intelligence and future property-
+   * level Specialists).
+   */
+  propertyId: z.number().positive().int().optional(),
   fields: z.array(z.string().min(1)).max(100).optional(),
   /**
    * G1.5c-v1 — when set to "mgmt-co.funding", the handler routes through
    * `runFundingSpecialist` (single-shot Opus + careful prompt) instead of
-   * the legacy `runAnalystScoped` path. Other scopes (Revenue, etc.) keep
-   * the legacy path until their own v1 ships (see G2-v1+).
+   * the legacy `runAnalystScoped` path.
+   * G1.6-v1 (Daniela) — when set to "property.risk-intelligence", the
+   * handler routes through `runPropertyRiskIntelligenceSpecialist`.
+   * Other Specialists keep the legacy path until their own v1 ships.
    */
   specialistId: z.string().min(1).optional(),
 });
@@ -60,7 +75,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
       details: parsed.error.flatten(),
     });
   }
-  const { scope, fields, specialistId } = parsed.data;
+  const { scope, propertyId, fields, specialistId } = parsed.data;
 
   const user = getAuthUser(req);
   const userId = user.id;
@@ -72,7 +87,10 @@ export async function analystRefreshHandler(req: Request, res: Response) {
   // budget. The gate enumerates locked-hard candidate fields across
   // all company-scope Specialists (mgmt-co + portfolio-ops) and
   // verifies them against the user's GlobalAssumptions row.
-  try {
+  // Property-scope requests skip this gate — the property runner
+  // performs its own validation and emits honest-fail verdicts on
+  // missing fields (per Daniela's Tier-0 fallback design).
+  if (scope === "global-assumptions") try {
     const [
       { getLockedHardCandidateFields, SPECIALIST_CATALOG },
       { findMissingRequiredFields },
@@ -190,6 +208,60 @@ export async function analystRefreshHandler(req: Request, res: Response) {
         return logAndSendError(res, "Funding Specialist failed", err, "analyst-admin");
       }
     }
+  }
+
+  // G1.6-v1 — Property Risk Intelligence Specialist branch (Daniela / D).
+  // When the request names property.risk-intelligence, route through the
+  // v1 single-shot Opus runner. Property-scope requests that don't match a
+  // known Specialist fall through to the 400 below (no legacy fallback for
+  // property scope — there is no company-level scoped runner for properties).
+  if (specialistId === "property.risk-intelligence") {
+    if (!propertyId) {
+      return res.status(400).json({
+        error: "propertyId is required for property.risk-intelligence",
+        code: "MISSING_PROPERTY_ID",
+      });
+    }
+    try {
+      const verdict = await runPropertyRiskIntelligenceV1Path(propertyId, userId);
+      logActivity(req, "analyst-refresh", "property", userId, "Property Risk Intelligence (v1)", {
+        scope,
+        specialistId,
+        propertyId,
+        cognitiveRunId: verdict.meta.cognitiveRunId,
+        tier: verdict.meta.tier,
+      });
+      return res.json({ verdict });
+    } catch (err: unknown) {
+      if (err instanceof PropertyTier1UnavailableError) {
+        logger.warn(
+          `property.risk-intelligence v1 unavailable; returning Tier-0 honest-fail: ${err.message}`,
+          "analyst-admin",
+        );
+        // No legacy fallback for property scope. Return a structured
+        // "unavailable" response so the client shows the empty state +
+        // "Ask the Analyst" CTA rather than a hard error.
+        return res.status(503).json({
+          code: "TIER1_UNAVAILABLE",
+          message: "The Analyst is temporarily unavailable. Try again in a moment.",
+        });
+      }
+      logger.error(
+        `property.risk-intelligence v1 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+        "analyst-admin",
+      );
+      return logAndSendError(res, "Property Risk Intelligence Specialist failed", err, "analyst-admin");
+    }
+  }
+
+  // Property-scope requests that don't name a known Specialist have no
+  // legacy runner to fall back to. Return 400 rather than silently running
+  // the company-scope legacy path on a property request.
+  if (scope === "property") {
+    return res.status(400).json({
+      error: "Unknown specialistId for property scope",
+      code: "UNKNOWN_SPECIALIST",
+    });
   }
 
   try {
@@ -346,6 +418,138 @@ async function runFundingV1Path(userId: number) {
   const comparables = getCannedLpComparables();
 
   return runFundingSpecialist(ctx, benchmarks, comparables);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// G1.6-v1 — Property Risk Intelligence Specialist v1 path (Daniela / D)
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Assemble context and invoke `runPropertyRiskIntelligenceSpecialist`.
+ * Throws `PropertyTier1UnavailableError` on any failure; the route
+ * handler catches and returns HTTP 503 (no legacy fallback for property scope).
+ *
+ * v1 deferrals:
+ *   - CountryInflationOutlook: resolved from `model_constants` when
+ *     available (requires Isadora / macro-research Specialist to have run);
+ *     `null` when no canonical row exists — runner emits developing-conviction.
+ *   - Persona: derived from property fields (hospitalityType, marketTier,
+ *     country); G6-P3 will enrich with full persona resolution.
+ */
+async function runPropertyRiskIntelligenceV1Path(
+  propertyId: number,
+  _userId: number,
+) {
+  const property = await storage.getProperty(propertyId);
+  if (!property) {
+    throw new PropertyTier1UnavailableError(
+      `Property ${propertyId} not found`,
+      null,
+    );
+  }
+
+  // Resolve CountryInflationOutlook from model_constants (Isadora's domain).
+  // Returns null when no canonical row exists — the runner's honest-fail
+  // path handles this per the inflation-cascade rule.
+  const canonicalRow = await storage.findCanonical(
+    "inflationRate",
+    property.country ?? null,
+    null,
+  );
+  const countryInflationOutlook = canonicalRow
+    ? modelConstantToCountryInflationOutlook(canonicalRow)
+    : null;
+
+  // Persona derived from property fields. G6-P3 replaces with full resolver.
+  const persona: PropertyRiskIntelligencePromptInputContext["persona"] = {
+    verticalSlug: hospitalityTypeToVerticalSlug(property.hospitalityType ?? "hotel"),
+    marketTier: (property.marketTier ?? "L+B") as string,
+    locale: property.country ?? "US",
+  };
+
+  const ctx: PropertyRiskIntelligencePromptInputContext = {
+    persona,
+    inputs: {
+      propertyInflationRate: property.inflationRate ?? null,
+      country: property.country ?? undefined,
+      city: property.city ?? undefined,
+    },
+    countryInflationOutlook,
+  };
+
+  return runPropertyRiskIntelligenceSpecialist(ctx);
+}
+
+/**
+ * Map a `model_constants` row to `CountryInflationOutlook`. The row's
+ * `value` may be a scalar (single point estimate) or a `{low,mid,high}`
+ * range object written by Isadora (the macro-research Specialist).
+ * Returns `null` when the value cannot be interpreted as a valid range.
+ */
+function modelConstantToCountryInflationOutlook(
+  row: ModelConstant,
+): CountryInflationOutlook | null {
+  const val = row.value;
+  let low: number, mid: number, high: number;
+
+  if (typeof val === "number" && Number.isFinite(val)) {
+    // Single-point constant: collapse to a flat range at the point value.
+    low = val;
+    mid = val;
+    high = val;
+  } else if (
+    typeof val === "object" &&
+    val !== null &&
+    "low" in val &&
+    "mid" in val &&
+    "high" in val
+  ) {
+    const v = val as { low: unknown; mid: unknown; high: unknown };
+    if (
+      typeof v.low !== "number" ||
+      typeof v.mid !== "number" ||
+      typeof v.high !== "number" ||
+      !Number.isFinite(v.low) ||
+      !Number.isFinite(v.mid) ||
+      !Number.isFinite(v.high)
+    )
+      return null;
+    low = v.low;
+    mid = v.mid;
+    high = v.high;
+  } else {
+    return null;
+  }
+
+  return {
+    low,
+    mid,
+    high,
+    source: row.authoritySource ?? "model_constants",
+    asOf:
+      row.lastEditedAt instanceof Date
+        ? row.lastEditedAt.toISOString()
+        : String(row.lastEditedAt ?? new Date().toISOString()),
+    url: row.authorityRef ?? undefined,
+  };
+}
+
+/**
+ * Map the property's `hospitalityType` string to a persona vertical slug
+ * that the Property Risk Intelligence runner understands.
+ */
+function hospitalityTypeToVerticalSlug(type: string): string {
+  const normalized = type.toLowerCase().replace(/[^a-z]/g, "-");
+  const knownSlugs: Record<string, string> = {
+    hotel: "boutique-luxury",
+    "boutique-hotel": "boutique-luxury",
+    resort: "boutique-luxury",
+    hostel: "budget-independent",
+    "bed-and-breakfast": "boutique-luxury",
+    "vacation-rental": "short-term-rental",
+    motel: "budget-independent",
+  };
+  return knownSlugs[normalized] ?? "boutique-luxury";
 }
 
 /**
