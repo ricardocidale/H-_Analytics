@@ -36,6 +36,7 @@ import {
   createRevenueSpecialist,
 } from "@engine/analyst/surface/mgmt-co/revenue-specialist";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
+import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
 import type { CapitalRaiseInputs } from "@engine/watchdog/capitalRaiseEvaluator";
 import type { RevenueInputs } from "@engine/watchdog/revenueEvaluator";
 import type { SpecialistContext } from "@engine/analyst/router/surface-router";
@@ -52,6 +53,32 @@ const SPECIALISTS_EMITTING_VERDICT_DIMENSIONS: readonly SpecialistTrackedFields[
   { specialistId: "mgmt-co.revenue", fields: REVENUE_SPECIALIST_TRACKED_FIELDS },
 ];
 
+/**
+ * Catalog ids that are `status: "built"` but legitimately do NOT emit
+ * `VerdictDimension`s — and therefore have no tracked-fields export to
+ * register in `SPECIALISTS_EMITTING_VERDICT_DIMENSIONS`.
+ *
+ * Adding a Specialist here is a deliberate opt-out: the meta-check below
+ * uses this set to subtract non-verdict-emitting Specialists from the
+ * built list before asserting parity coverage. Each entry needs a
+ * one-line justification so future reviewers can decide quickly whether
+ * a new Specialist genuinely belongs here.
+ *
+ * If you find yourself adding a Specialist here just to silence the
+ * meta-check: stop. The failure is telling you the Specialist will emit
+ * verdicts whose fields aren't being parity-checked, which means the
+ * Voice Renderer's "Adjust" deep-link CTA will silently disappear for
+ * any field it adds. Wire the tracked-fields export instead.
+ */
+const BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS: ReadonlySet<string> = new Set([
+  // Letícia: maintains the deterministic toolbox the other Specialists
+  // call. Her work product is the `SPECIALIST_TOOLS` registry, not a
+  // `VerdictDimension`, so there are no fields for the Adjust CTA to
+  // target. See `specialist-catalog.ts` for the rationale on her
+  // `status: "built"`.
+  "resources.builder",
+]);
+
 describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry", () => {
   it("the parity check has at least one Specialist + one field to cover", () => {
     // Guards against an accidental "I forgot to wire the new Specialist's
@@ -61,6 +88,95 @@ describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry"
     for (const { specialistId, fields } of SPECIALISTS_EMITTING_VERDICT_DIMENSIONS) {
       expect(fields.length, `${specialistId} reports zero tracked fields`).toBeGreaterThan(0);
     }
+  });
+
+  // Meta-check: catch the "new built Specialist forgot to wire its
+  // tracked-fields export" regression class.
+  //
+  // The per-field assertions below only run for Specialists explicitly
+  // listed in `SPECIALISTS_EMITTING_VERDICT_DIMENSIONS`. Without this
+  // meta-check, graduating a Specialist from `status: "needs-page"` to
+  // `status: "built"` and shipping it without registering its
+  // tracked-fields export would leave the new Specialist's verdict
+  // fields completely unchecked — the parity loop would skip them,
+  // every field that's missing from `FIELD_REGISTRY` would silently
+  // fall back to the Voice Renderer's string-pattern heuristic, and
+  // the "Adjust" deep-link CTA would silently disappear from the UI
+  // because the heuristic cannot encode a `mountPoint`.
+  //
+  // Driving the check off `SPECIALIST_CATALOG` (the locked single source
+  // of truth for the 12 Specialists, see replit.md) means the failure
+  // mode is impossible to ignore: the moment `status` flips to "built"
+  // in the catalog, this test reads the new id and demands either
+  //   (a) a tracked-fields entry in `SPECIALISTS_EMITTING_VERDICT_DIMENSIONS`, or
+  //   (b) an explicit opt-out in `BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS`
+  //       with a written justification.
+  // Either path forces a deliberate decision instead of a silent gap.
+  it("every built Specialist either emits parity-checked fields or is opted out with a justification", () => {
+    const builtSpecialistIds = SPECIALIST_CATALOG.filter((d) => d.status === "built").map(
+      (d) => d.id,
+    );
+    expect(
+      builtSpecialistIds.length,
+      "SPECIALIST_CATALOG has zero status:'built' entries — the meta-check below would vacuously pass.",
+    ).toBeGreaterThan(0);
+
+    const wiredIds = new Set(
+      SPECIALISTS_EMITTING_VERDICT_DIMENSIONS.map((s) => s.specialistId),
+    );
+    const optedOut = BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS;
+
+    const unwired = builtSpecialistIds.filter((id) => !wiredIds.has(id) && !optedOut.has(id));
+    expect(
+      unwired,
+      [
+        `These built Specialists are neither parity-checked nor opted out: [${unwired.join(", ")}].`,
+        "If they emit VerdictDimensions, export a *_SPECIALIST_TRACKED_FIELDS array from the Specialist module and append an entry to SPECIALISTS_EMITTING_VERDICT_DIMENSIONS in this test.",
+        "If they legitimately do not emit verdicts, add the id to BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS with a one-line justification.",
+      ].join(" "),
+    ).toEqual([]);
+
+    // Mirror invariant: nothing in the parity array or opt-out set
+    // should reference an id that isn't actually in the catalog. Catches
+    // typos and rename drift (e.g. someone refactors a Specialist id and
+    // leaves a stale entry pointing at the old id, masking the gap).
+    const catalogIds = new Set(SPECIALIST_CATALOG.map((d) => d.id));
+    const ghostsInWired = [...wiredIds].filter((id) => !catalogIds.has(id));
+    expect(
+      ghostsInWired,
+      `SPECIALISTS_EMITTING_VERDICT_DIMENSIONS references ids absent from SPECIALIST_CATALOG: [${ghostsInWired.join(", ")}]. Likely a Specialist rename — update or remove the entry.`,
+    ).toEqual([]);
+    const ghostsInOptOut = [...optedOut].filter((id) => !catalogIds.has(id));
+    expect(
+      ghostsInOptOut,
+      `BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS references ids absent from SPECIALIST_CATALOG: [${ghostsInOptOut.join(", ")}]. Likely a Specialist rename — update or remove the entry.`,
+    ).toEqual([]);
+  });
+
+  // Defensive shape check on the registry itself: every entry the parity
+  // tests below assert the existence of must have a non-empty `mountPoint`.
+  // Done up front (not inside the per-field loop) so a registry-wide
+  // mountPoint regression — e.g. a refactor that accidentally clears the
+  // slug for a whole tab — fires a single clear failure instead of one
+  // failure per field.
+  it("every Specialist-tracked field's registry entry carries a non-empty mountPoint", () => {
+    const offenders: string[] = [];
+    for (const { specialistId, fields } of SPECIALISTS_EMITTING_VERDICT_DIMENSIONS) {
+      for (const field of fields) {
+        const entry = getFieldRegistryEntry(field);
+        if (!entry) {
+          offenders.push(`${specialistId}/${field} → no FIELD_REGISTRY entry`);
+          continue;
+        }
+        if (typeof entry.mountPoint !== "string" || entry.mountPoint.trim() === "") {
+          offenders.push(`${specialistId}/${field} → empty mountPoint`);
+        }
+      }
+    }
+    expect(
+      offenders,
+      `Fields with missing or empty mountPoint: ${offenders.join("; ")}. The Adjust CTA needs mountPoint to deep-link the user to the right tab.`,
+    ).toEqual([]);
   });
 
   for (const { specialistId, fields } of SPECIALISTS_EMITTING_VERDICT_DIMENSIONS) {
