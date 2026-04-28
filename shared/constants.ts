@@ -392,6 +392,14 @@ export const CHECKER_NOI_MARGIN_MAX_PCT = 70;
 export const CHECKER_BALANCE_SHEET_TOLERANCE = 1.0;
 export const CHECKER_MIN_DSCR = 1.0;
 
+// ── Breakeven Targets (reverse-solve panel) ─────────────────────────────
+// Minimum DSCR floor used by the breakeven targets panel for cap-rate and
+// debt-rate reverse solves. Authority: standard hospitality lending baseline.
+export const BREAKEVEN_TARGET_DSCR_FLOOR = 1.0;
+// Relative gap (|current − breakeven| / |current|) below which the badge
+// switches from green/red to amber "Close to breakeven".
+export const BREAKEVEN_PROXIMITY_RATIO = 0.10;
+
 // ── Specialist Model IDs ─────────────────────────────────────────────────────
 // Default model IDs used by each Specialist. Override via the admin_resources
 // Models registry (ADR-006) when a different model is configured.

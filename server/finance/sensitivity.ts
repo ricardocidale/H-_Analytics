@@ -12,6 +12,7 @@
 import { generatePropertyProForma } from "./core/property-pipeline";
 import { withModelConstants } from "./apply-model-constants";
 import { computeIRR } from "../../analytics/returns/irr.js";
+import { computeBreakevenTargets } from "@calc/analysis/breakeven-targets";
 import { storage } from "../storage";
 import { resolveDefault } from "../defaults";
 import type { PropertyInput, GlobalInput } from "@engine/types";
@@ -20,6 +21,8 @@ import {
   DEFAULT_EXIT_CAP_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_FIXED_COST_ESCALATION_RATE,
+  DEFAULT_INTEREST_RATE,
+  DEFAULT_TERM_YEARS,
   MONTHS_PER_YEAR,
 } from "@shared/constants";
 import type {
@@ -28,6 +31,7 @@ import type {
   SensitivityTornadoVariable,
   SensitivityHeatMapCell,
   SensitivityResponse,
+  SensitivityBreakevenBundle,
 } from "@shared/sensitivity-types";
 
 interface ResolvedDefaults {
@@ -135,6 +139,112 @@ function runScenario(
   const avgNOIMargin = totalRevenue > 0 ? (totalNOI / totalRevenue) * 100 : 0;
 
   return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue, irr };
+}
+
+// ─── Breakeven Targets bundle (single-property reverse solve) ─────────────────
+
+/** Perturbation magnitude for the ADR/Occ/RevPAR slope estimate (10 %). */
+const BREAKEVEN_REVENUE_PERTURBATION = 0.10;
+/**
+ * Exit-cap samples used to bracket IRR = 0 for the terminal-cap reverse solve.
+ * Values are absolute decimals; range is wide enough to bracket most deals.
+ */
+const BREAKEVEN_TERMINAL_CAP_SAMPLES = [0.04, 0.07, 0.10, 0.15, 0.22] as const;
+
+/** Sum the first N months of any numeric field on MonthlyFinancials. */
+function sumFirstYear<T>(rows: readonly T[], field: keyof T): number {
+  let total = 0;
+  const limit = Math.min(MONTHS_PER_YEAR, rows.length);
+  for (let i = 0; i < limit; i++) {
+    const v = rows[i][field] as unknown;
+    if (typeof v === "number" && Number.isFinite(v)) total += v;
+  }
+  return total;
+}
+
+/**
+ * Compute the breakeven targets bundle for the selected single property.
+ * Returns null when the panel is not applicable (no debt, missing data, etc.).
+ */
+function computeBreakevenBundle(
+  prop: PropertyInput,
+  global: GlobalInput,
+  projectionYears: number,
+  projectionMonths: number,
+  resolved: ResolvedDefaults,
+): SensitivityBreakevenBundle | null {
+  // Year-1 base ANOI and debt service from the un-shocked engine run.
+  const baseRows = generatePropertyProForma(prop, global, projectionMonths);
+  const baseAnoiAnnual = sumFirstYear(baseRows, "anoi");
+  const annualDebtService = sumFirstYear(baseRows, "debtPayment");
+
+  // No debt → DSCR is undefined and the panel has no meaning.
+  if (annualDebtService <= 0) return null;
+
+  // Slope: re-run with ADR scaled by +10 %; ANOI delta divided by the
+  // perturbation gives ΔANOI per unit revenue scale.
+  const perturbedProp: PropertyInput = {
+    ...prop,
+    startAdr: prop.startAdr * (1 + BREAKEVEN_REVENUE_PERTURBATION),
+  };
+  const perturbedRows = generatePropertyProForma(perturbedProp, global, projectionMonths);
+  const perturbedAnoi = sumFirstYear(perturbedRows, "anoi");
+  const anoiSlopePerRevenueScale =
+    (perturbedAnoi - baseAnoiAnnual) / BREAKEVEN_REVENUE_PERTURBATION;
+
+  // IRR samples for terminal-cap reverse solve. Each sample re-uses the
+  // existing single-property runScenario logic with an absolute exit-cap
+  // override expressed as a delta (in percentage points) from the current cap.
+  const currentTerminalCap = prop.exitCapRate ?? global.exitCapRate ?? resolved.exitCapRate;
+  const irrSamples = BREAKEVEN_TERMINAL_CAP_SAMPLES.map((cap) => {
+    const deltaPp = (cap - currentTerminalCap) * 100;
+    const result = runScenario(
+      [prop],
+      global,
+      { exitCapRate: deltaPp },
+      projectionMonths,
+      projectionYears,
+      resolved,
+    );
+    return { exitCap: cap, irr: result.irr };
+  });
+
+  // Loan inputs for PMT inversion. Falls back to GA/constants when missing.
+  const ltv = (prop.acquisitionLTV as number | null) ?? 0;
+  const loanAmount = prop.purchasePrice * ltv;
+  const termYears =
+    (prop.acquisitionTermYears as number | null) ?? DEFAULT_TERM_YEARS;
+  const termMonths = termYears * MONTHS_PER_YEAR;
+  const currentDebtRate =
+    (prop.acquisitionInterestRate as number | null) ??
+    global.debtAssumptions?.interestRate ??
+    DEFAULT_INTEREST_RATE;
+
+  // Year-1 stabilized ADR and occupancy. ADR averages may differ from startAdr
+  // when ramp/seasonality applies; use the engine's reported revenue numbers
+  // to stay consistent with the slope calculation above.
+  const currentAdr = prop.startAdr;
+  const currentOccupancy = prop.maxOccupancy;
+  const currentGoingInCap =
+    prop.purchasePrice > 0 ? baseAnoiAnnual / prop.purchasePrice : 0;
+  if (currentGoingInCap <= 0) return null;
+
+  const result = computeBreakevenTargets({
+    currentAdr,
+    currentOccupancy,
+    currentGoingInCap,
+    currentDebtRate,
+    currentTerminalCap,
+    baseAnoiAnnual,
+    anoiSlopePerRevenueScale,
+    annualDebtService,
+    loanAmount,
+    termMonths,
+    purchasePrice: prop.purchasePrice,
+    irrSamples,
+  });
+
+  return result;
 }
 
 // ─── Sensitivity variables (mirrors client SensitivityAnalysis.tsx) ───────────
@@ -279,12 +389,29 @@ export async function computeSensitivityAnalysis(
     }
   }
 
+  // ── Breakeven bundle (single property only) ─────────────────────────────────
+  // Multi-property roll-up is intentionally out of scope: each property has its
+  // own debt structure and cap rates, so a portfolio-level breakeven is
+  // ill-defined. Single-property selection unlocks the panel.
+  const breakeven =
+    propertyId !== "all" && targetProps.length === 1
+      ? computeBreakevenBundle(
+          targetProps[0],
+          globalInput,
+          projectionYears,
+          projectionMonths,
+          resolved,
+        )
+      : null;
+
   return {
     base,
     tornado,
     tornadoVariables,
     heatmap: { cells, rowLabels, colLabels },
+    breakeven,
     projectionYears,
     computedAt: new Date().toISOString(),
   };
 }
+

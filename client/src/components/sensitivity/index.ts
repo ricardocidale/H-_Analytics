@@ -6,3 +6,4 @@ export { KPISummaryStrip } from "./KPISummaryStrip";
 export { HeatMapSection } from "./HeatMapSection";
 export { TornadoD3Section } from "./TornadoD3Section";
 export { useSensitivityExports } from "./useSensitivityExports";
+export { BreakevenTargetsPanel } from "./BreakevenTargetsPanel";

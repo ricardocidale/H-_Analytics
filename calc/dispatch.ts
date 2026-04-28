@@ -51,7 +51,7 @@ import {
   dcfSchema, irrVectorSchema, equityMultipleSchema, exitValuationSchema,
   financialIdentitiesSchema, fundingGatesSchema, scheduleReconcileSchema,
   assumptionConsistencySchema, exportVerificationSchema, consolidationSchema,
-  scenarioCompareSchema, breakEvenSchema,
+  scenarioCompareSchema, breakEvenSchema, breakevenTargetsSchema,
   waterfallSchema, holdVsSellSchema, stressTestSchema, capexReserveSchema,
   revparIndexSchema, debtYieldSchema, dscrSchema, prepaymentSchema,
   sensitivitySchema, compareLoanSchema, interestRateSwapSchema,
@@ -74,6 +74,7 @@ import { verifyExport } from "./validation/export-verification.js";
 import { consolidateStatements } from "./analysis/consolidation.js";
 import { compareScenarios } from "./analysis/scenario-compare.js";
 import { computeBreakEven } from "./analysis/break-even.js";
+import { computeBreakevenTargets } from "./analysis/breakeven-targets.js";
 import { computeWaterfall } from "./analysis/waterfall.js";
 import { computeHoldVsSell } from "./analysis/hold-vs-sell.js";
 import { computeStressTest } from "./analysis/stress-test.js";
@@ -122,6 +123,7 @@ const TOOL_SCHEMAS: Record<string, ZodSchema> = {
   consolidate_statements: consolidationSchema,
   scenario_compare: scenarioCompareSchema,
   break_even_analysis: breakEvenSchema,
+  compute_breakeven_targets: breakevenTargetsSchema,
   compute_waterfall: waterfallSchema,
   hold_vs_sell: holdVsSellSchema,
   stress_test: stressTestSchema,
@@ -163,6 +165,7 @@ const TOOL_DISPATCH: Record<string, ToolHandler> = {
   consolidate_statements: withRounding(consolidateStatements),
   scenario_compare: wrap(compareScenarios),
   break_even_analysis: wrap(computeBreakEven),
+  compute_breakeven_targets: wrap(computeBreakevenTargets),
   compute_waterfall: withRounding(computeWaterfall),
   hold_vs_sell: withRounding(computeHoldVsSell),
   stress_test: withRounding(computeStressTest),

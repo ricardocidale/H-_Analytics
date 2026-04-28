@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { AnimatedPage, InsightPanel, type Insight } from "@/components/graphics";
-import { VariableSlidersPanel, TornadoChartPanel, SensitivityComparisonTable, KPISummaryStrip, HeatMapSection, TornadoD3Section, useSensitivityExports, type SensitivityVariable, type ScenarioResult, type TornadoItem } from "@/components/sensitivity";
+import { VariableSlidersPanel, TornadoChartPanel, SensitivityComparisonTable, KPISummaryStrip, HeatMapSection, TornadoD3Section, BreakevenTargetsPanel, useSensitivityExports, type SensitivityVariable, type ScenarioResult, type TornadoItem } from "@/components/sensitivity";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction } from "@/components/ui/export-toolbar";
 import { ExportDialog } from "@/components/ExportDialog";
 import { useExportSave } from "@/hooks/useExportSave";
@@ -472,6 +472,10 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
               variables={tornadoD3Data.variables}
               baseValue={tornadoD3Data.baseValue}
             />
+          )}
+
+          {serverData?.breakeven && (
+            <BreakevenTargetsPanel bundle={serverData.breakeven} />
           )}
 
           <InsightPanel insights={sensitivityInsights} />

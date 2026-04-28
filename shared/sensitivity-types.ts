@@ -51,6 +51,30 @@ export interface SensitivityHeatMapCell {
   equityMultipleValue: number;
 }
 
+/**
+ * Reverse-solved breakeven target for a single hospitality variable.
+ * Wire format mirrors {@link import("@calc/analysis/breakeven-targets").BreakevenRow}
+ * so the calc module remains the single source of truth.
+ */
+export interface SensitivityBreakevenRow {
+  key: "adr" | "occupancy" | "revpar" | "goingInCap" | "debtRate" | "terminalCap";
+  current: number;
+  breakeven: number | null;
+  gap: number | null;
+  status: "above" | "below" | "close" | "unsolvable";
+  reason?: string;
+}
+
+export interface SensitivityBreakevenBundle {
+  rows: SensitivityBreakevenRow[];
+  meta: {
+    targetDscrFloor: number;
+    proximityRatio: number;
+    annualDebtService: number;
+    baseAnoiAnnual: number;
+  };
+}
+
 export interface SensitivityResponse {
   base: SensitivityScenarioResult;
   /** Sorted by irrSpread descending */
@@ -61,6 +85,11 @@ export interface SensitivityResponse {
     rowLabels: string[];
     colLabels: string[];
   };
+  /**
+   * Breakeven targets for the selected single property. Null when the panel is
+   * not applicable (e.g. "all properties" selected, no debt on the deal, etc.).
+   */
+  breakeven: SensitivityBreakevenBundle | null;
   projectionYears: number;
   computedAt: string;
 }

@@ -268,6 +268,25 @@ export const scenarioCompareSchema = z.object({
   alternative_metrics: scenarioMetricsSchema,
 });
 
+export const breakevenTargetsSchema = z.object({
+  currentAdr: z.number().positive(),
+  currentOccupancy: z.number().min(0).max(1),
+  currentGoingInCap: z.number().positive(),
+  currentDebtRate: z.number().min(0).max(1),
+  currentTerminalCap: z.number().positive(),
+  baseAnoiAnnual: z.number(),
+  anoiSlopePerRevenueScale: z.number(),
+  annualDebtService: z.number().min(0),
+  loanAmount: z.number().min(0),
+  termMonths: z.number().positive(),
+  purchasePrice: z.number().positive(),
+  irrSamples: z
+    .array(z.object({ exitCap: z.number().positive(), irr: z.number() }))
+    .optional(),
+  targetDscrFloor: z.number().positive().optional(),
+  proximityRatio: z.number().min(0).max(1).optional(),
+});
+
 export const breakEvenSchema = z.object({
   property_name: z.string().optional(),
   room_count: z.number().int().positive(),
