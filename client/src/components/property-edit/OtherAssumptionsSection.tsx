@@ -83,7 +83,18 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:items-end">
-          <div className="space-y-2">
+          {/* `data-field="exitCapRate"` is the destination marker for the
+              Analyst's Adjust deep link (registry entry mountPoint
+              `property-edit/other-assumptions`). The focus hook
+              (`useFocusFieldFromUrl()` in
+              `client/src/lib/analyst-focus-field.ts`) descends from this
+              wrapper into the EditableValue's input so a verdict on
+              `exitCapRate` lands focus on the editable control rather
+              than only scrolling the section into view. Companion to the
+              registry entry in `engine/analyst/registry/field-registry.ts`
+              and the destination-marker proof at
+              `tests/proof/analyst-deep-link-destination-marker.test.ts`. */}
+          <div className="space-y-2" data-field="exitCapRate">
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
                 label={<>Exit Cap Rate <InfoTooltip text={`The capitalization rate used to determine terminal (exit) value. Exit Value = Year ${exitYear} NOI ÷ Cap Rate. A lower cap rate implies higher property valuation.`} /> <GaapBadge rule="ASC 360: The exit cap rate determines terminal value for impairment testing. Gain on sale = Sale Price − (Adjusted Basis − Accumulated Depreciation). Depreciation recapture taxed at up to 25% under IRC §1250." /></>}
@@ -92,6 +103,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 guidanceContext={gc("capRate", "Exit Cap Rate")}
               />
               <EditableValue
+                data-testid="editable-exit-cap-rate"
                 value={(draft.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100}
                 onChange={(val) => onChange("exitCapRate", val / 100)}
                 format="percent"
@@ -101,6 +113,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               />
             </div>
             <Slider 
+              data-testid="slider-exit-cap-rate"
               value={[(draft.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100]}
               onValueChange={(vals: number[]) => onChange("exitCapRate", vals[0] / 100)}
               min={1}
@@ -198,7 +211,14 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               step={0.5}
             />
           </div>
-          <div className="space-y-2 sm:col-span-2">
+          {/* `data-field="countryRiskPremium"` is the destination marker
+              for the Analyst's Adjust deep link (registry entry mountPoint
+              `property-edit/other-assumptions`). The CRP wrapper hosts
+              both the editable input and the auto-detect button — the
+              focus hook descends to the EditableValue's input first
+              because it's the only writeable form control in the
+              subtree. */}
+          <div className="space-y-2 sm:col-span-2" data-field="countryRiskPremium">
             <div className="flex justify-between items-center">
               <div className="flex flex-col gap-0.5">
                 <Label className="flex items-center label-text text-foreground gap-1.5">

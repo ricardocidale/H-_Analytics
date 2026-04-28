@@ -82,11 +82,21 @@ export const MOUNT_POINT_DESTINATIONS: Readonly<
   ],
 
   // PropertyEdit's "Other Assumptions" section hosts per-property
-  // sliders (Sale Commission, etc.) — the section the
-  // `property-edit/other-assumptions` mountPoint resolves to via
-  // `client/src/lib/analyst-mount-points.ts` →
-  // `/property/:id/edit#other-assumptions` (task #779).
+  // sliders (Sale Commission, Exit Cap Rate, Country Risk Premium,
+  // etc.) — the section the `property-edit/other-assumptions`
+  // mountPoint resolves to via `client/src/lib/analyst-mount-points.ts`
+  // → `/property/:id/edit#other-assumptions` (task #779; #791 extended
+  // it to cover exitCapRate / countryRiskPremium).
   "property-edit/other-assumptions": [
     "client/src/components/property-edit/OtherAssumptionsSection.tsx",
+  ],
+
+  // PropertyEdit's "Capital Structure" section hosts the per-property
+  // financing inputs (Land Value %, LTV, interest rate, depreciation
+  // overrides, etc.). The `property-edit/capital-structure` mountPoint
+  // resolves to `/property/:id/edit#capital-structure`. Added in task
+  // #791 alongside `landValuePercent`'s registry entry.
+  "property-edit/capital-structure": [
+    "client/src/components/property-edit/CapitalStructureSection.tsx",
   ],
 };

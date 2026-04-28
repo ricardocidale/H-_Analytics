@@ -125,7 +125,20 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               className="bg-card border-primary/30 text-foreground"
             />
           </div>
-          <div className="space-y-1.5">
+          {/* `data-field="landValuePercent"` is the destination marker for
+              the Analyst's Adjust deep link (registry entry mountPoint
+              `property-edit/capital-structure`). The wrapper's only
+              writeable descendant is the Slider — the focus hook
+              (`useFocusFieldFromUrl()` in
+              `client/src/lib/analyst-focus-field.ts`) descends from this
+              wrapper to that slider's `[role="slider"]` thumb so an
+              Adjust verdict on `landValuePercent` lands focus on the
+              control rather than only scrolling the section into view.
+              Companion to the registry entry in
+              `engine/analyst/registry/field-registry.ts` and the
+              destination-marker proof at
+              `tests/proof/analyst-deep-link-destination-marker.test.ts`. */}
+          <div className="space-y-1.5" data-field="landValuePercent">
             <ResearchContextFieldLabel
               label={<>Land Value (%) <InfoTooltip text="Percentage of the purchase price allocated to land. Land does not depreciate under IRS rules (Publication 946). Only the building portion is depreciated over 39 years. Typical land allocation ranges from 15-40% depending on location and property type." /> <GaapBadge rule="IRS Publication 946: Land is NOT depreciable. Only the building portion (Purchase Price × (1 − Land %) + Improvements) is depreciated over 39 years using straight-line method. Higher land % = lower depreciation deduction." /></>}
               badgeProps={{ entry: researchValues.landValue }}

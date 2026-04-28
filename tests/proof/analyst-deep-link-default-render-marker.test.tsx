@@ -91,6 +91,7 @@ import { PropertyUnderwritingTab } from "../../client/src/components/admin/model
 import { CompanyTab } from "../../client/src/components/admin/model-defaults/CompanyTab";
 import { MarketMacroTab } from "../../client/src/components/admin/model-defaults/MarketMacroTab";
 import OtherAssumptionsSection from "../../client/src/components/property-edit/OtherAssumptionsSection";
+import CapitalStructureSection from "../../client/src/components/property-edit/CapitalStructureSection";
 import { findFieldElement } from "../../client/src/lib/analyst-focus-field";
 import { FIELD_REGISTRY } from "../../engine/analyst/registry/field-registry";
 
@@ -217,6 +218,44 @@ const MOUNT_POINT_RENDERERS: Readonly<
           researchValues={{}}
           guidance={[]}
           exitYear={2030}
+        />
+      </TooltipProvider>
+    </QueryClientProvider>
+  ),
+  // Property Edit's "Capital Structure" section hosts the
+  // `landValuePercent` field (Land Value % slider). Its
+  // `data-field="landValuePercent"` wrapper is what
+  // `useFocusFieldFromUrl()` lands on when the Analyst Adjust deep
+  // link from a property-scoped verdict resolves to
+  // `property-edit/capital-structure` (Task #791). The depreciation
+  // override input lives on the same section but is not (yet) a
+  // registry field — only `landValuePercent` is asserted here.
+  "property-edit/capital-structure": () => (
+    <QueryClientProvider client={makeQueryClient()}>
+      <TooltipProvider>
+        <CapitalStructureSection
+          draft={
+            {
+              // CapitalStructureSection reads `purchasePrice`,
+              // `buildingImprovements`, and `landValuePercent` directly
+              // (without a `?? 0` fallback) when computing the
+              // "Depreciable basis" hint. happy-dom would crash on
+              // `undefined.toLocaleString()` from the empty draft, so
+              // seed the minimum the section needs to mount cleanly.
+              // None of these affect the marker discovery.
+              purchasePrice: 0,
+              buildingImprovements: 0,
+              landValuePercent: null,
+              type: "Full Equity",
+            } as unknown as Parameters<typeof CapitalStructureSection>[0]["draft"]
+          }
+          onChange={NOOP_CHANGE}
+          onNumberChange={NOOP_CHANGE as unknown as Parameters<
+            typeof CapitalStructureSection
+          >[0]["onNumberChange"]}
+          globalAssumptions={undefined}
+          researchValues={{}}
+          guidance={[]}
         />
       </TooltipProvider>
     </QueryClientProvider>

@@ -158,6 +158,39 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     unit: "%",
     mountPoint: "property-edit/other-assumptions",
   },
+  // Exit cap rate is the most sensitive single assumption in the property
+  // model (a 50 bps change can swing IRR by several points — see the
+  // OtherAssumptionsSection.tsx file header). Specialists that flag it
+  // need a working Adjust deep link; without this entry the CTA would
+  // silently no-op (task #791).
+  exitCapRate: {
+    label: "Exit Cap Rate",
+    unit: "%",
+    mountPoint: "property-edit/other-assumptions",
+  },
+  // Country risk premium is set per property (it follows the country the
+  // property sits in, not the management company). The Adjust CTA must
+  // land on the per-property slider, not the macro defaults page — the
+  // value is denormalised onto the property at edit time and the
+  // company-level CRP only seeds new properties.
+  countryRiskPremium: {
+    label: "Country Risk Premium",
+    unit: "%",
+    mountPoint: "property-edit/other-assumptions",
+  },
+
+  // ─── Property Edit → Capital Structure (per-property fields) ────────────
+  // Land Value % is edited on the Capital Structure section
+  // (`client/src/components/property-edit/CapitalStructureSection.tsx`).
+  // Same `property-edit/<section>` contract as the Other Assumptions
+  // entries above — requires a `propertyId` in the resolver context.
+  // Distinct mountPoint because the destination file (and the section
+  // anchor in the URL) differ.
+  landValuePercent: {
+    label: "Land Value %",
+    unit: "%",
+    mountPoint: "property-edit/capital-structure",
+  },
 
   // ─── mgmt-co.revenue (Revenue Specialist) ───────────────────────────────
   defaultCostRateMarketing: {
