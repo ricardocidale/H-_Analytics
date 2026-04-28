@@ -92,6 +92,7 @@ import { CompanyTab } from "../../client/src/components/admin/model-defaults/Com
 import { MarketMacroTab } from "../../client/src/components/admin/model-defaults/MarketMacroTab";
 import OtherAssumptionsSection from "../../client/src/components/property-edit/OtherAssumptionsSection";
 import CapitalStructureSection from "../../client/src/components/property-edit/CapitalStructureSection";
+import { AcquisitionPricingPanel } from "../../client/src/components/property-finder/AcquisitionPricingPanel";
 import { findFieldElement } from "../../client/src/lib/analyst-focus-field";
 import { FIELD_REGISTRY } from "../../engine/analyst/registry/field-registry";
 
@@ -230,6 +231,62 @@ const MOUNT_POINT_RENDERERS: Readonly<
   // `property-edit/capital-structure` (Task #791). The depreciation
   // override input lives on the same section but is not (yet) a
   // registry field — only `landValuePercent` is asserted here.
+  // PropertyFinder's Acquisition Pricing panel hosts the four
+  // price-history rollup markers (`cumulativeDropPct`, `currentDom`,
+  // `relistCount`, `motivationTier`). The summary band, motivation
+  // badge, stale badge, and DOM chip only paint once `usePriceEvents`
+  // resolves with at least one event — so we prefill the React Query
+  // cache with a synthetic timeline that triggers every chip
+  // (one `list` + one `relist` makes `isStale` true and DOM non-null
+  // and forces a non-trivial cumulative drop).
+  "property-finder/pricing": () => {
+    const qc = makeQueryClient();
+    qc.setQueryData(["prospectivePriceEvents", 1], {
+      events: [
+        {
+          id: "e1",
+          kind: "list",
+          date: "2025-01-01",
+          newPrice: 1_000_000,
+          oldPrice: null,
+          source: null,
+          note: null,
+        },
+        {
+          id: "e2",
+          kind: "relist",
+          date: "2025-06-01",
+          newPrice: 900_000,
+          oldPrice: null,
+          source: null,
+          note: null,
+        },
+      ],
+      rollups: {
+        originalListPrice: 1_000_000,
+        originalListDate: "2025-01-01",
+        currentPrice: 900_000,
+        contractPrice: null,
+        priorSalePrice: null,
+        priorSaleDate: null,
+        cumulativeDropAmount: 100_000,
+        cumulativeDropPct: 0.1,
+        currentDom: 30,
+        relistCount: 1,
+        reductionCount: 0,
+        isStale: true,
+        motivationTier: "motivated",
+        lastEventAt: "2025-06-01T00:00:00.000Z",
+      },
+    });
+    return (
+      <QueryClientProvider client={qc}>
+        <TooltipProvider>
+          <AcquisitionPricingPanel prospectiveId={1} />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  },
   "property-edit/capital-structure": () => (
     <QueryClientProvider client={makeQueryClient()}>
       <TooltipProvider>

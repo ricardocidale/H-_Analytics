@@ -211,6 +211,41 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     mountPoint: "property-edit/capital-structure",
   },
 
+  // ─── PropertyFinder → Acquisition Pricing (per-target fields) ───────────
+  // Read-only roll-ups computed by `shared/price-history.ts` from the
+  // event log on a PropertyFinder target. The mountPoint
+  // `property-finder/pricing` lands the user on the PropertyFinder page;
+  // the focus query param drives `useFocusFieldFromUrl()` to scroll the
+  // matching `data-field="<id>"` marker on the Acquisition Pricing panel
+  // inside the open target detail drawer.
+  //
+  // These dimensions are not yet emitted by any Specialist (price-history
+  // research is follow-up #835). Registering them now lets future
+  // Specialists quote them with canonical industry labels and hands the
+  // Voice Renderer the right unit ("%", days, raw count) without a
+  // future code edit; the field-registry mount-point audit also keeps
+  // the markers in lock-step with the panel.
+  cumulativeDropPct: {
+    label: "Cumulative Price Reduction",
+    unit: "%",
+    mountPoint: "property-finder/pricing",
+  },
+  currentDom: {
+    label: "Days on Market",
+    unit: "",
+    mountPoint: "property-finder/pricing",
+  },
+  relistCount: {
+    label: "Relist Count",
+    unit: "",
+    mountPoint: "property-finder/pricing",
+  },
+  motivationTier: {
+    label: "Seller Motivation Tier",
+    unit: "",
+    mountPoint: "property-finder/pricing",
+  },
+
   // ─── mgmt-co.revenue (Revenue Specialist) ───────────────────────────────
   defaultCostRateMarketing: {
     label: "Marketing Cost Rate",

@@ -5,6 +5,7 @@ import { users } from "./auth";
 import { properties } from "./properties";
 import { DEFAULT_MAX_STALENESS_HOURS } from "../constants";
 import type { MarketResearchContent, PromptConditions } from "./types/jsonb-shapes";
+import type { PriceEvent } from "../price-history";
 
 export const marketResearch = pgTable("market_research", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -56,6 +57,19 @@ export const prospectiveProperties = pgTable("prospective_properties", {
   listingUrl: text("listing_url"),
   notes: text("notes"),
   rawData: jsonb("raw_data").$type<Record<string, unknown>>(),
+  // Acquisition price-history fields. `priceEvents` is the canonical
+  // event log; the other columns are denormalised roll-ups maintained by
+  // shared/price-history.ts on every write so the Analyst, the panel, and
+  // any downstream export read the same numbers without re-deriving.
+  priceEvents: jsonb("price_events").$type<PriceEvent[]>().notNull().default([]),
+  originalListPrice: real("original_list_price"),
+  originalListDate: text("original_list_date"),
+  priorSalePrice: real("prior_sale_price"),
+  priorSaleDate: text("prior_sale_date"),
+  cumulativeDropPct: real("cumulative_drop_pct"),
+  currentDom: integer("current_dom"),
+  relistCount: integer("relist_count").notNull().default(0),
+  motivationTier: text("motivation_tier").notNull().default("firm"),
   savedAt: timestamp("saved_at").defaultNow().notNull(),
 }, (table) => [
   index("prospective_props_user_id_idx").on(table.userId),

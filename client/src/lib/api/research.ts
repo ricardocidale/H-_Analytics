@@ -9,6 +9,11 @@ import {
   MarketContextResponse,
   PropertyValueHistory,
 } from "./types";
+import type {
+  PriceEvent,
+  PriceEventInput,
+  PriceHistoryRollups,
+} from "@shared/price-history";
 
 export function useResearchStatus() {
   return useQuery<any>({
@@ -220,5 +225,83 @@ export function usePropertyValue(propertyId: string | null) {
     enabled: !!propertyId,
     staleTime: PROPERTY_VALUE_STALE_MS,
     retry: false,
+  });
+}
+
+// ── Acquisition Price History ────────────────────────────────────────────
+//
+// The PropertyFinder Acquisition Pricing panel reads the full event log
+// + roll-ups via these hooks. Roll-ups are computed server-side too (so
+// list-favorites responses already carry them on each card), but the
+// detail panel always re-fetches via the `/price-events` endpoint so the
+// timeline reflects the latest writes from the modal in this drawer.
+
+export interface PriceEventsResponse {
+  events: PriceEvent[];
+  rollups: PriceHistoryRollups;
+}
+
+async function fetchPriceEvents(prospectiveId: number): Promise<PriceEventsResponse> {
+  const res = await fetch(`/api/property-finder/prospective/${prospectiveId}/price-events`);
+  if (!res.ok) throw new Error("Failed to fetch price events");
+  return res.json();
+}
+
+export function usePriceEvents(prospectiveId: number | null) {
+  return useQuery({
+    queryKey: ["prospectivePriceEvents", prospectiveId],
+    queryFn: () => fetchPriceEvents(prospectiveId!),
+    enabled: prospectiveId != null,
+  });
+}
+
+async function postPriceEvent(
+  prospectiveId: number,
+  event: PriceEventInput,
+): Promise<{ property: SavedProspectiveProperty; rollups: PriceHistoryRollups }> {
+  const res = await fetch(`/api/property-finder/prospective/${prospectiveId}/price-events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(event),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to add price event");
+  }
+  return res.json();
+}
+
+export function useAddPriceEvent(prospectiveId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (event: PriceEventInput) => postPriceEvent(prospectiveId!, event),
+    onSuccess: () => {
+      // Invalidate both the dedicated event-list query and the favorites
+      // list (so card chips re-render with the new roll-ups).
+      queryClient.invalidateQueries({ queryKey: ["prospectivePriceEvents", prospectiveId] });
+      queryClient.invalidateQueries({ queryKey: ["prospectiveFavorites"] });
+    },
+  });
+}
+
+async function deletePriceEvent(prospectiveId: number, eventId: string): Promise<void> {
+  const res = await fetch(
+    `/api/property-finder/prospective/${prospectiveId}/price-events/${encodeURIComponent(eventId)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to delete price event");
+  }
+}
+
+export function useDeletePriceEvent(prospectiveId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (eventId: string) => deletePriceEvent(prospectiveId!, eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prospectivePriceEvents", prospectiveId] });
+      queryClient.invalidateQueries({ queryKey: ["prospectiveFavorites"] });
+    },
   });
 }

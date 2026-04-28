@@ -16,7 +16,69 @@ import { formatMoney } from "@/lib/financialEngine";
 import { Button } from "@/components/ui/button";
 import type { SavedProspectiveProperty } from "@/lib/api";
 import { Loader2, X } from "@/components/icons/themed-icons";
-import { IconExternalLink, IconBed, IconBath, IconRuler, IconTrees, IconMapPin, IconStickyNote, IconSave, IconTrash, IconTrendingUp } from "@/components/icons";
+import { IconExternalLink, IconBed, IconBath, IconRuler, IconTrees, IconMapPin, IconStickyNote, IconSave, IconTrash, IconTrendingUp, IconAlertTriangle, IconHistory } from "@/components/icons";
+import {
+  computePriceHistoryRollups,
+  formatPriceHistoryChip,
+  MOTIVATION_TIER_LABEL,
+  type MotivationTier,
+} from "@shared/price-history";
+
+/**
+ * Build the compact pricing chip ("-16.9% / 7mo") shown on the card.
+ * Prefers the server-side roll-up columns on the favorite when present,
+ * falls back to recomputing from the event log so we don't render stale
+ * numbers if the columns weren't populated yet.
+ */
+function getChipFor(property: SavedProspectiveProperty): {
+  chip: string | null;
+  tier: MotivationTier;
+  isStale: boolean;
+} {
+  const tier = (property.motivationTier ?? "firm") as MotivationTier;
+  if (
+    property.cumulativeDropPct != null ||
+    property.currentDom != null ||
+    (property.priceEvents && property.priceEvents.length > 0)
+  ) {
+    if (property.priceEvents && property.priceEvents.length > 0) {
+      const r = computePriceHistoryRollups(property.priceEvents);
+      return {
+        chip: formatPriceHistoryChip(r),
+        tier: r.motivationTier,
+        isStale: r.isStale,
+      };
+    }
+    return {
+      chip: formatPriceHistoryChip({
+        originalListPrice: property.originalListPrice ?? null,
+        originalListDate: property.originalListDate ?? null,
+        currentPrice: null,
+        contractPrice: null,
+        priorSalePrice: property.priorSalePrice ?? null,
+        priorSaleDate: property.priorSaleDate ?? null,
+        cumulativeDropAmount: null,
+        cumulativeDropPct: property.cumulativeDropPct ?? null,
+        currentDom: property.currentDom ?? null,
+        relistCount: property.relistCount ?? 0,
+        reductionCount: 0,
+        isStale: (property.relistCount ?? 0) > 0,
+        motivationTier: tier,
+        lastEventAt: null,
+      }),
+      tier,
+      isStale: (property.relistCount ?? 0) > 0,
+    };
+  }
+  return { chip: null, tier, isStale: false };
+}
+
+const TIER_CHIP_CLASS: Record<MotivationTier, string> = {
+  firm: "bg-muted/60 text-muted-foreground border-border",
+  soft: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30",
+  motivated: "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30",
+  distressed: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30",
+};
 
 function PropertyTypeLabel(type: string | null): string {
   if (!type) return "";
@@ -57,6 +119,7 @@ export function FavoriteCard({
   onShowValue?: (externalId: string) => void;
   onShowDetail?: (property: SavedProspectiveProperty) => void;
 }) {
+  const { chip, tier, isStale } = getChipFor(property);
   return (
     <div
       className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden hover:shadow-md transition-shadow group"
@@ -85,9 +148,22 @@ export function FavoriteCard({
           </Button>
         </div>
 
-        <p className="text-xl font-bold text-foreground mb-3">
-          {property.price ? formatMoney(property.price) : "—"}
-        </p>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <p className="text-xl font-bold text-foreground">
+            {property.price ? formatMoney(property.price) : "—"}
+          </p>
+          {chip && (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${TIER_CHIP_CLASS[tier]}`}
+              title={`Acquisition pricing — Motivation: ${MOTIVATION_TIER_LABEL[tier]}`}
+              data-testid={`chip-price-history-${property.id}`}
+            >
+              <IconHistory className="w-3 h-3" />
+              {chip}
+              {isStale && <IconAlertTriangle className="w-3 h-3 ml-0.5" />}
+            </span>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-center gap-4 py-2.5 px-3 bg-primary/5 rounded-xl border border-primary/10">
           <div className="flex items-center gap-1.5">

@@ -110,6 +110,20 @@ export function resolveFieldMountPoint(
     };
   }
 
+  if (slug.startsWith("property-finder/")) {
+    // PropertyFinder is a single-page surface (`/property-finder`) that
+    // opens a target detail drawer per saved row. The slug's trailing
+    // segment names a sub-pane inside that drawer (e.g. `pricing` for
+    // the Acquisition Pricing panel). We don't need a propertyId here —
+    // the page lists every saved target and the focus query param drives
+    // the drawer's `useFocusFieldFromUrl()` hook to scroll to the field.
+    const href = `/property-finder${focusQuery(ctx.fieldId)}`;
+    return {
+      href,
+      navigate: () => navigate(href),
+    };
+  }
+
   if (slug.startsWith("defaults/")) {
     const section = slug.slice("defaults/".length);
     // Some `defaults/<…>` slugs name a real admin sidebar section
@@ -287,6 +301,17 @@ export function describeMountPoint(
         DEFAULTS_SECTION_LABELS[sectionSlug] ??
         humanizeSlugSegment(sectionSlug),
       surface: "Defaults",
+      kind: "section",
+      subSection: sub,
+    };
+  }
+
+  if (slug.startsWith("property-finder/")) {
+    const sectionSlug = slug.slice("property-finder/".length);
+    if (!sectionSlug) return null;
+    return {
+      section: humanizeSlugSegment(sectionSlug),
+      surface: "Property Finder",
       kind: "section",
       subSection: sub,
     };

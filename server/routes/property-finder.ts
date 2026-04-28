@@ -2,6 +2,12 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth , getAuthUser } from "../auth";
 import { insertProspectivePropertySchema, insertSavedSearchSchema } from "@shared/schema";
+import {
+  priceEventInputSchema,
+  priceEventPatchSchema,
+  computePriceHistoryRollups,
+  type PriceEvent,
+} from "@shared/price-history";
 import { fromZodError } from "zod-validation-error";
 import { logActivity, logAndSendError, prospectiveNotesSchema, parseRouteId } from "./helpers";
 import { z } from "zod";
@@ -236,6 +242,93 @@ export function register(app: Express) {
       res.json(property);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update notes", error);
+    }
+  });
+
+  // ── Acquisition Price History ────────────────────────────────────────
+  // Endpoints for the Acquisition Pricing panel on the PropertyFinder
+  // target detail drawer. The shape of each event is owned by the shared
+  // helper (`shared/price-history.ts`); the storage layer recomputes
+  // roll-ups on every write so server and client stay in lock-step.
+
+  /** Return the full event log + denormalised roll-ups for a target. */
+  app.get("/api/property-finder/prospective/:id/price-events", requireAuth, async (req, res) => {
+    try {
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      const property = await storage.getProspectivePriceHistory(id, getAuthUser(req).id);
+      if (!property) return res.status(404).json({ error: "Property not found" });
+      const events: PriceEvent[] = property.priceEvents ?? [];
+      res.json({
+        events,
+        rollups: computePriceHistoryRollups(events),
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch price events", error);
+    }
+  });
+
+  /** Append a new event; server returns the updated property + recomputed roll-ups. */
+  app.post("/api/property-finder/prospective/:id/price-events", requireAuth, async (req, res) => {
+    try {
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      const parsed = priceEventInputSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const property = await storage.addProspectivePriceEvent(id, getAuthUser(req).id, parsed.data);
+      if (!property) return res.status(404).json({ error: "Property not found" });
+      logActivity(req, "add_price_event", "prospective_property", property.id, parsed.data.kind);
+      res.status(201).json({
+        property,
+        rollups: computePriceHistoryRollups(property.priceEvents ?? []),
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to add price event", error);
+    }
+  });
+
+  app.patch("/api/property-finder/prospective/:id/price-events/:eventId", requireAuth, async (req, res) => {
+    try {
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      const eventId = String(req.params.eventId ?? "").slice(0, 64);
+      if (!eventId) return res.status(400).json({ error: "Invalid event ID" });
+      const parsed = priceEventPatchSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: fromZodError(parsed.error).message });
+      }
+      const property = await storage.updateProspectivePriceEvent(
+        id,
+        getAuthUser(req).id,
+        eventId,
+        parsed.data,
+      );
+      if (!property) return res.status(404).json({ error: "Event not found" });
+      res.json({
+        property,
+        rollups: computePriceHistoryRollups(property.priceEvents ?? []),
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update price event", error);
+    }
+  });
+
+  app.delete("/api/property-finder/prospective/:id/price-events/:eventId", requireAuth, async (req, res) => {
+    try {
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      const eventId = String(req.params.eventId ?? "").slice(0, 64);
+      if (!eventId) return res.status(400).json({ error: "Invalid event ID" });
+      const property = await storage.deleteProspectivePriceEvent(id, getAuthUser(req).id, eventId);
+      if (!property) return res.status(404).json({ error: "Event not found" });
+      res.json({
+        property,
+        rollups: computePriceHistoryRollups(property.priceEvents ?? []),
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to delete price event", error);
     }
   });
 

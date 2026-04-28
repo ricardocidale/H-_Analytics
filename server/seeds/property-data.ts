@@ -93,6 +93,20 @@ export const SEED_PROPERTY_DEFAULTS = {
   totalPropertyAcreage: null,
   yearBuilt: null,
   zoningPermitCost: null,
+
+  // Acquisition price-history mirror columns (Task #805) — populated from
+  // the prospective_properties target when a deal is imported into the
+  // portfolio. Empty/null on greenfield seed rows since they were never
+  // shopped through PropertyFinder.
+  priceEvents: [],
+  originalListPrice: null,
+  originalListDate: null,
+  priorSalePrice: null,
+  priorSaleDate: null,
+  cumulativeDropPct: null,
+  currentDom: null,
+  relistCount: 0,
+  motivationTier: null,
 };
 
 export const SEED_INITIAL_PROPERTIES = [

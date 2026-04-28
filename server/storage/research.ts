@@ -1,6 +1,34 @@
 import { marketResearch, prospectiveProperties, savedSearches, globalAssumptions, type MarketResearch, type InsertMarketResearch, type ProspectiveProperty, type InsertProspectiveProperty, type SavedSearch, type InsertSavedSearch } from "@shared/schema";
 import { db } from "../db";
 import { eq, and, desc, isNull, or } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import {
+  type PriceEvent,
+  type PriceEventInput,
+  type PriceEventPatch,
+  computePriceHistoryRollups,
+} from "@shared/price-history";
+
+/**
+ * Apply roll-ups computed from `events` onto the partial DB update payload
+ * shared by the price-event mutators below. Centralised so every write path
+ * stays in lock-step with the shared roll-up function — the panel, the
+ * Analyst, and any export read the same five fields.
+ */
+function rollupUpdate(events: PriceEvent[]) {
+  const rollups = computePriceHistoryRollups(events);
+  return {
+    priceEvents: events,
+    originalListPrice: rollups.originalListPrice,
+    originalListDate: rollups.originalListDate,
+    priorSalePrice: rollups.priorSalePrice,
+    priorSaleDate: rollups.priorSaleDate,
+    cumulativeDropPct: rollups.cumulativeDropPct,
+    currentDom: rollups.currentDom,
+    relistCount: rollups.relistCount,
+    motivationTier: rollups.motivationTier,
+  };
+}
 
 export class ResearchStorage {
   // ── Market Research ──────────────────────────────────────────────
@@ -135,6 +163,108 @@ export class ResearchStorage {
       .where(and(eq(prospectiveProperties.id, id), eq(prospectiveProperties.userId, userId)))
       .returning();
     return prop || undefined;
+  }
+
+  // ── Acquisition Price History (per-target event log + roll-ups) ─────
+  //
+  // The event log lives on `prospective_properties.price_events` as jsonb;
+  // the surrounding columns are denormalised roll-ups recomputed on every
+  // write so any reader (panel, Analyst, exporter) consumes the same five
+  // numbers without re-deriving. Every mutator funnels through
+  // `rollupUpdate` to enforce that invariant.
+
+  /** Read the price-event log + roll-ups for a single target. */
+  async getProspectivePriceHistory(
+    id: number,
+    userId: number,
+  ): Promise<ProspectiveProperty | undefined> {
+    const [prop] = await db.select().from(prospectiveProperties)
+      .where(and(eq(prospectiveProperties.id, id), eq(prospectiveProperties.userId, userId)))
+      .limit(1);
+    return prop ?? undefined;
+  }
+
+  /**
+   * Append a new price event. We re-read inside a transaction so concurrent
+   * appends on the same target don't lose each other's writes — the JSONB
+   * column would otherwise race on read-modify-write.
+   */
+  async addProspectivePriceEvent(
+    id: number,
+    userId: number,
+    input: PriceEventInput,
+  ): Promise<ProspectiveProperty | undefined> {
+    return await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(prospectiveProperties)
+        .where(and(eq(prospectiveProperties.id, id), eq(prospectiveProperties.userId, userId)))
+        .limit(1)
+        .for("update");
+      if (!existing) return undefined;
+      const event: PriceEvent = {
+        id: input.id ?? randomUUID(),
+        kind: input.kind,
+        date: input.date,
+        oldPrice: input.oldPrice ?? null,
+        newPrice: input.newPrice ?? null,
+        source: input.source ?? null,
+        note: input.note ?? null,
+      };
+      const events: PriceEvent[] = [...(existing.priceEvents ?? []), event];
+      const [updated] = await tx.update(prospectiveProperties)
+        .set(rollupUpdate(events))
+        .where(eq(prospectiveProperties.id, id))
+        .returning();
+      return updated;
+    });
+  }
+
+  /** Patch a single event by id; recompute roll-ups. Returns undefined if missing. */
+  async updateProspectivePriceEvent(
+    id: number,
+    userId: number,
+    eventId: string,
+    patch: PriceEventPatch,
+  ): Promise<ProspectiveProperty | undefined> {
+    return await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(prospectiveProperties)
+        .where(and(eq(prospectiveProperties.id, id), eq(prospectiveProperties.userId, userId)))
+        .limit(1)
+        .for("update");
+      if (!existing) return undefined;
+      const current = existing.priceEvents ?? [];
+      const idx = current.findIndex((e) => e.id === eventId);
+      if (idx === -1) return undefined;
+      const next: PriceEvent = { ...current[idx], ...patch };
+      const events = [...current.slice(0, idx), next, ...current.slice(idx + 1)];
+      const [updated] = await tx.update(prospectiveProperties)
+        .set(rollupUpdate(events))
+        .where(eq(prospectiveProperties.id, id))
+        .returning();
+      return updated;
+    });
+  }
+
+  /** Delete a single event by id; recompute roll-ups. */
+  async deleteProspectivePriceEvent(
+    id: number,
+    userId: number,
+    eventId: string,
+  ): Promise<ProspectiveProperty | undefined> {
+    return await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(prospectiveProperties)
+        .where(and(eq(prospectiveProperties.id, id), eq(prospectiveProperties.userId, userId)))
+        .limit(1)
+        .for("update");
+      if (!existing) return undefined;
+      const current = existing.priceEvents ?? [];
+      const events = current.filter((e) => e.id !== eventId);
+      if (events.length === current.length) return undefined;
+      const [updated] = await tx.update(prospectiveProperties)
+        .set(rollupUpdate(events))
+        .where(eq(prospectiveProperties.id, id))
+        .returning();
+      return updated;
+    });
   }
 
   // ── Saved Searches ──────────────────────────────────────────────

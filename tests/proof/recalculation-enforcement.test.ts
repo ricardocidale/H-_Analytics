@@ -96,6 +96,8 @@ const NON_FINANCIAL_MUTATIONS = [
   "useSaveFavorite",
   "useDeleteFavorite",
   "useUpdateFavoriteNotes",
+  "useAddPriceEvent",        // PropertyFinder acquisition price-history — observed listing movement on a target, not yet a portfolio property
+  "useDeletePriceEvent",     // PropertyFinder acquisition price-history — same surface as add
   "useCreateSavedSearch",
   "useDeleteSavedSearch",
   "useCreateResearchQuestion",

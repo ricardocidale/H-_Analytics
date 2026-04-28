@@ -4,6 +4,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { companies, businessBrands, type ResearchValueEntry } from "./core";
 import { users } from "./auth";
+import type { PriceEvent as PriceEventEntry } from "../price-history";
 import {
   PropertyStatus,
   DEFAULT_LAND_VALUE_PERCENT,
@@ -241,6 +242,21 @@ export const properties = pgTable("properties", {
   researchValues: jsonb("research_values").$type<Record<string, ResearchValueEntry>>(),
 
   sourceUrls: text("source_urls").array(),
+
+  // Acquisition price-history (mirrored from prospective_properties when a
+  // PropertyFinder target is converted into a real property). Lets the
+  // Analyst keep reasoning about list-vs-current-price drift, days on
+  // market, relist count, and motivation tier post-import. Maintained by
+  // shared/price-history.ts roll-up logic on every write.
+  priceEvents: jsonb("price_events").$type<PriceEventEntry[]>().notNull().default([]),
+  originalListPrice: real("original_list_price"),
+  originalListDate: text("original_list_date"),
+  priorSalePrice: real("prior_sale_price"),
+  priorSaleDate: text("prior_sale_date"),
+  cumulativeDropPct: real("cumulative_drop_pct"),
+  currentDom: integer("current_dom"),
+  relistCount: integer("relist_count").notNull().default(0),
+  motivationTier: text("motivation_tier"),
 
   // Whether this property is active in the portfolio.
   // Inactive properties are excluded from all calculations and aggregations.

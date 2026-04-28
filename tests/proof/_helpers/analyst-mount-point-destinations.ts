@@ -99,4 +99,15 @@ export const MOUNT_POINT_DESTINATIONS: Readonly<
   "property-edit/capital-structure": [
     "client/src/components/property-edit/CapitalStructureSection.tsx",
   ],
+
+  // PropertyFinder's Acquisition Pricing panel hosts the four
+  // price-history rollup markers (`cumulativeDropPct`, `currentDom`,
+  // `relistCount`, `motivationTier`). The mountPoint
+  // `property-finder/pricing` resolves to `/property-finder` via
+  // `client/src/lib/analyst-mount-points.ts` and the focus hook lands
+  // on the matching `data-field="<id>"` on the panel inside the open
+  // target detail drawer (Task #805).
+  "property-finder/pricing": [
+    "client/src/components/property-finder/AcquisitionPricingPanel.tsx",
+  ],
 };

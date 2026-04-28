@@ -239,6 +239,18 @@ export interface SavedProspectiveProperty extends PropertyFinderResult {
   source: string;
   notes: string | null;
   savedAt: string;
+  // Acquisition price-history roll-ups maintained on the server. The full
+  // event log is fetched on demand via `/price-events` rather than carried
+  // on every list-favorites response, so cards stay light-weight.
+  priceEvents?: import("@shared/price-history").PriceEvent[];
+  originalListPrice?: number | null;
+  originalListDate?: string | null;
+  priorSalePrice?: number | null;
+  priorSaleDate?: string | null;
+  cumulativeDropPct?: number | null;
+  currentDom?: number | null;
+  relistCount?: number;
+  motivationTier?: string | null;
 }
 
 export interface PropertyFinderSearchParams {

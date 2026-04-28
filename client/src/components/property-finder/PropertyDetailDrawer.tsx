@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatMoney } from "@/lib/financialEngine";
 import { usePropertyValue, useMarketContext } from "@/lib/api";
-import type { PropertyFinderResult } from "@/lib/api/types";
+import type { PropertyFinderResult, SavedProspectiveProperty } from "@/lib/api/types";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
   IconMapPin, IconBed, IconBath, IconRuler, IconTrees,
@@ -16,22 +16,43 @@ import {
   type DdWorkstream,
 } from "@shared/dd-template";
 import type { DdTemplateItemRow } from "@shared/schema";
+import { AcquisitionPricingPanel } from "./AcquisitionPricingPanel";
 
-type Tab = "listing" | "value" | "comps" | "dd";
+type Tab = "listing" | "pricing" | "value" | "comps" | "dd";
 
 const MAX_ESTIMATES_SHOWN = 12;
 const MAX_OTA_CHANNELS_SHOWN = 6;
 
 interface Props {
-  property: PropertyFinderResult;
+  /**
+   * Either a raw search result or a persisted favorite. When a `SavedProspectiveProperty`
+   * is passed (i.e. an `id` is present) the drawer surfaces the Pricing
+   * tab driven by the acquisition price-history endpoints; for unsaved
+   * search results the tab is hidden because there's nowhere to persist
+   * events yet.
+   */
+  property: PropertyFinderResult | SavedProspectiveProperty;
   onClose: () => void;
 }
 
+function isSavedFavorite(p: PropertyFinderResult | SavedProspectiveProperty): p is SavedProspectiveProperty {
+  return typeof (p as SavedProspectiveProperty).id === "number";
+}
+
 export function PropertyDetailDrawer({ property, onClose }: Props) {
+  const saved = isSavedFavorite(property) ? property : null;
   const [activeTab, setActiveTab] = useState<Tab>("listing");
 
   const cityForComps = property.city || property.address.split(",")[0]?.trim() || null;
   const stateForComps = property.state || undefined;
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "listing", label: "Listing" },
+    ...(saved ? [{ key: "pricing" as Tab, label: "Pricing" }] : []),
+    { key: "value", label: "Value History" },
+    { key: "comps", label: "Hotel Comps" },
+    { key: "dd", label: "Due Diligence" },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" data-testid="drawer-property-detail">
@@ -56,29 +77,26 @@ export function PropertyDetailDrawer({ property, onClose }: Props) {
           </div>
 
           <div className="flex gap-1 bg-muted/50 rounded-lg p-1" data-testid="detail-tabs">
-            {(["listing", "value", "comps", "dd"] as Tab[]).map((tab) => (
+            {tabs.map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
-                  activeTab === tab
+                  activeTab === tab.key
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
-                data-testid={`tab-${tab}`}
+                data-testid={`tab-${tab.key}`}
               >
-                {tab === "listing"
-                  ? "Listing"
-                  : tab === "value"
-                    ? "Value History"
-                    : tab === "comps"
-                      ? "Hotel Comps"
-                      : "Due Diligence"}
+                {tab.label}
               </button>
             ))}
           </div>
 
           {activeTab === "listing" && <ListingPane property={property} />}
+          {activeTab === "pricing" && saved && (
+            <AcquisitionPricingPanel prospectiveId={saved.id} address={saved.address} />
+          )}
           {activeTab === "value" && <ValuePane propertyId={property.externalId} />}
           {activeTab === "comps" && <CompsPane city={cityForComps} state={stateForComps} />}
           {activeTab === "dd" && <DdPreviewPane />}
