@@ -13,17 +13,40 @@ const CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 export class HospitalityBenchmarkService extends BaseIntegrationService {
   private apiKey: string | undefined;
+  private airROI: import("./AirROIService").AirROIService | null = null;
 
   constructor() {
     super("HospitalityBenchmark", 15_000);
+    // AirROI is the preferred low-cost provider ($0.01/call, no enterprise contract).
+    // Enterprise providers (CoStar / STR Global / AirDNA) are the fallback
+    // for portfolios that have existing institutional data agreements.
     this.apiKey = process.env.COSTAR_API_KEY || process.env.STR_API_KEY || process.env.AIRDNA_API_KEY;
   }
 
+  private async getAirROI(): Promise<import("./AirROIService").AirROIService | null> {
+    if (!process.env.AIRROI_API_KEY) return null;
+    if (!this.airROI) {
+      const { AirROIService } = await import("./AirROIService");
+      this.airROI = new AirROIService();
+    }
+    return this.airROI;
+  }
+
   isAvailable(): boolean {
-    return !!this.apiKey;
+    return !!(this.apiKey || process.env.AIRROI_API_KEY);
   }
 
   async fetchBenchmarks(query: SubmarketQuery): Promise<HospitalityBenchmarks | null> {
+    // AirROI first — cheap, covers all portfolio markets, no enterprise contract.
+    const airROI = await this.getAirROI();
+    if (airROI?.isAvailable()) {
+      const marketKey = query.state
+        ? `${query.city} ${query.state.slice(0, 2).toUpperCase()}`
+        : query.city;
+      const result = await airROI.fetchBenchmarks(marketKey);
+      if (result) return result;
+    }
+
     if (!this.apiKey) return null;
 
     const cacheKey = `hosp:${query.city}-${query.state || ""}-${query.propertyClass || ""}-${query.chainScale || ""}`.toLowerCase();

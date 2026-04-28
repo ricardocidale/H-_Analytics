@@ -68,6 +68,34 @@ const ADR_SEEDS = [
     avgOccupancy: 60.0, avgRevpar: 168,
     source: "Industry composite / H+ Research", sourceUrl: null,
   },
+  // ── ManCo home market — Eden / Powder Mountain, Utah ─────────────────────
+  // Source: AirROI 2026 data (Eden, UT STR market — $338 ADR, 40% occ annual
+  // average; boutique hotel segment runs higher). Seasonal: ski peak Dec-Mar,
+  // summer shoulder Jul-Aug, deep trough Apr-May/Oct-Nov.
+  {
+    market: "Eden UT", country: "US", quarter: "2025-Q1",
+    avgAdr: 310, luxuryAdr: 480, upscaleAdr: 360, midscaleAdr: 220, economyAdr: 140, boutiqueAdr: 420,
+    avgOccupancy: 48.0, avgRevpar: 149,
+    source: "AirROI 2026 (Eden, UT STR market) + boutique premium", sourceUrl: "https://www.airroi.com/airbnb-data/united-states/utah/eden",
+  },
+  {
+    market: "Nashville TN", country: "US", quarter: "2025-Q1",
+    avgAdr: 218, luxuryAdr: 380, upscaleAdr: 250, midscaleAdr: 160, economyAdr: 105, boutiqueAdr: 290,
+    avgOccupancy: 69.0, avgRevpar: 150,
+    source: "STR / CBRE Hotels 2024 Nashville market report", sourceUrl: null,
+  },
+  {
+    market: "Sedona AZ", country: "US", quarter: "2025-Q1",
+    avgAdr: 350, luxuryAdr: 560, upscaleAdr: 400, midscaleAdr: 250, economyAdr: 160, boutiqueAdr: 460,
+    avgOccupancy: 61.0, avgRevpar: 214,
+    source: "AZ Office of Tourism / STR boutique segment 2024", sourceUrl: null,
+  },
+  {
+    market: "Aspen CO", country: "US", quarter: "2025-Q1",
+    avgAdr: 680, luxuryAdr: 1100, upscaleAdr: 750, midscaleAdr: 420, economyAdr: 260, boutiqueAdr: 850,
+    avgOccupancy: 56.0, avgRevpar: 381,
+    source: "Aspen Chamber / STR luxury mountain segment 2024", sourceUrl: null,
+  },
   {
     market: "Santo Domingo DR", country: "DO", quarter: "2025-Q1",
     avgAdr: 100, luxuryAdr: 180, upscaleAdr: 110, midscaleAdr: 60, economyAdr: 35, boutiqueAdr: 150,

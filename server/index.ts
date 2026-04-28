@@ -838,6 +838,12 @@ async function runSchemaMigrations() {
     await runIcpModelTierMigration();
     await markMigrationApplied("icp_model_tier_001");
   }
+
+  if (!(await isMigrationApplied("reference_range_001"))) {
+    const { runReferenceRange001 } = await import("./migrations/reference-range-001");
+    await runReferenceRange001();
+    await markMigrationApplied("reference_range_001");
+  }
 }
 
 async function runSeeds() {
@@ -908,6 +914,7 @@ async function runSeeds() {
     { name: "missing-market-research", run: seedMissingMarketResearch },
     { name: "market-rates", run: seedMarketRates },
     { name: "market-data-tables", run: seedMarketDataTables },
+    { name: "reference-ranges",   run: async () => { const { seedReferenceRanges } = await import("./seeds/reference-ranges"); await seedReferenceRanges(); } },
     { name: "default-logos", run: seedDefaultLogos },
     { name: "fee-categories", run: seedFeeCategories },
     { name: "service-templates", run: seedServiceTemplates },
