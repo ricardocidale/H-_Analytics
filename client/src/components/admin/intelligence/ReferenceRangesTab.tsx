@@ -1,11 +1,9 @@
 /**
- * ReferenceRangesTab — Phase 1 read-only admin grid for the
- * `reference_range` table.
+ * ReferenceRangesTab — admin grid for the `reference_range` table.
  *
- * Phase 2 will add inline edit / archive / new-row dialogs and Phase 4
- * will add an "Analyst" affordance that triggers a deep-research seed.
- * For now this surface just lets admins inspect the corpus — it sets
- * the expectation for layout and confirms the API + sidebar wiring.
+ * Lets admins filter the corpus of low/mid/high reference ranges by
+ * domain, country, and year, and trigger an Analyst refresh when the
+ * server-side endpoint is available.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -163,23 +161,20 @@ export default function ReferenceRangesTab() {
     for (const t of timeoutsRef.current) clearTimeout(t);
     timeoutsRef.current = [];
 
-    // Probe the refresh endpoint FIRST so we don't fake a successful
-    // animation when the backend isn't wired yet. CC owns the
-    // server-side POST /api/admin/reference-ranges/refresh route
-    // (Phase 2). Until it ships, this button surfaces an honest
-    // "not available yet" state instead of pretending to refresh.
+    // Await the refresh endpoint before starting the animation so
+    // a missing or failed backend surfaces honestly instead of
+    // playing a success animation over a no-op.
     try {
       const res = await apiRequest("POST", "/api/admin/reference-ranges/refresh");
       // Drain the body so the connection closes cleanly; we don't use it.
       try { await res.json(); } catch { /* empty body is fine */ }
-    } catch (err) {
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      // 404 / 405 → endpoint not yet wired (expected during Phase 1).
-      // Any other error → surface it as-is.
+      // 404 / 405 → endpoint not deployed yet. Any other error → surface as-is.
       const notWired = /\b404\b|\b405\b|Not Found|Method Not Allowed/i.test(message);
       setAnalystError(
         notWired
-          ? "Analyst refresh ships in Phase 2. The grid below is current as of the last manual update."
+          ? "Analyst refresh isn't available yet. The grid below is current as of the last manual update."
           : `Analyst refresh failed: ${message}`,
       );
       // Auto-clear the error after 6s so the UI doesn't get stuck.
@@ -215,8 +210,7 @@ export default function ReferenceRangesTab() {
               <p className="text-xs text-muted-foreground mt-1">
                 Admin-editable low / mid / high reference ranges (tax tables, macro indicators,
                 hospitality KPIs, construction costs, financing terms, labor rates, risk premia,
-                demand metrics). Phase 1: read-only grid. Edit, deep-research seed, and Specialist
-                wiring land in Phases 2–4.
+                demand metrics).
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
@@ -349,7 +343,7 @@ export default function ReferenceRangesTab() {
           <p className="text-xs text-muted-foreground mt-1">
             {hasActiveFilter
               ? "No rows match the current filters."
-              : "Phase 4 will populate this corpus via a deep-research seed; admins will be able to add rows manually once the Phase 2 edit UX ships."}
+              : "No reference ranges loaded yet."}
           </p>
         </Card>
       )}

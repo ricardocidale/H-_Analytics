@@ -1,8 +1,7 @@
 /**
  * Specialist Tool registry — METADATA ONLY.
  *
- * Doctrine: replit.md "Wiring authority — code-only with break-glass" block
- *           and Phase 2b ("Tool inspectability & Letícia's home").
+ * Doctrine: replit.md "Wiring authority — code-only with break-glass" block.
  *
  * What this is:
  *   A static, inspectable manifest of every deterministic capability the
@@ -61,14 +60,14 @@ export type ToolLastBuiltSource =
 export type ToolKind = "deterministic" | "llm" | "hybrid";
 
 /**
- * Phase-3 callable contract. A registry descriptor — NOT a runtime fetcher.
+ * Callable contract. A registry descriptor — NOT a runtime fetcher.
  *
  * When a tool exposes a callable name (e.g. `lookupReferenceRange`) the
- * agent runtime that consumes SPECIALIST_TOOLS in Phase 3 builds the
- * actual call site against this contract. For now we just declare the
- * shape so downstream consumers (Specialist authors, the Resources
- * surface, the Phase-3 runtime) can discover what's available without
- * grepping for ad-hoc strings.
+ * agent runtime that consumes SPECIALIST_TOOLS builds the actual call
+ * site against this contract. The shape is declared here so downstream
+ * consumers (Specialist authors, the Resources surface, the agent
+ * runtime) can discover what's available without grepping for ad-hoc
+ * strings.
  *
  * `inputSchema` is intentionally a `Record<string, string>` of free-text
  * type descriptions rather than a Zod schema: the metadata module must
@@ -117,8 +116,8 @@ export interface SpecialistTool {
    *  `image-enhancement-api`). Tools without any Resource slug still
    *  appear in the admin registry endpoint but don't decorate any row. */
   readonly resourceSlugs?: readonly string[];
-  /** Phase-3 callable contract. See `SpecialistToolCallable` above —
-   *  metadata only; the runtime call site lands in Phase 3. */
+  /** Optional callable contract describing how the agent runtime
+   *  invokes this tool. See `SpecialistToolCallable` above. */
   readonly callable?: SpecialistToolCallable;
 }
 
@@ -234,24 +233,25 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
     id: "reference-range-lookup",
     displayName: "Reference Ranges",
     description:
-      "Admin-curated low / mid / high reference ranges (tax, macro, hospitality KPIs, construction, financing, labor, risk, demand). Phase 1 surfaces the corpus read-only; Phase 3 will expose a best-match resolver to Specialists.",
+      "Admin-curated low / mid / high reference ranges (tax, macro, hospitality KPIs, construction, financing, labor, risk, demand) with a best-match resolver for Specialists.",
     kind: "deterministic",
     ownerSpecialistId: LETICIA_SPECIALIST_ID,
-    // Empty until Phase 3 wires the `lookupReferenceRange` tool into the
-    // research Specialists. Keeping this array empty (rather than
+    // Currently empty: the `lookupReferenceRange` callable is exposed
+    // through the registry below; no Specialist has wired the runtime
+    // call site against it yet. Keeping this array empty (rather than
     // listing speculative callers) preserves the static-import accuracy
     // guarantee documented at the top of this file.
     calledBy: [],
     sourceFile: "server/storage/reference-range.ts",
     lastBuiltSource: { kind: "build-time" },
-    // Phase-3 callable contract. Registry descriptor only — the runtime
-    // call site lands when Phase 3 wires the agent runtime against
-    // SPECIALIST_TOOLS. For now, just declare the contract so consumers
-    // can find it without grepping for ad-hoc strings.
+    // Callable contract — registry descriptor only. The agent runtime
+    // builds the actual call site against this descriptor; this entry
+    // exists so consumers can discover the contract without grepping
+    // for ad-hoc strings.
     callable: {
       name: "lookupReferenceRange",
       description:
-        "Look up the best-matching reference range row for a metric in a jurisdiction. Returns low/mid/high with source attribution. Phase-3 best-match resolver — for now returns the first GET /api/admin/reference-ranges result (most-specific first wins server-side ordering when present; otherwise broader rows are acceptable fallbacks).",
+        "Look up the best-matching reference range row for a metric in a jurisdiction. Returns low/mid/high with source attribution. Resolver returns the first GET /api/admin/reference-ranges result (most-specific first wins server-side ordering when present; otherwise broader rows are acceptable fallbacks).",
       inputSchema: {
         domain: "kpi | labor | macro | tax | depreciation | regulation | financing | mgmt-fee | reserve | other",
         metricKey: "string (e.g. 'adr', 'occupancy', 'inflation_rate')",

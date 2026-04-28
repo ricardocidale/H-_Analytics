@@ -4,17 +4,12 @@
  * construction costs, financing terms, labor rates, risk premia, and
  * demand metrics.
  *
- * Phase 1 (this file): the table itself + read-only access. Edit UX,
- * Specialist tool wiring, Rebecca cross-namespace retrieval, deep-research
- * seed, and the staleness-driven refresh scheduler are sequenced as
- * Phases 2–6 in `.local/tasks/specialist-reference-ranges.md`.
- *
  * Doctrine:
  *   - One row = one (domain × metric × jurisdiction × year) reference range.
  *   - The jurisdiction columns descend from coarsest to finest:
  *     country (default `"GLOBAL"`) → subdivision → market.
  *     A best-match resolver picks the most specific row that satisfies
- *     a query (Phase 3); for Phase 1 we just store and surface them.
+ *     a query.
  *   - Provenance is mandatory in spirit: either `sourceId` (FK into
  *     `source_registry`, which carries trust + cadence + last-health-check)
  *     or a free-text `sourceName` + `sourceUrl` for sources that haven't
@@ -90,8 +85,7 @@ export const referenceRanges = pgTable("reference_range", {
   high: real("high").notNull(),
   /** Free-text unit, e.g. "percent", "usd_per_key", "years", "bps",
    *  "usd_per_room_night". Specialists declare the unit they expect when
-   *  calling `lookupReferenceRange` (Phase 3) and the lookup mismatches
-   *  loudly. */
+   *  calling `lookupReferenceRange` and the lookup mismatches loudly. */
   unit: text("unit").notNull(),
 
   // ── Provenance ──────────────────────────────────────────────────────
@@ -113,13 +107,13 @@ export const referenceRanges = pgTable("reference_range", {
   // ── Lifecycle ───────────────────────────────────────────────────────
   /** Last time an admin or a deep-research seed re-confirmed the row's
    *  numbers against the source. Drives the staleness pill in the grid
-   *  and (Phase 6) the refresh scheduler's eligibility check. */
+   *  and the refresh scheduler's eligibility check. */
   lastVerifiedAt: timestamp("last_verified_at"),
   /** Who confirmed the row last — e.g. an admin user id, "deep-research",
-   *  "airroi-refresh", "fred-refresh". Mandatory provenance per task #803:
+   *  "airroi-refresh", "fred-refresh". Provenance is mandatory in spirit:
    *  every row carries who attested to it, not just when. Nullable on the
-   *  column so seed loaders can backfill, but write paths in Phase 2 will
-   *  refuse to insert without it. */
+   *  column so seed loaders can backfill, but write paths refuse to
+   *  insert without it. */
   verifiedBy: text("verified_by"),
   /** Soft delete. Archived rows are hidden in the grid by default and
    *  ignored by the best-match resolver. */
@@ -133,13 +127,13 @@ export const referenceRanges = pgTable("reference_range", {
   index("reference_range_jurisdiction_idx").on(table.country, table.subdivision, table.market),
   // Source attribution roll-ups.
   index("reference_range_source_idx").on(table.sourceId),
-  // Staleness queries (Phase 6 scheduler).
+  // Staleness queries used by the refresh scheduler.
   index("reference_range_verified_idx").on(table.lastVerifiedAt),
   // Best-effort dedup. Postgres treats NULL as distinct in unique
   // constraints, so two rows with the same (domain, metric, country,
   // year) but different NULL combinations on (subdivision, market,
-  // segment, propertyType) will both be allowed. The Phase 2 admin
-  // upsert path enforces strict dedup at write time.
+  // segment, propertyType) will both be allowed. The admin upsert
+  // path enforces strict dedup at write time.
   unique("reference_range_unique").on(
     table.domain, table.metricKey, table.country, table.subdivision, table.market,
     table.segment, table.propertyType, table.year,
