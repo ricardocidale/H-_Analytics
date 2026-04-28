@@ -31,12 +31,13 @@ async function upsertRange(row: {
   low: number; mid: number; high: number; unit: string;
   sourceName?: string | null; sourceUrl?: string | null;
   methodology?: string | null; confidence?: string;
+  verifiedBy?: string | null;
 }): Promise<void> {
   await db.execute(sql`
     INSERT INTO reference_range
       (domain, metric_key, label, country, subdivision, market, segment, property_type,
        year, low, mid, high, unit, source_name, source_url, methodology, confidence,
-       last_verified_at, updated_at)
+       verified_by, last_verified_at, updated_at)
     VALUES
       (${row.domain}, ${row.metricKey}, ${row.label},
        ${row.country}, ${row.subdivision ?? null}, ${row.market ?? null},
@@ -44,7 +45,7 @@ async function upsertRange(row: {
        ${row.year}, ${row.low}, ${row.mid}, ${row.high}, ${row.unit},
        ${row.sourceName ?? null}, ${row.sourceUrl ?? null},
        ${row.methodology ?? null}, ${row.confidence ?? "medium"},
-       now(), now())
+       ${"seed-loader"}, now(), now())
     ON CONFLICT (domain, metric_key, country, subdivision, market, segment, property_type, year)
       DO UPDATE SET
         low = EXCLUDED.low, mid = EXCLUDED.mid, high = EXCLUDED.high,
@@ -53,6 +54,7 @@ async function upsertRange(row: {
         source_url  = COALESCE(EXCLUDED.source_url,  reference_range.source_url),
         methodology = COALESCE(EXCLUDED.methodology,  reference_range.methodology),
         confidence  = EXCLUDED.confidence,
+        verified_by = EXCLUDED.verified_by,
         last_verified_at = now(),
         updated_at  = now()
   `);
@@ -174,6 +176,7 @@ export async function refreshKpiFromAirROI(): Promise<{ updated: number; skipped
       sourceName: "AirROI STR Market Data", sourceUrl: "https://www.airroi.com",
       methodology: `Live TTM data as of ${r.asOf}. STR market average; boutique premium applies.`,
       confidence: "medium",
+      verifiedBy: "airroi-refresh",
     });
     await upsertRange({
       domain: "kpi", metricKey: "occupancy", label: `Occupancy Rate — ${r.marketKey}`,
@@ -185,6 +188,7 @@ export async function refreshKpiFromAirROI(): Promise<{ updated: number; skipped
       unit: "percent",
       sourceName: "AirROI STR Market Data", sourceUrl: "https://www.airroi.com",
       confidence: "medium",
+      verifiedBy: "airroi-refresh",
     });
     await upsertRange({
       domain: "kpi", metricKey: "revpar", label: `RevPAR — ${r.marketKey}`,
@@ -194,6 +198,7 @@ export async function refreshKpiFromAirROI(): Promise<{ updated: number; skipped
       unit: "usd_per_available_room_night",
       sourceName: "AirROI STR Market Data", sourceUrl: "https://www.airroi.com",
       confidence: "medium",
+      verifiedBy: "airroi-refresh",
     });
     updated++;
   }
