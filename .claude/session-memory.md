@@ -13,7 +13,7 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **G2-v1 fully closed:** Revenue Specialist server (`80df7bbc`) + UI wiring (`62a664fc`). `<AnalystButton>` live on PropertyUnderwritingTab routing to `specialistId:"mgmt-co.revenue"`. No more "Replit follow-up" in phases.md.
 - **G1.6-v1 fully closed:** `useAnalystRefresh` extended with `propertyId` + `"property"` scope union (`5c4fcc5a`). PropertyEdit hook updated to `scope:"property"` + `specialistId:"property.risk-intelligence"` + `propertyId`. TS/lint/vocab/test/verify all green.
 - **Seeds confirmed auto-seeded:** `seedPass12Updates()` (CY/NL/AT rows) is wired into `seedReferenceRanges()` which runs at server startup — no manual `POST /api/admin/seed-production` needed.
-- **CodeRabbit smoke-tested:** test PR opened 2026-04-28; auto-review triggered within ~5 min; path_instructions fired correctly.
+- **CodeRabbit smoke-tested:** test PR #14 opened 2026-04-28; both CodeRabbit + ClaudeBot fired via email confirmation. Auto-review working. Docs commit `a6bf3e11` landed on main.
 - **Next up:** G6-P2 (Funding N+1 panels) or G3 (Risk Intelligence graduation).
 
 ---
