@@ -88,7 +88,7 @@ export function SpecialistRequirementsPanel({
           Specialist&apos;s admin page.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {companyScope.map((spec) => (
           <SpecialistRow key={spec.id} spec={spec} entityValues={entityValues} />
         ))}
