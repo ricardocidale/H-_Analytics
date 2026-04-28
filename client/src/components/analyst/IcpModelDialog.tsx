@@ -102,7 +102,7 @@ export function IcpModelDialog({
       await updateConfig.mutateAsync({ icpModelTier: tier });
       onOpenChange(false);
       onModelSelected?.(tier);
-    } catch (err) {
+    } catch (err: unknown) {
       setPendingTier(null);
       toast({
         title: "Couldn't save the model",
