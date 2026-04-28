@@ -125,20 +125,36 @@ cover:
 
 ---
 
-## 6. Verification status (Task #844)
+## 6. Verification status (Tasks #844, #846)
 
 This section tracks the state of the "tune from real signal" verification of
 `.coderabbit.yaml`. Update it after each meaningful pass.
 
-### 6.1 Status as of 2026-04-28
+### 6.1 Status as of 2026-04-28 (Task #846 re-verification)
 
-- **Real-PR signal:** **NONE YET.** GitHub query of
-  `Norfolk-Group/H-Analytics` shows the only merged PR (#9, merged
-  2026-04-24) closed *before* `.coderabbit.yaml` was authored, and zero PRs
-  (open or closed) carry any `coderabbitai` comments or reviews. The App
-  install is still pending the org-owner action in §5 step 1.
-- **What the next pass needs:** at least one merged PR after the App is
-  installed, then re-walk the checklist in §6.3.
+- **App install:** **COMPLETE.** Verified via
+  `GET /orgs/Norfolk-Group/installations` — the `coderabbitai` GitHub App
+  (id `347564`, install id `127799202`) is installed on the
+  `Norfolk-Group` org with `repository_selection: all` and was created at
+  `2026-04-28T08:49:19-04:00`. No further org-owner action required for
+  this repo.
+- **Real-PR signal:** **STILL NONE.** Verified via per-PR
+  `pulls/{n}/reviews`, `pulls/{n}/comments`, and `issues/{n}/comments`
+  across all 12 PRs in the repo (open + closed). Zero `coderabbitai`
+  activity. The closed PRs (#1, #3–#11) all pre-date the install. The
+  only merged PR (#9, 2026-04-24) closed before either the install or
+  `.coderabbit.yaml` existed; the rest of the closed PRs were dependabot
+  bumps closed without merging on 2026-04-25. The two still-open PRs
+  (#13 Railway config bot, #2 dependabot lxml) are bot-authored and
+  CodeRabbit has not auto-reviewed them post-install — auto-review fires
+  on PR open/sync events, not retroactively, so the install only takes
+  effect on the next human-authored PR open or sync.
+- **What the next pass needs:** the first human-authored PR opened (or
+  re-synced) after `2026-04-28T08:49Z` will trigger CodeRabbit
+  automatically; once it closes, walk the checklist in §6.3 and log each
+  tuning in §6.4. To force a review on a pre-install PR without waiting,
+  comment `@coderabbitai review` on it (see §5 step 4) — but only do
+  this on a PR whose author wants the review noise.
 
 ### 6.2 Static tuning already applied (no real signal needed)
 
@@ -195,4 +211,11 @@ specific change and the real-signal evidence that triggered it. Keep
 entries short — the canonical "why" lives in `.coderabbit.yaml` comments
 or this doc's other sections.
 
-- *(empty — first real-signal pass pending App install)*
+- **2026-04-28 (Task #846):** App install verified org-wide
+  (`coderabbitai`, install id `127799202`, `repository_selection: all`,
+  created `2026-04-28T08:49:19-04:00`). No `.coderabbit.yaml` change
+  applied — none of the 12 PRs in the repo carry CodeRabbit reviews or
+  comments yet (closed PRs pre-date install; open PRs are bot-authored
+  and were opened pre-install, so auto-review hasn't fired). Real-signal
+  walk of §6.3 deferred until the first post-install human-authored PR
+  closes.
