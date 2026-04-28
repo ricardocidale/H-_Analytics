@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import Layout from "@/components/Layout";
 
 import { PageHeader } from "@/components/ui/page-header";
-import { IconCalculator, IconCompare, IconTimeline, IconSliders, IconWallet } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { IconCalculator, IconCompare, IconTimeline, IconSliders, IconWallet, IconBuilding } from "@/components/icons";
 import type { ComponentType } from "react";
 import type { IconProps } from "@/components/icons/icon-utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -13,7 +15,7 @@ import ComparisonView from "./ComparisonView";
 import TimelineView from "./TimelineView";
 import FundingPredictor from "./FundingPredictor";
 
-type AnalysisTab = "sensitivity" | "compare" | "timeline" | "financing" | "capital-raise";
+type AnalysisTab = "sensitivity" | "compare" | "structures" | "timeline" | "financing" | "capital-raise";
 
 export default function Analysis() {
   const [tab, setTab] = useState<AnalysisTab>("sensitivity");
@@ -21,6 +23,7 @@ export default function Analysis() {
   const tabs: { id: AnalysisTab; label: string; icon: ComponentType<IconProps> }[] = [
     { id: "sensitivity", label: "Sensitivity", icon: IconSliders },
     { id: "compare", label: "Compare", icon: IconCompare },
+    { id: "structures", label: "Structures", icon: IconBuilding },
     { id: "timeline", label: "Timeline", icon: IconTimeline },
     { id: "financing", label: "Financing", icon: IconCalculator },
     { id: "capital-raise", label: "Capital Raise", icon: IconWallet },
@@ -35,7 +38,7 @@ export default function Analysis() {
         />
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as AnalysisTab)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:w-max">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 lg:w-max">
             {tabs.map((t) => {
               const Icon = t.icon;
               return (
@@ -66,6 +69,24 @@ export default function Analysis() {
                 </TabsContent>
                 <TabsContent value="compare" className="mt-0 border-none p-0">
                   <ComparisonView embedded />
+                </TabsContent>
+                <TabsContent value="structures" className="mt-0 border-none p-0">
+                  <div className="rounded-lg border border-border/60 bg-card p-6 text-center space-y-4" data-testid="panel-structures-launcher">
+                    <div className="flex justify-center">
+                      <IconBuilding className="w-10 h-10 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-semibold">Operating-Structure Comparison</h3>
+                      <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                        Compare own vs. lease vs. HMA vs. franchise side-by-side for any property.
+                        See how each structure changes IRR, NOI, equity multiple, and downside risk —
+                        and get a recommendation on the best risk-adjusted fit.
+                      </p>
+                    </div>
+                    <Link href="/structures">
+                      <Button data-testid="button-open-structures">Open Comparison</Button>
+                    </Link>
+                  </div>
                 </TabsContent>
                 <TabsContent value="timeline" className="mt-0 border-none p-0">
                   <TimelineView embedded />

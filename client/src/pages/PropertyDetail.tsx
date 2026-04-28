@@ -249,6 +249,14 @@ export default function PropertyDetail() {
           </div>
         )}
 
+        <div className="flex flex-wrap gap-2" data-testid="property-quick-actions">
+          <Link href={`/structures/${propertyId}`}>
+            <Button variant="outline" size="sm" data-testid="link-structure-comparison">
+              Compare operating structures
+            </Button>
+          </Link>
+        </div>
+
         {(() => {
           const visibleLinks = propertyLinks.filter(l => l.isValid === true && l.isRelevant === true);
           return visibleLinks.length > 0 ? (

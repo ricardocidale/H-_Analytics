@@ -65,6 +65,7 @@ const Portfolio = lazy(() => import("@/pages/Portfolio"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const PropertyDetail = lazy(() => import("@/pages/PropertyDetail"));
 const PropertyEdit = lazy(() => import("@/pages/PropertyEdit"));
+const OperatingStructureComparison = lazy(() => import("@/pages/OperatingStructureComparison"));
 const PropertyPhotos = lazy(() => import("@/pages/PropertyPhotos"));
 const PropertyMarketResearch = lazy(
   () => import("@/pages/PropertyMarketResearch"),
@@ -226,6 +227,20 @@ function Router() {
         <Route path="/property/:id">
           <FinancialErrorBoundary>
             <ProtectedRoute component={PropertyDetail} />
+          </FinancialErrorBoundary>
+        </Route>
+        <Route path="/structures/:id">
+          <FinancialErrorBoundary>
+            <AssumptionsGateGuard>
+              <ProtectedRoute component={OperatingStructureComparison} />
+            </AssumptionsGateGuard>
+          </FinancialErrorBoundary>
+        </Route>
+        <Route path="/structures">
+          <FinancialErrorBoundary>
+            <AssumptionsGateGuard>
+              <ProtectedRoute component={OperatingStructureComparison} />
+            </AssumptionsGateGuard>
           </FinancialErrorBoundary>
         </Route>
         <Route path="/settings">

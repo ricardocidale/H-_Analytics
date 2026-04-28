@@ -174,9 +174,14 @@ describe("PUT /api/admin/model-constants/:key — Phase 3 doctrine guard (runtim
     expect(storage.upsertModelConstantOverride).not.toHaveBeenCalled();
   });
 
-  it("rejects every currently-registered key (all are specialist-owned today)", async () => {
+  it("rejects every currently-registered specialist-owned key", async () => {
+    // Non-specialist-owned entries (e.g. operating-structure overlays from
+    // Task #809, sourced from industry surveys rather than authority
+    // publications) take the legacy manual-write path covered by the
+    // separate `non-specialist-owned key (legacy path)` describe below.
     for (const key of Object.keys(MODEL_CONSTANTS_REGISTRY)) {
       const entry = MODEL_CONSTANTS_REGISTRY[key]!;
+      if (entry.specialistOwned !== true) continue;
       const body: Record<string, unknown> = { value: 1, overrideNote: "blocked" };
       if (entry.locality !== "universal") body.country = "United States";
       if (entry.locality === "country+state") body.countrySubdivision = "California";

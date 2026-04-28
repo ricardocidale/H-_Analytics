@@ -22,6 +22,11 @@
 import { DAYS_PER_MONTH, GOVERNED_FIELDS, type GovernedFieldMeta } from "./constants";
 import { USALI_FFE_RESERVE_BENCHMARK } from "./constants-brand";
 import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS, type CountryDefaults, type UsStateDefaults } from "./countryDefaults";
+import {
+  STRUCTURE_OVERLAY_BASELINES,
+  STRUCTURE_OVERLAY_COUNTRY_DELTAS,
+  type StructureOverlayKey,
+} from "./constants-operating-structures-data";
 
 export type ConstantLocality = "universal" | "country" | "country+state";
 
@@ -192,7 +197,77 @@ export const MODEL_CONSTANTS_REGISTRY: Record<string, ConstantRegistryEntry> = {
     specialistOwned: true,
     factoryValue: () => USALI_FFE_RESERVE_BENCHMARK,
   },
+  ...buildStructureOverlayRegistryEntries(),
 };
+
+/**
+ * Build registry entries for every operating-structure overlay scalar
+ * defined in `STRUCTURE_OVERLAY_BASELINES`. Each entry resolves through the
+ * country-delta table; admins can override per country via the standard
+ * model-constants overlay path. Marked `specialistOwned: false` because
+ * these are calibration estimates from industry surveys (HVS, JLL, CBRE) —
+ * not authority-published values — and admins are permitted to edit them.
+ */
+function buildStructureOverlayRegistryEntries(): Record<string, ConstantRegistryEntry> {
+  const STRUCTURE_OVERLAY_LABELS: Record<StructureOverlayKey, string> = {
+    franchiseBrandRoyaltyOnRooms: "Franchise — brand royalty (% of room revenue)",
+    franchiseBrandMarketingOnRooms: "Franchise — marketing fund (% of room revenue)",
+    franchiseBrandReservationOnRooms: "Franchise — reservation fee (% of room revenue)",
+    franchiseCapexFactor: "Franchise — capex factor (× FF&E reserve)",
+    hmaBaseFeeOnRevenue: "HMA — base fee (% of total revenue)",
+    hmaIncentiveFeeOnGop: "HMA — incentive fee (% of GOP)",
+    softBrandRoyaltyOnRooms: "Hybrid — soft-brand royalty (% of room revenue)",
+    softBrandMarketingOnRooms: "Hybrid — soft-brand marketing (% of room revenue)",
+    softBrandReservationOnRooms: "Hybrid — soft-brand reservation (% of room revenue)",
+    hybridHmaBaseFeeOnRevenue: "Hybrid — HMA base fee (% of total revenue)",
+    hybridHmaIncentiveFeeOnGop: "Hybrid — HMA incentive (% of GOP)",
+    hybridCapexFactor: "Hybrid — capex factor (× FF&E reserve)",
+    masterLeaseBaseRentRevenueShare: "Master lease — base rent (% of stabilized revenue)",
+    masterLeasePercentageRentOnRevenue: "Master lease — percentage rent (% of incremental revenue)",
+    masterLeaseRentEscalator: "Master lease — annual rent escalator",
+    masterLeaseTenantCapexFactor: "Master lease (tenant) — capex factor (× FF&E reserve)",
+    masterLeaseLandlordCapexFactor: "Master lease (landlord) — capex factor (× FF&E reserve)",
+    masterLeaseOperatorTakeCapOfGop: "Master lease (landlord) — operator take cap (% of GOP)",
+  };
+  const STRUCTURE_OVERLAY_AUTHORITY: Record<StructureOverlayKey, string> = {
+    franchiseBrandRoyaltyOnRooms: "JLL 2024 Hotel Brand Fee Guide",
+    franchiseBrandMarketingOnRooms: "JLL 2024 Hotel Brand Fee Guide",
+    franchiseBrandReservationOnRooms: "JLL 2024 Hotel Brand Fee Guide",
+    franchiseCapexFactor: "PIP Trends — JLL 2024",
+    hmaBaseFeeOnRevenue: "HVS 2024 USA Hotel Management Survey",
+    hmaIncentiveFeeOnGop: "HVS 2024 USA Hotel Management Survey",
+    softBrandRoyaltyOnRooms: "JLL 2024 Soft-Brand Fee Guide",
+    softBrandMarketingOnRooms: "JLL 2024 Soft-Brand Fee Guide",
+    softBrandReservationOnRooms: "JLL 2024 Soft-Brand Fee Guide",
+    hybridHmaBaseFeeOnRevenue: "HVS 2024 USA Hotel Management Survey",
+    hybridHmaIncentiveFeeOnGop: "HVS 2024 USA Hotel Management Survey",
+    hybridCapexFactor: "PIP Trends — JLL 2024",
+    masterLeaseBaseRentRevenueShare: "CBRE 2024 Hotel Lease Comps",
+    masterLeasePercentageRentOnRevenue: "CBRE 2024 Hotel Lease Comps",
+    masterLeaseRentEscalator: "CBRE 2024 Hotel Lease Comps",
+    masterLeaseTenantCapexFactor: "ISHC 2024 — capex allocation",
+    masterLeaseLandlordCapexFactor: "ISHC 2024 — capex allocation",
+    masterLeaseOperatorTakeCapOfGop: "CBRE 2024 Hotel Lease Comps",
+  };
+  const entries: Record<string, ConstantRegistryEntry> = {};
+  for (const key of Object.keys(STRUCTURE_OVERLAY_BASELINES) as StructureOverlayKey[]) {
+    entries[key] = {
+      key,
+      label: STRUCTURE_OVERLAY_LABELS[key],
+      locality: "country",
+      meta: buildMeta(STRUCTURE_OVERLAY_LABELS[key], STRUCTURE_OVERLAY_AUTHORITY[key], STRUCTURE_OVERLAY_LABELS[key]),
+      specialistOwned: false,
+      factoryValue: (country) => {
+        const baseline = STRUCTURE_OVERLAY_BASELINES[key];
+        if (!country) return baseline;
+        const delta = STRUCTURE_OVERLAY_COUNTRY_DELTAS[country];
+        if (!delta) return baseline;
+        return delta[key] ?? baseline;
+      },
+    };
+  }
+  return entries;
+}
 
 export const REGISTERED_CONSTANT_KEYS = Object.keys(MODEL_CONSTANTS_REGISTRY);
 
@@ -214,6 +289,26 @@ const CONSTANT_UNIT_BY_KEY: Record<string, ConstantUnit> = {
   depreciationYears: "years",
   daysPerMonth: "days",
   ffeReserveBenchmarkUsali: "percent",
+  // Operating-structure overlays — fees / lease shares / escalators are
+  // percent; capex factors are unitless ratios (× FF&E reserve).
+  franchiseBrandRoyaltyOnRooms: "percent",
+  franchiseBrandMarketingOnRooms: "percent",
+  franchiseBrandReservationOnRooms: "percent",
+  franchiseCapexFactor: "ratio",
+  hmaBaseFeeOnRevenue: "percent",
+  hmaIncentiveFeeOnGop: "percent",
+  softBrandRoyaltyOnRooms: "percent",
+  softBrandMarketingOnRooms: "percent",
+  softBrandReservationOnRooms: "percent",
+  hybridHmaBaseFeeOnRevenue: "percent",
+  hybridHmaIncentiveFeeOnGop: "percent",
+  hybridCapexFactor: "ratio",
+  masterLeaseBaseRentRevenueShare: "percent",
+  masterLeasePercentageRentOnRevenue: "percent",
+  masterLeaseRentEscalator: "percent",
+  masterLeaseTenantCapexFactor: "ratio",
+  masterLeaseLandlordCapexFactor: "ratio",
+  masterLeaseOperatorTakeCapOfGop: "percent",
 };
 
 export function getConstantUnit(key: string): ConstantUnit {

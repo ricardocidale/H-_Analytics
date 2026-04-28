@@ -33,17 +33,83 @@ const routeSrc = readFileSync(
   "utf8",
 );
 
+/**
+ * Allowlist of registry keys that are intentionally `specialistOwned: false`.
+ * These are calibration estimates from industry surveys (HVS, JLL, CBRE, ISHC)
+ * — *not* authority-published values like an IRS depreciation schedule — and
+ * the H+ Analytics constants doctrine permits admins to override them via the
+ * standard Constants tab.
+ *
+ * Adding a new key here should always be paired with:
+ *   1. A note in `docs/audits/constants-specialist-ownership-gap.md` (or the
+ *      successor doctrine doc) explaining why authority is sourced from a
+ *      survey rather than a published authority.
+ *   2. A unit on the entry (see `CONSTANT_UNIT_BY_KEY`) so admin renderers
+ *      know how to format the value.
+ *
+ * Operating-structure overlays (Task #809) — see `STRUCTURE_OVERLAY_BASELINES`
+ * in `shared/constants-operating-structures-data.ts` for the source data.
+ */
+const ADMIN_OVERRIDABLE_KEYS: ReadonlySet<string> = new Set([
+  "franchiseBrandRoyaltyOnRooms",
+  "franchiseBrandMarketingOnRooms",
+  "franchiseBrandReservationOnRooms",
+  "franchiseCapexFactor",
+  "hmaBaseFeeOnRevenue",
+  "hmaIncentiveFeeOnGop",
+  "softBrandRoyaltyOnRooms",
+  "softBrandMarketingOnRooms",
+  "softBrandReservationOnRooms",
+  "hybridHmaBaseFeeOnRevenue",
+  "hybridHmaIncentiveFeeOnGop",
+  "hybridCapexFactor",
+  "masterLeaseBaseRentRevenueShare",
+  "masterLeasePercentageRentOnRevenue",
+  "masterLeaseRentEscalator",
+  "masterLeaseTenantCapexFactor",
+  "masterLeaseLandlordCapexFactor",
+  "masterLeaseOperatorTakeCapOfGop",
+]);
+
 describe("Phase 3 — registry contract", () => {
-  it("every registered constant is specialistOwned today", () => {
+  it("every registered authority-sourced constant is specialistOwned (overlays exempted)", () => {
     const notOwned: string[] = [];
     for (const [key, entry] of Object.entries(MODEL_CONSTANTS_REGISTRY)) {
-      if (entry.specialistOwned !== true) notOwned.push(key);
+      if (entry.specialistOwned !== true && !ADMIN_OVERRIDABLE_KEYS.has(key)) {
+        notOwned.push(key);
+      }
     }
     expect(
       notOwned,
-      `Every Constant in MODEL_CONSTANTS_REGISTRY must be specialistOwned. ` +
-        `If you intend to allow manual overrides for a key, justify it in the ` +
-        `audit doc and update this test. Offending: ${notOwned.join(", ")}`,
+      `Every authority-sourced Constant in MODEL_CONSTANTS_REGISTRY must be ` +
+        `specialistOwned. If you intend to allow manual overrides for a new key, ` +
+        `add it to ADMIN_OVERRIDABLE_KEYS in this test and document the rationale. ` +
+        `Offending: ${notOwned.join(", ")}`,
+    ).toHaveLength(0);
+  });
+
+  it("ADMIN_OVERRIDABLE_KEYS allowlist matches actual non-specialist-owned entries (no drift)", () => {
+    // Lock the doctrine in both directions: every key in the allowlist must
+    // exist in the registry AND be specialistOwned:false. Otherwise the
+    // allowlist silently drifts away from reality.
+    for (const key of ADMIN_OVERRIDABLE_KEYS) {
+      const entry = MODEL_CONSTANTS_REGISTRY[key];
+      expect(entry, `Allowlist key "${key}" not found in registry`).toBeDefined();
+      expect(
+        entry?.specialistOwned,
+        `Allowlist key "${key}" is specialistOwned — remove from allowlist`,
+      ).toBe(false);
+    }
+    // And every non-specialistOwned entry must appear in the allowlist.
+    const undocumented: string[] = [];
+    for (const [key, entry] of Object.entries(MODEL_CONSTANTS_REGISTRY)) {
+      if (entry.specialistOwned === false && !ADMIN_OVERRIDABLE_KEYS.has(key)) {
+        undocumented.push(key);
+      }
+    }
+    expect(
+      undocumented,
+      `Registry has non-specialist-owned keys missing from the allowlist: ${undocumented.join(", ")}`,
     ).toHaveLength(0);
   });
 

@@ -30,6 +30,7 @@ import * as icpResearchRoutes from "./routes/icp-research";
 import * as financingRoutes from "./routes/financing";
 import * as hotelRateRoutes from "./routes/hotel-rates";
 import { registerFinanceRoutes } from "./routes/finance";
+import { registerStructureComparisonRoutes } from "./routes/structure-comparison";
 import healthRouter from "./routes/health";
 import * as guidanceRoutes from "./routes/guidance";
 import * as rebeccaRoutes from "./routes/rebecca";
@@ -84,6 +85,7 @@ export async function registerRoutes(
   financingRoutes.register(app);
   hotelRateRoutes.register(app);
   registerFinanceRoutes(app);
+  registerStructureComparisonRoutes(app);
   guidanceRoutes.register(app);
   rebeccaRoutes.register(app);
   calcAuditRoutes.register(app);

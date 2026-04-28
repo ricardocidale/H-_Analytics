@@ -76,8 +76,8 @@ describe("Tool Registry — Dispatch Completeness", () => {
     ).toEqual([]);
   });
 
-  it("documented tool count (39) matches actual dispatch count", () => {
-    expect(toolNames.length).toBe(39);
+  it("documented tool count (40) matches actual dispatch count", () => {
+    expect(toolNames.length).toBe(40);
   });
 });
 

@@ -21,9 +21,18 @@ import {
 import { MODEL_CONSTANTS_REGISTRY } from "../../shared/model-constants-registry";
 
 describe("Model Constants → Specialist ownership coverage", () => {
+  // Only specialist-owned (authority-sourced) constants need a Specialist
+  // claim — the doctrine is that admins can directly edit non-specialist-
+  // owned entries (e.g. industry-survey calibration values like the operating
+  // structure overlays in Task #809). The `Phase 3` double-lock test below
+  // still enforces the inverse: a `specialistOwned: false` entry MUST NOT be
+  // claimed by any Specialist.
   const registryKeys = Object.keys(MODEL_CONSTANTS_REGISTRY);
+  const specialistOwnedKeys = Object.entries(MODEL_CONSTANTS_REGISTRY)
+    .filter(([, entry]) => entry.specialistOwned === true)
+    .map(([k]) => k);
 
-  it("every registered constant has exactly one owning Specialist", () => {
+  it("every specialist-owned constant has exactly one owning Specialist", () => {
     const claims = new Map<string, string[]>();
     for (const def of SPECIALIST_CATALOG) {
       for (const key of def.constantsOwned ?? []) {
@@ -35,7 +44,7 @@ describe("Model Constants → Specialist ownership coverage", () => {
 
     const unowned: string[] = [];
     const overOwned: { key: string; owners: string[] }[] = [];
-    for (const key of registryKeys) {
+    for (const key of specialistOwnedKeys) {
       const owners = claims.get(key) ?? [];
       if (owners.length === 0) unowned.push(key);
       else if (owners.length > 1) overOwned.push({ key, owners });
@@ -43,7 +52,7 @@ describe("Model Constants → Specialist ownership coverage", () => {
 
     expect(
       unowned,
-      `Constants registry keys with no owning Specialist (assign each in constantsOwned[]): ${unowned.join(", ")}`,
+      `Specialist-owned registry keys with no owning Specialist (assign each in constantsOwned[]): ${unowned.join(", ")}`,
     ).toHaveLength(0);
     expect(
       overOwned,
@@ -53,8 +62,8 @@ describe("Model Constants → Specialist ownership coverage", () => {
     ).toHaveLength(0);
   });
 
-  it("getSpecialistForConstant resolves every registered key", () => {
-    for (const key of registryKeys) {
+  it("getSpecialistForConstant resolves every specialist-owned registry key", () => {
+    for (const key of specialistOwnedKeys) {
       const owner = getSpecialistForConstant(key);
       expect(owner, `No Specialist resolved for constant '${key}'`).toBeDefined();
       expect(owner!.subject).toBe("constants");
