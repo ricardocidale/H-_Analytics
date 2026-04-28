@@ -314,6 +314,53 @@ export async function fetchSinglePropertyCompute(
   return isSuperjson ? (superjson.deserialize(raw) as ServerSinglePropertyResult) : raw;
 }
 
+export interface ServerExitScenariosResult {
+  engineVersion: string;
+  computedAt: string;
+  outputHash: string;
+  projectionYears: number;
+  exitScenarios: import("../../../calc/analysis/exit-scenarios").ExitScenariosOutput;
+}
+
+/**
+ * Task #807: fetch the 3 × 4 exit-scenarios bundle for a property. Reuses the
+ * cached engine recompute on the server, so calling this is cheap when the
+ * main `fetchSinglePropertyCompute` has already run.
+ */
+export async function fetchPropertyExitScenarios(
+  property: Property,
+  global: GlobalResponse,
+): Promise<ServerExitScenariosResult> {
+  const projectionYears = global.projectionYears ?? PROJECTION_YEARS;
+  const body = { property, globalAssumptions: global, projectionYears };
+  const res = await fetch(`/api/finance/property/${property.id}/exit-scenarios`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || `Exit scenarios fetch failed (${res.status})`);
+  }
+  const raw = await res.json();
+  const isSuperjson = res.headers.get("X-Superjson") === "true";
+  return isSuperjson ? (superjson.deserialize(raw) as ServerExitScenariosResult) : raw;
+}
+
+export function buildExitScenariosQueryKey(
+  propertyId: number,
+  property: Property | undefined,
+  global: GlobalResponse | undefined,
+): unknown[] {
+  if (!property || !global) return ["server-property-exit-scenarios", propertyId];
+  return [
+    "server-property-exit-scenarios",
+    propertyId,
+    property.updatedAt ?? 0,
+    stableGlobalHash(global),
+  ];
+}
+
 export interface ServerCompanyResult {
   engineVersion: string;
   computedAt: string;

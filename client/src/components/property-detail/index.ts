@@ -22,3 +22,4 @@ export { default as BenchmarkPanel } from "./BenchmarkPanel";
 export { default as ReconciliationTab } from "./ReconciliationTab";
 export { default as InvestmentReturnsTab } from "./InvestmentReturnsTab";
 export { default as DueDiligenceTab } from "./DueDiligenceTab";
+export { default as ExitScenariosSection } from "./ExitScenariosSection";

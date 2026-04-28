@@ -6,6 +6,9 @@ import {
   recomputeSinglePropertyAndStamp,
   recomputeCompanyAndStamp,
 } from "../finance/recompute";
+import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
+import { computeExitScenarios, DEFAULT_EXIT_HORIZONS } from "../../calc/analysis/exit-scenarios";
+import { getAcquisitionYear, calculateLoanParams } from "@engine/debt/loanCalculations";
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
@@ -318,6 +321,86 @@ export function registerFinanceRoutes(router: Router): void {
       const message = err instanceof Error ? err.message : "Property computation failed";
       logger.error(`Property compute error: ${message}`, "finance");
       return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Property computation failed" : message });
+    }
+  });
+
+  /**
+   * POST /api/finance/property/:id/exit-scenarios — Task #807.
+   *
+   * Returns a 3 × 4 matrix (Pessimistic/Base/Optimistic × 3/5/7/10 yrs) of
+   * exit outcomes plus per-scenario breakeven hold and an early-exit-risk
+   * callout. Reuses the cached engine recompute so the math underneath is
+   * identical to the rest of PropertyDetail. The math itself lives in
+   * `calc/analysis/exit-scenarios.ts` (pure module, fully unit-tested).
+   */
+  router.post("/api/finance/property/:id/exit-scenarios", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const routeId = parseRouteId(req.params.id);
+      if (!routeId) {
+        return res.status(400).json({ error: "Invalid property ID in route" });
+      }
+
+      const validation = singlePropertyComputeSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: "Invalid input",
+          details: validation.error.issues.map(i => ({ path: i.path.join("."), message: i.message })),
+        });
+      }
+
+      const { property, globalAssumptions: rawGlobal, projectionYears } = validation.data;
+      if (property.id !== undefined && property.id !== routeId) {
+        return res.status(400).json({ error: "Property ID in body does not match route" });
+      }
+
+      const globalAssumptions = await withModelConstants(rawGlobal);
+      const stamped = { ...property, id: routeId } as PropertyInput;
+
+      // Reuse the cached engine output for this property.
+      const compute = await recomputeSinglePropertyAndStamp({
+        property: stamped,
+        globalAssumptions: globalAssumptions as GlobalInput,
+        projectionYears,
+      });
+
+      // Re-derive the per-year cash-flow-to-investors series. The single
+      // property compute returns yearly IS only; the unified aggregator
+      // gives us the matching CF rows without re-running the engine.
+      const stampedLoanProps = stamped as unknown as Parameters<typeof calculateLoanParams>[0];
+      const unified = aggregateUnifiedByYear(
+        compute.monthly,
+        stampedLoanProps,
+        globalAssumptions as GlobalInput,
+        compute.projectionYears,
+      );
+
+      const loan = calculateLoanParams(stampedLoanProps, globalAssumptions as GlobalInput);
+      const acquisitionYear = getAcquisitionYear(loan);
+
+      const exitScenarios = computeExitScenarios({
+        property: stamped as unknown as Parameters<typeof computeExitScenarios>[0]["property"],
+        global: globalAssumptions as GlobalInput,
+        yearlyNoi: unified.yearlyIS.map(y => y.noi),
+        netCashFlowToInvestors: unified.yearlyCF.map(y => y.netCashFlowToInvestors),
+        acquisitionYear,
+        horizons: [...DEFAULT_EXIT_HORIZONS],
+      });
+
+      res.setHeader("X-Finance-Engine-Version", compute.engineVersion);
+      res.setHeader("X-Finance-Output-Hash", compute.outputHash);
+      if (compute.cached) res.setHeader("X-Finance-Cache-Hit", "true");
+
+      return sendSuperjson(res, {
+        engineVersion: compute.engineVersion,
+        computedAt: compute.computedAt,
+        outputHash: compute.outputHash,
+        projectionYears: compute.projectionYears,
+        exitScenarios,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Exit scenarios computation failed";
+      logger.error(`Exit scenarios error: ${message}`, "finance");
+      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Exit scenarios computation failed" : message });
     }
   });
 

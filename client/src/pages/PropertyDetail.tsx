@@ -32,6 +32,7 @@ import {
   BenchmarkPanel,
   InvestmentReturnsTab,
   DueDiligenceTab,
+  ExitScenariosSection,
 } from "@/components/property-detail";
 const PropertyMap = lazy(() => import("@/components/PropertyMap"));
 import DocumentExtractionPanel from "@/components/DocumentExtractionPanel";
@@ -346,6 +347,12 @@ export default function PropertyDetail() {
           property={property}
           yearlyChartData={yearlyChartData}
         />
+
+        {global && (
+          <div className="mt-6">
+            <ExitScenariosSection property={property} global={global} />
+          </div>
+        )}
 
         <ScrollReveal>
         <CalcDetailsProvider show={global?.showPropertyCalculationDetails ?? true}>
