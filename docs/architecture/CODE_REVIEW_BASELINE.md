@@ -122,3 +122,77 @@ cover:
    regardless of what CodeRabbit says.
 4. To re-trigger a review on an existing PR, comment `@coderabbitai review`.
 5. To pause CodeRabbit on a PR, mark the PR as draft.
+
+---
+
+## 6. Verification status (Task #844)
+
+This section tracks the state of the "tune from real signal" verification of
+`.coderabbit.yaml`. Update it after each meaningful pass.
+
+### 6.1 Status as of 2026-04-28
+
+- **Real-PR signal:** **NONE YET.** GitHub query of
+  `Norfolk-Group/H-Analytics` shows the only merged PR (#9, merged
+  2026-04-24) closed *before* `.coderabbit.yaml` was authored, and zero PRs
+  (open or closed) carry any `coderabbitai` comments or reviews. The App
+  install is still pending the org-owner action in §5 step 1.
+- **What the next pass needs:** at least one merged PR after the App is
+  installed, then re-walk the checklist in §6.3.
+
+### 6.2 Static tuning already applied (no real signal needed)
+
+Done by walking the actual repo file tree and matching it against
+`path_filters`:
+
+| Tuning | Why |
+|---|---|
+| Added `"!COST-MONITOR-*.md"` to `path_filters` | The existing `COST-MONITOR-*.txt` pattern misses `COST-MONITOR-REPLIT.md`, a sibling scratch doc that lives at repo root. |
+| Added `"!skills-lock.json"` to `path_filters` | Generated agent-skills lockfile at repo root. Matches no other glob; nobody hand-edits it. |
+
+All other patterns (root `*.png` mockups, `memory.md`, `replit_waste.md`,
+`rewritetax.md`, `seed-manifest.json`, `test-results*.json`,
+`migrations/0*.sql`, `INSTALL-COST-MONITOR.txt`, lockfiles) were verified
+to match real files in the tree.
+
+### 6.3 Checklist for the first post-install review
+
+Once the App is installed and a PR closes, walk this list and record
+findings (and any further tunings) in §6.4 below.
+
+1. **Path filters landed:** confirm CodeRabbit did *not* comment on any file
+   under §4 ("What CodeRabbit should not flag"). If it did, add the missed
+   path/glob to `path_filters` in `.coderabbit.yaml`.
+2. **Per-path instructions landed:** confirm comments on `calc/**`,
+   `engine/**`, `server/**`, `client/**`, `shared/**`, `docs/architecture/**`,
+   `.claude/**`, and `.github/workflows/**` reference the canonical rule
+   (link to `.claude/rules/...` or an ADR) instead of re-deriving an opinion.
+   If a category is silent or repeats lint text, sharpen the matching
+   `path_instructions` block.
+3. **`reviews_tools` not double-reporting:** for every CodeRabbit comment,
+   ask "did `lint:strict`, `check`, `audit:quick`, `verify:summary`, or
+   `test:summary` already fail on this exact issue?" If yes, the
+   corresponding tool toggle is duplicating CI — disable it (`enabled: false`)
+   or demote its scope. The known suspects today:
+   - `eslint` (toggle line ~261) — `lint:strict` already errors on bug
+     guards. Keep on for *warnings* only; flip off if it surfaces errors
+     that already failed CI.
+   - `actionlint`, `shellcheck`, `markdownlint`, `yamllint`, `gitleaks` —
+     no current CI equivalent; expect signal, keep on unless noise dominates.
+   - `languagetool` — already has `TYPOS`, `CASING`, `PUNCTUATION`
+     disabled. If prose nits still dominate, flip `enabled: false`.
+4. **`profile` calibration:** `profile: assertive` raises noise. If most
+   comments are nitpicks rather than the invariants in §2, downgrade to
+   `chill`.
+5. **`tone_instructions` calibration:** if comments preach style instead of
+   leading with the violated invariant + smallest fix, tighten the tone
+   string.
+
+### 6.4 Tuning log
+
+Record each post-install tuning pass here as a dated bullet with the
+specific change and the real-signal evidence that triggered it. Keep
+entries short — the canonical "why" lives in `.coderabbit.yaml` comments
+or this doc's other sections.
+
+- *(empty — first real-signal pass pending App install)*
