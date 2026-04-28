@@ -81,6 +81,31 @@ const MOUNT_POINT_DESTINATIONS: Readonly<Record<string, readonly string[]>> = {
   "defaults/revenue": [
     "client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx",
   ],
+
+  // Management-company defaults (e.g. cost-of-equity, WACC inputs) live on
+  // the Company tab of Admin → Model Defaults. Markers are rendered via
+  // the FieldHelpers `testId` prop just like the other Model-Defaults
+  // tabs. See ModelDefaultsTab.tsx for the import / mount.
+  "defaults/management-company": [
+    "client/src/components/admin/model-defaults/CompanyTab.tsx",
+  ],
+
+  // Macro & market defaults (inflation, market-rate assumptions, etc.)
+  // live on the Market & Macro tab of Admin → Model Defaults. Same
+  // FieldHelpers convention as the other Model-Defaults tabs. See
+  // ModelDefaultsTab.tsx for the import / mount.
+  "defaults/market-macro": [
+    "client/src/components/admin/model-defaults/MarketMacroTab.tsx",
+  ],
+
+  // Property-level underwriting defaults (the bulk of the property
+  // financial model — depreciation lives, refurbishment cycles, etc.)
+  // live on the Property Underwriting tab of Admin → Model Defaults,
+  // alongside the revenue-defaults sections. Same FieldHelpers
+  // convention. See ModelDefaultsTab.tsx for the import / mount.
+  "defaults/property": [
+    "client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx",
+  ],
 };
 
 /**
