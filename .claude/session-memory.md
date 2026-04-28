@@ -8,7 +8,17 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 28, 2026 (latest) — G1.5c closed; Daniela (property.risk-intelligence) route handler wired; admin-link test fixed
+## Session: April 28, 2026 (continued) — Pass 12 seeds; ADR-009 Phase 1 engine+checker; EWW UI packet authored
+
+- **What shipped:** (1) ADR-009 Phase 1 complete: `expenseEWW` field in `engine/types.ts` (prior session), engine computation + checker passthrough (`a84708bd`). (2) Reference-range Pass 12: 25 new rows (CY/NL/AT tax, Spain/Greece employer SS corrections, US CPOR/HPOR, EU/UK CPI inflation, AU construction costs, lifestyle ADR premium) in `server/seeds/reference-ranges.ts` (`e271dbe3`). (3) Cyprus CIT accuracy fix: `low/mid` corrected 15→12.5% (domestic rate); high stays 15% for Pillar Two in-scope multinationals (`f597fdb7`). (4) ADR-009 Phase 1 EWW UI Replit packet authored (`05ff2999`) — Doctrine Freeze Gate satisfied (engine soaked one session).
+- **Key files changed:** `engine/types.ts`, `engine/property/property-engine.ts`, `server/calculationChecker.ts`, `server/seeds/reference-ranges.ts`, `.claude/replit-handoffs/adr-009-phase1-eww-ui.md`.
+- **Pending — run seeds:** Pass 12 rows are in code but NOT yet in Neon DB. Run `POST /api/admin/seed-production` from Admin UI to materialize. Verify: `SELECT COUNT(*) FROM reference_range WHERE country IN ('CY', 'NL', 'AT')` should return rows.
+- **Replit next action:** Execute `adr-009-phase1-eww-ui.md` — add EWW row to income statement table (4 sub-steps, UI lane only, all five gates).
+- **CC next session:** (1) Extend `resolveMarketBenchmarks()` for payroll-tax-employer lookup (ES/IT/GR/CY/NL) to feed Daniela prompt. (2) `tests/seeds/reference-range-pass12.test.ts`. (3) G2-v1 Revenue Specialist (unblocked).
+
+---
+
+## Session: April 28, 2026 (earlier) — G1.5c closed; Daniela (property.risk-intelligence) route handler wired; admin-link test fixed
 
 - **What shipped:** (1) G1.5c closed — S6 passed (`1addc5bf`) + 4 audit findings fixed (`2d46c186`) — phases.md updated. (2) G1.6-v1: `POST /api/analyst/refresh` extended with `scope:"property"` + `propertyId` + `property.risk-intelligence` branch (`runPropertyRiskIntelligenceV1Path`); UNWIRED comment removed from runner. (3) `property-edit-depreciation-band.test.tsx` admin-navigation test removed (violated user's "no front-of-app→admin links" rule). All five gates green.
 - **Key files changed:** `server/routes/analyst-admin.ts` (added imports + schema extension + Daniela branch + 3 helpers), `server/ai/specialists/property-risk-intelligence-runner.ts` (UNWIRED comment removed), `tests/client/property-edit-depreciation-band.test.tsx` (removed admin-nav link test), `.claude/phases.md` (G1.5c ✅, G1.6-v1 ✅, G2-v1 soak note).
