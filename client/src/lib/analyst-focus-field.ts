@@ -31,6 +31,8 @@
 import { useEffect } from "react";
 import { useSearch } from "wouter";
 import { toast } from "@/hooks/use-toast";
+import { describeMountPoint } from "@/lib/analyst-mount-points";
+import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 
 /** Query-string key used to ferry the field id through navigations. Kept
  *  as a single exported constant so `analyst-mount-points.ts` and any
@@ -154,13 +156,33 @@ function warnFocusFieldExhausted(fieldId: string): void {
  * lands on a hidden field looks like the page just sat there and did
  * nothing, which is the exact UX gap task #780 was opened to close.
  *
+ * Section-aware copy (task #784): when the Specialist field registry
+ * knows the field's owning section/tab via its `mountPoint`, the toast
+ * names both the field and the section the admin needs to expand
+ * (e.g. "Couldn't open Capital Raise 1 Amount — try expanding the
+ * Funding tab on Company Assumptions."). Falls back to the generic
+ * copy when the field isn't in the registry or the mount-point slug
+ * doesn't resolve to a human surface, so an unregistered Specialist
+ * field still gets a useful toast instead of nothing.
+ *
  * Single-fire by construction: the caller strips the `?focus` param
  * immediately after exhaustion (see `stripFocusParam`), so a re-render
  * of the same page sees no param and the hook short-circuits before it
  * could re-fire this toast. One toast per Adjust navigation.
  */
-function notifyFocusFieldExhausted(): void {
+function notifyFocusFieldExhausted(fieldId: string): void {
   if (typeof window === "undefined") return;
+  const entry = getFieldRegistryEntry(fieldId);
+  const description = entry ? describeMountPoint(entry.mountPoint) : null;
+  if (entry && description) {
+    toast({
+      title: `Couldn't open ${entry.label}`,
+      description:
+        `It may be inside a collapsed ${description.kind}. ` +
+        `Try expanding the ${description.section} ${description.kind} on ${description.surface}.`,
+    });
+    return;
+  }
   toast({
     title: "Couldn't open this field",
     description:
@@ -226,7 +248,7 @@ export function useFocusFieldFromUrl(opts: FocusFieldOptions = {}): void {
       if (ok || attempts >= maxAttempts) {
         if (!ok) {
           warnFocusFieldExhausted(fieldId);
-          notifyFocusFieldExhausted();
+          notifyFocusFieldExhausted(fieldId);
         }
         stripFocusParam();
         timer = null;

@@ -168,3 +168,95 @@ const ADMIN_DEFAULTS_SECTION_MAP: Record<string, string> = {
   property: "defaults-property",
   "market-macro": "defaults-market-macro",
 };
+
+/**
+ * Pretty user-facing labels for the segment after `defaults/` in a
+ * mount-point slug. Used by `describeMountPoint` to name the admin
+ * Defaults sub-section in human copy (e.g. the "couldn't open this
+ * field" toast). Independent of `ADMIN_DEFAULTS_SECTION_MAP` because
+ * that map's values are router slugs (`defaults-management-company`),
+ * not display labels.
+ *
+ * Slugs not listed here fall back to a generic title-cased rendering
+ * of the slug segment, so a new entry only needs to be added when the
+ * default title-case is misleading (e.g. "Market Macro" vs "Market &
+ * Macro") or when the slug is shorthand (e.g. "fb" → "F&B").
+ */
+const DEFAULTS_SECTION_LABELS: Record<string, string> = {
+  "management-company": "Management Company",
+  property: "Property",
+  "market-macro": "Market & Macro",
+  revenue: "Revenue",
+};
+
+export interface MountPointDescription {
+  /** Human-friendly name of the section/tab that owns the field
+   *  (e.g. "Funding", "Management Company", "Capital Raise"). */
+  readonly section: string;
+  /** Human-friendly name of the page/surface the section lives on
+   *  (e.g. "Company Assumptions", "Defaults", "Property Edit"). */
+  readonly surface: string;
+  /** Whether the named region is a tab (top-level switcher on the
+   *  surface) or a section (collapsible/scrollable region). Lets the
+   *  toast use the right noun: "expand the Funding tab" vs "expand
+   *  the Capital Raise section". */
+  readonly kind: "tab" | "section";
+}
+
+/**
+ * Turn a field-registry mount-point slug into the human-readable
+ * pieces a UI surface (notably the "couldn't open this field" toast
+ * in `analyst-focus-field.ts`) can compose into copy that names the
+ * exact section/tab the user needs to expand.
+ *
+ * Returns `null` when the slug is unknown or doesn't carry a section
+ * segment — callers should fall back to generic copy in that case so
+ * we never produce a nonsensical sentence.
+ */
+export function describeMountPoint(
+  slug: string,
+): MountPointDescription | null {
+  if (!slug || typeof slug !== "string") return null;
+
+  if (slug.startsWith("property-edit/")) {
+    const sectionSlug = slug.slice("property-edit/".length);
+    if (!sectionSlug) return null;
+    return {
+      section: humanizeSlugSegment(sectionSlug),
+      surface: "Property Edit",
+      kind: "section",
+    };
+  }
+
+  if (slug.startsWith("company-assumptions/")) {
+    const tabSlug = slug.slice("company-assumptions/".length);
+    if (!tabSlug) return null;
+    return {
+      section: humanizeSlugSegment(tabSlug),
+      surface: "Company Assumptions",
+      kind: "tab",
+    };
+  }
+
+  if (slug.startsWith("defaults/")) {
+    const sectionSlug = slug.slice("defaults/".length);
+    if (!sectionSlug) return null;
+    return {
+      section:
+        DEFAULTS_SECTION_LABELS[sectionSlug] ??
+        humanizeSlugSegment(sectionSlug),
+      surface: "Defaults",
+      kind: "section",
+    };
+  }
+
+  return null;
+}
+
+function humanizeSlugSegment(seg: string): string {
+  return seg
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}

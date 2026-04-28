@@ -110,6 +110,44 @@ describe("useFocusFieldFromUrl — exhaust-budget toast", () => {
     document.body.removeChild(marker);
   });
 
+  it("names the field's owning section/tab when the registry knows the field (task #784)", async () => {
+    // `capitalRaise1Amount` is a real entry in
+    // `engine/analyst/registry/field-registry.ts` with mountPoint
+    // `company-assumptions/funding`. The toast should now name both
+    // the field's display label AND the Funding tab on Company
+    // Assumptions, instead of the generic "this field" copy. Pick a
+    // registered field so the assertion proves the registry → toast
+    // wiring works end-to-end (not just that some hardcoded copy
+    // contains the word "Funding").
+    const FIELD = "capitalRaise1Amount";
+    window.history.replaceState(null, "", `/some/page?focus=${FIELD}`);
+
+    render(React.createElement(HookHost, { maxAttempts: 3, retryMs: 5 }));
+
+    await waitFor(() => {
+      expect(toastSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const arg = toastSpy.mock.calls[0][0] as {
+      title?: unknown;
+      description?: unknown;
+    };
+    // Title carries the field's human label so the user sees what
+    // failed to open without having to remember the field id.
+    expect(String(arg.title)).toMatch(/Capital Raise 1 Amount/i);
+    // Description names the Funding tab on Company Assumptions —
+    // i.e. the section/tab segment the registry's mountPoint pointed
+    // at. Asserting on the section name (not the surface name alone)
+    // is what proves the registry's mountPoint actually flowed
+    // through; a copy regression that dropped the section would
+    // silently pass an "on Company Assumptions" check.
+    expect(String(arg.description)).toMatch(/Funding/i);
+    expect(String(arg.description)).toMatch(/Company Assumptions/i);
+    // The "collapsed" hint is preserved so the admin still gets the
+    // disambiguating cue that the field is hidden, not missing.
+    expect(String(arg.description)).toMatch(/collapsed/i);
+  });
+
   it("fires only once per Adjust navigation — re-render after exhaustion does not re-toast", async () => {
     const FIELD = "alsoMissing";
     window.history.replaceState(null, "", `/some/page?focus=${FIELD}`);
