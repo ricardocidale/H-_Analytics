@@ -66,6 +66,7 @@ export async function runReferenceRange001(): Promise<void> {
 
     logger.info("Migration complete", TAG);
   } catch (error: unknown) {
-    logger.error(`Migration failed: ${error}`, TAG);
+    logger.error(`Migration failed: ${String(error)}`, TAG);
+    throw error;
   }
 }
