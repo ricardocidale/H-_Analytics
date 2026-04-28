@@ -17,6 +17,19 @@ import type { FundingPromptInputContext } from "./mgmt-co-funding-prompt-input-b
 import { FUNDING_DIMENSION_KEYS } from "./mgmt-co-funding-prompt-input-builder";
 import type { ComparableRow } from "./mgmt-co-funding-orchestrator-adapter";
 
+// ── Regress context (G6-P3b) ────────────────────────────────────────────────
+
+/**
+ * Carries the prior-pass addenda and the quality-check failure reason into the
+ * next PE call. Including prior addenda prevents the regress from producing
+ * identical output (same framing → same failure → infinite regress).
+ */
+export interface RegressContext {
+  priorQuantAddendum: string;
+  priorMarketAddendum: string;
+  regressReason: string;
+}
+
 // ── Output schema ────────────────────────────────────────────────────────────
 
 export const PromptEngineerOutputSchema = z.object({
@@ -81,7 +94,7 @@ Surface LP dynamics specific to this operator:
 export function buildPromptEngineerUserPrompt(
   ctx: FundingPromptInputContext,
   comparables: readonly ComparableRow[],
-  regressReason?: string,
+  regressContext?: RegressContext,
 ): string {
   const personaLine = `${ctx.persona.marketTier} tier, ${ctx.persona.verticalSlug} vertical, ${ctx.persona.locale} locale`;
   const portfolioLine = `${ctx.portfolio.propertyCount} ${ctx.portfolio.propertyCount === 1 ? "property" : "properties"}, $${(ctx.portfolio.totalRaiseNeedUsd / 1_000_000).toFixed(0)}M total raise need, ${ctx.portfolio.runwayNeedMonths}mo runway need`;
@@ -104,8 +117,12 @@ export function buildPromptEngineerUserPrompt(
           .join("\n")
       : "  (no LP comparables available)";
 
-  const regressBlock = regressReason
-    ? `\n# Prior synthesis pass failed — re-engineer addenda\nFailure reason: ${regressReason}\nAdjust addenda to address this gap before the next panel run.\n`
+  const regressBlock = regressContext
+    ? `\n# Prior synthesis pass failed — produce DIFFERENT addenda\n` +
+      `Prior quantAddendum sent:\n${regressContext.priorQuantAddendum}\n\n` +
+      `Prior marketAddendum sent:\n${regressContext.priorMarketAddendum}\n\n` +
+      `Failure reason: ${regressContext.regressReason}\n` +
+      `Do NOT reproduce the prior addenda — produce meaningfully different framing that addresses the failure.\n`
     : "";
 
   return `# Operator profile

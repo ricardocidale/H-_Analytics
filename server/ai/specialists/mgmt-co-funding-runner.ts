@@ -40,7 +40,9 @@ import {
   buildPromptEngineerSystemPrompt,
   buildPromptEngineerUserPrompt,
   type PromptEngineerOutput,
+  type RegressContext,
 } from "./mgmt-co-funding-prompt-engineer";
+import { validateSynthesisOutput } from "./mgmt-co-funding-synthesis-validator";
 import { AI_GENERATION_TIMEOUT_MS } from "../../constants";
 import {
   buildFundingSystemPrompt,
@@ -335,7 +337,7 @@ async function runPromptEngineer(
   comparables: readonly ComparableRow[],
   deps: RunFundingSpecialistDeps,
   abortSignal: AbortSignal,
-  regressReason?: string,
+  regressContext?: RegressContext,
 ): Promise<{ output: PromptEngineerOutput; runId: string }> {
   const googleModelFactory =
     deps.getGoogleModel ??
@@ -346,7 +348,7 @@ async function runPromptEngineer(
     model: googleModelFactory(PROMPT_ENGINEER_MODEL_ID),
     schema: PromptEngineerOutputSchema,
     system: buildPromptEngineerSystemPrompt(),
-    prompt: buildPromptEngineerUserPrompt(ctx, comparables, regressReason),
+    prompt: buildPromptEngineerUserPrompt(ctx, comparables, regressContext),
     maxOutputTokens: PROMPT_ENGINEER_MAX_OUTPUT_TOKENS,
     abortSignal,
   });
@@ -462,6 +464,7 @@ function buildHonestFailVerdict(
   deps: RunFundingSpecialistDeps,
   durationMs: number,
   peRunId: string,
+  regressCount: number,
 ): AnalystVerdict {
   const voiceRenderer = createVoiceRenderer();
 
@@ -512,11 +515,16 @@ function buildHonestFailVerdict(
       vendorsUsed: ["anthropic", "google"],
       cacheState: "miss",
       promptEngineerRunId: peRunId,
-      regressCount: 0,
+      regressCount,
     },
     generatedAt: deps.now ? deps.now.toISOString() : undefined,
   });
 }
+
+// ── Quality regress constants (G6-P3b) ───────────────────────────────────────
+
+/** Maximum synthesis regress iterations. 0 = first-pass success, 2 = exhausted. */
+const MAX_SYNTHESIS_REGRESSES = 2;
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
@@ -590,7 +598,9 @@ export async function runFundingSpecialist(
     );
   }
 
-  // ── Phase 2: convergence check (quant-conviction-only, G6-P2 minimal) ──
+  // ── Phase 2: convergence check (quant-conviction-only) ──────────────────
+  // Convergence-fail is NOT a regress candidate — PE addenda cannot repair a
+  // thin LP comp set. Emit honest-fail immediately with regressCount=0.
   const avgQuantConviction = computeAvgQuantConviction(quantOutput);
   if (avgQuantConviction < CONVERGENCE_MIN_QUANT_CONVICTION) {
     return buildHonestFailVerdict(
@@ -601,38 +611,123 @@ export async function runFundingSpecialist(
       deps,
       Date.now() - startMs,
       peRunId,
+      0,
     );
   }
 
-  // ── Phase 3: synthesis (Opus, enriched with market panel context) ───────
-  const opusAbort = new AbortController();
-  const opusTimer = setTimeout(
-    () =>
-      opusAbort.abort(
-        new Error(`Funding G6-P3a synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
-      ),
-    AI_GENERATION_TIMEOUT_MS,
-  );
+  // ── Phase 3: synthesis + quality regress loop (G6-P3b — IB req #9) ──────
+  // Each failed quality check re-runs PE (with prior addenda + failure reason)
+  // and both panels, then retries synthesis. Max MAX_SYNTHESIS_REGRESSES
+  // attempts; exhaustion → honest-fail. regressCount tracks completed regresses.
 
-  let output: FundingSpecialistOutput;
-  let cognitiveRunId: string;
-  try {
-    ({ output, cognitiveRunId } = await runSynthesisPanel(
-      ctx,
-      benchmarks,
-      comparables,
-      marketCalibration,
-      marketOutput,
-      deps,
-      opusAbort.signal,
-    ));
-    clearTimeout(opusTimer);
-  } catch (err: unknown) {
-    clearTimeout(opusTimer);
-    throw new Tier1UnavailableError(
-      `Funding G6-P2 synthesis failed: ${err instanceof Error ? err.message : String(err)}`,
-      err,
+  let regressCount = 0;
+  let currentPeOutput = peOutput;
+  let currentQuantOutput = quantOutput;
+  let currentMarketOutput = marketOutput;
+
+  let output!: FundingSpecialistOutput;
+  let cognitiveRunId = "";
+
+  while (true) {
+    const opusAbort = new AbortController();
+    const opusTimer = setTimeout(
+      () =>
+        opusAbort.abort(
+          new Error(`Funding G6-P3b synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+        ),
+      AI_GENERATION_TIMEOUT_MS,
     );
+
+    let loopOutput: FundingSpecialistOutput;
+    let loopRunId: string;
+    try {
+      ({ output: loopOutput, cognitiveRunId: loopRunId } = await runSynthesisPanel(
+        ctx,
+        benchmarks,
+        comparables,
+        marketCalibration,
+        currentMarketOutput,
+        deps,
+        opusAbort.signal,
+      ));
+      clearTimeout(opusTimer);
+    } catch (err: unknown) {
+      clearTimeout(opusTimer);
+      throw new Tier1UnavailableError(
+        `Funding G6-P3b synthesis failed: ${err instanceof Error ? err.message : String(err)}`,
+        err,
+      );
+    }
+
+    const validation = validateSynthesisOutput(loopOutput, comparables);
+    if (validation.pass) {
+      output = loopOutput;
+      cognitiveRunId = loopRunId;
+      break;
+    }
+
+    if (regressCount >= MAX_SYNTHESIS_REGRESSES) {
+      return buildHonestFailVerdict(
+        currentQuantOutput,
+        comparables,
+        ctx,
+        persona,
+        deps,
+        Date.now() - startMs,
+        peRunId,
+        regressCount,
+      );
+    }
+
+    regressCount++;
+
+    const regressCtx: RegressContext = {
+      priorQuantAddendum: currentPeOutput.quantAddendum,
+      priorMarketAddendum: currentPeOutput.marketAddendum,
+      regressReason: validation.regressReason!,
+    };
+
+    const regressAbort = new AbortController();
+    const regressTimer = setTimeout(
+      () =>
+        regressAbort.abort(
+          new Error(
+            `Funding G6-P3b regress ${regressCount} timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`,
+          ),
+        ),
+      AI_GENERATION_TIMEOUT_MS,
+    );
+
+    try {
+      const peResult = await runPromptEngineer(
+        ctx,
+        comparables,
+        deps,
+        regressAbort.signal,
+        regressCtx,
+      );
+      currentPeOutput = peResult.output;
+
+      [currentQuantOutput, currentMarketOutput] = await Promise.all([
+        runQuantPanel(
+          ctx,
+          benchmarks,
+          comparables,
+          marketCalibration,
+          deps,
+          regressAbort.signal,
+          currentPeOutput.quantAddendum,
+        ),
+        runMarketPanel(ctx, comparables, deps, regressAbort.signal, currentPeOutput.marketAddendum),
+      ]);
+      clearTimeout(regressTimer);
+    } catch (err: unknown) {
+      clearTimeout(regressTimer);
+      throw new Tier1UnavailableError(
+        `Funding G6-P3b regress ${regressCount} phase failed: ${err instanceof Error ? err.message : String(err)}`,
+        err,
+      );
+    }
   }
 
   // ── Phase 4: assemble verdict ────────────────────────────────────────────
@@ -677,7 +772,7 @@ export async function runFundingSpecialist(
         vendorsUsed: ["anthropic", "google"],
         cacheState: "miss",
         promptEngineerRunId: peRunId,
-        regressCount: 0,
+        regressCount,
       },
       generatedAt: deps.now ? deps.now.toISOString() : undefined,
     });
@@ -696,6 +791,6 @@ export async function runFundingSpecialist(
 // v1  (G1.5c)   chapel: single-shot Opus
 // G6-P2         N+1 panels (Gemini Flash + Sonnet) → vendor breadth ≥2 (req #7)
 // G6-P3a        Prompt Engineer pre-stage → meta.promptEngineerRunId (req #8)
-// G6-P3b        quality check + bounded regress loop (req #9)
+// G6-P3b        quality check + bounded regress loop → meta.regressCount (req #9)
 // G6-P3c        persistent verdict cache (ADR-004)
 // G6-P4         Tier-1 fully graduated (all 9 Intelligence Bar requirements green)

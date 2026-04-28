@@ -125,7 +125,7 @@ function buildSynthesisOutput(): FundingSpecialistOutput {
   return {
     dimensions: [
       { key: "runwayBufferMonths", low: 14, mid: 16, high: 18, conviction: "high", reasoning: "Runway buffer in range.", evidenceRefs: [0, 1] },
-      { key: "sizingOvershootPct", low: 0.15, mid: 0.20, high: 0.25, conviction: "moderate", reasoning: "Overshoot in range.", evidenceRefs: [0] },
+      { key: "sizingOvershootPct", low: 0.15, mid: 0.20, high: 0.25, conviction: "moderate", reasoning: "Overshoot is within range.", evidenceRefs: [0] },
       { key: "trancheGapMonths", low: 6, mid: 9, high: 12, conviction: "moderate", reasoning: "Tranche gap consistent.", evidenceRefs: [1] },
       { key: "revenueRampDelayMonths", low: 6, mid: 9, high: 12, conviction: "moderate", reasoning: "Revenue ramp grounded.", evidenceRefs: [0] },
       { key: "burnFlexDownPct", low: 0.15, mid: 0.20, high: 0.25, conviction: "high", reasoning: "Burn flex supported.", evidenceRefs: [0, 1] },
