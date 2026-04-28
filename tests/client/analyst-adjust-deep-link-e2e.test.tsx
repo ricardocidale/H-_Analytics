@@ -71,6 +71,8 @@ vi.mock("@/hooks/use-toast", () => ({
 import { TooltipProvider } from "../../client/src/components/ui/tooltip";
 import { AnalystVerdictDisplay } from "../../client/src/components/analyst/AnalystVerdictDisplay";
 import { PropertyUnderwritingTab } from "../../client/src/components/admin/model-defaults/PropertyUnderwritingTab";
+import { CompanyTab } from "../../client/src/components/admin/model-defaults/CompanyTab";
+import { MarketMacroTab } from "../../client/src/components/admin/model-defaults/MarketMacroTab";
 import { resolveFieldMountPoint } from "../../client/src/lib/analyst-mount-points";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 import {
@@ -297,5 +299,106 @@ describe("Analyst 'Adjust' CTA — end-to-end deep-link round-trip", () => {
       expect(window.location.search).toBe("");
     });
     expect(window.location.hash).toBe("#defaults-property/revenue");
+  });
+
+  // Task #775 — extend end-to-end coverage to the two other admin tabs
+  // that opted into the Analyst deep-link contract via `useFocusFieldFromUrl`.
+  // PropertyUnderwritingTab (above) covers the `defaults/revenue` mount
+  // point; the cases below cover `defaults/management-company` (CompanyTab)
+  // and `defaults/market-macro` (MarketMacroTab). Without these, a
+  // regression in the focus-hook wiring on either tab would only be
+  // caught by the resolver/hook unit tests in isolation, not as a
+  // mounted-tab end-to-end seam.
+  it("mounting CompanyTab with ?focus=baseManagementFee in the URL focuses the matching field", async () => {
+    // baseManagementFee is the canonical field id used by the
+    // `Base Management Fee` PctField in CompanyTab (testId
+    // "field-baseManagementFee"). Its registry mountPoint is
+    // `defaults/management-company`, which the resolver routes here.
+    const FIELD = "baseManagementFee";
+    window.history.replaceState(
+      null,
+      "",
+      `/admin?focus=${FIELD}#defaults-company/management-company`,
+    );
+
+    render(
+      React.createElement(
+        TooltipProvider,
+        null,
+        React.createElement(CompanyTab, {
+          draft: {} as Parameters<typeof CompanyTab>[0]["draft"],
+          onChange: () => {},
+          guidance: [],
+        }),
+      ),
+    );
+
+    const fieldDiv = await screen.findByTestId(`field-${FIELD}`);
+
+    // Same two-part contract as the PropertyUnderwritingTab case:
+    //   (a) scrollIntoView fired on the field's container, and
+    //   (b) the resulting document.activeElement lives inside that
+    //       same container (the Radix Slider thumb [tabindex=0]
+    //       inside the PctField is the natural focus target).
+    await waitFor(() => {
+      expect(lastScrolledElement).not.toBeNull();
+      expect(lastScrolledElement).toBe(fieldDiv);
+    });
+    await waitFor(() => {
+      const active = document.activeElement;
+      expect(active).not.toBeNull();
+      expect(active).not.toBe(document.body);
+      expect(fieldDiv.contains(active)).toBe(true);
+    });
+
+    // The hook must strip the ?focus param after success while leaving
+    // the hash anchor intact so the section stays linkable.
+    await waitFor(() => {
+      expect(window.location.search).toBe("");
+    });
+    expect(window.location.hash).toBe("#defaults-company/management-company");
+  });
+
+  it("mounting MarketMacroTab with ?focus=inflationRate in the URL focuses the matching field", async () => {
+    // inflationRate is the canonical field id used by the
+    // `Macro Inflation Rate` PctField in MarketMacroTab (testId
+    // "field-inflationRate"). Its registry mountPoint is
+    // `defaults/market-macro`, which the resolver routes here.
+    const FIELD = "inflationRate";
+    window.history.replaceState(
+      null,
+      "",
+      `/admin?focus=${FIELD}#defaults-company/market-macro`,
+    );
+
+    render(
+      React.createElement(
+        TooltipProvider,
+        null,
+        React.createElement(MarketMacroTab, {
+          draft: {} as Parameters<typeof MarketMacroTab>[0]["draft"],
+          onChange: () => {},
+          guidance: [],
+        }),
+      ),
+    );
+
+    const fieldDiv = await screen.findByTestId(`field-${FIELD}`);
+
+    await waitFor(() => {
+      expect(lastScrolledElement).not.toBeNull();
+      expect(lastScrolledElement).toBe(fieldDiv);
+    });
+    await waitFor(() => {
+      const active = document.activeElement;
+      expect(active).not.toBeNull();
+      expect(active).not.toBe(document.body);
+      expect(fieldDiv.contains(active)).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(window.location.search).toBe("");
+    });
+    expect(window.location.hash).toBe("#defaults-company/market-macro");
   });
 });
