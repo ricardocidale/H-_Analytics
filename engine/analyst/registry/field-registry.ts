@@ -21,11 +21,22 @@
  * Adding a field:
  *   1. Add an entry to FIELD_REGISTRY keyed by the exact field id the
  *      Specialist emits in `VerdictDimension.field`.
- *   2. Provide the human `label`, the display `unit` (matches the unit the
- *      Voice Renderer already uses: "%", "$", "mo", or "" for raw), and a
- *      `mountPoint` string identifying the UI surface (e.g.
+ *   2. Provide the human `label`, the display `unit` the Voice Renderer
+ *      will format the dimension's value/range in ("%", "$", "mo", or ""
+ *      for raw — same set the renderer's `formatNumber` already understands),
+ *      and a `mountPoint` string identifying the UI surface (e.g.
  *      "property-edit/capital-raise" or "defaults/revenue").
- *   3. The Voice Renderer will pick up the label automatically.
+ *   3. The Voice Renderer will pick up the label automatically; Specialists
+ *      read the unit from this registry too (see `getFieldRegistryEntry`),
+ *      so adding the entry is the only place the unit needs to live.
+ *
+ * Note on `unit`: this is the dimension's emit-unit (the unit of the analytic
+ * range the Specialist surfaces and the Voice Renderer formats), not always
+ * the form-field's natural unit. For example `capitalRaise1Amount` is a
+ * dollar field on the form, but the verdict dimension keyed to it is
+ * `runwayBufferMonths` — a derived signal measured in months — so the
+ * registry's `unit: "mo"` matches the dimension that gets emitted, which is
+ * the unit the renderer prints on screen.
  *
  * Mount points are deliberately kept as opaque strings rather than an enum so
  * downstream UI code can read them as routing slugs without coupling the
@@ -37,7 +48,12 @@ export type FieldUnit = "%" | "$" | "mo" | "date" | "";
 export interface FieldRegistryEntry {
   /** User-facing label authored by product copy. Title-cased, no unit suffix. */
   readonly label: string;
-  /** Display unit matching the Voice Renderer's formatter conventions. */
+  /**
+   * Display unit the Voice Renderer's `formatNumber` will use for the
+   * dimension keyed to this field. Equal to the `VerdictRange.unit` the
+   * Specialist emits — Specialists derive this value from the registry
+   * (rather than carrying their own copy) so the two cannot drift.
+   */
   readonly unit: FieldUnit;
   /** UI surface where this field is edited. Opaque slug, not a router path. */
   readonly mountPoint: string;
@@ -45,19 +61,25 @@ export interface FieldRegistryEntry {
 
 export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
   // ─── mgmt-co.funding (Capital Raise Specialist) ─────────────────────────
+  // Note: the `unit` on funding entries reflects the *dimension's* unit
+  // (runway in months, sizing overshoot in percent, tranche gap in months),
+  // not the form-field's natural unit. The form input "Capital Raise 1
+  // Amount" is denominated in dollars on screen, but the Analyst dimension
+  // it powers is `runwayBufferMonths`, which the Voice Renderer prints in
+  // months. See the file header for the full rationale.
   capitalRaise1Amount: {
     label: "Capital Raise 1 Amount",
-    unit: "$",
+    unit: "mo",
     mountPoint: "property-edit/capital-raise",
   },
   capitalRaise2Amount: {
     label: "Capital Raise 2 Amount",
-    unit: "$",
+    unit: "%",
     mountPoint: "property-edit/capital-raise",
   },
   capitalRaise2Date: {
     label: "Capital Raise 2 Date",
-    unit: "date",
+    unit: "mo",
     mountPoint: "property-edit/capital-raise",
   },
   revenueRampDelayMonths: {

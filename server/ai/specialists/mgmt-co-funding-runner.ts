@@ -55,22 +55,48 @@ import {
 } from "../../../engine/analyst/contracts/verdict";
 import { createVoiceRenderer } from "../../../engine/analyst/voice/voice-renderer";
 import type { AnalystWatchdogBenchmarks } from "@shared/schema";
+import { getFieldRegistryEntry } from "../../../engine/analyst/registry/field-registry";
 
 const FUNDING_MODEL_ID = DEFAULT_FUNDING_SPECIALIST_MODEL;
 const FUNDING_MAX_OUTPUT_TOKENS = 4_000;
 
 /**
- * Per-key form-field id (matches the Funding tab's `<input data-field="...">`)
- * and unit. Mirrors `DIMENSION_META` in funding-specialist.ts but kept local
- * so the runner doesn't depend on the Specialist's private internals.
+ * Per-key form-field id the Funding tab's `<input data-field="...">`
+ * dialog scrolls to. Mirrors `DIMENSION_META` in funding-specialist.ts but
+ * kept local so the runner doesn't depend on the Specialist's private
+ * internals.
+ *
+ * The dimension's display unit is intentionally NOT carried here: it is
+ * resolved from `FIELD_REGISTRY` in `llmDimensionToRaw` (see `unitFor`),
+ * matching the registry-as-source-of-truth discipline the Specialist uses.
+ * This keeps the runner's `range.unit` in lockstep with the Specialist's
+ * Tier-0 fallback path so the Voice Renderer formats the same dimension
+ * the same way regardless of whether v1 Tier-1 or Tier-0 produced it.
  */
-const FUNDING_DIMENSION_FIELDS: Readonly<Record<FundingDimensionKey, { field: string; unit: "mo" | "%" }>> = {
-  runwayBufferMonths: { field: "capitalRaise1Amount", unit: "mo" },
-  sizingOvershootPct: { field: "capitalRaise2Amount", unit: "%" },
-  trancheGapMonths: { field: "capitalRaise2Date", unit: "mo" },
-  revenueRampDelayMonths: { field: "revenueRampDelayMonths", unit: "mo" },
-  burnFlexDownPct: { field: "burnFlexDownPct", unit: "%" },
+const FUNDING_DIMENSION_FIELDS: Readonly<Record<FundingDimensionKey, { field: string }>> = {
+  runwayBufferMonths: { field: "capitalRaise1Amount" },
+  sizingOvershootPct: { field: "capitalRaise2Amount" },
+  trancheGapMonths: { field: "capitalRaise2Date" },
+  revenueRampDelayMonths: { field: "revenueRampDelayMonths" },
+  burnFlexDownPct: { field: "burnFlexDownPct" },
 };
+
+/**
+ * Resolve a dimension's display unit from the field registry. Throws on
+ * miss for the same reason the Specialist's `unitFor` does — see
+ * `engine/analyst/surface/mgmt-co/funding-specialist.ts` for the full
+ * rationale (a missing entry would mean the parity test was bypassed and
+ * the verdict's `range.unit` would be silently wrong).
+ */
+function unitFor(field: string): string {
+  const entry = getFieldRegistryEntry(field);
+  if (!entry) {
+    throw new Error(
+      `Funding v1 runner: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts so the Voice Renderer formats this dimension consistently.`,
+    );
+  }
+  return entry.unit;
+}
 
 /**
  * Maps the LLM's three-level conviction signal to a numeric quality score
@@ -136,7 +162,7 @@ function llmDimensionToRaw(
     low: llmDim.low,
     mid: llmDim.mid,
     high: llmDim.high,
-    unit: meta.unit,
+    unit: unitFor(meta.field),
   };
   const userValue = inputs[llmDim.key] ?? null;
   const severity = deriveSeverity(userValue, range);

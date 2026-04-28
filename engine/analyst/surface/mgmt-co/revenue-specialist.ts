@@ -23,47 +23,63 @@ import {
   type VoiceIntent,
 } from "../../contracts/verdict";
 import type { SpecialistFn, SpecialistOutput } from "../../router/surface-router";
+import { getFieldRegistryEntry } from "../../registry/field-registry";
 
 const RAW_QUALITY_SEED = 70;
 const BENCHMARK_SOURCE_LABEL = "L+B Revenue Benchmarks v1";
 
+/** Field-id metadata used to assemble per-dimension ranges + intents.
+ *  Mirrors `funding-specialist.ts`: the dimension's display unit is
+ *  intentionally NOT carried here — `unitFor` looks it up in
+ *  `FIELD_REGISTRY` so the registry stays the single source of truth. */
 const DIMENSION_META = {
   marketingRate: {
     field: "defaultCostRateMarketing",
     isNumericField: true,
-    unit: "%",
     benchmarkKey: "marketingRate",
     inputKey: "marketingRate",
   },
   fbRevenueShare: {
     field: "defaultRevShareFb",
     isNumericField: true,
-    unit: "%",
     benchmarkKey: "fbRevenueShare",
     inputKey: "fbRevenueShare",
   },
   eventsRevenueShare: {
     field: "defaultRevShareEvents",
     isNumericField: true,
-    unit: "%",
     benchmarkKey: "eventsRevenueShare",
     inputKey: "eventsRevenueShare",
   },
   otherRevenueShare: {
     field: "defaultRevShareOther",
     isNumericField: true,
-    unit: "%",
     benchmarkKey: "otherRevenueShare",
     inputKey: "otherRevenueShare",
   },
   cateringBoostPct: {
     field: "defaultCateringBoostPct",
     isNumericField: true,
-    unit: "%",
     benchmarkKey: "cateringBoostPct",
     inputKey: "cateringBoostPct",
   },
 } as const;
+
+/**
+ * Resolve a dimension's display unit from the field registry. Throws on
+ * miss so a missing registry entry surfaces as a parity-test failure
+ * rather than a silently-wrong `range.unit` in production. See
+ * `funding-specialist.ts:unitFor` for the full rationale.
+ */
+function unitFor(field: string): string {
+  const entry = getFieldRegistryEntry(field);
+  if (!entry) {
+    throw new Error(
+      `Revenue Specialist: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts so the Voice Renderer formats this dimension consistently.`,
+    );
+  }
+  return entry.unit;
+}
 
 type DimensionKey = keyof typeof DIMENSION_META;
 const DIMENSION_KEYS: readonly DimensionKey[] = Object.keys(DIMENSION_META) as DimensionKey[];
@@ -86,7 +102,7 @@ function rangeFor(key: DimensionKey, benchmarks: RevenueBenchmarks): VerdictRang
   ];
   const lo = band && Number.isFinite(band.low) ? band.low : 0;
   const hi = band && Number.isFinite(band.high) ? band.high : lo;
-  return { low: lo, mid: (lo + hi) / 2, high: hi, unit: meta.unit };
+  return { low: lo, mid: (lo + hi) / 2, high: hi, unit: unitFor(meta.field) };
 }
 
 function classifyIntent(

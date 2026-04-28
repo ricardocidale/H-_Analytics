@@ -27,9 +27,20 @@
  * entry.
  */
 import { describe, expect, it } from "vitest";
-import { FUNDING_SPECIALIST_TRACKED_FIELDS } from "@engine/analyst/surface/mgmt-co/funding-specialist";
-import { REVENUE_SPECIALIST_TRACKED_FIELDS } from "@engine/analyst/surface/mgmt-co/revenue-specialist";
+import {
+  FUNDING_SPECIALIST_TRACKED_FIELDS,
+  createFundingSpecialist,
+} from "@engine/analyst/surface/mgmt-co/funding-specialist";
+import {
+  REVENUE_SPECIALIST_TRACKED_FIELDS,
+  createRevenueSpecialist,
+} from "@engine/analyst/surface/mgmt-co/revenue-specialist";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
+import type { CapitalRaiseInputs } from "@engine/watchdog/capitalRaiseEvaluator";
+import type { RevenueInputs } from "@engine/watchdog/revenueEvaluator";
+import type { SpecialistContext } from "@engine/analyst/router/surface-router";
+import type { AnalystWatchdogBenchmarks } from "@shared/schema";
+import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
 
 interface SpecialistTrackedFields {
   readonly specialistId: string;
@@ -71,4 +82,112 @@ describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry"
       }
     });
   }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Unit parity — the unit a Specialist actually emits in `range.unit` MUST
+// match the registry entry for the same field. Catches the drift class the
+// task `Use the registry's display unit instead of duplicating it inside
+// each Specialist` was written to eliminate: a Specialist hard-coding its
+// own `unit` strings can silently disagree with the registry, so the Voice
+// Renderer formats numbers with one unit while the registry-driven UI label
+// implies another.
+//
+// The test exercises each Specialist with stressed inputs that drive every
+// dimension out-of-range, which is the path that produces a non-null
+// `range` (and therefore a `range.unit` to compare). For ok dimensions
+// `range` is null by design — there is nothing to assert there.
+
+const FUNDING_BENCHMARKS: AnalystWatchdogBenchmarks = {
+  runwayBufferMonthsLow: 6,
+  runwayBufferMonthsMid: 12,
+  runwayBufferMonthsHigh: 18,
+  sizingOvershootPctLow: 0.1,
+  sizingOvershootPctMid: 0.2,
+  sizingOvershootPctHigh: 0.3,
+  trancheGapMonthsLow: 6,
+  trancheGapMonthsMid: 9,
+  trancheGapMonthsHigh: 12,
+  revenueRampDelayMonthsLow: 3,
+  revenueRampDelayMonthsMid: 6,
+  revenueRampDelayMonthsHigh: 9,
+  burnFlexDownPctLow: 0.15,
+  burnFlexDownPctMid: 0.25,
+  burnFlexDownPctHigh: 0.35,
+} as unknown as AnalystWatchdogBenchmarks;
+
+// All values pinned below the low end of every band so every dimension
+// classifies as "below-range" → non-ok severity → range is preserved on
+// the emitted RawVerdictDimension.
+const FUNDING_STRESSED_INPUTS: CapitalRaiseInputs = {
+  runwayBufferMonths: 1,
+  sizingOvershootPct: 0.01,
+  trancheGapMonths: 1,
+  revenueRampDelayMonths: 1,
+  burnFlexDownPct: 0.01,
+};
+
+const REVENUE_BENCHMARKS: RevenueBenchmarks = {
+  marketingRate: { low: 0.04, mid: 0.06, high: 0.08 },
+  fbRevenueShare: { low: 0.25, mid: 0.32, high: 0.4 },
+  eventsRevenueShare: { low: 0.08, mid: 0.15, high: 0.22 },
+  otherRevenueShare: { low: 0.01, mid: 0.03, high: 0.05 },
+  cateringBoostPct: { low: 0.0, mid: 0.05, high: 0.15 },
+};
+
+const REVENUE_STRESSED_INPUTS: RevenueInputs = {
+  marketingRate: 0.5,
+  fbRevenueShare: 0.99,
+  eventsRevenueShare: 0.99,
+  otherRevenueShare: 0.99,
+  cateringBoostPct: 0.99,
+};
+
+const TEST_CONTEXT: SpecialistContext = {
+  persona: { segment: "L+B", tier: "luxury", market: "US" },
+  now: new Date("2026-04-26T00:00:00Z"),
+};
+
+const TEST_EVIDENCE_AS_OF = "2026-04-26";
+
+describe("FIELD_REGISTRY unit parity — Specialists emit registry-matching units", () => {
+  it("Funding Specialist Tier-0 path: every emitted range.unit equals FIELD_REGISTRY.unit", async () => {
+    const specialist = createFundingSpecialist(FUNDING_BENCHMARKS, {
+      evidenceAsOf: TEST_EVIDENCE_AS_OF,
+    });
+    const out = await specialist(FUNDING_STRESSED_INPUTS, TEST_CONTEXT);
+    expect(out.dimensions.length).toBeGreaterThan(0);
+    for (const dim of out.dimensions) {
+      const entry = getFieldRegistryEntry(dim.field);
+      expect(entry, `no FIELD_REGISTRY entry for "${dim.field}"`).not.toBeNull();
+      expect(
+        dim.range,
+        `Funding Specialist emitted range=null for stressed dimension "${dim.field}" — fixture drift means the unit assertion below cannot run; tighten the fixture so this dimension classifies as out-of-range.`,
+      ).not.toBeNull();
+      expect(
+        dim.range?.unit,
+        `Funding Specialist range.unit drifted from FIELD_REGISTRY for "${dim.field}". The Specialist must read its display unit from FIELD_REGISTRY (see funding-specialist.ts:unitFor) rather than carrying its own copy.`,
+      ).toBe(entry?.unit);
+    }
+  });
+
+  it("Revenue Specialist Tier-0 path: every emitted range.unit equals FIELD_REGISTRY.unit", async () => {
+    const specialist = createRevenueSpecialist(REVENUE_BENCHMARKS, {
+      evidenceAsOf: TEST_EVIDENCE_AS_OF,
+    });
+    const out = await specialist(REVENUE_STRESSED_INPUTS, TEST_CONTEXT);
+    expect(out.dimensions.length).toBeGreaterThan(0);
+    for (const dim of out.dimensions) {
+      const entry = getFieldRegistryEntry(dim.field);
+      expect(entry, `no FIELD_REGISTRY entry for "${dim.field}"`).not.toBeNull();
+      expect(
+        dim.range,
+        `Revenue Specialist emitted range=null for stressed dimension "${dim.field}" — fixture drift means the unit assertion below cannot run; tighten the fixture so this dimension classifies as out-of-range.`,
+      ).not.toBeNull();
+      expect(
+        dim.range?.unit,
+        `Revenue Specialist range.unit drifted from FIELD_REGISTRY for "${dim.field}". The Specialist must read its display unit from FIELD_REGISTRY (see revenue-specialist.ts:unitFor) rather than carrying its own copy.`,
+      ).toBe(entry?.unit);
+    }
+  });
 });

@@ -89,6 +89,7 @@ import {
   consultCognitive,
   type EngineClientDeps,
 } from "../../cognitive/engine-client";
+import { getFieldRegistryEntry } from "../../registry/field-registry";
 
 /** Default qualityScore handed to the Router; the Router's QualityScorer
  *  recomputes the authoritative value from evidence/range/persona, so this
@@ -104,13 +105,14 @@ const MAX_REGRESS_ATTEMPTS = 2;
 
 /** Field-id metadata used to assemble per-dimension ranges + intents.
  *  Names mirror the form-field ids the dialog scrolls to (consult-cognitive
- *  payload.field). Each dimension has a unit understood by the Voice
- *  Renderer ("%" = percent, "$" = currency, anything else = raw). */
+ *  payload.field). The dimension's display unit is intentionally NOT carried
+ *  here — it is sourced from `FIELD_REGISTRY` (see `unitFor` below) so the
+ *  registry stays the single source of truth and Specialist + registry
+ *  cannot drift on the unit a verdict gets formatted in. */
 const DIMENSION_META = {
   runwayBufferMonths: {
     field: "capitalRaise1Amount",
     isNumericField: true,
-    unit: "mo",
     lowKey: "runwayBufferMonthsLow",
     highKey: "runwayBufferMonthsHigh",
     inputKey: "runwayBufferMonths",
@@ -118,7 +120,6 @@ const DIMENSION_META = {
   sizingOvershootPct: {
     field: "capitalRaise2Amount",
     isNumericField: true,
-    unit: "%",
     lowKey: "sizingOvershootPctLow",
     highKey: "sizingOvershootPctHigh",
     inputKey: "sizingOvershootPct",
@@ -126,7 +127,6 @@ const DIMENSION_META = {
   trancheGapMonths: {
     field: "capitalRaise2Date",
     isNumericField: true,
-    unit: "mo",
     lowKey: "trancheGapMonthsLow",
     highKey: "trancheGapMonthsHigh",
     inputKey: "trancheGapMonths",
@@ -134,7 +134,6 @@ const DIMENSION_META = {
   revenueRampDelayMonths: {
     field: "revenueRampDelayMonths",
     isNumericField: true,
-    unit: "mo",
     lowKey: "revenueRampDelayMonthsLow",
     highKey: "revenueRampDelayMonthsHigh",
     inputKey: "revenueRampDelayMonths",
@@ -142,12 +141,31 @@ const DIMENSION_META = {
   burnFlexDownPct: {
     field: "burnFlexDownPct",
     isNumericField: true,
-    unit: "%",
     lowKey: "burnFlexDownPctLow",
     highKey: "burnFlexDownPctHigh",
     inputKey: "burnFlexDownPct",
   },
 } as const;
+
+/**
+ * Resolve a dimension's display unit from the field registry. Throws on
+ * miss because the field-registry parity test
+ * (`tests/analyst/voice/field-registry-parity.test.ts`) guarantees every
+ * field this Specialist emits has a registry entry — a missing entry at
+ * runtime would mean the parity check was bypassed and the verdict's
+ * `range.unit` would be silently wrong, which is exactly the drift class
+ * this lookup eliminates. Failing loud here turns that into a test signal
+ * rather than a UI bug.
+ */
+function unitFor(field: string): string {
+  const entry = getFieldRegistryEntry(field);
+  if (!entry) {
+    throw new Error(
+      `Funding Specialist: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts so the Voice Renderer formats this dimension consistently.`,
+    );
+  }
+  return entry.unit;
+}
 
 type DimensionKey = keyof typeof DIMENSION_META;
 
@@ -179,7 +197,7 @@ function rangeFor(
   );
   const lo = Number.isFinite(low) ? low : 0;
   const hi = Number.isFinite(high) ? high : lo;
-  return { low: lo, mid: (lo + hi) / 2, high: hi, unit: meta.unit };
+  return { low: lo, mid: (lo + hi) / 2, high: hi, unit: unitFor(meta.field) };
 }
 
 function classifyIntent(
