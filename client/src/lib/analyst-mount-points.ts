@@ -160,13 +160,23 @@ export function resolveFieldMountPoint(
  *
  * Add a new entry here when a new admin Defaults sub-section gets a
  * sidebar destination of its own. Keep it in sync with the
- * `defaults-…` arms of the `AdminSection` union in
- * `client/src/components/admin/AdminSidebar.tsx`.
+ * `defaults-…` arms (and the standalone `constants` arm) of the
+ * `AdminSection` union in `client/src/components/admin/AdminSidebar.tsx`.
+ *
+ * Steady-State sidebar group hosts four destinations: Management Company,
+ * Property, Market & Macro, and Constants. The first three live under
+ * `defaults-*` admin sections; Constants is a sibling section named
+ * `constants` (no `defaults-` prefix) — it's a peer Defaults destination
+ * but it owns authority-sourced model constants rather than admin-editable
+ * defaults, so it kept its standalone section name. Both name shapes are
+ * mapped here so a `defaults/<slug>` mountPoint reaches whichever sidebar
+ * section actually hosts the field (task #783).
  */
 const ADMIN_DEFAULTS_SECTION_MAP: Record<string, string> = {
   "management-company": "defaults-management-company",
   property: "defaults-property",
   "market-macro": "defaults-market-macro",
+  constants: "constants",
 };
 
 /**

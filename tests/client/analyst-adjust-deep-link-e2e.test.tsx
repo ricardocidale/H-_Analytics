@@ -73,6 +73,7 @@ import { AnalystVerdictDisplay } from "../../client/src/components/analyst/Analy
 import { PropertyUnderwritingTab } from "../../client/src/components/admin/model-defaults/PropertyUnderwritingTab";
 import { CompanyTab } from "../../client/src/components/admin/model-defaults/CompanyTab";
 import { MarketMacroTab } from "../../client/src/components/admin/model-defaults/MarketMacroTab";
+import { ModelConstantsTab } from "../../client/src/components/admin/model-defaults/ModelConstantsTab";
 import { resolveFieldMountPoint } from "../../client/src/lib/analyst-mount-points";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 import {
@@ -400,5 +401,128 @@ describe("Analyst 'Adjust' CTA — end-to-end deep-link round-trip", () => {
       expect(window.location.search).toBe("");
     });
     expect(window.location.hash).toBe("#defaults-company/market-macro");
+  });
+
+  // Task #783 — Constants is the fourth Steady-State sidebar destination,
+  // and its admin section is named `constants` (not `defaults-*`) because
+  // its rows are authority-sourced rather than admin-editable. The
+  // resolver maps `defaults/constants` slugs to that section, and
+  // `ModelConstantsTab` exposes a `data-field="<key>"` marker on each
+  // row so the focus hook can scroll/focus the matching constant.
+  // Without this case, a regression in either the resolver mapping or
+  // the tab's focus wiring would only surface in the unit tests, not
+  // as a mounted-tab end-to-end seam (mirrors the Property /
+  // CompanyTab / MarketMacroTab cases above).
+  it("mounting ModelConstantsTab with ?focus=<key> in the URL focuses the matching constant row", async () => {
+    const FIELD = "taxRate";
+    window.history.replaceState(null, "", `/admin?focus=${FIELD}#constants`);
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    // ModelConstantsTab fetches `/api/admin/model-constants?country=…`
+    // on mount and renders one `ConstantRowCard` per item. Return a
+    // single specialistOwned row keyed by the field-under-focus so the
+    // matching `[data-field="taxRate"]` marker appears in the DOM. The
+    // shape mirrors the fixture already used by
+    // `tests/client/model-constants-tab-readonly.test.tsx`.
+    const taxRow = {
+      key: FIELD,
+      label: "Income tax rate",
+      locality: "country+state" as const,
+      authority: "Country corporate income tax statute",
+      referenceUrl: null,
+      helperText: "Effective corporate income tax rate.",
+      requestedAt: { country: "United States", subdivision: null },
+      scope: {
+        locality: "country+state" as const,
+        country: "United States",
+        subdivision: null,
+      },
+      unit: "percent" as const,
+      factoryValue: 0.21,
+      factoryWasFallback: false,
+      effectiveValue: 0.21,
+      source: "factory" as const,
+      resolvedAt: "country" as const,
+      override: null,
+      specialistOwned: true,
+      specialistId: "constants.tax-research",
+      specialistLetter: "H",
+      specialistName: "Tax research",
+      lastRefreshedAt: "2026-04-20T00:00:00Z",
+      refreshCadenceDays: 90,
+      isStale: false,
+      latestResearchRun: {
+        id: 100,
+        asOf: "2026-04-20T00:00:00Z",
+        authority: "IRS Pub 542",
+        value: 0.21,
+        sourcesCount: 2,
+        isDifferentFromCurrent: false,
+      },
+      convictionSummary: "Tax research verified against IRS Pub 542",
+    };
+
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.startsWith("/api/admin/model-constants/scheduled-failures")) {
+        return new Response(
+          JSON.stringify({
+            count: 0,
+            since: "2026-01-01T00:00:00Z",
+            lastVisitedAt: null,
+            failures: [],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (url.startsWith("/api/admin/model-constants?")) {
+        return new Response(
+          JSON.stringify({
+            country: "United States",
+            subdivision: null,
+            items: [taxRow],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return new Response("", { status: 404 });
+    }) as unknown as typeof fetch;
+
+    render(
+      React.createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        React.createElement(
+          TooltipProvider,
+          null,
+          React.createElement(ModelConstantsTab),
+        ),
+      ),
+    );
+
+    // The row mounts after the GET resolves; once present, its
+    // `data-field="taxRate"` marker is the focus hook's first-priority
+    // lookup target. We assert against the same DOM node via the
+    // long-standing `row-model-constant-<key>` test id so the test
+    // doesn't bind to an internal selector convention.
+    const fieldDiv = await screen.findByTestId(`row-model-constant-${FIELD}`);
+
+    await waitFor(() => {
+      expect(lastScrolledElement).not.toBeNull();
+      expect(lastScrolledElement).toBe(fieldDiv);
+    });
+
+    // The hook strips the `?focus` param after success while leaving
+    // the hash anchor intact so the section stays linkable.
+    await waitFor(() => {
+      expect(window.location.search).toBe("");
+    });
+    expect(window.location.hash).toBe("#constants");
   });
 });

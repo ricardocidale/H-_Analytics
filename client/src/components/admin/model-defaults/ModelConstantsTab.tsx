@@ -31,6 +31,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import { Section } from "./FieldHelpers";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -136,6 +137,13 @@ function ScheduledRefreshFailuresBanner() {
 }
 
 export function ModelConstantsTab() {
+  // Honour `?focus=<key>` deep links produced by the Analyst verdict
+  // mount-point resolver. Constants slugs (`defaults/constants`) route
+  // here via `ADMIN_DEFAULTS_SECTION_MAP` in `analyst-mount-points.ts`,
+  // and each `ConstantRowCard` exposes `data-testid="field-<key>"` so
+  // the focus hook can scroll/focus the matching row on mount
+  // (task #783).
+  useFocusFieldFromUrl();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [country, setCountry] = useState<string>("United States");
@@ -338,6 +346,14 @@ function ConstantRowCard({
     <div
       className="rounded-lg border border-border bg-card p-4"
       data-testid={`row-model-constant-${row.key}`}
+      // `data-field` is the highest-priority marker for
+      // `useFocusFieldFromUrl()`'s field-element discovery (see
+      // `analyst-focus-field.ts`). Adding it here lets a
+      // `defaults/constants` Analyst deep-link with `?focus=<key>` scroll
+      // and focus the matching constant row without renaming the
+      // long-standing `row-model-constant-*` test id that the
+      // read-only-doctrine browser tests already rely on (task #783).
+      data-field={row.key}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0">

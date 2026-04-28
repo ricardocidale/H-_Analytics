@@ -218,9 +218,31 @@ describe("resolveFieldMountPoint", () => {
     expect(setAdminSectionMock).toHaveBeenCalledWith("defaults-market-macro");
   });
 
+  // Constants is the fourth Steady-State sidebar destination, but its
+  // admin section is named `constants` (no `defaults-` prefix) because
+  // its rows are authority-sourced model constants rather than
+  // admin-editable defaults. The resolver must still route a
+  // `defaults/constants` mountPoint there — without the entry below
+  // the slug would fall through to the legacy `defaults-property`
+  // fallback and the user would land on the Property tab (task #783).
+  it("resolves defaults/constants to the constants admin section", () => {
+    const target = resolveFieldMountPoint("defaults/constants", {
+      fieldId: "taxRate",
+    });
+    expect(target).not.toBeNull();
+    expect(target!.href).toBe("/admin?focus=taxRate#constants");
+    target!.navigate();
+    expect(setAdminSectionMock).toHaveBeenCalledWith("constants");
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/admin?focus=taxRate#constants",
+    );
+  });
+
   it("named-section defaults slugs resolve without a fieldId (no focus query)", () => {
     const target = resolveFieldMountPoint("defaults/management-company");
     expect(target!.href).toBe("/admin#defaults-management-company");
+    const constantsTarget = resolveFieldMountPoint("defaults/constants");
+    expect(constantsTarget!.href).toBe("/admin#constants");
   });
 
   it("preserves the legacy defaults-property fallback for unknown sub-area slugs", () => {
