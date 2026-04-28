@@ -50,6 +50,7 @@ import { SpecialistIdentityStorage } from "./specialist-identity";
 import { MediaStorageImpl, type MediaStorage } from "./media";
 import { SchedulerRunsStorageImpl, type SchedulerRunsStorage } from "./scheduler-runs";
 import { StorageDriftSweepRunsStorageImpl, type StorageDriftSweepRunsStorage } from "./storage-drift-sweep-runs";
+import { MarketSignalsStorage } from "./market-signals";
 
 export interface IStorage extends
   UserStorage,
@@ -77,7 +78,8 @@ export interface IStorage extends
   SpecialistIdentityStorage,
   MediaStorage,
   SchedulerRunsStorage,
-  StorageDriftSweepRunsStorage {
+  StorageDriftSweepRunsStorage,
+  MarketSignalsStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -122,6 +124,7 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => new MediaStorageImpl(),
     () => new SchedulerRunsStorageImpl(),
     () => new StorageDriftSweepRunsStorageImpl(),
+    () => new MarketSignalsStorage(),
   ] as const;
 }
 

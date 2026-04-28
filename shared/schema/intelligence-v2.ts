@@ -856,3 +856,125 @@ export const insertTaxBulletinCacheSchema = createInsertSchema(taxBulletinCache)
 });
 export type TaxBulletinCache = typeof taxBulletinCache.$inferSelect;
 export type InsertTaxBulletinCache = z.infer<typeof insertTaxBulletinCacheSchema>;
+
+// ---------------------------------------------------------------------------
+// Submarket Supply Pipeline Projects — Task #810.
+//
+// Normalized list of comp-hotel new-supply projects in a property's
+// submarket. Specialist-supplied (Daniela / property.risk-intelligence in
+// the AI Intelligence catalog), refreshed on demand via the Analyst
+// affordance. One row per project. `propertyId` anchors the project to the
+// subject asset's submarket; `submarketKey` is a free-form locality slug
+// (e.g. "austin-downtown-tx") so the same row set can be re-used across
+// nearby properties without duplication.
+//
+// Status values: "announced" | "planned" | "under_construction" |
+// "opened_recent" — the four buckets the property risk overlay reasons
+// over. Status drives the pipeline-pressure score weighting (see
+// `shared/market-intelligence-pipeline.ts`).
+//
+// `conviction` mirrors the other Specialist-emitted signals: "high" |
+// "medium" | "low". `lastRefreshedAt` is the canonical "as of" timestamp
+// the UI chip renders.
+// ---------------------------------------------------------------------------
+export const submarketSupplyProjects = pgTable("submarket_supply_projects", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  propertyId: integer("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  submarketKey: text("submarket_key").notNull(),
+  name: text("name").notNull(),
+  brand: text("brand"),
+  segment: text("segment"),
+  keyCount: integer("key_count").notNull().default(0),
+  status: text("status").notNull().default("planned"),
+  openingYear: integer("opening_year"),
+  distanceKm: real("distance_km"),
+  source: text("source"),
+  sourceUrl: text("source_url"),
+  conviction: text("conviction").notNull().default("medium"),
+  notes: text("notes"),
+  lastRefreshedAt: timestamp("last_refreshed_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("submarket_supply_property_idx").on(table.propertyId),
+  index("submarket_supply_submarket_idx").on(table.submarketKey),
+  index("submarket_supply_status_idx").on(table.status),
+]);
+
+export const insertSubmarketSupplyProjectSchema = createInsertSchema(submarketSupplyProjects).pick({
+  propertyId: true, submarketKey: true, name: true, brand: true, segment: true,
+  keyCount: true, status: true, openingYear: true, distanceKm: true,
+  source: true, sourceUrl: true, conviction: true, notes: true, lastRefreshedAt: true,
+});
+export type SubmarketSupplyProject = typeof submarketSupplyProjects.$inferSelect;
+export type InsertSubmarketSupplyProject = z.infer<typeof insertSubmarketSupplyProjectSchema>;
+
+export const SUPPLY_PROJECT_STATUSES = ["announced", "planned", "under_construction", "opened_recent"] as const;
+export type SupplyProjectStatus = typeof SUPPLY_PROJECT_STATUSES[number];
+
+// ---------------------------------------------------------------------------
+// STR Ordinance Events — Task #810.
+//
+// Chronological list of short-term-rental rule changes (and proposed
+// legislation) for a locality. Specialist-supplied. `eventDate` is the
+// ordinance / proposal date (text so partial dates like "2024-Q3" are
+// allowed). `eventType` is the high-level kind ("ordinance_passed" |
+// "ordinance_proposed" | "court_ruling" | "ban" | "cap_change" |
+// "tax_change") and `direction` records the trend impact on STR
+// operations: "tightening" | "loosening" | "stable".
+//
+// `localityKey` is a free-form slug ("austin-tx", "miami-beach-fl") so
+// multiple properties in the same locality can re-use the same event set.
+// `propertyId` anchors the per-property STR risk view in the UI; the
+// per-property anchor is what the Risk Specialist (Task #801) overlays.
+// ---------------------------------------------------------------------------
+export const strOrdinanceEvents = pgTable("str_ordinance_events", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  propertyId: integer("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+  localityKey: text("locality_key").notNull(),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  eventDate: text("event_date").notNull(),
+  eventType: text("event_type").notNull(),
+  direction: text("direction").notNull().default("stable"),
+  source: text("source"),
+  sourceUrl: text("source_url"),
+  conviction: text("conviction").notNull().default("medium"),
+  /** Snapshot of currently-binding STR rules at the time of this event. */
+  rulesSnapshot: jsonb("rules_snapshot").$type<{
+    allowed?: "allowed" | "restricted" | "banned";
+    ownerOccupancyRequired?: boolean;
+    permitCap?: number | null;
+    primaryResidenceOnly?: boolean;
+    daysPerYearCap?: number | null;
+    lodgingTaxParity?: boolean;
+  }>(),
+  lastRefreshedAt: timestamp("last_refreshed_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("str_ordinance_property_idx").on(table.propertyId),
+  index("str_ordinance_locality_idx").on(table.localityKey),
+  index("str_ordinance_date_idx").on(table.eventDate),
+]);
+
+export const insertStrOrdinanceEventSchema = createInsertSchema(strOrdinanceEvents).pick({
+  propertyId: true, localityKey: true, title: true, summary: true,
+  eventDate: true, eventType: true, direction: true,
+  source: true, sourceUrl: true, conviction: true, rulesSnapshot: true,
+  lastRefreshedAt: true,
+});
+export type StrOrdinanceEvent = typeof strOrdinanceEvents.$inferSelect;
+export type InsertStrOrdinanceEvent = z.infer<typeof insertStrOrdinanceEventSchema>;
+
+export const STR_DIRECTIONS = ["tightening", "loosening", "stable"] as const;
+export type StrDirection = typeof STR_DIRECTIONS[number];
+
+export const STR_EVENT_TYPES = [
+  "ordinance_passed", "ordinance_proposed", "court_ruling",
+  "ban", "cap_change", "tax_change",
+] as const;
+export type StrEventType = typeof STR_EVENT_TYPES[number];
+
+export const SIGNAL_CONVICTION_LEVELS = ["high", "medium", "low"] as const;
+export type SignalConviction = typeof SIGNAL_CONVICTION_LEVELS[number];

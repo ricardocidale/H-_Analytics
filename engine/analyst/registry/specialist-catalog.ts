@@ -202,6 +202,11 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       // Specialist gets its own deep-link target without violating the
       // inflation-cascade rule (`.claude/rules/inflation-cascade.md`).
       { key: "propertyInflationRate", label: "Property inflation override", surface: "property-edit", surfaceAnchor: "other-assumptions" },
+      // NOTE (Task #810): the property-level `strExempt` flag is operator-
+      // owned and gates the STR Restriction Trends panel — it is NOT a
+      // verdict field this Specialist emits, so it is intentionally not
+      // listed here (the field-registry parity test enforces that every
+      // candidate entry resolves to a TRACKED_FIELD on the Specialist).
     ],
     prerequisites: [],
     status: "built",

@@ -215,6 +215,13 @@ export const properties = pgTable("properties", {
   managementType: text("management_type"),
   onMunicipalSewer: boolean("on_municipal_sewer").default(false),
 
+  // STR (short-term-rental) regulatory exemption — Task #810.
+  // True when the subject asset is a licensed hotel with a Certificate of
+  // Occupancy or otherwise outside the locality's STR ordinance scope. The
+  // STR Restriction Trends panel uses this to render an "Exempt" vs.
+  // "Exposed" badge and to drive the Risk Specialist (Task #801) overlay.
+  strExempt: boolean("str_exempt").notNull().default(false),
+
   // Conversion cost fields — residential → hotel capital stack
   conversionCost: real("conversion_cost"),
   roomAdditionCost: real("room_addition_cost"),
@@ -390,6 +397,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   lastRenovationYear: true,
   managementType: true,
   onMunicipalSewer: true,
+  strExempt: true,
   conversionCost: true,
   roomAdditionCost: true,
   eventVenueCost: true,

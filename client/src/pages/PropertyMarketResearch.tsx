@@ -11,7 +11,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import {
   IconRefreshCw, IconMapPin, IconBookOpen,
   IconFileDown, IconTrendingUp, IconDollarSign,
-  IconBarChart3, IconPieChart,
+  IconBarChart3, IconPieChart, IconBuilding,
 } from "@/components/icons";
 import { useRoute } from "wouter";
 import { downloadResearchPDF } from "@/lib/exports/researchPdfExport";
@@ -25,6 +25,7 @@ import { MarketRateBenchmark } from "@/components/property-research/MarketRateBe
 import MethodologyTransparencyPanel from "@/components/research/MethodologyTransparencyPanel";
 import { motion } from "framer-motion";
 import { MarketTab, RevenueTab, FinancialTab, OperatingTab, SourcesTab } from "@/components/research/MarketResearchTabs";
+import { PipelineStrTab } from "@/components/research/PipelineStrTab";
 import { card } from "@/components/research/research-chart-shared";
 
 export default function PropertyMarketResearch() {
@@ -224,6 +225,9 @@ export default function PropertyMarketResearch() {
                 <TabsTrigger value="sources" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
                   <IconBookOpen className="w-3.5 h-3.5" /> Sources
                 </TabsTrigger>
+                <TabsTrigger value="pipeline-str" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs" data-testid="tab-pipeline-str">
+                  <IconBuilding className="w-3.5 h-3.5" /> Pipeline & STR
+                </TabsTrigger>
                 <TabsTrigger value="criteria" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
                   <IconPieChart className="w-3.5 h-3.5" /> Criteria
                 </TabsTrigger>
@@ -244,6 +248,16 @@ export default function PropertyMarketResearch() {
               </TabsContent>
               <TabsContent value="sources">
                 <SourcesTab content={content as Parameters<typeof SourcesTab>[0]['content']} />
+              </TabsContent>
+              <TabsContent value="pipeline-str">
+                <PipelineStrTab
+                  propertyId={propertyId}
+                  baselineRevpar={
+                    typeof property.startAdr === "number" && typeof property.startOccupancy === "number"
+                      ? property.startAdr * property.startOccupancy
+                      : undefined
+                  }
+                />
               </TabsContent>
               <TabsContent value="criteria">
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>

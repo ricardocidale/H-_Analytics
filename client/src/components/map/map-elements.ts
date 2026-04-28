@@ -89,7 +89,18 @@ export function createPopupHTML(property: any) {
           <strong>${formatMoney(property.startAdr)}</strong> ADR
         </div>
       </div>
-      <div data-popup-actions style="margin-top:10px;padding-top:8px;border-top:1px solid hsl(var(--border));display:flex;align-items:center;gap:8px;">
+      <div data-popup-risk-signals style="margin-top:10px;padding-top:8px;border-top:1px solid hsl(var(--border));display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <a
+          href="/property/${property.id}/research#pipeline-str"
+          data-testid="link-popup-risk-signals-${property.id}"
+          style="display:inline-flex;align-items:center;gap:4px;background:hsl(var(--primary) / 0.10);color:hsl(var(--primary));font-size:11px;padding:3px 9px;border-radius:9999px;font-weight:600;text-decoration:none;border:1px solid hsl(var(--primary) / 0.20);"
+          title="Submarket Supply Pipeline + STR Restriction Trends — sourced by Risk Intelligence"
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+          Pipeline + STR
+        </a>
+      </div>
+      <div data-popup-actions style="margin-top:8px;display:flex;align-items:center;gap:8px;">
         <a href="/property/${property.id}" style="color:hsl(var(--primary));font-size:12px;font-weight:600;text-decoration:none;">View Details →</a>
       </div>
     </div>

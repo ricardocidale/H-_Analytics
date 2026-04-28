@@ -73,6 +73,9 @@ export const SEED_PROPERTY_DEFAULTS = {
   streetAddress2: null,
   nightlyPropertyRate: null,
 
+  // STR regulatory exemption (set by ops/admin, exercised in seed)
+  strExempt: false,
+
   // Property physical
   onMunicipalSewer: false,
   commercialKitchenCost: null,
