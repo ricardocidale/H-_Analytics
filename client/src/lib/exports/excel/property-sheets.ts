@@ -160,6 +160,10 @@ export async function exportPropertyCashFlow(
     ["    Property Operations & Maintenance", ...yearly.map((y) => y.expensePropertyOps)],
     ["    Utilities (Variable)", ...yearly.map((y) => y.expenseUtilitiesVar)],
     ["    Utilities (Fixed)", ...yearly.map((y) => y.expenseUtilitiesFixed)],
+    // ADR-009 Phase 1: USALI 12th Edition EWW Schedule (Energy, Water & Waste).
+    // The yearly aggregator's `expenseUtilities` equals the engine's `expenseEWW`
+    // (= expenseUtilitiesVar + expenseUtilitiesFixed) per yearlyAggregator.ts.
+    ["    Energy, Water & Waste", ...yearly.map((y) => y.expenseUtilities)],
     ["    Property Taxes", ...yearly.map((y) => y.expenseTaxes)],
     ["    Insurance", ...yearly.map((y) => y.expenseInsurance)],
     ["    Administrative & General", ...yearly.map((y) => y.expenseAdmin)],
@@ -267,6 +271,10 @@ export async function exportFullPropertyWorkbook(
     ["    Property Operations & Maintenance", ...yearly.map((y) => y.expensePropertyOps)],
     ["    Utilities (Variable)", ...yearly.map((y) => y.expenseUtilitiesVar)],
     ["    Utilities (Fixed)", ...yearly.map((y) => y.expenseUtilitiesFixed)],
+    // ADR-009 Phase 1: USALI 12th Edition EWW Schedule (Energy, Water & Waste).
+    // The yearly aggregator's `expenseUtilities` equals the engine's `expenseEWW`
+    // (= expenseUtilitiesVar + expenseUtilitiesFixed) per yearlyAggregator.ts.
+    ["    Energy, Water & Waste", ...yearly.map((y) => y.expenseUtilities)],
     ["    Property Taxes", ...yearly.map((y) => y.expenseTaxes)],
     ["    Insurance", ...yearly.map((y) => y.expenseInsurance)],
     ["    Administrative & General", ...yearly.map((y) => y.expenseAdmin)],

@@ -280,6 +280,10 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
       rows.push({ category: "IT & Technology", values: years.map((_, i) => c(i)?.expenseIT ?? 0), indent: 1 });
       rows.push({ category: "Insurance", values: years.map((_, i) => c(i)?.expenseInsurance ?? 0), indent: 1 });
       rows.push({ category: "Utilities", values: years.map((_, i) => (c(i)?.expenseUtilitiesVar ?? 0) + (c(i)?.expenseUtilitiesFixed ?? 0)), indent: 1 });
+      // ADR-009 Phase 1: USALI 12th Edition EWW Schedule. The yearly aggregator's
+      // `expenseUtilities` field equals the engine's `expenseEWW`
+      // (= expenseUtilitiesVar + expenseUtilitiesFixed) per yearlyAggregator.ts.
+      rows.push({ category: "Energy, Water & Waste", values: years.map((_, i) => c(i)?.expenseUtilities ?? 0), indent: 1, tooltip: "USALI 12th Edition EWW Schedule: Electricity, Water & Waste aggregate" });
       rows.push({ category: "Other Undistributed", values: years.map((_, i) => c(i)?.expenseOtherCosts ?? 0), indent: 1 });
       pushRow({ category: "= Sum of undistributed operating expenses", values: years.map((_, i) => undistExpTotal(i)), indent: 1, isFormula: true });
     }
