@@ -5,6 +5,8 @@ import { IconShieldCheck } from "@/components/icons";
 import { useAuth } from "@/lib/auth";
 import { Section, PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
+import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
@@ -61,11 +63,25 @@ interface PropertyUnderwritingTabProps {
   onAnalystRefresh?: (fields?: string[]) => void;
   analystRunning?: boolean;
   analystCooldownMs?: number;
+  // G2-v1: Revenue Specialist verdict path
+  onRevenueAnalystRefresh?: () => void;
+  revenueAnalystRunning?: boolean;
+  revenueAnalystCooldownMs?: number;
+  revenueVerdict?: import("@engine/analyst/contracts/verdict").AnalystVerdict | null;
 }
 
 export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
-  const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
-    props;
+  const {
+    draft,
+    onChange,
+    onAnalystRefresh,
+    analystRunning,
+    analystCooldownMs,
+    onRevenueAnalystRefresh,
+    revenueAnalystRunning,
+    revenueAnalystCooldownMs: _revenueAnalystCooldownMs,
+    revenueVerdict,
+  } = props;
   const { isSuperAdmin } = useAuth();
 
   // Honour `?focus=<fieldId>` deep links produced by the Analyst verdict
@@ -209,6 +225,23 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
         )}
       </div>
 
+      {/* Revenue Analyst CTA — fires the G2-v1 Revenue Specialist */}
+      {onRevenueAnalystRefresh && (
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm text-muted-foreground">
+            The Analyst evaluates your ancillary revenue mix (F&amp;B, Events, Other, Catering, Marketing) against boutique-luxury comp sets.
+          </p>
+          <AnalystButton
+            onClick={onRevenueAnalystRefresh}
+            isRunning={revenueAnalystRunning ?? false}
+            disabled={false}
+            tooltip="Have the Analyst review the revenue ancillary mix"
+            size="sm"
+            dataTestId="button-ask-analyst-revenue-mix"
+          />
+        </div>
+      )}
+
       <Section grid title="Revenue Assumptions" description="Default revenue parameters pre-filled when adding a new hotel to the portfolio.">
         <DollarField
           label="Starting ADR"
@@ -311,6 +344,13 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           researchRange="5%–20%"
         />
       </Section>
+
+      {/* Revenue Specialist verdict — renders after the user runs the Analyst */}
+      {revenueVerdict && (
+        <div data-testid="revenue-verdict-section">
+          <AnalystVerdictDisplay verdict={revenueVerdict} />
+        </div>
+      )}
 
       <Section grid title="USALI Operating Cost Rates" description="Uniform System of Accounts for the Lodging Industry — expense rates as a percentage of total revenue.">
         <PctField

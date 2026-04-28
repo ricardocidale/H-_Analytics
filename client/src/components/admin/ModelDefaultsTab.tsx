@@ -109,6 +109,23 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
       }),
   });
 
+  // G2-v1 Revenue Specialist — routes through the v1 single-shot Opus path
+  // when the user presses the Analyst button in the Revenue ancillary section.
+  // Wired with `entityValues: saved` so the client-side preflight can detect
+  // missing required fields before burning the 60s server cooldown.
+  const revenueRefresh = useAnalystRefresh({
+    scope: "global-assumptions",
+    specialistId: "mgmt-co.revenue",
+    invalidateKeys: [guidanceQueryKey],
+    entityValues: saved as Record<string, unknown> | undefined,
+    onMissingRequiredFields: (info) =>
+      setMissingFieldsPrompt({
+        open: true,
+        specialistId: info.specialistId,
+        missingFields: info.missingFields,
+      }),
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (updates: Draft) => {
       const res = await fetch("/api/global-assumptions", {
@@ -274,6 +291,10 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               onAnalystRefresh={analyst.triggerRefresh}
               analystRunning={analyst.running}
               analystCooldownMs={analyst.cooldownRemainingMs}
+              onRevenueAnalystRefresh={revenueRefresh.triggerRefresh}
+              revenueAnalystRunning={revenueRefresh.running}
+              revenueAnalystCooldownMs={revenueRefresh.cooldownRemainingMs}
+              revenueVerdict={revenueRefresh.lastVerdict}
             />
           </TabsContent>
         )}
