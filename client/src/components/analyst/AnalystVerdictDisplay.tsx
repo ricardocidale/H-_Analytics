@@ -113,10 +113,32 @@ function DimensionCard({
   // Hidden when the field isn't registered (no broken-link risk on
   // fallback-heuristic fields) or when the slug requires context the
   // surface doesn't have (e.g. property-edit slug on a company surface).
+  // The dimension's `field` is threaded through as `fieldId` so the target
+  // URL carries `?focus=<fieldId>` and the destination page can scroll +
+  // focus the matching form input rather than only the section anchor.
   const registryEntry = getFieldRegistryEntry(dimension.field);
   const mountTarget = registryEntry
-    ? resolveFieldMountPoint(registryEntry.mountPoint, { propertyId })
+    ? resolveFieldMountPoint(registryEntry.mountPoint, {
+        propertyId,
+        fieldId: dimension.field,
+      })
     : null;
+
+  // Default click handler for verdict actions when the parent didn't pass
+  // an explicit `onAction`. For "consult-cognitive" (the "Adjust" CTA),
+  // this jumps the user to the field's mount point — closing the
+  // registry's deep-link loop (task #751). All other action kinds remain
+  // inert without an explicit handler so a missing wire-up is loud rather
+  // than silently navigating somewhere unexpected.
+  const handleAction = (action: VerdictAction) => {
+    if (onAction) {
+      onAction(dimension, action);
+      return;
+    }
+    if (action.kind === "consult-cognitive" && mountTarget) {
+      mountTarget.navigate();
+    }
+  };
 
   return (
     <motion.div
@@ -233,7 +255,7 @@ function DimensionCard({
               size="sm"
               variant={action.kind === "dismiss" ? "ghost" : "outline"}
               className="h-7 text-xs"
-              onClick={() => onAction?.(dimension, action)}
+              onClick={() => handleAction(action)}
               data-testid={`button-verdict-action-${dimension.field}-${action.kind}`}
             >
               {action.label}

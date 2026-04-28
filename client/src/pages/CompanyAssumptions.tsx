@@ -78,6 +78,7 @@ import { useCompanyAnalyst } from "@/hooks/useCompanyAnalyst";
 import { useAnalystRefresh } from "@/components/analyst/useAnalystRefresh";
 import { AnalystUnsavedChangesDialog } from "@/components/analyst/AnalystUnsavedChangesDialog";
 import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
+import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 
 const getInitialTab = (): TabKey => {
   if (typeof window === "undefined") return "funding";
@@ -95,6 +96,12 @@ const getInitialTab = (): TabKey => {
 };
 
 export default function CompanyAssumptions() {
+  // Honour `?focus=<fieldId>` deep links produced by the Analyst verdict
+  // mount-point resolver (task #751). The funding-tab `data-field` markers
+  // for capital-raise dimensions live in this surface, so the Analyst's
+  // "Adjust" CTA scrolls + focuses the matching input here.
+  useFocusFieldFromUrl();
+
   const { data: global, isLoading, isError } = useGlobalAssumptions();
   const { data: properties = [] } = useProperties();
   const { data: allFeeCategories = [] } = useAllFeeCategories();

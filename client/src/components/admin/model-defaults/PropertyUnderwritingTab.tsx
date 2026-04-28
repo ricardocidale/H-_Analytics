@@ -5,6 +5,7 @@ import { IconShieldCheck } from "@/components/icons";
 import { useAuth } from "@/lib/auth";
 import { Section, PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
+import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
 import {
@@ -66,6 +67,13 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
   const { draft, onChange, onAnalystRefresh, analystRunning, analystCooldownMs } =
     props;
   const { isSuperAdmin } = useAuth();
+
+  // Honour `?focus=<fieldId>` deep links produced by the Analyst verdict
+  // mount-point resolver (task #751). Revenue Specialist dimensions whose
+  // registry mountPoint is `defaults/revenue` land here; this hook scrolls
+  // + focuses the matching `data-testid="field-<id>"` input on mount.
+  useFocusFieldFromUrl();
+
   const acq = draft.standardAcqPackage ?? {};
   const debt = draft.debtAssumptions ?? {};
   const analystEnabled = typeof onAnalystRefresh === "function";

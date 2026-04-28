@@ -67,12 +67,19 @@ import {
 } from "@/components/property-edit";
 import RiskInsightsPanel from "@/components/property-edit/RiskInsightsPanel";
 import RegulatoryNotesPanel from "@/components/property-edit/RegulatoryNotesPanel";
+import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 
 export default function PropertyEdit() {
   const [, params] = useRoute("/property/:id/edit");
   const [, setLocation] = useLocation();
   const propertyId = params?.id ? parseInt(params.id) : 0;
-  
+
+  // Honour `?focus=<fieldId>` deep links produced by the Analyst verdict
+  // mount-point resolver (task #751). When the user clicks "Adjust" on a
+  // verdict dimension whose registry mountPoint resolves here, this hook
+  // scrolls + focuses the matching form field once the page renders.
+  useFocusFieldFromUrl();
+
   const { data: property, isLoading, isError } = useProperty(propertyId);
   const { data: globalAssumptions } = useGlobalAssumptions();
   const { data: research } = useMarketResearch("property", propertyId);

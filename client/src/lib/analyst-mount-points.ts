@@ -21,12 +21,22 @@
  *   - Unknown slugs return `null`, matching the registry's "fail-closed"
  *     contract for fields that haven't yet been registered.
  *
+ * Field-focus (task #751):
+ *   When `ctx.fieldId` is supplied, the resolver appends a `?focus=<fieldId>`
+ *   query param to the target URL. The destination page reads it via
+ *   `useFocusFieldFromUrl()` (see `analyst-focus-field.ts`) and scrolls /
+ *   focuses the matching form field. Closes the loop the field registry's
+ *   `mountPoint` was designed to enable: one click on an Analyst verdict
+ *   carries the user to the exact field that needs attention rather than
+ *   only the section that contains it.
+ *
  * The resolver returns both an `href` (for browser-native open-in-new-tab via
  * an anchor) and an `onClick` callback (for SPA-friendly in-page navigation),
  * so consumers can render a real `<a>` while preventing a full page reload.
  */
 import { navigate } from "wouter/use-browser-location";
 import { setAdminSection } from "@/lib/admin-nav";
+import { FOCUS_QUERY_PARAM } from "@/lib/analyst-focus-field";
 
 export interface MountPointTarget {
   /** Canonical URL for the field's edit surface. Safe for `<a href>` and
@@ -42,6 +52,15 @@ export interface MountPointResolverContext {
   /** The property currently in scope, when the surface is property-scoped.
    *  Required for `property-edit/*` slugs; ignored otherwise. */
   readonly propertyId?: string | number;
+  /** When supplied, the target URL carries `?focus=<fieldId>` so the
+   *  destination page can scroll/focus the matching form field. Optional —
+   *  callers that only want to navigate to the section can omit it. */
+  readonly fieldId?: string;
+}
+
+function focusQuery(fieldId: string | undefined): string {
+  if (!fieldId) return "";
+  return `?${FOCUS_QUERY_PARAM}=${encodeURIComponent(fieldId)}`;
 }
 
 /**
@@ -59,7 +78,7 @@ export function resolveFieldMountPoint(
   if (slug.startsWith("property-edit/")) {
     if (ctx.propertyId == null || ctx.propertyId === "") return null;
     const section = slug.slice("property-edit/".length);
-    const href = `/property/${ctx.propertyId}/edit${section ? `#${section}` : ""}`;
+    const href = `/property/${ctx.propertyId}/edit${focusQuery(ctx.fieldId)}${section ? `#${section}` : ""}`;
     return {
       href,
       navigate: () => navigate(href),
@@ -72,10 +91,19 @@ export function resolveFieldMountPoint(
     // surface — that is where revenue/cost defaults live. The `#<section>`
     // hash carries the Specialist sub-area so future hash-aware admin code
     // can scroll to the right anchor without a contract change here.
-    const href = `/admin${section ? `#defaults-property/${section}` : ""}`;
+    const href = `/admin${focusQuery(ctx.fieldId)}${section ? `#defaults-property/${section}` : ""}`;
     return {
       href,
-      navigate: () => setAdminSection("defaults-property"),
+      navigate: () => {
+        // Update the admin section state first (renders the right tab),
+        // then push the URL so the focus query param actually lands on
+        // window.location for the destination's focus hook to read.
+        // setAdminSection itself navigates to "/admin" when called from
+        // off-admin; we follow it with our href to restore the focus
+        // query param in either case.
+        setAdminSection("defaults-property");
+        if (ctx.fieldId) navigate(href);
+      },
     };
   }
 

@@ -68,4 +68,57 @@ describe("resolveFieldMountPoint", () => {
       resolveFieldMountPoint("property-edit/capital-raise", { propertyId: "" }),
     ).toBeNull();
   });
+
+  // --- Field-focus deep links (task #751) ----------------------------------
+  // The resolver appends `?focus=<fieldId>` so the destination page's
+  // `useFocusFieldFromUrl()` hook can scroll/focus the matching form field.
+
+  it("appends ?focus=<fieldId> to property-edit hrefs when fieldId is provided", () => {
+    const target = resolveFieldMountPoint("property-edit/capital-raise", {
+      propertyId: 42,
+      fieldId: "capitalRaise1Amount",
+    });
+    expect(target).not.toBeNull();
+    expect(target!.href).toBe(
+      "/property/42/edit?focus=capitalRaise1Amount#capital-raise",
+    );
+    target!.navigate();
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/property/42/edit?focus=capitalRaise1Amount#capital-raise",
+    );
+  });
+
+  it("appends ?focus=<fieldId> to defaults/* hrefs when fieldId is provided", () => {
+    const target = resolveFieldMountPoint("defaults/revenue", {
+      fieldId: "defaultRevShareFb",
+    });
+    expect(target).not.toBeNull();
+    expect(target!.href).toBe(
+      "/admin?focus=defaultRevShareFb#defaults-property/revenue",
+    );
+    target!.navigate();
+    expect(setAdminSectionMock).toHaveBeenCalledWith("defaults-property");
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/admin?focus=defaultRevShareFb#defaults-property/revenue",
+    );
+  });
+
+  it("URL-encodes the focus fieldId so unusual characters don't corrupt the URL", () => {
+    const target = resolveFieldMountPoint("property-edit/capital-raise", {
+      propertyId: 1,
+      fieldId: "weird field/name",
+    });
+    expect(target!.href).toBe(
+      "/property/1/edit?focus=weird%20field%2Fname#capital-raise",
+    );
+  });
+
+  it("omits the focus query when no fieldId is supplied", () => {
+    const propertyTarget = resolveFieldMountPoint("property-edit/capital-raise", {
+      propertyId: 1,
+    });
+    expect(propertyTarget!.href).toBe("/property/1/edit#capital-raise");
+    const defaultsTarget = resolveFieldMountPoint("defaults/revenue");
+    expect(defaultsTarget!.href).toBe("/admin#defaults-property/revenue");
+  });
 });
