@@ -121,4 +121,51 @@ describe("resolveFieldMountPoint", () => {
     const defaultsTarget = resolveFieldMountPoint("defaults/revenue");
     expect(defaultsTarget!.href).toBe("/admin#defaults-property/revenue");
   });
+
+  // --- company-assumptions/<tab> slugs (task #760) -------------------------
+  // The Company Assumptions page mirrors the active tab to `?tab=<key>`,
+  // so company-scoped funding fields whose markers live in that page need
+  // their mountPoint to land on `/company/assumptions?tab=funding`, not on
+  // `/property/:id/edit` where their `data-field` markers don't exist.
+
+  it("resolves a company-assumptions slug to the matching tab without requiring a propertyId", () => {
+    const target = resolveFieldMountPoint("company-assumptions/funding");
+    expect(target).not.toBeNull();
+    expect(target!.href).toBe("/company/assumptions?tab=funding");
+    target!.navigate();
+    expect(navigateMock).toHaveBeenCalledWith("/company/assumptions?tab=funding");
+  });
+
+  it("appends ?focus=<fieldId> after the ?tab= param on company-assumptions hrefs", () => {
+    const target = resolveFieldMountPoint("company-assumptions/funding", {
+      fieldId: "capitalRaise1Amount",
+    });
+    expect(target).not.toBeNull();
+    expect(target!.href).toBe(
+      "/company/assumptions?tab=funding&focus=capitalRaise1Amount",
+    );
+    target!.navigate();
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/company/assumptions?tab=funding&focus=capitalRaise1Amount",
+    );
+  });
+
+  it("URL-encodes the focus fieldId for company-assumptions slugs", () => {
+    const target = resolveFieldMountPoint("company-assumptions/funding", {
+      fieldId: "weird field/name",
+    });
+    expect(target!.href).toBe(
+      "/company/assumptions?tab=funding&focus=weird+field%2Fname",
+    );
+  });
+
+  it("ignores propertyId for company-assumptions slugs (company-scoped surface)", () => {
+    const target = resolveFieldMountPoint("company-assumptions/funding", {
+      propertyId: 99,
+      fieldId: "capitalRaise2Amount",
+    });
+    expect(target!.href).toBe(
+      "/company/assumptions?tab=funding&focus=capitalRaise2Amount",
+    );
+  });
 });

@@ -25,7 +25,9 @@
  *      will format the dimension's value/range in ("%", "$", "mo", or ""
  *      for raw — same set the renderer's `formatNumber` already understands),
  *      and a `mountPoint` string identifying the UI surface (e.g.
- *      "property-edit/capital-raise" or "defaults/revenue").
+ *      "property-edit/<section>", "company-assumptions/<tab>", or
+ *      "defaults/<section>"). See `client/src/lib/analyst-mount-points.ts`
+ *      for the slug → URL resolver and the full list of supported prefixes.
  *   3. The Voice Renderer will pick up the label automatically; Specialists
  *      read the unit from this registry too (see `getFieldRegistryEntry`),
  *      so adding the entry is the only place the unit needs to live.
@@ -67,30 +69,35 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
   // Amount" is denominated in dollars on screen, but the Analyst dimension
   // it powers is `runwayBufferMonths`, which the Voice Renderer prints in
   // months. See the file header for the full rationale.
+  // Funding-tab fields are management-company-level (not property-level), so
+  // their `data-field` markers live in `client/src/components/company-assumptions/
+  // FundingSection.tsx`, which is rendered on `/company/assumptions?tab=funding`.
+  // Pointing the mount-point at `property-edit/*` here would land the user on
+  // the wrong surface and the focus hook would silently no-op (task #760).
   capitalRaise1Amount: {
     label: "Capital Raise 1 Amount",
     unit: "mo",
-    mountPoint: "property-edit/capital-raise",
+    mountPoint: "company-assumptions/funding",
   },
   capitalRaise2Amount: {
     label: "Capital Raise 2 Amount",
     unit: "%",
-    mountPoint: "property-edit/capital-raise",
+    mountPoint: "company-assumptions/funding",
   },
   capitalRaise2Date: {
     label: "Capital Raise 2 Date",
     unit: "mo",
-    mountPoint: "property-edit/capital-raise",
+    mountPoint: "company-assumptions/funding",
   },
   revenueRampDelayMonths: {
     label: "Revenue Ramp Delay",
     unit: "mo",
-    mountPoint: "property-edit/capital-raise",
+    mountPoint: "company-assumptions/funding",
   },
   burnFlexDownPct: {
     label: "Burn Flex Down",
     unit: "%",
-    mountPoint: "property-edit/capital-raise",
+    mountPoint: "company-assumptions/funding",
   },
 
   // ─── mgmt-co.revenue (Revenue Specialist) ───────────────────────────────

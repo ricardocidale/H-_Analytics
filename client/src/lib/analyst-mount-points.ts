@@ -1,7 +1,8 @@
 /**
  * Analyst mount-point resolver — turns the opaque routing slugs that live in
  * `engine/analyst/registry/field-registry.ts` (e.g. `property-edit/capital-raise`,
- * `defaults/revenue`) into concrete client-side navigation targets.
+ * `company-assumptions/funding`, `defaults/revenue`) into concrete client-side
+ * navigation targets.
  *
  * Why this lives in `client/src/`:
  * The engine-side field registry intentionally records mount points as opaque
@@ -15,6 +16,11 @@
  *     `propertyId` in context; returns `null` when one is not available, so
  *     callers without a property in scope (e.g. company-level surfaces) hide
  *     the CTA rather than producing a broken link.
+ *   - `company-assumptions/<tab>` → `/company/assumptions?tab=<tab>`. Used for
+ *     management-company-level fields (e.g. funding tranches) whose form
+ *     inputs live on the Company Assumptions tabs view rather than on a
+ *     property surface. Does NOT require a `propertyId` — the surface is
+ *     company-scoped (task #760).
  *   - `defaults/<section>` → the Property Defaults admin surface. The `<section>`
  *     is preserved in the URL fragment so future hash-aware code on the admin
  *     page can scroll to the named area.
@@ -79,6 +85,25 @@ export function resolveFieldMountPoint(
     if (ctx.propertyId == null || ctx.propertyId === "") return null;
     const section = slug.slice("property-edit/".length);
     const href = `/property/${ctx.propertyId}/edit${focusQuery(ctx.fieldId)}${section ? `#${section}` : ""}`;
+    return {
+      href,
+      navigate: () => navigate(href),
+    };
+  }
+
+  if (slug.startsWith("company-assumptions/")) {
+    // The Company Assumptions page mirrors its active tab to `?tab=<key>`
+    // (see `getInitialTab` in `client/src/pages/CompanyAssumptions.tsx`),
+    // so the slug's trailing segment becomes the tab query param. Field
+    // focus rides alongside it as `?focus=<fieldId>` — both params coexist
+    // in `window.location.search`, and the page's `useFocusFieldFromUrl()`
+    // hook already reads `focus` independently of `tab`.
+    const tab = slug.slice("company-assumptions/".length);
+    const params = new URLSearchParams();
+    if (tab) params.set("tab", tab);
+    if (ctx.fieldId) params.set(FOCUS_QUERY_PARAM, ctx.fieldId);
+    const qs = params.toString();
+    const href = `/company/assumptions${qs ? `?${qs}` : ""}`;
     return {
       href,
       navigate: () => navigate(href),
