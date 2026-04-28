@@ -8,7 +8,17 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 27, 2026 (latest) — v1 Funding Specialist shipped; Gaspar fixed; OTA4 cleanup done
+## Session: April 28, 2026 (latest) — G1.5c closed; Daniela (property.risk-intelligence) route handler wired; admin-link test fixed
+
+- **What shipped:** (1) G1.5c closed — S6 passed (`1addc5bf`) + 4 audit findings fixed (`2d46c186`) — phases.md updated. (2) G1.6-v1: `POST /api/analyst/refresh` extended with `scope:"property"` + `propertyId` + `property.risk-intelligence` branch (`runPropertyRiskIntelligenceV1Path`); UNWIRED comment removed from runner. (3) `property-edit-depreciation-band.test.tsx` admin-navigation test removed (violated user's "no front-of-app→admin links" rule). All five gates green.
+- **Key files changed:** `server/routes/analyst-admin.ts` (added imports + schema extension + Daniela branch + 3 helpers), `server/ai/specialists/property-risk-intelligence-runner.ts` (UNWIRED comment removed), `tests/client/property-edit-depreciation-band.test.tsx` (removed admin-nav link test), `.claude/phases.md` (G1.5c ✅, G1.6-v1 ✅, G2-v1 soak note).
+- **Replit follow-up needed (UI lane):** Update `PropertyEdit.tsx` placeholder — change `scope:"global-assumptions"` + `specialistId:"mgmt-co.funding"` to `scope:"property"` + `specialistId:"property.risk-intelligence"` + `propertyId:{id}`. Update `useAnalystRefresh` to accept + forward `propertyId`.
+- **G2-v1 (Revenue Specialist):** Unblocked — G1.5c ✅ + 1 session soak passed. Ready to start next session.
+- **Railway PR:** Replit opened a Railway PR this session — review pending.
+
+---
+
+## Session: April 27, 2026 — v1 Funding Specialist shipped; Gaspar fixed; OTA4 cleanup done
 
 - **What shipped:** v1 Funding Specialist E2E (S1-S5): Zod schema, prompt builders, `runFundingSpecialist` runner, 17 unit tests (CI-safe stubs), route branch in `analyst-admin.ts`. Gaspar (research-orchestrator) synthesis fixed: swapped `getAiSdkAnthropic()` (Vercel Gateway) → `createAnthropic()` from `@ai-sdk/anthropic`. Root cause: Gateway requires `AI_GATEWAY_API_KEY` not set on Railway/Replit. OTA4 cleanup: deleted `ai-sdk-clients.ts` + smoke test (both self-described as OTA4 throwaways). Predeploy storage reconcile workflow: removed push trigger (secrets not configured → every push was failing).
 - **Commits this session (HEAD = `38b0290e`):** `9c3da43a`→`7d8a0be3` (v1 S1-S5), `2078f71a` (db-url empty-string fix), `ee3a5540` (pnpm db:push arg fix), `ed816bc9` (test Gateway stub), `960b672e`+`1aa6bdeb` (CI test fixes), `9505c619` (Gaspar fix), `2f94ee36` (OTA4 cleanup), `38b0290e` (phases.md). All five gates green on every commit.
