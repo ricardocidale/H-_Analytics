@@ -138,6 +138,7 @@ export function generatePropertyProForma(
     const expenseIT = ctx.baseMonthlyTotalRev * ctx.costRateIT * fixedCostFactorGated;
     const expenseTaxes = ctx.totalPropertyValueDiv12 * ctx.costRateTaxes * fixedCostFactorGated;
     const expenseUtilitiesFixed = ctx.baseMonthlyTotalRev * (ctx.costRateUtilities * ctx.utilitiesFixedSplit) * fixedCostFactorGated;
+    const expenseEWW = expenseUtilitiesVar + expenseUtilitiesFixed;
     const expenseOtherCosts = ctx.baseMonthlyTotalRev * ctx.costRateOther * fixedCostFactorGated;
     const expenseInsurance = ctx.totalPropertyValueDiv12 * ctx.costRateInsurance * fixedCostFactorGated;
     
@@ -323,6 +324,7 @@ export function generatePropertyProForma(
       expenseIT,
       expenseTaxes,
       expenseUtilitiesFixed,
+      expenseEWW,
       expenseInsurance,
       expenseOtherCosts,
       expensePlatformFees,

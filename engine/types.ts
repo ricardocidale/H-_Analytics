@@ -263,6 +263,8 @@ export interface MonthlyFinancials {
   expenseIT: number;
   expenseTaxes: number;
   expenseUtilitiesFixed: number;
+  /** USALI 12th Edition EWW aggregate: expenseUtilitiesVar + expenseUtilitiesFixed */
+  expenseEWW: number;
   expenseInsurance: number;
   expenseOtherCosts: number;
   expensePlatformFees: number;
